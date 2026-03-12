@@ -17,6 +17,7 @@
         type ActionValueBadge,
         type ActionWorkerPlacement
     } from '$lib/utils/boardActionRowsUtils.js'
+    import { resolvePlacedActionValue } from '$lib/utils/actionWorkerValues.js'
     import {
         BUS_BUILDINGS_ACTION_SPOT_POINTS,
         BUS_BUSES_ACTION_SPOT_POINT,
@@ -44,32 +45,55 @@
     const HIGHLIGHT_ACTION_VALUE_FONT_SIZE = 18
 
     type AnimatedWorkerCylinder = {
+        key: string
         x: number
         y: number
+        playerId: string
         color: string
+        scale: number
+        opacity: number
+        badgeValue?: number
+    }
+
+    type AnimatedWorkerBadge = {
+        key: string
+        x: number
+        y: number
+        playerId: string
+        value: number
         scale: number
         opacity: number
     }
 
-    let animatedAddedWorkerCylinders: (AnimatedWorkerCylinder & {
-        key: string
-    })[] = $derived.by(() => {
+    let animatedAddedWorkerCylinders: AnimatedWorkerCylinder[] = $derived.by(() => {
         gameSession.gameState
         return []
     })
-    let animatedRemovedWorkerCylinders: (AnimatedWorkerCylinder & {
-        key: string
-    })[] = $derived.by(() => {
+    let animatedRemovedWorkerCylinders: AnimatedWorkerCylinder[] = $derived.by(() => {
+        gameSession.gameState
+        return []
+    })
+    let animatedAddedWorkerBadges: AnimatedWorkerBadge[] = $derived.by(() => {
+        gameSession.gameState
+        return []
+    })
+    let animatedRemovedWorkerBadges: AnimatedWorkerBadge[] = $derived.by(() => {
         gameSession.gameState
         return []
     })
 
     const workerCylinderAnimator = new WorkerCylinderAnimator(gameSession, {
-        onPlacementStart: ({ key, x, y, color, scale, opacity }) => {
+        onPlacementStart: ({ key, x, y, color, scale, opacity, playerId, badgeValue }) => {
             animatedAddedWorkerCylinders = [
                 ...animatedAddedWorkerCylinders,
-                { key, x, y, color, scale, opacity }
+                { key, x, y, color, scale, opacity, playerId, badgeValue }
             ]
+            if (badgeValue !== undefined) {
+                animatedAddedWorkerBadges = [
+                    ...animatedAddedWorkerBadges,
+                    { key, x, y, playerId, value: badgeValue, scale, opacity }
+                ]
+            }
         },
         onPlacementUpdate: ({ key, scale, opacity }) => {
             animatedAddedWorkerCylinders = animatedAddedWorkerCylinders.map((item) =>
@@ -81,15 +105,39 @@
                       }
                     : item
             )
+            animatedAddedWorkerBadges = animatedAddedWorkerBadges.map((item) =>
+                item.key === key
+                    ? {
+                          ...item,
+                          scale,
+                          opacity
+                      }
+                    : item
+            )
         },
-        onRemovalStart: ({ key, x, y, color, scale, opacity }) => {
+        onRemovalStart: ({ key, x, y, color, scale, opacity, playerId, badgeValue }) => {
             animatedRemovedWorkerCylinders = [
                 ...animatedRemovedWorkerCylinders,
-                { key, x, y, color, scale, opacity }
+                { key, x, y, color, scale, opacity, playerId, badgeValue }
             ]
+            if (badgeValue !== undefined) {
+                animatedRemovedWorkerBadges = [
+                    ...animatedRemovedWorkerBadges,
+                    { key, x, y, playerId, value: badgeValue, scale, opacity }
+                ]
+            }
         },
         onRemovalUpdate: ({ key, scale, opacity }) => {
             animatedRemovedWorkerCylinders = animatedRemovedWorkerCylinders.map((item) =>
+                item.key === key
+                    ? {
+                          ...item,
+                          scale,
+                          opacity
+                      }
+                    : item
+            )
+            animatedRemovedWorkerBadges = animatedRemovedWorkerBadges.map((item) =>
                 item.key === key
                     ? {
                           ...item,
@@ -249,38 +297,12 @@
         const phase4AvailableSiteCap =
             state.currentBuildingPhase === 4 ? state.board.openSitesForPhase(4).length : Number.POSITIVE_INFINITY
 
-        const playerBusValues = new Map<string, number>(
-            state.players.map((playerState) => [playerState.playerId, playerState.buses])
-        )
+        const myPlayerId = gameSession.myPlayer?.id
         const playerStickValues = new Map<string, number>(
             state.players.map((playerState) => [playerState.playerId, playerState.sticks])
         )
         const lineExpansionBaseValue =
             state.roundStartMaxBusValue + (state.players.length === 5 ? 1 : 0)
-        const myPlayerId = gameSession.myPlayer?.id
-
-        const expansionValuesBySelectionIndex = (() => {
-            const values = new Map<number, number>()
-            const remainingSticksByPlayer = new Map<string, number>(playerStickValues)
-
-            // Expansion executes left-to-right on the board row (F -> A), which corresponds to
-            // descending selection indices (5 -> 0) because index 0 is the A slot.
-            for (let selectionIndex = state.lineExpansionAction.length - 1; selectionIndex >= 0; selectionIndex -= 1) {
-                const playerId = state.lineExpansionAction[selectionIndex]
-                if (!playerId) {
-                    continue
-                }
-
-                const baseValue = Math.max(0, lineExpansionBaseValue - selectionIndex)
-                const remainingSticks = Math.max(0, remainingSticksByPlayer.get(playerId) ?? 0)
-                const value = Math.min(baseValue, remainingSticks)
-
-                values.set(selectionIndex, value)
-                remainingSticksByPlayer.set(playerId, Math.max(0, remainingSticks - value))
-            }
-
-            return values
-        })()
 
         const projectedExpansionHighlightValueBySelectionIndex = (() => {
             const values = new Map<number, number>()
@@ -301,43 +323,12 @@
                 const baseValue = Math.max(0, lineExpansionBaseValue - selectionIndex)
                 const remainingSticks = Math.max(0, remainingSticksByPlayer.get(playerId) ?? 0)
                 const value = Math.min(baseValue, remainingSticks)
-
                 values.set(selectionIndex, value)
                 remainingSticksByPlayer.set(playerId, Math.max(0, remainingSticks - value))
             }
 
             return values
         })()
-
-        const computeBuildingValuesBySelectionIndex = (
-            buildingAction: string[]
-        ): Map<number, number> => {
-            const values = new Map<number, number>()
-            let remainingSites = phase4AvailableSiteCap
-
-            // Buildings execute left-to-right on the board row (F -> A), which corresponds to
-            // descending selection indices (5 -> 0) because index 0 is the A slot.
-            for (
-                let selectionIndex = buildingAction.length - 1;
-                selectionIndex >= 0;
-                selectionIndex -= 1
-            ) {
-                const playerId = buildingAction[selectionIndex]
-                if (!playerId) {
-                    continue
-                }
-
-                const baseValue = Math.max(0, effectivePassengerAndBuildingBase - selectionIndex)
-                const value = Math.min(baseValue, remainingSites)
-
-                values.set(selectionIndex, value)
-                remainingSites = Math.max(0, remainingSites - value)
-            }
-
-            return values
-        }
-
-        const buildingValuesBySelectionIndex = computeBuildingValuesBySelectionIndex(state.buildingAction)
 
         const projectedBuildingHighlightValueBySelectionIndex = (() => {
             const values = new Map<number, number>()
@@ -347,7 +338,19 @@
             }
 
             const projectedBuildingAction = [...state.buildingAction, myPlayerId]
-            return computeBuildingValuesBySelectionIndex(projectedBuildingAction)
+            let remainingSites = phase4AvailableSiteCap
+            for (let selectionIndex = projectedBuildingAction.length - 1; selectionIndex >= 0; selectionIndex -= 1) {
+                const playerId = projectedBuildingAction[selectionIndex]
+                if (!playerId) {
+                    continue
+                }
+
+                const baseValue = Math.max(0, effectivePassengerAndBuildingBase - selectionIndex)
+                const value = Math.min(baseValue, remainingSites)
+                values.set(selectionIndex, value)
+                remainingSites = Math.max(0, remainingSites - value)
+            }
+            return values
         })()
 
         const resolveActionValue = (
@@ -358,12 +361,28 @@
             switch (actionType) {
                 case WorkerActionType.Expansion: {
                     if (playerId) {
-                        return expansionValuesBySelectionIndex.get(selectionIndex) ?? 0
+                        return (
+                            resolvePlacedActionValue({
+                                state,
+                                actionType,
+                                selectionIndex,
+                                playerId,
+                                myPlayerId
+                            }) ?? 0
+                        )
                     }
                     if (selectionIndex === state.lineExpansionAction.length) {
                         return projectedExpansionHighlightValueBySelectionIndex.get(selectionIndex) ?? 0
                     }
-                    return expansionValuesBySelectionIndex.get(selectionIndex) ?? 0
+                    return (
+                        resolvePlacedActionValue({
+                            state,
+                            actionType,
+                            selectionIndex,
+                            playerId: myPlayerId ?? '',
+                            myPlayerId
+                        }) ?? 0
+                    )
                 }
                 case WorkerActionType.Passengers: {
                     const passengerBase = Math.min(
@@ -374,21 +393,37 @@
                 }
                 case WorkerActionType.Buildings: {
                     if (playerId) {
-                        return buildingValuesBySelectionIndex.get(selectionIndex) ?? 0
+                        return (
+                            resolvePlacedActionValue({
+                                state,
+                                actionType,
+                                selectionIndex,
+                                playerId,
+                                myPlayerId
+                            }) ?? 0
+                        )
                     }
                     if (selectionIndex === state.buildingAction.length) {
                         return projectedBuildingHighlightValueBySelectionIndex.get(selectionIndex) ?? 0
                     }
-                    return buildingValuesBySelectionIndex.get(selectionIndex) ?? 0
+                    return (
+                        resolvePlacedActionValue({
+                            state,
+                            actionType,
+                            selectionIndex,
+                            playerId: myPlayerId ?? '',
+                            myPlayerId
+                        }) ?? 0
+                    )
                 }
                 case WorkerActionType.Vroom: {
-                    const effectivePlayerId = playerId ?? myPlayerId
-                    if (!effectivePlayerId) {
-                        return undefined
-                    }
-                    const baseBusValue = playerBusValues.get(effectivePlayerId) ?? 0
-                    const playerGetsBusBonus = state.busAction === effectivePlayerId
-                    return Math.max(0, baseBusValue + (playerGetsBusBonus ? 1 : 0))
+                    return resolvePlacedActionValue({
+                        state,
+                        actionType,
+                        selectionIndex,
+                        playerId: playerId ?? myPlayerId ?? '',
+                        myPlayerId
+                    })
                 }
                 default:
                     return undefined
@@ -498,6 +533,10 @@
         return textColorFromTailwindClass(gameSession.colors.getPlayerTextColor(playerId))
     }
 
+    function placementKeyForBadge(badgeKey: string): string | undefined {
+        return badgeKey.endsWith(':value') ? badgeKey.slice(0, -':value'.length) : undefined
+    }
+
     function handleActionSpotChoose(actionType: WorkerActionType) {
         void gameSession.chooseWorkerAction(actionType)
     }
@@ -546,41 +585,46 @@
 {/each}
 
 {#each actionValueBadges as badge (badge.key)}
-    <g class="pointer-events-none" aria-hidden="true">
-        {#if !badge.playerId}
-            <circle
-                cx={badge.point.x}
-                cy={badge.point.y}
-                r={HIGHLIGHT_ACTION_VALUE_CIRCLE_RADIUS}
-                fill={highlightValueCircleFillColor}
-                stroke={highlightValueCircleColor}
-                stroke-width={HIGHLIGHT_ACTION_VALUE_CIRCLE_STROKE_WIDTH}
-            ></circle>
-        {/if}
-        {#if badge.showText !== false && badge.value !== undefined}
-            <text
-                x={badge.point.x}
-                y={badge.point.y + (badge.playerId ? 0 : HIGHLIGHT_ACTION_VALUE_TEXT_Y_OFFSET)}
-                text-anchor="middle"
-                dominant-baseline="middle"
-                font-size={badge.playerId
-                    ? CYLINDER_ACTION_VALUE_FONT_SIZE
-                    : HIGHLIGHT_ACTION_VALUE_FONT_SIZE}
-                font-weight="700"
-                fill={badge.playerId
-                    ? actionValueTextColor(badge.playerId)
-                    : highlightValueTextColor}>{badge.value}</text
-            >
-        {/if}
-        {#if badge.showCenterDot}
-            <circle
-                cx={badge.point.x}
-                cy={badge.point.y}
-                r="3.2"
-                fill={badge.playerId ? actionValueTextColor(badge.playerId) : highlightValueTextColor}
-            ></circle>
-        {/if}
-    </g>
+    {@const relatedPlacementKey = placementKeyForBadge(badge.key)}
+    {#if !relatedPlacementKey ||
+        (!animatedAddedPlacementKeys.has(relatedPlacementKey) &&
+            !animatedRemovedPlacementKeys.has(relatedPlacementKey))}
+        <g class="pointer-events-none" aria-hidden="true">
+            {#if !badge.playerId}
+                <circle
+                    cx={badge.point.x}
+                    cy={badge.point.y}
+                    r={HIGHLIGHT_ACTION_VALUE_CIRCLE_RADIUS}
+                    fill={highlightValueCircleFillColor}
+                    stroke={highlightValueCircleColor}
+                    stroke-width={HIGHLIGHT_ACTION_VALUE_CIRCLE_STROKE_WIDTH}
+                ></circle>
+            {/if}
+            {#if badge.showText !== false && badge.value !== undefined}
+                <text
+                    x={badge.point.x}
+                    y={badge.point.y + (badge.playerId ? 0 : HIGHLIGHT_ACTION_VALUE_TEXT_Y_OFFSET)}
+                    text-anchor="middle"
+                    dominant-baseline="middle"
+                    font-size={badge.playerId
+                        ? CYLINDER_ACTION_VALUE_FONT_SIZE
+                        : HIGHLIGHT_ACTION_VALUE_FONT_SIZE}
+                    font-weight="700"
+                    fill={badge.playerId
+                        ? actionValueTextColor(badge.playerId)
+                        : highlightValueTextColor}>{badge.value}</text
+                >
+            {/if}
+            {#if badge.showCenterDot}
+                <circle
+                    cx={badge.point.x}
+                    cy={badge.point.y}
+                    r="3.2"
+                    fill={badge.playerId ? actionValueTextColor(badge.playerId) : highlightValueTextColor}
+                ></circle>
+            {/if}
+        </g>
+    {/if}
 {/each}
 
 {#each availableActionSpotHighlights as highlight (highlight.key)}
@@ -622,6 +666,25 @@
     />
 {/each}
 
+{#each animatedAddedWorkerBadges as addedBadge (addedBadge.key)}
+    <g
+        class="pointer-events-none"
+        aria-hidden="true"
+        opacity={addedBadge.opacity}
+        transform={`translate(${addedBadge.x + ACTION_CYLINDER_X_OFFSET} ${addedBadge.y + ACTION_CYLINDER_Y_OFFSET + ACTION_VALUE_CYLINDER_TEXT_Y_OFFSET}) scale(${addedBadge.scale})`}
+    >
+        <text
+            x="0"
+            y="0"
+            text-anchor="middle"
+            dominant-baseline="middle"
+            font-size={CYLINDER_ACTION_VALUE_FONT_SIZE}
+            font-weight="700"
+            fill={actionValueTextColor(addedBadge.playerId)}>{addedBadge.value}</text
+        >
+    </g>
+{/each}
+
 {#each animatedRemovedWorkerCylinders as removedCylinder (removedCylinder.key)}
     <WorkerCylinder
         x={removedCylinder.x + ACTION_CYLINDER_X_OFFSET}
@@ -630,6 +693,25 @@
         scale={removedCylinder.scale}
         opacity={removedCylinder.opacity}
     />
+{/each}
+
+{#each animatedRemovedWorkerBadges as removedBadge (removedBadge.key)}
+    <g
+        class="pointer-events-none"
+        aria-hidden="true"
+        opacity={removedBadge.opacity}
+        transform={`translate(${removedBadge.x + ACTION_CYLINDER_X_OFFSET} ${removedBadge.y + ACTION_CYLINDER_Y_OFFSET + ACTION_VALUE_CYLINDER_TEXT_Y_OFFSET}) scale(${removedBadge.scale})`}
+    >
+        <text
+            x="0"
+            y="0"
+            text-anchor="middle"
+            dominant-baseline="middle"
+            font-size={CYLINDER_ACTION_VALUE_FONT_SIZE}
+            font-weight="700"
+            fill={actionValueTextColor(removedBadge.playerId)}>{removedBadge.value}</text
+        >
+    </g>
 {/each}
 
 <style>

@@ -20,6 +20,7 @@ import {
     pushSinglePlacement,
     type ActionWorkerPlacement
 } from '$lib/utils/boardActionRowsUtils.js'
+import { resolvePlacedActionValue } from '$lib/utils/actionWorkerValues.js'
 import { StateAnimator } from './stateAnimator.js'
 import type { BusGameSession } from '$lib/model/session.svelte.js'
 
@@ -30,6 +31,8 @@ type AnimatedWorkerCylinderState = {
     color: string
     scale: number
     opacity: number
+    badgeValue?: number
+    playerId: string
 }
 
 type WorkerCylinderAnimatorCallbacks = {
@@ -146,7 +149,18 @@ export class WorkerCylinderAnimator extends StateAnimator<
                 y: removedPlacement.point.y,
                 color: this.gameSession.colors.getPlayerUiColor(removedPlacement.playerId),
                 scale: transient.scale,
-                opacity: transient.opacity
+                opacity: transient.opacity,
+                badgeValue:
+                    removedPlacement.selectionIndex !== undefined
+                        ? resolvePlacedActionValue({
+                              state: from,
+                              actionType: removedPlacement.actionType,
+                              selectionIndex: removedPlacement.selectionIndex,
+                              playerId: removedPlacement.playerId,
+                              myPlayerId: this.gameSession.myPlayer?.id
+                          })
+                        : undefined,
+                playerId: removedPlacement.playerId
             })
 
             animationContext.actionTimeline.to(
@@ -229,7 +243,18 @@ export class WorkerCylinderAnimator extends StateAnimator<
                 y: addedPlacement.point.y,
                 color: this.gameSession.colors.getPlayerUiColor(addedPlacement.playerId),
                 scale: transient.scale,
-                opacity: transient.opacity
+                opacity: transient.opacity,
+                badgeValue:
+                    addedPlacement.selectionIndex !== undefined
+                        ? resolvePlacedActionValue({
+                              state: to,
+                              actionType: addedPlacement.actionType,
+                              selectionIndex: addedPlacement.selectionIndex,
+                              playerId: addedPlacement.playerId,
+                              myPlayerId: this.gameSession.myPlayer?.id
+                          })
+                        : undefined,
+                playerId: addedPlacement.playerId
             })
 
             animationContext.actionTimeline.to(
