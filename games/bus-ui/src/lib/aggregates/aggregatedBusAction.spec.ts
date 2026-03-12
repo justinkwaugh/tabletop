@@ -16,7 +16,7 @@ function createBusAction(
 }
 
 describe('aggregateBusActions', () => {
-    it('preserves the first action index for history jumps', () => {
+    it('preserves stable index metadata for history replay rows', () => {
         const firstAction = createBusAction({
             id: 'a1',
             gameId: 'g1',
@@ -38,6 +38,7 @@ describe('aggregateBusActions', () => {
         if (!isAggregatedBusAction(aggregated)) {
             throw new Error('Expected aggregated bus action')
         }
+        expect(aggregated.id).toBe('aggregate:placeBusLine:17:18')
         expect(aggregated.index).toBe(17)
         expect(aggregated.lastActionIndex).toBe(18)
     })

@@ -1,6 +1,5 @@
 import { ActionSource, type GameAction } from '@tabletop/common'
 import { ActionType, type AddPassengers, type PlaceBuilding } from '@tabletop/bus'
-import { nanoid } from 'nanoid'
 
 export type AggregatedBusActionType =
     | ActionType.PlaceBusLine
@@ -35,13 +34,18 @@ export function aggregateBusActions(actions: GameAction[]): AggregatedBusAction 
     }
 
     const aggregatedType = first.type as AggregatedBusActionType
+    const firstActionIndex = first.index
+    const lastActionIndex = last?.index
 
     const aggregated: AggregatedBusAction = {
-        id: nanoid(),
+        id:
+            firstActionIndex !== undefined && lastActionIndex !== undefined
+                ? `aggregate:${aggregatedType}:${firstActionIndex}:${lastActionIndex}`
+                : first.id,
         gameId: first.gameId,
         source: first.source ?? ActionSource.User,
-        index: first.index,
-        lastActionIndex: last?.index,
+        index: firstActionIndex,
+        lastActionIndex,
         type: 'AggregatedBusAction',
         playerId: first.playerId,
         aggregatedType,
