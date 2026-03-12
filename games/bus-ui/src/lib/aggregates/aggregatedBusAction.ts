@@ -38,6 +38,7 @@ export function aggregateBusActions(actions: GameAction[]): AggregatedBusAction 
         id: nanoid(),
         gameId: first.gameId,
         source: first.source ?? ActionSource.User,
+        index: first.index,
         type: 'AggregatedBusAction',
         playerId: first.playerId,
         aggregatedType,
