@@ -104,8 +104,32 @@ export function resolvePlacedActionValue({
         case WorkerActionType.Expansion:
             return expansionValuesBySelectionIndex.get(selectionIndex) ?? 0
         case WorkerActionType.Passengers: {
-            const passengerBase = Math.min(effectivePassengerAndBuildingBase, state.passengers.length)
-            return Math.max(0, passengerBase - selectionIndex)
+            let remainingPassengers = state.passengers.length
+
+            for (
+                let resolvedSelectionIndex = 0;
+                resolvedSelectionIndex <= selectionIndex;
+                resolvedSelectionIndex += 1
+            ) {
+                const resolvedPlayerId = state.passengersAction[resolvedSelectionIndex]
+                if (!resolvedPlayerId) {
+                    continue
+                }
+
+                const baseValue = Math.max(
+                    0,
+                    effectivePassengerAndBuildingBase - resolvedSelectionIndex
+                )
+                const value = Math.min(baseValue, remainingPassengers)
+
+                if (resolvedSelectionIndex === selectionIndex) {
+                    return value
+                }
+
+                remainingPassengers = Math.max(0, remainingPassengers - value)
+            }
+
+            return 0
         }
         case WorkerActionType.Buildings:
             return buildingValuesBySelectionIndex.get(selectionIndex) ?? 0

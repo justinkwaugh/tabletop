@@ -330,6 +330,47 @@
             return values
         })()
 
+        const computePassengerValuesBySelectionIndex = (
+            passengerAction: string[]
+        ): Map<number, number> => {
+            const values = new Map<number, number>()
+            let remainingPassengers = state.passengers.length
+
+            for (
+                let selectionIndex = 0;
+                selectionIndex < passengerAction.length;
+                selectionIndex += 1
+            ) {
+                const playerId = passengerAction[selectionIndex]
+                if (!playerId) {
+                    continue
+                }
+
+                const baseValue = Math.max(0, effectivePassengerAndBuildingBase - selectionIndex)
+                const value = Math.min(baseValue, remainingPassengers)
+
+                values.set(selectionIndex, value)
+                remainingPassengers = Math.max(0, remainingPassengers - value)
+            }
+
+            return values
+        }
+
+        const passengerValuesBySelectionIndex = computePassengerValuesBySelectionIndex(
+            state.passengersAction
+        )
+
+        const projectedPassengerHighlightValueBySelectionIndex = (() => {
+            const values = new Map<number, number>()
+            const nextSelectionIndex = state.passengersAction.length
+            if (!myPlayerId || nextSelectionIndex >= BUS_PASSENGERS_ACTION_SPOT_POINTS.length) {
+                return values
+            }
+
+            const projectedPassengersAction = [...state.passengersAction, myPlayerId]
+            return computePassengerValuesBySelectionIndex(projectedPassengersAction)
+        })()
+
         const projectedBuildingHighlightValueBySelectionIndex = (() => {
             const values = new Map<number, number>()
             const nextSelectionIndex = state.buildingAction.length
@@ -385,11 +426,13 @@
                     )
                 }
                 case WorkerActionType.Passengers: {
-                    const passengerBase = Math.min(
-                        effectivePassengerAndBuildingBase,
-                        state.passengers.length
-                    )
-                    return Math.max(0, passengerBase - selectionIndex)
+                    if (playerId) {
+                        return passengerValuesBySelectionIndex.get(selectionIndex) ?? 0
+                    }
+                    if (selectionIndex === state.passengersAction.length) {
+                        return projectedPassengerHighlightValueBySelectionIndex.get(selectionIndex) ?? 0
+                    }
+                    return passengerValuesBySelectionIndex.get(selectionIndex) ?? 0
                 }
                 case WorkerActionType.Buildings: {
                     if (playerId) {
