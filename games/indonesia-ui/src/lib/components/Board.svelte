@@ -65,6 +65,16 @@
             viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`}
             aria-label="Indonesia board state layer"
         >
+            <g
+                class="board-era-watermark"
+                aria-hidden="true"
+                transform="translate(840 155)"
+            >
+                <text class="board-era-watermark__label" x="-76" y="0">Era</text>
+                <text class="board-era-watermark__value" x="114" y="0">
+                    {gameSession.gameState.era}
+                </text>
+            </g>
             <BoardCityReferenceCardLayer />
             {#if !debugOverlayActive}
                 <BoardDeedsLayer />
@@ -116,6 +126,34 @@
                 rgba(255, 255, 255, 0.012) 2px 7px
             ),
             #efe6dc;
+    }
+
+    .board-era-watermark {
+        pointer-events: none;
+        color: #6f5135;
+        opacity: 0.18;
+    }
+
+    .board-era-watermark__label {
+        font-family: 'scriptina-pro', cursive;
+        font-size: 118px;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        line-height: 1;
+        text-anchor: middle;
+        dominant-baseline: middle;
+        fill: currentColor;
+        paint-order: stroke fill;
+        stroke: rgba(255, 250, 241, 0.38);
+        stroke-width: 1.2;
+    }
+
+    .board-era-watermark__value {
+        font-family: 'scriptina-pro', cursive;
+        font-size: 101px;
+        text-anchor: middle;
+        dominant-baseline: middle;
+        fill: currentColor;
     }
 
     .board-surface {
