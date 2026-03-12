@@ -1,6 +1,6 @@
 import tailwindcss from '@tailwindcss/postcss'
 
-const scopePrefix = '[data-game-ui="indonesia"]'
+const scopePrefix = '[data-game-ui="{{kebabCase game}}"]'
 
 const scopeGameCssPlugin = {
     postcssPlugin: 'scope-game-css-plugin',
