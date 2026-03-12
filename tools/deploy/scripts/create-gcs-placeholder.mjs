@@ -85,6 +85,14 @@ const writeCachedToken = async (token) => {
     await fs.writeFile(tokenCachePath, JSON.stringify(payload), 'utf8')
 }
 
+const clearCachedToken = async () => {
+    try {
+        await fs.unlink(tokenCachePath)
+    } catch {
+        // ignore missing or unreadable cache
+    }
+}
+
 const resolveAccessToken = async () => {
     const envToken = process.env.TABLETOP_GCS_ACCESS_TOKEN?.trim()
     if (envToken) return envToken
@@ -97,16 +105,14 @@ const resolveAccessToken = async () => {
     return token
 }
 
-const createPlaceholder = async () => {
-    const { bucket, objectName, displayUrl } = readArgs()
-    const token = await resolveAccessToken()
+const uploadPlaceholder = async (bucket, objectName, token) => {
     const uploadUrl = new URL(
         `https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(bucket)}/o`
     )
     uploadUrl.searchParams.set('uploadType', 'media')
     uploadUrl.searchParams.set('name', objectName)
 
-    const response = await fetch(uploadUrl, {
+    return fetch(uploadUrl, {
         method: 'POST',
         headers: {
             Authorization: `Bearer ${token}`,
@@ -114,6 +120,18 @@ const createPlaceholder = async () => {
         },
         body: ''
     })
+}
+
+const createPlaceholder = async () => {
+    const { bucket, objectName, displayUrl } = readArgs()
+    let token = await resolveAccessToken()
+    let response = await uploadPlaceholder(bucket, objectName, token)
+
+    if (response.status === 401 && !process.env.TABLETOP_GCS_ACCESS_TOKEN?.trim()) {
+        await clearCachedToken()
+        token = await resolveAccessToken()
+        response = await uploadPlaceholder(bucket, objectName, token)
+    }
 
     if (!response.ok) {
         const details = await response.text()

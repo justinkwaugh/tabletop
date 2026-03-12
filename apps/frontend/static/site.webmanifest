@@ -1,6 +1,6 @@
 {
-    "name": "",
-    "short_name": "",
+    "name": "BoardTogether",
+    "short_name": "BT",
     "icons": [
         {
             "src": "/android-chrome-192x192.png",
@@ -10,5 +10,6 @@
     ],
     "theme_color": "#333333",
     "background_color": "#333333",
-    "display": "standalone"
+    "display": "standalone",
+    "start_url": "/?standalone=true"
 }

@@ -10,11 +10,40 @@ import {
 } from './deliveryCandidatePathing.js'
 import type {
     AtomicDeliveryCandidate,
-    AtomicDeliveryChoice
+    AtomicDeliveryChoice,
+    DeliveryOperationContext
 } from './deliveryCandidateTypes.js'
 
 export type { AtomicDeliveryCandidate, AtomicDeliveryChoice }
 export type { DeliveryOperationContext } from './deliveryCandidateTypes.js'
+
+function safeCandidateEquivalenceKey(candidate: AtomicDeliveryCandidate): string {
+    return [
+        candidate.zoneId,
+        candidate.shippingCompanyId,
+        candidate.cityId,
+        candidate.seaAreaIds.join('>')
+    ].join('|')
+}
+
+export function listSafeAtomicDeliveryCandidatesFromContext(
+    context: DeliveryOperationContext
+): AtomicDeliveryCandidate[] {
+    const candidates = listAtomicDeliveryCandidatesFromContext(context)
+    const isSafeByEquivalenceKey = new Map<string, boolean>()
+
+    return candidates.filter((candidate) => {
+        const equivalenceKey = safeCandidateEquivalenceKey(candidate)
+        const cachedIsSafe = isSafeByEquivalenceKey.get(equivalenceKey)
+        if (cachedIsSafe !== undefined) {
+            return cachedIsSafe
+        }
+
+        const isSafe = isSafeAtomicDeliveryCandidate(context, candidate)
+        isSafeByEquivalenceKey.set(equivalenceKey, isSafe)
+        return isSafe
+    })
+}
 
 export function listAtomicDeliveryCandidatesForPlayer(
     state: HydratedIndonesiaGameState,
@@ -37,9 +66,7 @@ export function listSafeAtomicDeliveryCandidatesForPlayer(
         return []
     }
 
-    return listAtomicDeliveryCandidatesFromContext(context).filter((candidate) =>
-        isSafeAtomicDeliveryCandidate(context, candidate)
-    )
+    return listSafeAtomicDeliveryCandidatesFromContext(context)
 }
 
 export function isSafeAtomicDeliveryChoiceForPlayer(

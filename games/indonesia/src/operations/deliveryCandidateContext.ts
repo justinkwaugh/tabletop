@@ -295,6 +295,8 @@ export function isSafeAtomicDeliveryCandidate(
         return false
     }
 
-    const residualPlan = solveDeliveryProblem(residualProblem)
+    const residualPlan = solveDeliveryProblem(residualProblem, {
+        includeCriticalDeliveries: false
+    })
     return residualPlan.totalDelivered >= remainingRequiredAfterCandidate
 }

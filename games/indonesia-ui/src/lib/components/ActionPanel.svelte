@@ -12,8 +12,7 @@
         ActionType,
         applyAtomicDeliveryCandidateToProblem,
         buildDeliveryOperationContext,
-        isSafeAtomicDeliveryCandidate,
-        listAtomicDeliveryCandidatesFromContext,
+        listSafeAtomicDeliveryCandidatesFromContext,
         type AtomicDeliveryCandidate,
         type DeliveryOperationContext,
         BID_RESEARCH_MULTIPLIERS,
@@ -1015,7 +1014,9 @@
             return nextProblem
         }
 
-        const residualPlan = solveDeliveryProblem(nextProblem)
+        const residualPlan = solveDeliveryProblem(nextProblem, {
+            includeCriticalDeliveries: false
+        })
         return residualPlan.totalDelivered >= remainingRequiredAfterCandidate &&
             residualPlan.deliveries.length >= minimumResidualRowCount
             ? nextProblem
@@ -1155,10 +1156,7 @@
         }
         const baselineRemainingRowCount = deliveryPlanForDisplay.deliveries.length
         const safeCandidatesForDisplay = candidateContextForDisplay
-            ? listAtomicDeliveryCandidatesFromContext(candidateContextForDisplay).filter(
-                  (candidate) =>
-                      isSafeAtomicDeliveryCandidate(candidateContextForDisplay, candidate)
-              )
+            ? listSafeAtomicDeliveryCandidatesFromContext(candidateContextForDisplay)
             : []
 
         const requiredQuantityByKey = new Map<string, number>()
@@ -1575,7 +1573,9 @@
                 selectedCustomDeliveryRouteOption
             )
             if (problemAfterCustomSelection) {
-                return solveDeliveryProblem(problemAfterCustomSelection).deliveries.length
+                return solveDeliveryProblem(problemAfterCustomSelection, {
+                    includeCriticalDeliveries: false
+                }).deliveries.length
             }
         }
 

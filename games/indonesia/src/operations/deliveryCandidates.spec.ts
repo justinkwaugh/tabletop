@@ -195,6 +195,10 @@ describe('deliveryCandidates', () => {
                 'ship-b|city-main|S14'
             ])
         )
+        expect(safeCandidates).toHaveLength(6)
+        expect(new Set(safeCandidates.map((candidate) => candidate.cultivatedAreaId))).toEqual(
+            new Set(['A01', 'A02', 'A03'])
+        )
     })
 
     it('treats a valid-but-unsafe choice as invalid for the safe-prefix rule', () => {
