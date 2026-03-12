@@ -110,13 +110,6 @@
 <div
     class="relative rounded-lg border border-gray-500 text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px] bg-black"
 >
-    {#if replayUiState}
-        <div
-            class="pointer-events-none absolute right-2 top-2 z-10 rounded border border-gray-600 bg-gray-950/90 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-gray-300"
-        >
-            Previewing action
-        </div>
-    {/if}
     <div class={`${replayUiState ? 'overflow-hidden' : 'overflow-auto'} h-full w-full`} bind:this={scrollContainer}>
         <Timeline class="ms-2 dark:border-gray-500">
             {#if showFinishedMarker}
@@ -139,7 +132,7 @@
                     role="button"
                     tabindex={canJumpToHistoryAction(action) && !replayUiState ? 0 : -1}
                     aria-disabled={replayUiState ? 'true' : undefined}
-                    class={`rounded-md transition-colors ${
+                    class={`relative rounded-md pb-2 transition-colors ${
                         replayUiState?.activeActionId === action.id
                             ? 'bg-gray-800/70 ring-1 ring-gray-500/80'
                             : replayUiState
@@ -161,6 +154,13 @@
                     out:fade={{ duration: 50 }}
                     animate:flip={{ duration: 100 }}
                 >
+                    {#if replayUiState?.activeActionId === action.id}
+                        <div
+                            class="pointer-events-none absolute right-2 top-1 z-10 rounded border border-gray-600 bg-gray-950/90 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-gray-300"
+                        >
+                            Replaying
+                        </div>
+                    {/if}
                     <div
                         class="absolute w-3 h-3 bg-gray-800 rounded-full mt-1.5 -start-1.5 border dark:border-gray-500 dark:bg-black"
                     ></div>
