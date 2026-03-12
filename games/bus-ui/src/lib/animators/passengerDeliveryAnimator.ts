@@ -44,7 +44,6 @@ type StagedSettlementDelivery = PassengerDelivery & {
 type PassengerDeliveryAnimatorCallbacks = {
     onStart: (passengers: Array<PassengerDelivery & { pose: PassengerPose }>) => void
     onUpdate: (passengerId: string, pose: PassengerPose) => void
-    onComplete: (passengerId: string) => void
 }
 
 const NODE_PASSENGER_HEIGHT = 74
@@ -322,9 +321,6 @@ export class PassengerDeliveryAnimator extends StateAnimator<
                 ease: 'power2.inOut',
                 onUpdate: () => {
                     this.callbacks.onUpdate(delivery.id, { ...pose })
-                },
-                onComplete: () => {
-                    this.callbacks.onComplete(delivery.id)
                 }
             },
             startAt + nodeTravelDuration

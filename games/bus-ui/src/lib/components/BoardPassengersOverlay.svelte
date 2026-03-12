@@ -238,15 +238,6 @@
                 height: pose.height
             })
             animatedDeliveringPassengers = next
-        },
-        onComplete: (passengerId) => {
-            if (!animatedDeliveringPassengers) {
-                return
-            }
-
-            const next = new Map(animatedDeliveringPassengers)
-            next.delete(passengerId)
-            animatedDeliveringPassengers = next.size > 0 ? next : undefined
         }
     })
 
@@ -260,6 +251,15 @@
 
     const passengerReturnAnimator = new PassengerReturnAnimator(gameSession, {
         onStart: (passengers) => {
+            if (animatedDeliveringPassengers) {
+                const remainingDeliveries = new Map(animatedDeliveringPassengers)
+                for (const passenger of passengers) {
+                    remainingDeliveries.delete(passenger.id)
+                }
+                animatedDeliveringPassengers =
+                    remainingDeliveries.size > 0 ? remainingDeliveries : undefined
+            }
+
             const next = new Map<string, ReturningPassengerPose>()
             for (const passenger of passengers) {
                 next.set(passenger.id, {
