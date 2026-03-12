@@ -8,7 +8,10 @@
         type BusRouteDefinition,
         type RouteRenderLayer
     } from '$lib/definitions/busLineRender.js'
-    import { BusLinePlacementRenderAnimator } from '$lib/animators/busLinePlacementRenderAnimator.js'
+    import {
+        BusLinePlacementRenderAnimator,
+        type AnimatedBusLineSegment
+    } from '$lib/animators/busLinePlacementRenderAnimator.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import type { BusGameSession } from '$lib/model/session.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -38,6 +41,10 @@
     let animatedBusLineOverrides: Map<string, BusNodeId[]> | undefined = $derived.by(() => {
         // Writable derived override: can be assigned pre-state-change by animator,
         // then automatically resets when gameState reactively updates.
+        gameSession.gameState
+        return undefined
+    })
+    let animatedGrowingBusLineSegment: AnimatedBusLineSegment | undefined = $derived.by(() => {
         gameSession.gameState
         return undefined
     })
@@ -144,8 +151,16 @@
     })
 
     const busLinePlacementRenderAnimator = new BusLinePlacementRenderAnimator(gameSession, {
-        onStart: (overrides) => {
+        onStart: ({ overrides, animatedSegment }) => {
             animatedBusLineOverrides = overrides
+            animatedGrowingBusLineSegment = animatedSegment
+        },
+        onUpdate: (animatedSegment) => {
+            animatedGrowingBusLineSegment = animatedSegment
+        },
+        onComplete: ({ overrides }) => {
+            animatedBusLineOverrides = overrides
+            animatedGrowingBusLineSegment = undefined
         }
     })
 
@@ -190,6 +205,82 @@
     const routeRenderLayers = $derived.by(() => {
         return computeBusRouteRenderLayers(routeDefinitions)
     })
+
+    const animatedGrowingRouteLayer = $derived.by(() => {
+        const animatedSegment = animatedGrowingBusLineSegment
+        if (!animatedSegment) {
+            return undefined
+        }
+
+        return routeRenderLayers.find((layer) => layer.id === animatedSegment.playerId)
+    })
+
+    const animatedGrowingRouteSegmentKey = $derived.by(() => {
+        const animatedSegment = animatedGrowingBusLineSegment
+        const routeLayer = animatedGrowingRouteLayer
+        if (!animatedSegment || !routeLayer) {
+            return undefined
+        }
+
+        return routeLayer.segments.find((segment) =>
+            segment.key.includes(`:${animatedSegment.sourceNodeId}-${animatedSegment.targetNodeId}:`)
+        )?.key
+    })
+
+    const animatedGrowingBusLineSegmentColor = $derived.by(() => {
+        if (!animatedGrowingBusLineSegment) {
+            return undefined
+        }
+
+        return gameSession.colors.getPlayerUiColor(animatedGrowingBusLineSegment.playerId)
+    })
+
+    const animatedGrowingBusLineSegmentPoints = $derived.by(() => {
+        const animatedSegment = animatedGrowingBusLineSegment
+        const routeLayer = animatedGrowingRouteLayer
+        const segmentKey = animatedGrowingRouteSegmentKey
+        if (!animatedSegment || !routeLayer || !segmentKey) {
+            return undefined
+        }
+
+        const baseSegment = routeLayer.segments.find((segment) => segment.key === segmentKey)
+        if (!baseSegment) {
+            return undefined
+        }
+
+        const progress = Math.max(0, Math.min(animatedSegment.progress, 1))
+        const dx = baseSegment.x2 - baseSegment.x1
+        const dy = baseSegment.y2 - baseSegment.y1
+        const length = Math.hypot(dx, dy)
+        const unitX = length === 0 ? 0 : dx / length
+        const unitY = length === 0 ? 0 : dy / length
+        const startOverlap = (ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH * 2) / 2
+
+        return {
+            x1: baseSegment.x1 - unitX * startOverlap,
+            y1: baseSegment.y1 - unitY * startOverlap,
+            x2: baseSegment.x1 + (baseSegment.x2 - baseSegment.x1) * progress,
+            y2: baseSegment.y1 + (baseSegment.y2 - baseSegment.y1) * progress,
+            progress
+        }
+    })
+
+    function shouldHideAnimatedRouteSegment(layerId: string, segmentKey: string): boolean {
+        return layerId === animatedGrowingBusLineSegment?.playerId && segmentKey === animatedGrowingRouteSegmentKey
+    }
+
+    function shouldHideAnimatedRouteArrow(layer: RouteRenderLayer, arrowKey: string): boolean {
+        const animatedSegment = animatedGrowingBusLineSegment
+        if (!animatedSegment || layer.id !== animatedSegment.playerId) {
+            return false
+        }
+
+        if (layer.segments.length === 1) {
+            return true
+        }
+
+        return arrowKey === `${layer.id}:arrow:end:${animatedSegment.targetNodeId}`
+    }
 
     const ambiguousPreviewTargetNodeId = $derived.by(() => {
         if (effectiveHoveredExtensionSegment) {
@@ -329,15 +420,17 @@
     <g class="pointer-events-none" aria-hidden="true">
         {#each routeRenderLayers as layer (layer.id)}
             {#each layer.segments as segment (`${segment.key}:outline`)}
-                <line
-                    x1={segment.x1}
-                    y1={segment.y1}
-                    x2={segment.x2}
-                    y2={segment.y2}
-                    stroke="#020617"
-                    stroke-width={ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH * 2}
-                    stroke-linecap="round"
-                />
+                {#if !shouldHideAnimatedRouteSegment(layer.id, segment.key)}
+                    <line
+                        x1={segment.x1}
+                        y1={segment.y1}
+                        x2={segment.x2}
+                        y2={segment.y2}
+                        stroke="#020617"
+                        stroke-width={ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH * 2}
+                        stroke-linecap="round"
+                    />
+                {/if}
             {/each}
 
             {#each layer.connectors as connector (`${connector.key}:outline`)}
@@ -352,16 +445,18 @@
             {/each}
 
             {#each layer.segments as segment (`${segment.key}:fill`)}
-                <line
-                    x1={segment.x1}
-                    y1={segment.y1}
-                    x2={segment.x2}
-                    y2={segment.y2}
-                    stroke={layer.color}
-                    stroke-width={ROUTE_STROKE_WIDTH}
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                />
+                {#if !shouldHideAnimatedRouteSegment(layer.id, segment.key)}
+                    <line
+                        x1={segment.x1}
+                        y1={segment.y1}
+                        x2={segment.x2}
+                        y2={segment.y2}
+                        stroke={layer.color}
+                        stroke-width={ROUTE_STROKE_WIDTH}
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    />
+                {/if}
             {/each}
 
             {#each layer.connectors as connector (`${connector.key}:fill`)}
@@ -376,9 +471,40 @@
             {/each}
 
             {#each layer.terminalArrows as arrow (arrow.key)}
-                <path d={arrow.d} fill="#ffffff" />
+                {#if !shouldHideAnimatedRouteArrow(layer, arrow.key)}
+                    <path d={arrow.d} fill="#ffffff" />
+                {/if}
             {/each}
         {/each}
+
+        {#if animatedGrowingBusLineSegmentPoints && animatedGrowingBusLineSegmentColor}
+            <line
+                x1={animatedGrowingBusLineSegmentPoints.x1}
+                y1={animatedGrowingBusLineSegmentPoints.y1}
+                x2={animatedGrowingBusLineSegmentPoints.x2}
+                y2={animatedGrowingBusLineSegmentPoints.y2}
+                stroke="#020617"
+                stroke-width={ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH * 2}
+                stroke-linecap="butt"
+            />
+            <line
+                x1={animatedGrowingBusLineSegmentPoints.x1}
+                y1={animatedGrowingBusLineSegmentPoints.y1}
+                x2={animatedGrowingBusLineSegmentPoints.x2}
+                y2={animatedGrowingBusLineSegmentPoints.y2}
+                stroke={animatedGrowingBusLineSegmentColor}
+                stroke-width={ROUTE_STROKE_WIDTH}
+                stroke-linecap="butt"
+            />
+            {#if animatedGrowingBusLineSegmentPoints.progress > 0}
+                <circle
+                    cx={animatedGrowingBusLineSegmentPoints.x2}
+                    cy={animatedGrowingBusLineSegmentPoints.y2}
+                    r={ROUTE_STROKE_WIDTH / 2}
+                    fill={animatedGrowingBusLineSegmentColor}
+                />
+            {/if}
+        {/if}
 
         {#each ambiguousPreviewLayers as layer, previewIndex (`${layer.id}:${previewIndex}`)}
             <g opacity="0.6">

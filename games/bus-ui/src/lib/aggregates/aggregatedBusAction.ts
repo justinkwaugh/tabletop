@@ -13,6 +13,7 @@ export type AggregatedBusAction = GameAction & {
     playerId: string
     aggregatedType: AggregatedBusActionType
     count: number
+    lastActionIndex?: number
     totalPassengersAdded?: number
     buildingType?: string
     mixedBuildingTypes?: boolean
@@ -28,6 +29,7 @@ export function aggregateBusActions(actions: GameAction[]): AggregatedBusAction 
     }
 
     const first = actions[0]
+    const last = actions[actions.length - 1]
     if (!first.playerId) {
         return first
     }
@@ -39,6 +41,7 @@ export function aggregateBusActions(actions: GameAction[]): AggregatedBusAction 
         gameId: first.gameId,
         source: first.source ?? ActionSource.User,
         index: first.index,
+        lastActionIndex: last?.index,
         type: 'AggregatedBusAction',
         playerId: first.playerId,
         aggregatedType,

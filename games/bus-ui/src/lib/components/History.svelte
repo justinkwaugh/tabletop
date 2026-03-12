@@ -9,6 +9,7 @@
     import { ClockSolid } from 'flowbite-svelte-icons'
     import { PlayerName } from '@tabletop/frontend-components'
     import ActionDescription from './ActionDescription.svelte'
+    import { isAggregatedBusAction } from '$lib/aggregates/aggregatedBusAction.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { aggregateActions } from '$lib/utils/actionAggregator.js'
 
@@ -36,6 +37,24 @@
         return action.source !== ActionSource.System && typeof action.index === 'number'
     }
 
+    function replayRangeForAction(action: GameAction): { startIndex: number; endIndex: number } | null {
+        if (!canJumpToHistoryAction(action)) {
+            return null
+        }
+
+        if (isAggregatedBusAction(action)) {
+            return {
+                startIndex: action.index as number,
+                endIndex: action.lastActionIndex ?? (action.index as number)
+            }
+        }
+
+        return {
+            startIndex: action.index as number,
+            endIndex: action.index as number
+        }
+    }
+
     async function jumpToHistoryAction(action: GameAction) {
         if (!canJumpToHistoryAction(action)) {
             return
@@ -43,6 +62,15 @@
         await gameSession.history.goToActionIndex(action.index as number)
         await tick()
         scrollContainer?.scrollTo({ top: 0, behavior: 'auto' })
+    }
+
+    async function replayHistoryAction(action: GameAction) {
+        const replayRange = replayRangeForAction(action)
+        if (!replayRange) {
+            return
+        }
+
+        await gameSession.history.replayRange(replayRange.startIndex, replayRange.endIndex)
     }
 </script>
 
@@ -69,9 +97,15 @@
             {#each reversedActions as action, i (action.id)}
                 <div
                     role="button"
-                    tabindex={-1}
-                    onfocus={() => {}}
-                    onkeypress={() => {}}
+                    tabindex={canJumpToHistoryAction(action) ? 0 : -1}
+                    onclick={async () => await replayHistoryAction(action)}
+                    onkeydown={async (event) => {
+                        if (event.key !== 'Enter' && event.key !== ' ') {
+                            return
+                        }
+                        event.preventDefault()
+                        await replayHistoryAction(action)
+                    }}
                     in:fade={{ duration: 200, easing: quartIn }}
                     out:fade={{ duration: 50 }}
                     animate:flip={{ duration: 100 }}
@@ -93,7 +127,10 @@
                                     class="inline-flex items-center gap-0 rounded px-0 py-0 text-gray-400 opacity-100 transition-colors hover:bg-gray-700/20 hover:text-gray-200 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500/70"
                                     aria-label="Jump to this action in history"
                                     title="Jump to this action in history"
-                                    onclick={async () => await jumpToHistoryAction(action)}
+                                    onclick={async (event) => {
+                                        event.stopPropagation()
+                                        await jumpToHistoryAction(action)
+                                    }}
                                 >
                                     <svg
                                         class="w-[8px] h-[8px] self-center"

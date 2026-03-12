@@ -35,6 +35,10 @@ describe('aggregateBusActions', () => {
         const aggregated = aggregateBusActions([firstAction, secondAction])
 
         expect(isAggregatedBusAction(aggregated)).toBe(true)
+        if (!isAggregatedBusAction(aggregated)) {
+            throw new Error('Expected aggregated bus action')
+        }
         expect(aggregated.index).toBe(17)
+        expect(aggregated.lastActionIndex).toBe(18)
     })
 })

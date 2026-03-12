@@ -7,6 +7,7 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
 - Treat bugs as deterministic unless proven otherwise. If behavior is wrong, there is a causal chain to identify.
 - Default to root-cause fixes, not symptom suppression.
 - Do not add guards, narrowing, fallback behavior, or render-path overrides unless you can explain the exact bad state/render path they are blocking.
+- If you are explaining a root cause and still using guessing words like `probably`, `maybe`, or `likely`, then you have not identified the root cause yet.
 - Before fixing a bug, be able to state:
   - the exact symptom
   - the upstream cause

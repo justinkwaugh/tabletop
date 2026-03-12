@@ -1,4 +1,5 @@
-import { GameSession } from '@tabletop/frontend-components'
+import { GameSession, type AnimationContext } from '@tabletop/frontend-components'
+import type { GameAction } from '@tabletop/common'
 import {
     AddPassengers,
     ActionType,
@@ -213,6 +214,23 @@ export class BusGameSession extends GameSession<BusGameState, HydratedBusGameSta
 
     override beforeNewState(): void {
         this.resetAction()
+    }
+
+    override async onGameStateChange({
+        action,
+        animationContext
+    }: {
+        to: HydratedBusGameState
+        from?: HydratedBusGameState
+        action?: GameAction
+        animationContext: AnimationContext
+    }) {
+        if (!action || this.processingActions) {
+            return
+        }
+
+        // Keep non-interactive Bus action playback readable without slowing active local play.
+        animationContext.ensureDuration(0.75)
     }
 
     async placeBuilding(siteId: BuildingSiteId, buildingType: BuildingType) {

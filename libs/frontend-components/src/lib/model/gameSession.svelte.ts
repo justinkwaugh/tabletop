@@ -42,7 +42,7 @@ import type { ChatService } from '$lib/services/chatService'
 import type { GameService } from '$lib/services/gameService.js'
 import { GameSessionBridge } from '$lib/services/bridges/gameSessionBridge.svelte.js'
 import { GameContext } from './gameContext.svelte.js'
-import { GameHistory } from './gameHistory.svelte.js'
+import { GameHistory, type HistoryAnimationIntent } from './gameHistory.svelte.js'
 import { GameActionResults } from './gameActionResults.svelte.js'
 import { GameColors } from './gameColors.svelte.js'
 import { GameExplorations } from './gameExplorations.svelte.js'
@@ -99,6 +99,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private actionsToProcess: GameAction[] = []
 
     private gameStateChangeListeners: Set<GameStateChangeListener<U>> = new Set()
+    private visibleTransitionWaiters: Array<() => void> = []
+    private pendingHistoryAnimationIntent?: HistoryAnimationIntent = $state()
 
     private gameContext: GameContext<T, U>
     explorationContext?: GameContext<T, U> = $state()
@@ -411,14 +413,16 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         })
 
         this.history = new GameHistory(this.gameContext, {
-            onHistoryAction: (action, animationRequested) =>
-                this.onHistoryAction(action, animationRequested),
+            onHistoryAction: (action, animationIntent) =>
+                this.onHistoryAction(action, animationIntent),
             shouldAutoStepAction: (action, next) => this.shouldAutoStepAction(action, next),
-            onHistoryExit: () => {
+            onHistoryExit: (animationIntent) => {
                 this.suppressStateChangeActions = true
                 this.isExitingHistory = true
+                this.pendingHistoryAnimationIntent = animationIntent ?? 'state-only'
                 this.onHistoryExit()
-            }
+            },
+            waitForTransitionSettled: () => this.waitForVisibleTransitionSettled()
         })
 
         this.explorations = new GameExplorations<T, U>(
@@ -475,6 +479,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                             // console.log('Notify setting updatingState to false')
                             this.updatingVisibleState = false
                             this.isExitingHistory = false
+                            this.resolveVisibleTransitionWaiters()
                         })
                 }
             )
@@ -506,9 +511,36 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return this.busy
     }
 
+    async waitForVisibleTransitionSettled(): Promise<void> {
+        await new Promise<void>((resolve) => {
+            queueMicrotask(resolve)
+        })
+
+        if (!this.updatingVisibleState) {
+            return
+        }
+
+        await new Promise<void>((resolve) => {
+            this.visibleTransitionWaiters.push(resolve)
+        })
+    }
+
+    private resolveVisibleTransitionWaiters() {
+        if (this.visibleTransitionWaiters.length === 0) {
+            return
+        }
+
+        const waiters = this.visibleTransitionWaiters
+        this.visibleTransitionWaiters = []
+        for (const resolve of waiters) {
+            resolve()
+        }
+    }
+
     async notifyStateChangeListeners(newState: U, oldState?: U) {
         // console.log('Notifying state change listeners')
         const actions: GameAction[] = []
+        const historyAnimationIntent = this.pendingHistoryAnimationIntent
 
         if (!this.suppressStateChangeActions && oldState && newState.gameId === oldState.gameId) {
             if (newState.actionCount >= oldState.actionCount) {
@@ -516,10 +548,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             }
         }
         this.suppressStateChangeActions = false
+        this.pendingHistoryAnimationIntent = undefined
 
-        // With actions, generate intermediate states and notify for each, giving each their own
-        // timeline so that the action animations will be sequenced properly
-        if (oldState && actions.length > 0) {
+        if (historyAnimationIntent === 'none') {
+            // Silent history replay setup/restore should swap visible state without any transition noise.
+        } else if (oldState && actions.length > 0) {
+            // With actions, generate intermediate states and notify for each, giving each their own
+            // timeline so that the action animations will be sequenced properly
             let priorState = oldState.dehydrate()
 
             for (const action of actions) {
@@ -926,11 +961,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     willUndo(_action: GameAction) {}
 
-    onHistoryAction(_action?: GameAction, animationRequested: boolean = false) {
-        if (!animationRequested) {
+    onHistoryAction(
+        _action?: GameAction,
+        animationIntent: HistoryAnimationIntent = 'state-only'
+    ) {
+        this.pendingHistoryAnimationIntent = animationIntent
+
+        if (animationIntent !== 'full-action') {
             this.suppressStateChangeActions = true
-        } else {
-            console.log('onHistoryAction requesting animations')
         }
     }
 

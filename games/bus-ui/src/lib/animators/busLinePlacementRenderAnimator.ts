@@ -1,6 +1,8 @@
 import type { AnimationContext } from '@tabletop/frontend-components'
 import type { GameAction } from '@tabletop/common'
+import { gsap } from 'gsap'
 import {
+    isPlaceBusLine,
     isBusNodeId,
     type BusGameState,
     type BusNodeId,
@@ -9,8 +11,20 @@ import {
 import { StateAnimator } from './stateAnimator.js'
 import type { BusGameSession } from '$lib/model/session.svelte.js'
 
+export type AnimatedBusLineSegment = {
+    playerId: string
+    sourceNodeId: BusNodeId
+    targetNodeId: BusNodeId
+    progress: number
+}
+
 type BusLinePlacementRenderAnimatorCallbacks = {
-    onStart: (overrides: Map<string, BusNodeId[]>) => void
+    onStart: (args: {
+        overrides: Map<string, BusNodeId[]>
+        animatedSegment?: AnimatedBusLineSegment
+    }) => void
+    onUpdate: (animatedSegment: AnimatedBusLineSegment) => void
+    onComplete: (args: { overrides: Map<string, BusNodeId[]> }) => void
 }
 
 export class BusLinePlacementRenderAnimator extends StateAnimator<
@@ -25,10 +39,24 @@ export class BusLinePlacementRenderAnimator extends StateAnimator<
         super(gameSession)
     }
 
+    private lineOverridesForState(
+        state: HydratedBusGameState
+    ): Map<string, BusNodeId[]> {
+        const overrides = new Map<string, BusNodeId[]>()
+        for (const playerState of state.players) {
+            if (!playerState.busLine.every(isBusNodeId)) {
+                continue
+            }
+            overrides.set(playerState.playerId, [...playerState.busLine])
+        }
+        return overrides
+    }
+
     override async onGameStateChange({
         to,
         from,
-        animationContext: _animationContext
+        action,
+        animationContext
     }: {
         to: HydratedBusGameState
         from?: HydratedBusGameState
@@ -52,14 +80,52 @@ export class BusLinePlacementRenderAnimator extends StateAnimator<
             return
         }
 
-        const overrides = new Map<string, BusNodeId[]>()
-        for (const playerState of to.players) {
-            if (!playerState.busLine.every(isBusNodeId)) {
-                continue
-            }
-            overrides.set(playerState.playerId, [...playerState.busLine])
+        const finalOverrides = this.lineOverridesForState(to)
+        if (
+            !action ||
+            !isPlaceBusLine(action) ||
+            !isBusNodeId(action.segment[0]) ||
+            !isBusNodeId(action.segment[1])
+        ) {
+            this.callbacks.onStart({ overrides: finalOverrides })
+            return
         }
 
-        this.callbacks.onStart(overrides)
+        const sourceNodeId = action.segment[0]
+        const targetNodeId = action.segment[1]
+        const priorLine = fromPlayerLineById.get(action.playerId)
+        const nextLine = to.players.find((playerState) => playerState.playerId === action.playerId)?.busLine
+        if (!priorLine?.every(isBusNodeId) || !nextLine?.every(isBusNodeId)) {
+            this.callbacks.onStart({ overrides: finalOverrides })
+            return
+        }
+
+        const animatedSegment: AnimatedBusLineSegment = {
+            playerId: action.playerId,
+            sourceNodeId,
+            targetNodeId,
+            progress: 0
+        }
+
+        this.callbacks.onStart({
+            overrides: finalOverrides,
+            animatedSegment
+        })
+
+        animationContext.actionTimeline.to(
+            animatedSegment,
+            {
+                progress: 1,
+                duration: 0.28,
+                ease: 'power2.out',
+                onUpdate: () => {
+                    this.callbacks.onUpdate({ ...animatedSegment })
+                },
+                onComplete: () => {
+                    this.callbacks.onComplete({ overrides: finalOverrides })
+                }
+            },
+            0
+        )
     }
 }
