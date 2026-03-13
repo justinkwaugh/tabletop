@@ -60,31 +60,17 @@
     const right = $derived(x + halfWidth)
     const top = $derived(y - halfHeight)
     const bottom = $derived(y + halfHeight)
+    const splitWidth = $derived(markerWidth / 2)
     const iconSquareSize = $derived(markerHeight)
     const iconSquareX = $derived(left)
     const iconSquareY = $derived(top)
-    const iconContentSquareX = $derived.by(() => {
-        if (direction === 'west') {
-            return right - iconSquareSize
-        }
-        return left
-    })
-    const iconCenterX = $derived(iconContentSquareX + iconSquareSize / 2)
+    const iconContentSquareX = $derived(left)
+    const iconCenterX = $derived(iconContentSquareX + splitWidth / 2)
     const iconCenterY = $derived(y)
     const iconHeight = $derived(iconSquareSize * 0.62)
     const spiceIconHeight = $derived(iconHeight * 0.92)
     const siapSajiIconHeight = $derived(iconHeight * 0.94)
-    const COUNT_CENTER_NUDGE_TOWARD_TAG_CENTER = 0.2
-    const countBaseOffsetFromCenter = $derived(iconSquareSize * 0.5)
-    const countOffsetFromCenter = $derived(
-        countBaseOffsetFromCenter * (1 - COUNT_CENTER_NUDGE_TOWARD_TAG_CENTER)
-    )
-    const countX = $derived.by(() => {
-        if (direction === 'west') {
-            return x - countOffsetFromCenter
-        }
-        return x + countOffsetFromCenter
-    })
+    const countX = $derived(x + splitWidth / 2)
     const countY = $derived(y)
     const primaryVisualHeight = $derived(height * 0.46)
     const countFontSize = $derived(Math.max(18, primaryVisualHeight))
@@ -96,18 +82,7 @@
     const borderColor = $derived(shadeHexColor(playerColor, 0.48))
     const shadowColor = $derived(shadeHexColor(playerColor, 0.74))
     const accentColor = $derived(shadeHexColor(playerColor, -0.12))
-    const bodyRotationDegrees = $derived.by(() => {
-        if (direction === 'north') {
-            return -90
-        }
-        if (direction === 'south') {
-            return 90
-        }
-        if (direction === 'west') {
-            return 180
-        }
-        return 0
-    })
+    const bodyRotationDegrees = $derived(0)
     const bodyTransform = $derived.by(() => `rotate(${bodyRotationDegrees} ${x} ${y})`)
     const bodyScaleTransform = $derived.by(() => {
         if (!highlighted) {
@@ -156,17 +131,15 @@
         const r = right
         const t = top
         const b = bottom
-        const cy = y
-        const w = markerWidth
-        const h = markerHeight
-        const radius = h * 0.22
+        const radius = markerHeight * 0.28
 
         return [
             `M ${l} ${t + radius}`,
             `Q ${l} ${t} ${l + radius} ${t}`,
-            `H ${r - w * 0.2}`,
-            `L ${r} ${cy}`,
-            `L ${r - w * 0.2} ${b}`,
+            `H ${r - radius}`,
+            `Q ${r} ${t} ${r} ${t + radius}`,
+            `V ${b - radius}`,
+            `Q ${r} ${b} ${r - radius} ${b}`,
             `H ${l + radius}`,
             `Q ${l} ${b} ${l} ${b - radius}`,
             `V ${t + radius}`,
@@ -174,14 +147,88 @@
         ].join(' ')
     })
 
+    function closestPointOnRoundedRectBoundary(
+        targetX: number,
+        targetY: number
+    ): { x: number; y: number } {
+        const radius = markerHeight * 0.28
+        const innerLeft = -halfWidth + radius
+        const innerRight = halfWidth - radius
+        const innerTop = -halfHeight + radius
+        const innerBottom = halfHeight - radius
+
+        const clampedX = Math.max(-halfWidth, Math.min(halfWidth, targetX))
+        const clampedY = Math.max(-halfHeight, Math.min(halfHeight, targetY))
+
+        const inLeftCorner = targetX < innerLeft && targetY < innerTop
+        const inRightCorner = targetX > innerRight && targetY < innerTop
+        const inBottomRightCorner = targetX > innerRight && targetY > innerBottom
+        const inBottomLeftCorner = targetX < innerLeft && targetY > innerBottom
+
+        if (inLeftCorner || inRightCorner || inBottomRightCorner || inBottomLeftCorner) {
+            const cornerCenterX = inLeftCorner || inBottomLeftCorner ? innerLeft : innerRight
+            const cornerCenterY = inLeftCorner || inRightCorner ? innerTop : innerBottom
+            const dx = targetX - cornerCenterX
+            const dy = targetY - cornerCenterY
+            const distance = Math.hypot(dx, dy)
+
+            if (distance < 0.001) {
+                return { x: cornerCenterX, y: cornerCenterY - radius }
+            }
+
+            return {
+                x: cornerCenterX + (dx / distance) * radius,
+                y: cornerCenterY + (dy / distance) * radius
+            }
+        }
+
+        const dxLeft = Math.abs(targetX + halfWidth)
+        const dxRight = Math.abs(halfWidth - targetX)
+        const dyTop = Math.abs(targetY + halfHeight)
+        const dyBottom = Math.abs(halfHeight - targetY)
+
+        const minDistance = Math.min(dxLeft, dxRight, dyTop, dyBottom)
+        if (minDistance === dxLeft) {
+            return { x: -halfWidth, y: clampedY }
+        }
+        if (minDistance === dxRight) {
+            return { x: halfWidth, y: clampedY }
+        }
+        if (minDistance === dyTop) {
+            return { x: clampedX, y: -halfHeight }
+        }
+
+        return {
+            x: clampedX,
+            y: halfHeight
+        }
+    }
+
     const connectorPath = $derived.by(() => {
         if (targetX === null || targetY === null) {
             return null
         }
 
-        const pennantTip = rotatePointAroundCenter(right, y, x, y, bodyRotationDegrees)
-        const startX = pennantTip.x
-        const startY = pennantTip.y
+        const localTarget = rotatePointAroundCenter(
+            targetX,
+            targetY,
+            x,
+            y,
+            -bodyRotationDegrees
+        )
+        const localBoundaryPoint = closestPointOnRoundedRectBoundary(
+            localTarget.x - x,
+            localTarget.y - y
+        )
+        const boundaryPoint = rotatePointAroundCenter(
+            x + localBoundaryPoint.x,
+            y + localBoundaryPoint.y,
+            x,
+            y,
+            bodyRotationDegrees
+        )
+        const startX = boundaryPoint.x
+        const startY = boundaryPoint.y
 
         const dx = targetX - startX
         const dy = targetY - startY
@@ -253,8 +300,8 @@
         <rect
             x={iconSquareX}
             y={iconSquareY}
-            width={iconSquareSize}
-            height={iconSquareSize}
+            width={splitWidth}
+            height={markerHeight}
             fill={goodsFillColor}
             clip-path={`url(#${bodyClipPathId})`}
         ></rect>

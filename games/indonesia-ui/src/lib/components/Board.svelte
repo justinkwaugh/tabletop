@@ -25,7 +25,28 @@
     let debugOverlayActive = $state(false)
     let debugOverlayEnabled = $state(false)
     let hoveredTurnOrderPlayerId = $state<string | null>(null)
-    let cityDemandViewMode = $state<CityDemandViewMode>('remaining')
+    let cityDemandViewMode = $state<CityDemandViewMode>('delivered')
+    const phaseLabel = $derived.by(() => {
+        const phaseName = gameSession.gameState.phaseManager.currentPhase?.name
+        switch (phaseName) {
+            case 'NewEra':
+                return 'PHASE 1: NEW ERA'
+            case 'BidForTurnOrder':
+                return 'PHASE 2: BID FOR TURN ORDER'
+            case 'Mergers':
+                return 'PHASE 3: MERGERS'
+            case 'Acquisitions':
+                return 'PHASE 4: ACQUISITIONS'
+            case 'ResearchAndDevelopment':
+                return 'PHASE 5: RESEARCH & DEVELOPMENT'
+            case 'Operations':
+                return 'PHASE 6: OPERATIONS'
+            case 'CityGrowth':
+                return 'PHASE 7: CITY GROWTH'
+            default:
+                return ''
+        }
+    })
     const cityDemandViewable = $derived.by(() => {
         const state = gameSession.gameState.machineState
         const inOperationsState =
@@ -66,17 +87,11 @@
 
 <div class="board-shell">
     <div class="board-surface relative h-[1280px] w-[2646px]">
+        {#if phaseLabel}
+            <div class="board-phase-label" aria-hidden="true">{phaseLabel}</div>
+        {/if}
         {#if cityDemandViewable}
             <div class="city-demand-toggle" role="group" aria-label="City demand view">
-                <button
-                    type="button"
-                    class:active={cityDemandViewMode === 'remaining'}
-                    onclick={() => {
-                        cityDemandViewMode = 'remaining'
-                    }}
-                >
-                    Demand
-                </button>
                 <button
                     type="button"
                     class:active={cityDemandViewMode === 'delivered'}
@@ -85,6 +100,15 @@
                     }}
                 >
                     Delivered
+                </button>
+                <button
+                    type="button"
+                    class:active={cityDemandViewMode === 'remaining'}
+                    onclick={() => {
+                        cityDemandViewMode = 'remaining'
+                    }}
+                >
+                    Demand
                 </button>
             </div>
         {/if}
@@ -199,6 +223,24 @@
 
     .board-image {
         filter: none;
+    }
+
+    .board-phase-label {
+        position: absolute;
+        top: 15px;
+        left: 50%;
+        z-index: 3;
+        transform: translateX(-50%);
+        color: rgba(94, 63, 39, 0.92);
+        font-family: 'Avenir Next', 'Helvetica Neue', sans-serif;
+        font-size: 28px;
+        font-weight: 300;
+        line-height: 1;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        text-shadow: 0 1px 0 rgba(255, 250, 241, 0.45);
+        pointer-events: none;
     }
 
     .city-demand-toggle {
