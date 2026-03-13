@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type GameAction } from '@tabletop/common'
+    import { ActionSource, type GameAction } from '@tabletop/common'
     import { PlayerName } from '@tabletop/frontend-components'
     import simpleOilImg from '$lib/images/simple-oil.svg'
     import simpleRiceImg from '$lib/images/simple-rice.svg'
@@ -716,11 +716,115 @@
         return bidActions
     }
 
+    function aggregatedMergerAuctionSummary(action: GameAction): {
+        resolved: boolean
+        winnerId: string | null
+        winningBid: number | null
+        mergeAction: GameAction | null
+        entries: Array<{
+            id: string
+            playerId: string
+            kind: 'pass' | 'bid'
+            bidAmount: number | null
+            firstIndex: number
+            lastIndex: number
+            forcedPass: boolean
+        }>
+    } {
+        if (
+            !isAggregatedIndonesiaAction(action) ||
+            action.aggregatedType !== ActionType.PlaceMergerBid ||
+            typeof action.index !== 'number'
+        ) {
+            return { resolved: false, winnerId: null, winningBid: null, mergeAction: null, entries: [] }
+        }
+
+        const lastActionPosition = gameSession.actions.findLastIndex((candidate) => {
+            if (candidate.index !== action.index) {
+                return false
+            }
+            return isMergeCompanies(candidate) || isPlaceMergerBid(candidate) || isPassMergerBid(candidate)
+        })
+        if (lastActionPosition === -1) {
+            return { resolved: false, winnerId: null, winningBid: null, mergeAction: null, entries: [] }
+        }
+
+        type PlayerAuctionSummary = {
+            id: string
+            playerId: string
+            firstIndex: number
+            lastIndex: number
+            highestBid: number | null
+            everBid: boolean
+            forcedPass: boolean
+        }
+
+        const playerSummaryById = new Map<string, PlayerAuctionSummary>()
+        let resolved = false
+        let winnerId: string | null = null
+        let winningBid: number | null = null
+        let mergeAction: GameAction | null = null
+
+        for (let position = lastActionPosition; position >= 0; position -= 1) {
+            const candidate = gameSession.actions[position]
+            if (isProposeMerger(candidate)) {
+                break
+            }
+
+            if (isMergeCompanies(candidate)) {
+                resolved = true
+                winnerId = candidate.metadata?.auctionResult.winnerId ?? null
+                winningBid = candidate.metadata?.auctionResult.highBid ?? null
+                mergeAction = candidate
+                continue
+            }
+
+            if ((!isPlaceMergerBid(candidate) && !isPassMergerBid(candidate)) || !candidate.playerId) {
+                break
+            }
+
+            const existing = playerSummaryById.get(candidate.playerId)
+            if (existing) {
+                if (isPlaceMergerBid(candidate)) {
+                    existing.everBid = true
+                    existing.highestBid = Math.max(existing.highestBid ?? candidate.amount, candidate.amount)
+                }
+                existing.firstIndex = candidate.index ?? existing.firstIndex
+                continue
+            }
+
+            playerSummaryById.set(candidate.playerId, {
+                id: candidate.id,
+                playerId: candidate.playerId,
+                firstIndex: candidate.index ?? Number.MIN_SAFE_INTEGER,
+                lastIndex: candidate.index ?? Number.MIN_SAFE_INTEGER,
+                highestBid: isPlaceMergerBid(candidate) ? candidate.amount : null,
+                everBid: isPlaceMergerBid(candidate),
+                forcedPass: isPassMergerBid(candidate) && candidate.source === ActionSource.System
+            })
+        }
+
+        const entries = [...playerSummaryById.values()]
+            .sort((left, right) => left.firstIndex - right.firstIndex)
+            .map((entry) => ({
+                id: entry.id,
+                playerId: entry.playerId,
+                firstIndex: entry.firstIndex,
+                lastIndex: entry.lastIndex,
+                kind: (entry.everBid ? 'bid' : 'pass') as 'bid' | 'pass',
+                bidAmount: entry.highestBid,
+                forcedPass: entry.forcedPass
+            }))
+
+        return { resolved, winnerId, winningBid, mergeAction, entries }
+    }
+
     function rendersPlayerList(action: GameAction): boolean {
         return (
             isAggregatedIndonesiaAction(action) &&
             (action.aggregatedType === ActionType.ChooseOperatingCompany ||
                 action.aggregatedType === ActionType.Pass ||
+                action.aggregatedType === ActionType.PlaceMergerBid ||
                 action.aggregatedType === ActionType.PlaceTurnOrderBid ||
                 action.aggregatedType === ActionType.PassMergerBid)
         )
@@ -910,6 +1014,73 @@
                 <PlayerName {playerId} additionalClasses="px-1.5" />
             {/each}
             {' declined to propose a merger'}
+        {:else if action.aggregatedType === ActionType.PlaceMergerBid}
+            {@const auctionSummary = aggregatedMergerAuctionSummary(action)}
+            {@const mergeAction = auctionSummary.mergeAction}
+            {@const unitIconSrc = mergeAction ? mergeUnitIconSrc(mergeAction) : null}
+            <span class="inline-flex flex-col items-start gap-1">
+                {#if auctionSummary.resolved && auctionSummary.winnerId}
+                    <span class="inline-flex flex-col items-start gap-1">
+                        <span>
+                            <PlayerName playerId={auctionSummary.winnerId} additionalClasses="pr-1" />
+                            won with a bid of {auctionSummary.winningBid ?? '?'}
+                        </span>
+                        {#if mergeAction && isMergeCompanies(mergeAction) && mergeAction.metadata?.ownerPayments}
+                            <span class="mt-1 inline-grid w-fit grid-cols-[max-content_24px_max-content] items-center gap-x-3 gap-y-0.5 rounded-xl border border-[#ad9c80]/40 bg-[#ede2dc] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27]">
+                                <span class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">
+                                    Paid To
+                                </span>
+                                <span class="flex items-center justify-center">
+                                    {#if unitIconSrc}
+                                        <img
+                                            src={unitIconSrc}
+                                            alt={mergeUnitLabel(mergeAction)}
+                                            class="h-[16px] w-[16px] object-contain"
+                                        />
+                                    {/if}
+                                </span>
+                                <span class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Amount</span>
+                                {#each mergeAction.metadata.ownerPayments as payout}
+                                    <span class="flex items-center">
+                                        <PlayerName playerId={payout.ownerId} />
+                                    </span>
+                                    <span class="text-center tabular-nums text-[#5e3f27]">
+                                        {payout.unitCount}
+                                    </span>
+                                    <span class="text-right tabular-nums text-[#5e3f27]">{payout.payout}</span>
+                                {/each}
+                            </span>
+                        {/if}
+                    </span>
+                {/if}
+                <span
+                    class={`inline-flex flex-col items-start gap-0.5 rounded-xl border border-[#ad9c80]/35 bg-[#f4ede8] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27] ${auctionSummary.resolved ? 'mt-2' : ''}`}
+                >
+                    <span class="mb-1 text-[0.76em] uppercase tracking-[0.08em] text-[#7a5d3f]">
+                        Bidding Summary
+                    </span>
+                    {#each auctionSummary.entries as entry (entry.id)}
+                        <span>
+                            {#if entry.kind === 'bid' && auctionSummary.resolved}
+                                <PlayerName
+                                    playerId={entry.playerId}
+                                    possessive={true}
+                                    additionalClasses="pr-1"
+                                />
+                                final bid {entry.bidAmount ?? '?'}{entry.forcedPass
+                                    ? ' (forced out)'
+                                    : ''}
+                            {:else if entry.kind === 'bid'}
+                                <PlayerName playerId={entry.playerId} additionalClasses="pr-1" />
+                                bid {entry.bidAmount ?? '?'}
+                            {:else}
+                                <PlayerName playerId={entry.playerId} additionalClasses="pr-1" />
+                                passed{entry.forcedPass ? ' (forced out)' : ''}
+                            {/if}
+                        </span>
+                    {/each}
+                </span>
+            </span>
         {:else if action.aggregatedType === ActionType.PlaceTurnOrderBid}
             <span class="inline-flex flex-col items-start gap-0.5">
                 {#each aggregatedTurnOrderBidActions(action) as bidAction (bidAction.id)}

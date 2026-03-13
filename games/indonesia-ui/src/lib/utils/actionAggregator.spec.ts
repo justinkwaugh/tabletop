@@ -86,6 +86,30 @@ function passMergerBidAction(id: string, playerId: string, index?: number): Game
     } as unknown as GameAction
 }
 
+function mergeCompaniesAction(
+    id: string,
+    winnerId: string,
+    highBid: number,
+    index?: number
+): GameAction {
+    return {
+        id,
+        gameId: 'g1',
+        source: ActionSource.System,
+        type: ActionType.MergeCompanies,
+        playerId: winnerId,
+        acquiringCompanyId: 'C1',
+        acquiredCompanyId: 'C2',
+        index,
+        metadata: {
+            auctionResult: {
+                winnerId,
+                highBid
+            }
+        }
+    } as unknown as GameAction
+}
+
 function deliverGoodAction(
     id: string,
     playerId: string,
@@ -245,7 +269,7 @@ describe('aggregateActions', () => {
         })
     })
 
-    it('keeps only the latest merger bidding action for each player in an auction', () => {
+    it('aggregates active merger bidding into a single auction summary group', () => {
         const actions = [
             proposeMergerAction('a1', 'p1', 'C1', 'C2', 1),
             placeMergerBidAction('a2', 'p1', 100, 2),
@@ -256,50 +280,39 @@ describe('aggregateActions', () => {
 
         const aggregated = Array.from(aggregateActions(actions))
 
-        expect(aggregated).toHaveLength(3)
+        expect(aggregated).toHaveLength(2)
         expect(aggregated[0]?.type).toBe(ActionType.ProposeMerger)
         expect(aggregated[1]).toMatchObject({
-            type: ActionType.PlaceMergerBid,
-            playerId: 'p1',
-            amount: 120,
-            index: 4
-        })
-        expect(aggregated[2]).toMatchObject({
             type: 'AggregatedIndonesiaAction',
-            aggregatedType: ActionType.PassMergerBid,
-            playerId: 'p2',
-            playerIds: ['p2'],
-            count: 1,
+            aggregatedType: ActionType.PlaceMergerBid,
+            playerId: 'p1',
+            playerIds: ['p1', 'p2', 'p1', 'p2'],
+            count: 4,
             index: 5
         })
     })
 
-    it('aggregates consecutive merger passes across players', () => {
+    it('absorbs merge resolution into the merger bidding summary when auction is over', () => {
         const actions = [
             proposeMergerAction('a1', 'p1', 'C1', 'C2', 1),
             placeMergerBidAction('a2', 'p1', 100, 2),
             passMergerBidAction('a3', 'p2', 3),
-            passMergerBidAction('a4', 'p3', 4),
-            passMergerBidAction('a5', 'p4', 5)
+            placeMergerBidAction('a4', 'p1', 120, 4),
+            passMergerBidAction('a5', 'p2', 5),
+            mergeCompaniesAction('a6', 'p1', 120, 6)
         ]
 
         const aggregated = Array.from(aggregateActions(actions))
 
-        expect(aggregated).toHaveLength(3)
+        expect(aggregated).toHaveLength(2)
         expect(aggregated[0]?.type).toBe(ActionType.ProposeMerger)
         expect(aggregated[1]).toMatchObject({
-            type: ActionType.PlaceMergerBid,
-            playerId: 'p1',
-            amount: 100,
-            index: 2
-        })
-        expect(aggregated[2]).toMatchObject({
             type: 'AggregatedIndonesiaAction',
-            aggregatedType: ActionType.PassMergerBid,
-            playerId: 'p2',
-            playerIds: ['p2', 'p3', 'p4'],
-            count: 3,
-            index: 5
+            aggregatedType: ActionType.PlaceMergerBid,
+            playerId: 'p1',
+            playerIds: ['p1', 'p2', 'p1', 'p2', 'p1'],
+            count: 5,
+            index: 6
         })
     })
 

@@ -6,6 +6,7 @@ import {
     isChooseOperatingCompany,
     isDeliverGood,
     isExpand,
+    isMergeCompanies,
     isPass,
     isPassMergerBid,
     isPlaceTurnOrderBid,
@@ -20,6 +21,7 @@ export type AggregatedIndonesiaActionType =
     | ActionType.Expand
     | ActionType.Pass
     | ActionType.PassMergerBid
+    | ActionType.PlaceMergerBid
     | ActionType.PlaceTurnOrderBid
     | ActionType.RemoveSiapSajiArea
 
@@ -49,6 +51,9 @@ function aggregatedTypeForAction(action: GameAction): AggregatedIndonesiaActionT
     }
     if (isPassMergerBid(action)) {
         return ActionType.PassMergerBid
+    }
+    if (isPlaceMergerBid(action)) {
+        return ActionType.PlaceMergerBid
     }
     if (isPlaceTurnOrderBid(action)) {
         return ActionType.PlaceTurnOrderBid
@@ -94,6 +99,7 @@ function aggregateIndonesiaActions(actions: GameAction[]): AggregatedIndonesiaAc
         playerId: first.playerId,
         ...(aggregatedType === ActionType.PassMergerBid ||
         aggregatedType === ActionType.Pass ||
+        aggregatedType === ActionType.PlaceMergerBid ||
         aggregatedType === ActionType.PlaceTurnOrderBid
             ? {
                   playerIds: actions
@@ -106,50 +112,6 @@ function aggregateIndonesiaActions(actions: GameAction[]): AggregatedIndonesiaAc
         count: aggregatedCount,
         createdAt: first.createdAt
     }
-}
-
-function collapseMergerAuctionActions(actions: GameAction[]): GameAction[] {
-    const collapsed: GameAction[] = []
-    let latestAuctionActionByPlayerId = new Map<string, GameAction>()
-    let activeAuction = false
-
-    function flushAuctionActions() {
-        if (latestAuctionActionByPlayerId.size === 0) {
-            return
-        }
-
-        const latestActions = [...latestAuctionActionByPlayerId.values()].sort((left, right) => {
-            const leftIndex = left.index ?? Number.MIN_SAFE_INTEGER
-            const rightIndex = right.index ?? Number.MIN_SAFE_INTEGER
-            return leftIndex - rightIndex
-        })
-        collapsed.push(...latestActions)
-        latestAuctionActionByPlayerId.clear()
-    }
-
-    for (const action of actions) {
-        if (isProposeMerger(action)) {
-            flushAuctionActions()
-            activeAuction = true
-            collapsed.push(action)
-            continue
-        }
-
-        if (activeAuction && (isPlaceMergerBid(action) || isPassMergerBid(action)) && action.playerId) {
-            latestAuctionActionByPlayerId.set(action.playerId, action)
-            continue
-        }
-
-        if (activeAuction) {
-            flushAuctionActions()
-            activeAuction = false
-        }
-
-        collapsed.push(action)
-    }
-
-    flushAuctionActions()
-    return collapsed
 }
 
 function isOperationPassAction(action: GameAction): boolean {
@@ -167,18 +129,26 @@ function isDeclineMergerAnnouncementPassAction(action: GameAction): boolean {
 }
 
 export function* aggregateActions(actions: GameAction[]) {
-    const collapsedAuctionActions = collapseMergerAuctionActions(actions)
     let currentPlayerId: string | undefined
     let currentAggregatedType: AggregatedIndonesiaActionType | null = null
     let aggregatedGroup: GameAction[] = []
 
-    for (const action of collapsedAuctionActions) {
+    for (const action of actions) {
         if (
             aggregatedGroup.length > 0 &&
             currentAggregatedType === ActionType.ChooseOperatingCompany &&
             currentPlayerId &&
             (isDeliverGood(action) || isExpand(action) || isOperationPassAction(action)) &&
             action.playerId === currentPlayerId
+        ) {
+            aggregatedGroup.push(action)
+            continue
+        }
+
+        if (
+            aggregatedGroup.length > 0 &&
+            currentAggregatedType === ActionType.PlaceMergerBid &&
+            (isPlaceMergerBid(action) || isPassMergerBid(action) || isMergeCompanies(action))
         ) {
             aggregatedGroup.push(action)
             continue
@@ -195,6 +165,7 @@ export function* aggregateActions(actions: GameAction[]) {
                 aggregatedType === currentAggregatedType &&
                 ((aggregatedType === ActionType.PassMergerBid ||
                     aggregatedType === ActionType.Pass ||
+                    aggregatedType === ActionType.PlaceMergerBid ||
                     aggregatedType === ActionType.PlaceTurnOrderBid) ||
                     action.playerId === currentPlayerId)
             ) {

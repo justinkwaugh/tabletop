@@ -21,15 +21,35 @@
 
     let gameSession = getGameSession()
 
-    let text = $derived.by(() => {
+    let baseText = $derived.by(() => {
         if (playerId === gameSession.myPlayer?.id) {
-            return 'you' + (possessive ? 'r' : '')
+            return 'you'
         } else if (possessive && playerId === possessivePlayerId) {
             return 'their'
         } else {
-            return gameSession.getPlayerName(playerId) + (possessive ? "'s" : '')
+            return gameSession.getPlayerName(playerId)
         }
     })
+
+    let suffixText = $derived.by(() => {
+        if (playerId === gameSession.myPlayer?.id) {
+            return possessive ? 'r' : ''
+        }
+        if (possessive && playerId === possessivePlayerId) {
+            return ''
+        }
+        return possessive ? "'s" : ''
+    })
+
+    let text = $derived(`${baseText}${suffixText}`)
+
+    let transformClass = $derived(
+        capitalization === 'uppercase'
+            ? 'uppercase'
+            : capitalization === 'lowercase'
+              ? 'lowercase'
+              : ''
+    )
 </script>
 
 {#if possessive && plainSelfPossessive && (playerId === gameSession.myPlayer?.id || playerId === possessivePlayerId)}
@@ -39,13 +59,12 @@
         style="font-family:{fontFamily}"
         class="rounded px-2 {gameSession.colors.getPlayerBgColor(
             playerId
-        )} font-medium {gameSession.colors.getPlayerTextColor(playerId)} {capitalization ===
-        'capitalize'
-            ? 'capitalize'
-            : capitalization === 'uppercase'
-              ? 'uppercase'
-              : capitalization === 'lowercase'
-                ? 'lowercase'
-                : ''} {additionalClasses}">{text}</span
+        )} font-medium {gameSession.colors.getPlayerTextColor(playerId)} {transformClass} {additionalClasses}"
+    >
+        {#if capitalization === 'capitalize'}
+            <span class="capitalize">{baseText}</span>{suffixText}
+        {:else}
+            {text}
+        {/if}</span
     >
 {/if}
