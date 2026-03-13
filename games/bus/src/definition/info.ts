@@ -13,7 +13,7 @@ export const BusInfo: GameInfo = {
         maxPlayers: 5,
         defaultPlayerCount: 4,
         version: GAME_VERSION,
-        beta: true
+        beta: false
     },
     configurator: undefined
 }

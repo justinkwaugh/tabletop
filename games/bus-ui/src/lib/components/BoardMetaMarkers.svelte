@@ -10,7 +10,11 @@
         buildScoreMarkerPlacements,
         type ScoreMarkerPlacement
     } from '$lib/animators/scoreMarkerAnimator.js'
-    import { BUS_PASSENGER_SUPPLY_TEXT_POINT } from '$lib/definitions/busBoardGraph.js'
+    import {
+        BUS_BUILDING_PHASE_MARKER_POINT,
+        BUS_BUILDING_SUPPLY_TEXT_POINT,
+        BUS_PASSENGER_SUPPLY_TEXT_POINT
+    } from '$lib/definitions/busBoardGraph.js'
     import BusPieceIcon from '$lib/images/BusPieceIcon.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -27,6 +31,16 @@
     const BUS_TABLE_PIECE_SHADOW_RX = BUS_TABLE_PIECE_WIDTH * 0.36
     const BUS_TABLE_PIECE_SHADOW_RY = BUS_TABLE_PIECE_HEIGHT * 0.17
     const PASSENGER_SUPPLY_FONT_SIZE = 26
+    const BUILDING_SUPPLY_FONT_SIZE = 26
+    const BUILDING_PHASE_MARKER_RADIUS = 18
+    const BUILDING_PHASE_MARKER_TEXT_SIZE = 28
+
+    const BUILDING_PHASE_TEXT_COLOR_BY_PHASE: Record<number, string> = {
+        1: '#6fb6ab',
+        2: '#e38aa7',
+        3: '#d3d8e6',
+        4: '#f6e89a'
+    }
 
     type ScoreMarker = ScoreMarkerPlacement & { textColor: string; fillColor: string }
 
@@ -129,6 +143,12 @@
 
         return '#ffffff'
     }
+
+    const buildingsRemaining = $derived(gameSession.gameState.numSitesRemainingForCurrentPhase())
+
+    const buildingPhaseMarkerTextColor = $derived(
+        BUILDING_PHASE_TEXT_COLOR_BY_PHASE[gameSession.gameState.currentBuildingPhase] ?? '#ffffff'
+    )
 </script>
 
 {#each scoreMarkers as marker (marker.key)}
@@ -246,6 +266,40 @@
         paint-order="stroke fill"
     >
         {gameSession.gameState.passengers.length}
+    </text>
+</g>
+
+<g class="pointer-events-none" aria-hidden="true">
+    <text
+        x={BUS_BUILDING_SUPPLY_TEXT_POINT.x}
+        y={BUS_BUILDING_SUPPLY_TEXT_POINT.y}
+        text-anchor="middle"
+        dominant-baseline="middle"
+        font-size={BUILDING_SUPPLY_FONT_SIZE}
+        font-weight="700"
+        fill="#333333"
+        stroke="#f4efe3"
+        stroke-width="3"
+        paint-order="stroke fill"
+    >
+        {buildingsRemaining}
+    </text>
+    <circle
+        cx={BUS_BUILDING_PHASE_MARKER_POINT.x}
+        cy={BUS_BUILDING_PHASE_MARKER_POINT.y}
+        r={BUILDING_PHASE_MARKER_RADIUS}
+        fill="#15121b"
+    ></circle>
+    <text
+        x={BUS_BUILDING_PHASE_MARKER_POINT.x}
+        y={BUS_BUILDING_PHASE_MARKER_POINT.y + 2}
+        text-anchor="middle"
+        dominant-baseline="middle"
+        font-size={BUILDING_PHASE_MARKER_TEXT_SIZE}
+        font-weight="700"
+        fill={buildingPhaseMarkerTextColor}
+    >
+        {gameSession.gameState.currentBuildingPhase}
     </text>
 </g>
 

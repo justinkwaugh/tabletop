@@ -124,6 +124,9 @@ export const BUS_BUILDINGS_ACTION_SPOT_POINTS: Point[] = [
     { x: 1682, y: 705 }
 ]
 
+export const BUS_BUILDING_SUPPLY_TEXT_POINT: Point = { x: 1771, y: 740 }
+export const BUS_BUILDING_PHASE_MARKER_POINT: Point = { x: 1813, y: 689 }
+
 export const BUS_CLOCK_ACTION_SPOT_POINT: Point = { x: 1773, y: 793 }
 export const BUS_CLOCK_CENTER_POINT: Point = { x: 1506, y: 895 }
 export const BUS_TIME_STONE_BLUE_POINTS: Point[] = [
