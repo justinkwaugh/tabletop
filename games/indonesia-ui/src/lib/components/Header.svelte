@@ -5,8 +5,10 @@
 
     const gameSession = getGameSession()
 
-    const currentTurnPlayerId = $derived.by(
-        () => gameSession.gameState.turnManager.currentTurn()?.playerId
+    const currentHeaderPlayerId = $derived.by(
+        () =>
+            gameSession.gameState.activePlayerIds[0] ??
+            gameSession.gameState.turnManager.currentTurn()?.playerId
     )
 
     function back() {
@@ -34,7 +36,7 @@
                 class="inline-flex gap-x-1"
             >
                 <PlayerName
-                    playerId={currentTurnPlayerId}
+                    playerId={currentHeaderPlayerId}
                     capitalization="uppercase"
                     possessive={true}
                     additionalClasses="tracking-widest"
