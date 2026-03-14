@@ -15,6 +15,9 @@
     let {
         height = 'max-sm:h-[calc(100vh-44px-16px-32px-16px-24px-var(--table-height-offset)-var(--chat-height-offset))] sm:h-[calc(100vh-44px-16px-32px-16px-var(--table-height-offset)-var(--chat-height-offset))]',
         timeColor = 'text-gray-600',
+        messageTextColor = 'text-gray-200',
+        composerTextColor = 'text-gray-200',
+        messageHoverColor = 'hover:bg-gray-800',
         bgColor = 'bg-transparent',
         inputBgColor = 'bg-gray-700',
         inputBorderColor = 'border-gray-500',
@@ -22,6 +25,9 @@
     }: {
         height?: string
         timeColor?: string
+        messageTextColor?: string
+        composerTextColor?: string
+        messageHoverColor?: string
         bgColor?: string
         inputBgColor?: string
         inputBorderColor?: string
@@ -195,7 +201,7 @@
 {/snippet}
 
 {#snippet chatMessage(message: GameChatMessage)}
-    <div class="flex flex-row justify-start items-start gap-x-2 hover:bg-gray-800 py-2">
+    <div class="flex flex-row justify-start items-start gap-x-2 py-2 {messageHoverColor}">
         <div
             class="shrink-0 grow-0 flex justify-center items-center rounded-full {gameSession.colors.getPlayerBgColor(
                 message.playerId
@@ -208,7 +214,7 @@
         <div class="flex flex-col justify-center items-start">
             <p class="text-xs {timeColor}">{timeAgo.format(message.timestamp)}</p>
             {#each textSplit(message.text) as text}
-                <p class="text-gray-200">
+                <p class={messageTextColor}>
                     {#each getSpansForText(text) as span}
                         {#if span[1]}
                             <span class="text-2xl leading-none align-middle">{span[0]}</span>
@@ -250,12 +256,12 @@
         </div>
     </div>
     <div
-        class="grow-0 flex flex-row justify-between items-center w-full gap-x-2 text-sm text-gray-200"
+        class="grow-0 flex flex-row justify-between items-center w-full gap-x-2 text-sm {composerTextColor}"
     >
         {#if gameSession.myPlayer !== undefined}
             <EmojiPicker onPick={onEmojiPick} onHidden={onEmojiHide} />
         {/if}
-        <div class="grow-wrap w-full text-gray-200">
+        <div class="grow-wrap w-full {composerTextColor}">
             <textarea
                 bind:this={input}
                 bind:value={text}

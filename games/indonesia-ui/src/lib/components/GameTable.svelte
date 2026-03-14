@@ -4,7 +4,8 @@
         HistoryControls,
         DefaultTabs,
         DefaultTableLayout,
-        CustomFont
+        CustomFont,
+        GameChat
     } from '@tabletop/frontend-components'
     import type { GameSession } from '@tabletop/frontend-components'
 
@@ -72,6 +73,17 @@
                 {/snippet}
                 {#snippet history()}
                     <History />
+                {/snippet}
+                {#snippet chat()}
+                    <GameChat
+                        timeColor="text-[#8a715a]"
+                        messageTextColor="text-[#5e3f27]"
+                        composerTextColor="text-[#5e3f27]"
+                        messageHoverColor="hover:bg-[#e7dad1]"
+                        inputBgColor="bg-[#f6efe9]"
+                        inputBorderColor="border-[#ad9c80]"
+                        borderColor="border-[#ad9c80]"
+                    />
                 {/snippet}
             </DefaultTabs>
         {/snippet}
