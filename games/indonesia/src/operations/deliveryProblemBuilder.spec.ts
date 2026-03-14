@@ -252,4 +252,77 @@ describe('buildDeliveryProblem', () => {
         ])
         expect(shipBNetwork.seaLanes).toEqual([])
     })
+
+    it('treats C07, C01, and C09 as adjacent to S16 on the current graph', () => {
+        const state = createTestState()
+        const ownerId = state.players[0].playerId
+        const shippingOwnerId = state.players[1].playerId
+
+        state.companies = [
+            {
+                id: 'prod-1',
+                type: CompanyType.Production,
+                owner: ownerId,
+                deeds: [],
+                good: Good.Rice
+            },
+            {
+                id: 'ship-1',
+                type: CompanyType.Shipping,
+                owner: shippingOwnerId,
+                deeds: []
+            }
+        ]
+
+        state.board.areas['C07'] = {
+            id: 'C07',
+            type: AreaType.Cultivated,
+            companyId: 'prod-1',
+            good: Good.Rice
+        }
+        state.board.areas['S01'] = {
+            id: 'S01',
+            type: AreaType.Sea,
+            ships: ['ship-1']
+        }
+
+        state.board.addCity({
+            id: 'city-jawa-barat',
+            area: 'C01',
+            size: 1,
+            demand: {}
+        })
+        state.board.addCity({
+            id: 'city-jawa-tengah',
+            area: 'C09',
+            size: 1,
+            demand: {}
+        })
+
+        const problem = buildDeliveryProblem(state, 'prod-1')
+
+        expect(problem.zoneSupplies).toEqual([
+            {
+                zoneId: 'prod-1:zone:1',
+                areaIds: ['C07'],
+                adjacentSeaAreaIds: ['S16'],
+                supply: 1
+            }
+        ])
+
+        expect(problem.cityDemands).toEqual([
+            {
+                cityId: 'city-jawa-barat',
+                cityAreaId: 'C01',
+                adjacentSeaAreaIds: ['S03', 'S16'],
+                remainingDemand: 1
+            },
+            {
+                cityId: 'city-jawa-tengah',
+                cityAreaId: 'C09',
+                adjacentSeaAreaIds: ['S10', 'S15', 'S16'],
+                remainingDemand: 1
+            }
+        ])
+    })
 })

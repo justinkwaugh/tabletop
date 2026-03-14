@@ -215,32 +215,14 @@ export class HydratedDeliverGood extends HydratableAction<typeof DeliverGood> im
             return null
         }
 
-        const criticalDeliveries = state.operatingCompanyDeliveryPlan?.criticalDeliveries ?? []
-        if (criticalDeliveries.length === 0) {
-            return null
-        }
-
         const safeCandidates = listSafeAtomicDeliveryCandidatesForPlayer(
             state,
             operatingCompany.owner
         )
-        for (const criticalDelivery of criticalDeliveries) {
-            const matchingCandidate = safeCandidates.find(
-                (candidate) =>
-                    candidate.zoneId === criticalDelivery.zoneId &&
-                    candidate.cityId === criticalDelivery.cityId &&
-                    candidate.shippingCompanyId === criticalDelivery.shippingCompanyId &&
-                    candidate.seaAreaIds.length === criticalDelivery.seaPathAreaIds.length &&
-                    candidate.seaAreaIds.every(
-                        (seaAreaId: string, index: number) =>
-                            seaAreaId === criticalDelivery.seaPathAreaIds[index]
-                    )
-            )
-            if (matchingCandidate) {
-                return matchingCandidate
-            }
+        if (safeCandidates.length !== 1) {
+            return null
         }
 
-        return null
+        return safeCandidates[0] ?? null
     }
 }

@@ -260,6 +260,64 @@ describe('solveDeliveryProblem', () => {
         ])
     })
 
+    it('breaks equal-cost city ties by the earlier city id', () => {
+        const problem: DeliveryProblem = {
+            operatingCompanyId: 'prod-1',
+            operatingCompanyOwnerId: 'p1',
+            ownedShippingCompanyIds: [],
+            good: Good.Rice,
+            shippingFeePerShipUse: 5,
+            tieBreakPolicy: DeliveryTieBreakPolicy.MinShippingCost,
+            zoneSupplies: [
+                {
+                    zoneId: 'prod-1:zone:1',
+                    areaIds: ['C07'],
+                    adjacentSeaAreaIds: ['S16'],
+                    supply: 1
+                }
+            ],
+            cityDemands: [
+                {
+                    cityId: 'city-jawa-barat',
+                    cityAreaId: 'C01',
+                    adjacentSeaAreaIds: ['S16'],
+                    remainingDemand: 1
+                },
+                {
+                    cityId: 'city-jawa-tengah',
+                    cityAreaId: 'C09',
+                    adjacentSeaAreaIds: ['S16'],
+                    remainingDemand: 1
+                }
+            ],
+            shippingCompanyNetworks: [
+                {
+                    shippingCompanyId: 'ship-blue',
+                    seaLanes: [],
+                    seaAreaCapacities: [
+                        {
+                            seaAreaId: 'S16',
+                            capacity: 1
+                        }
+                    ]
+                }
+            ]
+        }
+
+        const plan = solveDeliveryProblem(problem)
+
+        expect(plan.totalDelivered).toBe(1)
+        expect(plan.deliveries).toEqual([
+            {
+                zoneId: 'prod-1:zone:1',
+                cityId: 'city-jawa-barat',
+                shippingCompanyId: 'ship-blue',
+                quantity: 1,
+                seaPathAreaIds: ['S16']
+            }
+        ])
+    })
+
     it('prefers owned-shipping payments over lower shipping cost', () => {
         const problem: DeliveryProblem = {
             operatingCompanyId: 'prod-1',

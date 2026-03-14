@@ -196,6 +196,70 @@ describe('ProductionOperationsStateHandler', () => {
         })
     })
 
+    it('does not auto-queue a delivery when multiple safe first deliveries exist', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        const shippingOwnerId = state.players[1].playerId
+
+        state.companies = [
+            {
+                id: 'prod-1',
+                type: CompanyType.Production,
+                owner: playerId,
+                deeds: [],
+                good: Good.Rice
+            },
+            {
+                id: 'ship-1',
+                type: CompanyType.Shipping,
+                owner: shippingOwnerId,
+                deeds: []
+            }
+        ]
+
+        state.board.areas['C07'] = {
+            id: 'C07',
+            type: AreaType.Cultivated,
+            companyId: 'prod-1',
+            good: Good.Rice
+        }
+        state.board.areas['S16'] = {
+            id: 'S16',
+            type: AreaType.Sea,
+            ships: ['ship-1']
+        }
+        state.board.addCity({
+            id: 'city-jawa-barat',
+            area: 'C01',
+            size: 1,
+            demand: {}
+        })
+        state.board.addCity({
+            id: 'city-jawa-tengah',
+            area: 'C09',
+            size: 1,
+            demand: {}
+        })
+
+        state.machineState = MachineState.ProductionOperations
+        state.beginCompanyOperation('prod-1')
+
+        const handler = new ProductionOperationsStateHandler()
+        const context = createMachineContext(state)
+        handler.enter(context)
+
+        expect(state.operatingCompanyDeliveryPlan).toMatchObject({
+            totalDelivered: 1,
+            deliveries: [
+                {
+                    cityId: 'city-jawa-barat',
+                    seaPathAreaIds: ['S16']
+                }
+            ]
+        })
+        expect(context.getPendingActions()).toEqual([])
+    })
+
     it('stays in production operations after a delivery when more safe deliveries remain', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId
