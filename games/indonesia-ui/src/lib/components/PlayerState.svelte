@@ -145,6 +145,11 @@
     const maxCompanySlots = $derived(1 + playerState.research.slots)
     const openCompanySlots = $derived(Math.max(0, maxCompanySlots - ownedCompanies.length))
     const openCompanySlotIndexes = $derived(Array.from({ length: openCompanySlots }, (_, index) => index))
+    const companySectionMeta = $derived(
+        playerState.research.mergers > 0
+            ? `MERGERS ${playerState.research.mergers + 1}`
+            : null
+    )
     // Temporary preview toggle for the empty companies treatment.
     const showNoCompaniesPreview = false
 </script>
@@ -212,8 +217,11 @@
                 </div>
             </div>
 
-            <div class="player-section-header player-section-header-companies" aria-hidden="true">
+            <div class="player-section-header player-section-header-companies">
                 <span class="player-section-dash" aria-hidden="true"></span>
+                {#if companySectionMeta}
+                    <span class="player-section-title-meta">{companySectionMeta}</span>
+                {/if}
             </div>
 
             {#if !showNoCompaniesPreview && (companyCards.length > 0 || openCompanySlots > 0)}

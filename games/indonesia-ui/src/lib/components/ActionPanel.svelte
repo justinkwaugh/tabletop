@@ -7,6 +7,7 @@
     import { shadeHexColor } from '$lib/utils/color.js'
     import { SHIPPING_ERA_ORDER, shippingSizeTotalsFromDeeds } from '$lib/utils/deeds.js'
     import { shippingStyleByCompanyId, type ShippingStyle } from '$lib/utils/shippingStyles.js'
+    import { summarizeConsecutiveTurnOrderBids } from '$lib/utils/turnOrderBidSummary.js'
     import { Color } from '@tabletop/common'
     import {
         ActionType,
@@ -25,6 +26,7 @@
         isChooseOperatingCompany,
         isDeliverGood,
         isIndonesiaNodeId,
+        isPlaceTurnOrderBid,
         MachineState,
         PassReason,
         SHIPPING_FEE_PER_SHIP_USE,
@@ -227,7 +229,24 @@
     })
 
     const submittedTurnOrderBidEntries: TurnOrderBidEntry[] = $derived.by(() =>
-        turnOrderBidEntries.filter((entry) => entry.turnOrderBid !== null)
+        {
+            const bidByPlayerId = gameSession.gameState.turnOrderBids ?? {}
+            const lastTurnOrderBidAction = gameSession.actions.findLast((action) =>
+                isPlaceTurnOrderBid(action)
+            )
+
+            if (typeof lastTurnOrderBidAction?.index !== 'number') {
+                return turnOrderBidEntries.filter((entry) => entry.turnOrderBid !== null)
+            }
+
+            return summarizeConsecutiveTurnOrderBids(
+                gameSession.actions,
+                lastTurnOrderBidAction.index
+            ).map((entry) => ({
+                playerId: entry.playerId,
+                turnOrderBid: bidByPlayerId[entry.playerId] ?? null
+            }))
+        }
     )
 
     const showOperatingCompanyPicker = $derived.by(() => {

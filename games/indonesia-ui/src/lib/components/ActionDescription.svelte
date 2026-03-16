@@ -36,6 +36,7 @@
         isStartCompany
     } from '@tabletop/indonesia'
     import { isAggregatedIndonesiaAction } from '$lib/utils/actionAggregator.js'
+    import { summarizeConsecutiveTurnOrderBids } from '$lib/utils/turnOrderBidSummary.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { getRegionName } from '$lib/definitions/regions.js'
 
@@ -693,27 +694,11 @@
             return []
         }
 
-        const lastActionPosition = gameSession.actions.findLastIndex(
-            (candidate) => candidate.index === action.index && isPlaceTurnOrderBid(candidate)
-        )
-        if (lastActionPosition === -1) {
-            return []
-        }
-
-        const bidActions: Array<{ id: string; playerId: string; description: string }> = []
-        for (let position = lastActionPosition; position >= 0; position -= 1) {
-            const candidate = gameSession.actions[position]
-            if (!isPlaceTurnOrderBid(candidate)) {
-                break
-            }
-            bidActions.unshift({
-                id: candidate.id,
-                playerId: candidate.playerId,
-                description: turnOrderBidDescription(candidate)
-            })
-        }
-
-        return bidActions
+        return summarizeConsecutiveTurnOrderBids(gameSession.actions, action.index).map((entry) => ({
+            id: entry.id,
+            playerId: entry.playerId,
+            description: turnOrderBidDescription(entry.bidAction)
+        }))
     }
 
     function aggregatedMergerAuctionSummary(action: GameAction): {
