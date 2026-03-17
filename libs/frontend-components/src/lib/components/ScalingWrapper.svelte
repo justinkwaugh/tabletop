@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onDestroy, onMount, type Snippet, untrack } from 'svelte'
+    import { onDestroy, onMount, type Snippet } from 'svelte'
 
     const DISCRETE_ZOOM_STEP = 0.15
     const VIEW_ANIMATION_MS = 180
@@ -68,7 +68,9 @@
 
     let initialized = false
     let syncingView = false
+    let activeFocusTarget = $state<FocusTarget | null>(null)
     let viewAnimationFrame: number | undefined
+    let pendingDimensionSyncFrame: number | undefined
     let viewAnimationRequestId = 0
     let pinchDistance: number | null = null
     let gestureStartScale: number | null = null
@@ -80,7 +82,8 @@
         let nextContentHeight = contentHeight
 
         if (!syncingView) {
-            untrack(() => syncToDimensions())
+            // Schedule outside the reactive effect so view-sync reads do not become dependencies.
+            scheduleDimensionSync()
         }
     })
 
@@ -209,6 +212,38 @@
         }
     }
 
+    function getViewForFocusTarget(target: FocusTarget) {
+        const availableWidth = Math.max(1, wrapperWidth - target.paddingX * 2)
+        const availableHeight = Math.max(1, wrapperHeight - target.paddingY * 2)
+        const scale = clampScale(
+            Math.min(availableWidth / target.rect.width, availableHeight / target.rect.height, target.maxScale)
+        )
+        const centerX = target.rect.x + target.rect.width / 2
+        const centerY = target.rect.y + target.rect.height / 2
+        const scroll = getScrollForContentPointAtScale(centerX, centerY, scale)
+
+        return {
+            scale,
+            left: scroll.left,
+            top: scroll.top
+        }
+    }
+
+    function clearActiveFocus() {
+        activeFocusTarget = null
+    }
+
+    function scheduleDimensionSync() {
+        if (pendingDimensionSyncFrame) {
+            cancelAnimationFrame(pendingDimensionSyncFrame)
+        }
+
+        pendingDimensionSyncFrame = requestAnimationFrame(() => {
+            pendingDimensionSyncFrame = undefined
+            syncToDimensions()
+        })
+    }
+
     function cancelViewAnimation() {
         viewAnimationRequestId += 1
         if (viewAnimationFrame) {
@@ -270,6 +305,7 @@
             return
         }
 
+        clearActiveFocus()
         const targetScale = clampScale(scale)
         const centerPoint = initialized
             ? getViewportCenterContentPoint()
@@ -294,16 +330,30 @@
 
         syncingView = true
         try {
+            const nextBaseScale = computeFitScale()
+            const previousBaseScale = baseScale
             const wasAtFitScale = initialized && Math.abs(currentScale - baseScale) < EPSILON
             const centerPoint = initialized
                 ? getViewportCenterContentPoint()
                 : { x: contentWidth / 2, y: contentHeight / 2 }
 
-            const nextBaseScale = computeFitScale()
             baseScale = nextBaseScale
             updateDiscreteLevels(nextBaseScale)
 
-            const targetScale = !initialized || wasAtFitScale ? nextBaseScale : clampScale(currentScale)
+            if (activeFocusTarget) {
+                const targetView = getViewForFocusTarget(activeFocusTarget)
+                cancelViewAnimation()
+                applyLayout(targetView.scale)
+                scroller.scrollLeft = targetView.left
+                scroller.scrollTop = targetView.top
+                initialized = true
+                return
+            }
+
+            const targetScale =
+                !initialized || wasAtFitScale || Math.abs(currentScale - previousBaseScale) < EPSILON
+                    ? nextBaseScale
+                    : clampScale(currentScale)
             const targetScroll = getScrollForContentPointAtScale(centerPoint.x, centerPoint.y, targetScale)
 
             cancelViewAnimation()
@@ -343,8 +393,8 @@
         return index >= 0 ? baseScale + step * index : null
     }
 
-    const canZoomIn = $derived(currentScale < 1 - EPSILON)
-    const canZoomOut = $derived(currentScale > baseScale + EPSILON)
+    const canZoomIn = $derived(getNextDiscreteScale('in') !== null)
+    const canZoomOut = $derived(getNextDiscreteScale('out') !== null)
 
     function zoomIn() {
         const targetScale = getNextDiscreteScale('in')
@@ -365,33 +415,24 @@
     }
 
     export function focusRect(rect: FocusRect, options: FocusOptions = {}) {
+        const target = normalizeFocusTarget(rect, options)
+        activeFocusTarget = target
+
         if (!scroller || !contentWidth || !contentHeight) {
             return
         }
 
-        const target = normalizeFocusTarget(rect, options)
-        const availableWidth = Math.max(1, wrapperWidth - target.paddingX * 2)
-        const availableHeight = Math.max(1, wrapperHeight - target.paddingY * 2)
-        const targetScale = clampScale(
-            Math.min(
-                availableWidth / target.rect.width,
-                availableHeight / target.rect.height,
-                target.maxScale
-            )
-        )
-        const centerX = target.rect.x + target.rect.width / 2
-        const centerY = target.rect.y + target.rect.height / 2
-        const targetScroll = getScrollForContentPointAtScale(centerX, centerY, targetScale)
+        const targetView = getViewForFocusTarget(target)
 
         if (target.animate) {
-            animateViewTo(targetScale, targetScroll.left, targetScroll.top)
+            animateViewTo(targetView.scale, targetView.left, targetView.top)
             return
         }
 
         cancelViewAnimation()
-        applyLayout(targetScale)
-        scroller.scrollLeft = targetScroll.left
-        scroller.scrollTop = targetScroll.top
+        applyLayout(targetView.scale)
+        scroller.scrollLeft = targetView.left
+        scroller.scrollTop = targetView.top
     }
 
     function getTouchDistance(touches: TouchList) {
@@ -479,12 +520,13 @@
 
     onDestroy(() => {
         cancelViewAnimation()
+        if (pendingDimensionSyncFrame) {
+            cancelAnimationFrame(pendingDimensionSyncFrame)
+        }
     })
 
     onMount(() => {
-        requestAnimationFrame(() => {
-            syncToDimensions()
-        })
+        scheduleDimensionSync()
 
         if (!scroller) {
             return
