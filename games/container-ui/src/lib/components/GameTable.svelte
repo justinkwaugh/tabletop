@@ -46,7 +46,6 @@
             rect: { x: number; y: number; width: number; height: number },
             options?: { maxScale?: number; padding?: number; animate?: boolean }
         ) => void
-        clearFocus: () => void
     } | null = $state(null)
 
     const playerBoardFocusTargets = $derived.by(() => {
