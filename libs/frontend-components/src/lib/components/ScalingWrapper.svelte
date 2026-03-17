@@ -1,6 +1,27 @@
 <script lang="ts">
     import { onMount, type Snippet } from 'svelte'
 
+    type FocusRect = {
+        x: number
+        y: number
+        width: number
+        height: number
+    }
+
+    type FocusOptions = {
+        maxScale?: number
+        padding?: number | { x: number; y: number }
+        animate?: boolean
+    }
+
+    type FocusTarget = {
+        rect: FocusRect
+        maxScale: number
+        paddingX: number
+        paddingY: number
+        animate: boolean
+    }
+
     let {
         children,
         justify = 'center',
@@ -13,6 +34,8 @@
 
     let zoomed = $state(0)
     let zoomLevels = $state(0)
+    let baseScale = $state(1)
+    let currentScale = $state(1)
 
     let wrapperWidth = $state(0)
     let wrapperHeight = $state(0)
@@ -22,6 +45,8 @@
 
     let widthFits = $state(false)
     let scaling = false
+    let focusTarget = $state<FocusTarget | null>(null)
+    let focusRequestId = 0
 
     let wrapper: HTMLElement
     let scroller: HTMLElement
@@ -31,13 +56,89 @@
         // Trigger on contentWidth or contentHeight change
         let newContentWidth = contentWidth
         let newContentHeight = contentHeight
+        let currentFocusTarget = focusTarget
 
         if (!scaling) {
             performScale(wrapperWidth, wrapperHeight)
         }
     })
 
+    function normalizeFocusTarget(rect: FocusRect, options: FocusOptions = {}): FocusTarget {
+        const padding =
+            typeof options.padding === 'number'
+                ? { x: options.padding, y: options.padding }
+                : options.padding
+
+        return {
+            rect,
+            maxScale: options.maxScale ?? 1,
+            paddingX: padding?.x ?? 0,
+            paddingY: padding?.y ?? 0,
+            animate: options.animate ?? false
+        }
+    }
+
+    export function focusRect(rect: FocusRect, options: FocusOptions = {}) {
+        focusTarget = normalizeFocusTarget(rect, options)
+    }
+
+    function applyFocusScroll(scaleAmt: number, target: FocusTarget, requestId: number) {
+        requestAnimationFrame(() => {
+            if (requestId !== focusRequestId || !scroller || !focusTarget) {
+                return
+            }
+
+            const targetCenterX = (target.rect.x + target.rect.width / 2) * scaleAmt
+            const targetCenterY = (target.rect.y + target.rect.height / 2) * scaleAmt
+
+            const desiredLeft = Math.max(0, targetCenterX - scroller.clientWidth / 2)
+            const desiredTop = Math.max(0, targetCenterY - scroller.clientHeight / 2)
+
+            const maxLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth)
+            const maxTop = Math.max(0, scroller.scrollHeight - scroller.clientHeight)
+
+            scroller.scrollTo({
+                left: Math.min(desiredLeft, maxLeft),
+                top: Math.min(desiredTop, maxTop),
+                behavior: target.animate ? 'smooth' : 'auto'
+            })
+        })
+    }
+
+    function getZoomStep() {
+        if (zoomLevels <= 0) {
+            return 0
+        }
+
+        return (1 - baseScale) / zoomLevels
+    }
+
+    function getNextDiscreteZoom(direction: 'in' | 'out'): number | null {
+        const step = getZoomStep()
+        if (step <= 0) {
+            return null
+        }
+
+        const rawPosition = (currentScale - baseScale) / step
+        const nearest = Math.round(rawPosition)
+        const isOnDiscrete = Math.abs(rawPosition - nearest) < 0.001
+
+        if (direction === 'in') {
+            const target = isOnDiscrete ? nearest + 1 : Math.ceil(rawPosition)
+            return target <= zoomLevels ? target : null
+        }
+
+        const target = isOnDiscrete ? nearest - 1 : Math.floor(rawPosition)
+        return target >= 0 ? target : null
+    }
+
+    const canZoomIn = $derived(getNextDiscreteZoom('in') !== null)
+    const canZoomOut = $derived(getNextDiscreteZoom('out') !== null)
+
     function performScale(wrapperWidth: number, wrapperHeight: number) {
+        if (!content || !scroller || !wrapperWidth || !wrapperHeight) {
+            return
+        }
         scaling = true
         try {
             // Get the scaled content, and reset its scaling for an instant
@@ -46,24 +147,52 @@
             content.style.width = 'fit-content'
 
             let { width: cw, height: ch } = content.getBoundingClientRect()
-            let scaleAmt = Math.min(wrapperWidth / cw, wrapperHeight / ch)
+            const fitScale = Math.min(wrapperWidth / cw, wrapperHeight / ch)
+            let scaleAmt = fitScale
 
             // Check if the content fits the wrapper width regardless of scale
             widthFits = cw <= wrapperWidth
+            baseScale = fitScale
 
-            // For zooming we scale the content in 15% increments, so we figure out
-            // how many increments we can fit in the range between 1 and the scale amount
-            let scaleRange = 1 - scaleAmt
-            if (scaleAmt === 1) {
-                zoomed = 0
+            const scaleRange = 1 - fitScale
+            if (fitScale === 1) {
                 zoomLevels = 0
+                if (!focusTarget) {
+                    zoomed = 0
+                }
             } else {
                 zoomLevels = Math.floor(scaleRange / 0.15)
-                zoomed = Math.min(zoomLevels, zoomed)
+                if (!focusTarget) {
+                    zoomed = Math.min(zoomLevels, zoomed)
+                }
+            }
+
+            if (focusTarget) {
+                const availableWidth = Math.max(1, wrapperWidth - focusTarget.paddingX * 2)
+                const availableHeight = Math.max(1, wrapperHeight - focusTarget.paddingY * 2)
+                scaleAmt = Math.min(
+                    availableWidth / focusTarget.rect.width,
+                    availableHeight / focusTarget.rect.height,
+                    focusTarget.maxScale
+                )
+                scaleAmt = Math.max(scaleAmt, 0.01)
+                currentScale = scaleAmt
+                content.style.transform = `scale(${scaleAmt}, ${scaleAmt})`
+                if (scaleAmt < 1) {
+                    content.style.width = '0'
+                    content.style.height = '0'
+                } else {
+                    content.style.width = `${cw}px`
+                    content.style.height = `${ch}px`
+                }
+                const requestId = ++focusRequestId
+                applyFocusScroll(scaleAmt, focusTarget, requestId)
+                return
             }
 
             // Apply the scale based on zoom level
-            scaleAmt = zoomed ? scaleAmt + (scaleRange / zoomLevels) * zoomed : scaleAmt
+            scaleAmt = zoomed && zoomLevels > 0 ? fitScale + (scaleRange / zoomLevels) * zoomed : fitScale
+            currentScale = scaleAmt
             content.style.transform = `scale(${scaleAmt}, ${scaleAmt})`
 
             if (zoomed) {
@@ -88,6 +217,9 @@
                 if (scaleAmt < 1) {
                     content.style.height = '0'
                 }
+            } else {
+                content.style.width = 'fit-content'
+                content.style.height = 'fit-content'
             }
         } finally {
             scaling = false
@@ -95,6 +227,9 @@
     }
 
     let origin = $derived.by(() => {
+        if (focusTarget) {
+            return 'origin-top-left'
+        }
         if (zoomed) {
             return 'origin-center'
         }
@@ -122,18 +257,33 @@
     })
 
     function zoomIn() {
-        if (zoomed < zoomLevels) {
-            zoomed += 1
+        const nextZoom = getNextDiscreteZoom('in')
+        if (nextZoom === null) {
+            return
         }
+
+        if (focusTarget) {
+            focusTarget = null
+            focusRequestId += 1
+        }
+        zoomed = nextZoom
     }
 
     function zoomOut() {
-        if (zoomed > 0) {
-            zoomed -= 1
-            if (zoomed === 0) {
-                scroller.scrollTop = 0
-                scroller.scrollLeft = 0
-            }
+        const nextZoom = getNextDiscreteZoom('out')
+        if (nextZoom === null) {
+            return
+        }
+
+        if (focusTarget) {
+            focusTarget = null
+            focusRequestId += 1
+        }
+
+        zoomed = nextZoom
+        if (zoomed === 0) {
+            scroller.scrollTop = 0
+            scroller.scrollLeft = 0
         }
     }
 
@@ -151,7 +301,9 @@
 >
     <div
         bind:this={scroller}
-        class="w-full h-full flex {zoomed
+        class="w-full h-full flex {focusTarget
+            ? 'overflow-auto justify-start'
+            : zoomed
             ? 'overflow-auto justify-' + (widthFits ? justify : 'start')
             : 'overflow-hidden justify-' + justify}"
     >
@@ -171,7 +323,7 @@
     >
         <button aria-label="Zoom in" onclick={() => zoomIn()}
             ><svg
-                class="w-[24px] h-[24px] {zoomed < zoomLevels ? 'text-gray-300' : 'text-gray-700'}"
+                class="w-[24px] h-[24px] {canZoomIn ? 'text-gray-300' : 'text-gray-700'}"
                 aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
@@ -188,7 +340,7 @@
             </svg>
         </button><button aria-label="Zoom out" onclick={() => zoomOut()} class="ms-2"
             ><svg
-                class="w-[24px] h-[24px] {zoomed > 0 ? 'text-gray-300' : 'text-gray-700'}"
+                class="w-[24px] h-[24px] {canZoomOut ? 'text-gray-300' : 'text-gray-700'}"
                 aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
