@@ -68,7 +68,7 @@
 
 <div class="shrink-0 grow-0 w-full p-2 {height} {borderClass} {bgClass}">
     <div class="w-full flex flex-row justify-between items-center">
-        <button aria-label="start exploring" onclick={requestFork}>
+        <button aria-label="start exploring" onclick={requestFork} class="touch-manipulation">
             <svg
                 class="w-[22px] h-[22px] {!gameSession.isExploring ? enabledColor : disabledColor}"
                 aria-hidden="true"
@@ -89,7 +89,7 @@
         </button>
         <button
             onclick={async () => await goToMyPreviousTurn()}
-            class="flex flex-row justify-center items-center {hasPriorPlayerAction &&
+            class="touch-manipulation flex flex-row justify-center items-center {hasPriorPlayerAction &&
             !gameSession.history.isDisabled()
                 ? enabledColor
                 : disabledColor}"
@@ -114,10 +114,11 @@
             <UserSolid size="lg" />
         </button>
 
-        <div class="flex flex-row justify-center items-center space-x-2">
+        <div class="touch-manipulation flex flex-row justify-center items-center space-x-2">
             <button
                 aria-label="goto my last turn"
                 onclick={async () => await gameSession.history.goToBeginning()}
+                class="touch-manipulation"
                 ><svg
                     class="w-[25px] h-[25px] {gameSession.history.hasPreviousAction &&
                     !gameSession.history.isDisabled()
@@ -140,6 +141,7 @@
             <button
                 aria-label="step backwards"
                 onclick={async () => await gameSession.history.goToPreviousAction()}
+                class="touch-manipulation"
                 ><svg
                     class="w-[24px] h-[24px] {gameSession.history.hasPreviousAction &&
                     !gameSession.history.isDisabled()
@@ -164,7 +166,7 @@
             <button
                 aria-label="play history"
                 onclick={async () => await gameSession.history.playHistory()}
-                class={gameSession.history.playing ? 'hidden' : ''}
+                class="touch-manipulation {gameSession.history.playing ? 'hidden' : ''}"
                 ><svg
                     class="w-[25px] h-[25px] {!gameSession.history.hasNextAction ||
                     gameSession.history.isDisabled()
@@ -187,7 +189,7 @@
             <button
                 aria-label="stop history playback"
                 onclick={() => gameSession.history.stopHistoryPlayback()}
-                class={!gameSession.history.playing ? 'hidden' : ''}
+                class="touch-manipulation {!gameSession.history.playing ? 'hidden' : ''}"
             >
                 <svg
                     class="w-[25px] h-[25px] {enabledColor}"
@@ -209,6 +211,7 @@
                 aria-label="step forwards"
                 onclick={async (event: MouseEvent) =>
                     await gameSession.history.goToNextAction(event.shiftKey)}
+                class="touch-manipulation"
                 ><svg
                     class="w-[24px] h-[24px] {gameSession.history.hasNextAction &&
                     !gameSession.history.isDisabled()
@@ -233,6 +236,7 @@
             <button
                 aria-label="go to current"
                 onclick={async () => await gameSession.history.goToEnd()}
+                class="touch-manipulation"
             >
                 <svg
                     class="w-[25px] h-[25px] {gameSession.history.hasNextAction &&
@@ -256,7 +260,7 @@
         </div>
         <button
             onclick={async () => goToMyNextTurn()}
-            class="flex flex-row justify-center items-center {hasFuturePlayerAction &&
+            class="touch-manipulation flex flex-row justify-center items-center {hasFuturePlayerAction &&
             !gameSession.history.isDisabled()
                 ? enabledColor
                 : disabledColor}"

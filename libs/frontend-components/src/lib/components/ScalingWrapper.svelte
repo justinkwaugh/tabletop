@@ -584,7 +584,7 @@
     <div
         class="{zoomLevels > 0 || controls !== 'none'
             ? ''
-            : 'hidden'} absolute flex flex-row justify-center items-center {controlsPosition} bg-black/70 border-gray-700 border-2 px-2 py-1 rounded-lg text-gray-300"
+            : 'hidden'} absolute flex flex-row justify-center items-center {controlsPosition} touch-manipulation bg-black/70 border-gray-700 border-2 px-2 py-1 rounded-lg text-gray-300"
     >
         <button aria-label="Zoom in" onclick={() => zoomIn()}
             ><svg

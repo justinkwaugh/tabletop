@@ -1,4 +1,4 @@
-# Bus UI Animation Cleanup Backlog
+# Project Notes
 
 See docs/agent-coding-policy.md for shared-code and shared-types rules.
 
@@ -15,6 +15,11 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
   - why the proposed change fixes that cause instead of only hiding it
 - If the root cause is not yet known, say that explicitly and keep tracing rather than writing “this shouldn’t happen” and patching around it.
 - If a containment fix is necessary, label it as containment, explain the unresolved root cause, and do not present it as a complete fix.
+
+## Touch Controls Note
+
+- For touch-facing button/control UI, default to `touch-action: manipulation` so double-tap does not trigger browser zoom.
+- Gesture/pan surfaces should set an explicit `touch-action` matching their intended interaction model rather than relying on browser defaults.
 
 ## Indonesia UI Action Pattern Note
 
@@ -35,11 +40,6 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
 - Do not use `foreignObject` as a shortcut when the element is fundamentally board art or an SVG-positioned component; make it a native SVG component instead.
 - If something is visually wrong on the board, fix the actual layer/asset/render issue rather than changing rendering technology or coordinate space.
 
-## City Demand UI Idea (Saved)
-
-- Alternative concept to revisit: demand rendered directly over city beads as a full-opacity segmented color ring/disc (no icons), with large centered numeric labels per segment.
-- Current implementation intentionally uses the strip-with-wire marker style instead.
-
 ## Indonesia Operations Rules Summary (Implementation Reference, 2026-02-26)
 
 - Operations phase runs in rounds, in turn order.
@@ -59,7 +59,7 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
 
 - Order is mandatory: `sell goods -> receive/pay income -> expand`.
 
-#### Delivery Solver Model (Implementation Strategy)
+#### Delivery Solver Model
 
 - Model delivery as a **capacitated network flow** problem.
 - Primary objective: maximize total delivered goods for the operating production company (`must deliver as many as possible`).
@@ -80,23 +80,6 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
 - Output should include enough path/edge usage detail to compute shipping fees (`5` per ship use paid to ship owner) and to update city demand trackers.
 - Enumerating *all* feasible maximum assignments is combinatorial; default behavior should compute one optimal maximum solution, not exhaustively enumerate all solutions.
 
-#### DeliverGood Solver Implementation Plan (Concrete)
-
-1. Extract production zones for the operating production company (`connected cultivated components by companyId`).
-2. Compute remaining city demand for the company good for the current operations phase.
-3. Build a layered transport network per shipping company so a good cannot switch shipping company mid-route.
-4. Add capacities:
-   - zone supply capacity from cultivated count per zone;
-   - city demand capacity from remaining demand for that good;
-   - ship capacity as node-capacity per sea area per shipping company:
-     `shipCountInArea * (1 + hullResearchLevel(shipOwner))`.
-5. Solve max delivery with a dedicated capacitated flow solver (max-flow; min-cost max-flow if deterministic tie-break/secondary optimization is desired).
-6. Decode the selected flow into:
-   - delivered goods by zone/city;
-   - ship-use counts by shipping company;
-   - shipping payments (`5` per ship use).
-7. Apply `DeliverGood` state updates atomically, then continue production operation flow.
-
 #### DeliverGood Inputs Already Available
 
 - Board topology and sea/land adjacencies (`IndonesiaGraph` / node neighbors).
@@ -113,11 +96,6 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
 4. Tie-break policy is codified as:
    - first minimize **non-owned shipping cost** (maximize operating-player net income)
    - then minimize **total shipping cost**.
-
-#### DeliverGood Remaining Open Items Before Full Implementation
-
-1. Define delivery action metadata shape for replay/UI/debug visibility.
-2. Align merged-company handling semantics with final merger representation in state.
 
 #### Selling and Transport
 
@@ -153,13 +131,6 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
 - If game continues, move that stack to cash at the start of next year.
 - If game ends, double that stack and add to cash for final scoring.
 - If an operation is negative, pay from this stack (track owed amount if needed and settle later in phase; if never offset, apply end-of-phase doubling rule to the negative amount).
-
-1. Make animator timeline scheduling explicit (`position: 0` + explicit offsets) in all animators to avoid cross-animator drift.
-2. Fix score-disc animation transform conflict (`animate:flip` mixed with inline SVG `transform`) in `BoardMetaMarkers`.
-3. Remove imperative hover-reset side effects from `$effect` in `BusLineLayer`; keep state derivation pure.
-4. Deduplicate worker-cylinder placement derivation shared by `BoardActionRows` and `workerCylinderAnimator`.
-5. Deduplicate bus-color-to-table-column mapping shared by `BoardMetaMarkers` and `busPiecePlacementAnimator`.
-6. Tighten animator attachment teardown by clearing element refs in `attachAnimator` destroy path.
 
 ## Northeast Island Mapping Notes (2026-02-18)
 
@@ -491,40 +462,7 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
   - Output preview (no apply): `games/indonesia-ui/src/lib/images/northeast_tuned_preview.svg`
   - Output snippet (no apply): `games/indonesia-ui/src/lib/images/northeast_tuned_paths.txt`
 
-## Sea Area Extraction Plan (2026-02-19)
-
-- User objective:
-  - define sea regions as closed vector faces bounded by:
-    - board inner frame edge,
-    - thick light-blue sea-divider lines,
-    - coastal edges from existing land areas.
-  - no stair-step raster-style boundaries in final output; use smooth line/curve paths.
-- Inputs confirmed:
-  - board image: `games/indonesia-ui/src/lib/images/indo_map_sm.jpg` (`2646x1280`).
-  - blue-line appearance reference: `games/indonesia-ui/src/lib/images/sealines.png` (`232x124`).
-- Current status:
-  - repository has no existing sea-area geometry block yet.
-  - first extraction pass started; `cv2` is currently missing in the temp python env (`/tmp/east-extract-env`), so next run must install/use OpenCV in a temp env before edge/line fitting.
-- Planned implementation steps:
-  1. sample color/width from `sealines.png` to derive robust sea-line mask thresholds for `indo_map_sm.jpg`.
-  2. detect the board inner frame rectangle (the single inner black border) and fit it as one rectangular vector path.
-  3. detect sea-divider strokes and vectorize as smooth centerline paths:
-     - skeletonize mask,
-     - preserve junction graph,
-     - fit each branch with cubic Bezier/poly-B-spline simplification (not quantized stair-steps).
-  4. derive coastline edge network from `boardGeometry.ts` land polygons (outer coastal edges only; exclude internal land borders).
-  5. combine networks (frame + sea dividers + coastline edges), split at intersections, and run half-edge face extraction to produce closed sea faces.
-  6. export debug overlays:
-     - extracted frame + sea-lines overlay on map,
-     - numbered sea-face overlay for review/merge instructions.
-  7. after review, write final `Sxx` sea areas to geometry definitions and render in board debug layer.
-- Validation checklist for acceptance:
-  - each sea area path is closed (`... Z`) and non-self-intersecting.
-  - neighboring sea areas share the exact same border segment references (no gaps/overlaps).
-  - board-edge-connected sea areas use exact frame segments.
-  - boundaries visually align to printed blue dividers and coastlines at multiple spot checks.
-
-### Sea Line Progress (2026-02-19, continued)
+## Sea Line Progress (2026-02-19, continued)
 
 - Added extraction utility:
   - `games/indonesia-ui/scripts/extract-sea-lines.py`
@@ -673,55 +611,3 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
   - uses planar polygonization internally only to compute candidate face centroids/adjacency.
   - final zone ranking is by clipped sea geometry area (`zone - land_union`) so tiny land-only fragments are deprioritized.
   - defaults: `target=20`, `snap_tol=3.0`, `min_zone_area=75`, `min_piece_area=10`.
-
-## Indonesia Mergers Phase Plan Note (2026-03-02)
-
-- Implement full `MachineState.Mergers` between `BiddingForTurnOrder` and `Acquisitions`.
-- Skip mergers phase if either:
-  - no player has `research.mergers >= 1`, or
-  - no legal merger can be announced by any eligible announcer.
-- Rules decisions locked:
-  - max merged deed count = `announcer.research.mergers + 1`.
-  - siap saji half-retention is winner-selected (interactive choice).
-  - bidding must be strict greater-than current high bid.
-- Use common auction primitives from `libs/common` (simple auction style) for merger bidding flow.
-
-### Implementation sequence
-
-- Extend Indonesia game state with merger-phase state:
-  - active merger proposal info,
-  - active auction state,
-  - bidding order/pass-tracking,
-  - deeds merged this year tracker.
-- Replace merger stubs with concrete actions:
-  - announce merger,
-  - place merger bid,
-  - pass merger bid,
-  - resolve siap saji retained areas.
-- Implement validations:
-  - company compatibility (including rice+spice -> siap saji in era B/C only),
-  - announcer eligibility (owns one company or has free slot),
-  - bidder eligibility (owners or free slot),
-  - cash limits,
-  - bid increment step = total goods/ships count,
-  - deed-once-per-year merge lock.
-- Implement merger resolution:
-  - merge companies/deeds and assign winner owner,
-  - transfer winning cash and split payouts proportional to original goods/ships,
-  - shipping ship ownership remap,
-  - production ownership remap,
-  - siap saji conversion and border-only area give-up handling.
-- Wire transitions:
-  - `BiddingForTurnOrder -> Mergers -> Acquisitions`,
-  - fall back to `ResearchAndDevelopment` if acquisitions has no eligible starts.
-- Add UI/session support:
-  - merger proposal UI,
-  - merger bidding UI,
-  - siap saji retained-area selection UI on board.
-- Add tests:
-  - phase entry/skip/end behavior,
-  - action validity,
-  - auction progression and strict raise rules,
-  - payout math,
-  - shipping remap,
-  - siap saji retain/remove constraints.
