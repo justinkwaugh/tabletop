@@ -5,19 +5,15 @@ export class ContainerGameColorizer extends DefaultColorizer {
     override getUiColor(color?: string): string {
         switch (color) {
             case Color.Blue:
-                return '#539ad1'
-            case Color.Red:
-                return '#e55649'
-            case Color.Yellow:
-                return '#f3c244'
-            case Color.Green:
-                return '#63b878'
+                return '#00b4ac'
+            case Color.Orange:
+                return '#f89f3a'
             case Color.Purple:
-                return '#804796'
-            case Color.Gray:
-                return '#888888'
-            case Color.Black:
-                return '#444444'
+                return '#895591'
+            case Color.Pink:
+                return '#f1709a'
+            case Color.Brown:
+                return '#69504d'
             default:
                 return '#555555'
         }
@@ -26,19 +22,15 @@ export class ContainerGameColorizer extends DefaultColorizer {
     override getBgColor(color?: string): string {
         switch (color) {
             case Color.Blue:
-                return 'bg-[#539ad1]'
-            case Color.Red:
-                return 'bg-[#e55649]'
-            case Color.Yellow:
-                return 'bg-[#f3c244]'
-            case Color.Green:
-                return 'bg-[#63b878]'
+                return 'bg-[#00b4ac]'
+            case Color.Orange:
+                return 'bg-[#f89f3a]'
             case Color.Purple:
-                return 'bg-[#804796]'
-            case Color.Gray:
-                return 'bg-[#aaaaaa]'
-            case Color.Black:
-                return 'bg-[#444444]'
+                return 'bg-[#895591]'
+            case Color.Pink:
+                return 'bg-[#f1709a]'
+            case Color.Brown:
+                return 'bg-[#69504d]'
             default:
                 return 'bg-[#555555]'
         }
@@ -47,19 +39,15 @@ export class ContainerGameColorizer extends DefaultColorizer {
     override getBorderColor(color?: string): string {
         switch (color) {
             case Color.Blue:
-                return 'border-[#539ad1]'
-            case Color.Red:
-                return 'border-[#e55649]'
-            case Color.Yellow:
-                return 'border-[#f3c244]'
-            case Color.Green:
-                return 'border-[#63b878]'
+                return 'border-[#00b4ac]'
+            case Color.Orange:
+                return 'border-[#f89f3a]'
             case Color.Purple:
-                return 'border-[#804796]'
-            case Color.Gray:
-                return 'border-[#888888]'
-            case Color.Black:
-                return 'border-[#444444]'
+                return 'border-[#895591]'
+            case Color.Pink:
+                return 'border-[#f1709a]'
+            case Color.Brown:
+                return 'border-[#69504d]'
             default:
                 return 'border-[#555555]'
         }

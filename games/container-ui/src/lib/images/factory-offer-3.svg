@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="b" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120.05 42.08">
+  <defs>
+    <style>
+      .d {
+        fill: #ebe3e4;
+      }
+
+      .d, .e, .f, .g, .h, .i {
+        stroke: #332626;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: .5px;
+      }
+
+      .e {
+        fill: #fff;
+      }
+
+      .f {
+        fill: #332626;
+      }
+
+      .g {
+        fill: #b2928e;
+      }
+
+      .h {
+        fill: #9966a3;
+      }
+
+      .i {
+        fill: #69504d;
+      }
+    </style>
+  </defs>
+  <g id="c" data-name="Layer 1">
+    <rect class="h" x="78.36" y=".25" width="41.44" height="41.58"/>
+    <g>
+      <rect class="d" x="2.85" y=".25" width="18.46" height="41.58"/>
+      <rect class="h" x="2.85" y=".25" width="1.78" height="16.37"/>
+      <rect class="h" x="2.85" y="25.46" width="1.78" height="16.37"/>
+      <rect class="e" x="21.31" y=".25" width="20.43" height="41.58"/>
+      <rect class="d" x="-1.98" y="18.85" width="8.84" height="4.38" transform="translate(23.48 18.6) rotate(90)"/>
+      <rect class="g" x="6.95" y="14.3" width="8.84" height="13.48" transform="translate(32.41 9.67) rotate(90)"/>
+      <rect class="g" x="7.48" y="14.92" width="6.56" height="12.23" transform="translate(31.8 10.28) rotate(90)"/>
+      <rect class="d" x="41.24" y=".25" width="16.67" height="41.58"/>
+      <rect class="e" x="57.92" y=".25" width="20.43" height="41.58"/>
+      <g>
+        <path class="e" d="M51.72,33.51v-3.48h4.09v-2.92h-13.8v2.92h6.79v3.48h-6.79v2.92h7.32c1.32,0,2.39-1.07,2.39-2.39v-.53Z"/>
+        <path class="d" d="M49.17,33.51v-3.48h4.09v-2.92h-13.8v2.92h6.79v3.48h-6.79v2.92h7.32c1.32,0,2.39-1.07,2.39-2.39v-.53Z"/>
+        <path class="e" d="M51.72,8.56v3.48s4.09,0,4.09,0v2.92h-13.8v-2.92h6.79s0-3.48,0-3.48h-6.79v-2.92h6.79s.53,0,.53,0c1.32,0,2.39,1.07,2.39,2.39v.53Z"/>
+        <path class="d" d="M49.17,8.56v3.48s4.09,0,4.09,0v2.92h-13.8v-2.92h6.79s0-3.48,0-3.48h-6.79v-2.92h6.79s.53,0,.53,0c1.32,0,2.39,1.07,2.39,2.39v.53Z"/>
+        <polygon class="d" points="42.93 14.29 42.93 3.96 41.24 3.96 41.24 38.12 42.93 38.12 42.93 14.29"/>
+        <polygon class="e" points="46.78 36.43 44.61 36.43 44.61 5.65 46.78 5.65 46.78 3.96 42.93 3.96 42.93 38.12 46.78 38.12 46.78 36.43"/>
+      </g>
+      <rect class="g" x="71.98" y="6.75" width="6.69" height="1.98" transform="translate(83.07 -67.58) rotate(90)"/>
+      <rect class="d" x="76.16" y="4.56" width="6.69" height="6.37" transform="translate(87.24 -71.76) rotate(90)"/>
+      <ellipse class="i" cx="79.71" cy="7.74" rx="1.62" ry="1.87"/>
+      <ellipse class="f" cx="79.71" cy="7.74" rx=".47" ry=".58"/>
+      <rect class="g" x="71.98" y="15.7" width="6.69" height="1.98" transform="translate(92.02 -58.64) rotate(90)"/>
+      <rect class="d" x="76.16" y="13.5" width="6.69" height="6.37" transform="translate(96.19 -62.81) rotate(90)"/>
+      <ellipse class="i" cx="79.71" cy="16.69" rx="1.62" ry="1.87"/>
+      <ellipse class="f" cx="79.71" cy="16.69" rx=".47" ry=".58"/>
+      <path class="g" d="M63.36,38.5v-2.53h12.72c.32,0,.58-.26.58-.58v-5.47h2.53v5.47c0,1.71-1.39,3.1-3.1,3.1h-12.72Z"/>
+      <path class="d" d="M66.94,38.5v-2.53h10.49c.32,0,.58-.26.58-.58v-5.47h2.53v5.47c0,1.71-1.39,3.1-3.1,3.1h-10.49Z"/>
+      <rect class="d" x="61.93" y="31.12" width="8.57" height="6.2" transform="translate(100.43 -32) rotate(90)"/>
+      <rect class="g" x="58.29" y="33.43" width="8.57" height="1.57" transform="translate(96.79 -28.36) rotate(90)"/>
+      <rect class="d" x="62.87" y="13.59" width="6.69" height="6.2" transform="translate(82.9 -49.52) rotate(90)"/>
+      <rect class="g" x="59.23" y="15.91" width="6.69" height="1.57" transform="translate(79.26 -45.88) rotate(90)"/>
+      <rect class="d" x="76.15" y="23.39" width="6.88" height="6.2" transform="translate(106.08 -53.1) rotate(90)"/>
+      <rect class="g" x="71.98" y="25.4" width="6.88" height="2.17" transform="translate(101.91 -48.94) rotate(90)"/>
+      <rect class="g" x="62.5" y="3.69" width="8.95" height="10.37" transform="translate(75.85 -58.11) rotate(90)"/>
+      <rect class="i" x="58.1" y="8.09" width="8.95" height="1.57" transform="translate(71.45 -53.7) rotate(90)"/>
+    </g>
+  </g>
+</svg>

@@ -27,6 +27,14 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
   - Do not trigger committed game actions from Svelte `$effect`s or other reactive UI loops.
   - UI may preselect, preview, or stage a recommended action locally, but only explicit user input or a server/system action should commit it.
 
+## Board Layering Rule
+
+- Board-space rendering should stay in one coordinate system.
+- Prefer native SVG/image board layers for board art, overlays, markers, wires, and positioned board components.
+- Do not move board-space elements into separately positioned HTML overlays just because a render path is temporarily broken.
+- Do not use `foreignObject` as a shortcut when the element is fundamentally board art or an SVG-positioned component; make it a native SVG component instead.
+- If something is visually wrong on the board, fix the actual layer/asset/render issue rather than changing rendering technology or coordinate space.
+
 ## City Demand UI Idea (Saved)
 
 - Alternative concept to revisit: demand rendered directly over city beads as a full-opacity segmented color ring/disc (no icons), with large centered numeric labels per segment.
