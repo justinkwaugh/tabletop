@@ -242,6 +242,14 @@ export class HydratedIndonesiaGameState
         )
     }
 
+    public canPlayerOperateAnyCompanyInFreshOperationsPhase(playerId: string): boolean {
+        return this.companies.some(
+            (company) =>
+                company.owner === playerId &&
+                (isShippingCompany(company) || isProductionCompany(company))
+        )
+    }
+
     public beginCompanyOperation(companyId: string): void {
         this.operatingCompanyId = companyId
         this.operatingCompanyExpansionCount = 0
