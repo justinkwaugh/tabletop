@@ -27,7 +27,8 @@
         amount,
         color,
         squareHeight,
-        rotation = 0
+        rotation = 0,
+        counterMirrorX = false
     }: {
         x: number
         y: number
@@ -36,6 +37,7 @@
         color: string
         squareHeight?: number
         rotation?: number
+        counterMirrorX?: boolean
     } = $props()
 
     const height = $derived(squareHeight ?? width * (BG_HEIGHT / BG_WIDTH))
@@ -45,13 +47,15 @@
     const dollarWidth = $derived(width - dollarInsetX * 2)
     const dollarHeight = $derived(height - dollarInsetY * 2)
     const transform = $derived.by(() => {
-        if (rotation === 0) {
+        if (rotation === 0 && !counterMirrorX) {
             return `translate(${x} ${y})`
         }
 
         const centerX = x + width / 2
         const centerY = y + height / 2
-        return `translate(${centerX} ${centerY}) rotate(${rotation}) translate(${-width / 2} ${-height / 2})`
+        const rotatePart = rotation === 0 ? '' : ` rotate(${rotation})`
+        const mirrorPart = counterMirrorX ? ' scale(-1 1)' : ''
+        return `translate(${centerX} ${centerY})${rotatePart}${mirrorPart} translate(${-width / 2} ${-height / 2})`
     })
 </script>
 

@@ -9,15 +9,7 @@
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
-    import {
-        BOARD_HEIGHT,
-        BOARD_WIDTH,
-        ISLAND_IMAGE_HEIGHT,
-        ISLAND_IMAGE_WIDTH,
-        ISLAND_IMAGE_X,
-        ISLAND_IMAGE_Y,
-        buildPlayerBoardSeats
-    } from '$lib/definitions/boardLayout.js'
+    import { buildBoardLayout } from '$lib/definitions/boardLayout.js'
 
     import type { ContainerGameSession } from '$lib/model/session.svelte'
     import type { HydratedContainerGameState, ContainerGameState } from '@tabletop/container'
@@ -28,30 +20,24 @@
     }: { gameSession: GameSession<ContainerGameState, HydratedContainerGameState> } = $props()
     setGameSession(gameSession as ContainerGameSession)
 
-    const CENTER_ISLAND_RECT = {
-        x: ISLAND_IMAGE_X,
-        y: ISLAND_IMAGE_Y,
-        width: ISLAND_IMAGE_WIDTH,
-        height: ISLAND_IMAGE_HEIGHT
-    }
-    const FULL_BOARD_RECT = {
+    let scalingWrapper: any = $state(null)
+
+    const boardLayout = $derived.by(() =>
+        buildBoardLayout(gameSession.gameState.turnManager.turnOrder)
+    )
+
+    const centerIslandRect = $derived(boardLayout.islandRect)
+    const fullBoardRect = $derived({
         x: 0,
         y: 0,
-        width: BOARD_WIDTH,
-        height: BOARD_HEIGHT
-    }
-
-    let scalingWrapper: {
-        focusRect: (
-            rect: { x: number; y: number; width: number; height: number },
-            options?: { maxScale?: number; padding?: number; animate?: boolean }
-        ) => void
-    } | null = $state(null)
+        width: boardLayout.boardWidth,
+        height: boardLayout.boardHeight
+    })
 
     const playerBoardFocusTargets = $derived.by(() => {
         const playerById = new Map(gameSession.game.players.map((player) => [player.id, player]))
 
-        return buildPlayerBoardSeats(gameSession.gameState.turnManager.turnOrder)
+        return boardLayout.playerBoardSeats
             .map((seat) => {
                 const player = playerById.get(seat.playerId)
                 if (!player) {
@@ -96,7 +82,7 @@
                         <button
                             class="rounded-md border border-[#252a4a] bg-black/30 px-3 py-1 text-[0.78rem] uppercase tracking-[0.08em] text-[#d7def7]"
                             onclick={() =>
-                                scalingWrapper?.focusRect(CENTER_ISLAND_RECT, {
+                                scalingWrapper?.focusRect(centerIslandRect, {
                                     padding: 24,
                                     maxScale: 1,
                                     animate: true
@@ -107,7 +93,7 @@
                         <button
                             class="rounded-md border border-[#252a4a] bg-black/20 px-3 py-1 text-[0.78rem] uppercase tracking-[0.08em] text-[#d7def7]"
                             onclick={() =>
-                                scalingWrapper?.focusRect(FULL_BOARD_RECT, {
+                                scalingWrapper?.focusRect(fullBoardRect, {
                                     maxScale: 1,
                                     animate: true
                                 })}

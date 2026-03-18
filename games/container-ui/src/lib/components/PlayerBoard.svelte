@@ -49,7 +49,6 @@
     const PLAYER_SIGN_LOCAL_ROTATION = 90
     const WAREHOUSE_SOURCE_X = 390.5
     const WAREHOUSE_SOURCE_Y = 650.5
-    const WAREHOUSE_RIGHT_SOURCE_Y_ADJUST = 12
     const WAREHOUSE_SOURCE_WIDTH = 57
     const WAREHOUSE_EXTRA_HEIGHT = 1
     const WAREHOUSE_SOURCE_HORIZONTAL_STEP = -57
@@ -96,7 +95,7 @@
     })
     const colorStripTransform = $derived.by(() =>
         orientation === 'right'
-            ? `translate(${width - colorStripAnchorX} ${height}) rotate(180)`
+            ? `translate(${width - colorStripAnchorX} 0) scale(-1 1)`
             : `translate(${colorStripAnchorX} 0)`
     )
     const factoryOfferX = $derived(width * (FACTORY_OFFER_SOURCE_X / LEFT_BOARD_SOURCE_WIDTH))
@@ -142,17 +141,6 @@
             y: height * (WAREHOUSE_SOURCE_Y / BOARD_SOURCE_HEIGHT)
         }))
     )
-    const rightWarehousePositions = $derived(
-        Array.from({ length: ownedWarehouseCount }, (_value, index) => ({
-            x:
-                width *
-                ((WAREHOUSE_SOURCE_X + WAREHOUSE_SOURCE_HORIZONTAL_STEP * index) /
-                    LEFT_BOARD_SOURCE_WIDTH),
-            y:
-                height *
-                ((WAREHOUSE_SOURCE_Y + WAREHOUSE_RIGHT_SOURCE_Y_ADJUST) / BOARD_SOURCE_HEIGHT)
-        }))
-    )
     const playerSignHref = $derived(
         SIGN_IMAGE_BY_COLOR[
             gameSession.colors
@@ -171,9 +159,10 @@
     const playerSignY = $derived(playerSignTopY - (playerSignHeight - playerSignWidth) / 2)
     const playerSignCenterX = $derived(playerSignX + playerSignWidth / 2)
     const playerSignCenterY = $derived(playerSignY + playerSignHeight / 2)
-    const playerSignTransform = $derived(
-        `translate(${playerSignCenterX} ${playerSignCenterY}) rotate(${PLAYER_SIGN_LOCAL_ROTATION}) translate(${-playerSignWidth / 2} ${-playerSignHeight / 2})`
-    )
+    const playerSignTransform = $derived.by(() => {
+        const counterMirror = orientation === 'right' ? ' scale(-1 1)' : ''
+        return `translate(${playerSignCenterX} ${playerSignCenterY}) rotate(${PLAYER_SIGN_LOCAL_ROTATION})${counterMirror} translate(${-playerSignWidth / 2} ${-playerSignHeight / 2})`
+    })
 </script>
 
 <g
@@ -201,7 +190,7 @@
         </svg>
     </g>
     {#if orientation === 'right'}
-        <g transform={`translate(${width} ${height}) rotate(180)`}>
+        <g transform={`translate(${width} 0) scale(-1 1)`}>
             <g transform={playerSignTransform}>
                 <image
                     href={playerSignHref}
@@ -218,7 +207,7 @@
                 width={factoryOfferWidth}
                 color={playerUiColor}
                 amount={1}
-                costSquareRotation={180}
+                costSquareCounterMirror={true}
             />
             <PlayerBoardFactoryOffer3
                 x={secondFactoryOfferX}
@@ -226,7 +215,7 @@
                 width={secondFactoryOfferWidth}
                 color={playerUiColor}
                 amount={2}
-                costSquareRotation={180}
+                costSquareCounterMirror={true}
             />
             <PlayerBoardFactoryOffer2
                 x={factoryOfferX}
@@ -234,7 +223,7 @@
                 width={factoryOfferWidth}
                 color={playerUiColor}
                 amount={3}
-                costSquareRotation={180}
+                costSquareCounterMirror={true}
             />
             <PlayerBoardFactoryOffer1
                 x={factoryOfferX}
@@ -242,7 +231,7 @@
                 width={factoryOfferWidth}
                 color={playerUiColor}
                 amount={4}
-                costSquareRotation={180}
+                costSquareCounterMirror={true}
             />
             {#each costSquarePositions as costSquare (costSquare.amount)}
                 <CostSquare
@@ -251,16 +240,15 @@
                     width={costSquareWidth}
                     amount={costSquare.amount}
                     color={playerUiColor}
-                    rotation={180}
+                    counterMirrorX={true}
                 />
             {/each}
-            {#each rightWarehousePositions as warehouse, index (`warehouse-${index}`)}
+            {#each warehousePositions as warehouse, index (`warehouse-${index}`)}
                 <Warehouse
                     x={warehouse.x}
                     y={warehouse.y}
                     width={warehouseWidth}
                     heightOverride={warehouseHeight}
-                    rotation={180}
                 />
             {/each}
         </g>

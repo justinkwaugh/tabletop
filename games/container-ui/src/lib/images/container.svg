@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="b" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23.83 65.28">
+  <defs>
+    <style>
+      .d {
+        fill: #fff;
+        stroke: #332626;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: .5px;
+      }
+    </style>
+  </defs>
+  <g id="c" data-name="Layer 1">
+    <g>
+      <rect class="d" x=".25" y="41.7" width="23.33" height="23.33"/>
+      <rect class="d" x="2.71" y="44.17" width="18.4" height="18.4" transform="translate(-41.45 65.28) rotate(-90)"/>
+      <rect class="d" x=".25" y=".25" width="23.33" height="41.45"/>
+      <line class="d" x1="11.59" y1="44.17" x2="11.59" y2="62.57"/>
+      <line class="d" x1="10.24" y1="47.86" x2="4.28" y2="47.86"/>
+      <line class="d" x1="10.24" y1="53.37" x2="4.28" y2="53.37"/>
+      <line class="d" x1="10.24" y1="59.93" x2="4.28" y2="59.93"/>
+      <line class="d" x1="19.34" y1="47.86" x2="13.39" y2="47.86"/>
+      <line class="d" x1="19.34" y1="53.37" x2="13.39" y2="53.37"/>
+      <line class="d" x1="19.34" y1="59.93" x2="13.39" y2="59.93"/>
+    </g>
+  </g>
+</svg>

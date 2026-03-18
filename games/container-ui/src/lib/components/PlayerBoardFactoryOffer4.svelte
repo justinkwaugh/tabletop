@@ -18,7 +18,8 @@
         width,
         color,
         amount,
-        costSquareRotation = 0
+        costSquareRotation = 0,
+        costSquareCounterMirror = false
     }: {
         x: number
         y: number
@@ -26,6 +27,7 @@
         color: string
         amount: 1 | 2 | 3 | 4
         costSquareRotation?: number
+        costSquareCounterMirror?: boolean
     } = $props()
 
     const height = $derived(width * (OFFER_HEIGHT / OFFER_WIDTH))
@@ -40,6 +42,7 @@
         amount={amount}
         color={color}
         rotation={costSquareRotation}
+        counterMirrorX={costSquareCounterMirror}
     />
     <rect
         x="50.92"
