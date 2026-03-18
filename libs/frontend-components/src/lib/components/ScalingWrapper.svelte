@@ -20,6 +20,10 @@
         animate?: boolean
     }
 
+    type FitOptions = {
+        animate?: boolean
+    }
+
     type FocusTarget = {
         rect: FocusRect
         maxScale: number
@@ -412,6 +416,31 @@
         }
 
         zoomToScaleKeepingCenter(targetScale, true)
+    }
+
+    export function fitToContent(options: FitOptions = {}) {
+        clearActiveFocus()
+
+        if (!scroller || !contentWidth || !contentHeight) {
+            return
+        }
+
+        const targetScale = baseScale
+        const targetScroll = getScrollForContentPointAtScale(
+            contentWidth / 2,
+            contentHeight / 2,
+            targetScale
+        )
+
+        if (options.animate) {
+            animateViewTo(targetScale, targetScroll.left, targetScroll.top)
+            return
+        }
+
+        cancelViewAnimation()
+        applyLayout(targetScale)
+        scroller.scrollLeft = targetScroll.left
+        scroller.scrollTop = targetScroll.top
     }
 
     export function focusRect(rect: FocusRect, options: FocusOptions = {}) {

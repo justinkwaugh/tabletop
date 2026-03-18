@@ -27,13 +27,6 @@
     )
 
     const centerIslandRect = $derived(boardLayout.islandRect)
-    const fullBoardRect = $derived({
-        x: 0,
-        y: 0,
-        width: boardLayout.boardWidth,
-        height: boardLayout.boardHeight
-    })
-
     const playerBoardFocusTargets = $derived.by(() => {
         const playerById = new Map(gameSession.game.players.map((player) => [player.id, player]))
 
@@ -80,6 +73,12 @@
                 {:else}
                     <div class="flex flex-row flex-wrap gap-2 px-2 pb-2">
                         <button
+                            class="rounded-md border border-[#252a4a] bg-black/20 px-3 py-1 text-[0.78rem] uppercase tracking-[0.08em] text-[#d7def7]"
+                            onclick={() => scalingWrapper?.fitToContent({ animate: true })}
+                        >
+                            Full
+                        </button>
+                        <button
                             class="rounded-md border border-[#252a4a] bg-black/30 px-3 py-1 text-[0.78rem] uppercase tracking-[0.08em] text-[#d7def7]"
                             onclick={() =>
                                 scalingWrapper?.focusRect(centerIslandRect, {
@@ -89,16 +88,6 @@
                                 })}
                         >
                             Island
-                        </button>
-                        <button
-                            class="rounded-md border border-[#252a4a] bg-black/20 px-3 py-1 text-[0.78rem] uppercase tracking-[0.08em] text-[#d7def7]"
-                            onclick={() =>
-                                scalingWrapper?.focusRect(fullBoardRect, {
-                                    maxScale: 1,
-                                    animate: true
-                                })}
-                        >
-                            Board
                         </button>
                         {#each playerBoardFocusTargets as target (target.playerId)}
                             <button
