@@ -40,6 +40,7 @@
                 return {
                     playerId: player.id,
                     label: player.name,
+                    color: gameSession.colors.getPlayerUiColor(player.id),
                     rect: {
                         x: seat.x,
                         y: seat.y,
@@ -91,16 +92,17 @@
                         </button>
                         {#each playerBoardFocusTargets as target (target.playerId)}
                             <button
-                                class="rounded-md border border-[#252a4a] bg-black/20 px-3 py-1 text-[0.78rem] uppercase tracking-[0.08em] text-[#d7def7]"
+                                class="h-9 w-9 rounded-md border border-[#252a4a]"
+                                style={`background:${target.color};`}
+                                aria-label={target.label}
+                                title={target.label}
                                 onclick={() =>
                                     scalingWrapper?.focusRect(target.rect, {
                                         padding: 24,
                                         maxScale: 1,
                                         animate: true
                                     })}
-                            >
-                                {target.label}
-                            </button>
+                            ></button>
                         {/each}
                     </div>
                 {/if}

@@ -9,8 +9,8 @@
     const BG_WIDTH = 42.18
     const BG_HEIGHT = 41.94
     const STROKE = '#332626'
-    const DOLLAR_INSET_X_RATIO = 0.2
-    const DOLLAR_INSET_Y_RATIO = 0.2
+    const DOLLAR_INSET_X_RATIO = 0.15
+    const DOLLAR_INSET_Y_RATIO = 0.15
     const DOLLAR_ASSET_BY_AMOUNT = {
         1: oneDollarSvg,
         2: twoDollarSvg,
