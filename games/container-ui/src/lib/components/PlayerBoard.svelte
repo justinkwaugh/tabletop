@@ -312,25 +312,30 @@
 </g>
 
 <style>
+    :global(:root) {
+        --player-board-cardboard-shadow: drop-shadow(0 2px 0 rgba(58, 55, 43, 0.28))
+            drop-shadow(0 5px 7px rgba(18, 24, 52, 0.12));
+    }
+
     @keyframes player-board-pulse {
         0% {
-            filter: drop-shadow(0 18px 28px rgba(12, 18, 46, 0.24));
+            filter: var(--player-board-cardboard-shadow);
         }
         25% {
             filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0.92))
-                drop-shadow(0 18px 28px rgba(12, 18, 46, 0.24));
+                var(--player-board-cardboard-shadow);
         }
         75% {
             filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0.92))
-                drop-shadow(0 18px 28px rgba(12, 18, 46, 0.24));
+                var(--player-board-cardboard-shadow);
         }
         100% {
-            filter: drop-shadow(0 18px 28px rgba(12, 18, 46, 0.24));
+            filter: var(--player-board-cardboard-shadow);
         }
     }
 
     .player-board-root {
-        filter: drop-shadow(0 18px 28px rgba(12, 18, 46, 0.24));
+        filter: var(--player-board-cardboard-shadow);
     }
 
     .player-board-turn {

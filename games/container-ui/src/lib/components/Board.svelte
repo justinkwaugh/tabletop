@@ -3,6 +3,8 @@
     import type { HydratedContainerPlayerState, ContainerPlayerState } from '@tabletop/container'
     import BoardBaseLayer from '$lib/components/BoardBaseLayer.svelte'
     import Boat from '$lib/components/Boat.svelte'
+    import largeConnectorImg from '$lib/images/large-connector.svg'
+    import sideConnectorImg from '$lib/images/side-connector.svg'
     import PlayerBoard from '$lib/components/PlayerBoard.svelte'
     import { buildBoardLayout } from '$lib/definitions/boardLayout.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -12,6 +14,20 @@
     const BOAT_PREVIEW_GAP = 20
     const BOAT_PREVIEW_Y_OFFSET = 38
     const CONTAINER_PREVIEW_COLORS = ['#ffffff', '#84accf', '#e14547', '#4f984d', '#f7dd4a']
+    const PLAYER_BOARD_UNDERLAY_FILL = '#727780'
+    const PLAYER_BOARD_UNDERLAY_BACK_OFFSET_X = -48
+    const BOARD_SOURCE_WIDTH = 448
+    const BOARD_SOURCE_HEIGHT = 755
+    const LARGE_CONNECTOR_SOURCE_WIDTH = 623.07
+    const LARGE_CONNECTOR_SOURCE_HEIGHT = 500
+    const LARGE_CONNECTOR_OVERLAP_Y = 110
+    const LARGE_CONNECTOR_OFFSET_X = -35
+    const SIDE_CONNECTOR_SOURCE_WIDTH = 863.09
+    const SIDE_CONNECTOR_SOURCE_HEIGHT = 568.78
+    const SIDE_CONNECTOR_TOP_OFFSET_X = -262
+    const SIDE_CONNECTOR_TOP_OFFSET_Y = 130
+    const SIDE_CONNECTOR_BOTTOM_OFFSET_X = -215
+    const SIDE_CONNECTOR_BOTTOM_OFFSET_Y = -160
 
     let boardSvg: SVGSVGElement | null = $state(null)
     let boatPositionOverrides = $state<Record<string, { x: number; y: number }>>({})
@@ -45,10 +61,112 @@
         () => new Map(boardLayout.playerBoardSeats.map((seat) => [seat.playerId, seat]))
     )
 
+    const largeConnectorPlacements = $derived.by(() => {
+        const leftSeats = boardLayout.playerBoardSeats
+            .filter((seat) => seat.orientation === 'left')
+            .sort((a, b) => a.y - b.y)
+        const rightSeats = boardLayout.playerBoardSeats
+            .filter((seat) => seat.orientation === 'right')
+            .sort((a, b) => a.y - b.y)
+
+        return [...leftSeats, ...rightSeats]
+            .map((seat, index, seats) => {
+                const nextSeat = seats[index + 1]
+                if (!nextSeat || nextSeat.orientation !== seat.orientation) {
+                    return null
+                }
+
+                const width = seat.width * (LARGE_CONNECTOR_SOURCE_WIDTH / BOARD_SOURCE_WIDTH)
+                const height = seat.height * (LARGE_CONNECTOR_SOURCE_HEIGHT / BOARD_SOURCE_HEIGHT)
+                const x =
+                    seat.orientation === 'left'
+                        ? seat.x + LARGE_CONNECTOR_OFFSET_X
+                        : seat.x + seat.width - LARGE_CONNECTOR_OFFSET_X
+                const y = seat.y + seat.height - LARGE_CONNECTOR_OVERLAP_Y
+                const transform =
+                    seat.orientation === 'left'
+                        ? `translate(${x} ${y})`
+                        : `translate(${x} ${y}) scale(-1 1)`
+
+                return {
+                    key: `${seat.playerId}-${nextSeat.playerId}`,
+                    width,
+                    height,
+                    transform
+                }
+            })
+            .filter((entry): entry is NonNullable<typeof entry> => !!entry)
+    })
+
+    const sideConnectorPlacements = $derived.by(() => {
+        const seatsByOrientation = {
+            left: boardLayout.playerBoardSeats
+                .filter((seat) => seat.orientation === 'left')
+                .sort((a, b) => a.y - b.y),
+            right: boardLayout.playerBoardSeats
+                .filter((seat) => seat.orientation === 'right')
+                .sort((a, b) => a.y - b.y)
+        }
+
+        return (
+            Object.values(seatsByOrientation) as Array<typeof boardLayout.playerBoardSeats>
+        ).flatMap((seats) =>
+            seats.flatMap((seat, index) => {
+                const placements: Array<{
+                    key: string
+                    width: number
+                    height: number
+                    transform: string
+                }> = []
+                const width = seat.width * (SIDE_CONNECTOR_SOURCE_WIDTH / BOARD_SOURCE_WIDTH)
+                const height = seat.height * (SIDE_CONNECTOR_SOURCE_HEIGHT / BOARD_SOURCE_HEIGHT)
+
+                if (index === 0) {
+                    const topX =
+                        seat.orientation === 'left'
+                            ? seat.x + SIDE_CONNECTOR_TOP_OFFSET_X
+                            : seat.x + seat.width - SIDE_CONNECTOR_TOP_OFFSET_X
+                    const topY = seat.y + SIDE_CONNECTOR_TOP_OFFSET_Y
+                    const topTransform =
+                        seat.orientation === 'left'
+                            ? `translate(${topX} ${topY}) scale(1 -1)`
+                            : `translate(${topX} ${topY}) scale(-1 -1)`
+
+                    placements.push({
+                        key: `${seat.playerId}-top`,
+                        width,
+                        height,
+                        transform: topTransform
+                    })
+                }
+
+                if (index === seats.length - 1) {
+                    const bottomX =
+                        seat.orientation === 'left'
+                            ? seat.x + SIDE_CONNECTOR_BOTTOM_OFFSET_X
+                            : seat.x + seat.width - SIDE_CONNECTOR_BOTTOM_OFFSET_X
+                    const bottomY = seat.y + seat.height + SIDE_CONNECTOR_BOTTOM_OFFSET_Y
+                    const bottomTransform =
+                        seat.orientation === 'left'
+                            ? `translate(${bottomX} ${bottomY})`
+                            : `translate(${bottomX} ${bottomY}) scale(-1 1)`
+
+                    placements.push({
+                        key: `${seat.playerId}-bottom`,
+                        width,
+                        height,
+                        transform: bottomTransform
+                    })
+                }
+
+                return placements
+            })
+        )
+    })
+
     const previewBoats = $derived.by(() => {
         const count = playersAndStates.length
-        const totalWidth =
-            count * BOAT_PREVIEW_WIDTH + Math.max(0, count - 1) * BOAT_PREVIEW_GAP
+        const totalWidth = count * BOAT_PREVIEW_WIDTH + Math.max(0, count - 1) * BOAT_PREVIEW_GAP
         const startX = (boardLayout.boardWidth - totalWidth) / 2
         const y = boardLayout.islandRect.y + boardLayout.islandRect.height + BOAT_PREVIEW_Y_OFFSET
 
@@ -165,6 +283,41 @@
                 boardCornerRadius={boardLayout.boardCornerRadius}
                 islandRect={boardLayout.islandRect}
             />
+            {#each sideConnectorPlacements as connector (connector.key)}
+                <g transform={connector.transform}>
+                    <image
+                        href={sideConnectorImg}
+                        x="0"
+                        y="0"
+                        width={connector.width}
+                        height={connector.height}
+                        preserveAspectRatio="none"
+                    ></image>
+                </g>
+            {/each}
+            {#each largeConnectorPlacements as connector (connector.key)}
+                <g transform={connector.transform}>
+                    <image
+                        href={largeConnectorImg}
+                        x="0"
+                        y="0"
+                        width={connector.width}
+                        height={connector.height}
+                        preserveAspectRatio="none"
+                    ></image>
+                </g>
+            {/each}
+            {#each boardLayout.playerBoardSeats as seat (seat.playerId)}
+                <rect
+                    x={seat.orientation === 'left'
+                        ? seat.x + PLAYER_BOARD_UNDERLAY_BACK_OFFSET_X
+                        : seat.x - PLAYER_BOARD_UNDERLAY_BACK_OFFSET_X}
+                    y={seat.y}
+                    width={seat.width}
+                    height={seat.height}
+                    fill={PLAYER_BOARD_UNDERLAY_FILL}
+                ></rect>
+            {/each}
             {#each previewBoats as boat (boat.playerId)}
                 <g
                     class="cursor-grab active:cursor-grabbing"
