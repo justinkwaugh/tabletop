@@ -1,6 +1,11 @@
 <script lang="ts">
     import islandImg from '$lib/images/island.webp'
     import offshoreImg from '$lib/images/offshore@2x.webp'
+    import {
+        MAIN_ISLAND_BOUNDARY_PATH,
+        MAIN_ISLAND_SOURCE_HEIGHT,
+        MAIN_ISLAND_SOURCE_WIDTH
+    } from '$lib/definitions/islandGeometry.js'
 
     let {
         boardWidth,
@@ -18,13 +23,7 @@
 </script>
 
 <g aria-hidden="true">
-    <rect
-        x="0"
-        y="0"
-        width={boardWidth}
-        height={boardHeight}
-        rx={boardCornerRadius}
-        fill="#444a78"
+    <rect x="0" y="0" width={boardWidth} height={boardHeight} rx={boardCornerRadius} fill="#444a78"
     ></rect>
     <image
         href={islandImg}
@@ -34,6 +33,19 @@
         height={islandRect.height}
         preserveAspectRatio="xMidYMid meet"
     ></image>
+    <g
+        transform={`translate(${islandRect.x} ${islandRect.y}) scale(${islandRect.width / MAIN_ISLAND_SOURCE_WIDTH} ${islandRect.height / MAIN_ISLAND_SOURCE_HEIGHT})`}
+    >
+        <path
+            d={MAIN_ISLAND_BOUNDARY_PATH}
+            fill="none"
+            stroke="#ff2a2a"
+            stroke-width="4"
+            stroke-linejoin="round"
+            stroke-linecap="round"
+            vector-effect="non-scaling-stroke"
+        ></path>
+    </g>
     {#if offshoreRect}
         <image
             href={offshoreImg}

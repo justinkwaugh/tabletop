@@ -23,6 +23,6 @@ export function getPlayerBoardDockBoatAnchors(
     return PLAYER_BOARD_DOCK_BOAT_CENTER_SOURCE_YS.map((sourceCenterY) => ({
         tipX,
         centerY: height * (sourceCenterY / PLAYER_BOARD_SOURCE_HEIGHT),
-        rotation: orientation === 'right' ? 180 : 0
+        rotation: orientation === 'right' ? 0 : 180
     }))
 }

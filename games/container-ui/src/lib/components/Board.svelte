@@ -1,20 +1,25 @@
 <script lang="ts">
+    import { onMount } from 'svelte'
     import type { Player } from '@tabletop/common'
     import type { HydratedContainerPlayerState, ContainerPlayerState } from '@tabletop/container'
     import BoardBaseLayer from '$lib/components/BoardBaseLayer.svelte'
-    import Boat, { DEFAULT_BOAT_RENDER_WIDTH } from '$lib/components/Boat.svelte'
+    import Boat from '$lib/components/Boat.svelte'
+    import {
+        boatHeadingToRenderRotation,
+        DEFAULT_BOAT_RENDER_HEIGHT,
+        DEFAULT_BOAT_RENDER_WIDTH,
+        DEFAULT_BOAT_RENDER_WIDTH as BOAT_WIDTH
+    } from '$lib/definitions/boatGeometry.js'
+    import { getMotionPathLength, sampleMotionPath } from '$lib/definitions/boatMotion.js'
+    import { buildBoatNavigationGeometry } from '$lib/definitions/boatNavigation.js'
+    import { buildDockTransferPlan } from '$lib/definitions/boatPlanner.js'
     import largeConnectorImg from '$lib/images/large-connector.svg'
     import sideConnectorImg from '$lib/images/side-connector.svg'
     import PlayerBoard from '$lib/components/PlayerBoard.svelte'
     import { buildBoardLayout } from '$lib/definitions/boardLayout.js'
-    import { getMainIslandDockBoatAnchors } from '$lib/definitions/islandGeometry.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
-    const BOAT_PREVIEW_WIDTH = DEFAULT_BOAT_RENDER_WIDTH
-    const BOAT_PREVIEW_GAP = 20
-    const BOAT_PREVIEW_Y_OFFSET = 38
-    const CONTAINER_PREVIEW_COLORS = ['#ffffff', '#84accf', '#e14547', '#4f984d', '#f7dd4a']
     const PLAYER_BOARD_UNDERLAY_FILL = '#727780'
     const PLAYER_BOARD_UNDERLAY_BACK_OFFSET_X = -48
     const BOARD_SOURCE_WIDTH = 448
@@ -30,11 +35,7 @@
     const SIDE_CONNECTOR_BOTTOM_OFFSET_X = -215
     const SIDE_CONNECTOR_BOTTOM_OFFSET_Y = -160
 
-    let boardSvg: SVGSVGElement | null = $state(null)
-    let boatPositionOverrides = $state<Record<string, { x: number; y: number }>>({})
-    let draggingBoatId = $state<string | null>(null)
-    let dragPointerId = $state<number | null>(null)
-    let dragOffset = $state({ x: 0, y: 0 })
+    let demoAnimationMs = $state(0)
 
     type PlayerAndState = { player: Player; playerState: HydratedContainerPlayerState }
 
@@ -64,6 +65,7 @@
     const playerBoardSeatById = $derived.by(
         () => new Map(boardLayout.playerBoardSeats.map((seat) => [seat.playerId, seat]))
     )
+    const boatNavigationGeometry = $derived.by(() => buildBoatNavigationGeometry(boardLayout))
 
     const largeConnectorPlacements = $derived.by(() => {
         const leftSeats = boardLayout.playerBoardSeats
@@ -168,32 +170,9 @@
         )
     })
 
-    const previewBoats = $derived.by(() => {
-        const count = playersAndStates.length
-        const totalWidth =
-            count * BOAT_PREVIEW_WIDTH + Math.max(0, count - 1) * BOAT_PREVIEW_GAP
-        const startX = (boardLayout.boardWidth - totalWidth) / 2
-        const y = boardLayout.islandRect.y + boardLayout.islandRect.height + BOAT_PREVIEW_Y_OFFSET
-
-        return playersAndStates.map((entry, index) => ({
-            playerId: entry.player.id,
-            color: gameSession.colors.getPlayerUiColor(entry.player.id),
-            containerColors: buildPreviewContainerColors(entry.player.id),
-            x:
-                boatPositionOverrides[entry.player.id]?.x ??
-                startX + index * (BOAT_PREVIEW_WIDTH + BOAT_PREVIEW_GAP),
-            y: boatPositionOverrides[entry.player.id]?.y ?? y
-        }))
-    })
     const islandDockBoats = $derived.by(() => {
-        const dockAnchors = getMainIslandDockBoatAnchors(
-            boardLayout.islandRect.x,
-            boardLayout.islandRect.y,
-            boardLayout.islandRect.width,
-            boardLayout.islandRect.height
-        )
-
-        return dockAnchors.map((anchor, index) => {
+        return boatNavigationGeometry.mainIslandDockSlots.slice(1).map((slot, slotIndex) => {
+            const index = slotIndex + 1
             const player = playersAndStates[index % playersAndStates.length]
             const color = player
                 ? gameSession.colors.getPlayerUiColor(player.player.id)
@@ -201,94 +180,77 @@
 
             return {
                 key: `island-dock-boat-${index}`,
-                x: anchor.tipX,
-                y: anchor.centerY - (DEFAULT_BOAT_RENDER_WIDTH * (63.16 / 252.52)) / 2,
-                rotation: anchor.rotation,
+                x: slot.dockedPose.x - DEFAULT_BOAT_RENDER_WIDTH / 2,
+                y: slot.dockedPose.y - DEFAULT_BOAT_RENDER_HEIGHT / 2,
+                rotation: boatHeadingToRenderRotation(slot.dockedPose.heading),
                 color
             }
         })
+    })
+    const demoRoutePlan = $derived.by(() => {
+        for (const [startIndex, startDock] of boatNavigationGeometry.mainIslandDockSlots.entries()) {
+            const occupiedBoatPoses = boatNavigationGeometry.mainIslandDockSlots
+                .filter((_, index) => index !== startIndex)
+                .map((slot) => slot.dockedPose)
+
+            for (const endDock of boatNavigationGeometry.playerBoardDockSlots) {
+                const plan = buildDockTransferPlan(
+                    startDock,
+                    endDock,
+                    boatNavigationGeometry,
+                    occupiedBoatPoses
+                )
+                if (plan) {
+                    return plan
+                }
+            }
+        }
+
+        return null
+    })
+    const demoRouteLength = $derived.by(() =>
+        demoRoutePlan ? getMotionPathLength(demoRoutePlan.segments) : 0
+    )
+    const demoBoat = $derived.by(() => {
+        if (!demoRoutePlan || demoRouteLength <= 0) {
+            return null
+        }
+
+        const speed = 170
+        const traveled = ((demoAnimationMs / 1000) * speed) % demoRouteLength
+        const pose = sampleMotionPath(demoRoutePlan.segments, traveled)
+
+        return {
+            x: pose.x - BOAT_WIDTH / 2,
+            y: pose.y - DEFAULT_BOAT_RENDER_HEIGHT / 2,
+            rotation: boatHeadingToRenderRotation(pose.heading),
+            color:
+                playersAndStates[0] ?
+                    gameSession.colors.getPlayerUiColor(playersAndStates[0].player.id)
+                :   '#84accf'
+        }
     })
 
     function getPlayerForState(playerState: ContainerPlayerState) {
         return gameSession.game.players.find((player) => player.id === playerState.playerId)!
     }
 
-    function buildPreviewContainerColors(seedText: string): string[] {
-        let seed = 0
-        for (const char of seedText) {
-            seed = (seed * 31 + char.charCodeAt(0)) >>> 0
-        }
+    onMount(() => {
+        let animationFrame = 0
+        let startTime = 0
 
-        seed = (seed * 1664525 + 1013904223) >>> 0
-        const containerCount = 2 + (seed % 4)
-
-        return Array.from({ length: containerCount }, () => {
-            seed = (seed * 1664525 + 1013904223) >>> 0
-            return CONTAINER_PREVIEW_COLORS[seed % CONTAINER_PREVIEW_COLORS.length]!
-        })
-    }
-
-    function pointerEventToBoardPoint(event: PointerEvent) {
-        const svg = boardSvg
-        if (!svg) {
-            return null
-        }
-
-        const ctm = svg.getScreenCTM()
-        if (!ctm) {
-            return null
-        }
-
-        const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(ctm.inverse())
-        return { x: point.x, y: point.y }
-    }
-
-    function handleBoatPointerDown(event: PointerEvent, boatId: string, x: number, y: number) {
-        const point = pointerEventToBoardPoint(event)
-        if (!point || !boardSvg) {
-            return
-        }
-
-        draggingBoatId = boatId
-        dragPointerId = event.pointerId
-        dragOffset = {
-            x: point.x - x,
-            y: point.y - y
-        }
-        boardSvg.setPointerCapture(event.pointerId)
-    }
-
-    function handleBoardPointerMove(event: PointerEvent) {
-        if (!draggingBoatId || event.pointerId !== dragPointerId) {
-            return
-        }
-
-        const point = pointerEventToBoardPoint(event)
-        if (!point) {
-            return
-        }
-
-        boatPositionOverrides = {
-            ...boatPositionOverrides,
-            [draggingBoatId]: {
-                x: point.x - dragOffset.x,
-                y: point.y - dragOffset.y
+        const tick = (timestamp: number) => {
+            if (startTime === 0) {
+                startTime = timestamp
             }
-        }
-    }
 
-    function handleBoardPointerUp(event: PointerEvent) {
-        if (!boardSvg || event.pointerId !== dragPointerId) {
-            return
+            demoAnimationMs = timestamp - startTime
+            animationFrame = requestAnimationFrame(tick)
         }
 
-        if (boardSvg.hasPointerCapture(event.pointerId)) {
-            boardSvg.releasePointerCapture(event.pointerId)
-        }
-
-        draggingBoatId = null
-        dragPointerId = null
-    }
+        animationFrame = requestAnimationFrame(tick)
+        return () => cancelAnimationFrame(animationFrame)
+    })
 </script>
 
 <div class="board-shell">
@@ -300,10 +262,6 @@
             class="absolute inset-0 h-full w-full"
             viewBox={`0 0 ${boardLayout.boardWidth} ${boardLayout.boardHeight}`}
             aria-label="Container board"
-            bind:this={boardSvg}
-            onpointermove={handleBoardPointerMove}
-            onpointerup={handleBoardPointerUp}
-            onpointercancel={handleBoardPointerUp}
         >
             <BoardBaseLayer
                 boardWidth={boardLayout.boardWidth}
@@ -347,23 +305,17 @@
                     fill={PLAYER_BOARD_UNDERLAY_FILL}
                 ></rect>
             {/each}
-            {#each previewBoats as boat (boat.playerId)}
-                <g
-                    class="cursor-grab active:cursor-grabbing"
-                    onpointerdown={(event) =>
-                        handleBoatPointerDown(event, boat.playerId, boat.x, boat.y)}
-                >
-                    <Boat
-                        x={boat.x}
-                        y={boat.y}
-                        color={boat.color}
-                        containerColors={boat.containerColors}
-                    />
-                </g>
-            {/each}
             {#each islandDockBoats as boat (boat.key)}
                 <Boat x={boat.x} y={boat.y} color={boat.color} rotation={boat.rotation} />
             {/each}
+            {#if demoBoat}
+                <Boat
+                    x={demoBoat.x}
+                    y={demoBoat.y}
+                    color={demoBoat.color}
+                    rotation={demoBoat.rotation}
+                />
+            {/if}
             {#each playersAndStates as playerAndState (playerAndState.player.id)}
                 {@const seat = playerBoardSeatById.get(playerAndState.player.id)}
                 {#if seat}

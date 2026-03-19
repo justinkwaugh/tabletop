@@ -1,12 +1,12 @@
-<script module lang="ts">
-    export const DEFAULT_BOAT_RENDER_WIDTH = 195.05
-</script>
-
 <script lang="ts">
     import Container from '$lib/components/Container.svelte'
+    import {
+        BOAT_ASPECT_RATIO,
+        BOAT_SOURCE_HEIGHT as BOAT_HEIGHT,
+        BOAT_SOURCE_WIDTH as BOAT_WIDTH,
+        DEFAULT_BOAT_RENDER_WIDTH
+    } from '$lib/definitions/boatGeometry.js'
 
-    const BOAT_WIDTH = 252.52
-    const BOAT_HEIGHT = 63.16
     const STROKE = '#332626'
     const CENTER_FILL = '#332626'
     const PRIMARY_SHADE_MULTIPLIER = 0.88
@@ -34,7 +34,7 @@
         rotation?: number
     } = $props()
 
-    const height = $derived(width * (BOAT_HEIGHT / BOAT_WIDTH))
+    const height = $derived(width / BOAT_ASPECT_RATIO)
     const boatBaseColor = $derived(adjustBoatBaseColor(color))
     const primaryShade = $derived(scaleHexColor(boatBaseColor, PRIMARY_SHADE_MULTIPLIER))
     const midShade = $derived(scaleHexColor(boatBaseColor, MID_SHADE_MULTIPLIER))

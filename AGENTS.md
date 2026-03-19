@@ -40,6 +40,25 @@ See docs/agent-coding-policy.md for shared-code and shared-types rules.
 - Do not use `foreignObject` as a shortcut when the element is fundamentally board art or an SVG-positioned component; make it a native SVG component instead.
 - If something is visually wrong on the board, fix the actual layer/asset/render issue rather than changing rendering technology or coordinate space.
 
+## Container Boat Navigation Plan
+
+- Model boat movement as three phases:
+  - `undock`
+  - `transit`
+  - `dock`
+- Do not ask the general planner to solve tight dock maneuvers from scratch.
+- Each dock/berth should define:
+  - a final docked pose
+  - a staging pose outside the dock
+  - local dock/undock maneuver templates
+- Use a heading-aware planner for open-water transit (`Hybrid A*` over `x, y, heading`) with boat-footprint collision checks.
+- Animate from motion segments / sampled poses, not from point-only polylines.
+- Treat other boats as static obstacles initially; add time-reservation logic only later if simultaneous movement becomes necessary.
+- Keep navigation geometry reusable and separate from temporary preview rendering:
+  - island/player-board dock poses and staging poses
+  - obstacle polygons / boundary paths
+  - boat hitbox dimensions
+
 ## Indonesia Operations Rules Summary (Implementation Reference, 2026-02-26)
 
 - Operations phase runs in rounds, in turn order.
