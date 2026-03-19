@@ -1,7 +1,9 @@
 <script lang="ts">
     import { type Player } from '@tabletop/common'
-    import type { HydratedContainerPlayerState } from '@tabletop/container'
+    import { ContainerColor, type HydratedContainerPlayerState } from '@tabletop/container'
+    import ContainerCountMarker from '$lib/components/ContainerCountMarker.svelte'
     import CostSquare from '$lib/components/CostSquare.svelte'
+    import Factory from '$lib/components/Factory.svelte'
     import PlayerBoardFactoryOffer2 from '$lib/components/PlayerBoardFactoryOffer2.svelte'
     import PlayerBoardFactoryOffer1 from '$lib/components/PlayerBoardFactoryOffer1.svelte'
     import PlayerBoardFactoryOffer3 from '$lib/components/PlayerBoardFactoryOffer3.svelte'
@@ -27,6 +29,17 @@
     const FACTORY_OFFER_SOURCE_X = 24
     const FACTORY_OFFER_SOURCE_Y = 78.5
     const FACTORY_OFFER_SOURCE_WIDTH = 117.5
+    const FACTORY_OFFER_PREVIEW_AREA_HEIGHT = 141
+    const FACTORY_OFFER_PREVIEW_OFFSET_Y = 11
+    const CONTAINER_ROW_REFERENCE_WIDTH = 195.05
+    const CONTAINER_ROW_SOURCE_WIDTH = 252.52
+    const CONTAINER_ROW_CONTAINER_HEIGHT = 60
+    const CONTAINER_ROW_CONTAINER_STEP = 24
+    const FACTORY_OFFER_PREVIEW_COUNT_FONT_SIZE = 18
+    const FACTORY_OFFER_PREVIEW_COUNT_OFFSET_Y = 19
+    const FACTORY_PREVIEW_TOP_SOURCE_Y = -37
+    const FACTORY_PREVIEW_TOP_SOURCE_WIDTH = 59
+    const FACTORY_PREVIEW_TOP_SOURCE_XS = [215, 150, 85, 20] as const
     const SECOND_FACTORY_OFFER_SOURCE_X = 22
     const SECOND_FACTORY_OFFER_SOURCE_Y = 241.5
     const SECOND_FACTORY_OFFER_SOURCE_WIDTH = 119.5
@@ -59,6 +72,13 @@
         pink: pinkSignImg,
         purple: purpleSignImg
     } as const
+    const UI_FACTORY_COLOR_BY_CONTAINER_COLOR: Record<ContainerColor, string> = {
+        [ContainerColor.Blue]: '#84accf',
+        [ContainerColor.Red]: '#e14547',
+        [ContainerColor.Green]: '#4f984d',
+        [ContainerColor.Yellow]: '#f7dd4a',
+        [ContainerColor.White]: '#ffffff'
+    }
 
     let {
         player,
@@ -98,10 +118,42 @@
             ? `translate(${width - colorStripAnchorX} 0) scale(-1 1)`
             : `translate(${colorStripAnchorX} 0)`
     )
+    function orientX(leftX: number, itemWidth: number): number {
+        return orientation === 'right' ? width - leftX - itemWidth : leftX
+    }
     const factoryOfferX = $derived(width * (FACTORY_OFFER_SOURCE_X / LEFT_BOARD_SOURCE_WIDTH))
     const factoryOfferY = $derived(height * (FACTORY_OFFER_SOURCE_Y / BOARD_SOURCE_HEIGHT))
     const factoryOfferWidth = $derived(
         width * (FACTORY_OFFER_SOURCE_WIDTH / LEFT_BOARD_SOURCE_WIDTH)
+    )
+    const orientedFactoryOfferX = $derived(orientX(factoryOfferX, factoryOfferWidth))
+    const factoryOfferPreviewContainerHeight = $derived(
+        CONTAINER_ROW_REFERENCE_WIDTH *
+            (CONTAINER_ROW_CONTAINER_HEIGHT / CONTAINER_ROW_SOURCE_WIDTH)
+    )
+    const factoryOfferPreviewContainerWidth = $derived(
+        factoryOfferPreviewContainerHeight * (23.83 / 65.28)
+    )
+    const factoryOfferPreviewContainerStep = $derived(
+        CONTAINER_ROW_REFERENCE_WIDTH * (CONTAINER_ROW_CONTAINER_STEP / CONTAINER_ROW_SOURCE_WIDTH)
+    )
+    const factoryPreviewWidth = $derived(
+        width * (FACTORY_PREVIEW_TOP_SOURCE_WIDTH / LEFT_BOARD_SOURCE_WIDTH)
+    )
+    const factoryPreviewTopY = $derived(
+        height * (FACTORY_PREVIEW_TOP_SOURCE_Y / BOARD_SOURCE_HEIGHT)
+    )
+    const factoryPreviewPositions = $derived(
+        playerState.machines
+            .slice(0, FACTORY_PREVIEW_TOP_SOURCE_XS.length)
+            .map((machineColor, index) => ({
+                color: UI_FACTORY_COLOR_BY_CONTAINER_COLOR[machineColor],
+                x: orientX(
+                    width * (FACTORY_PREVIEW_TOP_SOURCE_XS[index] / LEFT_BOARD_SOURCE_WIDTH),
+                    factoryPreviewWidth
+                ),
+                y: factoryPreviewTopY
+            }))
     )
     const secondFactoryOfferY = $derived(
         height * (SECOND_FACTORY_OFFER_SOURCE_Y / BOARD_SOURCE_HEIGHT)
@@ -112,14 +164,78 @@
     const secondFactoryOfferWidth = $derived(
         width * (SECOND_FACTORY_OFFER_SOURCE_WIDTH / LEFT_BOARD_SOURCE_WIDTH)
     )
+    const orientedSecondFactoryOfferX = $derived(
+        orientX(secondFactoryOfferX, secondFactoryOfferWidth)
+    )
     const thirdFactoryOfferY = $derived(
         height * (THIRD_FACTORY_OFFER_SOURCE_Y / BOARD_SOURCE_HEIGHT)
     )
     const fourthFactoryOfferY = $derived(
         height * (FOURTH_FACTORY_OFFER_SOURCE_Y / BOARD_SOURCE_HEIGHT)
     )
-    const costSquareX = $derived(width * (COST_SQUARE_SOURCE_X / LEFT_BOARD_SOURCE_WIDTH))
+    const factoryOfferPreviewRows = $derived.by(() => {
+        const offerLayouts = [
+            { price: 1, x: orientedFactoryOfferX, y: factoryOfferY, width: factoryOfferWidth },
+            {
+                price: 2,
+                x: orientedSecondFactoryOfferX,
+                y: secondFactoryOfferY,
+                width: secondFactoryOfferWidth
+            },
+            { price: 3, x: orientedFactoryOfferX, y: thirdFactoryOfferY, width: factoryOfferWidth },
+            {
+                price: 4,
+                x: orientedFactoryOfferX,
+                y: fourthFactoryOfferY,
+                width: factoryOfferWidth
+            }
+        ] as const
+
+        return offerLayouts.flatMap((offer) => {
+            const countsByColor = new Map<ContainerColor, number>()
+            for (const entry of playerState.factoryStore) {
+                if (entry.price !== offer.price) {
+                    continue
+                }
+                countsByColor.set(entry.color, (countsByColor.get(entry.color) ?? 0) + 1)
+            }
+
+            const visibleEntries = playerState.machines
+                .map((color) => ({
+                    color: UI_FACTORY_COLOR_BY_CONTAINER_COLOR[color],
+                    count: countsByColor.get(color) ?? 0
+                }))
+                .filter((entry) => entry.count > 0)
+                .slice(0, 4)
+
+            if (visibleEntries.length === 0) {
+                return []
+            }
+
+            const rowWidth =
+                factoryOfferPreviewContainerWidth +
+                factoryOfferPreviewContainerStep * (visibleEntries.length - 1)
+            const rowY =
+                offer.y +
+                (height * (FACTORY_OFFER_PREVIEW_AREA_HEIGHT / BOARD_SOURCE_HEIGHT) -
+                    factoryOfferPreviewContainerHeight) /
+                    2 +
+                FACTORY_OFFER_PREVIEW_OFFSET_Y
+
+            return visibleEntries.map((entry, index) => ({
+                ...entry,
+                price: offer.price,
+                x:
+                    offer.x +
+                    (offer.width - rowWidth) / 2 +
+                    factoryOfferPreviewContainerStep * index,
+                y: rowY
+            }))
+        })
+    })
     const costSquareWidth = $derived(width * (COST_SQUARE_SOURCE_WIDTH / LEFT_BOARD_SOURCE_WIDTH))
+    const costSquareX = $derived(width * (COST_SQUARE_SOURCE_X / LEFT_BOARD_SOURCE_WIDTH))
+    const orientedCostSquareX = $derived(orientX(costSquareX, costSquareWidth))
     const costSquarePositions = $derived(
         [0, 1, 2, 3, 4].map((index) => ({
             amount: (index + 2) as 2 | 3 | 4 | 5 | 6,
@@ -134,10 +250,12 @@
     const warehouseHeight = $derived(warehouseWidth * (66.31 / 56.69) + WAREHOUSE_EXTRA_HEIGHT)
     const warehousePositions = $derived(
         Array.from({ length: ownedWarehouseCount }, (_value, index) => ({
-            x:
+            x: orientX(
                 width *
-                ((WAREHOUSE_SOURCE_X + WAREHOUSE_SOURCE_HORIZONTAL_STEP * index) /
-                    LEFT_BOARD_SOURCE_WIDTH),
+                    ((WAREHOUSE_SOURCE_X + WAREHOUSE_SOURCE_HORIZONTAL_STEP * index) /
+                        LEFT_BOARD_SOURCE_WIDTH),
+                warehouseWidth
+            ),
             y: height * (WAREHOUSE_SOURCE_Y / BOARD_SOURCE_HEIGHT)
         }))
     )
@@ -153,15 +271,18 @@
             ((PLAYER_SIGN_SOURCE_HEIGHT * (PLAYER_SIGN_ASSET_WIDTH / PLAYER_SIGN_ASSET_HEIGHT)) /
                 LEFT_BOARD_SOURCE_WIDTH)
     )
-    const playerSignX = $derived(width * (PLAYER_SIGN_SOURCE_X / LEFT_BOARD_SOURCE_WIDTH))
+    const playerSignX = $derived(
+        orientX(width * (PLAYER_SIGN_SOURCE_X / LEFT_BOARD_SOURCE_WIDTH), playerSignWidth)
+    )
     const playerSignTopY = $derived(height * (PLAYER_SIGN_SOURCE_Y / BOARD_SOURCE_HEIGHT))
     const playerSignHeight = $derived(height * (PLAYER_SIGN_SOURCE_HEIGHT / BOARD_SOURCE_HEIGHT))
     const playerSignY = $derived(playerSignTopY - (playerSignHeight - playerSignWidth) / 2)
     const playerSignCenterX = $derived(playerSignX + playerSignWidth / 2)
     const playerSignCenterY = $derived(playerSignY + playerSignHeight / 2)
     const playerSignTransform = $derived.by(() => {
-        const counterMirror = orientation === 'right' ? ' scale(-1 1)' : ''
-        return `translate(${playerSignCenterX} ${playerSignCenterY}) rotate(${PLAYER_SIGN_LOCAL_ROTATION})${counterMirror} translate(${-playerSignWidth / 2} ${-playerSignHeight / 2})`
+        const rotation =
+            orientation === 'right' ? -PLAYER_SIGN_LOCAL_ROTATION : PLAYER_SIGN_LOCAL_ROTATION
+        return `translate(${playerSignCenterX} ${playerSignCenterY}) rotate(${rotation}) translate(${-playerSignWidth / 2} ${-playerSignHeight / 2})`
     })
 </script>
 
@@ -189,80 +310,80 @@
             ></path>
         </svg>
     </g>
+    <g transform={playerSignTransform}>
+        <image
+            href={playerSignHref}
+            x="0"
+            y="0"
+            width={playerSignWidth}
+            height={playerSignHeight}
+            preserveAspectRatio="xMidYMid meet"
+        ></image>
+    </g>
+    {#each factoryPreviewPositions as factory, index (`factory-preview-${index}`)}
+        <Factory x={factory.x} y={factory.y} width={factoryPreviewWidth} color={factory.color} />
+    {/each}
+    {#each factoryOfferPreviewRows as container, index (`factory-offer-container-${container.price}-${index}`)}
+        <ContainerCountMarker
+            x={container.x}
+            y={container.y}
+            height={factoryOfferPreviewContainerHeight}
+            color={container.color}
+            count={container.count}
+            countFontSize={FACTORY_OFFER_PREVIEW_COUNT_FONT_SIZE}
+            countOffsetY={FACTORY_OFFER_PREVIEW_COUNT_OFFSET_Y}
+        />
+    {/each}
     {#if orientation === 'right'}
-        <g transform={`translate(${width} 0) scale(-1 1)`}>
-            <g transform={playerSignTransform}>
-                <image
-                    href={playerSignHref}
-                    x="0"
-                    y="0"
-                    width={playerSignWidth}
-                    height={playerSignHeight}
-                    preserveAspectRatio="xMidYMid meet"
-                ></image>
-            </g>
+        <g
+            transform={`translate(${orientedFactoryOfferX + factoryOfferWidth} ${factoryOfferY}) scale(-1 1)`}
+        >
             <PlayerBoardFactoryOffer4
-                x={factoryOfferX}
-                y={factoryOfferY}
+                x={0}
+                y={0}
                 width={factoryOfferWidth}
                 color={playerUiColor}
                 amount={1}
                 costSquareCounterMirror={true}
             />
+        </g>
+        <g
+            transform={`translate(${orientedSecondFactoryOfferX + secondFactoryOfferWidth} ${secondFactoryOfferY}) scale(-1 1)`}
+        >
             <PlayerBoardFactoryOffer3
-                x={secondFactoryOfferX}
-                y={secondFactoryOfferY}
+                x={0}
+                y={0}
                 width={secondFactoryOfferWidth}
                 color={playerUiColor}
                 amount={2}
                 costSquareCounterMirror={true}
             />
+        </g>
+        <g
+            transform={`translate(${orientedFactoryOfferX + factoryOfferWidth} ${thirdFactoryOfferY}) scale(-1 1)`}
+        >
             <PlayerBoardFactoryOffer2
-                x={factoryOfferX}
-                y={thirdFactoryOfferY}
+                x={0}
+                y={0}
                 width={factoryOfferWidth}
                 color={playerUiColor}
                 amount={3}
                 costSquareCounterMirror={true}
             />
+        </g>
+        <g
+            transform={`translate(${orientedFactoryOfferX + factoryOfferWidth} ${fourthFactoryOfferY}) scale(-1 1)`}
+        >
             <PlayerBoardFactoryOffer1
-                x={factoryOfferX}
-                y={fourthFactoryOfferY}
+                x={0}
+                y={0}
                 width={factoryOfferWidth}
                 color={playerUiColor}
                 amount={4}
                 costSquareCounterMirror={true}
             />
-            {#each costSquarePositions as costSquare (costSquare.amount)}
-                <CostSquare
-                    x={costSquareX}
-                    y={costSquare.y}
-                    width={costSquareWidth}
-                    amount={costSquare.amount}
-                    color={playerUiColor}
-                    counterMirrorX={true}
-                />
-            {/each}
-            {#each warehousePositions as warehouse, index (`warehouse-${index}`)}
-                <Warehouse
-                    x={warehouse.x}
-                    y={warehouse.y}
-                    width={warehouseWidth}
-                    heightOverride={warehouseHeight}
-                />
-            {/each}
         </g>
     {:else}
-        <g transform={playerSignTransform}>
-            <image
-                href={playerSignHref}
-                x="0"
-                y="0"
-                width={playerSignWidth}
-                height={playerSignHeight}
-                preserveAspectRatio="xMidYMid meet"
-            ></image>
-        </g>
         <PlayerBoardFactoryOffer4
             x={factoryOfferX}
             y={factoryOfferY}
@@ -291,24 +412,24 @@
             color={playerUiColor}
             amount={4}
         />
-        {#each costSquarePositions as costSquare (costSquare.amount)}
-            <CostSquare
-                x={costSquareX}
-                y={costSquare.y}
-                width={costSquareWidth}
-                amount={costSquare.amount}
-                color={playerUiColor}
-            />
-        {/each}
-        {#each warehousePositions as warehouse, index (`warehouse-${index}`)}
-            <Warehouse
-                x={warehouse.x}
-                y={warehouse.y}
-                width={warehouseWidth}
-                heightOverride={warehouseHeight}
-            />
-        {/each}
     {/if}
+    {#each costSquarePositions as costSquare (costSquare.amount)}
+        <CostSquare
+            x={orientedCostSquareX}
+            y={costSquare.y}
+            width={costSquareWidth}
+            amount={costSquare.amount}
+            color={playerUiColor}
+        />
+    {/each}
+    {#each warehousePositions as warehouse, index (`warehouse-${index}`)}
+        <Warehouse
+            x={warehouse.x}
+            y={warehouse.y}
+            width={warehouseWidth}
+            heightOverride={warehouseHeight}
+        />
+    {/each}
 </g>
 
 <style>

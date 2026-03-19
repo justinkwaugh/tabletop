@@ -2,8 +2,8 @@ import { ContainerColor } from '../model/container.js'
 import { type ContainerValueCard } from '../model/valueCard.js'
 
 export const CONTAINER_COLORS: ContainerColor[] = [
-    ContainerColor.Purple,
-    ContainerColor.Brown,
+    ContainerColor.White,
+    ContainerColor.Yellow,
     ContainerColor.Blue,
     ContainerColor.Red,
     ContainerColor.Green
@@ -31,10 +31,10 @@ export const SHIP_CAPACITY = 5
 // Container Value Cards are not fully specified in the rules text; update if actual values differ.
 export const DEFAULT_VALUE_CARDS: ContainerValueCard[] = [
     {
-        specialColor: ContainerColor.Purple,
+        specialColor: ContainerColor.White,
         values: {
-            [ContainerColor.Purple]: 5,
-            [ContainerColor.Brown]: 4,
+            [ContainerColor.White]: 5,
+            [ContainerColor.Yellow]: 4,
             [ContainerColor.Blue]: 3,
             [ContainerColor.Red]: 2,
             [ContainerColor.Green]: 1
@@ -43,10 +43,10 @@ export const DEFAULT_VALUE_CARDS: ContainerValueCard[] = [
         specialValueIfIncomplete: 5
     },
     {
-        specialColor: ContainerColor.Brown,
+        specialColor: ContainerColor.Yellow,
         values: {
-            [ContainerColor.Purple]: 1,
-            [ContainerColor.Brown]: 5,
+            [ContainerColor.White]: 1,
+            [ContainerColor.Yellow]: 5,
             [ContainerColor.Blue]: 4,
             [ContainerColor.Red]: 3,
             [ContainerColor.Green]: 2
@@ -57,8 +57,8 @@ export const DEFAULT_VALUE_CARDS: ContainerValueCard[] = [
     {
         specialColor: ContainerColor.Blue,
         values: {
-            [ContainerColor.Purple]: 2,
-            [ContainerColor.Brown]: 1,
+            [ContainerColor.White]: 2,
+            [ContainerColor.Yellow]: 1,
             [ContainerColor.Blue]: 5,
             [ContainerColor.Red]: 4,
             [ContainerColor.Green]: 3
@@ -69,8 +69,8 @@ export const DEFAULT_VALUE_CARDS: ContainerValueCard[] = [
     {
         specialColor: ContainerColor.Red,
         values: {
-            [ContainerColor.Purple]: 3,
-            [ContainerColor.Brown]: 2,
+            [ContainerColor.White]: 3,
+            [ContainerColor.Yellow]: 2,
             [ContainerColor.Blue]: 1,
             [ContainerColor.Red]: 5,
             [ContainerColor.Green]: 4
@@ -81,8 +81,8 @@ export const DEFAULT_VALUE_CARDS: ContainerValueCard[] = [
     {
         specialColor: ContainerColor.Green,
         values: {
-            [ContainerColor.Purple]: 4,
-            [ContainerColor.Brown]: 3,
+            [ContainerColor.White]: 4,
+            [ContainerColor.Yellow]: 3,
             [ContainerColor.Blue]: 2,
             [ContainerColor.Red]: 1,
             [ContainerColor.Green]: 5

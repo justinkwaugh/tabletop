@@ -23,7 +23,9 @@
     let scalingWrapper: any = $state(null)
 
     const boardLayout = $derived.by(() =>
-        buildBoardLayout(gameSession.gameState.turnManager.turnOrder)
+        buildBoardLayout(gameSession.gameState.turnManager.turnOrder, {
+            hasOffshore: !!gameSession.gameState.investmentBank
+        })
     )
 
     const centerIslandRect = $derived(boardLayout.islandRect)

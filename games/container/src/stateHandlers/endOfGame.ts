@@ -25,8 +25,8 @@ export class EndOfGameStateHandler implements MachineStateHandler<HydratedAction
 
         for (const player of state.players) {
             const counts: Record<ContainerColor, number> = {
-                [ContainerColor.Purple]: 0,
-                [ContainerColor.Brown]: 0,
+                [ContainerColor.White]: 0,
+                [ContainerColor.Yellow]: 0,
                 [ContainerColor.Blue]: 0,
                 [ContainerColor.Red]: 0,
                 [ContainerColor.Green]: 0

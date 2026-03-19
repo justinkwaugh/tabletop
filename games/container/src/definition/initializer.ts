@@ -53,15 +53,15 @@ export class ContainerGameInitializer
         const playerCount = game.players.length as 3 | 4 | 5
         const supplyConfig = SUPPLY_BY_PLAYER_COUNT[playerCount]
         const containerSupply: Record<ContainerColor, number> = {
-            [ContainerColor.Purple]: supplyConfig.containersPerColor,
-            [ContainerColor.Brown]: supplyConfig.containersPerColor,
+            [ContainerColor.White]: supplyConfig.containersPerColor,
+            [ContainerColor.Yellow]: supplyConfig.containersPerColor,
             [ContainerColor.Blue]: supplyConfig.containersPerColor,
             [ContainerColor.Red]: supplyConfig.containersPerColor,
             [ContainerColor.Green]: supplyConfig.containersPerColor
         }
         const machineSupply: Record<ContainerColor, number> = {
-            [ContainerColor.Purple]: supplyConfig.machinesPerColor,
-            [ContainerColor.Brown]: supplyConfig.machinesPerColor,
+            [ContainerColor.White]: supplyConfig.machinesPerColor,
+            [ContainerColor.Yellow]: supplyConfig.machinesPerColor,
             [ContainerColor.Blue]: supplyConfig.machinesPerColor,
             [ContainerColor.Red]: supplyConfig.machinesPerColor,
             [ContainerColor.Green]: supplyConfig.machinesPerColor

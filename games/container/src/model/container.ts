@@ -1,8 +1,8 @@
 import { Type, type Static } from 'typebox'
 
 export enum ContainerColor {
-    Purple = 'purple',
-    Brown = 'brown',
+    White = 'white',
+    Yellow = 'yellow',
     Blue = 'blue',
     Red = 'red',
     Green = 'green'

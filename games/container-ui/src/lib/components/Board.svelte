@@ -53,8 +53,11 @@
             .filter((entry): entry is PlayerAndState => !!entry)
     })
 
+    const hasOffshoreIsland = $derived(!!gameSession.gameState.investmentBank)
     const boardLayout = $derived.by(() =>
-        buildBoardLayout(playersAndStates.map((entry) => entry.player.id))
+        buildBoardLayout(playersAndStates.map((entry) => entry.player.id), {
+            hasOffshore: hasOffshoreIsland
+        })
     )
 
     const playerBoardSeatById = $derived.by(
@@ -282,6 +285,7 @@
                 boardHeight={boardLayout.boardHeight}
                 boardCornerRadius={boardLayout.boardCornerRadius}
                 islandRect={boardLayout.islandRect}
+                offshoreRect={boardLayout.offshoreRect}
             />
             {#each sideConnectorPlacements as connector (connector.key)}
                 <g transform={connector.transform}>
