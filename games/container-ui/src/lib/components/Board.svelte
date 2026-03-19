@@ -13,6 +13,10 @@
     import { getMotionPathLength, sampleMotionPath } from '$lib/definitions/boatMotion.js'
     import { buildBoatNavigationGeometry } from '$lib/definitions/boatNavigation.js'
     import {
+        getFilledRouteOccupiedBoatPoses,
+        getFilledRouteOccupiedDockIds
+    } from '$lib/definitions/boatRouteOccupancy.js'
+    import {
         buildDockTransferPlan,
         type BoatRoutePlan
     } from '$lib/definitions/boatPlanner.js'
@@ -41,6 +45,7 @@
     const ROUTE_STATUS_PANEL_Y = 24
 
     let demoAnimationMs = $state(0)
+    let routeAnimationStartMs = $state(0)
     let selectedStartDockId = $state<string | null>(null)
     let selectedTargetDockId = $state<string | null>(null)
 
@@ -97,6 +102,43 @@
         () => new Map(boardLayout.playerBoardSeats.map((seat) => [seat.playerId, seat]))
     )
     const boatNavigationGeometry = $derived.by(() => buildBoatNavigationGeometry(boardLayout))
+    const allDockSlots = $derived.by(() => [
+        ...boatNavigationGeometry.playerBoardDockSlots,
+        ...boatNavigationGeometry.mainIslandDockSlots,
+        ...boatNavigationGeometry.offshoreDockSlots
+    ])
+    const harborDockSlots = $derived.by(() => [
+        ...boatNavigationGeometry.mainIslandDockSlots,
+        ...boatNavigationGeometry.offshoreDockSlots
+    ])
+    const dockColorById = $derived.by(() => {
+        const colors = new Map<string, string>()
+
+        harborDockSlots.forEach((slot, slotIndex) => {
+            const player = playersAndStates[slotIndex % playersAndStates.length]
+            colors.set(
+                slot.id,
+                player ? gameSession.colors.getPlayerUiColor(player.player.id) : '#84accf'
+            )
+        })
+
+        boatNavigationGeometry.playerBoardDockSlots.forEach((slot) => {
+            const playerId = slot.id.split('-dock-')[0]
+            colors.set(slot.id, gameSession.colors.getPlayerUiColor(playerId))
+        })
+
+        return colors
+    })
+    const routeFilledOccupiedDockIds = $derived.by(() => {
+        if (!selectedStartDockId || !selectedTargetDockId) {
+            return new Set<string>()
+        }
+
+        return getFilledRouteOccupiedDockIds(allDockSlots, [
+            selectedStartDockId,
+            selectedTargetDockId
+        ])
+    })
 
     const largeConnectorPlacements = $derived.by(() => {
         const leftSeats = boardLayout.playerBoardSeats
@@ -201,44 +243,49 @@
         )
     })
 
-    const harborDockBoats = $derived.by(() => {
-        const harborSlots = [
-            ...boatNavigationGeometry.mainIslandDockSlots,
-            ...boatNavigationGeometry.offshoreDockSlots
-        ]
-
-        return harborSlots.map((slot, slotIndex) => {
-            const index = slotIndex
-            const player = playersAndStates[index % playersAndStates.length]
-            const color = player
-                ? gameSession.colors.getPlayerUiColor(player.player.id)
-                : '#84accf'
-
-            return {
-                key: `harbor-dock-boat-${index}`,
+    const crowdedDockBoats = $derived.by(() =>
+        allDockSlots
+            .filter((slot) => routeFilledOccupiedDockIds.has(slot.id))
+            .map((slot, slotIndex) => {
+                return {
+                    key: `crowded-dock-boat-${slot.id}`,
+                    dockId: slot.id,
+                    family: slot.family,
+                    x: slot.dockedPose.x - DEFAULT_BOAT_RENDER_WIDTH / 2,
+                    y: slot.dockedPose.y - DEFAULT_BOAT_RENDER_HEIGHT / 2,
+                    rotation: boatHeadingToRenderRotation(slot.dockedPose.heading),
+                    color: dockColorById.get(slot.id) ?? '#84accf'
+                }
+            })
+    )
+    const selectableHarborBoats = $derived.by(() =>
+        harborDockSlots.map((slot, slotIndex) => {
+                return {
+                    key: `harbor-dock-boat-${slot.id}`,
+                    dockId: slot.id,
+                    x: slot.dockedPose.x - DEFAULT_BOAT_RENDER_WIDTH / 2,
+                    y: slot.dockedPose.y - DEFAULT_BOAT_RENDER_HEIGHT / 2,
+                    rotation: boatHeadingToRenderRotation(slot.dockedPose.heading),
+                    color: dockColorById.get(slot.id) ?? '#84accf'
+                }
+            })
+    )
+    const dockTargets = $derived.by(() =>
+        allDockSlots
+            .map((slot) => ({
                 dockId: slot.id,
                 x: slot.dockedPose.x - DEFAULT_BOAT_RENDER_WIDTH / 2,
                 y: slot.dockedPose.y - DEFAULT_BOAT_RENDER_HEIGHT / 2,
-                rotation: boatHeadingToRenderRotation(slot.dockedPose.heading),
-                color
-            }
-        })
-    })
-    const playerBoardDockTargets = $derived.by(() =>
-        boatNavigationGeometry.playerBoardDockSlots.map((slot) => ({
-            dockId: slot.id,
-            x: slot.dockedPose.x - DEFAULT_BOAT_RENDER_WIDTH / 2,
-            y: slot.dockedPose.y - DEFAULT_BOAT_RENDER_HEIGHT / 2,
-            width: DEFAULT_BOAT_RENDER_WIDTH,
-            height: DEFAULT_BOAT_RENDER_HEIGHT
-        }))
+                width: DEFAULT_BOAT_RENDER_WIDTH,
+                height: DEFAULT_BOAT_RENDER_HEIGHT
+            }))
     )
 
     const routeProbe = $derived.by<RouteProbeState>(() => {
         if (!selectedStartDockId) {
             return {
                 status: 'idle',
-                message: 'Select a harbor boat, then click a player board dock.'
+                message: 'Select any dock as the start, then any other dock as the destination. All remaining berths are occupied.'
             }
         }
 
@@ -246,36 +293,33 @@
             return {
                 status: 'awaiting-target',
                 startDockId: selectedStartDockId,
-                message: 'Select a specific player board dock to test the route.'
+                message: 'Select a destination dock to test the filled-berth route.'
             }
         }
 
-        const harborDockSlots = [
-            ...boatNavigationGeometry.mainIslandDockSlots,
-            ...boatNavigationGeometry.offshoreDockSlots
-        ]
-        const startDock = harborDockSlots.find(
+        const startDock = allDockSlots.find(
             (slot) => slot.id === selectedStartDockId
         )
-        const movingBoat = harborDockBoats.find((boat) => boat.dockId === selectedStartDockId)
-        if (!startDock || !movingBoat) {
+        const movingBoatColor = dockColorById.get(selectedStartDockId)
+        if (!startDock || !movingBoatColor) {
             return {
                 status: 'idle',
-                message: 'Select a harbor boat, then click a player board dock.'
+                message: 'Select any dock as the start, then any other dock as the destination. All remaining berths are occupied.'
             }
         }
 
-        const occupiedBoatPoses = harborDockSlots
-            .filter((slot) => slot.id !== startDock.id)
-            .map((slot) => slot.dockedPose)
-        const targetDock = boatNavigationGeometry.playerBoardDockSlots.find(
+        const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(
+            allDockSlots,
+            [startDock.id, selectedTargetDockId]
+        )
+        const targetDock = allDockSlots.find(
             (slot) => slot.id === selectedTargetDockId
         )
         if (!targetDock) {
             return {
                 status: 'awaiting-target',
                 startDockId: selectedStartDockId,
-                message: 'Select a specific player board dock to test the route.'
+                message: 'Select a destination dock to test the filled-berth route.'
             }
         }
         const startedAt = performance.now()
@@ -291,9 +335,9 @@
                 status: 'success',
                 startDockId: startDock.id,
                 targetDockId: selectedTargetDockId,
-                movingBoatColor: movingBoat.color,
+                movingBoatColor,
                 plan: exactPlan,
-                message: `Route found from ${startDock.id} to ${selectedTargetDockId} in ${elapsedMs}ms.`
+                message: `Route found with all remaining berths occupied from ${startDock.id} to ${selectedTargetDockId} in ${elapsedMs}ms.`
             }
         }
 
@@ -301,7 +345,7 @@
             status: 'failed',
             startDockId: startDock.id,
             targetDockId: selectedTargetDockId,
-            message: `No route found from ${startDock.id} to ${selectedTargetDockId} in ${elapsedMs}ms.`
+            message: `No route found with all remaining berths occupied from ${startDock.id} to ${selectedTargetDockId} in ${elapsedMs}ms.`
         }
     })
     const routeProbeLength = $derived.by(() =>
@@ -313,7 +357,8 @@
         }
 
         const speed = 170
-        const traveled = ((demoAnimationMs / 1000) * speed) % routeProbeLength
+        const animationElapsedMs = Math.max(0, demoAnimationMs - routeAnimationStartMs)
+        const traveled = ((animationElapsedMs / 1000) * speed) % routeProbeLength
         const pose = sampleMotionPath(routeProbe.plan.segments, traveled)
 
         return {
@@ -324,19 +369,18 @@
         }
     })
 
-    function handleHarborBoatClick(dockId: string) {
-        selectedStartDockId = dockId
-        selectedTargetDockId = null
-        demoAnimationMs = 0
-    }
-
-    function handlePlayerBoardDockClick(dockId: string) {
-        if (!selectedStartDockId) {
-            return
+    function handleDockClick(dockId: string) {
+        if (!selectedStartDockId || selectedTargetDockId) {
+            selectedStartDockId = dockId
+            selectedTargetDockId = null
+        } else if (dockId === selectedStartDockId) {
+            selectedStartDockId = null
+            selectedTargetDockId = null
+        } else {
+            selectedTargetDockId = dockId
         }
 
-        selectedTargetDockId = dockId
-        demoAnimationMs = 0
+        routeAnimationStartMs = demoAnimationMs
     }
 
     function getPlayerForState(playerState: ContainerPlayerState) {
@@ -413,10 +457,14 @@
                     fill={PLAYER_BOARD_UNDERLAY_FILL}
                 ></rect>
             {/each}
-            {#each harborDockBoats as boat (boat.key)}
+            {#each crowdedDockBoats as boat (boat.key)}
                 {#if routeProbe.status !== 'success' || routeProbe.startDockId !== boat.dockId}
-                    <Boat x={boat.x} y={boat.y} color={boat.color} rotation={boat.rotation} />
+                    <g opacity="0.92">
+                        <Boat x={boat.x} y={boat.y} color={boat.color} rotation={boat.rotation} />
+                    </g>
                 {/if}
+            {/each}
+            {#each selectableHarborBoats as boat (boat.key)}
                 <rect
                     x={boat.x}
                     y={boat.y}
@@ -426,12 +474,12 @@
                     class="cursor-pointer"
                     role="button"
                     tabindex="0"
-                    aria-label={`Select harbor boat ${boat.dockId}`}
-                    onclick={() => handleHarborBoatClick(boat.dockId)}
+                    aria-label={`Select dock ${boat.dockId}`}
+                    onclick={() => handleDockClick(boat.dockId)}
                     onkeydown={(event) => {
                         if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault()
-                            handleHarborBoatClick(boat.dockId)
+                            handleDockClick(boat.dockId)
                         }
                     }}
                 ></rect>
@@ -458,7 +506,7 @@
                     />
                 {/if}
             {/each}
-            {#each playerBoardDockTargets as dockTarget (dockTarget.dockId)}
+            {#each dockTargets as dockTarget (dockTarget.dockId)}
                 <rect
                     x={dockTarget.x}
                     y={dockTarget.y}
@@ -468,16 +516,17 @@
                     stroke={selectedStartDockId ? 'rgba(255, 255, 255, 0.32)' : 'transparent'}
                     stroke-width="2"
                     rx="10"
+                    class:selected-start-dock={selectedStartDockId === dockTarget.dockId}
                     class:selected-dock-target={selectedTargetDockId === dockTarget.dockId}
-                    class:target-dock-target={!!selectedStartDockId}
+                    class:target-dock-target={selectedStartDockId !== dockTarget.dockId}
                     role="button"
                     tabindex="0"
-                    aria-label={`Select player board dock ${dockTarget.dockId}`}
-                    onclick={() => handlePlayerBoardDockClick(dockTarget.dockId)}
+                    aria-label={`Select dock ${dockTarget.dockId}`}
+                    onclick={() => handleDockClick(dockTarget.dockId)}
                     onkeydown={(event) => {
                         if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault()
-                            handlePlayerBoardDockClick(dockTarget.dockId)
+                            handleDockClick(dockTarget.dockId)
                         }
                     }}
                 ></rect>
@@ -540,5 +589,10 @@
     .selected-dock-target {
         fill: rgba(255, 255, 255, 0.12);
         stroke: #ffffff;
+    }
+
+    .selected-start-dock {
+        fill: rgba(255, 255, 255, 0.1);
+        stroke: rgba(255, 255, 255, 0.8);
     }
 </style>

@@ -4,6 +4,7 @@ import { buildBoatNavigationGeometry } from '$lib/definitions/boatNavigation.js'
 import { polygonsIntersect } from '$lib/definitions/geometry2d.js'
 import { getBoatFootprintPolygon } from '$lib/definitions/boatNavigation.js'
 import { buildDockTransferPlan } from '$lib/definitions/boatPlanner.js'
+import { getFilledRouteOccupiedBoatPoses } from '$lib/definitions/boatRouteOccupancy.js'
 
 const THREE_PLAYER_NO_OFFSHORE_PREVIOUS_IMPOSSIBLES = [
     ['p1-dock-0', 'main-island-dock-0'],
@@ -50,6 +51,13 @@ const FOUR_PLAYER_OFFSHORE_PREVIOUS_IMPOSSIBLES = [
     ['offshore-dock-0', 'p3-dock-0'],
     ['offshore-dock-2', 'p3-dock-2'],
     ['offshore-dock-3', 'p3-dock-2']
+] as const
+
+const FOUR_PLAYER_NO_OFFSHORE_CROWDED_REGRESSIONS = [
+    ['p1-dock-0', 'main-island-dock-1'],
+    ['p2-dock-0', 'main-island-dock-2'],
+    ['p3-dock-1', 'main-island-dock-1'],
+    ['p4-dock-1', 'main-island-dock-4']
 ] as const
 
 describe('buildDockTransferPlan', () => {
@@ -117,6 +125,37 @@ describe('buildDockTransferPlan', () => {
             expect(endDock).toBeDefined()
 
             const plan = buildDockTransferPlan(startDock!, endDock!, navigationGeometry, [])
+
+            expect(plan).not.toBeNull()
+        }
+    )
+
+    it.each(FOUR_PLAYER_NO_OFFSHORE_CROWDED_REGRESSIONS)(
+        'finds a crowded route for %s -> %s in 4p no-offshore',
+        (startId, endId) => {
+            const boardLayout = buildBoardLayout(['p1', 'p2', 'p3', 'p4'], { hasOffshore: false })
+            const navigationGeometry = buildBoatNavigationGeometry(boardLayout)
+            const allSlots = [
+                ...navigationGeometry.playerBoardDockSlots,
+                ...navigationGeometry.mainIslandDockSlots
+            ]
+            const slotById = new Map(allSlots.map((slot) => [slot.id, slot]))
+            const startDock = slotById.get(startId)
+            const endDock = slotById.get(endId)
+
+            expect(startDock).toBeDefined()
+            expect(endDock).toBeDefined()
+
+            const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(allSlots, [
+                startId,
+                endId
+            ])
+            const plan = buildDockTransferPlan(
+                startDock!,
+                endDock!,
+                navigationGeometry,
+                occupiedBoatPoses
+            )
 
             expect(plan).not.toBeNull()
         }

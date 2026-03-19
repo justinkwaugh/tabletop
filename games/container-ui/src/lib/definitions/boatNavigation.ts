@@ -193,20 +193,34 @@ export function getBoatFootprintPolygon(
     width: number = DEFAULT_BOAT_RENDER_WIDTH,
     height: number = DEFAULT_BOAT_RENDER_HEIGHT
 ): Point[] {
-    const halfLength = width / 2
-    const halfBeam = height / 2
+    return transformBoatLocalPolygon(
+        pose,
+        [
+            { x: -width / 2, y: -height / 2 },
+            { x: width / 2, y: -height / 2 },
+            { x: width / 2, y: height / 2 },
+            { x: -width / 2, y: height / 2 }
+        ]
+    )
+}
+
+export function getMovingBoatFootprintPolygon(
+    pose: BoatPose,
+    width: number = DEFAULT_BOAT_RENDER_WIDTH,
+    height: number = DEFAULT_BOAT_RENDER_HEIGHT
+): Point[] {
+    return getBoatFootprintPolygon(pose, width, height)
+}
+
+function transformBoatLocalPolygon(
+    pose: BoatPose,
+    localPoints: Point[]
+): Point[] {
     const cos = Math.cos(pose.heading)
     const sin = Math.sin(pose.heading)
 
-    const localCorners = [
-        { x: -halfLength, y: -halfBeam },
-        { x: halfLength, y: -halfBeam },
-        { x: halfLength, y: halfBeam },
-        { x: -halfLength, y: halfBeam }
-    ]
-
-    return localCorners.map((corner) => ({
-        x: pose.x + corner.x * cos - corner.y * sin,
-        y: pose.y + corner.x * sin + corner.y * cos
+    return localPoints.map((point) => ({
+        x: pose.x + point.x * cos - point.y * sin,
+        y: pose.y + point.x * sin + point.y * cos
     }))
 }

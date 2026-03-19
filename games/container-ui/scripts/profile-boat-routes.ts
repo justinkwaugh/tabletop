@@ -6,6 +6,7 @@ import {
     buildBoatNavigationGeometry,
     type DockSlot
 } from '../src/lib/definitions/boatNavigation.js'
+import { getFilledRouteOccupiedBoatPoses } from '../src/lib/definitions/boatRouteOccupancy.js'
 import { buildDockTransferPlan } from '../src/lib/definitions/boatPlanner.js'
 
 type LayoutCase = {
@@ -81,6 +82,13 @@ function parseFlag(name: string): string | undefined {
     return index >= 0 ? process.argv[index + 1] : undefined
 }
 
+function getSelectedLayoutCases(): LayoutCase[] {
+    const selectedLayout = parseFlag('--layout')
+    return selectedLayout
+        ? LAYOUT_CASES.filter((layoutCase) => layoutCase.label === selectedLayout)
+        : LAYOUT_CASES
+}
+
 function ensureParentDir(path: string): void {
     mkdirSync(dirname(path), { recursive: true })
 }
@@ -113,13 +121,53 @@ function getSlowestRoutes(routes: RouteTiming[]): RouteTiming[] {
         .slice(0, SLOW_ROUTE_COUNT)
 }
 
+function getPlayerBoardOwnerId(dock: DockSlot): string | null {
+    return dock.family === 'player-board' ? dock.id.split('-dock-')[0] ?? null : null
+}
+
+function isGameplayRelevantRoute(startDock: DockSlot, endDock: DockSlot): boolean {
+    if (startDock.id === endDock.id) {
+        return false
+    }
+
+    if (startDock.family === 'player-board' && endDock.family === 'player-board') {
+        return getPlayerBoardOwnerId(startDock) !== getPlayerBoardOwnerId(endDock)
+    }
+
+    const sameHarborFamily =
+        startDock.family === endDock.family &&
+        (startDock.family === 'main-island-harbor' || startDock.family === 'offshore-harbor')
+
+    if (sameHarborFamily) {
+        return false
+    }
+
+    return true
+}
+
+function getRelevantRoutePairs(dockSlots: DockSlot[]): Array<{ startDock: DockSlot; endDock: DockSlot }> {
+    const pairs: Array<{ startDock: DockSlot; endDock: DockSlot }> = []
+
+    for (const startDock of dockSlots) {
+        for (const endDock of dockSlots) {
+            if (!isGameplayRelevantRoute(startDock, endDock)) {
+                continue
+            }
+
+            pairs.push({ startDock, endDock })
+        }
+    }
+
+    return pairs
+}
+
 function main(): void {
     const outputPath = resolve(parseFlag('--output') ?? DEFAULT_OUTPUT_PATH)
     const progressPath = resolve(parseFlag('--progress') ?? DEFAULT_PROGRESS_PATH)
+    const selectedLayoutCases = getSelectedLayoutCases()
     const startedAt = new Date().toISOString()
-    const totalRoutes = LAYOUT_CASES.reduce((total, layoutCase) => {
-        const slotCount = getLayoutSlots(layoutCase).length
-        return total + slotCount * (slotCount - 1)
+    const totalRoutes = selectedLayoutCases.reduce((total, layoutCase) => {
+        return total + getRelevantRoutePairs(getLayoutSlots(layoutCase)).length
     }, 0)
 
     let testedRoutes = 0
@@ -135,7 +183,7 @@ function main(): void {
             startedAt,
             updatedAt: new Date().toISOString(),
             completedLayouts,
-            totalLayouts: LAYOUT_CASES.length,
+            totalLayouts: selectedLayoutCases.length,
             testedRoutes,
             totalRoutes,
             currentLayout,
@@ -146,50 +194,54 @@ function main(): void {
 
     writeProgress(0)
 
-    for (const [layoutIndex, layoutCase] of LAYOUT_CASES.entries()) {
+    for (const [layoutIndex, layoutCase] of selectedLayoutCases.entries()) {
         const layoutSlots = getLayoutSlots(layoutCase)
         const layout = buildBoardLayout(playerIds(layoutCase.playerCount), {
             hasOffshore: layoutCase.hasOffshore
         })
         const navigation = buildBoatNavigationGeometry(layout)
+        const routePairs = getRelevantRoutePairs(layoutSlots)
         const layoutRoutes: RouteTiming[] = []
-        const layoutRouteTotal = layoutSlots.length * (layoutSlots.length - 1)
+        const layoutRouteTotal = routePairs.length
         let testedInLayout = 0
         const layoutStart = performance.now()
 
-        for (const startDock of layoutSlots) {
-            for (const endDock of layoutSlots) {
-                if (startDock.id === endDock.id) {
-                    continue
-                }
+        for (const { startDock, endDock } of routePairs) {
+            const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(layoutSlots, [
+                startDock.id,
+                endDock.id
+            ])
+            const routeStart = performance.now()
+            const plan = buildDockTransferPlan(
+                startDock,
+                endDock,
+                navigation,
+                occupiedBoatPoses
+            )
+            const durationMs = performance.now() - routeStart
 
-                const routeStart = performance.now()
-                const plan = buildDockTransferPlan(startDock, endDock, navigation, [])
-                const durationMs = performance.now() - routeStart
+            const routeTiming: RouteTiming = {
+                layout: layoutCase.label,
+                start: startDock.id,
+                end: endDock.id,
+                startFamily: startDock.family,
+                endFamily: endDock.family,
+                durationMs: Number(durationMs.toFixed(3)),
+                found: !!plan
+            }
 
-                const routeTiming: RouteTiming = {
-                    layout: layoutCase.label,
+            layoutRoutes.push(routeTiming)
+            allRoutes.push(routeTiming)
+            testedRoutes += 1
+            testedInLayout += 1
+
+            if (testedInLayout % PROGRESS_UPDATE_INTERVAL === 0) {
+                writeProgress(layoutIndex, layoutCase.label, {
                     start: startDock.id,
                     end: endDock.id,
-                    startFamily: startDock.family,
-                    endFamily: endDock.family,
-                    durationMs: Number(durationMs.toFixed(3)),
-                    found: !!plan
-                }
-
-                layoutRoutes.push(routeTiming)
-                allRoutes.push(routeTiming)
-                testedRoutes += 1
-                testedInLayout += 1
-
-                if (testedInLayout % PROGRESS_UPDATE_INTERVAL === 0) {
-                    writeProgress(layoutIndex, layoutCase.label, {
-                        start: startDock.id,
-                        end: endDock.id,
-                        testedInLayout,
-                        totalInLayout: layoutRouteTotal
-                    })
-                }
+                    testedInLayout,
+                    totalInLayout: layoutRouteTotal
+                })
             }
         }
 
@@ -227,7 +279,7 @@ function main(): void {
     }
 
     writeJson(outputPath, report)
-    writeProgress(LAYOUT_CASES.length)
+    writeProgress(selectedLayoutCases.length)
     console.log(
         JSON.stringify(
             {
