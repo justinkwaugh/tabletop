@@ -1,3 +1,7 @@
+<script module lang="ts">
+    export const DEFAULT_BOAT_RENDER_WIDTH = 195.05
+</script>
+
 <script lang="ts">
     import Container from '$lib/components/Container.svelte'
 
@@ -17,14 +21,14 @@
     let {
         x,
         y,
-        width,
+        width = DEFAULT_BOAT_RENDER_WIDTH,
         color,
         containerColors = [],
         rotation = 0
     }: {
         x: number
         y: number
-        width: number
+        width?: number
         color: string
         containerColors?: string[]
         rotation?: number

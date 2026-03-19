@@ -22,8 +22,7 @@
     const gameSession = getGameSession()
     const COLOR_STRIP_WIDTH = 153.35
     const COLOR_STRIP_HEIGHT = 754.02
-    const LEFT_BOARD_SOURCE_WIDTH = 448
-    const RIGHT_BOARD_SOURCE_WIDTH = 449
+    const BOARD_SOURCE_WIDTH = 448
     const BOARD_SOURCE_HEIGHT = 755
     const COLOR_STRIP_ANCHOR_X = 152
     const FACTORY_OFFER_SOURCE_X = 24
@@ -104,14 +103,10 @@
         orientation === 'left' ? playerBoardLeftImg : playerBoardRightImg
     )
     const colorStripDisplayWidth = $derived.by(() => {
-        const sourceWidth =
-            orientation === 'left' ? LEFT_BOARD_SOURCE_WIDTH : RIGHT_BOARD_SOURCE_WIDTH
-        return width * (COLOR_STRIP_WIDTH / sourceWidth)
+        return width * (COLOR_STRIP_WIDTH / BOARD_SOURCE_WIDTH)
     })
     const colorStripAnchorX = $derived.by(() => {
-        const sourceWidth =
-            orientation === 'left' ? LEFT_BOARD_SOURCE_WIDTH : RIGHT_BOARD_SOURCE_WIDTH
-        return width * (COLOR_STRIP_ANCHOR_X / sourceWidth)
+        return width * (COLOR_STRIP_ANCHOR_X / BOARD_SOURCE_WIDTH)
     })
     const colorStripTransform = $derived.by(() =>
         orientation === 'right'
@@ -121,10 +116,10 @@
     function orientX(leftX: number, itemWidth: number): number {
         return orientation === 'right' ? width - leftX - itemWidth : leftX
     }
-    const factoryOfferX = $derived(width * (FACTORY_OFFER_SOURCE_X / LEFT_BOARD_SOURCE_WIDTH))
+    const factoryOfferX = $derived(width * (FACTORY_OFFER_SOURCE_X / BOARD_SOURCE_WIDTH))
     const factoryOfferY = $derived(height * (FACTORY_OFFER_SOURCE_Y / BOARD_SOURCE_HEIGHT))
     const factoryOfferWidth = $derived(
-        width * (FACTORY_OFFER_SOURCE_WIDTH / LEFT_BOARD_SOURCE_WIDTH)
+        width * (FACTORY_OFFER_SOURCE_WIDTH / BOARD_SOURCE_WIDTH)
     )
     const orientedFactoryOfferX = $derived(orientX(factoryOfferX, factoryOfferWidth))
     const factoryOfferPreviewContainerHeight = $derived(
@@ -138,7 +133,7 @@
         CONTAINER_ROW_REFERENCE_WIDTH * (CONTAINER_ROW_CONTAINER_STEP / CONTAINER_ROW_SOURCE_WIDTH)
     )
     const factoryPreviewWidth = $derived(
-        width * (FACTORY_PREVIEW_TOP_SOURCE_WIDTH / LEFT_BOARD_SOURCE_WIDTH)
+        width * (FACTORY_PREVIEW_TOP_SOURCE_WIDTH / BOARD_SOURCE_WIDTH)
     )
     const factoryPreviewTopY = $derived(
         height * (FACTORY_PREVIEW_TOP_SOURCE_Y / BOARD_SOURCE_HEIGHT)
@@ -147,9 +142,9 @@
         playerState.machines
             .slice(0, FACTORY_PREVIEW_TOP_SOURCE_XS.length)
             .map((machineColor, index) => ({
-                color: UI_FACTORY_COLOR_BY_CONTAINER_COLOR[machineColor],
-                x: orientX(
-                    width * (FACTORY_PREVIEW_TOP_SOURCE_XS[index] / LEFT_BOARD_SOURCE_WIDTH),
+                    color: UI_FACTORY_COLOR_BY_CONTAINER_COLOR[machineColor],
+                    x: orientX(
+                    width * (FACTORY_PREVIEW_TOP_SOURCE_XS[index] / BOARD_SOURCE_WIDTH),
                     factoryPreviewWidth
                 ),
                 y: factoryPreviewTopY
@@ -159,10 +154,10 @@
         height * (SECOND_FACTORY_OFFER_SOURCE_Y / BOARD_SOURCE_HEIGHT)
     )
     const secondFactoryOfferX = $derived(
-        width * (SECOND_FACTORY_OFFER_SOURCE_X / LEFT_BOARD_SOURCE_WIDTH)
+        width * (SECOND_FACTORY_OFFER_SOURCE_X / BOARD_SOURCE_WIDTH)
     )
     const secondFactoryOfferWidth = $derived(
-        width * (SECOND_FACTORY_OFFER_SOURCE_WIDTH / LEFT_BOARD_SOURCE_WIDTH)
+        width * (SECOND_FACTORY_OFFER_SOURCE_WIDTH / BOARD_SOURCE_WIDTH)
     )
     const orientedSecondFactoryOfferX = $derived(
         orientX(secondFactoryOfferX, secondFactoryOfferWidth)
@@ -233,8 +228,8 @@
             }))
         })
     })
-    const costSquareWidth = $derived(width * (COST_SQUARE_SOURCE_WIDTH / LEFT_BOARD_SOURCE_WIDTH))
-    const costSquareX = $derived(width * (COST_SQUARE_SOURCE_X / LEFT_BOARD_SOURCE_WIDTH))
+    const costSquareWidth = $derived(width * (COST_SQUARE_SOURCE_WIDTH / BOARD_SOURCE_WIDTH))
+    const costSquareX = $derived(width * (COST_SQUARE_SOURCE_X / BOARD_SOURCE_WIDTH))
     const orientedCostSquareX = $derived(orientX(costSquareX, costSquareWidth))
     const costSquarePositions = $derived(
         [0, 1, 2, 3, 4].map((index) => ({
@@ -246,14 +241,14 @@
         }))
     )
     const ownedWarehouseCount = $derived(Math.max(0, Math.min(5, playerState.warehouses)))
-    const warehouseWidth = $derived(width * (WAREHOUSE_SOURCE_WIDTH / LEFT_BOARD_SOURCE_WIDTH))
+    const warehouseWidth = $derived(width * (WAREHOUSE_SOURCE_WIDTH / BOARD_SOURCE_WIDTH))
     const warehouseHeight = $derived(warehouseWidth * (66.31 / 56.69) + WAREHOUSE_EXTRA_HEIGHT)
     const warehousePositions = $derived(
         Array.from({ length: ownedWarehouseCount }, (_value, index) => ({
             x: orientX(
                 width *
                     ((WAREHOUSE_SOURCE_X + WAREHOUSE_SOURCE_HORIZONTAL_STEP * index) /
-                        LEFT_BOARD_SOURCE_WIDTH),
+                        BOARD_SOURCE_WIDTH),
                 warehouseWidth
             ),
             y: height * (WAREHOUSE_SOURCE_Y / BOARD_SOURCE_HEIGHT)
@@ -269,10 +264,10 @@
     const playerSignWidth = $derived(
         width *
             ((PLAYER_SIGN_SOURCE_HEIGHT * (PLAYER_SIGN_ASSET_WIDTH / PLAYER_SIGN_ASSET_HEIGHT)) /
-                LEFT_BOARD_SOURCE_WIDTH)
+                BOARD_SOURCE_WIDTH)
     )
     const playerSignX = $derived(
-        orientX(width * (PLAYER_SIGN_SOURCE_X / LEFT_BOARD_SOURCE_WIDTH), playerSignWidth)
+        orientX(width * (PLAYER_SIGN_SOURCE_X / BOARD_SOURCE_WIDTH), playerSignWidth)
     )
     const playerSignTopY = $derived(height * (PLAYER_SIGN_SOURCE_Y / BOARD_SOURCE_HEIGHT))
     const playerSignHeight = $derived(height * (PLAYER_SIGN_SOURCE_HEIGHT / BOARD_SOURCE_HEIGHT))

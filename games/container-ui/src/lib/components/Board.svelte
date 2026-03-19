@@ -2,15 +2,16 @@
     import type { Player } from '@tabletop/common'
     import type { HydratedContainerPlayerState, ContainerPlayerState } from '@tabletop/container'
     import BoardBaseLayer from '$lib/components/BoardBaseLayer.svelte'
-    import Boat from '$lib/components/Boat.svelte'
+    import Boat, { DEFAULT_BOAT_RENDER_WIDTH } from '$lib/components/Boat.svelte'
     import largeConnectorImg from '$lib/images/large-connector.svg'
     import sideConnectorImg from '$lib/images/side-connector.svg'
     import PlayerBoard from '$lib/components/PlayerBoard.svelte'
     import { buildBoardLayout } from '$lib/definitions/boardLayout.js'
+    import { getMainIslandDockBoatAnchors } from '$lib/definitions/islandGeometry.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
-    const BOAT_PREVIEW_WIDTH = 195.05
+    const BOAT_PREVIEW_WIDTH = DEFAULT_BOAT_RENDER_WIDTH
     const BOAT_PREVIEW_GAP = 20
     const BOAT_PREVIEW_Y_OFFSET = 38
     const CONTAINER_PREVIEW_COLORS = ['#ffffff', '#84accf', '#e14547', '#4f984d', '#f7dd4a']
@@ -169,7 +170,8 @@
 
     const previewBoats = $derived.by(() => {
         const count = playersAndStates.length
-        const totalWidth = count * BOAT_PREVIEW_WIDTH + Math.max(0, count - 1) * BOAT_PREVIEW_GAP
+        const totalWidth =
+            count * BOAT_PREVIEW_WIDTH + Math.max(0, count - 1) * BOAT_PREVIEW_GAP
         const startX = (boardLayout.boardWidth - totalWidth) / 2
         const y = boardLayout.islandRect.y + boardLayout.islandRect.height + BOAT_PREVIEW_Y_OFFSET
 
@@ -182,6 +184,29 @@
                 startX + index * (BOAT_PREVIEW_WIDTH + BOAT_PREVIEW_GAP),
             y: boatPositionOverrides[entry.player.id]?.y ?? y
         }))
+    })
+    const islandDockBoats = $derived.by(() => {
+        const dockAnchors = getMainIslandDockBoatAnchors(
+            boardLayout.islandRect.x,
+            boardLayout.islandRect.y,
+            boardLayout.islandRect.width,
+            boardLayout.islandRect.height
+        )
+
+        return dockAnchors.map((anchor, index) => {
+            const player = playersAndStates[index % playersAndStates.length]
+            const color = player
+                ? gameSession.colors.getPlayerUiColor(player.player.id)
+                : '#84accf'
+
+            return {
+                key: `island-dock-boat-${index}`,
+                x: anchor.tipX,
+                y: anchor.centerY - (DEFAULT_BOAT_RENDER_WIDTH * (63.16 / 252.52)) / 2,
+                rotation: anchor.rotation,
+                color
+            }
+        })
     })
 
     function getPlayerForState(playerState: ContainerPlayerState) {
@@ -331,11 +356,13 @@
                     <Boat
                         x={boat.x}
                         y={boat.y}
-                        width={BOAT_PREVIEW_WIDTH}
                         color={boat.color}
                         containerColors={boat.containerColors}
                     />
                 </g>
+            {/each}
+            {#each islandDockBoats as boat (boat.key)}
+                <Boat x={boat.x} y={boat.y} color={boat.color} rotation={boat.rotation} />
             {/each}
             {#each playersAndStates as playerAndState (playerAndState.player.id)}
                 {@const seat = playerBoardSeatById.get(playerAndState.player.id)}
