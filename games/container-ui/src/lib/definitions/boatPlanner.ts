@@ -188,6 +188,12 @@ const DOCK_MANEUVER_CONFIG: Record<DockSlot['family'], DockManeuverConfig> = {
         straightApproachDistances: [72, 120, 180],
         turnRadius: 132
     },
+    'offshore-harbor': {
+        undockReverseDistance: 100,
+        undockReverseTurnRadius: 42,
+        straightApproachDistances: [72, 120, 180],
+        turnRadius: 132
+    },
     'player-board': {
         undockReverseDistance: 52,
         undockReverseTurnRadius: 36,

@@ -3,6 +3,9 @@
     import offshoreImg from '$lib/images/offshore@2x.webp'
     import {
         MAIN_ISLAND_BOUNDARY_PATH,
+        OFFSHORE_ISLAND_BOUNDARY_PATH,
+        OFFSHORE_ISLAND_SOURCE_HEIGHT,
+        OFFSHORE_ISLAND_SOURCE_WIDTH,
         MAIN_ISLAND_SOURCE_HEIGHT,
         MAIN_ISLAND_SOURCE_WIDTH
     } from '$lib/definitions/islandGeometry.js'
@@ -55,5 +58,16 @@
             height={offshoreRect.height}
             preserveAspectRatio="xMidYMid meet"
         ></image>
+        <g
+            transform={`translate(${offshoreRect.x} ${offshoreRect.y}) scale(${offshoreRect.width / OFFSHORE_ISLAND_SOURCE_WIDTH} ${offshoreRect.height / OFFSHORE_ISLAND_SOURCE_HEIGHT})`}
+        >
+            <path
+                d={OFFSHORE_ISLAND_BOUNDARY_PATH}
+                fill="none"
+                stroke="#ff2a2a"
+                stroke-width="1.5"
+                stroke-miterlimit="10"
+            ></path>
+        </g>
     {/if}
 </g>

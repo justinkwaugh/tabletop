@@ -7,9 +7,13 @@ import {
 import { polygonFromRect } from '$lib/definitions/geometry2d.js'
 import {
     getMainIslandDockBoatAnchors,
+    getOffshoreDockBoatAnchors,
     MAIN_ISLAND_BOUNDARY_PATH,
     MAIN_ISLAND_SOURCE_HEIGHT,
-    MAIN_ISLAND_SOURCE_WIDTH
+    MAIN_ISLAND_SOURCE_WIDTH,
+    OFFSHORE_ISLAND_BOUNDARY_PATH,
+    OFFSHORE_ISLAND_SOURCE_HEIGHT,
+    OFFSHORE_ISLAND_SOURCE_WIDTH
 } from '$lib/definitions/islandGeometry.js'
 import { getPlayerBoardDockBoatAnchors } from '$lib/definitions/playerBoardGeometry.js'
 import { sampleSvgPathToPolygon } from '$lib/definitions/svgPathSampler.js'
@@ -22,7 +26,7 @@ export type BoatPose = {
 
 export type DockSlot = {
     id: string
-    family: 'main-island-harbor' | 'player-board'
+    family: 'main-island-harbor' | 'offshore-harbor' | 'player-board'
     dockedPose: BoatPose
     stagingPose: BoatPose
 }
@@ -38,6 +42,7 @@ export type BoatNavigationGeometry = {
     boatWidth: number
     boatHeight: number
     mainIslandDockSlots: DockSlot[]
+    offshoreDockSlots: DockSlot[]
     playerBoardDockSlots: DockSlot[]
     obstacles: NavigationObstacle[]
 }
@@ -99,12 +104,13 @@ function createOffshoreObstacle(boardLayout: BoardLayout): NavigationObstacle[] 
     return [
         {
             id: 'offshore-island',
-            polygon: polygonFromRect(
-                boardLayout.offshoreRect.x,
-                boardLayout.offshoreRect.y,
-                boardLayout.offshoreRect.width,
-                boardLayout.offshoreRect.height
-            )
+            polygon: sampleSvgPathToPolygon(OFFSHORE_ISLAND_BOUNDARY_PATH, {
+                cubicSubdivisions: NAVIGATION_ISLAND_BOUNDARY_SUBDIVISIONS,
+                scaleX: boardLayout.offshoreRect.width / OFFSHORE_ISLAND_SOURCE_WIDTH,
+                scaleY: boardLayout.offshoreRect.height / OFFSHORE_ISLAND_SOURCE_HEIGHT,
+                offsetX: boardLayout.offshoreRect.x,
+                offsetY: boardLayout.offshoreRect.y
+            })
         }
     ]
 }
@@ -124,6 +130,23 @@ export function buildBoatNavigationGeometry(boardLayout: BoardLayout): BoatNavig
             stagingPose: createStagingPose(dockedPose, MAIN_ISLAND_DOCK_STAGING_DISTANCE)
         }
     })
+
+    const offshoreDockSlots = boardLayout.offshoreRect
+        ? getOffshoreDockBoatAnchors(
+              boardLayout.offshoreRect.x,
+              boardLayout.offshoreRect.y,
+              boardLayout.offshoreRect.width,
+              boardLayout.offshoreRect.height
+          ).map((anchor, index): DockSlot => {
+              const dockedPose = dockAnchorToPose(anchor, DEFAULT_BOAT_RENDER_WIDTH)
+              return {
+                  id: `offshore-dock-${index}`,
+                  family: 'offshore-harbor',
+                  dockedPose,
+                  stagingPose: createStagingPose(dockedPose, MAIN_ISLAND_DOCK_STAGING_DISTANCE)
+              }
+          })
+        : []
 
     const playerBoardDockSlots = boardLayout.playerBoardSeats.flatMap((seat) =>
         getPlayerBoardDockBoatAnchors(seat.orientation, seat.width, seat.height).map(
@@ -159,6 +182,7 @@ export function buildBoatNavigationGeometry(boardLayout: BoardLayout): BoatNavig
         boatWidth: DEFAULT_BOAT_RENDER_WIDTH,
         boatHeight: DEFAULT_BOAT_RENDER_HEIGHT,
         mainIslandDockSlots,
+        offshoreDockSlots,
         playerBoardDockSlots,
         obstacles
     }

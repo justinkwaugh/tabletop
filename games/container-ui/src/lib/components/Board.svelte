@@ -201,8 +201,13 @@
         )
     })
 
-    const islandDockBoats = $derived.by(() => {
-        return boatNavigationGeometry.mainIslandDockSlots.map((slot, slotIndex) => {
+    const harborDockBoats = $derived.by(() => {
+        const harborSlots = [
+            ...boatNavigationGeometry.mainIslandDockSlots,
+            ...boatNavigationGeometry.offshoreDockSlots
+        ]
+
+        return harborSlots.map((slot, slotIndex) => {
             const index = slotIndex
             const player = playersAndStates[index % playersAndStates.length]
             const color = player
@@ -210,7 +215,7 @@
                 : '#84accf'
 
             return {
-                key: `island-dock-boat-${index}`,
+                key: `harbor-dock-boat-${index}`,
                 dockId: slot.id,
                 x: slot.dockedPose.x - DEFAULT_BOAT_RENDER_WIDTH / 2,
                 y: slot.dockedPose.y - DEFAULT_BOAT_RENDER_HEIGHT / 2,
@@ -236,10 +241,14 @@
             }
         }
 
-        const startDock = boatNavigationGeometry.mainIslandDockSlots.find(
+        const harborDockSlots = [
+            ...boatNavigationGeometry.mainIslandDockSlots,
+            ...boatNavigationGeometry.offshoreDockSlots
+        ]
+        const startDock = harborDockSlots.find(
             (slot) => slot.id === selectedStartDockId
         )
-        const movingBoat = islandDockBoats.find((boat) => boat.dockId === selectedStartDockId)
+        const movingBoat = harborDockBoats.find((boat) => boat.dockId === selectedStartDockId)
         if (!startDock || !movingBoat) {
             return {
                 status: 'idle',
@@ -247,7 +256,7 @@
             }
         }
 
-        const occupiedBoatPoses = boatNavigationGeometry.mainIslandDockSlots
+        const occupiedBoatPoses = harborDockSlots
             .filter((slot) => slot.id !== startDock.id)
             .map((slot) => slot.dockedPose)
         const candidateDocks = boatNavigationGeometry.playerBoardDockSlots
@@ -398,7 +407,7 @@
                     fill={PLAYER_BOARD_UNDERLAY_FILL}
                 ></rect>
             {/each}
-            {#each islandDockBoats as boat (boat.key)}
+            {#each harborDockBoats as boat (boat.key)}
                 {#if routeProbe.status !== 'success' || routeProbe.startDockId !== boat.dockId}
                     <Boat x={boat.x} y={boat.y} color={boat.color} rotation={boat.rotation} />
                 {/if}

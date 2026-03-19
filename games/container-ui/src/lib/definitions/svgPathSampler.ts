@@ -16,6 +16,8 @@ const PARAMS_PER_COMMAND: Record<string, number> = {
     v: 1,
     C: 6,
     c: 6,
+    S: 4,
+    s: 4,
     Z: 0,
     z: 0
 }
@@ -41,6 +43,8 @@ export function sampleSvgPathToPolygon(
 
     let current: Point = { x: 0, y: 0 }
     let subpathStart: Point = { x: 0, y: 0 }
+    let previousCubicControl2: Point | null = null
+    let previousCommand: string | null = null
 
     for (const { command, values } of commands) {
         switch (command) {
@@ -50,12 +54,14 @@ export function sampleSvgPathToPolygon(
                 current = next
                 subpathStart = next
                 points.push(transformPoint(next, scaleX, scaleY, offsetX, offsetY))
+                previousCubicControl2 = null
                 break
             }
             case 'L':
             case 'l': {
                 current = command === 'L' ? toPoint(values[0]!, values[1]!) : addPoint(current, values)
                 points.push(transformPoint(current, scaleX, scaleY, offsetX, offsetY))
+                previousCubicControl2 = null
                 break
             }
             case 'H':
@@ -65,6 +71,7 @@ export function sampleSvgPathToPolygon(
                     y: current.y
                 }
                 points.push(transformPoint(current, scaleX, scaleY, offsetX, offsetY))
+                previousCubicControl2 = null
                 break
             }
             case 'V':
@@ -74,6 +81,7 @@ export function sampleSvgPathToPolygon(
                     y: command === 'V' ? values[0]! : current.y + values[0]!
                 }
                 points.push(transformPoint(current, scaleX, scaleY, offsetX, offsetY))
+                previousCubicControl2 = null
                 break
             }
             case 'C':
@@ -105,16 +113,57 @@ export function sampleSvgPathToPolygon(
                 }
 
                 current = end
+                previousCubicControl2 = control2
+                break
+            }
+            case 'S':
+            case 's': {
+                const control1 =
+                    previousCommand &&
+                    ['C', 'c', 'S', 's'].includes(previousCommand) &&
+                    previousCubicControl2
+                        ? {
+                              x: current.x * 2 - previousCubicControl2.x,
+                              y: current.y * 2 - previousCubicControl2.y
+                          }
+                        : current
+                const control2 =
+                    command === 'S'
+                        ? toPoint(values[0]!, values[1]!)
+                        : { x: current.x + values[0]!, y: current.y + values[1]! }
+                const end =
+                    command === 'S'
+                        ? toPoint(values[2]!, values[3]!)
+                        : { x: current.x + values[2]!, y: current.y + values[3]! }
+
+                for (let step = 1; step <= cubicSubdivisions; step += 1) {
+                    const t = step / cubicSubdivisions
+                    points.push(
+                        transformPoint(
+                            sampleCubicBezier(current, control1, control2, end, t),
+                            scaleX,
+                            scaleY,
+                            offsetX,
+                            offsetY
+                        )
+                    )
+                }
+
+                current = end
+                previousCubicControl2 = control2
                 break
             }
             case 'Z':
             case 'z': {
                 current = subpathStart
+                previousCubicControl2 = null
                 break
             }
             default:
                 throw new Error(`Unsupported SVG path command: ${command}`)
         }
+
+        previousCommand = command
     }
 
     return dedupeAdjacentPoints(points)
