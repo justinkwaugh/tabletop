@@ -253,8 +253,62 @@ export function buildBestDockTransferPlan(
 ): BestDockTransferPlan | null {
     const plannerContext = createPlannerContext(geometry, occupiedBoatPoses)
     const targetPose = getAveragePose(endDocks.map((dock) => dock.stagingPose))
-    const undockCandidates = buildUndockCandidates(startDock, targetPose)
+    const standardPlan = evaluateBestDockTransferPlan(
+        startDock,
+        endDocks,
+        plannerContext,
+        buildUndockCandidates(startDock, targetPose)
+    )
+    if (standardPlan) {
+        return standardPlan
+    }
 
+    if (startDock.family !== 'main-island-harbor') {
+        return null
+    }
+
+    return evaluateBestDockTransferPlan(
+        startDock,
+        endDocks,
+        plannerContext,
+        buildHarborExitUndockCandidates(startDock, targetPose)
+    )
+}
+
+function buildDockTransferPlanWithContext(
+    startDock: DockSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext,
+    undockCandidates: UndockManeuverCandidate[]
+): BoatRoutePlan | null {
+    const standardPlan = evaluateExactDockTransferPlan(
+        startDock,
+        endDock,
+        plannerContext,
+        undockCandidates
+    )
+    if (standardPlan) {
+        return standardPlan
+    }
+
+    if (startDock.family !== 'main-island-harbor') {
+        return null
+    }
+
+    return evaluateExactDockTransferPlan(
+        startDock,
+        endDock,
+        plannerContext,
+        buildHarborExitUndockCandidates(startDock, endDock.stagingPose)
+    )
+}
+
+function evaluateBestDockTransferPlan(
+    startDock: DockSlot,
+    endDocks: DockSlot[],
+    plannerContext: PlannerContext,
+    undockCandidates: UndockManeuverCandidate[]
+): BestDockTransferPlan | null {
     let bestPlan: BestDockTransferPlan | null = null
 
     for (const undockCandidate of undockCandidates) {
@@ -297,7 +351,7 @@ export function buildBestDockTransferPlan(
     return bestPlan
 }
 
-function buildDockTransferPlanWithContext(
+function evaluateExactDockTransferPlan(
     startDock: DockSlot,
     endDock: DockSlot,
     plannerContext: PlannerContext,
@@ -884,6 +938,58 @@ function buildHarborKTurnDockCandidates(
             }
         )
     )
+}
+
+function buildHarborExitUndockCandidates(
+    dock: DockSlot,
+    targetPose: BoatPose
+): UndockManeuverCandidate[] {
+    const config = DOCK_MANEUVER_CONFIG[dock.family]
+    const preferredBearing = Math.atan2(
+        targetPose.y - dock.stagingPose.y,
+        targetPose.x - dock.stagingPose.x
+    )
+    const perpendicularCandidates = buildPerpendicularCandidates(
+        dock.stagingPose.heading,
+        preferredBearing
+    )
+
+    return perpendicularCandidates.flatMap((headingCandidate, headingIndex) =>
+        [HARBOR_K_TURN_REENTRY_DISTANCE, ...config.straightApproachDistances].map(
+            (approachDistance, distanceIndex) => {
+                const clearancePose = {
+                    x:
+                        dock.stagingPose.x -
+                        Math.cos(dock.stagingPose.heading) * approachDistance,
+                    y:
+                        dock.stagingPose.y -
+                        Math.sin(dock.stagingPose.heading) * approachDistance,
+                    heading: dock.stagingPose.heading
+                }
+                const reverseSegment = createStraightSegment(
+                    dock.stagingPose,
+                    clearancePose,
+                    'reverse'
+                )
+                const forwardTurnSegment = createForwardArcFromStartPose(
+                    clearancePose,
+                    normalizeAngle(headingCandidate.heading - clearancePose.heading),
+                    HARBOR_K_TURN_LATERAL_OFFSET
+                )
+                const transitPose = forwardTurnSegment.endPose
+
+                return {
+                    transitPose,
+                    maneuverSegments: [reverseSegment, forwardTurnSegment],
+                    score:
+                        heuristic(transitPose, targetPose) +
+                        headingCandidate.score * HARBOR_K_TURN_LATERAL_OFFSET * 0.5 +
+                        headingIndex * 0.02 +
+                        distanceIndex * 0.01
+                }
+            }
+        )
+    ).sort((a, b) => a.score - b.score)
 }
 
 function shouldUseFourPlayerNoOffshoreMainHarborBypass(

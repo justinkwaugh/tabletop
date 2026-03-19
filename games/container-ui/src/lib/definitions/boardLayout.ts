@@ -10,6 +10,7 @@ const OFFSHORE_IMAGE_HEIGHT = OFFSHORE_IMAGE_WIDTH * (OFFSHORE_SOURCE_HEIGHT / O
 const ISLAND_STACK_MIN_SPACING = 48
 const OFFSHORE_FOUR_PLAYER_COLUMN_OFFSET_Y = 200
 const FIVE_PLAYER_NO_OFFSHORE_RIGHT_STACK_OFFSET_Y = 48
+const FIVE_PLAYER_OFFSHORE_ISLAND_OFFSET_X = 60
 
 export const PLAYER_BOARD_WIDTH = 328
 export const PLAYER_BOARD_HEIGHT = 551
@@ -115,7 +116,9 @@ export function buildBoardLayout(
         computeIslandStackBoardHeight(hasOffshore)
     )
     const islandX = (boardWidth - ISLAND_IMAGE_WIDTH) / 2
-    const offshoreX = (boardWidth - OFFSHORE_IMAGE_WIDTH) / 2
+    const offshoreX =
+        (boardWidth - OFFSHORE_IMAGE_WIDTH) / 2 +
+        (hasOffshore && playerIds.length === 5 ? FIVE_PLAYER_OFFSHORE_ISLAND_OFFSET_X : 0)
     const stackSpacing = hasOffshore
         ? (boardHeight - OFFSHORE_IMAGE_HEIGHT - ISLAND_IMAGE_HEIGHT) / 3
         : 0
