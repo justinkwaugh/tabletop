@@ -44,6 +44,7 @@ export type BoatNavigationGeometry = {
 
 const PLAYER_BOARD_DOCK_STAGING_DISTANCE = 76
 const MAIN_ISLAND_DOCK_STAGING_DISTANCE = 84
+const NAVIGATION_ISLAND_BOUNDARY_SUBDIVISIONS = 8
 
 function degreesToRadians(degrees: number): number {
     return (degrees * Math.PI) / 180
@@ -81,7 +82,7 @@ function createMainIslandObstacle(boardLayout: BoardLayout): NavigationObstacle 
     return {
         id: 'main-island',
         polygon: sampleSvgPathToPolygon(MAIN_ISLAND_BOUNDARY_PATH, {
-            cubicSubdivisions: 18,
+            cubicSubdivisions: NAVIGATION_ISLAND_BOUNDARY_SUBDIVISIONS,
             scaleX: islandRect.width / MAIN_ISLAND_SOURCE_WIDTH,
             scaleY: islandRect.height / MAIN_ISLAND_SOURCE_HEIGHT,
             offsetX: islandRect.x,

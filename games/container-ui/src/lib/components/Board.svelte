@@ -12,7 +12,10 @@
     } from '$lib/definitions/boatGeometry.js'
     import { getMotionPathLength, sampleMotionPath } from '$lib/definitions/boatMotion.js'
     import { buildBoatNavigationGeometry } from '$lib/definitions/boatNavigation.js'
-    import { buildDockTransferPlan } from '$lib/definitions/boatPlanner.js'
+    import {
+        buildBestDockTransferPlan,
+        type BoatRoutePlan
+    } from '$lib/definitions/boatPlanner.js'
     import largeConnectorImg from '$lib/images/large-connector.svg'
     import sideConnectorImg from '$lib/images/side-connector.svg'
     import PlayerBoard from '$lib/components/PlayerBoard.svelte'
@@ -34,10 +37,38 @@
     const SIDE_CONNECTOR_TOP_OFFSET_Y = 130
     const SIDE_CONNECTOR_BOTTOM_OFFSET_X = -215
     const SIDE_CONNECTOR_BOTTOM_OFFSET_Y = -160
+    const ROUTE_STATUS_PANEL_X = 24
+    const ROUTE_STATUS_PANEL_Y = 24
 
     let demoAnimationMs = $state(0)
+    let selectedStartDockId = $state<string | null>(null)
+    let selectedTargetPlayerId = $state<string | null>(null)
 
     type PlayerAndState = { player: Player; playerState: HydratedContainerPlayerState }
+    type RouteProbeState =
+        | {
+              status: 'idle'
+              message: string
+          }
+        | {
+              status: 'awaiting-target'
+              message: string
+              startDockId: string
+          }
+        | {
+              status: 'failed'
+              message: string
+              startDockId: string
+              targetPlayerId: string
+          }
+        | {
+              status: 'success'
+              message: string
+              startDockId: string
+              targetPlayerId: string
+              movingBoatColor: string
+              plan: BoatRoutePlan
+          }
 
     const playersAndStates: PlayerAndState[] = $derived.by(() => {
         const playersAndStatesById = new Map(
@@ -171,8 +202,8 @@
     })
 
     const islandDockBoats = $derived.by(() => {
-        return boatNavigationGeometry.mainIslandDockSlots.slice(1).map((slot, slotIndex) => {
-            const index = slotIndex + 1
+        return boatNavigationGeometry.mainIslandDockSlots.map((slot, slotIndex) => {
+            const index = slotIndex
             const player = playersAndStates[index % playersAndStates.length]
             const color = player
                 ? gameSession.colors.getPlayerUiColor(player.player.id)
@@ -180,6 +211,7 @@
 
             return {
                 key: `island-dock-boat-${index}`,
+                dockId: slot.id,
                 x: slot.dockedPose.x - DEFAULT_BOAT_RENDER_WIDTH / 2,
                 y: slot.dockedPose.y - DEFAULT_BOAT_RENDER_HEIGHT / 2,
                 rotation: boatHeadingToRenderRotation(slot.dockedPose.heading),
@@ -187,49 +219,110 @@
             }
         })
     })
-    const demoRoutePlan = $derived.by(() => {
-        for (const [startIndex, startDock] of boatNavigationGeometry.mainIslandDockSlots.entries()) {
-            const occupiedBoatPoses = boatNavigationGeometry.mainIslandDockSlots
-                .filter((_, index) => index !== startIndex)
-                .map((slot) => slot.dockedPose)
 
-            for (const endDock of boatNavigationGeometry.playerBoardDockSlots) {
-                const plan = buildDockTransferPlan(
-                    startDock,
-                    endDock,
-                    boatNavigationGeometry,
-                    occupiedBoatPoses
-                )
-                if (plan) {
-                    return plan
-                }
+    const routeProbe = $derived.by<RouteProbeState>(() => {
+        if (!selectedStartDockId) {
+            return {
+                status: 'idle',
+                message: 'Select a harbor boat, then click a player board.'
             }
         }
 
-        return null
+        if (!selectedTargetPlayerId) {
+            return {
+                status: 'awaiting-target',
+                startDockId: selectedStartDockId,
+                message: 'Select a player board to test the route.'
+            }
+        }
+
+        const startDock = boatNavigationGeometry.mainIslandDockSlots.find(
+            (slot) => slot.id === selectedStartDockId
+        )
+        const movingBoat = islandDockBoats.find((boat) => boat.dockId === selectedStartDockId)
+        if (!startDock || !movingBoat) {
+            return {
+                status: 'idle',
+                message: 'Select a harbor boat, then click a player board.'
+            }
+        }
+
+        const occupiedBoatPoses = boatNavigationGeometry.mainIslandDockSlots
+            .filter((slot) => slot.id !== startDock.id)
+            .map((slot) => slot.dockedPose)
+        const candidateDocks = boatNavigationGeometry.playerBoardDockSlots
+            .filter((slot) => slot.id.startsWith(`${selectedTargetPlayerId}-dock-`))
+            .sort(
+                (a, b) =>
+                    Math.hypot(
+                        a.stagingPose.x - startDock.stagingPose.x,
+                        a.stagingPose.y - startDock.stagingPose.y
+                    ) -
+                    Math.hypot(
+                        b.stagingPose.x - startDock.stagingPose.x,
+                        b.stagingPose.y - startDock.stagingPose.y
+                    )
+            )
+        const startedAt = performance.now()
+        const bestPlan = buildBestDockTransferPlan(
+            startDock,
+            candidateDocks,
+            boatNavigationGeometry,
+            occupiedBoatPoses
+        )
+        const elapsedMs = Math.round(performance.now() - startedAt)
+        if (bestPlan) {
+            return {
+                status: 'success',
+                startDockId: startDock.id,
+                targetPlayerId: selectedTargetPlayerId,
+                movingBoatColor: movingBoat.color,
+                plan: bestPlan.plan,
+                message: `Route found from ${startDock.id} to ${selectedTargetPlayerId} via ${bestPlan.endDock.id} in ${elapsedMs}ms after evaluating ${bestPlan.attempts} candidate dock pose${bestPlan.attempts === 1 ? '' : 's'}.`
+            }
+        }
+
+        return {
+            status: 'failed',
+            startDockId: startDock.id,
+            targetPlayerId: selectedTargetPlayerId,
+            message: `No route found from ${startDock.id} to ${selectedTargetPlayerId} after evaluating candidate dock poses in ${elapsedMs}ms.`
+        }
     })
-    const demoRouteLength = $derived.by(() =>
-        demoRoutePlan ? getMotionPathLength(demoRoutePlan.segments) : 0
+    const routeProbeLength = $derived.by(() =>
+        routeProbe.status === 'success' ? getMotionPathLength(routeProbe.plan.segments) : 0
     )
-    const demoBoat = $derived.by(() => {
-        if (!demoRoutePlan || demoRouteLength <= 0) {
+    const movingBoat = $derived.by(() => {
+        if (routeProbe.status !== 'success' || routeProbeLength <= 0) {
             return null
         }
 
         const speed = 170
-        const traveled = ((demoAnimationMs / 1000) * speed) % demoRouteLength
-        const pose = sampleMotionPath(demoRoutePlan.segments, traveled)
+        const traveled = ((demoAnimationMs / 1000) * speed) % routeProbeLength
+        const pose = sampleMotionPath(routeProbe.plan.segments, traveled)
 
         return {
             x: pose.x - BOAT_WIDTH / 2,
             y: pose.y - DEFAULT_BOAT_RENDER_HEIGHT / 2,
             rotation: boatHeadingToRenderRotation(pose.heading),
-            color:
-                playersAndStates[0] ?
-                    gameSession.colors.getPlayerUiColor(playersAndStates[0].player.id)
-                :   '#84accf'
+            color: routeProbe.movingBoatColor
         }
     })
+
+    function handleHarborBoatClick(dockId: string) {
+        selectedStartDockId = dockId
+        selectedTargetPlayerId = null
+        demoAnimationMs = 0
+    }
+
+    function handlePlayerBoardClick(playerId: string) {
+        if (!selectedStartDockId) {
+            return
+        }
+
+        selectedTargetPlayerId = playerId
+        demoAnimationMs = 0
+    }
 
     function getPlayerForState(playerState: ContainerPlayerState) {
         return gameSession.game.players.find((player) => player.id === playerState.playerId)!
@@ -306,14 +399,34 @@
                 ></rect>
             {/each}
             {#each islandDockBoats as boat (boat.key)}
-                <Boat x={boat.x} y={boat.y} color={boat.color} rotation={boat.rotation} />
+                {#if routeProbe.status !== 'success' || routeProbe.startDockId !== boat.dockId}
+                    <Boat x={boat.x} y={boat.y} color={boat.color} rotation={boat.rotation} />
+                {/if}
+                <rect
+                    x={boat.x}
+                    y={boat.y}
+                    width={DEFAULT_BOAT_RENDER_WIDTH}
+                    height={DEFAULT_BOAT_RENDER_HEIGHT}
+                    fill="transparent"
+                    class="cursor-pointer"
+                    role="button"
+                    tabindex="0"
+                    aria-label={`Select harbor boat ${boat.dockId}`}
+                    onclick={() => handleHarborBoatClick(boat.dockId)}
+                    onkeydown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            handleHarborBoatClick(boat.dockId)
+                        }
+                    }}
+                ></rect>
             {/each}
-            {#if demoBoat}
+            {#if movingBoat}
                 <Boat
-                    x={demoBoat.x}
-                    y={demoBoat.y}
-                    color={demoBoat.color}
-                    rotation={demoBoat.rotation}
+                    x={movingBoat.x}
+                    y={movingBoat.y}
+                    color={movingBoat.color}
+                    rotation={movingBoat.rotation}
                 />
             {/if}
             {#each playersAndStates as playerAndState (playerAndState.player.id)}
@@ -328,9 +441,33 @@
                         width={seat.width}
                         height={seat.height}
                     />
+                    <rect
+                        x={seat.x}
+                        y={seat.y}
+                        width={seat.width}
+                        height={seat.height}
+                        fill="transparent"
+                        class="cursor-pointer"
+                        role="button"
+                        tabindex="0"
+                        aria-label={`Select player board ${playerAndState.player.id}`}
+                        onclick={() => handlePlayerBoardClick(playerAndState.player.id)}
+                        onkeydown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault()
+                                handlePlayerBoardClick(playerAndState.player.id)
+                            }
+                        }}
+                    ></rect>
                 {/if}
             {/each}
         </svg>
+        <div
+            class="route-status-panel"
+            style={`left:${ROUTE_STATUS_PANEL_X}px;top:${ROUTE_STATUS_PANEL_Y}px;`}
+        >
+            {routeProbe.message}
+        </div>
     </div>
 </div>
 
@@ -350,5 +487,19 @@
         box-shadow:
             0 0 0 3px rgba(255, 255, 255, 0.08),
             0 18px 42px rgba(7, 12, 34, 0.34);
+    }
+
+    .route-status-panel {
+        position: absolute;
+        z-index: 2;
+        max-width: 360px;
+        border-radius: 14px;
+        background: rgba(16, 19, 38, 0.82);
+        padding: 10px 14px;
+        color: #eef1ff;
+        font-size: 15px;
+        line-height: 1.35;
+        box-shadow: 0 10px 28px rgba(7, 12, 34, 0.28);
+        pointer-events: none;
     }
 </style>
