@@ -164,6 +164,8 @@ class SearchNodeHeap {
 const STRAIGHT_STEP = 72
 const TURN_RADIUS = 118
 const TURN_ANGLE = Math.PI / 6
+const FINE_STRAIGHT_STEP = 36
+const FINE_TURN_ANGLE = Math.PI / 12
 const POSITION_BUCKET = 56
 const HEADING_BUCKET = Math.PI / 8
 const HEURISTIC_WEIGHT = 3
@@ -176,6 +178,7 @@ const COLLISION_SAMPLE_STEP = 18
 const CLEARANCE_SAMPLE_STEP = 54
 const GOAL_CONNECTION_HEADING_TOLERANCE = Math.PI / 24
 const GOAL_CONNECTION_ALIGNMENT_TOLERANCE = Math.PI / 18
+const GOAL_REFINEMENT_THRESHOLD = 220
 const STRAIGHT_LANE_OVERSHOOT_ALLOWANCE = 36
 const ARC_SEGMENT_PENALTY = 28
 const OBSTACLE_CLEARANCE_TARGET = 120
@@ -274,33 +277,35 @@ function buildDockTransferPlanWithContext(
     undockCandidates: UndockManeuverCandidate[]
 ): BoatRoutePlan | null {
     for (const undockCandidate of undockCandidates) {
-        const dockCandidates = buildDockCandidates(endDock, undockCandidate.transitPose)
+        const dockGoals = buildDockCandidates(endDock, undockCandidate.transitPose).map(
+            (candidate) => ({
+                endDock,
+                candidate
+            })
+        )
+        const dockConnection = planTransitSegmentsToAnyGoal(
+            undockCandidate.transitPose,
+            dockGoals,
+            plannerContext
+        )
+        if (!dockConnection) {
+            continue
+        }
 
-        for (const dockCandidate of dockCandidates) {
-            const dockConnection = planTransitSegments(
-                undockCandidate.transitPose,
-                dockCandidate,
-                plannerContext
-            )
-            if (!dockConnection) {
-                continue
-            }
+        const undockSegments = [
+            createStraightSegment(startDock.dockedPose, startDock.stagingPose, 'reverse'),
+            ...undockCandidate.maneuverSegments
+        ]
+        const dockSegments = [
+            ...dockConnection.dockSegments,
+            createStraightSegment(endDock.stagingPose, endDock.dockedPose, 'forward')
+        ]
 
-            const undockSegments = [
-                createStraightSegment(startDock.dockedPose, startDock.stagingPose, 'reverse'),
-                ...undockCandidate.maneuverSegments
-            ]
-            const dockSegments = [
-                ...dockConnection.dockSegments,
-                createStraightSegment(endDock.stagingPose, endDock.dockedPose, 'forward')
-            ]
-
-            return {
-                undockSegments,
-                transitSegments: dockConnection.transitSegments,
-                dockSegments,
-                segments: [...undockSegments, ...dockConnection.transitSegments, ...dockSegments]
-            }
+        return {
+            undockSegments,
+            transitSegments: dockConnection.transitSegments,
+            dockSegments,
+            segments: [...undockSegments, ...dockConnection.transitSegments, ...dockSegments]
         }
     }
 
@@ -376,10 +381,10 @@ function runTransitSearch(
             }
         }
 
-        for (const segment of expandSegments(current.pose)) {
-            if (!isReasonableProgress(current.pose, segment.endPose, dockCandidate)) {
-                continue
-            }
+        for (const segment of expandSegments(
+            current.pose,
+            dockCandidate.estimateFrom(current.pose) <= GOAL_REFINEMENT_THRESHOLD
+        )) {
             if (!dockCandidate.allowsPose(segment.endPose)) {
                 continue
             }
@@ -499,7 +504,10 @@ function runTransitSearchAnyGoal(
             }
         }
 
-        for (const segment of expandSegments(current.pose)) {
+        for (const segment of expandSegments(
+            current.pose,
+            getBestGoalEstimate(current.pose, dockGoals) <= GOAL_REFINEMENT_THRESHOLD
+        )) {
             if (!isReasonableProgressForAnyGoal(current.pose, segment.endPose, dockGoals)) {
                 continue
             }
@@ -548,12 +556,22 @@ function runTransitSearchAnyGoal(
         : null
 }
 
-function expandSegments(pose: BoatPose): BoatMotionSegment[] {
-    return [
-        createForwardStraightSegment(pose),
-        createTurnSegment(pose, 'left'),
-        createTurnSegment(pose, 'right')
+function expandSegments(pose: BoatPose, useFineMotions: boolean): BoatMotionSegment[] {
+    const segments = [
+        createForwardStraightSegment(pose, STRAIGHT_STEP),
+        createTurnSegment(pose, 'left', TURN_ANGLE),
+        createTurnSegment(pose, 'right', TURN_ANGLE)
     ]
+
+    if (useFineMotions) {
+        segments.push(
+            createForwardStraightSegment(pose, FINE_STRAIGHT_STEP),
+            createTurnSegment(pose, 'left', FINE_TURN_ANGLE),
+            createTurnSegment(pose, 'right', FINE_TURN_ANGLE)
+        )
+    }
+
+    return segments
 }
 
 function buildUndockCandidates(
@@ -570,11 +588,7 @@ function buildUndockCandidates(
         preferredBearing
     )
 
-    return buildReverseThenTurnCandidates(
-        dock.stagingPose,
-        candidates.slice(0, 1),
-        config
-    )
+    return buildReverseThenTurnCandidates(dock.stagingPose, targetPose, candidates, config)
 }
 
 function buildDockCandidates(
@@ -607,12 +621,15 @@ function buildDockCandidates(
 
         validCandidates.push({
             heuristicPose: arcSegment.startPose,
-            estimateFrom: (pose) => heuristic(pose, arcSegment.startPose),
-            allowsPose: () => true,
+            estimateFrom: (pose) =>
+                estimateLaneHeuristic(pose, arcSegment.startPose, candidateHeading.heading),
+            allowsPose: (pose) =>
+                allowsLanePose(pose, arcSegment.startPose, candidateHeading.heading),
             completeFrom: (currentPose, plannerContext) => {
-                const connector = buildPoseGoalConnectionSegments(
+                const connector = buildLaneGoalConnectionSegments(
                     currentPose,
                     arcSegment.startPose,
+                    candidateHeading.heading,
                     plannerContext
                 )
                 return connector ? [...connector, arcSegment] : null
@@ -641,7 +658,7 @@ function buildStraightInDockCandidates(
         {
             heuristicPose: laneHintPose,
             estimateFrom: (pose) => estimateStraightLaneHeuristic(pose, dock.stagingPose),
-            allowsPose: (pose) => allowsStraightLanePose(pose, dock.stagingPose),
+            allowsPose: () => true,
             completeFrom: (currentPose, plannerContext) =>
                 buildStraightInGoalConnectionSegments(currentPose, dock.stagingPose, plannerContext),
             score: alignmentScore
@@ -651,6 +668,7 @@ function buildStraightInDockCandidates(
 
 function buildReverseThenTurnCandidates(
     startPose: BoatPose,
+    targetPose: BoatPose,
     headingCandidates: Array<{ heading: number; score: number }>,
     config: DockManeuverConfig
 ): UndockManeuverCandidate[] {
@@ -668,11 +686,14 @@ function buildReverseThenTurnCandidates(
             normalizeAngle(headingCandidate.heading - clearancePose.heading),
             config.undockReverseTurnRadius
         )
+        const transitPose = reverseTurnSegment.endPose
 
         candidates.push({
-            transitPose: reverseTurnSegment.endPose,
+            transitPose,
             maneuverSegments: [reverseSegment, reverseTurnSegment],
-            score: headingCandidate.score
+            score:
+                heuristic(transitPose, targetPose) +
+                headingCandidate.score * config.undockReverseTurnRadius * 0.5
         })
     }
 
@@ -724,19 +745,23 @@ function buildPerpendicularCandidates(
         .sort((a, b) => a.score - b.score)
 }
 
-function createForwardStraightSegment(startPose: BoatPose): BoatMotionSegment {
+function createForwardStraightSegment(startPose: BoatPose, step: number): BoatMotionSegment {
     return createStraightSegment(
         startPose,
         {
-            x: startPose.x + Math.cos(startPose.heading) * STRAIGHT_STEP,
-            y: startPose.y + Math.sin(startPose.heading) * STRAIGHT_STEP,
+            x: startPose.x + Math.cos(startPose.heading) * step,
+            y: startPose.y + Math.sin(startPose.heading) * step,
             heading: startPose.heading
         },
         'forward'
     )
 }
 
-function createTurnSegment(startPose: BoatPose, direction: 'left' | 'right'): BoatMotionSegment {
+function createTurnSegment(
+    startPose: BoatPose,
+    direction: 'left' | 'right',
+    angle: number
+): BoatMotionSegment {
     const centerOffset =
         direction === 'left'
             ? { x: -Math.sin(startPose.heading) * TURN_RADIUS, y: Math.cos(startPose.heading) * TURN_RADIUS }
@@ -747,7 +772,7 @@ function createTurnSegment(startPose: BoatPose, direction: 'left' | 'right'): Bo
         y: startPose.y + centerOffset.y
     }
     const startAngle = Math.atan2(startPose.y - center.y, startPose.x - center.x)
-    const signedTurn = direction === 'left' ? TURN_ANGLE : -TURN_ANGLE
+    const signedTurn = direction === 'left' ? angle : -angle
     const endAngle = startAngle + signedTurn
     const endPose = {
         x: center.x + Math.cos(endAngle) * TURN_RADIUS,
@@ -900,13 +925,27 @@ function buildStraightInGoalConnectionSegments(
     stagingPose: BoatPose,
     plannerContext: PlannerContext
 ): BoatMotionSegment[] | null {
-    const headingDelta = Math.abs(normalizeAngle(stagingPose.heading - currentPose.heading))
+    return buildLaneGoalConnectionSegments(
+        currentPose,
+        stagingPose,
+        stagingPose.heading,
+        plannerContext
+    )
+}
+
+function buildLaneGoalConnectionSegments(
+    currentPose: BoatPose,
+    goalPose: BoatPose,
+    laneHeading: number,
+    plannerContext: PlannerContext
+): BoatMotionSegment[] | null {
+    const headingDelta = Math.abs(normalizeAngle(laneHeading - currentPose.heading))
     if (headingDelta > GOAL_CONNECTION_HEADING_TOLERANCE) {
         return null
     }
 
-    const dx = stagingPose.x - currentPose.x
-    const dy = stagingPose.y - currentPose.y
+    const dx = goalPose.x - currentPose.x
+    const dy = goalPose.y - currentPose.y
     const distance = Math.hypot(dx, dy)
     if (distance === 0) {
         return []
@@ -918,13 +957,17 @@ function buildStraightInGoalConnectionSegments(
         return null
     }
 
-    const connector = createStraightSegment(currentPose, stagingPose, 'forward')
+    const connector = createStraightSegment(currentPose, goalPose, 'forward')
     return analyzeSegment(connector, plannerContext).isCollisionFree ? [connector] : null
 }
 
 function estimateStraightLaneHeuristic(pose: BoatPose, stagingPose: BoatPose): number {
-    const { along, lateral } = getStraightLaneMetrics(pose, stagingPose)
-    const headingDelta = Math.abs(normalizeAngle(stagingPose.heading - pose.heading))
+    return estimateLaneHeuristic(pose, stagingPose, stagingPose.heading)
+}
+
+function estimateLaneHeuristic(pose: BoatPose, goalPose: BoatPose, laneHeading: number): number {
+    const { along, lateral } = getLaneMetrics(pose, goalPose, laneHeading)
+    const headingDelta = Math.abs(normalizeAngle(laneHeading - pose.heading))
     const overshootPenalty =
         along >= 0 ? 0 : Math.abs(along) * 4 + STRAIGHT_LANE_OVERSHOOT_ALLOWANCE * 8
 
@@ -969,19 +1012,20 @@ function getAveragePose(poses: BoatPose[]): BoatPose {
     }
 }
 
-function allowsStraightLanePose(pose: BoatPose, stagingPose: BoatPose): boolean {
-    const { along } = getStraightLaneMetrics(pose, stagingPose)
+function allowsLanePose(pose: BoatPose, goalPose: BoatPose, laneHeading: number): boolean {
+    const { along } = getLaneMetrics(pose, goalPose, laneHeading)
     return along >= -STRAIGHT_LANE_OVERSHOOT_ALLOWANCE
 }
 
-function getStraightLaneMetrics(
+function getLaneMetrics(
     pose: BoatPose,
-    stagingPose: BoatPose
+    goalPose: BoatPose,
+    laneHeading: number
 ): { along: number; lateral: number } {
-    const dx = stagingPose.x - pose.x
-    const dy = stagingPose.y - pose.y
-    const axisX = Math.cos(stagingPose.heading)
-    const axisY = Math.sin(stagingPose.heading)
+    const dx = goalPose.x - pose.x
+    const dy = goalPose.y - pose.y
+    const axisX = Math.cos(laneHeading)
+    const axisY = Math.sin(laneHeading)
     const perpX = -axisY
     const perpY = axisX
 
@@ -989,17 +1033,6 @@ function getStraightLaneMetrics(
         along: dx * axisX + dy * axisY,
         lateral: Math.abs(dx * perpX + dy * perpY)
     }
-}
-
-function isReasonableProgress(
-    startPose: BoatPose,
-    endPose: BoatPose,
-    dockCandidate: DockManeuverCandidate
-): boolean {
-    const startDistance = dockCandidate.estimateFrom(startPose)
-    const endDistance = dockCandidate.estimateFrom(endPose)
-
-    return endDistance <= startDistance + DETOUR_PROGRESS_ALLOWANCE
 }
 
 function getSegmentTraversalCost(

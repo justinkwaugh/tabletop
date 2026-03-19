@@ -13,7 +13,7 @@
     import { getMotionPathLength, sampleMotionPath } from '$lib/definitions/boatMotion.js'
     import { buildBoatNavigationGeometry } from '$lib/definitions/boatNavigation.js'
     import {
-        buildBestDockTransferPlan,
+        buildDockTransferPlan,
         type BoatRoutePlan
     } from '$lib/definitions/boatPlanner.js'
     import largeConnectorImg from '$lib/images/large-connector.svg'
@@ -42,7 +42,7 @@
 
     let demoAnimationMs = $state(0)
     let selectedStartDockId = $state<string | null>(null)
-    let selectedTargetPlayerId = $state<string | null>(null)
+    let selectedTargetDockId = $state<string | null>(null)
 
     type PlayerAndState = { player: Player; playerState: HydratedContainerPlayerState }
     type RouteProbeState =
@@ -59,13 +59,13 @@
               status: 'failed'
               message: string
               startDockId: string
-              targetPlayerId: string
+              targetDockId: string
           }
         | {
               status: 'success'
               message: string
               startDockId: string
-              targetPlayerId: string
+              targetDockId: string
               movingBoatColor: string
               plan: BoatRoutePlan
           }
@@ -224,20 +224,29 @@
             }
         })
     })
+    const playerBoardDockTargets = $derived.by(() =>
+        boatNavigationGeometry.playerBoardDockSlots.map((slot) => ({
+            dockId: slot.id,
+            x: slot.dockedPose.x - DEFAULT_BOAT_RENDER_WIDTH / 2,
+            y: slot.dockedPose.y - DEFAULT_BOAT_RENDER_HEIGHT / 2,
+            width: DEFAULT_BOAT_RENDER_WIDTH,
+            height: DEFAULT_BOAT_RENDER_HEIGHT
+        }))
+    )
 
     const routeProbe = $derived.by<RouteProbeState>(() => {
         if (!selectedStartDockId) {
             return {
                 status: 'idle',
-                message: 'Select a harbor boat, then click a player board.'
+                message: 'Select a harbor boat, then click a player board dock.'
             }
         }
 
-        if (!selectedTargetPlayerId) {
+        if (!selectedTargetDockId) {
             return {
                 status: 'awaiting-target',
                 startDockId: selectedStartDockId,
-                message: 'Select a player board to test the route.'
+                message: 'Select a specific player board dock to test the route.'
             }
         }
 
@@ -252,50 +261,47 @@
         if (!startDock || !movingBoat) {
             return {
                 status: 'idle',
-                message: 'Select a harbor boat, then click a player board.'
+                message: 'Select a harbor boat, then click a player board dock.'
             }
         }
 
         const occupiedBoatPoses = harborDockSlots
             .filter((slot) => slot.id !== startDock.id)
             .map((slot) => slot.dockedPose)
-        const candidateDocks = boatNavigationGeometry.playerBoardDockSlots
-            .filter((slot) => slot.id.startsWith(`${selectedTargetPlayerId}-dock-`))
-            .sort(
-                (a, b) =>
-                    Math.hypot(
-                        a.stagingPose.x - startDock.stagingPose.x,
-                        a.stagingPose.y - startDock.stagingPose.y
-                    ) -
-                    Math.hypot(
-                        b.stagingPose.x - startDock.stagingPose.x,
-                        b.stagingPose.y - startDock.stagingPose.y
-                    )
-            )
+        const targetDock = boatNavigationGeometry.playerBoardDockSlots.find(
+            (slot) => slot.id === selectedTargetDockId
+        )
+        if (!targetDock) {
+            return {
+                status: 'awaiting-target',
+                startDockId: selectedStartDockId,
+                message: 'Select a specific player board dock to test the route.'
+            }
+        }
         const startedAt = performance.now()
-        const bestPlan = buildBestDockTransferPlan(
+        const exactPlan = buildDockTransferPlan(
             startDock,
-            candidateDocks,
+            targetDock,
             boatNavigationGeometry,
             occupiedBoatPoses
         )
         const elapsedMs = Math.round(performance.now() - startedAt)
-        if (bestPlan) {
+        if (exactPlan) {
             return {
                 status: 'success',
                 startDockId: startDock.id,
-                targetPlayerId: selectedTargetPlayerId,
+                targetDockId: selectedTargetDockId,
                 movingBoatColor: movingBoat.color,
-                plan: bestPlan.plan,
-                message: `Route found from ${startDock.id} to ${selectedTargetPlayerId} via ${bestPlan.endDock.id} in ${elapsedMs}ms after evaluating ${bestPlan.attempts} candidate dock pose${bestPlan.attempts === 1 ? '' : 's'}.`
+                plan: exactPlan,
+                message: `Route found from ${startDock.id} to ${selectedTargetDockId} in ${elapsedMs}ms.`
             }
         }
 
         return {
             status: 'failed',
             startDockId: startDock.id,
-            targetPlayerId: selectedTargetPlayerId,
-            message: `No route found from ${startDock.id} to ${selectedTargetPlayerId} after evaluating candidate dock poses in ${elapsedMs}ms.`
+            targetDockId: selectedTargetDockId,
+            message: `No route found from ${startDock.id} to ${selectedTargetDockId} in ${elapsedMs}ms.`
         }
     })
     const routeProbeLength = $derived.by(() =>
@@ -320,16 +326,16 @@
 
     function handleHarborBoatClick(dockId: string) {
         selectedStartDockId = dockId
-        selectedTargetPlayerId = null
+        selectedTargetDockId = null
         demoAnimationMs = 0
     }
 
-    function handlePlayerBoardClick(playerId: string) {
+    function handlePlayerBoardDockClick(dockId: string) {
         if (!selectedStartDockId) {
             return
         }
 
-        selectedTargetPlayerId = playerId
+        selectedTargetDockId = dockId
         demoAnimationMs = 0
     }
 
@@ -450,25 +456,31 @@
                         width={seat.width}
                         height={seat.height}
                     />
-                    <rect
-                        x={seat.x}
-                        y={seat.y}
-                        width={seat.width}
-                        height={seat.height}
-                        fill="transparent"
-                        class="cursor-pointer"
-                        role="button"
-                        tabindex="0"
-                        aria-label={`Select player board ${playerAndState.player.id}`}
-                        onclick={() => handlePlayerBoardClick(playerAndState.player.id)}
-                        onkeydown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                                event.preventDefault()
-                                handlePlayerBoardClick(playerAndState.player.id)
-                            }
-                        }}
-                    ></rect>
                 {/if}
+            {/each}
+            {#each playerBoardDockTargets as dockTarget (dockTarget.dockId)}
+                <rect
+                    x={dockTarget.x}
+                    y={dockTarget.y}
+                    width={dockTarget.width}
+                    height={dockTarget.height}
+                    fill={selectedStartDockId ? 'rgba(255, 255, 255, 0.04)' : 'transparent'}
+                    stroke={selectedStartDockId ? 'rgba(255, 255, 255, 0.32)' : 'transparent'}
+                    stroke-width="2"
+                    rx="10"
+                    class:selected-dock-target={selectedTargetDockId === dockTarget.dockId}
+                    class:target-dock-target={!!selectedStartDockId}
+                    role="button"
+                    tabindex="0"
+                    aria-label={`Select player board dock ${dockTarget.dockId}`}
+                    onclick={() => handlePlayerBoardDockClick(dockTarget.dockId)}
+                    onkeydown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            handlePlayerBoardDockClick(dockTarget.dockId)
+                        }
+                    }}
+                ></rect>
             {/each}
         </svg>
         <div
@@ -510,5 +522,23 @@
         line-height: 1.35;
         box-shadow: 0 10px 28px rgba(7, 12, 34, 0.28);
         pointer-events: none;
+    }
+
+    .target-dock-target {
+        cursor: pointer;
+        transition:
+            fill 120ms ease,
+            stroke 120ms ease,
+            opacity 120ms ease;
+    }
+
+    .target-dock-target:hover {
+        fill: rgba(255, 255, 255, 0.09);
+        stroke: rgba(255, 255, 255, 0.55);
+    }
+
+    .selected-dock-target {
+        fill: rgba(255, 255, 255, 0.12);
+        stroke: #ffffff;
     }
 </style>
