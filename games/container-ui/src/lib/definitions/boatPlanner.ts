@@ -379,6 +379,16 @@ function buildDockTransferPlanWithContext(
         }
     }
 
+    const structuredChannelPlan = buildStructuredChannelDockTransferPlan(
+        startDock,
+        endDock,
+        plannerContext,
+        undockCandidates
+    )
+    if (structuredChannelPlan) {
+        return structuredChannelPlan
+    }
+
     const standardPlan = evaluateExactDockTransferPlan(
         startDock,
         endDock,
@@ -810,6 +820,193 @@ function selectDockToOpenWaterChannelChain(
 
     const startIsHigh = startDock.stagingPose.y < islandCenterY - 40
     return startIsHigh ? [leftMiddle, bottomCenter] : [bottomCenter]
+}
+
+function getPlayerBoardCanonicalSeatId(dock: DockSlot): string | null {
+    if (dock.family !== 'player-board') {
+        return null
+    }
+
+    const match = /^p\d+/.exec(dock.canonicalId)
+    return match?.[0] ?? null
+}
+
+function isUpperP1Dock(dock: DockSlot): boolean {
+    return dock.family === 'player-board' && (dock.canonicalId === 'p1-dock-0' || dock.canonicalId === 'p1-dock-1')
+}
+
+function shouldForceTopStructuredUndock3pNoOffshore(
+    startDock: DockSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): boolean {
+    return (
+        plannerContext.geometry.layoutKey === '3p-no-offshore' &&
+        getPlayerBoardCanonicalSeatId(startDock) === 'p1' &&
+        endDock.family === 'main-island-harbor'
+    )
+}
+
+function shouldForceBottomStructuredUndock3pNoOffshore(
+    startDock: DockSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): boolean {
+    return (
+        plannerContext.geometry.layoutKey === '3p-no-offshore' &&
+        getPlayerBoardCanonicalSeatId(startDock) === 'p3' &&
+        endDock.family === 'main-island-harbor'
+    )
+}
+
+function buildTopRightTransitChannel(anchorChannel: TransitChannel): TransitChannel {
+    return {
+        id: 'implicit-top-right-lane',
+        x: anchorChannel.x + anchorChannel.width / 2 - 60,
+        y: anchorChannel.y,
+        width: 120,
+        height: anchorChannel.height
+    }
+}
+
+function buildBottomRightTransitChannel(anchorChannel: TransitChannel): TransitChannel {
+    return {
+        id: 'implicit-bottom-right-lane',
+        x: anchorChannel.x + anchorChannel.width / 2 - 60,
+        y: anchorChannel.y,
+        width: 120,
+        height: anchorChannel.height
+    }
+}
+
+function buildRightMainHarborApproachChannel(
+    anchorChannel: TransitChannel,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): TransitChannel {
+    return buildImplicitRightCorridor(
+        {
+            x: anchorChannel.x + anchorChannel.width / 2 - 40,
+            y: anchorChannel.y,
+            heading: 0
+        },
+        endDock.stagingPose,
+        plannerContext,
+        'implicit-right-main-harbor-approach'
+    )
+}
+
+function selectStructuredDockChannelChain3pNoOffshore(
+    startDock: DockSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): TransitChannel[] {
+    if (plannerContext.geometry.layoutKey !== '3p-no-offshore') {
+        return []
+    }
+
+    const transitChannelsById = new Map(
+        plannerContext.geometry.transitChannels.map((channel) => [channel.id, channel])
+    )
+    const leftMiddle = transitChannelsById.get('channel-left-middle')
+    const topCenter = transitChannelsById.get('channel-top-center')
+    const bottomCenter = transitChannelsById.get('channel-bottom-center')
+    const mainIslandObstacle = plannerContext.obstacles.find((obstacle) => obstacle.id === 'main-island')
+    if (!leftMiddle || !topCenter || !bottomCenter || !mainIslandObstacle) {
+        return []
+    }
+
+    const islandCenterY = (mainIslandObstacle.bounds.minY + mainIslandObstacle.bounds.maxY) / 2
+    const startPlayerSeat = getPlayerBoardCanonicalSeatId(startDock)
+    const endPlayerSeat = getPlayerBoardCanonicalSeatId(endDock)
+    const startIsUpperHarbor =
+        startDock.family === 'main-island-harbor' && startDock.stagingPose.y < islandCenterY
+
+    if (startPlayerSeat === 'p1' && endDock.family === 'main-island-harbor') {
+        const topRight = buildTopRightTransitChannel(topCenter)
+        return [topRight, buildRightMainHarborApproachChannel(topRight, endDock, plannerContext)]
+    }
+
+    if (startPlayerSeat === 'p3' && endDock.family === 'main-island-harbor') {
+        const bottomRight = buildBottomRightTransitChannel(bottomCenter)
+        return [bottomRight, buildRightMainHarborApproachChannel(bottomRight, endDock, plannerContext)]
+    }
+
+    if (startDock.family === 'main-island-harbor' && endPlayerSeat === 'p1') {
+        return startIsUpperHarbor ? [topCenter, leftMiddle] : [bottomCenter, leftMiddle]
+    }
+
+    if (startPlayerSeat === 'p2' && endPlayerSeat === 'p1') {
+        return [topCenter, leftMiddle]
+    }
+
+    return []
+}
+
+function buildStructuredChannelDockTransferPlan(
+    startDock: DockSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext,
+    undockCandidates: UndockManeuverCandidate[]
+): BoatRoutePlan | null {
+    const channels = selectStructuredDockChannelChain3pNoOffshore(
+        startDock,
+        endDock,
+        plannerContext
+    )
+    if (channels.length === 0) {
+        return null
+    }
+
+    const initialChannelTarget: BoatPose = {
+        x: channels[0]!.x,
+        y: channels[0]!.y,
+        heading: 0
+    }
+    let structuredUndockCandidates = buildUndockCandidates(startDock, initialChannelTarget)
+    if (shouldForceTopStructuredUndock3pNoOffshore(startDock, endDock, plannerContext)) {
+        const upwardCandidates = structuredUndockCandidates.filter(
+            (candidate) => Math.sin(candidate.transitPose.heading) < -0.5
+        )
+        if (upwardCandidates.length > 0) {
+            structuredUndockCandidates = upwardCandidates
+        }
+    }
+    if (shouldForceBottomStructuredUndock3pNoOffshore(startDock, endDock, plannerContext)) {
+        const downwardCandidates = structuredUndockCandidates.filter(
+            (candidate) => Math.sin(candidate.transitPose.heading) > 0.5
+        )
+        if (downwardCandidates.length > 0) {
+            structuredUndockCandidates = downwardCandidates
+        }
+    }
+    let bestPlan = buildForcedChannelDockTransferPlan(
+        startDock,
+        endDock,
+        plannerContext,
+        structuredUndockCandidates,
+        channels
+    )
+
+    if (startDock.family === 'main-island-harbor') {
+        const harborExitPlan = buildForcedChannelDockTransferPlan(
+            startDock,
+            endDock,
+            plannerContext,
+            buildHarborExitUndockCandidates(startDock, initialChannelTarget),
+            channels
+        )
+
+        if (
+            harborExitPlan &&
+            (!bestPlan ||
+                getMotionPathLength(harborExitPlan.segments) < getMotionPathLength(bestPlan.segments))
+        ) {
+            bestPlan = harborExitPlan
+        }
+    }
+
+    return bestPlan
 }
 
 function shouldForceUpperRightHarborPlan(
