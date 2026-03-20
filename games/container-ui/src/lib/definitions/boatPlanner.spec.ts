@@ -63,9 +63,11 @@ const FOUR_PLAYER_NO_OFFSHORE_CROWDED_REGRESSIONS = [
 const FOUR_PLAYER_NO_OFFSHORE_ROUTE_REGRESSIONS = [
     ['p4-dock-0', 'main-island-dock-1'],
     ['p1-dock-0', 'open-water-0'],
+    ['p1-dock-0', 'open-water-1'],
     ['p1-dock-2', 'open-water-0'],
     ['open-water-0', 'main-island-dock-0'],
-    ['main-island-dock-0', 'open-water-0']
+    ['main-island-dock-0', 'open-water-0'],
+    ['p4-dock-3', 'open-water-3']
 ] as const
 
 describe('buildDockTransferPlan', () => {

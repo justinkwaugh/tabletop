@@ -563,13 +563,22 @@ function evaluateDockToOpenWaterPlan(
     plannerContext: PlannerContext,
     undockCandidates: UndockManeuverCandidate[]
 ): BoatRoutePlan | null {
-    const explicitFourPlayerTopPlan = buildFourPlayerNoOffshoreP1TopOpenWaterPlan(
+    const explicitFourPlayerTopPlan = buildFourPlayerNoOffshoreTopOpenWaterPlan(
         startDock,
         endSlot,
         plannerContext
     )
     if (explicitFourPlayerTopPlan) {
         return explicitFourPlayerTopPlan
+    }
+
+    const explicitFourPlayerBottomLeftPlan = buildFourPlayerNoOffshoreP3BottomOpenWaterPlan(
+        startDock,
+        endSlot,
+        plannerContext
+    )
+    if (explicitFourPlayerBottomLeftPlan) {
+        return explicitFourPlayerBottomLeftPlan
     }
 
     const explicitFourPlayerPlan = buildFourPlayerNoOffshoreP4BottomOpenWaterPlan(
@@ -664,14 +673,15 @@ function evaluateDockToOpenWaterPlan(
     return bestPlan
 }
 
-function buildFourPlayerNoOffshoreP1TopOpenWaterPlan(
+function buildFourPlayerNoOffshoreTopOpenWaterPlan(
     startDock: DockSlot,
     endSlot: OpenWaterSlot,
     plannerContext: PlannerContext
 ): BoatRoutePlan | null {
+    const startSeat = getPlayerBoardCanonicalSeatId(startDock)
     if (
         plannerContext.geometry.layoutKey !== '4p-no-offshore' ||
-        getPlayerBoardCanonicalSeatId(startDock) !== 'p1' ||
+        (startSeat !== 'p1' && startSeat !== 'p2') ||
         endSlot.parkedPose.y >= plannerContext.geometry.boardHeight / 2
     ) {
         return null
@@ -684,6 +694,62 @@ function buildFourPlayerNoOffshoreP1TopOpenWaterPlan(
     let bestPlan: BoatRoutePlan | null = null
 
     for (const undockCandidate of upwardCandidates) {
+        const finalConnection = findOpenWaterConnectionDirect(
+            undockCandidate.transitPose,
+            endSlot,
+            plannerContext
+        )
+        if (!finalConnection) {
+            continue
+        }
+
+        const undockSegments = [
+            createStraightSegment(startDock.dockedPose, startDock.stagingPose, 'reverse'),
+            ...undockCandidate.maneuverSegments
+        ]
+
+        const candidatePlan: BoatRoutePlan = {
+            undockSegments,
+            transitSegments: finalConnection.transitSegments,
+            dockSegments: finalConnection.goalSegments,
+            segments: [
+                ...undockSegments,
+                ...finalConnection.transitSegments,
+                ...finalConnection.goalSegments
+            ]
+        }
+
+        if (
+            !bestPlan ||
+            getMotionPathLength(candidatePlan.segments) < getMotionPathLength(bestPlan.segments)
+        ) {
+            bestPlan = candidatePlan
+        }
+    }
+
+    return bestPlan
+}
+
+function buildFourPlayerNoOffshoreP3BottomOpenWaterPlan(
+    startDock: DockSlot,
+    endSlot: OpenWaterSlot,
+    plannerContext: PlannerContext
+): BoatRoutePlan | null {
+    if (
+        plannerContext.geometry.layoutKey !== '4p-no-offshore' ||
+        getPlayerBoardCanonicalSeatId(startDock) !== 'p3' ||
+        endSlot.parkedPose.y <= plannerContext.geometry.boardHeight / 2
+    ) {
+        return null
+    }
+
+    const downwardCandidates = buildUndockCandidates(startDock, endSlot.parkedPose).filter(
+        (candidate) => Math.sin(candidate.transitPose.heading) > 0.35
+    )
+
+    let bestPlan: BoatRoutePlan | null = null
+
+    for (const undockCandidate of downwardCandidates) {
         const finalConnection = findOpenWaterConnectionDirect(
             undockCandidate.transitPose,
             endSlot,
@@ -3308,6 +3374,17 @@ function buildFlexibleOpenWaterFinishSegments(
         )
         if (connector) {
             return [...connector, finalArc]
+        }
+
+        const laneShiftConnector = buildParallelLaneShiftGoalConnectionSegments(
+            currentPose,
+            finalArc.startPose,
+            currentPose.heading,
+            radius,
+            plannerContext
+        )
+        if (laneShiftConnector) {
+            return [...laneShiftConnector, finalArc]
         }
     }
 
