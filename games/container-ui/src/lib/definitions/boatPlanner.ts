@@ -361,20 +361,28 @@ function buildDockTransferPlanWithContext(
         plannerContext,
         undockCandidates
     )
-    if (standardPlan) {
+    if (startDock.family !== 'main-island-harbor') {
         return standardPlan
     }
 
-    if (startDock.family !== 'main-island-harbor') {
-        return null
-    }
-
-    return evaluateExactDockTransferPlan(
+    const harborExitPlan = evaluateExactDockTransferPlan(
         startDock,
         endDock,
         plannerContext,
         buildHarborExitUndockCandidates(startDock, endDock.stagingPose)
     )
+
+    if (!standardPlan) {
+        return harborExitPlan
+    }
+
+    if (!harborExitPlan) {
+        return standardPlan
+    }
+
+    return getMotionPathLength(harborExitPlan.segments) < getMotionPathLength(standardPlan.segments)
+        ? harborExitPlan
+        : standardPlan
 }
 
 function evaluateBestDockTransferPlan(
@@ -609,6 +617,30 @@ function shouldPreferRightPlayerBoardCorridor(
     return startPose.x > islandCenterX + 140 && endDock.stagingPose.x > islandCenterX + 140
 }
 
+function shouldForceBottomCenterForLowLeftDock(
+    startPose: BoatPose,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): boolean {
+    if (endDock.family !== 'player-board') {
+        return false
+    }
+
+    const mainIslandObstacle = plannerContext.obstacles.find((obstacle) => obstacle.id === 'main-island')
+    if (!mainIslandObstacle) {
+        return false
+    }
+
+    const islandCenterX = (mainIslandObstacle.bounds.minX + mainIslandObstacle.bounds.maxX) / 2
+    const islandCenterY = (mainIslandObstacle.bounds.minY + mainIslandObstacle.bounds.maxY) / 2
+
+    return (
+        startPose.x > islandCenterX + 140 &&
+        endDock.stagingPose.x < islandCenterX - 220 &&
+        endDock.stagingPose.y > islandCenterY + 180
+    )
+}
+
 function buildImplicitRightCorridor(
     startPose: BoatPose,
     endPose: BoatPose,
@@ -709,6 +741,23 @@ function findExactDockConnection(
     endDock: DockSlot,
     plannerContext: PlannerContext
 ): { transitSegments: BoatMotionSegment[]; dockSegments: BoatMotionSegment[]; endDock: DockSlot } | null {
+    if (shouldForceBottomCenterForLowLeftDock(startPose, endDock, plannerContext)) {
+        const bottomCenterChannel = plannerContext.geometry.transitChannels.find(
+            (channel) => channel.id === 'channel-bottom-center'
+        )
+        if (bottomCenterChannel) {
+            const bottomForcedConnection = findExactDockConnectionViaChannelChain(
+                startPose,
+                endDock,
+                plannerContext,
+                [bottomCenterChannel]
+            )
+            if (bottomForcedConnection) {
+                return bottomForcedConnection
+            }
+        }
+    }
+
     if (shouldPreferRightPlayerBoardCorridor(startPose, endDock, plannerContext)) {
         const rightPlayerBoardConnection = findExactDockConnectionViaChannelChain(
             startPose,
