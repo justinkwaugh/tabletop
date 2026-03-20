@@ -581,6 +581,15 @@ function evaluateDockToOpenWaterPlan(
         return explicitFourPlayerBottomLeftPlan
     }
 
+    const explicitFourPlayerBottomToTopPlan = buildFourPlayerNoOffshoreBottomToTopOpenWaterPlan(
+        startDock,
+        endSlot,
+        plannerContext
+    )
+    if (explicitFourPlayerBottomToTopPlan) {
+        return explicitFourPlayerBottomToTopPlan
+    }
+
     const explicitFourPlayerPlan = buildFourPlayerNoOffshoreP4BottomOpenWaterPlan(
         startDock,
         endSlot,
@@ -750,6 +759,63 @@ function buildFourPlayerNoOffshoreP3BottomOpenWaterPlan(
     let bestPlan: BoatRoutePlan | null = null
 
     for (const undockCandidate of downwardCandidates) {
+        const finalConnection = findOpenWaterConnectionDirect(
+            undockCandidate.transitPose,
+            endSlot,
+            plannerContext
+        )
+        if (!finalConnection) {
+            continue
+        }
+
+        const undockSegments = [
+            createStraightSegment(startDock.dockedPose, startDock.stagingPose, 'reverse'),
+            ...undockCandidate.maneuverSegments
+        ]
+
+        const candidatePlan: BoatRoutePlan = {
+            undockSegments,
+            transitSegments: finalConnection.transitSegments,
+            dockSegments: finalConnection.goalSegments,
+            segments: [
+                ...undockSegments,
+                ...finalConnection.transitSegments,
+                ...finalConnection.goalSegments
+            ]
+        }
+
+        if (
+            !bestPlan ||
+            getMotionPathLength(candidatePlan.segments) < getMotionPathLength(bestPlan.segments)
+        ) {
+            bestPlan = candidatePlan
+        }
+    }
+
+    return bestPlan
+}
+
+function buildFourPlayerNoOffshoreBottomToTopOpenWaterPlan(
+    startDock: DockSlot,
+    endSlot: OpenWaterSlot,
+    plannerContext: PlannerContext
+): BoatRoutePlan | null {
+    const startSeat = getPlayerBoardCanonicalSeatId(startDock)
+    if (
+        plannerContext.geometry.layoutKey !== '4p-no-offshore' ||
+        (startSeat !== 'p3' && startSeat !== 'p4') ||
+        endSlot.parkedPose.y >= plannerContext.geometry.boardHeight / 2
+    ) {
+        return null
+    }
+
+    const upwardCandidates = buildUndockCandidates(startDock, endSlot.parkedPose).filter(
+        (candidate) => Math.sin(candidate.transitPose.heading) < -0.35
+    )
+
+    let bestPlan: BoatRoutePlan | null = null
+
+    for (const undockCandidate of upwardCandidates) {
         const finalConnection = findOpenWaterConnectionDirect(
             undockCandidate.transitPose,
             endSlot,
@@ -4071,13 +4137,41 @@ function buildOpenWaterUndockCandidates(
     plannerContext: PlannerContext
 ): UndockManeuverCandidate[] {
     if (!usesLegacyOpenWaterManeuverModel(plannerContext.geometry)) {
-        return [
+        const preferredBearing = Math.atan2(
+            targetPose.y - startSlot.parkedPose.y,
+            targetPose.x - startSlot.parkedPose.x
+        )
+        const candidates: UndockManeuverCandidate[] = [
             {
                 transitPose: startSlot.parkedPose,
                 maneuverSegments: [],
                 score: heuristic(startSlot.parkedPose, targetPose)
             }
         ]
+
+        const desiredDelta = normalizeAngle(preferredBearing - startSlot.parkedPose.heading)
+        if (Math.abs(desiredDelta) > Math.PI / 24 && Math.abs(desiredDelta) <= Math.PI * 0.85) {
+            for (const radiusMultiplier of OPEN_WATER_INITIAL_TURN_RADIUS_MULTIPLIERS) {
+                const maneuverSegment = createForwardArcFromStartPose(
+                    startSlot.parkedPose,
+                    desiredDelta,
+                    OPEN_WATER_TURN_RADIUS * radiusMultiplier
+                )
+                if (!analyzeSegment(maneuverSegment, plannerContext).isCollisionFree) {
+                    continue
+                }
+
+                candidates.push({
+                    transitPose: maneuverSegment.endPose,
+                    maneuverSegments: [maneuverSegment],
+                    score:
+                        heuristic(maneuverSegment.endPose, targetPose) +
+                        maneuverSegment.length * 0.05
+                })
+            }
+        }
+
+        return candidates.sort((a, b) => a.score - b.score)
     }
 
     const preferredBearing = Math.atan2(
