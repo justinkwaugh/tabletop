@@ -3,7 +3,7 @@ import { buildBoardLayout } from '$lib/definitions/boardLayout.js'
 import { buildBoatNavigationGeometry } from '$lib/definitions/boatNavigation.js'
 import { polygonsIntersect } from '$lib/definitions/geometry2d.js'
 import { getBoatFootprintPolygon } from '$lib/definitions/boatNavigation.js'
-import { buildDockTransferPlan } from '$lib/definitions/boatPlanner.js'
+import { buildDockTransferPlan, buildRoutePlan } from '$lib/definitions/boatPlanner.js'
 import { getFilledRouteOccupiedBoatPoses } from '$lib/definitions/boatRouteOccupancy.js'
 
 const THREE_PLAYER_NO_OFFSHORE_PREVIOUS_IMPOSSIBLES = [
@@ -58,6 +58,13 @@ const FOUR_PLAYER_NO_OFFSHORE_CROWDED_REGRESSIONS = [
     ['p2-dock-0', 'main-island-dock-2'],
     ['p3-dock-1', 'main-island-dock-1'],
     ['p4-dock-1', 'main-island-dock-4']
+] as const
+
+const FOUR_PLAYER_NO_OFFSHORE_ROUTE_REGRESSIONS = [
+    ['p4-dock-0', 'main-island-dock-1'],
+    ['p1-dock-0', 'open-water-0'],
+    ['open-water-0', 'main-island-dock-0'],
+    ['main-island-dock-0', 'open-water-0']
 ] as const
 
 describe('buildDockTransferPlan', () => {
@@ -181,4 +188,31 @@ describe('buildDockTransferPlan', () => {
             expect(collisions, `${slotId} staging collisions: ${collisions.join(', ')}`).toEqual([])
         }
     })
+
+    it.each(FOUR_PLAYER_NO_OFFSHORE_ROUTE_REGRESSIONS)(
+        'finds a 4p no-offshore route for %s -> %s with all other endpoints occupied',
+        (startId, endId) => {
+            const boardLayout = buildBoardLayout(['p1', 'p2', 'p3', 'p4'], { hasOffshore: false })
+            const navigationGeometry = buildBoatNavigationGeometry(boardLayout)
+            const allEndpoints = [
+                ...navigationGeometry.playerBoardDockSlots,
+                ...navigationGeometry.mainIslandDockSlots,
+                ...navigationGeometry.openWaterSlots
+            ]
+            const endpointById = new Map(allEndpoints.map((slot) => [slot.id, slot]))
+            const start = endpointById.get(startId)
+            const end = endpointById.get(endId)
+
+            expect(start).toBeDefined()
+            expect(end).toBeDefined()
+
+            const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(allEndpoints, [
+                startId,
+                endId
+            ])
+            const plan = buildRoutePlan(start!, end!, navigationGeometry, occupiedBoatPoses)
+
+            expect(plan).not.toBeNull()
+        }
+    )
 })

@@ -125,8 +125,22 @@ export function buildOpenWaterSlots(boardLayout: BoardLayout): OpenWaterSlot[] {
             }
 
             return [
-                ...createRowSlots(topRowRect, topRowY, 2, 0),
-                ...createRowSlots(bottomRowRect, bottomRowY, 2, 2)
+                ...createCustomSlots(
+                    topRowRect,
+                    [
+                        { xFraction: 0.28, y: topRowY - 55 },
+                        { xFraction: 0.72, y: topRowY - 55 }
+                    ],
+                    0
+                ),
+                ...createCustomSlots(
+                    bottomRowRect,
+                    [
+                        { xFraction: 0.28, y: bottomRowY + 55 },
+                        { xFraction: 0.72, y: bottomRowY + 55 }
+                    ],
+                    2
+                )
             ]
         case 5:
             if (hasOffshore) {

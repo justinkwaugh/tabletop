@@ -20,5 +20,13 @@ export function buildTransitChannelAnchors(boardLayout: BoardLayout): TransitCha
         ]
     }
 
+    if (playerCount === 4 && !hasOffshore) {
+        return [
+            { id: 'channel-top-center', x: 1000, y: 130, width: 560, height: 120 },
+            { id: 'channel-left-middle', x: 560, y: 640, width: 220, height: 190 },
+            { id: 'channel-bottom-center', x: 1000, y: 1150, width: 560, height: 140 }
+        ]
+    }
+
     return []
 }

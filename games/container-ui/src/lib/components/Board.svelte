@@ -43,6 +43,8 @@
     const PLAYER_BOARD_UNDERLAY_BACK_OFFSET_X = -48
     const ROUTE_STATUS_PANEL_X = 24
     const ROUTE_STATUS_PANEL_Y = 24
+    const OPEN_WATER_CONE_LENGTH = 320
+    const OPEN_WATER_CONE_HALF_ANGLE = Math.PI / 3
     const IDLE_ROUTE_MESSAGE =
         'Select any dock or ghost ship as the start, then any other position as the destination. All remaining positions are occupied.'
     const AWAITING_TARGET_MESSAGE =
@@ -50,6 +52,7 @@
 
     let demoAnimationMs = $state(performance.now())
     let routeAnimationStartMs = $state(performance.now())
+    let pendingStartSlotId = $state<string | null>(null)
     let selectedStartSlotId = $state<string | null>(null)
     let selectedTargetSlotId = $state<string | null>(null)
 
@@ -70,7 +73,7 @@
               startSlotId: string
               targetSlotId: string
           }
-          | {
+        | {
               status: 'success'
               message: string
               startSlotId: string
@@ -228,6 +231,26 @@
             color: routeColorById.get(slot.id) ?? '#84accf'
         }))
     )
+    const openWaterArrivalCones = $derived.by(() =>
+        boatNavigationGeometry.openWaterSlots.map((slot) => {
+            const rearHeading = slot.parkedPose.heading + Math.PI
+            const rearOriginX =
+                slot.parkedPose.x + Math.cos(rearHeading) * (DEFAULT_BOAT_RENDER_WIDTH / 2)
+            const rearOriginY =
+                slot.parkedPose.y + Math.sin(rearHeading) * (DEFAULT_BOAT_RENDER_WIDTH / 2)
+            const leftAngle = rearHeading - OPEN_WATER_CONE_HALF_ANGLE
+            const rightAngle = rearHeading + OPEN_WATER_CONE_HALF_ANGLE
+            const leftX = rearOriginX + Math.cos(leftAngle) * OPEN_WATER_CONE_LENGTH
+            const leftY = rearOriginY + Math.sin(leftAngle) * OPEN_WATER_CONE_LENGTH
+            const rightX = rearOriginX + Math.cos(rightAngle) * OPEN_WATER_CONE_LENGTH
+            const rightY = rearOriginY + Math.sin(rightAngle) * OPEN_WATER_CONE_LENGTH
+
+            return {
+                key: `cone-${slot.id}`,
+                points: `${rearOriginX},${rearOriginY} ${leftX},${leftY} ${rightX},${rightY}`
+            }
+        })
+    )
 
     const routeProbeLength = $derived.by(() =>
         routeProbe.status === 'success' ? getMotionPathLength(routeProbe.plan.segments) : 0
@@ -251,7 +274,8 @@
     })
 
     function handleRouteSlotClick(slotId: string) {
-        if (!selectedStartSlotId || selectedTargetSlotId) {
+        if (!pendingStartSlotId) {
+            pendingStartSlotId = slotId
             selectedStartSlotId = slotId
             selectedTargetSlotId = null
             routeProbe = {
@@ -259,7 +283,8 @@
                 startSlotId: slotId,
                 message: AWAITING_TARGET_MESSAGE
             }
-        } else if (slotId === selectedStartSlotId) {
+        } else if (slotId === pendingStartSlotId) {
+            pendingStartSlotId = null
             selectedStartSlotId = null
             selectedTargetSlotId = null
             routeProbe = {
@@ -267,10 +292,13 @@
                 message: IDLE_ROUTE_MESSAGE
             }
         } else {
-            const startSlot = allRouteSlots.find((slot) => slot.id === selectedStartSlotId)
+            const startSlot = allRouteSlots.find((slot) => slot.id === pendingStartSlotId)
             const targetSlot = allRouteSlots.find((slot) => slot.id === slotId)
 
             if (startSlot?.family === 'open-water' && targetSlot?.family === 'open-water') {
+                pendingStartSlotId = null
+                selectedStartSlotId = startSlot.id
+                selectedTargetSlotId = targetSlot.id
                 routeProbe = {
                     status: 'failed',
                     startSlotId: startSlot.id,
@@ -281,9 +309,10 @@
             }
 
             selectedTargetSlotId = slotId
-            const movingBoatColor = routeColorById.get(selectedStartSlotId)
+            const movingBoatColor = routeColorById.get(pendingStartSlotId)
 
             if (!startSlot || !targetSlot || !movingBoatColor) {
+                pendingStartSlotId = null
                 selectedStartSlotId = null
                 selectedTargetSlotId = null
                 routeProbe = {
@@ -293,45 +322,61 @@
                 return
             }
 
-            const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(allRouteSlots, [
-                startSlot.id,
-                targetSlot.id
-            ])
-            const startedAt = performance.now()
-            const layoutKey = getBoatRouteLayoutKeyForGeometry(boatNavigationGeometry)
-            const routeKey = getBoatRouteKey(startSlot.canonicalId, targetSlot.canonicalId)
-            const precomputedRoutes = layoutKey ? getPrecomputedBoatRoutes(layoutKey) : null
-            const rawPrecomputedRoute = precomputedRoutes?.routes[routeKey] ?? null
-            const precomputedPlan = rawPrecomputedRoute
-                ? deserializeBoatRoutePlan(rawPrecomputedRoute, startSlot, targetSlot)
-                : getPrecomputedBoatRoutePlanForEndpoints(boatNavigationGeometry, startSlot, targetSlot)
-            const exactPlan =
-                precomputedPlan ??
-                buildRoutePlan(
-                    startSlot,
-                    targetSlot,
-                    boatNavigationGeometry,
-                    occupiedBoatPoses
-                )
-            const elapsedMs = Math.round(performance.now() - startedAt)
-            const routeSource = precomputedPlan ? 'precomputed' : 'planned'
+            try {
+                const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(allRouteSlots, [
+                    startSlot.id,
+                    targetSlot.id
+                ])
+                const startedAt = performance.now()
+                const layoutKey = getBoatRouteLayoutKeyForGeometry(boatNavigationGeometry)
+                const routeKey = getBoatRouteKey(startSlot.canonicalId, targetSlot.canonicalId)
+                const precomputedRoutes = layoutKey ? getPrecomputedBoatRoutes(layoutKey) : null
+                const rawPrecomputedRoute = precomputedRoutes?.routes[routeKey] ?? null
+                const precomputedPlan = rawPrecomputedRoute
+                    ? deserializeBoatRoutePlan(rawPrecomputedRoute, startSlot, targetSlot)
+                    : getPrecomputedBoatRoutePlanForEndpoints(
+                          boatNavigationGeometry,
+                          startSlot,
+                          targetSlot
+                      )
+                const exactPlan =
+                    precomputedPlan ??
+                    buildRoutePlan(
+                        startSlot,
+                        targetSlot,
+                        boatNavigationGeometry,
+                        occupiedBoatPoses
+                    )
+                const elapsedMs = Math.round(performance.now() - startedAt)
+                const routeSource = precomputedPlan ? 'precomputed' : 'planned'
 
-            if (exactPlan) {
-                routeProbe = {
-                    status: 'success',
-                    startSlotId: startSlot.id,
-                    targetSlotId: targetSlot.id,
-                    movingBoatColor,
-                    plan: exactPlan,
-                    message: `Route found (${routeSource}, layout ${layoutKey ?? 'unknown'}, key ${routeKey}, ${rawPrecomputedRoute ? 'table-hit' : 'table-miss'}) with all remaining positions occupied from ${startSlot.id} to ${targetSlot.id} in ${elapsedMs}ms.`
+                if (exactPlan) {
+                    pendingStartSlotId = null
+                    routeProbe = {
+                        status: 'success',
+                        startSlotId: startSlot.id,
+                        targetSlotId: targetSlot.id,
+                        movingBoatColor,
+                        plan: exactPlan,
+                        message: `Route found (${routeSource}, layout ${layoutKey ?? 'unknown'}, key ${routeKey}, ${rawPrecomputedRoute ? 'table-hit' : 'table-miss'}) with all remaining positions occupied from ${startSlot.id} to ${targetSlot.id} in ${elapsedMs}ms.`
+                    }
+                    routeAnimationStartMs = performance.now()
+                } else {
+                    pendingStartSlotId = null
+                    routeProbe = {
+                        status: 'failed',
+                        startSlotId: startSlot.id,
+                        targetSlotId: targetSlot.id,
+                        message: `No route found (${routeSource}, layout ${layoutKey ?? 'unknown'}, key ${routeKey}, ${rawPrecomputedRoute ? 'table-hit' : 'table-miss'}) with all remaining positions occupied from ${startSlot.id} to ${targetSlot.id} in ${elapsedMs}ms.`
+                    }
                 }
-                routeAnimationStartMs = performance.now()
-            } else {
+            } catch (error) {
+                pendingStartSlotId = null
                 routeProbe = {
                     status: 'failed',
                     startSlotId: startSlot.id,
                     targetSlotId: targetSlot.id,
-                    message: `No route found (${routeSource}, layout ${layoutKey ?? 'unknown'}, key ${routeKey}, ${rawPrecomputedRoute ? 'table-hit' : 'table-miss'}) with all remaining positions occupied from ${startSlot.id} to ${targetSlot.id} in ${elapsedMs}ms.`
+                    message: `Route build error from ${startSlot.id} to ${targetSlot.id}: ${error instanceof Error ? error.message : String(error)}`
                 }
             }
         }
@@ -431,6 +476,16 @@
                     </text>
                 </g>
             {/each}
+            {#each openWaterArrivalCones as cone (cone.key)}
+                <polygon
+                    points={cone.points}
+                    fill="rgba(155, 229, 121, 0.08)"
+                    stroke="rgba(155, 229, 121, 0.42)"
+                    stroke-width="3"
+                    stroke-dasharray="12 10"
+                    pointer-events="none"
+                ></polygon>
+            {/each}
             {#each openWaterGhostBoats as boat (boat.key)}
                 {#if !routeFilledOccupiedSlotIds.has(boat.slotId)
                     && selectedStartSlotId !== boat.slotId
@@ -470,7 +525,8 @@
                     y={boat.y}
                     width={DEFAULT_BOAT_RENDER_WIDTH}
                     height={DEFAULT_BOAT_RENDER_HEIGHT}
-                    fill="transparent"
+                    fill="rgba(255, 255, 255, 0.001)"
+                    pointer-events="all"
                     class="cursor-pointer"
                     role="button"
                     tabindex="0"
@@ -484,14 +540,6 @@
                     }}
                 ></rect>
             {/each}
-            {#if movingBoat}
-                <Boat
-                    x={movingBoat.x}
-                    y={movingBoat.y}
-                    color={movingBoat.color}
-                    rotation={movingBoat.rotation}
-                />
-            {/if}
             {#each playersAndStates as playerAndState (playerAndState.player.id)}
                 {@const seat = playerBoardSeatById.get(playerAndState.player.id)}
                 {#if seat}
@@ -512,10 +560,13 @@
                     y={routeTarget.y}
                     width={routeTarget.width}
                     height={routeTarget.height}
-                    fill={selectedStartSlotId ? 'rgba(255, 255, 255, 0.04)' : 'transparent'}
+                    fill={selectedStartSlotId
+                        ? 'rgba(255, 255, 255, 0.04)'
+                        : 'rgba(255, 255, 255, 0.001)'}
                     stroke={selectedStartSlotId ? 'rgba(255, 255, 255, 0.32)' : 'transparent'}
                     stroke-width="2"
                     rx="10"
+                    pointer-events="all"
                     class:selected-start-dock={selectedStartSlotId === routeTarget.slotId}
                     class:selected-dock-target={selectedTargetSlotId === routeTarget.slotId}
                     class:target-dock-target={selectedStartSlotId !== routeTarget.slotId}
@@ -531,6 +582,14 @@
                     }}
                 ></rect>
             {/each}
+            {#if movingBoat}
+                <Boat
+                    x={movingBoat.x}
+                    y={movingBoat.y}
+                    color={movingBoat.color}
+                    rotation={movingBoat.rotation}
+                />
+            {/if}
         </svg>
         <div
             class="route-status-panel"
