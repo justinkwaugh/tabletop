@@ -221,6 +221,11 @@ const CHANNEL_CLEARANCE_TARGET = 1
 const CHANNEL_PREFERENCE_WEIGHT = 0.55
 const CHANNEL_PREFERENCE_CURVE_WEIGHT = 0.18
 const CHANNEL_ROUTE_DISTANCE_THRESHOLD = 420
+const SMOOTHING_POSE_EPSILON = 0.75
+const SMOOTHING_ANGLE_EPSILON = 0.08
+const SMOOTHING_RADIUS_EPSILON = 1.5
+const SMOOTHING_CENTER_EPSILON = 1.5
+const SMOOTHING_MIN_SHORTCUT_RADIUS = 48
 const FOUR_PLAYER_MAIN_HARBOR_CHANNEL_OFFSET_X = 150
 const FOUR_PLAYER_MAIN_HARBOR_CHANNEL_OFFSET_Y = 70
 const FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS = 84
@@ -247,22 +252,24 @@ export function buildRoutePlan(
     geometry: BoatNavigationGeometry,
     occupiedBoatPoses: BoatPose[] = []
 ): BoatRoutePlan | null {
+    const plannerContext = createPlannerContext(geometry, occupiedBoatPoses)
     if (process.env.BOAT_PRECOMPUTED_DISABLE !== '1') {
         const precomputedPlan = getPrecomputedBoatRoutePlanForEndpoints(geometry, start, end)
         if (precomputedPlan) {
-            return precomputedPlan
+            return shouldSmoothRoutePlan(start, end)
+                ? smoothRoutePlan(precomputedPlan, plannerContext)
+                : precomputedPlan
         }
     }
 
-    const plannerContext = createPlannerContext(geometry, occupiedBoatPoses)
-
     if (isDockSlot(start) && isDockSlot(end)) {
-        return buildDockTransferPlanWithContext(
+        const plan = buildDockTransferPlanWithContext(
             start,
             end,
             plannerContext,
             buildUndockCandidates(start, end.stagingPose)
         )
+        return plan ? (shouldSmoothRoutePlan(start, end) ? smoothRoutePlan(plan, plannerContext) : plan) : null
     }
 
     if (isDockSlot(start) && isOpenWaterSlot(end)) {
@@ -273,23 +280,25 @@ export function buildRoutePlan(
             buildUndockCandidates(start, end.stagingPose)
         )
         if (standardPlan) {
-            return standardPlan
+            return shouldSmoothRoutePlan(start, end) ? smoothRoutePlan(standardPlan, plannerContext) : standardPlan
         }
 
         if (start.family !== 'main-island-harbor') {
             return null
         }
 
-        return evaluateDockToOpenWaterPlan(
+        const plan = evaluateDockToOpenWaterPlan(
             start,
             end,
             plannerContext,
             buildHarborExitUndockCandidates(start, end.stagingPose)
         )
+        return plan ? (shouldSmoothRoutePlan(start, end) ? smoothRoutePlan(plan, plannerContext) : plan) : null
     }
 
     if (isOpenWaterSlot(start) && isDockSlot(end)) {
-        return buildOpenWaterToDockPlan(start, end, plannerContext)
+        const plan = buildOpenWaterToDockPlan(start, end, plannerContext)
+        return plan ? (shouldSmoothRoutePlan(start, end) ? smoothRoutePlan(plan, plannerContext) : plan) : null
     }
 
     if (isOpenWaterSlot(start) && isOpenWaterSlot(end)) {
@@ -297,6 +306,10 @@ export function buildRoutePlan(
     }
 
     return null
+}
+
+function shouldSmoothRoutePlan(start: RouteEndpoint, end: RouteEndpoint): boolean {
+    return !(isDockSlot(end) && end.family === 'main-island-harbor')
 }
 
 export function buildBestDockTransferPlan(
@@ -2820,6 +2833,298 @@ function getSegmentTraversalCost(
     }
 
     return cost
+}
+
+function smoothRoutePlan(plan: BoatRoutePlan, plannerContext: PlannerContext): BoatRoutePlan {
+    const transitSegments = smoothTransitSegments(plan.transitSegments, plannerContext)
+    return {
+        ...plan,
+        transitSegments,
+        segments: [...plan.undockSegments, ...transitSegments, ...plan.dockSegments]
+    }
+}
+
+function smoothTransitSegments(
+    segments: BoatMotionSegment[],
+    plannerContext: PlannerContext
+): BoatMotionSegment[] {
+    let smoothed = mergeConsecutiveTransitSegments(segments, plannerContext)
+    let changed = true
+
+    while (changed) {
+        changed = false
+
+        for (let windowSize = 4; windowSize >= 2; windowSize -= 1) {
+            let replacedWindow = false
+            for (let index = 0; index <= smoothed.length - windowSize; index += 1) {
+                const window = smoothed.slice(index, index + windowSize)
+                const replacement = buildTransitShortcut(window, plannerContext)
+                if (!replacement) {
+                    continue
+                }
+
+                smoothed = [
+                    ...smoothed.slice(0, index),
+                    ...replacement,
+                    ...smoothed.slice(index + windowSize)
+                ]
+                smoothed = mergeConsecutiveTransitSegments(smoothed, plannerContext)
+                changed = true
+                replacedWindow = true
+                break
+            }
+
+            if (replacedWindow) {
+                break
+            }
+        }
+    }
+
+    return smoothed
+}
+
+function mergeConsecutiveTransitSegments(
+    segments: BoatMotionSegment[],
+    plannerContext: PlannerContext
+): BoatMotionSegment[] {
+    const merged: BoatMotionSegment[] = []
+
+    for (const segment of segments) {
+        const previous = merged.at(-1)
+        if (!previous) {
+            merged.push(segment)
+            continue
+        }
+
+        const combined = tryMergeTransitPair(previous, segment, plannerContext)
+        if (combined) {
+            merged[merged.length - 1] = combined
+        } else {
+            merged.push(segment)
+        }
+    }
+
+    return merged
+}
+
+function tryMergeTransitPair(
+    first: BoatMotionSegment,
+    second: BoatMotionSegment,
+    plannerContext: PlannerContext
+): BoatMotionSegment | null {
+    if (
+        !posesMatch(first.endPose, second.startPose) ||
+        first.direction !== second.direction ||
+        first.kind === 'pivot' ||
+        second.kind === 'pivot'
+    ) {
+        return null
+    }
+
+    if (first.kind === 'straight' && second.kind === 'straight') {
+        if (
+            !anglesNear(first.startPose.heading, second.endPose.heading) ||
+            !isStraightTravelAligned(first.startPose, second.endPose)
+        ) {
+            return null
+        }
+
+        const merged = createStraightSegment(first.startPose, second.endPose, first.direction)
+        return analyzeSegment(merged, plannerContext).isCollisionFree ? merged : null
+    }
+
+    if (first.kind === 'arc' && second.kind === 'arc') {
+        if (
+            first.clockwise !== second.clockwise ||
+            distanceBetween(first.center, second.center) > SMOOTHING_CENTER_EPSILON ||
+            Math.abs(first.radius - second.radius) > SMOOTHING_RADIUS_EPSILON
+        ) {
+            return null
+        }
+
+        const merged = createArcSegment({
+            direction: first.direction,
+            startPose: first.startPose,
+            endPose: second.endPose,
+            center: first.center,
+            radius: (first.radius + second.radius) / 2,
+            startAngle: first.startAngle,
+            endAngle: second.endAngle,
+            clockwise: first.clockwise
+        })
+        return analyzeSegment(merged, plannerContext).isCollisionFree ? merged : null
+    }
+
+    return null
+}
+
+function buildTransitShortcut(
+    window: BoatMotionSegment[],
+    plannerContext: PlannerContext
+): BoatMotionSegment[] | null {
+    if (
+        window.length < 2 ||
+        window.some((segment) => segment.kind === 'pivot') ||
+        window.some((segment) => segment.direction !== window[0]!.direction)
+    ) {
+        return null
+    }
+
+    const originalLength = window.reduce((sum, segment) => sum + segment.length, 0)
+    const startPose = window[0]!.startPose
+    const endPose = window.at(-1)!.endPose
+
+    const straightShortcut = buildStraightTransitShortcut(startPose, endPose, window[0]!.direction, plannerContext)
+    if (straightShortcut && straightShortcut.length < window.length) {
+        const straightLength = straightShortcut.reduce((sum, segment) => sum + segment.length, 0)
+        if (straightLength <= originalLength + 4) {
+            return straightShortcut
+        }
+    }
+
+    if (!hasMonotonicTransitCurvature(window)) {
+        return null
+    }
+
+    const arcShortcut = buildArcTransitShortcut(startPose, endPose, window[0]!.direction, plannerContext)
+    if (arcShortcut && arcShortcut.length < window.length) {
+        const arcLength = arcShortcut.reduce((sum, segment) => sum + segment.length, 0)
+        if (arcLength <= originalLength + 12) {
+            return arcShortcut
+        }
+    }
+
+    return null
+}
+
+function buildStraightTransitShortcut(
+    startPose: BoatPose,
+    endPose: BoatPose,
+    direction: 'forward' | 'reverse',
+    plannerContext: PlannerContext
+): BoatMotionSegment[] | null {
+    if (!anglesNear(startPose.heading, endPose.heading) || !isStraightTravelAligned(startPose, endPose)) {
+        return null
+    }
+
+    const segment = createStraightSegment(startPose, endPose, direction)
+    return analyzeSegment(segment, plannerContext).isCollisionFree ? [segment] : null
+}
+
+function buildArcTransitShortcut(
+    startPose: BoatPose,
+    endPose: BoatPose,
+    direction: 'forward' | 'reverse',
+    plannerContext: PlannerContext
+): BoatMotionSegment[] | null {
+    const arc = createShortcutArc(startPose, endPose, direction)
+    if (!arc) {
+        return null
+    }
+
+    return analyzeSegment(arc, plannerContext).isCollisionFree ? [arc] : null
+}
+
+function createShortcutArc(
+    startPose: BoatPose,
+    endPose: BoatPose,
+    direction: 'forward' | 'reverse'
+): BoatMotionSegment | null {
+    const startHeading = direction === 'forward' ? startPose.heading : normalizeAngle(startPose.heading + Math.PI)
+    const endHeading = direction === 'forward' ? endPose.heading : normalizeAngle(endPose.heading + Math.PI)
+    const delta = normalizeAngle(endHeading - startHeading)
+
+    if (Math.abs(delta) < SMOOTHING_ANGLE_EPSILON) {
+        return null
+    }
+
+    const startNormal = getNormalVector(startHeading, delta > 0)
+    const endNormal = getNormalVector(endHeading, delta > 0)
+    const center = intersectLines(startPose, startNormal, endPose, endNormal)
+    if (!center) {
+        return null
+    }
+
+    const radius = distanceBetween(startPose, center)
+    if (radius < SMOOTHING_MIN_SHORTCUT_RADIUS) {
+        return null
+    }
+
+    const endRadius = distanceBetween(endPose, center)
+    if (Math.abs(radius - endRadius) > SMOOTHING_RADIUS_EPSILON) {
+        return null
+    }
+
+    const startAngle = Math.atan2(startPose.y - center.y, startPose.x - center.x)
+    const endAngle = Math.atan2(endPose.y - center.y, endPose.x - center.x)
+    return createArcSegment({
+        direction,
+        startPose,
+        endPose,
+        center,
+        radius,
+        startAngle,
+        endAngle,
+        clockwise: delta < 0
+    })
+}
+
+function hasMonotonicTransitCurvature(window: BoatMotionSegment[]): boolean {
+    const arcSigns = window
+        .filter((segment): segment is BoatArcSegment => segment.kind === 'arc')
+        .map((segment) => (segment.clockwise ? -1 : 1))
+
+    if (arcSigns.length === 0) {
+        return false
+    }
+
+    const firstSign = arcSigns[0]!
+    return arcSigns.every((sign) => sign === firstSign)
+}
+
+function getNormalVector(heading: number, turnLeft: boolean): { x: number; y: number } {
+    return turnLeft
+        ? { x: -Math.sin(heading), y: Math.cos(heading) }
+        : { x: Math.sin(heading), y: -Math.cos(heading) }
+}
+
+function intersectLines(
+    originA: Point,
+    directionA: Point,
+    originB: Point,
+    directionB: Point
+): Point | null {
+    const determinant = directionA.x * directionB.y - directionA.y * directionB.x
+    if (Math.abs(determinant) < 0.0001) {
+        return null
+    }
+
+    const dx = originB.x - originA.x
+    const dy = originB.y - originA.y
+    const t = (dx * directionB.y - dy * directionB.x) / determinant
+    return {
+        x: originA.x + directionA.x * t,
+        y: originA.y + directionA.y * t
+    }
+}
+
+function posesMatch(a: BoatPose, b: BoatPose): boolean {
+    return distanceBetween(a, b) <= SMOOTHING_POSE_EPSILON && anglesNear(a.heading, b.heading)
+}
+
+function anglesNear(a: number, b: number): boolean {
+    return Math.abs(normalizeAngle(a - b)) <= SMOOTHING_ANGLE_EPSILON
+}
+
+function isStraightTravelAligned(startPose: BoatPose, endPose: BoatPose): boolean {
+    const dx = endPose.x - startPose.x
+    const dy = endPose.y - startPose.y
+    if (Math.hypot(dx, dy) <= SMOOTHING_POSE_EPSILON) {
+        return true
+    }
+
+    const bearing = Math.atan2(dy, dx)
+    return anglesNear(startPose.heading, bearing) && anglesNear(endPose.heading, bearing)
 }
 
 type SegmentAnalysis = {
