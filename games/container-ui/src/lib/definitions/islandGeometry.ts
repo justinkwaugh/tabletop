@@ -24,7 +24,8 @@ export function getMainIslandDockBoatAnchors(
     islandX: number,
     islandY: number,
     islandWidth: number,
-    islandHeight: number
+    islandHeight: number,
+    { includeOverflow = false }: { includeOverflow?: boolean } = {}
 ): IslandDockBoatAnchor[] {
     const tipX =
         islandX + islandWidth * (MAIN_ISLAND_DOCK_BOAT_TIP_SOURCE_X / MAIN_ISLAND_SOURCE_WIDTH)
@@ -34,6 +35,10 @@ export function getMainIslandDockBoatAnchors(
         centerY: islandY + islandHeight * (sourceCenterY / MAIN_ISLAND_SOURCE_HEIGHT),
         rotation: 180
     }))
+
+    if (!includeOverflow) {
+        return dockAnchors
+    }
 
     return [
         ...dockAnchors,

@@ -1,25 +1,25 @@
-import type { DockSlot, BoatPose } from '$lib/definitions/boatNavigation.js'
+import type { BoatPose, RouteEndpoint } from '$lib/definitions/boatNavigation.js'
 
 export function getFilledRouteOccupiedDockIds(
-    dockSlots: DockSlot[],
-    excludeDockIds: string[] = []
+    routeSlots: RouteEndpoint[],
+    excludeSlotIds: string[] = []
 ): Set<string> {
-    const excluded = new Set(excludeDockIds)
+    const excluded = new Set(excludeSlotIds)
 
     return new Set(
-        dockSlots
+        routeSlots
             .filter((slot) => !excluded.has(slot.id))
             .map((slot) => slot.id)
     )
 }
 
 export function getFilledRouteOccupiedBoatPoses(
-    dockSlots: DockSlot[],
-    excludeDockIds: string[] = []
+    routeSlots: RouteEndpoint[],
+    excludeSlotIds: string[] = []
 ): BoatPose[] {
-    const occupiedDockIds = getFilledRouteOccupiedDockIds(dockSlots, excludeDockIds)
+    const occupiedSlotIds = getFilledRouteOccupiedDockIds(routeSlots, excludeSlotIds)
 
-    return dockSlots
-        .filter((slot) => occupiedDockIds.has(slot.id))
-        .map((slot) => slot.dockedPose)
+    return routeSlots
+        .filter((slot) => occupiedSlotIds.has(slot.id))
+        .map((slot) => ('dockedPose' in slot ? slot.dockedPose : slot.parkedPose))
 }

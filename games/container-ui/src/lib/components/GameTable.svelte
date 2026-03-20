@@ -29,6 +29,7 @@
     )
 
     const centerIslandRect = $derived(boardLayout.islandRect)
+    const offshoreBankRect = $derived(boardLayout.offshoreRect)
     const playerBoardFocusTargets = $derived.by(() => {
         const playerById = new Map(gameSession.game.players.map((player) => [player.id, player]))
 
@@ -92,6 +93,19 @@
                         >
                             Island
                         </button>
+                        {#if offshoreBankRect}
+                            <button
+                                class="rounded-md border border-[#252a4a] bg-black/30 px-3 py-1 text-[0.78rem] uppercase tracking-[0.08em] text-[#d7def7]"
+                                onclick={() =>
+                                    scalingWrapper?.focusRect(offshoreBankRect, {
+                                        padding: 24,
+                                        maxScale: 1,
+                                        animate: true
+                                    })}
+                            >
+                                Bank
+                            </button>
+                        {/if}
                         {#each playerBoardFocusTargets as target (target.playerId)}
                             <button
                                 class="h-9 w-9 rounded-md border border-[#252a4a]"

@@ -1,5 +1,12 @@
 import type { Point } from '@tabletop/common'
-import type { BoatNavigationGeometry, BoatPose, DockSlot } from '$lib/definitions/boatNavigation.js'
+import type {
+    BoatNavigationGeometry,
+    BoatPose,
+    DockSlot,
+    OpenWaterSlot,
+    RouteEndpoint,
+    TransitChannel
+} from '$lib/definitions/boatNavigation.js'
 import {
     getBoatFootprintPolygon,
     getMovingBoatFootprintPolygon
@@ -86,6 +93,7 @@ type PlannerContext = {
     obstacles: PlannerObstacle[]
     occupiedBoatPolygons: Point[][]
     occupiedBoatBounds: PolygonBounds[]
+    preferredTransitChannel?: TransitChannel
 }
 
 type SearchBucketConfig = {
@@ -199,12 +207,20 @@ const STRAIGHT_LANE_OVERSHOOT_ALLOWANCE = 36
 const ARC_SEGMENT_PENALTY = 28
 const PIVOT_SEGMENT_PENALTY = 18
 const OBSTACLE_CLEARANCE_TARGET = 120
-const OBSTACLE_PROXIMITY_WEIGHT = 0.32
+const OBSTACLE_PROXIMITY_WEIGHT = 0.22
+const OBSTACLE_PROXIMITY_CURVE_WEIGHT = 0.04
 const DETOUR_PROGRESS_ALLOWANCE = TURN_RADIUS * 2.5
 const HARBOR_K_TURN_SETUP_DISTANCE = 220
 const HARBOR_K_TURN_LATERAL_OFFSET = 108
 const HARBOR_K_TURN_REENTRY_DISTANCE = 132
 const HARBOR_K_TURN_PIVOT_SCALE = 42
+const OPEN_WATER_STRAIGHT_APPROACH_DISTANCES = [72, 120, 180]
+const OPEN_WATER_TURN_RADIUS = 118
+const CHANNEL_ENDPOINT_MIN_DISTANCE = 220
+const CHANNEL_CLEARANCE_TARGET = 1
+const CHANNEL_PREFERENCE_WEIGHT = 0.55
+const CHANNEL_PREFERENCE_CURVE_WEIGHT = 0.18
+const CHANNEL_ROUTE_DISTANCE_THRESHOLD = 420
 const FOUR_PLAYER_MAIN_HARBOR_CHANNEL_OFFSET_X = 150
 const FOUR_PLAYER_MAIN_HARBOR_CHANNEL_OFFSET_Y = 70
 const FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS = 84
@@ -243,6 +259,57 @@ export function buildDockTransferPlan(
         plannerContext,
         buildUndockCandidates(startDock, endDock.stagingPose)
     )
+}
+
+export function buildRoutePlan(
+    start: RouteEndpoint,
+    end: RouteEndpoint,
+    geometry: BoatNavigationGeometry,
+    occupiedBoatPoses: BoatPose[] = []
+): BoatRoutePlan | null {
+    const plannerContext = createPlannerContext(geometry, occupiedBoatPoses)
+
+    if (isDockSlot(start) && isDockSlot(end)) {
+        return buildDockTransferPlanWithContext(
+            start,
+            end,
+            plannerContext,
+            buildUndockCandidates(start, end.stagingPose)
+        )
+    }
+
+    if (isDockSlot(start) && isOpenWaterSlot(end)) {
+        const standardPlan = evaluateDockToOpenWaterPlan(
+            start,
+            end,
+            plannerContext,
+            buildUndockCandidates(start, end.stagingPose)
+        )
+        if (standardPlan) {
+            return standardPlan
+        }
+
+        if (start.family !== 'main-island-harbor') {
+            return null
+        }
+
+        return evaluateDockToOpenWaterPlan(
+            start,
+            end,
+            plannerContext,
+            buildHarborExitUndockCandidates(start, end.stagingPose)
+        )
+    }
+
+    if (isOpenWaterSlot(start) && isDockSlot(end)) {
+        return buildOpenWaterToDockPlan(start, end, plannerContext)
+    }
+
+    if (isOpenWaterSlot(start) && isOpenWaterSlot(end)) {
+        return buildOpenWaterToOpenWaterPlan(start, end, plannerContext)
+    }
+
+    return null
 }
 
 export function buildBestDockTransferPlan(
@@ -394,7 +461,114 @@ function evaluateExactDockTransferPlan(
     return bestPlan
 }
 
+function evaluateDockToOpenWaterPlan(
+    startDock: DockSlot,
+    endSlot: OpenWaterSlot,
+    plannerContext: PlannerContext,
+    undockCandidates: UndockManeuverCandidate[]
+): BoatRoutePlan | null {
+    let bestPlan: BoatRoutePlan | null = null
+
+    for (const undockCandidate of undockCandidates) {
+        const poseConnection = findOpenWaterConnection(
+            undockCandidate.transitPose,
+            endSlot,
+            plannerContext
+        )
+        if (!poseConnection) continue
+
+        const undockSegments = [
+            createStraightSegment(startDock.dockedPose, startDock.stagingPose, 'reverse'),
+            ...undockCandidate.maneuverSegments
+        ]
+        const parkSegments = [
+            ...poseConnection.goalSegments,
+            createStraightSegment(endSlot.stagingPose, endSlot.parkedPose, 'forward')
+        ]
+
+        const candidatePlan: BoatRoutePlan = {
+            undockSegments,
+            transitSegments: poseConnection.transitSegments,
+            dockSegments: parkSegments,
+            segments: [...undockSegments, ...poseConnection.transitSegments, ...parkSegments]
+        }
+
+        if (
+            !bestPlan ||
+            getMotionPathLength(candidatePlan.segments) < getMotionPathLength(bestPlan.segments)
+        ) {
+            bestPlan = candidatePlan
+        }
+    }
+
+    return bestPlan
+}
+
+function buildOpenWaterToDockPlan(
+    startSlot: OpenWaterSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): BoatRoutePlan | null {
+    const dockConnection = findExactDockConnection(startSlot.stagingPose, endDock, plannerContext)
+    if (!dockConnection) {
+        return null
+    }
+
+    const undockSegments = [
+        createStraightSegment(startSlot.parkedPose, startSlot.stagingPose, 'reverse')
+    ]
+    const dockSegments = [
+        ...dockConnection.dockSegments,
+        createStraightSegment(endDock.stagingPose, endDock.dockedPose, 'forward')
+    ]
+
+    return {
+        undockSegments,
+        transitSegments: dockConnection.transitSegments,
+        dockSegments,
+        segments: [...undockSegments, ...dockConnection.transitSegments, ...dockSegments]
+    }
+}
+
+function buildOpenWaterToOpenWaterPlan(
+    startSlot: OpenWaterSlot,
+    endSlot: OpenWaterSlot,
+    plannerContext: PlannerContext
+): BoatRoutePlan | null {
+    const poseConnection = findOpenWaterConnection(
+        startSlot.stagingPose,
+        endSlot,
+        plannerContext
+    )
+    if (!poseConnection) {
+        return null
+    }
+
+    const undockSegments = [
+        createStraightSegment(startSlot.parkedPose, startSlot.stagingPose, 'reverse')
+    ]
+    const dockSegments = [
+        ...poseConnection.goalSegments,
+        createStraightSegment(endSlot.stagingPose, endSlot.parkedPose, 'forward')
+    ]
+
+    return {
+        undockSegments,
+        transitSegments: poseConnection.transitSegments,
+        dockSegments,
+        segments: [...undockSegments, ...poseConnection.transitSegments, ...dockSegments]
+    }
+}
+
 function findBestDockConnectionForGoals(
+    startPose: BoatPose,
+    endDocks: DockSlot[],
+    plannerContext: PlannerContext
+): { transitSegments: BoatMotionSegment[]; dockSegments: BoatMotionSegment[]; endDock: DockSlot } | null {
+    return findBestDockConnectionForGoalsDirect(startPose, endDocks, plannerContext)
+}
+
+function findBestDockConnectionForGoalsDirect(
     startPose: BoatPose,
     endDocks: DockSlot[],
     plannerContext: PlannerContext
@@ -431,6 +605,36 @@ function findExactDockConnection(
     endDock: DockSlot,
     plannerContext: PlannerContext
 ): { transitSegments: BoatMotionSegment[]; dockSegments: BoatMotionSegment[]; endDock: DockSlot } | null {
+    const directConnection = findExactDockConnectionDirect(startPose, endDock, plannerContext)
+    if (!directConnection) {
+        return null
+    }
+
+    const preferredChannelChain = selectPreferredTransitChannelChain(
+        directConnection.transitSegments,
+        startPose,
+        endDock.stagingPose,
+        plannerContext
+    )
+    if (preferredChannelChain.length === 0) {
+        return directConnection
+    }
+
+    const chainedConnection = findExactDockConnectionViaChannelChain(
+        startPose,
+        endDock,
+        plannerContext,
+        preferredChannelChain
+    )
+
+    return chainedConnection ?? directConnection
+}
+
+function findExactDockConnectionDirect(
+    startPose: BoatPose,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): { transitSegments: BoatMotionSegment[]; dockSegments: BoatMotionSegment[]; endDock: DockSlot } | null {
     const standardGoals = buildDockCandidates(endDock, startPose).map((candidate) => ({
         endDock,
         candidate
@@ -463,6 +667,447 @@ function findExactDockConnection(
         enforceReasonableProgress: false,
         searchBuckets: EXACT_DOCK_SEARCH_BUCKETS
     })
+}
+
+function findPoseConnection(
+    startPose: BoatPose,
+    endPose: BoatPose,
+    plannerContext: PlannerContext
+): { transitSegments: BoatMotionSegment[] } | null {
+    return findPoseConnectionDirect(startPose, endPose, plannerContext)
+}
+
+function findPoseConnectionDirect(
+    startPose: BoatPose,
+    endPose: BoatPose,
+    plannerContext: PlannerContext
+): { transitSegments: BoatMotionSegment[] } | null {
+    const poseGoal = buildPoseGoalCandidate(endPose)
+    const connection =
+        runTransitSearch(startPose, poseGoal, plannerContext, MAX_SEARCH_ITERATIONS) ??
+        runTransitSearch(
+            startPose,
+            poseGoal,
+            plannerContext,
+            MAX_SEARCH_ITERATIONS * SEARCH_ITERATION_RETRY_MULTIPLIER
+        )
+
+    return connection ? { transitSegments: connection.transitSegments } : null
+}
+
+function findOpenWaterConnection(
+    startPose: BoatPose,
+    endSlot: OpenWaterSlot,
+    plannerContext: PlannerContext
+): { transitSegments: BoatMotionSegment[]; goalSegments: BoatMotionSegment[] } | null {
+    const directConnection = findOpenWaterConnectionDirect(startPose, endSlot, plannerContext)
+    if (!directConnection) {
+        return null
+    }
+
+    if (!shouldUseTransitChannelsForOpenWaterRoute(startPose, endSlot, plannerContext)) {
+        return directConnection
+    }
+
+    const preferredChannelChain = selectPreferredTransitChannelChain(
+        directConnection.transitSegments,
+        startPose,
+        endSlot.stagingPose,
+        plannerContext
+    )
+    if (preferredChannelChain.length === 0) {
+        return directConnection
+    }
+
+    const chainedConnection = findOpenWaterConnectionViaChannelChain(
+        startPose,
+        endSlot,
+        plannerContext,
+        preferredChannelChain
+    )
+
+    return chainedConnection ?? directConnection
+}
+
+function shouldUseTransitChannelsForOpenWaterRoute(
+    startPose: BoatPose,
+    endSlot: OpenWaterSlot,
+    plannerContext: PlannerContext
+): boolean {
+    const mainIslandObstacle = plannerContext.obstacles.find((obstacle) => obstacle.id === 'main-island')
+    if (!mainIslandObstacle) {
+        return true
+    }
+
+    const islandCenterX = (mainIslandObstacle.bounds.minX + mainIslandObstacle.bounds.maxX) / 2
+
+    const startsOnRightSide = startPose.x > islandCenterX + 140
+    const endsOnRightSide = endSlot.stagingPose.x > islandCenterX + 140
+
+    if (startsOnRightSide && endsOnRightSide) {
+        return false
+    }
+
+    return true
+}
+
+function findOpenWaterConnectionDirect(
+    startPose: BoatPose,
+    endSlot: OpenWaterSlot,
+    plannerContext: PlannerContext
+): { transitSegments: BoatMotionSegment[]; goalSegments: BoatMotionSegment[] } | null {
+    let bestConnection:
+        | {
+              transitSegments: BoatMotionSegment[]
+              goalSegments: BoatMotionSegment[]
+              totalLength: number
+          }
+        | null = null
+
+    for (const goal of buildOpenWaterGoalCandidates(endSlot, startPose)) {
+        const connection =
+            runTransitSearch(startPose, goal, plannerContext, MAX_SEARCH_ITERATIONS) ??
+            runTransitSearch(
+                startPose,
+                goal,
+                plannerContext,
+                MAX_SEARCH_ITERATIONS * SEARCH_ITERATION_RETRY_MULTIPLIER
+            )
+
+        if (!connection) {
+            continue
+        }
+
+        const totalLength = getMotionPathLength([
+            ...connection.transitSegments,
+            ...connection.dockSegments
+        ])
+
+        if (!bestConnection || totalLength < bestConnection.totalLength) {
+            bestConnection = {
+                transitSegments: connection.transitSegments,
+                goalSegments: connection.dockSegments,
+                totalLength
+            }
+        }
+    }
+
+    return bestConnection
+        ? {
+              transitSegments: bestConnection.transitSegments,
+              goalSegments: bestConnection.goalSegments
+          }
+        : null
+}
+
+function findExactDockConnectionViaChannels(
+    startPose: BoatPose,
+    endDock: DockSlot,
+    plannerContext: PlannerContext,
+    referencePose: BoatPose
+): { transitSegments: BoatMotionSegment[]; dockSegments: BoatMotionSegment[]; endDock: DockSlot } | null {
+    let bestConnection:
+        | { transitSegments: BoatMotionSegment[]; dockSegments: BoatMotionSegment[]; endDock: DockSlot }
+        | null = null
+
+    for (const channel of getUsableTransitChannels(
+        startPose,
+        endDock.stagingPose,
+        plannerContext,
+        referencePose
+    )) {
+        const firstLeg = findTransitChannelConnection(startPose, channel, plannerContext)
+        if (!firstLeg) continue
+
+        const secondLeg = findExactDockConnectionDirect(firstLeg.channelPose, endDock, plannerContext)
+        if (!secondLeg) continue
+
+        const candidate = {
+            transitSegments: [...firstLeg.transitSegments, ...secondLeg.transitSegments],
+            dockSegments: secondLeg.dockSegments,
+            endDock: secondLeg.endDock
+        }
+
+        if (
+            !bestConnection ||
+            getMotionPathLength([...candidate.transitSegments, ...candidate.dockSegments]) <
+                getMotionPathLength([...bestConnection.transitSegments, ...bestConnection.dockSegments])
+        ) {
+            bestConnection = candidate
+        }
+    }
+
+    return bestConnection
+}
+
+function findExactDockConnectionViaChannelChain(
+    startPose: BoatPose,
+    endDock: DockSlot,
+    plannerContext: PlannerContext,
+    channels: TransitChannel[]
+): { transitSegments: BoatMotionSegment[]; dockSegments: BoatMotionSegment[]; endDock: DockSlot } | null {
+    let currentPose = startPose
+    const transitSegments: BoatMotionSegment[] = []
+
+    for (const channel of channels) {
+        const leg = findTransitChannelConnection(currentPose, channel, plannerContext)
+        if (!leg) {
+            return null
+        }
+
+        transitSegments.push(...leg.transitSegments)
+        currentPose = leg.channelPose
+    }
+
+    const finalConnection = findExactDockConnectionDirect(currentPose, endDock, plannerContext)
+    if (!finalConnection) {
+        return null
+    }
+
+    return {
+        transitSegments: [...transitSegments, ...finalConnection.transitSegments],
+        dockSegments: finalConnection.dockSegments,
+        endDock: finalConnection.endDock
+    }
+}
+
+function findOpenWaterConnectionViaChannelChain(
+    startPose: BoatPose,
+    endSlot: OpenWaterSlot,
+    plannerContext: PlannerContext,
+    channels: TransitChannel[]
+): { transitSegments: BoatMotionSegment[]; goalSegments: BoatMotionSegment[] } | null {
+    let currentPose = startPose
+    const transitSegments: BoatMotionSegment[] = []
+
+    for (const channel of channels) {
+        const leg = findTransitChannelConnection(currentPose, channel, plannerContext)
+        if (!leg) {
+            return null
+        }
+
+        transitSegments.push(...leg.transitSegments)
+        currentPose = leg.channelPose
+    }
+
+    const finalConnection = findOpenWaterConnectionDirect(currentPose, endSlot, plannerContext)
+    if (!finalConnection) {
+        return null
+    }
+
+    return {
+        transitSegments: [...transitSegments, ...finalConnection.transitSegments],
+        goalSegments: finalConnection.goalSegments
+    }
+}
+
+function getUsableTransitChannels(
+    startPose: BoatPose,
+    endPose: BoatPose,
+    plannerContext: PlannerContext,
+    referencePose?: BoatPose
+): TransitChannel[] {
+    return plannerContext.geometry.transitChannels
+        .filter(
+            (channel) =>
+                distanceBetween(startPose, getTransitChannelCenter(channel)) >= CHANNEL_ENDPOINT_MIN_DISTANCE &&
+                distanceBetween(endPose, getTransitChannelCenter(channel)) >= CHANNEL_ENDPOINT_MIN_DISTANCE
+        )
+        .sort(
+            (a, b) =>
+                (referencePose
+                    ? distanceBetween(referencePose, getTransitChannelCenter(a))
+                    : distanceBetween(startPose, getTransitChannelCenter(a)) +
+                      distanceBetween(endPose, getTransitChannelCenter(a))) -
+                (referencePose
+                    ? distanceBetween(referencePose, getTransitChannelCenter(b))
+                    : distanceBetween(startPose, getTransitChannelCenter(b)) +
+                      distanceBetween(endPose, getTransitChannelCenter(b)))
+        )
+        .slice(0, 1)
+}
+
+function shouldPreferChannelRouting(
+    startPose: BoatPose,
+    endPose: BoatPose,
+    plannerContext: PlannerContext
+): boolean {
+    return (
+        plannerContext.geometry.transitChannels.length > 0 &&
+        distanceBetween(startPose, endPose) >= CHANNEL_ROUTE_DISTANCE_THRESHOLD
+    )
+}
+
+function findTransitChannelConnection(
+    startPose: BoatPose,
+    channel: TransitChannel,
+    plannerContext: PlannerContext
+): { transitSegments: BoatMotionSegment[]; channelPose: BoatPose } | null {
+    const channelGoal = buildTransitChannelGoalCandidate(channel)
+    const connection =
+        runTransitSearch(startPose, channelGoal, plannerContext, MAX_SEARCH_ITERATIONS) ??
+        runTransitSearch(
+            startPose,
+            channelGoal,
+            plannerContext,
+            MAX_SEARCH_ITERATIONS * SEARCH_ITERATION_RETRY_MULTIPLIER
+        )
+
+    return connection
+        ? {
+              transitSegments: connection.transitSegments,
+              channelPose: connection.endPose
+          }
+        : null
+}
+
+function getPathMidPose(segments: BoatMotionSegment[]): BoatPose {
+    const length = getMotionPathLength(segments)
+    if (length <= 0) {
+        const lastSegment = segments.at(-1)
+        return lastSegment ? lastSegment.endPose : { x: 0, y: 0, heading: 0 }
+    }
+
+    return sampleMotionPath(segments, length / 2)
+}
+
+function getTransitChannelCenter(channel: TransitChannel): Point {
+    return {
+        x: channel.x,
+        y: channel.y
+    }
+}
+
+function isPoseWithinTransitChannel(pose: BoatPose, channel: TransitChannel): boolean {
+    return (
+        Math.abs(pose.x - channel.x) <= channel.width / 2 &&
+        Math.abs(pose.y - channel.y) <= channel.height / 2
+    )
+}
+
+function selectPreferredTransitChannelChain(
+    transitSegments: BoatMotionSegment[],
+    startPose: BoatPose,
+    endPose: BoatPose,
+    plannerContext: PlannerContext
+): TransitChannel[] {
+    if (
+        transitSegments.length === 0 ||
+        !shouldPreferChannelRouting(startPose, endPose, plannerContext)
+    ) {
+        return []
+    }
+
+    const transitChannelsById = new Map(
+        plannerContext.geometry.transitChannels.map((channel) => [channel.id, channel])
+    )
+    const leftMiddle = transitChannelsById.get('channel-left-middle')
+    const topCenter = transitChannelsById.get('channel-top-center')
+    const bottomCenter = transitChannelsById.get('channel-bottom-center')
+
+    if (!leftMiddle || !topCenter || !bottomCenter) {
+        return []
+    }
+
+    const directTouchesBottom = pathTouchesTransitChannel(transitSegments, bottomCenter)
+    const directTouchesTop = pathTouchesTransitChannel(transitSegments, topCenter)
+    const directTouchesLeft = pathTouchesTransitChannel(transitSegments, leftMiddle)
+    const mainIslandObstacle = plannerContext.obstacles.find((obstacle) => obstacle.id === 'main-island')
+    if (!mainIslandObstacle) {
+        return []
+    }
+
+    const islandCenterX = (mainIslandObstacle.bounds.minX + mainIslandObstacle.bounds.maxX) / 2
+    const islandCenterY = (mainIslandObstacle.bounds.minY + mainIslandObstacle.bounds.maxY) / 2
+    const isCrossingToRight = endPose.x > islandCenterX + 220
+    const isCrossingToLeft = endPose.x < islandCenterX - 220
+    const isHeadingDown = endPose.y > islandCenterY + 80
+    const isHeadingUp = endPose.y < islandCenterY - 80
+    const startsRight = startPose.x > islandCenterX + 140
+    const startsHigh = startPose.y < islandCenterY - 40
+    const startsLow = startPose.y > islandCenterY + 40
+
+    if (isCrossingToRight && isHeadingDown) {
+        if (startsRight) {
+            if (startsHigh) {
+                return directTouchesTop && directTouchesBottom
+                    ? []
+                    : directTouchesTop
+                        ? [bottomCenter]
+                        : [topCenter, bottomCenter]
+            }
+
+            return directTouchesBottom ? [] : [bottomCenter]
+        }
+
+        if (startsHigh) {
+            return directTouchesLeft && directTouchesBottom
+                ? []
+                : directTouchesLeft
+                    ? [bottomCenter]
+                    : [leftMiddle, bottomCenter]
+        }
+
+        return directTouchesBottom ? [] : [bottomCenter]
+    }
+
+    if (isCrossingToRight && isHeadingUp) {
+        if (startsLow) {
+            return directTouchesLeft && directTouchesTop
+                ? []
+                : directTouchesLeft
+                    ? [topCenter]
+                    : [leftMiddle, topCenter]
+        }
+
+        return directTouchesTop ? [] : [topCenter]
+    }
+
+    if (isCrossingToLeft && isHeadingDown) {
+        if (startsRight) {
+            return directTouchesBottom && directTouchesLeft
+                ? []
+                : directTouchesBottom
+                    ? [leftMiddle]
+                    : [bottomCenter, leftMiddle]
+        }
+
+        return directTouchesBottom ? [] : [bottomCenter]
+    }
+
+    if (isCrossingToLeft && isHeadingUp) {
+        if (startsRight) {
+            return directTouchesTop && directTouchesLeft
+                ? []
+                : directTouchesTop
+                    ? [leftMiddle]
+                    : [topCenter, leftMiddle]
+        }
+
+        return directTouchesTop ? [] : [topCenter]
+    }
+
+    return []
+}
+
+function pathTouchesTransitChannel(
+    segments: BoatMotionSegment[],
+    transitChannel: TransitChannel
+): boolean {
+    const totalLength = getMotionPathLength(segments)
+    if (totalLength <= 0) {
+        return false
+    }
+
+    for (let distance = 0; distance <= totalLength; distance += COLLISION_SAMPLE_STEP * 2) {
+        const pose = sampleMotionPath(segments, distance)
+        if (isPoseWithinTransitChannel(pose, transitChannel)) {
+            return true
+        }
+    }
+
+    const endPose = sampleMotionPath(segments, totalLength)
+    return isPoseWithinTransitChannel(endPose, transitChannel)
 }
 
 function planTransitSegments(
@@ -519,7 +1164,7 @@ function runTransitSearch(
     dockCandidate: DockManeuverCandidate,
     plannerContext: PlannerContext,
     maxIterations: number
-): { transitSegments: BoatMotionSegment[]; dockSegments: BoatMotionSegment[] } | null {
+): { transitSegments: BoatMotionSegment[]; dockSegments: BoatMotionSegment[]; endPose: BoatPose } | null {
     let nextNodeId = 0
     const startNode: SearchNode = {
         id: `node-${nextNodeId++}`,
@@ -547,7 +1192,8 @@ function runTransitSearch(
         if (goalConnection) {
             return {
                 transitSegments: reconstructSegments(current, nodesById),
-                dockSegments: goalConnection
+                dockSegments: goalConnection,
+                endPose: current.pose
             }
         }
 
@@ -866,6 +1512,121 @@ function buildStraightInDockCandidates(
             score: alignmentScore + index * 0.01
         }
     })
+}
+
+function buildPoseGoalCandidate(goalPose: BoatPose): DockManeuverCandidate {
+    return {
+        heuristicPose: goalPose,
+        estimateFrom: (pose) => heuristic(pose, goalPose),
+        allowsPose: () => true,
+        completeFrom: (currentPose, plannerContext) =>
+            buildPoseGoalConnectionSegments(currentPose, goalPose, plannerContext),
+        score: 0
+    }
+}
+
+function buildTransitChannelGoalCandidate(channel: TransitChannel): DockManeuverCandidate {
+    const channelPose: BoatPose = {
+        x: channel.x,
+        y: channel.y,
+        heading: 0
+    }
+
+    return {
+        heuristicPose: channelPose,
+        estimateFrom: (pose) => estimateTransitChannelDistance(pose, channel),
+        allowsPose: () => true,
+        completeFrom: (currentPose) =>
+            isPoseWithinTransitChannel(currentPose, channel) ? [] : null,
+        score: 0
+    }
+}
+
+function estimateTransitChannelDistance(pose: BoatPose, channel: TransitChannel): number {
+    const dx = Math.max(0, Math.abs(pose.x - channel.x) - channel.width / 2)
+    const dy = Math.max(0, Math.abs(pose.y - channel.y) - channel.height / 2)
+    return Math.hypot(dx, dy)
+}
+
+function buildOpenWaterGoalCandidates(
+    endSlot: OpenWaterSlot,
+    sourcePose: BoatPose
+): DockManeuverCandidate[] {
+    const preferredBearing = Math.atan2(
+        endSlot.stagingPose.y - sourcePose.y,
+        endSlot.stagingPose.x - sourcePose.x
+    )
+    const perpendicularCandidates = buildPerpendicularCandidates(
+        endSlot.stagingPose.heading,
+        preferredBearing
+    )
+
+    const validCandidates: DockManeuverCandidate[] = OPEN_WATER_STRAIGHT_APPROACH_DISTANCES.map(
+        (approachDistance, index) => {
+            const approachPose = {
+                x: endSlot.stagingPose.x - Math.cos(endSlot.stagingPose.heading) * approachDistance,
+                y: endSlot.stagingPose.y - Math.sin(endSlot.stagingPose.heading) * approachDistance,
+                heading: endSlot.stagingPose.heading
+            }
+
+            return {
+                heuristicPose: approachPose,
+                estimateFrom: (pose) => estimateStraightLaneHeuristic(pose, approachPose),
+                allowsPose: () => true,
+                completeFrom: (currentPose, plannerContext) => {
+                    const connector = buildStraightInGoalConnectionSegments(
+                        currentPose,
+                        approachPose,
+                        plannerContext
+                    )
+                    if (!connector) {
+                        return null
+                    }
+
+                    const finalStraight = createStraightSegment(
+                        approachPose,
+                        endSlot.stagingPose,
+                        'forward'
+                    )
+                    if (!analyzeSegment(finalStraight, plannerContext).isCollisionFree) {
+                        return null
+                    }
+
+                    return [...connector, finalStraight]
+                },
+                score: index * 0.01
+            }
+        }
+    )
+
+    for (const candidateHeading of perpendicularCandidates) {
+        const arcSegment = createArcToEndPose(
+            endSlot.stagingPose,
+            candidateHeading.heading,
+            normalizeAngle(endSlot.stagingPose.heading - candidateHeading.heading),
+            OPEN_WATER_TURN_RADIUS
+        )
+
+        validCandidates.push({
+            heuristicPose: arcSegment.startPose,
+            estimateFrom: (pose) =>
+                estimateLaneHeuristic(pose, arcSegment.startPose, candidateHeading.heading),
+            allowsPose: (pose) =>
+                allowsLanePose(pose, arcSegment.startPose, candidateHeading.heading),
+            completeFrom: (currentPose, plannerContext) => {
+                const connector = buildLaneGoalConnectionSegments(
+                    currentPose,
+                    arcSegment.startPose,
+                    candidateHeading.heading,
+                    plannerContext
+                )
+                return connector ? [...connector, arcSegment] : null
+            },
+            score: 0.2 + candidateHeading.score
+        })
+    }
+
+    return validCandidates.sort((a, b) => a.score - b.score)
 }
 
 function buildHarborKTurnDockCandidates(
@@ -1630,9 +2391,22 @@ function getSegmentTraversalCost(
     }
 
     const nearestClearance = analysis.nearestClearance
+    const nearestChannelDistance = analysis.nearestChannelDistance
 
     if (nearestClearance < OBSTACLE_CLEARANCE_TARGET) {
-        cost += (OBSTACLE_CLEARANCE_TARGET - nearestClearance) * OBSTACLE_PROXIMITY_WEIGHT
+        const clearanceDeficit = OBSTACLE_CLEARANCE_TARGET - nearestClearance
+        cost += clearanceDeficit * OBSTACLE_PROXIMITY_WEIGHT
+        cost +=
+            (clearanceDeficit * clearanceDeficit * OBSTACLE_PROXIMITY_CURVE_WEIGHT) /
+            OBSTACLE_CLEARANCE_TARGET
+    }
+
+    if (nearestChannelDistance > CHANNEL_CLEARANCE_TARGET) {
+        const channelDeficit = nearestChannelDistance - CHANNEL_CLEARANCE_TARGET
+        cost += channelDeficit * CHANNEL_PREFERENCE_WEIGHT
+        cost +=
+            (channelDeficit * channelDeficit * CHANNEL_PREFERENCE_CURVE_WEIGHT) /
+            CHANNEL_CLEARANCE_TARGET
     }
 
     return cost
@@ -1641,6 +2415,7 @@ function getSegmentTraversalCost(
 type SegmentAnalysis = {
     isCollisionFree: boolean
     nearestClearance: number
+    nearestChannelDistance: number
 }
 
 function analyzeSegment(
@@ -1648,6 +2423,7 @@ function analyzeSegment(
     plannerContext: PlannerContext
 ): SegmentAnalysis {
     let nearestClearance = Number.POSITIVE_INFINITY
+    let nearestChannelDistance = Number.POSITIVE_INFINITY
     const clearanceStep = Math.max(COLLISION_SAMPLE_STEP, CLEARANCE_SAMPLE_STEP)
     for (let distance = 0; distance <= segment.length; distance += COLLISION_SAMPLE_STEP) {
         const pose = sampleMotionPath([segment], distance)
@@ -1655,11 +2431,13 @@ function analyzeSegment(
         if (!poseAnalysis.isCollisionFree) {
             return {
                 isCollisionFree: false,
-                nearestClearance: 0
+                nearestClearance: 0,
+                nearestChannelDistance: Number.POSITIVE_INFINITY
             }
         }
         if (distance === 0 || distance >= segment.length || distance % clearanceStep === 0) {
             nearestClearance = Math.min(nearestClearance, poseAnalysis.clearance)
+            nearestChannelDistance = Math.min(nearestChannelDistance, poseAnalysis.channelDistance)
         }
     }
 
@@ -1667,20 +2445,22 @@ function analyzeSegment(
     if (!endPoseAnalysis.isCollisionFree) {
         return {
             isCollisionFree: false,
-            nearestClearance: 0
+            nearestClearance: 0,
+            nearestChannelDistance: Number.POSITIVE_INFINITY
         }
     }
 
     return {
         isCollisionFree: true,
-        nearestClearance: Math.min(nearestClearance, endPoseAnalysis.clearance)
+        nearestClearance: Math.min(nearestClearance, endPoseAnalysis.clearance),
+        nearestChannelDistance: Math.min(nearestChannelDistance, endPoseAnalysis.channelDistance)
     }
 }
 
 function analyzePose(
     pose: BoatPose,
     plannerContext: PlannerContext
-): { isCollisionFree: boolean; clearance: number } {
+): { isCollisionFree: boolean; clearance: number; channelDistance: number } {
     const { geometry, obstacles, occupiedBoatPolygons, occupiedBoatBounds } = plannerContext
     const boatPolygon = getMovingBoatFootprintPolygon(
         pose,
@@ -1697,7 +2477,8 @@ function analyzePose(
     ) {
         return {
             isCollisionFree: false,
-            clearance: 0
+            clearance: 0,
+            channelDistance: Number.POSITIVE_INFINITY
         }
     }
 
@@ -1708,7 +2489,8 @@ function analyzePose(
         if (polygonsIntersect(boatPolygon, obstacle.polygon)) {
             return {
                 isCollisionFree: false,
-                clearance: 0
+                clearance: 0,
+                channelDistance: Number.POSITIVE_INFINITY
             }
         }
     }
@@ -1720,25 +2502,59 @@ function analyzePose(
         if (polygonsIntersect(boatPolygon, occupiedPolygon)) {
             return {
                 isCollisionFree: false,
-                clearance: 0
+                clearance: 0,
+                channelDistance: Number.POSITIVE_INFINITY
             }
         }
     }
 
     let nearest = Number.POSITIVE_INFINITY
+    const forwardX = Math.cos(pose.heading)
+    const forwardY = Math.sin(pose.heading)
+    const rightX = Math.cos(pose.heading + Math.PI / 2)
+    const rightY = Math.sin(pose.heading + Math.PI / 2)
+    const hullProbePoints: Point[] = [
+        pose,
+        {
+            x: pose.x + forwardX * geometry.boatHeight * 0.35,
+            y: pose.y + forwardY * geometry.boatHeight * 0.35
+        },
+        {
+            x: pose.x - forwardX * geometry.boatHeight * 0.35,
+            y: pose.y - forwardY * geometry.boatHeight * 0.35
+        }
+    ]
 
     for (const obstacle of obstacles) {
-        nearest = Math.min(nearest, distanceFromPointToPolygon(pose, obstacle.polygon))
+        for (const probePoint of hullProbePoints) {
+            nearest = Math.min(nearest, distanceFromPointToPolygon(probePoint, obstacle.polygon))
+        }
     }
 
     for (const occupiedPolygon of occupiedBoatPolygons) {
-        nearest = Math.min(nearest, distanceFromPointToPolygon(pose, occupiedPolygon))
+        for (const probePoint of hullProbePoints) {
+            nearest = Math.min(nearest, distanceFromPointToPolygon(probePoint, occupiedPolygon))
+        }
     }
 
     return {
         isCollisionFree: true,
-        clearance: nearest
+        clearance: nearest,
+        channelDistance: getNearestTransitChannelDistance(pose, plannerContext.preferredTransitChannel)
     }
+}
+
+function getNearestTransitChannelDistance(
+    pose: BoatPose,
+    preferredTransitChannel: TransitChannel | undefined
+): number {
+    if (!preferredTransitChannel) {
+        return 0
+    }
+
+    const dx = Math.max(0, Math.abs(pose.x - preferredTransitChannel.x) - preferredTransitChannel.width / 2)
+    const dy = Math.max(0, Math.abs(pose.y - preferredTransitChannel.y) - preferredTransitChannel.height / 2)
+    return Math.hypot(dx, dy)
 }
 
 function createPlannerContext(
@@ -1759,4 +2575,22 @@ function createPlannerContext(
         occupiedBoatPolygons,
         occupiedBoatBounds: occupiedBoatPolygons.map(getPolygonBounds)
     }
+}
+
+function withPreferredTransitChannel(
+    plannerContext: PlannerContext,
+    preferredTransitChannel: TransitChannel
+): PlannerContext {
+    return {
+        ...plannerContext,
+        preferredTransitChannel
+    }
+}
+
+function isDockSlot(endpoint: RouteEndpoint): endpoint is DockSlot {
+    return 'dockedPose' in endpoint
+}
+
+function isOpenWaterSlot(endpoint: RouteEndpoint): endpoint is OpenWaterSlot {
+    return endpoint.family === 'open-water'
 }

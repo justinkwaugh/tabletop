@@ -28,6 +28,32 @@ export function distanceFromPointToPolygon(point: Point, polygon: Point[]): numb
     return minDistance
 }
 
+export function distanceBetweenPolygons(a: Point[], b: Point[]): number {
+    if (polygonsIntersect(a, b)) {
+        return 0
+    }
+
+    let minDistance = Number.POSITIVE_INFINITY
+
+    for (let index = 0; index < a.length; index += 1) {
+        const start = a[index]!
+        const end = a[(index + 1) % a.length]!
+        for (const point of b) {
+            minDistance = Math.min(minDistance, distanceFromPointToSegment(point, start, end))
+        }
+    }
+
+    for (let index = 0; index < b.length; index += 1) {
+        const start = b[index]!
+        const end = b[(index + 1) % b.length]!
+        for (const point of a) {
+            minDistance = Math.min(minDistance, distanceFromPointToSegment(point, start, end))
+        }
+    }
+
+    return minDistance
+}
+
 export function rotatePoint(point: Point, angleRadians: number): Point {
     const cos = Math.cos(angleRadians)
     const sin = Math.sin(angleRadians)

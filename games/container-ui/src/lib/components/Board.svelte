@@ -10,6 +10,11 @@
         DEFAULT_BOAT_RENDER_WIDTH,
         DEFAULT_BOAT_RENDER_WIDTH as BOAT_WIDTH
     } from '$lib/definitions/boatGeometry.js'
+    import {
+        buildLargeConnectorPlacements,
+        buildSideConnectorPlacements,
+        connectorPlacementToSvgTransform
+    } from '$lib/definitions/connectorGeometry.js'
     import { getMotionPathLength, sampleMotionPath } from '$lib/definitions/boatMotion.js'
     import { buildBoatNavigationGeometry } from '$lib/definitions/boatNavigation.js'
     import {
@@ -17,7 +22,7 @@
         getFilledRouteOccupiedDockIds
     } from '$lib/definitions/boatRouteOccupancy.js'
     import {
-        buildDockTransferPlan,
+        buildRoutePlan,
         type BoatRoutePlan
     } from '$lib/definitions/boatPlanner.js'
     import largeConnectorImg from '$lib/images/large-connector.svg'
@@ -29,25 +34,13 @@
     const gameSession = getGameSession()
     const PLAYER_BOARD_UNDERLAY_FILL = '#727780'
     const PLAYER_BOARD_UNDERLAY_BACK_OFFSET_X = -48
-    const BOARD_SOURCE_WIDTH = 448
-    const BOARD_SOURCE_HEIGHT = 755
-    const LARGE_CONNECTOR_SOURCE_WIDTH = 623.07
-    const LARGE_CONNECTOR_SOURCE_HEIGHT = 500
-    const LARGE_CONNECTOR_OVERLAP_Y = 110
-    const LARGE_CONNECTOR_OFFSET_X = -35
-    const SIDE_CONNECTOR_SOURCE_WIDTH = 863.09
-    const SIDE_CONNECTOR_SOURCE_HEIGHT = 568.78
-    const SIDE_CONNECTOR_TOP_OFFSET_X = -262
-    const SIDE_CONNECTOR_TOP_OFFSET_Y = 130
-    const SIDE_CONNECTOR_BOTTOM_OFFSET_X = -215
-    const SIDE_CONNECTOR_BOTTOM_OFFSET_Y = -160
     const ROUTE_STATUS_PANEL_X = 24
     const ROUTE_STATUS_PANEL_Y = 24
 
     let demoAnimationMs = $state(0)
     let routeAnimationStartMs = $state(0)
-    let selectedStartDockId = $state<string | null>(null)
-    let selectedTargetDockId = $state<string | null>(null)
+    let selectedStartSlotId = $state<string | null>(null)
+    let selectedTargetSlotId = $state<string | null>(null)
 
     type PlayerAndState = { player: Player; playerState: HydratedContainerPlayerState }
     type RouteProbeState =
@@ -58,19 +51,19 @@
         | {
               status: 'awaiting-target'
               message: string
-              startDockId: string
+              startSlotId: string
           }
         | {
               status: 'failed'
               message: string
-              startDockId: string
-              targetDockId: string
+              startSlotId: string
+              targetSlotId: string
           }
         | {
               status: 'success'
               message: string
-              startDockId: string
-              targetDockId: string
+              startSlotId: string
+              targetSlotId: string
               movingBoatColor: string
               plan: BoatRoutePlan
           }
@@ -107,11 +100,15 @@
         ...boatNavigationGeometry.mainIslandDockSlots,
         ...boatNavigationGeometry.offshoreDockSlots
     ])
+    const allRouteSlots = $derived.by(() => [
+        ...allDockSlots,
+        ...boatNavigationGeometry.openWaterSlots
+    ])
     const harborDockSlots = $derived.by(() => [
         ...boatNavigationGeometry.mainIslandDockSlots,
         ...boatNavigationGeometry.offshoreDockSlots
     ])
-    const dockColorById = $derived.by(() => {
+    const routeColorById = $derived.by(() => {
         const colors = new Map<string, string>()
 
         harborDockSlots.forEach((slot, slotIndex) => {
@@ -127,125 +124,38 @@
             colors.set(slot.id, gameSession.colors.getPlayerUiColor(playerId))
         })
 
+        boatNavigationGeometry.openWaterSlots.forEach((slot, slotIndex) => {
+            const player = playersAndStates[slotIndex % playersAndStates.length]
+            colors.set(
+                slot.id,
+                player ? gameSession.colors.getPlayerUiColor(player.player.id) : '#84accf'
+            )
+        })
+
         return colors
     })
-    const routeFilledOccupiedDockIds = $derived.by(() => {
-        if (!selectedStartDockId || !selectedTargetDockId) {
+    const routeFilledOccupiedSlotIds = $derived.by(() => {
+        if (!selectedStartSlotId || !selectedTargetSlotId) {
             return new Set<string>()
         }
 
-        return getFilledRouteOccupiedDockIds(allDockSlots, [
-            selectedStartDockId,
-            selectedTargetDockId
+        return getFilledRouteOccupiedDockIds(allRouteSlots, [
+            selectedStartSlotId,
+            selectedTargetSlotId
         ])
     })
 
-    const largeConnectorPlacements = $derived.by(() => {
-        const leftSeats = boardLayout.playerBoardSeats
-            .filter((seat) => seat.orientation === 'left')
-            .sort((a, b) => a.y - b.y)
-        const rightSeats = boardLayout.playerBoardSeats
-            .filter((seat) => seat.orientation === 'right')
-            .sort((a, b) => a.y - b.y)
+    const largeConnectorPlacements = $derived.by(() =>
+        buildLargeConnectorPlacements(boardLayout.playerBoardSeats)
+    )
 
-        return [...leftSeats, ...rightSeats]
-            .map((seat, index, seats) => {
-                const nextSeat = seats[index + 1]
-                if (!nextSeat || nextSeat.orientation !== seat.orientation) {
-                    return null
-                }
-
-                const width = seat.width * (LARGE_CONNECTOR_SOURCE_WIDTH / BOARD_SOURCE_WIDTH)
-                const height = seat.height * (LARGE_CONNECTOR_SOURCE_HEIGHT / BOARD_SOURCE_HEIGHT)
-                const x =
-                    seat.orientation === 'left'
-                        ? seat.x + LARGE_CONNECTOR_OFFSET_X
-                        : seat.x + seat.width - LARGE_CONNECTOR_OFFSET_X
-                const y = seat.y + seat.height - LARGE_CONNECTOR_OVERLAP_Y
-                const transform =
-                    seat.orientation === 'left'
-                        ? `translate(${x} ${y})`
-                        : `translate(${x} ${y}) scale(-1 1)`
-
-                return {
-                    key: `${seat.playerId}-${nextSeat.playerId}`,
-                    width,
-                    height,
-                    transform
-                }
-            })
-            .filter((entry): entry is NonNullable<typeof entry> => !!entry)
-    })
-
-    const sideConnectorPlacements = $derived.by(() => {
-        const seatsByOrientation = {
-            left: boardLayout.playerBoardSeats
-                .filter((seat) => seat.orientation === 'left')
-                .sort((a, b) => a.y - b.y),
-            right: boardLayout.playerBoardSeats
-                .filter((seat) => seat.orientation === 'right')
-                .sort((a, b) => a.y - b.y)
-        }
-
-        return (
-            Object.values(seatsByOrientation) as Array<typeof boardLayout.playerBoardSeats>
-        ).flatMap((seats) =>
-            seats.flatMap((seat, index) => {
-                const placements: Array<{
-                    key: string
-                    width: number
-                    height: number
-                    transform: string
-                }> = []
-                const width = seat.width * (SIDE_CONNECTOR_SOURCE_WIDTH / BOARD_SOURCE_WIDTH)
-                const height = seat.height * (SIDE_CONNECTOR_SOURCE_HEIGHT / BOARD_SOURCE_HEIGHT)
-
-                if (index === 0) {
-                    const topX =
-                        seat.orientation === 'left'
-                            ? seat.x + SIDE_CONNECTOR_TOP_OFFSET_X
-                            : seat.x + seat.width - SIDE_CONNECTOR_TOP_OFFSET_X
-                    const topY = seat.y + SIDE_CONNECTOR_TOP_OFFSET_Y
-                    const topTransform =
-                        seat.orientation === 'left'
-                            ? `translate(${topX} ${topY}) scale(1 -1)`
-                            : `translate(${topX} ${topY}) scale(-1 -1)`
-
-                    placements.push({
-                        key: `${seat.playerId}-top`,
-                        width,
-                        height,
-                        transform: topTransform
-                    })
-                }
-
-                if (index === seats.length - 1) {
-                    const bottomX =
-                        seat.orientation === 'left'
-                            ? seat.x + SIDE_CONNECTOR_BOTTOM_OFFSET_X
-                            : seat.x + seat.width - SIDE_CONNECTOR_BOTTOM_OFFSET_X
-                    const bottomY = seat.y + seat.height + SIDE_CONNECTOR_BOTTOM_OFFSET_Y
-                    const bottomTransform =
-                        seat.orientation === 'left'
-                            ? `translate(${bottomX} ${bottomY})`
-                            : `translate(${bottomX} ${bottomY}) scale(-1 1)`
-
-                    placements.push({
-                        key: `${seat.playerId}-bottom`,
-                        width,
-                        height,
-                        transform: bottomTransform
-                    })
-                }
-
-                return placements
-            })
-        )
-    })
+    const sideConnectorPlacements = $derived.by(() =>
+        buildSideConnectorPlacements(boardLayout.playerBoardSeats)
+    )
 
     const crowdedDockBoats = $derived.by(() =>
         allDockSlots
-            .filter((slot) => routeFilledOccupiedDockIds.has(slot.id))
+            .filter((slot) => routeFilledOccupiedSlotIds.has(slot.id))
             .map((slot, slotIndex) => {
                 return {
                     key: `crowded-dock-boat-${slot.id}`,
@@ -254,9 +164,21 @@
                     x: slot.dockedPose.x - DEFAULT_BOAT_RENDER_WIDTH / 2,
                     y: slot.dockedPose.y - DEFAULT_BOAT_RENDER_HEIGHT / 2,
                     rotation: boatHeadingToRenderRotation(slot.dockedPose.heading),
-                    color: dockColorById.get(slot.id) ?? '#84accf'
+                    color: routeColorById.get(slot.id) ?? '#84accf'
                 }
             })
+    )
+    const crowdedOpenWaterBoats = $derived.by(() =>
+        boatNavigationGeometry.openWaterSlots
+            .filter((slot) => routeFilledOccupiedSlotIds.has(slot.id))
+            .map((slot) => ({
+                key: `crowded-open-water-${slot.id}`,
+                slotId: slot.id,
+                x: slot.parkedPose.x - DEFAULT_BOAT_RENDER_WIDTH / 2,
+                y: slot.parkedPose.y - DEFAULT_BOAT_RENDER_HEIGHT / 2,
+                rotation: boatHeadingToRenderRotation(slot.parkedPose.heading),
+                color: routeColorById.get(slot.id) ?? '#84accf'
+            }))
     )
     const selectableHarborBoats = $derived.by(() =>
         harborDockSlots.map((slot, slotIndex) => {
@@ -266,66 +188,77 @@
                     x: slot.dockedPose.x - DEFAULT_BOAT_RENDER_WIDTH / 2,
                     y: slot.dockedPose.y - DEFAULT_BOAT_RENDER_HEIGHT / 2,
                     rotation: boatHeadingToRenderRotation(slot.dockedPose.heading),
-                    color: dockColorById.get(slot.id) ?? '#84accf'
+                    color: routeColorById.get(slot.id) ?? '#84accf'
                 }
             })
     )
-    const dockTargets = $derived.by(() =>
-        allDockSlots
+    const routeTargets = $derived.by(() =>
+        allRouteSlots
             .map((slot) => ({
-                dockId: slot.id,
-                x: slot.dockedPose.x - DEFAULT_BOAT_RENDER_WIDTH / 2,
-                y: slot.dockedPose.y - DEFAULT_BOAT_RENDER_HEIGHT / 2,
+                slotId: slot.id,
+                x: ('dockedPose' in slot ? slot.dockedPose.x : slot.parkedPose.x) - DEFAULT_BOAT_RENDER_WIDTH / 2,
+                y: ('dockedPose' in slot ? slot.dockedPose.y : slot.parkedPose.y) - DEFAULT_BOAT_RENDER_HEIGHT / 2,
                 width: DEFAULT_BOAT_RENDER_WIDTH,
                 height: DEFAULT_BOAT_RENDER_HEIGHT
             }))
     )
+    const openWaterGhostBoats = $derived.by(() =>
+        boatNavigationGeometry.openWaterSlots.map((slot, index) => ({
+            key: slot.id,
+            label: `${index + 1}`,
+            slotId: slot.id,
+            x: slot.parkedPose.x - DEFAULT_BOAT_RENDER_WIDTH / 2,
+            y: slot.parkedPose.y - DEFAULT_BOAT_RENDER_HEIGHT / 2,
+            rotation: boatHeadingToRenderRotation(slot.parkedPose.heading),
+            color: routeColorById.get(slot.id) ?? '#84accf'
+        }))
+    )
 
     const routeProbe = $derived.by<RouteProbeState>(() => {
-        if (!selectedStartDockId) {
+        if (!selectedStartSlotId) {
             return {
                 status: 'idle',
-                message: 'Select any dock as the start, then any other dock as the destination. All remaining berths are occupied.'
+                message: 'Select any dock or ghost ship as the start, then any other position as the destination. All remaining positions are occupied.'
             }
         }
 
-        if (!selectedTargetDockId) {
+        if (!selectedTargetSlotId) {
             return {
                 status: 'awaiting-target',
-                startDockId: selectedStartDockId,
-                message: 'Select a destination dock to test the filled-berth route.'
+                startSlotId: selectedStartSlotId,
+                message: 'Select a destination dock, harbor, or ghost ship to test the filled-position route.'
             }
         }
 
-        const startDock = allDockSlots.find(
-            (slot) => slot.id === selectedStartDockId
+        const startSlot = allRouteSlots.find(
+            (slot) => slot.id === selectedStartSlotId
         )
-        const movingBoatColor = dockColorById.get(selectedStartDockId)
-        if (!startDock || !movingBoatColor) {
+        const movingBoatColor = routeColorById.get(selectedStartSlotId)
+        if (!startSlot || !movingBoatColor) {
             return {
                 status: 'idle',
-                message: 'Select any dock as the start, then any other dock as the destination. All remaining berths are occupied.'
+                message: 'Select any dock or ghost ship as the start, then any other position as the destination. All remaining positions are occupied.'
             }
         }
 
         const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(
-            allDockSlots,
-            [startDock.id, selectedTargetDockId]
+            allRouteSlots,
+            [startSlot.id, selectedTargetSlotId]
         )
-        const targetDock = allDockSlots.find(
-            (slot) => slot.id === selectedTargetDockId
+        const targetSlot = allRouteSlots.find(
+            (slot) => slot.id === selectedTargetSlotId
         )
-        if (!targetDock) {
+        if (!targetSlot) {
             return {
                 status: 'awaiting-target',
-                startDockId: selectedStartDockId,
-                message: 'Select a destination dock to test the filled-berth route.'
+                startSlotId: selectedStartSlotId,
+                message: 'Select a destination dock, harbor, or ghost ship to test the filled-position route.'
             }
         }
         const startedAt = performance.now()
-        const exactPlan = buildDockTransferPlan(
-            startDock,
-            targetDock,
+        const exactPlan = buildRoutePlan(
+            startSlot,
+            targetSlot,
             boatNavigationGeometry,
             occupiedBoatPoses
         )
@@ -333,19 +266,19 @@
         if (exactPlan) {
             return {
                 status: 'success',
-                startDockId: startDock.id,
-                targetDockId: selectedTargetDockId,
+                startSlotId: startSlot.id,
+                targetSlotId: selectedTargetSlotId,
                 movingBoatColor,
                 plan: exactPlan,
-                message: `Route found with all remaining berths occupied from ${startDock.id} to ${selectedTargetDockId} in ${elapsedMs}ms.`
+                message: `Route found with all remaining positions occupied from ${startSlot.id} to ${selectedTargetSlotId} in ${elapsedMs}ms.`
             }
         }
 
         return {
             status: 'failed',
-            startDockId: startDock.id,
-            targetDockId: selectedTargetDockId,
-            message: `No route found with all remaining berths occupied from ${startDock.id} to ${selectedTargetDockId} in ${elapsedMs}ms.`
+            startSlotId: startSlot.id,
+            targetSlotId: selectedTargetSlotId,
+            message: `No route found with all remaining positions occupied from ${startSlot.id} to ${selectedTargetSlotId} in ${elapsedMs}ms.`
         }
     })
     const routeProbeLength = $derived.by(() =>
@@ -369,15 +302,15 @@
         }
     })
 
-    function handleDockClick(dockId: string) {
-        if (!selectedStartDockId || selectedTargetDockId) {
-            selectedStartDockId = dockId
-            selectedTargetDockId = null
-        } else if (dockId === selectedStartDockId) {
-            selectedStartDockId = null
-            selectedTargetDockId = null
+    function handleRouteSlotClick(slotId: string) {
+        if (!selectedStartSlotId || selectedTargetSlotId) {
+            selectedStartSlotId = slotId
+            selectedTargetSlotId = null
+        } else if (slotId === selectedStartSlotId) {
+            selectedStartSlotId = null
+            selectedTargetSlotId = null
         } else {
-            selectedTargetDockId = dockId
+            selectedTargetSlotId = slotId
         }
 
         routeAnimationStartMs = demoAnimationMs
@@ -423,7 +356,7 @@
                 offshoreRect={boardLayout.offshoreRect}
             />
             {#each sideConnectorPlacements as connector (connector.key)}
-                <g transform={connector.transform}>
+                <g transform={connectorPlacementToSvgTransform(connector)}>
                     <image
                         href={sideConnectorImg}
                         x="0"
@@ -435,7 +368,7 @@
                 </g>
             {/each}
             {#each largeConnectorPlacements as connector (connector.key)}
-                <g transform={connector.transform}>
+                <g transform={connectorPlacementToSvgTransform(connector)}>
                     <image
                         href={largeConnectorImg}
                         x="0"
@@ -457,8 +390,59 @@
                     fill={PLAYER_BOARD_UNDERLAY_FILL}
                 ></rect>
             {/each}
+            {#each boatNavigationGeometry.transitChannels as channel (channel.id)}
+                <g opacity="0.9" pointer-events="none">
+                    <rect
+                        x={channel.x - channel.width / 2}
+                        y={channel.y - channel.height / 2}
+                        width={channel.width}
+                        height={channel.height}
+                        rx="24"
+                        fill="rgba(155, 229, 121, 0.14)"
+                        stroke="rgba(155, 229, 121, 0.88)"
+                        stroke-width="4"
+                        stroke-dasharray="18 12"
+                    ></rect>
+                    <text
+                        x={channel.x}
+                        y={channel.y + 6}
+                        text-anchor="middle"
+                        font-size="18"
+                        font-weight="700"
+                        fill="rgba(201, 248, 178, 0.95)"
+                    >
+                        {channel.id}
+                    </text>
+                </g>
+            {/each}
+            {#each openWaterGhostBoats as boat (boat.key)}
+                {#if !routeFilledOccupiedSlotIds.has(boat.slotId)
+                    && selectedStartSlotId !== boat.slotId
+                    && selectedTargetSlotId !== boat.slotId}
+                    <g opacity="0.45">
+                        <Boat x={boat.x} y={boat.y} color={boat.color} rotation={boat.rotation} />
+                        <text
+                            x={boat.x + DEFAULT_BOAT_RENDER_WIDTH / 2}
+                            y={boat.y + DEFAULT_BOAT_RENDER_HEIGHT + 22}
+                            text-anchor="middle"
+                            font-size="18"
+                            font-weight="700"
+                            fill="#3e4954"
+                        >
+                            {boat.label}
+                        </text>
+                    </g>
+                {/if}
+            {/each}
+            {#each crowdedOpenWaterBoats as boat (boat.key)}
+                {#if routeProbe.status !== 'success' || routeProbe.startSlotId !== boat.slotId}
+                    <g opacity="0.92">
+                        <Boat x={boat.x} y={boat.y} color={boat.color} rotation={boat.rotation} />
+                    </g>
+                {/if}
+            {/each}
             {#each crowdedDockBoats as boat (boat.key)}
-                {#if routeProbe.status !== 'success' || routeProbe.startDockId !== boat.dockId}
+                {#if routeProbe.status !== 'success' || routeProbe.startSlotId !== boat.dockId}
                     <g opacity="0.92">
                         <Boat x={boat.x} y={boat.y} color={boat.color} rotation={boat.rotation} />
                     </g>
@@ -474,12 +458,12 @@
                     class="cursor-pointer"
                     role="button"
                     tabindex="0"
-                    aria-label={`Select dock ${boat.dockId}`}
-                    onclick={() => handleDockClick(boat.dockId)}
+                    aria-label={`Select position ${boat.dockId}`}
+                    onclick={() => handleRouteSlotClick(boat.dockId)}
                     onkeydown={(event) => {
                         if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault()
-                            handleDockClick(boat.dockId)
+                            handleRouteSlotClick(boat.dockId)
                         }
                     }}
                 ></rect>
@@ -506,27 +490,27 @@
                     />
                 {/if}
             {/each}
-            {#each dockTargets as dockTarget (dockTarget.dockId)}
+            {#each routeTargets as routeTarget (routeTarget.slotId)}
                 <rect
-                    x={dockTarget.x}
-                    y={dockTarget.y}
-                    width={dockTarget.width}
-                    height={dockTarget.height}
-                    fill={selectedStartDockId ? 'rgba(255, 255, 255, 0.04)' : 'transparent'}
-                    stroke={selectedStartDockId ? 'rgba(255, 255, 255, 0.32)' : 'transparent'}
+                    x={routeTarget.x}
+                    y={routeTarget.y}
+                    width={routeTarget.width}
+                    height={routeTarget.height}
+                    fill={selectedStartSlotId ? 'rgba(255, 255, 255, 0.04)' : 'transparent'}
+                    stroke={selectedStartSlotId ? 'rgba(255, 255, 255, 0.32)' : 'transparent'}
                     stroke-width="2"
                     rx="10"
-                    class:selected-start-dock={selectedStartDockId === dockTarget.dockId}
-                    class:selected-dock-target={selectedTargetDockId === dockTarget.dockId}
-                    class:target-dock-target={selectedStartDockId !== dockTarget.dockId}
+                    class:selected-start-dock={selectedStartSlotId === routeTarget.slotId}
+                    class:selected-dock-target={selectedTargetSlotId === routeTarget.slotId}
+                    class:target-dock-target={selectedStartSlotId !== routeTarget.slotId}
                     role="button"
                     tabindex="0"
-                    aria-label={`Select dock ${dockTarget.dockId}`}
-                    onclick={() => handleDockClick(dockTarget.dockId)}
+                    aria-label={`Select position ${routeTarget.slotId}`}
+                    onclick={() => handleRouteSlotClick(routeTarget.slotId)}
                     onkeydown={(event) => {
                         if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault()
-                            handleDockClick(dockTarget.dockId)
+                            handleRouteSlotClick(routeTarget.slotId)
                         }
                     }}
                 ></rect>

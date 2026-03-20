@@ -1,9 +1,21 @@
 import type { Point } from '@tabletop/common'
+import {
+    buildOpenWaterSlots,
+    type OpenWaterSlot as OpenWaterAnchor
+} from '$lib/definitions/boatHoldingAreas.js'
 import type { BoardLayout, PlayerBoardSeat } from '$lib/definitions/boardLayout.js'
+import { buildTransitChannelAnchors } from '$lib/definitions/boatTransitChannels.js'
 import {
     DEFAULT_BOAT_RENDER_HEIGHT,
     DEFAULT_BOAT_RENDER_WIDTH
 } from '$lib/definitions/boatGeometry.js'
+import {
+    buildLargeConnectorPlacements,
+    buildSideConnectorPlacements,
+    LARGE_CONNECTOR_LAND_PATH,
+    sampleConnectorPolygon,
+    SIDE_CONNECTOR_LAND_PATH
+} from '$lib/definitions/connectorGeometry.js'
 import { polygonFromRect } from '$lib/definitions/geometry2d.js'
 import {
     getMainIslandDockBoatAnchors,
@@ -31,9 +43,26 @@ export type DockSlot = {
     stagingPose: BoatPose
 }
 
+export type OpenWaterSlot = {
+    id: string
+    family: 'open-water'
+    parkedPose: BoatPose
+    stagingPose: BoatPose
+}
+
+export type RouteEndpoint = DockSlot | OpenWaterSlot
+
 export type NavigationObstacle = {
     id: string
     polygon: Point[]
+}
+
+export type TransitChannel = {
+    id: string
+    x: number
+    y: number
+    width: number
+    height: number
 }
 
 export type BoatNavigationGeometry = {
@@ -41,14 +70,17 @@ export type BoatNavigationGeometry = {
     boardHeight: number
     boatWidth: number
     boatHeight: number
+    openWaterSlots: OpenWaterSlot[]
     mainIslandDockSlots: DockSlot[]
     offshoreDockSlots: DockSlot[]
     playerBoardDockSlots: DockSlot[]
+    transitChannels: TransitChannel[]
     obstacles: NavigationObstacle[]
 }
 
 const PLAYER_BOARD_DOCK_STAGING_DISTANCE = 76
 const MAIN_ISLAND_DOCK_STAGING_DISTANCE = 84
+const OPEN_WATER_STAGING_DISTANCE = 300
 const NAVIGATION_ISLAND_BOUNDARY_SUBDIVISIONS = 8
 
 function degreesToRadians(degrees: number): number {
@@ -72,6 +104,20 @@ function createStagingPose(dockedPose: BoatPose, distance: number): BoatPose {
         x: dockedPose.x - Math.cos(dockedPose.heading) * distance,
         y: dockedPose.y - Math.sin(dockedPose.heading) * distance,
         heading: dockedPose.heading
+    }
+}
+
+function openWaterAnchorToSlot(anchor: OpenWaterAnchor): OpenWaterSlot {
+    const parkedPose = {
+        x: anchor.x,
+        y: anchor.y,
+        heading: anchor.heading
+    }
+    return {
+        id: anchor.id,
+        family: 'open-water',
+        parkedPose,
+        stagingPose: createStagingPose(parkedPose, OPEN_WATER_STAGING_DISTANCE)
     }
 }
 
@@ -115,12 +161,33 @@ function createOffshoreObstacle(boardLayout: BoardLayout): NavigationObstacle[] 
     ]
 }
 
+function createConnectorObstacles(boardLayout: BoardLayout): NavigationObstacle[] {
+    const largeConnectorObstacles = buildLargeConnectorPlacements(
+        boardLayout.playerBoardSeats
+    ).map((placement): NavigationObstacle => ({
+        id: `large-connector-${placement.key}`,
+        polygon: sampleConnectorPolygon(LARGE_CONNECTOR_LAND_PATH, placement)
+    }))
+
+    const sideConnectorObstacles = buildSideConnectorPlacements(
+        boardLayout.playerBoardSeats
+    ).map((placement): NavigationObstacle => ({
+        id: `side-connector-${placement.key}`,
+        polygon: sampleConnectorPolygon(SIDE_CONNECTOR_LAND_PATH, placement)
+    }))
+
+    return [...largeConnectorObstacles, ...sideConnectorObstacles]
+}
+
 export function buildBoatNavigationGeometry(boardLayout: BoardLayout): BoatNavigationGeometry {
+    const openWaterSlots = buildOpenWaterSlots(boardLayout).map(openWaterAnchorToSlot)
+    const transitChannels = buildTransitChannelAnchors(boardLayout)
     const mainIslandDockSlots = getMainIslandDockBoatAnchors(
         boardLayout.islandRect.x,
         boardLayout.islandRect.y,
         boardLayout.islandRect.width,
-        boardLayout.islandRect.height
+        boardLayout.islandRect.height,
+        { includeOverflow: boardLayout.playerBoardSeats.length === 5 }
     ).map((anchor, index): DockSlot => {
         const dockedPose = dockAnchorToPose(anchor, DEFAULT_BOAT_RENDER_WIDTH)
         return {
@@ -173,6 +240,7 @@ export function buildBoatNavigationGeometry(boardLayout: BoardLayout): BoatNavig
     const obstacles = [
         createMainIslandObstacle(boardLayout),
         ...createOffshoreObstacle(boardLayout),
+        ...createConnectorObstacles(boardLayout),
         ...boardLayout.playerBoardSeats.map(createPlayerBoardObstacle)
     ]
 
@@ -181,9 +249,11 @@ export function buildBoatNavigationGeometry(boardLayout: BoardLayout): BoatNavig
         boardHeight: boardLayout.boardHeight,
         boatWidth: DEFAULT_BOAT_RENDER_WIDTH,
         boatHeight: DEFAULT_BOAT_RENDER_HEIGHT,
+        openWaterSlots,
         mainIslandDockSlots,
         offshoreDockSlots,
         playerBoardDockSlots,
+        transitChannels,
         obstacles
     }
 }
