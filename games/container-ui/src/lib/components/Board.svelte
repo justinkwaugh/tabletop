@@ -36,9 +36,13 @@
     const PLAYER_BOARD_UNDERLAY_BACK_OFFSET_X = -48
     const ROUTE_STATUS_PANEL_X = 24
     const ROUTE_STATUS_PANEL_Y = 24
+    const IDLE_ROUTE_MESSAGE =
+        'Select any dock or ghost ship as the start, then any other position as the destination. All remaining positions are occupied.'
+    const AWAITING_TARGET_MESSAGE =
+        'Select a destination dock, harbor, or ghost ship to test the filled-position route.'
 
-    let demoAnimationMs = $state(0)
-    let routeAnimationStartMs = $state(0)
+    let demoAnimationMs = $state(performance.now())
+    let routeAnimationStartMs = $state(performance.now())
     let selectedStartSlotId = $state<string | null>(null)
     let selectedTargetSlotId = $state<string | null>(null)
 
@@ -59,7 +63,7 @@
               startSlotId: string
               targetSlotId: string
           }
-        | {
+          | {
               status: 'success'
               message: string
               startSlotId: string
@@ -67,6 +71,10 @@
               movingBoatColor: string
               plan: BoatRoutePlan
           }
+    let routeProbe = $state<RouteProbeState>({
+        status: 'idle',
+        message: IDLE_ROUTE_MESSAGE
+    })
 
     const playersAndStates: PlayerAndState[] = $derived.by(() => {
         const playersAndStatesById = new Map(
@@ -214,73 +222,6 @@
         }))
     )
 
-    const routeProbe = $derived.by<RouteProbeState>(() => {
-        if (!selectedStartSlotId) {
-            return {
-                status: 'idle',
-                message: 'Select any dock or ghost ship as the start, then any other position as the destination. All remaining positions are occupied.'
-            }
-        }
-
-        if (!selectedTargetSlotId) {
-            return {
-                status: 'awaiting-target',
-                startSlotId: selectedStartSlotId,
-                message: 'Select a destination dock, harbor, or ghost ship to test the filled-position route.'
-            }
-        }
-
-        const startSlot = allRouteSlots.find(
-            (slot) => slot.id === selectedStartSlotId
-        )
-        const movingBoatColor = routeColorById.get(selectedStartSlotId)
-        if (!startSlot || !movingBoatColor) {
-            return {
-                status: 'idle',
-                message: 'Select any dock or ghost ship as the start, then any other position as the destination. All remaining positions are occupied.'
-            }
-        }
-
-        const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(
-            allRouteSlots,
-            [startSlot.id, selectedTargetSlotId]
-        )
-        const targetSlot = allRouteSlots.find(
-            (slot) => slot.id === selectedTargetSlotId
-        )
-        if (!targetSlot) {
-            return {
-                status: 'awaiting-target',
-                startSlotId: selectedStartSlotId,
-                message: 'Select a destination dock, harbor, or ghost ship to test the filled-position route.'
-            }
-        }
-        const startedAt = performance.now()
-        const exactPlan = buildRoutePlan(
-            startSlot,
-            targetSlot,
-            boatNavigationGeometry,
-            occupiedBoatPoses
-        )
-        const elapsedMs = Math.round(performance.now() - startedAt)
-        if (exactPlan) {
-            return {
-                status: 'success',
-                startSlotId: startSlot.id,
-                targetSlotId: selectedTargetSlotId,
-                movingBoatColor,
-                plan: exactPlan,
-                message: `Route found with all remaining positions occupied from ${startSlot.id} to ${selectedTargetSlotId} in ${elapsedMs}ms.`
-            }
-        }
-
-        return {
-            status: 'failed',
-            startSlotId: startSlot.id,
-            targetSlotId: selectedTargetSlotId,
-            message: `No route found with all remaining positions occupied from ${startSlot.id} to ${selectedTargetSlotId} in ${elapsedMs}ms.`
-        }
-    })
     const routeProbeLength = $derived.by(() =>
         routeProbe.status === 'success' ? getMotionPathLength(routeProbe.plan.segments) : 0
     )
@@ -306,14 +247,77 @@
         if (!selectedStartSlotId || selectedTargetSlotId) {
             selectedStartSlotId = slotId
             selectedTargetSlotId = null
+            routeProbe = {
+                status: 'awaiting-target',
+                startSlotId: slotId,
+                message: AWAITING_TARGET_MESSAGE
+            }
         } else if (slotId === selectedStartSlotId) {
             selectedStartSlotId = null
             selectedTargetSlotId = null
+            routeProbe = {
+                status: 'idle',
+                message: IDLE_ROUTE_MESSAGE
+            }
         } else {
-            selectedTargetSlotId = slotId
-        }
+            const startSlot = allRouteSlots.find((slot) => slot.id === selectedStartSlotId)
+            const targetSlot = allRouteSlots.find((slot) => slot.id === slotId)
 
-        routeAnimationStartMs = demoAnimationMs
+            if (startSlot?.family === 'open-water' && targetSlot?.family === 'open-water') {
+                routeProbe = {
+                    status: 'failed',
+                    startSlotId: startSlot.id,
+                    targetSlotId: targetSlot.id,
+                    message: 'Open-water holding positions cannot move directly to other open-water holding positions.'
+                }
+                return
+            }
+
+            selectedTargetSlotId = slotId
+            const movingBoatColor = routeColorById.get(selectedStartSlotId)
+
+            if (!startSlot || !targetSlot || !movingBoatColor) {
+                selectedStartSlotId = null
+                selectedTargetSlotId = null
+                routeProbe = {
+                    status: 'idle',
+                    message: IDLE_ROUTE_MESSAGE
+                }
+                return
+            }
+
+            const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(allRouteSlots, [
+                startSlot.id,
+                targetSlot.id
+            ])
+            const startedAt = performance.now()
+            const exactPlan = buildRoutePlan(
+                startSlot,
+                targetSlot,
+                boatNavigationGeometry,
+                occupiedBoatPoses
+            )
+            const elapsedMs = Math.round(performance.now() - startedAt)
+
+            if (exactPlan) {
+                routeProbe = {
+                    status: 'success',
+                    startSlotId: startSlot.id,
+                    targetSlotId: targetSlot.id,
+                    movingBoatColor,
+                    plan: exactPlan,
+                    message: `Route found with all remaining positions occupied from ${startSlot.id} to ${targetSlot.id} in ${elapsedMs}ms.`
+                }
+                routeAnimationStartMs = performance.now()
+            } else {
+                routeProbe = {
+                    status: 'failed',
+                    startSlotId: startSlot.id,
+                    targetSlotId: targetSlot.id,
+                    message: `No route found with all remaining positions occupied from ${startSlot.id} to ${targetSlot.id} in ${elapsedMs}ms.`
+                }
+            }
+        }
     }
 
     function getPlayerForState(playerState: ContainerPlayerState) {
@@ -322,14 +326,9 @@
 
     onMount(() => {
         let animationFrame = 0
-        let startTime = 0
 
         const tick = (timestamp: number) => {
-            if (startTime === 0) {
-                startTime = timestamp
-            }
-
-            demoAnimationMs = timestamp - startTime
+            demoAnimationMs = timestamp
             animationFrame = requestAnimationFrame(tick)
         }
 

@@ -216,6 +216,13 @@ const HARBOR_K_TURN_REENTRY_DISTANCE = 132
 const HARBOR_K_TURN_PIVOT_SCALE = 42
 const OPEN_WATER_STRAIGHT_APPROACH_DISTANCES = [72, 120, 180]
 const OPEN_WATER_TURN_RADIUS = 118
+const OPEN_WATER_LONG_REVERSE_DISTANCE = 300
+const OPEN_WATER_SHARP_UNDOCK_CONFIG: DockManeuverConfig = {
+    undockReverseDistance: 160,
+    undockReverseTurnRadius: 36,
+    straightApproachDistances: OPEN_WATER_STRAIGHT_APPROACH_DISTANCES,
+    turnRadius: OPEN_WATER_TURN_RADIUS
+}
 const CHANNEL_ENDPOINT_MIN_DISTANCE = 220
 const CHANNEL_CLEARANCE_TARGET = 1
 const CHANNEL_PREFERENCE_WEIGHT = 0.55
@@ -306,7 +313,7 @@ export function buildRoutePlan(
     }
 
     if (isOpenWaterSlot(start) && isOpenWaterSlot(end)) {
-        return buildOpenWaterToOpenWaterPlan(start, end, plannerContext)
+        return null
     }
 
     return null
@@ -509,55 +516,152 @@ function buildOpenWaterToDockPlan(
     endDock: DockSlot,
     plannerContext: PlannerContext
 ): BoatRoutePlan | null {
-    const dockConnection = findExactDockConnection(startSlot.stagingPose, endDock, plannerContext)
-    if (!dockConnection) {
-        return null
+    const preferredRightHarborCorridor = shouldPreferRightHarborCorridor(
+        startSlot,
+        endDock,
+        plannerContext
+    )
+        ? buildRightHarborPreferredChannel(startSlot, endDock, plannerContext)
+        : null
+    let bestPlan: BoatRoutePlan | null = null
+
+    for (const undockCandidate of buildOpenWaterUndockCandidates(startSlot, endDock.stagingPose)) {
+        const dockConnection = preferredRightHarborCorridor
+            ? findExactDockConnectionViaChannelChain(
+                  undockCandidate.transitPose,
+                  endDock,
+                  plannerContext,
+                  [preferredRightHarborCorridor]
+              )
+            : findExactDockConnection(
+                  undockCandidate.transitPose,
+                  endDock,
+                  plannerContext
+              )
+        if (!dockConnection) {
+            continue
+        }
+
+        const candidatePlan: BoatRoutePlan = {
+            undockSegments: undockCandidate.maneuverSegments,
+            transitSegments: dockConnection.transitSegments,
+            dockSegments: [
+                ...dockConnection.dockSegments,
+                createStraightSegment(endDock.stagingPose, endDock.dockedPose, 'forward')
+            ],
+            segments: [
+                ...undockCandidate.maneuverSegments,
+                ...dockConnection.transitSegments,
+                ...dockConnection.dockSegments,
+                createStraightSegment(endDock.stagingPose, endDock.dockedPose, 'forward')
+            ]
+        }
+
+        if (
+            !bestPlan ||
+            getMotionPathLength(candidatePlan.segments) < getMotionPathLength(bestPlan.segments)
+        ) {
+            bestPlan = candidatePlan
+        }
     }
 
-    const undockSegments = [
-        createStraightSegment(startSlot.parkedPose, startSlot.stagingPose, 'reverse')
-    ]
-    const dockSegments = [
-        ...dockConnection.dockSegments,
-        createStraightSegment(endDock.stagingPose, endDock.dockedPose, 'forward')
-    ]
+    return bestPlan
+}
+
+function shouldPreferRightHarborCorridor(
+    startSlot: OpenWaterSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): boolean {
+    if (endDock.family !== 'main-island-harbor') {
+        return false
+    }
+
+    const mainIslandObstacle = plannerContext.obstacles.find((obstacle) => obstacle.id === 'main-island')
+    if (!mainIslandObstacle) {
+        return false
+    }
+
+    const islandCenterX = (mainIslandObstacle.bounds.minX + mainIslandObstacle.bounds.maxX) / 2
+
+    return (
+        startSlot.stagingPose.x > islandCenterX + 140 &&
+        endDock.stagingPose.x > islandCenterX + 140
+    )
+}
+
+function shouldPreferRightPlayerBoardCorridor(
+    startPose: BoatPose,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): boolean {
+    if (endDock.family !== 'player-board') {
+        return false
+    }
+
+    const mainIslandObstacle = plannerContext.obstacles.find((obstacle) => obstacle.id === 'main-island')
+    if (!mainIslandObstacle) {
+        return false
+    }
+
+    const islandCenterX = (mainIslandObstacle.bounds.minX + mainIslandObstacle.bounds.maxX) / 2
+
+    return startPose.x > islandCenterX + 140 && endDock.stagingPose.x > islandCenterX + 140
+}
+
+function buildImplicitRightCorridor(
+    startPose: BoatPose,
+    endPose: BoatPose,
+    plannerContext: PlannerContext,
+    id: string
+): TransitChannel {
+    const mainIslandObstacle = plannerContext.obstacles.find((obstacle) => obstacle.id === 'main-island')
+    if (!mainIslandObstacle) {
+        return {
+            id,
+            x: plannerContext.geometry.boardWidth - 260,
+            y: (startPose.y + endPose.y) / 2,
+            width: 280,
+            height: Math.abs(startPose.y - endPose.y) + 260
+        }
+    }
+
+    const islandMaxX = mainIslandObstacle.bounds.maxX
+    const corridorX = islandMaxX + 140
 
     return {
-        undockSegments,
-        transitSegments: dockConnection.transitSegments,
-        dockSegments,
-        segments: [...undockSegments, ...dockConnection.transitSegments, ...dockSegments]
+        id,
+        x: corridorX,
+        y: (startPose.y + endPose.y) / 2,
+        width: 260,
+        height: Math.abs(startPose.y - endPose.y) + 320
     }
 }
 
-function buildOpenWaterToOpenWaterPlan(
+function buildRightHarborPreferredChannel(
     startSlot: OpenWaterSlot,
-    endSlot: OpenWaterSlot,
+    endDock: DockSlot,
     plannerContext: PlannerContext
-): BoatRoutePlan | null {
-    const poseConnection = findOpenWaterConnection(
+): TransitChannel {
+    return buildImplicitRightCorridor(
         startSlot.stagingPose,
-        endSlot,
-        plannerContext
+        endDock.stagingPose,
+        plannerContext,
+        'implicit-right-harbor-corridor'
     )
-    if (!poseConnection) {
-        return null
-    }
+}
 
-    const undockSegments = [
-        createStraightSegment(startSlot.parkedPose, startSlot.stagingPose, 'reverse')
-    ]
-    const dockSegments = [
-        ...poseConnection.goalSegments,
-        createStraightSegment(endSlot.stagingPose, endSlot.parkedPose, 'forward')
-    ]
-
-    return {
-        undockSegments,
-        transitSegments: poseConnection.transitSegments,
-        dockSegments,
-        segments: [...undockSegments, ...poseConnection.transitSegments, ...dockSegments]
-    }
+function buildRightPlayerBoardPreferredChannel(
+    startPose: BoatPose,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): TransitChannel {
+    return buildImplicitRightCorridor(
+        startPose,
+        endDock.stagingPose,
+        plannerContext,
+        'implicit-right-player-board-corridor'
+    )
 }
 
 function findBestDockConnectionForGoals(
@@ -605,6 +709,18 @@ function findExactDockConnection(
     endDock: DockSlot,
     plannerContext: PlannerContext
 ): { transitSegments: BoatMotionSegment[]; dockSegments: BoatMotionSegment[]; endDock: DockSlot } | null {
+    if (shouldPreferRightPlayerBoardCorridor(startPose, endDock, plannerContext)) {
+        const rightPlayerBoardConnection = findExactDockConnectionViaChannelChain(
+            startPose,
+            endDock,
+            plannerContext,
+            [buildRightPlayerBoardPreferredChannel(startPose, endDock, plannerContext)]
+        )
+        if (rightPlayerBoardConnection) {
+            return rightPlayerBoardConnection
+        }
+    }
+
     const directConnection = findExactDockConnectionDirect(startPose, endDock, plannerContext)
     if (!directConnection) {
         return null
@@ -1026,6 +1142,7 @@ function selectPreferredTransitChannelChain(
     const startsRight = startPose.x > islandCenterX + 140
     const startsHigh = startPose.y < islandCenterY - 40
     const startsLow = startPose.y > islandCenterY + 40
+    const endsLow = endPose.y > islandCenterY + 180
 
     if (isCrossingToRight && isHeadingDown) {
         if (startsRight) {
@@ -1065,6 +1182,10 @@ function selectPreferredTransitChannelChain(
 
     if (isCrossingToLeft && isHeadingDown) {
         if (startsRight) {
+            if (endsLow) {
+                return directTouchesBottom ? [] : [bottomCenter]
+            }
+
             return directTouchesBottom && directTouchesLeft
                 ? []
                 : directTouchesBottom
@@ -1983,6 +2104,36 @@ function buildReverseThenTurnCandidates(
     }
 
     return candidates.sort((a, b) => a.score - b.score)
+}
+
+function buildOpenWaterUndockCandidates(
+    startSlot: OpenWaterSlot,
+    targetPose: BoatPose
+): UndockManeuverCandidate[] {
+    const preferredBearing = Math.atan2(
+        targetPose.y - startSlot.parkedPose.y,
+        targetPose.x - startSlot.parkedPose.x
+    )
+    const candidates = buildPerpendicularCandidates(
+        startSlot.parkedPose.heading,
+        preferredBearing
+    )
+
+    return [
+        {
+            transitPose: startSlot.stagingPose,
+            maneuverSegments: [
+                createStraightSegment(startSlot.parkedPose, startSlot.stagingPose, 'reverse')
+            ],
+            score: heuristic(startSlot.stagingPose, targetPose)
+        },
+        ...buildReverseThenTurnCandidates(
+            startSlot.parkedPose,
+            targetPose,
+            candidates,
+            OPEN_WATER_SHARP_UNDOCK_CONFIG
+        )
+    ].sort((a, b) => a.score - b.score)
 }
 
 function createReverseArcFromStartPose(
