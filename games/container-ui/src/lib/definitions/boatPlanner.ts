@@ -11,6 +11,7 @@ import {
     getBoatFootprintPolygon,
     getMovingBoatFootprintPolygon
 } from '$lib/definitions/boatNavigation.js'
+import { getPrecomputedBoatRoutePlanForGeometry } from '$lib/definitions/boatPrecomputedRoutes.js'
 import {
     type BoatArcSegment,
     createArcSegment,
@@ -274,6 +275,15 @@ export function buildRoutePlan(
     geometry: BoatNavigationGeometry,
     occupiedBoatPoses: BoatPose[] = []
 ): BoatRoutePlan | null {
+    const precomputedPlan = getPrecomputedBoatRoutePlanForGeometry(
+        geometry,
+        start.id,
+        end.id
+    )
+    if (precomputedPlan) {
+        return precomputedPlan
+    }
+
     const plannerContext = createPlannerContext(geometry, occupiedBoatPoses)
 
     if (isDockSlot(start) && isDockSlot(end)) {
@@ -355,6 +365,37 @@ function buildDockTransferPlanWithContext(
     plannerContext: PlannerContext,
     undockCandidates: UndockManeuverCandidate[]
 ): BoatRoutePlan | null {
+    if (shouldForceUpperRightHarborPlan(startDock, endDock, plannerContext)) {
+        const forcedUpperRightPlan = buildForcedChannelDockTransferPlan(
+            startDock,
+            endDock,
+            plannerContext,
+            buildHarborExitUndockCandidates(startDock, endDock.stagingPose),
+            [buildUpperRightApproachChannel(endDock, plannerContext)]
+        )
+        if (forcedUpperRightPlan) {
+            return forcedUpperRightPlan
+        }
+    }
+
+    if (shouldForceBottomCenterHarborToLowLeft(startDock, endDock, plannerContext)) {
+        const bottomCenterChannel = plannerContext.geometry.transitChannels.find(
+            (channel) => channel.id === 'channel-bottom-center'
+        )
+        if (bottomCenterChannel) {
+            const forcedBottomPlan = buildForcedChannelDockTransferPlan(
+                startDock,
+                endDock,
+                plannerContext,
+                buildHarborExitUndockCandidates(startDock, endDock.stagingPose),
+                [bottomCenterChannel]
+            )
+            if (forcedBottomPlan) {
+                return forcedBottomPlan
+            }
+        }
+    }
+
     const standardPlan = evaluateExactDockTransferPlan(
         startDock,
         endDock,
@@ -482,14 +523,40 @@ function evaluateDockToOpenWaterPlan(
     plannerContext: PlannerContext,
     undockCandidates: UndockManeuverCandidate[]
 ): BoatRoutePlan | null {
+    const forcedChannelChain = selectDockToOpenWaterChannelChain(
+        startDock,
+        endSlot,
+        plannerContext
+    )
     let bestPlan: BoatRoutePlan | null = null
 
     for (const undockCandidate of undockCandidates) {
-        const poseConnection = findOpenWaterConnection(
-            undockCandidate.transitPose,
-            endSlot,
-            plannerContext
-        )
+        const poseConnection =
+            forcedChannelChain.length > 0
+                ? findOpenWaterConnectionViaChannelChain(
+                      undockCandidate.transitPose,
+                      endSlot,
+                      plannerContext,
+                      forcedChannelChain
+                  ) ??
+                  (forcedChannelChain.length > 1
+                      ? findOpenWaterConnectionViaChannelChain(
+                            undockCandidate.transitPose,
+                            endSlot,
+                            plannerContext,
+                            [forcedChannelChain.at(-1)!]
+                        )
+                      : null) ??
+                  findOpenWaterConnection(
+                      undockCandidate.transitPose,
+                      endSlot,
+                      plannerContext
+                  )
+                : findOpenWaterConnection(
+                      undockCandidate.transitPose,
+                      endSlot,
+                      plannerContext
+                  )
         if (!poseConnection) continue
 
         const undockSegments = [
@@ -696,6 +763,167 @@ function buildRightPlayerBoardPreferredChannel(
     )
 }
 
+function buildUpperRightApproachChannel(
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): TransitChannel {
+    return {
+        id: 'implicit-upper-right-approach',
+        x: endDock.stagingPose.x - 40,
+        y: endDock.stagingPose.y + 140,
+        width: 200,
+        height: 260
+    }
+}
+
+function shouldPreferUpperRightApproachBand(
+    startPose: BoatPose,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): boolean {
+    if (endDock.family !== 'player-board') {
+        return false
+    }
+
+    const mainIslandObstacle = plannerContext.obstacles.find((obstacle) => obstacle.id === 'main-island')
+    if (!mainIslandObstacle) {
+        return false
+    }
+
+    const islandCenterX = (mainIslandObstacle.bounds.minX + mainIslandObstacle.bounds.maxX) / 2
+    const islandCenterY = (mainIslandObstacle.bounds.minY + mainIslandObstacle.bounds.maxY) / 2
+
+    return (
+        startPose.x > islandCenterX + 140 &&
+        endDock.stagingPose.x > islandCenterX + 140 &&
+        endDock.stagingPose.y < islandCenterY
+    )
+}
+
+function selectDockToOpenWaterChannelChain(
+    startDock: DockSlot,
+    endSlot: OpenWaterSlot,
+    plannerContext: PlannerContext
+): TransitChannel[] {
+    const transitChannelsById = new Map(
+        plannerContext.geometry.transitChannels.map((channel) => [channel.id, channel])
+    )
+    const leftMiddle = transitChannelsById.get('channel-left-middle')
+    const bottomCenter = transitChannelsById.get('channel-bottom-center')
+    const mainIslandObstacle = plannerContext.obstacles.find((obstacle) => obstacle.id === 'main-island')
+    if (!leftMiddle || !bottomCenter || !mainIslandObstacle) {
+        return []
+    }
+
+    const islandCenterX = (mainIslandObstacle.bounds.minX + mainIslandObstacle.bounds.maxX) / 2
+    const islandCenterY = (mainIslandObstacle.bounds.minY + mainIslandObstacle.bounds.maxY) / 2
+    const startIsLeft = startDock.stagingPose.x < islandCenterX - 220
+    const endIsRight = endSlot.stagingPose.x > islandCenterX + 140
+    const endIsLow = endSlot.stagingPose.y > islandCenterY + 180
+
+    if (!startIsLeft || !endIsRight || !endIsLow) {
+        return []
+    }
+
+    const startIsHigh = startDock.stagingPose.y < islandCenterY - 40
+    return startIsHigh ? [leftMiddle, bottomCenter] : [bottomCenter]
+}
+
+function shouldForceUpperRightHarborPlan(
+    startDock: DockSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): boolean {
+    if (startDock.family !== 'main-island-harbor' || endDock.family !== 'player-board') {
+        return false
+    }
+
+    const mainIslandObstacle = plannerContext.obstacles.find((obstacle) => obstacle.id === 'main-island')
+    if (!mainIslandObstacle) {
+        return false
+    }
+
+    const islandCenterX = (mainIslandObstacle.bounds.minX + mainIslandObstacle.bounds.maxX) / 2
+    const islandCenterY = (mainIslandObstacle.bounds.minY + mainIslandObstacle.bounds.maxY) / 2
+
+    return (
+        startDock.stagingPose.x > islandCenterX + 140 &&
+        startDock.stagingPose.y < islandCenterY &&
+        endDock.stagingPose.x > islandCenterX + 140 &&
+        endDock.stagingPose.y < islandCenterY
+    )
+}
+
+function shouldForceBottomCenterHarborToLowLeft(
+    startDock: DockSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): boolean {
+    if (startDock.family !== 'main-island-harbor' || endDock.family !== 'player-board') {
+        return false
+    }
+
+    const mainIslandObstacle = plannerContext.obstacles.find((obstacle) => obstacle.id === 'main-island')
+    if (!mainIslandObstacle) {
+        return false
+    }
+
+    const islandCenterX = (mainIslandObstacle.bounds.minX + mainIslandObstacle.bounds.maxX) / 2
+    const islandCenterY = (mainIslandObstacle.bounds.minY + mainIslandObstacle.bounds.maxY) / 2
+
+    return (
+        startDock.stagingPose.x > islandCenterX + 140 &&
+        startDock.stagingPose.y > islandCenterY - 20 &&
+        endDock.stagingPose.x < islandCenterX - 220 &&
+        endDock.stagingPose.y > islandCenterY + 180
+    )
+}
+
+function buildForcedChannelDockTransferPlan(
+    startDock: DockSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext,
+    undockCandidates: UndockManeuverCandidate[],
+    channels: TransitChannel[]
+): BoatRoutePlan | null {
+    let bestPlan: BoatRoutePlan | null = null
+
+    for (const undockCandidate of undockCandidates) {
+        const dockConnection = findExactDockConnectionViaChannelChain(
+            undockCandidate.transitPose,
+            endDock,
+            plannerContext,
+            channels
+        )
+        if (!dockConnection) continue
+
+        const undockSegments = [
+            createStraightSegment(startDock.dockedPose, startDock.stagingPose, 'reverse'),
+            ...undockCandidate.maneuverSegments
+        ]
+        const dockSegments = [
+            ...dockConnection.dockSegments,
+            createStraightSegment(endDock.stagingPose, endDock.dockedPose, 'forward')
+        ]
+
+        const candidatePlan: BoatRoutePlan = {
+            undockSegments,
+            transitSegments: dockConnection.transitSegments,
+            dockSegments,
+            segments: [...undockSegments, ...dockConnection.transitSegments, ...dockSegments]
+        }
+
+        if (
+            !bestPlan ||
+            getMotionPathLength(candidatePlan.segments) < getMotionPathLength(bestPlan.segments)
+        ) {
+            bestPlan = candidatePlan
+        }
+    }
+
+    return bestPlan
+}
+
 function findBestDockConnectionForGoals(
     startPose: BoatPose,
     endDocks: DockSlot[],
@@ -741,6 +969,18 @@ function findExactDockConnection(
     endDock: DockSlot,
     plannerContext: PlannerContext
 ): { transitSegments: BoatMotionSegment[]; dockSegments: BoatMotionSegment[]; endDock: DockSlot } | null {
+    if (shouldPreferUpperRightApproachBand(startPose, endDock, plannerContext)) {
+        const upperRightConnection = findExactDockConnectionViaChannelChain(
+            startPose,
+            endDock,
+            plannerContext,
+            [buildUpperRightApproachChannel(endDock, plannerContext)]
+        )
+        if (upperRightConnection) {
+            return upperRightConnection
+        }
+    }
+
     if (shouldForceBottomCenterForLowLeftDock(startPose, endDock, plannerContext)) {
         const bottomCenterChannel = plannerContext.geometry.transitChannels.find(
             (channel) => channel.id === 'channel-bottom-center'

@@ -22,6 +22,9 @@
         getFilledRouteOccupiedDockIds
     } from '$lib/definitions/boatRouteOccupancy.js'
     import {
+        getPrecomputedBoatRoutePlanForGeometry
+    } from '$lib/definitions/boatPrecomputedRoutes.js'
+    import {
         buildRoutePlan,
         type BoatRoutePlan
     } from '$lib/definitions/boatPlanner.js'
@@ -291,13 +294,21 @@
                 targetSlot.id
             ])
             const startedAt = performance.now()
-            const exactPlan = buildRoutePlan(
-                startSlot,
-                targetSlot,
+            const precomputedPlan = getPrecomputedBoatRoutePlanForGeometry(
                 boatNavigationGeometry,
-                occupiedBoatPoses
+                startSlot.id,
+                targetSlot.id
             )
+            const exactPlan =
+                precomputedPlan ??
+                buildRoutePlan(
+                    startSlot,
+                    targetSlot,
+                    boatNavigationGeometry,
+                    occupiedBoatPoses
+                )
             const elapsedMs = Math.round(performance.now() - startedAt)
+            const routeSource = precomputedPlan ? 'precomputed' : 'planned'
 
             if (exactPlan) {
                 routeProbe = {
@@ -306,7 +317,7 @@
                     targetSlotId: targetSlot.id,
                     movingBoatColor,
                     plan: exactPlan,
-                    message: `Route found with all remaining positions occupied from ${startSlot.id} to ${targetSlot.id} in ${elapsedMs}ms.`
+                    message: `Route found (${routeSource}) with all remaining positions occupied from ${startSlot.id} to ${targetSlot.id} in ${elapsedMs}ms.`
                 }
                 routeAnimationStartMs = performance.now()
             } else {
@@ -314,7 +325,7 @@
                     status: 'failed',
                     startSlotId: startSlot.id,
                     targetSlotId: targetSlot.id,
-                    message: `No route found with all remaining positions occupied from ${startSlot.id} to ${targetSlot.id} in ${elapsedMs}ms.`
+                    message: `No route found (${routeSource}) with all remaining positions occupied from ${startSlot.id} to ${targetSlot.id} in ${elapsedMs}ms.`
                 }
             }
         }
