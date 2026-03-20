@@ -2894,6 +2894,14 @@ function buildStraightInDockCandidates(
 
 const OBLIQUE_APPROACH_ANGLE_OFFSETS = [Math.PI / 6, Math.PI / 4]
 const OPEN_WATER_PERPENDICULAR_RADIUS_MULTIPLIERS = [1, 1.35, 1.7]
+const OPEN_WATER_CONE_ENTRY_ANGLE_OFFSETS = [
+    Math.PI / 9,
+    Math.PI / 6,
+    Math.PI / 4,
+    (5 * Math.PI) / 18,
+    Math.PI / 3
+]
+const OPEN_WATER_INITIAL_TURN_RADIUS_MULTIPLIERS = [0.75, 1, 1.35, 1.7]
 const OPEN_WATER_REAR_CONE_HALF_ANGLE = Math.PI / 3
 const OPEN_WATER_REAR_CONE_MIN_DISTANCE = 24
 const OPEN_WATER_REAR_CONE_MAX_DISTANCE = 420
@@ -3171,7 +3179,7 @@ function buildFlexibleOpenWaterFinishSegments(
         parkedPose.x - currentPose.x
     )
 
-    for (const angleOffset of [Math.PI / 6, Math.PI / 4, Math.PI / 3]) {
+    for (const angleOffset of OPEN_WATER_CONE_ENTRY_ANGLE_OFFSETS) {
         const desiredDelta = normalizeAngle(preferredBearing - parkedPose.heading)
         const preferredSign = desiredDelta >= 0 ? 1 : -1
         const candidateHeading = normalizeAngle(parkedPose.heading + preferredSign * angleOffset)
@@ -3197,20 +3205,22 @@ function buildFlexibleOpenWaterFinishSegments(
 
             const alignmentDelta = normalizeAngle(candidateHeading - currentPose.heading)
             if (Math.abs(alignmentDelta) > Math.PI / 24 && Math.abs(alignmentDelta) <= Math.PI * 0.75) {
-                const initialArc = createForwardArcFromStartPose(
-                    currentPose,
-                    alignmentDelta,
-                    OPEN_WATER_TURN_RADIUS
-                )
-                if (analyzeSegment(initialArc, plannerContext).isCollisionFree) {
-                    const laneConnector = buildLaneGoalConnectionSegments(
-                        initialArc.endPose,
-                        finalArc.startPose,
-                        candidateHeading,
-                        plannerContext
+                for (const initialRadiusMultiplier of OPEN_WATER_INITIAL_TURN_RADIUS_MULTIPLIERS) {
+                    const initialArc = createForwardArcFromStartPose(
+                        currentPose,
+                        alignmentDelta,
+                        OPEN_WATER_TURN_RADIUS * initialRadiusMultiplier
                     )
-                    if (laneConnector) {
-                        return [initialArc, ...laneConnector, finalArc]
+                    if (analyzeSegment(initialArc, plannerContext).isCollisionFree) {
+                        const laneConnector = buildLaneGoalConnectionSegments(
+                            initialArc.endPose,
+                            finalArc.startPose,
+                            candidateHeading,
+                            plannerContext
+                        )
+                        if (laneConnector) {
+                            return [initialArc, ...laneConnector, finalArc]
+                        }
                     }
                 }
             }
