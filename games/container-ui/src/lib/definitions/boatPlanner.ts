@@ -100,6 +100,8 @@ type PlannerContext = {
     preferredTransitChannel?: TransitChannel
 }
 
+export type RouteSmoothingMode = 'none' | 'conservative' | 'aggressive'
+
 type SearchBucketConfig = {
     positionBucket: number
     headingBucket: number
@@ -253,12 +255,13 @@ export function buildRoutePlan(
     occupiedBoatPoses: BoatPose[] = []
 ): BoatRoutePlan | null {
     const plannerContext = createPlannerContext(geometry, occupiedBoatPoses)
+    const smoothingMode = getRouteSmoothingMode(start, end)
     if (process.env.BOAT_PRECOMPUTED_DISABLE !== '1') {
         const precomputedPlan = getPrecomputedBoatRoutePlanForEndpoints(geometry, start, end)
         if (precomputedPlan) {
-            return shouldSmoothRoutePlan(start, end)
-                ? smoothRoutePlan(precomputedPlan, plannerContext)
-                : precomputedPlan
+            return smoothingMode === 'none' ?
+                    precomputedPlan
+                :   smoothRoutePlan(precomputedPlan, plannerContext, smoothingMode)
         }
     }
 
@@ -269,7 +272,7 @@ export function buildRoutePlan(
             plannerContext,
             buildUndockCandidates(start, end.stagingPose)
         )
-        return plan ? (shouldSmoothRoutePlan(start, end) ? smoothRoutePlan(plan, plannerContext) : plan) : null
+        return plan ? (smoothingMode === 'none' ? plan : smoothRoutePlan(plan, plannerContext, smoothingMode)) : null
     }
 
     if (isDockSlot(start) && isOpenWaterSlot(end)) {
@@ -280,7 +283,9 @@ export function buildRoutePlan(
             buildUndockCandidates(start, end.stagingPose)
         )
         if (standardPlan) {
-            return shouldSmoothRoutePlan(start, end) ? smoothRoutePlan(standardPlan, plannerContext) : standardPlan
+            return smoothingMode === 'none' ?
+                    standardPlan
+                :   smoothRoutePlan(standardPlan, plannerContext, smoothingMode)
         }
 
         if (start.family !== 'main-island-harbor') {
@@ -293,12 +298,12 @@ export function buildRoutePlan(
             plannerContext,
             buildHarborExitUndockCandidates(start, end.stagingPose)
         )
-        return plan ? (shouldSmoothRoutePlan(start, end) ? smoothRoutePlan(plan, plannerContext) : plan) : null
+        return plan ? (smoothingMode === 'none' ? plan : smoothRoutePlan(plan, plannerContext, smoothingMode)) : null
     }
 
     if (isOpenWaterSlot(start) && isDockSlot(end)) {
         const plan = buildOpenWaterToDockPlan(start, end, plannerContext)
-        return plan ? (shouldSmoothRoutePlan(start, end) ? smoothRoutePlan(plan, plannerContext) : plan) : null
+        return plan ? (smoothingMode === 'none' ? plan : smoothRoutePlan(plan, plannerContext, smoothingMode)) : null
     }
 
     if (isOpenWaterSlot(start) && isOpenWaterSlot(end)) {
@@ -308,8 +313,26 @@ export function buildRoutePlan(
     return null
 }
 
-function shouldSmoothRoutePlan(start: RouteEndpoint, end: RouteEndpoint): boolean {
-    return !(isDockSlot(end) && end.family === 'main-island-harbor')
+function getRouteSmoothingMode(start: RouteEndpoint, end: RouteEndpoint): RouteSmoothingMode {
+    if (isOpenWaterSlot(start) && isOpenWaterSlot(end)) {
+        return 'none'
+    }
+
+    if (isDockSlot(end) && end.family === 'main-island-harbor') {
+        if (isDockSlot(start) && getPlayerBoardCanonicalSeatId(start) === 'p3') {
+            return 'aggressive'
+        }
+        return 'conservative'
+    }
+
+    return 'aggressive'
+}
+
+export function getRouteSmoothingModeForPrecomputed(
+    start: RouteEndpoint,
+    end: RouteEndpoint
+): RouteSmoothingMode {
+    return getRouteSmoothingMode(start, end)
 }
 
 export function buildBestDockTransferPlan(
@@ -3032,8 +3055,12 @@ function getSegmentTraversalCost(
     return cost
 }
 
-function smoothRoutePlan(plan: BoatRoutePlan, plannerContext: PlannerContext): BoatRoutePlan {
-    const transitSegments = smoothTransitSegments(plan.transitSegments, plannerContext)
+function smoothRoutePlan(
+    plan: BoatRoutePlan,
+    plannerContext: PlannerContext,
+    mode: RouteSmoothingMode
+): BoatRoutePlan {
+    const transitSegments = smoothTransitSegments(plan.transitSegments, plannerContext, mode)
     return {
         ...plan,
         transitSegments,
@@ -3041,11 +3068,29 @@ function smoothRoutePlan(plan: BoatRoutePlan, plannerContext: PlannerContext): B
     }
 }
 
+export function smoothRoutePlanForPrecomputed(
+    plan: BoatRoutePlan,
+    geometry: BoatNavigationGeometry,
+    occupiedBoatPoses: BoatPose[],
+    mode: RouteSmoothingMode
+): BoatRoutePlan {
+    if (mode === 'none') {
+        return plan
+    }
+
+    return smoothRoutePlan(plan, createPlannerContext(geometry, occupiedBoatPoses), mode)
+}
+
 function smoothTransitSegments(
     segments: BoatMotionSegment[],
-    plannerContext: PlannerContext
+    plannerContext: PlannerContext,
+    mode: RouteSmoothingMode
 ): BoatMotionSegment[] {
     let smoothed = mergeConsecutiveTransitSegments(segments, plannerContext)
+    if (mode !== 'aggressive') {
+        return smoothed
+    }
+
     let changed = true
 
     while (changed) {
