@@ -11,6 +11,16 @@ import {
     getBoatFootprintPolygon,
     getMovingBoatFootprintPolygon
 } from '$lib/definitions/boatNavigation.js'
+import {
+    DOCK_MANEUVER_CONFIG,
+    HARBOR_K_TURN_LATERAL_OFFSET,
+    HARBOR_K_TURN_REENTRY_DISTANCE,
+    OPEN_WATER_LONG_REVERSE_DISTANCE,
+    OPEN_WATER_SHARP_UNDOCK_CONFIG,
+    OPEN_WATER_STRAIGHT_APPROACH_DISTANCES,
+    OPEN_WATER_TURN_RADIUS,
+    type DockManeuverConfig
+} from '$lib/definitions/boatManeuverConfig.js'
 import { getPrecomputedBoatRoutePlanForEndpoints } from '$lib/definitions/boatPrecomputedRoutes.js'
 import {
     type BoatArcSegment,
@@ -57,13 +67,6 @@ type SearchNode = {
     estimate: number
     parentId?: string
     incomingSegment?: BoatMotionSegment
-}
-
-type DockManeuverConfig = {
-    undockReverseDistance: number
-    undockReverseTurnRadius: number
-    straightApproachDistances: number[]
-    turnRadius: number
 }
 
 type UndockManeuverCandidate = {
@@ -212,18 +215,7 @@ const OBSTACLE_PROXIMITY_WEIGHT = 0.22
 const OBSTACLE_PROXIMITY_CURVE_WEIGHT = 0.04
 const DETOUR_PROGRESS_ALLOWANCE = TURN_RADIUS * 2.5
 const HARBOR_K_TURN_SETUP_DISTANCE = 220
-const HARBOR_K_TURN_LATERAL_OFFSET = 108
-const HARBOR_K_TURN_REENTRY_DISTANCE = 132
 const HARBOR_K_TURN_PIVOT_SCALE = 42
-const OPEN_WATER_STRAIGHT_APPROACH_DISTANCES = [72, 120, 180]
-const OPEN_WATER_TURN_RADIUS = 118
-const OPEN_WATER_LONG_REVERSE_DISTANCE = 300
-const OPEN_WATER_SHARP_UNDOCK_CONFIG: DockManeuverConfig = {
-    undockReverseDistance: 160,
-    undockReverseTurnRadius: 36,
-    straightApproachDistances: OPEN_WATER_STRAIGHT_APPROACH_DISTANCES,
-    turnRadius: OPEN_WATER_TURN_RADIUS
-}
 const CHANNEL_ENDPOINT_MIN_DISTANCE = 220
 const CHANNEL_CLEARANCE_TARGET = 1
 const CHANNEL_PREFERENCE_WEIGHT = 0.55
@@ -233,26 +225,6 @@ const FOUR_PLAYER_MAIN_HARBOR_CHANNEL_OFFSET_X = 150
 const FOUR_PLAYER_MAIN_HARBOR_CHANNEL_OFFSET_Y = 70
 const FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS = 84
 const FOUR_PLAYER_TOP_HARBOR_CHANNEL_Y = 220
-const DOCK_MANEUVER_CONFIG: Record<DockSlot['family'], DockManeuverConfig> = {
-    'main-island-harbor': {
-        undockReverseDistance: 100,
-        undockReverseTurnRadius: 42,
-        straightApproachDistances: [72, 120, 180],
-        turnRadius: 132
-    },
-    'offshore-harbor': {
-        undockReverseDistance: 100,
-        undockReverseTurnRadius: 42,
-        straightApproachDistances: [72, 120, 180],
-        turnRadius: 132
-    },
-    'player-board': {
-        undockReverseDistance: 52,
-        undockReverseTurnRadius: 36,
-        straightApproachDistances: [72, 120, 180],
-        turnRadius: 118
-    }
-}
 
 export function buildDockTransferPlan(
     startDock: DockSlot,
@@ -275,9 +247,11 @@ export function buildRoutePlan(
     geometry: BoatNavigationGeometry,
     occupiedBoatPoses: BoatPose[] = []
 ): BoatRoutePlan | null {
-    const precomputedPlan = getPrecomputedBoatRoutePlanForEndpoints(geometry, start, end)
-    if (precomputedPlan) {
-        return precomputedPlan
+    if (process.env.BOAT_PRECOMPUTED_DISABLE !== '1') {
+        const precomputedPlan = getPrecomputedBoatRoutePlanForEndpoints(geometry, start, end)
+        if (precomputedPlan) {
+            return precomputedPlan
+        }
     }
 
     const plannerContext = createPlannerContext(geometry, occupiedBoatPoses)

@@ -13,7 +13,7 @@ import {
 
 const PRECOMPUTED_BOAT_ROUTES_BY_LAYOUT: Partial<Record<BoatRouteLayoutKey, PrecomputedBoatRoutesFile>> =
     {
-        '3p-no-offshore': threePlayerNoOffshoreRoutes as PrecomputedBoatRoutesFile
+        '3p-no-offshore': threePlayerNoOffshoreRoutes as unknown as PrecomputedBoatRoutesFile
     }
 
 export function getPrecomputedBoatRoutes(
@@ -24,16 +24,16 @@ export function getPrecomputedBoatRoutes(
 
 export function getPrecomputedBoatRoutePlan(
     layoutKey: BoatRouteLayoutKey,
-    startId: string,
-    endId: string
+    start: RouteEndpoint,
+    end: RouteEndpoint
 ): BoatRoutePlan | null {
     const layoutRoutes = getPrecomputedBoatRoutes(layoutKey)
     if (!layoutRoutes) {
         return null
     }
 
-    const route = layoutRoutes.routes[getBoatRouteKey(startId, endId)]
-    return route ? deserializeBoatRoutePlan(route) : null
+    const route = layoutRoutes.routes[getBoatRouteKey(start.canonicalId, end.canonicalId)]
+    return route ? deserializeBoatRoutePlan(route, start, end) : null
 }
 
 export function getBoatRouteLayoutKeyForGeometry(
@@ -59,11 +59,11 @@ export function getBoatRouteLayoutKeyForGeometry(
 
 export function getPrecomputedBoatRoutePlanForGeometry(
     geometry: BoatNavigationGeometry,
-    startId: string,
-    endId: string
+    start: RouteEndpoint,
+    end: RouteEndpoint
 ): BoatRoutePlan | null {
     const layoutKey = getBoatRouteLayoutKeyForGeometry(geometry)
-    return layoutKey ? getPrecomputedBoatRoutePlan(layoutKey, startId, endId) : null
+    return layoutKey ? getPrecomputedBoatRoutePlan(layoutKey, start, end) : null
 }
 
 export function getPrecomputedBoatRoutePlanForEndpoints(
@@ -72,7 +72,5 @@ export function getPrecomputedBoatRoutePlanForEndpoints(
     end: RouteEndpoint
 ): BoatRoutePlan | null {
     const layoutKey = getBoatRouteLayoutKeyForGeometry(geometry)
-    return layoutKey
-        ? getPrecomputedBoatRoutePlan(layoutKey, start.canonicalId, end.canonicalId)
-        : null
+    return layoutKey ? getPrecomputedBoatRoutePlan(layoutKey, start, end) : null
 }

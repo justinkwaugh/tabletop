@@ -303,7 +303,7 @@
             const precomputedRoutes = layoutKey ? getPrecomputedBoatRoutes(layoutKey) : null
             const rawPrecomputedRoute = precomputedRoutes?.routes[routeKey] ?? null
             const precomputedPlan = rawPrecomputedRoute
-                ? deserializeBoatRoutePlan(rawPrecomputedRoute)
+                ? deserializeBoatRoutePlan(rawPrecomputedRoute, startSlot, targetSlot)
                 : getPrecomputedBoatRoutePlanForEndpoints(boatNavigationGeometry, startSlot, targetSlot)
             const exactPlan =
                 precomputedPlan ??

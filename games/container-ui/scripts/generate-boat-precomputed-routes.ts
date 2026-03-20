@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { buildBoardLayout } from '../src/lib/definitions/boardLayout.js'
 import {
@@ -19,6 +19,7 @@ import {
     serializeBoatRoutePlan,
     type PrecomputedBoatRoutesFile
 } from '../src/lib/definitions/boatRouteSerialization.js'
+import type { BoatRoutePlan } from '../src/lib/definitions/boatPlanner.js'
 
 type LayoutSpec = {
     playerCount: 3 | 4 | 5
@@ -68,16 +69,25 @@ function getAllRouteEndpoints(layoutKey: BoatRouteLayoutKey): RouteEndpoint[] {
     ]
 }
 
-function buildPrecomputedRoutesFile(
-    layoutKey: BoatRouteLayoutKey,
-    progressPath?: string
-): PrecomputedBoatRoutesFile {
-    const endpoints = getAllRouteEndpoints(layoutKey)
+function getNavigationForLayout(layoutKey: BoatRouteLayoutKey) {
     const spec = LAYOUT_SPECS[layoutKey]
     const layout = buildBoardLayout(getPlayerIds(spec.playerCount), {
         hasOffshore: spec.hasOffshore
     })
-    const navigation = buildBoatNavigationGeometry(layout)
+    return buildBoatNavigationGeometry(layout)
+}
+
+function buildPrecomputedRoutesFile(
+    layoutKey: BoatRouteLayoutKey,
+    progressPath?: string
+): PrecomputedBoatRoutesFile {
+    const navigation = getNavigationForLayout(layoutKey)
+    const endpoints = [
+        ...navigation.playerBoardDockSlots,
+        ...navigation.mainIslandDockSlots,
+        ...navigation.offshoreDockSlots,
+        ...navigation.openWaterSlots
+    ]
     const routes: Record<string, ReturnType<typeof serializeBoatRoutePlan>> = {}
     const relevantPairs = endpoints.flatMap((start) =>
         endpoints
@@ -97,7 +107,11 @@ function buildPrecomputedRoutesFile(
             throw new Error(`Missing route for ${layoutKey}: ${start.id} -> ${end.id}`)
         }
 
-        routes[getBoatRouteKey(start.id, end.id)] = serializeBoatRoutePlan(plan)
+        routes[getBoatRouteKey(start.canonicalId, end.canonicalId)] = serializeBoatRoutePlan(
+            plan,
+            start,
+            end
+        )
         completedRoutes += 1
 
         if (progressPath && completedRoutes % PROGRESS_UPDATE_INTERVAL === 0) {
@@ -108,6 +122,56 @@ function buildPrecomputedRoutesFile(
                 currentRoute: `${start.id}->${end.id}`
             })
         }
+    }
+
+    return {
+        layoutKey,
+        routeCount: Object.keys(routes).length,
+        generatedAt: new Date().toISOString(),
+        routes
+    }
+}
+
+function convertExistingPrecomputedRoutesFile(
+    layoutKey: BoatRouteLayoutKey,
+    inputPath: string
+): PrecomputedBoatRoutesFile {
+    const raw = JSON.parse(readFileSync(inputPath, 'utf8')) as {
+        routes: Record<string, BoatRoutePlan>
+    }
+    const navigation = getNavigationForLayout(layoutKey)
+    const endpoints = [
+        ...navigation.playerBoardDockSlots,
+        ...navigation.mainIslandDockSlots,
+        ...navigation.offshoreDockSlots,
+        ...navigation.openWaterSlots
+    ]
+    const endpointByCanonicalId = new Map(endpoints.map((endpoint) => [endpoint.canonicalId, endpoint]))
+    const routes: Record<string, ReturnType<typeof serializeBoatRoutePlan>> = {}
+
+    for (const [routeKey, plan] of Object.entries(raw.routes)) {
+        const [startId, endId] = routeKey.split('->')
+        const start = endpointByCanonicalId.get(startId)
+        const end = endpointByCanonicalId.get(endId)
+
+        if (!start || !end) {
+            throw new Error(`Missing endpoint for ${routeKey}`)
+        }
+
+        routes[routeKey] = serializeBoatRoutePlan(
+            {
+                undockSegments: plan.undockSegments,
+                transitSegments: plan.transitSegments,
+                dockSegments: plan.dockSegments,
+                segments: [
+                    ...plan.undockSegments,
+                    ...plan.transitSegments,
+                    ...plan.dockSegments
+                ]
+            },
+            start,
+            end
+        )
     }
 
     return {
@@ -131,10 +195,14 @@ function main(): void {
         parseFlag('--output') ??
             `src/lib/definitions/precomputedBoatRoutes/${layoutKey}.json`
     )
+    const convertExisting = parseFlag('--convert-existing')
     const progressPath = parseFlag('--progress')
         ? resolve(parseFlag('--progress')!)
         : resolve(`/tmp/${layoutKey}-precompute-progress.json`)
-    const precomputedRoutesFile = buildPrecomputedRoutesFile(layoutKey, progressPath)
+    const precomputedRoutesFile =
+        convertExisting ?
+            convertExistingPrecomputedRoutesFile(layoutKey, resolve(convertExisting))
+        :   buildPrecomputedRoutesFile(layoutKey, progressPath)
 
     ensureParentDir(outputPath)
     writeFileSync(outputPath, JSON.stringify(precomputedRoutesFile))
