@@ -11,7 +11,7 @@ import {
     getBoatFootprintPolygon,
     getMovingBoatFootprintPolygon
 } from '$lib/definitions/boatNavigation.js'
-import { getPrecomputedBoatRoutePlanForGeometry } from '$lib/definitions/boatPrecomputedRoutes.js'
+import { getPrecomputedBoatRoutePlanForEndpoints } from '$lib/definitions/boatPrecomputedRoutes.js'
 import {
     type BoatArcSegment,
     createArcSegment,
@@ -275,11 +275,7 @@ export function buildRoutePlan(
     geometry: BoatNavigationGeometry,
     occupiedBoatPoses: BoatPose[] = []
 ): BoatRoutePlan | null {
-    const precomputedPlan = getPrecomputedBoatRoutePlanForGeometry(
-        geometry,
-        start.id,
-        end.id
-    )
+    const precomputedPlan = getPrecomputedBoatRoutePlanForEndpoints(geometry, start, end)
     if (precomputedPlan) {
         return precomputedPlan
     }

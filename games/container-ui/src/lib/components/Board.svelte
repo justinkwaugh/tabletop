@@ -22,8 +22,12 @@
         getFilledRouteOccupiedDockIds
     } from '$lib/definitions/boatRouteOccupancy.js'
     import {
-        getPrecomputedBoatRoutePlanForGeometry
+        getPrecomputedBoatRoutes,
+        getBoatRouteLayoutKeyForGeometry,
+        getPrecomputedBoatRoutePlanForEndpoints
     } from '$lib/definitions/boatPrecomputedRoutes.js'
+    import { deserializeBoatRoutePlan } from '$lib/definitions/boatRouteSerialization.js'
+    import { getBoatRouteKey } from '$lib/definitions/boatRouteKeys.js'
     import {
         buildRoutePlan,
         type BoatRoutePlan
@@ -294,11 +298,13 @@
                 targetSlot.id
             ])
             const startedAt = performance.now()
-            const precomputedPlan = getPrecomputedBoatRoutePlanForGeometry(
-                boatNavigationGeometry,
-                startSlot.id,
-                targetSlot.id
-            )
+            const layoutKey = getBoatRouteLayoutKeyForGeometry(boatNavigationGeometry)
+            const routeKey = getBoatRouteKey(startSlot.canonicalId, targetSlot.canonicalId)
+            const precomputedRoutes = layoutKey ? getPrecomputedBoatRoutes(layoutKey) : null
+            const rawPrecomputedRoute = precomputedRoutes?.routes[routeKey] ?? null
+            const precomputedPlan = rawPrecomputedRoute
+                ? deserializeBoatRoutePlan(rawPrecomputedRoute)
+                : getPrecomputedBoatRoutePlanForEndpoints(boatNavigationGeometry, startSlot, targetSlot)
             const exactPlan =
                 precomputedPlan ??
                 buildRoutePlan(
@@ -317,7 +323,7 @@
                     targetSlotId: targetSlot.id,
                     movingBoatColor,
                     plan: exactPlan,
-                    message: `Route found (${routeSource}) with all remaining positions occupied from ${startSlot.id} to ${targetSlot.id} in ${elapsedMs}ms.`
+                    message: `Route found (${routeSource}, layout ${layoutKey ?? 'unknown'}, key ${routeKey}, ${rawPrecomputedRoute ? 'table-hit' : 'table-miss'}) with all remaining positions occupied from ${startSlot.id} to ${targetSlot.id} in ${elapsedMs}ms.`
                 }
                 routeAnimationStartMs = performance.now()
             } else {
@@ -325,7 +331,7 @@
                     status: 'failed',
                     startSlotId: startSlot.id,
                     targetSlotId: targetSlot.id,
-                    message: `No route found (${routeSource}) with all remaining positions occupied from ${startSlot.id} to ${targetSlot.id} in ${elapsedMs}ms.`
+                    message: `No route found (${routeSource}, layout ${layoutKey ?? 'unknown'}, key ${routeKey}, ${rawPrecomputedRoute ? 'table-hit' : 'table-miss'}) with all remaining positions occupied from ${startSlot.id} to ${targetSlot.id} in ${elapsedMs}ms.`
                 }
             }
         }

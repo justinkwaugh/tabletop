@@ -1,4 +1,7 @@
-import type { BoatNavigationGeometry } from '$lib/definitions/boatNavigation.js'
+import type {
+    BoatNavigationGeometry,
+    RouteEndpoint
+} from '$lib/definitions/boatNavigation.js'
 import threePlayerNoOffshoreRoutes from '$lib/definitions/precomputedBoatRoutes/3p-no-offshore.json'
 import { deserializeBoatRoutePlan, type PrecomputedBoatRoutesFile } from '$lib/definitions/boatRouteSerialization.js'
 import type { BoatRoutePlan } from '$lib/definitions/boatPlanner.js'
@@ -36,6 +39,10 @@ export function getPrecomputedBoatRoutePlan(
 export function getBoatRouteLayoutKeyForGeometry(
     geometry: BoatNavigationGeometry
 ): BoatRouteLayoutKey | null {
+    if (geometry.layoutKey) {
+        return geometry.layoutKey
+    }
+
     const playerBoardDockCount = geometry.playerBoardDockSlots.length
     if (playerBoardDockCount % 4 !== 0) {
         return null
@@ -57,4 +64,15 @@ export function getPrecomputedBoatRoutePlanForGeometry(
 ): BoatRoutePlan | null {
     const layoutKey = getBoatRouteLayoutKeyForGeometry(geometry)
     return layoutKey ? getPrecomputedBoatRoutePlan(layoutKey, startId, endId) : null
+}
+
+export function getPrecomputedBoatRoutePlanForEndpoints(
+    geometry: BoatNavigationGeometry,
+    start: RouteEndpoint,
+    end: RouteEndpoint
+): BoatRoutePlan | null {
+    const layoutKey = getBoatRouteLayoutKeyForGeometry(geometry)
+    return layoutKey
+        ? getPrecomputedBoatRoutePlan(layoutKey, start.canonicalId, end.canonicalId)
+        : null
 }

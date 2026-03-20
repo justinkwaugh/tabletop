@@ -4,6 +4,10 @@ import {
     type OpenWaterSlot as OpenWaterAnchor
 } from '$lib/definitions/boatHoldingAreas.js'
 import type { BoardLayout, PlayerBoardSeat } from '$lib/definitions/boardLayout.js'
+import {
+    getBoatRouteLayoutKey,
+    type BoatRouteLayoutKey
+} from '$lib/definitions/boatRouteKeys.js'
 import { buildTransitChannelAnchors } from '$lib/definitions/boatTransitChannels.js'
 import {
     DEFAULT_BOAT_RENDER_HEIGHT,
@@ -38,6 +42,7 @@ export type BoatPose = {
 
 export type DockSlot = {
     id: string
+    canonicalId: string
     family: 'main-island-harbor' | 'offshore-harbor' | 'player-board'
     dockedPose: BoatPose
     stagingPose: BoatPose
@@ -45,6 +50,7 @@ export type DockSlot = {
 
 export type OpenWaterSlot = {
     id: string
+    canonicalId: string
     family: 'open-water'
     parkedPose: BoatPose
     stagingPose: BoatPose
@@ -66,6 +72,7 @@ export type TransitChannel = {
 }
 
 export type BoatNavigationGeometry = {
+    layoutKey: BoatRouteLayoutKey | null
     boardWidth: number
     boardHeight: number
     boatWidth: number
@@ -115,6 +122,7 @@ function openWaterAnchorToSlot(anchor: OpenWaterAnchor): OpenWaterSlot {
     }
     return {
         id: anchor.id,
+        canonicalId: anchor.id,
         family: 'open-water',
         parkedPose,
         stagingPose: createStagingPose(parkedPose, OPEN_WATER_STAGING_DISTANCE)
@@ -180,6 +188,11 @@ function createConnectorObstacles(boardLayout: BoardLayout): NavigationObstacle[
 }
 
 export function buildBoatNavigationGeometry(boardLayout: BoardLayout): BoatNavigationGeometry {
+    const playerCount = boardLayout.playerBoardSeats.length
+    const layoutKey =
+        playerCount === 3 || playerCount === 4 || playerCount === 5
+            ? getBoatRouteLayoutKey(playerCount, !!boardLayout.offshoreRect)
+            : null
     const openWaterSlots = buildOpenWaterSlots(boardLayout).map(openWaterAnchorToSlot)
     const transitChannels = buildTransitChannelAnchors(boardLayout)
     const mainIslandDockSlots = getMainIslandDockBoatAnchors(
@@ -192,6 +205,7 @@ export function buildBoatNavigationGeometry(boardLayout: BoardLayout): BoatNavig
         const dockedPose = dockAnchorToPose(anchor, DEFAULT_BOAT_RENDER_WIDTH)
         return {
             id: `main-island-dock-${index}`,
+            canonicalId: `main-island-dock-${index}`,
             family: 'main-island-harbor',
             dockedPose,
             stagingPose: createStagingPose(dockedPose, MAIN_ISLAND_DOCK_STAGING_DISTANCE)
@@ -208,6 +222,7 @@ export function buildBoatNavigationGeometry(boardLayout: BoardLayout): BoatNavig
               const dockedPose = dockAnchorToPose(anchor, DEFAULT_BOAT_RENDER_WIDTH)
               return {
                   id: `offshore-dock-${index}`,
+                  canonicalId: `offshore-dock-${index}`,
                   family: 'offshore-harbor',
                   dockedPose,
                   stagingPose: createStagingPose(dockedPose, MAIN_ISLAND_DOCK_STAGING_DISTANCE)
@@ -215,7 +230,7 @@ export function buildBoatNavigationGeometry(boardLayout: BoardLayout): BoatNavig
           })
         : []
 
-    const playerBoardDockSlots = boardLayout.playerBoardSeats.flatMap((seat) =>
+    const playerBoardDockSlots = boardLayout.playerBoardSeats.flatMap((seat, seatIndex) =>
         getPlayerBoardDockBoatAnchors(seat.orientation, seat.width, seat.height).map(
             (anchor, index): DockSlot => {
                 const dockedPose = dockAnchorToPose(
@@ -229,6 +244,7 @@ export function buildBoatNavigationGeometry(boardLayout: BoardLayout): BoatNavig
 
                 return {
                     id: `${seat.playerId}-dock-${index}`,
+                    canonicalId: `p${seatIndex + 1}-dock-${index}`,
                     family: 'player-board',
                     dockedPose,
                     stagingPose: createStagingPose(dockedPose, PLAYER_BOARD_DOCK_STAGING_DISTANCE)
@@ -245,6 +261,7 @@ export function buildBoatNavigationGeometry(boardLayout: BoardLayout): BoatNavig
     ]
 
     return {
+        layoutKey,
         boardWidth: boardLayout.boardWidth,
         boardHeight: boardLayout.boardHeight,
         boatWidth: DEFAULT_BOAT_RENDER_WIDTH,
