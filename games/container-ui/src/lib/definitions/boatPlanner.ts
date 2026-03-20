@@ -563,6 +563,15 @@ function evaluateDockToOpenWaterPlan(
     plannerContext: PlannerContext,
     undockCandidates: UndockManeuverCandidate[]
 ): BoatRoutePlan | null {
+    const explicitFourPlayerTopPlan = buildFourPlayerNoOffshoreP1TopOpenWaterPlan(
+        startDock,
+        endSlot,
+        plannerContext
+    )
+    if (explicitFourPlayerTopPlan) {
+        return explicitFourPlayerTopPlan
+    }
+
     const explicitFourPlayerPlan = buildFourPlayerNoOffshoreP4BottomOpenWaterPlan(
         startDock,
         endSlot,
@@ -642,6 +651,62 @@ function evaluateDockToOpenWaterPlan(
             transitSegments: poseConnection.transitSegments,
             dockSegments: parkSegments,
             segments: [...undockSegments, ...poseConnection.transitSegments, ...parkSegments]
+        }
+
+        if (
+            !bestPlan ||
+            getMotionPathLength(candidatePlan.segments) < getMotionPathLength(bestPlan.segments)
+        ) {
+            bestPlan = candidatePlan
+        }
+    }
+
+    return bestPlan
+}
+
+function buildFourPlayerNoOffshoreP1TopOpenWaterPlan(
+    startDock: DockSlot,
+    endSlot: OpenWaterSlot,
+    plannerContext: PlannerContext
+): BoatRoutePlan | null {
+    if (
+        plannerContext.geometry.layoutKey !== '4p-no-offshore' ||
+        getPlayerBoardCanonicalSeatId(startDock) !== 'p1' ||
+        endSlot.parkedPose.y >= plannerContext.geometry.boardHeight / 2
+    ) {
+        return null
+    }
+
+    const upwardCandidates = buildUndockCandidates(startDock, endSlot.parkedPose).filter(
+        (candidate) => Math.sin(candidate.transitPose.heading) < -0.35
+    )
+
+    let bestPlan: BoatRoutePlan | null = null
+
+    for (const undockCandidate of upwardCandidates) {
+        const finalConnection = findOpenWaterConnectionDirect(
+            undockCandidate.transitPose,
+            endSlot,
+            plannerContext
+        )
+        if (!finalConnection) {
+            continue
+        }
+
+        const undockSegments = [
+            createStraightSegment(startDock.dockedPose, startDock.stagingPose, 'reverse'),
+            ...undockCandidate.maneuverSegments
+        ]
+
+        const candidatePlan: BoatRoutePlan = {
+            undockSegments,
+            transitSegments: finalConnection.transitSegments,
+            dockSegments: finalConnection.goalSegments,
+            segments: [
+                ...undockSegments,
+                ...finalConnection.transitSegments,
+                ...finalConnection.goalSegments
+            ]
         }
 
         if (
