@@ -1,6 +1,5 @@
 <script lang="ts">
     import { type GameAction } from '@tabletop/common'
-    import { PlayerName } from '@tabletop/frontend-components'
     import { INDONESIA_REGION_BY_AREA_ID, isGrowCity, isIndonesiaNodeId } from '@tabletop/indonesia'
     import { aggregateActions } from '$lib/utils/actionAggregator.js'
     import { getRegionName } from '$lib/definitions/regions.js'
@@ -8,6 +7,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let gameSession = getGameSession()
+    let { fallbackText = 'Viewing history.' }: { fallbackText?: string } = $props()
 
     const lastAction = $derived.by(() => {
         const aggregated = Array.from(aggregateActions(gameSession.actions))
@@ -50,7 +50,7 @@
             />
         </h1>
     {:else}
-        <span class="history-last-action-fallback">Viewing history.</span>
+        <span class="history-last-action-fallback">{fallbackText}</span>
     {/if}
 </div>
 

@@ -1691,6 +1691,12 @@
         return Math.max(0, expansionLimit - expansionCount)
     })
 
+    const showWaitingLastActionDescription = $derived.by(() => {
+        return (
+            !gameSession.isViewingHistory && !gameSession.gameState.result && !gameSession.isMyTurn
+        )
+    })
+
     const message = $derived.by(() => {
         if (gameSession.isViewingHistory) {
             return 'Viewing history.'
@@ -2106,6 +2112,8 @@
 >
     {#if gameSession.isViewingHistory}
         <LastHistoryDescription />
+    {:else if showWaitingLastActionDescription}
+        <LastHistoryDescription fallbackText="Waiting for your turn." />
     {:else if showTurnOrderBidTracker}
         <div class="bid-tracker-panel">
             <span class="bid-tracker-message">{message}</span>
