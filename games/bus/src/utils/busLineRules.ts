@@ -82,7 +82,11 @@ function validBusLineExtensionSegmentsWithOccupancy(
 
     const candidatesBySource = new Map<
         BusNodeId,
-        { segment: BusLineSegment; allowedUnderPrimaryRule: boolean }[]
+        {
+            segment: BusLineSegment
+            occupiedByOtherLine: boolean
+            allowedUnderPrimaryRule: boolean
+        }[]
     >()
     candidatesBySource.set(head, [])
     if (tail !== head) {
@@ -134,6 +138,7 @@ function validBusLineExtensionSegmentsWithOccupancy(
 
         sourceCandidates.push({
             segment: [source, target],
+            occupiedByOtherLine,
             allowedUnderPrimaryRule: !occupiedByOtherLine || isHeadToHeadWithOtherLine
         })
         seen.add(directedKey)
@@ -149,6 +154,15 @@ function validBusLineExtensionSegmentsWithOccupancy(
 
     const segments: BusLineSegment[] = []
     for (const endpointCandidates of candidatesBySource.values()) {
+        const hasAnyUnoccupiedCandidate = endpointCandidates.some(
+            (candidate) => !candidate.occupiedByOtherLine
+        )
+        if (!hasAnyUnoccupiedCandidate) {
+            // Fully occupied endpoints unlock all non-self continuations from that end.
+            segments.push(...endpointCandidates.map((candidate) => candidate.segment))
+            continue
+        }
+
         const primaryAllowedSegments = endpointCandidates
             .filter((candidate) => candidate.allowedUnderPrimaryRule)
             .map((candidate) => candidate.segment)
@@ -157,8 +171,8 @@ function validBusLineExtensionSegmentsWithOccupancy(
             continue
         }
 
-        // Endpoint-specific fallback: if this end has no primary-legal options,
-        // allow any non-self edge from that end.
+        // Mixed-occupancy endpoints only fall back when no unoccupied or head-to-head
+        // extension survives the primary rule.
         segments.push(...endpointCandidates.map((candidate) => candidate.segment))
     }
 

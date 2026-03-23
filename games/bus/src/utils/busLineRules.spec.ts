@@ -135,4 +135,32 @@ describe('busLineRules', () => {
             ])
         )
     })
+
+    it('allows every occupied continuation from a fully occupied endpoint even when one is head-to-head', () => {
+        const selfLine: BusNodeId[] = [
+            'N30',
+            'N35',
+            'N33',
+            'N28',
+            'N21',
+            'N22',
+            'N24',
+            'N17',
+            'N14',
+            'N13',
+            'N19'
+        ]
+        const otherLines: BusNodeId[][] = [
+            ['N07', 'N09', 'N05', 'N08', 'N10', 'N14', 'N17', 'N15', 'N23', 'N20', 'N26'],
+            ['N19', 'N24', 'N20', 'N15', 'N08', 'N10', 'N05'],
+            ['N17', 'N15', 'N10', 'N05', 'N09', 'N14', 'N19', 'N21', 'N18', 'N13', 'N07']
+        ]
+
+        const segments = validBusLineExtensionSegments(selfLine, otherLines)
+        const segmentKeys = new Set(segments.map(([source, target]) => `${source}:${target}`))
+
+        expect(segmentKeys).toEqual(
+            new Set(['N30:N22', 'N30:N24', 'N19:N14', 'N19:N21', 'N19:N24'])
+        )
+    })
 })
