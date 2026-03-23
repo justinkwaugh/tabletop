@@ -125,6 +125,7 @@
 
     type TurnOrderBidEntry = {
         playerId: string
+        bidMultiplier: number
         turnOrderBid: TurnOrderBid | null
     }
 
@@ -224,6 +225,9 @@
 
         return gameSession.gameState.turnManager.turnOrder.map((playerId) => ({
             playerId,
+            bidMultiplier:
+                BID_RESEARCH_MULTIPLIERS[gameSession.gameState.getPlayerState(playerId).research.bid] ??
+                1,
             turnOrderBid: bidByPlayerId[playerId] ?? null
         }))
     })
@@ -244,6 +248,10 @@
                 lastTurnOrderBidAction.index
             ).map((entry) => ({
                 playerId: entry.playerId,
+                bidMultiplier:
+                    BID_RESEARCH_MULTIPLIERS[
+                        gameSession.gameState.getPlayerState(entry.playerId).research.bid
+                    ] ?? 1,
                 turnOrderBid: bidByPlayerId[entry.playerId] ?? null
             }))
         }
@@ -2145,7 +2153,9 @@
                                 <span class="bid-value-text">
                                     <span class="bid-eq-number">{entry.turnOrderBid?.bid}</span>
                                     <span class="bid-eq-token">x</span>
-                                    <span class="bid-eq-number">{entry.turnOrderBid?.multiplier}</span>
+                                    <span class="bid-eq-number">
+                                        {entry.turnOrderBid?.multiplier ?? entry.bidMultiplier}
+                                    </span>
                                     <span class="bid-eq-token">=</span>
                                     <span class="bid-eq-total">{entry.turnOrderBid?.total}</span>
                                 </span>
