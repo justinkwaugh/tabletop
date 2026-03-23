@@ -31,6 +31,7 @@
         companyId: string
         regionId: string
         deedId: string
+        areaIdsInRegionCount: number
         ownerColor: string
         goodType: MarkerGood
         goodsCount: number
@@ -51,6 +52,7 @@
         companyId: string
         deedId: string
         regionId: string
+        areaIdsInRegionCount: number
         x: number
         y: number
         baseX: number
@@ -822,8 +824,7 @@
                     // currently has no cultivated areas in its region.
                     continue
                 }
-                const selectedZoneRegionPoints = selectedZone
-                    .areaIdsInRegion
+                const selectedZoneRegionPoints = selectedZone.areaIdsInRegion
                     .map((areaId) => resolveLandMarkerPosition(areaId))
                     .filter((point): point is Point => point !== null)
                 let targetPoint = averagePoint(selectedZoneRegionPoints)
@@ -862,6 +863,7 @@
                     companyId: company.id,
                     regionId: deed.region,
                     deedId: deed.id,
+                    areaIdsInRegionCount: selectedZone.areaIdsInRegion.length,
                     ownerColor,
                     goodType: markerGood,
                     goodsCount:
@@ -946,6 +948,7 @@
                     companyId: marker.companyId,
                     deedId: marker.deedId,
                     regionId,
+                    areaIdsInRegionCount: marker.areaIdsInRegionCount,
                     x: markerX,
                     y: markerY,
                     baseX: baseMarkerX,
@@ -962,13 +965,40 @@
             }
         }
 
+        const uniqueMarkerEntriesByZoneKey = new Map<string, ProductionZoneMarkerEntry>()
+        for (const marker of markerEntries) {
+            const zoneKey = `${marker.companyId}|${marker.zoneAreaIds.join(',')}`
+            const existing = uniqueMarkerEntriesByZoneKey.get(zoneKey)
+            if (!existing) {
+                uniqueMarkerEntriesByZoneKey.set(zoneKey, marker)
+                continue
+            }
+
+            if (marker.areaIdsInRegionCount > existing.areaIdsInRegionCount) {
+                uniqueMarkerEntriesByZoneKey.set(zoneKey, marker)
+                continue
+            }
+
+            if (marker.areaIdsInRegionCount < existing.areaIdsInRegionCount) {
+                continue
+            }
+
+            if (
+                marker.key.localeCompare(existing.key, undefined, { numeric: true }) < 0
+            ) {
+                uniqueMarkerEntriesByZoneKey.set(zoneKey, marker)
+            }
+        }
+
+        const deduplicatedMarkerEntries = [...uniqueMarkerEntriesByZoneKey.values()]
+
         if (uiPerfEnabled) {
             recordUiPerfSample(
                 'board:production-zone-markers:derive',
                 performance.now() - computationStartAt,
                 {
                     actionCount: gameSession.gameState.actionCount,
-                    markerCount: markerEntries.length,
+                    markerCount: deduplicatedMarkerEntries.length,
                     pendingCount: pendingMarkers.length,
                     zoneBuildMs: Math.round(zoneBuildMs * 100) / 100,
                     boundaryResolveMs: Math.round(boundaryResolveMs * 100) / 100,
@@ -979,7 +1009,7 @@
             )
         }
 
-        return markerEntries
+        return deduplicatedMarkerEntries
     })
 
     const spotlightedProductionCompanyIdSet: ReadonlySet<string> = $derived.by(() => {
