@@ -6,6 +6,7 @@
     import ShipMarker from '$lib/components/ShipMarker.svelte'
     import { shadeHexColor } from '$lib/utils/color.js'
     import { SHIPPING_ERA_ORDER, shippingSizeTotalsFromDeeds } from '$lib/utils/deeds.js'
+    import { splitQuantifiedPlannedDeliveryRow } from '$lib/utils/plannedDeliveryRows.js'
     import { shippingStyleByCompanyId, type ShippingStyle } from '$lib/utils/shippingStyles.js'
     import { summarizeConsecutiveTurnOrderBids } from '$lib/utils/turnOrderBidSummary.js'
     import { Color } from '@tabletop/common'
@@ -1239,7 +1240,7 @@
         }
 
         const baseRemainingRows = deliveryPlanForDisplay.deliveries
-            .map((delivery, index) => {
+            .flatMap((delivery, index) => {
                 const rowKey = plannedDeliveryRowKey({
                     zoneId: delivery.zoneId,
                     cityId: delivery.cityId,
@@ -1303,13 +1304,12 @@
                     })
                 }
 
-                return {
+                return splitQuantifiedPlannedDeliveryRow({
                     key: rowKey,
                     zoneId: delivery.zoneId,
                     cityId: delivery.cityId,
                     quantity: delivery.quantity,
                     destinationLabel: cityDestinationLabel(delivery.cityId),
-                    required: requiredQuantity > 0,
                     requiredQuantity,
                     plannedRouteOptionKey,
                     routeOptions: [...routeOptionByShippingCompanyId.values()].sort((left, right) => {
@@ -1321,7 +1321,7 @@
                         return left.shippingCompanyId.localeCompare(right.shippingCompanyId)
                     }),
                     index
-                }
+                })
             })
 
         const displayedRowsRemainStableAfterSelection = (
@@ -1526,10 +1526,11 @@
                     shipped: false,
                     routeOptions,
                     selectedRoute,
-                    index: baseRow.index
+                    index: baseRow.index,
+                    unitIndex: baseRow.unitIndex
                 }
             })
-            .filter((row): row is PlannedDeliveryRow & { index: number } => row !== null)
+            .filter((row): row is PlannedDeliveryRow & { index: number; unitIndex: number } => row !== null)
             .sort((left, right) => {
                 if (left.required !== right.required) {
                     return left.required ? -1 : 1
@@ -1537,9 +1538,12 @@
                 if (left.shippingCost !== right.shippingCost) {
                     return left.shippingCost - right.shippingCost
                 }
-                return left.index - right.index
+                if (left.index !== right.index) {
+                    return left.index - right.index
+                }
+                return left.unitIndex - right.unitIndex
             })
-            .map(({ index: _index, ...row }) => row)
+            .map(({ index: _index, unitIndex: _unitIndex, ...row }) => row)
 
         return [...completedRows, ...remainingRows]
     })
