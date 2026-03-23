@@ -4468,9 +4468,7 @@ function buildPoseGoalConnectionSegments(
         return []
     }
 
-    const travelBearing = Math.atan2(dy, dx)
-    const alignmentDelta = Math.abs(normalizeAngle(travelBearing - currentPose.heading))
-    if (alignmentDelta > GOAL_CONNECTION_ALIGNMENT_TOLERANCE) {
+    if (!isStraightTravelAligned(currentPose, goalPose)) {
         return null
     }
 
@@ -4509,9 +4507,7 @@ function buildLaneGoalConnectionSegments(
         return []
     }
 
-    const travelBearing = Math.atan2(dy, dx)
-    const alignmentDelta = Math.abs(normalizeAngle(travelBearing - currentPose.heading))
-    if (alignmentDelta > GOAL_CONNECTION_ALIGNMENT_TOLERANCE) {
+    if (!isStraightTravelAligned(currentPose, goalPose)) {
         return null
     }
 
