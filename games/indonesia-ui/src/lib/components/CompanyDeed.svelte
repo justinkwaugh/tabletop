@@ -169,15 +169,16 @@
     const textLineHeight = $derived(textSize * (textLayout?.textLineHeightRatio ?? 1.05))
     const textStartYLocal = $derived(textYLocal - ((textLines.length - 1) * textLineHeight) / 2)
     const shippingSizeRow = $derived.by(() => shippingSizes ?? [])
-    const shippingSizePairGap = $derived(width * 0.34)
+    const shippingSizePairGap = $derived(width * 0.31)
     const shippingSizeStartXLocal = $derived(
         -((shippingSizeRow.length - 1) * shippingSizePairGap) / 2
     )
     const shippingSizeYLocal = $derived(iconYLocal + height * 0.88 + 5)
     const shippingSizeFont = $derived(height * 0.21)
+    const shippingEraFont = $derived(shippingSizeFont * 0.82)
+    const shippingPairInnerGap = $derived(height * 0.012)
     const shippingEraOpacity = 0.62
     const shippingNumberOpacity = 1
-    const shippingPairSpacing = $derived(height * 0.025)
 </script>
 
 <g class="pointer-events-none select-none" aria-hidden="true" transform={`translate(${x} ${y})`}>
@@ -225,22 +226,32 @@
     {#if shippingSizeRow.length > 0}
         <g>
             {#each shippingSizeRow as sizeEntry, index (`${sizeEntry.era}-${sizeEntry.size}-${index}`)}
+                {@const pairCenterX = shippingSizeStartXLocal + index * shippingSizePairGap}
                 <text
-                    x={shippingSizeStartXLocal + index * shippingSizePairGap}
+                    x={pairCenterX - shippingPairInnerGap}
                     y={shippingSizeYLocal}
                     fill={resolvedTextColor}
-                    font-size={shippingSizeFont}
+                    fill-opacity={shippingEraOpacity}
+                    font-size={shippingEraFont}
+                    font-weight="500"
                     font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif"
-                    text-anchor="middle"
-                    letter-spacing="0.1"
+                    text-anchor="end"
+                    letter-spacing="0.05"
                 >
-                    <tspan fill-opacity={shippingEraOpacity} font-weight="500"
-                        >{sizeEntry.era}</tspan
-                    >
-                    <tspan dx={shippingPairSpacing}></tspan>
-                    <tspan fill-opacity={shippingNumberOpacity} font-weight="700"
-                        >{sizeEntry.size}</tspan
-                    >
+                    {sizeEntry.era}
+                </text>
+                <text
+                    x={pairCenterX + shippingPairInnerGap}
+                    y={shippingSizeYLocal}
+                    fill={resolvedTextColor}
+                    fill-opacity={shippingNumberOpacity}
+                    font-size={shippingSizeFont}
+                    font-weight="700"
+                    font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif"
+                    text-anchor="start"
+                    letter-spacing="0.05"
+                >
+                    {sizeEntry.size}
                 </text>
             {/each}
         </g>
