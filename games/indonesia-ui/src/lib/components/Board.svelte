@@ -13,6 +13,7 @@
     import BoardShipsLayer from '$lib/components/BoardShipsLayer.svelte'
     import BoardTurnOrderLayer from '$lib/components/BoardTurnOrderLayer.svelte'
     import BoardDebugOverlay from '$lib/components/BoardDebugOverlay.svelte'
+    import EraCrossMark from '$lib/components/EraCrossMark.svelte'
     import type { CityDemandViewMode } from '$lib/model/cityDemandView.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { MachineState } from '@tabletop/indonesia'
@@ -55,6 +56,7 @@
             state === MachineState.ProductionOperations
         return inOperationsState && gameSession.gameState.producedGoodsOnBoard().size > 0
     })
+    const eraComplete = $derived.by(() => gameSession.gameState.shouldStartNewEra())
 
     onMount(() => {
         if (typeof window === 'undefined') {
@@ -124,6 +126,7 @@
         >
             <g
                 class="board-era-watermark"
+                class:board-era-watermark--complete={eraComplete}
                 aria-hidden="true"
                 transform="translate(840 155)"
             >
@@ -131,6 +134,11 @@
                 <text class="board-era-watermark__value" x="114" y="0">
                     {gameSession.gameState.era}
                 </text>
+                {#if eraComplete}
+                    <g class="board-era-watermark__cross" aria-hidden="true">
+                        <EraCrossMark x={-198} y={-23} width={426} verticalScale={0.72} />
+                    </g>
+                {/if}
             </g>
             <BoardCityReferenceCardLayer />
             {#if !debugOverlayActive}
@@ -191,6 +199,10 @@
         opacity: 0.18;
     }
 
+    .board-era-watermark--complete {
+        opacity: 0.22;
+    }
+
     .board-era-watermark__label {
         font-family: 'scriptina-pro', cursive;
         font-size: 118px;
@@ -211,6 +223,10 @@
         text-anchor: middle;
         dominant-baseline: middle;
         fill: currentColor;
+    }
+
+    .board-era-watermark__cross {
+        color: currentColor;
     }
 
     .board-surface {
