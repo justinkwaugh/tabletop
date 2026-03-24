@@ -232,6 +232,45 @@ const FOUR_PLAYER_NO_OFFSHORE_MAIN_TO_P2_REGRESSIONS = [
     ['main-island-dock-3', 'p2-dock-3']
 ] as const
 
+const FOUR_PLAYER_NO_OFFSHORE_MAIN_TO_P3_REGRESSIONS = [
+    ['main-island-dock-0', 'p3-dock-0'],
+    ['main-island-dock-0', 'p3-dock-1'],
+    ['main-island-dock-0', 'p3-dock-2'],
+    ['main-island-dock-0', 'p3-dock-3'],
+    ['main-island-dock-1', 'p3-dock-0'],
+    ['main-island-dock-1', 'p3-dock-1'],
+    ['main-island-dock-1', 'p3-dock-2'],
+    ['main-island-dock-1', 'p3-dock-3'],
+    ['main-island-dock-2', 'p3-dock-0'],
+    ['main-island-dock-2', 'p3-dock-1'],
+    ['main-island-dock-2', 'p3-dock-2'],
+    ['main-island-dock-2', 'p3-dock-3'],
+    ['main-island-dock-3', 'p3-dock-0'],
+    ['main-island-dock-3', 'p3-dock-1'],
+    ['main-island-dock-3', 'p3-dock-2'],
+    ['main-island-dock-3', 'p3-dock-3']
+] as const
+
+const FOUR_PLAYER_NO_OFFSHORE_MAIN_TO_OPEN_WATER_REGRESSIONS = [
+    ['main-island-dock-0', 'open-water-0'],
+    ['main-island-dock-0', 'open-water-1'],
+    ['main-island-dock-0', 'open-water-2'],
+    ['main-island-dock-0', 'open-water-3'],
+    ['main-island-dock-1', 'open-water-0'],
+    ['main-island-dock-1', 'open-water-1'],
+    ['main-island-dock-1', 'open-water-2'],
+    ['main-island-dock-1', 'open-water-3'],
+    ['main-island-dock-2', 'open-water-0'],
+    ['main-island-dock-2', 'open-water-1'],
+    ['main-island-dock-2', 'open-water-2'],
+    ['main-island-dock-2', 'open-water-3'],
+    ['main-island-dock-3', 'open-water-0'],
+    ['main-island-dock-3', 'open-water-1'],
+    ['main-island-dock-3', 'open-water-2'],
+    ['main-island-dock-3', 'open-water-3']
+] as const
+
+
 describe('buildDockTransferPlan', () => {
     const boardLayout = buildBoardLayout(['p1', 'p2', 'p3'], { hasOffshore: false })
     const navigationGeometry = buildBoatNavigationGeometry(boardLayout)
@@ -721,6 +760,63 @@ describe('buildDockTransferPlan', () => {
 
             expect(plan).not.toBeNull()
             expect(getMotionPathLength(plan!.segments)).toBeLessThan(2000)
+        }
+    )
+
+    it.each(FOUR_PLAYER_NO_OFFSHORE_MAIN_TO_P3_REGRESSIONS)(
+        'keeps %s -> %s compact with all docks occupied in 4p no-offshore',
+        (startId, endId) => {
+            const boardLayout = buildBoardLayout(['p1', 'p2', 'p3', 'p4'], { hasOffshore: false })
+            const navigationGeometry = buildBoatNavigationGeometry(boardLayout)
+            const allDocks = [
+                ...navigationGeometry.playerBoardDockSlots,
+                ...navigationGeometry.mainIslandDockSlots
+            ]
+            const dockById = new Map(allDocks.map((dock) => [dock.id, dock]))
+            const startDock = dockById.get(startId)
+            const endDock = dockById.get(endId)
+
+            expect(startDock).toBeDefined()
+            expect(endDock).toBeDefined()
+
+            const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(allDocks, [startId, endId])
+            const plan = buildDockTransferPlan(
+                startDock!,
+                endDock!,
+                navigationGeometry,
+                occupiedBoatPoses
+            )
+
+            expect(plan).not.toBeNull()
+            expect(getMotionPathLength(plan!.segments)).toBeLessThan(2000)
+        }
+    )
+
+    it.each(FOUR_PLAYER_NO_OFFSHORE_MAIN_TO_OPEN_WATER_REGRESSIONS)(
+        'keeps %s -> %s compact with all other endpoints occupied in 4p no-offshore',
+        (startId, endId) => {
+            const boardLayout = buildBoardLayout(['p1', 'p2', 'p3', 'p4'], { hasOffshore: false })
+            const navigationGeometry = buildBoatNavigationGeometry(boardLayout)
+            const allEndpoints = [
+                ...navigationGeometry.playerBoardDockSlots,
+                ...navigationGeometry.mainIslandDockSlots,
+                ...navigationGeometry.openWaterSlots
+            ]
+            const endpointById = new Map(allEndpoints.map((slot) => [slot.id, slot]))
+            const start = endpointById.get(startId)
+            const end = endpointById.get(endId)
+
+            expect(start).toBeDefined()
+            expect(end).toBeDefined()
+
+            const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(allEndpoints, [
+                startId,
+                endId
+            ])
+            const plan = buildRoutePlan(start!, end!, navigationGeometry, occupiedBoatPoses)
+
+            expect(plan).not.toBeNull()
+            expect(getMotionPathLength(plan!.segments)).toBeLessThan(2600)
         }
     )
 
