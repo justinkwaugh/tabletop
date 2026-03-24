@@ -270,6 +270,25 @@ const FOUR_PLAYER_NO_OFFSHORE_MAIN_TO_OPEN_WATER_REGRESSIONS = [
     ['main-island-dock-3', 'open-water-3']
 ] as const
 
+const FOUR_PLAYER_NO_OFFSHORE_OPEN_TO_MAIN_HARBOR_REGRESSIONS = [
+    ['open-water-0', 'main-island-dock-0'],
+    ['open-water-0', 'main-island-dock-1'],
+    ['open-water-0', 'main-island-dock-2'],
+    ['open-water-0', 'main-island-dock-3'],
+    ['open-water-1', 'main-island-dock-0'],
+    ['open-water-1', 'main-island-dock-1'],
+    ['open-water-1', 'main-island-dock-2'],
+    ['open-water-1', 'main-island-dock-3'],
+    ['open-water-2', 'main-island-dock-0'],
+    ['open-water-2', 'main-island-dock-1'],
+    ['open-water-2', 'main-island-dock-2'],
+    ['open-water-2', 'main-island-dock-3'],
+    ['open-water-3', 'main-island-dock-0'],
+    ['open-water-3', 'main-island-dock-1'],
+    ['open-water-3', 'main-island-dock-2'],
+    ['open-water-3', 'main-island-dock-3']
+] as const
+
 
 describe('buildDockTransferPlan', () => {
     const boardLayout = buildBoardLayout(['p1', 'p2', 'p3'], { hasOffshore: false })
@@ -819,6 +838,78 @@ describe('buildDockTransferPlan', () => {
             expect(getMotionPathLength(plan!.segments)).toBeLessThan(2600)
         }
     )
+
+    it.each(FOUR_PLAYER_NO_OFFSHORE_OPEN_TO_MAIN_HARBOR_REGRESSIONS)(
+        'keeps %s -> %s compact entering main harbor with all other endpoints occupied in 4p no-offshore',
+        (startId, endId) => {
+            const boardLayout = buildBoardLayout(['p1', 'p2', 'p3', 'p4'], { hasOffshore: false })
+            const navigationGeometry = buildBoatNavigationGeometry(boardLayout)
+            const allEndpoints = [
+                ...navigationGeometry.playerBoardDockSlots,
+                ...navigationGeometry.mainIslandDockSlots,
+                ...navigationGeometry.openWaterSlots
+            ]
+            const endpointById = new Map(allEndpoints.map((slot) => [slot.id, slot]))
+            const start = endpointById.get(startId)
+            const end = endpointById.get(endId)
+
+            expect(start).toBeDefined()
+            expect(end).toBeDefined()
+
+            const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(allEndpoints, [
+                startId,
+                endId
+            ])
+            const plan = buildRoutePlan(start!, end!, navigationGeometry, occupiedBoatPoses)
+
+            expect(plan).not.toBeNull()
+            expect(getMotionPathLength(plan!.segments)).toBeLessThan(2600)
+        }
+    )
+
+    it.each([
+        ['open-water-0', 'main-island-dock-0'],
+        ['open-water-0', 'main-island-dock-1'],
+        ['open-water-0', 'main-island-dock-2'],
+        ['open-water-0', 'main-island-dock-3'],
+        ['open-water-2', 'main-island-dock-0'],
+        ['open-water-2', 'main-island-dock-1'],
+        ['open-water-2', 'main-island-dock-2'],
+        ['open-water-2', 'main-island-dock-3']
+    ] as const)(
+        'keeps %s -> %s from backing up on the row before the harbor turn in 4p no-offshore',
+        (startId, endId) => {
+            const boardLayout = buildBoardLayout(['p1', 'p2', 'p3', 'p4'], { hasOffshore: false })
+            const navigationGeometry = buildBoatNavigationGeometry(boardLayout)
+            const allEndpoints = [
+                ...navigationGeometry.playerBoardDockSlots,
+                ...navigationGeometry.mainIslandDockSlots,
+                ...navigationGeometry.openWaterSlots
+            ]
+            const endpointById = new Map(allEndpoints.map((slot) => [slot.id, slot]))
+            const start = endpointById.get(startId)
+            const end = endpointById.get(endId)
+
+            expect(start).toBeDefined()
+            expect(end).toBeDefined()
+
+            const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(allEndpoints, [
+                startId,
+                endId
+            ])
+            const plan = buildRoutePlan(start!, end!, navigationGeometry, occupiedBoatPoses)
+
+            expect(plan).not.toBeNull()
+
+            for (const segment of plan!.undockSegments) {
+                if (segment.kind !== 'straight') {
+                    continue
+                }
+                expect(segment.endPose.x).toBeGreaterThanOrEqual(segment.startPose.x - 1)
+            }
+        }
+    )
+
 
     it('keeps the smoothed route probe path aligned with the raw main-island-dock-3 -> p4-dock-3 transfer in 4p no-offshore', () => {
         const boardLayout = buildBoardLayout(['p1', 'p2', 'p3', 'p4'], { hasOffshore: false })

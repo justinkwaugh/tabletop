@@ -231,6 +231,17 @@ const SMOOTHING_MIN_SHORTCUT_RADIUS = 48
 const FOUR_PLAYER_MAIN_HARBOR_CHANNEL_OFFSET_X = 220
 const FOUR_PLAYER_MAIN_HARBOR_CHANNEL_OFFSET_Y = 70
 const FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS = 84
+const FOUR_PLAYER_OPEN_WATER_MAIN_HARBOR_ROW_JOIN_XS = [1140, 1200, 1260, 1320] as const
+const FOUR_PLAYER_LEFT_OPEN_WATER_MAIN_HARBOR_ROW_JOIN_XS = [
+    650,
+    710,
+    770,
+    830,
+    890,
+    950,
+    1010,
+    1070
+] as const
 const FOUR_PLAYER_TOP_HARBOR_CHANNEL_Y = 220
 
 export function buildDockTransferPlan(
@@ -315,6 +326,331 @@ export function buildRoutePlan(
 
     return null
 }
+
+export function debugBuildFourPlayerNoOffshoreOpenWaterToMainHarborInitialJoin(
+    startSlot: OpenWaterSlot,
+    endDock: DockSlot,
+    geometry: BoatNavigationGeometry,
+    occupiedBoatPoses: BoatPose[] = []
+): { laneJoinPose: BoatPose; segments: BoatMotionSegment[] } | null {
+    const plannerContext = createPlannerContext(geometry, occupiedBoatPoses)
+    if (geometry.layoutKey !== '4p-no-offshore' || endDock.family !== 'main-island-harbor') {
+        return null
+    }
+
+    const mainIslandObstacle = plannerContext.obstacles.find((obstacle) => obstacle.id === 'main-island')
+    if (!mainIslandObstacle) {
+        return null
+    }
+
+    const islandCenterY = (mainIslandObstacle.bounds.minY + mainIslandObstacle.bounds.maxY) / 2
+    const channelId =
+        startSlot.parkedPose.y < islandCenterY ? 'channel-top-center' : 'channel-bottom-center'
+    const channel = geometry.transitChannels.find((candidate) => candidate.id === channelId)
+    if (!channel) {
+        return null
+    }
+
+    let bestJoin: { laneJoinPose: BoatPose; segments: BoatMotionSegment[] } | null = null
+    for (const rowJoinX of FOUR_PLAYER_OPEN_WATER_MAIN_HARBOR_ROW_JOIN_XS) {
+        const laneJoinPose: BoatPose = {
+            x: rowJoinX,
+            y: channel.y,
+            heading: 0
+        }
+        const segments = buildOpenWaterToHorizontalLaneJoinSegments(
+            startSlot,
+            laneJoinPose,
+            plannerContext
+        )
+        if (!segments) {
+            continue
+        }
+
+        if (!bestJoin || getMotionPathLength(segments) < getMotionPathLength(bestJoin.segments)) {
+            bestJoin = { laneJoinPose, segments }
+        }
+    }
+
+    return bestJoin
+}
+
+export function debugBuildOpenWaterLeftSlotInitialLeadOut(
+    startSlot: OpenWaterSlot,
+    geometry: BoatNavigationGeometry,
+    occupiedBoatPoses: BoatPose[] = []
+): { laneJoinPose: BoatPose; segments: BoatMotionSegment[] } | null {
+    const plannerContext = createPlannerContext(geometry, occupiedBoatPoses)
+    if (
+        geometry.layoutKey !== '4p-no-offshore' ||
+        (startSlot.id !== 'open-water-0' && startSlot.id !== 'open-water-2')
+    ) {
+        return null
+    }
+
+    const mainIslandObstacle = plannerContext.obstacles.find((obstacle) => obstacle.id === 'main-island')
+    if (!mainIslandObstacle) {
+        return null
+    }
+
+    const islandCenterY = (mainIslandObstacle.bounds.minY + mainIslandObstacle.bounds.maxY) / 2
+    const channelId =
+        startSlot.parkedPose.y < islandCenterY ? 'channel-top-center' : 'channel-bottom-center'
+    const channel = geometry.transitChannels.find((candidate) => candidate.id === channelId)
+    if (!channel) {
+        return null
+    }
+
+    const laneJoinPose: BoatPose = {
+        x:
+            startSlot.id === 'open-water-0' || startSlot.id === 'open-water-2'
+                ? FOUR_PLAYER_LEFT_OPEN_WATER_MAIN_HARBOR_ROW_JOIN_XS[0]
+                : FOUR_PLAYER_OPEN_WATER_MAIN_HARBOR_ROW_JOIN_XS[0],
+        y: channel.y,
+        heading: 0
+    }
+    const companionSlotId = startSlot.id === 'open-water-0' ? 'open-water-1' : 'open-water-3'
+    const companionSlot =
+        plannerContext.geometry.openWaterSlots.find((slot) => slot.id === companionSlotId) ?? null
+    const curvedSegments = buildLeftOpenWaterCurvedRowHandoffSegments(
+        startSlot,
+        laneJoinPose,
+        plannerContext
+    )
+    if (curvedSegments) {
+        return { laneJoinPose, segments: curvedSegments }
+    }
+    const segments = buildLeftOpenWaterReverseArcClearanceJoinSegments(
+        startSlot,
+        laneJoinPose,
+        plannerContext
+    )
+    if (segments) {
+        return {
+            laneJoinPose,
+            segments: appendOpenWaterLeftSlotPreviewParallelTail(
+                segments,
+                laneJoinPose,
+                startSlot,
+                companionSlot
+            )
+        }
+    }
+
+    let bestPreview:
+        | {
+              score: number
+              segments: BoatMotionSegment[]
+          }
+        | null = null
+
+    for (const reverseDistanceMultiplier of OPEN_WATER_LEFT_SLOT_REVERSE_CLEARANCE_DISTANCE_MULTIPLIERS) {
+        const reverseDistance = plannerContext.geometry.boatWidth * reverseDistanceMultiplier
+        const reversePose: BoatPose = {
+            x: startSlot.parkedPose.x - Math.cos(startSlot.parkedPose.heading) * reverseDistance,
+            y: startSlot.parkedPose.y - Math.sin(startSlot.parkedPose.heading) * reverseDistance,
+            heading: startSlot.parkedPose.heading
+        }
+        const reverseSegment = createStraightSegment(startSlot.parkedPose, reversePose, 'reverse')
+        if (!analyzeSegment(reverseSegment, plannerContext).isCollisionFree) {
+            continue
+        }
+
+        for (const launchStraightLength of OPEN_WATER_LEFT_SLOT_REVERSE_CLEARANCE_FORWARD_LAUNCH_STRAIGHTS) {
+            const launchPose: BoatPose = {
+                x: reversePose.x + Math.cos(reversePose.heading) * launchStraightLength,
+                y: reversePose.y + Math.sin(reversePose.heading) * launchStraightLength,
+                heading: reversePose.heading
+            }
+            const launchSegment =
+                launchStraightLength > 1 ?
+                    createStraightSegment(reversePose, launchPose, 'forward')
+                :   null
+            if (launchSegment && !analyzeSegment(launchSegment, plannerContext).isCollisionFree) {
+                continue
+            }
+
+            for (const clearanceForwardMultiplier of OPEN_WATER_LEFT_SLOT_CLEARANCE_JOIN_FORWARD_MULTIPLIERS) {
+                const previewPose: BoatPose = {
+                    x:
+                        reversePose.x +
+                        plannerContext.geometry.boatWidth * (clearanceForwardMultiplier + 0.9),
+                    y: laneJoinPose.y,
+                    heading: laneJoinPose.heading
+                }
+                if (previewPose.x <= launchPose.x + 12 || previewPose.x >= laneJoinPose.x) {
+                    continue
+                }
+
+                for (const turnRadiusMultiplier of OPEN_WATER_LEFT_SLOT_CLEARANCE_TURN_RADIUS_MULTIPLIERS) {
+                    const previewSegments = buildParallelLaneShiftGoalConnectionSegments(
+                        launchPose,
+                        previewPose,
+                        laneJoinPose.heading,
+                        plannerContext.geometry.boatHeight * turnRadiusMultiplier,
+                        plannerContext
+                    )
+                    if (!previewSegments) {
+                        continue
+                    }
+
+                    const segments = [
+                        reverseSegment,
+                        ...(launchSegment ? [launchSegment] : []),
+                        ...previewSegments
+                    ]
+                    const finalPose = segments[segments.length - 1]!.endPose
+                    const score =
+                        (finalPose.x - startSlot.parkedPose.x) * 0.6 -
+                        Math.abs(finalPose.y - laneJoinPose.y) * 0.2 -
+                        getMotionPathLength(segments) * 0.03
+
+                    if (!bestPreview || score > bestPreview.score) {
+                        bestPreview = { score, segments }
+                    }
+                }
+            }
+        }
+    }
+
+    if (bestPreview) {
+        return {
+            laneJoinPose,
+            segments: appendOpenWaterLeftSlotPreviewParallelTail(
+                bestPreview.segments,
+                laneJoinPose,
+                startSlot,
+                companionSlot
+            )
+        }
+    }
+
+    const previewSegments = buildOpenWaterLeftSlotPreviewSketchSegments(
+        startSlot,
+        laneJoinPose,
+        plannerContext
+    )
+
+    return {
+        laneJoinPose,
+        segments: appendOpenWaterLeftSlotPreviewParallelTail(
+            previewSegments,
+            laneJoinPose,
+            startSlot,
+            companionSlot
+        )
+    }
+}
+
+export function debugBuildFourPlayerBottomMainHarborTailFromRowPose(
+    rowStartPose: BoatPose,
+    endDock: DockSlot,
+    geometry: BoatNavigationGeometry,
+    occupiedBoatPoses: BoatPose[] = []
+): { transitSegments: BoatMotionSegment[]; dockSegments: BoatMotionSegment[] } | null {
+    const plannerContext = createPlannerContext(geometry, occupiedBoatPoses)
+    return buildFourPlayerBottomMainHarborEntryFromRowPose(rowStartPose, endDock, plannerContext)
+}
+
+function buildOpenWaterLeftSlotPreviewSketchSegments(
+    startSlot: OpenWaterSlot,
+    laneJoinPose: BoatPose,
+    plannerContext: PlannerContext
+): BoatMotionSegment[] {
+    const leftSlotVerticalSign: 1 | -1 = startSlot.id === 'open-water-0' ? -1 : 1
+    const launchDistance = 24
+    const launchPose: BoatPose = {
+        x: startSlot.parkedPose.x + Math.cos(startSlot.parkedPose.heading) * launchDistance,
+        y: startSlot.parkedPose.y + Math.sin(startSlot.parkedPose.heading) * launchDistance,
+        heading: startSlot.parkedPose.heading
+    }
+    const launchSegment = createStraightSegment(startSlot.parkedPose, launchPose, 'forward')
+
+    let bestSketch:
+        | {
+              score: number
+              segments: BoatMotionSegment[]
+          }
+        | null = null
+
+    for (const deltaMagnitude of [0.72, 0.84, 0.96]) {
+        for (const radiusMultiplier of [1.15, 1.35, 1.55]) {
+            const turnRadius = plannerContext.geometry.boatHeight * radiusMultiplier
+            const clearArc = createForwardArcFromStartPose(
+                launchPose,
+                -leftSlotVerticalSign * deltaMagnitude,
+                turnRadius
+            )
+
+            for (const angledStraightLength of [48, 72, 96, 120, 144]) {
+                const angledPose: BoatPose = {
+                    x: clearArc.endPose.x + Math.cos(clearArc.endPose.heading) * angledStraightLength,
+                    y: clearArc.endPose.y + Math.sin(clearArc.endPose.heading) * angledStraightLength,
+                    heading: clearArc.endPose.heading
+                }
+                const angledStraight = createStraightSegment(
+                    clearArc.endPose,
+                    angledPose,
+                    'forward'
+                )
+                const straightenArc = createForwardArcFromStartPose(
+                    angledPose,
+                    leftSlotVerticalSign * deltaMagnitude,
+                    turnRadius
+                )
+                const endPose = straightenArc.endPose
+                const score =
+                    Math.abs(endPose.y - laneJoinPose.y) * 4 +
+                    Math.abs(normalizeAngle(endPose.heading - laneJoinPose.heading)) * 140 +
+                    Math.max(0, 140 - (endPose.x - startSlot.parkedPose.x)) * 0.4 +
+                    getMotionPathLength([launchSegment, clearArc, angledStraight, straightenArc]) * 0.02
+
+                if (!bestSketch || score < bestSketch.score) {
+                    bestSketch = {
+                        score,
+                        segments: [launchSegment, clearArc, angledStraight, straightenArc]
+                    }
+                }
+            }
+        }
+    }
+
+    return bestSketch?.segments ?? [launchSegment]
+}
+
+function appendOpenWaterLeftSlotPreviewParallelTail(
+    segments: BoatMotionSegment[],
+    laneJoinPose: BoatPose,
+    startSlot: OpenWaterSlot,
+    companionSlot: OpenWaterSlot | null
+): BoatMotionSegment[] {
+    const finalPose = segments[segments.length - 1]?.endPose
+    if (!finalPose) {
+        return segments
+    }
+
+    const targetX = Math.min(
+        laneJoinPose.x,
+        Math.max(
+            finalPose.x + 48,
+            (companionSlot?.parkedPose.x ?? startSlot.parkedPose.x) + 140,
+            startSlot.parkedPose.x + 220
+        )
+    )
+    if (targetX <= finalPose.x + 4) {
+        return segments
+    }
+
+    const tailY = Math.abs(finalPose.y - laneJoinPose.y) <= 2 ? laneJoinPose.y : finalPose.y
+    const tailPose: BoatPose = {
+        x: targetX,
+        y: tailY,
+        heading: finalPose.heading
+    }
+
+    return [...segments, createStraightSegment(finalPose, tailPose, 'forward')]
+}
+
 function getRouteSmoothingMode(start: RouteEndpoint, end: RouteEndpoint): RouteSmoothingMode {
     if (isOpenWaterSlot(start) && isOpenWaterSlot(end)) {
         return 'none'
@@ -1699,6 +2035,12 @@ function buildOpenWaterToDockPlan(
     if (explicitFourPlayerMainHarborPlan) {
         return explicitFourPlayerMainHarborPlan
     }
+    if (
+        plannerContext.geometry.layoutKey === '4p-no-offshore' &&
+        endDock.family === 'main-island-harbor'
+    ) {
+        return null
+    }
 
     const forcedChannelChain = selectOpenWaterToDockChannelChain4pNoOffshore(
         startSlot,
@@ -1820,6 +2162,14 @@ function buildFourPlayerNoOffshoreTopOpenWaterToMainHarborPlan(
     endDock: DockSlot,
     plannerContext: PlannerContext
 ): BoatRoutePlan | null {
+    if (startSlot.id === 'open-water-1') {
+        return buildFourPlayerNoOffshoreTopRightOpenWaterToMainHarborPlan(
+            startSlot,
+            endDock,
+            plannerContext
+        )
+    }
+
     const topCenterChannel = plannerContext.geometry.transitChannels.find(
         (channel) => channel.id === 'channel-top-center'
     )
@@ -1827,8 +2177,124 @@ function buildFourPlayerNoOffshoreTopOpenWaterToMainHarborPlan(
         return null
     }
 
+    let bestPlan: BoatRoutePlan | null = null
+    const rowJoinXs =
+        startSlot.id === 'open-water-0'
+            ? FOUR_PLAYER_LEFT_OPEN_WATER_MAIN_HARBOR_ROW_JOIN_XS
+            : FOUR_PLAYER_OPEN_WATER_MAIN_HARBOR_ROW_JOIN_XS
+
+    for (const rowJoinX of rowJoinXs) {
+        const rowStartPose: BoatPose = {
+            x: rowJoinX,
+            y: topCenterChannel.y,
+            heading: 0
+        }
+        const joinSegments =
+            buildLeftOpenWaterCurvedRowHandoffSegments(startSlot, rowStartPose, plannerContext) ??
+            buildLeftOpenWaterSketchRowHandoffSegments(startSlot, rowStartPose, plannerContext)
+        if (!joinSegments) {
+            continue
+        }
+
+        const tailPlan = buildFourPlayerTopMainHarborEntryFromRowPose(
+            rowStartPose,
+            endDock,
+            plannerContext
+        )
+        if (!tailPlan) {
+            continue
+        }
+
+        const candidatePlan: BoatRoutePlan = {
+            undockSegments: joinSegments,
+            transitSegments: tailPlan.transitSegments,
+            dockSegments: tailPlan.dockSegments,
+            segments: [...joinSegments, ...tailPlan.transitSegments, ...tailPlan.dockSegments]
+        }
+
+        if (
+            !bestPlan ||
+            getMotionPathLength(candidatePlan.segments) < getMotionPathLength(bestPlan.segments)
+        ) {
+            bestPlan = candidatePlan
+        }
+    }
+
+    return bestPlan
+}
+
+function buildFourPlayerNoOffshoreBottomOpenWaterToMainHarborPlan(
+    startSlot: OpenWaterSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): BoatRoutePlan | null {
+    if (startSlot.id === 'open-water-3') {
+        return buildFourPlayerNoOffshoreBottomRightOpenWaterToMainHarborPlan(
+            startSlot,
+            endDock,
+            plannerContext
+        )
+    }
+
+    const bottomCenterChannel = plannerContext.geometry.transitChannels.find(
+        (channel) => channel.id === 'channel-bottom-center'
+    )
+    if (!bottomCenterChannel) {
+        return null
+    }
+
+    let bestPlan: BoatRoutePlan | null = null
+    const rowJoinXs =
+        startSlot.id === 'open-water-2'
+            ? FOUR_PLAYER_LEFT_OPEN_WATER_MAIN_HARBOR_ROW_JOIN_XS
+            : FOUR_PLAYER_OPEN_WATER_MAIN_HARBOR_ROW_JOIN_XS
+
+    for (const rowJoinX of rowJoinXs) {
+        const rowStartPose: BoatPose = {
+            x: rowJoinX,
+            y: bottomCenterChannel.y,
+            heading: 0
+        }
+        const joinSegments =
+            buildLeftOpenWaterCurvedRowHandoffSegments(startSlot, rowStartPose, plannerContext) ??
+            buildLeftOpenWaterSketchRowHandoffSegments(startSlot, rowStartPose, plannerContext)
+        if (!joinSegments) {
+            continue
+        }
+
+        const tailPlan = buildFourPlayerBottomMainHarborEntryFromRowPose(
+            rowStartPose,
+            endDock,
+            plannerContext
+        )
+        if (!tailPlan) {
+            continue
+        }
+
+        const candidatePlan: BoatRoutePlan = {
+            undockSegments: joinSegments,
+            transitSegments: tailPlan.transitSegments,
+            dockSegments: tailPlan.dockSegments,
+            segments: [...joinSegments, ...tailPlan.transitSegments, ...tailPlan.dockSegments]
+        }
+
+        if (
+            !bestPlan ||
+            getMotionPathLength(candidatePlan.segments) < getMotionPathLength(bestPlan.segments)
+        ) {
+            bestPlan = candidatePlan
+        }
+    }
+
+    return bestPlan
+}
+
+function buildFourPlayerNoOffshoreTopRightOpenWaterToMainHarborPlan(
+    startSlot: OpenWaterSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): BoatRoutePlan | null {
     const desiredSetupHeading = Math.PI / 2
-    const southLaneEntryY = topCenterChannel.y + FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS
     const dockCandidates = buildHarborExitUndockCandidates(endDock, {
         x: endDock.stagingPose.x,
         y: endDock.stagingPose.y + FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS * 4,
@@ -1853,134 +2319,75 @@ function buildFourPlayerNoOffshoreTopOpenWaterToMainHarborPlan(
 
     let bestPlan: BoatRoutePlan | null = null
 
-    for (const dockCandidate of dockCandidates) {
-        const setupPose = dockCandidate.transitPose
-        const overshootPose: BoatPose = {
-            x: setupPose.x,
-            y:
-                nextLowerHarborDock ?
-                    Math.max(
-                        setupPose.y,
-                        nextLowerHarborDock.stagingPose.y + HARBOR_K_TURN_LATERAL_OFFSET
-                    )
-                :   setupPose.y,
-            heading: desiredSetupHeading
-        }
-        let currentPose = startSlot.parkedPose
-        const undockSegments: BoatMotionSegment[] = []
-        if (startSlot.id === 'open-water-0') {
-            const clearanceTargetPose: BoatPose = {
-                x: startSlot.parkedPose.x + OPEN_WATER_TURN_RADIUS * 0.75,
-                y: topCenterChannel.y - OPEN_WATER_TURN_RADIUS * 0.25,
-                heading: 0
+    for (const undockCandidate of buildOpenWaterUndockCandidates(
+        startSlot,
+        endDock.stagingPose,
+        plannerContext
+    )) {
+        for (const dockCandidate of dockCandidates) {
+            const setupPose = dockCandidate.transitPose
+            const overshootPose: BoatPose = {
+                x: setupPose.x,
+                y:
+                    nextLowerHarborDock ?
+                        Math.max(
+                            setupPose.y,
+                            nextLowerHarborDock.stagingPose.y + HARBOR_K_TURN_LATERAL_OFFSET
+                        )
+                    :   setupPose.y,
+                heading: desiredSetupHeading
             }
-            const clearanceSegments = buildOpenWaterToHorizontalLaneJoinSegments(
-                startSlot,
-                clearanceTargetPose,
-                plannerContext
+
+            const connector = buildAlignmentArcThenLaneConnectionSegments(
+                undockCandidate.transitPose,
+                overshootPose,
+                desiredSetupHeading,
+                plannerContext,
+                OPEN_WATER_LEFT_SLOT_ANGLED_LEAD_OUT_CONNECTOR_RADII
             )
-            if (!clearanceSegments) {
+            if (!connector) {
                 continue
             }
-            undockSegments.push(...clearanceSegments)
-            currentPose = clearanceTargetPose
-        }
 
-        const laneEntryRadius = southLaneEntryY - currentPose.y
-        const turnDownStartPose: BoatPose = {
-            x: setupPose.x - laneEntryRadius,
-            y: currentPose.y,
-            heading: 0
-        }
-        if (
-            laneEntryRadius < OPEN_WATER_TURN_RADIUS * 0.4 ||
-            turnDownStartPose.x <= currentPose.x + 24 ||
-            overshootPose.y <= southLaneEntryY + 12
-        ) {
-            continue
-        }
+            const reverseDockSegments = [
+                ...(overshootPose.y > setupPose.y + 1 ?
+                    [createStraightSegment(overshootPose, setupPose, 'reverse')]
+                :   []),
+                ...[...dockCandidate.maneuverSegments]
+                    .reverse()
+                    .map((segment) => reverseMotionSegment(segment))
+            ]
+            const finalDockSegment = createStraightSegment(
+                endDock.stagingPose,
+                endDock.dockedPose,
+                'forward'
+            )
+            const dockSegments = [...reverseDockSegments, finalDockSegment]
+            const candidatePlan: BoatRoutePlan = {
+                undockSegments: undockCandidate.maneuverSegments,
+                transitSegments: connector,
+                dockSegments,
+                segments: [...undockCandidate.maneuverSegments, ...connector, ...dockSegments]
+            }
 
-        const toTurnStart = createStraightSegment(currentPose, turnDownStartPose, 'forward')
-        if (!analyzeSegment(toTurnStart, plannerContext).isCollisionFree) {
-            continue
-        }
-
-        const arcDown = createForwardArcFromStartPose(
-            turnDownStartPose,
-            Math.PI / 2,
-            laneEntryRadius
-        )
-        if (
-            Math.abs(arcDown.endPose.x - setupPose.x) > 2 ||
-            Math.abs(arcDown.endPose.y - southLaneEntryY) > 2 ||
-            Math.abs(normalizeAngle(arcDown.endPose.heading - desiredSetupHeading)) > 0.02 ||
-            overshootPose.y <= southLaneEntryY + 12
-        ) {
-            continue
-        }
-
-        const southboundPassBy = createStraightSegment(
-            {
-                x: setupPose.x,
-                y: southLaneEntryY,
-                heading: desiredSetupHeading
-            },
-            overshootPose,
-            'forward'
-        )
-        const transitSegments = [toTurnStart, arcDown, southboundPassBy]
-        if (
-            transitSegments.some((segment) => !analyzeSegment(segment, plannerContext).isCollisionFree)
-        ) {
-            continue
-        }
-
-        const reverseDockSegments = [
-            ...(overshootPose.y > setupPose.y + 1 ?
-                [createStraightSegment(overshootPose, setupPose, 'reverse')]
-            :   []),
-            ...[...dockCandidate.maneuverSegments]
-                .reverse()
-                .map((segment) => reverseMotionSegment(segment))
-        ]
-        const finalDockSegment = createStraightSegment(
-            endDock.stagingPose,
-            endDock.dockedPose,
-            'forward'
-        )
-        const dockSegments = [...reverseDockSegments, finalDockSegment]
-        const candidatePlan: BoatRoutePlan = {
-            undockSegments,
-            transitSegments,
-            dockSegments,
-            segments: [...undockSegments, ...transitSegments, ...dockSegments]
-        }
-
-        if (
-            !bestPlan ||
-            getMotionPathLength(candidatePlan.segments) < getMotionPathLength(bestPlan.segments)
-        ) {
-            bestPlan = candidatePlan
+            if (
+                !bestPlan ||
+                getMotionPathLength(candidatePlan.segments) < getMotionPathLength(bestPlan.segments)
+            ) {
+                bestPlan = candidatePlan
+            }
         }
     }
 
     return bestPlan
 }
 
-function buildFourPlayerNoOffshoreBottomOpenWaterToMainHarborPlan(
+function buildFourPlayerNoOffshoreBottomRightOpenWaterToMainHarborPlan(
     startSlot: OpenWaterSlot,
     endDock: DockSlot,
     plannerContext: PlannerContext
 ): BoatRoutePlan | null {
-    const bottomCenterChannel = plannerContext.geometry.transitChannels.find(
-        (channel) => channel.id === 'channel-bottom-center'
-    )
-    if (!bottomCenterChannel) {
-        return null
-    }
-
     const desiredSetupHeading = -Math.PI / 2
-    const northLaneEntryY = bottomCenterChannel.y - FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS
     const dockCandidates = buildHarborExitUndockCandidates(endDock, {
         x: endDock.stagingPose.x,
         y: endDock.stagingPose.y - FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS * 4,
@@ -2005,114 +2412,63 @@ function buildFourPlayerNoOffshoreBottomOpenWaterToMainHarborPlan(
 
     let bestPlan: BoatRoutePlan | null = null
 
-    for (const dockCandidate of dockCandidates) {
-        const setupPose = dockCandidate.transitPose
-        const overshootPose: BoatPose = {
-            x: setupPose.x,
-            y:
-                previousUpperHarborDock ?
-                    Math.min(
-                        setupPose.y,
-                        previousUpperHarborDock.stagingPose.y - HARBOR_K_TURN_LATERAL_OFFSET
-                    )
-                :   setupPose.y,
-            heading: desiredSetupHeading
-        }
-        let currentPose = startSlot.parkedPose
-        const undockSegments: BoatMotionSegment[] = []
-        if (startSlot.id === 'open-water-2') {
-            const clearanceTargetPose: BoatPose = {
-                x: startSlot.parkedPose.x + OPEN_WATER_TURN_RADIUS * 0.75,
-                y: bottomCenterChannel.y + OPEN_WATER_TURN_RADIUS * 0.25,
-                heading: 0
+    for (const undockCandidate of buildOpenWaterUndockCandidates(
+        startSlot,
+        endDock.stagingPose,
+        plannerContext
+    )) {
+        for (const dockCandidate of dockCandidates) {
+            const setupPose = dockCandidate.transitPose
+            const overshootPose: BoatPose = {
+                x: setupPose.x,
+                y:
+                    previousUpperHarborDock ?
+                        Math.min(
+                            setupPose.y,
+                            previousUpperHarborDock.stagingPose.y - HARBOR_K_TURN_LATERAL_OFFSET
+                        )
+                    :   setupPose.y,
+                heading: desiredSetupHeading
             }
-            const clearanceSegments = buildOpenWaterToHorizontalLaneJoinSegments(
-                startSlot,
-                clearanceTargetPose,
-                plannerContext
+
+            const connector = buildAlignmentArcThenLaneConnectionSegments(
+                undockCandidate.transitPose,
+                overshootPose,
+                desiredSetupHeading,
+                plannerContext,
+                OPEN_WATER_LEFT_SLOT_ANGLED_LEAD_OUT_CONNECTOR_RADII
             )
-            if (!clearanceSegments) {
+            if (!connector) {
                 continue
             }
-            undockSegments.push(...clearanceSegments)
-            currentPose = clearanceTargetPose
-        }
 
-        const laneEntryRadius = currentPose.y - northLaneEntryY
-        const turnUpStartPose: BoatPose = {
-            x: setupPose.x - laneEntryRadius,
-            y: currentPose.y,
-            heading: 0
-        }
-        if (
-            laneEntryRadius < OPEN_WATER_TURN_RADIUS * 0.4 ||
-            turnUpStartPose.x <= currentPose.x + 24 ||
-            overshootPose.y >= northLaneEntryY - 12
-        ) {
-            continue
-        }
+            const reverseDockSegments = [
+                ...(overshootPose.y < setupPose.y - 1 ?
+                    [createStraightSegment(overshootPose, setupPose, 'reverse')]
+                :   []),
+                ...[...dockCandidate.maneuverSegments]
+                    .reverse()
+                    .map((segment) => reverseMotionSegment(segment))
+            ]
+            const finalDockSegment = createStraightSegment(
+                endDock.stagingPose,
+                endDock.dockedPose,
+                'forward'
+            )
+            const dockSegments = [...reverseDockSegments, finalDockSegment]
+            const candidatePlan: BoatRoutePlan = {
+                undockSegments: undockCandidate.maneuverSegments,
+                transitSegments: connector,
+                dockSegments,
+                segments: [...undockCandidate.maneuverSegments, ...connector, ...dockSegments]
+            }
 
-        const toTurnStart = createStraightSegment(currentPose, turnUpStartPose, 'forward')
-        if (!analyzeSegment(toTurnStart, plannerContext).isCollisionFree) {
-            continue
-        }
-
-        const arcUp = createForwardArcFromStartPose(
-            turnUpStartPose,
-            -Math.PI / 2,
-            laneEntryRadius
-        )
-        if (
-            Math.abs(arcUp.endPose.x - setupPose.x) > 2 ||
-            Math.abs(arcUp.endPose.y - northLaneEntryY) > 2 ||
-            Math.abs(normalizeAngle(arcUp.endPose.heading - desiredSetupHeading)) > 0.02 ||
-            overshootPose.y >= northLaneEntryY - 12
-        ) {
-            continue
-        }
-
-        const northboundPassBy = createStraightSegment(
-            {
-                x: setupPose.x,
-                y: northLaneEntryY,
-                heading: desiredSetupHeading
-            },
-            overshootPose,
-            'forward'
-        )
-        const transitSegments = [toTurnStart, arcUp, northboundPassBy]
-        if (
-            transitSegments.some((segment) => !analyzeSegment(segment, plannerContext).isCollisionFree)
-        ) {
-            continue
-        }
-
-        const reverseDockSegments = [
-            ...(overshootPose.y < setupPose.y - 1 ?
-                [createStraightSegment(overshootPose, setupPose, 'reverse')]
-            :   []),
-            ...[...dockCandidate.maneuverSegments]
-                .reverse()
-                .map((segment) => reverseMotionSegment(segment))
-        ]
-        const finalDockSegment = createStraightSegment(
-            endDock.stagingPose,
-            endDock.dockedPose,
-            'forward'
-        )
-        const dockSegments = [...reverseDockSegments, finalDockSegment]
-        const candidatePlan: BoatRoutePlan = {
-            undockSegments,
-            transitSegments,
-            dockSegments,
-            segments: [...undockSegments, ...transitSegments, ...dockSegments]
-        }
-
-        if (
-            !bestPlan ||
-            getMotionPathLength(candidatePlan.segments) < getMotionPathLength(bestPlan.segments)
-        ) {
-            bestPlan = candidatePlan
+            if (
+                !bestPlan ||
+                getMotionPathLength(candidatePlan.segments) < getMotionPathLength(bestPlan.segments)
+            ) {
+                bestPlan = candidatePlan
+            }
         }
     }
 
@@ -2360,7 +2716,36 @@ function buildOpenWaterToHorizontalLaneJoinSegments(
         distanceBetween(startSlot.parkedPose, laneJoinPose) < 2 &&
         Math.abs(normalizeAngle(startSlot.parkedPose.heading - laneJoinPose.heading)) < 0.02
 
-    let bestSegments = isAtLaneJoinPose ? [] : null
+    let bestSegments: BoatMotionSegment[] | null = isAtLaneJoinPose ? [] : null
+
+    const directStartConnector =
+        isAtLaneJoinPose ?
+            []
+        :   buildLaneGoalConnectionSegments(
+                startSlot.parkedPose,
+                laneJoinPose,
+                laneJoinPose.heading,
+                plannerContext
+            ) ??
+            buildParallelLaneShiftGoalConnectionSegments(
+                startSlot.parkedPose,
+                laneJoinPose,
+                laneJoinPose.heading,
+                OPEN_WATER_TURN_RADIUS,
+                plannerContext
+            ) ??
+            buildAlignmentArcThenLaneConnectionSegments(
+                startSlot.parkedPose,
+                laneJoinPose,
+                laneJoinPose.heading,
+                plannerContext,
+                OPEN_WATER_INITIAL_TURN_RADIUS_MULTIPLIERS.map(
+                    (multiplier) => OPEN_WATER_TURN_RADIUS * multiplier
+                )
+            )
+    if (directStartConnector) {
+        bestSegments = directStartConnector
+    }
 
     for (const undockCandidate of buildOpenWaterUndockCandidates(
         startSlot,
@@ -2383,6 +2768,15 @@ function buildOpenWaterToHorizontalLaneJoinSegments(
                     laneJoinPose.heading,
                     OPEN_WATER_TURN_RADIUS,
                     plannerContext
+                ) ??
+                buildAlignmentArcThenLaneConnectionSegments(
+                    undockCandidate.transitPose,
+                    laneJoinPose,
+                    laneJoinPose.heading,
+                    plannerContext,
+                    OPEN_WATER_INITIAL_TURN_RADIUS_MULTIPLIERS.map(
+                        (multiplier) => OPEN_WATER_TURN_RADIUS * multiplier
+                    )
                 )
         if (!joinSegments) {
             continue
@@ -2406,50 +2800,380 @@ function buildOpenWaterToHorizontalLaneJoinSegments(
     if (!isLeftOpenWaterSlot) {
         return null
     }
-
-    const verticalClearance =
-        laneJoinPose.y < startSlot.parkedPose.y ?
-            -plannerContext.geometry.boatHeight * 0.45
-        :   plannerContext.geometry.boatHeight * 0.45
-    const clearanceTargetPose: BoatPose = {
-        x: startSlot.parkedPose.x + OPEN_WATER_TURN_RADIUS * 0.9,
-        y: startSlot.parkedPose.y + verticalClearance,
-        heading: 0
-    }
-    const clearanceCandidate = buildOpenWaterUndockCandidates(
+    return buildLeftOpenWaterReverseArcClearanceJoinSegments(
         startSlot,
-        clearanceTargetPose,
+        laneJoinPose,
         plannerContext
-    ).find(
-        (candidate) =>
-            candidate.maneuverSegments.length > 0 &&
-            candidate.transitPose.x > startSlot.parkedPose.x + 20 &&
-            Math.cos(candidate.transitPose.heading) > 0.6 &&
-            Math.sign(candidate.transitPose.y - startSlot.parkedPose.y) ===
-                Math.sign(verticalClearance)
     )
-    if (!clearanceCandidate) {
+}
+
+function buildLeftOpenWaterReverseArcClearanceJoinSegments(
+    startSlot: OpenWaterSlot,
+    laneJoinPose: BoatPose,
+    plannerContext: PlannerContext
+): BoatMotionSegment[] | null {
+    const leftSlotVerticalSign: 1 | -1 = startSlot.id === 'open-water-0' ? -1 : 1
+    const companionSlotId = startSlot.id === 'open-water-0' ? 'open-water-1' : 'open-water-3'
+    const companionSlot =
+        plannerContext.geometry.openWaterSlots.find((slot) => slot.id === companionSlotId) ?? null
+
+    let bestJoin: BoatMotionSegment[] | null = null
+
+    for (const reverseDistanceMultiplier of OPEN_WATER_LEFT_SLOT_REVERSE_CLEARANCE_DISTANCE_MULTIPLIERS) {
+        const reverseDistance = plannerContext.geometry.boatWidth * reverseDistanceMultiplier
+        const reversePose: BoatPose = {
+            x: startSlot.parkedPose.x - Math.cos(startSlot.parkedPose.heading) * reverseDistance,
+            y: startSlot.parkedPose.y - Math.sin(startSlot.parkedPose.heading) * reverseDistance,
+            heading: startSlot.parkedPose.heading
+        }
+        const reverseSegment = createStraightSegment(startSlot.parkedPose, reversePose, 'reverse')
+        if (!analyzeSegment(reverseSegment, plannerContext).isCollisionFree) {
+            continue
+        }
+
+        for (const launchStraightLength of OPEN_WATER_LEFT_SLOT_REVERSE_CLEARANCE_FORWARD_LAUNCH_STRAIGHTS) {
+            const launchPose: BoatPose = {
+                x: reversePose.x + Math.cos(reversePose.heading) * launchStraightLength,
+                y: reversePose.y + Math.sin(reversePose.heading) * launchStraightLength,
+                heading: reversePose.heading
+            }
+            const launchSegment =
+                launchStraightLength > 1 ?
+                    createStraightSegment(reversePose, launchPose, 'forward')
+                :   null
+            if (launchSegment && !analyzeSegment(launchSegment, plannerContext).isCollisionFree) {
+                continue
+            }
+
+            for (const clearanceForwardMultiplier of OPEN_WATER_LEFT_SLOT_CLEARANCE_JOIN_FORWARD_MULTIPLIERS) {
+                const minimumClearanceJoinX =
+                    (companionSlot?.parkedPose.x ?? startSlot.parkedPose.x) +
+                    plannerContext.geometry.boatWidth * clearanceForwardMultiplier
+                const clearanceJoinX = Math.max(
+                    minimumClearanceJoinX,
+                    launchPose.x + plannerContext.geometry.boatWidth * 0.9
+                )
+                if (clearanceJoinX >= laneJoinPose.x - 8) {
+                    continue
+                }
+
+                const clearancePose: BoatPose = {
+                    x: clearanceJoinX,
+                    y: laneJoinPose.y,
+                    heading: laneJoinPose.heading
+                }
+
+                for (const turnRadiusMultiplier of OPEN_WATER_LEFT_SLOT_CLEARANCE_TURN_RADIUS_MULTIPLIERS) {
+                    const laneShiftSegments = buildParallelLaneShiftGoalConnectionSegments(
+                        launchPose,
+                        clearancePose,
+                        laneJoinPose.heading,
+                        plannerContext.geometry.boatHeight * turnRadiusMultiplier,
+                        plannerContext
+                    )
+                    if (!laneShiftSegments) {
+                        continue
+                    }
+
+                    const finalSegments: BoatMotionSegment[] = []
+                    if (distanceBetween(clearancePose, laneJoinPose) > 2) {
+                        const finalStraight = createStraightSegment(
+                            clearancePose,
+                            laneJoinPose,
+                            'forward'
+                        )
+                        if (!analyzeSegment(finalStraight, plannerContext).isCollisionFree) {
+                            continue
+                        }
+                        finalSegments.push(finalStraight)
+                    }
+
+                    const candidateSegments = [
+                        reverseSegment,
+                        ...(launchSegment ? [launchSegment] : []),
+                        ...laneShiftSegments,
+                        ...finalSegments
+                    ]
+                    if (
+                        companionSlot &&
+                        !clearsOpenWaterCompanionBeforePassing(
+                            candidateSegments,
+                            companionSlot,
+                            leftSlotVerticalSign,
+                            plannerContext
+                        )
+                    ) {
+                        continue
+                    }
+
+                    if (
+                        !bestJoin ||
+                        getMotionPathLength(candidateSegments) < getMotionPathLength(bestJoin)
+                    ) {
+                        bestJoin = candidateSegments
+                    }
+                }
+            }
+        }
+    }
+
+    return bestJoin
+}
+
+function buildLeftOpenWaterCurvedRowHandoffSegments(
+    startSlot: OpenWaterSlot,
+    rowStartPose: BoatPose,
+    plannerContext: PlannerContext
+): BoatMotionSegment[] | null {
+    if (startSlot.id !== 'open-water-0' && startSlot.id !== 'open-water-2') {
         return null
     }
 
-    const joinAfterClearance =
-        buildLaneGoalConnectionSegments(
-            clearanceCandidate.transitPose,
-            laneJoinPose,
-            laneJoinPose.heading,
-            plannerContext
-        ) ??
-        buildParallelLaneShiftGoalConnectionSegments(
-            clearanceCandidate.transitPose,
-            laneJoinPose,
-            laneJoinPose.heading,
-            OPEN_WATER_TURN_RADIUS,
+    const leftSlotVerticalSign: 1 | -1 = startSlot.id === 'open-water-0' ? -1 : 1
+    const companionSlotId = startSlot.id === 'open-water-0' ? 'open-water-1' : 'open-water-3'
+    const companionSlot =
+        plannerContext.geometry.openWaterSlots.find((slot) => slot.id === companionSlotId) ?? null
+
+    let bestJoin: BoatMotionSegment[] | null = null
+
+    for (const launchStraightLength of OPEN_WATER_LEFT_SLOT_CURVED_ROW_HANDOFF_LAUNCH_STRAIGHTS) {
+        const launchPose: BoatPose = {
+            x: startSlot.parkedPose.x + Math.cos(startSlot.parkedPose.heading) * launchStraightLength,
+            y: startSlot.parkedPose.y + Math.sin(startSlot.parkedPose.heading) * launchStraightLength,
+            heading: startSlot.parkedPose.heading
+        }
+        const launchSegment =
+            launchStraightLength > 1 ?
+                createStraightSegment(startSlot.parkedPose, launchPose, 'forward')
+            :   null
+        if (launchSegment && !analyzeSegment(launchSegment, plannerContext).isCollisionFree) {
+            continue
+        }
+
+        for (const deltaMagnitude of OPEN_WATER_LEFT_SLOT_CURVED_ROW_HANDOFF_DELTAS) {
+            for (const radiusMultiplier of OPEN_WATER_LEFT_SLOT_CURVED_ROW_HANDOFF_RADIUS_MULTIPLIERS) {
+                const turnRadius = plannerContext.geometry.boatHeight * radiusMultiplier
+                const clearArc = createForwardArcFromStartPose(
+                    launchPose,
+                    -leftSlotVerticalSign * deltaMagnitude,
+                    turnRadius
+                )
+                if (!analyzeSegment(clearArc, plannerContext).isCollisionFree) {
+                    continue
+                }
+
+                const baseStraightenArc = createForwardArcFromStartPose(
+                    clearArc.endPose,
+                    leftSlotVerticalSign * deltaMagnitude,
+                    turnRadius
+                )
+                const verticalVelocity = Math.sin(clearArc.endPose.heading)
+                if (Math.abs(verticalVelocity) < 0.08) {
+                    continue
+                }
+
+                const requiredStraightLength =
+                    (rowStartPose.y - baseStraightenArc.endPose.y) / verticalVelocity
+                if (
+                    requiredStraightLength <
+                        OPEN_WATER_LEFT_SLOT_CURVED_ROW_HANDOFF_MIN_STRAIGHT ||
+                    requiredStraightLength >
+                        OPEN_WATER_LEFT_SLOT_CURVED_ROW_HANDOFF_MAX_STRAIGHT
+                ) {
+                    continue
+                }
+
+                const angledPose: BoatPose = {
+                    x:
+                        clearArc.endPose.x +
+                        Math.cos(clearArc.endPose.heading) * requiredStraightLength,
+                    y:
+                        clearArc.endPose.y +
+                        Math.sin(clearArc.endPose.heading) * requiredStraightLength,
+                    heading: clearArc.endPose.heading
+                }
+                const angledStraight = createStraightSegment(
+                    clearArc.endPose,
+                    angledPose,
+                    'forward'
+                )
+                if (!analyzeSegment(angledStraight, plannerContext).isCollisionFree) {
+                    continue
+                }
+
+                const straightenArc = createForwardArcFromStartPose(
+                    angledPose,
+                    leftSlotVerticalSign * deltaMagnitude,
+                    turnRadius
+                )
+                if (
+                    !analyzeSegment(straightenArc, plannerContext).isCollisionFree ||
+                    Math.abs(normalizeAngle(straightenArc.endPose.heading - rowStartPose.heading)) > 0.02 ||
+                    Math.abs(straightenArc.endPose.y - rowStartPose.y) > 2 ||
+                    straightenArc.endPose.x >= rowStartPose.x - 4
+                ) {
+                    continue
+                }
+
+                const rowStraight = createStraightSegment(
+                    straightenArc.endPose,
+                    rowStartPose,
+                    'forward'
+                )
+                if (!analyzeSegment(rowStraight, plannerContext).isCollisionFree) {
+                    continue
+                }
+
+                const candidateSegments = [
+                    ...(launchSegment ? [launchSegment] : []),
+                    clearArc,
+                    angledStraight,
+                    straightenArc,
+                    rowStraight
+                ]
+                if (
+                    companionSlot &&
+                    !clearsOpenWaterCompanionBeforePassing(
+                        candidateSegments,
+                        companionSlot,
+                        leftSlotVerticalSign,
+                        plannerContext
+                    )
+                ) {
+                    continue
+                }
+
+                if (
+                    !bestJoin ||
+                    getMotionPathLength(candidateSegments) < getMotionPathLength(bestJoin)
+                ) {
+                    bestJoin = candidateSegments
+                }
+            }
+        }
+    }
+
+    return bestJoin
+}
+
+function buildLeftOpenWaterSketchRowHandoffSegments(
+    startSlot: OpenWaterSlot,
+    rowStartPose: BoatPose,
+    plannerContext: PlannerContext
+): BoatMotionSegment[] | null {
+    const sketchSegments = buildOpenWaterLeftSlotPreviewSketchSegments(
+        startSlot,
+        rowStartPose,
+        plannerContext
+    )
+    if (sketchSegments.length === 0) {
+        return null
+    }
+
+    const finalPose = sketchSegments.at(-1)!.endPose
+    const withRowStraight =
+        distanceBetween(finalPose, rowStartPose) > 2 ?
+            [
+                ...sketchSegments,
+                createStraightSegment(finalPose, rowStartPose, 'forward')
+            ]
+        :   sketchSegments
+    const resolvedFinalPose = withRowStraight.at(-1)!.endPose
+    if (
+        distanceBetween(resolvedFinalPose, rowStartPose) > 2 ||
+        Math.abs(normalizeAngle(resolvedFinalPose.heading - rowStartPose.heading)) > 0.02
+    ) {
+        return null
+    }
+
+    return withRowStraight
+}
+
+function clearsOpenWaterCompanionBeforePassing(
+    segments: BoatMotionSegment[],
+    companionSlot: OpenWaterSlot,
+    leftSlotVerticalSign: 1 | -1,
+    plannerContext: PlannerContext
+): boolean {
+    const passX =
+        companionSlot.parkedPose.x +
+        plannerContext.geometry.boatWidth *
+            OPEN_WATER_LEFT_SLOT_NEIGHBOR_CLEARANCE_WIDTH_MULTIPLIER
+    const requiredY =
+        leftSlotVerticalSign === -1 ?
+            companionSlot.parkedPose.y +
+            plannerContext.geometry.boatHeight *
+                OPEN_WATER_LEFT_SLOT_NEIGHBOR_CLEARANCE_HEIGHT_MULTIPLIER
+        :   companionSlot.parkedPose.y -
+            plannerContext.geometry.boatHeight *
+                OPEN_WATER_LEFT_SLOT_NEIGHBOR_CLEARANCE_HEIGHT_MULTIPLIER
+    const totalLength = getMotionPathLength(segments)
+    const sampleStep = 8
+
+    for (let distance = 0; distance <= totalLength; distance += sampleStep) {
+        const pose = sampleMotionPath(segments, distance)
+        if (pose.x < passX) {
+            continue
+        }
+        return leftSlotVerticalSign === -1 ? pose.y >= requiredY : pose.y <= requiredY
+    }
+
+    const finalPose = sampleMotionPath(segments, totalLength)
+    if (finalPose.x < passX) {
+        return false
+    }
+
+    return leftSlotVerticalSign === -1 ? finalPose.y >= requiredY : finalPose.y <= requiredY
+}
+
+function buildAlignmentArcThenLaneConnectionSegments(
+    currentPose: BoatPose,
+    goalPose: BoatPose,
+    laneHeading: number,
+    plannerContext: PlannerContext,
+    turnRadii: readonly number[]
+): BoatMotionSegment[] | null {
+    const alignmentDelta = normalizeAngle(laneHeading - currentPose.heading)
+    if (
+        Math.abs(alignmentDelta) <= Math.PI / 24 ||
+        Math.abs(alignmentDelta) > Math.PI * 0.75
+    ) {
+        return null
+    }
+
+    for (const turnRadius of turnRadii) {
+        const alignmentArc = createForwardArcFromStartPose(
+            currentPose,
+            alignmentDelta,
+            turnRadius
+        )
+        if (!analyzeSegment(alignmentArc, plannerContext).isCollisionFree) {
+            continue
+        }
+
+        const laneConnector = buildLaneGoalConnectionSegments(
+            alignmentArc.endPose,
+            goalPose,
+            laneHeading,
             plannerContext
         )
+        if (laneConnector) {
+            return [alignmentArc, ...laneConnector]
+        }
 
-    return joinAfterClearance ?
-            [...clearanceCandidate.maneuverSegments, ...joinAfterClearance]
-        :   null
+        const laneShiftConnector = buildParallelLaneShiftGoalConnectionSegments(
+            alignmentArc.endPose,
+            goalPose,
+            laneHeading,
+            turnRadius,
+            plannerContext
+        )
+        if (laneShiftConnector) {
+            return [alignmentArc, ...laneShiftConnector]
+        }
+    }
+
+    return null
 }
 
 function shouldPreferRightHarborCorridor(
@@ -5232,6 +5956,33 @@ const MAIN_HARBOR_OPEN_WATER_ENTRY_STRAIGHT_MULTIPLIER = 0.61
 const MAIN_HARBOR_OPEN_WATER_UTURN_ENTRY_RADIUS_MULTIPLIER = 1
 const MAIN_HARBOR_OPEN_WATER_UTURN_SWEEP_RADIUS_MULTIPLIER = 0.75
 const MAIN_HARBOR_OPEN_WATER_FINAL_ENTRY_RADIUS_MULTIPLIER = 1.36
+const OPEN_WATER_LEFT_SLOT_REVERSE_CLEARANCE_DISTANCE_MULTIPLIERS = [
+    0.5,
+    0.75,
+    1.0,
+    1.25,
+    1.5,
+    1.75,
+    2.0
+] as const
+const OPEN_WATER_LEFT_SLOT_CURVED_ROW_HANDOFF_LAUNCH_STRAIGHTS = [0, 18, 36, 54] as const
+const OPEN_WATER_LEFT_SLOT_CURVED_ROW_HANDOFF_DELTAS = [0.72, 0.84, 0.96, 1.08] as const
+const OPEN_WATER_LEFT_SLOT_CURVED_ROW_HANDOFF_RADIUS_MULTIPLIERS = [1.15, 1.35, 1.55, 1.8] as const
+const OPEN_WATER_LEFT_SLOT_CURVED_ROW_HANDOFF_MIN_STRAIGHT = 24
+const OPEN_WATER_LEFT_SLOT_CURVED_ROW_HANDOFF_MAX_STRAIGHT = 220
+const OPEN_WATER_LEFT_SLOT_REVERSE_CLEARANCE_FORWARD_LAUNCH_STRAIGHTS = [0, 18, 36] as const
+const OPEN_WATER_LEFT_SLOT_CLEARANCE_JOIN_FORWARD_MULTIPLIERS = [0.85, 1.1, 1.35, 1.6] as const
+const OPEN_WATER_LEFT_SLOT_CLEARANCE_TURN_RADIUS_MULTIPLIERS = [0.9, 1.15, 1.4, 1.7] as const
+const OPEN_WATER_LEFT_SLOT_REVERSE_CLEARANCE_LEAD_OUT_DELTAS = [0.28, 0.36, 0.45] as const
+const OPEN_WATER_LEFT_SLOT_REVERSE_CLEARANCE_LEAD_OUT_RADIUS_MULTIPLIERS = [
+    0.5,
+    0.65,
+    0.8
+] as const
+const OPEN_WATER_LEFT_SLOT_REVERSE_CLEARANCE_LEAD_OUT_STRAIGHTS = [56, 80, 104, 128] as const
+const OPEN_WATER_LEFT_SLOT_NEIGHBOR_CLEARANCE_HEIGHT_MULTIPLIER = 0.45
+const OPEN_WATER_LEFT_SLOT_NEIGHBOR_CLEARANCE_WIDTH_MULTIPLIER = 0.35
+const OPEN_WATER_LEFT_SLOT_ANGLED_LEAD_OUT_CONNECTOR_RADII = [84, 96, 108, 132] as const
 
 function buildObliqueArcGoalCandidates(
     goalPose: BoatPose,

@@ -272,6 +272,31 @@
             color: routeProbe.movingBoatColor
         }
     })
+    const routePreviewPath = $derived.by(() => {
+        if (routeProbe.status !== 'success' || routeProbeLength <= 0) {
+            return null
+        }
+
+        const step = 12
+        const commands: string[] = []
+        for (let traveled = 0; traveled <= routeProbeLength; traveled += step) {
+            const pose = sampleMotionPath(routeProbe.plan.segments, traveled)
+            commands.push(`${traveled === 0 ? 'M' : 'L'} ${pose.x} ${pose.y}`)
+        }
+
+        const finalPose = sampleMotionPath(routeProbe.plan.segments, routeProbeLength)
+        if (commands.length === 0) {
+            return null
+        }
+
+        const lastCommand = commands[commands.length - 1]
+        const expectedTail = ` ${finalPose.x} ${finalPose.y}`
+        if (!lastCommand?.endsWith(expectedTail)) {
+            commands.push(`L ${finalPose.x} ${finalPose.y}`)
+        }
+
+        return commands.join(' ')
+    })
 
     function handleRouteSlotClick(slotId: string) {
         if (!pendingStartSlotId) {
@@ -358,7 +383,8 @@
                         targetSlotId: targetSlot.id,
                         movingBoatColor,
                         plan: exactPlan,
-                        message: `Route found (${routeSource}, layout ${layoutKey ?? 'unknown'}, key ${routeKey}, ${rawPrecomputedRoute ? 'table-hit' : 'table-miss'}) with all remaining positions occupied from ${startSlot.id} to ${targetSlot.id} in ${elapsedMs}ms.`
+                        message:
+                            `Route found (${routeSource}, layout ${layoutKey ?? 'unknown'}, key ${routeKey}, ${rawPrecomputedRoute ? 'table-hit' : 'table-miss'}) with all remaining positions occupied from ${startSlot.id} to ${targetSlot.id} in ${elapsedMs}ms.`
                     }
                     routeAnimationStartMs = performance.now()
                 } else {
@@ -582,6 +608,18 @@
                     }}
                 ></rect>
             {/each}
+            {#if routePreviewPath}
+                <path
+                    d={routePreviewPath}
+                    fill="none"
+                    stroke="rgba(255, 255, 255, 0.92)"
+                    stroke-width="6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    pointer-events="none"
+                    opacity="0.96"
+                ></path>
+            {/if}
             {#if movingBoat}
                 <Boat
                     x={movingBoat.x}
