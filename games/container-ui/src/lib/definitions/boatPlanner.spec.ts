@@ -99,6 +99,120 @@ const FOUR_PLAYER_NO_OFFSHORE_P4_TOP_RIGHT_OPEN_WATER_REGRESSIONS = [
     'p4-dock-3'
 ] as const
 
+const FOUR_PLAYER_NO_OFFSHORE_P1_MAIN_HARBOR_REGRESSIONS = [
+    ['p1-dock-0', 'main-island-dock-0'],
+    ['p1-dock-0', 'main-island-dock-1'],
+    ['p1-dock-0', 'main-island-dock-2'],
+    ['p1-dock-0', 'main-island-dock-3'],
+    ['p1-dock-1', 'main-island-dock-0'],
+    ['p1-dock-1', 'main-island-dock-1'],
+    ['p1-dock-1', 'main-island-dock-2'],
+    ['p1-dock-1', 'main-island-dock-3'],
+    ['p1-dock-2', 'main-island-dock-0'],
+    ['p1-dock-2', 'main-island-dock-1'],
+    ['p1-dock-2', 'main-island-dock-2'],
+    ['p1-dock-2', 'main-island-dock-3'],
+    ['p1-dock-3', 'main-island-dock-0'],
+    ['p1-dock-3', 'main-island-dock-1'],
+    ['p1-dock-3', 'main-island-dock-2'],
+    ['p1-dock-3', 'main-island-dock-3']
+] as const
+
+const FOUR_PLAYER_NO_OFFSHORE_P4_MAIN_HARBOR_REGRESSIONS = [
+    ['p4-dock-0', 'main-island-dock-0'],
+    ['p4-dock-0', 'main-island-dock-1'],
+    ['p4-dock-0', 'main-island-dock-2'],
+    ['p4-dock-0', 'main-island-dock-3'],
+    ['p4-dock-1', 'main-island-dock-0'],
+    ['p4-dock-1', 'main-island-dock-1'],
+    ['p4-dock-1', 'main-island-dock-2'],
+    ['p4-dock-1', 'main-island-dock-3'],
+    ['p4-dock-2', 'main-island-dock-0'],
+    ['p4-dock-2', 'main-island-dock-1'],
+    ['p4-dock-2', 'main-island-dock-2'],
+    ['p4-dock-2', 'main-island-dock-3'],
+    ['p4-dock-3', 'main-island-dock-0'],
+    ['p4-dock-3', 'main-island-dock-1'],
+    ['p4-dock-3', 'main-island-dock-2'],
+    ['p4-dock-3', 'main-island-dock-3']
+] as const
+
+const FOUR_PLAYER_NO_OFFSHORE_P2_MAIN_HARBOR_REGRESSIONS = [
+    ['p2-dock-0', 'main-island-dock-0'],
+    ['p2-dock-0', 'main-island-dock-1'],
+    ['p2-dock-0', 'main-island-dock-2'],
+    ['p2-dock-0', 'main-island-dock-3'],
+    ['p2-dock-1', 'main-island-dock-0'],
+    ['p2-dock-1', 'main-island-dock-1'],
+    ['p2-dock-1', 'main-island-dock-2'],
+    ['p2-dock-1', 'main-island-dock-3'],
+    ['p2-dock-2', 'main-island-dock-0'],
+    ['p2-dock-2', 'main-island-dock-1'],
+    ['p2-dock-2', 'main-island-dock-2'],
+    ['p2-dock-2', 'main-island-dock-3'],
+    ['p2-dock-3', 'main-island-dock-0'],
+    ['p2-dock-3', 'main-island-dock-1'],
+    ['p2-dock-3', 'main-island-dock-2'],
+    ['p2-dock-3', 'main-island-dock-3']
+] as const
+
+const FOUR_PLAYER_NO_OFFSHORE_P3_MAIN_HARBOR_REGRESSIONS = [
+    ['p3-dock-0', 'main-island-dock-0'],
+    ['p3-dock-0', 'main-island-dock-1'],
+    ['p3-dock-0', 'main-island-dock-2'],
+    ['p3-dock-0', 'main-island-dock-3'],
+    ['p3-dock-1', 'main-island-dock-0'],
+    ['p3-dock-1', 'main-island-dock-1'],
+    ['p3-dock-1', 'main-island-dock-2'],
+    ['p3-dock-1', 'main-island-dock-3'],
+    ['p3-dock-2', 'main-island-dock-0'],
+    ['p3-dock-2', 'main-island-dock-1'],
+    ['p3-dock-2', 'main-island-dock-2'],
+    ['p3-dock-2', 'main-island-dock-3'],
+    ['p3-dock-3', 'main-island-dock-0'],
+    ['p3-dock-3', 'main-island-dock-1'],
+    ['p3-dock-3', 'main-island-dock-2'],
+    ['p3-dock-3', 'main-island-dock-3']
+] as const
+
+const FOUR_PLAYER_NO_OFFSHORE_MAIN_TO_P1_REGRESSIONS = [
+    ['main-island-dock-0', 'p1-dock-0'],
+    ['main-island-dock-0', 'p1-dock-1'],
+    ['main-island-dock-0', 'p1-dock-2'],
+    ['main-island-dock-0', 'p1-dock-3'],
+    ['main-island-dock-1', 'p1-dock-0'],
+    ['main-island-dock-1', 'p1-dock-1'],
+    ['main-island-dock-1', 'p1-dock-2'],
+    ['main-island-dock-1', 'p1-dock-3'],
+    ['main-island-dock-2', 'p1-dock-0'],
+    ['main-island-dock-2', 'p1-dock-1'],
+    ['main-island-dock-2', 'p1-dock-2'],
+    ['main-island-dock-2', 'p1-dock-3'],
+    ['main-island-dock-3', 'p1-dock-0'],
+    ['main-island-dock-3', 'p1-dock-1'],
+    ['main-island-dock-3', 'p1-dock-2'],
+    ['main-island-dock-3', 'p1-dock-3']
+] as const
+
+const FOUR_PLAYER_NO_OFFSHORE_MAIN_TO_P4_REGRESSIONS = [
+    ['main-island-dock-0', 'p4-dock-0'],
+    ['main-island-dock-0', 'p4-dock-1'],
+    ['main-island-dock-0', 'p4-dock-2'],
+    ['main-island-dock-0', 'p4-dock-3'],
+    ['main-island-dock-1', 'p4-dock-0'],
+    ['main-island-dock-1', 'p4-dock-1'],
+    ['main-island-dock-1', 'p4-dock-2'],
+    ['main-island-dock-1', 'p4-dock-3'],
+    ['main-island-dock-2', 'p4-dock-0'],
+    ['main-island-dock-2', 'p4-dock-1'],
+    ['main-island-dock-2', 'p4-dock-2'],
+    ['main-island-dock-2', 'p4-dock-3'],
+    ['main-island-dock-3', 'p4-dock-0'],
+    ['main-island-dock-3', 'p4-dock-1'],
+    ['main-island-dock-3', 'p4-dock-2'],
+    ['main-island-dock-3', 'p4-dock-3']
+] as const
+
 describe('buildDockTransferPlan', () => {
     const boardLayout = buildBoardLayout(['p1', 'p2', 'p3'], { hasOffshore: false })
     const navigationGeometry = buildBoatNavigationGeometry(boardLayout)
@@ -359,4 +473,245 @@ describe('buildDockTransferPlan', () => {
             expect(getMotionPathLength(plan!.segments)).toBeLessThan(1800)
         }
     )
+
+    it.each(FOUR_PLAYER_NO_OFFSHORE_P1_MAIN_HARBOR_REGRESSIONS)(
+        'keeps %s -> %s compact with a reverse-in harbor dock maneuver in 4p no-offshore',
+        (startId, endId) => {
+            const boardLayout = buildBoardLayout(['p1', 'p2', 'p3', 'p4'], { hasOffshore: false })
+            const navigationGeometry = buildBoatNavigationGeometry(boardLayout)
+            const allDocks = [
+                ...navigationGeometry.playerBoardDockSlots,
+                ...navigationGeometry.mainIslandDockSlots
+            ]
+            const dockById = new Map(allDocks.map((dock) => [dock.id, dock]))
+            const startDock = dockById.get(startId)
+            const endDock = dockById.get(endId)
+
+            expect(startDock).toBeDefined()
+            expect(endDock).toBeDefined()
+
+            const plan = buildDockTransferPlan(startDock!, endDock!, navigationGeometry, [])
+
+            expect(plan).not.toBeNull()
+            expect(getMotionPathLength(plan!.segments)).toBeLessThan(2700)
+            expect(plan!.dockSegments.some((segment) => segment.direction === 'reverse')).toBe(true)
+        }
+    )
+
+    it.each(FOUR_PLAYER_NO_OFFSHORE_P1_MAIN_HARBOR_REGRESSIONS)(
+        'keeps %s -> %s compact with all docks occupied in 4p no-offshore',
+        (startId, endId) => {
+            const boardLayout = buildBoardLayout(['p1', 'p2', 'p3', 'p4'], { hasOffshore: false })
+            const navigationGeometry = buildBoatNavigationGeometry(boardLayout)
+            const allDocks = [
+                ...navigationGeometry.playerBoardDockSlots,
+                ...navigationGeometry.mainIslandDockSlots
+            ]
+            const dockById = new Map(allDocks.map((dock) => [dock.id, dock]))
+            const startDock = dockById.get(startId)
+            const endDock = dockById.get(endId)
+
+            expect(startDock).toBeDefined()
+            expect(endDock).toBeDefined()
+
+            const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(allDocks, [startId, endId])
+            const plan = buildDockTransferPlan(
+                startDock!,
+                endDock!,
+                navigationGeometry,
+                occupiedBoatPoses
+            )
+
+            expect(plan).not.toBeNull()
+            expect(getMotionPathLength(plan!.segments)).toBeLessThan(2600)
+            expect(plan!.dockSegments.some((segment) => segment.direction === 'reverse')).toBe(true)
+        }
+    )
+
+    it.each(FOUR_PLAYER_NO_OFFSHORE_P4_MAIN_HARBOR_REGRESSIONS)(
+        'keeps %s -> %s compact with all docks occupied in 4p no-offshore',
+        (startId, endId) => {
+            const boardLayout = buildBoardLayout(['p1', 'p2', 'p3', 'p4'], { hasOffshore: false })
+            const navigationGeometry = buildBoatNavigationGeometry(boardLayout)
+            const allDocks = [
+                ...navigationGeometry.playerBoardDockSlots,
+                ...navigationGeometry.mainIslandDockSlots
+            ]
+            const dockById = new Map(allDocks.map((dock) => [dock.id, dock]))
+            const startDock = dockById.get(startId)
+            const endDock = dockById.get(endId)
+
+            expect(startDock).toBeDefined()
+            expect(endDock).toBeDefined()
+
+            const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(allDocks, [startId, endId])
+            const plan = buildDockTransferPlan(
+                startDock!,
+                endDock!,
+                navigationGeometry,
+                occupiedBoatPoses
+            )
+
+            expect(plan).not.toBeNull()
+            expect(getMotionPathLength(plan!.segments)).toBeLessThan(2600)
+            expect(plan!.dockSegments.some((segment) => segment.direction === 'reverse')).toBe(true)
+        }
+    )
+
+    it.each(FOUR_PLAYER_NO_OFFSHORE_P2_MAIN_HARBOR_REGRESSIONS)(
+        'keeps %s -> %s compact with all docks occupied in 4p no-offshore',
+        (startId, endId) => {
+            const boardLayout = buildBoardLayout(['p1', 'p2', 'p3', 'p4'], { hasOffshore: false })
+            const navigationGeometry = buildBoatNavigationGeometry(boardLayout)
+            const allDocks = [
+                ...navigationGeometry.playerBoardDockSlots,
+                ...navigationGeometry.mainIslandDockSlots
+            ]
+            const dockById = new Map(allDocks.map((dock) => [dock.id, dock]))
+            const startDock = dockById.get(startId)
+            const endDock = dockById.get(endId)
+
+            expect(startDock).toBeDefined()
+            expect(endDock).toBeDefined()
+
+            const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(allDocks, [startId, endId])
+            const plan = buildDockTransferPlan(
+                startDock!,
+                endDock!,
+                navigationGeometry,
+                occupiedBoatPoses
+            )
+
+            expect(plan).not.toBeNull()
+            expect(getMotionPathLength(plan!.segments)).toBeLessThan(1500)
+            expect(plan!.dockSegments.some((segment) => segment.direction === 'reverse')).toBe(true)
+        }
+    )
+
+    it.each(FOUR_PLAYER_NO_OFFSHORE_P3_MAIN_HARBOR_REGRESSIONS)(
+        'keeps %s -> %s compact with all docks occupied in 4p no-offshore',
+        (startId, endId) => {
+            const boardLayout = buildBoardLayout(['p1', 'p2', 'p3', 'p4'], { hasOffshore: false })
+            const navigationGeometry = buildBoatNavigationGeometry(boardLayout)
+            const allDocks = [
+                ...navigationGeometry.playerBoardDockSlots,
+                ...navigationGeometry.mainIslandDockSlots
+            ]
+            const dockById = new Map(allDocks.map((dock) => [dock.id, dock]))
+            const startDock = dockById.get(startId)
+            const endDock = dockById.get(endId)
+
+            expect(startDock).toBeDefined()
+            expect(endDock).toBeDefined()
+
+            const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(allDocks, [startId, endId])
+            const plan = buildDockTransferPlan(
+                startDock!,
+                endDock!,
+                navigationGeometry,
+                occupiedBoatPoses
+            )
+
+            expect(plan).not.toBeNull()
+            expect(getMotionPathLength(plan!.segments)).toBeLessThan(1500)
+            expect(plan!.dockSegments.some((segment) => segment.direction === 'reverse')).toBe(true)
+        }
+    )
+
+    it.each(FOUR_PLAYER_NO_OFFSHORE_MAIN_TO_P1_REGRESSIONS)(
+        'keeps %s -> %s compact with all docks occupied in 4p no-offshore',
+        (startId, endId) => {
+            const boardLayout = buildBoardLayout(['p1', 'p2', 'p3', 'p4'], { hasOffshore: false })
+            const navigationGeometry = buildBoatNavigationGeometry(boardLayout)
+            const allDocks = [
+                ...navigationGeometry.playerBoardDockSlots,
+                ...navigationGeometry.mainIslandDockSlots
+            ]
+            const dockById = new Map(allDocks.map((dock) => [dock.id, dock]))
+            const startDock = dockById.get(startId)
+            const endDock = dockById.get(endId)
+
+            expect(startDock).toBeDefined()
+            expect(endDock).toBeDefined()
+
+            const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(allDocks, [startId, endId])
+            const plan = buildDockTransferPlan(
+                startDock!,
+                endDock!,
+                navigationGeometry,
+                occupiedBoatPoses
+            )
+
+            expect(plan).not.toBeNull()
+            expect(getMotionPathLength(plan!.segments)).toBeLessThan(2000)
+        }
+    )
+
+    it.each(FOUR_PLAYER_NO_OFFSHORE_MAIN_TO_P4_REGRESSIONS)(
+        'keeps %s -> %s compact with all docks occupied in 4p no-offshore',
+        (startId, endId) => {
+            const boardLayout = buildBoardLayout(['p1', 'p2', 'p3', 'p4'], { hasOffshore: false })
+            const navigationGeometry = buildBoatNavigationGeometry(boardLayout)
+            const allDocks = [
+                ...navigationGeometry.playerBoardDockSlots,
+                ...navigationGeometry.mainIslandDockSlots
+            ]
+            const dockById = new Map(allDocks.map((dock) => [dock.id, dock]))
+            const startDock = dockById.get(startId)
+            const endDock = dockById.get(endId)
+
+            expect(startDock).toBeDefined()
+            expect(endDock).toBeDefined()
+
+            const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(allDocks, [startId, endId])
+            const plan = buildDockTransferPlan(
+                startDock!,
+                endDock!,
+                navigationGeometry,
+                occupiedBoatPoses
+            )
+
+            expect(plan).not.toBeNull()
+            expect(getMotionPathLength(plan!.segments)).toBeLessThan(2000)
+        }
+    )
+
+    it('keeps the smoothed route probe path aligned with the raw main-island-dock-3 -> p4-dock-3 transfer in 4p no-offshore', () => {
+        const boardLayout = buildBoardLayout(['p1', 'p2', 'p3', 'p4'], { hasOffshore: false })
+        const navigationGeometry = buildBoatNavigationGeometry(boardLayout)
+        const allDocks = [
+            ...navigationGeometry.playerBoardDockSlots,
+            ...navigationGeometry.mainIslandDockSlots
+        ]
+        const dockById = new Map(allDocks.map((dock) => [dock.id, dock]))
+        const startDock = dockById.get('main-island-dock-3')
+        const endDock = dockById.get('p4-dock-3')
+
+        expect(startDock).toBeDefined()
+        expect(endDock).toBeDefined()
+
+        const occupiedBoatPoses = getFilledRouteOccupiedBoatPoses(allDocks, [
+            'main-island-dock-3',
+            'p4-dock-3'
+        ])
+        const rawPlan = buildDockTransferPlan(
+            startDock!,
+            endDock!,
+            navigationGeometry,
+            occupiedBoatPoses
+        )
+        const routePlan = buildRoutePlan(
+            startDock!,
+            endDock!,
+            navigationGeometry,
+            occupiedBoatPoses
+        )
+
+        expect(rawPlan).not.toBeNull()
+        expect(routePlan).not.toBeNull()
+        expect(routePlan!.transitSegments).toEqual(rawPlan!.transitSegments)
+        expect(getMotionPathLength(routePlan!.segments)).toBe(
+            getMotionPathLength(rawPlan!.segments)
+        )
+    })
 })

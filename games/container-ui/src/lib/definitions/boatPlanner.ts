@@ -322,6 +322,15 @@ function getRouteSmoothingMode(start: RouteEndpoint, end: RouteEndpoint): RouteS
 
     if (
         isDockSlot(start) &&
+        isDockSlot(end) &&
+        start.family === 'main-island-harbor' &&
+        end.family === 'player-board'
+    ) {
+        return 'none'
+    }
+
+    if (
+        isDockSlot(start) &&
         isOpenWaterSlot(end) &&
         start.family === 'player-board' &&
         ((getPlayerBoardCanonicalSeatId(start) === 'p4' && end.id === 'open-water-1') ||
@@ -383,6 +392,18 @@ function buildDockTransferPlanWithContext(
     plannerContext: PlannerContext,
     undockCandidates: UndockManeuverCandidate[]
 ): BoatRoutePlan | null {
+    // Invariant: boats may only move in reverse during local dock/undock maneuvers.
+    // Do not build a dock-to-dock route by reversing an entire plan; reuse the
+    // destination dock's local maneuver template and connect it with forward transit.
+    const fourPlayerMainToPlayerPlan = buildFourPlayerNoOffshoreMainHarborToOuterPlayerLanePlan(
+        startDock,
+        endDock,
+        plannerContext
+    )
+    if (fourPlayerMainToPlayerPlan) {
+        return fourPlayerMainToPlayerPlan
+    }
+
     if (shouldForceUpperRightHarborPlan(startDock, endDock, plannerContext)) {
         const forcedUpperRightPlan = buildForcedChannelDockTransferPlan(
             startDock,
@@ -2005,52 +2026,465 @@ function buildFourPlayerMiddleRightHarborApproachChannel(
     }
 }
 
-function buildFourPlayerNoOffshoreMainHarborLanePlan(
+function buildFourPlayerNoOffshoreP1MainHarborLanePlan(
     startDock: DockSlot,
     endDock: DockSlot,
     plannerContext: PlannerContext
 ): BoatRoutePlan | null {
     if (
         plannerContext.geometry.layoutKey !== '4p-no-offshore' ||
-        startDock.family !== 'player-board' ||
+        getPlayerBoardCanonicalSeatId(startDock) !== 'p1' ||
         endDock.family !== 'main-island-harbor'
     ) {
         return null
     }
 
-    const startSeat = getPlayerBoardCanonicalSeatId(startDock)
-    if (startSeat !== 'p1' && startSeat !== 'p4') {
-        return null
-    }
-
-    const transitChannelsById = new Map(
-        plannerContext.geometry.transitChannels.map((channel) => [channel.id, channel])
+    const topCenterChannel = plannerContext.geometry.transitChannels.find(
+        (channel) => channel.id === 'channel-top-center'
     )
-    const laneChannel =
-        startSeat === 'p1'
-            ? transitChannelsById.get('channel-top-center')
-            : transitChannelsById.get('channel-bottom-center')
-    const middleRightHarbor = buildFourPlayerMiddleRightHarborApproachChannel(plannerContext)
-    if (!laneChannel || !middleRightHarbor) {
+    if (!topCenterChannel) {
         return null
     }
 
-    const desiredVerticalHeading = startSeat === 'p1' ? -Math.PI / 2 : Math.PI / 2
+    const desiredSetupHeading = Math.PI / 2
     const undockTargetPose: BoatPose = {
-        x: startDock.stagingPose.x,
-        y: laneChannel.y,
-        heading: desiredVerticalHeading
+        x: topCenterChannel.x,
+        y: topCenterChannel.y,
+        heading: 0
     }
-    const undockCandidates = buildUndockCandidates(startDock, undockTargetPose).filter((candidate) =>
-        startSeat === 'p1'
-            ? Math.sin(candidate.transitPose.heading) < -0.35
-            : Math.sin(candidate.transitPose.heading) > 0.35
+    const upwardCandidates = buildUndockCandidates(startDock, undockTargetPose).filter(
+        (candidate) => Math.sin(candidate.transitPose.heading) < -0.35
     )
+    if (upwardCandidates.length === 0) {
+        return null
+    }
 
-    for (const undockCandidate of undockCandidates) {
-        const transitSegments: BoatMotionSegment[] = []
+    const dockCandidates = buildHarborExitUndockCandidates(endDock, {
+        x: endDock.stagingPose.x,
+        y: endDock.stagingPose.y + FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS * 4,
+        heading: desiredSetupHeading
+    })
+        .filter(
+            (candidate) =>
+                Math.abs(normalizeAngle(candidate.transitPose.heading - desiredSetupHeading)) <
+                    Math.PI / 24 &&
+                candidate.transitPose.x > endDock.stagingPose.x + 12 &&
+                candidate.transitPose.y > endDock.stagingPose.y + 12
+        )
+    if (dockCandidates.length === 0) {
+        return null
+    }
+
+    const mainHarborDocksByY = [...plannerContext.geometry.mainIslandDockSlots].sort(
+        (a, b) => a.stagingPose.y - b.stagingPose.y
+    )
+    const currentHarborDockIndex = mainHarborDocksByY.findIndex((dock) => dock.id === endDock.id)
+    const nextLowerHarborDock =
+        currentHarborDockIndex >= 0 ? mainHarborDocksByY.at(currentHarborDockIndex + 1) ?? null : null
+
+    let bestPlan: BoatRoutePlan | null = null
+
+    for (const undockCandidate of upwardCandidates) {
+        const preLaneTransitSegments: BoatMotionSegment[] = []
         let currentPose = undockCandidate.transitPose
 
+        const desiredVerticalHeading = -Math.PI / 2
+        const topLaneEntryY = topCenterChannel.y + FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS
+        const alignmentDelta = normalizeAngle(desiredVerticalHeading - currentPose.heading)
+        if (Math.abs(alignmentDelta) > Math.PI / 24) {
+            const alignmentArc = createForwardArcFromStartPose(
+                currentPose,
+                alignmentDelta,
+                FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS
+            )
+            if (!analyzeSegment(alignmentArc, plannerContext).isCollisionFree) {
+                continue
+            }
+            preLaneTransitSegments.push(alignmentArc)
+            currentPose = alignmentArc.endPose
+        }
+
+        const laneEntryPose: BoatPose = {
+            x: currentPose.x,
+            y: topLaneEntryY,
+            heading: desiredVerticalHeading
+        }
+        const toLaneVertical = createStraightSegment(currentPose, laneEntryPose, 'forward')
+        const arcToHorizontal = createForwardArcFromStartPose(
+            laneEntryPose,
+            normalizeAngle(0 - desiredVerticalHeading),
+            FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS
+        )
+        if (
+            !analyzeSegment(toLaneVertical, plannerContext).isCollisionFree ||
+            !analyzeSegment(arcToHorizontal, plannerContext).isCollisionFree
+        ) {
+            continue
+        }
+
+        preLaneTransitSegments.push(toLaneVertical, arcToHorizontal)
+
+        for (const dockCandidate of dockCandidates) {
+            const setupPose = dockCandidate.transitPose
+            const overshootPose: BoatPose = {
+                x: setupPose.x,
+                y:
+                    nextLowerHarborDock ?
+                        Math.max(
+                            setupPose.y,
+                            nextLowerHarborDock.stagingPose.y + HARBOR_K_TURN_LATERAL_OFFSET
+                        )
+                    :   setupPose.y,
+                heading: desiredSetupHeading
+            }
+            const turnDownStartPose: BoatPose = {
+                x: overshootPose.x - FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS,
+                y: arcToHorizontal.endPose.y,
+                heading: 0
+            }
+            if (
+                turnDownStartPose.x <= arcToHorizontal.endPose.x + 24 ||
+                overshootPose.y <= arcToHorizontal.endPose.y + FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS
+            ) {
+                continue
+            }
+
+            const acrossTop = createStraightSegment(
+                arcToHorizontal.endPose,
+                turnDownStartPose,
+                'forward'
+            )
+            const arcDown = createForwardArcFromStartPose(
+                turnDownStartPose,
+                Math.PI / 2,
+                FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS
+            )
+            if (
+                Math.abs(arcDown.endPose.x - overshootPose.x) > 2 ||
+                Math.abs(normalizeAngle(arcDown.endPose.heading - desiredSetupHeading)) > 0.02 ||
+                overshootPose.y <= arcDown.endPose.y + 12
+            ) {
+                continue
+            }
+
+            const southboundPassBy = createStraightSegment(
+                arcDown.endPose,
+                overshootPose,
+                'forward'
+            )
+            const deterministicSegments: BoatMotionSegment[] = [
+                acrossTop,
+                arcDown,
+                southboundPassBy
+            ]
+
+            if (
+                deterministicSegments.some(
+                    (segment) => !analyzeSegment(segment, plannerContext).isCollisionFree
+                )
+            ) {
+                continue
+            }
+
+            const reverseDockSegments = [
+                ...(overshootPose.y > setupPose.y + 1 ?
+                    [createStraightSegment(overshootPose, setupPose, 'reverse')]
+                :   []),
+                ...[...dockCandidate.maneuverSegments]
+                    .reverse()
+                    .map((segment) => reverseMotionSegment(segment))
+            ]
+            const finalDockSegment = createStraightSegment(
+                endDock.stagingPose,
+                endDock.dockedPose,
+                'forward'
+            )
+            const dockSegments = [...reverseDockSegments, finalDockSegment]
+
+            const undockSegments = [
+                createStraightSegment(startDock.dockedPose, startDock.stagingPose, 'reverse'),
+                ...undockCandidate.maneuverSegments
+            ]
+            const candidatePlan: BoatRoutePlan = {
+                undockSegments,
+                transitSegments: [...preLaneTransitSegments, ...deterministicSegments],
+                dockSegments,
+                segments: [
+                    ...undockSegments,
+                    ...preLaneTransitSegments,
+                    ...deterministicSegments,
+                    ...dockSegments
+                ]
+            }
+
+            if (
+                !bestPlan ||
+                getMotionPathLength(candidatePlan.segments) < getMotionPathLength(bestPlan.segments)
+            ) {
+                bestPlan = candidatePlan
+            }
+        }
+    }
+
+    return bestPlan
+}
+
+function buildFourPlayerNoOffshoreP4MainHarborLanePlan(
+    startDock: DockSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): BoatRoutePlan | null {
+    if (
+        plannerContext.geometry.layoutKey !== '4p-no-offshore' ||
+        getPlayerBoardCanonicalSeatId(startDock) !== 'p4' ||
+        endDock.family !== 'main-island-harbor'
+    ) {
+        return null
+    }
+
+    const bottomCenterChannel = plannerContext.geometry.transitChannels.find(
+        (channel) => channel.id === 'channel-bottom-center'
+    )
+    if (!bottomCenterChannel) {
+        return null
+    }
+
+    const desiredSetupHeading = -Math.PI / 2
+    const undockTargetPose: BoatPose = {
+        x: bottomCenterChannel.x,
+        y: bottomCenterChannel.y,
+        heading: 0
+    }
+    const downwardCandidates = buildUndockCandidates(startDock, undockTargetPose).filter(
+        (candidate) => Math.sin(candidate.transitPose.heading) > 0.35
+    )
+    if (downwardCandidates.length === 0) {
+        return null
+    }
+
+    const dockCandidates = buildHarborExitUndockCandidates(endDock, {
+        x: endDock.stagingPose.x,
+        y: endDock.stagingPose.y - FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS * 4,
+        heading: desiredSetupHeading
+    })
+        .filter(
+            (candidate) =>
+                Math.abs(normalizeAngle(candidate.transitPose.heading - desiredSetupHeading)) <
+                    Math.PI / 24 &&
+                candidate.transitPose.x > endDock.stagingPose.x + 12 &&
+                candidate.transitPose.y < endDock.stagingPose.y - 12
+        )
+    if (dockCandidates.length === 0) {
+        return null
+    }
+
+    const mainHarborDocksByY = [...plannerContext.geometry.mainIslandDockSlots].sort(
+        (a, b) => a.stagingPose.y - b.stagingPose.y
+    )
+    const currentHarborDockIndex = mainHarborDocksByY.findIndex((dock) => dock.id === endDock.id)
+    const previousUpperHarborDock =
+        currentHarborDockIndex > 0 ? mainHarborDocksByY.at(currentHarborDockIndex - 1) ?? null : null
+
+    let bestPlan: BoatRoutePlan | null = null
+
+    for (const undockCandidate of downwardCandidates) {
+        const preLaneTransitSegments: BoatMotionSegment[] = []
+        let currentPose = undockCandidate.transitPose
+
+        const desiredVerticalHeading = Math.PI / 2
+        const bottomLaneEntryY = bottomCenterChannel.y - FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS
+        const alignmentDelta = normalizeAngle(desiredVerticalHeading - currentPose.heading)
+        if (Math.abs(alignmentDelta) > Math.PI / 24) {
+            const alignmentArc = createForwardArcFromStartPose(
+                currentPose,
+                alignmentDelta,
+                FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS
+            )
+            if (!analyzeSegment(alignmentArc, plannerContext).isCollisionFree) {
+                continue
+            }
+            preLaneTransitSegments.push(alignmentArc)
+            currentPose = alignmentArc.endPose
+        }
+
+        const laneEntryPose: BoatPose = {
+            x: currentPose.x,
+            y: bottomLaneEntryY,
+            heading: desiredVerticalHeading
+        }
+        const toLaneVertical = createStraightSegment(currentPose, laneEntryPose, 'forward')
+        const arcToHorizontal = createForwardArcFromStartPose(
+            laneEntryPose,
+            normalizeAngle(0 - desiredVerticalHeading),
+            FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS
+        )
+        if (
+            !analyzeSegment(toLaneVertical, plannerContext).isCollisionFree ||
+            !analyzeSegment(arcToHorizontal, plannerContext).isCollisionFree
+        ) {
+            continue
+        }
+
+        preLaneTransitSegments.push(toLaneVertical, arcToHorizontal)
+
+        for (const dockCandidate of dockCandidates) {
+            const setupPose = dockCandidate.transitPose
+            const overshootPose: BoatPose = {
+                x: setupPose.x,
+                y:
+                    previousUpperHarborDock ?
+                        Math.min(
+                            setupPose.y,
+                            previousUpperHarborDock.stagingPose.y - HARBOR_K_TURN_LATERAL_OFFSET
+                        )
+                    :   setupPose.y,
+                heading: desiredSetupHeading
+            }
+            const turnUpStartPose: BoatPose = {
+                x: overshootPose.x - FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS,
+                y: arcToHorizontal.endPose.y,
+                heading: 0
+            }
+            if (
+                turnUpStartPose.x <= arcToHorizontal.endPose.x + 24 ||
+                overshootPose.y >= arcToHorizontal.endPose.y - FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS
+            ) {
+                continue
+            }
+
+            const acrossBottom = createStraightSegment(
+                arcToHorizontal.endPose,
+                turnUpStartPose,
+                'forward'
+            )
+            const arcUp = createForwardArcFromStartPose(
+                turnUpStartPose,
+                -Math.PI / 2,
+                FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS
+            )
+            if (
+                Math.abs(arcUp.endPose.x - overshootPose.x) > 2 ||
+                Math.abs(normalizeAngle(arcUp.endPose.heading - desiredSetupHeading)) > 0.02 ||
+                overshootPose.y >= arcUp.endPose.y - 12
+            ) {
+                continue
+            }
+
+            const northboundPassBy = createStraightSegment(
+                arcUp.endPose,
+                overshootPose,
+                'forward'
+            )
+            const deterministicSegments: BoatMotionSegment[] = [
+                acrossBottom,
+                arcUp,
+                northboundPassBy
+            ]
+
+            if (
+                deterministicSegments.some(
+                    (segment) => !analyzeSegment(segment, plannerContext).isCollisionFree
+                )
+            ) {
+                continue
+            }
+
+            const reverseDockSegments = [
+                ...(overshootPose.y < setupPose.y - 1 ?
+                    [createStraightSegment(overshootPose, setupPose, 'reverse')]
+                :   []),
+                ...[...dockCandidate.maneuverSegments]
+                    .reverse()
+                    .map((segment) => reverseMotionSegment(segment))
+            ]
+            const finalDockSegment = createStraightSegment(
+                endDock.stagingPose,
+                endDock.dockedPose,
+                'forward'
+            )
+            const dockSegments = [...reverseDockSegments, finalDockSegment]
+
+            const undockSegments = [
+                createStraightSegment(startDock.dockedPose, startDock.stagingPose, 'reverse'),
+                ...undockCandidate.maneuverSegments
+            ]
+            const candidatePlan: BoatRoutePlan = {
+                undockSegments,
+                transitSegments: [...preLaneTransitSegments, ...deterministicSegments],
+                dockSegments,
+                segments: [
+                    ...undockSegments,
+                    ...preLaneTransitSegments,
+                    ...deterministicSegments,
+                    ...dockSegments
+                ]
+            }
+
+            if (
+                !bestPlan ||
+                getMotionPathLength(candidatePlan.segments) < getMotionPathLength(bestPlan.segments)
+            ) {
+                bestPlan = candidatePlan
+            }
+        }
+    }
+
+    return bestPlan
+}
+
+function buildFourPlayerNoOffshoreP2MainHarborLanePlan(
+    startDock: DockSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): BoatRoutePlan | null {
+    if (
+        plannerContext.geometry.layoutKey !== '4p-no-offshore' ||
+        getPlayerBoardCanonicalSeatId(startDock) !== 'p2' ||
+        endDock.family !== 'main-island-harbor'
+    ) {
+        return null
+    }
+
+    const desiredSetupHeading = Math.PI / 2
+    const dockCandidates = buildHarborExitUndockCandidates(endDock, {
+        x: endDock.stagingPose.x,
+        y: endDock.stagingPose.y + FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS * 4,
+        heading: desiredSetupHeading
+    })
+        .filter(
+            (candidate) =>
+                Math.abs(normalizeAngle(candidate.transitPose.heading - desiredSetupHeading)) <
+                    Math.PI / 24 &&
+                candidate.transitPose.x > endDock.stagingPose.x + 12 &&
+                candidate.transitPose.y > endDock.stagingPose.y + 12
+        )
+    if (dockCandidates.length === 0) {
+        return null
+    }
+
+    const targetLaneX = Math.max(...dockCandidates.map((candidate) => candidate.transitPose.x))
+    const downwardCandidates = buildUndockCandidates(startDock, {
+        x: targetLaneX,
+        y: plannerContext.geometry.boardHeight,
+        heading: desiredSetupHeading
+    }).filter((candidate) => Math.sin(candidate.transitPose.heading) > 0.35)
+    if (downwardCandidates.length === 0) {
+        return null
+    }
+
+    const mainHarborDocksByY = [...plannerContext.geometry.mainIslandDockSlots].sort(
+        (a, b) => a.stagingPose.y - b.stagingPose.y
+    )
+    const currentHarborDockIndex = mainHarborDocksByY.findIndex((dock) => dock.id === endDock.id)
+    const nextLowerHarborDock =
+        currentHarborDockIndex >= 0 ? mainHarborDocksByY.at(currentHarborDockIndex + 1) ?? null : null
+
+    let bestPlan: BoatRoutePlan | null = null
+
+    for (const undockCandidate of downwardCandidates) {
+        const transitSegments: BoatMotionSegment[] = []
+        let currentPose = undockCandidate.transitPose
+        const desiredVerticalHeading = Math.PI / 2
         const alignmentDelta = normalizeAngle(desiredVerticalHeading - currentPose.heading)
         if (Math.abs(alignmentDelta) > Math.PI / 24) {
             const alignmentArc = createForwardArcFromStartPose(
@@ -2065,74 +2499,235 @@ function buildFourPlayerNoOffshoreMainHarborLanePlan(
             currentPose = alignmentArc.endPose
         }
 
-        const laneEntryPose: BoatPose = {
-            x: currentPose.x,
-            y: laneChannel.y,
-            heading: desiredVerticalHeading
-        }
-        const toLaneVertical = createStraightSegment(currentPose, laneEntryPose, 'forward')
-        const arcToHorizontal = createForwardArcFromStartPose(
-            laneEntryPose,
-            normalizeAngle(0 - desiredVerticalHeading),
-            FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS
-        )
-        const acrossPose: BoatPose = {
-            x: middleRightHarbor.x,
-            y: arcToHorizontal.endPose.y,
-            heading: 0
-        }
-        const acrossSegment = createStraightSegment(arcToHorizontal.endPose, acrossPose, 'forward')
-        const skeletonSegments = [toLaneVertical, arcToHorizontal, acrossSegment]
-        if (skeletonSegments.some((segment) => !analyzeSegment(segment, plannerContext).isCollisionFree)) {
-            continue
-        }
-        transitSegments.push(...skeletonSegments)
-        currentPose = acrossPose
-
-        if (Math.abs(currentPose.y - middleRightHarbor.y) > 1) {
-            const gapVerticalHeading = middleRightHarbor.y >= currentPose.y ? Math.PI / 2 : -Math.PI / 2
-            const arcIntoGap = createForwardArcFromStartPose(
-                currentPose,
-                normalizeAngle(gapVerticalHeading - currentPose.heading),
-                FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS
-            )
-            const gapPose: BoatPose = {
-                x: arcIntoGap.endPose.x,
-                y: middleRightHarbor.y,
-                heading: gapVerticalHeading
+        for (const dockCandidate of dockCandidates) {
+            const setupPose = dockCandidate.transitPose
+            const overshootPose: BoatPose = {
+                x: setupPose.x,
+                y:
+                    nextLowerHarborDock ?
+                        Math.max(
+                            setupPose.y,
+                            nextLowerHarborDock.stagingPose.y + HARBOR_K_TURN_LATERAL_OFFSET
+                        )
+                    :   setupPose.y,
+                heading: desiredSetupHeading
             }
-            const gapVertical = createStraightSegment(arcIntoGap.endPose, gapPose, 'forward')
-            if (
-                !analyzeSegment(arcIntoGap, plannerContext).isCollisionFree ||
-                !analyzeSegment(gapVertical, plannerContext).isCollisionFree
-            ) {
+            if (overshootPose.y <= currentPose.y + 12) {
                 continue
             }
-            transitSegments.push(arcIntoGap, gapVertical)
-            currentPose = gapPose
+
+            const southboundPassBy = createStraightSegment(currentPose, overshootPose, 'forward')
+            if (!analyzeSegment(southboundPassBy, plannerContext).isCollisionFree) {
+                continue
+            }
+
+            const reverseDockSegments = [
+                ...(overshootPose.y > setupPose.y + 1 ?
+                    [createStraightSegment(overshootPose, setupPose, 'reverse')]
+                :   []),
+                ...[...dockCandidate.maneuverSegments]
+                    .reverse()
+                    .map((segment) => reverseMotionSegment(segment))
+            ]
+            const finalDockSegment = createStraightSegment(
+                endDock.stagingPose,
+                endDock.dockedPose,
+                'forward'
+            )
+            const dockSegments = [...reverseDockSegments, finalDockSegment]
+            const undockSegments = [
+                createStraightSegment(startDock.dockedPose, startDock.stagingPose, 'reverse'),
+                ...undockCandidate.maneuverSegments
+            ]
+            const candidatePlan: BoatRoutePlan = {
+                undockSegments,
+                transitSegments: [...transitSegments, southboundPassBy],
+                dockSegments,
+                segments: [...undockSegments, ...transitSegments, southboundPassBy, ...dockSegments]
+            }
+
+            if (
+                !bestPlan ||
+                getMotionPathLength(candidatePlan.segments) < getMotionPathLength(bestPlan.segments)
+            ) {
+                bestPlan = candidatePlan
+            }
+        }
+    }
+
+    return bestPlan
+}
+
+function buildFourPlayerNoOffshoreP3MainHarborLanePlan(
+    startDock: DockSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): BoatRoutePlan | null {
+    if (
+        plannerContext.geometry.layoutKey !== '4p-no-offshore' ||
+        getPlayerBoardCanonicalSeatId(startDock) !== 'p3' ||
+        endDock.family !== 'main-island-harbor'
+    ) {
+        return null
+    }
+
+    const desiredSetupHeading = -Math.PI / 2
+    const dockCandidates = buildHarborExitUndockCandidates(endDock, {
+        x: endDock.stagingPose.x,
+        y: endDock.stagingPose.y - FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS * 4,
+        heading: desiredSetupHeading
+    })
+        .filter(
+            (candidate) =>
+                Math.abs(normalizeAngle(candidate.transitPose.heading - desiredSetupHeading)) <
+                    Math.PI / 24 &&
+                candidate.transitPose.x > endDock.stagingPose.x + 12 &&
+                candidate.transitPose.y < endDock.stagingPose.y - 12
+        )
+    if (dockCandidates.length === 0) {
+        return null
+    }
+
+    const targetLaneX = Math.max(...dockCandidates.map((candidate) => candidate.transitPose.x))
+    const upwardCandidates = buildUndockCandidates(startDock, {
+        x: targetLaneX,
+        y: 0,
+        heading: desiredSetupHeading
+    }).filter((candidate) => Math.sin(candidate.transitPose.heading) < -0.35)
+    if (upwardCandidates.length === 0) {
+        return null
+    }
+
+    const mainHarborDocksByY = [...plannerContext.geometry.mainIslandDockSlots].sort(
+        (a, b) => a.stagingPose.y - b.stagingPose.y
+    )
+    const currentHarborDockIndex = mainHarborDocksByY.findIndex((dock) => dock.id === endDock.id)
+    const previousUpperHarborDock =
+        currentHarborDockIndex > 0 ? mainHarborDocksByY.at(currentHarborDockIndex - 1) ?? null : null
+
+    let bestPlan: BoatRoutePlan | null = null
+
+    for (const undockCandidate of upwardCandidates) {
+        const transitSegments: BoatMotionSegment[] = []
+        let currentPose = undockCandidate.transitPose
+        const desiredVerticalHeading = -Math.PI / 2
+        const alignmentDelta = normalizeAngle(desiredVerticalHeading - currentPose.heading)
+        if (Math.abs(alignmentDelta) > Math.PI / 24) {
+            const alignmentArc = createForwardArcFromStartPose(
+                currentPose,
+                alignmentDelta,
+                FOUR_PLAYER_MAIN_HARBOR_ARC_RADIUS
+            )
+            if (!analyzeSegment(alignmentArc, plannerContext).isCollisionFree) {
+                continue
+            }
+            transitSegments.push(alignmentArc)
+            currentPose = alignmentArc.endPose
         }
 
-        const dockSegments = buildMiddleRightMainHarborDockSegments(
-            currentPose,
-            endDock.stagingPose,
+        for (const dockCandidate of dockCandidates) {
+            const setupPose = dockCandidate.transitPose
+            const overshootPose: BoatPose = {
+                x: setupPose.x,
+                y:
+                    previousUpperHarborDock ?
+                        Math.min(
+                            setupPose.y,
+                            previousUpperHarborDock.stagingPose.y - HARBOR_K_TURN_LATERAL_OFFSET
+                        )
+                    :   setupPose.y,
+                heading: desiredSetupHeading
+            }
+            if (overshootPose.y >= currentPose.y - 12) {
+                continue
+            }
+
+            const northboundPassBy = createStraightSegment(currentPose, overshootPose, 'forward')
+            if (!analyzeSegment(northboundPassBy, plannerContext).isCollisionFree) {
+                continue
+            }
+
+            const reverseDockSegments = [
+                ...(overshootPose.y < setupPose.y - 1 ?
+                    [createStraightSegment(overshootPose, setupPose, 'reverse')]
+                :   []),
+                ...[...dockCandidate.maneuverSegments]
+                    .reverse()
+                    .map((segment) => reverseMotionSegment(segment))
+            ]
+            const finalDockSegment = createStraightSegment(
+                endDock.stagingPose,
+                endDock.dockedPose,
+                'forward'
+            )
+            const dockSegments = [...reverseDockSegments, finalDockSegment]
+            const undockSegments = [
+                createStraightSegment(startDock.dockedPose, startDock.stagingPose, 'reverse'),
+                ...undockCandidate.maneuverSegments
+            ]
+            const candidatePlan: BoatRoutePlan = {
+                undockSegments,
+                transitSegments: [...transitSegments, northboundPassBy],
+                dockSegments,
+                segments: [...undockSegments, ...transitSegments, northboundPassBy, ...dockSegments]
+            }
+
+            if (
+                !bestPlan ||
+                getMotionPathLength(candidatePlan.segments) < getMotionPathLength(bestPlan.segments)
+            ) {
+                bestPlan = candidatePlan
+            }
+        }
+    }
+
+    return bestPlan
+}
+
+function buildFourPlayerNoOffshoreMainHarborLanePlan(
+    startDock: DockSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): BoatRoutePlan | null {
+    if (
+        plannerContext.geometry.layoutKey !== '4p-no-offshore' ||
+        startDock.family !== 'player-board' ||
+        endDock.family !== 'main-island-harbor'
+    ) {
+        return null
+    }
+
+    const startSeat = getPlayerBoardCanonicalSeatId(startDock)
+    if (startSeat === 'p1') {
+        return buildFourPlayerNoOffshoreP1MainHarborLanePlan(
+            startDock,
+            endDock,
             plannerContext
         )
-        if (!dockSegments) {
-            continue
-        }
+    }
 
-        const undockSegments = [
-            createStraightSegment(startDock.dockedPose, startDock.stagingPose, 'reverse'),
-            ...undockCandidate.maneuverSegments
-        ]
-        const finalDockSegment = createStraightSegment(endDock.stagingPose, endDock.dockedPose, 'forward')
+    if (startSeat === 'p2') {
+        return buildFourPlayerNoOffshoreP2MainHarborLanePlan(
+            startDock,
+            endDock,
+            plannerContext
+        )
+    }
 
-        return {
-            undockSegments,
-            transitSegments,
-            dockSegments: [...dockSegments, finalDockSegment],
-            segments: [...undockSegments, ...transitSegments, ...dockSegments, finalDockSegment]
-        }
+    if (startSeat === 'p4') {
+        return buildFourPlayerNoOffshoreP4MainHarborLanePlan(
+            startDock,
+            endDock,
+            plannerContext
+        )
+    }
+
+    if (startSeat === 'p3') {
+        return buildFourPlayerNoOffshoreP3MainHarborLanePlan(
+            startDock,
+            endDock,
+            plannerContext
+        )
     }
 
     return null
@@ -2297,12 +2892,135 @@ function selectStructuredDockChannelChain(
     return selectStructuredDockChannelChain4pNoOffshore(startDock, endDock, plannerContext)
 }
 
+function buildFourPlayerNoOffshoreMainHarborToOuterPlayerLanePlan(
+    startDock: DockSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): BoatRoutePlan | null {
+    if (
+        plannerContext.geometry.layoutKey !== '4p-no-offshore' ||
+        startDock.family !== 'main-island-harbor' ||
+        endDock.family !== 'player-board'
+    ) {
+        return null
+    }
+
+    const transitChannelsById = new Map(
+        plannerContext.geometry.transitChannels.map((channel) => [channel.id, channel])
+    )
+    const topCenterChannel = transitChannelsById.get('channel-top-center')
+    const bottomCenterChannel = transitChannelsById.get('channel-bottom-center')
+    if (!topCenterChannel || !bottomCenterChannel) {
+        return null
+    }
+
+    const endSeat = getPlayerBoardCanonicalSeatId(endDock)
+    if (endSeat === 'p1') {
+        return buildFourPlayerNoOffshoreMainHarborToP1LanePlan(
+            startDock,
+            endDock,
+            plannerContext,
+        )
+    }
+
+    if (endSeat === 'p4') {
+        return buildFourPlayerNoOffshoreMainHarborToP4LanePlan(
+            startDock,
+            endDock,
+            plannerContext,
+        )
+    }
+
+    return null
+}
+
+function buildFourPlayerNoOffshoreMainHarborToP1LanePlan(
+    startDock: DockSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): BoatRoutePlan | null {
+    const topCenterChannel = plannerContext.geometry.transitChannels.find(
+        (channel) => channel.id === 'channel-top-center'
+    )
+    if (!topCenterChannel) {
+        return null
+    }
+
+    const desiredExitHeading = -Math.PI / 2
+    const harborExitCandidates = buildHarborExitUndockCandidates(startDock, {
+        x: topCenterChannel.x,
+        y: topCenterChannel.y,
+        heading: desiredExitHeading
+    }).filter(
+        (candidate) =>
+            Math.abs(normalizeAngle(candidate.transitPose.heading - desiredExitHeading)) <
+                Math.PI / 24 &&
+            candidate.transitPose.x > startDock.stagingPose.x + 12
+    )
+    if (harborExitCandidates.length === 0) {
+        return null
+    }
+
+    return buildForcedChannelDockTransferPlan(
+        startDock,
+        endDock,
+        plannerContext,
+        harborExitCandidates,
+        [topCenterChannel]
+    )
+}
+
+function buildFourPlayerNoOffshoreMainHarborToP4LanePlan(
+    startDock: DockSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): BoatRoutePlan | null {
+    const bottomCenterChannel = plannerContext.geometry.transitChannels.find(
+        (channel) => channel.id === 'channel-bottom-center'
+    )
+    if (!bottomCenterChannel) {
+        return null
+    }
+
+    const desiredExitHeading = Math.PI / 2
+    const harborExitCandidates = buildHarborExitUndockCandidates(startDock, {
+        x: bottomCenterChannel.x,
+        y: bottomCenterChannel.y,
+        heading: desiredExitHeading
+    }).filter(
+        (candidate) =>
+            Math.abs(normalizeAngle(candidate.transitPose.heading - desiredExitHeading)) <
+                Math.PI / 24 &&
+            candidate.transitPose.x > startDock.stagingPose.x + 12
+    )
+    if (harborExitCandidates.length === 0) {
+        return null
+    }
+
+    return buildForcedChannelDockTransferPlan(
+        startDock,
+        endDock,
+        plannerContext,
+        harborExitCandidates,
+        [bottomCenterChannel]
+    )
+}
+
 function buildStructuredChannelDockTransferPlan(
     startDock: DockSlot,
     endDock: DockSlot,
     plannerContext: PlannerContext,
     undockCandidates: UndockManeuverCandidate[]
 ): BoatRoutePlan | null {
+    const outerPlayerLanePlan = buildFourPlayerNoOffshoreMainHarborToOuterPlayerLanePlan(
+        startDock,
+        endDock,
+        plannerContext
+    )
+    if (outerPlayerLanePlan) {
+        return outerPlayerLanePlan
+    }
+
     const channels = selectStructuredDockChannelChain(startDock, endDock, plannerContext)
     if (channels.length === 0) {
         return null
@@ -2430,7 +3148,10 @@ function buildForcedChannelDockTransferPlan(
     endDock: DockSlot,
     plannerContext: PlannerContext,
     undockCandidates: UndockManeuverCandidate[],
-    channels: TransitChannel[]
+    channels: TransitChannel[],
+    options: {
+        finalDockCandidateOptions?: DockCandidateOptions
+    } = {}
 ): BoatRoutePlan | null {
     let bestPlan: BoatRoutePlan | null = null
 
@@ -2439,7 +3160,8 @@ function buildForcedChannelDockTransferPlan(
             undockCandidate.transitPose,
             endDock,
             plannerContext,
-            channels
+            channels,
+            options.finalDockCandidateOptions
         )
         if (!dockConnection) continue
 
@@ -2589,12 +3311,14 @@ function findExactDockConnection(
 function findExactDockConnectionDirect(
     startPose: BoatPose,
     endDock: DockSlot,
-    plannerContext: PlannerContext
+    plannerContext: PlannerContext,
+    dockCandidateOptions: DockCandidateOptions = {}
 ): { transitSegments: BoatMotionSegment[]; dockSegments: BoatMotionSegment[]; endDock: DockSlot } | null {
     const shouldPreferHarborKTurn =
         plannerContext.geometry.layoutKey !== '3p-no-offshore' &&
         endDock.family === 'main-island-harbor'
     const standardGoals = buildDockCandidates(endDock, startPose, {
+        ...dockCandidateOptions,
         useHarborKTurn: shouldPreferHarborKTurn
     }).map((candidate) => ({
         endDock,
@@ -2618,6 +3342,7 @@ function findExactDockConnectionDirect(
     }
 
     const fallbackGoals = buildDockCandidates(endDock, startPose, {
+        ...dockCandidateOptions,
         useHarborKTurn: !shouldPreferHarborKTurn
     }).map((candidate) => ({
         endDock,
@@ -2873,7 +3598,8 @@ function findExactDockConnectionViaChannelChain(
     startPose: BoatPose,
     endDock: DockSlot,
     plannerContext: PlannerContext,
-    channels: TransitChannel[]
+    channels: TransitChannel[],
+    dockCandidateOptions: DockCandidateOptions = {}
 ): { transitSegments: BoatMotionSegment[]; dockSegments: BoatMotionSegment[]; endDock: DockSlot } | null {
     let currentPose = startPose
     const transitSegments: BoatMotionSegment[] = []
@@ -2907,7 +3633,12 @@ function findExactDockConnectionViaChannelChain(
         }
     }
 
-    const finalConnection = findExactDockConnectionDirect(currentPose, endDock, plannerContext)
+    const finalConnection = findExactDockConnectionDirect(
+        currentPose,
+        endDock,
+        plannerContext,
+        dockCandidateOptions
+    )
     if (!finalConnection) {
         return null
     }
@@ -3465,12 +4196,15 @@ function buildUndockCandidates(
     return buildReverseThenTurnCandidates(dock.stagingPose, targetPose, candidates, config)
 }
 
+type DockCandidateOptions = {
+    useHarborKTurn?: boolean
+    obliqueAngleOffsets?: readonly number[]
+}
+
 function buildDockCandidates(
     dock: DockSlot,
     sourcePose: BoatPose,
-    options: {
-        useHarborKTurn?: boolean
-    } = {}
+    options: DockCandidateOptions = {}
 ): DockManeuverCandidate[] {
     const config = DOCK_MANEUVER_CONFIG[dock.family]
     const preferredBearing = Math.atan2(
@@ -3494,7 +4228,8 @@ function buildDockCandidates(
                 dock.stagingPose,
                 config.turnRadius,
                 preferredBearing,
-                0.12
+                0.12,
+                options.obliqueAngleOffsets
             )
         )
     }
@@ -3579,6 +4314,7 @@ function buildStraightInDockCandidates(
 }
 
 const OBLIQUE_APPROACH_ANGLE_OFFSETS = [Math.PI / 6, Math.PI / 4]
+const PLAYER_BOARD_APPROACH_ANGLE_OFFSETS = [Math.PI / 9, Math.PI / 6, Math.PI / 4, Math.PI / 3]
 const OPEN_WATER_PERPENDICULAR_RADIUS_MULTIPLIERS = [1, 1.35, 1.7]
 const OPEN_WATER_CONE_ENTRY_ANGLE_OFFSETS = [
     Math.PI / 9,
@@ -3598,14 +4334,15 @@ function buildObliqueArcGoalCandidates(
     goalPose: BoatPose,
     turnRadius: number,
     preferredBearing: number,
-    scoreBase: number
+    scoreBase: number,
+    angleOffsets: readonly number[] = OBLIQUE_APPROACH_ANGLE_OFFSETS
 ): DockManeuverCandidate[] {
     const candidates: DockManeuverCandidate[] = []
     const desiredDelta = normalizeAngle(preferredBearing - goalPose.heading)
     const preferredSign = desiredDelta >= 0 ? 1 : -1
     const signs = [preferredSign, -preferredSign] as const
 
-    for (const angleOffset of OBLIQUE_APPROACH_ANGLE_OFFSETS) {
+    for (const angleOffset of angleOffsets) {
         for (const sign of signs) {
             const entryHeading = normalizeAngle(goalPose.heading - sign * angleOffset)
             const arcSegment = createArcToEndPose(
@@ -4714,6 +5451,36 @@ function createReverseArcFromStartPose(
         startAngle: travelArc.startAngle,
         endAngle: travelArc.endAngle,
         clockwise: travelArc.clockwise
+    })
+}
+
+function reverseMotionSegment(segment: BoatMotionSegment): BoatMotionSegment {
+    const reversedDirection = segment.direction === 'forward' ? 'reverse' : 'forward'
+
+    if (segment.kind === 'straight') {
+        return createStraightSegment(segment.endPose, segment.startPose, reversedDirection)
+    }
+
+    if (segment.kind === 'pivot') {
+        return {
+            kind: 'pivot',
+            direction: reversedDirection,
+            startPose: segment.endPose,
+            endPose: segment.startPose,
+            length: segment.length
+        }
+    }
+
+    return createArcSegment({
+        direction: reversedDirection,
+        startPose: segment.endPose,
+        endPose: segment.startPose,
+        center: segment.center,
+        radius: segment.radius,
+        startAngle: segment.endAngle,
+        endAngle: segment.startAngle,
+        clockwise: !segment.clockwise,
+        pivotOffsetAlongHeading: segment.pivotOffsetAlongHeading
     })
 }
 
