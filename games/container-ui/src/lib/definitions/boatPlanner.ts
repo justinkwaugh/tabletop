@@ -2923,6 +2923,14 @@ function buildFourPlayerNoOffshoreMainHarborToOuterPlayerLanePlan(
         )
     }
 
+    if (endSeat === 'p2') {
+        return buildFourPlayerNoOffshoreMainHarborToP2LanePlan(
+            startDock,
+            endDock,
+            plannerContext,
+        )
+    }
+
     if (endSeat === 'p4') {
         return buildFourPlayerNoOffshoreMainHarborToP4LanePlan(
             startDock,
@@ -3003,6 +3011,37 @@ function buildFourPlayerNoOffshoreMainHarborToP4LanePlan(
         plannerContext,
         harborExitCandidates,
         [bottomCenterChannel]
+    )
+}
+
+function buildFourPlayerNoOffshoreMainHarborToP2LanePlan(
+    startDock: DockSlot,
+    endDock: DockSlot,
+    plannerContext: PlannerContext
+): BoatRoutePlan | null {
+    const upperRightApproachChannel = buildUpperRightApproachChannel(endDock, plannerContext)
+
+    const desiredExitHeading = -Math.PI / 2
+    const harborExitCandidates = buildHarborExitUndockCandidates(startDock, {
+        x: upperRightApproachChannel.x,
+        y: upperRightApproachChannel.y,
+        heading: desiredExitHeading
+    }).filter(
+        (candidate) =>
+            Math.abs(normalizeAngle(candidate.transitPose.heading - desiredExitHeading)) <
+                Math.PI / 24 &&
+            candidate.transitPose.x > startDock.stagingPose.x + 12
+    )
+    if (harborExitCandidates.length === 0) {
+        return null
+    }
+
+    return buildForcedChannelDockTransferPlan(
+        startDock,
+        endDock,
+        plannerContext,
+        harborExitCandidates,
+        [upperRightApproachChannel]
     )
 }
 
