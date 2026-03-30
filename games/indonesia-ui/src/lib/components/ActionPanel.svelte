@@ -253,10 +253,10 @@
             )
 
             if (typeof lastTurnOrderBidAction?.index !== 'number') {
-                return turnOrderBidEntries.filter((entry) => entry.turnOrderBid !== null)
+                return turnOrderBidEntries
             }
 
-            return summarizeConsecutiveTurnOrderBids(
+            const summarizedEntries = summarizeConsecutiveTurnOrderBids(
                 gameSession.actions,
                 lastTurnOrderBidAction.index
             ).map((entry) => ({
@@ -267,6 +267,13 @@
                     ] ?? 1,
                 turnOrderBid: bidByPlayerId[entry.playerId] ?? null
             }))
+
+            const summarizedPlayerIds = new Set(summarizedEntries.map((entry) => entry.playerId))
+            const remainingEntries = turnOrderBidEntries.filter(
+                (entry) => !summarizedPlayerIds.has(entry.playerId)
+            )
+
+            return [...summarizedEntries, ...remainingEntries]
         }
     )
 

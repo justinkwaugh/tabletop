@@ -709,6 +709,51 @@
         }))
     }
 
+    function aggregatedTurnOrderBidEntries(action: GameAction): Array<{
+        id: string
+        playerId: string
+        bid: number | null
+        multiplier: number
+        total: number | null
+    }> {
+        if (
+            !isAggregatedIndonesiaAction(action) ||
+            action.aggregatedType !== ActionType.PlaceTurnOrderBid ||
+            typeof action.index !== 'number'
+        ) {
+            return []
+        }
+
+        const summarizedEntries = summarizeConsecutiveTurnOrderBids(gameSession.actions, action.index).map(
+            (entry) => {
+                const bidDisplay = turnOrderBidDisplay(entry.bidAction)
+
+                return {
+                    id: entry.id,
+                    playerId: entry.playerId,
+                    bid: entry.bidAction.amount,
+                    multiplier: bidDisplay?.multiplier ?? 1,
+                    total: bidDisplay?.total ?? entry.total
+                }
+            }
+        )
+
+        const summarizedPlayerIds = new Set(summarizedEntries.map((entry) => entry.playerId))
+        const remainingEntries = gameSession.gameState.turnManager.turnOrder
+            .filter((playerId) => !summarizedPlayerIds.has(playerId))
+            .map((playerId) => ({
+                id: `${playerId}:pending`,
+                playerId,
+                bid: null,
+                multiplier:
+                    BID_RESEARCH_MULTIPLIERS[gameSession.gameState.getPlayerState(playerId).research.bid] ??
+                    1,
+                total: null
+            }))
+
+        return [...summarizedEntries, ...remainingEntries]
+    }
+
     function aggregatedMergerAuctionSummary(action: GameAction): {
         resolved: boolean
         winnerId: string | null
@@ -1081,13 +1126,31 @@
             </span>
         {:else if action.aggregatedType === ActionType.PlaceTurnOrderBid}
             <span class="inline-flex flex-col items-start gap-0.5">
-                {#each aggregatedTurnOrderBidActions(action) as bidAction (bidAction.id)}
-                    <span>
-                        <PlayerName playerId={bidAction.playerId} additionalClasses="px-1.5" />
-                        <span class="inline-block w-[2px]"></span>
-                        {bidAction.description}
-                    </span>
-                {/each}
+                <span class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Turn Order Bids</span>
+                <span class="mt-1 grid grid-cols-[auto_auto] gap-x-2 gap-y-1 rounded-xl border border-[#ad9c80]/35 bg-[#f4ede8] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27]">
+                    {#each aggregatedTurnOrderBidEntries(action) as entry (entry.id)}
+                        <span class="justify-self-start">
+                            <PlayerName
+                                playerId={entry.playerId}
+                                capitalization="none"
+                                additionalClasses="px-1.5 text-[11px] leading-none tracking-[0.02em]"
+                            />
+                        </span>
+                        <span class="inline-flex items-center gap-[2px] text-[12px] leading-none tabular-nums whitespace-nowrap">
+                            <span class="min-w-[1ch] text-right text-[rgba(63,46,28,0.6)] font-normal">
+                                {entry.bid ?? ''}
+                            </span>
+                            <span class="text-[11px] text-[rgba(63,46,28,0.56)] font-normal">x</span>
+                            <span class="min-w-[1ch] text-right text-[rgba(63,46,28,0.6)] font-normal">
+                                {entry.multiplier}
+                            </span>
+                            <span class="text-[11px] text-[rgba(63,46,28,0.56)] font-normal">=</span>
+                            <span class="min-w-[1ch] text-right text-[rgba(63,46,28,0.96)] font-semibold">
+                                {entry.total ?? ''}
+                            </span>
+                        </span>
+                    {/each}
+                </span>
             </span>
         {:else if action.aggregatedType === ActionType.RemoveSiapSajiArea}
             removed {action.count} Siap Saji {action.count === 1 ? 'area' : 'areas'}
