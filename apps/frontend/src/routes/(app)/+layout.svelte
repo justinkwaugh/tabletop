@@ -22,7 +22,12 @@
     import { goto } from '$app/navigation'
     import { onMount } from 'svelte'
     import { UserStatus } from '@tabletop/common'
-    import { VersionChange, GameEditForm, getAppContext } from '@tabletop/frontend-components'
+    import {
+        VersionChange,
+        GameEditForm,
+        getAppContext,
+        attachGlobalCssVarFromRect
+    } from '@tabletop/frontend-components'
     import { toast } from 'svelte-sonner'
     import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
     import { BellSolid } from 'flowbite-svelte-icons'
@@ -40,7 +45,6 @@
     let loading = $derived(libraryService.loading)
 
     let { children } = $props()
-    let navbarShell: HTMLDivElement | undefined = $state()
 
     let sessionUser = $derived(authorizationService.getSessionUser())
     let showCreateGameModel = $state(false)
@@ -171,22 +175,6 @@
             window.scrollTo(0, 1)
         }
 
-        const rootStyle = document.documentElement.style
-        const updateNavbarHeight = () => {
-            const height = navbarShell?.getBoundingClientRect().height ?? 0
-            rootStyle.setProperty('--app-navbar-height', `${height}px`)
-        }
-
-        const observer = new ResizeObserver(updateNavbarHeight)
-        if (navbarShell) {
-            observer.observe(navbarShell)
-        }
-        updateNavbarHeight()
-
-        return () => {
-            observer.disconnect()
-            rootStyle.removeProperty('--app-navbar-height')
-        }
     })
 
     $effect(() => {
@@ -251,7 +239,7 @@
     {/if}
 {/snippet}
 
-<div bind:this={navbarShell}>
+<div {@attach attachGlobalCssVarFromRect('--app-navbar-height')}>
     <Navbar
         fluid={true}
         class="{currentDefinition?.info.metadata.beta ? 'dark:bg-red-900' : 'dark:bg-gray-800'} "

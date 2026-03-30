@@ -7,7 +7,8 @@
         HistoryKeyControls,
         getAppContext,
         AdminPanel,
-        GameUI
+        GameUI,
+        attachGlobalCssVarFromRect
     } from '@tabletop/frontend-components'
 
     import { onMount } from 'svelte'
@@ -15,7 +16,6 @@
 
     let { data }: { data: { gameSession: GameSession<GameState, HydratedGameState> } } = $props()
     const { isExploring, gameHotseat } = data.gameSession.bridge
-    let bannerShell: HTMLDivElement | undefined = $state()
 
     // svelte-ignore state_referenced_locally
     setGameSession(data.gameSession)
@@ -24,16 +24,6 @@
 
     onMount(() => {
         const gameSession = data.gameSession
-        const rootStyle = document.documentElement.style
-        const updateBannerHeight = () => {
-            const height = bannerShell?.getBoundingClientRect().height ?? 0
-            rootStyle.setProperty('--app-banner-height', `${height}px`)
-        }
-        const observer = new ResizeObserver(updateBannerHeight)
-        if (bannerShell) {
-            observer.observe(bannerShell)
-        }
-        updateBannerHeight()
 
         gameService.currentGameSession = gameSession
 
@@ -45,8 +35,6 @@
             gameSession.listenToGame()
         }
         return () => {
-            observer.disconnect()
-            rootStyle.removeProperty('--app-banner-height')
             gameSession.stopListeningToGame()
             gameSession.dispose()
             gameService.currentGameSession = undefined
@@ -61,7 +49,7 @@
     {#if authorizationService.actAsAdmin}
         <AdminPanel />
     {/if}
-    <div bind:this={bannerShell}>
+    <div {@attach attachGlobalCssVarFromRect('--app-banner-height')}>
         {#if $isExploring}
             <ExplorationPanel />
         {:else if $gameHotseat}

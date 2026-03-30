@@ -20,6 +20,7 @@
     import { createHarnessAppContext } from '$lib/harness/harnessContext.js'
     import type { GameState, HydratedGameState } from '@tabletop/common'
     import { BridgedContext } from '$lib/services/bridges/bridgedContext.svelte.js'
+    import { attachGlobalCssVarFromRect } from '$lib/utils/publishCssVarFromRect.js'
 
     let { definition }: { definition: GameUiDefinition<GameState, HydratedGameState> } = $props()
     const appContext = createHarnessAppContext(definition)
@@ -31,31 +32,9 @@
     let gameToDelete: string | undefined = $state(undefined)
     let deleteModalOpen = $derived(gameToDelete !== undefined)
     let gameSession: GameSession<GameState, HydratedGameState> | undefined = $state(undefined)
-    let navbarShell: HTMLDivElement | undefined = $state()
 
     onMount(() => {
         gameService.loadGames().catch(console.error)
-
-        if (typeof document === 'undefined') {
-            return
-        }
-
-        const rootStyle = document.documentElement.style
-        const updateNavbarHeight = () => {
-            const height = navbarShell?.getBoundingClientRect().height ?? 0
-            rootStyle.setProperty('--app-navbar-height', `${height}px`)
-        }
-
-        const observer = new ResizeObserver(updateNavbarHeight)
-        if (navbarShell) {
-            observer.observe(navbarShell)
-        }
-        updateNavbarHeight()
-
-        return () => {
-            observer.disconnect()
-            rootStyle.removeProperty('--app-navbar-height')
-        }
     })
 
     function closeCreateModal() {
@@ -137,7 +116,7 @@
 {/snippet}
 
 <div
-    bind:this={navbarShell}
+    {@attach attachGlobalCssVarFromRect('--app-navbar-height')}
     style="padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);"
 >
     <Navbar fluid={true} class="dark:bg-gray-800">
