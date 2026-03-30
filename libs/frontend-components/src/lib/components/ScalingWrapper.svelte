@@ -55,11 +55,13 @@
     let {
         children,
         justify = 'center',
-        controls = 'top-left'
+        controls = 'top-left',
+        expandable = false
     }: {
         children: Snippet
         justify?: 'center' | 'left' | 'right'
         controls: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'none'
+        expandable?: boolean
     } = $props()
 
     let baseScale = $state(1)
@@ -85,6 +87,7 @@
     let viewAnimationRequestId = 0
     let currentTranslateX = $state(0)
     let currentTranslateY = $state(0)
+    let isExpanded = $state(false)
     let pinchDistance: number | null = null
     let pinchStartDistance: number | null = null
     let pinchStartScale: number | null = null
@@ -653,6 +656,25 @@
         zoomToScaleKeepingCenter(targetScale, true)
     }
 
+    function setExpanded(nextExpanded: boolean) {
+        isExpanded = nextExpanded
+        requestAnimationFrame(() => {
+            scheduleDimensionSync()
+        })
+    }
+
+    export function expand() {
+        setExpanded(true)
+    }
+
+    export function collapse() {
+        setExpanded(false)
+    }
+
+    export function toggleExpanded() {
+        setExpanded(!isExpanded)
+    }
+
     export function fitToContent(options: FitOptions = {}) {
         clearActiveFocus()
 
@@ -1004,9 +1026,32 @@
         cancelPinchAnimation()
         cancelPanInertia()
         cancelScrollInertia()
+        if (typeof document !== 'undefined') {
+            document.body.style.overflow = ''
+            document.documentElement.style.overflow = ''
+        }
         if (pendingDimensionSyncFrame) {
             cancelAnimationFrame(pendingDimensionSyncFrame)
         }
+    })
+
+    $effect(() => {
+        if (typeof document === 'undefined') {
+            return
+        }
+
+        if (isExpanded) {
+            document.body.style.overflow = 'hidden'
+            document.documentElement.style.overflow = 'hidden'
+
+            return () => {
+                document.body.style.overflow = ''
+                document.documentElement.style.overflow = ''
+            }
+        }
+
+        document.body.style.overflow = ''
+        document.documentElement.style.overflow = ''
     })
 
     onMount(() => {
@@ -1047,12 +1092,19 @@
     bind:this={wrapper}
     bind:clientWidth={wrapperWidth}
     bind:clientHeight={wrapperHeight}
-    class="w-full h-full relative overflow-hidden"
+    class="relative overflow-hidden"
+    class:w-full={!isExpanded}
+    class:h-full={!isExpanded}
+    style={isExpanded
+        ? 'position: fixed; inset: 0; z-index: 9999; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(1px);'
+        : undefined}
 >
     <div
         bind:this={scroller}
-        class="w-full h-full overflow-hidden"
-        style="touch-action: none;"
+        class="overflow-hidden"
+        class:w-full={!isExpanded}
+        class:h-full={!isExpanded}
+        style={`${isExpanded ? 'width: 100vw; height: 100dvh; padding: 8px;' : ''} touch-action: none;`}
         onwheel={handleWheel}
     >
         <div class="relative w-full h-full">
@@ -1074,7 +1126,9 @@
     </div>
     <div
         class="{zoomLevels > 0 || controls !== 'none'
-            ? ''
+            ? isExpanded
+                ? 'm-2'
+                : ''
             : 'hidden'} absolute flex flex-row justify-center items-center {controlsPosition} touch-manipulation bg-black/70 border-gray-700 border-2 px-2 py-1 rounded-lg text-gray-300"
     >
         <button aria-label="Zoom in" onclick={() => zoomIn()}
@@ -1112,5 +1166,40 @@
                 ></path>
             </svg>
         </button>
+        {#if expandable}
+            <button
+                aria-label={isExpanded ? 'Exit full screen' : 'Enter full screen'}
+                onclick={() => toggleExpanded()}
+                class="ms-2"
+            >
+                <svg
+                    class="w-[24px] h-[24px] text-gray-300"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                >
+                    {#if isExpanded}
+                        <path
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 9 4.5 4.5M9 9V5.25M9 9H5.25M15 9l4.5-4.5M15 9h3.75M15 9V5.25M9 15l-4.5 4.5M9 15H5.25M9 15v3.75M15 15l4.5 4.5M15 15h3.75M15 15v3.75"
+                        ></path>
+                    {:else}
+                        <path
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4.5 9V4.5M4.5 4.5H9M4.5 4.5 9.75 9.75M19.5 9V4.5M19.5 4.5H15M19.5 4.5 14.25 9.75M4.5 15v4.5M4.5 19.5H9M4.5 19.5l5.25-5.25M19.5 15v4.5M19.5 19.5H15M19.5 19.5l-5.25-5.25"
+                        ></path>
+                    {/if}
+                </svg>
+            </button>
+        {/if}
     </div>
 </div>
