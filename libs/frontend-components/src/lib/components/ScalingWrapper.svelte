@@ -6,6 +6,9 @@
     const EPSILON = 0.001
     const PINCH_ZOOM_SENSITIVITY = 1
     const GESTURE_ZOOM_SENSITIVITY = 1.2
+    const TOUCH_INERTIA_DECAY_PER_FRAME = 0.92
+    const TOUCH_INERTIA_MIN_VELOCITY = 0.02
+    const TOUCH_INERTIA_MAX_VELOCITY = 2.5
 
     type FocusRect = {
         x: number
@@ -89,6 +92,10 @@
     let pinchLatestMidpoint: Point | null = null
     let pinchAnimationFrame: number | undefined
     let panLastClientPoint: Point | null = null
+    let panLastTimestamp: number | null = null
+    let panVelocityX = 0
+    let panVelocityY = 0
+    let panInertiaFrame: number | undefined
     let gestureStartScale: number | null = null
 
     $effect(() => {
@@ -335,6 +342,68 @@
             cancelAnimationFrame(pinchAnimationFrame)
             pinchAnimationFrame = undefined
         }
+    }
+
+    function cancelPanInertia() {
+        if (panInertiaFrame) {
+            cancelAnimationFrame(panInertiaFrame)
+            panInertiaFrame = undefined
+        }
+    }
+
+    function startPanInertia() {
+        cancelPanInertia()
+
+        if (
+            Math.abs(panVelocityX) < TOUCH_INERTIA_MIN_VELOCITY &&
+            Math.abs(panVelocityY) < TOUCH_INERTIA_MIN_VELOCITY
+        ) {
+            panVelocityX = 0
+            panVelocityY = 0
+            return
+        }
+
+        let lastTimestamp: number | null = null
+
+        const step = (timestamp: number) => {
+            if (lastTimestamp === null) {
+                lastTimestamp = timestamp
+                panInertiaFrame = requestAnimationFrame(step)
+                return
+            }
+
+            const deltaMs = Math.max(1, timestamp - lastTimestamp)
+            lastTimestamp = timestamp
+            const decay = Math.pow(TOUCH_INERTIA_DECAY_PER_FRAME, deltaMs / (1000 / 60))
+            const nextView = clampTranslation(
+                currentScale,
+                currentTranslateX + panVelocityX * deltaMs,
+                currentTranslateY + panVelocityY * deltaMs
+            )
+            const movedX = Math.abs(nextView.translateX - currentTranslateX) > EPSILON
+            const movedY = Math.abs(nextView.translateY - currentTranslateY) > EPSILON
+
+            if (movedX || movedY) {
+                applyView(currentScale, nextView.translateX, nextView.translateY)
+            }
+
+            panVelocityX = movedX ? panVelocityX * decay : 0
+            panVelocityY = movedY ? panVelocityY * decay : 0
+
+            if (
+                Math.abs(panVelocityX) < TOUCH_INERTIA_MIN_VELOCITY &&
+                Math.abs(panVelocityY) < TOUCH_INERTIA_MIN_VELOCITY
+            ) {
+                panVelocityX = 0
+                panVelocityY = 0
+                panInertiaFrame = undefined
+                return
+            }
+
+            panInertiaFrame = requestAnimationFrame(step)
+        }
+
+        panInertiaFrame = requestAnimationFrame(step)
     }
 
     function animateViewTo(targetScale: number, targetLeft: number, targetTop: number) {
@@ -618,7 +687,11 @@
         if (event.touches.length === 2) {
             cancelViewAnimation()
             cancelPinchAnimation()
+            cancelPanInertia()
             panLastClientPoint = null
+            panLastTimestamp = null
+            panVelocityX = 0
+            panVelocityY = 0
             const midpoint = getTouchMidpoint(event.touches)
             pinchDistance = getTouchDistance(event.touches)
             pinchStartDistance = pinchDistance
@@ -631,10 +704,14 @@
         if (event.touches.length === 1) {
             cancelViewAnimation()
             cancelPinchAnimation()
+            cancelPanInertia()
             panLastClientPoint = {
                 x: event.touches[0].clientX,
                 y: event.touches[0].clientY
             }
+            panLastTimestamp = event.timeStamp
+            panVelocityX = 0
+            panVelocityY = 0
         }
     }
 
@@ -656,7 +733,10 @@
         const nextPoint = { x: touch.clientX, y: touch.clientY }
         const deltaX = nextPoint.x - panLastClientPoint.x
         const deltaY = nextPoint.y - panLastClientPoint.y
+        const deltaMs =
+            panLastTimestamp === null ? 16 : Math.max(1, event.timeStamp - panLastTimestamp)
         panLastClientPoint = nextPoint
+        panLastTimestamp = event.timeStamp
         const nextView = clampTranslation(
             currentScale,
             currentTranslateX + deltaX,
@@ -669,9 +749,23 @@
         if (didPan) {
             cancelViewAnimation()
             applyView(currentScale, nextView.translateX, nextView.translateY)
+            const nextVelocityX = clamp(
+                deltaX / deltaMs,
+                -TOUCH_INERTIA_MAX_VELOCITY,
+                TOUCH_INERTIA_MAX_VELOCITY
+            )
+            const nextVelocityY = clamp(
+                deltaY / deltaMs,
+                -TOUCH_INERTIA_MAX_VELOCITY,
+                TOUCH_INERTIA_MAX_VELOCITY
+            )
+            panVelocityX = panVelocityX * 0.35 + nextVelocityX * 0.65
+            panVelocityY = panVelocityY * 0.35 + nextVelocityY * 0.65
             return
         }
 
+        panVelocityX = 0
+        panVelocityY = 0
         scrollAncestorBy(deltaX, deltaY)
     }
 
@@ -694,10 +788,15 @@
                 x: event.touches[0].clientX,
                 y: event.touches[0].clientY
             }
+            panLastTimestamp = event.timeStamp
             return
         }
 
+        if (panLastClientPoint) {
+            startPanInertia()
+        }
         panLastClientPoint = null
+        panLastTimestamp = null
     }
 
     function handleWheel(event: WheelEvent) {
@@ -800,6 +899,7 @@
     onDestroy(() => {
         cancelViewAnimation()
         cancelPinchAnimation()
+        cancelPanInertia()
         if (pendingDimensionSyncFrame) {
             cancelAnimationFrame(pendingDimensionSyncFrame)
         }
