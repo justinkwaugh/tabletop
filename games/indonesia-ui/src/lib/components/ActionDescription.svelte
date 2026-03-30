@@ -1127,13 +1127,13 @@
         {:else if action.aggregatedType === ActionType.PlaceTurnOrderBid}
             <span class="inline-flex flex-col items-start gap-0.5">
                 <span class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Turn Order Bids</span>
-                <span class="mt-1 grid grid-cols-[auto_auto] gap-x-2 gap-y-1 rounded-xl border border-[#ad9c80]/35 bg-[#f4ede8] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27]">
+                <span class="grid grid-cols-[auto_auto] gap-x-1.5 gap-y-0.5 rounded-xl border border-[#ad9c80]/35 bg-[#f4ede8] px-2.5 py-1.5 text-[0.88em] leading-tight text-[#5e3f27]">
                     {#each aggregatedTurnOrderBidEntries(action) as entry (entry.id)}
                         <span class="justify-self-start">
                             <PlayerName
                                 playerId={entry.playerId}
                                 capitalization="none"
-                                additionalClasses="px-1.5 text-[11px] leading-none tracking-[0.02em]"
+                                additionalClasses="text-[11px] leading-none tracking-[0.02em]"
                             />
                         </span>
                         <span class="inline-flex items-center gap-[2px] text-[12px] leading-none tabular-nums whitespace-nowrap">
