@@ -96,6 +96,9 @@
     let panVelocityX = 0
     let panVelocityY = 0
     let panInertiaFrame: number | undefined
+    let scrollVelocityX = 0
+    let scrollVelocityY = 0
+    let scrollInertiaFrame: number | undefined
     let gestureStartScale: number | null = null
 
     $effect(() => {
@@ -239,16 +242,28 @@
     function scrollAncestorBy(deltaX: number, deltaY: number) {
         const scrollAncestor = findScrollableAncestor(scroller)
         if (scrollAncestor) {
+            const startLeft = scrollAncestor.scrollLeft
+            const startTop = scrollAncestor.scrollTop
             scrollAncestor.scrollLeft -= deltaX
             scrollAncestor.scrollTop -= deltaY
-            return
+            return {
+                movedX: scrollAncestor.scrollLeft - startLeft,
+                movedY: scrollAncestor.scrollTop - startTop
+            }
         }
 
+        const startX = window.scrollX
+        const startY = window.scrollY
         window.scrollBy({
             left: -deltaX,
             top: -deltaY,
             behavior: 'auto'
         })
+
+        return {
+            movedX: window.scrollX - startX,
+            movedY: window.scrollY - startY
+        }
     }
 
     function getViewportCenterContentPoint() {
@@ -351,6 +366,13 @@
         }
     }
 
+    function cancelScrollInertia() {
+        if (scrollInertiaFrame) {
+            cancelAnimationFrame(scrollInertiaFrame)
+            scrollInertiaFrame = undefined
+        }
+    }
+
     function startPanInertia() {
         cancelPanInertia()
 
@@ -404,6 +426,56 @@
         }
 
         panInertiaFrame = requestAnimationFrame(step)
+    }
+
+    function startScrollInertia() {
+        cancelScrollInertia()
+
+        if (
+            Math.abs(scrollVelocityX) < TOUCH_INERTIA_MIN_VELOCITY &&
+            Math.abs(scrollVelocityY) < TOUCH_INERTIA_MIN_VELOCITY
+        ) {
+            scrollVelocityX = 0
+            scrollVelocityY = 0
+            return
+        }
+
+        let lastTimestamp: number | null = null
+
+        const step = (timestamp: number) => {
+            if (lastTimestamp === null) {
+                lastTimestamp = timestamp
+                scrollInertiaFrame = requestAnimationFrame(step)
+                return
+            }
+
+            const deltaMs = Math.max(1, timestamp - lastTimestamp)
+            lastTimestamp = timestamp
+            const decay = Math.pow(TOUCH_INERTIA_DECAY_PER_FRAME, deltaMs / (1000 / 60))
+            const movement = scrollAncestorBy(
+                scrollVelocityX * deltaMs,
+                scrollVelocityY * deltaMs
+            )
+            const movedX = Math.abs(movement.movedX) > EPSILON
+            const movedY = Math.abs(movement.movedY) > EPSILON
+
+            scrollVelocityX = movedX ? scrollVelocityX * decay : 0
+            scrollVelocityY = movedY ? scrollVelocityY * decay : 0
+
+            if (
+                Math.abs(scrollVelocityX) < TOUCH_INERTIA_MIN_VELOCITY &&
+                Math.abs(scrollVelocityY) < TOUCH_INERTIA_MIN_VELOCITY
+            ) {
+                scrollVelocityX = 0
+                scrollVelocityY = 0
+                scrollInertiaFrame = undefined
+                return
+            }
+
+            scrollInertiaFrame = requestAnimationFrame(step)
+        }
+
+        scrollInertiaFrame = requestAnimationFrame(step)
     }
 
     function animateViewTo(targetScale: number, targetLeft: number, targetTop: number) {
@@ -688,10 +760,13 @@
             cancelViewAnimation()
             cancelPinchAnimation()
             cancelPanInertia()
+            cancelScrollInertia()
             panLastClientPoint = null
             panLastTimestamp = null
             panVelocityX = 0
             panVelocityY = 0
+            scrollVelocityX = 0
+            scrollVelocityY = 0
             const midpoint = getTouchMidpoint(event.touches)
             pinchDistance = getTouchDistance(event.touches)
             pinchStartDistance = pinchDistance
@@ -705,6 +780,7 @@
             cancelViewAnimation()
             cancelPinchAnimation()
             cancelPanInertia()
+            cancelScrollInertia()
             panLastClientPoint = {
                 x: event.touches[0].clientX,
                 y: event.touches[0].clientY
@@ -712,6 +788,8 @@
             panLastTimestamp = event.timeStamp
             panVelocityX = 0
             panVelocityY = 0
+            scrollVelocityX = 0
+            scrollVelocityY = 0
         }
     }
 
@@ -761,12 +839,33 @@
             )
             panVelocityX = panVelocityX * 0.35 + nextVelocityX * 0.65
             panVelocityY = panVelocityY * 0.35 + nextVelocityY * 0.65
+            scrollVelocityX = 0
+            scrollVelocityY = 0
             return
         }
 
         panVelocityX = 0
         panVelocityY = 0
-        scrollAncestorBy(deltaX, deltaY)
+        const movement = scrollAncestorBy(deltaX, deltaY)
+        const didScroll = Math.abs(movement.movedX) > EPSILON || Math.abs(movement.movedY) > EPSILON
+        if (!didScroll) {
+            scrollVelocityX = 0
+            scrollVelocityY = 0
+            return
+        }
+
+        const nextVelocityX = clamp(
+            deltaX / deltaMs,
+            -TOUCH_INERTIA_MAX_VELOCITY,
+            TOUCH_INERTIA_MAX_VELOCITY
+        )
+        const nextVelocityY = clamp(
+            deltaY / deltaMs,
+            -TOUCH_INERTIA_MAX_VELOCITY,
+            TOUCH_INERTIA_MAX_VELOCITY
+        )
+        scrollVelocityX = scrollVelocityX * 0.35 + nextVelocityX * 0.65
+        scrollVelocityY = scrollVelocityY * 0.35 + nextVelocityY * 0.65
     }
 
     function clearPinchState() {
@@ -794,7 +893,11 @@
 
         if (panLastClientPoint) {
             startPanInertia()
+        } else {
+            panVelocityX = 0
+            panVelocityY = 0
         }
+        startScrollInertia()
         panLastClientPoint = null
         panLastTimestamp = null
     }
@@ -900,6 +1003,7 @@
         cancelViewAnimation()
         cancelPinchAnimation()
         cancelPanInertia()
+        cancelScrollInertia()
         if (pendingDimensionSyncFrame) {
             cancelAnimationFrame(pendingDimensionSyncFrame)
         }
