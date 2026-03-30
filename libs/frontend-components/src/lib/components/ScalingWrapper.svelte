@@ -32,16 +32,21 @@
         animate: boolean
     }
 
+    type Point = {
+        x: number
+        y: number
+    }
+
     type ViewMetrics = {
         scale: number
         scaledWidth: number
         scaledHeight: number
-        scrollAreaWidth: number
-        scrollAreaHeight: number
-        offsetX: number
-        offsetY: number
-        maxLeft: number
-        maxTop: number
+        minTranslateX: number
+        maxTranslateX: number
+        minTranslateY: number
+        maxTranslateY: number
+        defaultTranslateX: number
+        defaultTranslateY: number
     }
 
     let {
@@ -66,7 +71,6 @@
 
     let wrapper: HTMLElement
     let scroller: HTMLElement
-    let scrollContent: HTMLElement
     let content: HTMLElement
     let measuredContent: HTMLElement
 
@@ -76,19 +80,22 @@
     let viewAnimationFrame: number | undefined
     let pendingDimensionSyncFrame: number | undefined
     let viewAnimationRequestId = 0
+    let currentTranslateX = $state(0)
+    let currentTranslateY = $state(0)
     let pinchDistance: number | null = null
     let pinchStartDistance: number | null = null
     let pinchStartScale: number | null = null
-    let pinchAnchorContentPoint: { x: number; y: number } | null = null
-    let pinchLatestMidpoint: { x: number; y: number } | null = null
+    let pinchAnchorContentPoint: Point | null = null
+    let pinchLatestMidpoint: Point | null = null
     let pinchAnimationFrame: number | undefined
+    let panLastClientPoint: Point | null = null
     let gestureStartScale: number | null = null
 
     $effect(() => {
-        let nextWrapperWidth = wrapperWidth
-        let nextWrapperHeight = wrapperHeight
-        let nextContentWidth = contentWidth
-        let nextContentHeight = contentHeight
+        wrapperWidth
+        wrapperHeight
+        contentWidth
+        contentHeight
 
         if (!syncingView) {
             // Schedule outside the reactive effect so view-sync reads do not become dependencies.
@@ -155,99 +162,94 @@
         const clampedScale = clampScale(scale)
         const scaledWidth = contentWidth * clampedScale
         const scaledHeight = contentHeight * clampedScale
-        const scrollAreaWidth = Math.max(wrapperWidth, scaledWidth)
-        const scrollAreaHeight = Math.max(wrapperHeight, scaledHeight)
-        const offsetX = getOffsetX(scaledWidth)
-        const offsetY = 0
+        const defaultTranslateX = getOffsetX(scaledWidth)
+        const defaultTranslateY = 0
+        const minTranslateX = scaledWidth > wrapperWidth ? wrapperWidth - scaledWidth : defaultTranslateX
+        const maxTranslateX = scaledWidth > wrapperWidth ? 0 : defaultTranslateX
+        const minTranslateY = scaledHeight > wrapperHeight ? wrapperHeight - scaledHeight : defaultTranslateY
+        const maxTranslateY = scaledHeight > wrapperHeight ? 0 : defaultTranslateY
 
         return {
             scale: clampedScale,
             scaledWidth,
             scaledHeight,
-            scrollAreaWidth,
-            scrollAreaHeight,
-            offsetX,
-            offsetY,
-            maxLeft: Math.max(0, scrollAreaWidth - wrapperWidth),
-            maxTop: Math.max(0, scrollAreaHeight - wrapperHeight)
+            minTranslateX,
+            maxTranslateX,
+            minTranslateY,
+            maxTranslateY,
+            defaultTranslateX,
+            defaultTranslateY
         }
     }
 
-    function applyLayout(scale: number) {
-        if (!content || !scrollContent || !contentWidth || !contentHeight) {
-            return getMetrics(scale)
+    function clampTranslation(scale: number, translateX: number, translateY: number) {
+        const metrics = getMetrics(scale)
+
+        return {
+            metrics,
+            translateX: clamp(translateX, metrics.minTranslateX, metrics.maxTranslateX),
+            translateY: clamp(translateY, metrics.minTranslateY, metrics.maxTranslateY)
+        }
+    }
+
+    function applyView(scale: number, translateX: number, translateY: number) {
+        const { metrics, translateX: clampedTranslateX, translateY: clampedTranslateY } =
+            clampTranslation(scale, translateX, translateY)
+
+        currentScale = metrics.scale
+        currentTranslateX = clampedTranslateX
+        currentTranslateY = clampedTranslateY
+
+        if (content && contentWidth && contentHeight) {
+            content.style.transform = `translate(${clampedTranslateX}px, ${clampedTranslateY}px) scale(${metrics.scale})`
         }
 
-        const metrics = getMetrics(scale)
-        currentScale = metrics.scale
-        scrollContent.style.width = `${metrics.scrollAreaWidth}px`
-        scrollContent.style.height = `${metrics.scrollAreaHeight}px`
-        content.style.left = `${metrics.offsetX}px`
-        content.style.top = `${metrics.offsetY}px`
-        content.style.transform = `scale(${metrics.scale})`
-        return metrics
+        return {
+            scale: metrics.scale,
+            translateX: clampedTranslateX,
+            translateY: clampedTranslateY,
+            metrics
+        }
     }
 
     function getViewportCenterContentPoint() {
-        const metrics = getMetrics(currentScale)
-
         return {
-            x: clamp(
-                (scroller.scrollLeft + scroller.clientWidth / 2 - metrics.offsetX) / currentScale,
-                0,
-                contentWidth
-            ),
-            y: clamp(
-                (scroller.scrollTop + scroller.clientHeight / 2 - metrics.offsetY) / currentScale,
-                0,
-                contentHeight
-            )
+            x: clamp((wrapperWidth / 2 - currentTranslateX) / currentScale, 0, contentWidth),
+            y: clamp((wrapperHeight / 2 - currentTranslateY) / currentScale, 0, contentHeight)
         }
     }
 
-    function getScrollForContentPointAtScale(contentX: number, contentY: number, scale: number) {
+    function getViewForContentPointAtViewportPoint(
+        contentX: number,
+        contentY: number,
+        viewportX: number,
+        viewportY: number,
+        scale: number
+    ) {
         const metrics = getMetrics(scale)
         return {
-            left: clamp(
-                metrics.offsetX + contentX * metrics.scale - scroller.clientWidth / 2,
-                0,
-                metrics.maxLeft
+            scale: metrics.scale,
+            translateX: clamp(
+                viewportX - contentX * metrics.scale,
+                metrics.minTranslateX,
+                metrics.maxTranslateX
             ),
-            top: clamp(
-                metrics.offsetY + contentY * metrics.scale - scroller.clientHeight / 2,
-                0,
-                metrics.maxTop
+            translateY: clamp(
+                viewportY - contentY * metrics.scale,
+                metrics.minTranslateY,
+                metrics.maxTranslateY
             )
         }
     }
 
     function getContentPointForClientPoint(clientX: number, clientY: number) {
-        const metrics = getMetrics(currentScale)
         const rect = scroller.getBoundingClientRect()
-        const viewportX = clientX - rect.left + scroller.scrollLeft
-        const viewportY = clientY - rect.top + scroller.scrollTop
+        const viewportX = clientX - rect.left
+        const viewportY = clientY - rect.top
 
         return {
-            x: clamp((viewportX - metrics.offsetX) / currentScale, 0, contentWidth),
-            y: clamp((viewportY - metrics.offsetY) / currentScale, 0, contentHeight)
-        }
-    }
-
-    function getScrollForContentPointAtClientPoint(
-        contentX: number,
-        contentY: number,
-        clientX: number,
-        clientY: number,
-        scale: number
-    ) {
-        const metrics = getMetrics(scale)
-        const rect = scroller.getBoundingClientRect()
-        const anchorX = clientX - rect.left
-        const anchorY = clientY - rect.top
-
-        return {
-            left: clamp(metrics.offsetX + contentX * metrics.scale - anchorX, 0, metrics.maxLeft),
-            top: clamp(metrics.offsetY + contentY * metrics.scale - anchorY, 0, metrics.maxTop)
+            x: clamp((viewportX - currentTranslateX) / currentScale, 0, contentWidth),
+            y: clamp((viewportY - currentTranslateY) / currentScale, 0, contentHeight)
         }
     }
 
@@ -255,17 +257,22 @@
         const availableWidth = Math.max(1, wrapperWidth - target.paddingX * 2)
         const availableHeight = Math.max(1, wrapperHeight - target.paddingY * 2)
         const scale = clampScale(
-            Math.min(availableWidth / target.rect.width, availableHeight / target.rect.height, target.maxScale)
+            Math.min(
+                availableWidth / target.rect.width,
+                availableHeight / target.rect.height,
+                target.maxScale
+            )
         )
         const centerX = target.rect.x + target.rect.width / 2
         const centerY = target.rect.y + target.rect.height / 2
-        const scroll = getScrollForContentPointAtScale(centerX, centerY, scale)
 
-        return {
-            scale,
-            left: scroll.left,
-            top: scroll.top
-        }
+        return getViewForContentPointAtViewportPoint(
+            centerX,
+            centerY,
+            wrapperWidth / 2,
+            wrapperHeight / 2,
+            scale
+        )
     }
 
     function clearActiveFocus() {
@@ -299,19 +306,19 @@
     }
 
     function animateViewTo(targetScale: number, targetLeft: number, targetTop: number) {
-        if (!scroller) {
+        if (!content) {
             return
         }
 
         cancelViewAnimation()
         const requestId = viewAnimationRequestId
         const startScale = currentScale
-        const startLeft = scroller.scrollLeft
-        const startTop = scroller.scrollTop
+        const startLeft = currentTranslateX
+        const startTop = currentTranslateY
         let startedAt: number | null = null
 
         const step = (now: number) => {
-            if (requestId !== viewAnimationRequestId || !scroller) {
+            if (requestId !== viewAnimationRequestId || !content) {
                 viewAnimationFrame = undefined
                 return
             }
@@ -323,23 +330,16 @@
             const elapsed = Math.min(1, (now - startedAt) / VIEW_ANIMATION_MS)
             const eased = easeInOutCubic(elapsed)
             const nextScale = startScale + (targetScale - startScale) * eased
-            const metrics = applyLayout(nextScale)
-
-            scroller.scrollLeft = clamp(
-                startLeft + (targetLeft - startLeft) * eased,
-                0,
-                metrics.maxLeft
-            )
-            scroller.scrollTop = clamp(startTop + (targetTop - startTop) * eased, 0, metrics.maxTop)
+            const nextLeft = startLeft + (targetLeft - startLeft) * eased
+            const nextTop = startTop + (targetTop - startTop) * eased
+            applyView(nextScale, nextLeft, nextTop)
 
             if (elapsed < 1) {
                 viewAnimationFrame = requestAnimationFrame(step)
                 return
             }
 
-            const finalMetrics = applyLayout(targetScale)
-            scroller.scrollLeft = clamp(targetLeft, 0, finalMetrics.maxLeft)
-            scroller.scrollTop = clamp(targetTop, 0, finalMetrics.maxTop)
+            applyView(targetScale, targetLeft, targetTop)
             viewAnimationFrame = undefined
         }
 
@@ -365,27 +365,30 @@
         scale: number,
         animate = false
     ) {
-        if (!scroller || !contentWidth || !contentHeight) {
+        if (!contentWidth || !contentHeight) {
             return
         }
 
         clearActiveFocus()
-        const targetScale = clampScale(scale)
-        const targetScroll = getScrollForContentPointAtScale(contentX, contentY, targetScale)
+        const targetView = getViewForContentPointAtViewportPoint(
+            contentX,
+            contentY,
+            wrapperWidth / 2,
+            wrapperHeight / 2,
+            scale
+        )
 
         if (animate) {
-            animateViewTo(targetScale, targetScroll.left, targetScroll.top)
+            animateViewTo(targetView.scale, targetView.translateX, targetView.translateY)
             return
         }
 
         cancelViewAnimation()
-        applyLayout(targetScale)
-        scroller.scrollLeft = targetScroll.left
-        scroller.scrollTop = targetScroll.top
+        applyView(targetView.scale, targetView.translateX, targetView.translateY)
     }
 
     function syncToDimensions() {
-        if (!wrapperWidth || !wrapperHeight || !contentWidth || !contentHeight || !scroller) {
+        if (!wrapperWidth || !wrapperHeight || !contentWidth || !contentHeight) {
             return
         }
 
@@ -404,9 +407,7 @@
             if (activeFocusTarget) {
                 const targetView = getViewForFocusTarget(activeFocusTarget)
                 cancelViewAnimation()
-                applyLayout(targetView.scale)
-                scroller.scrollLeft = targetView.left
-                scroller.scrollTop = targetView.top
+                applyView(targetView.scale, targetView.translateX, targetView.translateY)
                 initialized = true
                 return
             }
@@ -415,12 +416,16 @@
                 !initialized || wasAtFitScale || Math.abs(currentScale - previousBaseScale) < EPSILON
                     ? nextBaseScale
                     : clampScale(currentScale)
-            const targetScroll = getScrollForContentPointAtScale(centerPoint.x, centerPoint.y, targetScale)
+            const targetView = getViewForContentPointAtViewportPoint(
+                centerPoint.x,
+                centerPoint.y,
+                wrapperWidth / 2,
+                wrapperHeight / 2,
+                targetScale
+            )
 
             cancelViewAnimation()
-            applyLayout(targetScale)
-            scroller.scrollLeft = targetScroll.left
-            scroller.scrollTop = targetScroll.top
+            applyView(targetView.scale, targetView.translateX, targetView.translateY)
             initialized = true
         } finally {
             syncingView = false
@@ -478,47 +483,44 @@
     export function fitToContent(options: FitOptions = {}) {
         clearActiveFocus()
 
-        if (!scroller || !contentWidth || !contentHeight) {
+        if (!contentWidth || !contentHeight) {
             return
         }
 
-        const targetScale = baseScale
-        const targetScroll = getScrollForContentPointAtScale(
+        const targetView = getViewForContentPointAtViewportPoint(
             contentWidth / 2,
             contentHeight / 2,
-            targetScale
+            wrapperWidth / 2,
+            wrapperHeight / 2,
+            baseScale
         )
 
         if (options.animate) {
-            animateViewTo(targetScale, targetScroll.left, targetScroll.top)
+            animateViewTo(targetView.scale, targetView.translateX, targetView.translateY)
             return
         }
 
         cancelViewAnimation()
-        applyLayout(targetScale)
-        scroller.scrollLeft = targetScroll.left
-        scroller.scrollTop = targetScroll.top
+        applyView(targetView.scale, targetView.translateX, targetView.translateY)
     }
 
     export function focusRect(rect: FocusRect, options: FocusOptions = {}) {
         const target = normalizeFocusTarget(rect, options)
         activeFocusTarget = target
 
-        if (!scroller || !contentWidth || !contentHeight) {
+        if (!contentWidth || !contentHeight) {
             return
         }
 
         const targetView = getViewForFocusTarget(target)
 
         if (target.animate) {
-            animateViewTo(targetView.scale, targetView.left, targetView.top)
+            animateViewTo(targetView.scale, targetView.translateX, targetView.translateY)
             return
         }
 
         cancelViewAnimation()
-        applyLayout(targetView.scale)
-        scroller.scrollLeft = targetView.left
-        scroller.scrollTop = targetView.top
+        applyView(targetView.scale, targetView.translateX, targetView.translateY)
     }
 
     function getTouchDistance(touches: TouchList) {
@@ -563,47 +565,71 @@
 
             const targetScale =
                 pinchStartScale * Math.pow(pinchDistance / pinchStartDistance, PINCH_ZOOM_SENSITIVITY)
-            const clampedScale = clampScale(targetScale)
-            const targetScroll = getScrollForContentPointAtClientPoint(
+            const rect = scroller.getBoundingClientRect()
+            const viewportX = pinchLatestMidpoint.x - rect.left
+            const viewportY = pinchLatestMidpoint.y - rect.top
+            const targetView = getViewForContentPointAtViewportPoint(
                 pinchAnchorContentPoint.x,
                 pinchAnchorContentPoint.y,
-                pinchLatestMidpoint.x,
-                pinchLatestMidpoint.y,
-                clampedScale
+                viewportX,
+                viewportY,
+                targetScale
             )
 
             cancelViewAnimation()
             clearActiveFocus()
-            applyLayout(clampedScale)
-            scroller.scrollLeft = targetScroll.left
-            scroller.scrollTop = targetScroll.top
+            applyView(targetView.scale, targetView.translateX, targetView.translateY)
         })
     }
 
     function handleTouchStart(event: TouchEvent) {
         if (event.touches.length === 2) {
             cancelViewAnimation()
+            cancelPinchAnimation()
+            panLastClientPoint = null
             const midpoint = getTouchMidpoint(event.touches)
             pinchDistance = getTouchDistance(event.touches)
             pinchStartDistance = pinchDistance
             pinchStartScale = currentScale
             pinchLatestMidpoint = midpoint
             pinchAnchorContentPoint = getContentPointForClientPoint(midpoint.x, midpoint.y)
+            return
+        }
+
+        if (event.touches.length === 1 && currentScale > baseScale + EPSILON) {
+            cancelViewAnimation()
+            cancelPinchAnimation()
+            panLastClientPoint = {
+                x: event.touches[0].clientX,
+                y: event.touches[0].clientY
+            }
         }
     }
 
     function handleTouchMove(event: TouchEvent) {
-        if (pinchDistance === null || event.touches.length !== 2) {
+        if (event.touches.length === 2 && pinchDistance !== null) {
+            event.preventDefault()
+            pinchDistance = getTouchDistance(event.touches)
+            pinchLatestMidpoint = getTouchMidpoint(event.touches)
+            queuePinchUpdate()
+            return
+        }
+
+        if (event.touches.length !== 1 || !panLastClientPoint || currentScale <= baseScale + EPSILON) {
             return
         }
 
         event.preventDefault()
-        pinchDistance = getTouchDistance(event.touches)
-        pinchLatestMidpoint = getTouchMidpoint(event.touches)
-        queuePinchUpdate()
+        const touch = event.touches[0]
+        const nextPoint = { x: touch.clientX, y: touch.clientY }
+        const deltaX = nextPoint.x - panLastClientPoint.x
+        const deltaY = nextPoint.y - panLastClientPoint.y
+        panLastClientPoint = nextPoint
+        cancelViewAnimation()
+        applyView(currentScale, currentTranslateX + deltaX, currentTranslateY + deltaY)
     }
 
-    function handleTouchEnd() {
+    function clearPinchState() {
         pinchDistance = null
         pinchStartDistance = null
         pinchStartScale = null
@@ -612,15 +638,56 @@
         cancelPinchAnimation()
     }
 
+    function handleTouchEnd(event: TouchEvent) {
+        if (event.touches.length < 2) {
+            clearPinchState()
+        }
+
+        if (event.touches.length === 1 && currentScale > baseScale + EPSILON) {
+            panLastClientPoint = {
+                x: event.touches[0].clientX,
+                y: event.touches[0].clientY
+            }
+            return
+        }
+
+        panLastClientPoint = null
+    }
+
     function handleWheel(event: WheelEvent) {
-        if (!event.ctrlKey || !contentWidth || !contentHeight) {
+        if (!contentWidth || !contentHeight) {
+            return
+        }
+
+        if (event.ctrlKey) {
+            event.preventDefault()
+            cancelViewAnimation()
+            const nextScale = currentScale * Math.exp(-event.deltaY * 0.0015)
+            const contentPoint = getContentPointForClientPoint(event.clientX, event.clientY)
+            const rect = scroller.getBoundingClientRect()
+            const viewportX = event.clientX - rect.left
+            const viewportY = event.clientY - rect.top
+            const targetView = getViewForContentPointAtViewportPoint(
+                contentPoint.x,
+                contentPoint.y,
+                viewportX,
+                viewportY,
+                nextScale
+            )
+            applyView(targetView.scale, targetView.translateX, targetView.translateY)
+            return
+        }
+
+        const metrics = getMetrics(currentScale)
+        const canPan =
+            metrics.minTranslateX !== metrics.maxTranslateX || metrics.minTranslateY !== metrics.maxTranslateY
+        if (!canPan) {
             return
         }
 
         event.preventDefault()
         cancelViewAnimation()
-        const nextScale = currentScale * Math.exp(-event.deltaY * 0.0015)
-        zoomToScaleKeepingCenter(nextScale, false)
+        applyView(currentScale, currentTranslateX - event.deltaX, currentTranslateY - event.deltaY)
     }
 
     function handleGestureStart(event: Event) {
@@ -707,19 +774,19 @@
     bind:this={wrapper}
     bind:clientWidth={wrapperWidth}
     bind:clientHeight={wrapperHeight}
-    class="w-full h-full relative"
+    class="w-full h-full relative overflow-hidden"
 >
     <div
         bind:this={scroller}
-        class="w-full h-full overflow-auto"
-        style="touch-action: pan-x pan-y;"
+        class="w-full h-full overflow-hidden"
+        style="touch-action: none; overscroll-behavior: contain;"
         onwheel={handleWheel}
         ontouchstart={handleTouchStart}
         ontouchmove={handleTouchMove}
         ontouchend={handleTouchEnd}
         ontouchcancel={handleTouchEnd}
     >
-        <div bind:this={scrollContent} class="relative min-w-full min-h-full">
+        <div class="relative w-full h-full">
             <div
                 bind:this={content}
                 class="absolute top-0 left-0 box-border will-change-transform"
