@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/indonesia-ui",
-    "version": "1.19.1",
+    "version": "1.19.3",
     "private": true,
     "type": "module",
     "svelte": "./dist/index.js",

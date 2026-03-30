@@ -77,6 +77,11 @@
     let pendingDimensionSyncFrame: number | undefined
     let viewAnimationRequestId = 0
     let pinchDistance: number | null = null
+    let pinchStartDistance: number | null = null
+    let pinchStartScale: number | null = null
+    let pinchAnchorContentPoint: { x: number; y: number } | null = null
+    let pinchLatestMidpoint: { x: number; y: number } | null = null
+    let pinchAnimationFrame: number | undefined
     let gestureStartScale: number | null = null
 
     $effect(() => {
@@ -216,6 +221,36 @@
         }
     }
 
+    function getContentPointForClientPoint(clientX: number, clientY: number) {
+        const metrics = getMetrics(currentScale)
+        const rect = scroller.getBoundingClientRect()
+        const viewportX = clientX - rect.left + scroller.scrollLeft
+        const viewportY = clientY - rect.top + scroller.scrollTop
+
+        return {
+            x: clamp((viewportX - metrics.offsetX) / currentScale, 0, contentWidth),
+            y: clamp((viewportY - metrics.offsetY) / currentScale, 0, contentHeight)
+        }
+    }
+
+    function getScrollForContentPointAtClientPoint(
+        contentX: number,
+        contentY: number,
+        clientX: number,
+        clientY: number,
+        scale: number
+    ) {
+        const metrics = getMetrics(scale)
+        const rect = scroller.getBoundingClientRect()
+        const anchorX = clientX - rect.left
+        const anchorY = clientY - rect.top
+
+        return {
+            left: clamp(metrics.offsetX + contentX * metrics.scale - anchorX, 0, metrics.maxLeft),
+            top: clamp(metrics.offsetY + contentY * metrics.scale - anchorY, 0, metrics.maxTop)
+        }
+    }
+
     function getViewForFocusTarget(target: FocusTarget) {
         const availableWidth = Math.max(1, wrapperWidth - target.paddingX * 2)
         const availableHeight = Math.max(1, wrapperHeight - target.paddingY * 2)
@@ -253,6 +288,13 @@
         if (viewAnimationFrame) {
             cancelAnimationFrame(viewAnimationFrame)
             viewAnimationFrame = undefined
+        }
+    }
+
+    function cancelPinchAnimation() {
+        if (pinchAnimationFrame) {
+            cancelAnimationFrame(pinchAnimationFrame)
+            pinchAnimationFrame = undefined
         }
     }
 
@@ -309,12 +351,27 @@
             return
         }
 
-        clearActiveFocus()
         const targetScale = clampScale(scale)
         const centerPoint = initialized
             ? getViewportCenterContentPoint()
             : { x: contentWidth / 2, y: contentHeight / 2 }
-        const targetScroll = getScrollForContentPointAtScale(centerPoint.x, centerPoint.y, targetScale)
+
+        zoomToScaleKeepingContentPoint(centerPoint.x, centerPoint.y, targetScale, animate)
+    }
+
+    function zoomToScaleKeepingContentPoint(
+        contentX: number,
+        contentY: number,
+        scale: number,
+        animate = false
+    ) {
+        if (!scroller || !contentWidth || !contentHeight) {
+            return
+        }
+
+        clearActiveFocus()
+        const targetScale = clampScale(scale)
+        const targetScroll = getScrollForContentPointAtScale(contentX, contentY, targetScale)
 
         if (animate) {
             animateViewTo(targetScale, targetScroll.left, targetScroll.top)
@@ -470,10 +527,68 @@
         return Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY)
     }
 
+    function getTouchMidpoint(touches: TouchList) {
+        const first = touches[0]
+        const second = touches[1]
+        return {
+            x: (first.clientX + second.clientX) / 2,
+            y: (first.clientY + second.clientY) / 2
+        }
+    }
+
+    function queuePinchUpdate() {
+        if (pinchAnimationFrame || pinchStartDistance === null || pinchStartScale === null) {
+            return
+        }
+
+        pinchAnimationFrame = requestAnimationFrame(() => {
+            pinchAnimationFrame = undefined
+
+            if (
+                !scroller ||
+                !contentWidth ||
+                !contentHeight ||
+                pinchStartDistance === null ||
+                pinchStartScale === null ||
+                pinchDistance === null ||
+                pinchLatestMidpoint === null ||
+                pinchAnchorContentPoint === null
+            ) {
+                return
+            }
+
+            if (pinchStartDistance <= 0) {
+                return
+            }
+
+            const targetScale =
+                pinchStartScale * Math.pow(pinchDistance / pinchStartDistance, PINCH_ZOOM_SENSITIVITY)
+            const clampedScale = clampScale(targetScale)
+            const targetScroll = getScrollForContentPointAtClientPoint(
+                pinchAnchorContentPoint.x,
+                pinchAnchorContentPoint.y,
+                pinchLatestMidpoint.x,
+                pinchLatestMidpoint.y,
+                clampedScale
+            )
+
+            cancelViewAnimation()
+            clearActiveFocus()
+            applyLayout(clampedScale)
+            scroller.scrollLeft = targetScroll.left
+            scroller.scrollTop = targetScroll.top
+        })
+    }
+
     function handleTouchStart(event: TouchEvent) {
         if (event.touches.length === 2) {
             cancelViewAnimation()
+            const midpoint = getTouchMidpoint(event.touches)
             pinchDistance = getTouchDistance(event.touches)
+            pinchStartDistance = pinchDistance
+            pinchStartScale = currentScale
+            pinchLatestMidpoint = midpoint
+            pinchAnchorContentPoint = getContentPointForClientPoint(midpoint.x, midpoint.y)
         }
     }
 
@@ -483,16 +598,18 @@
         }
 
         event.preventDefault()
-        const nextDistance = getTouchDistance(event.touches)
-        if (pinchDistance > 0) {
-            const scaleRatio = Math.pow(nextDistance / pinchDistance, PINCH_ZOOM_SENSITIVITY)
-            zoomToScaleKeepingCenter(currentScale * scaleRatio, false)
-        }
-        pinchDistance = nextDistance
+        pinchDistance = getTouchDistance(event.touches)
+        pinchLatestMidpoint = getTouchMidpoint(event.touches)
+        queuePinchUpdate()
     }
 
     function handleTouchEnd() {
         pinchDistance = null
+        pinchStartDistance = null
+        pinchStartScale = null
+        pinchAnchorContentPoint = null
+        pinchLatestMidpoint = null
+        cancelPinchAnimation()
     }
 
     function handleWheel(event: WheelEvent) {
@@ -507,6 +624,10 @@
     }
 
     function handleGestureStart(event: Event) {
+        if (pinchDistance !== null) {
+            return
+        }
+
         const gestureEvent = event as Event & { scale?: number }
         if (gestureEvent.scale === undefined) {
             return
@@ -518,6 +639,10 @@
     }
 
     function handleGestureChange(event: Event) {
+        if (pinchDistance !== null) {
+            return
+        }
+
         const gestureEvent = event as Event & { scale?: number }
         if (gestureEvent.scale === undefined || gestureStartScale === null) {
             return
@@ -549,6 +674,7 @@
 
     onDestroy(() => {
         cancelViewAnimation()
+        cancelPinchAnimation()
         if (pendingDimensionSyncFrame) {
             cancelAnimationFrame(pendingDimensionSyncFrame)
         }
