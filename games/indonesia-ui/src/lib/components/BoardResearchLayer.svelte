@@ -268,7 +268,7 @@
         )
     })
 
-    async function handleResearchHighlightPointerDown(highlight: ResearchNextCellHighlight): Promise<void> {
+    async function handleResearchHighlightClick(highlight: ResearchNextCellHighlight): Promise<void> {
         if (!canSubmitResearchAction || !selectedPlayerId) {
             return
         }
@@ -315,8 +315,8 @@
             stroke-linejoin="round"
             pointer-events={canSubmitResearchAction ? 'all' : 'none'}
             cursor={canSubmitResearchAction ? 'pointer' : 'default'}
-            onpointerdown={() => {
-                handleResearchHighlightPointerDown(highlight)
+            onclick={() => {
+                handleResearchHighlightClick(highlight)
             }}
         ></rect>
     {/each}

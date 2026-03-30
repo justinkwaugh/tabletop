@@ -193,7 +193,7 @@
             onpointerleave={() => {
                 onHoverPlayer?.(null)
             }}
-            onpointerdown={() => {
+            onclick={() => {
                 selectPlayer(disc.playerId)
             }}
         ></rect>

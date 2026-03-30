@@ -75,7 +75,7 @@
         }
     }
 
-    function handleDeedPointerDown(deedId: string): void {
+    function handleDeedClick(deedId: string): void {
         if (applyingAreaAction) {
             return
         }
@@ -133,8 +133,8 @@
         onmouseleave={() => {
             handleDeedMouseLeave(deed.deedId)
         }}
-        onpointerdown={() => {
-            handleDeedPointerDown(deed.deedId)
+        onclick={() => {
+            handleDeedClick(deed.deedId)
         }}
     />
 {/each}
