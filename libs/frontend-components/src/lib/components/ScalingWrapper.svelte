@@ -74,8 +74,8 @@
     let contentWidth = $state(0)
     let contentHeight = $state(0)
 
-    let wrapper: HTMLElement
     let scroller: HTMLElement
+    let viewport: HTMLElement
     let content: HTMLElement
     let measuredContent: HTMLElement
 
@@ -842,52 +842,66 @@
             currentTranslateX + deltaX,
             currentTranslateY + deltaY
         )
-        const didPan =
-            Math.abs(nextView.translateX - currentTranslateX) > EPSILON ||
-            Math.abs(nextView.translateY - currentTranslateY) > EPSILON
-        event.preventDefault()
-        if (didPan) {
+        const consumedPanDeltaX = nextView.translateX - currentTranslateX
+        const consumedPanDeltaY = nextView.translateY - currentTranslateY
+        const didPanX = Math.abs(consumedPanDeltaX) > EPSILON
+        const didPanY = Math.abs(consumedPanDeltaY) > EPSILON
+
+        if (didPanX || didPanY) {
             cancelViewAnimation()
             applyView(currentScale, nextView.translateX, nextView.translateY)
-            const nextVelocityX = clamp(
-                deltaX / deltaMs,
-                -TOUCH_INERTIA_MAX_VELOCITY,
-                TOUCH_INERTIA_MAX_VELOCITY
-            )
-            const nextVelocityY = clamp(
-                deltaY / deltaMs,
-                -TOUCH_INERTIA_MAX_VELOCITY,
-                TOUCH_INERTIA_MAX_VELOCITY
-            )
-            panVelocityX = panVelocityX * 0.35 + nextVelocityX * 0.65
-            panVelocityY = panVelocityY * 0.35 + nextVelocityY * 0.65
+        }
+
+        const panVelocityCandidateX = clamp(
+            consumedPanDeltaX / deltaMs,
+            -TOUCH_INERTIA_MAX_VELOCITY,
+            TOUCH_INERTIA_MAX_VELOCITY
+        )
+        const panVelocityCandidateY = clamp(
+            consumedPanDeltaY / deltaMs,
+            -TOUCH_INERTIA_MAX_VELOCITY,
+            TOUCH_INERTIA_MAX_VELOCITY
+        )
+        panVelocityX = didPanX ? panVelocityX * 0.35 + panVelocityCandidateX * 0.65 : 0
+        panVelocityY = didPanY ? panVelocityY * 0.35 + panVelocityCandidateY * 0.65 : 0
+
+        const residualScrollDeltaX = deltaX - consumedPanDeltaX
+        const residualScrollDeltaY = deltaY - consumedPanDeltaY
+        const shouldScrollX = Math.abs(residualScrollDeltaX) > EPSILON
+        const shouldScrollY = Math.abs(residualScrollDeltaY) > EPSILON
+
+        if (!shouldScrollX && !shouldScrollY) {
             scrollVelocityX = 0
             scrollVelocityY = 0
             return
         }
 
-        panVelocityX = 0
-        panVelocityY = 0
-        const movement = scrollAncestorBy(deltaX, deltaY)
-        const didScroll = Math.abs(movement.movedX) > EPSILON || Math.abs(movement.movedY) > EPSILON
-        if (!didScroll) {
+        const movement = scrollAncestorBy(residualScrollDeltaX, residualScrollDeltaY)
+        const didScrollX = Math.abs(movement.movedX) > EPSILON
+        const didScrollY = Math.abs(movement.movedY) > EPSILON
+
+        if (!didScrollX && !didScrollY) {
             scrollVelocityX = 0
             scrollVelocityY = 0
             return
         }
 
-        const nextVelocityX = clamp(
-            deltaX / deltaMs,
+        const scrollVelocityCandidateX = clamp(
+            residualScrollDeltaX / deltaMs,
             -TOUCH_INERTIA_MAX_VELOCITY,
             TOUCH_INERTIA_MAX_VELOCITY
         )
-        const nextVelocityY = clamp(
-            deltaY / deltaMs,
+        const scrollVelocityCandidateY = clamp(
+            residualScrollDeltaY / deltaMs,
             -TOUCH_INERTIA_MAX_VELOCITY,
             TOUCH_INERTIA_MAX_VELOCITY
         )
-        scrollVelocityX = scrollVelocityX * 0.35 + nextVelocityX * 0.65
-        scrollVelocityY = scrollVelocityY * 0.35 + nextVelocityY * 0.65
+        scrollVelocityX = didScrollX
+            ? scrollVelocityX * 0.35 + scrollVelocityCandidateX * 0.65
+            : 0
+        scrollVelocityY = didScrollY
+            ? scrollVelocityY * 0.35 + scrollVelocityCandidateY * 0.65
+            : 0
     }
 
     function clearPinchState() {
@@ -1066,9 +1080,6 @@
 </script>
 
 <div
-    bind:this={wrapper}
-    bind:clientWidth={wrapperWidth}
-    bind:clientHeight={wrapperHeight}
     class="relative overflow-hidden"
     class:w-full={!isExpanded}
     class:h-full={!isExpanded}
@@ -1078,13 +1089,13 @@
 >
     <div
         bind:this={scroller}
-        class="overflow-hidden"
+        class="overflow-hidden box-border"
         class:w-full={!isExpanded}
         class:h-full={!isExpanded}
-        style={`${isExpanded ? 'width: 100vw; height: 100dvh; padding: 8px;' : ''} touch-action: none;`}
+        style={`${isExpanded ? 'width: 100%; height: 100%; padding: 8px;' : ''} touch-action: none;`}
         onwheel={handleWheel}
     >
-        <div class="relative w-full h-full">
+        <div bind:this={viewport} bind:clientWidth={wrapperWidth} bind:clientHeight={wrapperHeight} class="relative w-full h-full">
             <div
                 bind:this={content}
                 class="absolute top-0 left-0 box-border will-change-transform"
