@@ -18,30 +18,14 @@ import { MachineState } from '../definition/states.js'
 import type { HydratedBusGameState } from '../model/gameState.js'
 import { SettingFirstPlayerStateHandler } from './settingFirstPlayer.js'
 
-function createTestState(): HydratedBusGameState {
-    const players: Player[] = [
-        {
-            id: 'p1',
-            isHuman: true,
-            userId: 'u1',
-            name: 'Player 1',
-            status: PlayerStatus.Joined
-        },
-        {
-            id: 'p2',
-            isHuman: true,
-            userId: 'u2',
-            name: 'Player 2',
-            status: PlayerStatus.Joined
-        },
-        {
-            id: 'p3',
-            isHuman: true,
-            userId: 'u3',
-            name: 'Player 3',
-            status: PlayerStatus.Joined
-        }
-    ]
+function createTestState(playerIds: string[] = ['p1', 'p2', 'p3']): HydratedBusGameState {
+    const players: Player[] = playerIds.map((playerId, index) => ({
+        id: playerId,
+        isHuman: true,
+        userId: `u${index + 1}`,
+        name: `Player ${index + 1}`,
+        status: PlayerStatus.Joined
+    }))
 
     const game: Game = {
         id: 'game-1',
@@ -73,7 +57,7 @@ function createTestState(): HydratedBusGameState {
 
     const initialized = new BusGameInitializer().initializeGameState(game, state)
     initialized.machineState = MachineState.SettingFirstPlayer
-    initialized.turnManager.turnOrder = ['p1', 'p2', 'p3']
+    initialized.turnManager.turnOrder = [...playerIds]
     return initialized
 }
 
@@ -168,5 +152,23 @@ describe('SettingFirstPlayerStateHandler', () => {
         const nextState = handler.onAction(createSetFirstPlayerAction(state, 'p1'), context)
 
         expect(nextState).toBe(MachineState.EndOfGame)
+    })
+
+    it('keeps choosing actions in 4p when two players still have actions left', () => {
+        const state = createTestState(['p1', 'p2', 'p3', 'p4'])
+        const handler = new SettingFirstPlayerStateHandler()
+        const context = createMachineContext(state)
+
+        state.getPlayerState('p1').actions = 0
+        state.getPlayerState('p2').actions = 0
+        state.getPlayerState('p3').actions = 2
+        state.getPlayerState('p4').actions = 1
+        state.board.openSitesForPhase = () => [BuildingSites.B01]
+
+        handler.enter(context)
+
+        const nextState = handler.onAction(createSetFirstPlayerAction(state, 'p3'), context)
+
+        expect(nextState).toBe(MachineState.ChoosingActions)
     })
 })
