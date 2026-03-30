@@ -7,7 +7,7 @@ type QuantifiedPlannedDeliveryRowSeed = {
 export function splitQuantifiedPlannedDeliveryRow<
     T extends QuantifiedPlannedDeliveryRowSeed
 >(row: T): Array<
-    Omit<T, 'quantity' | 'requiredQuantity'> & {
+    Omit<T, 'key' | 'quantity' | 'requiredQuantity'> & {
         key: string
         quantity: 1
         required: boolean

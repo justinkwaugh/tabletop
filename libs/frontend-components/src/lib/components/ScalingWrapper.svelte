@@ -4,7 +4,7 @@
     const DISCRETE_ZOOM_STEP = 0.15
     const VIEW_ANIMATION_MS = 180
     const EPSILON = 0.001
-    const PINCH_ZOOM_SENSITIVITY = 1.1
+    const PINCH_ZOOM_SENSITIVITY = 1
     const GESTURE_ZOOM_SENSITIVITY = 1.4
 
     type FocusRect = {

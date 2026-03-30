@@ -169,6 +169,18 @@
         selectedRoute: PlannedDeliveryRouteOption
     }
 
+    type ExplicitlySelectedRouteOption = {
+        rowKey: string
+        routeOption: PlannedDeliveryRouteOption
+        quantity: number
+        order: number
+    }
+
+    type IndexedPlannedDeliveryRow = PlannedDeliveryRow & {
+        index: number
+        unitIndex: number
+    }
+
     let selectedPlannedRouteOptionKeyByRowKey = $state<Record<string, string>>({})
     let selectedPlannedRouteOptionOrderByRowKey = $state<Record<string, number>>({})
     let nextPlannedRouteOptionOrder = $state(0)
@@ -1365,36 +1377,26 @@
 
         const baseRemainingRowByKey = new Map(baseRemainingRows.map((row) => [row.key, row]))
         const acceptedTentativeRouteOptionByRowKey = new Map<string, PlannedDeliveryRouteOption>()
-        const explicitlySelectedRouteOptions = Object.entries(selectedPlannedRouteOptionKeyByRowKey)
-            .map(([rowKey, routeOptionKey]) => {
-                const row = baseRemainingRowByKey.get(rowKey)
-                if (!row) {
-                    return null
-                }
+        const explicitlySelectedRouteOptions: ExplicitlySelectedRouteOption[] = []
+        for (const [rowKey, routeOptionKey] of Object.entries(selectedPlannedRouteOptionKeyByRowKey)) {
+            const row = baseRemainingRowByKey.get(rowKey)
+            if (!row) {
+                continue
+            }
 
-                const routeOption = row.routeOptions.find((option) => option.key === routeOptionKey)
-                if (!routeOption) {
-                    return null
-                }
+            const routeOption = row.routeOptions.find((option) => option.key === routeOptionKey)
+            if (!routeOption) {
+                continue
+            }
 
-                return {
-                    rowKey,
-                    routeOption,
-                    quantity: row.quantity,
-                    order: selectedPlannedRouteOptionOrderByRowKey[rowKey] ?? 0
-                }
+            explicitlySelectedRouteOptions.push({
+                rowKey,
+                routeOption,
+                quantity: row.quantity,
+                order: selectedPlannedRouteOptionOrderByRowKey[rowKey] ?? 0
             })
-            .filter(
-                (
-                    selection
-                ): selection is {
-                    rowKey: string
-                    routeOption: PlannedDeliveryRouteOption
-                    quantity: number
-                    order: number
-                } => selection !== null
-            )
-            .sort((left, right) => right.order - left.order)
+        }
+        explicitlySelectedRouteOptions.sort((left, right) => right.order - left.order)
 
         if (tentativeDeliveryContext && baseTentativeProblem) {
             let tentativeProblem = baseTentativeProblem
@@ -1433,104 +1435,95 @@
             }
         }
 
-        const remainingRows = baseRemainingRows
-            .map((baseRow) => {
-                let problemAfterOtherTentativeSelections = baseTentativeProblem
-                let otherTentativeSelectionCount = baseTentativeSelectionCount
-                if (problemAfterOtherTentativeSelections && tentativeDeliveryContext) {
-                    for (const [selectedRowKey, selectedRouteOption] of acceptedTentativeRouteOptionByRowKey) {
-                        if (selectedRowKey === baseRow.key) {
-                            continue
-                        }
+        const indexedRemainingRows: IndexedPlannedDeliveryRow[] = []
+        for (const baseRow of baseRemainingRows) {
+            let problemAfterOtherTentativeSelections = baseTentativeProblem
+            let otherTentativeSelectionCount = baseTentativeSelectionCount
+            if (problemAfterOtherTentativeSelections && tentativeDeliveryContext) {
+                for (const [selectedRowKey, selectedRouteOption] of acceptedTentativeRouteOptionByRowKey) {
+                    if (selectedRowKey === baseRow.key) {
+                        continue
+                    }
 
+                    const nextProblem = applyTentativeRouteOptionIfCompatible(
+                        problemAfterOtherTentativeSelections,
+                        tentativeDeliveryContext.originalTarget,
+                        tentativeDeliveryContext.shippedSoFar,
+                        otherTentativeSelectionCount,
+                        selectedRouteOption,
+                        Math.max(0, baselineRemainingRowCount - (otherTentativeSelectionCount + 1))
+                    )
+                    if (!nextProblem) {
+                        continue
+                    }
+
+                    problemAfterOtherTentativeSelections = nextProblem
+                    otherTentativeSelectionCount += 1
+                }
+            }
+
+            const routeOptions = baseRow.routeOptions.filter((routeOption) => {
+                if (!tentativeDeliveryContext || !problemAfterOtherTentativeSelections) {
+                    return true
+                }
+
+                return (
+                    (() => {
                         const nextProblem = applyTentativeRouteOptionIfCompatible(
                             problemAfterOtherTentativeSelections,
                             tentativeDeliveryContext.originalTarget,
                             tentativeDeliveryContext.shippedSoFar,
                             otherTentativeSelectionCount,
-                            selectedRouteOption,
-                            Math.max(
-                                0,
-                                baselineRemainingRowCount - (otherTentativeSelectionCount + 1)
-                            )
+                            routeOption,
+                            Math.max(0, baselineRemainingRowCount - (otherTentativeSelectionCount + 1))
                         )
                         if (!nextProblem) {
-                            continue
+                            return false
                         }
 
-                        problemAfterOtherTentativeSelections = nextProblem
-                        otherTentativeSelectionCount += 1
-                    }
-                }
-
-                const routeOptions = baseRow.routeOptions.filter((routeOption) => {
-                    if (!tentativeDeliveryContext || !problemAfterOtherTentativeSelections) {
-                        return true
-                    }
-
-                    return (
-                        (() => {
-                            const nextProblem = applyTentativeRouteOptionIfCompatible(
-                                problemAfterOtherTentativeSelections,
-                                tentativeDeliveryContext.originalTarget,
-                                tentativeDeliveryContext.shippedSoFar,
-                                otherTentativeSelectionCount,
-                                routeOption,
-                                Math.max(
-                                    0,
-                                    baselineRemainingRowCount - (otherTentativeSelectionCount + 1)
-                                )
-                            )
-                            if (!nextProblem) {
-                                return false
-                            }
-
-                            const selectedRowKeys = new Set(
-                                acceptedTentativeRouteOptionByRowKey.keys()
-                            )
-                            selectedRowKeys.add(baseRow.key)
-                            return displayedRowsRemainStableAfterSelection(
-                                nextProblem,
-                                otherTentativeSelectionCount + 1,
-                                selectedRowKeys
-                            )
-                        })()
-                    )
-                })
-                const selectedRoute =
-                    acceptedTentativeRouteOptionByRowKey.get(baseRow.key) ??
-                    routeOptions.find(
-                        (option) => option.key === baseRow.plannedRouteOptionKey
-                    ) ??
-                    routeOptions[0]
-
-                if (!selectedRoute) {
-                    return null
-                }
-
-                return {
-                    key: baseRow.key,
-                    zoneId: baseRow.zoneId,
-                    cityId: baseRow.cityId,
-                    shippingCompanyId: selectedRoute.shippingCompanyId,
-                    seaAreaIds: selectedRoute.seaAreaIds,
-                    quantity: baseRow.quantity,
-                    shipCount: selectedRoute.shipCount,
-                    shippingCost: selectedRoute.shippingCost,
-                    profit:
-                        baseRow.quantity * GOOD_REVENUE_BY_GOOD[deliveryPlanForDisplay.good] -
-                        selectedRoute.shippingCost,
-                    destinationLabel: baseRow.destinationLabel,
-                    required: baseRow.required,
-                    requiredQuantity: baseRow.requiredQuantity,
-                    shipped: false,
-                    routeOptions,
-                    selectedRoute,
-                    index: baseRow.index,
-                    unitIndex: baseRow.unitIndex
-                }
+                        const selectedRowKeys = new Set(acceptedTentativeRouteOptionByRowKey.keys())
+                        selectedRowKeys.add(baseRow.key)
+                        return displayedRowsRemainStableAfterSelection(
+                            nextProblem,
+                            otherTentativeSelectionCount + 1,
+                            selectedRowKeys
+                        )
+                    })()
+                )
             })
-            .filter((row): row is PlannedDeliveryRow & { index: number; unitIndex: number } => row !== null)
+            const selectedRoute =
+                acceptedTentativeRouteOptionByRowKey.get(baseRow.key) ??
+                routeOptions.find((option) => option.key === baseRow.plannedRouteOptionKey) ??
+                routeOptions[0]
+
+            if (!selectedRoute) {
+                continue
+            }
+
+            indexedRemainingRows.push({
+                key: baseRow.key,
+                zoneId: baseRow.zoneId,
+                cityId: baseRow.cityId,
+                shippingCompanyId: selectedRoute.shippingCompanyId,
+                seaAreaIds: selectedRoute.seaAreaIds,
+                quantity: baseRow.quantity,
+                shipCount: selectedRoute.shipCount,
+                shippingCost: selectedRoute.shippingCost,
+                profit:
+                    baseRow.quantity * GOOD_REVENUE_BY_GOOD[deliveryPlanForDisplay.good] -
+                    selectedRoute.shippingCost,
+                destinationLabel: baseRow.destinationLabel,
+                required: baseRow.required,
+                requiredQuantity: baseRow.requiredQuantity,
+                shipped: false,
+                routeOptions,
+                selectedRoute,
+                index: baseRow.index,
+                unitIndex: baseRow.unitIndex
+            })
+        }
+
+        const remainingRows = indexedRemainingRows
             .sort((left, right) => {
                 if (left.required !== right.required) {
                     return left.required ? -1 : 1
@@ -1691,6 +1684,26 @@
         return Math.max(0, expansionLimit - expansionCount)
     })
 
+    const optionalProductionExpansionCostPerArea = $derived.by(() => {
+        if (gameSession.productionOperationStage !== 'optional-expansion') {
+            return 0
+        }
+
+        const operatingCompanyId = gameSession.gameState.operatingCompanyId
+        if (!operatingCompanyId) {
+            return 0
+        }
+
+        const operatingCompany = gameSession.gameState.companies.find(
+            (company) => company.id === operatingCompanyId
+        )
+        if (!operatingCompany || operatingCompany.type !== CompanyType.Production) {
+            return 0
+        }
+
+        return GOOD_REVENUE_BY_GOOD[operatingCompany.good]
+    })
+
     const showWaitingLastActionDescription = $derived.by(() => {
         return (
             !gameSession.isViewingHistory && !gameSession.gameState.result && !gameSession.isMyTurn
@@ -1788,7 +1801,7 @@
 
                     const remainingExpansions = remainingProductionExpansionCount
                     const areasLabel = remainingExpansions === 1 ? 'area' : 'areas'
-                    return `You may expand up to ${remainingExpansions} ${areasLabel} or finish.`
+                    return `You may pay ${optionalProductionExpansionCostPerArea} per area to expand up to ${remainingExpansions} ${areasLabel}, or finish.`
                 }
 
                 if (gameSession.deliverySelectionStage === 'cultivated') {

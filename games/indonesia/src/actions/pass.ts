@@ -5,6 +5,7 @@ import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { HydratedPlaceCity } from './placeCity.js'
+import { HydratedDeliverGood } from './deliverGood.js'
 import { HydratedExpand } from './expand.js'
 import { HydratedStartCompany } from './startCompany.js'
 import {
@@ -17,6 +18,7 @@ export enum PassReason {
     CannotPlaceCity = 'CannotPlaceCity',
     DeclineStartCompany = 'DeclineStartCompany',
     DeclineMergerAnnouncement = 'DeclineMergerAnnouncement',
+    NoValidOperation = 'NoValidOperation',
     FinishOptionalShippingExpansion = 'FinishOptionalShippingExpansion',
     SkipShippingExpansion = 'SkipShippingExpansion',
     FinishOptionalProductionExpansion = 'FinishOptionalProductionExpansion',
@@ -115,6 +117,10 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
                 return true
             }
 
+            if (reason === PassReason.NoValidOperation) {
+                return !HydratedExpand.canExpand(state, playerId)
+            }
+
             if (reason === PassReason.SkipShippingExpansion) {
                 return !HydratedExpand.canExpand(state, playerId)
             }
@@ -155,6 +161,10 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
                 return false
             }
             return !canExpand
+        }
+
+        if (reason === PassReason.NoValidOperation) {
+            return !HydratedDeliverGood.canDeliverGood(state, playerId) && !canExpand
         }
 
         return false

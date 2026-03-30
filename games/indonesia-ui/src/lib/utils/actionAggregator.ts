@@ -117,7 +117,8 @@ function aggregateIndonesiaActions(actions: GameAction[]): AggregatedIndonesiaAc
 function isOperationPassAction(action: GameAction): boolean {
     return (
         isPass(action) &&
-        (action.reason === PassReason.FinishOptionalShippingExpansion ||
+        (action.reason === PassReason.NoValidOperation ||
+            action.reason === PassReason.FinishOptionalShippingExpansion ||
             action.reason === PassReason.SkipShippingExpansion ||
             action.reason === PassReason.FinishOptionalProductionExpansion ||
             action.reason === PassReason.SkipProductionExpansion)

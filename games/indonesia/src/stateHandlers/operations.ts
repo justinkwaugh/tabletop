@@ -8,6 +8,7 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import {
     HydratedChooseOperatingCompany,
+    ChooseOperatingCompany,
     isChooseOperatingCompany
 } from '../actions/chooseOperatingCompany.js'
 import {
@@ -76,6 +77,21 @@ export class OperationsStateHandler implements MachineStateHandler<
         assertExists(nextPlayerId, 'There should always be a next player when entering Operations')
         turnManager.startTurn(nextPlayerId, gameState.actionCount)
         gameState.activePlayerIds = [nextPlayerId]
+
+        if (
+            !gameState.canPlayerTakeAnyMeaningfulOperationAction(nextPlayerId) &&
+            !this.hasPendingAutoChooseOperatingCompany(context, nextPlayerId)
+        ) {
+            const companyId = gameState.firstOperableNoOpCompanyIdForPlayer(nextPlayerId)
+            assertExists(
+                companyId,
+                `Player ${nextPlayerId} should have an operable no-op company when entering Operations`
+            )
+            context.addSystemAction(ChooseOperatingCompany, {
+                playerId: nextPlayerId,
+                companyId
+            })
+        }
     }
 
     onAction(
@@ -107,5 +123,14 @@ export class OperationsStateHandler implements MachineStateHandler<
                 throw Error('Invalid action type')
             }
         }
+    }
+
+    private hasPendingAutoChooseOperatingCompany(
+        context: MachineContext<HydratedIndonesiaGameState>,
+        playerId: string
+    ): boolean {
+        return context.getPendingActions().some(
+            (pendingAction) => isChooseOperatingCompany(pendingAction) && pendingAction.playerId === playerId
+        )
     }
 }

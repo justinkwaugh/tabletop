@@ -260,6 +260,57 @@ describe('ProductionOperationsStateHandler', () => {
         expect(context.getPendingActions()).toEqual([])
     })
 
+    it('queues a system no-valid-operation pass when production has no delivery or expansion', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        const productionDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Production
+        )
+
+        expect(productionDeed).toBeDefined()
+        if (!productionDeed || productionDeed.type !== CompanyType.Production) {
+            return
+        }
+
+        state.companies = [
+            {
+                id: 'prod-1',
+                type: CompanyType.Production,
+                owner: playerId,
+                deeds: [productionDeed],
+                good: productionDeed.good
+            }
+        ]
+        state.board.areas.A02 = {
+            id: 'A02',
+            type: AreaType.Cultivated,
+            companyId: 'prod-1',
+            good: productionDeed.good
+        }
+        state.board.addCity({
+            id: 'city-1',
+            area: 'A01',
+            size: 1,
+            demand: {}
+        })
+        state.getPlayerState(playerId).cash = 0
+
+        state.machineState = MachineState.ProductionOperations
+        state.beginCompanyOperation('prod-1')
+
+        const handler = new ProductionOperationsStateHandler()
+        const context = createMachineContext(state)
+        handler.enter(context)
+
+        expect(context.getPendingActions()).toHaveLength(1)
+        expect(context.getPendingActions()[0]).toMatchObject({
+            source: ActionSource.System,
+            type: ActionType.Pass,
+            playerId,
+            reason: PassReason.NoValidOperation
+        })
+    })
+
     it('stays in production operations after a delivery when more safe deliveries remain', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId

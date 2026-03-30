@@ -317,6 +317,51 @@ describe('ShippingOperationsStateHandler', () => {
         expect(handler.validActionsForPlayer(playerId, context)).toEqual([ActionType.Pass])
     })
 
+    it('queues a system no-valid-operation pass when shipping has nothing to do', () => {
+        const state = createTestState()
+        const playerId = state.players[0].playerId
+        const shippingDeed = state.availableDeeds.find(
+            (deed) => deed.type === CompanyType.Shipping && (deed.sizes[state.era] ?? 0) > 0
+        )
+
+        expect(shippingDeed).toBeDefined()
+        if (!shippingDeed || shippingDeed.type !== CompanyType.Shipping) {
+            return
+        }
+
+        const companyId = 'shipping-company'
+        const shippingCapacity = shippingDeed.sizes[state.era] ?? 0
+        state.companies = [
+            {
+                id: companyId,
+                type: CompanyType.Shipping,
+                owner: playerId,
+                deeds: [shippingDeed]
+            }
+        ]
+        state.machineState = MachineState.ShippingOperations
+        state.phaseManager.startPhase(PhaseName.Operations, state.actionCount)
+        state.beginCompanyOperation(companyId)
+        state.turnManager.startTurn(playerId, state.actionCount)
+        state.board.areas.S01 = {
+            id: 'S01',
+            type: AreaType.Sea,
+            ships: Array.from({ length: shippingCapacity }, () => companyId)
+        }
+
+        const handler = new ShippingOperationsStateHandler()
+        const context = createMachineContext(state)
+        handler.enter(context)
+
+        expect(context.getPendingActions()).toHaveLength(1)
+        expect(context.getPendingActions()[0]).toMatchObject({
+            source: ActionSource.System,
+            type: ActionType.Pass,
+            playerId,
+            reason: PassReason.NoValidOperation
+        })
+    })
+
     it('marks the company as operated and returns to operations when other players still have companies', () => {
         const state = createTestState()
         const playerId = state.players[0].playerId

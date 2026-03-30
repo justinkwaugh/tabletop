@@ -242,6 +242,39 @@ export class HydratedIndonesiaGameState
         )
     }
 
+    public canCompanyTakeMeaningfulOperationAction(companyId: string): boolean {
+        const company = this.companies.find((entry) => entry.id === companyId)
+        if (!company) {
+            return false
+        }
+        if (this.hasCompanyOperated(company.id)) {
+            return false
+        }
+        if (isShippingCompany(company)) {
+            return this.canShippingCompanyExpand(company)
+        }
+        if (isProductionCompany(company)) {
+            return this.canProductionCompanyOperate(company)
+        }
+        return false
+    }
+
+    public canPlayerTakeAnyMeaningfulOperationAction(playerId: string): boolean {
+        return this.companies.some(
+            (company) =>
+                company.owner === playerId && this.canCompanyTakeMeaningfulOperationAction(company.id)
+        )
+    }
+
+    public firstOperableNoOpCompanyIdForPlayer(playerId: string): string | undefined {
+        return this.companies.find(
+            (company) =>
+                company.owner === playerId &&
+                this.canCompanyBeOperated(company.id) &&
+                !this.canCompanyTakeMeaningfulOperationAction(company.id)
+        )?.id
+    }
+
     public canPlayerOperateAnyCompanyInFreshOperationsPhase(playerId: string): boolean {
         return this.companies.some(
             (company) =>

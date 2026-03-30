@@ -1,4 +1,5 @@
 import {
+    ActionSource,
     GameCategory,
     GameStatus,
     GameStorage,
@@ -11,6 +12,7 @@ import {
 import { describe, expect, it } from 'vitest'
 import { AreaType } from '../components/area.js'
 import { CompanyType } from '../definition/companyType.js'
+import { ActionType } from '../definition/actions.js'
 import { IndonesiaGameInitializer } from '../definition/initializer.js'
 import { GOOD_REVENUE_BY_GOOD } from '../definition/operationsEconomy.js'
 import { PhaseName } from '../definition/phases.js'
@@ -224,6 +226,13 @@ describe('OperationsStateHandler', () => {
         handler.enter(context)
 
         expect(state.activePlayerIds).toEqual([player1Id])
+        expect(context.getPendingActions()).toHaveLength(1)
+        expect(context.getPendingActions()[0]).toMatchObject({
+            source: ActionSource.System,
+            type: ActionType.ChooseOperatingCompany,
+            playerId: player1Id,
+            companyId: blockedShippingCompanyId
+        })
     })
 
     it('does not skip players whose only production companies cannot deliver and cannot afford expansion', () => {
@@ -291,5 +300,12 @@ describe('OperationsStateHandler', () => {
         handler.enter(context)
 
         expect(state.activePlayerIds).toEqual([player1Id])
+        expect(context.getPendingActions()).toHaveLength(1)
+        expect(context.getPendingActions()[0]).toMatchObject({
+            source: ActionSource.System,
+            type: ActionType.ChooseOperatingCompany,
+            playerId: player1Id,
+            companyId: productionCompanyId
+        })
     })
 })

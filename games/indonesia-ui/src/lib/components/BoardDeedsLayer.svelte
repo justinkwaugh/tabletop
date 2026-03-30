@@ -363,37 +363,15 @@
             {/each}
 
             {#each backgroundDeedCardEntries as deed (deed.key)}
-                <g>
-                    <CompanyDeed
-                        type={deed.cardKind}
-                        x={deed.cardX}
-                        y={deed.cardY}
-                        height={BOARD_DEED_CARD_HEIGHT}
-                        text={deed.text}
-                        textLayout={deed.textLayout}
-                        shippingSizes={deed.shippingSizes}
-                    />
-                    <rect
-                        x={deed.cardX - BOARD_DEED_CARD_WIDTH / 2}
-                        y={deed.cardY - BOARD_DEED_CARD_HEIGHT / 2}
-                        width={BOARD_DEED_CARD_WIDTH}
-                        height={BOARD_DEED_CARD_HEIGHT}
-                        rx={BOARD_DEED_CARD_CORNER_RX}
-                        ry={BOARD_DEED_CARD_CORNER_RY}
-                        fill="#ffffff"
-                        fill-opacity="0.001"
-                        stroke="none"
-                        pointer-events="all"
-                        onmouseenter={() => {
-                            gameSession.hoverAvailableDeed(deed.deedId)
-                        }}
-                        onmouseleave={() => {
-                            if (hoveredAvailableDeedId === deed.deedId) {
-                                gameSession.clearHoveredAvailableDeed()
-                            }
-                        }}
-                    />
-                </g>
+                <CompanyDeed
+                    type={deed.cardKind}
+                    x={deed.cardX}
+                    y={deed.cardY}
+                    height={BOARD_DEED_CARD_HEIGHT}
+                    text={deed.text}
+                    textLayout={deed.textLayout}
+                    shippingSizes={deed.shippingSizes}
+                />
             {/each}
         </g>
 
@@ -450,20 +428,27 @@
         {/each}
 
         {#each foregroundHoveredDeedCardEntries as hoveredDeed (hoveredDeed.deedId)}
-            {@const hoveredDeedId = hoveredDeed.deedId}
-            <g>
-                <CompanyDeed
-                    type={hoveredDeed.cardKind}
-                    x={hoveredDeed.cardX}
-                    y={hoveredDeed.cardY}
-                    height={BOARD_DEED_CARD_HEIGHT}
-                    text={hoveredDeed.text}
-                    textLayout={hoveredDeed.textLayout}
-                    shippingSizes={hoveredDeed.shippingSizes}
-                />
+            <CompanyDeed
+                type={hoveredDeed.cardKind}
+                x={hoveredDeed.cardX}
+                y={hoveredDeed.cardY}
+                height={BOARD_DEED_CARD_HEIGHT}
+                text={hoveredDeed.text}
+                textLayout={hoveredDeed.textLayout}
+                shippingSizes={hoveredDeed.shippingSizes}
+            />
+        {/each}
+
+        <g
+            aria-hidden="true"
+            onpointerleave={() => {
+                gameSession.clearHoveredAvailableDeed()
+            }}
+        >
+            {#each DEED_CARD_ENTRIES as deed (deed.key)}
                 <rect
-                    x={hoveredDeed.cardX - BOARD_DEED_CARD_WIDTH / 2}
-                    y={hoveredDeed.cardY - BOARD_DEED_CARD_HEIGHT / 2}
+                    x={deed.cardX - BOARD_DEED_CARD_WIDTH / 2}
+                    y={deed.cardY - BOARD_DEED_CARD_HEIGHT / 2}
                     width={BOARD_DEED_CARD_WIDTH}
                     height={BOARD_DEED_CARD_HEIGHT}
                     rx={BOARD_DEED_CARD_CORNER_RX}
@@ -472,15 +457,15 @@
                     fill-opacity="0.001"
                     stroke="none"
                     pointer-events="all"
-                    onmouseenter={() => {
-                        gameSession.hoverAvailableDeed(hoveredDeedId)
+                    onpointerenter={() => {
+                        gameSession.hoverAvailableDeed(deed.deedId)
                     }}
-                    onmouseleave={() => {
-                        if (hoveredAvailableDeedId === hoveredDeedId) {
+                    onpointerleave={() => {
+                        if (hoveredAvailableDeedId === deed.deedId) {
                             gameSession.clearHoveredAvailableDeed()
                         }
                     }}
                 />
-            </g>
-        {/each}
+            {/each}
+        </g>
     </g>

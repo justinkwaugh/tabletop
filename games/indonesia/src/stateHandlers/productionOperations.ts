@@ -9,7 +9,7 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { DeliverGood, HydratedDeliverGood, isDeliverGood } from '../actions/deliverGood.js'
 import { HydratedExpand, isExpand } from '../actions/expand.js'
-import { HydratedPass, isPass } from '../actions/pass.js'
+import { HydratedPass, isPass, Pass, PassReason } from '../actions/pass.js'
 import {
     HydratedRemoveCompanyDeed,
     isRemoveCompanyDeed
@@ -75,6 +75,7 @@ export class ProductionOperationsStateHandler
     enter(context: MachineContext<HydratedIndonesiaGameState>) {
         this.solveAndStoreOperatingCompanyDeliveryPlan(context.gameState)
         this.queueRequiredDeliveryIfNeeded(context)
+        this.queueNoValidOperationPassIfNeeded(context)
     }
 
     onAction(
@@ -223,6 +224,40 @@ export class ProductionOperationsStateHandler
                 pendingAction.seaAreaIds.every(
                     (seaAreaId, index) => seaAreaId === requiredCandidate.seaAreaIds[index]
                 )
+        )
+    }
+
+    private queueNoValidOperationPassIfNeeded(
+        context: MachineContext<HydratedIndonesiaGameState>
+    ): void {
+        const ownerPlayerId = this.operatingCompanyOwnerId(context.gameState)
+        if (!ownerPlayerId) {
+            return
+        }
+
+        if (
+            HydratedDeliverGood.canDeliverGood(context.gameState, ownerPlayerId) ||
+            HydratedExpand.canExpand(context.gameState, ownerPlayerId) ||
+            this.hasPendingNoValidOperationPass(context, ownerPlayerId)
+        ) {
+            return
+        }
+
+        context.addSystemAction(Pass, {
+            playerId: ownerPlayerId,
+            reason: PassReason.NoValidOperation
+        })
+    }
+
+    private hasPendingNoValidOperationPass(
+        context: MachineContext<HydratedIndonesiaGameState>,
+        ownerPlayerId: string
+    ): boolean {
+        return context.getPendingActions().some(
+            (pendingAction) =>
+                isPass(pendingAction) &&
+                pendingAction.playerId === ownerPlayerId &&
+                pendingAction.reason === PassReason.NoValidOperation
         )
     }
 
