@@ -5,7 +5,7 @@
     const VIEW_ANIMATION_MS = 180
     const EPSILON = 0.001
     const PINCH_ZOOM_SENSITIVITY = 1
-    const GESTURE_ZOOM_SENSITIVITY = 1.4
+    const GESTURE_ZOOM_SENSITIVITY = 1.2
 
     type FocusRect = {
         x: number
@@ -662,7 +662,7 @@
         if (event.ctrlKey) {
             event.preventDefault()
             cancelViewAnimation()
-            const nextScale = currentScale * Math.exp(-event.deltaY * 0.0015)
+            const nextScale = currentScale * Math.exp(-event.deltaY * 0.003)
             const contentPoint = getContentPointForClientPoint(event.clientX, event.clientY)
             const rect = scroller.getBoundingClientRect()
             const viewportX = event.clientX - rect.left
