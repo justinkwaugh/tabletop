@@ -19,39 +19,16 @@
 
     let gameSession = getGameSession()
 
-    // Heights used in CSS calculations:
-    // Not Mobile(sm and up):
-    // - Navbar: 68px
-    // - Hotseat Banner: 44px
-    // - Exploration Banner: 44px
-    // Mobile (max-sm):
-    // - Navbar: 68px
-    // - Game Title Banner: 32px
-    // - Hotseat Banner: 44px
-    // - Exploration Banner: 44px
-
-    let tableHeightOffset = $derived.by(() => {
-        let offset = 68 // Navbar
-
-        if (gameSession.isExploring) {
-            offset += 44 // Exploration Banner
-        } else if (gameSession.game.hotseat) {
-            offset += 44 // Hotseat Banner
-        }
-
-        return offset
-    })
-
-    const tableHeightMobileClass = 'max-sm:h-[calc(100vh-32px-var(--table-height-offset))]'
-    const tableHeightDesktopClass = 'sm:h-[calc(100vh-var(--table-height-offset))]'
+    const tableHeightMobileClass = 'max-sm:h-[calc(100dvh-var(--app-shell-height))]'
+    const tableHeightDesktopClass = 'sm:h-[calc(100dvh-var(--app-shell-height))]'
     const tableInnerHeightMobileClass =
-        'max-sm:h-[calc(100vh-16px-32px-44px-var(--table-height-offset))]'
-    const tableInnerHeightDesktopClass = 'sm:h-[calc(100vh-16px-var(--table-height-offset))]'
+        'max-sm:h-[calc(100dvh-16px-44px-var(--app-shell-height))]'
+    const tableInnerHeightDesktopClass = 'sm:h-[calc(100dvh-16px-var(--app-shell-height))]'
 </script>
 
 <div
-    class="flex w-screen overflow-auto {tableHeightDesktopClass} {tableHeightMobileClass} box-border"
-    style="--table-height-offset: {tableHeightOffset}px;"
+    class="flex w-full overflow-auto {tableHeightDesktopClass} {tableHeightMobileClass} box-border"
+    style="--app-shell-height: calc(var(--app-navbar-height, 0px) + var(--app-banner-height, 0px)); --table-height-offset: var(--app-shell-height); --safe-area-right: env(safe-area-inset-right, 0px); --safe-area-bottom: env(safe-area-inset-bottom, 0px); --safe-area-left: env(safe-area-inset-left, 0px); padding: 0 var(--safe-area-right) var(--safe-area-bottom) var(--safe-area-left);"
 >
     <div class="flex flex-col w-full">
         <div class="sm:hidden">

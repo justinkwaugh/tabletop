@@ -13,7 +13,7 @@
     import { getGameSession } from '$lib/model/gameSessionContext.js'
 
     let {
-        height = 'max-sm:h-[calc(100vh-44px-16px-32px-16px-24px-var(--table-height-offset)-var(--chat-height-offset))] sm:h-[calc(100vh-44px-16px-32px-16px-var(--table-height-offset)-var(--chat-height-offset))]',
+        height = 'h-full min-h-0',
         timeColor = 'text-gray-600',
         messageTextColor = 'text-gray-200',
         composerTextColor = 'text-gray-200',
@@ -229,7 +229,7 @@
 {/snippet}
 
 <div
-    class="relative flex flex-col justify-end items-center w-full p-2 rounded-lg {borderColor} border gap-y-2 text-sm {bgColor} {height} overflow-hidden"
+    class="relative flex min-h-0 flex-col justify-end items-center w-full p-2 rounded-lg {borderColor} border gap-y-2 text-sm {bgColor} {height} overflow-hidden"
 >
     {#if gameSession.hasUnreadMessages && messagePanel && messagePanel.scrollTop !== 0}
         <div class="absolute top-4 left-0 w-full z-10 flex justify-center">
@@ -239,7 +239,7 @@
     <div
         bind:this={messagePanel}
         onscroll={onScroll}
-        class="w-full fit-content overflow-auto flex flex-col-reverse"
+        class="w-full min-h-0 flex-1 overflow-auto flex flex-col-reverse"
         style="overflow-anchor:auto"
     >
         <div class="flex flex-col-reverse justify-end items-start text-white w-full">

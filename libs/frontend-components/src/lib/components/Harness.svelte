@@ -31,9 +31,31 @@
     let gameToDelete: string | undefined = $state(undefined)
     let deleteModalOpen = $derived(gameToDelete !== undefined)
     let gameSession: GameSession<GameState, HydratedGameState> | undefined = $state(undefined)
+    let navbarShell: HTMLDivElement | undefined = $state()
 
     onMount(() => {
         gameService.loadGames().catch(console.error)
+
+        if (typeof document === 'undefined') {
+            return
+        }
+
+        const rootStyle = document.documentElement.style
+        const updateNavbarHeight = () => {
+            const height = navbarShell?.getBoundingClientRect().height ?? 0
+            rootStyle.setProperty('--app-navbar-height', `${height}px`)
+        }
+
+        const observer = new ResizeObserver(updateNavbarHeight)
+        if (navbarShell) {
+            observer.observe(navbarShell)
+        }
+        updateNavbarHeight()
+
+        return () => {
+            observer.disconnect()
+            rootStyle.removeProperty('--app-navbar-height')
+        }
     })
 
     function closeCreateModal() {
@@ -114,51 +136,58 @@
     >
 {/snippet}
 
-<Navbar fluid={true} class="dark:bg-gray-800">
-    <div class="flex flex-col w-full">
-        <div class="flex flex-row justify-between items-center w-full">
-            <div class="flex justify-center items-center space-x-4">
-                <Button size="xs"
-                    >Active<ChevronDownOutline
-                        class="
-                        ms-2 text-white dark:text-white"
-                    /></Button
-                ><Dropdown simple={true} class="min-w-[100px]">
-                    {#each gameService.activeGames as game}
-                        {@render gameDropdownItem(game)}
-                    {/each}
-                </Dropdown>
+<div
+    bind:this={navbarShell}
+    style="padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);"
+>
+    <Navbar fluid={true} class="dark:bg-gray-800">
+        <div class="flex flex-col w-full">
+            <div class="flex flex-row justify-between items-center w-full">
+                <div class="flex justify-center items-center space-x-4">
+                    <Button size="xs"
+                        >Active<ChevronDownOutline
+                            class="
+                            ms-2 text-white dark:text-white"
+                        /></Button
+                    ><Dropdown simple={true} class="min-w-[100px]">
+                        {#each gameService.activeGames as game}
+                            {@render gameDropdownItem(game)}
+                        {/each}
+                    </Dropdown>
 
-                <Button size="xs"
-                    >Finished<ChevronDownOutline class="ms-2 text-white dark:text-white" /></Button
-                ><Dropdown simple={true} class="min-w-[100px]">
-                    {#each gameService.finishedGames as game}
-                        {@render gameDropdownItem(game)}
-                    {/each}
-                </Dropdown>
-            </div>
-            <div>
-                <div class="text-2xl text-white">{gameSession?.game.name}</div>
-            </div>
-            <div class="flex flex-row justify-center items-center">
-                <Toggle bind:checked={authorizationService.debugViewEnabled} class="rounded p-2"
-                    >Debug</Toggle
-                >
+                    <Button size="xs"
+                        >Finished<ChevronDownOutline
+                            class="ms-2 text-white dark:text-white"
+                        /></Button
+                    ><Dropdown simple={true} class="min-w-[100px]">
+                        {#each gameService.finishedGames as game}
+                            {@render gameDropdownItem(game)}
+                        {/each}
+                    </Dropdown>
+                </div>
+                <div>
+                    <div class="text-2xl text-white">{gameSession?.game.name}</div>
+                </div>
+                <div class="flex flex-row justify-center items-center">
+                    <Toggle bind:checked={authorizationService.debugViewEnabled} class="rounded p-2"
+                        >Debug</Toggle
+                    >
 
-                <Toggle
-                    bind:checked={authorizationService.adminCapabilitiesEnabled}
-                    class="rounded p-2">Admin</Toggle
-                >
+                    <Toggle
+                        bind:checked={authorizationService.adminCapabilitiesEnabled}
+                        class="rounded p-2">Admin</Toggle
+                    >
 
-                <Button class="ms-2" size="xs" onclick={() => (showCreateModal = true)}
-                    >New Game</Button
-                >
+                    <Button class="ms-2" size="xs" onclick={() => (showCreateModal = true)}
+                        >New Game</Button
+                    >
+                </div>
             </div>
         </div>
-    </div>
-</Navbar>
+    </Navbar>
+</div>
 
-<div class="flex flex-col w-screen overflow-auto">
+<div class="flex flex-col w-full overflow-auto">
     {#if gameSession}
         {#key gameSession}
             <HarnessGame {gameSession} />

@@ -40,6 +40,7 @@
     let loading = $derived(libraryService.loading)
 
     let { children } = $props()
+    let navbarShell: HTMLDivElement | undefined = $state()
 
     let sessionUser = $derived(authorizationService.getSessionUser())
     let showCreateGameModel = $state(false)
@@ -169,6 +170,23 @@
         if (/mobile/i.test(navigator.userAgent ?? '') && !location.hash) {
             window.scrollTo(0, 1)
         }
+
+        const rootStyle = document.documentElement.style
+        const updateNavbarHeight = () => {
+            const height = navbarShell?.getBoundingClientRect().height ?? 0
+            rootStyle.setProperty('--app-navbar-height', `${height}px`)
+        }
+
+        const observer = new ResizeObserver(updateNavbarHeight)
+        if (navbarShell) {
+            observer.observe(navbarShell)
+        }
+        updateNavbarHeight()
+
+        return () => {
+            observer.disconnect()
+            rootStyle.removeProperty('--app-navbar-height')
+        }
     })
 
     $effect(() => {
@@ -233,11 +251,12 @@
     {/if}
 {/snippet}
 
-<Navbar
-    fluid={true}
-    class="{currentDefinition?.info.metadata.beta ? 'dark:bg-red-900' : 'dark:bg-gray-800'} "
->
-    <div class="flex flex-col w-full">
+<div bind:this={navbarShell}>
+    <Navbar
+        fluid={true}
+        class="{currentDefinition?.info.metadata.beta ? 'dark:bg-red-900' : 'dark:bg-gray-800'} "
+    >
+        <div class="flex flex-col w-full">
         <div class="flex flex-row justify-between items-center w-full">
             <div class="flex justify-center items-center">
                 <NavBrand href="/library" class="shrink-0 cursor-pointer">
@@ -381,8 +400,9 @@
         <div class="flex justify-center sm:hidden w-full overflow-hidden text-ellipsis">
             {@render gameName()}
         </div>
-    </div>
-</Navbar>
+        </div>
+    </Navbar>
+</div>
 <Modal
     bind:open={showCreateGameModel}
     size="xs"
