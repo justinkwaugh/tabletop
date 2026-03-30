@@ -212,6 +212,38 @@
         }
     }
 
+    function findScrollableAncestor(element: HTMLElement | null): HTMLElement | null {
+        let current = element?.parentElement ?? null
+        while (current) {
+            const style = getComputedStyle(current)
+            const canScrollX =
+                /(auto|scroll|overlay)/.test(style.overflowX) && current.scrollWidth > current.clientWidth
+            const canScrollY =
+                /(auto|scroll|overlay)/.test(style.overflowY) && current.scrollHeight > current.clientHeight
+            if (canScrollX || canScrollY) {
+                return current
+            }
+            current = current.parentElement
+        }
+
+        return null
+    }
+
+    function scrollAncestorBy(deltaX: number, deltaY: number) {
+        const scrollAncestor = findScrollableAncestor(scroller)
+        if (scrollAncestor) {
+            scrollAncestor.scrollLeft -= deltaX
+            scrollAncestor.scrollTop -= deltaY
+            return
+        }
+
+        window.scrollBy({
+            left: -deltaX,
+            top: -deltaY,
+            behavior: 'auto'
+        })
+    }
+
     function getViewportCenterContentPoint() {
         return {
             x: clamp((wrapperWidth / 2 - currentTranslateX) / currentScale, 0, contentWidth),
@@ -596,7 +628,7 @@
             return
         }
 
-        if (event.touches.length === 1 && currentScale > baseScale + EPSILON) {
+        if (event.touches.length === 1) {
             cancelViewAnimation()
             cancelPinchAnimation()
             panLastClientPoint = {
@@ -615,7 +647,7 @@
             return
         }
 
-        if (event.touches.length !== 1 || !panLastClientPoint || currentScale <= baseScale + EPSILON) {
+        if (event.touches.length !== 1 || !panLastClientPoint) {
             return
         }
 
@@ -625,8 +657,22 @@
         const deltaX = nextPoint.x - panLastClientPoint.x
         const deltaY = nextPoint.y - panLastClientPoint.y
         panLastClientPoint = nextPoint
-        cancelViewAnimation()
-        applyView(currentScale, currentTranslateX + deltaX, currentTranslateY + deltaY)
+        const nextView = clampTranslation(
+            currentScale,
+            currentTranslateX + deltaX,
+            currentTranslateY + deltaY
+        )
+        const didPan =
+            Math.abs(nextView.translateX - currentTranslateX) > EPSILON ||
+            Math.abs(nextView.translateY - currentTranslateY) > EPSILON
+        event.preventDefault()
+        if (didPan) {
+            cancelViewAnimation()
+            applyView(currentScale, nextView.translateX, nextView.translateY)
+            return
+        }
+
+        scrollAncestorBy(deltaX, deltaY)
     }
 
     function clearPinchState() {
@@ -643,7 +689,7 @@
             clearPinchState()
         }
 
-        if (event.touches.length === 1 && currentScale > baseScale + EPSILON) {
+        if (event.touches.length === 1) {
             panLastClientPoint = {
                 x: event.touches[0].clientX,
                 y: event.touches[0].clientY
@@ -685,9 +731,21 @@
             return
         }
 
+        const nextView = clampTranslation(
+            currentScale,
+            currentTranslateX - event.deltaX,
+            currentTranslateY - event.deltaY
+        )
+        const didPan =
+            Math.abs(nextView.translateX - currentTranslateX) > EPSILON ||
+            Math.abs(nextView.translateY - currentTranslateY) > EPSILON
+        if (!didPan) {
+            return
+        }
+
         event.preventDefault()
         cancelViewAnimation()
-        applyView(currentScale, currentTranslateX - event.deltaX, currentTranslateY - event.deltaY)
+        applyView(currentScale, nextView.translateX, nextView.translateY)
     }
 
     function handleGestureStart(event: Event) {
@@ -754,15 +812,26 @@
             return
         }
 
+        const touchStartListener = (event: TouchEvent) => handleTouchStart(event)
+        const touchMoveListener = (event: TouchEvent) => handleTouchMove(event)
+        const touchEndListener = (event: TouchEvent) => handleTouchEnd(event)
         const gestureStartListener = (event: Event) => handleGestureStart(event)
         const gestureChangeListener = (event: Event) => handleGestureChange(event)
         const gestureEndListener = () => handleGestureEnd()
 
+        scroller.addEventListener('touchstart', touchStartListener, { passive: false })
+        scroller.addEventListener('touchmove', touchMoveListener, { passive: false })
+        scroller.addEventListener('touchend', touchEndListener, { passive: false })
+        scroller.addEventListener('touchcancel', touchEndListener, { passive: false })
         scroller.addEventListener('gesturestart', gestureStartListener, { passive: false })
         scroller.addEventListener('gesturechange', gestureChangeListener, { passive: false })
         scroller.addEventListener('gestureend', gestureEndListener)
 
         return () => {
+            scroller?.removeEventListener('touchstart', touchStartListener)
+            scroller?.removeEventListener('touchmove', touchMoveListener)
+            scroller?.removeEventListener('touchend', touchEndListener)
+            scroller?.removeEventListener('touchcancel', touchEndListener)
             scroller?.removeEventListener('gesturestart', gestureStartListener)
             scroller?.removeEventListener('gesturechange', gestureChangeListener)
             scroller?.removeEventListener('gestureend', gestureEndListener)
@@ -779,12 +848,8 @@
     <div
         bind:this={scroller}
         class="w-full h-full overflow-hidden"
-        style="touch-action: none; overscroll-behavior: contain;"
+        style="touch-action: none;"
         onwheel={handleWheel}
-        ontouchstart={handleTouchStart}
-        ontouchmove={handleTouchMove}
-        ontouchend={handleTouchEnd}
-        ontouchcancel={handleTouchEnd}
     >
         <div class="relative w-full h-full">
             <div
