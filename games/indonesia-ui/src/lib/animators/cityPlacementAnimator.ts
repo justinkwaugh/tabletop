@@ -120,10 +120,6 @@ export class CityPlacementAnimator {
             return
         }
 
-        if (hasCityAction) {
-            animationContext.ensureDuration(0.75)
-        }
-
         const placementPopDuration = hasCityAction ? 0.18 : FALLBACK_POP_DURATION
         const placementSettleDuration = hasCityAction ? 0.14 : FALLBACK_SETTLE_DURATION
 
