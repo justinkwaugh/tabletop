@@ -1,4 +1,9 @@
 <script lang="ts">
+    import {
+        attachCityPlacementAnimator,
+        animatePlacedCity,
+        CityPlacementAnimator
+    } from '$lib/animators/cityPlacementAnimator.js'
     import { CITY_DEMAND_MARKER_POSITIONS_BY_REGION } from '$lib/definitions/cityDemandMarkerPositions.js'
     import CityDemandMarker from '$lib/components/CityDemandMarker.svelte'
     import GlassBeadMarker from '$lib/components/GlassBeadMarker.svelte'
@@ -58,6 +63,16 @@
         MachineState.ShippingOperations,
         MachineState.ProductionOperations
     ])
+    let animatedCityMarkers: Array<{ areaId: string; tone: BeadTone }> = $derived.by(() => {
+        gameSession.gameState
+        return []
+    })
+
+    const cityPlacementAnimator = new CityPlacementAnimator(gameSession, {
+        onCityMarkerAnimationStart: ({ areaId, tone }) => {
+            animatedCityMarkers = [...animatedCityMarkers, { areaId, tone }]
+        }
+    })
 
     function beadToneForCitySize(size: number): BeadTone {
         if (size === 1) {
@@ -69,7 +84,7 @@
         return 'red'
     }
 
-    const cityMarkers: CityMarker[] = $derived.by(() => {
+    const placedCityMarkers: CityMarker[] = $derived.by(() => {
         const markers: CityMarker[] = []
 
         for (const city of gameSession.gameState.board.cities) {
@@ -79,11 +94,32 @@
             }
 
             markers.push({
-                key: city.id,
+                key: city.area,
                 areaId: city.area,
                 x: markerPosition.x,
                 y: markerPosition.y,
                 tone: beadToneForCitySize(city.size)
+            })
+        }
+
+        return markers
+    })
+
+    const animatedCityMarkerEntries: CityMarker[] = $derived.by(() => {
+        const markers: CityMarker[] = []
+
+        for (const city of animatedCityMarkers) {
+            const markerPosition = resolveLandMarkerPosition(city.areaId)
+            if (!markerPosition) {
+                continue
+            }
+
+            markers.push({
+                key: `animated:${city.areaId}`,
+                areaId: city.areaId,
+                x: markerPosition.x,
+                y: markerPosition.y,
+                tone: city.tone
             })
         }
 
@@ -243,8 +279,63 @@
     })
 </script>
 
+<g class="pointer-events-none select-none" aria-label="Cities layer" {@attach attachCityPlacementAnimator(cityPlacementAnimator)}></g>
+
 <g class="pointer-events-none select-none" aria-label="Cities layer">
-    {#each cityMarkers as marker (marker.key)}
+    {#each placedCityMarkers as marker (marker.key)}
+        {#if !animatedCityMarkers.some((animatedCity) => animatedCity.areaId === marker.areaId)}
+            {@const isSelectableDeliveryCity =
+                isSelectingDeliveryCity && selectableDeliveryCityAreaIds.has(marker.areaId)}
+            {@const isHoveredSelectableDeliveryCity =
+                isSelectableDeliveryCity && hoveredDeliveryCityAreaId === marker.areaId}
+            {@const isHoveredRouteCity = hoveredRouteCityAreaId === marker.areaId}
+            {@const isDimmedForRoutePreview = hoveredRoutePreviewDimmedCityAreaIdSet.has(marker.areaId)}
+            <g
+                transform={`translate(${marker.x} ${marker.y})`}
+                opacity={hasHoveredRouteCity
+                    ? isDimmedForRoutePreview && !isHoveredRouteCity
+                        ? 0.34
+                        : 1
+                    : shouldDimCitiesForCityReferenceCardPreview
+                      ? CITY_REFERENCE_CARD_PREVIEW_CITY_OPACITY
+                      : 1}
+                use:animatePlacedCity={{ animator: cityPlacementAnimator, areaId: marker.areaId }}
+            >
+                <GlassBeadMarker
+                    x={0}
+                    y={0}
+                    tone={marker.tone}
+                    height={isHoveredSelectableDeliveryCity || isHoveredRouteCity ? CITY_MARKER_HEIGHT * 1.1 : CITY_MARKER_HEIGHT}
+                />
+            </g>
+            {#if isSelectableDeliveryCity || isHoveredRouteCity}
+                <circle
+                    cx={marker.x}
+                    cy={marker.y}
+                    r={isHoveredSelectableDeliveryCity || isHoveredRouteCity ? CITY_SELECTION_BEAD_RING_RADIUS * 1.06 : CITY_SELECTION_BEAD_RING_RADIUS}
+                    fill="none"
+                    stroke="#fff8d7"
+                    stroke-width={(isHoveredSelectableDeliveryCity || isHoveredRouteCity) ? CITY_SELECTION_BEAD_RING_STROKE * 1.14 : CITY_SELECTION_BEAD_RING_STROKE}
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    opacity="0.94"
+                ></circle>
+                <circle
+                    cx={marker.x}
+                    cy={marker.y}
+                    r={isHoveredSelectableDeliveryCity || isHoveredRouteCity ? CITY_SELECTION_BEAD_RING_RADIUS * 1.06 : CITY_SELECTION_BEAD_RING_RADIUS}
+                    fill="none"
+                    stroke="#1f2937"
+                    stroke-width={(isHoveredSelectableDeliveryCity || isHoveredRouteCity) ? 3 : 2.4}
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    opacity="0.92"
+                ></circle>
+            {/if}
+        {/if}
+    {/each}
+
+    {#each animatedCityMarkerEntries as marker (marker.key)}
         {@const isSelectableDeliveryCity =
             isSelectingDeliveryCity && selectableDeliveryCityAreaIds.has(marker.areaId)}
         {@const isHoveredSelectableDeliveryCity =
@@ -252,6 +343,7 @@
         {@const isHoveredRouteCity = hoveredRouteCityAreaId === marker.areaId}
         {@const isDimmedForRoutePreview = hoveredRoutePreviewDimmedCityAreaIdSet.has(marker.areaId)}
         <g
+            transform={`translate(${marker.x} ${marker.y})`}
             opacity={hasHoveredRouteCity
                 ? isDimmedForRoutePreview && !isHoveredRouteCity
                     ? 0.34
@@ -259,10 +351,11 @@
                 : shouldDimCitiesForCityReferenceCardPreview
                   ? CITY_REFERENCE_CARD_PREVIEW_CITY_OPACITY
                   : 1}
+            use:animatePlacedCity={{ animator: cityPlacementAnimator, areaId: marker.areaId }}
         >
             <GlassBeadMarker
-                x={marker.x}
-                y={marker.y}
+                x={0}
+                y={0}
                 tone={marker.tone}
                 height={isHoveredSelectableDeliveryCity || isHoveredRouteCity ? CITY_MARKER_HEIGHT * 1.1 : CITY_MARKER_HEIGHT}
             />
