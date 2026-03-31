@@ -3,7 +3,10 @@ import { animateStartedShipMarker } from '$lib/animators/startCompanyAnimator.js
 import ShipMarker from '$lib/components/ShipMarker.svelte'
 import { getStartCompanyAnimatorContext } from '$lib/model/startCompanyAnimatorContext.svelte.js'
 import { getGameSession } from '$lib/model/sessionContext.svelte'
-import { startedShipMarkerEntryForAction } from '$lib/utils/startedCompanyEntries.js'
+import {
+    expandedShipMarkerEntryForAction,
+    startedShipMarkerEntryForAction
+} from '$lib/utils/startedCompanyEntries.js'
 import { shadeHexColor } from '$lib/utils/color.js'
 import { shippingStyleByCompanyId, type ShippingStyle } from '$lib/utils/shippingStyles.js'
 import { markerPointsForSeaAreaShipList } from '$lib/utils/shipMarkers.js'
@@ -157,6 +160,19 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
             .filter((marker): marker is NonNullable<typeof marker> => marker !== null)
     })
 
+    const expandedShipMarkers = $derived.by(() => {
+        return gameSession.visibleExpandAnimationEntries
+            .map((entry) =>
+                expandedShipMarkerEntryForAction({
+                    gameState: gameSession.gameState,
+                    action: entry.action,
+                    ownerColor: gameSession.colors.getPlayerUiColor(entry.action.playerId),
+                    ownerPlayerColor: gameSession.colors.getPlayerColor(entry.action.playerId)
+                })
+            )
+            .filter((marker): marker is NonNullable<typeof marker> => marker !== null)
+    })
+
 </script>
 
 <g class="pointer-events-none select-none" aria-label="Ships layer">
@@ -198,6 +214,30 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
     {/if}
 
     {#each startedShipMarkers as ship (ship.key)}
+        <g
+            opacity="0"
+            use:animateStartedShipMarker={{
+                animator: startCompanyAnimator,
+                companyId: ship.companyId
+            }}
+        >
+            <ShipMarker
+                x={ship.x}
+                y={ship.y}
+                style={ship.style}
+                height={SHIP_MARKER_HEIGHT}
+                outline={false}
+                hullFillColor={ship.ownerColor}
+                hullStrokeColor={ship.ownerStrokeColor}
+                hullStrokeWidth={SHIP_MARKER_HULL_STROKE_WIDTH}
+                capacityBadgeValue={ship.remainingCapacity}
+                capacityBadgeFillColor={ship.ownerColor}
+                capacityBadgeTextColor={ship.capacityBadgeTextColor}
+            />
+        </g>
+    {/each}
+
+    {#each expandedShipMarkers as ship (ship.key)}
         <g
             opacity="0"
             use:animateStartedShipMarker={{

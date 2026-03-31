@@ -5,6 +5,7 @@ import {
     Deeds,
     Good,
     INDONESIA_REGIONS,
+    isExpand,
     isStartCompany,
     type HydratedIndonesiaGameState,
     type IndonesiaNodeId,
@@ -307,8 +308,107 @@ export function startedShipMarkerEntryForAction(args: {
         return null
     }
 
-    const points = markerPointsForSeaAreaShipList(seaArea.id, seaArea.ships)
-    const markerIndex = seaArea.ships.lastIndexOf(company.id)
+    const simulatedShips = [...seaArea.ships, company.id]
+    const points = markerPointsForSeaAreaShipList(seaArea.id, simulatedShips)
+    const markerIndex = simulatedShips.length - 1
+    if (markerIndex < 0 || markerIndex >= points.length) {
+        return null
+    }
+
+    const style = company.shipStyle ?? 'a'
+    const ownerHullLevel = gameState.getPlayerState(company.owner).research.hull
+    const capacityPerShip = 1 + ownerHullLevel
+    const usedCapacity = 0
+    const companyShipOrdinal = 0
+
+    return {
+        key: `started-ship-${company.id}-${seaArea.id}`,
+        areaId: seaArea.id,
+        companyId: company.id,
+        x: points[markerIndex].x,
+        y: points[markerIndex].y,
+        style,
+        ownerColor,
+        remainingCapacity: Math.max(
+            0,
+            Math.min(capacityPerShip, (companyShipOrdinal + 1) * capacityPerShip - usedCapacity)
+        ),
+        capacityBadgeTextColor: ownerPlayerColor === Color.Yellow ? '#111827' : '#f8fafc',
+        ownerStrokeColor:
+            ownerPlayerColor === Color.Yellow
+                ? shadeHexColor(ownerColor, SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_YELLOW)
+                : ownerPlayerColor === Color.Blue
+                  ? shadeHexColor(ownerColor, SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_BLUE)
+                  : 'none'
+    }
+}
+
+export function expandedCultivatedAreaEntryForAction(args: {
+    gameState: HydratedIndonesiaGameState
+    action: GameAction
+    ownerColor: string
+}): StartedCultivatedAreaEntry | null {
+    const { gameState, action, ownerColor } = args
+    if (!isExpand(action)) {
+        return null
+    }
+
+    const operatingCompanyId = gameState.operatingCompanyId
+    if (!operatingCompanyId) {
+        return null
+    }
+
+    const company = gameState.companies.find((entry) => entry.id === operatingCompanyId)
+    if (!company || company.type !== CompanyType.Production) {
+        return null
+    }
+
+    const areaCenter = resolveLandMarkerPosition(action.areaId)
+    if (!areaCenter) {
+        return null
+    }
+
+    return {
+        key: `expanded-cultivated-${company.id}-${action.areaId}`,
+        areaId: action.areaId,
+        companyId: company.id,
+        ownerColor,
+        good: company.good,
+        centerX: areaCenter.x,
+        centerY: areaCenter.y,
+        opacity: GROUPED_ISLAND_OVERLAY_AREA_IDS.has(action.areaId) ? 0.7 : 1
+    }
+}
+
+export function expandedShipMarkerEntryForAction(args: {
+    gameState: HydratedIndonesiaGameState
+    action: GameAction
+    ownerColor: string
+    ownerPlayerColor: Color
+}): StartedShipMarkerEntry | null {
+    const { gameState, action, ownerColor, ownerPlayerColor } = args
+    if (!isExpand(action)) {
+        return null
+    }
+
+    const operatingCompanyId = gameState.operatingCompanyId
+    if (!operatingCompanyId) {
+        return null
+    }
+
+    const company = gameState.companies.find((entry) => entry.id === operatingCompanyId)
+    if (!company || company.type !== CompanyType.Shipping) {
+        return null
+    }
+
+    const seaArea = gameState.board.getArea(action.areaId)
+    if (!('ships' in seaArea)) {
+        return null
+    }
+
+    const simulatedShips = [...seaArea.ships, company.id]
+    const points = markerPointsForSeaAreaShipList(seaArea.id, simulatedShips)
+    const markerIndex = simulatedShips.length - 1
     if (markerIndex < 0 || markerIndex >= points.length) {
         return null
     }
@@ -316,16 +416,13 @@ export function startedShipMarkerEntryForAction(args: {
     const style = shippingStyleByCompanyId(gameState).get(company.id) ?? 'a'
     const ownerHullLevel = gameState.getPlayerState(company.owner).research.hull
     const capacityPerShip = 1 + ownerHullLevel
-    const usedCapacity = gameState.operatingCompanyShipUseCount(
-        company.id,
-        seaArea.id as IndonesiaNodeId
-    )
-    const companyShipOrdinal = seaArea.ships
+    const usedCapacity = gameState.operatingCompanyShipUseCount(company.id, seaArea.id as IndonesiaNodeId)
+    const companyShipOrdinal = simulatedShips
         .slice(0, markerIndex + 1)
         .filter((companyId: string) => companyId === company.id).length - 1
 
     return {
-        key: `started-ship-${company.id}-${seaArea.id}`,
+        key: `expanded-ship-${company.id}-${seaArea.id}-${markerIndex}`,
         areaId: seaArea.id,
         companyId: company.id,
         x: points[markerIndex].x,

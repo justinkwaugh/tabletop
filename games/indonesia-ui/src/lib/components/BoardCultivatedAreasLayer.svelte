@@ -4,7 +4,10 @@
     import { companyDeedStyleForType } from '$lib/components/CompanyDeed.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { getStartCompanyAnimatorContext } from '$lib/model/startCompanyAnimatorContext.svelte.js'
-    import { startedCultivatedAreaEntryForAction } from '$lib/utils/startedCompanyEntries.js'
+    import {
+        expandedCultivatedAreaEntryForAction,
+        startedCultivatedAreaEntryForAction
+    } from '$lib/utils/startedCompanyEntries.js'
     import { productionHatchVariantByCompanyId } from '$lib/utils/productionHatching.js'
     import { shadeHexColor } from '$lib/utils/color.js'
     import { CompanyType, Good } from '@tabletop/indonesia'
@@ -162,12 +165,43 @@
             })
     })
 
+    const expandedCultivatedEntries = $derived.by(() => {
+        const renderByGoods = gameSession.productionZoneRenderStyle === 'goods'
+        return gameSession.visibleExpandAnimationEntries
+            .map((entry) =>
+                expandedCultivatedAreaEntryForAction({
+                    gameState: gameSession.gameState,
+                    action: entry.action,
+                    ownerColor: gameSession.colors.getPlayerUiColor(entry.action.playerId)
+                })
+            )
+            .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+            .map((entry) => {
+                const goodsStyle = GOODS_OVERLAY_STYLE_BY_GOOD[entry.good]
+                return {
+                    ...entry,
+                    fillColor: renderByGoods ? goodsStyle.fill : entry.ownerColor,
+                    borderColor: renderByGoods
+                        ? goodsStyle.stroke
+                        : shadeHexColor(entry.ownerColor, 0.38),
+                    overlayPatternId: renderByGoods ? BASE_HATCH_PATTERN_ID_BY_GOOD[entry.good] : null
+                }
+            })
+    })
+
     const startedCultivatedAreaIdSet: ReadonlySet<string> = $derived.by(
         () => new Set(startedCultivatedEntries.map((entry) => entry.areaId))
     )
+    const expandedCultivatedAreaIdSet: ReadonlySet<string> = $derived.by(
+        () => new Set(expandedCultivatedEntries.map((entry) => entry.areaId))
+    )
 
     const cultivatedEntries: CultivatedRenderEntry[] = $derived.by(() =>
-        baseCultivatedEntries.filter((entry) => !startedCultivatedAreaIdSet.has(entry.areaId))
+        baseCultivatedEntries.filter(
+            (entry) =>
+                !startedCultivatedAreaIdSet.has(entry.areaId) &&
+                !expandedCultivatedAreaIdSet.has(entry.areaId)
+        )
     )
 </script>
 
@@ -328,6 +362,38 @@
     {/each}
 
     {#each startedCultivatedEntries as cultivated (cultivated.key)}
+        <g
+            transform={`translate(${cultivated.centerX} ${cultivated.centerY})`}
+            opacity="0"
+            use:animateStartedCultivatedArea={{
+                animator: startCompanyAnimator,
+                companyId: cultivated.companyId
+            }}
+        >
+            <g transform={`translate(${-cultivated.centerX} ${-cultivated.centerY})`}>
+                <Area
+                    areaId={cultivated.areaId}
+                    fill={cultivated.fillColor}
+                    stroke={cultivated.borderColor}
+                    fillOpacity={CULTIVATED_AREA_FILL_OPACITY}
+                    strokeWidth={CULTIVATED_AREA_STROKE_WIDTH}
+                    opacity={cultivated.opacity}
+                />
+                {#if cultivated.overlayPatternId}
+                    <Area
+                        areaId={cultivated.areaId}
+                        fill={`url(#${cultivated.overlayPatternId})`}
+                        stroke="transparent"
+                        fillOpacity={1}
+                        strokeWidth={0}
+                        opacity={cultivated.opacity}
+                    />
+                {/if}
+            </g>
+        </g>
+    {/each}
+
+    {#each expandedCultivatedEntries as cultivated (cultivated.key)}
         <g
             transform={`translate(${cultivated.centerX} ${cultivated.centerY})`}
             opacity="0"

@@ -111,12 +111,17 @@ type StartedCompanyAnimationEntry = {
     action: GameAction
 }
 
+type ExpandAnimationEntry = {
+    action: GameAction
+}
+
 export class IndonesiaGameSession extends GameSession<
     IndonesiaGameState,
     HydratedIndonesiaGameState
 > {
     visibleActionOverride: GameAction | undefined = $state()
     startedCompanyAnimationEntry: StartedCompanyAnimationEntry | undefined = $state()
+    expandAnimationEntry: ExpandAnimationEntry | undefined = $state()
 
     selectedResearchPlayerIdOverride: string | undefined = $state()
     hoveredOperatingCompanyIdOverride: string | undefined = $state()
@@ -133,6 +138,10 @@ export class IndonesiaGameSession extends GameSession<
     visibleAction = $derived.by(() => this.visibleActionOverride ?? this.currentAction)
     visibleStartedCompanyAnimationEntries = $derived.by(() => {
         const entry = this.startedCompanyAnimationEntry
+        return entry ? [entry] : []
+    })
+    visibleExpandAnimationEntries = $derived.by(() => {
+        const entry = this.expandAnimationEntry
         return entry ? [entry] : []
     })
 
@@ -1433,6 +1442,16 @@ export class IndonesiaGameSession extends GameSession<
     clearStartedCompanyAnimation(actionId: string): void {
         if (this.startedCompanyAnimationEntry?.action.id === actionId) {
             this.startedCompanyAnimationEntry = undefined
+        }
+    }
+
+    rememberExpandAnimation(action: GameAction): void {
+        this.expandAnimationEntry = { action }
+    }
+
+    clearExpandAnimation(actionId: string): void {
+        if (this.expandAnimationEntry?.action.id === actionId) {
+            this.expandAnimationEntry = undefined
         }
     }
 

@@ -1,6 +1,6 @@
 import type { GameAction } from '@tabletop/common'
 import type { AnimationContext } from '@tabletop/frontend-components'
-import { CompanyType, isStartCompany, type HydratedIndonesiaGameState } from '@tabletop/indonesia'
+import { CompanyType, isExpand, isStartCompany, type HydratedIndonesiaGameState } from '@tabletop/indonesia'
 import { gsap } from 'gsap'
 import { tick, untrack } from 'svelte'
 import type { IndonesiaGameSession } from '$lib/model/session.svelte.js'
@@ -111,7 +111,35 @@ export class StartCompanyAnimator {
         action?: GameAction
         animationContext: AnimationContext
     }): Promise<void> {
-        if (!from || !action || !isStartCompany(action) || !action.metadata?.company) {
+        if (!from || !action) {
+            return
+        }
+
+        if (isStartCompany(action) && action.metadata?.company) {
+            await this.animateStartCompany({
+                action,
+                animationContext
+            })
+            return
+        }
+
+        if (isExpand(action)) {
+            await this.animateExpand({
+                from,
+                action,
+                animationContext
+            })
+        }
+    }
+
+    private async animateStartCompany({
+        action,
+        animationContext
+    }: {
+        action: GameAction
+        animationContext: AnimationContext
+    }): Promise<void> {
+        if (!isStartCompany(action) || !action.metadata?.company) {
             return
         }
 
@@ -256,6 +284,109 @@ export class StartCompanyAnimator {
                 ease: 'power2.out'
             },
             DEED_EXIT_DURATION + MARKER_POP_DURATION
+        )
+    }
+
+    private async animateExpand({
+        from,
+        action,
+        animationContext
+    }: {
+        from: HydratedIndonesiaGameState
+        action: GameAction
+        animationContext: AnimationContext
+    }): Promise<void> {
+        if (!isExpand(action)) {
+            return
+        }
+
+        const operatingCompanyId = from.operatingCompanyId
+        if (!operatingCompanyId) {
+            return
+        }
+
+        const operatingCompany = from.companies.find((company) => company.id === operatingCompanyId)
+        if (!operatingCompany) {
+            return
+        }
+
+        this.gameSession.rememberExpandAnimation(action)
+
+        await tick()
+
+        animationContext.afterAnimations(() => {
+            this.gameSession.clearExpandAnimation(action.id)
+        })
+
+        if (operatingCompany.type === CompanyType.Production) {
+            const cultivatedAreaElement = this.cultivatedAreaElements.get(operatingCompany.id)
+            if (!cultivatedAreaElement) {
+                return
+            }
+
+            gsap.set(cultivatedAreaElement, {
+                transformOrigin: '0px 0px',
+                opacity: 0,
+                scale: INITIAL_CULTIVATED_AREA_SCALE
+            })
+
+            animationContext.actionTimeline.to(
+                cultivatedAreaElement,
+                {
+                    opacity: 1,
+                    scale: CULTIVATED_AREA_OVERSHOOT_SCALE,
+                    duration: CULTIVATED_AREA_POP_DURATION,
+                    ease: 'power2.out'
+                },
+                0
+            )
+
+            animationContext.actionTimeline.to(
+                cultivatedAreaElement,
+                {
+                    scale: 1,
+                    duration: CULTIVATED_AREA_SETTLE_DURATION,
+                    ease: 'power2.out'
+                },
+                CULTIVATED_AREA_POP_DURATION
+            )
+            return
+        }
+
+        if (operatingCompany.type !== CompanyType.Shipping) {
+            return
+        }
+
+        const shipMarkerElement = this.shipMarkerElements.get(operatingCompany.id)
+        if (!shipMarkerElement) {
+            return
+        }
+
+        gsap.set(shipMarkerElement, {
+            transformOrigin: 'center center',
+            scale: INITIAL_MARKER_SCALE,
+            opacity: 0
+        })
+
+        animationContext.actionTimeline.to(
+            shipMarkerElement,
+            {
+                scale: MARKER_OVERSHOOT_SCALE,
+                opacity: 1,
+                duration: MARKER_POP_DURATION,
+                ease: 'back.out(2.2)'
+            },
+            0
+        )
+
+        animationContext.actionTimeline.to(
+            shipMarkerElement,
+            {
+                scale: 1,
+                duration: MARKER_SETTLE_DURATION,
+                ease: 'power2.out'
+            },
+            MARKER_POP_DURATION
         )
     }
 }
