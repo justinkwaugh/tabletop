@@ -1,0 +1,2421 @@
+{
+  "systemVersion": 2,
+  "id": "nD5YhuXD26BkWXxWRKFNK",
+  "gameId": "8QdbrtZ8dum0cbWEDG3uE",
+  "seed": 1279578053,
+  "prng": {
+    "seed": 1279578053,
+    "invocations": 2995
+  },
+  "activePlayerIds": [],
+  "winningPlayerIds": [
+    "2R1Muv3JMdn1eJSOWM02c"
+  ],
+  "actionCount": 409,
+  "actionChecksum": 1547192300,
+  "players": [
+    {
+      "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+      "color": "yellow",
+      "research": {
+        "bid": 0,
+        "slots": 2,
+        "mergers": 1,
+        "expansion": 2,
+        "hull": 1
+      },
+      "bank": 0,
+      "cash": 1045,
+      "cityCards": {
+        "A": [
+          {
+            "id": "A01",
+            "era": "A",
+            "regions": [
+              "R07",
+              "R18",
+              "R19"
+            ]
+          }
+        ],
+        "B": [
+          {
+            "id": "B03",
+            "era": "B",
+            "regions": [
+              "R01",
+              "R02",
+              "R06"
+            ]
+          }
+        ],
+        "C": [
+          {
+            "id": "C03",
+            "era": "C",
+            "regions": [
+              "R05",
+              "R16",
+              "R23"
+            ]
+          }
+        ]
+      },
+      "ownedCompanies": [
+        "xbHuXsYomroCMlz83Gk4N",
+        "psPnIlOXZNB54JrNmDSjc",
+        "KBvx0w46znjJro4tcgdVZ"
+      ]
+    },
+    {
+      "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+      "color": "green",
+      "research": {
+        "bid": 0,
+        "slots": 1,
+        "mergers": 1,
+        "expansion": 2,
+        "hull": 2
+      },
+      "bank": 0,
+      "cash": 476,
+      "cityCards": {
+        "A": [
+          {
+            "id": "A03",
+            "era": "A",
+            "regions": [
+              "R19",
+              "R21",
+              "R17"
+            ]
+          }
+        ],
+        "B": [
+          {
+            "id": "B05",
+            "era": "B",
+            "regions": [
+              "R01",
+              "R08",
+              "R24"
+            ]
+          }
+        ],
+        "C": [
+          {
+            "id": "C04",
+            "era": "C",
+            "regions": [
+              "R22",
+              "R26",
+              "R27"
+            ]
+          }
+        ]
+      },
+      "ownedCompanies": [
+        "Cilg9UcG0NxtEFsRcMjZj"
+      ]
+    },
+    {
+      "playerId": "jf_AbOCV-MQFaXMapf6PA",
+      "color": "blue",
+      "research": {
+        "bid": 0,
+        "slots": 2,
+        "mergers": 2,
+        "expansion": 1,
+        "hull": 1
+      },
+      "bank": 5,
+      "cash": 913,
+      "cityCards": {
+        "A": [
+          {
+            "id": "A02",
+            "era": "A",
+            "regions": [
+              "R07",
+              "R20",
+              "R14"
+            ]
+          }
+        ],
+        "B": [
+          {
+            "id": "B01",
+            "era": "B",
+            "regions": [
+              "R02",
+              "R13",
+              "R24"
+            ]
+          }
+        ],
+        "C": [
+          {
+            "id": "C05",
+            "era": "C",
+            "regions": [
+              "R05",
+              "R09",
+              "R22"
+            ]
+          }
+        ]
+      },
+      "ownedCompanies": [
+        "ZJgsDN3xlBeTrRwLhyXF2",
+        "KIov4iujpbMKqUqBbte7N",
+        "IbCkZYclWmtPuZCvZr8aN"
+      ]
+    },
+    {
+      "playerId": "2R1Muv3JMdn1eJSOWM02c",
+      "color": "purple",
+      "research": {
+        "bid": 0,
+        "slots": 2,
+        "mergers": 0,
+        "expansion": 2,
+        "hull": 2
+      },
+      "bank": 0,
+      "cash": 1384,
+      "cityCards": {
+        "A": [
+          {
+            "id": "A04",
+            "era": "A",
+            "regions": [
+              "R18",
+              "R14",
+              "R17"
+            ]
+          }
+        ],
+        "B": [
+          {
+            "id": "B04",
+            "era": "B",
+            "regions": [
+              "R03",
+              "R06",
+              "R18"
+            ]
+          }
+        ],
+        "C": [
+          {
+            "id": "C02",
+            "era": "C",
+            "regions": [
+              "R18",
+              "R23",
+              "R26"
+            ]
+          }
+        ]
+      },
+      "ownedCompanies": [
+        "kE0PIBTJeZFr33bPjkCu1",
+        "XrGc6eDaZiO7I7NU6bDnp",
+        "jmmFNKwTKtt6M6us5qAe7"
+      ]
+    },
+    {
+      "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+      "color": "orange",
+      "research": {
+        "bid": 0,
+        "slots": 2,
+        "mergers": 0,
+        "expansion": 1,
+        "hull": 3
+      },
+      "bank": 0,
+      "cash": 927,
+      "cityCards": {
+        "A": [
+          {
+            "id": "A05",
+            "era": "A",
+            "regions": [
+              "R18",
+              "R20",
+              "R21"
+            ]
+          }
+        ],
+        "B": [
+          {
+            "id": "B02",
+            "era": "B",
+            "regions": [
+              "R03",
+              "R08",
+              "R13"
+            ]
+          }
+        ],
+        "C": [
+          {
+            "id": "C01",
+            "era": "C",
+            "regions": [
+              "R09",
+              "R16",
+              "R27"
+            ]
+          }
+        ]
+      },
+      "ownedCompanies": [
+        "ef8OZUrwRwSHxQShb8UXF",
+        "HcNSHtSqnS4thTwpC3zGb",
+        "bMgFQcXSbVF5guB9Pitd5"
+      ]
+    }
+  ],
+  "machineState": "EndOfGame",
+  "turnManager": {
+    "series": [
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 0,
+        "end": 1
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 1,
+        "end": 2
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 2,
+        "end": 3
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 3,
+        "end": 4
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 4,
+        "end": 5
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 5,
+        "end": 6
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 6,
+        "end": 7
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 7,
+        "end": 8
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 8,
+        "end": 9
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 9,
+        "end": 10
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 11,
+        "end": 12
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 12,
+        "end": 13
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 13,
+        "end": 14
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 14,
+        "end": 15
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 15,
+        "end": 16
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 16,
+        "end": 17
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 17,
+        "end": 18
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 18,
+        "end": 19
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 19,
+        "end": 20
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 20,
+        "end": 21
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 21,
+        "end": 24
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 24,
+        "end": 26
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 26,
+        "end": 29
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 29,
+        "end": 31
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 31,
+        "end": 33
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 33,
+        "end": 34
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 34,
+        "end": 35
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 35,
+        "end": 36
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 36,
+        "end": 37
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 37,
+        "end": 38
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 39,
+        "end": 40
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 40,
+        "end": 41
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 41,
+        "end": 42
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 42,
+        "end": 43
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 43,
+        "end": 44
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 44,
+        "end": 45
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 45,
+        "end": 46
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 46,
+        "end": 47
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 47,
+        "end": 48
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 48,
+        "end": 51
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 51,
+        "end": 54
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 54,
+        "end": 56
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 56,
+        "end": 58
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 58,
+        "end": 60
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 60,
+        "end": 63
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 63,
+        "end": 67
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 67,
+        "end": 158
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 68,
+        "end": 69
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 69,
+        "end": 70
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 70,
+        "end": 71
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 71,
+        "end": 72
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 72,
+        "end": 73
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 73,
+        "end": 74
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 74,
+        "end": 75
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 75,
+        "end": 76
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 76,
+        "end": 77
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 77,
+        "end": 78
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 102,
+        "end": 103
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 103,
+        "end": 104
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 104,
+        "end": 105
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 105,
+        "end": 106
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 106,
+        "end": 107
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 107,
+        "end": 108
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 108,
+        "end": 109
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 109,
+        "end": 110
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 110,
+        "end": 111
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 111,
+        "end": 112
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 112,
+        "end": 113
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 113,
+        "end": 114
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 114,
+        "end": 116
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 116,
+        "end": 122
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 122,
+        "end": 125
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 125,
+        "end": 129
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 129,
+        "end": 132
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 132,
+        "end": 138
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 138,
+        "end": 145
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 145,
+        "end": 149
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 149,
+        "end": 153
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 153,
+        "end": 157
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 158,
+        "end": 159
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 159,
+        "end": 160
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 160,
+        "end": 161
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 161,
+        "end": 162
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 162,
+        "end": 163
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 187,
+        "end": 188
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 188,
+        "end": 189
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 189,
+        "end": 190
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 190,
+        "end": 191
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 191,
+        "end": 192
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 192,
+        "end": 193
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 193,
+        "end": 194
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 194,
+        "end": 195
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 195,
+        "end": 198
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 198,
+        "end": 202
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 202,
+        "end": 204
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 204,
+        "end": 212
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 212,
+        "end": 214
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 214,
+        "end": 220
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 220,
+        "end": 225
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 225,
+        "end": 232
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 233
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 234,
+        "end": 235
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 235,
+        "end": 236
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 236,
+        "end": 237
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 237,
+        "end": 238
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 238,
+        "end": 239
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 239,
+        "end": 240
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 240,
+        "end": 241
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 241,
+        "end": 242
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 242,
+        "end": 243
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 243,
+        "end": 244
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 246,
+        "end": 247
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 247,
+        "end": 248
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 248,
+        "end": 249
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 249,
+        "end": 250
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 250,
+        "end": 251
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 251,
+        "end": 252
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 252,
+        "end": 253
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 253,
+        "end": 254
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 254,
+        "end": 255
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 255,
+        "end": 256
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 256,
+        "end": 259
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 259,
+        "end": 263
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 263,
+        "end": 265
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 265,
+        "end": 273
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 273,
+        "end": 276
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 276,
+        "end": 284
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 284,
+        "end": 289
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 289,
+        "end": 300
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 300,
+        "end": 304
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 304,
+        "end": 311
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 311,
+        "end": 314
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 314,
+        "end": 318
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 318,
+        "end": 319
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 319,
+        "end": 320
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 320,
+        "end": 321
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 321,
+        "end": 322
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 322,
+        "end": 323
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 327,
+        "end": 328
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 328,
+        "end": 329
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 329,
+        "end": 330
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 330,
+        "end": 331
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 331,
+        "end": 332
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 332,
+        "end": 333
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 333,
+        "end": 334
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 334,
+        "end": 336
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 336,
+        "end": 343
+      },
+      {
+        "type": "turn",
+        "playerId": "tvCnRSsI_xf0-KkyMTS7N",
+        "start": 343,
+        "end": 345
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 345,
+        "end": 351
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 351,
+        "end": 353
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 353,
+        "end": 363
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 363,
+        "end": 409
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 364,
+        "end": 371
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 371,
+        "end": 380
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 380,
+        "end": 385
+      },
+      {
+        "type": "turn",
+        "playerId": "jf_AbOCV-MQFaXMapf6PA",
+        "start": 385,
+        "end": 388
+      },
+      {
+        "type": "turn",
+        "playerId": "Fu8Tdj7l1ycrF57HhfedB",
+        "start": 388,
+        "end": 396
+      },
+      {
+        "type": "turn",
+        "playerId": "2R1Muv3JMdn1eJSOWM02c",
+        "start": 396,
+        "end": 404
+      },
+      {
+        "type": "turn",
+        "playerId": "PCGz4PuDs5-bHENk2ZtDo",
+        "start": 404,
+        "end": 406
+      }
+    ],
+    "turnOrder": [
+      "jf_AbOCV-MQFaXMapf6PA",
+      "Fu8Tdj7l1ycrF57HhfedB",
+      "tvCnRSsI_xf0-KkyMTS7N",
+      "2R1Muv3JMdn1eJSOWM02c",
+      "PCGz4PuDs5-bHENk2ZtDo"
+    ],
+    "turnCounts": {
+      "jf_AbOCV-MQFaXMapf6PA": 32,
+      "PCGz4PuDs5-bHENk2ZtDo": 34,
+      "tvCnRSsI_xf0-KkyMTS7N": 24,
+      "2R1Muv3JMdn1eJSOWM02c": 35,
+      "Fu8Tdj7l1ycrF57HhfedB": 33
+    }
+  },
+  "phaseManager": {
+    "series": [
+      {
+        "type": "phase",
+        "start": 0,
+        "name": "NewEra",
+        "end": 5
+      },
+      {
+        "type": "phase",
+        "start": 5,
+        "name": "BidForTurnOrder",
+        "end": 11
+      },
+      {
+        "type": "phase",
+        "start": 11,
+        "name": "Acquisitions",
+        "end": 16
+      },
+      {
+        "type": "phase",
+        "start": 16,
+        "name": "ResearchAndDevelopment",
+        "end": 21
+      },
+      {
+        "type": "phase",
+        "start": 21,
+        "name": "Operations",
+        "end": 33
+      },
+      {
+        "type": "phase",
+        "start": 33,
+        "name": "BidForTurnOrder",
+        "end": 39
+      },
+      {
+        "type": "phase",
+        "start": 39,
+        "name": "Acquisitions",
+        "end": 43
+      },
+      {
+        "type": "phase",
+        "start": 43,
+        "name": "ResearchAndDevelopment",
+        "end": 48
+      },
+      {
+        "type": "phase",
+        "start": 48,
+        "name": "Operations",
+        "end": 67
+      },
+      {
+        "type": "phase",
+        "start": 67,
+        "name": "NewEra",
+        "end": 73
+      },
+      {
+        "type": "phase",
+        "start": 73,
+        "name": "BidForTurnOrder",
+        "end": 79
+      },
+      {
+        "type": "phase",
+        "start": 79,
+        "name": "Mergers",
+        "end": 102
+      },
+      {
+        "type": "phase",
+        "start": 102,
+        "name": "Acquisitions",
+        "end": 109
+      },
+      {
+        "type": "phase",
+        "start": 109,
+        "name": "ResearchAndDevelopment",
+        "end": 114
+      },
+      {
+        "type": "phase",
+        "start": 114,
+        "name": "Operations",
+        "end": 157
+      },
+      {
+        "type": "phase",
+        "start": 157,
+        "name": "CityGrowth",
+        "end": 158
+      },
+      {
+        "type": "phase",
+        "start": 158,
+        "name": "BidForTurnOrder",
+        "end": 164
+      },
+      {
+        "type": "phase",
+        "start": 164,
+        "name": "Mergers",
+        "end": 187
+      },
+      {
+        "type": "phase",
+        "start": 187,
+        "name": "Acquisitions",
+        "end": 190
+      },
+      {
+        "type": "phase",
+        "start": 190,
+        "name": "ResearchAndDevelopment",
+        "end": 195
+      },
+      {
+        "type": "phase",
+        "start": 195,
+        "name": "Operations",
+        "end": 232
+      },
+      {
+        "type": "phase",
+        "start": 232,
+        "name": "CityGrowth",
+        "end": 233
+      },
+      {
+        "type": "phase",
+        "start": 233,
+        "name": "NewEra",
+        "end": 239
+      },
+      {
+        "type": "phase",
+        "start": 239,
+        "name": "BidForTurnOrder",
+        "end": 245
+      },
+      {
+        "type": "phase",
+        "start": 245,
+        "name": "Mergers",
+        "end": 246
+      },
+      {
+        "type": "phase",
+        "start": 246,
+        "name": "Acquisitions",
+        "end": 251
+      },
+      {
+        "type": "phase",
+        "start": 251,
+        "name": "ResearchAndDevelopment",
+        "end": 256
+      },
+      {
+        "type": "phase",
+        "start": 256,
+        "name": "Operations",
+        "end": 318
+      },
+      {
+        "type": "phase",
+        "start": 318,
+        "name": "BidForTurnOrder",
+        "end": 324
+      },
+      {
+        "type": "phase",
+        "start": 324,
+        "name": "Mergers",
+        "end": 327
+      },
+      {
+        "type": "phase",
+        "start": 327,
+        "name": "Acquisitions",
+        "end": 329
+      },
+      {
+        "type": "phase",
+        "start": 329,
+        "name": "ResearchAndDevelopment",
+        "end": 334
+      },
+      {
+        "type": "phase",
+        "start": 334,
+        "name": "Operations",
+        "end": 406
+      },
+      {
+        "type": "phase",
+        "start": 406,
+        "name": "CityGrowth",
+        "end": 409
+      }
+    ]
+  },
+  "board": {
+    "cities": [
+      {
+        "id": "019sRbNnOTRZfNSorxk94",
+        "area": "A33",
+        "size": 2,
+        "demand": {}
+      },
+      {
+        "id": "oPBtsrMmgdKzkx1VVI7lm",
+        "area": "C22",
+        "size": 1,
+        "demand": {}
+      },
+      {
+        "id": "1kxzKN3bkr3JU5UnqyByo",
+        "area": "D08",
+        "size": 2,
+        "demand": {}
+      },
+      {
+        "id": "XadqfWE9oqhTS6FrbGFUP",
+        "area": "D02",
+        "size": 2,
+        "demand": {}
+      },
+      {
+        "id": "Ufx4MiOCSKHt5yvrFavV8",
+        "area": "C01",
+        "size": 1,
+        "demand": {}
+      },
+      {
+        "id": "wrd3pY5rcAvHb8QJYyNjp",
+        "area": "E06",
+        "size": 2,
+        "demand": {}
+      },
+      {
+        "id": "KqB9NUd36bS0yn3ri4A4f",
+        "area": "A21",
+        "size": 1,
+        "demand": {}
+      },
+      {
+        "id": "nD1wZABQFHpopNQi8LgLA",
+        "area": "A01",
+        "size": 1,
+        "demand": {}
+      },
+      {
+        "id": "Mwu5M5p76gZH6zkSNiIVW",
+        "area": "A09",
+        "size": 1,
+        "demand": {}
+      },
+      {
+        "id": "yYnFRlqzEuF5BgkMJ45FF",
+        "area": "B14",
+        "size": 2,
+        "demand": {}
+      },
+      {
+        "id": "hLdYVkwevZIqa7PpmJ79F",
+        "area": "A25",
+        "size": 1,
+        "demand": {}
+      },
+      {
+        "id": "R8GALcESdq577rxCDJju8",
+        "area": "D05",
+        "size": 1,
+        "demand": {}
+      },
+      {
+        "id": "daaHPkPeqnlZGxtkJh5AT",
+        "area": "F05",
+        "size": 1,
+        "demand": {}
+      },
+      {
+        "id": "0TPVWlz4FWILL5c9kfBZs",
+        "area": "C25",
+        "size": 1,
+        "demand": {}
+      }
+    ],
+    "areas": {
+      "A33": {
+        "id": "A33",
+        "type": "City",
+        "cityId": "019sRbNnOTRZfNSorxk94"
+      },
+      "C22": {
+        "id": "C22",
+        "type": "City",
+        "cityId": "oPBtsrMmgdKzkx1VVI7lm"
+      },
+      "D08": {
+        "id": "D08",
+        "type": "City",
+        "cityId": "1kxzKN3bkr3JU5UnqyByo"
+      },
+      "D02": {
+        "id": "D02",
+        "type": "City",
+        "cityId": "XadqfWE9oqhTS6FrbGFUP"
+      },
+      "C01": {
+        "id": "C01",
+        "type": "City",
+        "cityId": "Ufx4MiOCSKHt5yvrFavV8"
+      },
+      "C07": {
+        "id": "C07",
+        "type": "Cultivated",
+        "companyId": "XrGc6eDaZiO7I7NU6bDnp",
+        "good": "SiapSaji"
+      },
+      "E03": {
+        "id": "E03",
+        "type": "Cultivated",
+        "companyId": "xbHuXsYomroCMlz83Gk4N",
+        "good": "Spice"
+      },
+      "S02": {
+        "id": "S02",
+        "type": "Sea",
+        "ships": [
+          "ef8OZUrwRwSHxQShb8UXF",
+          "Cilg9UcG0NxtEFsRcMjZj",
+          "KIov4iujpbMKqUqBbte7N"
+        ]
+      },
+      "S16": {
+        "id": "S16",
+        "type": "Sea",
+        "ships": [
+          "ef8OZUrwRwSHxQShb8UXF",
+          "Cilg9UcG0NxtEFsRcMjZj",
+          "KIov4iujpbMKqUqBbte7N"
+        ]
+      },
+      "S15": {
+        "id": "S15",
+        "type": "Sea",
+        "ships": [
+          "Cilg9UcG0NxtEFsRcMjZj",
+          "ef8OZUrwRwSHxQShb8UXF"
+        ]
+      },
+      "C08": {
+        "id": "C08",
+        "type": "Cultivated",
+        "companyId": "XrGc6eDaZiO7I7NU6bDnp",
+        "good": "SiapSaji"
+      },
+      "S13": {
+        "id": "S13",
+        "type": "Sea",
+        "ships": [
+          "ef8OZUrwRwSHxQShb8UXF",
+          "Cilg9UcG0NxtEFsRcMjZj",
+          "KIov4iujpbMKqUqBbte7N"
+        ]
+      },
+      "S11": {
+        "id": "S11",
+        "type": "Sea",
+        "ships": [
+          "ef8OZUrwRwSHxQShb8UXF",
+          "KIov4iujpbMKqUqBbte7N"
+        ]
+      },
+      "S18": {
+        "id": "S18",
+        "type": "Sea",
+        "ships": [
+          "Cilg9UcG0NxtEFsRcMjZj",
+          "ef8OZUrwRwSHxQShb8UXF"
+        ]
+      },
+      "C21": {
+        "id": "C21",
+        "type": "EmptyLand"
+      },
+      "S01": {
+        "id": "S01",
+        "type": "Sea",
+        "ships": [
+          "Cilg9UcG0NxtEFsRcMjZj",
+          "ef8OZUrwRwSHxQShb8UXF"
+        ]
+      },
+      "C17": {
+        "id": "C17",
+        "type": "EmptyLand"
+      },
+      "E02": {
+        "id": "E02",
+        "type": "Cultivated",
+        "companyId": "xbHuXsYomroCMlz83Gk4N",
+        "good": "Spice"
+      },
+      "E04": {
+        "id": "E04",
+        "type": "Cultivated",
+        "companyId": "xbHuXsYomroCMlz83Gk4N",
+        "good": "Spice"
+      },
+      "E06": {
+        "id": "E06",
+        "type": "City",
+        "cityId": "wrd3pY5rcAvHb8QJYyNjp"
+      },
+      "A21": {
+        "id": "A21",
+        "type": "City",
+        "cityId": "KqB9NUd36bS0yn3ri4A4f"
+      },
+      "A01": {
+        "id": "A01",
+        "type": "City",
+        "cityId": "nD1wZABQFHpopNQi8LgLA"
+      },
+      "A09": {
+        "id": "A09",
+        "type": "City",
+        "cityId": "Mwu5M5p76gZH6zkSNiIVW"
+      },
+      "B14": {
+        "id": "B14",
+        "type": "City",
+        "cityId": "yYnFRlqzEuF5BgkMJ45FF"
+      },
+      "A13": {
+        "id": "A13",
+        "type": "Cultivated",
+        "companyId": "psPnIlOXZNB54JrNmDSjc",
+        "good": "Rubber"
+      },
+      "B02": {
+        "id": "B02",
+        "type": "Cultivated",
+        "companyId": "kE0PIBTJeZFr33bPjkCu1",
+        "good": "Rubber"
+      },
+      "D04": {
+        "id": "D04",
+        "type": "Cultivated",
+        "companyId": "ZJgsDN3xlBeTrRwLhyXF2",
+        "good": "SiapSaji"
+      },
+      "C09": {
+        "id": "C09",
+        "type": "Cultivated",
+        "companyId": "XrGc6eDaZiO7I7NU6bDnp",
+        "good": "SiapSaji"
+      },
+      "S06": {
+        "id": "S06",
+        "type": "Sea",
+        "ships": [
+          "ef8OZUrwRwSHxQShb8UXF"
+        ]
+      },
+      "B17": {
+        "id": "B17",
+        "type": "Cultivated",
+        "companyId": "ZJgsDN3xlBeTrRwLhyXF2",
+        "good": "SiapSaji"
+      },
+      "A15": {
+        "id": "A15",
+        "type": "Cultivated",
+        "companyId": "psPnIlOXZNB54JrNmDSjc",
+        "good": "Rubber"
+      },
+      "A19": {
+        "id": "A19",
+        "type": "Cultivated",
+        "companyId": "psPnIlOXZNB54JrNmDSjc",
+        "good": "Rubber"
+      },
+      "A14": {
+        "id": "A14",
+        "type": "Cultivated",
+        "companyId": "psPnIlOXZNB54JrNmDSjc",
+        "good": "Rubber"
+      },
+      "S03": {
+        "id": "S03",
+        "type": "Sea",
+        "ships": [
+          "Cilg9UcG0NxtEFsRcMjZj",
+          "ef8OZUrwRwSHxQShb8UXF",
+          "KIov4iujpbMKqUqBbte7N"
+        ]
+      },
+      "B05": {
+        "id": "B05",
+        "type": "Cultivated",
+        "companyId": "kE0PIBTJeZFr33bPjkCu1",
+        "good": "Rubber"
+      },
+      "B06": {
+        "id": "B06",
+        "type": "Cultivated",
+        "companyId": "kE0PIBTJeZFr33bPjkCu1",
+        "good": "Rubber"
+      },
+      "S10": {
+        "id": "S10",
+        "type": "Sea",
+        "ships": [
+          "ef8OZUrwRwSHxQShb8UXF"
+        ]
+      },
+      "C15": {
+        "id": "C15",
+        "type": "EmptyLand"
+      },
+      "E10": {
+        "id": "E10",
+        "type": "Cultivated",
+        "companyId": "xbHuXsYomroCMlz83Gk4N",
+        "good": "Spice"
+      },
+      "E01": {
+        "id": "E01",
+        "type": "Cultivated",
+        "companyId": "xbHuXsYomroCMlz83Gk4N",
+        "good": "Spice"
+      },
+      "E05": {
+        "id": "E05",
+        "type": "Cultivated",
+        "companyId": "xbHuXsYomroCMlz83Gk4N",
+        "good": "Spice"
+      },
+      "B16": {
+        "id": "B16",
+        "type": "Cultivated",
+        "companyId": "kE0PIBTJeZFr33bPjkCu1",
+        "good": "Rubber"
+      },
+      "B11": {
+        "id": "B11",
+        "type": "Cultivated",
+        "companyId": "ZJgsDN3xlBeTrRwLhyXF2",
+        "good": "SiapSaji"
+      },
+      "D05": {
+        "id": "D05",
+        "type": "City",
+        "cityId": "R8GALcESdq577rxCDJju8"
+      },
+      "D09": {
+        "id": "D09",
+        "type": "EmptyLand"
+      },
+      "C10": {
+        "id": "C10",
+        "type": "Cultivated",
+        "companyId": "XrGc6eDaZiO7I7NU6bDnp",
+        "good": "SiapSaji"
+      },
+      "C14": {
+        "id": "C14",
+        "type": "Cultivated",
+        "companyId": "XrGc6eDaZiO7I7NU6bDnp",
+        "good": "SiapSaji"
+      },
+      "C11": {
+        "id": "C11",
+        "type": "Cultivated",
+        "companyId": "XrGc6eDaZiO7I7NU6bDnp",
+        "good": "SiapSaji"
+      },
+      "C12": {
+        "id": "C12",
+        "type": "Cultivated",
+        "companyId": "XrGc6eDaZiO7I7NU6bDnp",
+        "good": "SiapSaji"
+      },
+      "C06": {
+        "id": "C06",
+        "type": "Cultivated",
+        "companyId": "XrGc6eDaZiO7I7NU6bDnp",
+        "good": "SiapSaji"
+      },
+      "B08": {
+        "id": "B08",
+        "type": "Cultivated",
+        "companyId": "ZJgsDN3xlBeTrRwLhyXF2",
+        "good": "SiapSaji"
+      },
+      "B07": {
+        "id": "B07",
+        "type": "Cultivated",
+        "companyId": "ZJgsDN3xlBeTrRwLhyXF2",
+        "good": "SiapSaji"
+      },
+      "B04": {
+        "id": "B04",
+        "type": "Cultivated",
+        "companyId": "kE0PIBTJeZFr33bPjkCu1",
+        "good": "Rubber"
+      },
+      "B10": {
+        "id": "B10",
+        "type": "Cultivated",
+        "companyId": "kE0PIBTJeZFr33bPjkCu1",
+        "good": "Rubber"
+      },
+      "A25": {
+        "id": "A25",
+        "type": "City",
+        "cityId": "hLdYVkwevZIqa7PpmJ79F"
+      },
+      "F05": {
+        "id": "F05",
+        "type": "City",
+        "cityId": "daaHPkPeqnlZGxtkJh5AT"
+      },
+      "C25": {
+        "id": "C25",
+        "type": "City",
+        "cityId": "0TPVWlz4FWILL5c9kfBZs"
+      },
+      "B09": {
+        "id": "B09",
+        "type": "Cultivated",
+        "companyId": "KBvx0w46znjJro4tcgdVZ",
+        "good": "Oil"
+      },
+      "A20": {
+        "id": "A20",
+        "type": "Cultivated",
+        "companyId": "jmmFNKwTKtt6M6us5qAe7",
+        "good": "Spice"
+      },
+      "F03": {
+        "id": "F03",
+        "type": "Cultivated",
+        "companyId": "HcNSHtSqnS4thTwpC3zGb",
+        "good": "Rubber"
+      },
+      "E08": {
+        "id": "E08",
+        "type": "Cultivated",
+        "companyId": "bMgFQcXSbVF5guB9Pitd5",
+        "good": "Oil"
+      },
+      "B03": {
+        "id": "B03",
+        "type": "Cultivated",
+        "companyId": "KBvx0w46znjJro4tcgdVZ",
+        "good": "Oil"
+      },
+      "B18": {
+        "id": "B18",
+        "type": "Cultivated",
+        "companyId": "KBvx0w46znjJro4tcgdVZ",
+        "good": "Oil"
+      },
+      "B01": {
+        "id": "B01",
+        "type": "Cultivated",
+        "companyId": "KBvx0w46znjJro4tcgdVZ",
+        "good": "Oil"
+      },
+      "S20": {
+        "id": "S20",
+        "type": "Sea",
+        "ships": [
+          "Cilg9UcG0NxtEFsRcMjZj"
+        ]
+      },
+      "B20": {
+        "id": "B20",
+        "type": "Cultivated",
+        "companyId": "kE0PIBTJeZFr33bPjkCu1",
+        "good": "Rubber"
+      },
+      "S07": {
+        "id": "S07",
+        "type": "Sea",
+        "ships": [
+          "ef8OZUrwRwSHxQShb8UXF"
+        ]
+      },
+      "S08": {
+        "id": "S08",
+        "type": "Sea",
+        "ships": [
+          "ef8OZUrwRwSHxQShb8UXF"
+        ]
+      },
+      "D01": {
+        "id": "D01",
+        "type": "Cultivated",
+        "companyId": "ZJgsDN3xlBeTrRwLhyXF2",
+        "good": "SiapSaji"
+      },
+      "D07": {
+        "id": "D07",
+        "type": "Cultivated",
+        "companyId": "ZJgsDN3xlBeTrRwLhyXF2",
+        "good": "SiapSaji"
+      },
+      "C04": {
+        "id": "C04",
+        "type": "Cultivated",
+        "companyId": "XrGc6eDaZiO7I7NU6bDnp",
+        "good": "SiapSaji"
+      },
+      "C05": {
+        "id": "C05",
+        "type": "Cultivated",
+        "companyId": "XrGc6eDaZiO7I7NU6bDnp",
+        "good": "SiapSaji"
+      },
+      "E09": {
+        "id": "E09",
+        "type": "Cultivated",
+        "companyId": "bMgFQcXSbVF5guB9Pitd5",
+        "good": "Oil"
+      },
+      "E07": {
+        "id": "E07",
+        "type": "Cultivated",
+        "companyId": "bMgFQcXSbVF5guB9Pitd5",
+        "good": "Oil"
+      },
+      "A17": {
+        "id": "A17",
+        "type": "Cultivated",
+        "companyId": "jmmFNKwTKtt6M6us5qAe7",
+        "good": "Spice"
+      },
+      "F07": {
+        "id": "F07",
+        "type": "Cultivated",
+        "companyId": "HcNSHtSqnS4thTwpC3zGb",
+        "good": "Rubber"
+      },
+      "F06": {
+        "id": "F06",
+        "type": "Cultivated",
+        "companyId": "HcNSHtSqnS4thTwpC3zGb",
+        "good": "Rubber"
+      },
+      "F04": {
+        "id": "F04",
+        "type": "Cultivated",
+        "companyId": "IbCkZYclWmtPuZCvZr8aN",
+        "good": "Oil"
+      },
+      "B19": {
+        "id": "B19",
+        "type": "Cultivated",
+        "companyId": "KBvx0w46znjJro4tcgdVZ",
+        "good": "Oil"
+      },
+      "B13": {
+        "id": "B13",
+        "type": "Cultivated",
+        "companyId": "KBvx0w46znjJro4tcgdVZ",
+        "good": "Oil"
+      },
+      "A24": {
+        "id": "A24",
+        "type": "Cultivated",
+        "companyId": "jmmFNKwTKtt6M6us5qAe7",
+        "good": "Spice"
+      },
+      "A22": {
+        "id": "A22",
+        "type": "Cultivated",
+        "companyId": "jmmFNKwTKtt6M6us5qAe7",
+        "good": "Spice"
+      },
+      "A34": {
+        "id": "A34",
+        "type": "Cultivated",
+        "companyId": "jmmFNKwTKtt6M6us5qAe7",
+        "good": "Spice"
+      },
+      "S19": {
+        "id": "S19",
+        "type": "Sea",
+        "ships": [
+          "ef8OZUrwRwSHxQShb8UXF"
+        ]
+      },
+      "B15": {
+        "id": "B15",
+        "type": "Cultivated",
+        "companyId": "ZJgsDN3xlBeTrRwLhyXF2",
+        "good": "SiapSaji"
+      },
+      "B12": {
+        "id": "B12",
+        "type": "Cultivated",
+        "companyId": "ZJgsDN3xlBeTrRwLhyXF2",
+        "good": "SiapSaji"
+      },
+      "E11": {
+        "id": "E11",
+        "type": "Cultivated",
+        "companyId": "bMgFQcXSbVF5guB9Pitd5",
+        "good": "Oil"
+      },
+      "F02": {
+        "id": "F02",
+        "type": "Cultivated",
+        "companyId": "IbCkZYclWmtPuZCvZr8aN",
+        "good": "Oil"
+      },
+      "A18": {
+        "id": "A18",
+        "type": "Cultivated",
+        "companyId": "psPnIlOXZNB54JrNmDSjc",
+        "good": "Rubber"
+      },
+      "A23": {
+        "id": "A23",
+        "type": "Cultivated",
+        "companyId": "psPnIlOXZNB54JrNmDSjc",
+        "good": "Rubber"
+      },
+      "A28": {
+        "id": "A28",
+        "type": "Cultivated",
+        "companyId": "psPnIlOXZNB54JrNmDSjc",
+        "good": "Rubber"
+      }
+    }
+  },
+  "availableDeeds": [
+    {
+      "id": "D18",
+      "type": "Production",
+      "era": "C",
+      "region": "R15",
+      "good": "Rice"
+    }
+  ],
+  "availableCities": {
+    "size1": 3,
+    "size2": 3,
+    "size3": 3
+  },
+  "era": "C",
+  "placingCities": [],
+  "acquisitionsPassedPlayerIds": [
+    "tvCnRSsI_xf0-KkyMTS7N"
+  ],
+  "companies": [
+    {
+      "id": "xbHuXsYomroCMlz83Gk4N",
+      "deeds": [
+        {
+          "id": "D01",
+          "type": "Production",
+          "era": "A",
+          "region": "R26",
+          "good": "Spice"
+        }
+      ],
+      "owner": "Fu8Tdj7l1ycrF57HhfedB",
+      "type": "Production",
+      "good": "Spice"
+    },
+    {
+      "id": "Cilg9UcG0NxtEFsRcMjZj",
+      "type": "Shipping",
+      "deeds": [
+        {
+          "id": "D05",
+          "type": "Shipping",
+          "era": "A",
+          "region": "R20",
+          "sizes": {
+            "A": 2,
+            "B": 3,
+            "C": 3
+          }
+        },
+        {
+          "id": "D08",
+          "type": "Shipping",
+          "era": "A",
+          "region": "R26",
+          "sizes": {
+            "A": 3,
+            "B": 4,
+            "C": 5
+          }
+        }
+      ],
+      "owner": "tvCnRSsI_xf0-KkyMTS7N",
+      "shipStyle": "a"
+    },
+    {
+      "id": "psPnIlOXZNB54JrNmDSjc",
+      "deeds": [
+        {
+          "id": "D12",
+          "type": "Production",
+          "era": "B",
+          "region": "R03",
+          "good": "Rubber"
+        }
+      ],
+      "owner": "Fu8Tdj7l1ycrF57HhfedB",
+      "type": "Production",
+      "good": "Rubber"
+    },
+    {
+      "id": "kE0PIBTJeZFr33bPjkCu1",
+      "deeds": [
+        {
+          "id": "D13",
+          "type": "Production",
+          "era": "B",
+          "region": "R10",
+          "good": "Rubber"
+        }
+      ],
+      "owner": "2R1Muv3JMdn1eJSOWM02c",
+      "type": "Production",
+      "good": "Rubber"
+    },
+    {
+      "id": "ef8OZUrwRwSHxQShb8UXF",
+      "type": "Shipping",
+      "deeds": [
+        {
+          "id": "D07",
+          "type": "Shipping",
+          "era": "A",
+          "region": "R14",
+          "sizes": {
+            "A": 3,
+            "B": 3,
+            "C": 4
+          }
+        },
+        {
+          "id": "D06",
+          "type": "Shipping",
+          "era": "A",
+          "region": "R08",
+          "sizes": {
+            "A": 2,
+            "B": 3,
+            "C": 4
+          }
+        },
+        {
+          "id": "D16",
+          "type": "Shipping",
+          "era": "B",
+          "region": "R02",
+          "sizes": {
+            "B": 4,
+            "C": 5
+          }
+        }
+      ],
+      "owner": "PCGz4PuDs5-bHENk2ZtDo",
+      "shipStyle": "c"
+    },
+    {
+      "id": "XrGc6eDaZiO7I7NU6bDnp",
+      "type": "Production",
+      "good": "SiapSaji",
+      "deeds": [
+        {
+          "id": "D03",
+          "type": "Production",
+          "era": "A",
+          "region": "R18",
+          "good": "Rice"
+        },
+        {
+          "id": "D04",
+          "type": "Production",
+          "era": "A",
+          "region": "R21",
+          "good": "Rice"
+        },
+        {
+          "id": "D15",
+          "type": "Production",
+          "era": "B",
+          "region": "R19",
+          "good": "Spice"
+        }
+      ],
+      "owner": "2R1Muv3JMdn1eJSOWM02c"
+    },
+    {
+      "id": "ZJgsDN3xlBeTrRwLhyXF2",
+      "type": "Production",
+      "good": "SiapSaji",
+      "deeds": [
+        {
+          "id": "D14",
+          "type": "Production",
+          "era": "B",
+          "region": "R16",
+          "good": "Spice"
+        },
+        {
+          "id": "D10",
+          "type": "Production",
+          "era": "B",
+          "region": "R11",
+          "good": "Rice"
+        }
+      ],
+      "owner": "jf_AbOCV-MQFaXMapf6PA"
+    },
+    {
+      "id": "KIov4iujpbMKqUqBbte7N",
+      "deeds": [
+        {
+          "id": "D17",
+          "type": "Shipping",
+          "era": "B",
+          "region": "R18",
+          "sizes": {
+            "B": 4,
+            "C": 5
+          }
+        }
+      ],
+      "owner": "jf_AbOCV-MQFaXMapf6PA",
+      "type": "Shipping",
+      "shipStyle": "b"
+    },
+    {
+      "id": "KBvx0w46znjJro4tcgdVZ",
+      "deeds": [
+        {
+          "id": "D22",
+          "type": "Production",
+          "era": "C",
+          "region": "R09",
+          "good": "Oil"
+        }
+      ],
+      "owner": "Fu8Tdj7l1ycrF57HhfedB",
+      "type": "Production",
+      "good": "Oil"
+    },
+    {
+      "id": "jmmFNKwTKtt6M6us5qAe7",
+      "deeds": [
+        {
+          "id": "D19",
+          "type": "Production",
+          "era": "C",
+          "region": "R07",
+          "good": "Spice"
+        }
+      ],
+      "owner": "2R1Muv3JMdn1eJSOWM02c",
+      "type": "Production",
+      "good": "Spice"
+    },
+    {
+      "id": "HcNSHtSqnS4thTwpC3zGb",
+      "deeds": [
+        {
+          "id": "D20",
+          "type": "Production",
+          "era": "C",
+          "region": "R27",
+          "good": "Rubber"
+        }
+      ],
+      "owner": "PCGz4PuDs5-bHENk2ZtDo",
+      "type": "Production",
+      "good": "Rubber"
+    },
+    {
+      "id": "bMgFQcXSbVF5guB9Pitd5",
+      "deeds": [
+        {
+          "id": "D23",
+          "type": "Production",
+          "era": "C",
+          "region": "R24",
+          "good": "Oil"
+        }
+      ],
+      "owner": "PCGz4PuDs5-bHENk2ZtDo",
+      "type": "Production",
+      "good": "Oil"
+    },
+    {
+      "id": "IbCkZYclWmtPuZCvZr8aN",
+      "deeds": [
+        {
+          "id": "D24",
+          "type": "Production",
+          "era": "C",
+          "region": "R27",
+          "good": "Oil"
+        }
+      ],
+      "owner": "jf_AbOCV-MQFaXMapf6PA",
+      "type": "Production",
+      "good": "Oil"
+    }
+  ],
+  "operatedCompanyIds": [
+    "KIov4iujpbMKqUqBbte7N",
+    "KBvx0w46znjJro4tcgdVZ",
+    "Cilg9UcG0NxtEFsRcMjZj",
+    "jmmFNKwTKtt6M6us5qAe7",
+    "ef8OZUrwRwSHxQShb8UXF",
+    "ZJgsDN3xlBeTrRwLhyXF2",
+    "xbHuXsYomroCMlz83Gk4N",
+    "XrGc6eDaZiO7I7NU6bDnp",
+    "bMgFQcXSbVF5guB9Pitd5",
+    "IbCkZYclWmtPuZCvZr8aN",
+    "psPnIlOXZNB54JrNmDSjc",
+    "kE0PIBTJeZFr33bPjkCu1",
+    "HcNSHtSqnS4thTwpC3zGb"
+  ],
+  "mergedDeedIdsThisYear": [],
+  "currentCityCard": {
+    "id": "C01",
+    "era": "C",
+    "regions": [
+      "R09",
+      "R16",
+      "R27"
+    ]
+  },
+  "operationsIncomeByCompanyId": {
+    "KBvx0w46znjJro4tcgdVZ": 140,
+    "ef8OZUrwRwSHxQShb8UXF": 160,
+    "KIov4iujpbMKqUqBbte7N": 55,
+    "Cilg9UcG0NxtEFsRcMjZj": 135,
+    "jmmFNKwTKtt6M6us5qAe7": 40,
+    "ZJgsDN3xlBeTrRwLhyXF2": 195,
+    "xbHuXsYomroCMlz83Gk4N": 85,
+    "XrGc6eDaZiO7I7NU6bDnp": 165,
+    "bMgFQcXSbVF5guB9Pitd5": 85,
+    "psPnIlOXZNB54JrNmDSjc": 80,
+    "kE0PIBTJeZFr33bPjkCu1": 165,
+    "HcNSHtSqnS4thTwpC3zGb": 25
+  },
+  "result": "Win"
+}

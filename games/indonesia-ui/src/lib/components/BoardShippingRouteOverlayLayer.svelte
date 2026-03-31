@@ -3,6 +3,7 @@
     import {
         CompanyType,
         IndonesiaNeighborDirection,
+        isDeliverGood,
         isIndonesiaNodeId
     } from '@tabletop/indonesia'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
@@ -245,39 +246,56 @@
     })
 
     const hoveredDeliveryRoute = $derived(gameSession.activeRoutePreviewVisualState)
+    const visibleHistoryDeliveryRoute = $derived.by(() => {
+        if (!gameSession.isViewingHistory || !isDeliverGood(gameSession.visibleAction)) {
+            return null
+        }
+
+        return {
+            routeKey: `history:${gameSession.visibleAction.id}`,
+            zoneId: gameSession.visibleAction.cultivatedAreaId,
+            cityId: gameSession.visibleAction.cityId,
+            cityAreaId: cityAreaByCityId.get(gameSession.visibleAction.cityId) ?? null,
+            shippingCompanyId: gameSession.visibleAction.shippingCompanyId,
+            seaAreaIds: [...gameSession.visibleAction.seaAreaIds],
+            sourceAreaIds: [gameSession.visibleAction.cultivatedAreaId],
+            cultivatedAreaId: gameSession.visibleAction.cultivatedAreaId
+        }
+    })
+    const visibleDeliveryRoute = $derived(hoveredDeliveryRoute ?? visibleHistoryDeliveryRoute)
 
     const deliveryShippingRouteOverlays: readonly DeliveryShippingRouteOverlay[] = $derived.by(() => {
-        if (!routeOverlayReady || !hoveredDeliveryRoute) {
+        if (!routeOverlayReady || !visibleDeliveryRoute) {
             return []
         }
 
-        const company = companyById.get(hoveredDeliveryRoute.shippingCompanyId)
+        const company = companyById.get(visibleDeliveryRoute.shippingCompanyId)
         if (!company) {
             return []
         }
 
-        const cityAreaId = cityAreaByCityId.get(hoveredDeliveryRoute.cityId)
+        const cityAreaId = cityAreaByCityId.get(visibleDeliveryRoute.cityId)
         if (!cityAreaId) {
             return []
         }
 
         const routePath = buildDeliveryShippingRoutePath({
             cultivatedAreaId:
-                hoveredDeliveryRoute.cultivatedAreaId ??
-                cultivatedAreaIdsByZoneId.get(hoveredDeliveryRoute.zoneId)?.[0] ??
-                hoveredDeliveryRoute.zoneId,
+                visibleDeliveryRoute.cultivatedAreaId ??
+                cultivatedAreaIdsByZoneId.get(visibleDeliveryRoute.zoneId)?.[0] ??
+                visibleDeliveryRoute.zoneId,
             cultivatedZoneAreaIds:
-                (hoveredDeliveryRoute.cultivatedAreaId
+                (visibleDeliveryRoute.cultivatedAreaId
                     ? cultivatedZoneAreaIdsByCultivatedAreaId.get(
-                          hoveredDeliveryRoute.cultivatedAreaId
+                          visibleDeliveryRoute.cultivatedAreaId
                       )
-                    : undefined) ?? cultivatedAreaIdsByZoneId.get(hoveredDeliveryRoute.zoneId),
-            firstSeaWaypointCandidates: firstShipWaypointCandidatesForRoute(hoveredDeliveryRoute),
-            seaWaypointOverridesByAreaId: seaWaypointOverridesForRoute(hoveredDeliveryRoute),
+                    : undefined) ?? cultivatedAreaIdsByZoneId.get(visibleDeliveryRoute.zoneId),
+            firstSeaWaypointCandidates: firstShipWaypointCandidatesForRoute(visibleDeliveryRoute),
+            seaWaypointOverridesByAreaId: seaWaypointOverridesForRoute(visibleDeliveryRoute),
             blockedShipPoints: blockedShipPointsByShippingCompanyId.get(
-                hoveredDeliveryRoute.shippingCompanyId
+                visibleDeliveryRoute.shippingCompanyId
             ),
-            seaAreaIds: hoveredDeliveryRoute.seaAreaIds,
+            seaAreaIds: visibleDeliveryRoute.seaAreaIds,
             cityAreaId
         })
         if (!routePath) {
@@ -286,7 +304,7 @@
 
         return [
             {
-                routeKey: hoveredDeliveryRoute.routeKey,
+                routeKey: visibleDeliveryRoute.routeKey,
                 path: routePath,
                 color: gameSession.colors.getPlayerUiColor(company.owner),
                 hovered: true

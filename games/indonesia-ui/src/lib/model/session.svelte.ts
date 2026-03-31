@@ -34,6 +34,7 @@ import {
     type IndonesiaGameState,
     IndonesiaNeighborDirection,
     IndonesiaAreaType,
+    isDeliverGood,
     isIndonesiaNodeId
 } from '@tabletop/indonesia'
 import type { MergedShipMarkerEntry } from '$lib/utils/mergedShipMarkerEntries.js'
@@ -1456,6 +1457,13 @@ export class IndonesiaGameSession extends GameSession<
 
     async finishShippingOperationWithoutExpansion(): Promise<void> {
         await this.pass(PassReason.SkipShippingExpansion)
+    }
+
+    override shouldAutoStepAction(action: GameAction, next?: GameAction): boolean {
+        if (isDeliverGood(action)) {
+            return false
+        }
+        return super.shouldAutoStepAction(action, next)
     }
 
     siapSajiRemovalAreaIds: string[] = $derived.by(() => {
