@@ -3,6 +3,7 @@
     import { StartCompanyAnimator } from '$lib/animators/startCompanyAnimator.js'
     import boardImg from '$lib/images/indo_map_sm.jpg'
     import BoardActionAreasLayer from '$lib/components/BoardActionAreasLayer.svelte'
+    import AvailableDeedsRow from '$lib/components/AvailableDeedsRow.svelte'
     import BoardCityReferenceCardLayer from '$lib/components/BoardCityReferenceCardLayer.svelte'
     import BoardCitiesLayer from '$lib/components/BoardCitiesLayer.svelte'
     import BoardCultivatedAreasLayer from '$lib/components/BoardCultivatedAreasLayer.svelte'
@@ -178,12 +179,15 @@
             <BoardDebugOverlay width={BOARD_WIDTH} height={BOARD_HEIGHT} bind:active={debugOverlayActive} />
         {/if}
     </div>
+    <AvailableDeedsRow />
 </div>
 
 <style>
     .board-shell {
         position: relative;
         display: inline-flex;
+        flex-direction: column;
+        gap: 10px;
         padding: 10px;
         border-radius: 20px;
         background:
