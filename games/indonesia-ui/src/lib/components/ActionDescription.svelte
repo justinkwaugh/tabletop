@@ -709,17 +709,24 @@
         }))
     }
 
-    function aggregatedTurnOrderBidEntries(action: GameAction): Array<{
+    function turnOrderBidEntriesForAction(action: GameAction): Array<{
         id: string
         playerId: string
         bid: number | null
         multiplier: number
         total: number | null
     }> {
+        if (typeof action.index !== 'number') {
+            return []
+        }
+
         if (
-            !isAggregatedIndonesiaAction(action) ||
-            action.aggregatedType !== ActionType.PlaceTurnOrderBid ||
-            typeof action.index !== 'number'
+            !(
+                (isAggregatedIndonesiaAction(action) &&
+                    action.aggregatedType === ActionType.PlaceTurnOrderBid) ||
+                isPlaceTurnOrderBid(action) ||
+                isSetTurnOrder(action)
+            )
         ) {
             return []
         }
@@ -754,7 +761,7 @@
         return [...summarizedEntries, ...remainingEntries]
     }
 
-    function aggregatedMergerAuctionSummary(action: GameAction): {
+    function mergerAuctionSummary(action: GameAction): {
         resolved: boolean
         winnerId: string | null
         winningBid: number | null
@@ -769,20 +776,26 @@
             forcedPass: boolean
         }>
     } {
-        if (
-            !isAggregatedIndonesiaAction(action) ||
-            action.aggregatedType !== ActionType.PlaceMergerBid ||
-            typeof action.index !== 'number'
-        ) {
+        if (typeof action.index !== 'number') {
             return { resolved: false, winnerId: null, winningBid: null, mergeAction: null, entries: [] }
         }
 
-        const lastActionPosition = gameSession.actions.findLastIndex((candidate) => {
-            if (candidate.index !== action.index) {
-                return false
-            }
-            return isMergeCompanies(candidate) || isPlaceMergerBid(candidate) || isPassMergerBid(candidate)
-        })
+        let lastActionPosition = -1
+        if (isAggregatedIndonesiaAction(action) && action.aggregatedType === ActionType.PlaceMergerBid) {
+            lastActionPosition = gameSession.actions.findLastIndex((candidate) => {
+                if (candidate.index !== action.index) {
+                    return false
+                }
+                return (
+                    isMergeCompanies(candidate) ||
+                    isPlaceMergerBid(candidate) ||
+                    isPassMergerBid(candidate)
+                )
+            })
+        } else if (isMergeCompanies(action)) {
+            lastActionPosition = gameSession.actions.findLastIndex((candidate) => candidate.id === action.id)
+        }
+
         if (lastActionPosition === -1) {
             return { resolved: false, winnerId: null, winningBid: null, mergeAction: null, entries: [] }
         }
@@ -869,7 +882,7 @@
     }
 
     function rendersOwnActor(action: GameAction): boolean {
-        return rendersPlayerList(action)
+        return rendersPlayerList(action) || isPlaceTurnOrderBid(action)
     }
 
     const justifyClass = $derived(justifyClasses[justify] ?? justifyClasses.start)
@@ -877,7 +890,14 @@
     const containerClass = $derived(
         fullWidth ? `inline-flex w-full items-center ${justifyClass}` : 'inline'
     )
-    const operationSummaryAlignClass = $derived(justify === 'center' ? 'items-center' : 'items-start')
+    const summaryAlignClass = $derived(
+        justify === 'center' ? 'items-center text-center' : 'items-start text-left'
+    )
+    const summaryCardAlignClass = $derived(justify === 'center' ? 'self-center' : 'self-start')
+    const summaryCardContentAlignClass = 'items-start text-left'
+    const operationSummaryAlignClass = $derived(
+        justify === 'center' ? 'items-center text-center' : 'items-start text-left'
+    )
     const operationSummaryCardAlignClass = $derived(justify === 'center' ? 'self-center' : 'self-start')
 </script>
 
@@ -1058,18 +1078,18 @@
             {/each}
             {' declined to propose a merger'}
         {:else if action.aggregatedType === ActionType.PlaceMergerBid}
-            {@const auctionSummary = aggregatedMergerAuctionSummary(action)}
+            {@const auctionSummary = mergerAuctionSummary(action)}
             {@const mergeAction = auctionSummary.mergeAction}
             {@const unitIconSrc = mergeAction ? mergeUnitIconSrc(mergeAction) : null}
-            <span class="inline-flex flex-col items-start gap-1">
+            <span class={`inline-flex flex-col gap-1 ${summaryAlignClass}`}>
                 {#if auctionSummary.resolved && auctionSummary.winnerId}
-                    <span class="inline-flex flex-col items-start gap-1">
+                    <span class={`inline-flex flex-col gap-1 ${summaryAlignClass}`}>
                         <span>
                             <PlayerName playerId={auctionSummary.winnerId} additionalClasses="pr-1" />
                             won with a bid of {auctionSummary.winningBid ?? '?'}
                         </span>
                         {#if mergeAction && isMergeCompanies(mergeAction) && mergeAction.metadata?.ownerPayments}
-                            <span class="mt-1 inline-grid w-fit grid-cols-[max-content_24px_max-content] items-center gap-x-3 gap-y-0.5 rounded-xl border border-[#ad9c80]/40 bg-[#ede2dc] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27]">
+                            <span class={`mt-1 inline-grid w-fit grid-cols-[max-content_24px_max-content] items-center gap-x-3 gap-y-0.5 rounded-xl border border-[#ad9c80]/40 bg-[#ede2dc] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27] ${summaryCardAlignClass} ${summaryCardContentAlignClass}`}>
                                 <span class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">
                                     Paid To
                                 </span>
@@ -1097,7 +1117,7 @@
                     </span>
                 {/if}
                 <span
-                    class={`inline-flex flex-col items-start gap-0.5 rounded-xl border border-[#ad9c80]/35 bg-[#f4ede8] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27] ${auctionSummary.resolved ? 'mt-2' : ''}`}
+                    class={`inline-flex flex-col gap-0.5 rounded-xl border border-[#ad9c80]/35 bg-[#f4ede8] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27] ${summaryAlignClass} ${summaryCardAlignClass} ${auctionSummary.resolved ? 'mt-2' : ''}`}
                 >
                     <span class="mb-1 text-[0.76em] uppercase tracking-[0.08em] text-[#7a5d3f]">
                         Bidding Summary
@@ -1125,28 +1145,33 @@
                 </span>
             </span>
         {:else if action.aggregatedType === ActionType.PlaceTurnOrderBid}
-            <span class="inline-flex flex-col items-start gap-0.5">
-                <span class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Turn Order Bids</span>
-                <span class="grid grid-cols-[auto_auto] gap-x-1.5 gap-y-0.5 rounded-xl border border-[#ad9c80]/35 bg-[#f4ede8] px-2.5 py-1.5 text-[0.88em] leading-tight text-[#5e3f27]">
-                    {#each aggregatedTurnOrderBidEntries(action) as entry (entry.id)}
-                        <span class="justify-self-start">
+            <span class={`inline-flex flex-col gap-1 ${summaryAlignClass}`}>
+                <span>Turn order bids</span>
+                <span
+                    class={`bid-tracker-columns rounded-xl border border-[#ad9c80]/35 bg-[#f4ede8] px-2.5 py-1.5 ${summaryCardAlignClass}`}
+                    aria-label="Turn order bids"
+                >
+                    {#each turnOrderBidEntriesForAction(action) as entry (entry.id)}
+                        <span class="bid-player-cell">
                             <PlayerName
                                 playerId={entry.playerId}
                                 capitalization="none"
                                 additionalClasses="text-[11px] leading-none tracking-[0.02em]"
                             />
                         </span>
-                        <span class="inline-flex items-center gap-[2px] text-[12px] leading-none tabular-nums whitespace-nowrap">
-                            <span class="min-w-[1ch] text-right text-[rgba(63,46,28,0.6)] font-normal">
+                        <span class="bid-value-cell">
+                            <span class="bid-value-text">
+                                <span class="bid-eq-number">
                                 {entry.bid ?? ''}
-                            </span>
-                            <span class="text-[11px] text-[rgba(63,46,28,0.56)] font-normal">x</span>
-                            <span class="min-w-[1ch] text-right text-[rgba(63,46,28,0.6)] font-normal">
+                                </span>
+                                <span class="bid-eq-token">x</span>
+                                <span class="bid-eq-number">
                                 {entry.multiplier}
-                            </span>
-                            <span class="text-[11px] text-[rgba(63,46,28,0.56)] font-normal">=</span>
-                            <span class="min-w-[1ch] text-right text-[rgba(63,46,28,0.96)] font-semibold">
+                                </span>
+                                <span class="bid-eq-token">=</span>
+                                <span class="bid-eq-total">
                                 {entry.total ?? ''}
+                                </span>
                             </span>
                         </span>
                     {/each}
@@ -1168,15 +1193,52 @@
         {/if}
     {:else if isPlaceTurnOrderBid(action)}
         {@const bidDisplay = turnOrderBidDisplay(action)}
-        bid {bidDisplay?.total ?? action.amount}
-        {#if bidDisplay && bidDisplay.multiplier > 1}
-            ({bidDisplay.base} x {bidDisplay.multiplier})
-        {/if}
+        <span class={`inline-flex flex-col gap-3 ${summaryAlignClass}`}>
+            <span>
+                {#if showActor && action.playerId}
+                    <PlayerName playerId={action.playerId} additionalClasses="px-1.5" />
+                    <span class="inline-block w-[2px]"></span>
+                {/if}
+                bid {bidDisplay?.total ?? action.amount}
+                {#if bidDisplay && bidDisplay.multiplier > 1}
+                    ({bidDisplay.base} x {bidDisplay.multiplier})
+                {/if}
+            </span>
+            <span
+                class={`bid-tracker-columns rounded-xl border border-[#ad9c80]/35 bg-[#f4ede8] px-2.5 py-1.5 ${summaryCardAlignClass}`}
+                aria-label="Turn order bids"
+            >
+                {#each turnOrderBidEntriesForAction(action) as entry (entry.id)}
+                    <span class="bid-player-cell">
+                        <PlayerName
+                            playerId={entry.playerId}
+                            capitalization="none"
+                            additionalClasses="text-[11px] leading-none tracking-[0.02em]"
+                        />
+                    </span>
+                    <span class="bid-value-cell">
+                        <span class="bid-value-text">
+                            <span class="bid-eq-number">
+                                {entry.bid ?? ''}
+                            </span>
+                            <span class="bid-eq-token">x</span>
+                            <span class="bid-eq-number">
+                                {entry.multiplier}
+                            </span>
+                            <span class="bid-eq-token">=</span>
+                            <span class="bid-eq-total">
+                                {entry.total ?? ''}
+                            </span>
+                        </span>
+                    </span>
+                {/each}
+            </span>
+        </span>
     {:else if isSetTurnOrder(action)}
-        <span class="inline-flex flex-col items-start gap-0.5">
+        <span class={`inline-flex flex-col gap-0.5 ${summaryAlignClass}`}>
             <span>New turn order</span>
-        {#if action.metadata?.newOrder?.length}
-                <span class="mt-1 inline-flex flex-col items-start gap-0.5 leading-tight">
+            {#if action.metadata?.newOrder?.length}
+                <span class={`mt-1 inline-flex flex-col gap-0.5 leading-tight ${summaryAlignClass}`}>
                     {#each action.metadata.newOrder as playerId}
                         <span><PlayerName {playerId} /></span>
                     {/each}
@@ -1210,7 +1272,8 @@
         passed
     {:else if isMergeCompanies(action)}
         {@const unitIconSrc = mergeUnitIconSrc(action)}
-        <span class="inline-flex flex-col items-start gap-1">
+        {@const auctionSummary = mergerAuctionSummary(action)}
+        <span class={`inline-flex flex-col gap-3 ${summaryAlignClass}`}>
             <span>
                 {#if action.metadata?.auctionResult.winnerId}
                     <PlayerName playerId={action.metadata.auctionResult.winnerId} /> won the {mergeProposalLabel(action)} merger
@@ -1220,8 +1283,10 @@
                 with a bid of {action.metadata?.auctionResult.highBid ?? '?'}
             </span>
             {#if action.metadata?.ownerPayments}
-                <span class="inline-grid w-fit grid-cols-[max-content_24px_max-content] items-center gap-x-3 gap-y-0.5 rounded-xl border border-[#ad9c80]/40 bg-[#ede2dc] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27]">
-                    <span></span>
+                <span class={`inline-grid w-fit grid-cols-[max-content_24px_max-content] items-center gap-x-3 gap-y-0.5 rounded-xl border border-[#ad9c80]/40 bg-[#ede2dc] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27] ${summaryCardAlignClass} ${summaryCardContentAlignClass}`}>
+                    <span class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">
+                        Paid To
+                    </span>
                     <span class="flex items-center justify-center">
                         {#if unitIconSrc}
                             <img
@@ -1231,13 +1296,40 @@
                             />
                         {/if}
                     </span>
-                    <span class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Payout</span>
+                    <span class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Amount</span>
                     {#each action.metadata.ownerPayments as payout}
                         <span class="flex items-center">
                             <PlayerName playerId={payout.ownerId} />
                         </span>
                         <span class="text-center tabular-nums text-[#5e3f27]">{payout.unitCount}</span>
                         <span class="text-right tabular-nums text-[#5e3f27]">{payout.payout}</span>
+                    {/each}
+                </span>
+            {/if}
+            {#if auctionSummary.entries.length > 0}
+                <span class={`inline-flex flex-col gap-0.5 rounded-xl border border-[#ad9c80]/35 bg-[#f4ede8] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27] ${summaryCardContentAlignClass} ${summaryCardAlignClass}`}>
+                    <span class="mb-1 text-[0.76em] uppercase tracking-[0.08em] text-[#7a5d3f]">
+                        Bidding Summary
+                    </span>
+                    {#each auctionSummary.entries as entry (entry.id)}
+                        <span>
+                            {#if entry.kind === 'bid' && auctionSummary.resolved}
+                                <PlayerName
+                                    playerId={entry.playerId}
+                                    possessive={true}
+                                    additionalClasses="pr-1"
+                                />
+                                final bid {entry.bidAmount ?? '?'}{entry.forcedPass
+                                    ? ' (forced out)'
+                                    : ''}
+                            {:else if entry.kind === 'bid'}
+                                <PlayerName playerId={entry.playerId} additionalClasses="pr-1" />
+                                bid {entry.bidAmount ?? '?'}
+                            {:else}
+                                <PlayerName playerId={entry.playerId} additionalClasses="pr-1" />
+                                passed{entry.forcedPass ? ' (forced out)' : ''}
+                            {/if}
+                        </span>
                     {/each}
                 </span>
             {/if}
@@ -1280,3 +1372,81 @@
         performed {action.type}
     {/if}
 </span>
+
+<style>
+    .bid-tracker-columns {
+        display: grid;
+        grid-template-columns: max-content max-content;
+        column-gap: 10px;
+        row-gap: 2px;
+        width: max-content;
+        max-width: 100%;
+        align-self: center;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .bid-player-cell {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        min-width: 0;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .bid-player-cell :global(span) {
+        display: inline-flex;
+        align-items: center;
+        line-height: 1;
+        padding-top: 0.1rem;
+        padding-bottom: 0.1rem;
+        padding-left: 0.3rem;
+        padding-right: 0.3rem;
+    }
+
+    .bid-value-cell {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        min-width: 0;
+        text-align: right;
+        font-size: 12px;
+        line-height: 1;
+        color: rgba(63, 46, 28, 0.9);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    .bid-value-text {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 2px;
+        min-width: 0;
+        line-height: 1;
+    }
+
+    .bid-eq-number,
+    .bid-eq-total {
+        min-width: 1ch;
+        text-align: right;
+    }
+
+    .bid-eq-number {
+        color: rgba(63, 46, 28, 0.6);
+        font-weight: 400;
+    }
+
+    .bid-eq-token {
+        color: rgba(63, 46, 28, 0.56);
+        opacity: 0.9;
+        font-size: 11px;
+        font-weight: 400;
+    }
+
+    .bid-eq-total {
+        font-weight: 600;
+        color: rgba(63, 46, 28, 0.96);
+    }
+</style>
