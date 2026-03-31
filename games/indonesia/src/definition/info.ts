@@ -7,13 +7,13 @@ export const IndonesiaInfo: GameInfo = {
         name: 'Indonesia',
         designer: 'Jeroen Doumen and Joris Wiersinga',
         description:
-            'Indonesia is a game in which two to five players build up an economy, trying to acquire the most money. Players acquire production companies and shipping companies and compete to deliver to and grow cities.',
+            'Indonesia is a game in which three to five players build up an economy, trying to acquire the most money. Players acquire production companies and shipping companies and compete to deliver to and grow cities.',
         year: '2005',
         minPlayers: 3,
         maxPlayers: 5,
         defaultPlayerCount: 4,
         version: GAME_VERSION,
-        beta: true
+        beta: false
     },
     configurator: undefined
 }
