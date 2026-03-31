@@ -1265,9 +1265,10 @@
             company
         {/if}
     {:else if isExpand(action)}
-        expanded to {action.areaId}
         {#if action.metadata?.cost !== undefined && action.metadata.cost > 0}
-            (cost {action.metadata.cost})
+            paid {action.metadata.cost} to expand
+        {:else}
+            expanded for free
         {/if}
     {:else if isGrowCity(action)}
         The city in {cityRegionName ?? 'unknown region'} grew to size {action.metadata?.newSize ?? '?'}
