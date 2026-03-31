@@ -4,6 +4,10 @@ import { CompanyType, isExpand, isStartCompany, type HydratedIndonesiaGameState 
 import { gsap } from 'gsap'
 import { tick, untrack } from 'svelte'
 import type { IndonesiaGameSession } from '$lib/model/session.svelte.js'
+import {
+    expandedShipMarkerEntryForAction,
+    startedShipMarkerEntryForAction
+} from '$lib/utils/startedCompanyEntries.js'
 
 const DEED_EXIT_DURATION = 0.14
 const MARKER_POP_DURATION = 0.18
@@ -11,6 +15,7 @@ const MARKER_SETTLE_DURATION = 0.12
 const CONNECTOR_FADE_DURATION = 0.12
 const CULTIVATED_AREA_POP_DURATION = 0.18
 const CULTIVATED_AREA_SETTLE_DURATION = 0.12
+const SHIP_RELAYOUT_DURATION = 0.18
 const INITIAL_MARKER_SCALE = 0.2
 const MARKER_OVERSHOOT_SCALE = 1.14
 const INITIAL_CULTIVATED_AREA_SCALE = 0.82
@@ -89,15 +94,15 @@ export class StartCompanyAnimator {
         this.cultivatedAreaElements.delete(companyId)
     }
 
-    setShipMarkerElement(companyId: string, element: HTMLElement | SVGElement): void {
-        this.shipMarkerElements.set(companyId, element)
+    setShipMarkerElement(animationKey: string, element: HTMLElement | SVGElement): void {
+        this.shipMarkerElements.set(animationKey, element)
     }
 
-    clearShipMarkerElement(companyId: string, element: HTMLElement | SVGElement): void {
-        if (this.shipMarkerElements.get(companyId) !== element) {
+    clearShipMarkerElement(animationKey: string, element: HTMLElement | SVGElement): void {
+        if (this.shipMarkerElements.get(animationKey) !== element) {
             return
         }
-        this.shipMarkerElements.delete(companyId)
+        this.shipMarkerElements.delete(animationKey)
     }
 
     private async onGameStateChange({
@@ -117,6 +122,7 @@ export class StartCompanyAnimator {
 
         if (isStartCompany(action) && action.metadata?.company) {
             await this.animateStartCompany({
+                from,
                 action,
                 animationContext
             })
@@ -133,9 +139,11 @@ export class StartCompanyAnimator {
     }
 
     private async animateStartCompany({
+        from,
         action,
         animationContext
     }: {
+        from: HydratedIndonesiaGameState
         action: GameAction
         animationContext: AnimationContext
     }): Promise<void> {
@@ -174,7 +182,76 @@ export class StartCompanyAnimator {
         const markerElement =
             company.type === CompanyType.Production
                 ? this.productionMarkerElements.get(company.id)
-                : this.shipMarkerElements.get(company.id)
+                : null
+
+        if (company.type === CompanyType.Shipping) {
+            const shipEntries = startedShipMarkerEntryForAction({
+                gameState: from,
+                action,
+                ownerColorForPlayerId: (playerId) => this.gameSession.colors.getPlayerUiColor(playerId),
+                ownerPlayerColorForPlayerId: (playerId) =>
+                    this.gameSession.colors.getPlayerColor(playerId)
+            })
+            const moveEntries = shipEntries.filter((entry) => entry.animationRole === 'move')
+            const popEntries = shipEntries.filter((entry) => entry.animationRole === 'pop')
+
+            for (const entry of moveEntries) {
+                const shipElement = this.shipMarkerElements.get(entry.animationKey)
+                if (!shipElement) {
+                    continue
+                }
+                gsap.set(shipElement, {
+                    x: entry.fromX,
+                    y: entry.fromY,
+                    opacity: 1,
+                    scale: 1
+                })
+                animationContext.actionTimeline.to(
+                    shipElement,
+                    {
+                        x: entry.toX,
+                        y: entry.toY,
+                        duration: SHIP_RELAYOUT_DURATION,
+                        ease: 'power2.inOut'
+                    },
+                    DEED_EXIT_DURATION
+                )
+            }
+
+            for (const entry of popEntries) {
+                const shipElement = this.shipMarkerElements.get(entry.animationKey)
+                if (!shipElement) {
+                    continue
+                }
+                gsap.set(shipElement, {
+                    x: entry.toX,
+                    y: entry.toY,
+                    opacity: 0,
+                    scale: INITIAL_MARKER_SCALE,
+                    transformOrigin: 'center center'
+                })
+                animationContext.actionTimeline.to(
+                    shipElement,
+                    {
+                        scale: MARKER_OVERSHOOT_SCALE,
+                        opacity: 1,
+                        duration: MARKER_POP_DURATION,
+                        ease: 'back.out(2.2)'
+                    },
+                    DEED_EXIT_DURATION + SHIP_RELAYOUT_DURATION
+                )
+                animationContext.actionTimeline.to(
+                    shipElement,
+                    {
+                        scale: 1,
+                        duration: MARKER_SETTLE_DURATION,
+                        ease: 'power2.out'
+                    },
+                    DEED_EXIT_DURATION + SHIP_RELAYOUT_DURATION + MARKER_POP_DURATION
+                )
+            }
+            return
+        }
 
         if (!markerElement) {
             return
@@ -357,37 +434,75 @@ export class StartCompanyAnimator {
             return
         }
 
-        const shipMarkerElement = this.shipMarkerElements.get(operatingCompany.id)
-        if (!shipMarkerElement) {
-            return
+        const shipEntries = expandedShipMarkerEntryForAction({
+            gameState: from,
+            action,
+            ownerColorForPlayerId: (playerId) => this.gameSession.colors.getPlayerUiColor(playerId),
+            ownerPlayerColorForPlayerId: (playerId) => this.gameSession.colors.getPlayerColor(playerId)
+        })
+        const moveEntries = shipEntries.filter((entry) => entry.animationRole === 'move')
+        const popEntries = shipEntries.filter((entry) => entry.animationRole === 'pop')
+
+        for (const entry of moveEntries) {
+            const shipElement = this.shipMarkerElements.get(entry.animationKey)
+            if (!shipElement) {
+                continue
+            }
+
+            gsap.set(shipElement, {
+                x: entry.fromX,
+                y: entry.fromY,
+                opacity: 1,
+                scale: 1
+            })
+
+            animationContext.actionTimeline.to(
+                shipElement,
+                {
+                    x: entry.toX,
+                    y: entry.toY,
+                    duration: SHIP_RELAYOUT_DURATION,
+                    ease: 'power2.inOut'
+                },
+                0
+            )
         }
 
-        gsap.set(shipMarkerElement, {
-            transformOrigin: 'center center',
-            scale: INITIAL_MARKER_SCALE,
-            opacity: 0
-        })
+        for (const entry of popEntries) {
+            const shipElement = this.shipMarkerElements.get(entry.animationKey)
+            if (!shipElement) {
+                continue
+            }
 
-        animationContext.actionTimeline.to(
-            shipMarkerElement,
-            {
-                scale: MARKER_OVERSHOOT_SCALE,
-                opacity: 1,
-                duration: MARKER_POP_DURATION,
-                ease: 'back.out(2.2)'
-            },
-            0
-        )
+            gsap.set(shipElement, {
+                x: entry.toX,
+                y: entry.toY,
+                opacity: 0,
+                scale: INITIAL_MARKER_SCALE,
+                transformOrigin: 'center center'
+            })
 
-        animationContext.actionTimeline.to(
-            shipMarkerElement,
-            {
-                scale: 1,
-                duration: MARKER_SETTLE_DURATION,
-                ease: 'power2.out'
-            },
-            MARKER_POP_DURATION
-        )
+            animationContext.actionTimeline.to(
+                shipElement,
+                {
+                    scale: MARKER_OVERSHOOT_SCALE,
+                    opacity: 1,
+                    duration: MARKER_POP_DURATION,
+                    ease: 'back.out(2.2)'
+                },
+                SHIP_RELAYOUT_DURATION
+            )
+
+            animationContext.actionTimeline.to(
+                shipElement,
+                {
+                    scale: 1,
+                    duration: MARKER_SETTLE_DURATION,
+                    ease: 'power2.out'
+                },
+                SHIP_RELAYOUT_DURATION + MARKER_POP_DURATION
+            )
+        }
     }
 }
 
@@ -491,28 +606,64 @@ export function animateStartedCultivatedArea(
 
 export function animateStartedShipMarker(
     node: HTMLElement | SVGElement,
-    params: { animator: StartCompanyAnimator; companyId: string }
+    params: {
+        animator: StartCompanyAnimator
+        animationKey: string
+        fromX: number
+        fromY: number
+        toX: number
+        toY: number
+        role: 'move' | 'pop'
+    }
 ): {
-    update: (next: { animator: StartCompanyAnimator; companyId: string }) => void
+    update: (next: {
+        animator: StartCompanyAnimator
+        animationKey: string
+        fromX: number
+        fromY: number
+        toX: number
+        toY: number
+        role: 'move' | 'pop'
+    }) => void
     destroy: () => void
 } {
     let currentAnimator = params.animator
-    let currentCompanyId = params.companyId
-    currentAnimator.setShipMarkerElement(currentCompanyId, node)
+    let currentAnimationKey = params.animationKey
+    let currentParams = params
+    currentAnimator.setShipMarkerElement(currentAnimationKey, node)
+
+    gsap.set(node, {
+        x: currentParams.fromX,
+        y: currentParams.fromY
+    })
+
+    if (currentParams.role === 'pop') {
+        gsap.set(node, {
+            opacity: 0,
+            scale: INITIAL_MARKER_SCALE,
+            transformOrigin: 'center center'
+        })
+    } else {
+        gsap.set(node, {
+            opacity: 1,
+            scale: 1
+        })
+    }
 
     return {
         update(next) {
-            if (next.animator === currentAnimator && next.companyId === currentCompanyId) {
+            if (next.animator === currentAnimator && next.animationKey === currentAnimationKey) {
                 return
             }
 
-            currentAnimator.clearShipMarkerElement(currentCompanyId, node)
+            currentAnimator.clearShipMarkerElement(currentAnimationKey, node)
             currentAnimator = next.animator
-            currentCompanyId = next.companyId
-            currentAnimator.setShipMarkerElement(currentCompanyId, node)
+            currentAnimationKey = next.animationKey
+            currentParams = next
+            currentAnimator.setShipMarkerElement(currentAnimationKey, node)
         },
         destroy() {
-            currentAnimator.clearShipMarkerElement(currentCompanyId, node)
+            currentAnimator.clearShipMarkerElement(currentAnimationKey, node)
         }
     }
 }

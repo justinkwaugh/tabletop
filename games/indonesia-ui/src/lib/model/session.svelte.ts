@@ -36,6 +36,7 @@ import {
     IndonesiaAreaType,
     isIndonesiaNodeId
 } from '@tabletop/indonesia'
+import type { MergedShipMarkerEntry } from '$lib/utils/mergedShipMarkerEntries.js'
 import { visibleBoardCityReferenceCardEras } from '$lib/definitions/cityReferenceCardGeometry.js'
 import {
     hasManualDeliverySelection,
@@ -115,6 +116,12 @@ type ExpandAnimationEntry = {
     action: GameAction
 }
 
+type ShippingMergeAnimationEntry = {
+    actionId: string
+    targetActionCount: number
+    shipEntries: MergedShipMarkerEntry[]
+}
+
 export class IndonesiaGameSession extends GameSession<
     IndonesiaGameState,
     HydratedIndonesiaGameState
@@ -122,6 +129,7 @@ export class IndonesiaGameSession extends GameSession<
     visibleActionOverride: GameAction | undefined = $state()
     startedCompanyAnimationEntry: StartedCompanyAnimationEntry | undefined = $state()
     expandAnimationEntry: ExpandAnimationEntry | undefined = $state()
+    shippingMergeAnimationEntry: ShippingMergeAnimationEntry | undefined = $state()
 
     selectedResearchPlayerIdOverride: string | undefined = $state()
     hoveredOperatingCompanyIdOverride: string | undefined = $state()
@@ -143,6 +151,13 @@ export class IndonesiaGameSession extends GameSession<
     visibleExpandAnimationEntries = $derived.by(() => {
         const entry = this.expandAnimationEntry
         return entry ? [entry] : []
+    })
+    visibleShippingMergeAnimationEntries = $derived.by(() => {
+        const entry = this.shippingMergeAnimationEntry
+        if (!entry) {
+            return []
+        }
+        return this.gameState.actionCount < entry.targetActionCount ? entry.shipEntries : []
     })
 
     isNewEra = $derived(this.gameState.machineState === MachineState.NewEra)
@@ -882,6 +897,7 @@ export class IndonesiaGameSession extends GameSession<
 
     override beforeNewState(): void {
         this.resetAction()
+        this.shippingMergeAnimationEntry = undefined
     }
 
     back(): void {
@@ -1452,6 +1468,20 @@ export class IndonesiaGameSession extends GameSession<
     clearExpandAnimation(actionId: string): void {
         if (this.expandAnimationEntry?.action.id === actionId) {
             this.expandAnimationEntry = undefined
+        }
+    }
+
+    rememberShippingMergeAnimation(
+        actionId: string,
+        targetActionCount: number,
+        shipEntries: MergedShipMarkerEntry[]
+    ): void {
+        this.shippingMergeAnimationEntry = { actionId, targetActionCount, shipEntries }
+    }
+
+    clearShippingMergeAnimation(actionId: string): void {
+        if (this.shippingMergeAnimationEntry?.actionId === actionId) {
+            this.shippingMergeAnimationEntry = undefined
         }
     }
 

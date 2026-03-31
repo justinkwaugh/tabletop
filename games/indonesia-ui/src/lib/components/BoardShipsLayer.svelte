@@ -1,5 +1,10 @@
 <script lang="ts">
 import { animateStartedShipMarker } from '$lib/animators/startCompanyAnimator.js'
+import {
+    animateMergedShipMarker,
+    attachShipMergerAnimator,
+    ShipMergerAnimator
+} from '$lib/animators/shipMergerAnimator.js'
 import ShipMarker from '$lib/components/ShipMarker.svelte'
 import { getStartCompanyAnimatorContext } from '$lib/model/startCompanyAnimatorContext.svelte.js'
 import { getGameSession } from '$lib/model/sessionContext.svelte'
@@ -8,6 +13,7 @@ import {
     startedShipMarkerEntryForAction
 } from '$lib/utils/startedCompanyEntries.js'
 import { shadeHexColor } from '$lib/utils/color.js'
+import { shipSlotKey } from '$lib/utils/shipSlotKey.js'
 import { shippingStyleByCompanyId, type ShippingStyle } from '$lib/utils/shippingStyles.js'
 import { markerPointsForSeaAreaShipList } from '$lib/utils/shipMarkers.js'
 import { Color } from '@tabletop/common'
@@ -28,6 +34,7 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
 
     const gameSession = getGameSession()
     const startCompanyAnimator = getStartCompanyAnimatorContext()
+    const shipMergerAnimator = new ShipMergerAnimator(gameSession)
 
     const SHIP_MARKER_HEIGHT = 45
     const SHIP_MARKER_HEIGHT_HOVERED = 54
@@ -86,7 +93,7 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
                 }
 
                 markers.push({
-                    key: `${area.id}-${companyId}-${markerIndex}`,
+                    key: shipSlotKey(area.id, markerIndex),
                     areaId: area.id,
                     companyId,
                     x: markerPoint.x,
@@ -149,34 +156,56 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
 
     const startedShipMarkers = $derived.by(() => {
         return gameSession.visibleStartedCompanyAnimationEntries
-            .map((entry) =>
+            .flatMap((entry) =>
                 startedShipMarkerEntryForAction({
                     gameState: gameSession.gameState,
                     action: entry.action,
-                    ownerColor: gameSession.colors.getPlayerUiColor(entry.action.playerId),
-                    ownerPlayerColor: gameSession.colors.getPlayerColor(entry.action.playerId)
+                    ownerColorForPlayerId: (playerId) => gameSession.colors.getPlayerUiColor(playerId),
+                    ownerPlayerColorForPlayerId: (playerId) => gameSession.colors.getPlayerColor(playerId)
                 })
             )
-            .filter((marker): marker is NonNullable<typeof marker> => marker !== null)
     })
 
     const expandedShipMarkers = $derived.by(() => {
         return gameSession.visibleExpandAnimationEntries
-            .map((entry) =>
+            .flatMap((entry) =>
                 expandedShipMarkerEntryForAction({
                     gameState: gameSession.gameState,
                     action: entry.action,
-                    ownerColor: gameSession.colors.getPlayerUiColor(entry.action.playerId),
-                    ownerPlayerColor: gameSession.colors.getPlayerColor(entry.action.playerId)
+                    ownerColorForPlayerId: (playerId) => gameSession.colors.getPlayerUiColor(playerId),
+                    ownerPlayerColorForPlayerId: (playerId) => gameSession.colors.getPlayerColor(playerId)
                 })
             )
-            .filter((marker): marker is NonNullable<typeof marker> => marker !== null)
     })
+
+    const mergedShipMarkers = $derived.by(() => gameSession.visibleShippingMergeAnimationEntries)
+
+    const animatedShipMarkers = $derived.by(() => [...startedShipMarkers, ...expandedShipMarkers])
+    const suppressedBaseShipKeySet: ReadonlySet<string> = $derived.by(
+        () =>
+            new Set(
+                [...animatedShipMarkers, ...mergedShipMarkers].flatMap((ship) =>
+                    ship.baseShipKey ? [ship.baseShipKey] : []
+                )
+            )
+    )
+
+    const visibleDimmedShipMarkers: ShipMarkerEntry[] = $derived.by(() =>
+        dimmedShipMarkers.filter((ship) => !suppressedBaseShipKeySet.has(ship.key))
+    )
+
+    const visibleEmphasizedShipMarkers: ShipMarkerEntry[] = $derived.by(() =>
+        emphasizedShipMarkers.filter((ship) => !suppressedBaseShipKeySet.has(ship.key))
+    )
 
 </script>
 
-<g class="pointer-events-none select-none" aria-label="Ships layer">
-    {#each dimmedShipMarkers as ship (ship.key)}
+<g
+    class="pointer-events-none select-none"
+    aria-label="Ships layer"
+    {@attach attachShipMergerAnimator(shipMergerAnimator)}
+>
+    {#each visibleDimmedShipMarkers as ship (ship.key)}
         <g opacity={activeShipVisualState.source === 'company-spotlight' ? DIMMED_SHIP_OPACITY : 1}>
             <ShipMarker
                 x={ship.x}
@@ -195,7 +224,7 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
     {/each}
 
     {#if shouldRenderEmphasizedShips}
-        {#each emphasizedShipMarkers as ship (ship.key)}
+        {#each visibleEmphasizedShipMarkers as ship (ship.key)}
             <ShipMarker
                 x={ship.x}
                 y={ship.y}
@@ -213,17 +242,22 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
         {/each}
     {/if}
 
-    {#each startedShipMarkers as ship (ship.key)}
+    {#each animatedShipMarkers as ship (ship.key)}
         <g
             opacity="0"
             use:animateStartedShipMarker={{
                 animator: startCompanyAnimator,
-                companyId: ship.companyId
+                animationKey: ship.animationKey,
+                fromX: ship.fromX,
+                fromY: ship.fromY,
+                toX: ship.toX,
+                toY: ship.toY,
+                role: ship.animationRole
             }}
         >
             <ShipMarker
-                x={ship.x}
-                y={ship.y}
+                x={0}
+                y={0}
                 style={ship.style}
                 height={SHIP_MARKER_HEIGHT}
                 outline={false}
@@ -237,17 +271,20 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
         </g>
     {/each}
 
-    {#each expandedShipMarkers as ship (ship.key)}
+    {#each mergedShipMarkers as ship (ship.key)}
         <g
             opacity="0"
-            use:animateStartedShipMarker={{
-                animator: startCompanyAnimator,
-                companyId: ship.companyId
+            use:animateMergedShipMarker={{
+                animator: shipMergerAnimator,
+                animationKey: ship.animationKey,
+                x: ship.x,
+                y: ship.y,
+                role: ship.animationRole
             }}
         >
             <ShipMarker
-                x={ship.x}
-                y={ship.y}
+                x={0}
+                y={0}
                 style={ship.style}
                 height={SHIP_MARKER_HEIGHT}
                 outline={false}

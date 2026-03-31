@@ -6,6 +6,7 @@ import {
     Good,
     INDONESIA_REGIONS,
     isExpand,
+    isIndonesiaNodeId,
     isStartCompany,
     type HydratedIndonesiaGameState,
     type IndonesiaNodeId,
@@ -16,6 +17,7 @@ import { resolveLandMarkerPosition } from '$lib/utils/boardMarkers.js'
 import { productionHatchVariantByCompanyId } from '$lib/utils/productionHatching.js'
 import { resolveProductionZoneBoundaryTarget } from '$lib/utils/productionZoneMarkerBoundary.js'
 import { markerPointsForSeaAreaShipList } from '$lib/utils/shipMarkers.js'
+import { shipSlotKey } from '$lib/utils/shipSlotKey.js'
 import { shadeHexColor } from '$lib/utils/color.js'
 import { shippingStyleByCompanyId, type ShippingStyle } from '$lib/utils/shippingStyles.js'
 
@@ -50,15 +52,22 @@ export type StartedCultivatedAreaEntry = {
 
 export type StartedShipMarkerEntry = {
     key: string
+    animationKey: string
+    baseShipKey?: string
     areaId: string
     companyId: string
     x: number
     y: number
+    fromX: number
+    fromY: number
+    toX: number
+    toY: number
     style: ShippingStyle
     ownerColor: string
     ownerStrokeColor: string
     remainingCapacity?: number
     capacityBadgeTextColor: string
+    animationRole: 'move' | 'pop'
 }
 
 const BOARD_WIDTH = 2646
@@ -291,44 +300,26 @@ export function startedCultivatedAreaEntryForAction(args: {
     }
 }
 
-export function startedShipMarkerEntryForAction(args: {
+function shipCapacityPresentation(args: {
     gameState: HydratedIndonesiaGameState
-    action: GameAction
+    companyId: string
+    ownerId: string
+    seaAreaId: IndonesiaNodeId
+    companyShipOrdinal: number
     ownerColor: string
     ownerPlayerColor: Color
-}): StartedShipMarkerEntry | null {
-    const { gameState, action, ownerColor, ownerPlayerColor } = args
-    if (!isStartCompany(action) || action.metadata?.company?.type !== CompanyType.Shipping) {
-        return null
-    }
-
-    const company = action.metadata.company
-    const seaArea = gameState.board.getArea(action.areaId)
-    if (!('ships' in seaArea)) {
-        return null
-    }
-
-    const simulatedShips = [...seaArea.ships, company.id]
-    const points = markerPointsForSeaAreaShipList(seaArea.id, simulatedShips)
-    const markerIndex = simulatedShips.length - 1
-    if (markerIndex < 0 || markerIndex >= points.length) {
-        return null
-    }
-
-    const style = company.shipStyle ?? 'a'
-    const ownerHullLevel = gameState.getPlayerState(company.owner).research.hull
+}): {
+    remainingCapacity?: number
+    capacityBadgeTextColor: string
+    ownerStrokeColor: string
+} {
+    const { gameState, companyId, ownerId, seaAreaId, companyShipOrdinal, ownerColor, ownerPlayerColor } =
+        args
+    const ownerHullLevel = gameState.getPlayerState(ownerId).research.hull
     const capacityPerShip = 1 + ownerHullLevel
-    const usedCapacity = 0
-    const companyShipOrdinal = 0
+    const usedCapacity = gameState.operatingCompanyShipUseCount(companyId, seaAreaId)
 
     return {
-        key: `started-ship-${company.id}-${seaArea.id}`,
-        areaId: seaArea.id,
-        companyId: company.id,
-        x: points[markerIndex].x,
-        y: points[markerIndex].y,
-        style,
-        ownerColor,
         remainingCapacity: Math.max(
             0,
             Math.min(capacityPerShip, (companyShipOrdinal + 1) * capacityPerShip - usedCapacity)
@@ -341,6 +332,188 @@ export function startedShipMarkerEntryForAction(args: {
                   ? shadeHexColor(ownerColor, SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_BLUE)
                   : 'none'
     }
+}
+
+function insertedShipMarkerEntries(args: {
+    gameState: HydratedIndonesiaGameState
+    areaId: string
+    companyId: string
+    ownerId: string
+    style: ShippingStyle
+    ownerColorForPlayerId: (playerId: string) => string
+    ownerPlayerColorForPlayerId: (playerId: string) => Color
+    insertedShipKeyPrefix: string
+}): StartedShipMarkerEntry[] {
+    const {
+        gameState,
+        areaId,
+        companyId,
+        ownerId,
+        style,
+        ownerColorForPlayerId,
+        ownerPlayerColorForPlayerId,
+        insertedShipKeyPrefix
+    } = args
+    const seaArea = gameState.board.getArea(areaId)
+    if (!('ships' in seaArea)) {
+        return []
+    }
+
+    const oldShips = [...seaArea.ships]
+    const newShips = [...oldShips, companyId]
+    const oldPoints = markerPointsForSeaAreaShipList(seaArea.id, oldShips)
+    const newPoints = markerPointsForSeaAreaShipList(seaArea.id, newShips)
+    const markerCount = Math.min(newShips.length, newPoints.length)
+    const entries: StartedShipMarkerEntry[] = []
+
+    const oldCompanyOrdinalByKey = new Map<string, number>()
+    for (let markerIndex = 0; markerIndex < Math.min(oldShips.length, oldPoints.length); markerIndex += 1) {
+        const existingCompanyId = oldShips[markerIndex]
+        const fromPoint = oldPoints[markerIndex]
+        const toPoint = newPoints[markerIndex]
+        if (!fromPoint || !toPoint) {
+            continue
+        }
+
+        const ordinalKey = `${seaArea.id}|${existingCompanyId}`
+        const companyShipOrdinal = oldCompanyOrdinalByKey.get(ordinalKey) ?? 0
+        oldCompanyOrdinalByKey.set(ordinalKey, companyShipOrdinal + 1)
+        const existingCompany = gameState.companies.find((entry) => entry.id === existingCompanyId)
+        if (!existingCompany) {
+            continue
+        }
+
+        const existingOwnerColor = ownerColorForPlayerId(existingCompany.owner)
+        const existingOwnerId = existingCompany.owner
+        const existingOwnerPlayerColor = ownerPlayerColorForPlayerId(existingOwnerId)
+        const capacityPresentation =
+            existingCompany.type === CompanyType.Shipping && isIndonesiaNodeId(seaArea.id)
+                ? shipCapacityPresentation({
+                      gameState,
+                      companyId: existingCompany.id,
+                      ownerId: existingOwnerId,
+                      seaAreaId: seaArea.id as IndonesiaNodeId,
+                      companyShipOrdinal,
+                      ownerColor: existingOwnerColor,
+                      ownerPlayerColor: existingOwnerPlayerColor
+                  })
+                : {
+                      remainingCapacity: undefined,
+                      capacityBadgeTextColor:
+                          existingOwnerPlayerColor === Color.Yellow ? '#111827' : '#f8fafc',
+                      ownerStrokeColor:
+                          existingOwnerPlayerColor === Color.Yellow
+                              ? shadeHexColor(
+                                    existingOwnerColor,
+                                    SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_YELLOW
+                                )
+                              : existingOwnerPlayerColor === Color.Blue
+                                ? shadeHexColor(
+                                      existingOwnerColor,
+                                      SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_BLUE
+                                  )
+                                : 'none'
+                  }
+
+        entries.push({
+            key: `move-${shipSlotKey(seaArea.id, markerIndex)}`,
+            animationKey: `move-${seaArea.id}-${existingCompanyId}-${markerIndex}`,
+            baseShipKey: shipSlotKey(seaArea.id, markerIndex),
+            areaId: seaArea.id,
+            companyId: existingCompanyId,
+            x: 0,
+            y: 0,
+            fromX: fromPoint.x,
+            fromY: fromPoint.y,
+            toX: toPoint.x,
+            toY: toPoint.y,
+            style: shippingStyleByCompanyId(gameState).get(existingCompany.id) ?? 'a',
+            ownerColor: existingOwnerColor,
+            ownerStrokeColor: capacityPresentation.ownerStrokeColor,
+            remainingCapacity: capacityPresentation.remainingCapacity,
+            capacityBadgeTextColor: capacityPresentation.capacityBadgeTextColor,
+            animationRole: 'move'
+        })
+    }
+
+    const insertedIndex = newShips.length - 1
+    if (insertedIndex < markerCount) {
+        const ownerColor = ownerColorForPlayerId(ownerId)
+        const ownerPlayerColor = ownerPlayerColorForPlayerId(ownerId)
+        const insertedOrdinal = newShips
+            .slice(0, insertedIndex + 1)
+            .filter((candidateCompanyId: string) => candidateCompanyId === companyId).length - 1
+        const capacityPresentation =
+            isIndonesiaNodeId(seaArea.id)
+                ? shipCapacityPresentation({
+                      gameState,
+                      companyId,
+                      ownerId,
+                      seaAreaId: seaArea.id as IndonesiaNodeId,
+                      companyShipOrdinal: insertedOrdinal,
+                      ownerColor,
+                      ownerPlayerColor
+                  })
+                : {
+                      remainingCapacity: undefined,
+                      capacityBadgeTextColor:
+                          ownerPlayerColor === Color.Yellow ? '#111827' : '#f8fafc',
+                      ownerStrokeColor:
+                          ownerPlayerColor === Color.Yellow
+                              ? shadeHexColor(ownerColor, SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_YELLOW)
+                              : ownerPlayerColor === Color.Blue
+                                ? shadeHexColor(
+                                      ownerColor,
+                                      SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_BLUE
+                                  )
+                                : 'none'
+                  }
+
+        entries.push({
+            key: `${insertedShipKeyPrefix}-${companyId}-${seaArea.id}-${insertedIndex}`,
+            animationKey: `${insertedShipKeyPrefix}-${companyId}-${seaArea.id}-${insertedIndex}`,
+            areaId: seaArea.id,
+            companyId,
+            x: 0,
+            y: 0,
+            fromX: newPoints[insertedIndex].x,
+            fromY: newPoints[insertedIndex].y,
+            toX: newPoints[insertedIndex].x,
+            toY: newPoints[insertedIndex].y,
+            style,
+            ownerColor,
+            ownerStrokeColor: capacityPresentation.ownerStrokeColor,
+            remainingCapacity: capacityPresentation.remainingCapacity,
+            capacityBadgeTextColor: capacityPresentation.capacityBadgeTextColor,
+            animationRole: 'pop'
+        })
+    }
+
+    return entries
+}
+
+export function startedShipMarkerEntryForAction(args: {
+    gameState: HydratedIndonesiaGameState
+    action: GameAction
+    ownerColorForPlayerId: (playerId: string) => string
+    ownerPlayerColorForPlayerId: (playerId: string) => Color
+}): StartedShipMarkerEntry[] {
+    const { gameState, action, ownerColorForPlayerId, ownerPlayerColorForPlayerId } = args
+    if (!isStartCompany(action) || action.metadata?.company?.type !== CompanyType.Shipping) {
+        return []
+    }
+
+    const company = action.metadata.company
+    return insertedShipMarkerEntries({
+        gameState,
+        areaId: action.areaId,
+        companyId: company.id,
+        ownerId: company.owner,
+        style: company.shipStyle ?? 'a',
+        ownerColorForPlayerId,
+        ownerPlayerColorForPlayerId,
+        insertedShipKeyPrefix: 'started-ship'
+    })
 }
 
 export function expandedCultivatedAreaEntryForAction(args: {
@@ -383,62 +556,32 @@ export function expandedCultivatedAreaEntryForAction(args: {
 export function expandedShipMarkerEntryForAction(args: {
     gameState: HydratedIndonesiaGameState
     action: GameAction
-    ownerColor: string
-    ownerPlayerColor: Color
-}): StartedShipMarkerEntry | null {
-    const { gameState, action, ownerColor, ownerPlayerColor } = args
+    ownerColorForPlayerId: (playerId: string) => string
+    ownerPlayerColorForPlayerId: (playerId: string) => Color
+}): StartedShipMarkerEntry[] {
+    const { gameState, action, ownerColorForPlayerId, ownerPlayerColorForPlayerId } = args
     if (!isExpand(action)) {
-        return null
+        return []
     }
 
     const operatingCompanyId = gameState.operatingCompanyId
     if (!operatingCompanyId) {
-        return null
+        return []
     }
 
     const company = gameState.companies.find((entry) => entry.id === operatingCompanyId)
     if (!company || company.type !== CompanyType.Shipping) {
-        return null
+        return []
     }
 
-    const seaArea = gameState.board.getArea(action.areaId)
-    if (!('ships' in seaArea)) {
-        return null
-    }
-
-    const simulatedShips = [...seaArea.ships, company.id]
-    const points = markerPointsForSeaAreaShipList(seaArea.id, simulatedShips)
-    const markerIndex = simulatedShips.length - 1
-    if (markerIndex < 0 || markerIndex >= points.length) {
-        return null
-    }
-
-    const style = shippingStyleByCompanyId(gameState).get(company.id) ?? 'a'
-    const ownerHullLevel = gameState.getPlayerState(company.owner).research.hull
-    const capacityPerShip = 1 + ownerHullLevel
-    const usedCapacity = gameState.operatingCompanyShipUseCount(company.id, seaArea.id as IndonesiaNodeId)
-    const companyShipOrdinal = simulatedShips
-        .slice(0, markerIndex + 1)
-        .filter((companyId: string) => companyId === company.id).length - 1
-
-    return {
-        key: `expanded-ship-${company.id}-${seaArea.id}-${markerIndex}`,
-        areaId: seaArea.id,
+    return insertedShipMarkerEntries({
+        gameState,
+        areaId: action.areaId,
         companyId: company.id,
-        x: points[markerIndex].x,
-        y: points[markerIndex].y,
-        style,
-        ownerColor,
-        remainingCapacity: Math.max(
-            0,
-            Math.min(capacityPerShip, (companyShipOrdinal + 1) * capacityPerShip - usedCapacity)
-        ),
-        capacityBadgeTextColor: ownerPlayerColor === Color.Yellow ? '#111827' : '#f8fafc',
-        ownerStrokeColor:
-            ownerPlayerColor === Color.Yellow
-                ? shadeHexColor(ownerColor, SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_YELLOW)
-                : ownerPlayerColor === Color.Blue
-                  ? shadeHexColor(ownerColor, SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_BLUE)
-                  : 'none'
-    }
+        ownerId: company.owner,
+        style: shippingStyleByCompanyId(gameState).get(company.id) ?? 'a',
+        ownerColorForPlayerId,
+        ownerPlayerColorForPlayerId,
+        insertedShipKeyPrefix: 'expanded-ship'
+    })
 }
