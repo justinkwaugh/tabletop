@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { Point } from '@tabletop/common'
+    import { gsap } from 'gsap'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { MachineState } from '@tabletop/indonesia'
 
@@ -64,6 +65,7 @@
     const TURN_ORDER_SELECTED_INNER_STROKE = '#f8fafc'
     const TURN_ORDER_SELECTED_OUTER_STROKE_WIDTH = 4
     const TURN_ORDER_SELECTED_INNER_STROKE_WIDTH = 2.2
+    const TURN_ORDER_ANIMATION_DURATION = 0.32
 
     const turnOrderDiscs: TurnOrderDisc[] = $derived.by(() => {
         const discs: TurnOrderDisc[] = []
@@ -113,6 +115,9 @@
 
         return rects
     })
+    const turnOrderHitRectByPlayerId: ReadonlyMap<string, TurnOrderHitRect> = $derived.by(
+        () => new Map(turnOrderHitRects.map((rect) => [rect.playerId, rect]))
+    )
 
     const showTurnOrderHelpText: boolean = $derived.by(
         () => gameSession.gameState.machineState === MachineState.ResearchAndDevelopment
@@ -123,6 +128,41 @@
             return
         }
         onSelectPlayer?.(playerId)
+    }
+
+    function animateTurnOrderDisc(
+        node: SVGGElement,
+        params: { x: number; y: number }
+    ): { update: (next: { x: number; y: number }) => void; destroy: () => void } {
+        const state = {
+            x: params.x,
+            y: params.y
+        }
+        node.setAttribute('transform', `translate(${state.x} ${state.y})`)
+
+        return {
+            update(next) {
+                if (state.x === next.x && state.y === next.y) {
+                    return
+                }
+
+                gsap.killTweensOf(node)
+                gsap.killTweensOf(state)
+                gsap.to(state, {
+                    x: next.x,
+                    y: next.y,
+                    duration: TURN_ORDER_ANIMATION_DURATION,
+                    ease: 'power2.out',
+                    onUpdate: () => {
+                        node.setAttribute('transform', `translate(${state.x} ${state.y})`)
+                    }
+                })
+            },
+            destroy() {
+                gsap.killTweensOf(node)
+                gsap.killTweensOf(state)
+            }
+        }
     }
 </script>
 
@@ -143,59 +183,63 @@
     {/if}
 
     {#each turnOrderDiscs as disc (disc.playerId)}
-        {#if selectedPlayerId === disc.playerId}
+        {@const hitRect = turnOrderHitRectByPlayerId.get(disc.playerId)}
+        <g
+            use:animateTurnOrderDisc={{ x: disc.x, y: disc.y }}
+        >
+            {#if selectedPlayerId === disc.playerId}
+                <circle
+                    cx={0}
+                    cy={0}
+                    r={TURN_ORDER_SELECTED_OUTER_RADIUS}
+                    fill="none"
+                    stroke={TURN_ORDER_SELECTED_OUTER_STROKE}
+                    stroke-width={TURN_ORDER_SELECTED_OUTER_STROKE_WIDTH}
+                    opacity={0.88}
+                    pointer-events="none"
+                ></circle>
+                <circle
+                    cx={0}
+                    cy={0}
+                    r={TURN_ORDER_SELECTED_INNER_RADIUS}
+                    fill="none"
+                    stroke={TURN_ORDER_SELECTED_INNER_STROKE}
+                    stroke-width={TURN_ORDER_SELECTED_INNER_STROKE_WIDTH}
+                    opacity={0.98}
+                    pointer-events="none"
+                ></circle>
+            {/if}
             <circle
-                cx={disc.x}
-                cy={disc.y}
-                r={TURN_ORDER_SELECTED_OUTER_RADIUS}
-                fill="none"
-                stroke={TURN_ORDER_SELECTED_OUTER_STROKE}
-                stroke-width={TURN_ORDER_SELECTED_OUTER_STROKE_WIDTH}
-                opacity={0.88}
+                cx={0}
+                cy={0}
+                r={TURN_ORDER_DISC_RADIUS}
+                fill={disc.color}
+                stroke={TURN_ORDER_DISC_STROKE}
+                stroke-width={TURN_ORDER_DISC_STROKE_WIDTH}
+                opacity={TURN_ORDER_DISC_OPACITY}
                 pointer-events="none"
             ></circle>
-            <circle
-                cx={disc.x}
-                cy={disc.y}
-                r={TURN_ORDER_SELECTED_INNER_RADIUS}
-                fill="none"
-                stroke={TURN_ORDER_SELECTED_INNER_STROKE}
-                stroke-width={TURN_ORDER_SELECTED_INNER_STROKE_WIDTH}
-                opacity={0.98}
-                pointer-events="none"
-            ></circle>
-        {/if}
-        <circle
-            cx={disc.x}
-            cy={disc.y}
-            r={TURN_ORDER_DISC_RADIUS}
-            fill={disc.color}
-            stroke={TURN_ORDER_DISC_STROKE}
-            stroke-width={TURN_ORDER_DISC_STROKE_WIDTH}
-            opacity={TURN_ORDER_DISC_OPACITY}
-            pointer-events="none"
-        ></circle>
 
-        {@const hitRect = turnOrderHitRects.find((rect) => rect.playerId === disc.playerId)}
-        <rect
-            x={hitRect?.x ?? disc.x - 28}
-            y={hitRect?.y ?? disc.y - TURN_ORDER_HIT_RECT_HALF_HEIGHT}
-            width={hitRect?.width ?? 56}
-            height={hitRect?.height ?? TURN_ORDER_HIT_RECT_HALF_HEIGHT * 2}
-            fill="#ffffff"
-            fill-opacity="0.001"
-            stroke="none"
-            pointer-events="all"
-            cursor={selectable ? 'pointer' : 'default'}
-            onpointerenter={() => {
-                onHoverPlayer?.(disc.playerId)
-            }}
-            onpointerleave={() => {
-                onHoverPlayer?.(null)
-            }}
-            onclick={() => {
-                selectPlayer(disc.playerId)
-            }}
-        ></rect>
+            <rect
+                x={hitRect ? hitRect.x - disc.x : -28}
+                y={hitRect ? hitRect.y - disc.y : -TURN_ORDER_HIT_RECT_HALF_HEIGHT}
+                width={hitRect?.width ?? 56}
+                height={hitRect?.height ?? TURN_ORDER_HIT_RECT_HALF_HEIGHT * 2}
+                fill="#ffffff"
+                fill-opacity="0.001"
+                stroke="none"
+                pointer-events="all"
+                cursor={selectable ? 'pointer' : 'default'}
+                onpointerenter={() => {
+                    onHoverPlayer?.(disc.playerId)
+                }}
+                onpointerleave={() => {
+                    onHoverPlayer?.(null)
+                }}
+                onclick={() => {
+                    selectPlayer(disc.playerId)
+                }}
+            ></rect>
+        </g>
     {/each}
 </g>
