@@ -21,6 +21,8 @@
     } as const
 
     const hoveredAvailableDeedId = $derived(gameSession.hoveredAvailableDeedId)
+    const selectedStartCompanyDeedId = $derived(gameSession.selectedStartCompanyDeedId)
+    const startCompanySelectionEnabled = $derived(gameSession.startCompanySelectionEnabled)
 
     const availableDeedEntries = $derived.by(() => {
         return availableDeedCardEntriesForState(gameSession.gameState)
@@ -32,9 +34,14 @@
                     return orderDifference
                 }
 
-                const textDifference = a.text.localeCompare(b.text)
-                if (textDifference !== 0) {
-                    return textDifference
+                const xDifference = a.cardX - b.cardX
+                if (xDifference !== 0) {
+                    return xDifference
+                }
+
+                const yDifference = a.cardY - b.cardY
+                if (yDifference !== 0) {
+                    return yDifference
                 }
 
                 return a.deedId.localeCompare(b.deedId)
@@ -55,9 +62,13 @@
                 <div
                     class="available-deeds-row__card"
                     class:is-hovered={hoveredAvailableDeedId === deed.deedId}
-                    tabindex="0"
-                    role="img"
+                    class:is-selected={selectedStartCompanyDeedId === deed.deedId}
+                    tabindex={startCompanySelectionEnabled ? 0 : -1}
+                    role={startCompanySelectionEnabled ? 'button' : 'img'}
                     aria-label={`Available deed for ${deed.text}`}
+                    aria-pressed={startCompanySelectionEnabled
+                        ? selectedStartCompanyDeedId === deed.deedId
+                        : undefined}
                     onpointerenter={() => {
                         gameSession.hoverAvailableDeed(deed.deedId)
                     }}
@@ -73,6 +84,22 @@
                         if (hoveredAvailableDeedId === deed.deedId) {
                             gameSession.clearHoveredAvailableDeed()
                         }
+                    }}
+                    onclick={() => {
+                        if (!startCompanySelectionEnabled) {
+                            return
+                        }
+                        gameSession.stageStartCompanyDeed(deed.deedId)
+                    }}
+                    onkeydown={(event) => {
+                        if (!startCompanySelectionEnabled) {
+                            return
+                        }
+                        if (event.key !== 'Enter' && event.key !== ' ') {
+                            return
+                        }
+                        event.preventDefault()
+                        gameSession.stageStartCompanyDeed(deed.deedId)
                     }}
                 >
                     <svg
@@ -149,6 +176,13 @@
         transform: translateY(-3px) scale(1.02);
         filter: saturate(1.05);
         box-shadow: 0 6px 18px rgba(79, 58, 37, 0.18);
+    }
+
+    .available-deeds-row__card.is-selected {
+        box-shadow:
+            0 0 0 4px rgba(255, 248, 215, 0.92),
+            0 0 0 6px rgba(31, 41, 55, 0.88),
+            0 6px 18px rgba(79, 58, 37, 0.12);
     }
 
     .available-deeds-row__card-svg {
