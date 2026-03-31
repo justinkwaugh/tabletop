@@ -1,16 +1,12 @@
 <script lang="ts">
-    import { BOARD_AREA_PATH_BY_ID } from '$lib/definitions/boardGeometry.js'
-    import { getRegionName } from '$lib/definitions/regions.js'
-    import Area from '$lib/components/Area.svelte'
-    import CompanyDeed, {
-        companyDeedStyleForType,
-        deedCardKindFor
-    } from '$lib/components/CompanyDeed.svelte'
-    import { DEED_CARD_POSITIONS } from '$lib/definitions/deedCardPositions.js'
     import {
-        deedTextLayoutForKeys,
-        type CompanyDeedTextLayout
-    } from '$lib/definitions/deedTextLayout.js'
+        animatePlacedDeed,
+        attachDeedPlacementAnimator,
+        DeedPlacementAnimator
+    } from '$lib/animators/deedPlacementAnimator.js'
+    import { BOARD_AREA_PATH_BY_ID } from '$lib/definitions/boardGeometry.js'
+    import Area from '$lib/components/Area.svelte'
+    import CompanyDeed, { companyDeedStyleForType } from '$lib/components/CompanyDeed.svelte'
     import {
         BOARD_DEED_CARD_CORNER_RX,
         BOARD_DEED_CARD_CORNER_RY,
@@ -21,15 +17,10 @@
         deriveShippingDeedSeaOverlayState,
         type ShippingDeedSeaOverlayState
     } from '$lib/components/boardActionAreas/seaHighlight.js'
-    import {
-        deedPositionLookupKeys,
-        deedPositionKey,
-        shippingSizeEntriesFromRecord,
-        type ShippingSizeEntry
-    } from '$lib/utils/deeds.js'
-    import type { CompanyCardType } from '$lib/types/companyCard.js'
+    import { deedPositionKey, deedPositionLookupKeys } from '$lib/utils/deeds.js'
+    import { deedCardEntryForDeed, type DeedCardEntry } from '$lib/utils/deedCardEntries.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
-    import { ActionType, CompanyType, MachineState } from '@tabletop/indonesia'
+    import { CompanyType, MachineState } from '@tabletop/indonesia'
 
     const gameSession = getGameSession()
     const HOVER_COMPANY_DEEDS_BRIGHTNESS = 0.74
@@ -44,18 +35,6 @@
         'F06',
         'F07'
     ])
-
-    type DeedCardEntry = {
-        key: string
-        deedId: string
-        isShipping: boolean
-        text: string
-        textLayout: CompanyDeedTextLayout | null
-        cardKind: CompanyCardType
-        shippingSizes: readonly ShippingSizeEntry[] | null
-        cardX: number
-        cardY: number
-    }
 
     type OverlayArea = {
         key: string
@@ -78,6 +57,14 @@
     const DEED_UNSTARTED_PRODUCTION_DOT_PATTERN_ID = 'deed-production-unstarted-dot'
     const DEED_UNSTARTED_PRODUCTION_DENSE_DOT_PATTERN_ID = 'deed-production-unstarted-dense-dot'
     const DEED_NEUTRAL_PATTERN_COLOR = '#2b231d'
+    let animatedDeedCards: DeedCardEntry[] = $state([])
+    let animatedDeedIdSet: ReadonlySet<string> = $state(new Set<string>())
+    const deedPlacementAnimator = new DeedPlacementAnimator(gameSession, {
+        showAnimatedDeedCards: ({ cards, animatedDeedIds }) => {
+            animatedDeedCards = cards
+            animatedDeedIdSet = new Set(animatedDeedIds)
+        }
+    })
     const DEED_LAYER_DATA: {
         cards: DeedCardEntry[]
         overlays: OverlayArea[]
@@ -96,15 +83,11 @@
                 continue
             }
 
-            const regionName = getRegionName(regionId)
-            const cardKind = deedCardKindFor(deed)
-            const baseStyle = companyDeedStyleForType(cardKind)
-            const cardPosition = positionKeys
-                .map((key) => DEED_CARD_POSITIONS[key])
-                .find((point) => point !== undefined)
-            if (!cardPosition) {
+            const cardEntry = deedCardEntryForDeed(deed)
+            if (!cardEntry) {
                 continue
             }
+            const baseStyle = companyDeedStyleForType(cardEntry.cardKind)
 
             const legacyHatchPatternId = DEED_HATCH_PATTERN_BY_KEY[legacyPositionKey] ?? null
             const overlayFill = baseStyle.overlayFill
@@ -120,17 +103,7 @@
                       .map((area) => area.id)
                       .filter((areaId) => BOARD_AREA_PATH_BY_ID.has(areaId))
 
-            cards.push({
-                key: deed.id,
-                deedId: deed.id,
-                isShipping,
-                text: regionName,
-                textLayout: deedTextLayoutForKeys(positionKeys),
-                cardKind,
-                shippingSizes: isShipping ? shippingSizeEntriesFromRecord(deed.sizes) : null,
-                cardX: cardPosition.x,
-                cardY: cardPosition.y
-            })
+            cards.push(cardEntry)
 
             for (const areaId of overlayAreaIds) {
                 const resolvedHatchPatternId = !isShipping
@@ -161,6 +134,19 @@
     })
 
     const DEED_CARD_ENTRIES: DeedCardEntry[] = $derived(DEED_LAYER_DATA.cards)
+    function deedIdSignature(cards: readonly DeedCardEntry[]): string {
+        return cards.map((card) => card.deedId).join('|')
+    }
+
+    const DISPLAYED_DEED_CARD_ENTRIES: DeedCardEntry[] = $derived.by(() => {
+        if (animatedDeedCards.length === 0) {
+            return DEED_CARD_ENTRIES
+        }
+
+        return deedIdSignature(animatedDeedCards) === deedIdSignature(DEED_CARD_ENTRIES)
+            ? DEED_CARD_ENTRIES
+            : animatedDeedCards
+    })
     const DEED_OVERLAY_AREAS: OverlayArea[] = $derived(DEED_LAYER_DATA.overlays)
     const hoveredAvailableDeedId: string | null = $derived(gameSession.hoveredAvailableDeedId)
     const activeDeedPreviewId: string | null = $derived(gameSession.activeDeedPreviewId)
@@ -238,7 +224,7 @@
         if (!hoveredDeedId) {
             return null
         }
-        return DEED_CARD_ENTRIES.find((deed) => deed.deedId === hoveredDeedId) ?? null
+        return DISPLAYED_DEED_CARD_ENTRIES.find((deed) => deed.deedId === hoveredDeedId) ?? null
     })
     const foregroundHoveredDeedCardEntries: DeedCardEntry[] = $derived.by(() => {
         return foregroundHoveredDeedCardEntry ? [foregroundHoveredDeedCardEntry] : []
@@ -246,9 +232,9 @@
     const backgroundDeedCardEntries: DeedCardEntry[] = $derived.by(() => {
         const hoveredDeedId = hoveredAvailableDeedId
         if (!hoveredDeedId) {
-            return DEED_CARD_ENTRIES
+            return DISPLAYED_DEED_CARD_ENTRIES
         }
-        return DEED_CARD_ENTRIES.filter((deed) => deed.deedId !== hoveredDeedId)
+        return DISPLAYED_DEED_CARD_ENTRIES.filter((deed) => deed.deedId !== hoveredDeedId)
     })
 
     const shouldDarkenDeedMarkersForCompanyHover: boolean = $derived.by(() => {
@@ -265,6 +251,7 @@
 <g
     class="select-none"
     aria-label="Available deeds layer"
+    {@attach attachDeedPlacementAnimator(deedPlacementAnimator)}
 >
         <defs>
             <pattern
@@ -363,15 +350,32 @@
             {/each}
 
             {#each backgroundDeedCardEntries as deed (deed.key)}
-                <CompanyDeed
-                    type={deed.cardKind}
-                    x={deed.cardX}
-                    y={deed.cardY}
-                    height={BOARD_DEED_CARD_HEIGHT}
-                    text={deed.text}
-                    textLayout={deed.textLayout}
-                    shippingSizes={deed.shippingSizes}
-                />
+                {#if animatedDeedIdSet.has(deed.deedId)}
+                    <g
+                        transform={`translate(${deed.cardX} ${deed.cardY})`}
+                        use:animatePlacedDeed={{ animator: deedPlacementAnimator, deedId: deed.deedId }}
+                    >
+                        <CompanyDeed
+                            type={deed.cardKind}
+                            x={0}
+                            y={0}
+                            height={BOARD_DEED_CARD_HEIGHT}
+                            text={deed.text}
+                            textLayout={deed.textLayout}
+                            shippingSizes={deed.shippingSizes}
+                        />
+                    </g>
+                {:else}
+                    <CompanyDeed
+                        type={deed.cardKind}
+                        x={deed.cardX}
+                        y={deed.cardY}
+                        height={BOARD_DEED_CARD_HEIGHT}
+                        text={deed.text}
+                        textLayout={deed.textLayout}
+                        shippingSizes={deed.shippingSizes}
+                    />
+                {/if}
             {/each}
         </g>
 
@@ -428,15 +432,35 @@
         {/each}
 
         {#each foregroundHoveredDeedCardEntries as hoveredDeed (hoveredDeed.deedId)}
-            <CompanyDeed
-                type={hoveredDeed.cardKind}
-                x={hoveredDeed.cardX}
-                y={hoveredDeed.cardY}
-                height={BOARD_DEED_CARD_HEIGHT}
-                text={hoveredDeed.text}
-                textLayout={hoveredDeed.textLayout}
-                shippingSizes={hoveredDeed.shippingSizes}
-            />
+            {#if animatedDeedIdSet.has(hoveredDeed.deedId)}
+                <g
+                    transform={`translate(${hoveredDeed.cardX} ${hoveredDeed.cardY})`}
+                    use:animatePlacedDeed={{
+                        animator: deedPlacementAnimator,
+                        deedId: hoveredDeed.deedId
+                    }}
+                >
+                    <CompanyDeed
+                        type={hoveredDeed.cardKind}
+                        x={0}
+                        y={0}
+                        height={BOARD_DEED_CARD_HEIGHT}
+                        text={hoveredDeed.text}
+                        textLayout={hoveredDeed.textLayout}
+                        shippingSizes={hoveredDeed.shippingSizes}
+                    />
+                </g>
+            {:else}
+                <CompanyDeed
+                    type={hoveredDeed.cardKind}
+                    x={hoveredDeed.cardX}
+                    y={hoveredDeed.cardY}
+                    height={BOARD_DEED_CARD_HEIGHT}
+                    text={hoveredDeed.text}
+                    textLayout={hoveredDeed.textLayout}
+                    shippingSizes={hoveredDeed.shippingSizes}
+                />
+            {/if}
         {/each}
 
         <g
@@ -445,7 +469,7 @@
                 gameSession.clearHoveredAvailableDeed()
             }}
         >
-            {#each DEED_CARD_ENTRIES as deed (deed.key)}
+            {#each DISPLAYED_DEED_CARD_ENTRIES as deed (deed.key)}
                 <rect
                     x={deed.cardX - BOARD_DEED_CARD_WIDTH / 2}
                     y={deed.cardY - BOARD_DEED_CARD_HEIGHT / 2}
