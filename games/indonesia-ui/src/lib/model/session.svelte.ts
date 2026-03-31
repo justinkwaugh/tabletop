@@ -18,6 +18,7 @@ import {
     ProposeMerger,
     PlaceMergerBid,
     PassMergerBid,
+    PlaceCompanyDeeds,
     RemoveSiapSajiArea,
     HydratedRemoveSiapSajiArea,
     listSafeAtomicDeliveryCandidatesForPlayer,
@@ -35,7 +36,9 @@ import {
     IndonesiaNeighborDirection,
     IndonesiaAreaType,
     isDeliverGood,
+    isGrowCity,
     isIndonesiaNodeId
+    ,isPlaceCompanyDeeds
 } from '@tabletop/indonesia'
 import type { MergedShipMarkerEntry } from '$lib/utils/mergedShipMarkerEntries.js'
 import type { MergedCultivatedAreaEntry } from '$lib/utils/mergedCultivatedAreaEntries.js'
@@ -1460,7 +1463,7 @@ export class IndonesiaGameSession extends GameSession<
     }
 
     override shouldAutoStepAction(action: GameAction, next?: GameAction): boolean {
-        if (isDeliverGood(action)) {
+        if (isDeliverGood(action) || isGrowCity(action) || isPlaceCompanyDeeds(action)) {
             return false
         }
         return super.shouldAutoStepAction(action, next)
