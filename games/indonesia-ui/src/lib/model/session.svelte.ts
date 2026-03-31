@@ -38,6 +38,7 @@ import {
 } from '@tabletop/indonesia'
 import type { MergedShipMarkerEntry } from '$lib/utils/mergedShipMarkerEntries.js'
 import type { MergedCultivatedAreaEntry } from '$lib/utils/mergedCultivatedAreaEntries.js'
+import type { PlayerCompanyCardData } from '$lib/utils/playerCompanyCards.js'
 import { visibleBoardCityReferenceCardEras } from '$lib/definitions/cityReferenceCardGeometry.js'
 import {
     hasManualDeliverySelection,
@@ -129,6 +130,14 @@ type SiapSajiMergeAnimationEntry = {
     areaEntries: MergedCultivatedAreaEntry[]
 }
 
+type CompanyMergeAnimationEntry = {
+    actionId: string
+    playerCardOverrides: {
+        playerId: string
+        cards: PlayerCompanyCardData[]
+    }[]
+}
+
 export class IndonesiaGameSession extends GameSession<
     IndonesiaGameState,
     HydratedIndonesiaGameState
@@ -138,6 +147,7 @@ export class IndonesiaGameSession extends GameSession<
     expandAnimationEntry: ExpandAnimationEntry | undefined = $state()
     shippingMergeAnimationEntry: ShippingMergeAnimationEntry | undefined = $state()
     siapSajiMergeAnimationEntry: SiapSajiMergeAnimationEntry | undefined = $state()
+    companyMergeAnimationEntry: CompanyMergeAnimationEntry | undefined = $state()
 
     selectedResearchPlayerIdOverride: string | undefined = $state()
     hoveredOperatingCompanyIdOverride: string | undefined = $state()
@@ -173,6 +183,12 @@ export class IndonesiaGameSession extends GameSession<
             return []
         }
         return this.gameState.actionCount < entry.targetActionCount ? entry.areaEntries : []
+    })
+    visibleCompanyCardOverridesByPlayerId = $derived.by(() => {
+        const entry = this.companyMergeAnimationEntry
+        return new Map(
+            entry?.playerCardOverrides.map((override) => [override.playerId, override.cards]) ?? []
+        )
     })
 
     isNewEra = $derived(this.gameState.machineState === MachineState.NewEra)
@@ -914,6 +930,7 @@ export class IndonesiaGameSession extends GameSession<
         this.resetAction()
         this.shippingMergeAnimationEntry = undefined
         this.siapSajiMergeAnimationEntry = undefined
+        this.companyMergeAnimationEntry = undefined
     }
 
     back(): void {
@@ -1512,6 +1529,22 @@ export class IndonesiaGameSession extends GameSession<
     clearSiapSajiMergeAnimation(actionId: string): void {
         if (this.siapSajiMergeAnimationEntry?.actionId === actionId) {
             this.siapSajiMergeAnimationEntry = undefined
+        }
+    }
+
+    rememberCompanyMergeAnimation(
+        actionId: string,
+        playerCardOverrides: {
+            playerId: string
+            cards: PlayerCompanyCardData[]
+        }[]
+    ): void {
+        this.companyMergeAnimationEntry = { actionId, playerCardOverrides }
+    }
+
+    clearCompanyMergeAnimation(actionId: string): void {
+        if (this.companyMergeAnimationEntry?.actionId === actionId) {
+            this.companyMergeAnimationEntry = undefined
         }
     }
 

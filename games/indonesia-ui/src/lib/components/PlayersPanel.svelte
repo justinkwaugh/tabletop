@@ -1,5 +1,9 @@
 <script lang="ts">
     import type { Player } from '@tabletop/common'
+    import {
+        attachCompanyMergerAnimator,
+        CompanyMergerAnimator
+    } from '$lib/animators/companyMergerAnimator.js'
     import type { HydratedIndonesiaPlayerState, IndonesiaPlayerState } from '@tabletop/indonesia'
     import { flip } from 'svelte/animate'
     import { cubicOut } from 'svelte/easing'
@@ -7,6 +11,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let gameSession = getGameSession()
+    const companyMergeAnimator = new CompanyMergerAnimator(gameSession)
 
     type PlayerAndState = { player: Player; playerState: HydratedIndonesiaPlayerState }
 
@@ -30,13 +35,20 @@
     }
 </script>
 
-<div class="players-panel-list text-center grow-0 shrink-0">
+<div
+    class="players-panel-list text-center grow-0 shrink-0"
+    {@attach attachCompanyMergerAnimator(companyMergeAnimator)}
+>
     {#each playersAndStates as playerAndState, index (playerAndState.player.id)}
         <div
             class="player-state-row {index > 0 ? 'player-state-row-divider' : ''}"
             animate:flip={{ duration: 320, easing: cubicOut }}
         >
-            <PlayerState player={playerAndState.player} playerState={playerAndState.playerState} />
+            <PlayerState
+                player={playerAndState.player}
+                playerState={playerAndState.playerState}
+                {companyMergeAnimator}
+            />
         </div>
     {/each}
 </div>

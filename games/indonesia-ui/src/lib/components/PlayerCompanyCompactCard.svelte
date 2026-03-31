@@ -7,33 +7,8 @@
     import SimpleSiapSajiIcon from '$lib/images/SimpleSiapSajiIcon.svelte'
     import SimpleSpiceIcon from '$lib/images/SimpleSpiceIcon.svelte'
     import type { CompanyCardType } from '$lib/types/companyCard.js'
+    import type { PlayerCompanyCardData } from '$lib/utils/playerCompanyCards.js'
     import { CompanyType, Era, Good } from '@tabletop/indonesia'
-
-    export type ProductionCompanyCardData = {
-        id: string
-        type: CompanyType.Production
-        good: Good
-        deedCount: number
-        goodsProduced: number
-        value: number
-        lastOperationProfit: number | null
-        hatchVariant: number | null
-    }
-
-    export type ShippingCompanyCardData = {
-        id: string
-        type: CompanyType.Shipping
-        deedCount: number
-        ships: number
-        maxShips: number
-        value: number
-        lastOperationProfit: number | null
-        hullSize: number
-        remainingEraMaximums: readonly { era: Era; max: number }[]
-        hatchVariant: null
-    }
-
-    export type PlayerCompanyCardData = ProductionCompanyCardData | ShippingCompanyCardData
 
     let { card, unavailable = false }: { card: PlayerCompanyCardData; unavailable?: boolean } = $props()
     const SIMPLE_SHIP_ICON_COLOR = '#216e7a'

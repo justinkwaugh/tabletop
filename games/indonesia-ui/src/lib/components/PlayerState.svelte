@@ -1,39 +1,28 @@
 <script lang="ts">
     import { type Player } from '@tabletop/common'
-    import PlayerCompanyCompactCard, {
-        type PlayerCompanyCardData
-    } from '$lib/components/PlayerCompanyCompactCard.svelte'
-    import { SHIPPING_ERA_ORDER, shippingSizeTotalsFromDeeds } from '$lib/utils/deeds.js'
-    import { productionHatchVariantByCompanyId as computeProductionHatchVariantByCompanyId } from '$lib/utils/productionHatching.js'
+    import { flip } from 'svelte/animate'
+    import { cubicOut } from 'svelte/easing'
+    import PlayerCompanyCompactCard from '$lib/components/PlayerCompanyCompactCard.svelte'
+    import type { CompanyMergerAnimator } from '$lib/animators/companyMergerAnimator.js'
+    import { animateMergedCompanyCard } from '$lib/animators/companyMergerAnimator.js'
+    import { playerCompanyCardsForState, type PlayerCompanyCardData } from '$lib/utils/playerCompanyCards.js'
     import {
-        GOOD_REVENUE_BY_GOOD,
-        type HydratedIndonesiaPlayerState,
         CompanyType,
-        Era,
+        type HydratedIndonesiaPlayerState,
         MachineState,
     } from '@tabletop/indonesia'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let gameSession = getGameSession()
-    let { player, playerState }: { player: Player; playerState: HydratedIndonesiaPlayerState } = $props()
-
-    const ERA_ORDER_INDEX: Record<Era, number> = {
-        [Era.A]: 0,
-        [Era.B]: 1,
-        [Era.C]: 2
-    }
-
-    function areaHasCompanyId(area: Record<string, unknown>): area is Record<string, unknown> & {
-        companyId: string
-    } {
-        return typeof area.companyId === 'string'
-    }
-
-    function areaHasShips(area: Record<string, unknown>): area is Record<string, unknown> & {
-        ships: string[]
-    } {
-        return Array.isArray(area.ships)
-    }
+    let {
+        player,
+        playerState,
+        companyMergeAnimator
+    }: {
+        player: Player
+        playerState: HydratedIndonesiaPlayerState
+        companyMergeAnimator: CompanyMergerAnimator
+    } = $props()
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))
     let bgColor = $derived(gameSession.colors.getPlayerBgColor(player.id))
@@ -44,43 +33,7 @@
         }
         return earningsByPlayerId[playerState.playerId] ?? 0
     })
-    let operationsIncomeByCompanyId = $derived(
-        gameSession.gameState.operationsIncomeByCompanyId ?? {}
-    )
     let earningsDisplay = $derived(String(operationsEarnings))
-    let ownedCompanies = $derived.by(() =>
-        gameSession.gameState.companies
-            .filter((company) => company.owner === playerState.playerId)
-            .sort((companyA, companyB) => companyA.id.localeCompare(companyB.id))
-    )
-
-    let cultivatedGoodsCountByCompanyId = $derived.by(() => {
-        const counts = new Map<string, number>()
-        for (const area of Object.values(gameSession.gameState.board.areas)) {
-            if (!areaHasCompanyId(area)) {
-                continue
-            }
-            counts.set(area.companyId, (counts.get(area.companyId) ?? 0) + 1)
-        }
-        return counts
-    })
-
-    let shipCountByCompanyId = $derived.by(() => {
-        const counts = new Map<string, number>()
-        for (const area of Object.values(gameSession.gameState.board.areas)) {
-            if (!areaHasShips(area)) {
-                continue
-            }
-            for (const companyId of area.ships) {
-                counts.set(companyId, (counts.get(companyId) ?? 0) + 1)
-            }
-        }
-        return counts
-    })
-
-    let productionHatchVariantByCompanyId = $derived.by(() => {
-        return computeProductionHatchVariantByCompanyId(gameSession.gameState, 4)
-    })
     let operatedCompanyIdSet = $derived.by(() => {
         const state = gameSession.gameState.machineState
         const inOperationsPhase =
@@ -90,60 +43,15 @@
         return inOperationsPhase ? new Set(gameSession.gameState.operatedCompanyIds) : new Set<string>()
     })
 
-    let companyCards: PlayerCompanyCardData[] = $derived.by(() => {
-        const currentEra = gameSession.gameState.era
-        const currentEraIndex = ERA_ORDER_INDEX[currentEra]
-
-        const cards: PlayerCompanyCardData[] = []
-        for (const company of ownedCompanies) {
-            const deedCount = company.deeds.length
-
-            if (company.type === CompanyType.Production && 'good' in company) {
-                const goodsProduced = cultivatedGoodsCountByCompanyId.get(company.id) ?? 0
-                const productionCard: PlayerCompanyCardData = {
-                    id: company.id,
-                    type: CompanyType.Production,
-                    good: company.good,
-                    deedCount,
-                    goodsProduced,
-                    value: goodsProduced * GOOD_REVENUE_BY_GOOD[company.good],
-                    lastOperationProfit: operationsIncomeByCompanyId[company.id] ?? null,
-                    hatchVariant: productionHatchVariantByCompanyId.get(company.id) ?? null
-                }
-                cards.push(productionCard)
-                continue
-            }
-
-            if (company.type === CompanyType.Shipping) {
-                const ships = shipCountByCompanyId.get(company.id) ?? 0
-                const sizeEntries = shippingSizeTotalsFromDeeds(company.deeds)
-                const maxByEra = new Map(sizeEntries.map((entry) => [entry.era, entry.size]))
-                const shippingCard: PlayerCompanyCardData = {
-                    id: company.id,
-                    type: CompanyType.Shipping,
-                    deedCount,
-                    ships,
-                    maxShips: maxByEra.get(currentEra) ?? 0,
-                    value: ships * 10,
-                    lastOperationProfit: operationsIncomeByCompanyId[company.id] ?? null,
-                    hullSize: playerState.research.hull + 1,
-                    remainingEraMaximums: SHIPPING_ERA_ORDER.filter(
-                        (era) => ERA_ORDER_INDEX[era] >= currentEraIndex
-                    ).map((era) => ({
-                        era,
-                        max: maxByEra.get(era) ?? 0
-                    })),
-                    hatchVariant: null
-                }
-                cards.push(shippingCard)
-            }
-        }
-
-        return cards
-    })
+    let companyCards: PlayerCompanyCardData[] = $derived.by(() =>
+        playerCompanyCardsForState(gameSession.gameState, playerState.playerId)
+    )
+    let visibleCompanyCards: PlayerCompanyCardData[] = $derived.by(
+        () => gameSession.visibleCompanyCardOverridesByPlayerId.get(player.id) ?? companyCards
+    )
 
     const maxCompanySlots = $derived(1 + playerState.research.slots)
-    const openCompanySlots = $derived(Math.max(0, maxCompanySlots - ownedCompanies.length))
+    const openCompanySlots = $derived(Math.max(0, maxCompanySlots - visibleCompanyCards.length))
     const openCompanySlotIndexes = $derived(Array.from({ length: openCompanySlots }, (_, index) => index))
     const companySectionMeta = $derived(
         playerState.research.mergers > 0
@@ -224,13 +132,15 @@
                 {/if}
             </div>
 
-            {#if !showNoCompaniesPreview && (companyCards.length > 0 || openCompanySlots > 0)}
+            {#if !showNoCompaniesPreview && (visibleCompanyCards.length > 0 || openCompanySlots > 0)}
                 <div class="player-company-cards" aria-label={`${player.name} companies`}>
-                    {#each companyCards as card (card.id)}
+                    {#each visibleCompanyCards as card (card.id)}
                         {@const unavailable = operatedCompanyIdSet.has(card.id)}
                         <div
                             class="player-company-card-hover-target"
                             class:player-company-card-hover-target-unavailable={unavailable}
+                            animate:flip={{ duration: 420, easing: cubicOut }}
+                            use:animateMergedCompanyCard={{ animator: companyMergeAnimator, companyId: card.id }}
                             onpointerenter={() => {
                                 gameSession.setHoveredOperatingCompany(card.id)
                             }}
@@ -251,6 +161,7 @@
                     {#each openCompanySlotIndexes as openSlotIndex (openSlotIndex)}
                         <div
                             class="player-company-slot-card"
+                            animate:flip={{ duration: 420, easing: cubicOut }}
                             aria-label="open slot"
                         >
                             <span class="player-company-slot-label">open slot</span>

@@ -1,12 +1,11 @@
 <script lang="ts">
-    import PlayerCompanyCompactCard, {
-        type PlayerCompanyCardData
-    } from '$lib/components/PlayerCompanyCompactCard.svelte'
+    import PlayerCompanyCompactCard from '$lib/components/PlayerCompanyCompactCard.svelte'
     import LastHistoryDescription from '$lib/components/LastHistoryDescription.svelte'
     import ShipMarker from '$lib/components/ShipMarker.svelte'
     import { shadeHexColor } from '$lib/utils/color.js'
     import { SHIPPING_ERA_ORDER, shippingSizeTotalsFromDeeds } from '$lib/utils/deeds.js'
     import { splitQuantifiedPlannedDeliveryRow } from '$lib/utils/plannedDeliveryRows.js'
+    import type { PlayerCompanyCardData } from '$lib/utils/playerCompanyCards.js'
     import { shippingStyleByCompanyId, type ShippingStyle } from '$lib/utils/shippingStyles.js'
     import { summarizeConsecutiveTurnOrderBids } from '$lib/utils/turnOrderBidSummary.js'
     import { Color } from '@tabletop/common'
