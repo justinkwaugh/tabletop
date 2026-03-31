@@ -107,11 +107,16 @@ type BoardPreviewIntent =
           cardId: string
       }
 
+type StartedCompanyAnimationEntry = {
+    action: GameAction
+}
+
 export class IndonesiaGameSession extends GameSession<
     IndonesiaGameState,
     HydratedIndonesiaGameState
 > {
     visibleActionOverride: GameAction | undefined = $state()
+    startedCompanyAnimationEntry: StartedCompanyAnimationEntry | undefined = $state()
 
     selectedResearchPlayerIdOverride: string | undefined = $state()
     hoveredOperatingCompanyIdOverride: string | undefined = $state()
@@ -126,6 +131,10 @@ export class IndonesiaGameSession extends GameSession<
     hoveredPlannedDeliveryRouteOverride: PlannedDeliveryRouteHover | undefined = $state()
     suppressBoardEffectsForHistory = $derived(this.isViewingHistory)
     visibleAction = $derived.by(() => this.visibleActionOverride ?? this.currentAction)
+    visibleStartedCompanyAnimationEntries = $derived.by(() => {
+        const entry = this.startedCompanyAnimationEntry
+        return entry ? [entry] : []
+    })
 
     isNewEra = $derived(this.gameState.machineState === MachineState.NewEra)
     researchSelectionEnabled = $derived.by(
@@ -1408,12 +1417,23 @@ export class IndonesiaGameSession extends GameSession<
         action?: GameAction
         animationContext: AnimationContext
     }) {
+        const actionId = action?.id
         this.visibleActionOverride = action
         animationContext.afterAnimations(() => {
-            if (this.visibleActionOverride === action) {
+            if (actionId && this.visibleActionOverride?.id === actionId) {
                 this.visibleActionOverride = undefined
             }
         })
+    }
+
+    rememberStartedCompanyAnimation(action: GameAction): void {
+        this.startedCompanyAnimationEntry = { action }
+    }
+
+    clearStartedCompanyAnimation(actionId: string): void {
+        if (this.startedCompanyAnimationEntry?.action.id === actionId) {
+            this.startedCompanyAnimationEntry = undefined
+        }
     }
 
     private minimumMergerBid(): number | null {

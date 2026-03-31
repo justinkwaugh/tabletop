@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte'
+    import { StartCompanyAnimator } from '$lib/animators/startCompanyAnimator.js'
     import boardImg from '$lib/images/indo_map_sm.jpg'
     import BoardActionAreasLayer from '$lib/components/BoardActionAreasLayer.svelte'
     import BoardCityReferenceCardLayer from '$lib/components/BoardCityReferenceCardLayer.svelte'
@@ -15,6 +16,7 @@
     import BoardDebugOverlay from '$lib/components/BoardDebugOverlay.svelte'
     import EraCrossMark from '$lib/components/EraCrossMark.svelte'
     import type { CityDemandViewMode } from '$lib/model/cityDemandView.js'
+    import { setStartCompanyAnimatorContext } from '$lib/model/startCompanyAnimatorContext.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { MachineState } from '@tabletop/indonesia'
 
@@ -23,6 +25,7 @@
     const DEBUG_GEOMETRY_STORAGE_KEY = 'indonesia-debug-geometry'
 
     const gameSession = getGameSession()
+    setStartCompanyAnimatorContext(new StartCompanyAnimator(gameSession))
     let debugOverlayActive = $state(false)
     let debugOverlayEnabled = $state(false)
     let hoveredTurnOrderPlayerId = $state<string | null>(null)

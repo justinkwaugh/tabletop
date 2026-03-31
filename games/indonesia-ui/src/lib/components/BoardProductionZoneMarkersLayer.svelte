@@ -1,12 +1,15 @@
 <script lang="ts">
     import { onDestroy, onMount } from 'svelte'
+    import { animateStartedProductionMarker } from '$lib/animators/startCompanyAnimator.js'
     import CompanyZoneMarker from '$lib/components/CompanyZoneMarker.svelte'
-    import { boardAreaPathById } from '$lib/definitions/boardGeometry.js'
     import {
         PRODUCTION_ZONE_MARKER_OFFSETS,
         PRODUCTION_ZONE_MARKER_OFFSETS_STORAGE_KEY
     } from '$lib/definitions/productionZoneMarkerOffsets.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
+    import { getStartCompanyAnimatorContext } from '$lib/model/startCompanyAnimatorContext.svelte.js'
+    import { resolveProductionZoneBoundaryTarget } from '$lib/utils/productionZoneMarkerBoundary.js'
+    import { startedProductionZoneMarkerEntryForAction } from '$lib/utils/startedCompanyEntries.js'
     import { productionHatchVariantByCompanyId } from '$lib/utils/productionHatching.js'
     import { resolveLandMarkerPosition } from '$lib/utils/boardMarkers.js'
     import type { Point } from '@tabletop/common'
@@ -67,13 +70,6 @@
         direction: MarkerDirection
     }
 
-    type BoundaryProfile = {
-        pathElement: SVGPathElement
-        totalLength: number
-        sampleLengths: number[]
-        samplePoints: Point[]
-    }
-
     type UiPerfAggregate = {
         count: number
         totalMs: number
@@ -95,12 +91,6 @@
         'cultivated-hatch-diag-2',
         'cultivated-hatch-diag-3'
     ] as const
-    const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
-    const BOUNDARY_SAMPLE_SPACING = 12
-    const BOUNDARY_REFINE_ITERATIONS = 8
-    const BOUNDARY_CACHE_DECIMALS = 1
-    const MAX_BOUNDARY_POINT_CACHE_ENTRIES = 4000
-    const MAX_ZONE_BOUNDARY_TARGET_CACHE_ENTRIES = 2500
     const MAX_COMPANY_ZONE_CACHE_ENTRIES = 1200
     const PRODUCTION_ZONE_MARKER_OFFSETS_EVENT = 'indonesia-production-zone-marker-offsets-change'
     const ENABLE_NS_MARKER_DIRECTIONS = false
@@ -149,21 +139,13 @@
     )
 
     const gameSession = getGameSession()
-    let hiddenSvgRoot: SVGSVGElement | null = null
-    const boundaryProfileByAreaId = new Map<string, BoundaryProfile>()
-    const boundaryPointCache = new Map<string, Point | null>()
-    const zoneBoundaryTargetCache = new Map<string, Point>()
+    const startCompanyAnimator = getStartCompanyAnimatorContext()
     const companyCultivatedZoneCache = new Map<string, CompanyCultivatedZone[]>()
     let runtimeProductionZoneMarkerOffsets: Record<string, Point> = {}
     let uiPerfEnabled = false
 
     function clamp(value: number, min: number, max: number): number {
         return Math.max(min, Math.min(max, value))
-    }
-
-    function roundToCachePrecision(value: number): number {
-        const scale = 10 ** BOUNDARY_CACHE_DECIMALS
-        return Math.round(value * scale) / scale
     }
 
     function setBoundedMapValue<K, V>(map: Map<K, V>, key: K, value: V, maxEntries: number): void {
@@ -343,253 +325,6 @@
         const dx = a.x - b.x
         const dy = a.y - b.y
         return Math.hypot(dx, dy)
-    }
-
-    function ensureHiddenSvgRoot(): SVGSVGElement | null {
-        if (typeof document === 'undefined') {
-            return null
-        }
-
-        if (hiddenSvgRoot) {
-            return hiddenSvgRoot
-        }
-
-        const root = document.createElementNS(SVG_NAMESPACE, 'svg')
-        root.setAttribute('width', '0')
-        root.setAttribute('height', '0')
-        root.setAttribute('viewBox', '0 0 0 0')
-        root.setAttribute('aria-hidden', 'true')
-        root.style.position = 'absolute'
-        root.style.width = '0'
-        root.style.height = '0'
-        root.style.opacity = '0'
-        root.style.overflow = 'hidden'
-        root.style.pointerEvents = 'none'
-        root.style.left = '-99999px'
-        root.style.top = '-99999px'
-        document.body.appendChild(root)
-        hiddenSvgRoot = root
-        return root
-    }
-
-    function boundaryPointCacheKey(areaId: string, point: Point): string {
-        return `${areaId}|${roundToCachePrecision(point.x)}|${roundToCachePrecision(point.y)}`
-    }
-
-    function zoneBoundaryTargetCacheKey(markerPoint: Point, zoneAreaIds: readonly string[]): string {
-        return `${roundToCachePrecision(markerPoint.x)}|${roundToCachePrecision(markerPoint.y)}|${zoneAreaIds.join(',')}`
-    }
-
-    function ensureBoundaryProfileForArea(areaId: string): BoundaryProfile | null {
-        const cached = boundaryProfileByAreaId.get(areaId)
-        if (cached) {
-            return cached
-        }
-
-        const root = ensureHiddenSvgRoot()
-        if (!root) {
-            return null
-        }
-
-        const areaPath = boardAreaPathById(areaId)
-        if (!areaPath) {
-            return null
-        }
-
-        const pathElement = document.createElementNS(SVG_NAMESPACE, 'path')
-        pathElement.setAttribute('d', areaPath)
-        root.appendChild(pathElement)
-
-        const totalLength = pathElement.getTotalLength()
-        if (!Number.isFinite(totalLength) || totalLength <= 0) {
-            pathElement.remove()
-            return null
-        }
-
-        const sampleCount = Math.max(8, Math.ceil(totalLength / BOUNDARY_SAMPLE_SPACING))
-        const sampleLengths: number[] = []
-        const samplePoints: Point[] = []
-        for (let sampleIndex = 0; sampleIndex <= sampleCount; sampleIndex += 1) {
-            const sampleLength = (totalLength * sampleIndex) / sampleCount
-            const samplePoint = pathElement.getPointAtLength(sampleLength)
-            sampleLengths.push(sampleLength)
-            samplePoints.push({
-                x: samplePoint.x,
-                y: samplePoint.y
-            })
-        }
-
-        const profile: BoundaryProfile = {
-            pathElement,
-            totalLength,
-            sampleLengths,
-            samplePoints
-        }
-        boundaryProfileByAreaId.set(areaId, profile)
-        return profile
-    }
-
-    function nearestPointOnAreaBoundary(areaId: string, point: Point): Point | null {
-        const cachedPoint = boundaryPointCache.get(boundaryPointCacheKey(areaId, point))
-        if (cachedPoint !== undefined) {
-            return cachedPoint
-        }
-
-        const profile = ensureBoundaryProfileForArea(areaId)
-        if (!profile) {
-            setBoundedMapValue(
-                boundaryPointCache,
-                boundaryPointCacheKey(areaId, point),
-                null,
-                MAX_BOUNDARY_POINT_CACHE_ENTRIES
-            )
-            return null
-        }
-
-        const { pathElement, totalLength, sampleLengths, samplePoints } = profile
-        if (samplePoints.length === 0) {
-            setBoundedMapValue(
-                boundaryPointCache,
-                boundaryPointCacheKey(areaId, point),
-                null,
-                MAX_BOUNDARY_POINT_CACHE_ENTRIES
-            )
-            return null
-        }
-
-        let bestIndex = 0
-        let bestPoint = samplePoints[0] as Point
-        let bestDistance = pointDistance(point, bestPoint)
-        let bestLength = sampleLengths[0] ?? 0
-        for (let sampleIndex = 1; sampleIndex < samplePoints.length; sampleIndex += 1) {
-            const samplePoint = samplePoints[sampleIndex] as Point
-            const distance = pointDistance(point, samplePoint)
-            if (distance < bestDistance) {
-                bestDistance = distance
-                bestIndex = sampleIndex
-                bestPoint = samplePoint
-                bestLength = sampleLengths[sampleIndex] ?? bestLength
-            }
-        }
-
-        const leftNeighborLength = sampleLengths[Math.max(0, bestIndex - 1)] ?? bestLength
-        const rightNeighborLength =
-            sampleLengths[Math.min(sampleLengths.length - 1, bestIndex + 1)] ?? bestLength
-        let leftLength = Math.max(0, Math.min(leftNeighborLength, bestLength))
-        let rightLength = Math.min(totalLength, Math.max(rightNeighborLength, bestLength))
-        if (rightLength <= leftLength) {
-            const sampleSpan = totalLength / Math.max(1, samplePoints.length - 1)
-            leftLength = Math.max(0, bestLength - sampleSpan)
-            rightLength = Math.min(totalLength, bestLength + sampleSpan)
-        }
-
-        for (let iteration = 0; iteration < BOUNDARY_REFINE_ITERATIONS; iteration += 1) {
-            const span = rightLength - leftLength
-            if (span < 0.0001) {
-                break
-            }
-
-            const leftThirdLength = leftLength + span / 3
-            const rightThirdLength = rightLength - span / 3
-            const leftThirdPoint = pathElement.getPointAtLength(leftThirdLength)
-            const rightThirdPoint = pathElement.getPointAtLength(rightThirdLength)
-            const leftThirdDistance = pointDistance(point, { x: leftThirdPoint.x, y: leftThirdPoint.y })
-            const rightThirdDistance = pointDistance(point, {
-                x: rightThirdPoint.x,
-                y: rightThirdPoint.y
-            })
-
-            if (leftThirdDistance <= rightThirdDistance) {
-                rightLength = rightThirdLength
-                if (leftThirdDistance < bestDistance) {
-                    bestDistance = leftThirdDistance
-                    bestLength = leftThirdLength
-                    bestPoint = { x: leftThirdPoint.x, y: leftThirdPoint.y }
-                }
-            } else {
-                leftLength = leftThirdLength
-                if (rightThirdDistance < bestDistance) {
-                    bestDistance = rightThirdDistance
-                    bestLength = rightThirdLength
-                    bestPoint = { x: rightThirdPoint.x, y: rightThirdPoint.y }
-                }
-            }
-        }
-
-        const refinedPoint = pathElement.getPointAtLength(bestLength)
-        const refinedDistance = pointDistance(point, { x: refinedPoint.x, y: refinedPoint.y })
-        const resolvedPoint =
-            refinedDistance < bestDistance
-                ? {
-                      x: refinedPoint.x,
-                      y: refinedPoint.y
-                  }
-                : {
-                      x: bestPoint.x,
-                      y: bestPoint.y
-                  }
-        setBoundedMapValue(
-            boundaryPointCache,
-            boundaryPointCacheKey(areaId, point),
-            resolvedPoint,
-            MAX_BOUNDARY_POINT_CACHE_ENTRIES
-        )
-        return resolvedPoint
-    }
-
-    function resolveBoundaryTargetPoint(
-        markerPoint: Point,
-        zoneAreaIds: readonly string[],
-        fallbackTarget: Point
-    ): Point {
-        if (zoneAreaIds.length === 0) {
-            return fallbackTarget
-        }
-
-        const cachedBoundaryTarget = zoneBoundaryTargetCache.get(
-            zoneBoundaryTargetCacheKey(markerPoint, zoneAreaIds)
-        )
-        if (cachedBoundaryTarget) {
-            return cachedBoundaryTarget
-        }
-
-        let nearestPoint: Point | null = null
-        let nearestDistance = Number.POSITIVE_INFINITY
-
-        const orderedAreaIds = [...zoneAreaIds].sort((leftAreaId, rightAreaId) => {
-            const leftCenter = resolveLandMarkerPosition(leftAreaId)
-            const rightCenter = resolveLandMarkerPosition(rightAreaId)
-            const leftDistance = leftCenter ? pointDistance(markerPoint, leftCenter) : Number.POSITIVE_INFINITY
-            const rightDistance = rightCenter
-                ? pointDistance(markerPoint, rightCenter)
-                : Number.POSITIVE_INFINITY
-            if (leftDistance !== rightDistance) {
-                return leftDistance - rightDistance
-            }
-            return leftAreaId.localeCompare(rightAreaId, undefined, { numeric: true })
-        })
-
-        for (const areaId of orderedAreaIds) {
-            const boundaryPoint = nearestPointOnAreaBoundary(areaId, markerPoint)
-            if (!boundaryPoint) {
-                continue
-            }
-
-            const distance = pointDistance(markerPoint, boundaryPoint)
-            if (distance < nearestDistance) {
-                nearestDistance = distance
-                nearestPoint = boundaryPoint
-            }
-        }
-
-        const resolvedTarget = nearestPoint ?? fallbackTarget
-        setBoundedMapValue(
-            zoneBoundaryTargetCache,
-            zoneBoundaryTargetCacheKey(markerPoint, zoneAreaIds),
-            resolvedTarget,
-            MAX_ZONE_BOUNDARY_TARGET_CACHE_ENTRIES
-        )
-        return resolvedTarget
     }
 
     function asMarkerGood(good: Good): MarkerGood {
@@ -934,7 +669,7 @@
                 const markerX = clamp(baseMarkerX + deedOffset.x, EDGE_PADDING, BOARD_WIDTH - EDGE_PADDING)
                 const markerY = clamp(baseMarkerY + deedOffset.y, EDGE_PADDING, BOARD_HEIGHT - EDGE_PADDING)
                 const boundaryResolveStartAt = uiPerfEnabled ? performance.now() : 0
-                const wireTarget = resolveBoundaryTargetPoint(
+                const wireTarget = resolveProductionZoneBoundaryTarget(
                     { x: markerX, y: markerY },
                     marker.zoneAreaIds,
                     marker.zoneTarget
@@ -1002,8 +737,6 @@
                     pendingCount: pendingMarkers.length,
                     zoneBuildMs: Math.round(zoneBuildMs * 100) / 100,
                     boundaryResolveMs: Math.round(boundaryResolveMs * 100) / 100,
-                    boundaryPointCacheSize: boundaryPointCache.size,
-                    zoneBoundaryTargetCacheSize: zoneBoundaryTargetCache.size,
                     companyZoneCacheSize: companyCultivatedZoneCache.size
                 }
             )
@@ -1042,6 +775,18 @@
         return productionZoneMarkers.filter((marker) =>
             spotlightedProductionCompanyIdSet.has(marker.companyId)
         )
+    })
+
+    const startedProductionZoneMarkers = $derived.by(() => {
+        return gameSession.visibleStartedCompanyAnimationEntries
+            .map((entry) =>
+                startedProductionZoneMarkerEntryForAction({
+                    gameState: gameSession.gameState,
+                    action: entry.action,
+                    ownerColor: gameSession.colors.getPlayerUiColor(entry.action.playerId)
+                })
+            )
+            .filter((marker): marker is NonNullable<typeof marker> => marker !== null)
     })
 
     const maskNonSelectableZoneTagsDuringDeliverySelection: boolean = $derived.by(() => {
@@ -1199,12 +944,7 @@
     })
 
     onDestroy(() => {
-        boundaryProfileByAreaId.clear()
-        boundaryPointCache.clear()
-        zoneBoundaryTargetCache.clear()
         companyCultivatedZoneCache.clear()
-        hiddenSvgRoot?.remove()
-        hiddenSvgRoot = null
 
         if (typeof window === 'undefined') {
             return
@@ -1261,4 +1001,30 @@
             />
         {/each}
     {/if}
+
+    {#each startedProductionZoneMarkers as marker (marker.key)}
+        <g
+            opacity="0"
+            use:animateStartedProductionMarker={{
+                animator: startCompanyAnimator,
+                companyId: marker.companyId
+            }}
+        >
+            <CompanyZoneMarker
+                x={marker.x}
+                y={marker.y}
+                targetX={marker.targetX}
+                targetY={marker.targetY}
+                playerColor={marker.ownerColor}
+                goodType={marker.goodType}
+                goodsCount={marker.goodsCount}
+                hatchPatternId={marker.hatchPatternId}
+                direction={marker.direction}
+                highlighted={false}
+                masked={false}
+                maskedOpacity={0}
+                onClick={toggleProductionZoneRenderStyle}
+            />
+        </g>
+    {/each}
 </g>

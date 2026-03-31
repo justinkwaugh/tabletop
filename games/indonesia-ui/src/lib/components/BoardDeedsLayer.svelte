@@ -4,6 +4,10 @@
         attachDeedPlacementAnimator,
         DeedPlacementAnimator
     } from '$lib/animators/deedPlacementAnimator.js'
+    import {
+        animateStartedCompanyDeed,
+        attachStartCompanyAnimator
+    } from '$lib/animators/startCompanyAnimator.js'
     import { BOARD_AREA_PATH_BY_ID } from '$lib/definitions/boardGeometry.js'
     import Area from '$lib/components/Area.svelte'
     import CompanyDeed, { companyDeedStyleForType } from '$lib/components/CompanyDeed.svelte'
@@ -19,6 +23,7 @@
     } from '$lib/components/boardActionAreas/seaHighlight.js'
     import { deedPositionKey, deedPositionLookupKeys } from '$lib/utils/deeds.js'
     import { deedCardEntryForDeed, type DeedCardEntry } from '$lib/utils/deedCardEntries.js'
+    import { getStartCompanyAnimatorContext } from '$lib/model/startCompanyAnimatorContext.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { CompanyType, MachineState } from '@tabletop/indonesia'
 
@@ -59,12 +64,15 @@
     const DEED_NEUTRAL_PATTERN_COLOR = '#2b231d'
     let animatedDeedCards: DeedCardEntry[] = $state([])
     let animatedDeedIdSet: ReadonlySet<string> = $state(new Set<string>())
+    let animatedDeedTargetActionCount: number | null = $state(null)
     const deedPlacementAnimator = new DeedPlacementAnimator(gameSession, {
-        showAnimatedDeedCards: ({ cards, animatedDeedIds }) => {
+        showAnimatedDeedCards: ({ cards, animatedDeedIds, targetActionCount }) => {
             animatedDeedCards = cards
             animatedDeedIdSet = new Set(animatedDeedIds)
+            animatedDeedTargetActionCount = targetActionCount
         }
     })
+    const startCompanyAnimator = getStartCompanyAnimatorContext()
     const DEED_LAYER_DATA: {
         cards: DeedCardEntry[]
         overlays: OverlayArea[]
@@ -134,18 +142,15 @@
     })
 
     const DEED_CARD_ENTRIES: DeedCardEntry[] = $derived(DEED_LAYER_DATA.cards)
-    function deedIdSignature(cards: readonly DeedCardEntry[]): string {
-        return cards.map((card) => card.deedId).join('|')
-    }
-
     const DISPLAYED_DEED_CARD_ENTRIES: DeedCardEntry[] = $derived.by(() => {
-        if (animatedDeedCards.length === 0) {
+        if (
+            animatedDeedCards.length === 0 ||
+            animatedDeedTargetActionCount === null ||
+            gameSession.gameState.actionCount >= animatedDeedTargetActionCount
+        ) {
             return DEED_CARD_ENTRIES
         }
-
-        return deedIdSignature(animatedDeedCards) === deedIdSignature(DEED_CARD_ENTRIES)
-            ? DEED_CARD_ENTRIES
-            : animatedDeedCards
+        return animatedDeedCards
     })
     const DEED_OVERLAY_AREAS: OverlayArea[] = $derived(DEED_LAYER_DATA.overlays)
     const hoveredAvailableDeedId: string | null = $derived(gameSession.hoveredAvailableDeedId)
@@ -252,6 +257,7 @@
     class="select-none"
     aria-label="Available deeds layer"
     {@attach attachDeedPlacementAnimator(deedPlacementAnimator)}
+    {@attach attachStartCompanyAnimator(startCompanyAnimator)}
 >
         <defs>
             <pattern
@@ -350,32 +356,24 @@
             {/each}
 
             {#each backgroundDeedCardEntries as deed (deed.key)}
-                {#if animatedDeedIdSet.has(deed.deedId)}
-                    <g
-                        transform={`translate(${deed.cardX} ${deed.cardY})`}
-                        use:animatePlacedDeed={{ animator: deedPlacementAnimator, deedId: deed.deedId }}
-                    >
-                        <CompanyDeed
-                            type={deed.cardKind}
-                            x={0}
-                            y={0}
-                            height={BOARD_DEED_CARD_HEIGHT}
-                            text={deed.text}
-                            textLayout={deed.textLayout}
-                            shippingSizes={deed.shippingSizes}
-                        />
-                    </g>
-                {:else}
+                <g
+                    transform={`translate(${deed.cardX} ${deed.cardY})`}
+                    use:animatePlacedDeed={{ animator: deedPlacementAnimator, deedId: deed.deedId }}
+                    use:animateStartedCompanyDeed={{
+                        animator: startCompanyAnimator,
+                        deedId: deed.deedId
+                    }}
+                >
                     <CompanyDeed
                         type={deed.cardKind}
-                        x={deed.cardX}
-                        y={deed.cardY}
+                        x={0}
+                        y={0}
                         height={BOARD_DEED_CARD_HEIGHT}
                         text={deed.text}
                         textLayout={deed.textLayout}
                         shippingSizes={deed.shippingSizes}
                     />
-                {/if}
+                </g>
             {/each}
         </g>
 
@@ -432,35 +430,27 @@
         {/each}
 
         {#each foregroundHoveredDeedCardEntries as hoveredDeed (hoveredDeed.deedId)}
-            {#if animatedDeedIdSet.has(hoveredDeed.deedId)}
-                <g
-                    transform={`translate(${hoveredDeed.cardX} ${hoveredDeed.cardY})`}
-                    use:animatePlacedDeed={{
-                        animator: deedPlacementAnimator,
-                        deedId: hoveredDeed.deedId
-                    }}
-                >
-                    <CompanyDeed
-                        type={hoveredDeed.cardKind}
-                        x={0}
-                        y={0}
-                        height={BOARD_DEED_CARD_HEIGHT}
-                        text={hoveredDeed.text}
-                        textLayout={hoveredDeed.textLayout}
-                        shippingSizes={hoveredDeed.shippingSizes}
-                    />
-                </g>
-            {:else}
+            <g
+                transform={`translate(${hoveredDeed.cardX} ${hoveredDeed.cardY})`}
+                use:animatePlacedDeed={{
+                    animator: deedPlacementAnimator,
+                    deedId: hoveredDeed.deedId
+                }}
+                use:animateStartedCompanyDeed={{
+                    animator: startCompanyAnimator,
+                    deedId: hoveredDeed.deedId
+                }}
+            >
                 <CompanyDeed
                     type={hoveredDeed.cardKind}
-                    x={hoveredDeed.cardX}
-                    y={hoveredDeed.cardY}
+                    x={0}
+                    y={0}
                     height={BOARD_DEED_CARD_HEIGHT}
                     text={hoveredDeed.text}
                     textLayout={hoveredDeed.textLayout}
                     shippingSizes={hoveredDeed.shippingSizes}
                 />
-            {/if}
+            </g>
         {/each}
 
         <g

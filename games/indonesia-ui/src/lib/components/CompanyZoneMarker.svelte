@@ -250,119 +250,123 @@
 
 <g class="pointer-events-none select-none" aria-hidden="true">
     {#if connectorPath && targetX !== null && targetY !== null}
-        <path
-            d={connectorPath}
-            fill="none"
-            stroke="#fff8d7"
-            stroke-width={connectorHaloStrokeWidth}
-            opacity={connectorHaloOpacity}
-        ></path>
-        <path
-            d={connectorPath}
-            fill="none"
-            stroke={shadowColor}
-            stroke-width={connectorHaloStrokeWidth}
-            opacity="0.24"
-        ></path>
-        <path d={connectorPath} fill="none" stroke={borderColor} stroke-width={connectorMainStrokeWidth}></path>
-        <circle
-            cx={targetX}
-            cy={targetY}
-            r={connectorTargetRadius}
-            fill="#f8fafc"
-            stroke={borderColor}
-            stroke-width={connectorTargetStrokeWidth}
-        ></circle>
+        <g class="company-zone-marker__connector">
+            <path
+                d={connectorPath}
+                fill="none"
+                stroke="#fff8d7"
+                stroke-width={connectorHaloStrokeWidth}
+                opacity={connectorHaloOpacity}
+            ></path>
+            <path
+                d={connectorPath}
+                fill="none"
+                stroke={shadowColor}
+                stroke-width={connectorHaloStrokeWidth}
+                opacity="0.24"
+            ></path>
+            <path d={connectorPath} fill="none" stroke={borderColor} stroke-width={connectorMainStrokeWidth}></path>
+            <circle
+                cx={targetX}
+                cy={targetY}
+                r={connectorTargetRadius}
+                fill="#f8fafc"
+                stroke={borderColor}
+                stroke-width={connectorTargetStrokeWidth}
+            ></circle>
+        </g>
     {/if}
 
-    <g transform={bodyScaleTransform}>
-        <defs>
-            <clipPath id={bodyClipPathId}>
-                <path d={bodyPath}></path>
-            </clipPath>
-        </defs>
-        <path d={bodyPath} fill={shadowColor} opacity="0.28" transform="translate(1.8 2.1)"></path>
-        {#if highlighted}
+    <g class="company-zone-marker__body">
+        <g transform={bodyScaleTransform}>
+            <defs>
+                <clipPath id={bodyClipPathId}>
+                    <path d={bodyPath}></path>
+                </clipPath>
+            </defs>
+            <path d={bodyPath} fill={shadowColor} opacity="0.28" transform="translate(1.8 2.1)"></path>
+            {#if highlighted}
+                <path
+                    d={bodyPath}
+                    fill="none"
+                    stroke="#fff8d7"
+                    stroke-width={bodyHaloStrokeWidth}
+                    stroke-linejoin="round"
+                    opacity="0.86"
+                ></path>
+            {/if}
+            <path
+                d={bodyPath}
+                fill={playerColor}
+                stroke="none"
+            ></path>
+            <rect
+                x={iconSquareX}
+                y={iconSquareY}
+                width={splitWidth}
+                height={markerHeight}
+                fill={goodsFillColor}
+                clip-path={`url(#${bodyClipPathId})`}
+            ></rect>
             <path
                 d={bodyPath}
                 fill="none"
-                stroke="#fff8d7"
-                stroke-width={bodyHaloStrokeWidth}
+                stroke={borderColor}
+                stroke-width="2.2"
                 stroke-linejoin="round"
-                opacity="0.86"
             ></path>
-        {/if}
-        <path
-            d={bodyPath}
-            fill={playerColor}
-            stroke="none"
-        ></path>
-        <rect
-            x={iconSquareX}
-            y={iconSquareY}
-            width={splitWidth}
-            height={markerHeight}
-            fill={goodsFillColor}
-            clip-path={`url(#${bodyClipPathId})`}
-        ></rect>
-        <path
-            d={bodyPath}
-            fill="none"
-            stroke={borderColor}
-            stroke-width="2.2"
-            stroke-linejoin="round"
-        ></path>
-        <path
-            d={bodyPath}
-            fill="none"
-            stroke={accentColor}
-            stroke-width="1"
-            stroke-linejoin="round"
-            opacity="0.38"
-            transform="translate(0.4 0.4)"
-        ></path>
-    </g>
+            <path
+                d={bodyPath}
+                fill="none"
+                stroke={accentColor}
+                stroke-width="1"
+                stroke-linejoin="round"
+                opacity="0.38"
+                transform="translate(0.4 0.4)"
+            ></path>
+        </g>
 
-    <g transform={contentScaleTransform}>
-        {#if goodType === 'spice'}
-            <SpiceMarker x={iconCenterX} y={iconCenterY} height={spiceIconHeight} outline={false} />
-        {:else if goodType === 'siapsaji'}
-            <SiapSajiMarker x={iconCenterX} y={iconCenterY} height={siapSajiIconHeight} outline={false} />
-        {:else if goodType === 'oil'}
-            <OilMarker x={iconCenterX} y={iconCenterY} height={iconHeight} outline={false} />
-        {:else if goodType === 'rice'}
-            <RiceMarker x={iconCenterX} y={iconCenterY} height={iconHeight} outline={false} />
-        {:else}
-            <RubberMarker x={iconCenterX} y={iconCenterY} height={iconHeight} outline={false} />
-        {/if}
+        <g transform={contentScaleTransform}>
+            {#if goodType === 'spice'}
+                <SpiceMarker x={iconCenterX} y={iconCenterY} height={spiceIconHeight} outline={false} />
+            {:else if goodType === 'siapsaji'}
+                <SiapSajiMarker x={iconCenterX} y={iconCenterY} height={siapSajiIconHeight} outline={false} />
+            {:else if goodType === 'oil'}
+                <OilMarker x={iconCenterX} y={iconCenterY} height={iconHeight} outline={false} />
+            {:else if goodType === 'rice'}
+                <RiceMarker x={iconCenterX} y={iconCenterY} height={iconHeight} outline={false} />
+            {:else}
+                <RubberMarker x={iconCenterX} y={iconCenterY} height={iconHeight} outline={false} />
+            {/if}
 
-        <text
-            x={countX + 1}
-            y={countY + 1}
-            fill="#000000"
-            opacity="0.5"
-            font-size={countFontSize}
-            font-weight="800"
-            text-anchor="middle"
-            dominant-baseline="central"
-            font-family="'Trebuchet MS', 'Avenir Next', 'Segoe UI', sans-serif"
-            letter-spacing="-1.2"
-        >
-            {goodsCount}
-        </text>
-        <text
-            x={countX}
-            y={countY}
-            fill="#ffffff"
-            font-size={countFontSize}
-            font-weight="800"
-            text-anchor="middle"
-            dominant-baseline="central"
-            font-family="'Trebuchet MS', 'Avenir Next', 'Segoe UI', sans-serif"
-            letter-spacing="-1.2"
-        >
-            {goodsCount}
-        </text>
+            <text
+                x={countX + 1}
+                y={countY + 1}
+                fill="#000000"
+                opacity="0.5"
+                font-size={countFontSize}
+                font-weight="800"
+                text-anchor="middle"
+                dominant-baseline="central"
+                font-family="'Trebuchet MS', 'Avenir Next', 'Segoe UI', sans-serif"
+                letter-spacing="-1.2"
+            >
+                {goodsCount}
+            </text>
+            <text
+                x={countX}
+                y={countY}
+                fill="#ffffff"
+                font-size={countFontSize}
+                font-weight="800"
+                text-anchor="middle"
+                dominant-baseline="central"
+                font-family="'Trebuchet MS', 'Avenir Next', 'Segoe UI', sans-serif"
+                letter-spacing="-1.2"
+            >
+                {goodsCount}
+            </text>
+        </g>
     </g>
 
     {#if sampleLabel}

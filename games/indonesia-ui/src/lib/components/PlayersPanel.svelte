@@ -1,6 +1,8 @@
 <script lang="ts">
     import type { Player } from '@tabletop/common'
     import type { HydratedIndonesiaPlayerState, IndonesiaPlayerState } from '@tabletop/indonesia'
+    import { flip } from 'svelte/animate'
+    import { cubicOut } from 'svelte/easing'
     import PlayerState from '$lib/components/PlayerState.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -30,7 +32,10 @@
 
 <div class="players-panel-list text-center grow-0 shrink-0">
     {#each playersAndStates as playerAndState, index (playerAndState.player.id)}
-        <div class="player-state-row {index > 0 ? 'player-state-row-divider' : ''}">
+        <div
+            class="player-state-row {index > 0 ? 'player-state-row-divider' : ''}"
+            animate:flip={{ duration: 320, easing: cubicOut }}
+        >
             <PlayerState player={playerAndState.player} playerState={playerAndState.playerState} />
         </div>
     {/each}

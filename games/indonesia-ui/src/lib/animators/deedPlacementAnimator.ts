@@ -16,6 +16,7 @@ type DeedPlacementAnimatorCallbacks = {
     showAnimatedDeedCards: (args: {
         cards: DeedCardEntry[]
         animatedDeedIds: string[]
+        targetActionCount: number
     }) => void
 }
 
@@ -127,7 +128,8 @@ export class DeedPlacementAnimator {
 
         this.callbacks.showAnimatedDeedCards({
             cards: toCards,
-            animatedDeedIds: deedIdsToAnimate
+            animatedDeedIds: deedIdsToAnimate,
+            targetActionCount: to.actionCount
         })
 
         await tick()
