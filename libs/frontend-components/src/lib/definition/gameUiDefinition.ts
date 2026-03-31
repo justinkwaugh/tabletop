@@ -2,6 +2,7 @@ import type { GameSession } from '$lib/model/gameSession.svelte'
 import type { BridgedContext } from '$lib/services/bridges/bridgedContext.svelte.js'
 import type { NotificationService } from '$lib/services/notificationService.js'
 import type {
+    Color,
     Game,
     GameAction,
     GameInfo,
@@ -15,6 +16,14 @@ import type { ChatService } from '$lib/services/chatService'
 import type { GameService } from '$lib/services/gameService.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
 import type { DynamicComponent } from '$lib/utils/dynamicComponent.js'
+
+export type PlayerColorValueSet = {
+    fill: string
+    text: string
+    contrast?: string
+}
+
+export type PlayerColorPalette = Partial<Record<Color, PlayerColorValueSet>>
 
 export type GameTable<T extends GameState, U extends HydratedGameState<T> & T> = Component<{
     gameSession: GameSession<T, U>
@@ -54,6 +63,7 @@ export interface GameUIRuntime<T extends GameState, U extends HydratedGameState<
     gameUI: DynamicComponent<GameTable<T, U>>
     sessionClass: GameSessionConstructor<T, U>
     colorizer: GameColorizer
+    playerColorPalette?: PlayerColorPalette
 }
 
 export type GameUiDefinition<T extends GameState, U extends HydratedGameState<T> & T> = {

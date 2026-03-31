@@ -5,6 +5,8 @@ import { RuneBackedStore } from '$lib/utils/runeBackedStore.svelte.js'
 export type GameSessionBridgeColors = {
     getPlayerBgColor: (playerId?: string) => string
     getPlayerTextColor: (playerId?: string) => string
+    getPlayerBgColorValue: (playerId?: string) => string
+    getPlayerTextColorValue: (playerId?: string) => string
 }
 
 export class GameSessionBridge<T extends GameState, U extends HydratedGameState<T> & T> {
@@ -59,19 +61,29 @@ export class GameSessionBridge<T extends GameState, U extends HydratedGameState<
     private buildColorsSnapshot(): GameSessionBridgeColors {
         const bgById = new Map<string, string>()
         const textById = new Map<string, string>()
+        const bgValueById = new Map<string, string>()
+        const textValueById = new Map<string, string>()
         for (const player of this.session.game.players) {
             bgById.set(player.id, this.session.colors.getPlayerBgColor(player.id))
             textById.set(player.id, this.session.colors.getPlayerTextColor(player.id))
+            bgValueById.set(player.id, this.session.colors.getPlayerBgColorValue(player.id))
+            textValueById.set(player.id, this.session.colors.getPlayerTextColorValue(player.id))
         }
 
         const defaultBg = this.session.colors.getPlayerBgColor(undefined)
         const defaultText = this.session.colors.getPlayerTextColor(undefined)
+        const defaultBgValue = this.session.colors.getPlayerBgColorValue(undefined)
+        const defaultTextValue = this.session.colors.getPlayerTextColorValue(undefined)
 
         return {
             getPlayerBgColor: (playerId?: string) =>
                 bgById.get(playerId ?? 'unknown') ?? defaultBg,
             getPlayerTextColor: (playerId?: string) =>
-                textById.get(playerId ?? 'unknown') ?? defaultText
+                textById.get(playerId ?? 'unknown') ?? defaultText,
+            getPlayerBgColorValue: (playerId?: string) =>
+                bgValueById.get(playerId ?? 'unknown') ?? defaultBgValue,
+            getPlayerTextColorValue: (playerId?: string) =>
+                textValueById.get(playerId ?? 'unknown') ?? defaultTextValue
         }
     }
 }

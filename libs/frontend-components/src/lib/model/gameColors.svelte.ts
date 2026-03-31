@@ -1,10 +1,130 @@
 import type { GameColorizer } from '$lib/definition/gameColorizer.js'
+import type {
+    PlayerColorPalette,
+    PlayerColorValueSet
+} from '$lib/definition/gameUiDefinition.js'
 import type { AuthorizationBridge } from '$lib/services/bridges/authorizationBridge.svelte.js'
 import { Color, GameState, User, type HydratedGameState } from '@tabletop/common'
 import type { GameContext } from './gameContext.svelte.js'
 import { ColorblindColorizer } from '$lib/utils/colorblindPalette.js'
 import { untrack } from 'svelte'
 import { fromStore } from 'svelte/store'
+
+const defaultPlayerColorPalette: PlayerColorPalette = {
+    [Color.Red]: {
+        fill: '#b91c1c',
+        text: '#ffffff',
+        contrast: '#ffffff'
+    },
+    [Color.Orange]: {
+        fill: '#f97316',
+        text: '#ffffff',
+        contrast: '#ffffff'
+    },
+    [Color.Yellow]: {
+        fill: '#fde047',
+        text: '#000000',
+        contrast: '#000000'
+    },
+    [Color.Green]: {
+        fill: '#16a34a',
+        text: '#ffffff',
+        contrast: '#ffffff'
+    },
+    [Color.Blue]: {
+        fill: '#2563eb',
+        text: '#ffffff',
+        contrast: '#ffffff'
+    },
+    [Color.Purple]: {
+        fill: '#9333ea',
+        text: '#ffffff',
+        contrast: '#ffffff'
+    },
+    [Color.Pink]: {
+        fill: '#ec4899',
+        text: '#ffffff',
+        contrast: '#ffffff'
+    },
+    [Color.Brown]: {
+        fill: '#713f12',
+        text: '#ffffff',
+        contrast: '#ffffff'
+    },
+    [Color.Gray]: {
+        fill: '#6b7280',
+        text: '#ffffff',
+        contrast: '#ffffff'
+    },
+    [Color.Black]: {
+        fill: '#000000',
+        text: '#ffffff',
+        contrast: '#ffffff'
+    },
+    [Color.White]: {
+        fill: '#ffffff',
+        text: '#000000',
+        contrast: '#000000'
+    }
+}
+
+const colorblindPlayerColorPalette: PlayerColorPalette = {
+    [Color.Red]: {
+        fill: '#D55E00',
+        text: '#ffffff',
+        contrast: '#ffffff'
+    },
+    [Color.Orange]: {
+        fill: '#E69F00',
+        text: '#ffffff',
+        contrast: '#ffffff'
+    },
+    [Color.Yellow]: {
+        fill: '#F0E442',
+        text: '#000000',
+        contrast: '#000000'
+    },
+    [Color.Green]: {
+        fill: '#009E73',
+        text: '#ffffff',
+        contrast: '#ffffff'
+    },
+    [Color.Blue]: {
+        fill: '#0072B2',
+        text: '#ffffff',
+        contrast: '#ffffff'
+    },
+    [Color.Purple]: {
+        fill: '#CC79A7',
+        text: '#ffffff',
+        contrast: '#ffffff'
+    },
+    [Color.Pink]: {
+        fill: '#56B4E9',
+        text: '#ffffff',
+        contrast: '#ffffff'
+    },
+    [Color.Brown]: {
+        fill: '#444444',
+        text: '#ffffff',
+        contrast: '#ffffff'
+    },
+    [Color.Gray]: {
+        fill: '#888888',
+        text: '#ffffff',
+        contrast: '#ffffff'
+    },
+    [Color.White]: {
+        fill: '#FFFFFF',
+        text: '#000000',
+        contrast: '#000000'
+    },
+    [Color.Black]: {
+        fill: '#000000',
+        text: '#ffffff',
+        contrast: '#ffffff'
+    }
+}
 
 export class GameColors<T extends GameState, U extends HydratedGameState<T> & T> {
     constructor(
@@ -113,13 +233,27 @@ export class GameColors<T extends GameState, U extends HydratedGameState<T> & T>
         return this.colorizer.getBgColor(color)
     }
 
+    getBgColorValue(color: Color): string {
+        return this.getColorValueSet(color).fill
+    }
+
     getPlayerBgColor(playerId?: string) {
         const playerColor = this.getPlayerColor(playerId)
         return this.getBgColor(playerColor)
     }
 
+    getPlayerBgColorValue(playerId?: string) {
+        const playerColor = this.getPlayerColor(playerId)
+        return this.getBgColorValue(playerColor)
+    }
+
     getTextColor(color: Color, asPlayerColor: boolean = false): string {
         return this.colorizer.getTextColor(color, asPlayerColor)
+    }
+
+    getTextColorValue(color: Color, asPlayerColor: boolean = false): string {
+        const valueSet = this.getColorValueSet(color)
+        return asPlayerColor ? valueSet.fill : valueSet.text
     }
 
     getPlayerTextColor(playerId?: string, asPlayerColor: boolean = false) {
@@ -127,13 +261,27 @@ export class GameColors<T extends GameState, U extends HydratedGameState<T> & T>
         return this.getTextColor(playerColor, asPlayerColor)
     }
 
+    getPlayerTextColorValue(playerId?: string, asPlayerColor: boolean = false) {
+        const playerColor = this.getPlayerColor(playerId)
+        return this.getTextColorValue(playerColor, asPlayerColor)
+    }
+
     getBorderColor(color: Color): string {
         return this.colorizer.getBorderColor(color)
+    }
+
+    getBorderColorValue(color: Color): string {
+        return this.getColorValueSet(color).fill
     }
 
     getPlayerBorderColor(playerId?: string) {
         const playerColor = this.getPlayerColor(playerId)
         return this.getBorderColor(playerColor)
+    }
+
+    getPlayerBorderColorValue(playerId?: string) {
+        const playerColor = this.getPlayerColor(playerId)
+        return this.getBorderColorValue(playerColor)
     }
 
     getBorderContrastColor(color: Color): string {
@@ -143,5 +291,15 @@ export class GameColors<T extends GameState, U extends HydratedGameState<T> & T>
     getPlayerBorderContrastColor(playerId?: string) {
         const playerColor = this.getPlayerColor(playerId)
         return this.getBorderContrastColor(playerColor)
+    }
+
+    private getColorValueSet(color: Color): PlayerColorValueSet {
+        const resolvedColor = color ?? Color.Gray
+        if (this.colorizer instanceof ColorblindColorizer) {
+            return colorblindPlayerColorPalette[resolvedColor] ?? colorblindPlayerColorPalette[Color.Gray]!
+        }
+
+        const runtimePalette = this.gameContext.runtime.playerColorPalette
+        return runtimePalette?.[resolvedColor] ?? defaultPlayerColorPalette[resolvedColor]!
     }
 }

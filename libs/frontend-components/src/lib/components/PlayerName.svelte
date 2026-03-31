@@ -57,9 +57,9 @@
 {:else}
     <span
         style="font-family:{fontFamily}"
-        class="rounded px-2 {gameSession.colors.getPlayerBgColor(
-            playerId
-        )} font-medium {gameSession.colors.getPlayerTextColor(playerId)} {transformClass} {additionalClasses}"
+        style:background-color={gameSession.colors.getPlayerBgColorValue(playerId)}
+        style:color={gameSession.colors.getPlayerTextColorValue(playerId)}
+        class="rounded px-2 font-medium {transformClass} {additionalClasses}"
     >
         {#if capitalization === 'capitalize'}
             <span class="capitalize">{baseText}</span>{suffixText}

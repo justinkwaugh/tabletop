@@ -23,8 +23,8 @@
         gameState
     } = gameSession.bridge
 
-    let playerBgColor = $derived($colors.getPlayerBgColor($myPlayer?.id))
-    let playerTextColor = $derived($colors.getPlayerTextColor($myPlayer?.id))
+    let playerBgColor = $derived($colors.getPlayerBgColorValue($myPlayer?.id))
+    let playerTextColor = $derived($colors.getPlayerTextColorValue($myPlayer?.id))
 
     let saveRequested = $state(false)
     let deleteRequested = $state(false)
@@ -99,7 +99,9 @@
 </script>
 
 <div
-    class=" {playerBgColor} {playerTextColor} shrink-0 grow-0 p-2 h-[44px] flex flex-row justify-between items-center text-lg overflow-hidden"
+    class="shrink-0 grow-0 p-2 h-[44px] flex flex-row justify-between items-center text-lg overflow-hidden"
+    style:background-color={playerBgColor}
+    style:color={playerTextColor}
 >
     <div class="max-sm:hidden">
         <Button

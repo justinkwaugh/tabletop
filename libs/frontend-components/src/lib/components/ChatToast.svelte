@@ -21,7 +21,10 @@
 
 <Toast dismissable={false}>
     <div class="flex flex-row justify-start items-center gap-x-4 text-md text-gray-200">
-        <span class="text-nowrap rounded px-2 {playerBgColor} font-medium {playerTextColor}"
+        <span
+            class="text-nowrap rounded px-2 font-medium"
+            style:background-color={playerBgColor}
+            style:color={playerTextColor}
             >{playerName}</span
         >
         <div class="flex flex-col justify-center items-start">

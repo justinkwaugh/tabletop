@@ -62,8 +62,10 @@
                 componentProps: {
                     message: event.message,
                     playerName: gameSession.getPlayerName(event.message.playerId),
-                    playerBgColor: gameSession.colors.getPlayerBgColor(event.message.playerId),
-                    playerTextColor: gameSession.colors.getPlayerTextColor(event.message.playerId)
+                    playerBgColor: gameSession.colors.getPlayerBgColorValue(event.message.playerId),
+                    playerTextColor: gameSession.colors.getPlayerTextColorValue(
+                        event.message.playerId
+                    )
                 }
             })
         }

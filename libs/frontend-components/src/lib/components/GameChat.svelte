@@ -203,11 +203,9 @@
 {#snippet chatMessage(message: GameChatMessage)}
     <div class="flex flex-row justify-start items-start gap-x-2 py-2 {messageHoverColor}">
         <div
-            class="shrink-0 grow-0 flex justify-center items-center rounded-full {gameSession.colors.getPlayerBgColor(
-                message.playerId
-            )} {gameSession.colors.getPlayerTextColor(
-                message.playerId
-            )} w-[36px] h-[36px] text-xl font-bold"
+            class="shrink-0 grow-0 flex justify-center items-center rounded-full w-[36px] h-[36px] text-xl font-bold"
+            style:background-color={gameSession.colors.getPlayerBgColorValue(message.playerId)}
+            style:color={gameSession.colors.getPlayerTextColorValue(message.playerId)}
         >
             {playerInitials[message.playerId ?? 'unknown'] ?? ''}
         </div>
