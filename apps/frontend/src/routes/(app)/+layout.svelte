@@ -174,7 +174,6 @@
         if (/mobile/i.test(navigator.userAgent ?? '') && !location.hash) {
             window.scrollTo(0, 1)
         }
-
     })
 
     $effect(() => {
@@ -213,7 +212,6 @@
                 break
         }
     })
-
 </script>
 
 {#snippet gameName()}
@@ -245,149 +243,154 @@
         class="{currentDefinition?.info.metadata.beta ? 'dark:bg-red-900' : 'dark:bg-gray-800'} "
     >
         <div class="flex flex-col w-full">
-        <div class="flex flex-row justify-between items-center w-full">
-            <div class="flex justify-center items-center">
-                <NavBrand href="/library" class="shrink-0 cursor-pointer">
-                    <img src={darkLogo} alt="Board Together" class="h-8 w-auto" />
-                </NavBrand>
+            <div class="flex flex-row justify-between items-center w-full">
+                <div class="flex justify-center items-center">
+                    <NavBrand href="/library" class="shrink-0 cursor-pointer">
+                        <img src={darkLogo} alt="Board Together" class="h-8 w-auto" />
+                    </NavBrand>
 
-                <div
-                    class="hidden sm:block rounded-lg py-2 px-2 md:px-4 flex flex-col justify-start items-start ml-4"
-                >
-                    {@render gameName()}
-                </div>
-            </div>
-            <div class="flex items-center">
-                <div class="flex items-center gap-3 mr-4">
-                    <a
-                        href="/about"
-                        class="hidden md:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                    <div
+                        class="hidden sm:block rounded-lg py-2 px-2 md:px-4 flex flex-col justify-start items-start ml-4"
                     >
-                        About Us
-                    </a>
-                    <div class="flex items-center gap-3">
-                        <a
-                            href="https://github.com/justinkwaugh/tabletop"
-                            target="_blank"
-                            rel="noreferrer"
-                            class="inline-flex items-center leading-none"
-                        >
-                            <span class="sr-only">GitHub</span>
-                            <svg
-                                aria-hidden="true"
-                                viewBox="0 0 24 24"
-                                preserveAspectRatio="xMidYMid meet"
-                                class="h-5 w-5 block text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-                                fill="currentColor"
-                            >
-                                <path
-                                    d="M12 .5C5.65.5.5 5.77.5 12.26c0 5.2 3.44 9.6 8.21 11.17.6.12.82-.27.82-.6 0-.3-.01-1.1-.02-2.16-3.34.74-4.04-1.65-4.04-1.65-.55-1.42-1.34-1.8-1.34-1.8-1.09-.77.08-.76.08-.76 1.2.09 1.83 1.26 1.83 1.26 1.08 1.89 2.84 1.35 3.53 1.03.11-.8.42-1.35.77-1.66-2.67-.31-5.47-1.36-5.47-6.05 0-1.34.46-2.43 1.22-3.29-.12-.31-.53-1.56.12-3.26 0 0 1-.33 3.3 1.26.96-.27 1.98-.4 3-.41 1.02.01 2.05.14 3 .41 2.3-1.6 3.3-1.26 3.3-1.26.65 1.7.24 2.95.12 3.26.76.86 1.22 1.95 1.22 3.29 0 4.7-2.81 5.74-5.49 6.04.43.38.82 1.13.82 2.28 0 1.64-.01 2.96-.01 3.36 0 .33.22.72.83.6 4.77-1.57 8.2-5.97 8.2-11.17C23.5 5.77 18.35.5 12 .5z"
-                                />
-                            </svg>
-                        </a>
-                        <a
-                            href="https://discord.gg/5ggK5VGGvA"
-                            target="_blank"
-                            rel="noreferrer"
-                            class="inline-flex items-center leading-none"
-                        >
-                            <span class="sr-only">Discord</span>
-                            <svg
-                                aria-hidden="true"
-                                viewBox="0 -28.5 256 256"
-                                preserveAspectRatio="xMidYMid meet"
-                                class="h-5 w-5 block text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-                                fill="currentColor"
-                            >
-                                <path
-                                    d="M216.856339,16.5966031 C200.285002,8.84328665 182.566144,3.2084988 164.041564,0 C161.766523,4.11318106 159.108624,9.64549908 157.276099,14.0464379 C137.583995,11.0849896 118.072967,11.0849896 98.7430163,14.0464379 C96.9108417,9.64549908 94.1925838,4.11318106 91.8971895,0 C73.3526068,3.2084988 55.6133949,8.86399117 39.0420583,16.6376612 C5.61752293,67.146514 -3.4433191,116.400813 1.08711069,164.955721 C23.2560196,181.510915 44.7403634,191.567697 65.8621325,198.148576 C71.0772151,190.971126 75.7283628,183.341335 79.7352139,175.300261 C72.104019,172.400575 64.7949724,168.822202 57.8887866,164.667963 C59.7209612,163.310589 61.5131304,161.891452 63.2445898,160.431257 C105.36741,180.133187 151.134928,180.133187 192.754523,160.431257 C194.506336,161.891452 196.298154,163.310589 198.110326,164.667963 C191.183787,168.842556 183.854737,172.420929 176.223542,175.320965 C180.230393,183.341335 184.861538,190.991831 190.096624,198.16893 C211.238746,191.588051 232.743023,181.531619 254.911949,164.955721 C260.227747,108.668201 245.831087,59.8662432 216.856339,16.5966031 Z M85.4738752,135.09489 C72.8290281,135.09489 62.4592217,123.290155 62.4592217,108.914901 C62.4592217,94.5396472 72.607595,82.7145587 85.4738752,82.7145587 C98.3405064,82.7145587 108.709962,94.5189427 108.488529,108.914901 C108.508531,123.290155 98.3405064,135.09489 85.4738752,135.09489 Z M170.525237,135.09489 C157.88039,135.09489 147.510584,123.290155 147.510584,108.914901 C147.510584,94.5396472 157.658606,82.7145587 170.525237,82.7145587 C183.391518,82.7145587 193.761324,94.5189427 193.539891,108.914901 C193.539891,123.290155 183.391518,135.09489 170.525237,135.09489 Z"
-                                />
-                            </svg>
-                        </a>
+                        {@render gameName()}
                     </div>
                 </div>
-                {#if sessionUser}
-                    {#if sessionUser.status === UserStatus.Active}
-                        <Button size="xs" color="blue" class="me-4 h-[30px]" onclick={gotoDashboard}
-                            >My Games</Button
+                <div class="flex items-center">
+                    <div class="flex items-center gap-3 mr-4">
+                        <a
+                            href="/about"
+                            class="hidden md:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
                         >
-                    {/if}
-
-                    <Avatar id="user-drop" class="cursor-pointer" />
-                    <Dropdown triggeredBy="#user-drop">
-                        <DropdownGroup class="py-1">
-                            <DropdownHeader class="py-2">
-                                <span class="block text-sm"
-                                    >{sessionUser.username || 'username not assigned'}</span
+                            About Us
+                        </a>
+                        <div class="flex items-center gap-3">
+                            <a
+                                href="https://github.com/justinkwaugh/tabletop"
+                                target="_blank"
+                                rel="noreferrer"
+                                class="inline-flex items-center leading-none"
+                            >
+                                <span class="sr-only">GitHub</span>
+                                <svg
+                                    aria-hidden="true"
+                                    viewBox="0 0 24 24"
+                                    preserveAspectRatio="xMidYMid meet"
+                                    class="h-5 w-5 block text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                                    fill="currentColor"
                                 >
-                            </DropdownHeader>
-                            <DropdownDivider />
-                            <DropdownItem class="w-full text-left" onclick={gotoProfile}
-                                >Profile</DropdownItem
+                                    <path
+                                        d="M12 .5C5.65.5.5 5.77.5 12.26c0 5.2 3.44 9.6 8.21 11.17.6.12.82-.27.82-.6 0-.3-.01-1.1-.02-2.16-3.34.74-4.04-1.65-4.04-1.65-.55-1.42-1.34-1.8-1.34-1.8-1.09-.77.08-.76.08-.76 1.2.09 1.83 1.26 1.83 1.26 1.08 1.89 2.84 1.35 3.53 1.03.11-.8.42-1.35.77-1.66-2.67-.31-5.47-1.36-5.47-6.05 0-1.34.46-2.43 1.22-3.29-.12-.31-.53-1.56.12-3.26 0 0 1-.33 3.3 1.26.96-.27 1.98-.4 3-.41 1.02.01 2.05.14 3 .41 2.3-1.6 3.3-1.26 3.3-1.26.65 1.7.24 2.95.12 3.26.76.86 1.22 1.95 1.22 3.29 0 4.7-2.81 5.74-5.49 6.04.43.38.82 1.13.82 2.28 0 1.64-.01 2.96-.01 3.36 0 .33.22.72.83.6 4.77-1.57 8.2-5.97 8.2-11.17C23.5 5.77 18.35.5 12 .5z"
+                                    ></path>
+                                </svg>
+                            </a>
+                            <a
+                                href="https://discord.gg/5ggK5VGGvA"
+                                target="_blank"
+                                rel="noreferrer"
+                                class="inline-flex items-center leading-none"
                             >
-                            <DropdownItem class="w-full text-left" onclick={gotoPreferences}
-                                >Preferences</DropdownItem
+                                <span class="sr-only">Discord</span>
+                                <svg
+                                    aria-hidden="true"
+                                    viewBox="0 -28.5 256 256"
+                                    preserveAspectRatio="xMidYMid meet"
+                                    class="h-5 w-5 block text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                                    fill="currentColor"
+                                >
+                                    <path
+                                        d="M216.856339,16.5966031 C200.285002,8.84328665 182.566144,3.2084988 164.041564,0 C161.766523,4.11318106 159.108624,9.64549908 157.276099,14.0464379 C137.583995,11.0849896 118.072967,11.0849896 98.7430163,14.0464379 C96.9108417,9.64549908 94.1925838,4.11318106 91.8971895,0 C73.3526068,3.2084988 55.6133949,8.86399117 39.0420583,16.6376612 C5.61752293,67.146514 -3.4433191,116.400813 1.08711069,164.955721 C23.2560196,181.510915 44.7403634,191.567697 65.8621325,198.148576 C71.0772151,190.971126 75.7283628,183.341335 79.7352139,175.300261 C72.104019,172.400575 64.7949724,168.822202 57.8887866,164.667963 C59.7209612,163.310589 61.5131304,161.891452 63.2445898,160.431257 C105.36741,180.133187 151.134928,180.133187 192.754523,160.431257 C194.506336,161.891452 196.298154,163.310589 198.110326,164.667963 C191.183787,168.842556 183.854737,172.420929 176.223542,175.320965 C180.230393,183.341335 184.861538,190.991831 190.096624,198.16893 C211.238746,191.588051 232.743023,181.531619 254.911949,164.955721 C260.227747,108.668201 245.831087,59.8662432 216.856339,16.5966031 Z M85.4738752,135.09489 C72.8290281,135.09489 62.4592217,123.290155 62.4592217,108.914901 C62.4592217,94.5396472 72.607595,82.7145587 85.4738752,82.7145587 C98.3405064,82.7145587 108.709962,94.5189427 108.488529,108.914901 C108.508531,123.290155 98.3405064,135.09489 85.4738752,135.09489 Z M170.525237,135.09489 C157.88039,135.09489 147.510584,123.290155 147.510584,108.914901 C147.510584,94.5396472 157.658606,82.7145587 170.525237,82.7145587 C183.391518,82.7145587 193.761324,94.5189427 193.539891,108.914901 C193.539891,123.290155 183.391518,135.09489 170.525237,135.09489 Z"
+                                    ></path>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                    {#if sessionUser}
+                        {#if sessionUser.status === UserStatus.Active}
+                            <Button
+                                size="xs"
+                                color="blue"
+                                class="me-4 h-[30px]"
+                                onclick={gotoDashboard}>My Games</Button
                             >
-                            <DropdownItem class="w-full text-left" onclick={gotoNotifications}
-                                >Notifications</DropdownItem
-                            >
-                            <DropdownDivider />
-                            <DropdownItem onclick={gotoAbout} class="md:hidden w-full text-left"
-                                >About us</DropdownItem
-                            >
+                        {/if}
 
-                            <DropdownDivider class="md:hidden" />
-                            {#if authorizationService.isAdmin}
-                                <li>
-                                    <Toggle
-                                        bind:checked={authorizationService.debugViewEnabled}
-                                        class="rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600"
-                                        >Debug</Toggle
+                        <Avatar id="user-drop" class="cursor-pointer" />
+                        <Dropdown triggeredBy="#user-drop">
+                            <DropdownGroup class="py-1">
+                                <DropdownHeader class="py-2">
+                                    <span class="block text-sm"
+                                        >{sessionUser.username || 'username not assigned'}</span
                                     >
-                                </li>
-                                <li>
-                                    <Toggle
-                                        bind:checked={authorizationService.adminCapabilitiesEnabled}
-                                        class="rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600"
-                                        >Admin</Toggle
-                                    >
-                                </li>
-                            {/if}
-                            <DropdownItem class="w-full text-left" onclick={logout}
-                                >Sign out</DropdownItem
-                            >
-                            {#if authorizationService.isAdmin}
+                                </DropdownHeader>
                                 <DropdownDivider />
-                                <DropdownItem
-                                    class="w-full text-left dark:text-gray-400 font-mono text-xs py-1"
-                                    >FE: v{manifestService.getFrontendVersion()}</DropdownItem
+                                <DropdownItem class="w-full text-left" onclick={gotoProfile}
+                                    >Profile</DropdownItem
                                 >
-                                {#if gameLogicVersion}
+                                <DropdownItem class="w-full text-left" onclick={gotoPreferences}
+                                    >Preferences</DropdownItem
+                                >
+                                <DropdownItem class="w-full text-left" onclick={gotoNotifications}
+                                    >Notifications</DropdownItem
+                                >
+                                <DropdownDivider />
+                                <DropdownItem onclick={gotoAbout} class="md:hidden w-full text-left"
+                                    >About us</DropdownItem
+                                >
+
+                                <DropdownDivider class="md:hidden" />
+                                {#if authorizationService.isAdmin}
+                                    <li>
+                                        <Toggle
+                                            bind:checked={authorizationService.debugViewEnabled}
+                                            class="rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                            >Debug</Toggle
+                                        >
+                                    </li>
+                                    <li>
+                                        <Toggle
+                                            bind:checked={
+                                                authorizationService.adminCapabilitiesEnabled
+                                            }
+                                            class="rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                            >Admin</Toggle
+                                        >
+                                    </li>
+                                {/if}
+                                <DropdownItem class="w-full text-left" onclick={logout}
+                                    >Sign out</DropdownItem
+                                >
+                                {#if authorizationService.isAdmin}
+                                    <DropdownDivider />
                                     <DropdownItem
                                         class="w-full text-left dark:text-gray-400 font-mono text-xs py-1"
-                                        >Logic: v{gameLogicVersion ?? 'N/A'}</DropdownItem
+                                        >FE: v{manifestService.getFrontendVersion()}</DropdownItem
                                     >
+                                    {#if gameLogicVersion}
+                                        <DropdownItem
+                                            class="w-full text-left dark:text-gray-400 font-mono text-xs py-1"
+                                            >Logic: v{gameLogicVersion ?? 'N/A'}</DropdownItem
+                                        >
+                                    {/if}
+                                    {#if gameUiVersion}
+                                        <DropdownItem
+                                            class="w-full text-left dark:text-gray-400 font-mono text-xs py-1"
+                                            >UI: v{gameUiVersion ?? 'N/A'}</DropdownItem
+                                        >
+                                    {/if}
+                                    {#if seed}
+                                        <DropdownItem class="w-full text-left py-1"
+                                            >{@render gameSeed()}</DropdownItem
+                                        >
+                                    {/if}
                                 {/if}
-                                {#if gameUiVersion}
-                                    <DropdownItem
-                                        class="w-full text-left dark:text-gray-400 font-mono text-xs py-1"
-                                        >UI: v{gameUiVersion ?? 'N/A'}</DropdownItem
-                                    >
-                                {/if}
-                                {#if seed}
-                                    <DropdownItem class="w-full text-left py-1"
-                                        >{@render gameSeed()}</DropdownItem
-                                    >
-                                {/if}
-                            {/if}
-                        </DropdownGroup>
-                    </Dropdown>
-                {/if}
+                            </DropdownGroup>
+                        </Dropdown>
+                    {/if}
+                </div>
             </div>
-        </div>
-        <div class="flex justify-center sm:hidden w-full overflow-hidden text-ellipsis">
-            {@render gameName()}
-        </div>
+            <div class="flex justify-center sm:hidden w-full overflow-hidden text-ellipsis">
+                {@render gameName()}
+            </div>
         </div>
     </Navbar>
 </div>
