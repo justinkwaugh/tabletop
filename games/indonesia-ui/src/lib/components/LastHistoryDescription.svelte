@@ -10,6 +10,10 @@
     let { fallbackText = 'Viewing history.' }: { fallbackText?: string } = $props()
 
     const lastAction = $derived.by(() => {
+        if (gameSession.visibleAction) {
+            return gameSession.visibleAction
+        }
+
         const aggregated = Array.from(aggregateActions(gameSession.actions))
         return aggregated.at(-1)
     })

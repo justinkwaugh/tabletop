@@ -63,14 +63,14 @@
         MachineState.ShippingOperations,
         MachineState.ProductionOperations
     ])
-    let animatedCityMarkers: Array<{ areaId: string; tone: BeadTone }> = $derived.by(() => {
-        gameSession.gameState
-        return []
-    })
+    let animatedCityMarkers: Array<{ areaId: string; tone: BeadTone }> = $state([])
 
     const cityPlacementAnimator = new CityPlacementAnimator(gameSession, {
-        onCityMarkerAnimationStart: ({ areaId, tone }) => {
-            animatedCityMarkers = [...animatedCityMarkers, { areaId, tone }]
+        showAnimatedCityMarkers: (markers) => {
+            animatedCityMarkers = markers
+        },
+        clearAnimatedCityMarkers: () => {
+            animatedCityMarkers = []
         }
     })
 

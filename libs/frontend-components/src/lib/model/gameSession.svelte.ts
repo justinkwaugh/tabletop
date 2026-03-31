@@ -577,7 +577,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         this.beforeNewState()
-
         this.gameState = newState
     }
 

@@ -13,8 +13,14 @@ import type { IndonesiaGameSession } from '$lib/model/session.svelte.js'
 
 type BeadTone = 'amber' | 'green' | 'red'
 
+type AnimatedCityMarker = {
+    areaId: string
+    tone: BeadTone
+}
+
 type CityPlacementAnimatorCallbacks = {
-    onCityMarkerAnimationStart: (args: { areaId: string; tone: BeadTone }) => void
+    showAnimatedCityMarkers: (markers: AnimatedCityMarker[]) => void
+    clearAnimatedCityMarkers: () => void
 }
 
 const INITIAL_SCALE = 0.2
@@ -100,7 +106,7 @@ export class CityPlacementAnimator {
         }
 
         const fromCityByAreaId = new Map(from.board.cities.map((city) => [city.area, city] as const))
-        const placementsToAnimate = to.board.cities
+        const placementsToAnimate: AnimatedCityMarker[] = to.board.cities
             .filter((city) => !fromCityByAreaId.has(city.area))
             .map((city) => ({
                 areaId: city.area,
@@ -109,19 +115,22 @@ export class CityPlacementAnimator {
         const growthsToAnimate = this.growthCityMarkersToAnimate(action, from, to)
         const cityMarkersToAnimate = [...placementsToAnimate, ...growthsToAnimate]
 
+        const hasCityAction = !!action && (isPlaceCity(action) || isGrowCity(action))
         if (cityMarkersToAnimate.length === 0) {
             return
         }
 
-        animationContext.ensureDuration(0.75)
+        if (hasCityAction) {
+            animationContext.ensureDuration(0.75)
+        }
 
-        const hasCityAction = !!action && (isPlaceCity(action) || isGrowCity(action))
         const placementPopDuration = hasCityAction ? 0.18 : FALLBACK_POP_DURATION
         const placementSettleDuration = hasCityAction ? 0.14 : FALLBACK_SETTLE_DURATION
 
-        for (const marker of cityMarkersToAnimate) {
-            this.callbacks.onCityMarkerAnimationStart(marker)
-        }
+        this.callbacks.showAnimatedCityMarkers(cityMarkersToAnimate)
+        animationContext.afterAnimations(() => {
+            this.callbacks.clearAnimatedCityMarkers()
+        })
 
         await tick()
 

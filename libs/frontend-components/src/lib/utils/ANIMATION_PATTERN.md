@@ -49,6 +49,7 @@ When `action` is missing (undo, backward history, forward history without reques
 - use direct from->to interpolation (no expensive semantic pathing)
 - keep total animator work short and non-blocking
 - **hard limit target: <= 200ms per fallback transition**
+- do **not** use cinematic `ensureDuration(...)` holds in fallback mode
 
 Examples:
 
@@ -122,6 +123,54 @@ Implication:
 
 - If something must be visible before reactivity catches up, render it transiently first, then tween the real element.
 
+## History Replay Semantics
+
+There are three distinct history animation intents:
+
+- `full-action`
+- `state-only`
+- `silent-swap`
+
+These are not interchangeable, and animator behavior must be designed with the distinction in mind.
+
+### `full-action`
+
+- Used when history replay is explicitly requested as animated action playback (for example, Shift-forward).
+- Animators receive replayed actions one by one.
+- This is the cinematic mode.
+- `ensureDuration(...)` is appropriate here when the action needs to remain readable.
+
+Important:
+
+- `full-action` replay may auto-step across contiguous system actions.
+- Even when the UI lands on the last system action in the batch, the replay contract is still **per action**, not one collapsed state diff.
+
+### `state-only`
+
+- Used for normal history navigation where the UI only needs a readable state transition.
+- Animators should treat this as a fast fallback transition.
+- Do not rely on per-action semantics here.
+- Total motion should remain short (`<= 200ms` target).
+
+### `silent-swap`
+
+- Used when history setup/restore should change visible state without transition noise.
+
+## Terminal System-Action Batches
+
+Special rule for `full-action` replay:
+
+- if the replay batch ends on auto-skipped system actions,
+- history must not exit before the visible transition settles.
+
+Otherwise the intended `full-action` replay can collapse into one final `from -> to` diff, which defeats:
+
+- per-action transient visuals
+- per-action descriptions
+- per-action `ensureDuration(...)`
+
+When debugging history issues near phase boundaries, era transitions, or cleanup chains, check this first.
+
 ## Pattern A: Existing Element Tween (Keyed or Multiple Elements)
 
 Use when one or more elements exist in both `from` and `to`, but are not handled by a single persistent attachment.
@@ -151,6 +200,28 @@ Important:
 - no per-frame `onUpdate` reactive writes
 - transient state controls presence, not animation interpolation
 - if `action` is absent, prefer simple appear/disappear/direct move (<= 200ms)
+
+## Transient Lifetime Rules
+
+Transient render state must be scoped to the current replayed action, not to the eventual reactive state swap.
+
+Why:
+
+- during `full-action` history replay, animators may process multiple replayed actions while reactive `gameState` is still frozen
+- if transient state is only cleared when `gameState` changes, transient visuals can accumulate across replayed actions
+
+Preferred model:
+
+- current replayed action writes the transient presentation state
+- the next replayed action overwrites it
+- `afterAnimations(...)` can clear or finalize that action-scoped transient state
+
+Do not accumulate transient markers across replayed actions unless the design explicitly calls for cumulative visuals.
+
+Related rule:
+
+- if an action description, label, or highlight needs to animate alongside replayed actions, prefer a **game-local** pre-reactivity override
+- do not add game-specific transient presentation state to shared session infrastructure unless multiple games truly need the same abstraction
 
 ## Pattern C: Pre-Reactivity Override
 

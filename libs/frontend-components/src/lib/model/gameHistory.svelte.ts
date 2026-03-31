@@ -398,6 +398,9 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         if (skippableLastAction) {
+            if (animationIntent === 'full-action') {
+                await this.waitForTransitionSettled()
+            }
             this.exitHistory(animationIntent)
         }
     }

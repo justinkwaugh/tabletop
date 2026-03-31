@@ -1,8 +1,10 @@
 import {
     GameSession,
+    type AnimationContext,
     type StagedSelectionSource,
     type StagedSelectionState
 } from '@tabletop/frontend-components'
+import type { GameAction } from '@tabletop/common'
 import {
     ActionType,
     type AtomicDeliveryCandidate,
@@ -109,6 +111,8 @@ export class IndonesiaGameSession extends GameSession<
     IndonesiaGameState,
     HydratedIndonesiaGameState
 > {
+    visibleActionOverride: GameAction | undefined = $state()
+
     selectedResearchPlayerIdOverride: string | undefined = $state()
     hoveredOperatingCompanyIdOverride: string | undefined = $state()
     hoveredCompanySpotlightCompanyIdsOverride: string[] | undefined = $state()
@@ -121,6 +125,7 @@ export class IndonesiaGameSession extends GameSession<
     hoveredDeliveryRouteKeyOverride: string | undefined = $state()
     hoveredPlannedDeliveryRouteOverride: PlannedDeliveryRouteHover | undefined = $state()
     suppressBoardEffectsForHistory = $derived(this.isViewingHistory)
+    visibleAction = $derived.by(() => this.visibleActionOverride ?? this.currentAction)
 
     isNewEra = $derived(this.gameState.machineState === MachineState.NewEra)
     researchSelectionEnabled = $derived.by(
@@ -1393,6 +1398,23 @@ export class IndonesiaGameSession extends GameSession<
         }
         return HydratedRemoveSiapSajiArea.validAreaIds(this.gameState, myPlayerId)
     })
+
+    async onGameStateChange({
+        action,
+        animationContext
+    }: {
+        to: HydratedIndonesiaGameState
+        from?: HydratedIndonesiaGameState
+        action?: GameAction
+        animationContext: AnimationContext
+    }) {
+        this.visibleActionOverride = action
+        animationContext.afterAnimations(() => {
+            if (this.visibleActionOverride === action) {
+                this.visibleActionOverride = undefined
+            }
+        })
+    }
 
     private minimumMergerBid(): number | null {
         const proposal = this.gameState.activeMergerProposal
