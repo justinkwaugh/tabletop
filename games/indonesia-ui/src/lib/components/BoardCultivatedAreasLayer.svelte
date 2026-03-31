@@ -1,9 +1,15 @@
 <script lang="ts">
+    import {
+        animateMergedCultivatedArea,
+        attachSiapSajiMergeAnimator,
+        SiapSajiMergeAnimator
+    } from '$lib/animators/siapSajiMergeAnimator.js'
     import { animateStartedCultivatedArea } from '$lib/animators/startCompanyAnimator.js'
     import Area from '$lib/components/Area.svelte'
     import { companyDeedStyleForType } from '$lib/components/CompanyDeed.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { getStartCompanyAnimatorContext } from '$lib/model/startCompanyAnimatorContext.svelte.js'
+    import type { MergedCultivatedAreaEntry } from '$lib/utils/mergedCultivatedAreaEntries.js'
     import {
         expandedCultivatedAreaEntryForAction,
         startedCultivatedAreaEntryForAction
@@ -23,6 +29,7 @@
 
     const gameSession = getGameSession()
     const startCompanyAnimator = getStartCompanyAnimatorContext()
+    const siapSajiMergeAnimator = new SiapSajiMergeAnimator(gameSession)
 
     const CULTIVATED_AREA_FILL_OPACITY = 1
     const CULTIVATED_AREA_STROKE_WIDTH = 3
@@ -189,23 +196,47 @@
             })
     })
 
+    const mergedCultivatedEntries: (MergedCultivatedAreaEntry & CultivatedRenderEntry)[] = $derived.by(() => {
+        const renderByGoods = gameSession.productionZoneRenderStyle === 'goods'
+        return gameSession.visibleSiapSajiMergeAnimationEntries.map((entry) => {
+            const ownerColor = gameSession.colors.getPlayerUiColor(entry.ownerId)
+            const goodsStyle = GOODS_OVERLAY_STYLE_BY_GOOD[entry.good]
+            return {
+                ...entry,
+                fillColor: renderByGoods ? goodsStyle.fill : ownerColor,
+                borderColor: renderByGoods
+                    ? goodsStyle.stroke
+                    : shadeHexColor(ownerColor, 0.38),
+                overlayPatternId: renderByGoods ? BASE_HATCH_PATTERN_ID_BY_GOOD[entry.good] : null
+            }
+        })
+    })
+
     const startedCultivatedAreaIdSet: ReadonlySet<string> = $derived.by(
         () => new Set(startedCultivatedEntries.map((entry) => entry.areaId))
     )
     const expandedCultivatedAreaIdSet: ReadonlySet<string> = $derived.by(
         () => new Set(expandedCultivatedEntries.map((entry) => entry.areaId))
     )
+    const mergedCultivatedAreaIdSet: ReadonlySet<string> = $derived.by(
+        () => new Set(mergedCultivatedEntries.map((entry) => entry.areaId))
+    )
 
     const cultivatedEntries: CultivatedRenderEntry[] = $derived.by(() =>
         baseCultivatedEntries.filter(
             (entry) =>
                 !startedCultivatedAreaIdSet.has(entry.areaId) &&
-                !expandedCultivatedAreaIdSet.has(entry.areaId)
+                !expandedCultivatedAreaIdSet.has(entry.areaId) &&
+                !mergedCultivatedAreaIdSet.has(entry.areaId)
         )
     )
 </script>
 
-<g class="pointer-events-none select-none" aria-label="Cultivated areas layer">
+<g
+    class="pointer-events-none select-none"
+    aria-label="Cultivated areas layer"
+    {@attach attachSiapSajiMergeAnimator(siapSajiMergeAnimator)}
+>
     <defs>
         <pattern
             id="cultivated-hatch-diag-0"
@@ -400,6 +431,38 @@
             use:animateStartedCultivatedArea={{
                 animator: startCompanyAnimator,
                 companyId: cultivated.companyId
+            }}
+        >
+            <g transform={`translate(${-cultivated.centerX} ${-cultivated.centerY})`}>
+                <Area
+                    areaId={cultivated.areaId}
+                    fill={cultivated.fillColor}
+                    stroke={cultivated.borderColor}
+                    fillOpacity={CULTIVATED_AREA_FILL_OPACITY}
+                    strokeWidth={CULTIVATED_AREA_STROKE_WIDTH}
+                    opacity={cultivated.opacity}
+                />
+                {#if cultivated.overlayPatternId}
+                    <Area
+                        areaId={cultivated.areaId}
+                        fill={`url(#${cultivated.overlayPatternId})`}
+                        stroke="transparent"
+                        fillOpacity={1}
+                        strokeWidth={0}
+                        opacity={cultivated.opacity}
+                    />
+                {/if}
+            </g>
+        </g>
+    {/each}
+
+    {#each mergedCultivatedEntries as cultivated (cultivated.key)}
+        <g
+            transform={`translate(${cultivated.centerX} ${cultivated.centerY})`}
+            opacity="0"
+            use:animateMergedCultivatedArea={{
+                animator: siapSajiMergeAnimator,
+                areaId: cultivated.areaId
             }}
         >
             <g transform={`translate(${-cultivated.centerX} ${-cultivated.centerY})`}>
