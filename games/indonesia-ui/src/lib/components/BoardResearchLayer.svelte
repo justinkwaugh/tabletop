@@ -235,7 +235,7 @@
                     }
 
                     cubes.push({
-                        key: `${row}-${columnIndex}-${playerId}`,
+                        key: `${row}-${playerId}`,
                         x:
                             cell.center.x +
                             offset.x +
