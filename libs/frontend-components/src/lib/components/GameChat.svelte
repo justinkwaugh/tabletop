@@ -265,7 +265,7 @@
                 bind:value={text}
                 maxlength="500"
                 class="w-full rounded-lg {inputBgColor} p-2
-                text-gray-900 dark:placeholder-gray-400 dark:text-white border
+                text-current dark:placeholder-gray-400 border
                 {inputBorderColor} focus:border-primary-500 dark:focus:ring-primary-500
                 dark:focus:border-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
                 oninput={sizeInput}

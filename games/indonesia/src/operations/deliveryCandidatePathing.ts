@@ -14,6 +14,7 @@ import type {
     AtomicDeliveryChoice,
     DeliveryOperationContext
 } from './deliveryCandidateTypes.js'
+import { solveDeliveryProblem } from './deliverySolver.js'
 import { seaLaneKey, sortNodeIds } from './deliveryCandidateUtils.js'
 
 function createAtomicDeliveryCandidate(
@@ -316,6 +317,57 @@ export function listAtomicDeliveryCandidatesFromContext(
                     candidatesByKey.set(key, candidate)
                 }
             }
+        }
+    }
+
+    // A maximum-delivery solve can require a longer route than the locally shortest path
+    // in order to preserve scarce ship capacity for the rest of the operation.
+    for (const delivery of solveDeliveryProblem(context.problem, {
+        includeCriticalDeliveries: false
+    }).deliveries) {
+        const zoneSupply = context.zoneById.get(delivery.zoneId)
+        const cityDemand = context.cityDemandById.get(delivery.cityId)
+        const shippingNetwork = context.shippingNetworkById.get(delivery.shippingCompanyId)
+        if (!zoneSupply || !cityDemand || !shippingNetwork) {
+            continue
+        }
+
+        const availableCultivatedAreaIds = sortNodeIds(
+            zoneSupply.areaIds.filter(
+                (cultivatedAreaId) => !context.deliveredCultivatedAreaIdSet.has(cultivatedAreaId)
+            )
+        )
+        if (availableCultivatedAreaIds.length === 0) {
+            continue
+        }
+
+        if (
+            !isValidSeaPathForDelivery(
+                zoneSupply,
+                cityDemand,
+                shippingNetwork,
+                delivery.seaPathAreaIds
+            )
+        ) {
+            continue
+        }
+
+        for (const cultivatedAreaId of availableCultivatedAreaIds) {
+            const candidate = createAtomicDeliveryCandidate(
+                context,
+                delivery.zoneId,
+                cultivatedAreaId,
+                delivery.shippingCompanyId,
+                delivery.seaPathAreaIds,
+                delivery.cityId
+            )
+            const key = [
+                candidate.cultivatedAreaId,
+                candidate.shippingCompanyId,
+                candidate.seaAreaIds.join('>'),
+                candidate.cityId
+            ].join('|')
+            candidatesByKey.set(key, candidate)
         }
     }
 

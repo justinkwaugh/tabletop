@@ -134,7 +134,7 @@
       "gameId": "indonesia",
       "packageId": "indonesia",
       "logicVersion": "1.5.0",
-      "uiVersion": "1.31.0",
+      "uiVersion": "1.32.0",
       "priorLogicVersions": [
         "1.4.0",
         "1.3.0",
@@ -143,11 +143,11 @@
         "1.0.0"
       ],
       "priorUiVersions": [
+        "1.31.0",
         "1.30.0",
         "1.29.0",
         "1.28.0",
-        "1.27.0",
-        "1.26.1"
+        "1.27.0"
       ]
     }
   ]

@@ -10,6 +10,7 @@ import {
 import { describe, expect, it } from 'vitest'
 import { AreaType } from '../components/area.js'
 import { CompanyType } from '../definition/companyType.js'
+import { Era } from '../definition/eras.js'
 import { DeliveryTieBreakPolicy } from '../definition/operationsEconomy.js'
 import { Good } from '../definition/goods.js'
 import { IndonesiaGameInitializer } from '../definition/initializer.js'
@@ -168,6 +169,320 @@ function setupSafePrefixScenario(state: ReturnType<typeof createTestState>) {
     }
 }
 
+function createThreePlayerTestState() {
+    const players: Player[] = [
+        {
+            id: 'p1',
+            isHuman: true,
+            userId: 'u1',
+            name: 'Player 1',
+            status: PlayerStatus.Joined
+        },
+        {
+            id: 'p2',
+            isHuman: true,
+            userId: 'u2',
+            name: 'Player 2',
+            status: PlayerStatus.Joined
+        },
+        {
+            id: 'p3',
+            isHuman: true,
+            userId: 'u3',
+            name: 'Player 3',
+            status: PlayerStatus.Joined
+        }
+    ]
+
+    const game: Game = {
+        id: 'game-3p',
+        typeId: 'indonesia',
+        status: GameStatus.Started,
+        isPublic: false,
+        deleted: false,
+        ownerId: 'u2',
+        name: 'Indonesia Three Player Test',
+        players,
+        config: {},
+        hotseat: false,
+        winningPlayerIds: [],
+        seed: 456,
+        createdAt: new Date(),
+        storage: GameStorage.Local,
+        category: GameCategory.Standard
+    }
+
+    const state: UninitializedGameState = {
+        id: 'state-3p',
+        gameId: game.id,
+        activePlayerIds: [],
+        actionCount: 0,
+        actionChecksum: 0,
+        prng: { seed: 456, invocations: 0 },
+        winningPlayerIds: []
+    }
+
+    return new IndonesiaGameInitializer().initializeGameState(game, state)
+}
+
+function setupLongRouteCandidateScenario(state: ReturnType<typeof createThreePlayerTestState>) {
+    const bluePlayerId = state.players[1]?.playerId
+    const orangePlayerId = state.players[2]?.playerId
+    expect(bluePlayerId).toBeDefined()
+    expect(orangePlayerId).toBeDefined()
+    if (!bluePlayerId || !orangePlayerId) {
+        throw Error('Expected three players in test state')
+    }
+
+    state.activePlayerIds = [bluePlayerId]
+    state.machineState = MachineState.ProductionOperations
+    state.era = Era.B
+    state.getPlayerState(bluePlayerId).research.hull = 1
+    state.getPlayerState(orangePlayerId).research.hull = 2
+
+    state.companies = [
+        {
+            id: 'blue-rubber',
+            type: CompanyType.Production,
+            owner: bluePlayerId,
+            deeds: [
+                {
+                    id: 'D13',
+                    type: CompanyType.Production,
+                    era: Era.B,
+                    region: 'R10',
+                    good: Good.Rubber
+                }
+            ],
+            good: Good.Rubber
+        },
+        {
+            id: 'blue-ship',
+            type: CompanyType.Shipping,
+            owner: bluePlayerId,
+            deeds: [
+                {
+                    id: 'D08',
+                    type: CompanyType.Shipping,
+                    era: Era.A,
+                    region: 'R26',
+                    sizes: {
+                        A: 3,
+                        B: 4,
+                        C: 5
+                    }
+                },
+                {
+                    id: 'D06',
+                    type: CompanyType.Shipping,
+                    era: Era.A,
+                    region: 'R08',
+                    sizes: {
+                        A: 2,
+                        B: 3,
+                        C: 4
+                    }
+                },
+                {
+                    id: 'D16',
+                    type: CompanyType.Shipping,
+                    era: Era.B,
+                    region: 'R02',
+                    sizes: {
+                        B: 4,
+                        C: 5
+                    }
+                }
+            ]
+        },
+        {
+            id: 'orange-ship',
+            type: CompanyType.Shipping,
+            owner: orangePlayerId,
+            deeds: [
+                {
+                    id: 'D07',
+                    type: CompanyType.Shipping,
+                    era: Era.A,
+                    region: 'R14',
+                    sizes: {
+                        A: 3,
+                        B: 3,
+                        C: 4
+                    }
+                },
+                {
+                    id: 'D05',
+                    type: CompanyType.Shipping,
+                    era: Era.A,
+                    region: 'R20',
+                    sizes: {
+                        A: 2,
+                        B: 3,
+                        C: 3
+                    }
+                }
+            ]
+        }
+    ]
+
+    for (const areaId of ['B01', 'B02', 'B03', 'B05', 'B09']) {
+        state.board.areas[areaId] = {
+            id: areaId,
+            type: AreaType.Cultivated,
+            companyId: 'blue-rubber',
+            good: Good.Rubber
+        }
+    }
+
+    for (const [areaId, ships] of Object.entries({
+        S01: ['orange-ship', 'blue-ship'],
+        S02: ['orange-ship', 'blue-ship'],
+        S03: ['blue-ship'],
+        S05: ['blue-ship'],
+        S06: ['blue-ship'],
+        S10: ['blue-ship'],
+        S11: ['blue-ship'],
+        S13: ['orange-ship'],
+        S14: ['blue-ship'],
+        S15: ['orange-ship'],
+        S16: ['orange-ship', 'blue-ship'],
+        S17: ['blue-ship', 'orange-ship'],
+        S18: ['blue-ship']
+    })) {
+        state.board.areas[areaId] = {
+            id: areaId,
+            type: AreaType.Sea,
+            ships
+        }
+    }
+
+    state.board.addCity({
+        id: 'city-d02',
+        area: 'D02',
+        size: 2,
+        demand: {
+            Rubber: 1,
+            Rice: 2,
+            SiapSaji: 2
+        }
+    })
+    state.board.addCity({
+        id: 'city-d11',
+        area: 'D11',
+        size: 3,
+        demand: {
+            Rice: 3,
+            SiapSaji: 2
+        }
+    })
+    state.board.addCity({
+        id: 'city-e06',
+        area: 'E06',
+        size: 1,
+        demand: {
+            Rice: 1,
+            SiapSaji: 1
+        }
+    })
+
+    state.beginCompanyOperation('blue-rubber')
+    state.setOperatingCompanyProducedGoodsCount(5)
+    state.setOperatingCompanyDeliveryPlan({
+        operatingCompanyId: 'blue-rubber',
+        good: Good.Rubber,
+        deliveries: [
+            {
+                zoneId: 'blue-rubber:zone:1',
+                cityId: 'city-d02',
+                shippingCompanyId: 'blue-ship',
+                quantity: 1,
+                seaPathAreaIds: ['S05', 'S02']
+            },
+            {
+                zoneId: 'blue-rubber:zone:1',
+                cityId: 'city-d11',
+                shippingCompanyId: 'blue-ship',
+                quantity: 2,
+                seaPathAreaIds: ['S11', 'S16', 'S03', 'S10', 'S18', 'S17']
+            },
+            {
+                zoneId: 'blue-rubber:zone:1',
+                cityId: 'city-e06',
+                shippingCompanyId: 'blue-ship',
+                quantity: 1,
+                seaPathAreaIds: ['S05', 'S02', 'S01']
+            }
+        ],
+        shipUses: [
+            {
+                shippingCompanyId: 'blue-ship',
+                seaAreaId: 'S01',
+                uses: 1
+            },
+            {
+                shippingCompanyId: 'blue-ship',
+                seaAreaId: 'S02',
+                uses: 2
+            },
+            {
+                shippingCompanyId: 'blue-ship',
+                seaAreaId: 'S03',
+                uses: 2
+            },
+            {
+                shippingCompanyId: 'blue-ship',
+                seaAreaId: 'S05',
+                uses: 2
+            },
+            {
+                shippingCompanyId: 'blue-ship',
+                seaAreaId: 'S10',
+                uses: 2
+            },
+            {
+                shippingCompanyId: 'blue-ship',
+                seaAreaId: 'S11',
+                uses: 2
+            },
+            {
+                shippingCompanyId: 'blue-ship',
+                seaAreaId: 'S16',
+                uses: 2
+            },
+            {
+                shippingCompanyId: 'blue-ship',
+                seaAreaId: 'S17',
+                uses: 2
+            },
+            {
+                shippingCompanyId: 'blue-ship',
+                seaAreaId: 'S18',
+                uses: 2
+            }
+        ],
+        shippingPayments: [
+            {
+                shippingCompanyId: 'blue-ship',
+                amount: 85
+            }
+        ],
+        totalDelivered: 4,
+        revenue: 120,
+        shippingCost: 85,
+        netIncome: 35,
+        tieBreakResult: {
+            policy: DeliveryTieBreakPolicy.MinShippingCost,
+            deliveredGoods: 4,
+            shippingCost: 85
+        }
+    })
+
+    return {
+        bluePlayerId
+    }
+}
+
 describe('deliveryCandidates', () => {
     it('filters unsafe first deliveries while keeping safe options', () => {
         const state = createTestState()
@@ -223,5 +538,26 @@ describe('deliveryCandidates', () => {
             false
         )
         expect(isSafeAtomicDeliveryChoiceForPlayer(state, productionOwnerId, safeChoice)).toBe(true)
+    })
+
+    it('keeps solver-required longer routes as safe delivery candidates', () => {
+        const state = createThreePlayerTestState()
+        const { bluePlayerId } = setupLongRouteCandidateScenario(state)
+
+        const safeCandidates = listSafeAtomicDeliveryCandidatesForPlayer(state, bluePlayerId)
+        const safeRouteKeys = new Set(
+            safeCandidates.map(
+                (candidate) =>
+                    `${candidate.shippingCompanyId}|${candidate.cityId}|${candidate.seaAreaIds.join('>')}`
+            )
+        )
+
+        expect(safeRouteKeys).toEqual(
+            new Set([
+                'blue-ship|city-d02|S05>S02',
+                'blue-ship|city-d11|S11>S16>S03>S10>S18>S17',
+                'blue-ship|city-e06|S05>S02>S01'
+            ])
+        )
     })
 })
