@@ -14,6 +14,7 @@ import {
     getValidPlacementsForType,
     hasAnyValidPlacement,
     isValidRepositionTarget,
+    BOARD_SQUARES,
     type HydratedUrbinoGameState,
     type UrbinoGameState,
 } from '@tabletop/urbino'
@@ -98,7 +99,7 @@ export class UrbinoGameSession extends GameSession<UrbinoGameState, HydratedUrbi
         const player = this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
         if (!player) return []
         const valid: number[] = []
-        for (let i = 0; i < 81; i++) {
+        for (let i = 0; i < BOARD_SQUARES; i++) {
             if (!isValidRepositionTarget(this.gameState.board, this.gameState.architects, this.selectedArchitectIndex, i)) continue
             const newArchitects = [...this.gameState.architects]
             newArchitects[this.selectedArchitectIndex] = i
@@ -118,7 +119,7 @@ export class UrbinoGameSession extends GameSession<UrbinoGameState, HydratedUrbi
     validArchitectPlacementSquares: number[] = $derived.by(() => {
         if (!this.canPlaceArchitect) return []
         const valid: number[] = []
-        for (let i = 0; i < 81; i++) {
+        for (let i = 0; i < BOARD_SQUARES; i++) {
             if (
                 this.gameState.board[i] === null &&
                 i !== this.gameState.architects[0] &&

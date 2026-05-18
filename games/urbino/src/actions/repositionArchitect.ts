@@ -3,7 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedUrbinoGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { isValidRepositionTarget } from '../logic/board.js'
+import { hasAnyValidPlacement, isValidRepositionTarget } from '../logic/board.js'
 
 export type RepositionArchitectMetadata = Type.Static<typeof RepositionArchitectMetadata>
 export const RepositionArchitectMetadata = Type.Object({})
@@ -52,11 +52,14 @@ export class HydratedRepositionArchitect
     }
 
     isValid(state: HydratedUrbinoGameState): boolean {
-        return (
-            !state.hasRepositionedThisTurn &&
-            (this.architectIndex === 0 || this.architectIndex === 1) &&
-            isValidRepositionTarget(state.board, state.architects, this.architectIndex, this.position)
-        )
+        if (state.hasRepositionedThisTurn) return false
+        if (this.architectIndex !== 0 && this.architectIndex !== 1) return false
+        if (!isValidRepositionTarget(state.board, state.architects, this.architectIndex, this.position)) return false
+        const player = state.players.find((p) => p.playerId === this.playerId)
+        if (!player) return false
+        const newArchitects = [...state.architects]
+        newArchitects[this.architectIndex] = this.position
+        return hasAnyValidPlacement(state.board, newArchitects, this.playerId, player.remainingBuildings, state.monumentsVariant)
     }
 
     static canReposition(state: HydratedUrbinoGameState): boolean {
