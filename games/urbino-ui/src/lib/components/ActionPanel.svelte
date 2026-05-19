@@ -87,7 +87,7 @@
                             class:text-[#2c1810]={session.selectedBuildingType !== type}
                             onclick={() => session.selectBuildingType(type)}
                         >
-                            <svg viewBox="0 0 20 20" width="19" height="19" fill={session.selectedBuildingType === type ? '#ffffff' : session.colors.getPlayerUiColor(session.myPlayer?.id)} stroke="#483737" stroke-width="1" stroke-linejoin="round">
+                            <svg viewBox="0 0 20 20" width="19" height={type === BuildingType.Tower ? 20.9 : 19} preserveAspectRatio={type === BuildingType.Tower ? 'none' : 'xMidYMid meet'} fill={session.selectedBuildingType === type ? '#ffffff' : session.colors.getPlayerUiColor(session.myPlayer?.id)} stroke="#483737" stroke-width="1" stroke-linejoin="round">
                                 {#if type === BuildingType.House}
                                     <path d="M 2.5,4.75 L 17.5,4.75 L 19,9.25 L 1,9.25 Z" />
                                     <path d="M 1,9.25 L 19,9.25 L 19,15.25 L 1,15.25 Z" />

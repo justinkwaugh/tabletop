@@ -52,7 +52,7 @@
 </script>
 
 <div
-    class="inline-grid border-8 border-[#b3b3b3] bg-[#b3b3b3]"
+    class="inline-grid border-[10px] border-[#b3b3b3] bg-[#b3b3b3]"
     style="grid-template-columns: repeat({BOARD_SIZE}, 1fr); gap: 2px;"
 >
     {#each squares as pos}

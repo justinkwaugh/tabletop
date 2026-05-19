@@ -35,7 +35,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-    class="relative flex h-10 w-10 cursor-pointer items-center justify-center transition-colors {bgClass}"
+    class="relative flex h-12 w-12 cursor-pointer items-center justify-center transition-colors {bgClass}"
     class:cursor-pointer={isClickable}
     class:cursor-default={!isClickable}
     class:ring-2={isArchitectSelected}
@@ -46,8 +46,9 @@
     {#if building}
         <svg
             viewBox="0 0 20 20"
-            width="29"
-            height="29"
+            width="35"
+            height={building.buildingType === BuildingType.Tower ? 38.5 : 35}
+            preserveAspectRatio={building.buildingType === BuildingType.Tower ? 'none' : 'xMidYMid meet'}
             fill={playerColor}
             stroke="#483737"
             stroke-width="1"
@@ -80,8 +81,8 @@
         >
             <svg
                 viewBox="0 0 20 20"
-                width="26"
-                height="26"
+                width="31"
+                height="31"
                 fill={isArchitectSelected ? '#991b1b' : '#dc2626'}
                 stroke="#483737"
                 stroke-width="1.5"
@@ -97,6 +98,6 @@
 
     <!-- Valid placement indicator (empty valid square) -->
     {#if isValid && !building}
-        <div class="h-3 w-3 rounded-full bg-[#6b9b30] opacity-60"></div>
+        <div class="h-3.5 w-3.5 rounded-full bg-[#6b9b30] opacity-60"></div>
     {/if}
 </div>
