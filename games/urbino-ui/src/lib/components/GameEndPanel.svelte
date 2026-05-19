@@ -1,15 +1,12 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte'
+    import { PlayerName } from '@tabletop/frontend-components'
 
     const session = getGameSession()
     const state = $derived(session.gameState)
 
     function isWinner(playerId: string): boolean {
         return state.winningPlayerIds.includes(playerId)
-    }
-
-    function isMe(playerId: string): boolean {
-        return session.myPlayer?.id === playerId
     }
 </script>
 
@@ -31,7 +28,7 @@
                     style:background-color={session.colors.getPlayerUiColor(player.playerId)}
                 ></div>
                 <span class="text-sm text-[#2c1810]">
-                    {isMe(player.playerId) ? 'You' : 'Opponent'}:
+                    <PlayerName playerId={player.playerId} />:
                     <strong>{player.score} pts</strong>
                     {#if isWinner(player.playerId)} ★{/if}
                 </span>

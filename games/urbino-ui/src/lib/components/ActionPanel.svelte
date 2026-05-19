@@ -1,5 +1,6 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte'
+    import { PlayerName } from '@tabletop/frontend-components'
     import { BuildingType } from '@tabletop/urbino'
 
     const session = getGameSession()
@@ -63,12 +64,11 @@
     {#if session.canChooseFirstPlayer}
         <div class="flex flex-wrap gap-2">
             {#each state.players as player}
-                {@const isMe = player.playerId === session.myPlayer?.id}
                 <button
                     class="rounded border border-[#6b3a2a] bg-white px-3 py-1.5 text-sm font-medium text-[#2c1810] transition-colors hover:bg-gray-100"
                     onclick={() => session.chooseFirstPlayer(player.playerId)}
                 >
-                    {isMe ? 'You go first' : 'Opponent goes first'}
+                    <PlayerName playerId={player.playerId} /> goes first
                 </button>
             {/each}
         </div>

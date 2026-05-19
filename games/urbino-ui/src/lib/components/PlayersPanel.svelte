@@ -1,5 +1,6 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte'
+    import { PlayerName } from '@tabletop/frontend-components'
     import { MachineState, BuildingType, computeDistrictScores } from '@tabletop/urbino'
 
     const session = getGameSession()
@@ -9,10 +10,6 @@
 
     function isActivePlayer(playerId: string): boolean {
         return state.activePlayerIds.includes(playerId)
-    }
-
-    function isMe(playerId: string): boolean {
-        return session.myPlayer?.id === playerId
     }
 </script>
 
@@ -29,9 +26,7 @@
                     class="h-4 w-4 rounded-full border border-gray-400"
                     style:background-color={uiColor}
                 ></div>
-                <span class="font-semibold text-[#2c1810]">
-                    {isMe(player.playerId) ? 'You' : 'Opponent'}
-                </span>
+                <PlayerName playerId={player.playerId} additionalClasses="font-semibold" />
                 {#if isActivePlayer(player.playerId)}
                     <span class="ml-auto text-xs text-[#6b3a2a]">Active</span>
                 {/if}
