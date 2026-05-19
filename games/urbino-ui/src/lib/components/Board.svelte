@@ -31,8 +31,8 @@
             return
         }
 
-        // Click on existing architect to select for repositioning
-        if (session.canRepositionArchitect && architectAt >= 0 && session.selectedArchitectIndex === undefined) {
+        // Click on architect to select/switch selection for repositioning
+        if (session.canRepositionArchitect && architectAt >= 0) {
             session.selectArchitect(architectAt)
             return
         }
