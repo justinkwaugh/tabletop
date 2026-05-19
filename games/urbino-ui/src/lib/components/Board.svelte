@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import Square from './Square.svelte'
-    import { BOARD_SIZE, BOARD_SQUARES } from '@tabletop/urbino'
+    import { BOARD_SIZE, BOARD_SQUARES, getDistrictFrom, posToRowCol, rowColToPos } from '@tabletop/urbino'
 
     const session = getGameSession()
     const state = $derived(session.gameState)
@@ -19,6 +19,29 @@
             return new Set(session.validPlacementSquares)
         }
         return new Set<number>()
+    })
+
+    let hoveredPos = $state<number | null>(null)
+
+    const hoveredDistrict = $derived.by(() => {
+        if (hoveredPos === null || state.board[hoveredPos] === null) return new Set<number>()
+        return getDistrictFrom(state.board, hoveredPos)
+    })
+
+    type EdgeFlags = { top: boolean; right: boolean; bottom: boolean; left: boolean }
+
+    const districtEdgeMap = $derived.by(() => {
+        const map = new Map<number, EdgeFlags>()
+        for (const pos of hoveredDistrict) {
+            const [row, col] = posToRowCol(pos)
+            map.set(pos, {
+                top: row === 0 || !hoveredDistrict.has(rowColToPos(row - 1, col)),
+                bottom: row === BOARD_SIZE - 1 || !hoveredDistrict.has(rowColToPos(row + 1, col)),
+                left: col === 0 || !hoveredDistrict.has(rowColToPos(row, col - 1)),
+                right: col === BOARD_SIZE - 1 || !hoveredDistrict.has(rowColToPos(row, col + 1)),
+            })
+        }
+        return map
     })
 
     function handleSquareClick(pos: number) {
@@ -67,6 +90,9 @@
             {isValid}
             selectedArchitectIndex={session.selectedArchitectIndex}
             playerColor={uiColor}
+            districtEdges={districtEdgeMap.get(pos)}
+            onHover={(p) => (hoveredPos = p)}
+            onHoverEnd={() => (hoveredPos = null)}
             onclick={() => handleSquareClick(pos)}
         />
     {/each}

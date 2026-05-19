@@ -2,6 +2,8 @@
     import { BuildingType, type BoardSquare, getDistrictInfo } from '@tabletop/urbino'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
 
+    type EdgeFlags = { top: boolean; right: boolean; bottom: boolean; left: boolean }
+
     let {
         pos,
         building,
@@ -9,6 +11,9 @@
         isValid,
         selectedArchitectIndex,
         playerColor,
+        districtEdges,
+        onHover,
+        onHoverEnd,
         onclick,
     }: {
         pos: number
@@ -17,6 +22,9 @@
         isValid: boolean
         selectedArchitectIndex: number | undefined
         playerColor: string | undefined
+        districtEdges?: EdgeFlags
+        onHover: (pos: number) => void
+        onHoverEnd: () => void
         onclick: () => void
     } = $props()
 
@@ -30,6 +38,7 @@
 
     const bgClass = $derived.by(() => {
         if (isValid) return 'bg-[#c8e6a0] hover:bg-[#b0d880]'
+        if (districtEdges) return 'bg-[#f0e8d0] hover:bg-[#ebe0c4]'
         return 'bg-[#e6e6e6] hover:bg-[#d9d9d9]'
     })
 
@@ -92,6 +101,7 @@
     }
 
     function onmouseenter(e: MouseEvent) {
+        onHover(pos)
         if (!building) return
         tooltipEl = buildTooltip(e.clientX, e.clientY)
         document.body.appendChild(tooltipEl)
@@ -104,6 +114,7 @@
     }
 
     function onmouseleave() {
+        onHoverEnd()
         tooltipEl?.remove()
         tooltipEl = null
     }
@@ -184,5 +195,16 @@
     <!-- Valid placement indicator (empty valid square) -->
     {#if isValid && !building}
         <div class="h-3.5 w-3.5 rounded-full bg-[#6b9b30] opacity-60"></div>
+    {/if}
+
+    <!-- District outline overlay -->
+    {#if districtEdges}
+        <div
+            class="pointer-events-none absolute inset-0 z-20"
+            style:border-top={districtEdges.top ? '2px solid #9b6914' : 'none'}
+            style:border-right={districtEdges.right ? '2px solid #9b6914' : 'none'}
+            style:border-bottom={districtEdges.bottom ? '2px solid #9b6914' : 'none'}
+            style:border-left={districtEdges.left ? '2px solid #9b6914' : 'none'}
+        ></div>
     {/if}
 </div>
