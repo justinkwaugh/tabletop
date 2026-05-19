@@ -69,7 +69,7 @@ function satisfiesAdjacencyRule(board: BoardSquare[], pos: number, buildingType:
     return true
 }
 
-function getDistrictFrom(board: BoardSquare[], startPos: number): Set<number> {
+export function getDistrictFrom(board: BoardSquare[], startPos: number): Set<number> {
     const district = new Set<number>([startPos])
     const queue = [startPos]
     while (queue.length > 0) {
@@ -263,6 +263,69 @@ function findBestMonumentInDistrict(board: BoardSquare[], district: Set<number>)
     return best
 }
 
+export type DistrictPlayerStats = {
+    total: number
+    monumentValue: number
+    towers: number
+    palaces: number
+    houses: number
+}
+
+export type DistrictInfo = {
+    playerStats: Map<string, DistrictPlayerStats>
+    winner: string | null
+    contested: boolean
+    monuments: Monument[]
+}
+
+export function getDistrictInfo(board: BoardSquare[], pos: number, includeMonuments = false): DistrictInfo {
+    const district = getDistrictFrom(board, pos)
+    const monuments = includeMonuments ? findAllMonumentsInDistrict(board, district) : []
+    const monumentPositions = new Set<number>(monuments.flatMap(m => [...m.positions]))
+
+    const playerStats = new Map<string, DistrictPlayerStats>()
+    for (const p of district) {
+        const sq = board[p]!
+        if (!playerStats.has(sq.playerId)) {
+            playerStats.set(sq.playerId, { total: 0, monumentValue: 0, towers: 0, palaces: 0, houses: 0 })
+        }
+        const stats = playerStats.get(sq.playerId)!
+        if (!monumentPositions.has(p)) {
+            stats.total += BUILDING_POINTS[sq.buildingType]
+        }
+        if (sq.buildingType === BuildingType.Tower) stats.towers++
+        else if (sq.buildingType === BuildingType.Palace) stats.palaces++
+        else stats.houses++
+    }
+
+    for (const m of monuments) {
+        const stats = playerStats.get(m.winnerId)
+        if (stats) { stats.total += m.value; stats.monumentValue += m.value }
+    }
+
+    const contested = playerStats.size >= 2
+    let winner: string | null = null
+
+    if (contested) {
+        const entries = [...playerStats.entries()]
+        const [pid1, s1] = entries[0]
+        const [pid2, s2] = entries[1]
+        if (s1.total !== s2.total) {
+            winner = s1.total > s2.total ? pid1 : pid2
+        } else if (s1.monumentValue !== s2.monumentValue) {
+            winner = s1.monumentValue > s2.monumentValue ? pid1 : pid2
+        } else if (s1.towers !== s2.towers) {
+            winner = s1.towers > s2.towers ? pid1 : pid2
+        } else if (s1.palaces !== s2.palaces) {
+            winner = s1.palaces > s2.palaces ? pid1 : pid2
+        } else if (s1.houses !== s2.houses) {
+            winner = s1.houses > s2.houses ? pid1 : pid2
+        }
+    }
+
+    return { playerStats, winner, contested, monuments }
+}
+
 export function computeDistrictScores(board: BoardSquare[], includeMonuments = false): Map<string, number> {
     const scores = new Map<string, number>()
     const visited = new Set<number>()
@@ -272,8 +335,8 @@ export function computeDistrictScores(board: BoardSquare[], includeMonuments = f
         const district = getDistrictFrom(board, i)
         for (const p of district) visited.add(p)
 
-        const monument = includeMonuments ? findBestMonumentInDistrict(board, district) : null
-        const monumentPositions = monument ? new Set<number>(monument.positions) : new Set<number>()
+        const monuments = includeMonuments ? findAllMonumentsInDistrict(board, district) : []
+        const monumentPositions = new Set<number>(monuments.flatMap(m => [...m.positions]))
 
         const playerStats = new Map<
             string,
@@ -293,9 +356,9 @@ export function computeDistrictScores(board: BoardSquare[], includeMonuments = f
             else stats.houses++
         }
 
-        if (monument) {
-            const stats = playerStats.get(monument.winnerId)
-            if (stats) { stats.total += monument.value; stats.monumentValue = monument.value }
+        for (const m of monuments) {
+            const stats = playerStats.get(m.winnerId)
+            if (stats) { stats.total += m.value; stats.monumentValue += m.value }
         }
 
         if (playerStats.size < 2) continue

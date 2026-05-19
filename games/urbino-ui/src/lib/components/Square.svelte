@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { BuildingType, type BoardSquare } from '@tabletop/urbino'
+    import { BuildingType, type BoardSquare, getDistrictInfo } from '@tabletop/urbino'
+    import { getGameSession } from '$lib/model/sessionContext.svelte'
 
     let {
         pos,
@@ -19,6 +20,8 @@
         onclick: () => void
     } = $props()
 
+    const session = getGameSession()
+
     const isArchitectHere = $derived(architectIndex >= 0)
     const isArchitectSelected = $derived(
         isArchitectHere && architectIndex === selectedArchitectIndex
@@ -30,6 +33,85 @@
         return 'bg-[#e6e6e6] hover:bg-[#d9d9d9]'
     })
 
+    // Tooltip — portaled to document.body to escape ScalingWrapper's CSS transform
+    let tooltipEl: HTMLDivElement | null = null
+
+    function buildTooltip(x: number, y: number): HTMLDivElement {
+        const state = session.gameState
+        const info = getDistrictInfo(state.board, pos, state.monumentsVariant)
+
+        const container = document.createElement('div')
+        Object.assign(container.style, {
+            position: 'fixed',
+            zIndex: '9999',
+            background: 'white',
+            border: '1px solid #e5e7eb',
+            borderRadius: '6px',
+            padding: '8px 10px',
+            fontSize: '12px',
+            lineHeight: '1.6',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+            pointerEvents: 'none',
+            left: `${x + 14}px`,
+            top: `${y - 10}px`,
+        })
+
+        const header = document.createElement('div')
+        Object.assign(header.style, { fontWeight: '600', color: '#6b7280', marginBottom: '4px' })
+        header.textContent = info.contested ? 'District' : 'District (uncontested)'
+        container.appendChild(header)
+
+        if (info.contested) {
+            const sorted = [...info.playerStats.entries()].sort((a, b) => b[1].total - a[1].total)
+            for (const [pid, stats] of sorted) {
+                const isWinner = pid === info.winner
+                const row = document.createElement('div')
+                Object.assign(row.style, { display: 'flex', alignItems: 'center', gap: '6px', fontWeight: isWinner ? '600' : '400' })
+
+                const dot = document.createElement('div')
+                Object.assign(dot.style, {
+                    width: '10px', height: '10px', borderRadius: '50%',
+                    border: '1px solid #9ca3af',
+                    background: session.colors.getPlayerUiColor(pid),
+                    flexShrink: '0',
+                })
+
+                const label = document.createElement('span')
+                label.style.color = '#1f2937'
+                const name = pid === session.myPlayer?.id ? 'You' : (session.getPlayerName(pid) ?? 'Player')
+                const suffix = isWinner ? ' ★' : ''
+                label.textContent = `${name}: ${stats.total} pt${stats.total !== 1 ? 's' : ''}${suffix}`
+
+                row.appendChild(dot)
+                row.appendChild(label)
+                container.appendChild(row)
+            }
+        }
+
+        return container
+    }
+
+    function onmouseenter(e: MouseEvent) {
+        if (!building) return
+        tooltipEl = buildTooltip(e.clientX, e.clientY)
+        document.body.appendChild(tooltipEl)
+    }
+
+    function onmousemove(e: MouseEvent) {
+        if (!tooltipEl) return
+        tooltipEl.style.left = `${e.clientX + 14}px`
+        tooltipEl.style.top = `${e.clientY - 10}px`
+    }
+
+    function onmouseleave() {
+        tooltipEl?.remove()
+        tooltipEl = null
+    }
+
+    $effect(() => () => {
+        tooltipEl?.remove()
+        tooltipEl = null
+    })
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -41,6 +123,9 @@
     class:ring-2={isArchitectSelected}
     class:ring-[#c87941]={isArchitectSelected}
     {onclick}
+    {onmouseenter}
+    {onmousemove}
+    {onmouseleave}
 >
     <!-- Building -->
     {#if building}
