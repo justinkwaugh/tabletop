@@ -1,0 +1,39 @@
+@import 'tailwindcss';
+@plugin 'flowbite/plugin';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --color-primary-50: #fafaf9;
+    --color-primary-100: #f5f5f4;
+    --color-primary-200: #e7e5e4;
+    --color-primary-300: #d6d3d1;
+    --color-primary-400: #a8a29e;
+    --color-primary-500: #78716c;
+    --color-primary-600: #57534e;
+    --color-primary-700: #44403c;
+    --color-primary-800: #292524;
+    --color-primary-900: #1c1917;
+
+    --color-secondary-50: #fdf8f0;
+    --color-secondary-100: #faefd9;
+    --color-secondary-200: #f5dcad;
+    --color-secondary-300: #efc57b;
+    --color-secondary-400: #e8a94a;
+    --color-secondary-500: #d4882a;
+    --color-secondary-600: #b86b1e;
+    --color-secondary-700: #8f4f18;
+    --color-secondary-800: #673818;
+    --color-secondary-900: #4a2714;
+}
+
+@source "../node_modules/flowbite-svelte/dist";
+@source "../node_modules/flowbite-svelte-icons/dist";
+@source "../../../libs/frontend-components/src/**/*.{html,js,svelte,ts}";
+@source "./**/*.{html,js,svelte,ts}";
+
+@layer base {
+    input[type='search']::-webkit-search-cancel-button {
+        display: none;
+    }
+}
