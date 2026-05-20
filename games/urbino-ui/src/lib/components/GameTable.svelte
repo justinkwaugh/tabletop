@@ -30,13 +30,13 @@
         {#snippet mobileControlsContent()}
             <HistoryControls
                 enabledColor="text-[#2c1810]"
-                disabledColor="text-[#b0a090]"
+                disabledColor="text-[#c8bfaf]"
                 borderClass="border-[#c8bfaf] border-b-2"
             />
         {/snippet}
         {#snippet sideContent()}
             <div class="max-sm:hidden">
-                <HistoryControls enabledColor="text-[#2c1810]" disabledColor="text-[#b0a090]" />
+                <HistoryControls enabledColor="text-[#2c1810]" disabledColor="text-[#c8bfaf]" />
             </div>
             <DefaultTabs
                 activeTabClass="py-1 px-3 bg-[#6b3a2a] border-2 border-transparent rounded-lg text-gray-100"
