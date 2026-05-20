@@ -63,7 +63,8 @@
                     class="rounded border border-[#6b3a2a] bg-white px-3 py-1.5 text-sm font-medium text-[#2c1810] transition-colors hover:bg-gray-100"
                     onclick={() => session.chooseFirstPlayer(player.playerId)}
                 >
-                    <PlayerName playerId={player.playerId} /> goes first
+                    <PlayerName playerId={player.playerId} />
+                    {player.playerId === session.myPlayer?.id ? 'go' : 'goes'} first
                 </button>
             {/each}
         </div>
