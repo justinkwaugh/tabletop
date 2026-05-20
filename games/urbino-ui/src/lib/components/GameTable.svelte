@@ -14,6 +14,7 @@
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import AnimationOverlay from '$lib/components/AnimationOverlay.svelte'
+    import Header from '$lib/components/Header.svelte'
 
     import type { UrbinoGameSession } from '$lib/model/session.svelte'
     import type { HydratedUrbinoGameState, UrbinoGameState } from '@tabletop/urbino'
@@ -25,7 +26,7 @@
 </script>
 
 <AnimationOverlay />
-<div class="bg-[#b0a090]" style="--chat-height-offset: 0px;">
+<div class="bg-[#b0a090]" style="--chat-height-offset: 52px;">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls
@@ -59,6 +60,7 @@
         {/snippet}
         {#snippet gameContent()}
             <div class="shrink-0">
+                <Header />
                 {#if gameSession.gameState.result}
                     <GameEndPanel />
                 {:else}

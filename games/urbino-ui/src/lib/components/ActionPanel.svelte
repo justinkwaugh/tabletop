@@ -38,7 +38,7 @@
                 : 'Place the second architect on any empty square'
         }
         if (session.canChooseFirstPlayer) return 'Choose who takes the first turn'
-        if (session.canUndoPlacement) return 'Building placed'
+        if (session.canUndoPlacement) return 'Building placed — select next action or undo'
         if (session.canPass) return 'No valid placement — you must skip your turn'
         if (session.selectedArchitectIndex !== undefined) {
             return 'Click a square to move the selected architect there'
@@ -55,17 +55,6 @@
 
 <div class="flex flex-col gap-2 border-b border-[#c8bfaf] bg-[#f0ebe2] px-4 py-3">
     <div class="text-sm text-[#6b5040]">{getStatusMessage()}</div>
-
-    {#if session.canUndoPlacement}
-        <div class="flex gap-2">
-            <button
-                class="rounded border border-gray-400 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100"
-                onclick={() => session.undo()}
-            >
-                ↩ Undo Placement
-            </button>
-        </div>
-    {/if}
 
     {#if session.canChooseFirstPlayer}
         <div class="flex flex-wrap gap-2">
@@ -129,15 +118,6 @@
                         ✦ Move Architect {idx + 1}
                     </button>
                 {/each}
-            {/if}
-
-            {#if session.canUndoReposition}
-                <button
-                    class="rounded border border-gray-400 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100"
-                    onclick={() => session.undo()}
-                >
-                    ↩ Undo Move
-                </button>
             {/if}
 
             {#if session.canPass}
