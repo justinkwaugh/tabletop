@@ -2,6 +2,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import Square from './Square.svelte'
     import { BOARD_SIZE, BOARD_SQUARES, getDistrictFrom, posToRowCol, rowColToPos } from '@tabletop/urbino'
+    import { getBuildingButtonRect, placementAnim } from '$lib/model/animationStore'
 
     const session = getGameSession()
     const state = $derived(session.gameState)
@@ -44,7 +45,7 @@
         return map
     })
 
-    function handleSquareClick(pos: number) {
+    function handleSquareClick(pos: number, e: MouseEvent) {
         const square = state.board[pos]
         const architectAt = state.architects.indexOf(pos)
 
@@ -68,6 +69,17 @@
 
         // Place building
         if (session.selectedBuildingType && validSquares.has(pos)) {
+            const fromRect = getBuildingButtonRect(session.selectedBuildingType)
+            const toRect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+            const playerColor = session.colors.getPlayerUiColor(session.myPlayer?.id)
+            if (fromRect && playerColor) {
+                placementAnim.trigger({
+                    buildingType: session.selectedBuildingType,
+                    playerColor,
+                    fromRect,
+                    toRect,
+                })
+            }
             session.placeBuilding(pos, session.selectedBuildingType)
             return
         }
@@ -93,7 +105,7 @@
             districtEdges={districtEdgeMap.get(pos)}
             onHover={(p) => (hoveredPos = p)}
             onHoverEnd={() => (hoveredPos = null)}
-            onclick={() => handleSquareClick(pos)}
+            onclick={(e) => handleSquareClick(pos, e)}
         />
     {/each}
 </div>

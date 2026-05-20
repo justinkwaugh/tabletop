@@ -25,7 +25,7 @@
         districtEdges?: EdgeFlags
         onHover: (pos: number) => void
         onHoverEnd: () => void
-        onclick: () => void
+        onclick: (e: MouseEvent) => void
     } = $props()
 
     const session = getGameSession()

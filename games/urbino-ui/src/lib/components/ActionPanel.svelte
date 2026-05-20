@@ -2,6 +2,12 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import { BuildingType } from '@tabletop/urbino'
+    import { registerBuildingButton } from '$lib/model/animationStore'
+
+    function buildingButtonAction(node: HTMLElement, type: BuildingType) {
+        registerBuildingButton(type, node)
+        return { destroy() { registerBuildingButton(type, null) } }
+    }
 
     const session = getGameSession()
     const state = $derived(session.gameState)
@@ -80,6 +86,7 @@
                 {#each buildingTypes as type}
                     {#if hasBuildingType(type)}
                         <button
+                            use:buildingButtonAction={type}
                             class="flex items-center gap-1.5 rounded border border-[#6b3a2a] px-3 py-1.5 text-sm font-medium transition-colors"
                             class:bg-[#6b3a2a]={session.selectedBuildingType === type}
                             class:text-white={session.selectedBuildingType === type}

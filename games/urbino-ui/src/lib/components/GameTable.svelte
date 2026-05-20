@@ -13,6 +13,7 @@
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
+    import AnimationOverlay from '$lib/components/AnimationOverlay.svelte'
 
     import type { UrbinoGameSession } from '$lib/model/session.svelte'
     import type { HydratedUrbinoGameState, UrbinoGameState } from '@tabletop/urbino'
@@ -23,6 +24,7 @@
     setGameSession(gameSession as UrbinoGameSession)
 </script>
 
+<AnimationOverlay />
 <div class="bg-[#b0a090]" style="--chat-height-offset: 0px;">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
