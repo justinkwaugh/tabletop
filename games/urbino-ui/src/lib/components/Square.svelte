@@ -151,8 +151,7 @@
             stroke-linejoin="round"
             class="select-none drop-shadow-sm"
         >
-            <title>{building.buildingType}</title>
-            {#if building.buildingType === BuildingType.House}
+{#if building.buildingType === BuildingType.House}
                 <path d="M 2.5,4.75 L 17.5,4.75 L 19,9.25 L 1,9.25 Z" />
                 <path d="M 1,9.25 L 19,9.25 L 19,15.25 L 1,15.25 Z" />
             {:else if building.buildingType === BuildingType.Palace}
@@ -173,7 +172,6 @@
     {#if isArchitectHere}
         <div
             class="absolute inset-0 flex items-center justify-center"
-            title="Architect {architectIndex + 1}"
         >
             <svg
                 viewBox="0 0 20 20"

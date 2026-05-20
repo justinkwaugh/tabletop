@@ -1,7 +1,6 @@
 <script lang="ts">
     import {
         ScalingWrapper,
-        DefaultSideContent,
         DefaultTableLayout,
         GameSession,
         GameChat,
