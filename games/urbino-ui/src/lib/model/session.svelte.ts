@@ -10,6 +10,8 @@ import {
     Pass,
     isRepositionArchitect,
     isPlaceBuilding,
+    isPlaceArchitect,
+    isChooseFirstPlayer,
     getValidPlacements,
     getValidPlacementsForType,
     hasAnyValidPlacement,
@@ -60,6 +62,14 @@ export class UrbinoGameSession extends GameSession<UrbinoGameState, HydratedUrbi
 
     canUndoPlacement = $derived(
         !!this.undoableAction && isPlaceBuilding(this.undoableAction)
+    )
+
+    canUndoArchitectPlacement = $derived(
+        !!this.undoableAction && isPlaceArchitect(this.undoableAction)
+    )
+
+    canUndoChooseFirstPlayer = $derived(
+        !!this.undoableAction && isChooseFirstPlayer(this.undoableAction)
     )
 
     canPlaceBuilding = $derived(

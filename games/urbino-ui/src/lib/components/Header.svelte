@@ -7,7 +7,12 @@
     const state = $derived(session.gameState)
 
     const activePlayerId = $derived(state.activePlayerIds[0])
-    const canUndo = $derived(session.canUndoPlacement || session.canUndoReposition)
+    const canUndo = $derived(
+        session.canUndoPlacement ||
+        session.canUndoReposition ||
+        session.canUndoArchitectPlacement ||
+        session.canUndoChooseFirstPlayer
+    )
 </script>
 
 <div
