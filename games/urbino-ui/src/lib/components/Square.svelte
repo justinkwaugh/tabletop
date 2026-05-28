@@ -70,31 +70,29 @@
         header.textContent = info.contested ? 'District' : 'District (uncontested)'
         container.appendChild(header)
 
-        if (info.contested) {
-            const sorted = [...info.playerStats.entries()].sort((a, b) => b[1].total - a[1].total)
-            for (const [pid, stats] of sorted) {
-                const isWinner = pid === info.winner
-                const row = document.createElement('div')
-                Object.assign(row.style, { display: 'flex', alignItems: 'center', gap: '6px', fontWeight: isWinner ? '600' : '400' })
+        const sorted = [...info.playerStats.entries()].sort((a, b) => b[1].total - a[1].total)
+        for (const [pid, stats] of sorted) {
+            const isWinner = pid === info.winner
+            const row = document.createElement('div')
+            Object.assign(row.style, { display: 'flex', alignItems: 'center', gap: '6px', fontWeight: isWinner ? '600' : '400' })
 
-                const dot = document.createElement('div')
-                Object.assign(dot.style, {
-                    width: '10px', height: '10px', borderRadius: '50%',
-                    border: '1px solid #9ca3af',
-                    background: session.colors.getPlayerUiColor(pid),
-                    flexShrink: '0',
-                })
+            const dot = document.createElement('div')
+            Object.assign(dot.style, {
+                width: '10px', height: '10px', borderRadius: '50%',
+                border: '1px solid #9ca3af',
+                background: session.colors.getPlayerUiColor(pid),
+                flexShrink: '0',
+            })
 
-                const label = document.createElement('span')
-                label.style.color = '#1f2937'
-                const name = pid === session.myPlayer?.id ? 'You' : (session.getPlayerName(pid) ?? 'Player')
-                const suffix = isWinner ? ' ★' : ''
-                label.textContent = `${name}: ${stats.total} pt${stats.total !== 1 ? 's' : ''}${suffix}`
+            const label = document.createElement('span')
+            label.style.color = '#1f2937'
+            const name = pid === session.myPlayer?.id ? 'You' : (session.getPlayerName(pid) ?? 'Player')
+            const suffix = isWinner ? ' ★' : (info.contested ? '' : ' (no points)')
+            label.textContent = `${name}: ${stats.total} pt${stats.total !== 1 ? 's' : ''}${suffix}`
 
-                row.appendChild(dot)
-                row.appendChild(label)
-                container.appendChild(row)
-            }
+            row.appendChild(dot)
+            row.appendChild(label)
+            container.appendChild(row)
         }
 
         return container
@@ -128,7 +126,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-    class="relative flex h-12 w-12 cursor-pointer items-center justify-center transition-colors {bgClass}"
+    class="relative flex h-12 w-12 items-center justify-center transition-colors {bgClass}"
     class:cursor-pointer={isClickable}
     class:cursor-default={!isClickable}
     class:ring-2={isArchitectSelected}
