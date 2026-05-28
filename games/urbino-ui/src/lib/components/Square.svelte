@@ -119,8 +119,6 @@
         document.body.appendChild(tooltipEl)
     }
 
-    function onmousemove(_e: MouseEvent) {}
-
     function onmouseleave() {
         onHoverEnd()
         tooltipEl?.remove()
