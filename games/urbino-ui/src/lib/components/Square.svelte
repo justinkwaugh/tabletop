@@ -50,7 +50,7 @@
         const info = getDistrictInfo(state.board, pos, state.monumentsVariant)
         const district = getDistrictFrom(state.board, pos)
 
-        let minTop = Infinity, minLeft = Infinity, maxRight = -Infinity
+        let minTop = Infinity, minLeft = Infinity, maxRight = -Infinity, maxBottom = -Infinity
         for (const dPos of district) {
             const el = document.querySelector(`[data-board-pos="${dPos}"]`)
             if (!el) continue
@@ -58,9 +58,14 @@
             minTop = Math.min(minTop, rect.top)
             minLeft = Math.min(minLeft, rect.left)
             maxRight = Math.max(maxRight, rect.right)
+            maxBottom = Math.max(maxBottom, rect.bottom)
         }
         const centerX = isFinite(minLeft) ? (minLeft + maxRight) / 2 : 0
-        const anchorY = isFinite(minTop) ? minTop : 0
+        const districtCenterY = isFinite(minTop) ? (minTop + maxBottom) / 2 : 0
+        const boardTop = document.querySelector('[data-board-pos="0"]')?.getBoundingClientRect().top ?? 0
+        const boardBottom = document.querySelector('[data-board-pos="80"]')?.getBoundingClientRect().bottom ?? window.innerHeight
+        const midY = (boardTop + boardBottom) / 2
+        const aboveDistrict = districtCenterY > midY
 
         const container = document.createElement('div')
         Object.assign(container.style, {
@@ -75,8 +80,8 @@
             boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
             pointerEvents: 'none',
             left: `${centerX}px`,
-            top: `${anchorY}px`,
-            transform: 'translate(-50%, calc(-100% - 6px))',
+            top: aboveDistrict ? `${minTop}px` : `${maxBottom}px`,
+            transform: aboveDistrict ? 'translate(-50%, calc(-100% - 6px))' : 'translate(-50%, 6px)',
         })
 
         const header = document.createElement('div')
