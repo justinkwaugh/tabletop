@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { BuildingType, type BoardSquare, getDistrictInfo } from '@tabletop/urbino'
+    import { BuildingType, type BoardSquare, getDistrictInfo, getDistrictFrom } from '@tabletop/urbino'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
 
     type EdgeFlags = { top: boolean; right: boolean; bottom: boolean; left: boolean }
@@ -45,9 +45,22 @@
     // Tooltip — portaled to document.body to escape ScalingWrapper's CSS transform
     let tooltipEl: HTMLDivElement | null = null
 
-    function buildTooltip(x: number, y: number): HTMLDivElement {
+    function buildTooltip(): HTMLDivElement {
         const state = session.gameState
         const info = getDistrictInfo(state.board, pos, state.monumentsVariant)
+        const district = getDistrictFrom(state.board, pos)
+
+        let minTop = Infinity, minLeft = Infinity, maxRight = -Infinity
+        for (const dPos of district) {
+            const el = document.querySelector(`[data-board-pos="${dPos}"]`)
+            if (!el) continue
+            const rect = el.getBoundingClientRect()
+            minTop = Math.min(minTop, rect.top)
+            minLeft = Math.min(minLeft, rect.left)
+            maxRight = Math.max(maxRight, rect.right)
+        }
+        const centerX = isFinite(minLeft) ? (minLeft + maxRight) / 2 : 0
+        const anchorY = isFinite(minTop) ? minTop : 0
 
         const container = document.createElement('div')
         Object.assign(container.style, {
@@ -61,8 +74,9 @@
             lineHeight: '1.6',
             boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
             pointerEvents: 'none',
-            left: `${x + 14}px`,
-            top: `${y - 10}px`,
+            left: `${centerX}px`,
+            top: `${anchorY}px`,
+            transform: 'translate(-50%, calc(-100% - 6px))',
         })
 
         const header = document.createElement('div')
@@ -98,18 +112,14 @@
         return container
     }
 
-    function onmouseenter(e: MouseEvent) {
+    function onmouseenter(_e: MouseEvent) {
         onHover(pos)
         if (!building) return
-        tooltipEl = buildTooltip(e.clientX, e.clientY)
+        tooltipEl = buildTooltip()
         document.body.appendChild(tooltipEl)
     }
 
-    function onmousemove(e: MouseEvent) {
-        if (!tooltipEl) return
-        tooltipEl.style.left = `${e.clientX + 14}px`
-        tooltipEl.style.top = `${e.clientY - 10}px`
-    }
+    function onmousemove(_e: MouseEvent) {}
 
     function onmouseleave() {
         onHoverEnd()
@@ -126,6 +136,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
+    data-board-pos={pos}
     class="relative flex h-12 w-12 items-center justify-center transition-colors {bgClass}"
     class:cursor-pointer={isClickable}
     class:cursor-default={!isClickable}
