@@ -332,58 +332,11 @@ export function computeDistrictScores(board: BoardSquare[], includeMonuments = f
 
     for (let i = 0; i < BOARD_SQUARES; i++) {
         if (board[i] === null || visited.has(i)) continue
-        const district = getDistrictFrom(board, i)
-        for (const p of district) visited.add(p)
-
-        const monuments = includeMonuments ? findAllMonumentsInDistrict(board, district) : []
-        const monumentPositions = new Set<number>(monuments.flatMap(m => [...m.positions]))
-
-        const playerStats = new Map<
-            string,
-            { total: number; monumentValue: number; towers: number; palaces: number; houses: number }
-        >()
-        for (const p of district) {
-            const sq = board[p]!
-            if (!playerStats.has(sq.playerId)) {
-                playerStats.set(sq.playerId, { total: 0, monumentValue: 0, towers: 0, palaces: 0, houses: 0 })
-            }
-            const stats = playerStats.get(sq.playerId)!
-            if (!monumentPositions.has(p)) {
-                stats.total += BUILDING_POINTS[sq.buildingType]
-            }
-            if (sq.buildingType === BuildingType.Tower) stats.towers++
-            else if (sq.buildingType === BuildingType.Palace) stats.palaces++
-            else stats.houses++
-        }
-
-        for (const m of monuments) {
-            const stats = playerStats.get(m.winnerId)
-            if (stats) { stats.total += m.value; stats.monumentValue += m.value }
-        }
-
-        if (playerStats.size < 2) continue
-
-        const entries = [...playerStats.entries()]
-        const [pid1, s1] = entries[0]
-        const [pid2, s2] = entries[1]
-
-        let winner: string | null = null
-        if (s1.total !== s2.total) {
-            winner = s1.total > s2.total ? pid1 : pid2
-        } else if (s1.monumentValue !== s2.monumentValue) {
-            winner = s1.monumentValue > s2.monumentValue ? pid1 : pid2
-        } else if (s1.towers !== s2.towers) {
-            winner = s1.towers > s2.towers ? pid1 : pid2
-        } else if (s1.palaces !== s2.palaces) {
-            winner = s1.palaces > s2.palaces ? pid1 : pid2
-        } else if (s1.houses !== s2.houses) {
-            winner = s1.houses > s2.houses ? pid1 : pid2
-        }
-
-        if (winner !== null) {
-            const winnerStats = playerStats.get(winner)!
-            scores.set(winner, (scores.get(winner) ?? 0) + winnerStats.total)
-        }
+        const info = getDistrictInfo(board, i, includeMonuments)
+        for (const p of getDistrictFrom(board, i)) visited.add(p)
+        if (!info.contested || info.winner === null) continue
+        const winnerStats = info.playerStats.get(info.winner)!
+        scores.set(info.winner, (scores.get(info.winner) ?? 0) + winnerStats.total)
     }
 
     return scores

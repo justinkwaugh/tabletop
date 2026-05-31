@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { BuildingType, type BoardSquare, getDistrictInfo } from '@tabletop/urbino'
+    import { BuildingType, type BoardSquare, getDistrictInfo, getDistrictFrom } from '@tabletop/urbino'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
 
     type EdgeFlags = { top: boolean; right: boolean; bottom: boolean; left: boolean }
@@ -45,9 +45,27 @@
     // Tooltip — portaled to document.body to escape ScalingWrapper's CSS transform
     let tooltipEl: HTMLDivElement | null = null
 
-    function buildTooltip(x: number, y: number): HTMLDivElement {
+    function buildTooltip(): HTMLDivElement {
         const state = session.gameState
         const info = getDistrictInfo(state.board, pos, state.monumentsVariant)
+        const district = getDistrictFrom(state.board, pos)
+
+        let minTop = Infinity, minLeft = Infinity, maxRight = -Infinity, maxBottom = -Infinity
+        for (const dPos of district) {
+            const el = document.querySelector(`[data-board-pos="${dPos}"]`)
+            if (!el) continue
+            const rect = el.getBoundingClientRect()
+            minTop = Math.min(minTop, rect.top)
+            minLeft = Math.min(minLeft, rect.left)
+            maxRight = Math.max(maxRight, rect.right)
+            maxBottom = Math.max(maxBottom, rect.bottom)
+        }
+        const centerX = isFinite(minLeft) ? (minLeft + maxRight) / 2 : 0
+        const districtCenterY = isFinite(minTop) ? (minTop + maxBottom) / 2 : 0
+        const boardTop = document.querySelector('[data-board-pos="0"]')?.getBoundingClientRect().top ?? 0
+        const boardBottom = document.querySelector('[data-board-pos="80"]')?.getBoundingClientRect().bottom ?? window.innerHeight
+        const midY = (boardTop + boardBottom) / 2
+        const aboveDistrict = districtCenterY > midY
 
         const container = document.createElement('div')
         Object.assign(container.style, {
@@ -61,8 +79,9 @@
             lineHeight: '1.6',
             boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
             pointerEvents: 'none',
-            left: `${x + 14}px`,
-            top: `${y - 10}px`,
+            left: `${centerX}px`,
+            top: aboveDistrict ? `${minTop}px` : `${maxBottom}px`,
+            transform: aboveDistrict ? 'translate(-50%, calc(-100% - 6px))' : 'translate(-50%, 6px)',
         })
 
         const header = document.createElement('div')
@@ -70,47 +89,39 @@
         header.textContent = info.contested ? 'District' : 'District (uncontested)'
         container.appendChild(header)
 
-        if (info.contested) {
-            const sorted = [...info.playerStats.entries()].sort((a, b) => b[1].total - a[1].total)
-            for (const [pid, stats] of sorted) {
-                const isWinner = pid === info.winner
-                const row = document.createElement('div')
-                Object.assign(row.style, { display: 'flex', alignItems: 'center', gap: '6px', fontWeight: isWinner ? '600' : '400' })
+        const sorted = [...info.playerStats.entries()].sort((a, b) => b[1].total - a[1].total)
+        for (const [pid, stats] of sorted) {
+            const isWinner = pid === info.winner
+            const row = document.createElement('div')
+            Object.assign(row.style, { display: 'flex', alignItems: 'center', gap: '6px', fontWeight: isWinner ? '600' : '400' })
 
-                const dot = document.createElement('div')
-                Object.assign(dot.style, {
-                    width: '10px', height: '10px', borderRadius: '50%',
-                    border: '1px solid #9ca3af',
-                    background: session.colors.getPlayerUiColor(pid),
-                    flexShrink: '0',
-                })
+            const dot = document.createElement('div')
+            Object.assign(dot.style, {
+                width: '10px', height: '10px', borderRadius: '50%',
+                border: '1px solid #9ca3af',
+                background: session.colors.getPlayerUiColor(pid),
+                flexShrink: '0',
+            })
 
-                const label = document.createElement('span')
-                label.style.color = '#1f2937'
-                const name = pid === session.myPlayer?.id ? 'You' : (session.getPlayerName(pid) ?? 'Player')
-                const suffix = isWinner ? ' ★' : ''
-                label.textContent = `${name}: ${stats.total} pt${stats.total !== 1 ? 's' : ''}${suffix}`
+            const label = document.createElement('span')
+            label.style.color = '#1f2937'
+            const name = pid === session.myPlayer?.id ? 'You' : (session.getPlayerName(pid) ?? 'Player')
+            const suffix = isWinner ? ' ★' : (info.contested ? '' : ' (no points)')
+            label.textContent = `${name}: ${stats.total} pt${stats.total !== 1 ? 's' : ''}${suffix}`
 
-                row.appendChild(dot)
-                row.appendChild(label)
-                container.appendChild(row)
-            }
+            row.appendChild(dot)
+            row.appendChild(label)
+            container.appendChild(row)
         }
 
         return container
     }
 
-    function onmouseenter(e: MouseEvent) {
+    function onmouseenter(_e: MouseEvent) {
         onHover(pos)
         if (!building) return
-        tooltipEl = buildTooltip(e.clientX, e.clientY)
+        tooltipEl = buildTooltip()
         document.body.appendChild(tooltipEl)
-    }
-
-    function onmousemove(e: MouseEvent) {
-        if (!tooltipEl) return
-        tooltipEl.style.left = `${e.clientX + 14}px`
-        tooltipEl.style.top = `${e.clientY - 10}px`
     }
 
     function onmouseleave() {
@@ -128,7 +139,8 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-    class="relative flex h-12 w-12 cursor-pointer items-center justify-center transition-colors {bgClass}"
+    data-board-pos={pos}
+    class="relative flex h-12 w-12 items-center justify-center transition-colors {bgClass}"
     class:cursor-pointer={isClickable}
     class:cursor-default={!isClickable}
     class:ring-2={isArchitectSelected}
