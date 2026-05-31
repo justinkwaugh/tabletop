@@ -8,6 +8,12 @@
 
     const liveScores = $derived(computeDistrictScores(state.board, state.monumentsVariant))
 
+    const MONUMENTS = [
+        { name: 'Town Wall',    sequence: [BuildingType.House,   BuildingType.House,   BuildingType.House],   pts: 6  },
+        { name: 'Ducal Palace', sequence: [BuildingType.Palace,  BuildingType.House,   BuildingType.Palace],  pts: 10 },
+        { name: 'Cathedral',    sequence: [BuildingType.Tower,   BuildingType.Palace,  BuildingType.Tower],   pts: 16 },
+    ]
+
     function isActivePlayer(playerId: string): boolean {
         return state.activePlayerIds.includes(playerId)
     }
@@ -57,4 +63,48 @@
             </div>
         </div>
     {/each}
+
+    {#if state.monumentsVariant}
+        <div class="rounded-lg border border-[#c8bfaf] bg-[#f5f0e8] p-3">
+            <div class="mb-2 text-[15px] font-semibold uppercase tracking-wide text-[#6b5040]">Monuments</div>
+            <div class="flex flex-col gap-2">
+                {#each MONUMENTS as m}
+                    <div class="flex items-center gap-2">
+                        <div class="flex gap-0.5">
+                            {#each m.sequence as type}
+                                <svg
+                                    viewBox="0 0 20 20"
+                                    width="23"
+                                    height={type === BuildingType.Tower ? 25.3 : 23}
+                                    preserveAspectRatio={type === BuildingType.Tower ? 'none' : 'xMidYMid meet'}
+                                    fill="#8b7355"
+                                    stroke="#483737"
+                                    stroke-width="1"
+                                    stroke-linejoin="round"
+                                    class="select-none"
+                                >
+                                    {#if type === BuildingType.House}
+                                        <path d="M 2.5,4.75 L 17.5,4.75 L 19,9.25 L 1,9.25 Z" />
+                                        <path d="M 1,9.25 L 19,9.25 L 19,15.25 L 1,15.25 Z" />
+                                    {:else if type === BuildingType.Palace}
+                                        <path d="M 1,11.5 L 19,11.5 L 19,17.5 L 1,17.5 Z" />
+                                        <path d="M 10,2.5 L 19,11.5 L 1,11.5 Z" />
+                                        <path d="M 2.5,7 L 10,2.25 L 10,5.5 L 1,11.5 Z" />
+                                        <path d="M 10,2.25 L 17.5,7 L 19,11.5 L 10,5.5 Z" />
+                                    {:else}
+                                        <path d="M 2.3,8.7 L 17.7,8.7 L 17.7,19 L 2.3,19 Z" />
+                                        <path d="M 10,4.1 L 17.2,8.7 L 17.2,10.3 L 2.8,10.3 L 2.8,8.7 Z" />
+                                        <path d="M 3.6,4.9 L 10,1 L 10,3.6 L 2.3,8.7 Z" />
+                                        <path d="M 10,1 L 16.4,4.9 L 17.2,8.7 L 10,3.6 Z" />
+                                    {/if}
+                                </svg>
+                            {/each}
+                        </div>
+                        <span class="text-[15px] text-[#2c1810]">{m.name}</span>
+                        <span class="ml-auto text-[15px] font-semibold text-[#6b3a2a]">{m.pts} pts</span>
+                    </div>
+                {/each}
+            </div>
+        </div>
+    {/if}
 </div>
