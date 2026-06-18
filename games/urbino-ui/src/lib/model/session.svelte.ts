@@ -8,6 +8,7 @@ import {
     PlaceBuilding,
     RepositionArchitect,
     Pass,
+    Concede,
     isRepositionArchitect,
     isPlaceBuilding,
     isPlaceArchitect,
@@ -81,6 +82,12 @@ export class UrbinoGameSession extends GameSession<UrbinoGameState, HydratedUrbi
     canPass = $derived(
         this.isTakingTurn &&
             this.validActionTypes.includes(ActionType.Pass) &&
+            !!this.myPlayer?.id
+    )
+
+    canConcede = $derived(
+        this.isTakingTurn &&
+            this.validActionTypes.includes(ActionType.Concede) &&
             !!this.myPlayer?.id
     )
 
@@ -214,6 +221,12 @@ export class UrbinoGameSession extends GameSession<UrbinoGameState, HydratedUrbi
     async pass() {
         if (!this.canPass || !this.myPlayer?.id) return
         const action = this.createPlayerAction(Pass, {})
+        await this.applyAction(action)
+    }
+
+    async concede() {
+        if (!this.canConcede || !this.myPlayer?.id) return
+        const action = this.createPlayerAction(Concede, {})
         await this.applyAction(action)
     }
 }

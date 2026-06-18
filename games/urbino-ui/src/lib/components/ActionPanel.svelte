@@ -6,6 +6,8 @@
     const session = getGameSession()
     const state = $derived(session.gameState)
 
+    let concedeConfirming = $state(false)
+
     const buildingTypes = [BuildingType.House, BuildingType.Palace, BuildingType.Tower]
     const buildingLabel: Record<BuildingType, string> = {
         [BuildingType.House]: 'House (1pt)',
@@ -65,7 +67,7 @@
     {/if}
 
     {#if session.isMyTurn && !session.canChooseFirstPlayer}
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             {#if session.canPlaceBuilding}
                 {#each buildingTypes as type}
                     {#if hasBuildingType(type)}
@@ -123,6 +125,33 @@
                 >
                     Skip Turn
                 </button>
+            {/if}
+
+            {#if session.canConcede}
+                <div class="ml-auto flex items-center gap-2">
+                {#if concedeConfirming}
+                    <span class="text-sm text-[#6b5040]">Concede?</span>
+                    <button
+                        class="rounded border border-red-700 bg-red-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-800"
+                        onclick={() => session.concede()}
+                    >
+                        Yes, concede
+                    </button>
+                    <button
+                        class="rounded border border-gray-400 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100"
+                        onclick={() => (concedeConfirming = false)}
+                    >
+                        Cancel
+                    </button>
+                {:else}
+                    <button
+                        class="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-500 hover:border-red-400 hover:text-red-700"
+                        onclick={() => (concedeConfirming = true)}
+                    >
+                        Concede
+                    </button>
+                {/if}
+                </div>
             {/if}
         </div>
     {/if}
