@@ -101,6 +101,7 @@
 
             {#if session.canRepositionArchitect}
                 {#each [0, 1] as idx}
+                    {#if session.architectsWithValidMoves.has(idx)}
                     <button
                         class="rounded border border-[#c87941] px-3 py-1.5 text-sm font-medium transition-colors"
                         class:bg-[#c87941]={session.selectedArchitectIndex === idx}
@@ -111,6 +112,7 @@
                     >
                         ✦ Move Architect {idx + 1}
                     </button>
+                    {/if}
                 {/each}
             {/if}
 

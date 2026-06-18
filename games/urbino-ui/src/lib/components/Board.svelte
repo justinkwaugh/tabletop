@@ -61,7 +61,7 @@
         }
 
         // Click on architect to select/switch selection for repositioning
-        if (session.canRepositionArchitect && architectAt >= 0) {
+        if (session.canRepositionArchitect && architectAt >= 0 && session.architectsWithValidMoves.has(architectAt)) {
             session.selectArchitect(architectAt)
             return
         }
