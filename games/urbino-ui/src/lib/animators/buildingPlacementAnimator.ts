@@ -11,6 +11,10 @@ export function markBoardReady() {
     boardReady = true
 }
 
+export function resetBoardReady() {
+    boardReady = false
+}
+
 export function animateNewBuilding(node: SVGElement) {
     if (!boardReady) return {}
 

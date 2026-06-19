@@ -99,6 +99,7 @@ export class TakingTurnStateHandler
                 return MachineState.TakingTurn
             }
             case isConcede(action): {
+                gameState.turnManager.endTurn(gameState.actionCount)
                 return MachineState.EndOfGame
             }
             default: {

@@ -2,13 +2,15 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import Square from './Square.svelte'
     import { BOARD_SIZE, BOARD_SQUARES, getDistrictFrom, posToRowCol, rowColToPos } from '@tabletop/urbino'
-    import { markBoardReady } from '$lib/animators/buildingPlacementAnimator.js'
+    import { markBoardReady, resetBoardReady } from '$lib/animators/buildingPlacementAnimator.js'
     import { onMount } from 'svelte'
 
     const session = getGameSession()
 
     onMount(() => {
+        resetBoardReady()
         requestAnimationFrame(() => markBoardReady())
+        return () => resetBoardReady()
     })
     const state = $derived(session.gameState)
 
