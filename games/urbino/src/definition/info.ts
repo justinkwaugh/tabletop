@@ -14,7 +14,7 @@ export const UrbinoInfo: GameInfo = {
         maxPlayers: 2,
         defaultPlayerCount: 2,
         version: GAME_VERSION,
-        beta: true
+        beta: false
     },
     configurator: new UrbinoConfigurator()
 }
