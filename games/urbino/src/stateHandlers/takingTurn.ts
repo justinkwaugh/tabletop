@@ -60,7 +60,9 @@ export class TakingTurnStateHandler
                 actions.push(ActionType.Pass)
             }
         }
-        actions.push(ActionType.Concede)
+        if (HydratedConcede.canConcede(gameState, playerId)) {
+            actions.push(ActionType.Concede)
+        }
         return actions
     }
 

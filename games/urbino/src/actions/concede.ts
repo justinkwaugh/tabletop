@@ -3,6 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedUrbinoGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
+import { computeDistrictScores } from '../logic/board.js'
 
 export type ConcedeMetadata = Type.Static<typeof ConcedeMetadata>
 export const ConcedeMetadata = Type.Object({})
@@ -42,7 +43,13 @@ export class HydratedConcede extends HydratableAction<typeof Concede> implements
         this.metadata = {}
     }
 
-    isValid(_state: HydratedUrbinoGameState): boolean {
-        return true
+    isValid(state: HydratedUrbinoGameState): boolean {
+        return HydratedConcede.canConcede(state, this.playerId)
+    }
+
+    static canConcede(state: HydratedUrbinoGameState, playerId: string): boolean {
+        const scores = computeDistrictScores(state.board, state.monumentsVariant)
+        const myScore = scores.get(playerId) ?? 0
+        return state.players.some((p) => p.playerId !== playerId && (scores.get(p.playerId) ?? 0) > myScore)
     }
 }
