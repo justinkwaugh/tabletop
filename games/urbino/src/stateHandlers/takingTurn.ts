@@ -4,10 +4,11 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedRepositionArchitect, isRepositionArchitect } from '../actions/repositionArchitect.js'
 import { HydratedPlaceBuilding, isPlaceBuilding } from '../actions/placeBuilding.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
+import { HydratedConcede, isConcede } from '../actions/concede.js'
 import { HydratedUrbinoGameState } from '../model/gameState.js'
 import { hasAnyValidPlacement, hasAnyValidPlacementAfterReposition } from '../logic/board.js'
 
-type TakingTurnAction = HydratedRepositionArchitect | HydratedPlaceBuilding | HydratedPass
+type TakingTurnAction = HydratedRepositionArchitect | HydratedPlaceBuilding | HydratedPass | HydratedConcede
 
 export class TakingTurnStateHandler
     implements MachineStateHandler<TakingTurnAction, HydratedUrbinoGameState>
@@ -16,7 +17,7 @@ export class TakingTurnStateHandler
         action: HydratedAction,
         _context: MachineContext<HydratedUrbinoGameState>
     ): action is TakingTurnAction {
-        return isRepositionArchitect(action) || isPlaceBuilding(action) || isPass(action)
+        return isRepositionArchitect(action) || isPlaceBuilding(action) || isPass(action) || isConcede(action)
     }
 
     validActionsForPlayer(
@@ -59,6 +60,7 @@ export class TakingTurnStateHandler
                 actions.push(ActionType.Pass)
             }
         }
+        actions.push(ActionType.Concede)
         return actions
     }
 
@@ -95,6 +97,10 @@ export class TakingTurnStateHandler
                 }
                 gameState.turnManager.startNextTurn(gameState.actionCount, () => true)
                 return MachineState.TakingTurn
+            }
+            case isConcede(action): {
+                gameState.turnManager.endTurn(gameState.actionCount)
+                return MachineState.EndOfGame
             }
             default: {
                 throw Error('Invalid action type')

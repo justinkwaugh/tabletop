@@ -2,15 +2,11 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import { BuildingType } from '@tabletop/urbino'
-    import { registerBuildingButton } from '$lib/model/animationStore'
-
-    function buildingButtonAction(node: HTMLElement, type: BuildingType) {
-        registerBuildingButton(type, node)
-        return { destroy() { registerBuildingButton(type, null) } }
-    }
 
     const session = getGameSession()
     const state = $derived(session.gameState)
+
+    let concedeConfirming = $state(false)
 
     const buildingTypes = [BuildingType.House, BuildingType.Palace, BuildingType.Tower]
     const buildingLabel: Record<BuildingType, string> = {
@@ -71,12 +67,11 @@
     {/if}
 
     {#if session.isMyTurn && !session.canChooseFirstPlayer}
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             {#if session.canPlaceBuilding}
                 {#each buildingTypes as type}
                     {#if hasBuildingType(type)}
                         <button
-                            use:buildingButtonAction={type}
                             class="flex items-center gap-1.5 rounded border border-[#6b3a2a] px-3 py-1.5 text-sm font-medium transition-colors"
                             class:bg-[#6b3a2a]={session.selectedBuildingType === type}
                             class:text-white={session.selectedBuildingType === type}
@@ -108,6 +103,7 @@
 
             {#if session.canRepositionArchitect}
                 {#each [0, 1] as idx}
+                    {#if session.architectsWithValidMoves.has(idx)}
                     <button
                         class="rounded border border-[#c87941] px-3 py-1.5 text-sm font-medium transition-colors"
                         class:bg-[#c87941]={session.selectedArchitectIndex === idx}
@@ -118,6 +114,7 @@
                     >
                         ✦ Move Architect {idx + 1}
                     </button>
+                    {/if}
                 {/each}
             {/if}
 
@@ -128,6 +125,33 @@
                 >
                     Skip Turn
                 </button>
+            {/if}
+
+            {#if session.canConcede}
+                <div class="ml-auto flex items-center gap-2">
+                {#if concedeConfirming}
+                    <span class="text-sm text-[#6b5040]">Concede?</span>
+                    <button
+                        class="rounded border border-red-700 bg-red-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-800"
+                        onclick={() => session.concede()}
+                    >
+                        Yes, concede
+                    </button>
+                    <button
+                        class="rounded border border-gray-400 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100"
+                        onclick={() => (concedeConfirming = false)}
+                    >
+                        Cancel
+                    </button>
+                {:else}
+                    <button
+                        class="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-500 hover:border-red-400 hover:text-red-700"
+                        onclick={() => (concedeConfirming = true)}
+                    >
+                        Concede
+                    </button>
+                {/if}
+                </div>
             {/if}
         </div>
     {/if}

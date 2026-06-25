@@ -4,6 +4,7 @@ import { ChooseFirstPlayer } from '../actions/chooseFirstPlayer.js'
 import { RepositionArchitect } from '../actions/repositionArchitect.js'
 import { PlaceBuilding } from '../actions/placeBuilding.js'
 import { Pass } from '../actions/pass.js'
+import { Concede } from '../actions/concede.js'
 
 export const UrbinoApiActions = {
     [ActionType.PlaceArchitect]: PlaceArchitect,
@@ -11,4 +12,5 @@ export const UrbinoApiActions = {
     [ActionType.RepositionArchitect]: RepositionArchitect,
     [ActionType.PlaceBuilding]: PlaceBuilding,
     [ActionType.Pass]: Pass,
+    [ActionType.Concede]: Concede,
 }
