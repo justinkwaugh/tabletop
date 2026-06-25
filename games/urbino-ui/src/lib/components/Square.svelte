@@ -1,6 +1,7 @@
 <script lang="ts">
     import { BuildingType, type BoardSquare, getDistrictInfo, getDistrictFrom } from '@tabletop/urbino'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
+    import { animateNewBuilding } from '$lib/animators/buildingPlacementAnimator.js'
 
     type EdgeFlags = { top: boolean; right: boolean; bottom: boolean; left: boolean }
 
@@ -162,8 +163,9 @@
             stroke-width="1"
             stroke-linejoin="round"
             class="select-none drop-shadow-sm"
+            use:animateNewBuilding
         >
-{#if building.buildingType === BuildingType.House}
+            {#if building.buildingType === BuildingType.House}
                 <path d="M 2.5,4.75 L 17.5,4.75 L 19,9.25 L 1,9.25 Z" />
                 <path d="M 1,9.25 L 19,9.25 L 19,15.25 L 1,15.25 Z" />
             {:else if building.buildingType === BuildingType.Palace}

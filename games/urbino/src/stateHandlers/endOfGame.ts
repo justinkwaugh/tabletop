@@ -31,6 +31,15 @@ export class EndOfGameStateHandler
     enter(context: MachineContext<HydratedUrbinoGameState>) {
         const { gameState } = context
 
+        if (gameState.concededByPlayerId) {
+            gameState.result = GameResult.Win
+            gameState.winningPlayerIds = gameState.players
+                .filter((p) => p.playerId !== gameState.concededByPlayerId)
+                .map((p) => p.playerId)
+            gameState.activePlayerIds = []
+            return
+        }
+
         const districtScores = computeDistrictScores(gameState.board, gameState.monumentsVariant)
         for (const [playerId, points] of districtScores) {
             const player = gameState.getPlayerState(playerId)
