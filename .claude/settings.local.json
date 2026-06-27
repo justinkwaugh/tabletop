@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs ls -la)",
+      "Bash(timeout 15 pnpm dev)",
+      "Bash(curl -s http://localhost:5173/)",
+      "Bash(curl -s \"http://localhost:5174/@fs/workspace/games/fresh-fish-ui/node_modules/@tabletop/frontend-components/dist/index.js\")",
+      "Bash(curl -v \"http://localhost:5174/@fs/workspace/libs/frontend-components/dist/index.js\")",
+      "Bash(curl -s \"http://localhost:5174/src/routes/%2Bpage.svelte\")",
+      "Bash(curl -s \"http://localhost:5174/@id/__x00__virtual:__svelte-kit__/generated/client-manifest.js\")",
+      "Bash(pnpm dev *)",
+      "Bash(curl -s \"http://localhost:5175/@fs/workspace/libs/frontend-components/dist/index.js\")",
+      "Bash(curl -s \"http://localhost:5173/@fs/workspace/libs/frontend-components/dist/index.js\")",
+      "Bash(curl -s \"http://localhost:5173/@fs/workspace/libs/frontend-components/dist/components/Harness.svelte\")",
+      "Bash(curl -s \"http://localhost:5173/@fs/workspace/libs/frontend-components/dist/harness/harnessAuthorizationService.svelte.js\")",
+      "Bash(curl -s \"http://localhost:5173/src/routes/%2Bpage.svelte\")",
+      "Bash(curl -s \"http://localhost:5173/\")",
+      "Bash(curl -s \"http://localhost:5173/@fs/workspace/games/fresh-fish-ui/.svelte-kit/generated/client/app.js\")",
+      "Bash(curl -s \"http://localhost:5173/.svelte-kit/generated/client/nodes/2.js\")",
+      "Bash(curl -s \"http://localhost:5173/src/routes/%2Bpage.svelte\" -H \"Accept: application/javascript\")",
+      "Bash(curl -s \"http://localhost:5173/@fs/workspace/games/fresh-fish-ui/src/routes/%2Bpage.svelte\")",
+      "Bash(pnpm turbo *)"
+    ]
+  }
+}

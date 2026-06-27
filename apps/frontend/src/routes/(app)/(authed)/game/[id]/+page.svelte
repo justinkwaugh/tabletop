@@ -2,7 +2,6 @@
     import {
         ExplorationPanel,
         GameSession,
-        HotseatPanel,
         setGameSession,
         HistoryKeyControls,
         getAppContext,
@@ -15,7 +14,7 @@
     import type { GameState, HydratedGameState } from '@tabletop/common'
 
     let { data }: { data: { gameSession: GameSession<GameState, HydratedGameState> } } = $props()
-    const { isExploring, gameHotseat } = data.gameSession.bridge
+    const { isExploring } = data.gameSession.bridge
 
     // svelte-ignore state_referenced_locally
     setGameSession(data.gameSession)
@@ -52,8 +51,6 @@
     <div {@attach attachGlobalCssVarFromRect('--app-banner-height')}>
         {#if $isExploring}
             <ExplorationPanel />
-        {:else if $gameHotseat}
-            <HotseatPanel />
         {/if}
     </div>
     <GameUI gameSession={data.gameSession} />

@@ -5,13 +5,20 @@ import { VitestConfig } from '@tabletop/vitest-config'
 export default defineProject(
     mergeConfig(VitestConfig, {
         plugins: [sveltekit()],
+        optimizeDeps: {
+            exclude: ['@tabletop/frontend-components']
+        },
         build: {
             commonjsOptions: {
                 include: [/node_modules/]
             }
         },
         server: {
-            port: 5173
+            host: true,
+            port: 5173,
+            fs: {
+                allow: ['../..']
+            }
         }
     })
 )

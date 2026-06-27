@@ -187,6 +187,7 @@
         <GameEditForm
             title={definition}
             hotseatOnly={true}
+            createGameDefaults={definition.createGameDefaults}
             oncancel={() => closeCreateModal()}
             onsave={(game: Game) => onGameCreate(game)}
         />
