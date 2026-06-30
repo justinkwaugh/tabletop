@@ -26,7 +26,7 @@ export class HarnessAuthorizationService implements AuthorizationService {
     getSessionUser(): User | undefined {
         return {
             id: 'harness-user',
-            username: 'Developer',
+            username: 'Dave',
             roles: [Role.User, Role.Admin],
             status: UserStatus.Active,
             externalIds: []

@@ -273,8 +273,8 @@
         <ul class="space-y-1">
             {#each sortedPlayers as p, i}
                 <li class="flex justify-between text-sm"
-                    class:text-yellow-300={p.playerId === state.winningPlayerIds[0]}>
-                    <span>{i + 1}. {p.playerId}</span>
+                    class:text-yellow-300={state.winningPlayerIds.includes(p.playerId)}>
+                    <span>{i + 1}. {playerName(p.playerId)}</span>
                     <span class="font-bold">{p.score} pts</span>
                 </li>
             {/each}

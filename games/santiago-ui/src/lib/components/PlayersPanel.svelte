@@ -19,6 +19,19 @@
     const playerName = (id: string) =>
         session.game?.players.find((p) => p.id === id)?.name ?? id
 
+    // During bidding, canalOverseerId is cleared until all bids resolve.
+    // Compute the projected overseer from bids placed so far (lowest bid, ties broken by seat order).
+    const projectedOverseerId = $derived.by(() => {
+        if (!isBidding) return state.canalOverseerId
+        const biddedPlayers = state.players.filter(p => p.bid !== undefined)
+        if (!biddedPlayers.length) return undefined
+        const minBid = Math.min(...biddedPlayers.map(p => p.bid!))
+        const candidates = biddedPlayers
+            .filter(p => p.bid === minBid)
+            .sort((a, b) => state.seatOrder.indexOf(a.playerId) - state.seatOrder.indexOf(b.playerId))
+        return candidates[0]?.playerId
+    })
+
     const sortedPlayers = $derived.by(() => {
         const inOrder = state.seatOrder
             .map(id => state.players.find(p => p.playerId === id))
@@ -34,35 +47,39 @@
     {#each sortedPlayers as p}
         {@const isActive = state.activePlayerIds.includes(p.playerId)}
         {@const isMe = p.playerId === myId}
-        {@const isOverseer = state.canalOverseerId === p.playerId || (state.round === 1 && !state.canalOverseerId && state.seatOrder[0] === p.playerId)}
+        {@const isOverseer = projectedOverseerId === p.playerId}
         {@const playerProposal = isBuilding ? state.canalProposals.find(pr => pr.playerId === p.playerId) : undefined}
         {@const brideOrderIdx = isBuilding ? (state.canalProposalOrder ?? []).indexOf(p.playerId) : -1}
         {@const playerPassedBribe = isBuilding && brideOrderIdx >= 0 && brideOrderIdx < state.canalProposalIndex && !playerProposal}
         {@const color = session.colors.getPlayerUiColor(p.playerId)}
         <div
-            class="rounded-lg px-3 py-2 text-sm space-y-1 text-white"
+            class="rounded-lg overflow-hidden border-2"
             class:ring-2={isActive}
+            class:ring-offset-1={isActive}
             class:ring-yellow-400={isActive}
-            class:bg-gray-700={!isMe}
-            class:bg-gray-600={isMe}
-            style="border-left: 8px solid {color}"
+            style="border-color: {color}"
         >
-            <div class="font-bold flex items-center gap-1.5 min-w-0">
+            <!-- Colored name bar -->
+            <div class="px-3 py-1.5 flex items-center gap-1.5 font-bold uppercase tracking-widest text-white text-sm"
+                 style="background-color: {color}">
                 <span class="truncate">{playerName(p.playerId)}{isMe ? ' (you)' : ''}</span>
                 {#if isOverseer}
-                    <span class="text-[10px] bg-blue-800 text-blue-200 px-1.5 py-0.5 rounded font-normal shrink-0">Overseer</span>
+                    <span class="text-[10px] bg-black/30 text-white px-1.5 py-0.5 rounded font-normal shrink-0 normal-case tracking-normal">Overseer</span>
                 {/if}
                 {#if (isBidding || isPlanting) && p.bid !== undefined}
-                    <span class="ml-auto text-yellow-200 text-xs font-semibold shrink-0">bid {p.bid}</span>
+                    <span class="ml-auto text-white/80 text-xs font-semibold shrink-0 normal-case tracking-normal">bid {p.bid}</span>
                 {:else if isBidding && isActive}
-                    <span class="ml-auto text-yellow-400 text-xs animate-pulse shrink-0">Bidding…</span>
+                    <span class="ml-auto text-white text-xs animate-pulse shrink-0 normal-case tracking-normal">Bidding…</span>
+                {:else if isBuilding && isActive && !playerProposal && !playerPassedBribe && !session.isOverseerDecisionPhase}
+                    <span class="ml-auto text-white text-xs animate-pulse shrink-0 normal-case tracking-normal">Bribing…</span>
                 {:else if playerProposal}
-                    <span class="ml-auto text-cyan-300 text-xs font-semibold shrink-0">bribe {playerProposal.amount}</span>
+                    <span class="ml-auto text-white/80 text-xs font-semibold shrink-0 normal-case tracking-normal">bribe {playerProposal.amount}</span>
                 {:else if playerPassedBribe}
-                    <span class="ml-auto text-gray-400 text-xs shrink-0">passed</span>
+                    <span class="ml-auto text-white/60 text-xs shrink-0 normal-case tracking-normal">passed</span>
                 {/if}
             </div>
-            <div class="flex gap-3 text-xs">
+            <!-- Dark content area -->
+            <div class="px-3 py-2 bg-gray-800 flex gap-3 text-xs text-white">
                 {#if isMe || publicMoney || isEndOfGame}
                     <span class="text-yellow-300">💰 {p.money}</span>
                 {:else}

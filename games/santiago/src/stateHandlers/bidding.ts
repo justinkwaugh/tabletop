@@ -127,11 +127,12 @@ export class BiddingStateHandler
             player.pay(player.bid ?? 0)
         }
 
-        // Planting order: descending bid; zero-bidders last in clockwise turn order
+        // Planting order: descending bid; among ties at zero, last to bid picks first (reverse turn order)
         const sorted = [...state.players].sort((a, b) => {
             const ba = a.bid ?? 0
             const bb = b.bid ?? 0
             if (bb !== ba) return bb - ba
+            if (ba === 0) return turnOrder.indexOf(b.playerId) - turnOrder.indexOf(a.playerId)
             return turnOrder.indexOf(a.playerId) - turnOrder.indexOf(b.playerId)
         })
         state.plantersOrder = sorted.map((p) => p.playerId)

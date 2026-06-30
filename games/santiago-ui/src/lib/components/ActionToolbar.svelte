@@ -21,7 +21,6 @@
         ms === MachineState.ExtraIrrigation && session.isMyTurn &&
         !!myId && !state.extraIrrigationPassed.includes(myId)
     )
-
     const isMySelectTurn = $derived(
         ms === MachineState.PlantingPhase &&
         state.plantersOrder[state.planterIndex] === myId &&
@@ -30,14 +29,20 @@
 
     const canUndo = $derived(!!session.undoableAction)
 
+    const activePlayerId = $derived(state.activePlayerIds[0])
+    const activePlayerName = $derived(
+        session.game?.players.find(p => p.id === activePlayerId)?.name ?? null
+    )
+    // 45 tiles total, one drawn per player per round
+    const totalRounds = $derived(Math.ceil(45 / state.players.length))
+
     function phaseName(ms: MachineState): string {
         switch (ms) {
-            case MachineState.Bidding:         return 'Bidding'
-            case MachineState.PlantingPhase:   return 'Planting'
-            case MachineState.CanalBuilding:   return 'Canal Building'
-            case MachineState.ExtraIrrigation: return 'Extra Irrigation'
-            case MachineState.EndOfGame:       return 'Game Over'
-            default:                           return ms
+            case MachineState.Bidding:         return 'Bidding phase'
+            case MachineState.PlantingPhase:   return 'Planting phase'
+            case MachineState.CanalBuilding:   return 'Canal building phase'
+            case MachineState.ExtraIrrigation: return 'Extra irrigation phase'
+            default:                           return ''
         }
     }
 
@@ -47,16 +52,33 @@
     function incProposal() { session.setProposalAmount(session.proposalAmount + 1) }
 </script>
 
-<div class="shrink-0 px-3 py-2 bg-amber-950 border-b-2 border-amber-900 flex flex-wrap items-center gap-3 text-white text-sm">
+<!-- Status bar -->
+<div class="shrink-0 px-3 h-[56px] bg-transparent border-2 border-amber-800 rounded-lg flex items-center gap-2 text-base uppercase tracking-wider">
+    {#if ms === MachineState.EndOfGame}
+        <span class="text-sm text-amber-300 uppercase tracking-wider">Game over</span>
+    {:else if activePlayerName}
+        <span class="font-bold text-amber-300">{activePlayerName}'s turn</span>
+        <span class="text-sm text-amber-400">·</span>
+        <span class="text-sm text-amber-300">Round {state.round} of {totalRounds}</span>
+        {#if phaseName(ms)}
+            <span class="text-sm text-amber-400">·</span>
+            <span class="text-sm text-amber-300">{phaseName(ms)}</span>
+        {/if}
+    {/if}
+    {#if canUndo}
+        <button class="ml-auto px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-amber-300 font-semibold transition-colors shrink-0"
+            onclick={() => session.undo()}>
+            Undo
+        </button>
+    {/if}
+</div>
 
-    <!-- Round / phase / tiles — always shown -->
-    <span class="text-amber-200 font-bold">Round {state.round}</span>
-    <span class="text-amber-600">·</span>
-    <span class="text-amber-400 text-xs uppercase tracking-wider">{phaseName(ms)}</span>
+<!-- Action area -->
+<div class="shrink-0 px-3 py-2 mt-1 bg-amber-950 border-b-2 border-amber-900 rounded-lg flex flex-wrap items-center gap-3 text-white text-base min-h-[56px] uppercase tracking-wider">
 
     <!-- BIDDING -->
     {#if isBiddingMyTurn}
-        <div class="flex items-center gap-2 ml-auto">
+        <div class="flex items-center gap-2">
             <button class="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 font-bold disabled:opacity-30"
                 onclick={decBid} disabled={session.bidValue <= 0}>−</button>
             <span class="text-xl font-black w-8 text-center">{session.bidValue}</span>
@@ -65,25 +87,19 @@
         </div>
         <button class="px-4 py-1.5 rounded-lg bg-yellow-500 hover:bg-yellow-400 text-black font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             onclick={() => session.placeBid()} disabled={session.bidIsInvalid}>
-            Bid {session.bidValue} esc
+            Bid {session.bidValue} escudo{session.bidValue !== 1 ? 's' : ''}
         </button>
 
     <!-- PLANTING: SELECT TILE -->
     {:else if isMySelectTurn}
-        <span class="text-amber-500 text-xs ml-auto">Choose a field to plant</span>
+        <span class="text-sm text-amber-500">Choose a field to plant</span>
 
     <!-- PLANTING: PLACE FIELD -->
     {:else if isMyPlaceTurn}
-        {@const tile = state.currentPlantingTile!}
-        <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)} alt={tile.crop}
-             class="rounded-md object-cover h-8 w-8"
-             style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
-        <span class="text-amber-300 font-semibold capitalize">{tile.crop}</span>
-        <span class="text-amber-600 text-xs">{tile.farmerCapacity} farmer{tile.farmerCapacity !== 1 ? 's' : ''}</span>
         {#if state.canalOverseerId === myId && state.overseerBidZero}
-            <span class="text-orange-400 text-xs">(−1 overseer penalty)</span>
+            <span class="text-sm text-orange-400">(−1 overseer penalty)</span>
         {/if}
-        <span class="text-amber-500 text-xs ml-auto">Click a highlighted square on the board</span>
+        <span class="text-sm text-amber-500">Click an empty field on the board</span>
 
     <!-- CANAL BUILDING: PROPOSER -->
     {:else if isCurrentProposer}
@@ -93,15 +109,15 @@
                 <button class="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 font-bold disabled:opacity-30"
                     onclick={decProposal} disabled={session.proposalAmount <= 1}>−</button>
                 <span class="text-xl font-black w-8 text-center">{session.proposalAmount}</span>
-                <button class="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 font-bold"
-                    onclick={incProposal}>+</button>
+                <button class="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 font-bold disabled:opacity-30"
+                    onclick={incProposal} disabled={session.proposalAmount >= (me?.money ?? 0)}>+</button>
             </div>
             <button class="px-4 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold transition-colors"
                 onclick={() => session.proposeCanal()}>
                 Bribe ({session.proposalAmount} esc)
             </button>
         {:else}
-            <span class="text-amber-500 text-xs">Click a dashed segment on the board</span>
+            <span class="text-sm text-amber-500">Click a dashed segment on the board</span>
         {/if}
         <button class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-semibold transition-colors"
             onclick={() => session.passProposal()}>Pass</button>
@@ -110,15 +126,12 @@
     {:else if isOverseerDeciding}
         <span class="text-amber-300 font-semibold">Overseer decision</span>
         {#if session.segmentProposals.length > 0}
-            <span class="text-amber-500 text-xs">Click a label on the board to accept a bribe</span>
+            <span class="text-sm text-amber-500">Click a bribe or a canal segment</span>
         {:else}
-            <span class="text-amber-600 text-xs">No bribes were offered</span>
+            <span class="text-sm text-amber-600">No bribes were offered</span>
         {/if}
         <div class="ml-auto flex items-center gap-2">
             {#if session.selectedSegment}
-                <span class="text-cyan-300 text-xs">
-                    {session.selectedSegment.orientation}({session.selectedSegment.col},{session.selectedSegment.row})
-                </span>
                 <button class="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-bold transition-colors"
                     onclick={() => session.rejectAndBuild()}>
                     {#if session.segmentProposals.length > 0}
@@ -128,9 +141,9 @@
                     {/if}
                 </button>
             {:else if session.segmentProposals.length > 0}
-                <span class="text-amber-600 text-xs">or click a segment to reject all</span>
+                <span class="text-sm text-amber-600"></span>
             {:else}
-                <span class="text-amber-500 text-xs">Click a segment to place a canal</span>
+                <span class="text-sm text-amber-500">Click a segment to place a canal</span>
             {/if}
         </div>
 
@@ -139,29 +152,18 @@
         <span class="text-amber-300 font-semibold">Personal canal</span>
         {#if me?.hasPersonalCanal}
             {#if session.selectedSegment}
-                <span class="text-cyan-300 text-xs">
-                    {session.selectedSegment.orientation}({session.selectedSegment.col},{session.selectedSegment.row})
-                </span>
                 <button class="px-4 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold transition-colors ml-auto"
                     onclick={() => session.usePersonalCanal()}>
                     Place canal here
                 </button>
             {:else}
-                <span class="text-amber-500 text-xs">Click a dashed segment on the board</span>
+                <span class="text-sm text-amber-500">Click a dashed segment on the board or</span>
             {/if}
             <button class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-semibold transition-colors"
                 onclick={() => session.passPersonalCanal()}>Pass</button>
         {:else}
-            <span class="text-amber-600 text-xs">Personal canal already used — pass automatically</span>
+            <span class="text-sm text-amber-600">Personal canal already used — pass automatically</span>
         {/if}
-    {/if}
-
-    <!-- UNDO — always shown when available, pinned to the right -->
-    {#if canUndo}
-        <button class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-amber-300 font-semibold transition-colors ml-auto shrink-0"
-            onclick={() => session.undo()}>
-            Undo
-        </button>
     {/if}
 
 </div>

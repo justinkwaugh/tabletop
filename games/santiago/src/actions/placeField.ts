@@ -45,10 +45,9 @@ export class HydratedPlaceField
             throw new Error(`Square (${this.col},${this.row}) is not empty`)
         }
 
-        // Canal overseer who bid zero places one fewer farmer (minimum 0).
-        const penaltyApplies =
-            this.playerId === state.canalOverseerId && state.overseerBidZero
-        const farmerCount = penaltyApplies
+        // Any player who bid 0 places one fewer farmer (minimum 0).
+        const player = state.players.find(p => p.playerId === this.playerId)
+        const farmerCount = player?.bid === 0
             ? Math.max(0, tile.farmerCapacity - 1)
             : tile.farmerCapacity
 

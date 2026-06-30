@@ -41,6 +41,27 @@
 
     let cellPxW = $state(0)
     let cellPxH = $state(0)
+    let boardPxW = $state(0)
+    let gameAreaHeight = $state(0)
+    let toolbarAreaHeight = $state(0)
+    let tilesAreaHeight = $state(0)
+    let selectedTileIndex = $state(-1)
+
+    $effect(() => { if (isMySelectTurn) selectedTileIndex = -1 })
+
+    const displayTiles = $derived.by(() => {
+        const base = revealedTiles.map((tile) => ({ tile, isSelected: false }))
+        if (!state.currentPlantingTile) return base
+        const idx = selectedTileIndex >= 0 ? selectedTileIndex : base.length
+        const result = [...base]
+        result.splice(idx, 0, { tile: state.currentPlantingTile, isSelected: true })
+        return result
+    })
+    const boardMaxHeight = $derived(
+        gameAreaHeight > 0
+            ? Math.max(100, gameAreaHeight - toolbarAreaHeight - tilesAreaHeight - 8)
+            : 0
+    )
 
     function phaseName(ms: MachineState): string {
         switch (ms) {
@@ -56,6 +77,16 @@
     const playerName = (id: string) =>
         session.game?.players.find((p) => p.id === id)?.name ?? id
 </script>
+
+<style>
+@keyframes tile-glow {
+    0%, 100% { box-shadow: 0 0 4px 2px rgba(251, 191, 36, 0.4); }
+    50%       { box-shadow: 0 0 12px 5px rgba(251, 191, 36, 0.85); }
+}
+.tile-selected-glow {
+    animation: tile-glow 1.4s ease-in-out infinite;
+}
+</style>
 
 <div class="bg-[#a05530]" style="--chat-height-offset: 0px">
     <DefaultTableLayout>
@@ -73,6 +104,7 @@
                     borderClass="rounded-lg border-2 border-amber-800"
                     enabledColor="text-amber-300"
                     disabledColor="text-amber-900"
+                    height="h-[56px]"
                 />
             </div>
 
@@ -107,12 +139,14 @@
         {/snippet}
 
         {#snippet gameContent()}
-            <ActionToolbar />
+            <div bind:clientHeight={gameAreaHeight} class="h-full flex flex-col gap-1">
+            <div bind:clientHeight={toolbarAreaHeight} style={boardPxW ? `max-width: ${boardPxW}px` : ''}>
+                <ActionToolbar />
+            </div>
             <!-- Board fills available width; fields shown below during bidding and tile selection -->
-            <Board bind:cellPxW bind:cellPxH />
-            {#if revealedTiles.length > 0}
-                {@const clickable = isMySelectTurn || isMyPlaceTurn}
-                <div class="px-3 pt-2 space-y-1.5">
+            <Board bind:cellPxW bind:cellPxH bind:boardPxW maxHeight={boardMaxHeight} />
+            {#if displayTiles.length > 0}
+                <div bind:clientHeight={tilesAreaHeight} class="px-3 pt-2 space-y-1.5" style={boardPxW ? `max-width: ${boardPxW}px` : ''}>
                     <div class="flex items-center justify-between">
                         <p class="text-xs text-amber-400 uppercase tracking-wide">
                             {isBidding ? 'Fields up for auction' : 'Choose a field'}
@@ -120,10 +154,21 @@
                         <span class="text-xs text-amber-400">{state.tileBag.length} tiles remaining</span>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                        {#each revealedTiles as tile, i}
-                            {#if clickable}
+                        {#each displayTiles as { tile, isSelected }, i}
+                            {#if isSelected}
+                                <div class="rounded-md overflow-hidden tile-selected-glow shrink-0"
+                                     style="width:{cellPxW || 48}px; height:{cellPxH || 48}px">
+                                    <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
+                                         alt={tile.crop}
+                                         class="w-full h-full object-cover" />
+                                </div>
+                            {:else if isMySelectTurn || isMyPlaceTurn}
                                 <button
-                                    onclick={() => session.selectTile(i)}
+                                    onclick={() => {
+                                        const revIdx = selectedTileIndex >= 0 && i > selectedTileIndex ? i - 1 : i
+                                        selectedTileIndex = i
+                                        session.selectTile(revIdx)
+                                    }}
                                     class="rounded-md overflow-hidden transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-yellow-400"
                                     style="width:{cellPxW || 48}px; height:{cellPxH || 48}px"
                                 >
@@ -142,6 +187,7 @@
                     </div>
                 </div>
             {/if}
+            </div>
         {/snippet}
     </DefaultTableLayout>
 </div>

@@ -27,7 +27,7 @@ export class EndOfGameStateHandler
         const maxScore = Math.max(...state.players.map((p) => p.score))
         const winners = state.players.filter((p) => p.score === maxScore)
         state.winningPlayerIds = winners.map((p) => p.playerId)
-        state.result = GameResult.Win
+        state.result = winners.length > 1 ? GameResult.Draw : GameResult.Win
     }
 
     onAction(

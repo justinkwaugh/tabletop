@@ -40,6 +40,21 @@ export function getDescriptionForAction(action: GameAction, ctx?: ActionDescript
         return `bid ${amount} escudo${amount !== 1 ? 's' : ''}`
     }
     if (isPlaceField(action)) {
+        if (ctx?.allActions && action.playerId) {
+            const placeTime = (action as any).createdAt?.getTime() ?? 0
+            const lastRoundEndTime = ctx.allActions
+                .filter(a => isEndRoundEvent(a))
+                .map(a => a.createdAt?.getTime() ?? 0)
+                .filter(t => t < placeTime)
+                .reduce((max, t) => Math.max(max, t), 0)
+            const bid = ctx.allActions.find(a =>
+                isPlaceBid(a) &&
+                a.playerId === action.playerId &&
+                ((a as any).createdAt?.getTime() ?? 0) > lastRoundEndTime &&
+                ((a as any).createdAt?.getTime() ?? 0) < placeTime
+            ) as any
+            if (bid?.amount === 0) return 'planted a field (−1 farmer penalty)'
+        }
         return 'planted a field'
     }
     if (isBuildCanal(action)) {
@@ -63,10 +78,19 @@ export function getDescriptionForAction(action: GameAction, ctx?: ActionDescript
             }
             return 'accepted a canal bribe'
         } else {
+            if (ctx?.allActions) {
+                const proposals = getProposalsForDecision(a, ctx.allActions)
+                if (proposals.length === 0) return 'was offered no bribes and built a canal'
+            }
             return 'rejected all bribes and built a canal'
         }
     }
     if (isPass(action)) {
+        if (ctx?.allActions) {
+            const phase = getPassPhase(action, ctx.allActions)
+            if (phase === 'extraIrrigation') return 'chose not to place a personal canal'
+            if (phase === 'canalBuilding') return 'chose not to bribe the overseer'
+        }
         return 'passed'
     }
     if (isEndRoundEvent(action)) {
@@ -82,6 +106,21 @@ export function getDescriptionForAction(action: GameAction, ctx?: ActionDescript
         return parts.join(' — ')
     }
     return action.type
+}
+
+function getPassPhase(action: GameAction, allActions: GameAction[]): 'canalBuilding' | 'extraIrrigation' {
+    const passTime = action.createdAt?.getTime() ?? 0
+    const lastRoundEndTime = allActions
+        .filter(a => isEndRoundEvent(a))
+        .map(a => a.createdAt?.getTime() ?? 0)
+        .filter(t => t < passTime)
+        .reduce((max, t) => Math.max(max, t), 0)
+    const overseerDecidedBeforePass = allActions.some(a =>
+        isOverseerDecision(a) &&
+        (a.createdAt?.getTime() ?? 0) > lastRoundEndTime &&
+        (a.createdAt?.getTime() ?? 0) < passTime
+    )
+    return overseerDecidedBeforePass ? 'extraIrrigation' : 'canalBuilding'
 }
 
 function getProposalsForDecision(decision: any, allActions: GameAction[]): ProposeCanal[] {

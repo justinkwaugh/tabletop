@@ -6,7 +6,7 @@
     import { quartIn } from 'svelte/easing'
     import { PlayerName } from '@tabletop/frontend-components'
     import type { GameAction } from '@tabletop/common'
-    import { isEndRoundEvent } from '@tabletop/santiago'
+    import { isEndRoundEvent, isSelectTile } from '@tabletop/santiago'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
 
@@ -15,6 +15,7 @@
 
     const reversedActions = $derived.by(() =>
         session.actions
+            .filter((a: GameAction) => !isSelectTile(a))
             .filter((a: GameAction) => !!a.playerId || isEndRoundEvent(a))
             .toReversed()
             .toSorted(

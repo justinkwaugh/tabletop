@@ -12,7 +12,7 @@ export const UiDefinition: GameUiDefinition<SantiagoGameState, HydratedSantiagoG
     },
     createGameDefaults: {
         name: 'Dev',
-        additionalPlayerNames: ['Player2', 'Player3', 'Player4'],
+        additionalPlayerNames: ['Tom', 'Steven', 'Will'],
         config: { palmTrees: false }
     }
 }

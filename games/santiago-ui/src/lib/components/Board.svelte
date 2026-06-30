@@ -6,7 +6,7 @@
 
     const session = getGameSession()
 
-    let { cellPxW = $bindable(0), cellPxH = $bindable(0) }: { cellPxW?: number; cellPxH?: number } = $props()
+    let { cellPxW = $bindable(0), cellPxH = $bindable(0), maxHeight = 0, boardPxW = $bindable(0) }: { cellPxW?: number; cellPxH?: number; maxHeight?: number; boardPxW?: number } = $props()
 
     // Board display size (unscaled)
     const W = 384
@@ -84,13 +84,19 @@
         return session.colors.getPlayerUiColor(playerId)
     }
 
-    // Self-scaling: measure container width, derive scale factor
+    // Self-scaling: fit within both container width and available height
     let containerWidth: number = $state(0)
-    const scale = $derived(containerWidth > 0 ? containerWidth / W : 1)
+    const scale = $derived.by(() => {
+        if (containerWidth <= 0) return 1
+        const byWidth = containerWidth / W
+        if (maxHeight > 0) return Math.min(byWidth, maxHeight / H)
+        return byWidth
+    })
 
     $effect(() => {
         cellPxW = CELL_W * scale
         cellPxH = CELL_H * scale
+        boardPxW = W * scale
     })
 
     // Direction the dashes should flow: -1 makes them march toward (x2,y2) / (right or down);
@@ -220,18 +226,9 @@
                     tabindex={highlight !== null ? 0 : -1}
                     aria-label="Square {col},{row}"
                 >
-                    {#if highlight !== null}
-                        <svg class="absolute pointer-events-none"
-                             style="width:50%; height:50%; top:25%; left:25%"
-                             viewBox="0 0 24 24" fill="none"
-                             stroke={highlight === 'irrigated' ? '#3b82f6' : '#f97316'}
-                             stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                    {/if}
                     {#if !isFieldSquare(sq)}
                         {#if sq.hasPalmTree}
-                            <span class="absolute inset-0 flex items-center justify-center text-xl">🌴</span>
+                            <img src="/palmtree.png" alt="palm tree" class="absolute inset-0 w-full h-full object-contain p-1" />
                         {/if}
                     {:else if sq.dried}
                         <img src="/desert.png" alt="desert"
@@ -251,7 +248,7 @@
                             {/each}
                         </div>
                         {#if sq.hasPalmTree}
-                            <span class="absolute top-0.5 left-0.5 text-[10px] leading-none">🌴</span>
+                            <img src="/palmtree.png" alt="palm tree" class="absolute bottom-0.5 right-0.5 w-4 h-4 object-contain" />
                         {/if}
                     {/if}
                 </button>
@@ -347,9 +344,10 @@
                 {#each ps.contributions as contrib, i}
                     {@const cx = isH ? mx + (i - (n - 1) / 2) * 24 : c.x1 + 14}
                     {@const cy = isH ? c.y1 - 14 : my + (i - (n - 1) / 2) * 18}
-                    <rect x={cx - 10} y={cy - 7} width="20" height="14" rx="3" fill="rgba(0,0,0,0.75)" />
+                    <rect x={cx - 10} y={cy - 7} width="20" height="14" rx="3"
+                          fill={contrib.color} opacity="0.9" />
                     <text x={cx} y={cy} text-anchor="middle" dominant-baseline="middle"
-                          fill={contrib.color} font-size="8" font-weight="bold" style="font-family:sans-serif">
+                          fill="white" font-size="8" font-weight="bold" style="font-family:sans-serif">
                         {contrib.amount}
                     </text>
                 {/each}

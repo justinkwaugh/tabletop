@@ -120,7 +120,8 @@ export class SantiagoGameSession extends GameSession<
     }
 
     setProposalAmount(v: number) {
-        this.proposalAmount = Math.max(1, v)
+        const max = this.mySantiagoPlayer?.money ?? 0
+        this.proposalAmount = Math.max(1, Math.min(max, v))
     }
 
     get canalProposals(): CanalProposal[] {
