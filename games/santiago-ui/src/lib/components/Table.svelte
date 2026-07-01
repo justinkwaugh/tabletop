@@ -35,6 +35,12 @@
     const isMyPlantTurn = $derived(isPlanting && state.plantersOrder?.[state.planterIndex] === myId)
     const isMySelectTurn = $derived(isMyPlantTurn && !state.currentPlantingTile)
     const isMyPlaceTurn = $derived(isMyPlantTurn && !!state.currentPlantingTile)
+    const isNeutralPlacementMode = $derived(
+        isPlanting &&
+        (state.planterIndex ?? 0) >= (state.plantersOrder?.length ?? Infinity) &&
+        (state.players?.length ?? 0) === 3 &&
+        (state.revealedTiles?.length ?? 0) > 0
+    )
     const revealedTiles = $derived(
         (isBidding || isPlanting) ? state.revealedTiles ?? [] : []
     )
@@ -149,7 +155,7 @@
                 <div bind:clientHeight={tilesAreaHeight} class="px-3 pt-2 space-y-1.5" style={boardPxW ? `max-width: ${boardPxW}px` : ''}>
                     <div class="flex items-center justify-between">
                         <p class="text-xs text-amber-400 uppercase tracking-wide">
-                            {isBidding ? 'Fields up for auction' : 'Choose a field'}
+                            {isBidding ? 'Fields up for auction' : isNeutralPlacementMode ? 'Neutral plantation' : 'Choose a field'}
                         </p>
                         <span class="text-xs text-amber-400">{state.tileBag.length} tiles remaining</span>
                     </div>
@@ -177,6 +183,15 @@
                                          class="w-full h-full object-cover"
                                          style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
                                 </button>
+                            {:else if isNeutralPlacementMode}
+                                <div class="relative rounded-md overflow-hidden ring-2 ring-purple-400/70 shrink-0"
+                                     style="width:{cellPxW || 48}px; height:{cellPxH || 48}px">
+                                    <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
+                                         alt={tile.crop}
+                                         class="w-full h-full object-cover"
+                                         style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5)) grayscale(30%)" />
+                                    <div class="absolute bottom-0 inset-x-0 text-center bg-gray-800/70 text-[8px] text-gray-200 leading-tight py-px">neutral</div>
+                                </div>
                             {:else}
                                 <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
                                      alt={tile.crop}

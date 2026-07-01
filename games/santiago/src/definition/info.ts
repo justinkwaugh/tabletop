@@ -13,7 +13,7 @@ export const SantiagoInfo: GameInfo = {
             'the new canal segment. Unirrigated plantations wither and dry out, so the canal network ' +
             'is crucial. Build the most prosperous irrigated plantations to win.',
         year: '2003',
-        minPlayers: 2,
+        minPlayers: 3,
         maxPlayers: 5,
         defaultPlayerCount: 4,
         version: GAME_VERSION,

@@ -21,6 +21,7 @@
         ms === MachineState.ExtraIrrigation && session.isMyTurn &&
         !!myId && !state.extraIrrigationPassed.includes(myId)
     )
+    const isMyNeutralPlacementTurn = $derived(session.isNeutralPlacementTurn)
     const isMySelectTurn = $derived(
         ms === MachineState.PlantingPhase &&
         state.plantersOrder[state.planterIndex] === myId &&
@@ -34,7 +35,7 @@
         session.game?.players.find(p => p.id === activePlayerId)?.name ?? null
     )
     // 45 tiles total, one drawn per player per round
-    const totalRounds = $derived(Math.ceil(45 / state.players.length))
+    const totalRounds = $derived(Math.floor(45 / Math.max(4, state.players.length)))
 
     function phaseName(ms: MachineState): string {
         switch (ms) {
@@ -94,6 +95,10 @@
     {:else if isMySelectTurn}
         <span class="text-sm text-amber-500">Choose a field to plant</span>
 
+    <!-- PLANTING: NEUTRAL TILE PLACEMENT (3-player highest bidder) -->
+    {:else if isMyNeutralPlacementTurn}
+        <span class="font-semibold text-amber-300">Place the fourth field next to an existing tile</span>
+
     <!-- PLANTING: PLACE FIELD -->
     {:else if isMyPlaceTurn}
         {#if state.canalOverseerId === myId && state.overseerBidZero}
@@ -135,7 +140,7 @@
                 <button class="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-bold transition-colors"
                     onclick={() => session.rejectAndBuild()}>
                     {#if session.segmentProposals.length > 0}
-                        Reject all · {session.rejectPenalty} esc
+                        Reject bribes · {session.rejectPenalty} esc
                     {:else}
                         Place canal here
                     {/if}

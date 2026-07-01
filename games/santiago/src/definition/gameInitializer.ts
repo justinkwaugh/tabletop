@@ -75,6 +75,11 @@ export class SantiagoGameInitializer
 
         const tileBag = buildTileBag()
         shuffle(tileBag, prng.random)
+        // Discard tiles so the bag divides evenly: 4 tiles are drawn per round for
+        // 3–4 players; 5 for 5 players. Formula: max(4, numPlayers).
+        const tilesPerRound = Math.max(4, game.players.length)
+        const discard = tileBag.length % tilesPerRound
+        tileBag.splice(0, discard)
 
         const colors = structuredClone(SantiagoColors)
         shuffle(colors, prng.random)

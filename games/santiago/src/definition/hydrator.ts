@@ -3,6 +3,7 @@ import { SantiagoGameState, HydratedSantiagoGameState } from '../model/gameState
 import { HydratedPlaceBid, isPlaceBid } from '../actions/placeBid.js'
 import { HydratedSelectTile, isSelectTile } from '../actions/selectTile.js'
 import { HydratedPlaceField, isPlaceField } from '../actions/placeField.js'
+import { HydratedPlaceNeutralTile, isPlaceNeutralTile } from '../actions/placeNeutralTile.js'
 import { HydratedBuildCanal, isBuildCanal } from '../actions/buildCanal.js'
 import { HydratedPayBribe, isPayBribe } from '../actions/payBribe.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
@@ -21,6 +22,8 @@ export class SantiagoHydrator
                 return new HydratedSelectTile(data)
             case isPlaceField(data):
                 return new HydratedPlaceField(data)
+            case isPlaceNeutralTile(data):
+                return new HydratedPlaceNeutralTile(data)
             case isBuildCanal(data):
                 return new HydratedBuildCanal(data)
             case isPayBribe(data):

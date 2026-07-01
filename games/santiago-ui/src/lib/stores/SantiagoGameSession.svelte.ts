@@ -6,6 +6,7 @@ import {
     PlaceBid,
     SelectTile,
     PlaceField,
+    PlaceNeutralTile,
     BuildCanal,
     Pass,
     ProposeCanal,
@@ -20,7 +21,8 @@ import {
     isValidFieldPlacement,
     isIrrigated,
     connectedSpringIntersections,
-    validCanalPlacements
+    validCanalPlacements,
+    validNeutralTilePlacements
 } from '@tabletop/santiago'
 import { type GameAction } from '@tabletop/common'
 
@@ -73,6 +75,23 @@ export class SantiagoGameSession extends GameSession<
 
     get bidIsInvalid(): boolean {
         return this.bidValue > 0 && this.takenBids.includes(this.bidValue)
+    }
+
+    // True when the local player is the highest bidder who must place the neutral tile (3-player only).
+    get isNeutralPlacementTurn(): boolean {
+        const state = this.gameState
+        if (state.machineState !== MachineState.PlantingPhase) return false
+        if (state.planterIndex < state.plantersOrder.length) return false
+        if (state.players.length !== 3 || state.revealedTiles.length === 0) return false
+        return this.myPlayer?.id === state.plantersOrder[0]
+    }
+
+    // Valid squares for neutral tile placement. Set of "col,row" keys.
+    get validNeutralPlacements(): Set<string> {
+        if (!this.isNeutralPlacementTurn) return new Set()
+        return new Set(
+            validNeutralTilePlacements(this.gameState.board).map((p) => `${p.col},${p.row}`)
+        )
     }
 
     // Valid placements for the current player's planting tile.
@@ -200,6 +219,11 @@ export class SantiagoGameSession extends GameSession<
 
     async placeField(col: number, row: number) {
         const action = this.createPlaceFieldAction(col, row)
+        await this.applyAction(action)
+    }
+
+    async placeNeutralField(col: number, row: number) {
+        const action = this.createPlayerAction(PlaceNeutralTile, { col, row })
         await this.applyAction(action)
     }
 

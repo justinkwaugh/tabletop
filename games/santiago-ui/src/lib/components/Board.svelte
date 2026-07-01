@@ -60,9 +60,18 @@
         return v ? 'irrigated' : 'unirrigated'
     }
 
+    function isValidNeutralPlacement(col: number, row: number): boolean {
+        return session.validNeutralPlacements.has(`${col},${row}`)
+    }
+
     function handleCellClick(col: number, row: number) {
-        if (fieldHighlight(col, row) === null) return
-        session.placeField(col, row)
+        if (fieldHighlight(col, row) !== null) {
+            session.placeField(col, row)
+            return
+        }
+        if (isValidNeutralPlacement(col, row)) {
+            session.placeNeutralField(col, row)
+        }
     }
 
     function handleSegmentClick(seg: { orientation: 'H' | 'V'; col: number; row: number }) {
@@ -218,12 +227,13 @@
             {#each Array(8) as _, col}
                 {@const sq = session.gameState.board.squares[col][row]}
                 {@const highlight = fieldHighlight(col, row)}
+                {@const neutralOk = isValidNeutralPlacement(col, row)}
                 <button
                     class="block w-full h-full select-none relative overflow-hidden transition-opacity"
-                    class:cursor-pointer={highlight !== null}
-                    class:cursor-default={highlight === null}
+                    class:cursor-pointer={highlight !== null || neutralOk}
+                    class:cursor-default={highlight === null && !neutralOk}
                     onclick={() => handleCellClick(col, row)}
-                    tabindex={highlight !== null ? 0 : -1}
+                    tabindex={highlight !== null || neutralOk ? 0 : -1}
                     aria-label="Square {col},{row}"
                 >
                     {#if !isFieldSquare(sq)}
@@ -239,14 +249,16 @@
                              alt=""
                              class="absolute object-cover"
                              style="inset:3px; width:calc(100% - 6px); height:calc(100% - 6px); border-radius:3px; transform:rotate({fieldRotation(col,row)}deg); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))" />
-                        <!-- Farmer cubes — one per farmer, player's colour -->
-                        <div class="absolute flex gap-[2px]" style="left: 20%; bottom: 20%">
-                            {#each Array(sq.farmerCount) as _, i}
-                                <div class="w-[9px] h-[9px] rounded-[2px]"
-                                     style="background-color: {playerColor(sq.playerId)}; border: 1px solid rgba(0,0,0,0.85); box-shadow: 1px 2px 3px rgba(0,0,0,0.65); transform: rotate({cubeRotation(col, row, i)}deg)">
-                                </div>
-                            {/each}
-                        </div>
+                        <!-- Farmer cubes — only for owned fields -->
+                        {#if sq.playerId}
+                            <div class="absolute flex gap-[2px]" style="left: 20%; bottom: 20%">
+                                {#each Array(sq.farmerCount) as _, i}
+                                    <div class="w-[9px] h-[9px] rounded-[2px]"
+                                         style="background-color: {playerColor(sq.playerId)}; border: 1px solid rgba(0,0,0,0.85); box-shadow: 1px 2px 3px rgba(0,0,0,0.65); transform: rotate({cubeRotation(col, row, i)}deg)">
+                                    </div>
+                                {/each}
+                            </div>
+                        {/if}
                         {#if sq.hasPalmTree}
                             <img src="/palmtree.png" alt="palm tree" class="absolute bottom-0.5 right-0.5 w-4 h-4 object-contain" />
                         {/if}

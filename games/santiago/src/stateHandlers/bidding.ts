@@ -78,9 +78,11 @@ export class BiddingStateHandler
             player.clearBid()
         }
 
-        // Pre-draw one tile per player so they're visible during bidding
+        // Pre-draw tiles for the auction: 4 for 3–4 players, 5 for 5 players.
+        // With 3 players the extra tile is discarded after planting.
+        const tilesPerRound = Math.max(4, state.players.length)
         state.revealedTiles = []
-        for (let i = 0; i < state.players.length; i++) {
+        for (let i = 0; i < tilesPerRound; i++) {
             const tile = state.drawTile()
             if (tile) state.revealedTiles.push(tile)
         }
