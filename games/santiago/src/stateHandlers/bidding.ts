@@ -136,7 +136,7 @@ export class BiddingStateHandler
             const bb = b.bid ?? 0
             if (bb !== ba) return bb - ba
             if (ba === 0) return state.biddingOrder.indexOf(b.playerId) - state.biddingOrder.indexOf(a.playerId)
-            return turnOrder.indexOf(a.playerId) - turnOrder.indexOf(b.playerId)
+            return state.biddingOrder.indexOf(a.playerId) - state.biddingOrder.indexOf(b.playerId)
         })
         state.plantersOrder = sorted.map((p) => p.playerId)
 
