@@ -53,18 +53,7 @@ export function getDescriptionForAction(action: GameAction, ctx?: ActionDescript
                 ((a as any).createdAt?.getTime() ?? 0) > lastRoundEndTime &&
                 ((a as any).createdAt?.getTime() ?? 0) < placeTime
             ) as any
-            if (bid?.amount === 0) {
-                // Only the first zero-bidder in this round is the overseer and gets the penalty
-                const bidTime = (bid as any).createdAt?.getTime() ?? 0
-                const isOverseer = !ctx.allActions.some(a =>
-                    isPlaceBid(a) &&
-                    a.playerId !== action.playerId &&
-                    (a as any).amount === 0 &&
-                    (a as any).createdAt?.getTime() > lastRoundEndTime &&
-                    (a as any).createdAt?.getTime() < bidTime
-                )
-                if (isOverseer) return 'planted a field (−1 farmer penalty)'
-            }
+            if (bid?.amount === 0) return 'planted a field (−1 farmer penalty)'
         }
         return 'planted a field'
     }
