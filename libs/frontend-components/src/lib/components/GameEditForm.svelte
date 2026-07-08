@@ -33,7 +33,7 @@
     import { nanoid } from 'nanoid'
     import { playerSortValue } from '$lib/utils/player'
     import { TrashBinSolid } from 'flowbite-svelte-icons'
-    import type { CreateGameDefaults, GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
+    import type { GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
     import { APIError } from '$lib/network/errors.js'
     import { trim } from '$lib/utils/trimInput.js'
     import Typeahead from '$lib/components/Typeahead.svelte'
@@ -52,14 +52,12 @@
         game,
         title,
         hotseatOnly = false,
-        createGameDefaults,
         oncancel,
         onsave
     }: {
         game?: Game
         title?: GameUiDefinition<GameState, HydratedGameState>
         hotseatOnly?: boolean
-        createGameDefaults?: CreateGameDefaults
         oncancel: () => void
         onsave: (game: Game) => void
     } = $props()
@@ -102,10 +100,8 @@
     // State
     let unexpectedError = $state(false)
     let errors: Record<string, string[]> = $state({})
-    let name = $state(mode === EditMode.Create && createGameDefaults?.name ? createGameDefaults.name : editedGame.name)
-    let config = $state(mode === EditMode.Create && createGameDefaults?.config
-        ? { ...editedGame.config, ...createGameDefaults.config }
-        : editedGame.config)
+    let name = $state(editedGame.name)
+    let config = $state(editedGame.config)
     let seed = $state('')
     let numPlayers = $state(
         mode === EditMode.Edit
@@ -155,16 +151,7 @@
             players.splice(numPlayers, -difference)
         } else {
             for (let i = 0; i < difference; i++) {
-                const slotIndex = players.length
-                const nameDefault = mode === EditMode.Create
-                    ? createGameDefaults?.additionalPlayerNames?.[slotIndex - 1]
-                    : undefined
-                players.push({
-                    id: nanoid(),
-                    isHuman: true,
-                    name: nameDefault ?? '',
-                    status: nameDefault ? PlayerStatus.Reserved : PlayerStatus.Open
-                })
+                players.push({ id: nanoid(), isHuman: true, name: '', status: PlayerStatus.Open })
             }
         }
     }

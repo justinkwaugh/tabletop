@@ -66,14 +66,7 @@ export interface GameUIRuntime<T extends GameState, U extends HydratedGameState<
     playerColorPalette?: PlayerColorPalette
 }
 
-export type CreateGameDefaults = {
-    name?: string
-    additionalPlayerNames?: string[]
-    config?: Record<string, unknown>
-}
-
 export type GameUiDefinition<T extends GameState, U extends HydratedGameState<T> & T> = {
     info: GameUIInfo
     runtime: () => Promise<GameUIRuntime<T, U>>
-    createGameDefaults?: CreateGameDefaults
 }
