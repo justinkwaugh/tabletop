@@ -129,21 +129,22 @@ export class BiddingStateHandler
             player.pay(player.bid ?? 0)
         }
 
-        // Planting order: descending bid; among ties at zero, last to bid picks first (reverse turn order)
+        // Planting order: descending bid; among ties at zero, last to bid in this round's
+        // bidding order picks first (biddingOrder index descending).
         const sorted = [...state.players].sort((a, b) => {
             const ba = a.bid ?? 0
             const bb = b.bid ?? 0
             if (bb !== ba) return bb - ba
-            if (ba === 0) return turnOrder.indexOf(b.playerId) - turnOrder.indexOf(a.playerId)
+            if (ba === 0) return state.biddingOrder.indexOf(b.playerId) - state.biddingOrder.indexOf(a.playerId)
             return turnOrder.indexOf(a.playerId) - turnOrder.indexOf(b.playerId)
         })
         state.plantersOrder = sorted.map((p) => p.playerId)
 
-        // Canal overseer = lowest bidder; ties at zero broken by clockwise turn order
+        // Canal overseer = lowest bidder; ties at zero broken by this round's bidding order
         const minBid = Math.min(...state.players.map((p) => p.bid ?? 0))
         const lowestBidders = state.players
             .filter((p) => (p.bid ?? 0) === minBid)
-            .sort((a, b) => turnOrder.indexOf(a.playerId) - turnOrder.indexOf(b.playerId))
+            .sort((a, b) => state.biddingOrder.indexOf(a.playerId) - state.biddingOrder.indexOf(b.playerId))
         state.canalOverseerId = lowestBidders[0]?.playerId
         state.overseerBidZero = minBid === 0
         // Bids are intentionally left set so they remain visible during PlantingPhase
