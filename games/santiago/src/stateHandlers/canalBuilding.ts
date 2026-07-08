@@ -7,15 +7,7 @@ import { HydratedOverseerDecision, isOverseerDecision } from '../actions/oversee
 import { HydratedPass, isPass, Pass } from '../actions/pass.js'
 import { isSameSegment } from '../model/board.js'
 import { isCanalPlaced, isConnectedToSpring } from '../util/irrigation.js'
-
-function maxSegmentTotal(proposals: Array<{ segment: { orientation: string; col: number; row: number }; amount: number }>): number {
-    const totals = new Map<string, number>()
-    for (const p of proposals) {
-        const key = `${p.segment.orientation},${p.segment.col},${p.segment.row}`
-        totals.set(key, (totals.get(key) ?? 0) + p.amount)
-    }
-    return totals.size > 0 ? Math.max(...totals.values()) : 0
-}
+import { maxSegmentTotal } from '../util/canal.js'
 
 type CanalBuildingAction = HydratedProposeCanal | HydratedOverseerDecision | HydratedPass
 

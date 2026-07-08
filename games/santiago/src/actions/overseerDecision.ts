@@ -5,6 +5,7 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedSantiagoGameState } from '../model/gameState.js'
 import { CanalSegment, isSameSegment } from '../model/board.js'
 import { isCanalPlaced, isConnectedToSpring } from '../util/irrigation.js'
+import { maxSegmentTotal } from '../util/canal.js'
 
 export type OverseerDecision = Type.Static<typeof OverseerDecision>
 export const OverseerDecision = Type.Evaluate(
@@ -25,14 +26,6 @@ export function isOverseerDecision(action: GameAction): action is OverseerDecisi
     return action.type === ActionType.OverseerDecision
 }
 
-function maxSegmentTotal(proposals: Array<{ segment: CanalSegment; amount: number }>): number {
-    const totals = new Map<string, number>()
-    for (const p of proposals) {
-        const key = `${p.segment.orientation},${p.segment.col},${p.segment.row}`
-        totals.set(key, (totals.get(key) ?? 0) + p.amount)
-    }
-    return totals.size > 0 ? Math.max(...totals.values()) : 0
-}
 
 export class HydratedOverseerDecision
     extends HydratableAction<typeof OverseerDecision>
