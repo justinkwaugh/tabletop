@@ -4,7 +4,6 @@ export enum ActionType {
     PlaceField = 'placeField',
     PlaceNeutralTile = 'placeNeutralTile',
     BuildCanal = 'buildCanal',
-    PayBribe = 'payBribe',
     Pass = 'pass',
     ProposeCanal = 'proposeCanal',
     OverseerDecision = 'overseerDecision',
