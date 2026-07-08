@@ -16,7 +16,7 @@
     },
     "customizations": {
         "vscode": {
-            "extensions": ["1YiB.svelte-bundle", "esbenp.prettier-vscode", "anthropic.claude-code"]
+            "extensions": ["1YiB.svelte-bundle", "esbenp.prettier-vscode"]
         }
     }
 }
