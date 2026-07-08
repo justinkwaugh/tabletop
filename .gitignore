@@ -52,3 +52,4 @@ firestore-debug.log
 ui-debug.log
 tools/deploy/deploy.config.json
 .local-static
+.claude/settings.local.json
