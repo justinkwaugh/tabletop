@@ -24,6 +24,7 @@ export const UrbinoGameState = Type.Evaluate(
             consecutivePasses: Type.Number(),
             hasRepositionedThisTurn: Type.Boolean(),
             monumentsVariant: Type.Boolean(),
+            concededByPlayerId: Type.Optional(Type.String()),
         })
     ])
 )
@@ -51,6 +52,7 @@ export class HydratedUrbinoGameState
     declare consecutivePasses: number
     declare hasRepositionedThisTurn: boolean
     declare monumentsVariant: boolean
+    declare concededByPlayerId?: string
 
     constructor(data: UrbinoGameState) {
         super(data, UrbinoGameStateValidator)

@@ -8,6 +8,7 @@ import {
     PlaceBuilding,
     RepositionArchitect,
     Pass,
+    Concede,
     isRepositionArchitect,
     isPlaceBuilding,
     isPlaceArchitect,
@@ -84,6 +85,12 @@ export class UrbinoGameSession extends GameSession<UrbinoGameState, HydratedUrbi
             !!this.myPlayer?.id
     )
 
+    canConcede = $derived(
+        this.isTakingTurn &&
+            this.validActionTypes.includes(ActionType.Concede) &&
+            !!this.myPlayer?.id
+    )
+
     validPlacementSquares: number[] = $derived.by(() => {
         if (!this.canPlaceBuilding || !this.myPlayer?.id) return []
         const player = this.gameState.players.find((p) => p.playerId === this.myPlayer!.id)
@@ -102,6 +109,31 @@ export class UrbinoGameSession extends GameSession<UrbinoGameState, HydratedUrbi
             palaces: player.palaces,
             towers: player.towers,
         }, this.gameState.monumentsVariant)
+    })
+
+    architectsWithValidMoves: Set<number> = $derived.by(() => {
+        if (!this.canRepositionArchitect) return new Set()
+        const player = this.gameState.players.find((p) => p.playerId === this.myPlayer?.id)
+        if (!player) return new Set()
+        const result = new Set<number>()
+        outer: for (let idx = 0; idx < this.gameState.architects.length; idx++) {
+            for (let i = 0; i < BOARD_SQUARES; i++) {
+                if (!isValidRepositionTarget(this.gameState.board, this.gameState.architects, idx, i)) continue
+                const newArchitects = [...this.gameState.architects]
+                newArchitects[idx] = i
+                if (hasAnyValidPlacement(
+                    this.gameState.board,
+                    newArchitects,
+                    this.myPlayer!.id,
+                    { houses: player.houses, palaces: player.palaces, towers: player.towers },
+                    this.gameState.monumentsVariant
+                )) {
+                    result.add(idx)
+                    continue outer
+                }
+            }
+        }
+        return result
     })
 
     validRepositionSquares: number[] = $derived.by(() => {
@@ -189,6 +221,12 @@ export class UrbinoGameSession extends GameSession<UrbinoGameState, HydratedUrbi
     async pass() {
         if (!this.canPass || !this.myPlayer?.id) return
         const action = this.createPlayerAction(Pass, {})
+        await this.applyAction(action)
+    }
+
+    async concede() {
+        if (!this.canConcede || !this.myPlayer?.id) return
+        const action = this.createPlayerAction(Concede, {})
         await this.applyAction(action)
     }
 }

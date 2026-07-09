@@ -5,6 +5,7 @@ import { HydratedChooseFirstPlayer, isChooseFirstPlayer } from '../actions/choos
 import { HydratedRepositionArchitect, isRepositionArchitect } from '../actions/repositionArchitect.js'
 import { HydratedPlaceBuilding, isPlaceBuilding } from '../actions/placeBuilding.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
+import { HydratedConcede, isConcede } from '../actions/concede.js'
 
 export class UrbinoHydrator implements GameHydrator<UrbinoGameState, HydratedUrbinoGameState> {
     hydrateAction(data: GameAction): HydratedAction {
@@ -19,6 +20,8 @@ export class UrbinoHydrator implements GameHydrator<UrbinoGameState, HydratedUrb
                 return new HydratedPlaceBuilding(data)
             case isPass(data):
                 return new HydratedPass(data)
+            case isConcede(data):
+                return new HydratedConcede(data)
             default:
                 throw new Error(`Unknown action type ${data.type}`)
         }

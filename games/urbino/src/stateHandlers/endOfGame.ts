@@ -37,12 +37,18 @@ export class EndOfGameStateHandler
             player.score += points
         }
 
-        const rankedPlayers = [...gameState.players].sort((a, b) => b.score - a.score)
-        const topScore = rankedPlayers[0].score
-        const winners = rankedPlayers.filter((p) => p.score === topScore)
-
         gameState.result = GameResult.Win
-        gameState.winningPlayerIds = winners.map((p) => p.playerId)
+        if (gameState.concededByPlayerId) {
+            gameState.winningPlayerIds = gameState.players
+                .filter((p) => p.playerId !== gameState.concededByPlayerId)
+                .map((p) => p.playerId)
+        } else {
+            const rankedPlayers = [...gameState.players].sort((a, b) => b.score - a.score)
+            const topScore = rankedPlayers[0].score
+            gameState.winningPlayerIds = rankedPlayers
+                .filter((p) => p.score === topScore)
+                .map((p) => p.playerId)
+        }
         gameState.activePlayerIds = []
     }
 

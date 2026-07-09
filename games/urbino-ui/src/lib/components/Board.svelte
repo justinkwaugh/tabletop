@@ -2,9 +2,16 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import Square from './Square.svelte'
     import { BOARD_SIZE, BOARD_SQUARES, getDistrictFrom, posToRowCol, rowColToPos } from '@tabletop/urbino'
-    import { getBuildingButtonRect, placementAnim } from '$lib/model/animationStore'
+    import { markBoardReady, resetBoardReady } from '$lib/animators/buildingPlacementAnimator.js'
+    import { onMount } from 'svelte'
 
     const session = getGameSession()
+
+    onMount(() => {
+        resetBoardReady()
+        requestAnimationFrame(() => markBoardReady())
+        return () => resetBoardReady()
+    })
     const state = $derived(session.gameState)
 
     const squares = Array.from({ length: BOARD_SQUARES }, (_, i) => i)
@@ -56,7 +63,7 @@
         }
 
         // Click on architect to select/switch selection for repositioning
-        if (session.canRepositionArchitect && architectAt >= 0) {
+        if (session.canRepositionArchitect && architectAt >= 0 && session.architectsWithValidMoves.has(architectAt)) {
             session.selectArchitect(architectAt)
             return
         }
@@ -69,17 +76,6 @@
 
         // Place building
         if (session.selectedBuildingType && validSquares.has(pos)) {
-            const fromRect = getBuildingButtonRect(session.selectedBuildingType)
-            const toRect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-            const playerColor = session.colors.getPlayerUiColor(session.myPlayer?.id)
-            if (fromRect && playerColor) {
-                placementAnim.trigger({
-                    buildingType: session.selectedBuildingType,
-                    playerColor,
-                    fromRect,
-                    toRect,
-                })
-            }
             session.placeBuilding(pos, session.selectedBuildingType)
             return
         }
