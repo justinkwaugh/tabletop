@@ -2,6 +2,7 @@ import type { GameAction } from '@tabletop/common'
 import {
     isPlaceBid,
     isPlaceField,
+    isPlaceNeutralTile,
     isBuildCanal,
     isPass,
     isProposeCanal,
@@ -13,10 +14,15 @@ import type { ProposeCanal } from '@tabletop/santiago'
 
 export type ActionDescriptionContext = {
     allActions?: GameAction[]
-    playerName?: (id: string) => string
 }
 
-export function getDescriptionForAction(action: GameAction, ctx?: ActionDescriptionContext): string {
+// A description is a sequence of plain-text fragments and player references — callers
+// render text fragments as-is and player references as their colored PlayerName chip, so a
+// mentioned player (e.g. in a bribe-acceptance payment breakdown) always gets the same
+// treatment as the acting player, wherever the description is shown.
+export type DescriptionPart = string | { playerId: string }
+
+export function getDescriptionForAction(action: GameAction, ctx?: ActionDescriptionContext): DescriptionPart[] {
     if (isPlaceBid(action)) {
         const amount = (action as any).amount ?? 0
         if (amount === 0) {
@@ -33,11 +39,11 @@ export function getDescriptionForAction(action: GameAction, ctx?: ActionDescript
                     (a as any).createdAt?.getTime() > lastRoundEndTime &&
                     (a as any).createdAt?.getTime() < actionTime
                 )
-                return isFirst ? 'bid 0 and becomes overseer' : 'bid 0 escudos'
+                return [isFirst ? 'bid 0 and becomes overseer' : 'bid 0 escudos']
             }
-            return 'bid 0 and becomes overseer'
+            return ['bid 0 and becomes overseer']
         }
-        return `bid ${amount} escudo${amount !== 1 ? 's' : ''}`
+        return [`bid ${amount} escudo${amount !== 1 ? 's' : ''}`]
     }
     if (isPlaceField(action)) {
         if (ctx?.allActions && action.playerId) {
@@ -53,45 +59,51 @@ export function getDescriptionForAction(action: GameAction, ctx?: ActionDescript
                 ((a as any).createdAt?.getTime() ?? 0) > lastRoundEndTime &&
                 ((a as any).createdAt?.getTime() ?? 0) < placeTime
             ) as any
-            if (bid?.amount === 0) return 'planted a field (−1 farmer penalty)'
+            if (bid?.amount === 0) return ['planted a field (−1 farmer penalty)']
         }
-        return 'planted a field'
+        return ['planted a field']
+    }
+    if (isPlaceNeutralTile(action)) {
+        return ['planted the neutral field']
     }
     if (isBuildCanal(action)) {
-        return 'placed a personal canal'
+        return ['placed a personal canal']
     }
     if (isProposeCanal(action)) {
         const a = action as any
-        return `offered ${a.amount} escudo${a.amount !== 1 ? 's' : ''} for a canal`
+        return [`offered ${a.amount} escudo${a.amount !== 1 ? 's' : ''} for a canal`]
     }
     if (isOverseerDecision(action)) {
         const a = action as any
         if (a.accepting) {
-            if (ctx?.allActions && ctx?.playerName) {
+            if (ctx?.allActions) {
                 const proposals = getProposalsForDecision(a, ctx.allActions)
                 if (proposals.length > 0) {
-                    const payments = proposals
-                        .map(p => `${ctx.playerName!(p.playerId!)} paid ${p.amount}`)
-                        .join(', ')
-                    return `accepted a canal bribe — ${payments}`
+                    const parts: DescriptionPart[] = ['accepted a canal bribe — ']
+                    proposals.forEach((p, i) => {
+                        if (i > 0) parts.push(', ')
+                        parts.push({ playerId: p.playerId! })
+                        parts.push(` paid ${p.amount}`)
+                    })
+                    return parts
                 }
             }
-            return 'accepted a canal bribe'
+            return ['accepted a canal bribe']
         } else {
             if (ctx?.allActions) {
                 const proposals = getProposalsForDecision(a, ctx.allActions)
-                if (proposals.length === 0) return 'was offered no bribes and built a canal'
+                if (proposals.length === 0) return ['was offered no bribes and built a canal']
             }
-            return 'rejected all bribes and built a canal'
+            return ['rejected all bribes and built a canal']
         }
     }
     if (isPass(action)) {
         if (ctx?.allActions) {
             const phase = getPassPhase(action, ctx.allActions)
-            if (phase === 'extraIrrigation') return 'chose not to place a personal canal'
-            if (phase === 'canalBuilding') return 'chose not to bribe the overseer'
+            if (phase === 'extraIrrigation') return ['chose not to place a personal canal']
+            if (phase === 'canalBuilding') return ['chose not to bribe the overseer']
         }
-        return 'passed'
+        return ['passed']
     }
     if (isEndRoundEvent(action)) {
         const e = action as any
@@ -103,9 +115,9 @@ export function getDescriptionForAction(action: GameAction, ctx?: ActionDescript
             const fieldList = e.driedSquares.map((s: any) => s.crop).join(', ')
             parts.push(`drought: ${fieldList} dried out`)
         }
-        return parts.join(' — ')
+        return [parts.join(' — ')]
     }
-    return action.type
+    return [action.type]
 }
 
 function getPassPhase(action: GameAction, allActions: GameAction[]): 'canalBuilding' | 'extraIrrigation' {

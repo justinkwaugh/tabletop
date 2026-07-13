@@ -5,15 +5,13 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedPlaceField, isPlaceField } from '../actions/placeField.js'
 import { HydratedPlaceNeutralTile, isPlaceNeutralTile } from '../actions/placeNeutralTile.js'
 import { HydratedPass, isPass, Pass } from '../actions/pass.js'
-import { HydratedSelectTile, isSelectTile } from '../actions/selectTile.js'
 import { SquareType } from '../model/board.js'
 import { validNeutralTilePlacements } from '../util/placement.js'
 
-type PlantingAction = HydratedSelectTile | HydratedPlaceField | HydratedPlaceNeutralTile | HydratedPass
+type PlantingAction = HydratedPlaceField | HydratedPlaceNeutralTile | HydratedPass
 
-// Each planting turn has two sub-phases:
-//   1. Tile selection — the active planter picks one of the remaining revealedTiles.
-//   2. Tile placement — the planter places currentPlantingTile on the board (or passes).
+// Each planting turn is a single action: the active planter places one of the
+// revealedTiles directly on the board (or passes if none can be placed).
 //
 // In 3-player games, after all 3 planters place their tiles, one tile remains.
 // The highest bidder (plantersOrder[0]) must place this as a neutral plantation:
@@ -41,22 +39,11 @@ export class PlantingPhaseStateHandler
         const currentPlanter = state.plantersOrder[state.planterIndex]
         if (action.playerId !== currentPlanter) return false
 
-        if (!state.currentPlantingTile) {
-            // Tile selection sub-phase: pass is only valid (system auto-pass) when no tiles remain
-            if (isPass(action)) return state.revealedTiles.length === 0
-            return (
-                isSelectTile(action) &&
-                action.tileIndex >= 0 &&
-                action.tileIndex < state.revealedTiles.length
-            )
-        }
-
-        // Tile placement sub-phase
-        if (isPass(action)) return true
-        if (isSelectTile(action)) {
-            return action.tileIndex >= 0 && action.tileIndex < state.revealedTiles.length
+        if (isPass(action)) {
+            return state.revealedTiles.length === 0 || !this.hasAnyValidPlacement(action.playerId, state)
         }
         if (isPlaceField(action)) {
+            if (action.tileIndex < 0 || action.tileIndex >= state.revealedTiles.length) return false
             return this.isValidPlacement(action.col, action.row, state)
         }
         return false
@@ -75,15 +62,10 @@ export class PlantingPhaseStateHandler
         const currentPlanter = state.plantersOrder[state.planterIndex]
         if (playerId !== currentPlanter) return []
 
-        if (!state.currentPlantingTile) {
-            return state.revealedTiles.length > 0 ? [ActionType.SelectTile] : [ActionType.Pass]
+        if (state.revealedTiles.length > 0 && this.hasAnyValidPlacement(playerId, state)) {
+            return [ActionType.PlaceField]
         }
-
-        const placementActions = this.hasAnyValidPlacement(playerId, state)
-            ? [ActionType.PlaceField]
-            : [ActionType.Pass]
-        if (state.revealedTiles.length > 0) placementActions.push(ActionType.SelectTile)
-        return placementActions
+        return [ActionType.Pass]
     }
 
     enter(context: MachineContext<HydratedSantiagoGameState>) {
@@ -107,14 +89,7 @@ export class PlantingPhaseStateHandler
             return MachineState.CanalBuilding
         }
 
-        if (isSelectTile(action)) {
-            // Tile is now assigned (apply() already did it); self-transition so enter()
-            // checks placement validity and auto-passes if needed.
-            return MachineState.PlantingPhase
-        }
-
         // PlaceField or Pass — advance to the next planter.
-        state.currentPlantingTile = undefined
         state.planterIndex++
 
         if (state.planterIndex >= state.plantersOrder.length) {
@@ -143,16 +118,7 @@ export class PlantingPhaseStateHandler
         const planterId = state.plantersOrder[state.planterIndex]
         state.activePlayerIds = [planterId]
 
-        if (!state.currentPlantingTile) {
-            // Tile selection sub-phase — auto-pass only if no tiles remain
-            if (state.revealedTiles.length === 0) {
-                context.addSystemAction(Pass, { playerId: planterId })
-            }
-            return
-        }
-
-        // Tile placement sub-phase — auto-pass if no valid placements
-        if (!this.hasAnyValidPlacement(planterId, state)) {
+        if (state.revealedTiles.length === 0 || !this.hasAnyValidPlacement(planterId, state)) {
             context.addSystemAction(Pass, { playerId: planterId })
         }
     }
@@ -162,7 +128,6 @@ export class PlantingPhaseStateHandler
         row: number,
         state: HydratedSantiagoGameState
     ): boolean {
-        if (!state.currentPlantingTile) return false
         const square = state.board.squares[col]?.[row]
         return square?.type === SquareType.Empty
     }

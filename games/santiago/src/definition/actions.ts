@@ -1,6 +1,6 @@
 export enum ActionType {
+    PlaceSpring = 'placeSpring',
     PlaceBid = 'placeBid',
-    SelectTile = 'selectTile',
     PlaceField = 'placeField',
     PlaceNeutralTile = 'placeNeutralTile',
     BuildCanal = 'buildCanal',

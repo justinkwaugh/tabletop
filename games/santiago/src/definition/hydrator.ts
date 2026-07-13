@@ -1,7 +1,7 @@
 import { GameAction, type GameHydrator, type HydratedAction } from '@tabletop/common'
 import { SantiagoGameState, HydratedSantiagoGameState } from '../model/gameState.js'
+import { HydratedPlaceSpring, isPlaceSpring } from '../actions/placeSpring.js'
 import { HydratedPlaceBid, isPlaceBid } from '../actions/placeBid.js'
-import { HydratedSelectTile, isSelectTile } from '../actions/selectTile.js'
 import { HydratedPlaceField, isPlaceField } from '../actions/placeField.js'
 import { HydratedPlaceNeutralTile, isPlaceNeutralTile } from '../actions/placeNeutralTile.js'
 import { HydratedBuildCanal, isBuildCanal } from '../actions/buildCanal.js'
@@ -15,10 +15,10 @@ export class SantiagoHydrator
 {
     hydrateAction(data: GameAction): HydratedAction {
         switch (true) {
+            case isPlaceSpring(data):
+                return new HydratedPlaceSpring(data)
             case isPlaceBid(data):
                 return new HydratedPlaceBid(data)
-            case isSelectTile(data):
-                return new HydratedSelectTile(data)
             case isPlaceField(data):
                 return new HydratedPlaceField(data)
             case isPlaceNeutralTile(data):

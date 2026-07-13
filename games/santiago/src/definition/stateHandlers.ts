@@ -1,6 +1,7 @@
 import { type HydratedAction, type MachineStateHandler } from '@tabletop/common'
 import { MachineState } from './states.js'
 import { HydratedSantiagoGameState } from '../model/gameState.js'
+import { SpringPlacementStateHandler } from '../stateHandlers/springPlacement.js'
 import { BiddingStateHandler } from '../stateHandlers/bidding.js'
 import { PlantingPhaseStateHandler } from '../stateHandlers/plantingPhase.js'
 import { CanalBuildingStateHandler } from '../stateHandlers/canalBuilding.js'
@@ -11,6 +12,7 @@ export const SantiagoStateHandlers: Record<
     MachineState,
     MachineStateHandler<HydratedAction, HydratedSantiagoGameState>
 > = {
+    [MachineState.SpringPlacement]: new SpringPlacementStateHandler(),
     [MachineState.Bidding]: new BiddingStateHandler(),
     [MachineState.PlantingPhase]: new PlantingPhaseStateHandler(),
     [MachineState.CanalBuilding]: new CanalBuildingStateHandler(),

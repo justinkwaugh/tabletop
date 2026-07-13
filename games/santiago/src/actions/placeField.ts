@@ -11,6 +11,7 @@ export const PlaceField = Type.Evaluate(
         Type.Omit(GameAction, ['type']),
         Type.Object({
             type: Type.Literal(ActionType.PlaceField),
+            tileIndex: Type.Number({ minimum: 0 }),
             col: Type.Number({ minimum: 0, maximum: 7 }),
             row: Type.Number({ minimum: 0, maximum: 5 })
         })
@@ -28,6 +29,7 @@ export class HydratedPlaceField
     implements PlaceField
 {
     declare type: ActionType.PlaceField
+    declare tileIndex: number
     declare col: number
     declare row: number
 
@@ -37,8 +39,8 @@ export class HydratedPlaceField
 
     apply(state: HydratedSantiagoGameState) {
         if (!this.playerId) throw new Error('PlaceField requires a playerId')
-        const tile = state.currentPlantingTile
-        if (!tile) throw new Error('No planting tile available')
+        const tile = state.revealedTiles[this.tileIndex]
+        if (!tile) throw new Error(`No tile at index ${this.tileIndex}`)
 
         const existing = state.board.squares[this.col][this.row]
         if (existing.type !== SquareType.Empty) {
@@ -61,6 +63,6 @@ export class HydratedPlaceField
             dried: false
         }
 
-        state.currentPlantingTile = undefined
+        state.revealedTiles.splice(this.tileIndex, 1)
     }
 }

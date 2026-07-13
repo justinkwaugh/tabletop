@@ -57,8 +57,13 @@
 </script>
 
 <div class="bg-gray-800/80 rounded-xl p-4 text-white text-center space-y-1 min-w-48">
-    {#if machineState === MachineState.Bidding}
-        <p class="text-yellow-300 font-semibold">Bidding</p>
+    {#if machineState === MachineState.SpringPlacement}
+        {@const firstId = state.seatOrder[0]}
+        {@const firstName = session.game?.players.find(p => p.id === firstId)?.name ?? firstId}
+        <p class="text-amber-300 font-semibold">Spring Placement</p>
+        <p class="text-sm text-gray-300">Waiting for <span class="text-white font-medium">{firstName}</span> to place the spring…</p>
+    {:else if machineState === MachineState.Bidding}
+        <p class="text-amber-300 font-semibold">Bidding</p>
         <p class="text-sm text-gray-300">Waiting for <span class="text-white font-medium">{currentBidderName}</span> to bid…</p>
 
         {#if revealedTiles.length > 0}
@@ -87,16 +92,11 @@
             </div>
         {/if}
     {:else if machineState === MachineState.PlantingPhase}
-        <p class="text-yellow-300 font-semibold">Planting</p>
-        <p class="text-sm text-gray-300">
-            {currentActorName} is planting
-            {#if state.currentPlantingTile}
-                <span class="font-medium text-white">{state.currentPlantingTile.crop}</span>
-            {/if}
-        </p>
+        <p class="text-amber-300 font-semibold">Planting</p>
+        <p class="text-sm text-gray-300">{currentActorName} is planting…</p>
     {:else if machineState === MachineState.CanalBuilding}
         {#if isOverseerDecisionPhase}
-            <p class="text-yellow-300 font-semibold">Overseer Deciding</p>
+            <p class="text-amber-300 font-semibold">Overseer Deciding</p>
             <p class="text-sm text-gray-300">
                 <span class="text-white font-medium">{currentActorName}</span> is choosing where to build…
             </p>
@@ -114,7 +114,7 @@
                 <p class="text-xs text-gray-400">No proposals were made.</p>
             {/if}
         {:else}
-            <p class="text-yellow-300 font-semibold">Canal Proposals</p>
+            <p class="text-amber-300 font-semibold">Canal Proposals</p>
             {#if currentProposerName}
                 <p class="text-sm text-gray-300">Waiting for <span class="text-white font-medium">{currentProposerName}</span> to propose…</p>
             {/if}
@@ -130,7 +130,7 @@
             {/if}
         {/if}
     {:else if machineState === MachineState.ExtraIrrigation}
-        <p class="text-yellow-300 font-semibold">Personal Canal Phase</p>
+        <p class="text-amber-300 font-semibold">Personal Canal Phase</p>
         {@const currentId = state.extraIrrigationOrder?.[state.extraIrrigationIndex]}
         {@const currentName = session.game?.players.find(p => p.id === currentId)?.name ?? currentId}
         {#if currentId}

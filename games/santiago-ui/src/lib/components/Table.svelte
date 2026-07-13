@@ -1,5 +1,6 @@
 <script lang="ts">
     import {
+        ScalingWrapper,
         DefaultTableLayout,
         HistoryControls,
         DefaultTabs,
@@ -13,10 +14,12 @@
     import Board from './Board.svelte'
     import ActionPanel from './ActionPanel.svelte'
     import ActionToolbar from './ActionToolbar.svelte'
+    import LastActionBanner from './LastActionBanner.svelte'
     import WaitingPanel from './WaitingPanel.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
     import History from './History.svelte'
     import { fieldImageUrl } from '$lib/utils/cropImages.js'
+    import { CELL_W, CELL_H } from '$lib/utils/boardGeometry.js'
 
     let {
         gameSession
@@ -33,8 +36,6 @@
     const isPlanting = $derived(state.machineState === MachineState.PlantingPhase)
     const myId = $derived(session.myPlayer?.id)
     const isMyPlantTurn = $derived(isPlanting && state.plantersOrder?.[state.planterIndex] === myId)
-    const isMySelectTurn = $derived(isMyPlantTurn && !state.currentPlantingTile)
-    const isMyPlaceTurn = $derived(isMyPlantTurn && !!state.currentPlantingTile)
     const isNeutralPlacementMode = $derived(
         isPlanting &&
         (state.planterIndex ?? 0) >= (state.plantersOrder?.length ?? Infinity) &&
@@ -45,28 +46,8 @@
         (isBidding || isPlanting) ? state.revealedTiles ?? [] : []
     )
 
-    let cellPxW = $state(0)
-    let cellPxH = $state(0)
-    let boardPxW = $state(0)
-    let gameAreaHeight = $state(0)
-    let toolbarAreaHeight = $state(0)
-    let tilesAreaHeight = $state(0)
-    let selectedTileIndex = $state(-1)
-
-    $effect(() => { if (isMySelectTurn) selectedTileIndex = -1 })
-
-    const displayTiles = $derived.by(() => {
-        const base = revealedTiles.map((tile) => ({ tile, isSelected: false }))
-        if (!state.currentPlantingTile) return base
-        const idx = selectedTileIndex >= 0 ? selectedTileIndex : base.length
-        const result = [...base]
-        result.splice(idx, 0, { tile: state.currentPlantingTile, isSelected: true })
-        return result
-    })
-    const boardMaxHeight = $derived(
-        gameAreaHeight > 0
-            ? Math.max(100, gameAreaHeight - toolbarAreaHeight - tilesAreaHeight - 8)
-            : 0
+    const displayTiles = $derived(
+        revealedTiles.map((tile, i) => ({ tile, isSelected: i === session.selectedTileIndex }))
     )
 
     function phaseName(ms: MachineState): string {
@@ -94,7 +75,7 @@
 }
 </style>
 
-<div class="bg-[#a05530]" style="--chat-height-offset: 0px">
+<div class="bg-[#1c1410]" style="--chat-height-offset: 0px">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls
@@ -110,13 +91,12 @@
                     borderClass="rounded-lg border-2 border-amber-800"
                     enabledColor="text-amber-300"
                     disabledColor="text-amber-900"
-                    height="h-[56px]"
                 />
             </div>
 
             <DefaultTabs
-                activeTabClass="py-1 px-3 bg-amber-800 border-2 border-transparent rounded-lg text-amber-100 text-sm"
-                inactiveTabClass="text-amber-400 py-1 px-3 rounded-lg border-2 border-transparent hover:border-amber-700 text-sm"
+                activeTabClass="h-[44px] flex items-center justify-center px-3 bg-amber-800 border-2 border-transparent rounded-lg text-amber-100 text-sm"
+                inactiveTabClass="h-[44px] flex items-center justify-center text-amber-400 px-3 rounded-lg border-2 border-transparent hover:border-amber-700 text-sm"
             >
                 {#snippet playersPanel()}
                     {#if isEndOfGame}
@@ -145,63 +125,92 @@
         {/snippet}
 
         {#snippet gameContent()}
-            <div bind:clientHeight={gameAreaHeight} class="h-full flex flex-col gap-1">
-            <div bind:clientHeight={toolbarAreaHeight} style={boardPxW ? `max-width: ${boardPxW}px` : ''}>
+            <!-- Top part is not allowed to shrink -->
+            <div class="shrink-0">
                 <ActionToolbar />
+                <LastActionBanner />
             </div>
-            <!-- Board fills available width; fields shown below during bidding and tile selection -->
-            <Board bind:cellPxW bind:cellPxH bind:boardPxW maxHeight={boardMaxHeight} />
-            {#if displayTiles.length > 0}
-                <div bind:clientHeight={tilesAreaHeight} class="px-3 pt-2 space-y-1.5" style={boardPxW ? `max-width: ${boardPxW}px` : ''}>
-                    <div class="flex items-center justify-between">
-                        <p class="text-xs text-amber-400 uppercase tracking-wide">
-                            {isBidding ? 'Fields up for auction' : isNeutralPlacementMode ? 'Neutral plantation' : 'Choose a field'}
-                        </p>
-                        <span class="text-xs text-amber-400">{state.tileBag.length} tiles remaining</span>
+            <!-- Bottom part fills the remaining space, but hides overflow to keep its height fixed.
+              This allows the wrapper to scale to its bounds regardless of its content size -->
+            <div class="grow-0 overflow-hidden" style="flex:1;">
+                <ScalingWrapper justify="center" controls="bottom-right">
+                    <div class="w-fit">
+                        <!-- ScalingWrapper (a shared library component) clips to its own
+                             measured content box — CSS overflow:visible on anything inside
+                             Board isn't enough, since that box is sized to the board's tight
+                             bounds. This padding reserves genuine layout space around the
+                             board so labels that poke out past its edges still fall inside
+                             the box ScalingWrapper actually measures and doesn't clip. -->
+                        <div class="pl-8 pr-8 pt-4">
+                            <div class="flex items-start gap-4">
+                                {#if displayTiles.length > 0}
+                                    <!-- Revealed tiles (auction, selection, or neutral placement,
+                                         whichever phase we're in) — a vertical strip to the
+                                         board's left, top-aligned with it, for the whole round.
+                                         No label: position and the toolbar's own phase hint
+                                         already make it obvious what these are. mt-5 nudges the
+                                         whole strip down slightly — the selected tile's glow
+                                         (tile-selected-glow, a box-shadow with 12px blur + 5px
+                                         spread) needs clearance above it when it's the top tile,
+                                         otherwise it clips against ScalingWrapper's measured
+                                         content box. Board is taller than this column, so this
+                                         borrows from its already-reserved height rather than
+                                         growing the row (which would re-break the board's
+                                         top-edge alignment with the player panel). -->
+                                    <div class="flex flex-col gap-2 shrink-0 mt-5">
+                                        {#each displayTiles as { tile, isSelected }, i}
+                                            {#if isSelected}
+                                                <div class="rounded-md overflow-hidden tile-selected-glow shrink-0"
+                                                     style="width:{CELL_W}px; height:{CELL_H}px">
+                                                    <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
+                                                         alt={tile.crop}
+                                                         class="w-full h-full object-cover" />
+                                                </div>
+                                            {:else if isMyPlantTurn}
+                                                <button
+                                                    onclick={() => session.selectTile(i)}
+                                                    class="rounded-md overflow-hidden transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                                                    style="width:{CELL_W}px; height:{CELL_H}px"
+                                                >
+                                                    <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
+                                                         alt={tile.crop}
+                                                         class="w-full h-full object-cover"
+                                                         style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
+                                                </button>
+                                            {:else if isNeutralPlacementMode}
+                                                <div class="relative rounded-md overflow-hidden ring-2 ring-purple-400/70 shrink-0"
+                                                     style="width:{CELL_W}px; height:{CELL_H}px">
+                                                    <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
+                                                         alt={tile.crop}
+                                                         class="w-full h-full object-cover"
+                                                         style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5)) grayscale(30%)" />
+                                                    <div class="absolute bottom-0 inset-x-0 text-center bg-gray-800/70 text-[8px] text-gray-200 leading-tight py-px">neutral</div>
+                                                </div>
+                                            {:else}
+                                                <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
+                                                     alt={tile.crop}
+                                                     class="rounded-md object-cover"
+                                                     style="width:{CELL_W}px; height:{CELL_H}px; filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
+                                            {/if}
+                                        {/each}
+                                        {#if state.tileBag.length > 0}
+                                            <div class="relative rounded-md overflow-hidden" style="width:{CELL_W}px; height:{CELL_H}px">
+                                                <img src="/desert.png" alt="tiles remaining"
+                                                     class="w-full h-full object-cover"
+                                                     style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
+                                                <span class="absolute inset-0 flex items-center justify-center text-white font-black text-lg"
+                                                      style="text-shadow: 0 1px 3px rgba(0,0,0,0.9)">
+                                                    {state.tileBag.length}
+                                                </span>
+                                            </div>
+                                        {/if}
+                                    </div>
+                                {/if}
+                                <Board />
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex flex-wrap gap-2">
-                        {#each displayTiles as { tile, isSelected }, i}
-                            {#if isSelected}
-                                <div class="rounded-md overflow-hidden tile-selected-glow shrink-0"
-                                     style="width:{cellPxW || 48}px; height:{cellPxH || 48}px">
-                                    <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
-                                         alt={tile.crop}
-                                         class="w-full h-full object-cover" />
-                                </div>
-                            {:else if isMySelectTurn || isMyPlaceTurn}
-                                <button
-                                    onclick={() => {
-                                        const revIdx = selectedTileIndex >= 0 && i > selectedTileIndex ? i - 1 : i
-                                        selectedTileIndex = i
-                                        session.selectTile(revIdx)
-                                    }}
-                                    class="rounded-md overflow-hidden transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                                    style="width:{cellPxW || 48}px; height:{cellPxH || 48}px"
-                                >
-                                    <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
-                                         alt={tile.crop}
-                                         class="w-full h-full object-cover"
-                                         style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
-                                </button>
-                            {:else if isNeutralPlacementMode}
-                                <div class="relative rounded-md overflow-hidden ring-2 ring-purple-400/70 shrink-0"
-                                     style="width:{cellPxW || 48}px; height:{cellPxH || 48}px">
-                                    <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
-                                         alt={tile.crop}
-                                         class="w-full h-full object-cover"
-                                         style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5)) grayscale(30%)" />
-                                    <div class="absolute bottom-0 inset-x-0 text-center bg-gray-800/70 text-[8px] text-gray-200 leading-tight py-px">neutral</div>
-                                </div>
-                            {:else}
-                                <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
-                                     alt={tile.crop}
-                                     class="rounded-md object-cover"
-                                     style="width:{cellPxW || 48}px; height:{cellPxH || 48}px; filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
-                            {/if}
-                        {/each}
-                    </div>
-                </div>
-            {/if}
+                </ScalingWrapper>
             </div>
         {/snippet}
     </DefaultTableLayout>

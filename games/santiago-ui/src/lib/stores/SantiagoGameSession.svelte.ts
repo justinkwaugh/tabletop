@@ -3,8 +3,8 @@ import {
     ActionType,
     MachineState,
     HydratedSantiagoGameState,
+    PlaceSpring,
     PlaceBid,
-    SelectTile,
     PlaceField,
     PlaceNeutralTile,
     BuildCanal,
@@ -17,12 +17,12 @@ import {
     type SantiagoGameState,
     type CanalSegment,
     type CropType,
-    isSameSegment,
     isValidFieldPlacement,
     isIrrigated,
     connectedSpringIntersections,
     validCanalPlacements,
-    validNeutralTilePlacements
+    validNeutralTilePlacements,
+    validSpringPlacements
 } from '@tabletop/santiago'
 import { type GameAction } from '@tabletop/common'
 
@@ -31,9 +31,9 @@ export class SantiagoGameSession extends GameSession<
     HydratedSantiagoGameState
 > {
     chosenAction: string | undefined = $state(undefined)
-    selectedSegment: CanalSegment | undefined = $state(undefined)
     bidValue: number = $state(0)
     proposalAmount: number = $state(1)
+    selectedTileIndex: number = $state(-1)
 
     override async onGameStateChange({
         to: _to,
@@ -47,14 +47,14 @@ export class SantiagoGameSession extends GameSession<
         animationContext: AnimationContext
     }) {
         this.chosenAction = undefined
-        this.selectedSegment = undefined
         this.bidValue = 0
         this.proposalAmount = 1
+        this.selectedTileIndex = -1
     }
 
     override willUndo(_action: GameAction) {
-        this.selectedSegment = undefined
         this.proposalAmount = 1
+        this.selectedTileIndex = -1
     }
 
     get mySantiagoPlayer() {
@@ -77,6 +77,21 @@ export class SantiagoGameSession extends GameSession<
         return this.bidValue > 0 && this.takenBids.includes(this.bidValue)
     }
 
+    // True when the local player is the first player and must place the spring
+    // (one-time setup step, only reached when the game isn't randomizing the spring).
+    get isSpringPlacementTurn(): boolean {
+        return (
+            this.gameState.machineState === MachineState.SpringPlacement &&
+            this.myPlayer?.id === this.gameState.seatOrder[0]
+        )
+    }
+
+    // Valid spring locations (all intersections except the four corners). Set of "col,row" keys.
+    get validSpringSpots(): Set<string> {
+        if (this.gameState.machineState !== MachineState.SpringPlacement) return new Set()
+        return new Set(validSpringPlacements().map((p) => `${p.col},${p.row}`))
+    }
+
     // True when the local player is the highest bidder who must place the neutral tile (3-player only).
     get isNeutralPlacementTurn(): boolean {
         const state = this.gameState
@@ -94,11 +109,11 @@ export class SantiagoGameSession extends GameSession<
         )
     }
 
-    // Valid placements for the current player's planting tile.
+    // Valid placements for the current player's selected planting tile.
     // Map key is "col,row"; value is true if the square is irrigated.
     get validFieldPlacements(): Map<string, boolean> {
         const state = this.gameState
-        const tile = state.currentPlantingTile
+        const tile = this.selectedTileIndex >= 0 ? state.revealedTiles[this.selectedTileIndex] : undefined
         const myId = this.myPlayer?.id
         if (!tile || !myId) return new Map()
         if (state.machineState !== MachineState.PlantingPhase) return new Map()
@@ -131,7 +146,9 @@ export class SantiagoGameSession extends GameSession<
     }
 
     get currentPlantingCrop(): CropType | undefined {
-        return this.gameState.currentPlantingTile?.crop
+        return this.selectedTileIndex >= 0
+            ? this.gameState.revealedTiles[this.selectedTileIndex]?.crop
+            : undefined
     }
 
     setBidValue(v: number) {
@@ -180,16 +197,17 @@ export class SantiagoGameSession extends GameSession<
         return state.canalProposalIndex >= state.canalProposalOrder.length
     }
 
-    selectSegment(seg: CanalSegment) {
-        if (this.selectedSegment && isSameSegment(this.selectedSegment, seg)) {
-            this.selectedSegment = undefined
-        } else {
-            this.selectedSegment = seg
+    // Dispatches a board click on a canal segment to the right action for the current phase.
+    // (Overseer decisions go through acceptProposal/rejectAndBuild directly from their labels.)
+    async clickSegment(seg: CanalSegment) {
+        const state = this.gameState
+        if (state.machineState === MachineState.CanalBuilding && !this.isOverseerDecisionPhase) {
+            await this.proposeCanal(seg)
+            return
         }
-    }
-
-    isSegmentSelected(seg: CanalSegment): boolean {
-        return !!this.selectedSegment && isSameSegment(this.selectedSegment, seg)
+        if (state.machineState === MachineState.ExtraIrrigation) {
+            await this.usePersonalCanal(seg)
+        }
     }
 
     nameForActionType(actionType: string): string {
@@ -207,9 +225,13 @@ export class SantiagoGameSession extends GameSession<
         }
     }
 
-    async selectTile(tileIndex: number) {
-        const action = this.createPlayerAction(SelectTile, { tileIndex })
+    async placeSpring(col: number, row: number) {
+        const action = this.createPlayerAction(PlaceSpring, { col, row })
         await this.applyAction(action)
+    }
+
+    selectTile(tileIndex: number) {
+        this.selectedTileIndex = tileIndex
     }
 
     async placeBid() {
@@ -220,16 +242,11 @@ export class SantiagoGameSession extends GameSession<
     async placeField(col: number, row: number) {
         const action = this.createPlaceFieldAction(col, row)
         await this.applyAction(action)
+        this.selectedTileIndex = -1
     }
 
     async placeNeutralField(col: number, row: number) {
         const action = this.createPlayerAction(PlaceNeutralTile, { col, row })
-        await this.applyAction(action)
-    }
-
-    async buildCanal() {
-        if (!this.selectedSegment) return
-        const action = this.createBuildCanalAction(this.selectedSegment)
         await this.applyAction(action)
     }
 
@@ -238,10 +255,9 @@ export class SantiagoGameSession extends GameSession<
         await this.applyAction(action)
     }
 
-    async proposeCanal() {
-        if (!this.selectedSegment) return
+    async proposeCanal(segment: CanalSegment) {
         const action = this.createPlayerAction(ProposeCanal, {
-            segment: this.selectedSegment,
+            segment,
             amount: this.proposalAmount
         })
         await this.applyAction(action)
@@ -260,18 +276,16 @@ export class SantiagoGameSession extends GameSession<
         await this.applyAction(action)
     }
 
-    async rejectAndBuild() {
-        if (!this.selectedSegment) return
+    async rejectAndBuild(segment: CanalSegment) {
         const action = this.createPlayerAction(OverseerDecision, {
-            segment: this.selectedSegment,
+            segment,
             accepting: false
         })
         await this.applyAction(action)
     }
 
-    async usePersonalCanal() {
-        if (!this.selectedSegment) return
-        const action = this.createBuildCanalAction(this.selectedSegment)
+    async usePersonalCanal(segment: CanalSegment) {
+        const action = this.createBuildCanalAction(segment)
         await this.applyAction(action)
     }
 
@@ -280,7 +294,7 @@ export class SantiagoGameSession extends GameSession<
     }
 
     createPlaceFieldAction(col: number, row: number): PlaceField {
-        return this.createPlayerAction(PlaceField, { col, row })
+        return this.createPlayerAction(PlaceField, { tileIndex: this.selectedTileIndex, col, row })
     }
 
     createBuildCanalAction(segment: CanalSegment): BuildCanal {

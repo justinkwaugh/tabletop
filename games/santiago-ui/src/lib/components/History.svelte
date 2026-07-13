@@ -6,7 +6,7 @@
     import { quartIn } from 'svelte/easing'
     import { PlayerName } from '@tabletop/frontend-components'
     import { ActionSource, type GameAction } from '@tabletop/common'
-    import { isEndRoundEvent, isSelectTile } from '@tabletop/santiago'
+    import { isEndRoundEvent } from '@tabletop/santiago'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
 
@@ -15,7 +15,6 @@
 
     const reversedActions = $derived.by(() =>
         session.actions
-            .filter((a: GameAction) => !isSelectTile(a))
             .filter((a: GameAction) => a.source !== ActionSource.System || isEndRoundEvent(a))
             .filter((a: GameAction) => !!a.playerId || isEndRoundEvent(a))
             .toReversed()
@@ -45,10 +44,13 @@
                         {#if action.playerId}
                             <PlayerName playerId={action.playerId} />
                         {/if}
-                        {getDescriptionForAction(action, {
-                            allActions: session.actions,
-                            playerName: (id) => session.game?.players.find(p => p.id === id)?.name ?? id
-                        })}
+                        {#each getDescriptionForAction(action, { allActions: session.actions }) as part}
+                            {#if typeof part === 'string'}
+                                {part}
+                            {:else}
+                                <PlayerName playerId={part.playerId} />
+                            {/if}
+                        {/each}
                     </p>
                 </TimelineItem>
             </div>

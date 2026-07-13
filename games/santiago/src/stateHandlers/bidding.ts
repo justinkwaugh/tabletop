@@ -63,7 +63,6 @@ export class BiddingStateHandler
 
         state.round++
         state.planterIndex = 0
-        state.currentPlantingTile = undefined
         state.canalOverseerId = undefined
         state.extraIrrigationPassed = []
         state.extraIrrigationOrder = []
@@ -109,7 +108,9 @@ export class BiddingStateHandler
         const state = context.gameState
         if (!action.playerId) throw new Error('PlaceBid requires a playerId')
 
-        state.getPlayerState(action.playerId).placeBid(action.amount)
+        const bidder = state.getPlayerState(action.playerId)
+        bidder.placeBid(action.amount)
+        bidder.pay(action.amount)
         state.currentBidderIndex++
 
         if (state.currentBidderIndex < state.biddingOrder.length) {
@@ -123,11 +124,7 @@ export class BiddingStateHandler
     }
 
     private resolveBids(state: HydratedSantiagoGameState) {
-        const turnOrder = state.turnManager.turnOrder
-
-        for (const player of state.players) {
-            player.pay(player.bid ?? 0)
-        }
+        // Payment already happened per-bid in onAction(), as each player bid.
 
         // Planting order: descending bid; among ties at zero, last to bid in this round's
         // bidding order picks first (biddingOrder index descending).

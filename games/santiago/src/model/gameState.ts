@@ -30,8 +30,6 @@ export const SantiagoGameState = Type.Evaluate(
             board: SantiagoBoard,
             // Shuffled bag of planting tiles; draw from front
             tileBag: Type.Array(PlantingTile),
-            // The tile drawn at the start of the current player's planting turn
-            currentPlantingTile: Type.Optional(PlantingTile),
             // Current round number (1-based)
             round: Type.Number({ default: 0 }),
             // Player IDs in the order they will plant this round
@@ -86,7 +84,6 @@ export class HydratedSantiagoGameState
     declare winningPlayerIds: string[]
     declare board: SantiagoBoard
     declare tileBag: PlantingTile[]
-    declare currentPlantingTile?: PlantingTile
     declare round: number
     declare plantersOrder: string[]
     declare planterIndex: number

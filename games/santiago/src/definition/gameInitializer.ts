@@ -4,15 +4,17 @@ import {
     Prng,
     type RandomFunction,
     type UninitializedGameState,
-    shuffle
+    shuffle,
+    pickRandom
 } from '@tabletop/common'
 import { Game, Player, HydratedTurnManager } from '@tabletop/common'
 import { SantiagoGameState, HydratedSantiagoGameState } from '../model/gameState.js'
 import { HydratedSantiagoPlayerState } from '../model/playerState.js'
-import { SantiagoBoard, CropType, PlantingTile, SquareType, EmptySquare } from '../model/board.js'
+import { SantiagoBoard, CropType, PlantingTile, SquareType, EmptySquare, Intersection } from '../model/board.js'
 import { MachineState } from './states.js'
 import { SantiagoColors } from './colors.js'
 import { SantiagoGameConfig } from './gameConfig.js'
+import { validSpringPlacements } from '../util/placement.js'
 
 function buildTileBag(): PlantingTile[] {
     const bag: PlantingTile[] = []
@@ -24,8 +26,7 @@ function buildTileBag(): PlantingTile[] {
 }
 
 function buildBoard(
-    springCol: number,
-    springRow: number,
+    spring: Intersection,
     palmTrees: boolean,
     random: RandomFunction
 ): SantiagoBoard {
@@ -51,7 +52,7 @@ function buildBoard(
 
     return {
         squares,
-        spring: { col: springCol, row: springRow },
+        spring,
         canals: []
     }
 }
@@ -70,8 +71,14 @@ export class SantiagoGameInitializer
         const prng = new Prng(state.prng)
         const config = (game.config ?? {}) as SantiagoGameConfig
 
-        const springCol = config.springCol ?? 2
-        const springRow = config.springRow ?? 1
+        // Randomized: pick the spring now (excluding corners) and start play directly in
+        // Bidding, as before. Manual: start in SpringPlacement instead — the first player
+        // (seatOrder[0], computed below) places it there, and this placeholder value is
+        // overwritten before Bidding ever begins.
+        const randomizeSpring = config.randomizeSpring !== false
+        const spring: Intersection = randomizeSpring
+            ? pickRandom(validSpringPlacements(), prng.random)
+            : { col: 2, row: 1 }
 
         const tileBag = buildTileBag()
         shuffle(tileBag, prng.random)
@@ -115,8 +122,8 @@ export class SantiagoGameInitializer
         const santiagoState: SantiagoGameState = Object.assign(state, {
             players,
             turnManager,
-            machineState: MachineState.Bidding,
-            board: buildBoard(springCol, springRow, usePalmTrees, prng.random),
+            machineState: randomizeSpring ? MachineState.Bidding : MachineState.SpringPlacement,
+            board: buildBoard(spring, usePalmTrees, prng.random),
             tileBag,
             round: 0,
             plantersOrder: [],

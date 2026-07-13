@@ -1,5 +1,5 @@
+import { PlaceSpring } from '../actions/placeSpring.js'
 import { PlaceBid } from '../actions/placeBid.js'
-import { SelectTile } from '../actions/selectTile.js'
 import { PlaceField } from '../actions/placeField.js'
 import { PlaceNeutralTile } from '../actions/placeNeutralTile.js'
 import { BuildCanal } from '../actions/buildCanal.js'
@@ -10,8 +10,8 @@ import { EndRoundEvent } from '../actions/endRoundEvent.js'
 import { ActionType } from './actions.js'
 
 export const SantiagoApiActions = {
+    [ActionType.PlaceSpring]: PlaceSpring,
     [ActionType.PlaceBid]: PlaceBid,
-    [ActionType.SelectTile]: SelectTile,
     [ActionType.PlaceField]: PlaceField,
     [ActionType.PlaceNeutralTile]: PlaceNeutralTile,
     [ActionType.BuildCanal]: BuildCanal,

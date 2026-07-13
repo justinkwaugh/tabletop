@@ -19,6 +19,18 @@ export function isPlaceableSegment(board: SantiagoBoard, segment: CanalSegment):
     return !isCanalPlaced(board, segment) && isConnectedToSpring(board, segment)
 }
 
+// Valid spring locations at game start: any intersection except the four corners.
+export function validSpringPlacements(): { col: number; row: number }[] {
+    const spots: { col: number; row: number }[] = []
+    for (let col = 0; col <= 4; col++) {
+        for (let row = 0; row <= 3; row++) {
+            const isCorner = (col === 0 || col === 4) && (row === 0 || row === 3)
+            if (!isCorner) spots.push({ col, row })
+        }
+    }
+    return spots
+}
+
 // Returns valid squares for the neutral tile in 3-player games.
 // Rule: must be adjacent to any existing field or desert. Falls back to any empty square
 // if no fields have been placed yet (first round, round 1 edge case).
