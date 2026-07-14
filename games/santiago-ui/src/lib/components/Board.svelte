@@ -61,10 +61,6 @@
     }
 
     function handleSegmentClick(seg: CanalSegment) {
-        if (isOverseerDeciding) {
-            // Overseer decisions happen via the bribe / reject-and-build labels, not the raw line.
-            return
-        }
         session.clickSegment(seg)
     }
 
@@ -487,7 +483,7 @@
                       opacity="0.9" />
                 <text x={cx} y={cy} text-anchor="middle" dominant-baseline="middle"
                       fill="white" font-size="16" font-weight="bold" style="font-family:sans-serif">
-                    -{session.rejectPenalty}
+                    {session.rejectPenalty > 0 ? `-${session.rejectPenalty}` : '0'}
                 </text>
             </g>
         {/each}

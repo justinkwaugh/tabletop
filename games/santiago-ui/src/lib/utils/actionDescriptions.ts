@@ -91,8 +91,8 @@ export function getDescriptionForAction(action: GameAction, ctx?: ActionDescript
             return ['accepted a canal bribe']
         } else {
             if (ctx?.allActions) {
-                const proposals = getProposalsForDecision(a, ctx.allActions)
-                if (proposals.length === 0) return ['was offered no bribes and built a canal']
+                const anyProposals = getAllProposalsThisRound(a, ctx.allActions)
+                if (anyProposals.length === 0) return ['was offered no bribes and built a canal']
             }
             return ['rejected all bribes and built a canal']
         }
@@ -107,15 +107,36 @@ export function getDescriptionForAction(action: GameAction, ctx?: ActionDescript
     }
     if (isEndRoundEvent(action)) {
         const e = action as any
-        const parts: string[] = [`End of round ${e.round}`]
+        const segments: DescriptionPart[][] = [[`End of round ${e.round}`]]
         if (e.escudosEarned > 0) {
-            parts.push(`everyone collected ${e.escudosEarned} escudos`)
+            segments.push([`everyone collected ${e.escudosEarned} escudos`])
         }
         if (e.driedSquares?.length > 0) {
             const fieldList = e.driedSquares.map((s: any) => s.crop).join(', ')
-            parts.push(`drought: ${fieldList} dried out`)
+            segments.push([`drought: ${fieldList} dried out`])
         }
-        return [parts.join(' — ')]
+        if (e.farmerLosses?.length > 0) {
+            const cropsByPlayer = new Map<string, string[]>()
+            for (const loss of e.farmerLosses) {
+                if (!cropsByPlayer.has(loss.playerId)) cropsByPlayer.set(loss.playerId, [])
+                cropsByPlayer.get(loss.playerId)!.push(loss.crop)
+            }
+            const farmerParts: DescriptionPart[] = ['lost a farmer: ']
+            let first = true
+            for (const [playerId, crops] of cropsByPlayer) {
+                if (!first) farmerParts.push(', ')
+                first = false
+                farmerParts.push({ playerId })
+                farmerParts.push(` (${crops.join(', ')})`)
+            }
+            segments.push(farmerParts)
+        }
+        const result: DescriptionPart[] = []
+        segments.forEach((seg, i) => {
+            if (i > 0) result.push(' — ')
+            result.push(...seg)
+        })
+        return result
     }
     return [action.type]
 }
@@ -133,6 +154,23 @@ function getPassPhase(action: GameAction, allActions: GameAction[]): 'canalBuild
         (a.createdAt?.getTime() ?? 0) < passTime
     )
     return overseerDecidedBeforePass ? 'extraIrrigation' : 'canalBuilding'
+}
+
+function getAllProposalsThisRound(decision: any, allActions: GameAction[]): ProposeCanal[] {
+    const decisionTime = decision.createdAt?.getTime() ?? 0
+
+    // Only look at proposals from the same canal-building phase (after the last round end)
+    const lastRoundEndTime = allActions
+        .filter(a => isEndRoundEvent(a))
+        .map(a => a.createdAt?.getTime() ?? 0)
+        .filter(t => t < decisionTime)
+        .reduce((max, t) => Math.max(max, t), 0)
+
+    return allActions.filter(a =>
+        isProposeCanal(a) &&
+        (a.createdAt?.getTime() ?? 0) > lastRoundEndTime &&
+        (a.createdAt?.getTime() ?? 0) < decisionTime
+    ) as ProposeCanal[]
 }
 
 function getProposalsForDecision(decision: any, allActions: GameAction[]): ProposeCanal[] {

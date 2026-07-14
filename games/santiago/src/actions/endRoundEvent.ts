@@ -11,6 +11,14 @@ export const DriedSquareInfo = Type.Object({
     crop: Type.String()
 })
 
+export type FarmerLossInfo = Type.Static<typeof FarmerLossInfo>
+export const FarmerLossInfo = Type.Object({
+    col: Type.Number(),
+    row: Type.Number(),
+    crop: Type.String(),
+    playerId: Type.String()
+})
+
 export type EndRoundEvent = Type.Static<typeof EndRoundEvent>
 export const EndRoundEvent = Type.Evaluate(
     Type.Intersect([
@@ -19,6 +27,7 @@ export const EndRoundEvent = Type.Evaluate(
             type: Type.Literal(ActionType.EndRoundEvent),
             round: Type.Number(),
             driedSquares: Type.Array(DriedSquareInfo),
+            farmerLosses: Type.Array(FarmerLossInfo),
             escudosEarned: Type.Number()
         })
     ])
@@ -37,6 +46,7 @@ export class HydratedEndRoundEvent
     declare type: ActionType.EndRoundEvent
     declare round: number
     declare driedSquares: DriedSquareInfo[]
+    declare farmerLosses: FarmerLossInfo[]
     declare escudosEarned: number
 
     constructor(data: EndRoundEvent) {

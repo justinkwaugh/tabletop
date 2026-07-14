@@ -4,11 +4,11 @@
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { PlayerName } from '@tabletop/frontend-components'
     import { ActionSource, type GameAction } from '@tabletop/common'
     import { isEndRoundEvent } from '@tabletop/santiago'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
+    import PlayerNameChip from './PlayerNameChip.svelte'
 
     const timeAgo = new TimeAgo('en-US')
     const session = getGameSession()
@@ -42,13 +42,13 @@
                 <TimelineItem title="" class="mb-4" date={action.createdAt ? timeAgo.format(action.createdAt) : ''}>
                     <p class="text-sm text-gray-200">
                         {#if action.playerId}
-                            <PlayerName playerId={action.playerId} />
+                            <PlayerNameChip playerId={action.playerId} />
                         {/if}
                         {#each getDescriptionForAction(action, { allActions: session.actions }) as part}
                             {#if typeof part === 'string'}
                                 {part}
                             {:else}
-                                <PlayerName playerId={part.playerId} />
+                                <PlayerNameChip playerId={part.playerId} />
                             {/if}
                         {/each}
                     </p>

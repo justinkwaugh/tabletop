@@ -20,6 +20,7 @@
     import History from './History.svelte'
     import { fieldImageUrl } from '$lib/utils/cropImages.js'
     import { CELL_W, CELL_H } from '$lib/utils/boardGeometry.js'
+    import { useBoardCenterX } from '$lib/utils/boardCenter.svelte.js'
 
     let {
         gameSession
@@ -63,6 +64,14 @@
 
     const playerName = (id: string) =>
         session.game?.players.find((p) => p.id === id)?.name ?? id
+
+    // Tracks the board's live horizontal center (relative to the bar above it) so that
+    // bar's contents can be centered over just the board rather than over the board +
+    // the tile strip beside it. Board.svelte doesn't expose a bindable root element, so
+    // this wraps it in a plain div below and measures via getBoundingClientRect.
+    let boardEl: HTMLDivElement | undefined
+    let topBarEl: HTMLDivElement | undefined
+    const boardCenter = useBoardCenterX(() => boardEl, () => topBarEl)
 </script>
 
 <style>
@@ -126,9 +135,9 @@
 
         {#snippet gameContent()}
             <!-- Top part is not allowed to shrink -->
-            <div class="shrink-0">
-                <ActionToolbar />
-                <LastActionBanner />
+            <div class="shrink-0" bind:this={topBarEl}>
+                <ActionToolbar boardCenterX={boardCenter.value} />
+                <LastActionBanner boardCenterX={boardCenter.value} />
             </div>
             <!-- Bottom part fills the remaining space, but hides overflow to keep its height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size -->
@@ -206,7 +215,9 @@
                                         {/if}
                                     </div>
                                 {/if}
-                                <Board />
+                                <div bind:this={boardEl}>
+                                    <Board />
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -13,6 +13,7 @@ import {
     OverseerDecision,
     isProposeCanal,
     isOverseerDecision,
+    isSameSegment,
     type CanalProposal,
     type SantiagoGameState,
     type CanalSegment,
@@ -201,7 +202,16 @@ export class SantiagoGameSession extends GameSession<
     // (Overseer decisions go through acceptProposal/rejectAndBuild directly from their labels.)
     async clickSegment(seg: CanalSegment) {
         const state = this.gameState
-        if (state.machineState === MachineState.CanalBuilding && !this.isOverseerDecisionPhase) {
+        if (state.machineState === MachineState.CanalBuilding) {
+            if (this.isOverseerDecisionPhase) {
+                const hasBribe = this.canalProposals.some((p) => isSameSegment(p.segment, seg))
+                if (hasBribe) {
+                    await this.acceptProposal(seg)
+                } else {
+                    await this.rejectAndBuild(seg)
+                }
+                return
+            }
             await this.proposeCanal(seg)
             return
         }

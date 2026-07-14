@@ -145,15 +145,36 @@ export class ExtraIrrigationStateHandler
         return result
     }
 
+    // Fields with farmers that will lose exactly one farmer this round (but not fully dry out —
+    // that's computeDriedSquares' job, for fields already at 0 farmers or the final round).
+    private computeFarmerLosses(state: HydratedSantiagoGameState, isLastRound: boolean): Array<{col: number, row: number, crop: string, playerId: string}> {
+        const result: Array<{col: number, row: number, crop: string, playerId: string}> = []
+        if (isLastRound) return result
+        const connected = connectedSpringIntersections(state.board)
+        for (let col = 0; col < 8; col++) {
+            for (let row = 0; row < 6; row++) {
+                const sq = state.board.squares[col][row]
+                if (!isFieldSquare(sq) || sq.dried) continue
+                if (isIrrigated(state.board, col, row, connected)) continue
+                if (sq.farmerCount > 0) {
+                    result.push({ col, row, crop: sq.crop, playerId: sq.playerId })
+                }
+            }
+        }
+        return result
+    }
+
     // Queue the EndRoundEvent (carrying drought/escudo info for the history), then
     // return a self-transition so ExtraIrrigation processes it and does the real transition.
     // Drought and escudo collection happen in onAction(EndRoundEvent) above.
     private endPhase(state: HydratedSantiagoGameState, context: MachineContext<HydratedSantiagoGameState>): MachineState {
         const isLastRound = state.isBagEmpty()
         const driedSquares = this.computeDriedSquares(state, isLastRound)
+        const farmerLosses = this.computeFarmerLosses(state, isLastRound)
         context.addSystemAction(EndRoundEvent, {
             round: state.round,
             driedSquares,
+            farmerLosses,
             escudosEarned: isLastRound ? 0 : 3
         })
         return MachineState.ExtraIrrigation
