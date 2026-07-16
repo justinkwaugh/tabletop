@@ -568,7 +568,17 @@
             </g>
         {/each}
 
-        <!-- Proposed canals — labels only; dashed lines come from the validSegments layer unchanged -->
+        <!-- Proposed canals — labels only; dashed lines come from the validSegments layer unchanged. -->
+        {#snippet bribeLabel(cx: number, cy: number, fill: string, textColor: string, amount: number, extraStyle: string)}
+            <rect x={cx - 20} y={cy - 14} width="40" height="28" rx="6"
+                  fill={fill}
+                  stroke="black" stroke-width="1"
+                  opacity="0.9"
+                  style={extraStyle} />
+            <text x={cx} y={cy} text-anchor="middle" dominant-baseline="middle"
+                  fill={textColor} font-size="16" font-weight="bold"
+                  style="font-family:sans-serif; {extraStyle}">{amount}</text>
+        {/snippet}
         {#each proposedSegments as ps}
             {@const c = segCoords(ps.segment)}
             {@const isH = ps.segment.orientation === 'H'}
@@ -587,16 +597,7 @@
                         {@const cy = isH ? c.y1 - 28 : my + (i - (n - 1) / 2) * 36}
                         {@const isYellow = isYellowPlayer(contrib.playerId)}
                         {@const popStyle = `transform-origin: ${cx}px ${cy}px; transform: scale(${hovered ? 1.15 : 1}); transition: transform 0.12s ease-out`}
-                        <rect x={cx - 20} y={cy - 14} width="40" height="28" rx="6"
-                              fill={contrib.color}
-                              stroke="black" stroke-width="1"
-                              opacity="0.9"
-                              style={popStyle} />
-                        <text x={cx} y={cy} text-anchor="middle" dominant-baseline="middle"
-                              fill={isYellow ? 'black' : 'white'} font-size="16" font-weight="bold"
-                              style="font-family:sans-serif; {popStyle}">
-                            {contrib.amount}
-                        </text>
+                        {@render bribeLabel(cx, cy, contrib.color, isYellow ? 'black' : 'white', contrib.amount, popStyle)}
                     {/each}
                 </g>
             {:else}
@@ -604,13 +605,7 @@
                     {@const cx = isH ? mx + (i - (n - 1) / 2) * 48 : c.x1 + 28}
                     {@const cy = isH ? c.y1 - 28 : my + (i - (n - 1) / 2) * 36}
                     {@const isYellow = isYellowPlayer(contrib.playerId)}
-                    <rect x={cx - 20} y={cy - 14} width="40" height="28" rx="6"
-                          fill={contrib.color} opacity="0.9"
-                          stroke="black" stroke-width="1" />
-                    <text x={cx} y={cy} text-anchor="middle" dominant-baseline="middle"
-                          fill={isYellow ? 'black' : 'white'} font-size="16" font-weight="bold" style="font-family:sans-serif">
-                        {contrib.amount}
-                    </text>
+                    {@render bribeLabel(cx, cy, contrib.color, isYellow ? 'black' : 'white', contrib.amount, '')}
                 {/each}
             {/if}
         {/each}
@@ -629,9 +624,9 @@
                onmouseenter={() => hoveredLabelKey = key}
                onmouseleave={() => hoveredLabelKey = null}>
                 <rect x={cx - 20} y={cy - 14} width="40" height="28" rx="6"
-                      fill="rgba(194,65,12,0.9)"
+                      fill="#666666"
                       stroke="black" stroke-width="1"
-                      opacity="0.9"
+                      opacity="0.7"
                       style={popStyle} />
                 <text x={cx} y={cy} text-anchor="middle" dominant-baseline="middle"
                       fill="white" font-size="16" font-weight="bold"

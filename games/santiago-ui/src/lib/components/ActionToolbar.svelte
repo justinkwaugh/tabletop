@@ -27,7 +27,7 @@
 </script>
 
 <!-- Status bar -->
-<div class="shrink-0 px-3 h-[44px] bg-transparent border-2 border-amber-800 rounded-lg flex items-center gap-2 text-base uppercase tracking-wider">
+<div class="font-ui shrink-0 px-3 h-[44px] bg-transparent border-2 border-amber-800 rounded-lg flex items-center gap-2 text-base uppercase tracking-wider">
     {#if ms === MachineState.EndOfGame}
         <span class="text-sm text-amber-300 uppercase tracking-wider">Game over</span>
     {:else if activePlayerId}

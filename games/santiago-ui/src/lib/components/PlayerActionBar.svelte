@@ -73,14 +73,14 @@
                 {#if isBiddingMyTurn}
                     <div class="flex flex-col gap-1 shrink-0">
                         <div class="flex items-center gap-2">
-                            <button class="shrink-0 w-[30px] h-[30px] rounded-full bg-white/10 hover:bg-white/20 font-bold text-[15px] text-white disabled:opacity-30"
+                            <button class="shrink-0 w-[40px] h-[40px] rounded-full bg-white/10 hover:bg-white/20 font-bold text-[20px] text-white disabled:opacity-30"
                                 onclick={() => session.setBidValue(session.bidValue - 1)} disabled={session.bidValue <= 0}>−</button>
-                            <span style="font-size: 1.0725em" class="inline-flex items-center shrink-0">
+                            <span style="font-size: 1.287em" class="inline-flex items-center shrink-0">
                                 <MoneyBadge amount={session.bidValue} />
                             </span>
-                            <button class="shrink-0 w-[30px] h-[30px] rounded-full bg-white/10 hover:bg-white/20 font-bold text-[15px] text-white disabled:opacity-30"
+                            <button class="shrink-0 w-[40px] h-[40px] rounded-full bg-white/10 hover:bg-white/20 font-bold text-[20px] text-white disabled:opacity-30"
                                 onclick={() => session.setBidValue(session.bidValue + 1)} disabled={session.bidValue >= session.maxBid}>+</button>
-                            <button class="shrink-0 whitespace-nowrap px-[13px] py-[5px] rounded-lg bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-[13px] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            <button class="shrink-0 whitespace-nowrap px-[15px] py-[6px] rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-[15px] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                 onclick={() => session.placeBid()} disabled={session.bidIsInvalid}>
                                 Place Bid
                             </button>
@@ -91,12 +91,12 @@
                              upturned tick at each outer end. This row is a plain flex-col
                              child (no items-center), so it stretches to the control row's
                              full width rather than just the caption's intrinsic width. -->
-                        <div class="flex items-center gap-1 text-gray-400">
+                        <div class="flex items-center gap-1 text-stone-400">
                             <div class="flex-1 relative">
                                 <div class="absolute inset-x-0 top-0 border-t border-current"></div>
                                 <div class="absolute left-0 -top-1.5 h-1.5 border-l border-current"></div>
                             </div>
-                            <span class="text-[10px] uppercase tracking-wide whitespace-nowrap shrink-0">Bid for player order</span>
+                            <span class="font-ui text-[10px] uppercase tracking-wide whitespace-nowrap shrink-0">Bid for player order</span>
                             <div class="flex-1 relative">
                                 <div class="absolute inset-x-0 top-0 border-t border-current"></div>
                                 <div class="absolute right-0 -top-1.5 h-1.5 border-r border-current"></div>
@@ -106,9 +106,9 @@
                 {/if}
                 {#if biddingRows.length > 0}
                     <div class="flex flex-col items-center gap-1">
-                        <div class="border border-gray-500/60 rounded-md px-2 py-1.5">
+                        <div class="paper-texture border border-stone-500/60 rounded-md px-2 py-1.5">
                             <div class="grid items-center gap-x-1.5 gap-y-1 shrink-0"
-                                 style="font-size: 0.965em; grid-template-columns: auto auto auto; justify-content: start">
+                                 style="font-size: 0.87em; grid-template-columns: auto auto auto; justify-content: start">
                                 {#each biddingRows as p (p.playerId)}
                                     <div class="flex items-center justify-self-end whitespace-nowrap">
                                         <PlayerNameChip playerId={p.playerId} />
@@ -128,14 +128,14 @@
                                 {/each}
                             </div>
                         </div>
-                        <span class="text-[10px] text-gray-400 uppercase tracking-wide whitespace-nowrap">Current bids</span>
+                        <span class="font-ui text-[10px] text-stone-400 uppercase tracking-wide whitespace-nowrap">Current bids</span>
                     </div>
                 {/if}
             </div>
 
         <!-- PLANTING: CHOOSE AND PLACE A FIELD -->
         {:else if isMyPlantTurn}
-            <span class="shrink-0 whitespace-nowrap font-semibold text-amber-300">Choose a field and plant it on the board</span>
+            <span class="shrink-0 whitespace-nowrap text-amber-300">Choose a field and plant it on the board</span>
 
         <!-- PLANTING: NEUTRAL TILE PLACEMENT (3-player highest bidder) -->
         {:else if isMyNeutralPlacementTurn}
@@ -147,24 +147,24 @@
                 {#if isCurrentProposer}
                     <div class="flex flex-col gap-1 shrink-0">
                         <div class="flex items-center gap-2">
-                            <button class="shrink-0 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 font-bold text-lg text-white disabled:opacity-30"
+                            <button class="shrink-0 w-[47px] h-[47px] rounded-full bg-white/10 hover:bg-white/20 font-bold text-[24px] text-white disabled:opacity-30"
                                 onclick={() => session.setProposalAmount(session.proposalAmount - 1)} disabled={session.proposalAmount <= 1}>−</button>
-                            <span style="font-size: 1.3em" class="inline-flex items-center shrink-0">
+                            <span style="font-size: 1.56em" class="inline-flex items-center shrink-0">
                                 <MoneyBadge amount={session.proposalAmount} />
                             </span>
-                            <button class="shrink-0 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 font-bold text-lg text-white disabled:opacity-30"
+                            <button class="shrink-0 w-[47px] h-[47px] rounded-full bg-white/10 hover:bg-white/20 font-bold text-[24px] text-white disabled:opacity-30"
                                 onclick={() => session.setProposalAmount(session.proposalAmount + 1)} disabled={session.proposalAmount >= (me?.money ?? 0)}>+</button>
                             <span class="shrink-0 whitespace-nowrap text-amber-300 font-semibold">or</span>
-                            <button class="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold transition-colors"
+                            <button class="shrink-0 whitespace-nowrap px-[14px] py-[7px] rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold text-[18px] transition-colors"
                                 onclick={() => session.passProposal()}>Pass</button>
                         </div>
                         <!-- Same bracket treatment as the bidding caption above. -->
-                        <div class="flex items-center gap-1 text-gray-400">
+                        <div class="flex items-center gap-1 text-stone-400">
                             <div class="flex-1 relative">
                                 <div class="absolute inset-x-0 top-0 border-t border-current"></div>
                                 <div class="absolute left-0 -top-1.5 h-1.5 border-l border-current"></div>
                             </div>
-                            <span class="text-[10px] uppercase tracking-wide whitespace-nowrap shrink-0">
+                            <span class="font-ui text-[10px] uppercase tracking-wide whitespace-nowrap shrink-0">
                                 Bribe <span class="tracking-normal"><PlayerNameChip playerId={overseerCandidateId} /></span> (the overseer)
                             </span>
                             <div class="flex-1 relative">
@@ -174,13 +174,19 @@
                         </div>
                     </div>
                 {:else if isOverseerDeciding}
-                    <span class="shrink-0 whitespace-nowrap text-amber-300">Click a bribe or canal on the board, or pay the bank</span>
+                    <span class="shrink-0 whitespace-nowrap text-amber-300">
+                        Click a bribe or canal on the board, or pay the bank
+                        <span class="ml-1 inline-flex items-center rounded px-1.5 py-0.5 text-white font-bold text-sm"
+                              style="background-color: rgba(102, 102, 102, 0.7)">
+                            {session.rejectPenalty > 0 ? `-${session.rejectPenalty}` : '0'}
+                        </span>
+                    </span>
                 {/if}
                 {#if bribeRows.length > 0}
                     <div class="flex flex-col items-center gap-1">
-                        <div class="border border-gray-500/60 rounded-md px-2 py-1.5">
+                        <div class="paper-texture border border-stone-500/60 rounded-md px-2 py-1.5">
                             <div class="grid items-center gap-x-1.5 gap-y-1 shrink-0"
-                                 style="font-size: 0.965em; grid-template-columns: auto auto; justify-content: start">
+                                 style="font-size: 0.87em; grid-template-columns: auto auto; justify-content: start">
                                 {#each bribeRows as p (p.playerId)}
                                     <div class="flex items-center justify-self-end whitespace-nowrap">
                                         <PlayerNameChip playerId={p.playerId} />
@@ -189,7 +195,7 @@
                                         {#if p.amount !== undefined}
                                             <MoneyBadge amount={p.amount} />
                                         {:else if p.hasActed}
-                                            <span class="text-[0.85em] text-gray-400 uppercase tracking-wide">Pass</span>
+                                            <span class="text-[0.85em] text-stone-400 uppercase tracking-wide">Pass</span>
                                         {:else}
                                             <MoneyBadge blank />
                                         {/if}
@@ -197,7 +203,7 @@
                                 {/each}
                             </div>
                         </div>
-                        <span class="text-[10px] text-gray-400 uppercase tracking-wide whitespace-nowrap">Current bribes</span>
+                        <span class="font-ui text-[10px] text-stone-400 uppercase tracking-wide whitespace-nowrap">Current bribes</span>
                     </div>
                 {/if}
             </div>

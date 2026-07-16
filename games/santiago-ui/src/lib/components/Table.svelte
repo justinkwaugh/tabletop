@@ -83,7 +83,7 @@
 }
 </style>
 
-<div class="bg-[#1c1410]" style="--chat-height-offset: 0px">
+<div class="earth-texture bg-[#1c1410]" style="--chat-height-offset: 0px">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls
@@ -108,11 +108,11 @@
             >
                 {#snippet playersPanel()}
                     {#if isEndOfGame}
-                        <div class="border-b border-gray-700/60 p-2">
+                        <div class="border-b border-stone-700/60 p-2">
                             <ActionPanel />
                         </div>
                     {:else if !isMyTurn}
-                        <div class="border-b border-gray-700/60 p-2">
+                        <div class="border-b border-stone-700/60 p-2">
                             <WaitingPanel />
                         </div>
                     {/if}
@@ -178,7 +178,7 @@
                                             {:else if isMyPlantTurn}
                                                 <button
                                                     onclick={() => session.selectTile(i)}
-                                                    class="rounded-md overflow-hidden transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                                                    class="rounded-md overflow-hidden transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-400"
                                                     style="width:{CELL_W}px; height:{CELL_H}px"
                                                 >
                                                     <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}

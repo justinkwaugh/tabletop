@@ -25,12 +25,12 @@
     )
 </script>
 
-<div class="rounded-lg border border-gray-700 bg-gray-900/80 p-3 min-w-52">
-    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">History</p>
+<div class="paper-texture rounded-lg border border-stone-700 bg-stone-900/80 p-3 min-w-52">
+    <p class="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-2">History</p>
     <Timeline class="ms-1 text-left">
         {#if session.game?.finishedAt}
             <TimelineItem title="" class="mb-4" date={timeAgo.format(session.game.finishedAt)}>
-                <p class="text-sm text-gray-200">The game ended.</p>
+                <p class="text-sm text-stone-200">The game ended.</p>
             </TimelineItem>
         {/if}
         {#each reversedActions as action (action.id)}
@@ -40,7 +40,7 @@
                 animate:flip={{ duration: 100 }}
             >
                 <TimelineItem title="" class="mb-4" date={action.createdAt ? timeAgo.format(action.createdAt) : ''}>
-                    <p class="text-sm text-gray-200">
+                    <p class="text-sm text-stone-200">
                         {#if action.playerId}
                             <PlayerNameChip playerId={action.playerId} />
                         {/if}
@@ -56,7 +56,7 @@
             </div>
         {/each}
         <TimelineItem title="" class="mb-4" date={session.game?.createdAt ? timeAgo.format(session.game.createdAt) : ''}>
-            <p class="text-sm text-gray-200">The game started.</p>
+            <p class="text-sm text-stone-200">The game started.</p>
         </TimelineItem>
     </Timeline>
 </div>

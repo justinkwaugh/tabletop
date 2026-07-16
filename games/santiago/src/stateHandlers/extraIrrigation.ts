@@ -79,17 +79,14 @@ export class ExtraIrrigationStateHandler
 
         const current = state.extraIrrigationOrder[state.extraIrrigationIndex]
         const player = state.getPlayerState(current)
+        state.activePlayerIds = [current]
 
-        // Auto-pass players who've already used their personal canal — never mark them
-        // active at all, so history scrubbing (which steps through persisted actions one at
-        // a time, unlike live play's single cascading engine run) doesn't land on a transient
-        // "their turn, but already used" state that's never actually shown during play.
+        // Auto-pass players who've already used their personal canal. activePlayerIds must
+        // be set above first — the engine's isPlayerAllowed check requires the acting player
+        // to be active even for this system-queued Pass, or the action is rejected.
         if (!player.hasPersonalCanal) {
             context.addSystemAction(Pass, { playerId: current })
-            return
         }
-
-        state.activePlayerIds = [current]
     }
 
     onAction(

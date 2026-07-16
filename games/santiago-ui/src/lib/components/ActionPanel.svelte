@@ -13,7 +13,7 @@
     )
 </script>
 
-<div class="bg-gray-900/90 rounded-xl p-4 text-white space-y-3 min-w-64">
+<div class="paper-texture bg-stone-900/90 rounded-xl p-4 text-white space-y-3 min-w-64">
     <p class="text-green-400 font-bold text-lg text-center">Final Scores</p>
     <ul class="space-y-1">
         {#each sortedPlayers as p, i}

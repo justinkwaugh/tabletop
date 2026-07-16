@@ -22,11 +22,12 @@
 
     const projectedOverseerId = $derived(session.projectedOverseerId)
 
-    // Once bidding resolves, plantersOrder is set for the rest of the round (planting,
-    // canal building, extra irrigation) — show the panels in that order, since it's more
-    // informative than turn-chasing once bids are no longer in play. This applies even in
-    // hotseat, unlike the active-player rotation below: it's a single reorder per round, not
-    // a disorienting reshuffle on every turn.
+    // Once bidding resolves, plantersOrder is set for the rest of the round — show the
+    // planting phase's panels in that fixed order (no reshuffling to the current
+    // planter), since it's more informative than turn-chasing once bids are no longer
+    // in play. Canal building and personal canal placement have their own dedicated
+    // orders below; only SpringPlacement falls through to the active-player rotation
+    // further down.
     const sortedPlayers = $derived.by(() => {
         const inOrder = state.seatOrder
             .map(id => state.players.find(p => p.playerId === id))
@@ -36,7 +37,6 @@
             state.machineState !== MachineState.SpringPlacement &&
             state.machineState !== MachineState.Bidding &&
             state.machineState !== MachineState.ExtraIrrigation &&
-            state.machineState !== MachineState.PlantingPhase &&
             state.machineState !== MachineState.CanalBuilding &&
             state.plantersOrder.length > 0
         if (usesPlantersOrder) {
@@ -45,53 +45,33 @@
                 .filter(p => p !== undefined)
         }
 
-        // Canal building: current briber leads, followed by the rest of
-        // canalProposalOrder (clockwise from the overseer's neighbor, overseer already
-        // excluded by the engine), with the overseer pinned to the very bottom. Once
-        // everyone's proposed and it's the overseer's decision, there's no "current
-        // briber" to lead with, so canalProposalOrder is shown as-is.
+        // Canal building: canalProposalOrder as-is (clockwise from the overseer's
+        // neighbor, overseer already excluded by the engine), with the overseer pinned
+        // to the very bottom. Per Justin, this doesn't reshuffle to bring the current
+        // briber to the top — it just walks down the list in that fixed order.
         if (state.machineState === MachineState.CanalBuilding && state.canalProposalOrder.length > 0) {
-            const order = state.canalProposalOrder
-            const idx = state.canalProposalIndex < order.length ? state.canalProposalIndex : 0
-            const rotated = [...order.slice(idx), ...order.slice(0, idx)]
+            const mapped = state.canalProposalOrder
                 .map(id => state.players.find(p => p.playerId === id))
                 .filter(p => p !== undefined)
             const overseerId = state.canalOverseerId
             const overseer = overseerId ? state.players.find(p => p.playerId === overseerId) : undefined
-            return overseer ? [...rotated, overseer] : rotated
+            return overseer ? [...mapped, overseer] : mapped
         }
 
         // Personal canal placement (Phase 5) has its own turn order — clockwise starting
         // with the player to the right of the overseer, tracked separately in
-        // extraIrrigationOrder rather than plantersOrder. Rotated so whoever's currently
-        // being asked leads, with everyone else following in that same (seat) order.
+        // extraIrrigationOrder rather than plantersOrder. Shown as-is (no reshuffling to
+        // the current player), per Justin.
         if (state.machineState === MachineState.ExtraIrrigation && state.extraIrrigationOrder.length > 0) {
-            const order = state.extraIrrigationOrder
-            const idx = state.extraIrrigationIndex < order.length ? state.extraIrrigationIndex : 0
-            return [...order.slice(idx), ...order.slice(0, idx)]
+            return state.extraIrrigationOrder
                 .map(id => state.players.find(p => p.playerId === id))
                 .filter(p => p !== undefined)
         }
 
-        // While planting, rotate plantersOrder so the current planter leads, followed by
-        // everyone still waiting their turn (in plantersOrder), then everyone who's
-        // already placed this round (also in plantersOrder) — a fresh reshuffle each turn,
-        // unlike the single per-round reorder plantersOrder normally gets once bidding
-        // resolves.
-        if (state.machineState === MachineState.PlantingPhase && state.plantersOrder.length > 0) {
-            const order = state.plantersOrder
-            const idx = state.planterIndex
-            return [...order.slice(idx), ...order.slice(0, idx)]
-                .map(id => state.players.find(p => p.playerId === id))
-                .filter(p => p !== undefined)
-        }
-
-        // While bidding, show players in their permanent seat order, rotated so the
-        // active (about-to-bid) player leads.
+        // While bidding, show players in their permanent seat order — no reshuffling to
+        // bring the active bidder to the top, per Justin.
         if (state.machineState === MachineState.Bidding) {
-            const activeId = state.activePlayerIds[0]
-            const idx = activeId ? inOrder.findIndex(p => p.playerId === activeId) : -1
-            let ordered = idx <= 0 ? inOrder : [...inOrder.slice(idx), ...inOrder.slice(0, idx)]
+            let ordered = inOrder
 
             // Bids of 0 are the only ones that can tie (non-zero bids must be unique) —
             // the overseer wins that tie (lowest bid, earliest in biddingOrder), so they
@@ -141,32 +121,30 @@
             p.hasPersonalCanal && state.extraIrrigationPassed.includes(p.playerId)}
         {@const seatNumber = state.seatOrder.indexOf(p.playerId) + 1}
         <div
-            class="rounded-lg overflow-hidden {isActive ? 'border-[5px] pulse-border' : 'border-[5px]'}"
+            class="paper-texture rounded-lg overflow-hidden {isActive ? 'border-[5px] pulse-border' : 'border-[5px]'}"
             style={isActive ? '' : `border-color: ${color}`}
             animate:flip={{ duration: 320, easing: cubicOut }}
         >
             <!-- Colored name bar -->
-            <div class="px-[10px] py-[7px] flex items-center gap-[7px] font-bold uppercase tracking-widest {textColor} text-[15px]"
+            <div class="font-heading px-[10px] py-[7px] flex items-center gap-[7px] font-bold uppercase tracking-widest {textColor} text-[15px]"
                  style="background-color: {color}">
-                <div class="flex flex-col items-center shrink-0">
-                    <span class="text-[9px] uppercase tracking-wide opacity-70">Seat</span>
-                    <div class="w-[18px] h-[18px] flex items-center justify-center rounded bg-black/30 text-white text-[11px] font-bold normal-case">
-                        {seatNumber}
-                    </div>
+                <div class="w-[34px] h-[34px] flex flex-col items-center justify-center gap-[2px] rounded bg-black/30 text-white normal-case shrink-0">
+                    <span class="font-ui text-[8px] uppercase tracking-wide opacity-70 leading-none">Seat</span>
+                    <span class="text-[14px] font-bold leading-none">{seatNumber}</span>
                 </div>
-                <span class="truncate min-w-0 flex-1">{playerName(p.playerId)}</span>
+                <span class="truncate min-w-0 flex-1 text-[18px]">{playerName(p.playerId)}</span>
                 {#if isOverseer}
                     <span class="text-[13px] bg-black/30 text-white px-1.5 py-[3px] rounded font-normal shrink-0 normal-case tracking-normal">Overseer</span>
                 {/if}
                 {#if isPlanting && p.bid !== undefined}
                     <span class="ml-auto shrink-0 flex items-center gap-1">
-                        <span class="text-[9px] uppercase tracking-wide opacity-70">Bid</span>
+                        <span class="font-ui text-[9px] uppercase tracking-wide opacity-70">Bid</span>
                         <MoneyBadge amount={p.bid} />
                     </span>
                 {/if}
             </div>
             <!-- Dark content area -->
-            <div class="px-3 py-2.5 bg-gray-800 flex justify-between items-center text-lg text-white">
+            <div class="px-3 py-2.5 bg-stone-800 flex justify-between items-center text-lg text-white">
                 <MoneyBadge amount={p.money} hidden={!isMe && !publicMoney && !isEndOfGame} />
                 <span class="text-green-300">⭐ {isEndOfGame ? p.score : (liveScores[p.playerId] ?? 0)}</span>
                 <div class="flex flex-col items-center gap-0">
@@ -177,7 +155,7 @@
                                   style="text-shadow: 0 1px 2px rgba(0,0,0,0.85); transform: translateY(-4px)">Passed</span>
                         {/if}
                     </div>
-                    <span class="-mt-1 text-[10px] text-gray-400 uppercase tracking-wide whitespace-nowrap">Personal canal</span>
+                    <span class="font-ui -mt-1 text-[10px] text-stone-400 uppercase tracking-wide whitespace-nowrap">Personal canal</span>
                 </div>
             </div>
         </div>

@@ -4,6 +4,12 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+    --font-sans: 'Lora', ui-serif, Georgia, serif;
+    --font-heading: 'Bitter', ui-serif, Georgia, serif;
+    /* Tailwind's original default sans stack, for the handful of spots that should
+       keep the pre-Lora/Bitter look (small uppercase labels, the round/phase readout). */
+    --font-ui: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
     --color-primary-50: #fff5f2;
     --color-primary-100: #fff1ee;
     --color-primary-200: #ffe4de;
@@ -36,5 +42,47 @@
     /* disable chrome cancel button */
     input[type='search']::-webkit-search-cancel-button {
         display: none;
+    }
+}
+
+@layer components {
+    /* Paper/parchment grain — an SVG feTurbulence noise tile with its alpha channel
+       boosted (feColorMatrix), so it renders as black flecks of varying opacity on
+       transparency rather than a full-color noise image. That means it reads as
+       visible grain regardless of how dark the underlying background is, instead of
+       relying on blend-mode math that all but disappears against near-black colors.
+       Apply to a `position:relative` container; the ::before pseudo-element inherits
+       the container's border-radius so the grain stays clipped to rounded corners. */
+    .paper-texture {
+        position: relative;
+    }
+    .paper-texture::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        opacity: 0.35;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch' result='noise'/%3E%3CfeColorMatrix in='noise' type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 4 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* For the big espresso-brown background specifically (not the small panels) —
+       a fine woven crosshatch (like burlap/canvas sacking) plus a coarser, warmer
+       blotchy noise (like clumped soil), layered so the whole thing reads as
+       "coarse cloth over dirt" rather than plain flat brown. */
+    .earth-texture {
+        position: relative;
+    }
+    .earth-texture::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        opacity: 0.12;
+        background-image:
+            repeating-linear-gradient(45deg, rgba(255, 235, 205, 0.05) 0px, rgba(255, 235, 205, 0.05) 1px, transparent 1px, transparent 7px),
+            repeating-linear-gradient(-45deg, rgba(255, 235, 205, 0.05) 0px, rgba(255, 235, 205, 0.05) 1px, transparent 1px, transparent 7px),
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.045' numOctaves='4' stitchTiles='stitch' result='noise'/%3E%3CfeColorMatrix in='noise' type='matrix' values='0.35 0 0 0 0.12  0.22 0 0 0 0.07  0.1 0 0 0 0.02  0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");
     }
 }
