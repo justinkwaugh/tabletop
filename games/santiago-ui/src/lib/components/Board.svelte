@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte'
-    import { SquareType, isFieldSquare, MachineState, type CanalSegment } from '@tabletop/santiago'
+    import { SquareType, isFieldSquare, MachineState, isSameSegment, type CanalSegment } from '@tabletop/santiago'
     import { Color } from '@tabletop/common'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import { fieldImageUrl } from '$lib/utils/cropImages.js'
@@ -614,7 +614,7 @@
         {#each unbribedSegments as seg}
             {@const c = segCoords(seg)}
             {@const isH = seg.orientation === 'H'}
-            {@const cx = isH ? (c.x1 + c.x2) / 2 : c.x1 + 28}
+            {@const cx = isH ? (c.x1 + c.x2) / 2 : c.x1 + 44}
             {@const cy = isH ? c.y1 - 28 : (c.y1 + c.y2) / 2}
             {@const key = labelKey(seg)}
             {@const hovered = hoveredLabelKey === key}
@@ -623,41 +623,53 @@
                onclick={() => session.rejectAndBuild(seg)}
                onmouseenter={() => hoveredLabelKey = key}
                onmouseleave={() => hoveredLabelKey = null}>
-                <rect x={cx - 20} y={cy - 14} width="40" height="28" rx="6"
+                <rect x={cx - 32} y={cy - 14} width="64" height="28" rx="6"
                       fill="#666666"
                       stroke="black" stroke-width="1"
                       opacity="0.7"
                       style={popStyle} />
                 <text x={cx} y={cy} text-anchor="middle" dominant-baseline="middle"
-                      fill="white" font-size="16" font-weight="bold"
+                      fill="white" font-size="12" font-weight="bold"
                       style="font-family:sans-serif; {popStyle}">
-                    {session.rejectPenalty > 0 ? `-${session.rejectPenalty}` : '0'}
+                    {session.rejectPenalty} → bank
                 </text>
             </g>
         {/each}
 
-        <!-- Valid (unplaced) canal segments — clickable in canal mode -->
+        <!-- Valid (unplaced) canal segments — clickable in canal mode. During bribe
+             proposing, picking a location just selects it (see selectedBribeSegment) —
+             it's drawn as a solid gold line instead of the usual animated dashed one,
+             so it's clear which spot is currently chosen versus still just available. -->
         {#each session.validSegments as seg}
             {@const c = segCoords(seg)}
             {@const dir = segFlowDir(seg)}
+            {@const isSelectedBribe = session.selectedBribeSegment !== undefined && isSameSegment(seg, session.selectedBribeSegment)}
             <!-- Wider transparent hit area -->
             <line {...c} stroke="transparent" stroke-width="16"
                   style="pointer-events: all; cursor: pointer"
                   onclick={() => handleSegmentClick(seg)} />
-            <line {...c}
-                  stroke="#7dd3fc"
-                  stroke-width="6"
-                  stroke-linecap="round"
-                  stroke-dasharray="15 12"
-                  opacity="0.9"
-                  class="canal-animated"
-                  style={`--flow-end: ${dir * 27}`} />
+            {#if isSelectedBribe}
+                <line {...c}
+                      stroke="#fbbf24"
+                      stroke-width="8"
+                      stroke-linecap="round"
+                      opacity="0.95" />
+            {:else}
+                <line {...c}
+                      stroke="#7dd3fc"
+                      stroke-width="6"
+                      stroke-linecap="round"
+                      stroke-dasharray="15 12"
+                      opacity="0.9"
+                      class="canal-animated"
+                      style={`--flow-end: ${dir * 27}`} />
+            {/if}
         {/each}
 
         {#if session.gameState.machineState !== MachineState.SpringPlacement}
             <!-- Spring -->
             <circle
-                cx={intersectionX(session.gameState.board.spring.col)}
+                cx={intersectionX(session.gameState.board.spring.col) + 1}
                 cy={intersectionY(session.gameState.board.spring.row)}
                 r="16.875"
                 fill="#000081"

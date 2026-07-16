@@ -83,13 +83,14 @@ export function getDescriptionSegments(action: GameAction, ctx?: ActionDescripti
             if (ctx?.allActions) {
                 const proposals = getProposalsForDecision(a, ctx.allActions)
                 if (proposals.length > 0) {
-                    const parts: DescriptionPart[] = ['accepted a canal bribe — ']
-                    proposals.forEach((p, i) => {
-                        if (i > 0) parts.push(', ')
-                        parts.push({ playerId: p.playerId! })
-                        parts.push(` paid ${p.amount}`)
-                    })
-                    return [parts]
+                    // One segment per contributing player, rather than a single
+                    // comma-joined line — stacked callers (the history-scrubber banner)
+                    // then show each player's payment on its own line.
+                    const segments: DescriptionPart[][] = [['accepted a canal bribe']]
+                    for (const p of proposals) {
+                        segments.push([{ playerId: p.playerId! }, ` paid ${p.amount}`])
+                    }
+                    return segments
                 }
             }
             return [['accepted a canal bribe']]
@@ -125,15 +126,11 @@ export function getDescriptionSegments(action: GameAction, ctx?: ActionDescripti
                 if (!cropsByPlayer.has(loss.playerId)) cropsByPlayer.set(loss.playerId, [])
                 cropsByPlayer.get(loss.playerId)!.push(loss.crop)
             }
-            const farmerParts: DescriptionPart[] = ['lost a farmer: ']
-            let first = true
+            // One segment per affected player, same as the bribe-acceptance breakdown
+            // above — stacked callers then show each player's loss on its own line.
             for (const [playerId, crops] of cropsByPlayer) {
-                if (!first) farmerParts.push(', ')
-                first = false
-                farmerParts.push({ playerId })
-                farmerParts.push(` (${crops.join(', ')})`)
+                segments.push([{ playerId }, ` lost a farmer (${crops.join(', ')})`])
             }
-            segments.push(farmerParts)
         }
         return segments
     }

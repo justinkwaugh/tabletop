@@ -145,41 +145,58 @@
         {:else if isBuilding}
             <div class="flex items-center flex-nowrap gap-8">
                 {#if isCurrentProposer}
-                    <div class="flex flex-col gap-1 shrink-0">
-                        <div class="flex items-center gap-2">
-                            <button class="shrink-0 w-[47px] h-[47px] rounded-full bg-white/10 hover:bg-white/20 font-bold text-[24px] text-white disabled:opacity-30"
-                                onclick={() => session.setProposalAmount(session.proposalAmount - 1)} disabled={session.proposalAmount <= 1}>−</button>
-                            <span style="font-size: 1.56em" class="inline-flex items-center shrink-0">
-                                <MoneyBadge amount={session.proposalAmount} />
-                            </span>
-                            <button class="shrink-0 w-[47px] h-[47px] rounded-full bg-white/10 hover:bg-white/20 font-bold text-[24px] text-white disabled:opacity-30"
-                                onclick={() => session.setProposalAmount(session.proposalAmount + 1)} disabled={session.proposalAmount >= (me?.money ?? 0)}>+</button>
-                            <span class="shrink-0 whitespace-nowrap text-amber-300 font-semibold">or</span>
-                            <button class="shrink-0 whitespace-nowrap px-[14px] py-[7px] rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold text-[18px] transition-colors"
-                                onclick={() => session.passProposal()}>Pass</button>
-                        </div>
-                        <!-- Same bracket treatment as the bidding caption above. -->
-                        <div class="flex items-center gap-1 text-stone-400">
-                            <div class="flex-1 relative">
-                                <div class="absolute inset-x-0 top-0 border-t border-current"></div>
-                                <div class="absolute left-0 -top-1.5 h-1.5 border-l border-current"></div>
+                    <div class="flex flex-col items-center gap-1 shrink-0">
+                        {#if !session.selectedBribeSegment}
+                            <div class="flex items-center gap-2">
+                                <span class="shrink-0 whitespace-nowrap text-amber-300">Click a canal location to place a bribe, or</span>
+                                <button class="shrink-0 whitespace-nowrap px-[14px] py-[7px] rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold text-[18px] transition-colors"
+                                    onclick={() => session.passProposal()}>Pass</button>
                             </div>
-                            <span class="font-ui text-[10px] uppercase tracking-wide whitespace-nowrap shrink-0">
-                                Bribe <span class="tracking-normal"><PlayerNameChip playerId={overseerCandidateId} /></span> (the overseer)
-                            </span>
-                            <div class="flex-1 relative">
-                                <div class="absolute inset-x-0 top-0 border-t border-current"></div>
-                                <div class="absolute right-0 -top-1.5 h-1.5 border-r border-current"></div>
+                        {:else}
+                            <div class="flex flex-col gap-1">
+                                <div class="flex items-center gap-2">
+                                    <button class="shrink-0 w-[40px] h-[40px] rounded-full bg-white/10 hover:bg-white/20 font-bold text-[20px] text-white disabled:opacity-30"
+                                        onclick={() => session.setProposalAmount(session.proposalAmount - 1)} disabled={session.proposalAmount <= 1}>−</button>
+                                    <span style="font-size: 1.287em" class="inline-flex items-center shrink-0">
+                                        <MoneyBadge amount={session.proposalAmount} />
+                                    </span>
+                                    <button class="shrink-0 w-[40px] h-[40px] rounded-full bg-white/10 hover:bg-white/20 font-bold text-[20px] text-white disabled:opacity-30"
+                                        onclick={() => session.setProposalAmount(session.proposalAmount + 1)} disabled={session.proposalAmount >= (me?.money ?? 0)}>+</button>
+                                    <button class="shrink-0 whitespace-nowrap px-[15px] py-[6px] rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-[15px] transition-colors"
+                                        onclick={() => session.confirmProposal()}>Place Bribe</button>
+                                </div>
+                                <!-- Bracket spans exactly the − through Set Bribe group above. -->
+                                <div class="flex items-center gap-1 text-stone-400">
+                                    <div class="flex-1 relative">
+                                        <div class="absolute inset-x-0 top-0 border-t border-current"></div>
+                                        <div class="absolute left-0 -top-1.5 h-1.5 border-l border-current"></div>
+                                    </div>
+                                    <span class="font-ui text-[10px] uppercase tracking-wide whitespace-nowrap shrink-0">
+                                        Bribe <span class="tracking-normal"><PlayerNameChip playerId={overseerCandidateId} /></span>
+                                    </span>
+                                    <div class="flex-1 relative">
+                                        <div class="absolute inset-x-0 top-0 border-t border-current"></div>
+                                        <div class="absolute right-0 -top-1.5 h-1.5 border-r border-current"></div>
+                                    </div>
+                                </div>
+                                <!-- "or Pass" centered under the whole group above (stretched to
+                                     its width by the flex-col, then centered within that). -->
+                                <div class="flex items-center justify-center gap-2">
+                                    <span class="shrink-0 whitespace-nowrap text-amber-300 font-semibold">or</span>
+                                    <button class="shrink-0 whitespace-nowrap px-[15px] py-[6px] rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold text-[15px] transition-colors"
+                                        onclick={() => session.passProposal()}>Pass</button>
+                                </div>
                             </div>
-                        </div>
+                        {/if}
                     </div>
                 {:else if isOverseerDeciding}
                     <span class="shrink-0 whitespace-nowrap text-amber-300">
-                        Click a bribe or canal on the board, or pay the bank
-                        <span class="ml-1 inline-flex items-center rounded px-1.5 py-0.5 text-white font-bold text-sm"
-                              style="background-color: rgba(102, 102, 102, 0.7)">
-                            {session.rejectPenalty > 0 ? `-${session.rejectPenalty}` : '0'}
+                        Click a bribe or canal on the board, or pay
+                        <span class="mx-1 inline-flex items-center justify-center text-white font-bold"
+                              style="background-color: rgba(102, 102, 102, 0.7); font-family: sans-serif; width: 40px; height: 28px; border-radius: 6px; font-size: 16px">
+                            {session.rejectPenalty > 0 ? session.rejectPenalty : '0'}
                         </span>
+                        to the bank
                     </span>
                 {/if}
                 {#if bribeRows.length > 0}

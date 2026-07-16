@@ -130,7 +130,7 @@
                  style="background-color: {color}">
                 <div class="w-[34px] h-[34px] flex flex-col items-center justify-center gap-[2px] rounded bg-black/30 text-white normal-case shrink-0">
                     <span class="font-ui text-[8px] uppercase tracking-wide opacity-70 leading-none">Seat</span>
-                    <span class="text-[14px] font-bold leading-none">{seatNumber}</span>
+                    <span class="text-[14px] font-bold leading-none tracking-normal">{seatNumber}</span>
                 </div>
                 <span class="truncate min-w-0 flex-1 text-[18px]">{playerName(p.playerId)}</span>
                 {#if isOverseer}
@@ -145,7 +145,6 @@
             </div>
             <!-- Dark content area -->
             <div class="px-3 py-2.5 bg-stone-800 flex justify-between items-center text-lg text-white">
-                <MoneyBadge amount={p.money} hidden={!isMe && !publicMoney && !isEndOfGame} />
                 <span class="text-green-300">⭐ {isEndOfGame ? p.score : (liveScores[p.playerId] ?? 0)}</span>
                 <div class="flex flex-col items-center gap-0">
                     <div class="relative">
@@ -155,8 +154,11 @@
                                   style="text-shadow: 0 1px 2px rgba(0,0,0,0.85); transform: translateY(-4px)">Passed</span>
                         {/if}
                     </div>
-                    <span class="font-ui -mt-1 text-[10px] text-stone-400 uppercase tracking-wide whitespace-nowrap">Personal canal</span>
+                    {#if p.hasPersonalCanal}
+                        <span class="font-ui -mt-1 text-[10px] text-stone-400 uppercase tracking-wide whitespace-nowrap">Personal canal</span>
+                    {/if}
                 </div>
+                <MoneyBadge amount={p.money} hidden={!isMe && !publicMoney && !isEndOfGame} />
             </div>
         </div>
     {/each}

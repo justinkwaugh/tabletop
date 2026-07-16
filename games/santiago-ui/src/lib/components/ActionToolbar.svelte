@@ -2,6 +2,9 @@
     import { MachineState } from '@tabletop/santiago'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
+    import CoinIcon from './CoinIcon.svelte'
+    import SproutIcon from './SproutIcon.svelte'
+    import DropIcon from './DropIcon.svelte'
 
     const session = getGameSession()
     const state = $derived(session.gameState)
@@ -24,18 +27,40 @@
         }
     }
 
+    // A small phase-appropriate icon next to the phase name — coin for bidding (an
+    // escudo changes hands), sprout for planting, water drop for the two canal/water
+    // phases. Spring placement has no icon; it's a one-time setup step, not a "phase."
+    function phaseIcon(ms: MachineState) {
+        switch (ms) {
+            case MachineState.Bidding:         return CoinIcon
+            case MachineState.PlantingPhase:   return SproutIcon
+            case MachineState.CanalBuilding:
+            case MachineState.ExtraIrrigation: return DropIcon
+            default:                           return undefined
+        }
+    }
+
 </script>
 
 <!-- Status bar -->
-<div class="font-ui shrink-0 px-3 h-[44px] bg-transparent border-2 border-amber-800 rounded-lg flex items-center gap-2 text-base uppercase tracking-wider">
+<div class="font-ui paper-texture shrink-0 px-3 h-[44px] bg-amber-950/40 border-2 border-amber-800 rounded-lg flex items-center gap-2 text-base uppercase tracking-wider">
     {#if ms === MachineState.EndOfGame}
         <span class="text-sm text-amber-300 uppercase tracking-wider">Game over</span>
     {:else if activePlayerId}
+        {@const Icon = phaseIcon(ms)}
         <span class="font-bold text-amber-300"><PlayerName playerId={activePlayerId} possessive capitalization="uppercase" /> turn</span>
-        <span class="text-sm text-amber-400">·</span>
-        <span class="text-sm text-amber-300">Round {state.round} of {totalRounds}</span>
-        {#if phaseName(ms)}
+        {#if Icon}
+            <Icon class="w-4 h-4 shrink-0" />
+        {:else}
             <span class="text-sm text-amber-400">·</span>
+        {/if}
+        <span class="text-sm text-green-300">Round {state.round} of {totalRounds}</span>
+        {#if phaseName(ms)}
+            {#if Icon}
+                <Icon class="w-4 h-4 shrink-0" />
+            {:else}
+                <span class="text-sm text-amber-400">·</span>
+            {/if}
             <span class="text-sm text-amber-300">{phaseName(ms)}</span>
         {/if}
     {/if}

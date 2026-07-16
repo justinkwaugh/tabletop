@@ -35,6 +35,10 @@ export class SantiagoGameSession extends GameSession<
     bidValue: number = $state(0)
     proposalAmount: number = $state(1)
     selectedTileIndex: number = $state(-1)
+    // Canal location picked (but not yet submitted) while proposing a bribe — lets the
+    // player choose where before dialing in how much, and change their mind by clicking
+    // a different location, rather than the click itself submitting the bribe.
+    selectedBribeSegment: CanalSegment | undefined = $state(undefined)
 
     override async onGameStateChange({
         to: _to,
@@ -51,11 +55,13 @@ export class SantiagoGameSession extends GameSession<
         this.bidValue = 0
         this.proposalAmount = 1
         this.selectedTileIndex = -1
+        this.selectedBribeSegment = undefined
     }
 
     override willUndo(_action: GameAction) {
         this.proposalAmount = 1
         this.selectedTileIndex = -1
+        this.selectedBribeSegment = undefined
     }
 
     get mySantiagoPlayer() {
@@ -234,7 +240,7 @@ export class SantiagoGameSession extends GameSession<
                 }
                 return
             }
-            await this.proposeCanal(seg)
+            this.selectedBribeSegment = seg
             return
         }
         if (state.machineState === MachineState.ExtraIrrigation) {
@@ -293,6 +299,11 @@ export class SantiagoGameSession extends GameSession<
             amount: this.proposalAmount
         })
         await this.applyAction(action)
+    }
+
+    async confirmProposal() {
+        if (!this.selectedBribeSegment) return
+        await this.proposeCanal(this.selectedBribeSegment)
     }
 
     async passProposal() {
