@@ -78,6 +78,28 @@ export class SantiagoGameSession extends GameSession<
         return this.bidValue > 0 && this.takenBids.includes(this.bidValue)
     }
 
+    // Who currently holds (or, mid-bidding, is projected to hold) the canal overseer role —
+    // shown as an "Overseer" tag. During bidding, canalOverseerId is cleared until all bids
+    // resolve, so this projects from bids placed so far (lowest bid, ties broken by bidding
+    // order — same rule BiddingStateHandler.resolveBids uses for the real result). Before
+    // anyone has bid, the previous overseer nominally still holds the role until someone
+    // bids lower — biddingOrder starts right after them, so they're always its last entry
+    // (this also covers round 1, where "previous overseer" is the game's randomly-chosen
+    // initial one, seeded into canalOverseerId before bidding ever begins).
+    get projectedOverseerId(): string | undefined {
+        const state = this.gameState
+        if (state.machineState !== MachineState.Bidding) return state.canalOverseerId
+        const biddedPlayers = state.players.filter((p) => p.bid !== undefined)
+        if (!biddedPlayers.length) {
+            return state.biddingOrder[state.biddingOrder.length - 1]
+        }
+        const minBid = Math.min(...biddedPlayers.map((p) => p.bid!))
+        const candidates = biddedPlayers
+            .filter((p) => p.bid === minBid)
+            .sort((a, b) => state.biddingOrder.indexOf(a.playerId) - state.biddingOrder.indexOf(b.playerId))
+        return candidates[0]?.playerId
+    }
+
     // True when the local player is the first player and must place the spring
     // (one-time setup step, only reached when the game isn't randomizing the spring).
     get isSpringPlacementTurn(): boolean {

@@ -22,7 +22,11 @@ export type ActionDescriptionContext = {
 // treatment as the acting player, wherever the description is shown.
 export type DescriptionPart = string | { playerId: string }
 
-export function getDescriptionForAction(action: GameAction, ctx?: ActionDescriptionContext): DescriptionPart[] {
+// Returns the description as separate segments/lines rather than one flattened string —
+// callers that show a single inline line (History) join them with a dash separator;
+// callers that show them stacked (the banner above the board) render one per line instead,
+// per Justin's request not to run multi-part end-of-round summaries together with dashes.
+export function getDescriptionSegments(action: GameAction, ctx?: ActionDescriptionContext): DescriptionPart[][] {
     if (isPlaceBid(action)) {
         const amount = (action as any).amount ?? 0
         if (amount === 0) {
@@ -39,11 +43,11 @@ export function getDescriptionForAction(action: GameAction, ctx?: ActionDescript
                     (a as any).createdAt?.getTime() > lastRoundEndTime &&
                     (a as any).createdAt?.getTime() < actionTime
                 )
-                return [isFirst ? 'bid 0 and becomes overseer' : 'bid 0 escudos']
+                return [[isFirst ? 'bid 0 and becomes overseer' : 'bid 0 escudos']]
             }
-            return ['bid 0 and becomes overseer']
+            return [['bid 0 and becomes overseer']]
         }
-        return [`bid ${amount} escudo${amount !== 1 ? 's' : ''}`]
+        return [[`bid ${amount} escudo${amount !== 1 ? 's' : ''}`]]
     }
     if (isPlaceField(action)) {
         if (ctx?.allActions && action.playerId) {
@@ -59,19 +63,19 @@ export function getDescriptionForAction(action: GameAction, ctx?: ActionDescript
                 ((a as any).createdAt?.getTime() ?? 0) > lastRoundEndTime &&
                 ((a as any).createdAt?.getTime() ?? 0) < placeTime
             ) as any
-            if (bid?.amount === 0) return ['planted a field (−1 farmer penalty)']
+            if (bid?.amount === 0) return [['planted a field (−1 farmer penalty)']]
         }
-        return ['planted a field']
+        return [['planted a field']]
     }
     if (isPlaceNeutralTile(action)) {
-        return ['planted the neutral field']
+        return [['planted the neutral field']]
     }
     if (isBuildCanal(action)) {
-        return ['placed a personal canal']
+        return [['placed a personal canal']]
     }
     if (isProposeCanal(action)) {
         const a = action as any
-        return [`offered ${a.amount} escudo${a.amount !== 1 ? 's' : ''} for a canal`]
+        return [[`offered ${a.amount} escudo${a.amount !== 1 ? 's' : ''} for a canal`]]
     }
     if (isOverseerDecision(action)) {
         const a = action as any
@@ -85,25 +89,25 @@ export function getDescriptionForAction(action: GameAction, ctx?: ActionDescript
                         parts.push({ playerId: p.playerId! })
                         parts.push(` paid ${p.amount}`)
                     })
-                    return parts
+                    return [parts]
                 }
             }
-            return ['accepted a canal bribe']
+            return [['accepted a canal bribe']]
         } else {
             if (ctx?.allActions) {
                 const anyProposals = getAllProposalsThisRound(a, ctx.allActions)
-                if (anyProposals.length === 0) return ['was offered no bribes and built a canal']
+                if (anyProposals.length === 0) return [['was offered no bribes and built a canal']]
             }
-            return ['rejected all bribes and built a canal']
+            return [['rejected all bribes and built a canal']]
         }
     }
     if (isPass(action)) {
         if (ctx?.allActions) {
             const phase = getPassPhase(action, ctx.allActions)
-            if (phase === 'extraIrrigation') return ['chose not to place a personal canal']
-            if (phase === 'canalBuilding') return ['chose not to bribe the overseer']
+            if (phase === 'extraIrrigation') return [['chose not to place a personal canal']]
+            if (phase === 'canalBuilding') return [['chose not to bribe the overseer']]
         }
-        return ['passed']
+        return [['passed']]
     }
     if (isEndRoundEvent(action)) {
         const e = action as any
@@ -131,14 +135,21 @@ export function getDescriptionForAction(action: GameAction, ctx?: ActionDescript
             }
             segments.push(farmerParts)
         }
-        const result: DescriptionPart[] = []
-        segments.forEach((seg, i) => {
-            if (i > 0) result.push(' — ')
-            result.push(...seg)
-        })
-        return result
+        return segments
     }
-    return [action.type]
+    return [[action.type]]
+}
+
+// Flattened, single-line form — segments joined with a dash separator — for callers that
+// render one inline line (History.svelte).
+export function getDescriptionForAction(action: GameAction, ctx?: ActionDescriptionContext): DescriptionPart[] {
+    const segments = getDescriptionSegments(action, ctx)
+    const result: DescriptionPart[] = []
+    segments.forEach((seg, i) => {
+        if (i > 0) result.push(' — ')
+        result.push(...seg)
+    })
+    return result
 }
 
 function getPassPhase(action: GameAction, allActions: GameAction[]): 'canalBuilding' | 'extraIrrigation' {

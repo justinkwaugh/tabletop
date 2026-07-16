@@ -4,7 +4,7 @@
     import { ActionSource, type GameAction } from '@tabletop/common'
     import { isEndRoundEvent } from '@tabletop/santiago'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
-    import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
+    import { getDescriptionSegments } from '$lib/utils/actionDescriptions.js'
     import SproutIcon from './SproutIcon.svelte'
     import PlayerNameChip from './PlayerNameChip.svelte'
 
@@ -20,34 +20,48 @@
         return filtered.at(-1)
     })
 
-    const descriptionParts = $derived(
-        lastAction ? getDescriptionForAction(lastAction, { allActions: session.actions }) : []
+    // Segments (not the flattened, dash-joined form History.svelte uses) — Justin wants
+    // multi-part entries (e.g. end of round) stacked as separate lines here instead of run
+    // together with dashes.
+    const descriptionSegments = $derived(
+        lastAction ? getDescriptionSegments(lastAction, { allActions: session.actions }) : []
     )
 </script>
 
-<div class="relative shrink-0 h-[44px] mt-2 overflow-hidden">
-    <div class="absolute top-0 max-w-[90%] px-3 flex items-center gap-2"
-         style="left: {boardCenterX ?? '50%'}px; transform: translateX(-50%)">
-        <SproutIcon class="w-5 h-5 shrink-0" />
-        {#key lastAction?.id}
-            <p class="text-[16px] text-amber-200 truncate"
-               in:fade={{ duration: 200, easing: quartIn }} out:fade={{ duration: 80 }}>
-                {#if lastAction}
-                    {#if lastAction.playerId}
-                        <PlayerNameChip playerId={lastAction.playerId} />
+<!-- Only shown when it's not your turn, or while navigating history — when it IS your turn
+     (and you're looking at the live state), the action bar below already tells you what to
+     do, so this would just be repeating the previous entry from History for no reason. -->
+{#if !session.isMyTurn || session.isViewingHistory}
+    <div class="shrink-0 min-h-[44px] mt-2">
+        <div class="max-w-[90%] px-3 flex items-center gap-2"
+             style="margin-left: {boardCenterX !== null ? `${boardCenterX}px` : '50%'}; transform: translateX(-50%); width: fit-content">
+            <SproutIcon class="w-5 h-5 shrink-0" />
+            {#key lastAction?.id}
+                <div class="flex flex-col items-center"
+                     in:fade={{ duration: 200, easing: quartIn }}>
+                    {#if lastAction}
+                        {#each descriptionSegments as segment, i}
+                            <p class="text-[16px] text-amber-200 truncate">
+                                {#if i === 0 && lastAction.playerId}
+                                    <PlayerNameChip playerId={lastAction.playerId} />
+                                {/if}
+                                {#each segment as part}
+                                    {#if typeof part === 'string'}
+                                        {part}
+                                    {:else}
+                                        <PlayerNameChip playerId={part.playerId} />
+                                    {/if}
+                                {/each}
+                            </p>
+                        {/each}
+                    {:else}
+                        <p class="text-[16px] text-amber-200 truncate">
+                            <span class="text-amber-400">Welcome to Santiago!</span>
+                        </p>
                     {/if}
-                    {#each descriptionParts as part}
-                        {#if typeof part === 'string'}
-                            {part}
-                        {:else}
-                            <PlayerNameChip playerId={part.playerId} />
-                        {/if}
-                    {/each}
-                {:else}
-                    <span class="text-amber-400">Welcome to Santiago!</span>
-                {/if}
-            </p>
-        {/key}
-        <SproutIcon class="w-5 h-5 shrink-0 -scale-x-100" />
+                </div>
+            {/key}
+            <SproutIcon class="w-5 h-5 shrink-0 -scale-x-100" />
+        </div>
     </div>
-</div>
+{/if}

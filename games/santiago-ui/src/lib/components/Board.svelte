@@ -12,7 +12,7 @@
     const session = getGameSession()
 
     // Placed-canal visual thickness.
-    const CANAL_THICKNESS = 9.6
+    const CANAL_THICKNESS = 12.48 // 9.6 * 1.3 — ~30% thicker
     const CANAL_HALF_THICKNESS = CANAL_THICKNESS / 2
 
     function segCoords(seg: { orientation: 'H' | 'V'; col: number; row: number }) {
@@ -121,6 +121,86 @@
         return new Set([...counts.entries()].filter(([, n]) => n >= 2).map(([key]) => key))
     })
 
+    function hasCanalSegment(col: number, row: number, orientation: 'H' | 'V'): boolean {
+        return session.gameState.board.canals.some(
+            (s) => s.orientation === orientation && s.col === col && s.row === row
+        )
+    }
+
+    // A small quarter-circle fillet radius for the corners of an L-turn, T-junction, or
+    // 4-way crossing. Each of a junction's 4 corners is classified by how many of its two
+    // adjacent cardinal directions (e.g. NE pairs with East and North) have a canal
+    // continuing through them:
+    //  - 0 (neither): a genuinely convex/exposed corner — rounded by hiding a small sliver
+    //    via canalCornerMask, revealing the board underneath (see canalCornerFillets).
+    //  - 1 (exactly one): not a corner at all — that one segment's own body extends past
+    //    it, so the boundary there is just a straight edge continuing through. Left alone.
+    //  - 2 (both): a concave/reflex corner (a notch cut into the solid, e.g. the inside of
+    //    an L-turn) — rounded by *adding* a small quarter-disk into the notch (see
+    //    canalConcaveFillets), tangent to both edges so it blends smoothly.
+    // Implemented additively/via mask rather than reshaping each segment's own path, since
+    // that would risk breaking the segments' proven-correct seamless tiling at junctions.
+    const CANAL_FILLET_RADIUS = 6
+    const canalCornerFillets = $derived.by(() => {
+        const r = CANAL_HALF_THICKNESS
+        const fillets: { cx: number; cy: number; ox: number; oy: number }[] = []
+        for (const key of canalJunctionKeys) {
+            const [jcol, jrow] = key.split(',').map(Number)
+            const jx = intersectionX(jcol)
+            const jy = intersectionY(jrow)
+            const east = hasCanalSegment(jcol, jrow, 'H')
+            const west = hasCanalSegment(jcol - 1, jrow, 'H')
+            const south = hasCanalSegment(jcol, jrow, 'V')
+            const north = hasCanalSegment(jcol, jrow - 1, 'V')
+            // ox/oy point from the sharp corner back toward the junction's interior —
+            // where the fillet's circle center goes.
+            if (!east && !north) fillets.push({ cx: jx + r, cy: jy - r, ox: -1, oy: 1 })
+            if (!west && !north) fillets.push({ cx: jx - r, cy: jy - r, ox: 1, oy: 1 })
+            if (!east && !south) fillets.push({ cx: jx + r, cy: jy + r, ox: -1, oy: -1 })
+            if (!west && !south) fillets.push({ cx: jx - r, cy: jy + r, ox: 1, oy: -1 })
+        }
+        return fillets
+    })
+
+    // Concave/reflex corners — the mirror image of canalCornerFillets' condition (both
+    // adjacent directions present instead of neither). Drawn as a quarter-disk CENTERED ON
+    // the sharp corner itself (radius CANAL_FILLET_RADIUS, same scale as the convex fillet),
+    // clipped to just the one quadrant that's actually the empty notch — not a circle
+    // offset away from the corner, which would put its bulk well past the joint instead of
+    // softening the corner in place. qx/qy point from the corner into that empty quadrant.
+    const canalConcaveFillets = $derived.by(() => {
+        const r = CANAL_HALF_THICKNESS
+        const fillets: { cx: number; cy: number; qx: number; qy: number }[] = []
+        for (const key of canalJunctionKeys) {
+            const [jcol, jrow] = key.split(',').map(Number)
+            const jx = intersectionX(jcol)
+            const jy = intersectionY(jrow)
+            const east = hasCanalSegment(jcol, jrow, 'H')
+            const west = hasCanalSegment(jcol - 1, jrow, 'H')
+            const south = hasCanalSegment(jcol, jrow, 'V')
+            const north = hasCanalSegment(jcol, jrow - 1, 'V')
+            if (east && north) fillets.push({ cx: jx + r, cy: jy - r, qx: 1, qy: -1 })
+            if (west && north) fillets.push({ cx: jx - r, cy: jy - r, qx: -1, qy: -1 })
+            if (east && south) fillets.push({ cx: jx + r, cy: jy + r, qx: 1, qy: 1 })
+            if (west && south) fillets.push({ cx: jx - r, cy: jy + r, qx: -1, qy: 1 })
+        }
+        return fillets
+    })
+
+    // Cubic-bezier approximation of a quarter circle (the standard "kappa" constant), rather
+    // than an SVG arc command — an arc needs a sweep-flag guess, a bezier just needs plain
+    // control-point coordinates computed from the corner and the two tangent points.
+    const BEZIER_QUARTER_CIRCLE_KAPPA = 0.5522847498
+    function concaveFilletPathD(f: { cx: number; cy: number; qx: number; qy: number }): string {
+        const fr = CANAL_FILLET_RADIUS
+        const k = BEZIER_QUARTER_CIRCLE_KAPPA
+        const a = { x: f.cx + f.qx * fr, y: f.cy }
+        const b = { x: f.cx, y: f.cy + f.qy * fr }
+        const cp1 = { x: f.cx + f.qx * fr, y: f.cy + f.qy * fr * k }
+        const cp2 = { x: f.cx + f.qx * fr * k, y: f.cy + f.qy * fr }
+        return `M ${f.cx} ${f.cy} L ${a.x} ${a.y} C ${cp1.x} ${cp1.y} ${cp2.x} ${cp2.y} ${b.x} ${b.y} Z`
+    }
+
     // Builds a canal segment as a path (rather than a plain rect) so each end can be
     // independently rounded (true dead end) or square (connects to another segment).
     function canalPathD(seg: CanalSegment, junctionKeys: Set<string>): string {
@@ -211,6 +291,36 @@
         schedule()
         return () => clearTimeout(timeout)
     })
+
+    // A slower, stationary sparkle at the spring itself (no drift, unlike canal sparkles —
+    // dx/dy stay 0, so sparkle-pop's translate offsets are all zero and it just pops in place).
+    onMount(() => {
+        function spawnSpringSparkle() {
+            // The spring isn't shown on the board yet during placement — nothing to sparkle.
+            if (session.gameState.machineState === MachineState.SpringPlacement) return
+            const spring = session.gameState.board.spring
+            const angle = Math.random() * Math.PI * 2
+            const radius = Math.random() * 8
+            const s: Sparkle = {
+                x: intersectionX(spring.col) + Math.cos(angle) * radius,
+                y: intersectionY(spring.row) + Math.sin(angle) * radius,
+                dx: 0,
+                dy: 0,
+                scale: 0.7 + Math.random() * 0.7,
+                rotate: (Math.random() - 0.5) * 60,
+                id: ++sparkleId
+            }
+            sparkles = [...sparkles, s]
+            setTimeout(() => { sparkles = sparkles.filter(x => x.id !== s.id) }, 1200)
+        }
+
+        let timeout: ReturnType<typeof setTimeout>
+        function schedule() {
+            timeout = setTimeout(() => { spawnSpringSparkle(); schedule() }, 5000 + Math.random() * 5000)
+        }
+        schedule()
+        return () => clearTimeout(timeout)
+    })
 </script>
 
 <style>
@@ -257,6 +367,8 @@
         0 10px 22px rgba(30, 14, 4, 0.35);
 }
 
+/* Saved for later — Justin wants to see the placement arrow without the bounce for now,
+   but may want it back. Re-add class="hover-arrow-bounce" to the arrow's <svg> to restore. */
 @keyframes hoverArrowBounce {
     0%, 100% { transform: translateY(0); }
     50%      { transform: translateY(4px); }
@@ -309,8 +421,8 @@
                 >
                     {#if highlight !== null || neutralOk}
                         <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                            <svg class="w-4 h-4 hover-arrow-bounce" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M12 3v14m0 0-5-5m5 5 5-5" stroke="#fef08a" stroke-width="3"
+                            <svg class="h-2/3 w-2/3 opacity-60" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M12 3v14m0 0-5-5m5 5 5-5" stroke="#4ade80" stroke-width="3"
                                       stroke-linecap="round" stroke-linejoin="round"
                                       style="filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6))" />
                             </svg>
@@ -353,7 +465,7 @@
          overflow:hidden (needed to round the board image's corners) doesn't clip labels
          that land near the board's edges; positioned to match .board-surface exactly. -->
     <svg class="absolute" width={W} height={H} viewBox="0 0 {W} {H}"
-         style="left: 10px; top: 10px; pointer-events: none; overflow: visible">
+         style="left: 10px; top: 10px; pointer-events: none; overflow: visible; user-select: none">
         <defs>
             <!-- Horizontal piece: lighter on top edge (light from above) -->
             <linearGradient id="canalH" x1="0" y1="0" x2="0" y2="1">
@@ -395,17 +507,51 @@
                 <stop offset="80%"  stop-color="#bee7fd" stop-opacity="0.85"/>
                 <stop offset="100%" stop-color="#e0f2fe" stop-opacity="0"/>
             </radialGradient>
+            <!-- Cuts a small quarter-circle notch out of the canal rendering at each exposed
+                 junction corner (see canalCornerFillets) — the mask is white (fully visible)
+                 everywhere by default; each fillet punches a tiny black square out of just its
+                 sharp corner, then a white circle "un-punches" the rounded part back in, so
+                 only the small sliver between the sharp point and the fillet arc is actually
+                 hidden. What shows through there is the board's own background underneath the
+                 canal overlay — a natural look for a rounded canal bend. -->
+            <mask id="canalCornerMask" maskUnits="userSpaceOnUse" x="0" y="0" width={W} height={H}>
+                <rect x="0" y="0" width={W} height={H} fill="white" />
+                {#each canalCornerFillets as f}
+                    <rect x={Math.min(f.cx, f.cx + f.ox * CANAL_FILLET_RADIUS)}
+                          y={Math.min(f.cy, f.cy + f.oy * CANAL_FILLET_RADIUS)}
+                          width={CANAL_FILLET_RADIUS} height={CANAL_FILLET_RADIUS}
+                          fill="black" />
+                    <circle cx={f.cx + f.ox * CANAL_FILLET_RADIUS} cy={f.cy + f.oy * CANAL_FILLET_RADIUS}
+                            r={CANAL_FILLET_RADIUS} fill="white" />
+                {/each}
+            </mask>
         </defs>
 
         <!-- Placed canals — rendered above tiles so they sit on top of tile shadows.
              Ends are square where they meet another segment, rounded at true dead ends,
-             so adjoining segments tile together seamlessly with no separate joint patch. -->
-        {#each session.gameState.board.canals as seg}
-            {@const isH = seg.orientation === 'H'}
-            {@const d = canalPathD(seg, canalJunctionKeys)}
-            <path {d} fill={isH ? 'url(#canalH)' : 'url(#canalV)'}/>
-            <path {d} fill={isH ? 'url(#canalFadeH)' : 'url(#canalFadeV)'}/>
+             so adjoining segments tile together seamlessly with no separate joint patch.
+             The mask then softens each junction's one genuinely exposed corner with a
+             small curve (see canalCornerMask above). -->
+        <g mask="url(#canalCornerMask)">
+            {#each session.gameState.board.canals as seg}
+                {@const isH = seg.orientation === 'H'}
+                {@const d = canalPathD(seg, canalJunctionKeys)}
+                <path {d} fill={isH ? 'url(#canalH)' : 'url(#canalV)'}/>
+                <path {d} fill={isH ? 'url(#canalFadeH)' : 'url(#canalFadeV)'}/>
+            {/each}
+        </g>
+
+        <!-- Concave junction corners — disabled for now (visible artifact reported at the
+             inner/reflex corner across three different implementation attempts; the math
+             kept checking out on paper, so the bug is likely in an assumption I haven't
+             spotted rather than the formulas themselves). Left commented out, not deleted,
+             in case we want to pick this back up — canalConcaveFillets/concaveFilletPathD
+             below are unused while this stays off. The outer (convex) curve above is
+             unaffected and confirmed working.
+        {#each canalConcaveFillets as f}
+            <path d={concaveFilletPathD(f)} fill="#0000a0" />
         {/each}
+        -->
 
         <!-- Canal sparkles — small glints that drift along placed canal segments -->
         {#each sparkles as s (s.id)}
@@ -440,12 +586,15 @@
                         {@const cx = isH ? mx + (i - (n - 1) / 2) * 48 : c.x1 + 28}
                         {@const cy = isH ? c.y1 - 28 : my + (i - (n - 1) / 2) * 36}
                         {@const isYellow = isYellowPlayer(contrib.playerId)}
+                        {@const popStyle = `transform-origin: ${cx}px ${cy}px; transform: scale(${hovered ? 1.15 : 1}); transition: transform 0.12s ease-out`}
                         <rect x={cx - 20} y={cy - 14} width="40" height="28" rx="6"
-                              fill={hovered ? 'rgba(74,222,128,0.95)' : contrib.color}
-                              stroke={isYellow ? 'black' : 'none'} stroke-width={isYellow ? 1 : 0}
-                              opacity="0.9" />
+                              fill={contrib.color}
+                              stroke="black" stroke-width="1"
+                              opacity="0.9"
+                              style={popStyle} />
                         <text x={cx} y={cy} text-anchor="middle" dominant-baseline="middle"
-                              fill={isYellow ? 'black' : 'white'} font-size="16" font-weight="bold" style="font-family:sans-serif">
+                              fill={isYellow ? 'black' : 'white'} font-size="16" font-weight="bold"
+                              style="font-family:sans-serif; {popStyle}">
                             {contrib.amount}
                         </text>
                     {/each}
@@ -457,7 +606,7 @@
                     {@const isYellow = isYellowPlayer(contrib.playerId)}
                     <rect x={cx - 20} y={cy - 14} width="40" height="28" rx="6"
                           fill={contrib.color} opacity="0.9"
-                          stroke={isYellow ? 'black' : 'none'} stroke-width={isYellow ? 1 : 0} />
+                          stroke="black" stroke-width="1" />
                     <text x={cx} y={cy} text-anchor="middle" dominant-baseline="middle"
                           fill={isYellow ? 'black' : 'white'} font-size="16" font-weight="bold" style="font-family:sans-serif">
                         {contrib.amount}
@@ -474,15 +623,19 @@
             {@const cy = isH ? c.y1 - 28 : (c.y1 + c.y2) / 2}
             {@const key = labelKey(seg)}
             {@const hovered = hoveredLabelKey === key}
+            {@const popStyle = `transform-origin: ${cx}px ${cy}px; transform: scale(${hovered ? 1.15 : 1}); transition: transform 0.12s ease-out`}
             <g style="pointer-events: all; cursor: pointer"
                onclick={() => session.rejectAndBuild(seg)}
                onmouseenter={() => hoveredLabelKey = key}
                onmouseleave={() => hoveredLabelKey = null}>
                 <rect x={cx - 20} y={cy - 14} width="40" height="28" rx="6"
-                      fill={hovered ? 'rgba(74,222,128,0.95)' : 'rgba(194,65,12,0.9)'}
-                      opacity="0.9" />
+                      fill="rgba(194,65,12,0.9)"
+                      stroke="black" stroke-width="1"
+                      opacity="0.9"
+                      style={popStyle} />
                 <text x={cx} y={cy} text-anchor="middle" dominant-baseline="middle"
-                      fill="white" font-size="16" font-weight="bold" style="font-family:sans-serif">
+                      fill="white" font-size="16" font-weight="bold"
+                      style="font-family:sans-serif; {popStyle}">
                     {session.rejectPenalty > 0 ? `-${session.rejectPenalty}` : '0'}
                 </text>
             </g>
@@ -513,19 +666,18 @@
                 cy={intersectionY(session.gameState.board.spring.row)}
                 r="16.875"
                 fill="#000081"
+                stroke="#cccccc"
+                stroke-width="2.5"
             />
-            <!-- Spring pulse — a light-blue ring expanding outward from the spring, fading
-                 as it grows. The gradient is transparent through most of its radius so the
-                 ring only shows near its own (growing) outer edge. Loops every 6s until the
-                 first canal is placed, then drops to every 30s (a much rarer ambient effect
-                 once the board's more visually busy). -->
+            <!-- Spring pulse idle animation — disabled per Justin's feedback (didn't like it).
+                 Left commented out rather than deleted in case we want it back.
             <circle
                 cx={intersectionX(session.gameState.board.spring.col)}
                 cy={intersectionY(session.gameState.board.spring.row)}
                 r="0"
                 fill="url(#springPulseGradient)"
                 class={session.gameState.board.canals.length > 0 ? 'spring-pulse-slow' : 'spring-pulse'}
-            />
+            /> -->
         {:else if session.isSpringPlacementTurn}
             <!-- Spring placement — click any highlighted intersection (corners excluded) -->
             {#each [...session.validSpringSpots] as key}

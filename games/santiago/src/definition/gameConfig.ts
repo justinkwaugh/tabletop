@@ -21,11 +21,11 @@ const palmTreesOption: BooleanConfigOption = {
     default: true
 }
 
-const privateMoneyOption: BooleanConfigOption = {
-    id: 'privateMoney',
+const publicMoneyOption: BooleanConfigOption = {
+    id: 'publicMoney',
     type: ConfigOptionType.Boolean,
-    name: 'Private Money',
-    description: "Keep each player's escudo total private, as in the physical game — turn off to show everyone's money to everyone",
+    name: 'Public Money',
+    description: 'Turn off to keep money private',
     default: true
 }
 
@@ -33,11 +33,11 @@ export type SantiagoGameConfig = Type.Static<typeof SantiagoGameConfig>
 export const SantiagoGameConfig = Type.Object({
     randomizeSpring: Type.Optional(Type.Boolean({ default: true })),
     palmTrees: Type.Optional(Type.Boolean({ default: true })),
-    privateMoney: Type.Optional(Type.Boolean({ default: true }))
+    publicMoney: Type.Optional(Type.Boolean({ default: true }))
 })
 
 export const SantiagoGameConfigOptions: GameConfigOptions = [
     randomizeSpringOption,
     palmTreesOption,
-    privateMoneyOption
+    publicMoneyOption
 ]

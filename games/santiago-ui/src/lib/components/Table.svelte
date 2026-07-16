@@ -14,6 +14,7 @@
     import Board from './Board.svelte'
     import ActionPanel from './ActionPanel.svelte'
     import ActionToolbar from './ActionToolbar.svelte'
+    import PlayerActionBar from './PlayerActionBar.svelte'
     import LastActionBanner from './LastActionBanner.svelte'
     import WaitingPanel from './WaitingPanel.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
@@ -75,12 +76,10 @@
 </script>
 
 <style>
-@keyframes tile-glow {
-    0%, 100% { box-shadow: 0 0 4px 2px rgba(251, 191, 36, 0.4); }
-    50%       { box-shadow: 0 0 12px 5px rgba(251, 191, 36, 0.85); }
-}
-.tile-selected-glow {
-    animation: tile-glow 1.4s ease-in-out infinite;
+.tile-selected {
+    border: 3px solid white;
+    transform: scale(1.1);
+    transition: transform 0.15s ease-out;
 }
 </style>
 
@@ -136,8 +135,9 @@
         {#snippet gameContent()}
             <!-- Top part is not allowed to shrink -->
             <div class="shrink-0" bind:this={topBarEl}>
-                <ActionToolbar boardCenterX={boardCenter.value} />
+                <ActionToolbar />
                 <LastActionBanner boardCenterX={boardCenter.value} />
+                <PlayerActionBar boardCenterX={boardCenter.value} />
             </div>
             <!-- Bottom part fills the remaining space, but hides overflow to keep its height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size -->
@@ -158,18 +158,18 @@
                                          board's left, top-aligned with it, for the whole round.
                                          No label: position and the toolbar's own phase hint
                                          already make it obvious what these are. mt-5 nudges the
-                                         whole strip down slightly — the selected tile's glow
-                                         (tile-selected-glow, a box-shadow with 12px blur + 5px
-                                         spread) needs clearance above it when it's the top tile,
-                                         otherwise it clips against ScalingWrapper's measured
-                                         content box. Board is taller than this column, so this
-                                         borrows from its already-reserved height rather than
-                                         growing the row (which would re-break the board's
-                                         top-edge alignment with the player panel). -->
+                                         whole strip down slightly — the selected tile's scale-up
+                                         (tile-selected, transform:scale(1.1)) needs clearance
+                                         above it when it's the top tile, otherwise it clips
+                                         against ScalingWrapper's measured content box. Board is
+                                         taller than this column, so this borrows from its
+                                         already-reserved height rather than growing the row
+                                         (which would re-break the board's top-edge alignment
+                                         with the player panel). -->
                                     <div class="flex flex-col gap-2 shrink-0 mt-5">
                                         {#each displayTiles as { tile, isSelected }, i}
                                             {#if isSelected}
-                                                <div class="rounded-md overflow-hidden tile-selected-glow shrink-0"
+                                                <div class="rounded-md overflow-hidden tile-selected shrink-0"
                                                      style="width:{CELL_W}px; height:{CELL_H}px">
                                                     <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
                                                          alt={tile.crop}
@@ -193,7 +193,6 @@
                                                          alt={tile.crop}
                                                          class="w-full h-full object-cover"
                                                          style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5)) grayscale(30%)" />
-                                                    <div class="absolute bottom-0 inset-x-0 text-center bg-gray-800/70 text-[8px] text-gray-200 leading-tight py-px">neutral</div>
                                                 </div>
                                             {:else}
                                                 <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
@@ -207,7 +206,7 @@
                                                 <img src="/desert.png" alt="tiles remaining"
                                                      class="w-full h-full object-cover"
                                                      style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
-                                                <span class="absolute inset-0 flex items-center justify-center text-white font-black text-lg"
+                                                <span class="absolute inset-0 flex items-center justify-center text-white font-black text-[36px]"
                                                       style="text-shadow: 0 1px 3px rgba(0,0,0,0.9)">
                                                     {state.tileBag.length}
                                                 </span>

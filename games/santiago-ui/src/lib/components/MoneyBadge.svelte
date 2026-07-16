@@ -2,11 +2,13 @@
     let {
         amount,
         hidden = false,
+        blank = false,
         onclick,
         disabled = false
     }: {
-        amount: number
+        amount?: number
         hidden?: boolean
+        blank?: boolean
         onclick?: () => void
         disabled?: boolean
     } = $props()
@@ -20,7 +22,7 @@
     {onclick}
     disabled={interactive ? disabled : undefined}
     class="group relative inline-flex items-center justify-center shrink-0 leading-none {interactive ? 'cursor-pointer disabled:cursor-not-allowed disabled:opacity-40' : ''}"
-    style="width: 2.5em; height: 1.6em; {hidden ? 'opacity: 0.45; filter: grayscale(70%);' : ''}"
+    style="width: 2.5em; height: 1.6em; {hidden ? 'opacity: 0.45; filter: grayscale(70%);' : blank ? 'opacity: 0.4;' : ''}"
 >
     <svg viewBox="0 0 48 30"
          class="absolute inset-0 w-full h-full {interactive ? 'transition-[filter,transform] duration-150 group-hover:brightness-110 group-hover:drop-shadow-[0_0_6px_rgba(250,204,21,0.85)] group-active:scale-95' : ''}"
@@ -44,6 +46,6 @@
         class="relative z-[1] font-bold text-[0.78em] tracking-tight"
         style="color:#4a2f12; text-shadow: 0 1px 0 rgba(255,255,255,0.35); padding-left: 0.6em"
     >
-        {hidden ? '?' : amount}
+        {blank ? '' : hidden ? '?' : amount}
     </span>
 </svelte:element>
