@@ -21,6 +21,7 @@
     import PlayersPanel from './PlayersPanel.svelte'
     import History from './History.svelte'
     import { fieldImageUrl } from '$lib/utils/cropImages.js'
+    import { desertUrl } from '$lib/utils/imageUrls.js'
     import { CELL_W, CELL_H } from '$lib/utils/boardGeometry.js'
     import { useBoardCenterX } from '$lib/utils/boardCenter.svelte.js'
     import BitterFont from '$lib/fonts/Bitter.woff2'
@@ -220,7 +221,7 @@
                                         {/each}
                                         {#if state.tileBag.length > 0}
                                             <div class="relative rounded-md overflow-hidden" style="width:{CELL_W}px; height:{CELL_H}px">
-                                                <img src="/desert.png" alt="tiles remaining"
+                                                <img src={desertUrl} alt="tiles remaining"
                                                      class="w-full h-full object-cover"
                                                      style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
                                                 <span class="absolute inset-0 flex items-center justify-center text-white font-black text-[36px]"
