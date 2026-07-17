@@ -17,7 +17,6 @@
     import ActionToolbar from './ActionToolbar.svelte'
     import PlayerActionBar from './PlayerActionBar.svelte'
     import LastActionBanner from './LastActionBanner.svelte'
-    import WaitingPanel from './WaitingPanel.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
     import History from './History.svelte'
     import { fieldImageUrl } from '$lib/utils/cropImages.js'
@@ -36,7 +35,6 @@
 
     const session = $derived(gameSession as SantiagoGameSession)
     const state = $derived(session.gameState)
-    const isMyTurn = $derived(session.isMyTurn)
     const isEndOfGame = $derived(state.machineState === MachineState.EndOfGame)
     const isBidding = $derived(state.machineState === MachineState.Bidding)
     const isPlanting = $derived(state.machineState === MachineState.PlantingPhase)
@@ -125,10 +123,6 @@
                     {#if isEndOfGame}
                         <div class="border-b border-stone-700/60 p-2">
                             <ActionPanel />
-                        </div>
-                    {:else if !isMyTurn}
-                        <div class="border-b border-stone-700/60 p-2">
-                            <WaitingPanel />
                         </div>
                     {/if}
                     <PlayersPanel />
