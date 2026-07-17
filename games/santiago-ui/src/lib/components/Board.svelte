@@ -4,6 +4,7 @@
     import { Color } from '@tabletop/common'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import { fieldImageUrl } from '$lib/utils/cropImages.js'
+    import { boardUrl, desertUrl, palmtreeUrl } from '$lib/utils/imageUrls.js'
     import {
         W, H, BORDER_X, BORDER_Y, FIELD_W, FIELD_H, CELL_W, CELL_H,
         GRID_TEMPLATE_COLUMNS, GRID_TEMPLATE_ROWS, gridLine, intersectionX, intersectionY
@@ -402,7 +403,7 @@
 
 <div class="board-shell">
 <div class="board-surface relative"
-     style="width: {W}px; height: {H}px; background-image: url('/santiago_board.png'); background-size: 100% 100%; background-position: center center">
+     style="width: {W}px; height: {H}px; background-image: url('{boardUrl}'); background-size: 100% 100%; background-position: center center">
 
     <!-- Cell grid — inset to match board image's stone border -->
     <div class="absolute grid"
@@ -430,10 +431,10 @@
                     {/if}
                     {#if !isFieldSquare(sq)}
                         {#if sq.hasPalmTree}
-                            <img src="/palmtree.png" alt="palm tree" class="absolute inset-0 w-full h-full object-contain p-1" />
+                            <img src={palmtreeUrl} alt="palm tree" class="absolute inset-0 w-full h-full object-contain p-1" />
                         {/if}
                     {:else if sq.dried}
-                        <img src="/desert.png" alt="desert"
+                        <img src={desertUrl} alt="desert"
                              class="absolute object-cover"
                              style="inset:3px; width:calc(100% - 6px); height:calc(100% - 6px); border-radius:3px; transform:rotate({desertRotation(col,row)}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))" />
                     {:else}
@@ -452,7 +453,7 @@
                             </div>
                         {/if}
                         {#if sq.hasPalmTree}
-                            <img src="/palmtree.png" alt="palm tree" class="absolute bottom-0.5 right-0.5 w-8 h-8 object-contain" />
+                            <img src={palmtreeUrl} alt="palm tree" class="absolute bottom-0.5 right-0.5 w-8 h-8 object-contain" />
                         {/if}
                     {/if}
                 </button>

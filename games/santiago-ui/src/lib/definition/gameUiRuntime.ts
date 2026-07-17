@@ -9,6 +9,7 @@ import { mountDynamicComponent } from '@tabletop/frontend-components/utils/dynam
 import { SantiagoColorizer } from './gameColorizer.js'
 import Table from '../components/Table.svelte'
 import { SantiagoGameSession } from '../stores/SantiagoGameSession.svelte.js'
+import '../../app.css'
 
 const santiagoPlayerColorPalette: PlayerColorPalette = {
     [Color.Blue]: { fill: '#0d56ad', text: '#ffffff', contrast: '#ffffff' },

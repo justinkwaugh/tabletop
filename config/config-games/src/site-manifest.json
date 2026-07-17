@@ -166,6 +166,18 @@
         "1.2.0",
         "1.1.0"
       ]
+    },
+    {
+      "gameId": "santiago",
+      "packageId": "santiago",
+      "logicVersion": "1.0.0",
+      "uiVersion": "1.3.0",
+      "priorLogicVersions": [],
+      "priorUiVersions": [
+        "1.2.0",
+        "1.1.0",
+        "1.0.0"
+      ]
     }
   ]
 }
