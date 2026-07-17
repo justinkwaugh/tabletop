@@ -59,7 +59,7 @@
 <!-- Action area -->
 {#if hasActionContent}
     <div class="shrink-0 mt-1 min-h-[56px]">
-    <div class="max-w-full px-3 py-2 flex flex-wrap items-center gap-3 text-white text-base"
+    <div class="h-full max-w-full px-3 py-2 flex flex-wrap items-center gap-3 text-white text-base"
          style="margin-left: {boardCenterX !== null ? `${boardCenterX}px` : '50%'}; transform: translateX(-50%); width: fit-content">
 
         <!-- SPRING PLACEMENT -->
@@ -139,7 +139,7 @@
 
         <!-- PLANTING: NEUTRAL TILE PLACEMENT (3-player highest bidder) -->
         {:else if isMyNeutralPlacementTurn}
-            <span class="shrink-0 whitespace-nowrap font-semibold text-amber-300">Place the fourth field next to an existing tile</span>
+            <span class="shrink-0 whitespace-nowrap font-semibold text-amber-300 mt-2">Place the fourth field next to an existing field</span>
 
         <!-- CANAL BUILDING: PROPOSING/BRIBING -->
         {:else if isBuilding}
@@ -153,7 +153,7 @@
                                     onclick={() => session.passProposal()}>Pass</button>
                             </div>
                         {:else}
-                            <div class="flex flex-col gap-1">
+                            <div class="flex flex-col gap-1 mt-2">
                                 <div class="flex items-center gap-2">
                                     <button class="shrink-0 w-[40px] h-[40px] rounded-full bg-white/10 hover:bg-white/20 font-bold text-[20px] text-white disabled:opacity-30"
                                         onclick={() => session.setProposalAmount(session.proposalAmount - 1)} disabled={session.proposalAmount <= 1}>−</button>
@@ -165,7 +165,7 @@
                                     <button class="shrink-0 whitespace-nowrap px-[15px] py-[6px] rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-[15px] transition-colors"
                                         onclick={() => session.confirmProposal()}>Place Bribe</button>
                                 </div>
-                                <!-- Bracket spans exactly the − through Set Bribe group above. -->
+                                <!-- Bracket spans exactly the − through Place Bribe group above. -->
                                 <div class="flex items-center gap-1 text-stone-400">
                                     <div class="flex-1 relative">
                                         <div class="absolute inset-x-0 top-0 border-t border-current"></div>
@@ -181,7 +181,7 @@
                                 </div>
                                 <!-- "or Pass" centered under the whole group above (stretched to
                                      its width by the flex-col, then centered within that). -->
-                                <div class="flex items-center justify-center gap-2">
+                                <div class="flex items-center justify-center gap-2 mt-1">
                                     <span class="shrink-0 whitespace-nowrap text-amber-300 font-semibold">or</span>
                                     <button class="shrink-0 whitespace-nowrap px-[15px] py-[6px] rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold text-[15px] transition-colors"
                                         onclick={() => session.passProposal()}>Pass</button>

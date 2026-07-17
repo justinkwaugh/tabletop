@@ -5,6 +5,7 @@
         HistoryControls,
         DefaultTabs,
         GameChat,
+        CustomFont,
         GameSession
     } from '@tabletop/frontend-components'
     import { MachineState } from '@tabletop/santiago'
@@ -22,6 +23,8 @@
     import { fieldImageUrl } from '$lib/utils/cropImages.js'
     import { CELL_W, CELL_H } from '$lib/utils/boardGeometry.js'
     import { useBoardCenterX } from '$lib/utils/boardCenter.svelte.js'
+    import BitterFont from '$lib/fonts/Bitter.woff2'
+    import LoraFont from '$lib/fonts/Lora.woff2'
 
     let {
         gameSession
@@ -81,9 +84,20 @@
     transform: scale(1.1);
     transition: transform 0.15s ease-out;
 }
+
+/* Lora as Santiago's default body font, scoped to just this game's own subtree
+   (via :global + the .santiago-root ancestor) rather than overriding Tailwind's
+   shared --font-sans token, which would leak into the surrounding host page/harness
+   chrome that isn't part of Santiago at all. */
+:global(.santiago-root) {
+    font-family: 'Lora', ui-serif, Georgia, serif;
+}
 </style>
 
-<div class="earth-texture bg-[#1c1410]" style="--chat-height-offset: 0px">
+<CustomFont fontFamily="Bitter" url={BitterFont} format="woff2" />
+<CustomFont fontFamily="Lora" url={LoraFont} format="woff2" />
+
+<div class="santiago-root earth-texture bg-[#1c1410]" style="--chat-height-offset: 0px">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls
@@ -187,13 +201,16 @@
                                                          style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
                                                 </button>
                                             {:else if isNeutralPlacementMode}
-                                                <div class="relative rounded-md overflow-hidden ring-2 ring-purple-400/70 shrink-0"
-                                                     style="width:{CELL_W}px; height:{CELL_H}px">
+                                                <button
+                                                    onclick={() => session.selectTile(i)}
+                                                    class="relative rounded-md overflow-hidden ring-2 ring-purple-400/70 shrink-0 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                                    style="width:{CELL_W}px; height:{CELL_H}px"
+                                                >
                                                     <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
                                                          alt={tile.crop}
                                                          class="w-full h-full object-cover"
                                                          style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5)) grayscale(30%)" />
-                                                </div>
+                                                </button>
                                             {:else}
                                                 <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
                                                      alt={tile.crop}

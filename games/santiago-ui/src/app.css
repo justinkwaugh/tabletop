@@ -4,7 +4,13 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-    --font-sans: 'Lora', ui-serif, Georgia, serif;
+    /* Deliberately NOT --font-sans: that's a shared Tailwind token the surrounding
+       host page (and its own chrome, e.g. the Active/Finished tabs in the dev harness)
+       also relies on for ITS default font — overriding it here leaked Lora out past
+       Santiago's own markup. --font-heading is a name we invented (nothing else in
+       the host page references a "font-heading" utility), so it's safe to keep global;
+       the actual body-default (Lora) is applied narrowly, scoped to .santiago-root in
+       Table.svelte, see that file's <style> block. */
     --font-heading: 'Bitter', ui-serif, Georgia, serif;
     /* Tailwind's original default sans stack, for the handful of spots that should
        keep the pre-Lora/Bitter look (small uppercase labels, the round/phase readout). */
