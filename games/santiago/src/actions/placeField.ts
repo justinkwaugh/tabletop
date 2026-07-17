@@ -1,0 +1,68 @@
+import * as Type from 'typebox'
+import { GameAction, HydratableAction } from '@tabletop/common'
+import { Compile } from 'typebox/compile'
+import { ActionType } from '../definition/actions.js'
+import { HydratedSantiagoGameState } from '../model/gameState.js'
+import { SquareType } from '../model/board.js'
+
+export type PlaceField = Type.Static<typeof PlaceField>
+export const PlaceField = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['type']),
+        Type.Object({
+            type: Type.Literal(ActionType.PlaceField),
+            tileIndex: Type.Number({ minimum: 0 }),
+            col: Type.Number({ minimum: 0, maximum: 7 }),
+            row: Type.Number({ minimum: 0, maximum: 5 })
+        })
+    ])
+)
+
+export const PlaceFieldValidator = Compile(PlaceField)
+
+export function isPlaceField(action: GameAction): action is PlaceField {
+    return action.type === ActionType.PlaceField
+}
+
+export class HydratedPlaceField
+    extends HydratableAction<typeof PlaceField>
+    implements PlaceField
+{
+    declare type: ActionType.PlaceField
+    declare tileIndex: number
+    declare col: number
+    declare row: number
+
+    constructor(data: PlaceField) {
+        super(data, PlaceFieldValidator)
+    }
+
+    apply(state: HydratedSantiagoGameState) {
+        if (!this.playerId) throw new Error('PlaceField requires a playerId')
+        const tile = state.revealedTiles[this.tileIndex]
+        if (!tile) throw new Error(`No tile at index ${this.tileIndex}`)
+
+        const existing = state.board.squares[this.col][this.row]
+        if (existing.type !== SquareType.Empty) {
+            throw new Error(`Square (${this.col},${this.row}) is not empty`)
+        }
+
+        // Any player who bid 0 places one fewer farmer (minimum 0).
+        const player = state.players.find(p => p.playerId === this.playerId)
+        const farmerCount = player?.bid === 0
+            ? Math.max(0, tile.farmerCapacity - 1)
+            : tile.farmerCapacity
+
+        state.board.squares[this.col][this.row] = {
+            type: SquareType.Field,
+            crop: tile.crop,
+            playerId: this.playerId,
+            farmerCapacity: tile.farmerCapacity,
+            farmerCount,
+            hasPalmTree: existing.hasPalmTree,
+            dried: false
+        }
+
+        state.revealedTiles.splice(this.tileIndex, 1)
+    }
+}
