@@ -1,0 +1,207 @@
+import * as Type from 'typebox'
+import { Compile } from 'typebox/compile'
+import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { HydratedLowenherzGameState } from '../model/gameState.js'
+import { ActionType } from '../definition/actions.js'
+import {
+    castleSquaresForColor,
+    getSquare,
+    manhattanDistance,
+    neighbors,
+    SquareType
+} from '../model/board.js'
+import { buildPlacementPlan, currentPlacementSlot } from '../util/placementPlan.js'
+
+const SAME_COLOR_CASTLE_MIN_GAP = 6
+
+export type PlaceCastleMetadata = Type.Static<typeof PlaceCastleMetadata>
+export const PlaceCastleMetadata = Type.Object({})
+
+export type PlaceCastle = Type.Static<typeof PlaceCastle>
+export const PlaceCastle = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']), // Omit playerId to redefine it
+        Type.Object({
+            type: Type.Literal(ActionType.PlaceCastle), // This action is always this type
+            playerId: Type.String(), // Required now
+            castleCol: Type.Number(),
+            castleRow: Type.Number(),
+            knightCol: Type.Number(),
+            knightRow: Type.Number(),
+            metadata: Type.Optional(PlaceCastleMetadata) // Always optional, because it is an output
+        })
+    ])
+)
+
+export const PlaceCastleValidator = Compile(PlaceCastle)
+
+export function isPlaceCastle(action?: GameAction): action is PlaceCastle {
+    return action?.type === ActionType.PlaceCastle
+}
+
+// The total number of castles (any color) currently on the board - this always equals
+// how many setup placements have happened so far, since placement is the only way a
+// castle ever appears on the board.
+function totalCastlesPlaced(state: HydratedLowenherzGameState): number {
+    let count = 0
+    for (const row of state.board.squares) {
+        for (const square of row) {
+            if (square.castleColor) count++
+        }
+    }
+    return count
+}
+
+export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> implements PlaceCastle {
+    declare type: ActionType.PlaceCastle
+    declare playerId: string
+    declare castleCol: number
+    declare castleRow: number
+    declare knightCol: number
+    declare knightRow: number
+    declare metadata?: PlaceCastleMetadata
+
+    constructor(data: PlaceCastle) {
+        super(data, PlaceCastleValidator)
+    }
+
+    apply(state: HydratedLowenherzGameState, context?: MachineContext) {
+        if (!this.isValidPlaceCastle(state)) {
+            throw Error('Invalid PlaceCastle action')
+        }
+
+        const slot = currentPlacementSlot(this.buildPlan(state), totalCastlesPlaced(state))!
+
+        state.board.squares[this.castleRow][this.castleCol] = {
+            ...state.board.squares[this.castleRow][this.castleCol],
+            castleColor: slot.color
+        }
+        state.board.squares[this.knightRow][this.knightCol] = {
+            ...state.board.squares[this.knightRow][this.knightCol],
+            knightColor: slot.color
+        }
+
+        const playerState = state.getPlayerState(this.playerId)
+        // Neutral-color placements aren't drawn from any player's own knight stock.
+        if (slot.color === playerState.color) {
+            playerState.knightsInStock -= 1
+        }
+
+        this.metadata = {}
+    }
+
+    private buildPlan(state: HydratedLowenherzGameState) {
+        return buildPlacementPlan(
+            state.turnOrder,
+            (playerId) => state.getPlayerState(playerId).color,
+            state.neutralColor
+        )
+    }
+
+    isValidPlaceCastle(state: HydratedLowenherzGameState): boolean {
+        if (!HydratedPlaceCastle.isValidCastleSquare(state, this.playerId, this.castleCol, this.castleRow)) {
+            return false
+        }
+        return HydratedPlaceCastle.isValidKnightSquare(
+            state,
+            this.castleCol,
+            this.castleRow,
+            this.knightCol,
+            this.knightRow
+        )
+    }
+
+    static canPlaceCastle(state: HydratedLowenherzGameState, playerId: string): boolean {
+        const plan = buildPlacementPlan(
+            state.turnOrder,
+            (id) => state.getPlayerState(id).color,
+            state.neutralColor
+        )
+        const slot = currentPlacementSlot(plan, totalCastlesPlaced(state))
+        return slot?.playerId === playerId
+    }
+
+    // Everything about a candidate castle square that doesn't depend on which knight
+    // square goes with it - lets the UI validate/highlight a castle square the instant
+    // it's picked, rather than waiting until the knight square is also chosen.
+    static isValidCastleSquare(
+        state: HydratedLowenherzGameState,
+        playerId: string,
+        castleCol: number,
+        castleRow: number
+    ): boolean {
+        const plan = buildPlacementPlan(
+            state.turnOrder,
+            (id) => state.getPlayerState(id).color,
+            state.neutralColor
+        )
+        const slot = currentPlacementSlot(plan, totalCastlesPlaced(state))
+        if (!slot || slot.playerId !== playerId) return false
+
+        const castleSquare = getSquare(state.board, castleCol, castleRow)
+        if (!castleSquare) return false
+        if (castleSquare.type !== SquareType.Blank) return false
+        if (castleSquare.castleColor || castleSquare.knightColor) return false
+
+        const existingSameColorCastles = castleSquaresForColor(state.board, slot.color)
+        const tooClose = existingSameColorCastles.some(
+            (existing) =>
+                manhattanDistance(existing.col, existing.row, castleCol, castleRow) <
+                SAME_COLOR_CASTLE_MIN_GAP
+        )
+        return !tooClose
+    }
+
+    static isValidKnightSquare(
+        state: HydratedLowenherzGameState,
+        castleCol: number,
+        castleRow: number,
+        knightCol: number,
+        knightRow: number
+    ): boolean {
+        const isAdjacentToCastle = neighbors(castleCol, castleRow).some(
+            (n) => n.col === knightCol && n.row === knightRow
+        )
+        if (!isAdjacentToCastle) return false
+
+        const knightSquare = getSquare(state.board, knightCol, knightRow)
+        if (!knightSquare) return false
+        // Knights may never be placed on wooded spaces during setup (only during
+        // regular in-game play, where they're allowed for a ducat cost).
+        if (knightSquare.type !== SquareType.Blank) return false
+        if (knightSquare.castleColor || knightSquare.knightColor) return false
+
+        return true
+    }
+
+    static hasLegalKnightSquare(
+        state: HydratedLowenherzGameState,
+        castleCol: number,
+        castleRow: number
+    ): boolean {
+        return neighbors(castleCol, castleRow).some((n) =>
+            HydratedPlaceCastle.isValidKnightSquare(state, castleCol, castleRow, n.col, n.row)
+        )
+    }
+
+    // All castle squares currently legal for this player - a square only counts if it
+    // also has at least one legal adjacent knight square, since a castle placement that
+    // can never be completed isn't a real option.
+    static legalCastleSquares(
+        state: HydratedLowenherzGameState,
+        playerId: string
+    ): { col: number; row: number }[] {
+        const result: { col: number; row: number }[] = []
+        for (let row = 0; row < state.board.squares.length; row++) {
+            for (let col = 0; col < state.board.squares[row].length; col++) {
+                if (
+                    HydratedPlaceCastle.isValidCastleSquare(state, playerId, col, row) &&
+                    HydratedPlaceCastle.hasLegalKnightSquare(state, col, row)
+                ) {
+                    result.push({ col, row })
+                }
+            }
+        }
+        return result
+    }
+}
