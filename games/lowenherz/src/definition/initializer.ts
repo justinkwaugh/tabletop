@@ -13,6 +13,7 @@ import { LowenherzGameConfig } from './config.js'
 import { LowenherzColors } from './colors.js'
 import { assembleBoard } from '../util/boardAssembly.js'
 import { assembleActionDeck } from '../util/actionDeckAssembly.js'
+import { dealPoliticsCardPiles } from '../util/politicsCardAssembly.js'
 
 const STARTING_MONEY = 12
 const STARTING_KNIGHTS = 12
@@ -67,6 +68,7 @@ export class LowenherzGameInitializer
             turnManager: turnManager,
             board: assembleBoard(prng),
             regions: [],
+            alliances: [],
             // Cloned, not aliased: turnManager.turnOrder gets rotated in place by
             // generic engine bookkeeping (e.g. newFirstPlayer()) as turns advance, but
             // our own turnOrder must stay fixed as the seating order for the whole game.
@@ -84,7 +86,10 @@ export class LowenherzGameInitializer
             wallsRemaining: undefined,
             wallPlacingPlayerId: undefined,
             knightsRemaining: undefined,
-            knightPlacingPlayerId: undefined
+            knightPlacingPlayerId: undefined,
+
+            ...dealPoliticsCardPiles(prng),
+            politicsTakingPlayerId: undefined
         })
 
         // I suppose the engine could actually do the hydration with the hydrator, but this is how it
@@ -104,7 +109,8 @@ export class LowenherzGameInitializer
                 color: colors[index],
                 money: STARTING_MONEY,
                 powerPoints: 0,
-                knightsInStock: STARTING_KNIGHTS
+                knightsInStock: STARTING_KNIGHTS,
+                politicsCards: []
             })
         })
 

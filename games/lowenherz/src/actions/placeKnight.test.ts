@@ -4,6 +4,7 @@ import { HydratedLowenherzGameState, LowenherzGameState } from '../model/gameSta
 import { BOARD_COLS, BOARD_ROWS, BoardSquare, SquareType, WallEdge } from '../model/board.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
+import { PoliticsCardType } from '../definition/politicsCards.js'
 import { HydratedPlaceKnight } from './placeKnight.js'
 
 function blankBoard(): { squares: BoardSquare[][]; walls: { col: number; row: number; edge: WallEdge }[] } {
@@ -22,7 +23,8 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         color: [Color.Pink, Color.Yellow][index],
         money: 12,
         powerPoints: 0,
-        knightsInStock: 12
+        knightsInStock: 12,
+        politicsCards: []
     }))
 
     const data: LowenherzGameState = {
@@ -38,6 +40,7 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         winningPlayerIds: [],
         board: blankBoard(),
         regions: [],
+        alliances: [],
         turnOrder: playerIds,
         firstPlayerId: 'p1',
         neutralColor: undefined,
@@ -47,13 +50,20 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         resolvedSlots: [],
         knightsRemaining: 2,
         knightPlacingPlayerId: 'p1',
+        politicsCardPileA: [],
+        politicsCardPileB: [],
         ...overrides
     }
 
     return new HydratedLowenherzGameState(data)
 }
 
-function makePlaceKnight(playerId: string, col: number, row: number): HydratedPlaceKnight {
+function makePlaceKnight(
+    playerId: string,
+    col: number,
+    row: number,
+    treasureCardId?: string
+): HydratedPlaceKnight {
     return new HydratedPlaceKnight({
         id: `knight-${col}-${row}`,
         gameId: 'game-1',
@@ -61,7 +71,8 @@ function makePlaceKnight(playerId: string, col: number, row: number): HydratedPl
         type: ActionType.PlaceKnight,
         playerId,
         col,
-        row
+        row,
+        ...(treasureCardId ? { treasureCardId } : {})
     })
 }
 
@@ -111,6 +122,48 @@ describe('HydratedPlaceKnight', () => {
         state.getPlayerState('p1').money = 4
 
         expect(makePlaceKnight('p1', 1, 0).isValidPlaceKnight(state)).toBe(false)
+    })
+
+    it('pays the wooded cost with a Treasure card instead of ducats, losing the excess value', () => {
+        const board = blankBoard()
+        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][1] = { type: SquareType.Forest }
+        const state = buildState({ board })
+        state.getPlayerState('p1').money = 0 // can't afford it in ducats at all
+        state.getPlayerState('p1').politicsCards = [
+            { id: 'treasure-10', type: PoliticsCardType.Treasure, value: 10 }
+        ]
+
+        const action = makePlaceKnight('p1', 1, 0, 'treasure-10')
+        expect(action.isValidPlaceKnight(state)).toBe(true)
+        action.apply(state)
+
+        expect(state.getPlayerState('p1').money).toBe(0) // untouched - paid with the card, not ducats
+        expect(state.getPlayerState('p1').politicsCards).toEqual([])
+        expect(action.metadata).toEqual({
+            woodedCostPaid: 5,
+            paidWithTreasureCard: { id: 'treasure-10', type: PoliticsCardType.Treasure, value: 10 }
+        })
+    })
+
+    it('rejects a Treasure card that is not actually in the player\'s hand', () => {
+        const board = blankBoard()
+        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][1] = { type: SquareType.Forest }
+        const state = buildState({ board })
+
+        expect(makePlaceKnight('p1', 1, 0, 'nonexistent').isValidPlaceKnight(state)).toBe(false)
+    })
+
+    it('rejects using a Treasure card on a non-wooded square', () => {
+        const board = blankBoard()
+        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        const state = buildState({ board })
+        state.getPlayerState('p1').politicsCards = [
+            { id: 'treasure-8', type: PoliticsCardType.Treasure, value: 8 }
+        ]
+
+        expect(makePlaceKnight('p1', 1, 0, 'treasure-8').isValidPlaceKnight(state)).toBe(false)
     })
 
     it('rejects a placement from anyone other than the designated knight-placing player', () => {

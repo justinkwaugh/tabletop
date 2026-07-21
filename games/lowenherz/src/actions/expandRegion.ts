@@ -14,6 +14,7 @@ import {
 } from '../model/board.js'
 import { Region } from '../model/region.js'
 import { detectNewRegions } from '../util/regionDetection.js'
+import { areRegionsAllied } from '../util/allianceHelpers.js'
 import {
     countKnights,
     countTowns,
@@ -30,8 +31,15 @@ export const ExpandRegionInvasionMetadata = Type.Object({
     victimColor: Type.Enum(Color),
     directSpacesLost: Type.Number(),
     directPointsLost: Type.Number(),
+    // Where to anchor a "-N" board popup for the direct loss - one of the squares
+    // actually taken from this victim.
+    directAnchorSquareKey: Type.String(),
     disconnectedSpaces: Type.Number(),
-    disconnectedPointsLost: Type.Number()
+    disconnectedPointsLost: Type.Number(),
+    // Where to anchor a separate "-N" popup for the disconnection loss - only
+    // present when disconnectedSpaces > 0, since that loss happens somewhere else
+    // on the board than the directly-taken squares.
+    disconnectedAnchorSquareKey: Type.Optional(Type.String())
 })
 
 export type ExpandRegionMetadata = Type.Static<typeof ExpandRegionMetadata>
@@ -53,7 +61,8 @@ export const ExpandRegionMetadata = Type.Object({
                 ownerColor: Type.Optional(Type.Enum(Color)),
                 spaceCount: Type.Number(),
                 townCount: Type.Number(),
-                points: Type.Number()
+                points: Type.Number(),
+                anchorSquareKey: Type.String()
             })
         )
     )
@@ -193,10 +202,12 @@ export class HydratedExpandRegion
 
             let disconnectedSpaces = 0
             let disconnectedPointsLost = 0
+            let disconnectedAnchorSquareKey: string | undefined
             if (strandedComponents.length > 0) {
                 const strandedKeys = strandedComponents.flat()
                 disconnectedSpaces = strandedKeys.length
                 disconnectedPointsLost = scoreRegion({ id: '', squareKeys: strandedKeys }, state.board)
+                disconnectedAnchorSquareKey = strandedKeys[0]
                 if (victimPlayer) {
                     victimPlayer.powerPoints -= disconnectedPointsLost
                 }
@@ -213,8 +224,10 @@ export class HydratedExpandRegion
                 victimColor: victimRegion.ownerColor!,
                 directSpacesLost: spacesLost.length,
                 directPointsLost,
+                directAnchorSquareKey: spacesLost[0],
                 disconnectedSpaces,
-                disconnectedPointsLost
+                disconnectedPointsLost,
+                ...(disconnectedAnchorSquareKey ? { disconnectedAnchorSquareKey } : {})
             })
         }
 
@@ -239,7 +252,8 @@ export class HydratedExpandRegion
                 ownerColor: newRegion.ownerColor,
                 spaceCount: newRegion.squareKeys.length,
                 townCount: countTowns(newRegion, state.board),
-                points
+                points,
+                anchorSquareKey: newRegion.castleSquareKey ?? newRegion.squareKeys[0]
             })
             state.regions.push(newRegion)
             removeInteriorWalls(state.board, newRegion)
@@ -308,6 +322,9 @@ export class HydratedExpandRegion
             if (owningRegion && owningRegion.ownerColor) {
                 if (owningRegion.ownerColor === playerState.color) {
                     return "You can't merge one of your own regions into another."
+                }
+                if (areRegionsAllied(state.alliances, region.id, owningRegion.id)) {
+                    return "An alliance protects that region from expansion - it can't be invaded while allied."
                 }
                 // Invading is only allowed if the invader's knights in THIS region
                 // outnumber the defender's knights in the target region.

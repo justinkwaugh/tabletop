@@ -21,7 +21,8 @@ function buildState(playerIds: string[], overrides: Partial<LowenherzGameState> 
         color: [Color.Pink, Color.Yellow, Color.Purple, Color.Gray][index],
         money: 12,
         powerPoints: 0,
-        knightsInStock: 12
+        knightsInStock: 12,
+        politicsCards: []
     }))
 
     const data: LowenherzGameState = {
@@ -37,6 +38,7 @@ function buildState(playerIds: string[], overrides: Partial<LowenherzGameState> 
         winningPlayerIds: [],
         board: blankBoard(),
         regions: [],
+        alliances: [],
         turnOrder: playerIds,
         firstPlayerId: playerIds[0],
         neutralColor: playerIds.length < 4 ? Color.Gray : undefined,
@@ -44,6 +46,8 @@ function buildState(playerIds: string[], overrides: Partial<LowenherzGameState> 
         currentActionCard: undefined,
         decisions: [],
         resolvedSlots: [],
+        politicsCardPileA: [],
+        politicsCardPileB: [],
         ...overrides
     }
 

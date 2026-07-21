@@ -43,3 +43,14 @@ export function currentDecisionPlayer(plan: string[], totalDecisionsMade: number
 export function isRoundDecided(plan: string[], totalDecisionsMade: number): boolean {
     return totalDecisionsMade >= plan.length
 }
+
+// Whose turn it currently is to lay a decision card - the gating condition shared by
+// every politics card that's "played with a decision card" (Renegade, Alliance, and
+// cancelling an Alliance).
+export function currentChoosingPlayerId(
+    turnOrder: string[],
+    firstPlayerId: string,
+    totalDecisionsMade: number
+): string | undefined {
+    return currentDecisionPlayer(buildDecisionPlan(rotateToStart(turnOrder, firstPlayerId)), totalDecisionsMade)
+}

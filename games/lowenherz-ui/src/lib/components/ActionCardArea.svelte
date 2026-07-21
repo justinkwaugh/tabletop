@@ -10,6 +10,7 @@
 
     let offerAmount = $state(0)
     let bidAmount = $state(0)
+    let bidTreasureCardId = $state<string | undefined>(undefined)
 
     function playerName(playerId: string): string {
         return gameSession.game.players.find((p) => p.id === playerId)?.name ?? playerId
@@ -186,9 +187,24 @@
                                 bind:value={bidAmount}
                                 class="w-16 rounded border border-black/30 px-1 py-0.5"
                             />
+                            {#if gameSession.myTreasureCards.length > 0}
+                                <span>ducats +</span>
+                                <select
+                                    bind:value={bidTreasureCardId}
+                                    class="rounded border border-black/30 px-1 py-0.5"
+                                >
+                                    <option value={undefined}>no Treasure card</option>
+                                    {#each gameSession.myTreasureCards as treasureCard (treasureCard.id)}
+                                        <option value={treasureCard.id}>Treasure ({treasureCard.value})</option>
+                                    {/each}
+                                </select>
+                            {/if}
                             <button
                                 class="px-2 py-1 rounded bg-black/10 hover:bg-black/20 font-semibold"
-                                onclick={() => gameSession.submitDuelBid(bidAmount)}
+                                onclick={() => {
+                                    gameSession.submitDuelBid(bidAmount, bidTreasureCardId)
+                                    bidTreasureCardId = undefined
+                                }}
                             >
                                 Submit bid
                             </button>

@@ -1,12 +1,10 @@
 <script lang="ts">
     import ActionCard from './ActionCard.svelte'
     import PoliticsCard from './PoliticsCard.svelte'
-    import { ActionCardDeck as actionCardDeck } from '@tabletop/lowenherz'
-    import { politicsCardDeck, dealPoliticsPiles } from '$lib/data/politicsCards.js'
+    import { ActionCardDeck as actionCardDeck, PoliticsCardDeck } from '@tabletop/lowenherz'
     import actionBack from '$lib/images/action-cards/backs/back-a.jpg'
 
     const revealedCard = actionCardDeck[0]
-    const [politicsPileA, politicsPileB] = dealPoliticsPiles(politicsCardDeck)
 
     const labelStyle = "font-family: 'Blankenburg', serif; color: #2b1a0a;"
 </script>
@@ -25,14 +23,15 @@
         <span class="text-2xl" style={labelStyle}>Actions</span>
     </div>
 
-    <!-- Politics cards: two piles, top card flipped face-up -->
+    <!-- Politics cards: two face-down piles - a player only sees inside one of
+         these when they win the Crown and Scepter action. -->
     <div class="flex flex-col items-center gap-2">
         <div class="flex items-center gap-3">
             <div class="w-18">
-                <PoliticsCard card={politicsPileA[0]} />
+                <PoliticsCard card={PoliticsCardDeck[0]} faceDown />
             </div>
             <div class="w-18">
-                <PoliticsCard card={politicsPileB[0]} />
+                <PoliticsCard card={PoliticsCardDeck[1]} faceDown />
             </div>
         </div>
         <span class="text-2xl" style={labelStyle}>Politics</span>

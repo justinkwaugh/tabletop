@@ -14,6 +14,10 @@ import { HydratedPlaceWall, isPlaceWall } from '../actions/placeWall.js'
 import { HydratedPlaceKnight, isPlaceKnight } from '../actions/placeKnight.js'
 import { HydratedExpandRegion, isExpandRegion } from '../actions/expandRegion.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
+import { HydratedTakePoliticsCard, isTakePoliticsCard } from '../actions/takePoliticsCard.js'
+import { HydratedPlayRenegadeCard, isPlayRenegadeCard } from '../actions/playRenegadeCard.js'
+import { HydratedPlayAllianceCard, isPlayAllianceCard } from '../actions/playAllianceCard.js'
+import { HydratedCancelAlliance, isCancelAlliance } from '../actions/cancelAlliance.js'
 
 // This is essentially a factory that knows how to take raw action and state data
 // and return the correct hydrated class instances for the Löwenherz game.  Used by the game engine
@@ -51,6 +55,18 @@ export class LowenherzHydrator
             }
             case isPass(data): {
                 return new HydratedPass(data)
+            }
+            case isTakePoliticsCard(data): {
+                return new HydratedTakePoliticsCard(data)
+            }
+            case isPlayRenegadeCard(data): {
+                return new HydratedPlayRenegadeCard(data)
+            }
+            case isPlayAllianceCard(data): {
+                return new HydratedPlayAllianceCard(data)
+            }
+            case isCancelAlliance(data): {
+                return new HydratedCancelAlliance(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)

@@ -53,6 +53,19 @@ export function findConnectedComponents(squareKeys: string[]): string[][] {
     return components
 }
 
+// True if any square in one region is orthogonally adjacent to any square in the
+// other - ignoring walls, same as expansion adjacency, since a completed region is
+// always fully walled in already. Used for the politics cards that require "two
+// neighboring regions (one of your own and another prince's)" - Alliance and
+// Renegade.
+export function regionsAreNeighboring(a: Region, b: Region): boolean {
+    const bKeys = new Set(b.squareKeys)
+    return a.squareKeys.some((key) => {
+        const [col, row] = key.split(',').map(Number)
+        return neighbors(col, row).some((n) => bKeys.has(squareKey(n.col, n.row)))
+    })
+}
+
 // Region creation table from the rulebook: total spaces -> power points, plus a flat
 // +5 for each town (village) space contained in the region.
 export function scoreRegion(region: Region, board: LowenherzBoard): number {

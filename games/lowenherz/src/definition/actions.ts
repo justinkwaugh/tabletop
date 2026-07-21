@@ -11,4 +11,8 @@ export enum ActionType {
     PlaceKnight = 'placeKnight',
     ExpandRegion = 'expandRegion',
     Pass = 'pass',
+    TakePoliticsCard = 'takePoliticsCard',
+    PlayRenegadeCard = 'playRenegadeCard',
+    PlayAllianceCard = 'playAllianceCard',
+    CancelAlliance = 'cancelAlliance',
 }

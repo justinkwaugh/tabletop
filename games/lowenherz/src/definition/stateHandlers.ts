@@ -1,4 +1,4 @@
-import { type HydratedAction, type MachineStateHandler, TerminalStateHandler } from '@tabletop/common'
+import { type HydratedAction, type MachineStateHandler } from '@tabletop/common'
 import { MachineState } from './states.js'
 import type { HydratedLowenherzGameState } from '../model/gameState.js'
 import { StartOfTurnStateHandler } from '../stateHandlers/startOfTurn.js'
@@ -9,6 +9,8 @@ import { NegotiatingStateHandler } from '../stateHandlers/negotiating.js'
 import { DuelingStateHandler } from '../stateHandlers/dueling.js'
 import { PlacingWallsStateHandler } from '../stateHandlers/placingWalls.js'
 import { PlacingKnightsStateHandler } from '../stateHandlers/placingKnights.js'
+import { TakingPoliticsCardStateHandler } from '../stateHandlers/takingPoliticsCard.js'
+import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
 
 // The mapping of machine states to their handlers for the Löwenherz game, used by the game engine
 export const LowenherzStateHandlers: Record<
@@ -23,7 +25,6 @@ export const LowenherzStateHandlers: Record<
     [MachineState.Dueling]: new DuelingStateHandler(),
     [MachineState.PlacingWalls]: new PlacingWallsStateHandler(),
     [MachineState.PlacingKnights]: new PlacingKnightsStateHandler(),
-    // Region expansion and politics-card effects aren't built yet, and there's
-    // nothing further to do once the King is Dead - both intentional dead ends.
-    [MachineState.EndOfGame]: new TerminalStateHandler(),
+    [MachineState.TakingPoliticsCard]: new TakingPoliticsCardStateHandler(),
+    [MachineState.EndOfGame]: new EndOfGameStateHandler(),
 }

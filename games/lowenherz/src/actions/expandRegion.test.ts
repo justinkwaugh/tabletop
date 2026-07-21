@@ -30,7 +30,8 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         color: [Color.Pink, Color.Yellow][index],
         money: 12,
         powerPoints: 0,
-        knightsInStock: 12
+        knightsInStock: 12,
+        politicsCards: []
     }))
 
     const data: LowenherzGameState = {
@@ -46,6 +47,7 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         winningPlayerIds: [],
         board: blankBoard(),
         regions: [{ id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' }],
+        alliances: [],
         turnOrder: playerIds,
         firstPlayerId: 'p1',
         neutralColor: undefined,
@@ -55,6 +57,8 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         resolvedSlots: [],
         knightsRemaining: 2,
         knightPlacingPlayerId: 'p1',
+        politicsCardPileA: [],
+        politicsCardPileB: [],
         ...overrides
     }
 
@@ -157,7 +161,9 @@ describe('HydratedExpandRegion', () => {
             spacesTaken: 2,
             townsTaken: 0,
             pointsGained: 2,
-            completedRegions: [{ ownerColor: Color.Yellow, spaceCount: 2, townCount: 0, points: 3 }]
+            completedRegions: [
+                { ownerColor: Color.Yellow, spaceCount: 2, townCount: 0, points: 3, anchorSquareKey: '2,0' }
+            ]
         })
     })
 
@@ -302,6 +308,29 @@ describe('HydratedExpandRegion', () => {
         )
     })
 
+    it('rejects invading a region that is allied with the invader, even when knights outnumber it', () => {
+        const board = blankBoard()
+        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink } // (0,0)
+        board.squares[1][0] = { type: SquareType.Blank, knightColor: Color.Pink } // (0,1)
+        board.squares[2][0] = { type: SquareType.Blank, knightColor: Color.Pink } // (0,2) - invader has 2 knights
+        board.squares[1][2] = { type: SquareType.Blank, castleColor: Color.Yellow } // (2,1)
+        board.squares[1][3] = { type: SquareType.Blank, knightColor: Color.Yellow } // (3,1) - defender has 1 knight
+        const state = buildState({
+            board,
+            regions: [
+                { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0', '0,1', '0,2'], castleSquareKey: '0,0' },
+                { id: 'r2', ownerColor: Color.Yellow, squareKeys: ['1,1', '2,1', '3,1'], castleSquareKey: '2,1' }
+            ],
+            alliances: [{ id: 'alliance-1', regionAId: 'r1', regionBId: 'r2' }]
+        })
+
+        const action = makeExpandRegion('p1', 'r1', [{ col: 1, row: 1 }])
+        expect(action.isValidExpandRegion(state)).toBe(false)
+        expect(action.invalidExpandRegionReason(state)).toBe(
+            "An alliance protects that region from expansion - it can't be invaded while allied."
+        )
+    })
+
     it('invades another region when the invader\'s knights outnumber the defender\'s, with direct loss/gain', () => {
         const board = blankBoard()
         board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink } // (0,0)
@@ -334,6 +363,7 @@ describe('HydratedExpandRegion', () => {
                     victimColor: Color.Yellow,
                     directSpacesLost: 1,
                     directPointsLost: 1,
+                    directAnchorSquareKey: '1,1',
                     disconnectedSpaces: 0,
                     disconnectedPointsLost: 0
                 }
@@ -398,8 +428,10 @@ describe('HydratedExpandRegion', () => {
                     victimColor: Color.Yellow,
                     directSpacesLost: 1,
                     directPointsLost: 1,
+                    directAnchorSquareKey: '2,1',
                     disconnectedSpaces: 1,
-                    disconnectedPointsLost: 8
+                    disconnectedPointsLost: 8,
+                    disconnectedAnchorSquareKey: '3,1'
                 }
             ]
         })

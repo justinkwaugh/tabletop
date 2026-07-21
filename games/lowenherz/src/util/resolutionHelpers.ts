@@ -43,8 +43,15 @@ export function routeAfterSlotResolved(state: HydratedLowenherzGameState): Machi
     const card = state.currentActionCard
     if (!card || card.type !== ActionCardType.Standard) return MachineState.ResolvingActions
 
-    // Slot 1 is always income/politics, never border/knight - band is only defined
-    // for slots 2/3.
+    // Slot 1 is income or politics - Money Bag is handled directly in
+    // ResolvingActionsStateHandler (it never has a real winner, so it can't reach
+    // here), so the only slot-1 case reaching here with a winner is Crown and Scepter.
+    if (lastResolved.slot === 1 && card.top.kind === 'politics') {
+        state.politicsTakingPlayerId = winnerId
+        return MachineState.TakingPoliticsCard
+    }
+
+    // Slot 1 is handled above; band is only defined for slots 2/3.
     const band = lastResolved.slot === 2 ? card.middle : lastResolved.slot === 3 ? card.bottom : undefined
     if (!band) return MachineState.ResolvingActions
 

@@ -3,6 +3,10 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { HydratedChooseAction } from '../actions/chooseAction.js'
+import { HydratedPlayRenegadeCard } from '../actions/playRenegadeCard.js'
+import { HydratedPlayAllianceCard } from '../actions/playAllianceCard.js'
+import { HydratedCancelAlliance, ALLIANCE_CANCELLATION_COST } from '../actions/cancelAlliance.js'
+import { PoliticsCardType } from '../definition/politicsCards.js'
 import {
     buildDecisionPlan,
     currentDecisionPlayer,
@@ -10,7 +14,11 @@ import {
     rotateToStart
 } from '../util/decisionPlan.js'
 
-type ChoosingActionsAction = HydratedChooseAction
+type ChoosingActionsAction =
+    | HydratedChooseAction
+    | HydratedPlayRenegadeCard
+    | HydratedPlayAllianceCard
+    | HydratedCancelAlliance
 
 function planFor(state: HydratedLowenherzGameState): string[] {
     return buildDecisionPlan(rotateToStart(state.turnOrder, state.firstPlayerId))
@@ -23,16 +31,51 @@ export class ChoosingActionsStateHandler
         action: HydratedAction,
         context: MachineContext<HydratedLowenherzGameState>
     ): action is ChoosingActionsAction {
-        return action instanceof HydratedChooseAction && action.isValidChooseAction(context.gameState)
+        if (action instanceof HydratedChooseAction) return action.isValidChooseAction(context.gameState)
+        if (action instanceof HydratedPlayRenegadeCard) {
+            return action.isValidPlayRenegadeCard(context.gameState)
+        }
+        if (action instanceof HydratedPlayAllianceCard) {
+            return action.isValidPlayAllianceCard(context.gameState)
+        }
+        if (action instanceof HydratedCancelAlliance) {
+            return action.isValidCancelAlliance(context.gameState)
+        }
+        return false
     }
 
     validActionsForPlayer(
         playerId: string,
         context: MachineContext<HydratedLowenherzGameState>
     ): ActionType[] {
-        return HydratedChooseAction.canChooseAction(context.gameState, playerId)
-            ? [ActionType.ChooseAction]
-            : []
+        if (!HydratedChooseAction.canChooseAction(context.gameState, playerId)) return []
+
+        const result: ActionType[] = [ActionType.ChooseAction]
+        const playerState = context.gameState.getPlayerState(playerId)
+        // Cheap checks only (holds a Renegade/Alliance card, has a knight to place
+        // with it, etc.) - like every other action in this engine, the full
+        // target-availability check (a neighboring enemy region, a removable knight, a
+        // legal placement spot) happens when the action is actually submitted, not
+        // when just offering it.
+        const hasRenegadeCard = playerState.politicsCards.some((c) => c.type === PoliticsCardType.Renegade)
+        if (hasRenegadeCard && playerState.knightsInStock > 0) {
+            result.push(ActionType.PlayRenegadeCard)
+        }
+        const hasAllianceCard = playerState.politicsCards.some((c) => c.type === PoliticsCardType.Alliance)
+        if (hasAllianceCard) {
+            result.push(ActionType.PlayAllianceCard)
+        }
+        const canCancelAnAlliance =
+            playerState.money >= ALLIANCE_CANCELLATION_COST &&
+            context.gameState.alliances.some((a) => {
+                const regionA = context.gameState.regions.find((r) => r.id === a.regionAId)
+                const regionB = context.gameState.regions.find((r) => r.id === a.regionBId)
+                return regionA?.ownerColor === playerState.color || regionB?.ownerColor === playerState.color
+            })
+        if (canCancelAnAlliance) {
+            result.push(ActionType.CancelAlliance)
+        }
+        return result
     }
 
     enter(context: MachineContext<HydratedLowenherzGameState>) {
@@ -49,6 +92,18 @@ export class ChoosingActionsStateHandler
         context: MachineContext<HydratedLowenherzGameState>
     ): MachineState {
         const gameState = context.gameState
+
+        // Playing (or cancelling) a politics card doesn't consume the player's
+        // decision-card turn - they still need to separately submit ChooseAction to
+        // actually advance.
+        if (
+            action instanceof HydratedPlayRenegadeCard ||
+            action instanceof HydratedPlayAllianceCard ||
+            action instanceof HydratedCancelAlliance
+        ) {
+            return MachineState.ChoosingActions
+        }
+
         return isRoundDecided(planFor(gameState), gameState.decisions.length)
             ? MachineState.ResolvingActions
             : MachineState.ChoosingActions

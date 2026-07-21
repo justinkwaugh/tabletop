@@ -24,7 +24,8 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         color: [Color.Pink, Color.Yellow][index],
         money: 12,
         powerPoints: 0,
-        knightsInStock: 12
+        knightsInStock: 12,
+        politicsCards: []
     }))
 
     const data: LowenherzGameState = {
@@ -40,6 +41,7 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         winningPlayerIds: [],
         board: blankBoard(),
         regions: [],
+        alliances: [],
         turnOrder: playerIds,
         firstPlayerId: 'p1',
         neutralColor: undefined,
@@ -49,6 +51,8 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         resolvedSlots: [],
         wallsRemaining: 2,
         wallPlacingPlayerId: 'p1',
+        politicsCardPileA: [],
+        politicsCardPileB: [],
         ...overrides
     }
 

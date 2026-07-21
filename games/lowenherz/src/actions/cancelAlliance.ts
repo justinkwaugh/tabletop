@@ -1,0 +1,98 @@
+import * as Type from 'typebox'
+import { Compile } from 'typebox/compile'
+import { Color, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { HydratedLowenherzGameState } from '../model/gameState.js'
+import { ActionType } from '../definition/actions.js'
+import { currentChoosingPlayerId } from '../util/decisionPlan.js'
+
+export const ALLIANCE_CANCELLATION_COST = 10
+
+export type CancelAllianceMetadata = Type.Static<typeof CancelAllianceMetadata>
+export const CancelAllianceMetadata = Type.Object({
+    otherColor: Type.Enum(Color)
+})
+
+export type CancelAlliance = Type.Static<typeof CancelAlliance>
+export const CancelAlliance = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']), // Omit playerId to redefine it
+        Type.Object({
+            type: Type.Literal(ActionType.CancelAlliance), // This action is always this type
+            playerId: Type.String(), // Required now
+            allianceId: Type.String(),
+            metadata: Type.Optional(CancelAllianceMetadata) // Always optional, because it is an output
+        })
+    ])
+)
+
+export const CancelAllianceValidator = Compile(CancelAlliance)
+
+export function isCancelAlliance(action?: GameAction): action is CancelAlliance {
+    return action?.type === ActionType.CancelAlliance
+}
+
+// Ends an existing alliance early, by paying its 10-ducat cancellation cost to the
+// bank - "an alliance can be ended at any time if one of the two players
+// participating in it pays ten ducats to the bank." Scoped (like playing the card in
+// the first place) to only be available on the canceling player's own turn to lay a
+// decision card, rather than truly "any time" in the round.
+export class HydratedCancelAlliance extends HydratableAction<typeof CancelAlliance> implements CancelAlliance {
+    declare type: ActionType.CancelAlliance
+    declare playerId: string
+    declare allianceId: string
+    declare metadata?: CancelAllianceMetadata
+
+    constructor(data: CancelAlliance) {
+        super(data, CancelAllianceValidator)
+    }
+
+    apply(state: HydratedLowenherzGameState, context?: MachineContext) {
+        if (!this.isValidCancelAlliance(state)) {
+            throw Error('Invalid CancelAlliance action')
+        }
+
+        const playerState = state.getPlayerState(this.playerId)
+        const alliance = state.alliances.find((a) => a.id === this.allianceId)!
+        const regionA = state.regions.find((r) => r.id === alliance.regionAId)!
+        const regionB = state.regions.find((r) => r.id === alliance.regionBId)!
+        const otherColor = regionA.ownerColor === playerState.color ? regionB.ownerColor! : regionA.ownerColor!
+
+        playerState.money -= ALLIANCE_CANCELLATION_COST
+        state.alliances = state.alliances.filter((a) => a.id !== this.allianceId)
+
+        this.metadata = { otherColor }
+    }
+
+    isValidCancelAlliance(state: HydratedLowenherzGameState): boolean {
+        return this.invalidCancelAllianceReason(state) === undefined
+    }
+
+    // Same checks as isValidCancelAlliance, but reports WHY a cancellation is
+    // rejected - the client uses this to show a specific message instead of one
+    // generic one.
+    invalidCancelAllianceReason(state: HydratedLowenherzGameState): string | undefined {
+        if (currentChoosingPlayerId(state.turnOrder, state.firstPlayerId, state.decisions.length) !== this.playerId) {
+            return "It isn't your turn to lay a decision card."
+        }
+
+        const alliance = state.alliances.find((a) => a.id === this.allianceId)
+        if (!alliance) {
+            return "That alliance doesn't exist (any more)."
+        }
+
+        const playerState = state.getPlayerState(this.playerId)
+        const regionA = state.regions.find((r) => r.id === alliance.regionAId)
+        const regionB = state.regions.find((r) => r.id === alliance.regionBId)
+        const isParticipant =
+            regionA?.ownerColor === playerState.color || regionB?.ownerColor === playerState.color
+        if (!isParticipant) {
+            return "You're not one of the two princes in that alliance."
+        }
+
+        if (playerState.money < ALLIANCE_CANCELLATION_COST) {
+            return `You need ${ALLIANCE_CANCELLATION_COST} ducats to cancel an alliance.`
+        }
+
+        return undefined
+    }
+}

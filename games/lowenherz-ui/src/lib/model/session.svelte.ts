@@ -1,14 +1,18 @@
-import { ActionSource } from '@tabletop/common'
+import { ActionSource, type Color } from '@tabletop/common'
 import { GameSession } from '@tabletop/frontend-components'
 import {
     ActionType,
+    ALLIANCE_CANCELLATION_COST,
+    areRegionsAllied,
     BOARD_COLS,
     BOARD_ROWS,
+    CancelAlliance,
     ChooseAction,
     detectNewRegions,
     DrawActionCard,
     ExpandRegion,
     getSquare,
+    HydratedCancelAlliance,
     HydratedChooseAction,
     HydratedDrawActionCard,
     HydratedExpandRegion,
@@ -17,7 +21,10 @@ import {
     HydratedPlaceCastle,
     HydratedPlaceKnight,
     HydratedPlaceWall,
+    HydratedPlayAllianceCard,
+    HydratedPlayRenegadeCard,
     HydratedSubmitDuelBid,
+    isKnightSafeToRemove,
     isOnBoard,
     isWalledBetween,
     LowenherzGameState,
@@ -30,10 +37,19 @@ import {
     PlaceCastle,
     PlaceKnight,
     PlaceWall,
+    PlayAllianceCard,
+    PlayRenegadeCard,
+    type PoliticsCard,
+    PoliticsCardType,
     Region,
+    regionsAreNeighboring,
     removeInteriorWalls,
     scoreRegion,
+    squareKey,
+    SquareType,
     SubmitDuelBid,
+    TakePoliticsCard,
+    HydratedTakePoliticsCard,
     wallBetween
 } from '@tabletop/lowenherz'
 
@@ -198,44 +214,74 @@ export class LowenherzGameSession extends GameSession<
     }
 
     // Testing convenience only - not a real player action, and not a real Boundary
-    // Walls action either. Encloses one castle+knight pair per distinct color already
-    // on the board (skipping colors that already own a region) into a minimal walled
-    // region, exactly like a real wall placement would score it - so expansion and
-    // invasion can be tested right after setup, without first playing through card
-    // draws and negotiations/duels to actually win a border action. Idempotent - safe
-    // to call again later, since it only touches colors that don't already have a
-    // region (e.g. call it again after an invasion strands a color's whole region to
-    // give them a fresh foothold).
+    // Walls action either. Encloses EVERY castle+knight pair not already part of a
+    // region (one blob per castle, not just one per color - a color with several
+    // castles gets several regions) and grows each blob outward into open, unclaimed
+    // territory, so seeded regions are big enough and numerous enough to reach
+    // multi-region expansion/invasion scenarios quickly, without first playing
+    // through card draws and negotiations/duels to actually win border actions.
+    // Idempotent - safe to call again later (e.g. after an invasion strands part of
+    // a region, or to seed any castle that still has none) since it only touches
+    // castles that aren't already part of a tracked region.
     async seedTestRegions() {
         if (!this.setupComplete) return
 
+        const TARGET_BLOB_SIZE = 8
         const board = this.gameState.board
-        const alreadyOwnedColors = new Set(this.gameState.regions.map((r) => r.ownerColor).filter(Boolean))
+        const claimedKeys = new Set(this.gameState.regions.flatMap((r) => r.squareKeys))
 
-        const seedPairs = new Map<
-            string,
-            { castle: { col: number; row: number }; knight: { col: number; row: number } }
-        >()
+        const blobs: { col: number; row: number }[][] = []
         for (const castle of this.allCastleSquares()) {
+            if (claimedKeys.has(squareKey(castle.col, castle.row))) continue
             const color = getSquare(board, castle.col, castle.row)?.castleColor
-            if (!color || alreadyOwnedColors.has(color) || seedPairs.has(color)) continue
+            if (!color) continue
 
             const knight = neighbors(castle.col, castle.row).find(
                 (n) => isOnBoard(n.col, n.row) && getSquare(board, n.col, n.row)?.knightColor === color
             )
             if (!knight) continue
 
-            seedPairs.set(color, { castle, knight })
+            const cells = [castle, knight]
+            const cellKeys = new Set([squareKey(castle.col, castle.row), squareKey(knight.col, knight.row)])
+            while (cells.length < TARGET_BLOB_SIZE) {
+                const grownFrom = cells.find((cell) =>
+                    neighbors(cell.col, cell.row).some((n) => {
+                        if (!isOnBoard(n.col, n.row)) return false
+                        const nKey = squareKey(n.col, n.row)
+                        if (cellKeys.has(nKey) || claimedKeys.has(nKey)) return false
+                        const sq = getSquare(board, n.col, n.row)
+                        if (sq?.castleColor) return false // never absorb another castle
+                        if (sq?.knightColor && sq.knightColor !== color) return false // foreign knight
+                        return true
+                    })
+                )
+                if (!grownFrom) break // no more room to grow near this blob
+
+                const candidate = neighbors(grownFrom.col, grownFrom.row).find((n) => {
+                    if (!isOnBoard(n.col, n.row)) return false
+                    const nKey = squareKey(n.col, n.row)
+                    if (cellKeys.has(nKey) || claimedKeys.has(nKey)) return false
+                    const sq = getSquare(board, n.col, n.row)
+                    if (sq?.castleColor) return false
+                    if (sq?.knightColor && sq.knightColor !== color) return false
+                    return true
+                })!
+                cells.push(candidate)
+                cellKeys.add(squareKey(candidate.col, candidate.row))
+            }
+
+            cells.forEach((c) => claimedKeys.add(squareKey(c.col, c.row)))
+            blobs.push(cells)
         }
 
-        if (seedPairs.size === 0) return
+        if (blobs.length === 0) return
 
-        for (const { castle, knight } of seedPairs.values()) {
-            for (const cell of [castle, knight]) {
-                const partner = cell === castle ? knight : castle
+        for (const cells of blobs) {
+            const cellSet = new Set(cells.map((c) => squareKey(c.col, c.row)))
+            for (const cell of cells) {
                 for (const n of neighbors(cell.col, cell.row)) {
                     if (!isOnBoard(n.col, n.row)) continue
-                    if (n.col === partner.col && n.row === partner.row) continue // shared edge stays open
+                    if (cellSet.has(squareKey(n.col, n.row))) continue
                     if (isWalledBetween(board, cell.col, cell.row, n.col, n.row)) continue
 
                     const wall = wallBetween(cell.col, cell.row, n.col, n.row)
@@ -345,7 +391,17 @@ export class LowenherzGameSession extends GameSession<
         return duel.playerIds.includes(this.myPlayer.id) && !duel.bids.some((b) => b.playerId === this.myPlayer!.id)
     }
 
-    async submitDuelBid(amount: number) {
+    // This player's Treasure cards - usable to back a duel bid, or to cover the
+    // wooded-knight cost, on top of (or instead of) ducats. Held cards aren't shown
+    // for other players (see LowenherzPlayerState.politicsCards' comment).
+    get myTreasureCards(): PoliticsCard[] {
+        if (!this.myPlayer) return []
+        return this.gameState
+            .getPlayerState(this.myPlayer.id)
+            .politicsCards.filter((c) => c.type === PoliticsCardType.Treasure)
+    }
+
+    async submitDuelBid(amount: number, treasureCardId?: string) {
         if (!this.myPlayer || !this.canSubmitDuelBid) return
 
         const candidate = new HydratedSubmitDuelBid({
@@ -354,14 +410,18 @@ export class LowenherzGameSession extends GameSession<
             source: ActionSource.User,
             type: ActionType.SubmitDuelBid,
             playerId: this.myPlayer.id,
-            amount
+            amount,
+            ...(treasureCardId ? { treasureCardId } : {})
         })
         if (!candidate.isValidSubmitDuelBid(this.gameState)) {
-            this.errorMessage = "That bid isn't allowed — it must be a whole number of ducats you can afford."
+            this.errorMessage = "That bid isn't allowed — it must be a whole number of ducats you can afford, backed by a Treasure card you actually hold (if any)."
             return
         }
 
-        const action = this.createPlayerAction(SubmitDuelBid, { amount })
+        const action = this.createPlayerAction(SubmitDuelBid, {
+            amount,
+            ...(treasureCardId ? { treasureCardId } : {})
+        })
         this.errorMessage = undefined
         try {
             await this.applyAction(action)
@@ -472,6 +532,21 @@ export class LowenherzGameSession extends GameSession<
         )
     }
 
+    // Armed Treasure card (if any) for the next wooded knight placement or duel bid -
+    // purely local UI selection, same pattern as selectedExpandRegionId. Only actually
+    // applied to a knight placement when the target square is wooded (see
+    // placeKnight/legalKnightSquares) - arming one doesn't make other squares illegal.
+    selectedTreasureCardId: string | undefined = $state(undefined)
+
+    selectTreasureCard(cardId: string | undefined) {
+        this.selectedTreasureCardId = cardId
+    }
+
+    private treasureCardIdFor(col: number, row: number): string | undefined {
+        const square = getSquare(this.gameState.board, col, row)
+        return square?.type === SquareType.Forest ? this.selectedTreasureCardId : undefined
+    }
+
     // Every square the current player could legally place a knight on right now -
     // highlighted before it's clicked, same pattern as legalCastleSquares.
     get legalKnightSquares(): { col: number; row: number }[] {
@@ -479,6 +554,7 @@ export class LowenherzGameSession extends GameSession<
         const result: { col: number; row: number }[] = []
         for (let row = 0; row < BOARD_ROWS; row++) {
             for (let col = 0; col < BOARD_COLS; col++) {
+                const treasureCardId = this.treasureCardIdFor(col, row)
                 const candidate = new HydratedPlaceKnight({
                     id: 'candidate',
                     gameId: this.gameState.gameId,
@@ -486,7 +562,8 @@ export class LowenherzGameSession extends GameSession<
                     type: ActionType.PlaceKnight,
                     playerId: this.myPlayer.id,
                     col,
-                    row
+                    row,
+                    ...(treasureCardId ? { treasureCardId } : {})
                 })
                 if (candidate.isValidPlaceKnight(this.gameState)) result.push({ col, row })
             }
@@ -497,7 +574,12 @@ export class LowenherzGameSession extends GameSession<
     async placeKnight(col: number, row: number) {
         if (!this.canPlaceKnight || !this.myPlayer) return
 
-        const action = this.createPlayerAction(PlaceKnight, { col, row })
+        const treasureCardId = this.treasureCardIdFor(col, row)
+        const action = this.createPlayerAction(PlaceKnight, {
+            col,
+            row,
+            ...(treasureCardId ? { treasureCardId } : {})
+        })
 
         const candidate = new HydratedPlaceKnight({
             id: 'candidate',
@@ -506,7 +588,8 @@ export class LowenherzGameSession extends GameSession<
             type: ActionType.PlaceKnight,
             playerId: action.playerId,
             col,
-            row
+            row,
+            ...(treasureCardId ? { treasureCardId } : {})
         })
 
         const invalidReason = candidate.invalidPlaceKnightReason(this.gameState)
@@ -516,6 +599,7 @@ export class LowenherzGameSession extends GameSession<
         }
 
         this.errorMessage = undefined
+        this.selectedTreasureCardId = undefined
         try {
             await this.applyAction(action)
         } catch (e) {
@@ -641,6 +725,377 @@ export class LowenherzGameSession extends GameSession<
         }
     }
 
+    get canTakePoliticsCard(): boolean {
+        if (!this.myPlayer) return false
+        return (
+            this.gameState.machineState === MachineState.TakingPoliticsCard &&
+            this.gameState.politicsTakingPlayerId === this.myPlayer.id
+        )
+    }
+
+    // Which pile (if either) the current player is currently looking through - purely
+    // local UI state until they pick a specific card, same pattern as
+    // selectedExpandRegionId.
+    selectedPoliticsPile: 'A' | 'B' | undefined = $state(undefined)
+
+    selectPoliticsPile(pile: 'A' | 'B') {
+        if (!this.canTakePoliticsCard) return
+        this.errorMessage = undefined
+        this.selectedPoliticsPile = pile
+    }
+
+    cancelPoliticsPileSelection() {
+        this.selectedPoliticsPile = undefined
+    }
+
+    async takePoliticsCard(pile: 'A' | 'B', cardId: string) {
+        if (!this.canTakePoliticsCard || !this.myPlayer) return
+
+        const action = this.createPlayerAction(TakePoliticsCard, { pile, cardId })
+
+        const candidate = new HydratedTakePoliticsCard({
+            id: 'candidate',
+            gameId: this.gameState.gameId,
+            source: ActionSource.User,
+            type: ActionType.TakePoliticsCard,
+            playerId: action.playerId,
+            pile,
+            cardId
+        })
+
+        const invalidReason = candidate.invalidTakePoliticsCardReason(this.gameState)
+        if (invalidReason) {
+            this.errorMessage = invalidReason
+            return
+        }
+
+        this.errorMessage = undefined
+        this.selectedPoliticsPile = undefined
+        try {
+            await this.applyAction(action)
+        } catch (e) {
+            console.warn('Failed to take politics card:', e)
+            this.errorMessage = 'That pick was rejected.'
+        }
+    }
+
+    get canPlayRenegadeCard(): boolean {
+        if (!this.myPlayer || !this.canChooseAction) return false
+        const playerState = this.gameState.getPlayerState(this.myPlayer.id)
+        return (
+            playerState.knightsInStock > 0 &&
+            playerState.politicsCards.some((c) => c.type === PoliticsCardType.Renegade)
+        )
+    }
+
+    // Which Renegade card is currently being played, and how far through the 4-step
+    // targeting flow (own region -> neighboring enemy region -> enemy knight to remove
+    // -> own placement square) the player has gotten - purely local UI state, same
+    // pattern as selectedExpandRegionId.
+    renegadeCardId: string | undefined = $state(undefined)
+    renegadeOwnRegionId: string | undefined = $state(undefined)
+    renegadeEnemyRegionId: string | undefined = $state(undefined)
+    renegadeRemovedSquare: { col: number; row: number } | undefined = $state(undefined)
+
+    get isPlayingRenegadeCard(): boolean {
+        return this.renegadeCardId !== undefined
+    }
+
+    startPlayingRenegadeCard(cardId: string) {
+        if (!this.canPlayRenegadeCard) return
+        this.errorMessage = undefined
+        this.cancelPlayingAllianceCard()
+        this.renegadeCardId = cardId
+        this.renegadeOwnRegionId = undefined
+        this.renegadeEnemyRegionId = undefined
+        this.renegadeRemovedSquare = undefined
+    }
+
+    cancelPlayingRenegadeCard() {
+        this.renegadeCardId = undefined
+        this.renegadeOwnRegionId = undefined
+        this.renegadeEnemyRegionId = undefined
+        this.renegadeRemovedSquare = undefined
+    }
+
+    selectRenegadeOwnRegion(regionId: string) {
+        if (!this.renegadeCardId) return
+        this.renegadeOwnRegionId = regionId
+        this.renegadeEnemyRegionId = undefined
+        this.renegadeRemovedSquare = undefined
+    }
+
+    // Any of another prince's regions bordering the chosen own region - the pair of
+    // regions Renegade (like Alliance) acts on.
+    get legalRenegadeEnemyRegions(): Region[] {
+        const ownRegion = this.gameState.regions.find((r) => r.id === this.renegadeOwnRegionId)
+        if (!ownRegion) return []
+        return this.gameState.regions.filter(
+            (r) => r.ownerColor && r.ownerColor !== ownRegion.ownerColor && regionsAreNeighboring(ownRegion, r)
+        )
+    }
+
+    selectRenegadeEnemyRegion(regionId: string) {
+        if (!this.renegadeOwnRegionId) return
+        if (!this.legalRenegadeEnemyRegions.some((r) => r.id === regionId)) return
+        this.renegadeEnemyRegionId = regionId
+        this.renegadeRemovedSquare = undefined
+    }
+
+    // Enemy knights in the chosen region that are actually safe to remove - excludes
+    // any knight that would strand another one of that color from every castle of
+    // that color (removing the last knight of a color is always safe).
+    get legalRenegadeRemovableSquares(): { col: number; row: number }[] {
+        const enemyRegion = this.gameState.regions.find((r) => r.id === this.renegadeEnemyRegionId)
+        if (!enemyRegion?.ownerColor) return []
+
+        const result: { col: number; row: number }[] = []
+        for (const key of enemyRegion.squareKeys) {
+            const [col, row] = key.split(',').map(Number)
+            const square = getSquare(this.gameState.board, col, row)
+            if (
+                square?.knightColor === enemyRegion.ownerColor &&
+                isKnightSafeToRemove(this.gameState, enemyRegion.ownerColor, col, row)
+            ) {
+                result.push({ col, row })
+            }
+        }
+        return result
+    }
+
+    selectRenegadeRemovedSquare(col: number, row: number) {
+        if (!this.legalRenegadeRemovableSquares.some((s) => s.col === col && s.row === row)) return
+        this.renegadeRemovedSquare = { col, row }
+    }
+
+    private isValidRenegadeAttempt(placedCol: number, placedRow: number): boolean {
+        if (
+            !this.myPlayer ||
+            !this.renegadeCardId ||
+            !this.renegadeOwnRegionId ||
+            !this.renegadeEnemyRegionId ||
+            !this.renegadeRemovedSquare
+        ) {
+            return false
+        }
+        const candidate = new HydratedPlayRenegadeCard({
+            id: 'candidate',
+            gameId: this.gameState.gameId,
+            source: ActionSource.User,
+            type: ActionType.PlayRenegadeCard,
+            playerId: this.myPlayer.id,
+            cardId: this.renegadeCardId,
+            ownRegionId: this.renegadeOwnRegionId,
+            enemyRegionId: this.renegadeEnemyRegionId,
+            removedCol: this.renegadeRemovedSquare.col,
+            removedRow: this.renegadeRemovedSquare.row,
+            placedCol,
+            placedRow
+        })
+        return candidate.isValidPlayRenegadeCard(this.gameState)
+    }
+
+    // Squares in the player's own region that would legally receive the replacement
+    // knight, given everything picked so far - computed once per access, same pattern
+    // as legalNextExpansionSquares.
+    get legalRenegadePlacementSquares(): { col: number; row: number }[] {
+        if (!this.renegadeOwnRegionId || !this.renegadeEnemyRegionId || !this.renegadeRemovedSquare) return []
+
+        const result: { col: number; row: number }[] = []
+        for (let row = 0; row < BOARD_ROWS; row++) {
+            for (let col = 0; col < BOARD_COLS; col++) {
+                if (this.isValidRenegadeAttempt(col, row)) result.push({ col, row })
+            }
+        }
+        return result
+    }
+
+    async confirmRenegadePlacement(placedCol: number, placedRow: number) {
+        const { myPlayer, renegadeCardId, renegadeOwnRegionId, renegadeEnemyRegionId, renegadeRemovedSquare } = this
+        if (!myPlayer || !renegadeCardId || !renegadeOwnRegionId || !renegadeEnemyRegionId || !renegadeRemovedSquare) {
+            return
+        }
+
+        const action = this.createPlayerAction(PlayRenegadeCard, {
+            cardId: renegadeCardId,
+            ownRegionId: renegadeOwnRegionId,
+            enemyRegionId: renegadeEnemyRegionId,
+            removedCol: renegadeRemovedSquare.col,
+            removedRow: renegadeRemovedSquare.row,
+            placedCol,
+            placedRow
+        })
+
+        if (!this.isValidRenegadeAttempt(placedCol, placedRow)) {
+            const candidate = new HydratedPlayRenegadeCard({
+                id: 'candidate',
+                gameId: this.gameState.gameId,
+                source: ActionSource.User,
+                type: ActionType.PlayRenegadeCard,
+                playerId: myPlayer.id,
+                cardId: renegadeCardId,
+                ownRegionId: renegadeOwnRegionId,
+                enemyRegionId: renegadeEnemyRegionId,
+                removedCol: renegadeRemovedSquare.col,
+                removedRow: renegadeRemovedSquare.row,
+                placedCol,
+                placedRow
+            })
+            this.errorMessage = candidate.invalidPlayRenegadeCardReason(this.gameState)
+            this.cancelPlayingRenegadeCard()
+            return
+        }
+
+        this.errorMessage = undefined
+        this.cancelPlayingRenegadeCard()
+        try {
+            await this.applyAction(action)
+        } catch (e) {
+            console.warn('Failed to play Renegade card:', e)
+            this.errorMessage = 'That play was rejected.'
+        }
+    }
+
+    get canPlayAllianceCard(): boolean {
+        if (!this.myPlayer || !this.canChooseAction) return false
+        const playerState = this.gameState.getPlayerState(this.myPlayer.id)
+        return playerState.politicsCards.some((c) => c.type === PoliticsCardType.Alliance)
+    }
+
+    // Which Alliance card is currently being played, and whether the player has
+    // picked their own region yet - a 2-step targeting flow (own region -> a
+    // neighboring enemy region, which immediately confirms), same overall pattern as
+    // the Renegade flow but shorter.
+    allianceCardId: string | undefined = $state(undefined)
+    allianceOwnRegionId: string | undefined = $state(undefined)
+
+    get isPlayingAllianceCard(): boolean {
+        return this.allianceCardId !== undefined
+    }
+
+    startPlayingAllianceCard(cardId: string) {
+        if (!this.canPlayAllianceCard) return
+        this.errorMessage = undefined
+        this.cancelPlayingRenegadeCard()
+        this.allianceCardId = cardId
+        this.allianceOwnRegionId = undefined
+    }
+
+    cancelPlayingAllianceCard() {
+        this.allianceCardId = undefined
+        this.allianceOwnRegionId = undefined
+    }
+
+    selectAllianceOwnRegion(regionId: string) {
+        if (!this.allianceCardId) return
+        this.allianceOwnRegionId = regionId
+    }
+
+    // Any of another prince's regions bordering the chosen own region that isn't
+    // already allied with it.
+    get legalAllianceEnemyRegions(): Region[] {
+        const ownRegion = this.gameState.regions.find((r) => r.id === this.allianceOwnRegionId)
+        if (!ownRegion) return []
+        return this.gameState.regions.filter(
+            (r) =>
+                r.ownerColor &&
+                r.ownerColor !== ownRegion.ownerColor &&
+                regionsAreNeighboring(ownRegion, r) &&
+                !areRegionsAllied(this.gameState.alliances, ownRegion.id, r.id)
+        )
+    }
+
+    // Picking the enemy region immediately confirms the play - there's no further
+    // step (no board squares to choose), unlike Renegade.
+    async selectAllianceEnemyRegion(regionId: string) {
+        const { myPlayer, allianceCardId, allianceOwnRegionId } = this
+        if (!myPlayer || !allianceCardId || !allianceOwnRegionId) return
+        if (!this.legalAllianceEnemyRegions.some((r) => r.id === regionId)) return
+
+        const action = this.createPlayerAction(PlayAllianceCard, {
+            cardId: allianceCardId,
+            ownRegionId: allianceOwnRegionId,
+            enemyRegionId: regionId
+        })
+
+        const candidate = new HydratedPlayAllianceCard({
+            id: 'candidate',
+            gameId: this.gameState.gameId,
+            source: ActionSource.User,
+            type: ActionType.PlayAllianceCard,
+            playerId: myPlayer.id,
+            cardId: allianceCardId,
+            ownRegionId: allianceOwnRegionId,
+            enemyRegionId: regionId
+        })
+
+        const invalidReason = candidate.invalidPlayAllianceCardReason(this.gameState)
+        if (invalidReason) {
+            this.errorMessage = invalidReason
+            this.cancelPlayingAllianceCard()
+            return
+        }
+
+        this.errorMessage = undefined
+        this.cancelPlayingAllianceCard()
+        try {
+            await this.applyAction(action)
+        } catch (e) {
+            console.warn('Failed to play Alliance card:', e)
+            this.errorMessage = 'That play was rejected.'
+        }
+    }
+
+    // Every existing alliance the current player is a participant in and could afford
+    // to cancel right now (still requires it being their own decision-laying turn -
+    // enforced by the engine's own validity check, not re-derived here).
+    get myCancellableAlliances(): { id: string; otherColor: Color }[] {
+        if (!this.myPlayer || !this.canChooseAction) return []
+        const myColor = this.gameState.getPlayerState(this.myPlayer.id).color
+        if (this.gameState.getPlayerState(this.myPlayer.id).money < ALLIANCE_CANCELLATION_COST) return []
+
+        const result: { id: string; otherColor: Color }[] = []
+        for (const alliance of this.gameState.alliances) {
+            const regionA = this.gameState.regions.find((r) => r.id === alliance.regionAId)
+            const regionB = this.gameState.regions.find((r) => r.id === alliance.regionBId)
+            if (regionA?.ownerColor === myColor && regionB?.ownerColor) {
+                result.push({ id: alliance.id, otherColor: regionB.ownerColor })
+            } else if (regionB?.ownerColor === myColor && regionA?.ownerColor) {
+                result.push({ id: alliance.id, otherColor: regionA.ownerColor })
+            }
+        }
+        return result
+    }
+
+    async cancelAlliance(allianceId: string) {
+        if (!this.myPlayer) return
+
+        const action = this.createPlayerAction(CancelAlliance, { allianceId })
+
+        const candidate = new HydratedCancelAlliance({
+            id: 'candidate',
+            gameId: this.gameState.gameId,
+            source: ActionSource.User,
+            type: ActionType.CancelAlliance,
+            playerId: this.myPlayer.id,
+            allianceId
+        })
+
+        const invalidReason = candidate.invalidCancelAllianceReason(this.gameState)
+        if (invalidReason) {
+            this.errorMessage = invalidReason
+            return
+        }
+
+        this.errorMessage = undefined
+        try {
+            await this.applyAction(action)
+        } catch (e) {
+            console.warn('Failed to cancel alliance:', e)
+            this.errorMessage = 'That cancellation was rejected.'
+        }
+    }
+
     // Testing convenience only - not a real player action. Drives the round loop
     // forward using real actions (drawing cards, picking decisions, accepting/offering
     // in negotiations, bidding in duels) until wall or knight placement begins, so
@@ -654,6 +1109,7 @@ export class LowenherzGameSession extends GameSession<
         for (let i = 0; i < MAX_STEPS; i++) {
             if (this.gameState.machineState === MachineState.PlacingWalls) return
             if (this.gameState.machineState === MachineState.PlacingKnights) return
+            if (this.gameState.machineState === MachineState.TakingPoliticsCard) return
             if (this.gameState.machineState === MachineState.EndOfGame) return
 
             if (this.canDrawActionCard) {

@@ -13,6 +13,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 import { ActionCard } from '../definition/actionCards.js'
+import { PoliticsCard } from '../definition/politicsCards.js'
 
 // One committed decision-card placement: which player placed it, and which slot
 // (1 = top action, 2 = middle, 3 = bottom) they chose.
@@ -42,15 +43,36 @@ export const Negotiation = Type.Object({
     offer: Type.Optional(Type.Object({ fromPlayerId: Type.String(), amount: Type.Number() }))
 })
 
-// An in-progress duel over a tied slot: every participant submits one ducat bid; the
-// highest payer wins and pays the bank. Ties re-duel once among just the tied
-// bidders (tieCount tracks this) - a second tie means no one performs the action.
+// An in-progress duel over a tied slot: every participant submits one ducat bid
+// (optionally backed by one Treasure card, added to the ducat amount) - the highest
+// total wins and pays the bank. Ties re-duel once among just the tied bidders
+// (tieCount tracks this) - a second tie means no one performs the action.
 export type Duel = Type.Static<typeof Duel>
 export const Duel = Type.Object({
     slot: Type.Union([Type.Literal(1), Type.Literal(2), Type.Literal(3)]),
     playerIds: Type.Array(Type.String()),
-    bids: Type.Array(Type.Object({ playerId: Type.String(), amount: Type.Number() })),
+    bids: Type.Array(
+        Type.Object({
+            playerId: Type.String(),
+            amount: Type.Number(),
+            treasureCardId: Type.Optional(Type.String())
+        })
+    ),
     tieCount: Type.Number()
+})
+
+// An alliance between two neighboring regions of different princes, created by
+// playing an Alliance politics card - neither region may be expanded into the other
+// while it lasts. Tracked by region id rather than by a specific board wall, since
+// that's the only thing that stays stable across later expansion/invasion - the
+// rulebook's "if the space with the turned boundary wall is later taken over, the
+// alliance...remains intact" note is satisfied automatically as long as both
+// original regions (by id) still exist.
+export type Alliance = Type.Static<typeof Alliance>
+export const Alliance = Type.Object({
+    id: Type.String(),
+    regionAId: Type.String(),
+    regionBId: Type.String()
 })
 
 export type LowenherzGameState = Type.Static<typeof LowenherzGameState>
@@ -63,6 +85,7 @@ export const LowenherzGameState = Type.Evaluate(
 
             board: LowenherzBoard,
             regions: Type.Array(Region),
+            alliances: Type.Array(Alliance),
 
             // Fixed clockwise seating order, chosen once at game start. firstPlayerId
             // rotates to the next entry in this list after each action card resolves.
@@ -98,7 +121,15 @@ export const LowenherzGameState = Type.Evaluate(
             // down from the card's knight count (1-2) to 0 (or fewer, if their knight
             // stock ran out first).
             knightsRemaining: Type.Optional(Type.Number()),
-            knightPlacingPlayerId: Type.Optional(Type.String())
+            knightPlacingPlayerId: Type.Optional(Type.String()),
+
+            // The two face-down politics-card piles the "Crown and Scepter" action
+            // draws from - set once at game start, drawn down over the game.
+            politicsCardPileA: Type.Array(PoliticsCard),
+            politicsCardPileB: Type.Array(PoliticsCard),
+            // Set while the winner of a politics action is looking through their
+            // chosen pile and picking a card.
+            politicsTakingPlayerId: Type.Optional(Type.String())
         })
     ])
 )
@@ -124,6 +155,7 @@ export class HydratedLowenherzGameState
 
     declare board: LowenherzBoard
     declare regions: Region[]
+    declare alliances: Alliance[]
     declare turnOrder: string[]
     declare firstPlayerId: string
     declare neutralColor?: Color
@@ -139,6 +171,10 @@ export class HydratedLowenherzGameState
     declare wallPlacingPlayerId?: string
     declare knightsRemaining?: number
     declare knightPlacingPlayerId?: string
+
+    declare politicsCardPileA: PoliticsCard[]
+    declare politicsCardPileB: PoliticsCard[]
+    declare politicsTakingPlayerId?: string
 
     constructor(data: LowenherzGameState) {
         super(data, LowenherzGameStateValidator)

@@ -10,14 +10,16 @@ import { countTowns, removeInteriorWalls, scoreRegion } from '../util/regionScor
 export type PlaceWallMetadata = Type.Static<typeof PlaceWallMetadata>
 export const PlaceWallMetadata = Type.Object({
     // Any region(s) this specific wall completed - only present when scoring happened,
-    // used by history to explain the resulting power-point change.
+    // used by history to explain the resulting power-point change, and by the board
+    // UI (anchorSquareKey) to show a floating score popup at the right spot.
     completedRegions: Type.Optional(
         Type.Array(
             Type.Object({
                 ownerColor: Type.Optional(Type.Enum(Color)),
                 spaceCount: Type.Number(),
                 townCount: Type.Number(),
-                points: Type.Number()
+                points: Type.Number(),
+                anchorSquareKey: Type.String()
             })
         )
     )
@@ -83,7 +85,8 @@ export class HydratedPlaceWall extends HydratableAction<typeof PlaceWall> implem
                 ownerColor: region.ownerColor,
                 spaceCount: region.squareKeys.length,
                 townCount: countTowns(region, state.board),
-                points
+                points,
+                anchorSquareKey: region.castleSquareKey ?? region.squareKeys[0]
             })
             state.regions.push(region)
             removeInteriorWalls(state.board, region)

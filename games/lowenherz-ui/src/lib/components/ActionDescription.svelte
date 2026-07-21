@@ -12,8 +12,13 @@
         isPlaceCastle,
         isPlaceKnight,
         isPlaceWall,
+        isPlayAllianceCard,
+        isPlayRenegadeCard,
+        isCancelAlliance,
         isSubmitDuelBid,
-        NegotiationMoveKind
+        isTakePoliticsCard,
+        NegotiationMoveKind,
+        PoliticsCardType
     } from '@tabletop/lowenherz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -31,6 +36,19 @@
     }
 
     const slotLabels: Record<1 | 2 | 3, string> = { 1: 'top', 2: 'middle', 3: 'bottom' }
+
+    function politicsCardLabel(type: PoliticsCardType, value?: number): string {
+        switch (type) {
+            case PoliticsCardType.Alliance:
+                return 'Alliance'
+            case PoliticsCardType.Renegade:
+                return 'Renegade'
+            case PoliticsCardType.Parchment:
+                return `Parchment (${value})`
+            case PoliticsCardType.Treasure:
+                return `Treasure (${value})`
+        }
+    }
 </script>
 
 {#if isPlaceCastle(action)}
@@ -69,7 +87,12 @@
         declined to negotiate further — forcing a duel
     {/if}
 {:else if isSubmitDuelBid(action)}
-    bid {action.amount} ducat{action.amount === 1 ? '' : 's'} in the duel
+    bid {action.amount} ducat{action.amount === 1 ? '' : 's'}{#if action.metadata?.treasureCardUsed}
+        {' '}+ a {politicsCardLabel(
+            action.metadata.treasureCardUsed.type,
+            action.metadata.treasureCardUsed.value
+        )} card
+    {/if} in the duel
 {:else if isPlaceWall(action)}
     placed a wall
     {#if action.metadata?.completedRegions && action.metadata.completedRegions.length > 0}
@@ -93,7 +116,12 @@
     {/if}
 {:else if isPlaceKnight(action)}
     placed a knight at ({action.col}, {action.row})
-    {#if action.metadata?.woodedCostPaid}
+    {#if action.metadata?.paidWithTreasureCard}
+        , paying with a {politicsCardLabel(
+            action.metadata.paidWithTreasureCard.type,
+            action.metadata.paidWithTreasureCard.value
+        )} card for the wooded space
+    {:else if action.metadata?.woodedCostPaid}
         , paying {action.metadata.woodedCostPaid} ducats for the wooded space
     {/if}
 {:else if isExpandRegion(action)}
@@ -148,6 +176,45 @@
                 incidentally sealed off
             {/if}
         {/each}
+    {/if}
+{:else if isTakePoliticsCard(action)}
+    {@const isMe = gameSession.myPlayer?.id === action.playerId}
+    {@const takenCard = gameSession.gameState
+        .getPlayerState(action.playerId)
+        .politicsCards.find((c) => c.id === action.cardId)}
+    took a politics card from pile {action.pile}{#if isMe && takenCard}
+        {' '}({politicsCardLabel(takenCard.type, takenCard.value)}){/if}
+{:else if isPlayRenegadeCard(action)}
+    {@const victimId = playerIdForColor(action.metadata?.victimColor)}
+    played a Renegade card — removed a knight from
+    {#if victimId}
+        <PlayerName playerId={victimId} />'s
+    {:else}
+        a neutral prince's
+    {/if}
+    region and placed one of their own in exchange
+    {#if action.metadata?.removalWoodedCostPaid}
+        , paying {action.metadata.removalWoodedCostPaid} ducats to remove it from the woods
+    {/if}
+    {#if action.metadata?.placementWoodedCostPaid}
+        , paying {action.metadata.placementWoodedCostPaid} ducats to place into the woods
+    {/if}
+{:else if isPlayAllianceCard(action)}
+    {@const enemyId = playerIdForColor(action.metadata?.enemyColor)}
+    played an Alliance card — allied one of their regions with
+    {#if enemyId}
+        <PlayerName playerId={enemyId} />'s
+    {:else}
+        a neutral prince's
+    {/if}
+    neighboring region; neither can be expanded into the other while it lasts
+{:else if isCancelAlliance(action)}
+    {@const otherId = playerIdForColor(action.metadata?.otherColor)}
+    paid 10 ducats to end an alliance with
+    {#if otherId}
+        <PlayerName playerId={otherId} />
+    {:else}
+        a neutral prince
     {/if}
 {:else if isPass(action)}
     passed, declining to place any more

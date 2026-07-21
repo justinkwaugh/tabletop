@@ -10,6 +10,7 @@
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
     import ActionToolbar from '$lib/components/ActionToolbar.svelte'
+    import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import parchmentTexture from '$lib/images/board/parchment-texture.png'
 
     import type { LowenherzGameSession } from '$lib/model/session.svelte'
@@ -48,7 +49,7 @@
             <!--  Top part is not allowed to shrink -->
             <div class="shrink-0">
                 {#if gameSession.gameState.result}
-                    <!-- <GameEndPanel /> -->
+                    <GameEndPanel />
                 {:else}
                     <!-- <InformationPanel /> -->
                 {/if}

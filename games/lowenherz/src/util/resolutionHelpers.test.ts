@@ -27,7 +27,8 @@ function buildState(
         color: [Color.Pink, Color.Yellow][index],
         money: 12,
         powerPoints: 0,
-        knightsInStock: 12
+        knightsInStock: 12,
+        politicsCards: []
     }))
 
     const data: LowenherzGameState = {
@@ -43,13 +44,16 @@ function buildState(
         winningPlayerIds: [],
         board: blankBoard(),
         regions,
+        alliances: [],
         turnOrder: playerIds,
         firstPlayerId: 'p1',
         neutralColor: undefined,
         actionDeck: [],
         currentActionCard: card,
         decisions: [],
-        resolvedSlots
+        resolvedSlots,
+        politicsCardPileA: [],
+        politicsCardPileB: []
     }
 
     return new HydratedLowenherzGameState(data)
@@ -105,5 +109,18 @@ describe('routeAfterSlotResolved', () => {
     it('does not route anywhere when there is no winner', () => {
         const state = buildState([{ slot: 2, winnerPlayerId: undefined }], cardWithBorderMiddle)
         expect(routeAfterSlotResolved(state)).toBe(MachineState.ResolvingActions)
+    })
+
+    it('routes a politics-slot (slot 1) winner into TakingPoliticsCard', () => {
+        const state = buildState([{ slot: 1, winnerPlayerId: 'p1' }], cardWithBorderMiddle)
+        expect(routeAfterSlotResolved(state)).toBe(MachineState.TakingPoliticsCard)
+        expect(state.politicsTakingPlayerId).toBe('p1')
+    })
+
+    it('does not route slot 1 to TakingPoliticsCard when the top band is income, not politics', () => {
+        const cardWithIncomeTop: ActionCard = { ...cardWithBorderMiddle, top: { kind: 'income', value: 4 } }
+        const state = buildState([{ slot: 1, winnerPlayerId: 'p1' }], cardWithIncomeTop)
+        expect(routeAfterSlotResolved(state)).toBe(MachineState.ResolvingActions)
+        expect(state.politicsTakingPlayerId).toBeUndefined()
     })
 })

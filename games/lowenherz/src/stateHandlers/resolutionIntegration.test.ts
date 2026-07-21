@@ -13,12 +13,14 @@ import { BOARD_COLS, BOARD_ROWS, BoardSquare, SquareType } from '../model/board.
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { ActionCard, ActionCardType, CardBack } from '../definition/actionCards.js'
+import { PoliticsCardType } from '../definition/politicsCards.js'
 import { LowenherzRuntime } from '../definition/runtime.js'
 import { ChooseAction } from '../actions/chooseAction.js'
 import { NegotiationMove, NegotiationMoveKind } from '../actions/negotiationMove.js'
 import { SubmitDuelBid } from '../actions/submitDuelBid.js'
 import { PlaceKnight } from '../actions/placeKnight.js'
 import { ExpandRegion } from '../actions/expandRegion.js'
+import { TakePoliticsCard } from '../actions/takePoliticsCard.js'
 
 const engine = new GameEngine(LowenherzRuntime)
 
@@ -66,7 +68,8 @@ function buildState(
         color: colors[index],
         money: 12,
         powerPoints: 0,
-        knightsInStock: 12
+        knightsInStock: 12,
+        politicsCards: []
     }))
 
     return {
@@ -84,13 +87,18 @@ function buildState(
         winningPlayerIds: [],
         board,
         regions,
+        alliances: [],
         turnOrder: playerIds,
         firstPlayerId: playerIds[0],
         neutralColor: playerIds.length < 4 ? colors[playerIds.length] : undefined,
         actionDeck: [],
         currentActionCard: card,
         decisions: [],
-        resolvedSlots: []
+        resolvedSlots: [],
+        // One dummy card in each pile, so any test whose slot 1 politics winner needs
+        // to actually take a card has something to pick.
+        politicsCardPileA: [{ id: 'test-card-a', type: PoliticsCardType.Alliance }],
+        politicsCardPileB: [{ id: 'test-card-b', type: PoliticsCardType.Renegade }]
     }
 }
 
@@ -160,6 +168,18 @@ function expandRegion(
     }
 }
 
+function takePoliticsCard(playerId: string, pile: 'A' | 'B', cardId: string): TakePoliticsCard {
+    return {
+        id: `take-politics-${playerId}`,
+        gameId: 'game-1',
+        source: ActionSource.User,
+        type: ActionType.TakePoliticsCard,
+        playerId,
+        pile,
+        cardId
+    }
+}
+
 describe('resolution cascade (via the real GameEngine)', () => {
     it('resolves a 2-way tie through negotiation, then auto-cascades solo slots and advances the round', () => {
         const playerIds = ['p1', 'p2']
@@ -206,9 +226,13 @@ describe('resolution cascade (via the real GameEngine)', () => {
         expect(state.negotiation?.offer).toEqual({ fromPlayerId: 'p2', amount: 4 })
         expect(state.negotiation?.turnPlayerId).toBe('p1')
 
-        // Accepting should cascade all the way through slot 2, slot 3, and the round
-        // advance, landing back at StartOfTurn with the next player up.
+        // Accepting hands p2 the politics slot - they must take a card before the
+        // cascade can continue through slot 2, slot 3, and the round advance.
         state = engine.run(negotiationMove('p1', NegotiationMoveKind.Accept), state, game).updatedState
+        expect(state.machineState).toBe(MachineState.TakingPoliticsCard)
+        expect(state.politicsTakingPlayerId).toBe('p2')
+
+        state = engine.run(takePoliticsCard('p2', 'A', 'test-card-a'), state, game).updatedState
 
         expect(state.machineState).toBe(MachineState.StartOfTurn)
         expect(state.firstPlayerId).toBe('p2') // rotated from p1
@@ -324,11 +348,15 @@ describe('resolution cascade (via the real GameEngine)', () => {
         expect(state.machineState).toBe(MachineState.Dueling)
         expect(state.duel).toEqual({ slot: 1, playerIds: ['p2', 'p3', 'p4'], bids: [], tieCount: 0 })
 
-        // Distinct bids so slot 1 resolves in one round, cascading straight into
-        // slot 2's solo knight win within this same run() call.
+        // Distinct bids so slot 1 resolves in one round. p4 wins the politics slot and
+        // must take a card before the cascade continues into slot 2's solo knight win.
         state = engine.run(submitDuelBid('p2', 1), state, game).updatedState
         state = engine.run(submitDuelBid('p3', 2), state, game).updatedState
         state = engine.run(submitDuelBid('p4', 3), state, game).updatedState
+
+        expect(state.machineState).toBe(MachineState.TakingPoliticsCard)
+        expect(state.politicsTakingPlayerId).toBe('p4')
+        state = engine.run(takePoliticsCard('p4', 'A', 'test-card-a'), state, game).updatedState
 
         expect(state.machineState).toBe(MachineState.PlacingKnights)
         expect(state.knightPlacingPlayerId).toBe('p1')
@@ -377,6 +405,9 @@ describe('resolution cascade (via the real GameEngine)', () => {
         state = engine.run(submitDuelBid('p2', 1), state, game).updatedState
         state = engine.run(submitDuelBid('p3', 2), state, game).updatedState
         state = engine.run(submitDuelBid('p4', 3), state, game).updatedState
+
+        expect(state.machineState).toBe(MachineState.TakingPoliticsCard)
+        state = engine.run(takePoliticsCard('p4', 'A', 'test-card-a'), state, game).updatedState
 
         expect(state.machineState).toBe(MachineState.PlacingKnights)
         expect(state.knightPlacingPlayerId).toBe('p1')

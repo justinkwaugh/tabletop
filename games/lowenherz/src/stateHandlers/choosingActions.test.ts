@@ -6,6 +6,10 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { ActionCard, ActionCardType, CardBack } from '../definition/actionCards.js'
 import { HydratedChooseAction } from '../actions/chooseAction.js'
+import { HydratedPlayRenegadeCard } from '../actions/playRenegadeCard.js'
+import { HydratedPlayAllianceCard } from '../actions/playAllianceCard.js'
+import { HydratedCancelAlliance } from '../actions/cancelAlliance.js'
+import { PoliticsCardType } from '../definition/politicsCards.js'
 import { ChoosingActionsStateHandler } from './choosingActions.js'
 import { buildDecisionPlan, rotateToStart } from '../util/decisionPlan.js'
 
@@ -33,7 +37,8 @@ function buildState(playerIds: string[]): HydratedLowenherzGameState {
         color: [Color.Pink, Color.Yellow, Color.Purple, Color.Gray][index],
         money: 12,
         powerPoints: 0,
-        knightsInStock: 12
+        knightsInStock: 12,
+        politicsCards: []
     }))
 
     const data: LowenherzGameState = {
@@ -49,13 +54,16 @@ function buildState(playerIds: string[]): HydratedLowenherzGameState {
         winningPlayerIds: [],
         board: blankBoard(),
         regions: [],
+        alliances: [],
         turnOrder: playerIds,
         firstPlayerId: playerIds[0],
         neutralColor: playerIds.length < 4 ? Color.Gray : undefined,
         actionDeck: [],
         currentActionCard: standardCard,
         decisions: [],
-        resolvedSlots: []
+        resolvedSlots: [],
+        politicsCardPileA: [],
+        politicsCardPileB: []
     }
 
     return new HydratedLowenherzGameState(data)
@@ -123,5 +131,155 @@ describe('ChoosingActionsStateHandler', () => {
 
     it('drives a full 2-player round (both players place 2)', () => {
         runFullRound(buildState(['p1', 'p2']))
+    })
+
+    it('offers PlayRenegadeCard alongside ChooseAction when the player holds one and has knights in stock', () => {
+        const state = buildState(['p1', 'p2'])
+        state.getPlayerState('p1').politicsCards = [{ id: 'card-renegade', type: PoliticsCardType.Renegade }]
+        const handler = new ChoosingActionsStateHandler()
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+
+        expect(handler.validActionsForPlayer('p1', context)).toEqual([
+            ActionType.ChooseAction,
+            ActionType.PlayRenegadeCard
+        ])
+    })
+
+    it('does not offer PlayRenegadeCard when the player holds no Renegade card', () => {
+        const state = buildState(['p1', 'p2'])
+        const handler = new ChoosingActionsStateHandler()
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+
+        expect(handler.validActionsForPlayer('p1', context)).toEqual([ActionType.ChooseAction])
+    })
+
+    it('does not offer PlayRenegadeCard when the player has no knights left in stock', () => {
+        const state = buildState(['p1', 'p2'])
+        state.getPlayerState('p1').politicsCards = [{ id: 'card-renegade', type: PoliticsCardType.Renegade }]
+        state.getPlayerState('p1').knightsInStock = 0
+        const handler = new ChoosingActionsStateHandler()
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+
+        expect(handler.validActionsForPlayer('p1', context)).toEqual([ActionType.ChooseAction])
+    })
+
+    it('playing a Renegade card stays in ChoosingActions without consuming the decision-card turn', () => {
+        const state = buildState(['p1', 'p2'])
+        const handler = new ChoosingActionsStateHandler()
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+
+        const action = new HydratedPlayRenegadeCard({
+            id: 'renegade-1',
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: ActionType.PlayRenegadeCard,
+            playerId: 'p1',
+            cardId: 'card-renegade',
+            ownRegionId: 'own',
+            enemyRegionId: 'enemy',
+            removedCol: 0,
+            removedRow: 0,
+            placedCol: 1,
+            placedRow: 0
+        })
+
+        expect(handler.onAction(action, context)).toBe(MachineState.ChoosingActions)
+        expect(state.decisions).toEqual([])
+    })
+
+    it('offers PlayAllianceCard alongside ChooseAction when the player holds an Alliance card', () => {
+        const state = buildState(['p1', 'p2'])
+        state.getPlayerState('p1').politicsCards = [{ id: 'card-alliance', type: PoliticsCardType.Alliance }]
+        const handler = new ChoosingActionsStateHandler()
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+
+        expect(handler.validActionsForPlayer('p1', context)).toEqual([
+            ActionType.ChooseAction,
+            ActionType.PlayAllianceCard
+        ])
+    })
+
+    it('does not offer PlayAllianceCard when the player holds no Alliance card', () => {
+        const state = buildState(['p1', 'p2'])
+        const handler = new ChoosingActionsStateHandler()
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+
+        expect(handler.validActionsForPlayer('p1', context)).toEqual([ActionType.ChooseAction])
+    })
+
+    it('offers CancelAlliance to either participant when they can afford it', () => {
+        const state = buildState(['p1', 'p2'])
+        state.regions = [
+            { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] },
+            { id: 'r2', ownerColor: Color.Yellow, squareKeys: ['1,0'] }
+        ]
+        state.alliances = [{ id: 'alliance-1', regionAId: 'r1', regionBId: 'r2' }]
+        const handler = new ChoosingActionsStateHandler()
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+
+        expect(handler.validActionsForPlayer('p1', context)).toEqual([
+            ActionType.ChooseAction,
+            ActionType.CancelAlliance
+        ])
+    })
+
+    it('does not offer CancelAlliance when the player cannot afford the 10-ducat cost', () => {
+        const state = buildState(['p1', 'p2'])
+        state.regions = [
+            { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] },
+            { id: 'r2', ownerColor: Color.Yellow, squareKeys: ['1,0'] }
+        ]
+        state.alliances = [{ id: 'alliance-1', regionAId: 'r1', regionBId: 'r2' }]
+        state.getPlayerState('p1').money = 0
+        const handler = new ChoosingActionsStateHandler()
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+
+        expect(handler.validActionsForPlayer('p1', context)).toEqual([ActionType.ChooseAction])
+    })
+
+    it('does not offer CancelAlliance when the player is not a participant in any alliance', () => {
+        const state = buildState(['p1', 'p2'])
+        const handler = new ChoosingActionsStateHandler()
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+
+        expect(handler.validActionsForPlayer('p1', context)).toEqual([ActionType.ChooseAction])
+    })
+
+    it('playing an Alliance card stays in ChoosingActions without consuming the decision-card turn', () => {
+        const state = buildState(['p1', 'p2'])
+        const handler = new ChoosingActionsStateHandler()
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+
+        const action = new HydratedPlayAllianceCard({
+            id: 'alliance-1',
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: ActionType.PlayAllianceCard,
+            playerId: 'p1',
+            cardId: 'card-alliance',
+            ownRegionId: 'own',
+            enemyRegionId: 'enemy'
+        })
+
+        expect(handler.onAction(action, context)).toBe(MachineState.ChoosingActions)
+        expect(state.decisions).toEqual([])
+    })
+
+    it('cancelling an Alliance stays in ChoosingActions without consuming the decision-card turn', () => {
+        const state = buildState(['p1', 'p2'])
+        const handler = new ChoosingActionsStateHandler()
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+
+        const action = new HydratedCancelAlliance({
+            id: 'cancel-1',
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: ActionType.CancelAlliance,
+            playerId: 'p1',
+            allianceId: 'alliance-1'
+        })
+
+        expect(handler.onAction(action, context)).toBe(MachineState.ChoosingActions)
+        expect(state.decisions).toEqual([])
     })
 })

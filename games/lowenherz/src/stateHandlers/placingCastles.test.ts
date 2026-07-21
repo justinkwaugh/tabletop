@@ -33,7 +33,8 @@ function buildState(playerIds: string[]): HydratedLowenherzGameState {
         color: colors[index],
         money: 12,
         powerPoints: 0,
-        knightsInStock: 12
+        knightsInStock: 12,
+        politicsCards: []
     }))
 
     const data: LowenherzGameState = {
@@ -49,13 +50,16 @@ function buildState(playerIds: string[]): HydratedLowenherzGameState {
         winningPlayerIds: [],
         board: blankBoard(),
         regions: [],
+        alliances: [],
         turnOrder: playerIds,
         firstPlayerId: playerIds[0],
         neutralColor: playerIds.length < 4 ? colors[playerIds.length] : undefined,
         actionDeck: [],
         currentActionCard: undefined,
         decisions: [],
-        resolvedSlots: []
+        resolvedSlots: [],
+        politicsCardPileA: [],
+        politicsCardPileB: []
     }
 
     return new HydratedLowenherzGameState(data)

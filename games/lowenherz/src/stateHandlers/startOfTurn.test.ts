@@ -35,7 +35,8 @@ function buildState(actionDeck: ActionCard[]): HydratedLowenherzGameState {
         color: [Color.Pink, Color.Yellow][index],
         money: 12,
         powerPoints: 0,
-        knightsInStock: 12
+        knightsInStock: 12,
+        politicsCards: []
     }))
 
     const data: LowenherzGameState = {
@@ -52,13 +53,16 @@ function buildState(actionDeck: ActionCard[]): HydratedLowenherzGameState {
         board: blankBoard(),
         // p1's region owns the one hill square on the board.
         regions: [{ id: 'r1', ownerColor: Color.Pink, squareKeys: [squareKey(0, 0)] }],
+        alliances: [],
         turnOrder: playerIds,
         firstPlayerId: 'p1',
         neutralColor: Color.Purple,
         actionDeck,
         currentActionCard: undefined,
         decisions: [{ playerId: 'stale', slot: 1 }],
-        resolvedSlots: []
+        resolvedSlots: [],
+        politicsCardPileA: [],
+        politicsCardPileB: []
     }
 
     return new HydratedLowenherzGameState(data)

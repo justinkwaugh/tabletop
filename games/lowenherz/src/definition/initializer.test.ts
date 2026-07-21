@@ -52,4 +52,28 @@ describe('LowenherzGameInitializer', () => {
         expect(state.turnOrder).toEqual(originalTurnOrder)
         expect(state.turnManager.turnOrder).not.toEqual(originalTurnOrder)
     })
+
+    it('deals all 13 politics cards across the two piles with no duplicates, and gives every player an empty hand', () => {
+        const initializer = new LowenherzGameInitializer()
+        const game = buildGame(4)
+
+        const state = initializer.initializeGameState(game, {
+            id: 'game-1',
+            gameId: 'game-1',
+            activePlayerIds: [],
+            actionCount: 0,
+            actionChecksum: 0,
+            prng: { seed: 1, invocations: 0 },
+            winningPlayerIds: []
+        })
+
+        const allCardIds = [...state.politicsCardPileA, ...state.politicsCardPileB].map((c) => c.id)
+        expect(allCardIds.length).toBe(13)
+        expect(new Set(allCardIds).size).toBe(13)
+        expect(state.politicsTakingPlayerId).toBeUndefined()
+
+        for (const player of state.players) {
+            expect(player.politicsCards).toEqual([])
+        }
+    })
 })

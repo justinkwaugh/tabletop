@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { countKnights, findConnectedComponents, removeInteriorWalls, scoreRegion } from './regionScoring.js'
+import {
+    countKnights,
+    findConnectedComponents,
+    regionsAreNeighboring,
+    removeInteriorWalls,
+    scoreRegion
+} from './regionScoring.js'
 import { BOARD_COLS, BOARD_ROWS, BoardSquare, LowenherzBoard, SquareType, WallEdge } from '../model/board.js'
 import { Region } from '../model/region.js'
 import { Color } from '@tabletop/common'
@@ -13,8 +19,8 @@ function blankBoard(): LowenherzBoard {
     }
 }
 
-function region(squareKeys: string[]): Region {
-    return { id: 'r1', ownerColor: Color.Pink, squareKeys, castleSquareKey: squareKeys[0] }
+function region(squareKeys: string[], id = 'r1', ownerColor = Color.Pink): Region {
+    return { id, ownerColor, squareKeys, castleSquareKey: squareKeys[0] }
 }
 
 describe('scoreRegion', () => {
@@ -62,6 +68,37 @@ describe('countKnights', () => {
         board.squares[1][0] = { type: SquareType.Blank, castleColor: Color.Pink } // castle, not a knight
 
         expect(countKnights(region(['0,0', '1,0', '0,1']), board)).toBe(1)
+    })
+})
+
+describe('regionsAreNeighboring', () => {
+    it('is true when a square in one region is orthogonally adjacent to a square in the other', () => {
+        const a = region(['0,0', '1,0'], 'a', Color.Pink)
+        const b = region(['2,0', '2,1'], 'b', Color.Yellow) // (2,0) is adjacent to (1,0)
+
+        expect(regionsAreNeighboring(a, b)).toBe(true)
+        expect(regionsAreNeighboring(b, a)).toBe(true)
+    })
+
+    it('is false when no squares are orthogonally adjacent, even diagonally close ones', () => {
+        const a = region(['0,0'], 'a', Color.Pink)
+        const b = region(['1,1'], 'b', Color.Yellow) // only a diagonal neighbor, not orthogonal
+
+        expect(regionsAreNeighboring(a, b)).toBe(false)
+    })
+
+    it('ignores walls between the regions - adjacency alone is enough', () => {
+        const a = region(['0,0'], 'a', Color.Pink)
+        const b = region(['1,0'], 'b', Color.Yellow)
+
+        expect(regionsAreNeighboring(a, b)).toBe(true)
+    })
+
+    it('is false for regions that are far apart', () => {
+        const a = region(['0,0'], 'a', Color.Pink)
+        const b = region(['9,9'], 'b', Color.Yellow)
+
+        expect(regionsAreNeighboring(a, b)).toBe(false)
     })
 })
 
