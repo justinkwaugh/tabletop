@@ -41,6 +41,7 @@ export class ResolvingActionsStateHandler
 
         if (gameState.resolvedSlots.length >= 3) {
             advanceRound(gameState)
+            action.metadata = { roundAdvanced: true }
             return MachineState.StartOfTurn
         }
 
@@ -57,25 +58,42 @@ export class ResolvingActionsStateHandler
         if (slot === 1 && card.top.kind === 'income') {
             distributeMoneyBag(gameState, card.top.value, choosers)
             gameState.resolvedSlots.push({ slot, winnerPlayerId: undefined })
-            return routeAfterSlotResolved(gameState)
+            action.metadata = {
+                slot,
+                moneyBagRecipientIds: choosers,
+                moneyBagAmountEach: choosers.length > 0 ? Math.floor(card.top.value / choosers.length) : 0
+            }
+            return routeAfterSlotResolved(gameState).nextState
         }
 
         if (choosers.length <= 1) {
             gameState.resolvedSlots.push({ slot, winnerPlayerId: choosers[0] })
-            return routeAfterSlotResolved(gameState)
+            const routing = routeAfterSlotResolved(gameState)
+            action.metadata = {
+                slot,
+                slotResolved: true,
+                ...(choosers[0] ? { slotWinnerPlayerId: choosers[0] } : {}),
+                ...(routing.bandKind ? { bandKind: routing.bandKind, bandCount: routing.bandCount } : {}),
+                ...(routing.placementSkippedReason
+                    ? { placementSkippedReason: routing.placementSkippedReason }
+                    : {})
+            }
+            return routing.nextState
         }
 
         if (choosers.length === 2) {
             gameState.negotiation = {
                 slot,
                 playerIds: choosers,
-                turnPlayerId: choosers[0],
-                offer: undefined
+                offer: undefined,
+                signedPlayerIds: []
             }
+            action.metadata = { slot, tiedPlayerIds: choosers, tieWentToDuel: false }
             return MachineState.Negotiating
         }
 
         gameState.duel = { slot, playerIds: choosers, bids: [], tieCount: 0 }
+        action.metadata = { slot, tiedPlayerIds: choosers, tieWentToDuel: true }
         return MachineState.Dueling
     }
 }

@@ -265,6 +265,24 @@ describe('HydratedPlayRenegadeCard', () => {
         expect(makePlayRenegadeCard('p1').isValidPlayRenegadeCard(state)).toBe(false)
     })
 
+    it("rejects when the player can't afford the combined wooded cost of removing and placing", () => {
+        const state = buildState()
+        state.board.squares[1][1] = { type: SquareType.Forest, knightColor: Color.Yellow }
+        state.board.squares[0][2] = { type: SquareType.Forest }
+        state.getPlayerState('p1').money = 9 // enough for either cost alone (5), not both (10)
+
+        expect(makePlayRenegadeCard('p1').isValidPlayRenegadeCard(state)).toBe(false)
+    })
+
+    it('allows the combined wooded cost when the player can just afford it', () => {
+        const state = buildState()
+        state.board.squares[1][1] = { type: SquareType.Forest, knightColor: Color.Yellow }
+        state.board.squares[0][2] = { type: SquareType.Forest }
+        state.getPlayerState('p1').money = 10
+
+        expect(makePlayRenegadeCard('p1').isValidPlayRenegadeCard(state)).toBe(true)
+    })
+
     it('rejects placement not adjacent to any of the own knights/castles', () => {
         const board = blankBoard()
         board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }

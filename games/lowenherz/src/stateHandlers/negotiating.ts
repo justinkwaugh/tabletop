@@ -21,16 +21,17 @@ export class NegotiatingStateHandler
         playerId: string,
         context: MachineContext<HydratedLowenherzGameState>
     ): ActionType[] {
-        return context.gameState.negotiation?.turnPlayerId === playerId
+        return context.gameState.negotiation?.playerIds.includes(playerId)
             ? [ActionType.NegotiationMove]
             : []
     }
 
     enter(context: MachineContext<HydratedLowenherzGameState>) {
         const negotiation = context.gameState.negotiation
-        // negotiation should always be defined here - ResolvingActionsStateHandler set
-        // it right before transitioning into this state.
-        context.gameState.activePlayerIds = negotiation ? [negotiation.turnPlayerId] : []
+        // Both negotiators are active at once - either can propose/sign/decline at
+        // any time, unlike Dueling's initial (soon-to-be-familiar) "everyone who
+        // hasn't acted yet" set, this one never shrinks as moves come in.
+        context.gameState.activePlayerIds = negotiation ? [...negotiation.playerIds] : []
     }
 
     onAction(
@@ -38,14 +39,19 @@ export class NegotiatingStateHandler
         context: MachineContext<HydratedLowenherzGameState>
     ): MachineState {
         switch (action.kind) {
-            // An offer keeps the negotiation going (turn flips to the other player).
-            case NegotiationMoveKind.Offer: {
+            // Proposing (or revising) the standing offer keeps the negotiation going.
+            case NegotiationMoveKind.Propose: {
                 return MachineState.Negotiating
             }
-            // Accepting resolves the slot - hand off to wall-placement if it was a
-            // border action, otherwise go back to ResolvingActions for the next slot.
-            case NegotiationMoveKind.Accept: {
-                return routeAfterSlotResolved(context.gameState)
+            // A Sign either just records one signature (negotiation still set, stay
+            // here) or - if it was the second - already executed the deal in apply()
+            // (negotiation cleared): hand off to wall-placement if it was a border
+            // action, otherwise back to ResolvingActions for the next slot.
+            case NegotiationMoveKind.Sign: {
+                if (context.gameState.negotiation) {
+                    return MachineState.Negotiating
+                }
+                return routeAfterSlotResolved(context.gameState).nextState
             }
             // Declining already set up gameState.duel (see NegotiationMove.apply) - go
             // straight to Dueling. Routing through ResolvingActions here would be

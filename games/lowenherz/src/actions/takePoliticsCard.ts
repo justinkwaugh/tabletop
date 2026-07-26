@@ -15,6 +15,11 @@ export const TakePoliticsCard = Type.Evaluate(
             // they may look through only one, not both.
             pile: Type.Union([Type.Literal('A'), Type.Literal('B')]),
             cardId: Type.String()
+            // Deliberately no revealsInfo here - the actual reveal happens in
+            // LookAtPoliticsPile, which must precede this action (see
+            // invalidTakePoliticsCardReason). That split means this specific pick
+            // stays freely undoable: a player can undo just this action and take a
+            // different card from the same already-opened pile.
         })
     ])
 )
@@ -53,6 +58,7 @@ export class HydratedTakePoliticsCard
 
         state.getPlayerState(this.playerId).politicsCards.push(card)
         state.politicsTakingPlayerId = undefined
+        state.openedPoliticsPile = undefined
     }
 
     isValidTakePoliticsCard(state: HydratedLowenherzGameState): boolean {
@@ -64,6 +70,10 @@ export class HydratedTakePoliticsCard
     invalidTakePoliticsCardReason(state: HydratedLowenherzGameState): string | undefined {
         if (state.politicsTakingPlayerId !== this.playerId) {
             return "It isn't your turn to take a politics card."
+        }
+
+        if (state.openedPoliticsPile !== this.pile) {
+            return 'You need to look through a pile before picking a card from it.'
         }
 
         const pile = this.pile === 'A' ? state.politicsCardPileA : state.politicsCardPileB

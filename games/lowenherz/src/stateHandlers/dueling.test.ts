@@ -81,6 +81,18 @@ function makeBid(playerId: string, amount: number, treasureCardId?: string): Hyd
 }
 
 describe('DuelingStateHandler', () => {
+    it('keeps every duelist active for the whole duel, even after some have bid', () => {
+        const state = buildState({
+            duel: { slot: 2, playerIds: ['p1', 'p2'], bids: [{ playerId: 'p1', amount: 3 }], tieCount: 0 }
+        })
+        const handler = new DuelingStateHandler()
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+
+        handler.enter(context)
+
+        expect(state.activePlayerIds).toEqual(['p1', 'p2'])
+    })
+
     it('lets a lower ducat bid win via a Treasure card that pushes its total higher', () => {
         const state = buildState()
         state.getPlayerState('p2').politicsCards = [

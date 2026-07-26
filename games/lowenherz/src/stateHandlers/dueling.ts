@@ -39,11 +39,12 @@ export class DuelingStateHandler
 
     enter(context: MachineContext<HydratedLowenherzGameState>) {
         const duel = context.gameState.duel
-        // Everyone who hasn't bid yet this duel round can act, in any order - unlike
-        // negotiation, a duel isn't turn-based.
-        context.gameState.activePlayerIds = duel
-            ? duel.playerIds.filter((id) => !duel.bids.some((b) => b.playerId === id))
-            : []
+        // Every duelist stays listed as active for the whole duel, in any order -
+        // unlike negotiation's fixed 2, a duel can have 3+ participants, and this
+        // keeps the full set visible/actionable throughout rather than shrinking as
+        // bids land (validActionsForPlayer already excludes anyone who's already
+        // bid from actually being able to bid again).
+        context.gameState.activePlayerIds = duel ? [...duel.playerIds] : []
     }
 
     onAction(
@@ -76,14 +77,14 @@ export class DuelingStateHandler
             }
             gameState.resolvedSlots.push({ slot: duel.slot, winnerPlayerId: winnerId })
             gameState.duel = undefined
-            return routeAfterSlotResolved(gameState)
+            return routeAfterSlotResolved(gameState).nextState
         }
 
         // A second consecutive tie: give up entirely, no one performs the action.
         if (duel.tieCount >= 1) {
             gameState.resolvedSlots.push({ slot: duel.slot, winnerPlayerId: undefined })
             gameState.duel = undefined
-            return routeAfterSlotResolved(gameState)
+            return routeAfterSlotResolved(gameState).nextState
         }
 
         // First tie: re-duel among just the tied bidders.

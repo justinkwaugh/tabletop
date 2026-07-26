@@ -175,6 +175,26 @@ describe('HydratedPlaceCastle', () => {
         expect(state.getPlayerState('p1').knightsInStock).toBe(11)
     })
 
+    it('describeCastleSquareProblem reports the specific rejection reason', () => {
+        // p2 is not up next in a fresh 4-player game.
+        const freshState = buildState(['p1', 'p2', 'p3', 'p4'])
+        expect(HydratedPlaceCastle.describeCastleSquareProblem(freshState, 'p2', 5, 5)).toBe('notYourTurn')
+
+        // Single-player turn order so it's always p1's turn regardless of how many
+        // castles are already on the board - isolates the other 3 reasons from the
+        // turn-order check, the same way the gap-rule test above does.
+        const state = buildState(['p1'])
+        state.board.squares[3][3].type = SquareType.Hill
+        state.board.squares[4][4].castleColor = Color.Yellow
+        // p1 (Pink) already has a castle at (2,2)
+        state.board.squares[2][2].castleColor = Color.Pink
+
+        expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 3, 3)).toBe('wrongTerrain')
+        expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 4, 4)).toBe('occupied')
+        expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 2, 7)).toBe('tooClose') // distance 5
+        expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 5, 5)).toBeUndefined()
+    })
+
     it('does not decrement any player stock for a neutral-color placement', () => {
         const state = buildState(['p1', 'p2', 'p3'], {
             // Fast-forward: p1, p2, p3 have already placed all 3 of their own castles,

@@ -2,9 +2,7 @@
 // board art. Squares are [row][col], row 0 = top and col 0 = left as printed on the
 // tile (before any in-game rotation is applied during variable-construction setup).
 
-import { SquareType } from '../model/board.js'
-
-export type BoardTileId = 'A' | 'B' | 'C' | 'D' | 'E' | 'F'
+import { type BoardTileId, SquareType } from '../model/board.js'
 
 export type BoardTile = {
     id: BoardTileId
@@ -27,7 +25,7 @@ export const BoardTiles: BoardTile[] = [
     {
         id: 'B',
         squares: [
-            [Forest, Forest, Forest, Forest, Blank],
+            [Forest, Forest, Forest, Blank, Blank],
             [Forest, Hill, Forest, Blank, Hill],
             [Forest, Forest, Forest, Village, Blank],
             [Blank, Forest, Forest, Blank, Blank],

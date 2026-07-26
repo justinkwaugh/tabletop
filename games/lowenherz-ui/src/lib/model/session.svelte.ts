@@ -1,5 +1,6 @@
-import { ActionSource, type Color } from '@tabletop/common'
+import { ActionSource, createAction, type Color } from '@tabletop/common'
 import { GameSession } from '@tabletop/frontend-components'
+import { nanoid } from 'nanoid'
 import {
     ActionType,
     ALLIANCE_CANCELLATION_COST,
@@ -16,6 +17,7 @@ import {
     HydratedChooseAction,
     HydratedDrawActionCard,
     HydratedExpandRegion,
+    HydratedLookAtPoliticsPile,
     HydratedLowenherzGameState,
     HydratedNegotiationMove,
     HydratedPlaceCastle,
@@ -27,6 +29,7 @@ import {
     isKnightSafeToRemove,
     isOnBoard,
     isWalledBetween,
+    LookAtPoliticsPile,
     LowenherzGameState,
     MachineState,
     manhattanDistance,
@@ -50,7 +53,8 @@ import {
     SubmitDuelBid,
     TakePoliticsCard,
     HydratedTakePoliticsCard,
-    wallBetween
+    wallBetween,
+    WOODED_KNIGHT_COST
 } from '@tabletop/lowenherz'
 
 export class LowenherzGameSession extends GameSession<
@@ -85,9 +89,17 @@ export class LowenherzGameSession extends GameSession<
     // knight square is also chosen - so the gap/terrain/occupancy rules are enforced
     // immediately instead of only surfacing after a second click.
     selectCastleSquare(col: number, row: number) {
-        if (!this.myPlayer || !HydratedPlaceCastle.isValidCastleSquare(this.gameState, this.myPlayer.id, col, row)) {
-            this.errorMessage =
-                "That spot isn't allowed for a castle — it needs to be at least 6 spaces from your other same-color castles, and can't be a hill, village, or an already-occupied square."
+        if (!this.myPlayer) return
+
+        const problem = HydratedPlaceCastle.describeCastleSquareProblem(this.gameState, this.myPlayer.id, col, row)
+        if (problem) {
+            this.errorMessage = {
+                notYourTurn: "It's not your turn to place a castle right now.",
+                wrongTerrain: "That spot isn't allowed for a castle — it can't be a hill or village.",
+                occupied: "That spot isn't allowed for a castle — it's already occupied.",
+                tooClose:
+                    "That spot isn't allowed for a castle — it needs to be at least 6 spaces from your other same-color castles."
+            }[problem]
             return
         }
 
@@ -214,27 +226,41 @@ export class LowenherzGameSession extends GameSession<
     }
 
     // Testing convenience only - not a real player action, and not a real Boundary
-    // Walls action either. Encloses EVERY castle+knight pair not already part of a
-    // region (one blob per castle, not just one per color - a color with several
-    // castles gets several regions) and grows each blob outward into open, unclaimed
-    // territory, so seeded regions are big enough and numerous enough to reach
-    // multi-region expansion/invasion scenarios quickly, without first playing
-    // through card draws and negotiations/duels to actually win border actions.
-    // Idempotent - safe to call again later (e.g. after an invasion strands part of
-    // a region, or to seed any castle that still has none) since it only touches
-    // castles that aren't already part of a tracked region.
+    // Walls action either. Encloses castle+knight pairs not already part of a region
+    // (one blob per castle, not just one per color - a color with several castles
+    // gets several regions, up to MAX_SEEDED_REGIONS_PER_COLOR) and grows each blob
+    // outward into open, unclaimed territory, so seeded regions are big enough and
+    // numerous enough to reach multi-region expansion/invasion scenarios quickly,
+    // without first playing through card draws and negotiations/duels to actually
+    // win border actions. Deliberately stops short of every player's 3rd region so
+    // border actions (PlacingWalls) stay testable too - a player already at the cap
+    // can't place any more walls at all. Idempotent - safe to call again later (e.g.
+    // after an invasion strands part of a region, or to seed any castle that still
+    // has none) since it only touches castles that aren't already part of a tracked
+    // region, and re-checks each color's current region count fresh every call.
     async seedTestRegions() {
         if (!this.setupComplete) return
 
         const TARGET_BLOB_SIZE = 8
+        // Stop at 2 regions per color (not every castle) - leaves each player under
+        // the rulebook's "3 regions" cap, so a seeded test game can still exercise
+        // PlacingWalls/border actions instead of every player already being maxed out.
+        const MAX_SEEDED_REGIONS_PER_COLOR = 2
         const board = this.gameState.board
         const claimedKeys = new Set(this.gameState.regions.flatMap((r) => r.squareKeys))
+
+        const regionCountByColor = new Map<Color, number>()
+        for (const region of this.gameState.regions) {
+            if (!region.ownerColor) continue
+            regionCountByColor.set(region.ownerColor, (regionCountByColor.get(region.ownerColor) ?? 0) + 1)
+        }
 
         const blobs: { col: number; row: number }[][] = []
         for (const castle of this.allCastleSquares()) {
             if (claimedKeys.has(squareKey(castle.col, castle.row))) continue
             const color = getSquare(board, castle.col, castle.row)?.castleColor
             if (!color) continue
+            if ((regionCountByColor.get(color) ?? 0) >= MAX_SEEDED_REGIONS_PER_COLOR) continue
 
             const knight = neighbors(castle.col, castle.row).find(
                 (n) => isOnBoard(n.col, n.row) && getSquare(board, n.col, n.row)?.knightColor === color
@@ -272,6 +298,7 @@ export class LowenherzGameSession extends GameSession<
 
             cells.forEach((c) => claimedKeys.add(squareKey(c.col, c.row)))
             blobs.push(cells)
+            regionCountByColor.set(color, (regionCountByColor.get(color) ?? 0) + 1)
         }
 
         if (blobs.length === 0) return
@@ -300,6 +327,31 @@ export class LowenherzGameSession extends GameSession<
             this.gameState.regions.push(region)
             removeInteriorWalls(board, region)
         }
+
+        await this.setGameState(this.gameState.dehydrate())
+    }
+
+    // Testing convenience only - not a real player action. Hands a Renegade card to
+    // the current player (so they can immediately try playing it themselves) and an
+    // Alliance card to a different player (so there's a second color to test
+    // alliance-related interactions - like being targeted by Renegade, or cancelling
+    // an alliance from that seat in hotseat mode) - without grinding through Crown and
+    // Scepter draws to get them naturally.
+    async giveTestPoliticsCards() {
+        const players = this.gameState.players
+        if (players.length < 2) return
+
+        const mine = this.myPlayer ? this.gameState.getPlayerState(this.myPlayer.id) : players[0]
+        const other = players.find((p) => p.playerId !== mine.playerId) ?? players[1]
+
+        mine.politicsCards = [
+            ...mine.politicsCards,
+            { id: `test-renegade-${Math.random().toString(36).slice(2)}`, type: PoliticsCardType.Renegade }
+        ]
+        other.politicsCards = [
+            ...other.politicsCards,
+            { id: `test-alliance-${Math.random().toString(36).slice(2)}`, type: PoliticsCardType.Alliance }
+        ]
 
         await this.setGameState(this.gameState.dehydrate())
     }
@@ -340,48 +392,113 @@ export class LowenherzGameSession extends GameSession<
         }
     }
 
-    get isMyNegotiationTurn(): boolean {
+    // Both negotiators are active at once - either can propose/sign/decline at any
+    // time, not just "on their turn".
+    get isNegotiator(): boolean {
         if (!this.myPlayer) return false
-        return this.gameState.negotiation?.turnPlayerId === this.myPlayer.id
+        return this.gameState.negotiation?.playerIds.includes(this.myPlayer.id) ?? false
     }
 
-    private async submitNegotiationMove(kind: NegotiationMoveKind, amount?: number) {
-        if (!this.isMyNegotiationTurn) return
-
-        const action = this.createPlayerAction(NegotiationMove, { kind, amount })
-        this.errorMessage = undefined
-        try {
-            await this.applyAction(action)
-        } catch (e) {
-            console.warn('Failed negotiation move:', e)
-            this.errorMessage = 'That move was rejected.'
-        }
+    get hasSignedNegotiationOffer(): boolean {
+        if (!this.myPlayer) return false
+        return this.gameState.negotiation?.signedPlayerIds.includes(this.myPlayer.id) ?? false
     }
 
-    async makeOffer(amount: number) {
-        if (!this.myPlayer) return
+    hasPlayerSignedNegotiationOffer(playerId: string): boolean {
+        return this.gameState.negotiation?.signedPlayerIds.includes(playerId) ?? false
+    }
+
+    // A proposal names either negotiator as the payer ("I'll pay you" or "you pay
+    // me") - it's a suggested deal shape, not necessarily an offer of your own money.
+    async proposeNegotiationOffer(fromPlayerId: string, amount: number) {
+        if (!this.myPlayer || !this.isNegotiator) return
+
         const candidate = new HydratedNegotiationMove({
             id: 'candidate',
             gameId: this.gameState.gameId,
             source: ActionSource.User,
             type: ActionType.NegotiationMove,
             playerId: this.myPlayer.id,
-            kind: NegotiationMoveKind.Offer,
+            kind: NegotiationMoveKind.Propose,
+            fromPlayerId,
             amount
         })
         if (!candidate.isValidNegotiationMove(this.gameState)) {
-            this.errorMessage = "That offer isn't allowed — it must be a whole number of ducats you can afford."
+            this.errorMessage =
+                "That offer isn't allowed — it must be a whole number of ducats the payer can afford."
             return
         }
-        await this.submitNegotiationMove(NegotiationMoveKind.Offer, amount)
+
+        const action = this.createPlayerAction(NegotiationMove, {
+            kind: NegotiationMoveKind.Propose,
+            fromPlayerId,
+            amount
+        })
+        this.errorMessage = undefined
+        try {
+            await this.applyAction(action)
+        } catch (e) {
+            console.warn('Failed to propose negotiation offer:', e)
+            this.errorMessage = 'That offer was rejected.'
+        }
     }
 
-    async acceptOffer() {
-        await this.submitNegotiationMove(NegotiationMoveKind.Accept)
+    get canSignNegotiationOffer(): boolean {
+        if (!this.isNegotiator) return false
+        return this.gameState.negotiation?.offer !== undefined && !this.hasSignedNegotiationOffer
+    }
+
+    async signNegotiationOffer() {
+        if (!this.canSignNegotiationOffer) return
+
+        const action = this.createPlayerAction(NegotiationMove, { kind: NegotiationMoveKind.Sign })
+        this.errorMessage = undefined
+        try {
+            await this.applyAction(action)
+        } catch (e) {
+            console.warn('Failed to sign negotiation offer:', e)
+            this.errorMessage = 'That signature was rejected.'
+        }
     }
 
     async declineNegotiation() {
-        await this.submitNegotiationMove(NegotiationMoveKind.Decline)
+        if (!this.isNegotiator) return
+
+        const action = this.createPlayerAction(NegotiationMove, { kind: NegotiationMoveKind.Decline })
+        this.errorMessage = undefined
+        try {
+            await this.applyAction(action)
+        } catch (e) {
+            console.warn('Failed to decline negotiation:', e)
+            this.errorMessage = 'That move was rejected.'
+        }
+    }
+
+    // TEMPORARY - a stand-in for real two-session testing, remove once that exists.
+    // Both negotiators stay simultaneously active for the whole negotiation, but
+    // hotseat's myPlayer only ever resolves to one of them (activePlayers.at(0)), so
+    // there's normally no way for a single solo tester to supply the OTHER
+    // negotiator's signature. This signs on their behalf directly, bypassing the
+    // myPlayer check that signNegotiationOffer() enforces.
+    async debugSignNegotiationOfferAs(playerId: string) {
+        const negotiation = this.gameState.negotiation
+        if (!negotiation?.offer || negotiation.signedPlayerIds.includes(playerId)) return
+
+        const action = createAction(NegotiationMove, {
+            id: nanoid(),
+            gameId: this.gameState.gameId,
+            source: ActionSource.User,
+            type: ActionType.NegotiationMove,
+            playerId,
+            kind: NegotiationMoveKind.Sign
+        })
+        this.errorMessage = undefined
+        try {
+            await this.applyAction(action)
+        } catch (e) {
+            console.warn('Failed to sign negotiation offer (debug):', e)
+            this.errorMessage = 'That signature was rejected.'
+        }
     }
 
     get canSubmitDuelBid(): boolean {
@@ -389,6 +506,10 @@ export class LowenherzGameSession extends GameSession<
         const duel = this.gameState.duel
         if (!duel) return false
         return duel.playerIds.includes(this.myPlayer.id) && !duel.bids.some((b) => b.playerId === this.myPlayer!.id)
+    }
+
+    hasPlayerBidInDuel(playerId: string): boolean {
+        return this.gameState.duel?.bids.some((b) => b.playerId === playerId) ?? false
     }
 
     // This player's Treasure cards - usable to back a duel bid, or to cover the
@@ -427,6 +548,35 @@ export class LowenherzGameSession extends GameSession<
             await this.applyAction(action)
         } catch (e) {
             console.warn('Failed to submit duel bid:', e)
+            this.errorMessage = 'That bid was rejected.'
+        }
+    }
+
+    // TEMPORARY - a stand-in for real two-session testing, remove once that exists.
+    // Every duelist stays simultaneously active for the whole duel, but hotseat's
+    // myPlayer only ever resolves to one of them (activePlayers.at(0)), so there's
+    // normally no way for a solo tester to submit a bid for anyone else. This submits
+    // one directly for a specific player, bypassing the myPlayer check that
+    // submitDuelBid() enforces - unlike negotiation's Propose, a duel bid really is
+    // tied to one specific bidder, so this stays debug-only rather than becoming a
+    // real mechanic.
+    async debugSubmitDuelBidAs(playerId: string, amount: number) {
+        const duel = this.gameState.duel
+        if (!duel || !duel.playerIds.includes(playerId) || this.hasPlayerBidInDuel(playerId)) return
+
+        const action = createAction(SubmitDuelBid, {
+            id: nanoid(),
+            gameId: this.gameState.gameId,
+            source: ActionSource.User,
+            type: ActionType.SubmitDuelBid,
+            playerId,
+            amount
+        })
+        this.errorMessage = undefined
+        try {
+            await this.applyAction(action)
+        } catch (e) {
+            console.warn('Failed to submit duel bid (debug):', e)
             this.errorMessage = 'That bid was rejected.'
         }
     }
@@ -688,9 +838,18 @@ export class LowenherzGameSession extends GameSession<
         return result
     }
 
-    addExpansionSquare(col: number, row: number) {
+    // Picking a 2nd space always maxes out this expansion (never more than 2 - "using
+    // this card to expand twice is not allowed" already means one card only ever
+    // grants 1-2 spaces total), so there's nothing left to decide once it's picked -
+    // submit immediately rather than making the player click Confirm too. Undo is
+    // there if they change their mind. A 1-space expansion still waits for an
+    // explicit Confirm/Cancel, since the player might want to add a 2nd space instead.
+    async addExpansionSquare(col: number, row: number) {
         if (!this.selectedExpandRegionId || this.expansionSquares.length >= 2) return
         this.expansionSquares = [...this.expansionSquares, { col, row }]
+        if (this.expansionSquares.length >= 2) {
+            await this.confirmExpansion()
+        }
     }
 
     async confirmExpansion() {
@@ -733,19 +892,110 @@ export class LowenherzGameSession extends GameSession<
         )
     }
 
-    // Which pile (if either) the current player is currently looking through - purely
-    // local UI state until they pick a specific card, same pattern as
-    // selectedExpandRegionId.
-    selectedPoliticsPile: 'A' | 'B' | undefined = $state(undefined)
-
-    selectPoliticsPile(pile: 'A' | 'B') {
-        if (!this.canTakePoliticsCard) return
-        this.errorMessage = undefined
-        this.selectedPoliticsPile = pile
+    // Which pile (if either) the current player has committed to looking through -
+    // this is now real server state (set by LookAtPoliticsPile, cleared by
+    // takePoliticsCard()) rather than local-only UI state, so it survives undo: if
+    // the player undoes their TakePoliticsCard pick, this stays put and they can pick
+    // a different card from the SAME pile. Per the rulebook ("look through one of the
+    // two piles... and select one card"), opening a pile is a one-way commitment -
+    // there's no way to switch to the other pile once this is set.
+    get selectedPoliticsPile(): 'A' | 'B' | undefined {
+        return this.gameState.openedPoliticsPile
     }
 
-    cancelPoliticsPileSelection() {
-        this.selectedPoliticsPile = undefined
+    // Whether the fanned-out pile view is currently showing - separate from WHICH
+    // pile is selected, so a player can hide it (to see the board underneath) and
+    // bring the same pile back up without that counting as backing out of their
+    // choice. Purely local - showing/hiding this view isn't a game action.
+    showPoliticsHand: boolean = $state(false)
+
+    // Viewport-space center point of whichever pile button the player last clicked -
+    // purely a visual cue so PoliticsHand can animate its cards as if being dealt out
+    // from that spot. Has no bearing on game state.
+    politicsPileOrigin: { x: number; y: number } | undefined = $state(undefined)
+
+    async selectPoliticsPile(pile: 'A' | 'B', origin?: { x: number; y: number }) {
+        if (!this.canTakePoliticsCard || this.selectedPoliticsPile) return
+        if (origin) this.politicsPileOrigin = origin
+        this.viewingMyPoliticsCards = false
+
+        const action = this.createPlayerAction(LookAtPoliticsPile, { pile, revealsInfo: true })
+
+        const candidate = new HydratedLookAtPoliticsPile({
+            id: 'candidate',
+            gameId: this.gameState.gameId,
+            source: ActionSource.User,
+            type: ActionType.LookAtPoliticsPile,
+            playerId: action.playerId,
+            pile,
+            revealsInfo: true
+        })
+
+        const invalidReason = candidate.invalidLookAtPoliticsPileReason(this.gameState)
+        if (invalidReason) {
+            this.errorMessage = invalidReason
+            return
+        }
+
+        this.errorMessage = undefined
+        try {
+            await this.applyAction(action)
+            this.showPoliticsHand = true
+        } catch (e) {
+            console.warn('Failed to open politics pile:', e)
+            this.errorMessage = 'That pile could not be opened.'
+        }
+    }
+
+    hidePoliticsHand() {
+        this.showPoliticsHand = false
+    }
+
+    revealPoliticsHand(origin?: { x: number; y: number }) {
+        if (!this.selectedPoliticsPile) return
+        if (origin) this.politicsPileOrigin = origin
+        this.viewingMyPoliticsCards = false
+        this.showPoliticsHand = true
+    }
+
+    // Read-only peek at the politics cards a player already holds (as opposed to the
+    // draw-pile flow above, which lets the taking player actually pick a new one) -
+    // triggered by hovering/clicking your own pile in the player panel. Only ever
+    // shows the LOCAL player's own cards (see PlayerState.svelte - other players'
+    // panels don't offer this at all, since seeing their cards would defeat the
+    // point of them being private).
+    viewingMyPoliticsCards: boolean = $state(false)
+
+    get myPoliticsCards(): PoliticsCard[] {
+        return this.myPlayer ? this.gameState.getPlayerState(this.myPlayer.id).politicsCards : []
+    }
+
+    // DOM anchor for "my politics pile" (the face-down card + count badge in my own
+    // player panel row - see PlayerState.svelte) - registered once that panel mounts,
+    // so PoliticsHand can compute a live target point for the "deliver the taken
+    // card" animation without the two components needing to know each other's
+    // internals. Read on demand (not $state) since it's only ever consulted
+    // imperatively, mid-animation - it doesn't drive any rendering itself.
+    myPanelAnchorEl: HTMLElement | undefined = undefined
+
+    registerMyPanelAnchor(el: HTMLElement) {
+        this.myPanelAnchorEl = el
+    }
+
+    get myPoliticsPileOrigin(): { x: number; y: number } | undefined {
+        if (!this.myPanelAnchorEl) return undefined
+        const rect = this.myPanelAnchorEl.getBoundingClientRect()
+        return { x: rect.right - 24, y: rect.bottom - 24 }
+    }
+
+    showMyPoliticsCards(origin: { x: number; y: number }) {
+        this.politicsPileOrigin = origin
+        this.showPoliticsHand = false
+        this.viewingMyPoliticsCards = true
+    }
+
+    hideMyPoliticsCards() {
+        this.viewingMyPoliticsCards = false
     }
 
     async takePoliticsCard(pile: 'A' | 'B', cardId: string) {
@@ -770,7 +1020,7 @@ export class LowenherzGameSession extends GameSession<
         }
 
         this.errorMessage = undefined
-        this.selectedPoliticsPile = undefined
+        this.showPoliticsHand = false
         try {
             await this.applyAction(action)
         } catch (e) {
@@ -825,13 +1075,58 @@ export class LowenherzGameSession extends GameSession<
         this.renegadeRemovedSquare = undefined
     }
 
+    // Which of the player's own regions could actually receive the replacement knight
+    // - same space/terrain/adjacency/affordability rules as a normal knight placement
+    // (ignoring the possible extra removal-side wooded cost, which the final
+    // confirmRenegadePlacement validates exactly) - a region with no candidate square
+    // at all (full, or its only wooded spot they can't afford) can't be chosen as the
+    // starting region in the first place.
+    get legalRenegadeOwnRegionIds(): Set<string> {
+        if (!this.isPlayingRenegadeCard || !this.myPlayer) return new Set()
+        const playerState = this.gameState.getPlayerState(this.myPlayer.id)
+        const board = this.gameState.board
+        const result = new Set<string>()
+        for (const region of this.myRegions) {
+            const hasCandidate = region.squareKeys.some((key) => {
+                const [col, row] = key.split(',').map(Number)
+                const square = getSquare(board, col, row)
+                if (!square) return false
+                if (square.type !== SquareType.Blank && square.type !== SquareType.Forest) return false
+                if (square.knightColor || square.castleColor) return false
+                if (square.type === SquareType.Forest && playerState.money < WOODED_KNIGHT_COST) return false
+                return neighbors(col, row).some((n) => {
+                    if (!isOnBoard(n.col, n.row)) return false
+                    if (isWalledBetween(board, col, row, n.col, n.row)) return false
+                    const ns = getSquare(board, n.col, n.row)
+                    return ns?.knightColor === playerState.color || ns?.castleColor === playerState.color
+                })
+            })
+            if (hasCandidate) result.add(region.id)
+        }
+        return result
+    }
+
     // Any of another prince's regions bordering the chosen own region - the pair of
-    // regions Renegade (like Alliance) acts on.
+    // regions Renegade (like Alliance) acts on. Also requires at least one knight in
+    // that region actually safe to remove - a region with none (or only knights whose
+    // removal would strand another) can't be targeted at all, so it shouldn't be
+    // offered as a choice in the first place.
     get legalRenegadeEnemyRegions(): Region[] {
         const ownRegion = this.gameState.regions.find((r) => r.id === this.renegadeOwnRegionId)
         if (!ownRegion) return []
         return this.gameState.regions.filter(
-            (r) => r.ownerColor && r.ownerColor !== ownRegion.ownerColor && regionsAreNeighboring(ownRegion, r)
+            (r) =>
+                r.ownerColor &&
+                r.ownerColor !== ownRegion.ownerColor &&
+                regionsAreNeighboring(ownRegion, r) &&
+                r.squareKeys.some((key) => {
+                    const [col, row] = key.split(',').map(Number)
+                    const square = getSquare(this.gameState.board, col, row)
+                    return (
+                        square?.knightColor === r.ownerColor &&
+                        isKnightSafeToRemove(this.gameState, r.ownerColor!, col, row)
+                    )
+                })
         )
     }
 
@@ -1138,14 +1433,20 @@ export class LowenherzGameSession extends GameSession<
                 continue
             }
 
-            if (this.isMyNegotiationTurn && this.myPlayer) {
-                if (this.gameState.negotiation?.offer) {
-                    await this.acceptOffer()
-                } else {
+            if (this.isNegotiator && this.myPlayer) {
+                // Both negotiators are active for the whole negotiation, but hotseat's
+                // myPlayer only ever resolves to one of them (activePlayers.at(0)) - so
+                // from here we can propose and sign for ourselves, but can never supply
+                // the OTHER negotiator's signature. Stop rather than spin forever;
+                // completing a negotiation end-to-end needs a second session/tab (or an
+                // engine-level test) acting as the other player.
+                if (this.canSignNegotiationOffer) {
+                    await this.signNegotiationOffer()
+                } else if (!this.gameState.negotiation?.offer) {
                     const myMoney = this.gameState.getPlayerState(this.myPlayer.id).money
-                    await this.makeOffer(Math.min(1, myMoney))
+                    await this.proposeNegotiationOffer(this.myPlayer.id, Math.min(1, myMoney))
                 }
-                continue
+                break
             }
 
             if (this.canSubmitDuelBid && this.myPlayer) {

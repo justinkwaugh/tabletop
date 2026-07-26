@@ -11,6 +11,8 @@
     import Board from '$lib/components/Board.svelte'
     import ActionToolbar from '$lib/components/ActionToolbar.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
+    import TestingControls from '$lib/components/TestingControls.svelte'
+    import PoliticsHand from '$lib/components/PoliticsHand.svelte'
     import parchmentTexture from '$lib/images/board/parchment-texture.png'
 
     import type { LowenherzGameSession } from '$lib/model/session.svelte'
@@ -39,6 +41,7 @@
             <DefaultSideContent>
                 {#snippet playersPanel()}
                     <PlayersPanel />
+                    <TestingControls />
                 {/snippet}
                 {#snippet history()}
                    <History />
@@ -65,3 +68,8 @@
         {/snippet}
     </DefaultTableLayout>
 </div>
+
+<!-- Rendered here (outside ScalingWrapper's transformed subtree) so its
+     `position: fixed` is genuinely relative to the browser viewport, not scaled or
+     clipped by the board's own responsive scaling. -->
+<PoliticsHand />

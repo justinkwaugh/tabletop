@@ -32,15 +32,17 @@ export const ResolvedSlot = Type.Object({
     winnerPlayerId: Type.Optional(Type.String())
 })
 
-// An in-progress 2-player negotiation over a tied slot: players alternate making
-// ducat offers to the other in exchange for the right to perform the action, until
-// one accepts the standing offer or either player declines (forcing a duel instead).
+// An in-progress 2-player negotiation over a tied slot: both players are active at
+// once (either can propose or revise a shared offer at any time) and the deal only
+// executes once BOTH have signed the currently-standing offer - proposing a new one
+// clears any existing signatures, since they applied to the old terms. Either player
+// can also decline outright at any time, forcing a duel instead.
 export type Negotiation = Type.Static<typeof Negotiation>
 export const Negotiation = Type.Object({
     slot: Type.Union([Type.Literal(1), Type.Literal(2), Type.Literal(3)]),
     playerIds: Type.Array(Type.String()),
-    turnPlayerId: Type.String(),
-    offer: Type.Optional(Type.Object({ fromPlayerId: Type.String(), amount: Type.Number() }))
+    offer: Type.Optional(Type.Object({ fromPlayerId: Type.String(), amount: Type.Number() })),
+    signedPlayerIds: Type.Array(Type.String())
 })
 
 // An in-progress duel over a tied slot: every participant submits one ducat bid
@@ -129,7 +131,13 @@ export const LowenherzGameState = Type.Evaluate(
             politicsCardPileB: Type.Array(PoliticsCard),
             // Set while the winner of a politics action is looking through their
             // chosen pile and picking a card.
-            politicsTakingPlayerId: Type.Optional(Type.String())
+            politicsTakingPlayerId: Type.Optional(Type.String()),
+            // Which pile (if either) the taking player has committed to looking
+            // through, set by LookAtPoliticsPile and cleared once TakePoliticsCard
+            // completes. Split from the pick itself so undo can freely retry a
+            // different card from this same pile without also permitting a
+            // switch to the other, unopened pile.
+            openedPoliticsPile: Type.Optional(Type.Union([Type.Literal('A'), Type.Literal('B')]))
         })
     ])
 )
@@ -175,6 +183,7 @@ export class HydratedLowenherzGameState
     declare politicsCardPileA: PoliticsCard[]
     declare politicsCardPileB: PoliticsCard[]
     declare politicsTakingPlayerId?: string
+    declare openedPoliticsPile?: 'A' | 'B'
 
     constructor(data: LowenherzGameState) {
         super(data, LowenherzGameStateValidator)

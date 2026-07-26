@@ -49,6 +49,7 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         decisions: [],
         resolvedSlots: [],
         politicsTakingPlayerId: 'p1',
+        openedPoliticsPile: 'A',
         politicsCardPileA: [
             { id: 'card-alliance', type: PoliticsCardType.Alliance },
             { id: 'card-treasure-8', type: PoliticsCardType.Treasure, value: 8 }
@@ -88,7 +89,7 @@ describe('HydratedTakePoliticsCard', () => {
     })
 
     it('can pick from pile B instead, leaving pile A untouched', () => {
-        const state = buildState()
+        const state = buildState({ openedPoliticsPile: 'B' })
         const action = makeTakePoliticsCard('p1', 'B', 'card-renegade')
         action.apply(state)
 
@@ -107,5 +108,10 @@ describe('HydratedTakePoliticsCard', () => {
     it("rejects a card that isn't in the chosen pile", () => {
         const state = buildState()
         expect(makeTakePoliticsCard('p1', 'A', 'card-renegade').isValidTakePoliticsCard(state)).toBe(false)
+    })
+
+    it("rejects a pick from a pile the player hasn't looked through yet", () => {
+        const state = buildState({ openedPoliticsPile: undefined })
+        expect(makeTakePoliticsCard('p1', 'A', 'card-alliance').isValidTakePoliticsCard(state)).toBe(false)
     })
 })

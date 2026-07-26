@@ -14,6 +14,11 @@ import { buildPlacementPlan, currentPlacementSlot } from '../util/placementPlan.
 
 const SAME_COLOR_CASTLE_MIN_GAP = 6
 
+// Specific reasons a candidate castle square can be rejected - see
+// describeCastleSquareProblem(). Not "wrong-terrain"/"occupied" combined into one
+// generic reason because the UI needs to tell them apart to report accurately.
+export type CastleSquareProblem = 'notYourTurn' | 'wrongTerrain' | 'occupied' | 'tooClose'
+
 export type PlaceCastleMetadata = Type.Static<typeof PlaceCastleMetadata>
 export const PlaceCastleMetadata = Type.Object({})
 
@@ -130,18 +135,34 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
         castleCol: number,
         castleRow: number
     ): boolean {
+        return (
+            HydratedPlaceCastle.describeCastleSquareProblem(state, playerId, castleCol, castleRow) ===
+            undefined
+        )
+    }
+
+    // Same check as isValidCastleSquare, but says WHICH rule rejected the square -
+    // the 4 conditions below are otherwise indistinguishable from a single boolean,
+    // which previously left the UI unable to tell "it's not your turn" apart from
+    // "that spot is too close to your own castle" (a claim that's nonsensically wrong
+    // when this is a player's very first castle).
+    static describeCastleSquareProblem(
+        state: HydratedLowenherzGameState,
+        playerId: string,
+        castleCol: number,
+        castleRow: number
+    ): CastleSquareProblem | undefined {
         const plan = buildPlacementPlan(
             state.turnOrder,
             (id) => state.getPlayerState(id).color,
             state.neutralColor
         )
         const slot = currentPlacementSlot(plan, totalCastlesPlaced(state))
-        if (!slot || slot.playerId !== playerId) return false
+        if (!slot || slot.playerId !== playerId) return 'notYourTurn'
 
         const castleSquare = getSquare(state.board, castleCol, castleRow)
-        if (!castleSquare) return false
-        if (castleSquare.type !== SquareType.Blank) return false
-        if (castleSquare.castleColor || castleSquare.knightColor) return false
+        if (!castleSquare || castleSquare.type !== SquareType.Blank) return 'wrongTerrain'
+        if (castleSquare.castleColor || castleSquare.knightColor) return 'occupied'
 
         const existingSameColorCastles = castleSquaresForColor(state.board, slot.color)
         const tooClose = existingSameColorCastles.some(
@@ -149,7 +170,7 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
                 manhattanDistance(existing.col, existing.row, castleCol, castleRow) <
                 SAME_COLOR_CASTLE_MIN_GAP
         )
-        return !tooClose
+        return tooClose ? 'tooClose' : undefined
     }
 
     static isValidKnightSquare(

@@ -8,6 +8,43 @@
     font-style: normal;
 }
 
+/* Medieval-England-flavored body/heading face - readable enough for dense text (the
+   history log, tooltips) unlike a display-only blackletter would be. */
+@font-face {
+    font-family: 'IM Fell English';
+    src: url('./lib/fonts/IMFellEnglish-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'IM Fell English';
+    src: url('./lib/fonts/IMFellEnglish-Italic.ttf') format('truetype');
+    font-weight: normal;
+    font-style: italic;
+}
+
+/* Cursive script for the negotiation signature blanks only - not applied app-wide.
+   font-display: swap (rather than the browser default, which behaves like "block" in
+   most browsers) avoids a brief invisible period, but the real fix for the fallback-
+   font flash on first use is warming this up on mount - see .signature-text-warmup
+   below, rendered as soon as the board mounts, well before anyone signs anything. */
+@font-face {
+    font-family: 'Tangerine';
+    src: url('./lib/fonts/Tangerine-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Tangerine';
+    src: url('./lib/fonts/Tangerine-Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
@@ -40,8 +77,34 @@
 @source "./**/*.{html,js,svelte,ts}";
 
 @layer base {
+    html {
+        font-family: 'IM Fell English', Georgia, 'Times New Roman', serif;
+    }
+
     /* disable chrome cancel button */
     input[type='search']::-webkit-search-cancel-button {
         display: none;
     }
+}
+
+/* A negotiator's name, rendered as if just signed by hand onto a signature blank. */
+.signature-text {
+    font-family: 'Tangerine', cursive;
+    font-weight: bold;
+    font-size: 1.75rem;
+    line-height: 1;
+}
+
+/* Invisible - forces the browser to fetch/cache Tangerine as soon as the board
+   mounts, instead of on first actual use (a real signature), which is what caused a
+   visible flash of the fallback cursive font at the wrong size before swapping in. */
+.signature-text-warmup {
+    font-family: 'Tangerine', cursive;
+    font-weight: bold;
+    font-size: 1.75rem;
+    line-height: 1;
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
 }

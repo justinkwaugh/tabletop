@@ -14,6 +14,7 @@ import { HydratedPlaceWall, isPlaceWall } from '../actions/placeWall.js'
 import { HydratedPlaceKnight, isPlaceKnight } from '../actions/placeKnight.js'
 import { HydratedExpandRegion, isExpandRegion } from '../actions/expandRegion.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
+import { HydratedLookAtPoliticsPile, isLookAtPoliticsPile } from '../actions/lookAtPoliticsPile.js'
 import { HydratedTakePoliticsCard, isTakePoliticsCard } from '../actions/takePoliticsCard.js'
 import { HydratedPlayRenegadeCard, isPlayRenegadeCard } from '../actions/playRenegadeCard.js'
 import { HydratedPlayAllianceCard, isPlayAllianceCard } from '../actions/playAllianceCard.js'
@@ -55,6 +56,9 @@ export class LowenherzHydrator
             }
             case isPass(data): {
                 return new HydratedPass(data)
+            }
+            case isLookAtPoliticsPile(data): {
+                return new HydratedLookAtPoliticsPile(data)
             }
             case isTakePoliticsCard(data): {
                 return new HydratedTakePoliticsCard(data)

@@ -5,6 +5,7 @@ import { BOARD_COLS, BOARD_ROWS, BoardSquare, SquareType } from '../model/board.
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { PoliticsCardType } from '../definition/politicsCards.js'
+import { HydratedLookAtPoliticsPile } from '../actions/lookAtPoliticsPile.js'
 import { HydratedTakePoliticsCard } from '../actions/takePoliticsCard.js'
 import { TakingPoliticsCardStateHandler } from './takingPoliticsCard.js'
 
@@ -67,17 +68,46 @@ describe('TakingPoliticsCardStateHandler', () => {
         expect(state.activePlayerIds).toEqual(['p1'])
     })
 
-    it('only offers TakePoliticsCard to the designated player', () => {
+    it('only offers LookAtPoliticsPile to the designated player before a pile is opened', () => {
         const state = buildState()
         const context = new MachineContext({ gameConfig: {}, gameState: state })
         const handler = new TakingPoliticsCardStateHandler()
 
-        expect(handler.validActionsForPlayer('p1', context)).toEqual([ActionType.TakePoliticsCard])
+        expect(handler.validActionsForPlayer('p1', context)).toEqual([ActionType.LookAtPoliticsPile])
         expect(handler.validActionsForPlayer('p2', context)).toEqual([])
     })
 
-    it('returns to ResolvingActions once a card is taken', () => {
+    it('offers only TakePoliticsCard once a pile has been opened', () => {
+        const state = buildState({ openedPoliticsPile: 'A' })
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+        const handler = new TakingPoliticsCardStateHandler()
+
+        expect(handler.validActionsForPlayer('p1', context)).toEqual([ActionType.TakePoliticsCard])
+    })
+
+    it('stays in TakingPoliticsCard once a pile is opened, so the pick remains undoable on its own', () => {
         const state = buildState()
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+        const handler = new TakingPoliticsCardStateHandler()
+
+        const action = new HydratedLookAtPoliticsPile({
+            id: 'look-1',
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: ActionType.LookAtPoliticsPile,
+            playerId: 'p1',
+            pile: 'A',
+            revealsInfo: true
+        })
+        expect(handler.isValidAction(action, context)).toBe(true)
+        action.apply(state, context)
+
+        expect(handler.onAction(action, context)).toBe(MachineState.TakingPoliticsCard)
+        expect(state.openedPoliticsPile).toBe('A')
+    })
+
+    it('returns to ResolvingActions once a card is taken', () => {
+        const state = buildState({ openedPoliticsPile: 'A' })
         const context = new MachineContext({ gameConfig: {}, gameState: state })
         const handler = new TakingPoliticsCardStateHandler()
 
@@ -95,6 +125,7 @@ describe('TakingPoliticsCardStateHandler', () => {
 
         expect(handler.onAction(action, context)).toBe(MachineState.ResolvingActions)
         expect(state.politicsTakingPlayerId).toBeUndefined()
+        expect(state.openedPoliticsPile).toBeUndefined()
         expect(state.getPlayerState('p1').politicsCards).toHaveLength(1)
     })
 })

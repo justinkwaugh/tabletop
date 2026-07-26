@@ -1,6 +1,14 @@
 import { Prng, shuffle } from '@tabletop/common'
 import { BoardTiles, type BoardTile } from '../definition/boardTiles.js'
-import { BOARD_COLS, BOARD_ROWS, type BoardSquare, type LowenherzBoard, SquareType } from '../model/board.js'
+import {
+    BOARD_COLS,
+    BOARD_ROWS,
+    type BoardSquare,
+    type LowenherzBoard,
+    SquareType,
+    type TileLayout,
+    type TileRotation
+} from '../model/board.js'
 
 const TILE_SIZE = 5
 
@@ -46,9 +54,9 @@ export function assembleBoard(prng: Prng): LowenherzBoard {
         Array.from({ length: BOARD_COLS }, () => ({ type: SquareType.Blank }))
     )
 
-    const rotations = [0, 90, 180, 270] as const
+    const rotations: TileRotation[] = [0, 90, 180, 270]
 
-    tiles.forEach((tile, index) => {
+    const tileLayout: TileLayout[] = tiles.map((tile, index) => {
         const rotation = rotations[prng.randInt(rotations.length)]
         const rotatedSquares = rotateGrid(tile.squares, rotation)
         const { tileCol, tileRow } = tilePositions[index]
@@ -60,7 +68,9 @@ export function assembleBoard(prng: Prng): LowenherzBoard {
                 squares[globalRow][globalCol] = { type: rotatedSquares[r][c] }
             }
         }
+
+        return { tileId: tile.id, tileCol, tileRow, rotation }
     })
 
-    return { squares, walls: [] }
+    return { squares, walls: [], tileLayout }
 }

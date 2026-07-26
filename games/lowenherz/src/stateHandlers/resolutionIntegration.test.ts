@@ -20,7 +20,9 @@ import { NegotiationMove, NegotiationMoveKind } from '../actions/negotiationMove
 import { SubmitDuelBid } from '../actions/submitDuelBid.js'
 import { PlaceKnight } from '../actions/placeKnight.js'
 import { ExpandRegion } from '../actions/expandRegion.js'
+import { LookAtPoliticsPile } from '../actions/lookAtPoliticsPile.js'
 import { TakePoliticsCard } from '../actions/takePoliticsCard.js'
+import { isAdvanceResolution } from '../actions/advanceResolution.js'
 
 const engine = new GameEngine(LowenherzRuntime)
 
@@ -116,7 +118,8 @@ function chooseAction(playerId: string, slot: 1 | 2 | 3): ChooseAction {
 function negotiationMove(
     playerId: string,
     kind: NegotiationMoveKind,
-    amount?: number
+    amount?: number,
+    fromPlayerId?: string
 ): NegotiationMove {
     return {
         id: `negotiate-${playerId}-${kind}-${amount ?? ''}`,
@@ -125,6 +128,7 @@ function negotiationMove(
         type: ActionType.NegotiationMove,
         playerId,
         kind,
+        fromPlayerId,
         amount
     }
 }
@@ -165,6 +169,18 @@ function expandRegion(
         playerId,
         regionId,
         spaces
+    }
+}
+
+function lookAtPoliticsPile(playerId: string, pile: 'A' | 'B'): LookAtPoliticsPile {
+    return {
+        id: `look-politics-${playerId}`,
+        gameId: 'game-1',
+        source: ActionSource.User,
+        type: ActionType.LookAtPoliticsPile,
+        playerId,
+        pile,
+        revealsInfo: true
     }
 }
 
@@ -213,25 +229,42 @@ describe('resolution cascade (via the real GameEngine)', () => {
         expect(state.negotiation).toEqual({
             slot: 1,
             playerIds: ['p1', 'p2'],
-            turnPlayerId: 'p1',
-            offer: undefined
+            offer: undefined,
+            signedPlayerIds: []
         })
 
-        // p1 offers 3, p2 counters with 4, p1 accepts - p2 wins slot 1 and pays p1 4.
-        state = engine.run(negotiationMove('p1', NegotiationMoveKind.Offer, 3), state, game).updatedState
+        // p1 proposes to pay 3, p2 counter-proposes p1 should pay 4 instead (clearing
+        // any signatures), both sign the 4-ducat offer - p2 wins slot 1 and pays... no,
+        // p1 is named as payer, so p2 wins slot 1 and p1 pays p2 4.
+        state = engine.run(
+            negotiationMove('p1', NegotiationMoveKind.Propose, 3, 'p1'),
+            state,
+            game
+        ).updatedState
         expect(state.negotiation?.offer).toEqual({ fromPlayerId: 'p1', amount: 3 })
-        expect(state.negotiation?.turnPlayerId).toBe('p2')
+        expect(state.negotiation?.signedPlayerIds).toEqual([])
 
-        state = engine.run(negotiationMove('p2', NegotiationMoveKind.Offer, 4), state, game).updatedState
+        state = engine.run(
+            negotiationMove('p2', NegotiationMoveKind.Propose, 4, 'p2'),
+            state,
+            game
+        ).updatedState
         expect(state.negotiation?.offer).toEqual({ fromPlayerId: 'p2', amount: 4 })
-        expect(state.negotiation?.turnPlayerId).toBe('p1')
+        expect(state.negotiation?.signedPlayerIds).toEqual([])
 
-        // Accepting hands p2 the politics slot - they must take a card before the
-        // cascade can continue through slot 2, slot 3, and the round advance.
-        state = engine.run(negotiationMove('p1', NegotiationMoveKind.Accept), state, game).updatedState
+        // p2 signs their own proposal first - negotiation stays open on one signature.
+        state = engine.run(negotiationMove('p2', NegotiationMoveKind.Sign), state, game).updatedState
+        expect(state.machineState).toBe(MachineState.Negotiating)
+        expect(state.negotiation?.signedPlayerIds).toEqual(['p2'])
+
+        // p1's signature completes the deal, handing p2 the politics slot - they must
+        // take a card before the cascade can continue through slot 2, slot 3, and the
+        // round advance.
+        state = engine.run(negotiationMove('p1', NegotiationMoveKind.Sign), state, game).updatedState
         expect(state.machineState).toBe(MachineState.TakingPoliticsCard)
         expect(state.politicsTakingPlayerId).toBe('p2')
 
+        state = engine.run(lookAtPoliticsPile('p2', 'A'), state, game).updatedState
         state = engine.run(takePoliticsCard('p2', 'A', 'test-card-a'), state, game).updatedState
 
         expect(state.machineState).toBe(MachineState.StartOfTurn)
@@ -356,6 +389,7 @@ describe('resolution cascade (via the real GameEngine)', () => {
 
         expect(state.machineState).toBe(MachineState.TakingPoliticsCard)
         expect(state.politicsTakingPlayerId).toBe('p4')
+        state = engine.run(lookAtPoliticsPile('p4', 'A'), state, game).updatedState
         state = engine.run(takePoliticsCard('p4', 'A', 'test-card-a'), state, game).updatedState
 
         expect(state.machineState).toBe(MachineState.PlacingKnights)
@@ -407,6 +441,7 @@ describe('resolution cascade (via the real GameEngine)', () => {
         state = engine.run(submitDuelBid('p4', 3), state, game).updatedState
 
         expect(state.machineState).toBe(MachineState.TakingPoliticsCard)
+        state = engine.run(lookAtPoliticsPile('p4', 'A'), state, game).updatedState
         state = engine.run(takePoliticsCard('p4', 'A', 'test-card-a'), state, game).updatedState
 
         expect(state.machineState).toBe(MachineState.PlacingKnights)
@@ -421,5 +456,121 @@ describe('resolution cascade (via the real GameEngine)', () => {
         // expansion - just like the knight-placement case.
         expect(state.machineState).toBe(MachineState.StartOfTurn)
         expect(state.firstPlayerId).toBe('p2') // rotated from p1
+    })
+
+    it("records what happened in each AdvanceResolution step's metadata (for UI history)", () => {
+        const playerIds = ['p1', 'p2']
+        const game = buildGame(playerIds)
+        const card: ActionCard = {
+            id: 'card-1',
+            back: CardBack.B,
+            type: ActionCardType.Standard,
+            top: { kind: 'income', value: 6 },
+            middle: { kind: 'knight', count: 1 },
+            bottom: { kind: 'knight', count: 2 }
+        }
+        let state = buildState(playerIds, card)
+        // Zeroed so slot 2/3 solo wins don't route into PlacingKnights, keeping this
+        // test entirely about the AdvanceResolution cascade itself.
+        for (const player of state.players) player.knightsInStock = 0
+
+        state = engine.run(chooseAction('p1', 1), state, game).updatedState
+        state = engine.run(chooseAction('p1', 2), state, game).updatedState
+        state = engine.run(chooseAction('p2', 1), state, game).updatedState
+        // This last decision (2p plan's 4th and final) cascades the whole rest of the
+        // round - money bag split, slot 2 solo win, slot 3 unclaimed, round advance -
+        // all within this one run() call.
+        const result = engine.run(chooseAction('p2', 3), state, game)
+        state = result.updatedState
+
+        expect(state.machineState).toBe(MachineState.StartOfTurn)
+
+        const advances = result.processedActions.filter(isAdvanceResolution)
+        expect(advances).toHaveLength(4)
+
+        expect(advances[0].metadata).toEqual({
+            slot: 1,
+            moneyBagRecipientIds: ['p1', 'p2'],
+            moneyBagAmountEach: 3 // floor(6/2)
+        })
+        expect(advances[1].metadata).toEqual({
+            slot: 2,
+            slotResolved: true,
+            slotWinnerPlayerId: 'p1',
+            bandKind: 'knight',
+            bandCount: 1,
+            placementSkippedReason: 'noKnightsInStock'
+        })
+        expect(advances[2].metadata).toEqual({
+            slot: 3,
+            slotResolved: true,
+            slotWinnerPlayerId: 'p2', // p2's 2nd decision (this test's cascade trigger)
+            bandKind: 'knight',
+            bandCount: 2,
+            placementSkippedReason: 'noKnightsInStock'
+        })
+        expect(advances[3].metadata).toEqual({ roundAdvanced: true })
+    })
+
+    it('records tiedPlayerIds/tieWentToDuel:false metadata when a 2-way tie goes to negotiation', () => {
+        const playerIds = ['p1', 'p2', 'p3']
+        const game = buildGame(playerIds)
+        const card: ActionCard = {
+            id: 'card-1',
+            back: CardBack.B,
+            type: ActionCardType.Standard,
+            top: { kind: 'politics' },
+            middle: { kind: 'knight', count: 1 },
+            bottom: { kind: 'knight', count: 2 }
+        }
+        const state = buildState(playerIds, card)
+
+        // 3p plan is [p1, p1, p2, p3]. p1 and p2 tie on slot 1 (2-way, negotiable);
+        // p1's other pick and p3 land on different solo slots. The cascade doesn't
+        // begin until all 4 planned decisions are in, so the tie-to-negotiation
+        // AdvanceResolution only shows up in p3's (the last) result.
+        const result1 = engine.run(chooseAction('p1', 1), state, game)
+        const result2 = engine.run(chooseAction('p1', 2), result1.updatedState, game)
+        const result3 = engine.run(chooseAction('p2', 1), result2.updatedState, game)
+        const result4 = engine.run(chooseAction('p3', 3), result3.updatedState, game)
+
+        expect(result4.updatedState.machineState).toBe(MachineState.Negotiating)
+        const negotiationAdvance = result4.processedActions.find(isAdvanceResolution)
+        expect(negotiationAdvance?.metadata).toEqual({
+            slot: 1,
+            tiedPlayerIds: ['p1', 'p2'],
+            tieWentToDuel: false
+        })
+    })
+
+    it('records tiedPlayerIds/tieWentToDuel:true metadata when a 3-way tie goes to a duel', () => {
+        const playerIds = ['p1', 'p2', 'p3', 'p4']
+        const game = buildGame(playerIds)
+        const card: ActionCard = {
+            id: 'card-1',
+            back: CardBack.B,
+            type: ActionCardType.Standard,
+            top: { kind: 'income', value: 6 },
+            middle: { kind: 'border', count: 2 },
+            bottom: { kind: 'knight', count: 1 }
+        }
+        const state = buildState(playerIds, card)
+
+        // 4p plan is [p1, p2, p3, p4], one each. p1 solo-picks the money bag; p2/p3/p4
+        // tie 3-way on slot 2 (straight to a duel).
+        const result1 = engine.run(chooseAction('p1', 1), state, game)
+        const result2 = engine.run(chooseAction('p2', 2), result1.updatedState, game)
+        const result3 = engine.run(chooseAction('p3', 2), result2.updatedState, game)
+        const result4 = engine.run(chooseAction('p4', 2), result3.updatedState, game)
+
+        expect(result4.updatedState.machineState).toBe(MachineState.Dueling)
+        // Two AdvanceResolution steps happen in this cascade: slot 1's money bag
+        // payout, then slot 2's tie-to-duel routing - the one we want is the last.
+        const duelAdvances = result4.processedActions.filter(isAdvanceResolution)
+        expect(duelAdvances.at(-1)?.metadata).toEqual({
+            slot: 2,
+            tiedPlayerIds: ['p2', 'p3', 'p4'],
+            tieWentToDuel: true
+        })
     })
 })

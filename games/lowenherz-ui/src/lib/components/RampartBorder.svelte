@@ -9,7 +9,10 @@
     const THICKNESS = 20
     // The viewBox stretches to fill a fixed container size, so AVG_WIDTH's absolute
     // value cancels out - TOOTH_COUNT is what actually controls rendered tooth size.
-    const TOOTH_COUNT = isVertical ? 19 : 30
+    // Top/bottom uses one fewer tooth than before (30 -> 29) to widen each space by
+    // ~1px (board is a fixed 664px wide, so 664/29 - 664/30 ≈ 1px); left/right is
+    // unchanged.
+    const TOOTH_COUNT = isVertical ? 19 : 29
     const AVG_WIDTH = 24
     const PIXEL_JITTER = 1
 
@@ -33,7 +36,7 @@
 
     // Flip so the merlon half always faces inward, toward the board.
     const flipTransform = side === 'bottom' ? 'scaleY(-1)' : side === 'right' ? 'scaleX(-1)' : 'none'
-    const stoneColor = '#8c8152'
+    const stoneColor = '#3f463f' // dark gray with a touch of green - matches WallSegment/RampartCorner
 </script>
 
 <svg

@@ -89,7 +89,8 @@ export class LowenherzGameInitializer
             knightPlacingPlayerId: undefined,
 
             ...dealPoliticsCardPiles(prng),
-            politicsTakingPlayerId: undefined
+            politicsTakingPlayerId: undefined,
+            openedPoliticsPile: undefined
         })
 
         // I suppose the engine could actually do the hydration with the hydrator, but this is how it

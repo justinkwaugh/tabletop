@@ -185,6 +185,17 @@ export class HydratedPlayRenegadeCard
             return "A knight must be placed next to one of your own knights or castles."
         }
 
+        // Both a wooded removal and a wooded placement can apply to the same play (the
+        // player pays for each independently in apply()) - check the combined cost up
+        // front, not each in isolation, or a player with just enough for one could
+        // still end up asked to pay for both.
+        const removalWoodedCost = removedSquare.type === SquareType.Forest ? WOODED_KNIGHT_COST : 0
+        const placementWoodedCost = placedSquare.type === SquareType.Forest ? WOODED_KNIGHT_COST : 0
+        const totalWoodedCost = removalWoodedCost + placementWoodedCost
+        if (totalWoodedCost > playerState.money) {
+            return `Removing/placing a knight in the woods costs ${totalWoodedCost} ducats total, which you can't afford.`
+        }
+
         return undefined
     }
 }

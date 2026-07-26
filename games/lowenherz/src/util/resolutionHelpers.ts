@@ -1,6 +1,10 @@
+import { ActionSource } from '@tabletop/common'
 import type { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionCardType } from '../definition/actionCards.js'
 import { MachineState } from '../definition/states.js'
+import { ActionType } from '../definition/actions.js'
+import { BOARD_COLS, BOARD_ROWS } from '../model/board.js'
+import { HydratedPlaceWall } from '../actions/placeWall.js'
 
 // Money Bag never negotiates or duels - the rulebook's one exception to "an action can
 // only be performed by one player." Ducats split evenly among every chooser, truncating
@@ -28,43 +32,116 @@ export function advanceRound(state: HydratedLowenherzGameState) {
     state.resolvedSlots = []
 }
 
+// Whether ANY wall could legally be placed anywhere on the board right now, by the
+// given player - scans every adjacent square pair the same way the UI's
+// legalWallEdges does, reusing PlaceWall's own validity check rather than
+// re-deriving the rules. Used to detect the "won the border action, but the board's
+// too full to place a wall anywhere" case up front, instead of making the winner
+// manually Pass out of a phase that was never actually possible.
+export function anyLegalWallPlacement(state: HydratedLowenherzGameState, playerId: string): boolean {
+    for (let row = 0; row < BOARD_ROWS; row++) {
+        for (let col = 0; col < BOARD_COLS; col++) {
+            if (col + 1 < BOARD_COLS) {
+                const candidate = new HydratedPlaceWall({
+                    id: 'candidate',
+                    gameId: state.gameId,
+                    source: ActionSource.System,
+                    type: ActionType.PlaceWall,
+                    playerId,
+                    col1: col,
+                    row1: row,
+                    col2: col + 1,
+                    row2: row
+                })
+                if (candidate.isValidPlaceWall(state)) return true
+            }
+            if (row + 1 < BOARD_ROWS) {
+                const candidate = new HydratedPlaceWall({
+                    id: 'candidate',
+                    gameId: state.gameId,
+                    source: ActionSource.System,
+                    type: ActionType.PlaceWall,
+                    playerId,
+                    col1: col,
+                    row1: row,
+                    col2: col,
+                    row2: row + 1
+                })
+                if (candidate.isValidPlaceWall(state)) return true
+            }
+        }
+    }
+    return false
+}
+
+export type SlotRouting = {
+    nextState: MachineState
+    // Present whenever a solo winner's slot was a border/knight band - lets history
+    // describe what they actually won (and, if placementSkippedReason is set, why
+    // they immediately lost the chance to act on it) even though this metadata is
+    // read long after wallsRemaining/knightsRemaining have moved on.
+    bandKind?: 'border' | 'knight'
+    bandCount?: number
+    placementSkippedReason?: 'regionCap' | 'noKnightsInStock' | 'noLegalWallSpots'
+}
+
 // Called right after a slot's contest is settled (money bag payout, solo win,
 // negotiation accept, or duel win/giveup) to decide what happens next. A border-slot
 // winner hands off to PlacingWalls (unless they've already hit the rulebook's 3-region
-// cap); a knight-slot winner hands off to PlacingKnights (capped by their knight
-// stock - region expansion, the other half of the knight action, isn't built yet, so
-// this always means "place a knight"). Everything else (no winner, or Money Bag) just
-// continues the ResolvingActions cascade to the next slot.
-export function routeAfterSlotResolved(state: HydratedLowenherzGameState): MachineState {
+// cap, or there's genuinely nowhere left to place one); a knight-slot winner hands off
+// to PlacingKnights (capped by their knight stock - region expansion, the other half of
+// the knight action, isn't built yet, so this always means "place a knight").
+// Everything else (no winner, or Money Bag) just continues the ResolvingActions
+// cascade to the next slot.
+export function routeAfterSlotResolved(state: HydratedLowenherzGameState): SlotRouting {
     const lastResolved = state.resolvedSlots[state.resolvedSlots.length - 1]
     const winnerId = lastResolved?.winnerPlayerId
-    if (!winnerId) return MachineState.ResolvingActions
+    if (!winnerId) return { nextState: MachineState.ResolvingActions }
 
     const card = state.currentActionCard
-    if (!card || card.type !== ActionCardType.Standard) return MachineState.ResolvingActions
+    if (!card || card.type !== ActionCardType.Standard) return { nextState: MachineState.ResolvingActions }
 
     // Slot 1 is income or politics - Money Bag is handled directly in
     // ResolvingActionsStateHandler (it never has a real winner, so it can't reach
     // here), so the only slot-1 case reaching here with a winner is Crown and Scepter.
     if (lastResolved.slot === 1 && card.top.kind === 'politics') {
         state.politicsTakingPlayerId = winnerId
-        return MachineState.TakingPoliticsCard
+        return { nextState: MachineState.TakingPoliticsCard }
     }
 
     // Slot 1 is handled above; band is only defined for slots 2/3.
     const band = lastResolved.slot === 2 ? card.middle : lastResolved.slot === 3 ? card.bottom : undefined
-    if (!band) return MachineState.ResolvingActions
+    if (!band) return { nextState: MachineState.ResolvingActions }
 
     if (band.kind === 'border') {
         const winnerColor = state.getPlayerState(winnerId).color
         const winnerRegionCount = state.regions.filter((r) => r.ownerColor === winnerColor).length
         // "When a prince has three regions, he can place no more boundary walls" -
         // they still won the action, they just can't do anything with it.
-        if (winnerRegionCount >= 3) return MachineState.ResolvingActions
+        if (winnerRegionCount >= 3) {
+            return {
+                nextState: MachineState.ResolvingActions,
+                bandKind: 'border',
+                bandCount: band.count,
+                placementSkippedReason: 'regionCap'
+            }
+        }
 
         state.wallsRemaining = band.count
         state.wallPlacingPlayerId = winnerId
-        return MachineState.PlacingWalls
+
+        if (!anyLegalWallPlacement(state, winnerId)) {
+            state.wallsRemaining = undefined
+            state.wallPlacingPlayerId = undefined
+            return {
+                nextState: MachineState.ResolvingActions,
+                bandKind: 'border',
+                bandCount: band.count,
+                placementSkippedReason: 'noLegalWallSpots'
+            }
+        }
+
+        return { nextState: MachineState.PlacingWalls, bandKind: 'border', bandCount: band.count }
     }
 
     if (band.kind === 'knight') {
@@ -72,12 +149,19 @@ export function routeAfterSlotResolved(state: HydratedLowenherzGameState): Machi
         const knightsToPlace = Math.min(band.count, winnerKnightsInStock)
         // "If he has no more knights, he may place no more" - they still won, they
         // just can't do anything with it.
-        if (knightsToPlace <= 0) return MachineState.ResolvingActions
+        if (knightsToPlace <= 0) {
+            return {
+                nextState: MachineState.ResolvingActions,
+                bandKind: 'knight',
+                bandCount: band.count,
+                placementSkippedReason: 'noKnightsInStock'
+            }
+        }
 
         state.knightsRemaining = knightsToPlace
         state.knightPlacingPlayerId = winnerId
-        return MachineState.PlacingKnights
+        return { nextState: MachineState.PlacingKnights, bandKind: 'knight', bandCount: band.count }
     }
 
-    return MachineState.ResolvingActions
+    return { nextState: MachineState.ResolvingActions }
 }

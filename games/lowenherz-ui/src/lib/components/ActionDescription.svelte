@@ -16,6 +16,7 @@
         isPlayRenegadeCard,
         isCancelAlliance,
         isSubmitDuelBid,
+        isLookAtPoliticsPile,
         isTakePoliticsCard,
         NegotiationMoveKind,
         PoliticsCardType
@@ -79,10 +80,21 @@
 {:else if isChooseAction(action)}
     chose the {slotLabels[action.slot]} action
 {:else if isNegotiationMove(action)}
-    {#if action.kind === NegotiationMoveKind.Offer}
-        offered {action.amount} ducat{action.amount === 1 ? '' : 's'} for the contested action
-    {:else if action.kind === NegotiationMoveKind.Accept}
-        accepted the offer and won the contested action
+    {#if action.kind === NegotiationMoveKind.Propose}
+        proposed <PlayerName playerId={action.fromPlayerId ?? ''} /> pay {action.amount} ducat{action.amount ===
+        1
+            ? ''
+            : 's'} for the contested action
+    {:else if action.kind === NegotiationMoveKind.Sign}
+        {@const executedOffer = action.metadata?.executedOffer}
+        {#if executedOffer}
+            signed — <PlayerName playerId={executedOffer.fromPlayerId} /> pays {executedOffer.amount} ducat{executedOffer.amount ===
+            1
+                ? ''
+                : 's'} and performs the action
+        {:else}
+            signed the standing offer
+        {/if}
     {:else}
         declined to negotiate further — forcing a duel
     {/if}
@@ -177,6 +189,8 @@
             {/if}
         {/each}
     {/if}
+{:else if isLookAtPoliticsPile(action)}
+    looked through politics pile {action.pile}
 {:else if isTakePoliticsCard(action)}
     {@const isMe = gameSession.myPlayer?.id === action.playerId}
     {@const takenCard = gameSession.gameState
@@ -219,7 +233,55 @@
 {:else if isPass(action)}
     passed, declining to place any more
 {:else if isAdvanceResolution(action)}
-    <span class="text-gray-500">(the round continues...)</span>
+    {@const meta = action.metadata}
+    {#if meta?.moneyBagRecipientIds}
+        {#if meta.moneyBagRecipientIds.length === 1}
+            <PlayerName playerId={meta.moneyBagRecipientIds[0]} /> claimed the money bag (+{meta.moneyBagAmountEach}
+            ducat{meta.moneyBagAmountEach === 1 ? '' : 's'})
+        {:else if meta.moneyBagRecipientIds.length > 0}
+            {#each meta.moneyBagRecipientIds as playerId, i (playerId)}
+                {i > 0 ? ', ' : ''}<PlayerName {playerId} />
+            {/each}
+            split the money bag (+{meta.moneyBagAmountEach} ducat{meta.moneyBagAmountEach === 1 ? '' : 's'} each)
+        {:else}
+            <span class="text-gray-500">no one chose the money bag - nothing to split</span>
+        {/if}
+    {:else if meta?.slotResolved}
+        {#if meta.slotWinnerPlayerId}
+            <PlayerName playerId={meta.slotWinnerPlayerId} />
+            {#if meta.bandKind === 'border'}
+                won the right to place {meta.bandCount} wall{meta.bandCount === 1 ? '' : 's'}
+                {#if meta.placementSkippedReason === 'regionCap'}
+                    <span class="text-gray-500">— but already controls 3 regions; their turn is skipped</span>
+                {:else if meta.placementSkippedReason === 'noLegalWallSpots'}
+                    <span class="text-gray-500"
+                        >— but there's nowhere left to legally place one, so their turn is skipped</span
+                    >
+                {/if}
+            {:else if meta.bandKind === 'knight'}
+                won the right to place {meta.bandCount} knight{meta.bandCount === 1 ? '' : 's'}
+                {#if meta.placementSkippedReason === 'noKnightsInStock'}
+                    <span class="text-gray-500">— but has no knights left in stock; their turn is skipped</span>
+                {/if}
+            {:else}
+                won the {slotLabels[meta.slot!]} action outright
+            {/if}
+        {:else}
+            <span class="text-gray-500">no one chose the {slotLabels[meta.slot!]} action</span>
+        {/if}
+    {:else if meta?.tiedPlayerIds}
+        {#each meta.tiedPlayerIds as playerId, i (playerId)}
+            {i > 0 ? (i === meta.tiedPlayerIds.length - 1 ? ' and ' : ', ') : ''}<PlayerName {playerId} />
+        {/each}
+        tied for the {slotLabels[meta.slot!]} action and
+        <span class="text-amber-700 font-semibold"
+            >{meta.tieWentToDuel ? 'duel for it' : 'enter negotiations'}</span
+        >
+    {:else if meta?.roundAdvanced}
+        <span class="text-gray-500">the round is over — drawing the next card</span>
+    {:else}
+        <span class="text-gray-500">(the round continues...)</span>
+    {/if}
 {:else}
     performed an action
 {/if}

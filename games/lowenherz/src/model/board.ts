@@ -40,10 +40,42 @@ export const Wall = Type.Object({
 export const BOARD_COLS = 15
 export const BOARD_ROWS = 10
 
+export type BoardTileId = 'A' | 'B' | 'C' | 'D' | 'E' | 'F'
+export const BoardTileIdSchema = Type.Union([
+    Type.Literal('A'),
+    Type.Literal('B'),
+    Type.Literal('C'),
+    Type.Literal('D'),
+    Type.Literal('E'),
+    Type.Literal('F')
+])
+
+export type TileRotation = 0 | 90 | 180 | 270
+export const TileRotationSchema = Type.Union([
+    Type.Literal(0),
+    Type.Literal(90),
+    Type.Literal(180),
+    Type.Literal(270)
+])
+
+// Which physical tile (and rotation) landed in each of the 6 slots of the 3x2 tile
+// grid, so the UI can render the actual board art instead of re-deriving it (which
+// isn't reliably possible - different tiles/rotations can produce identical terrain
+// patterns). Populated by assembleBoard() for real games; omitted entirely by
+// synthetic test boards, which don't care about visual tile identity.
+export type TileLayout = Type.Static<typeof TileLayout>
+export const TileLayout = Type.Object({
+    tileId: BoardTileIdSchema,
+    tileCol: Type.Number(),
+    tileRow: Type.Number(),
+    rotation: TileRotationSchema
+})
+
 export type LowenherzBoard = Type.Static<typeof LowenherzBoard>
 export const LowenherzBoard = Type.Object({
     squares: Type.Array(Type.Array(BoardSquare)),
-    walls: Type.Array(Wall)
+    walls: Type.Array(Wall),
+    tileLayout: Type.Optional(Type.Array(TileLayout))
 })
 
 export function squareKey(col: number, row: number): string {

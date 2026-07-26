@@ -8,6 +8,7 @@ import { PlaceWall } from '../actions/placeWall.js'
 import { PlaceKnight } from '../actions/placeKnight.js'
 import { ExpandRegion } from '../actions/expandRegion.js'
 import { Pass } from '../actions/pass.js'
+import { LookAtPoliticsPile } from '../actions/lookAtPoliticsPile.js'
 import { TakePoliticsCard } from '../actions/takePoliticsCard.js'
 import { PlayRenegadeCard } from '../actions/playRenegadeCard.js'
 import { PlayAllianceCard } from '../actions/playAllianceCard.js'
@@ -27,6 +28,7 @@ export const LowenherzApiActions = {
     [ActionType.PlaceKnight]: PlaceKnight,
     [ActionType.ExpandRegion]: ExpandRegion,
     [ActionType.Pass]: Pass,
+    [ActionType.LookAtPoliticsPile]: LookAtPoliticsPile,
     [ActionType.TakePoliticsCard]: TakePoliticsCard,
     [ActionType.PlayRenegadeCard]: PlayRenegadeCard,
     [ActionType.PlayAllianceCard]: PlayAllianceCard,
