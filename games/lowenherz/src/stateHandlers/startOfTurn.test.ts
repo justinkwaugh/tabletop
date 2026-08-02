@@ -5,7 +5,7 @@ import { BOARD_COLS, BOARD_ROWS, BoardSquare, squareKey, SquareType } from '../m
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { ActionCard, ActionCardType, CardBack } from '../definition/actionCards.js'
-import { DrawActionCard, HydratedDrawActionCard } from '../actions/drawActionCard.js'
+import { HydratedDrawActionCard } from '../actions/drawActionCard.js'
 import { StartOfTurnStateHandler } from './startOfTurn.js'
 
 function blankBoard(): { squares: BoardSquare[][]; walls: [] } {
@@ -107,11 +107,14 @@ describe('StartOfTurnStateHandler', () => {
         expect(state.getPlayerState('p2').powerPoints).toBe(0)
         expect(action.metadata).toEqual({
             cardType: ActionCardType.KingIsDead,
-            hillScoring: [{ playerId: 'p1', points: 1 }]
+            hillScoring: [
+                { playerId: 'p1', points: 1 },
+                { playerId: 'p2', points: 0 }
+            ]
         })
     })
 
-    it('auto-cascades past a Silver Mine card, awarding points and drawing the next card', () => {
+    it('resolves a Silver Mine card onto the discard pile and waits for a manual next draw', () => {
         const state = buildState([miningCard, standardCard])
         const context = new MachineContext({ gameConfig: {}, gameState: state })
         const handler = new StartOfTurnStateHandler()
@@ -123,20 +126,23 @@ describe('StartOfTurnStateHandler', () => {
         expect(stateAfterMining).toBe(MachineState.StartOfTurn)
         expect(state.getPlayerState('p1').powerPoints).toBe(1)
         expect(state.currentActionCard).toBeUndefined()
+        expect(state.discardedActionCard).toEqual(miningCard)
         expect(state.actionDeck).toEqual([standardCard])
 
-        // The mining resolution queued a system action to draw the next card - drive it
-        // the same way GameEngine.run's pending-action loop would.
-        expect(context.getPendingActions().length).toBe(1)
-        const cascadedAction = context.nextPendingAction()!
-        expect(cascadedAction.type).toBe(ActionType.DrawActionCard)
-        expect(cascadedAction.playerId).toBe('p1')
+        // No system action is queued - the active player has to draw the next card
+        // themselves, same as any other StartOfTurn draw.
+        expect(context.getPendingActions().length).toBe(0)
+        expect(HydratedDrawActionCard.canDrawActionCard(state, 'p1')).toBe(true)
 
-        const hydratedCascade = new HydratedDrawActionCard(cascadedAction as DrawActionCard)
-        hydratedCascade.apply(state, context)
-        const finalState = handler.onAction(hydratedCascade, context)
+        const secondDraw = makeDrawActionCard()
+        secondDraw.apply(state, context)
+        const finalState = handler.onAction(secondDraw, context)
 
         expect(finalState).toBe(MachineState.ChoosingActions)
         expect(state.currentActionCard).toEqual(standardCard)
+        // Drawing the next card retires the mine from the discard pile - otherwise,
+        // once the round ends and currentActionCard clears, the stale mine would
+        // resurface as the face-up card again.
+        expect(state.discardedActionCard).toBeUndefined()
     })
 })

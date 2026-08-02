@@ -101,9 +101,16 @@ export const LowenherzGameState = Type.Evaluate(
             // Remaining undrawn action cards, in draw order (index 0 draws next).
             actionDeck: Type.Array(ActionCard),
             // The currently face-up standard card players are choosing actions from -
-            // unset before the first draw, and while a Mining/King-is-Dead card is being
-            // auto-resolved (they never linger here for player interaction).
+            // unset before the first draw, and immediately after a Mining card resolves
+            // (it never lingers here for player interaction - see discardedActionCard
+            // for what it leaves behind instead). A King-is-Dead card, by contrast,
+            // stays put - the game is over, so there's nothing left to draw next.
             currentActionCard: Type.Optional(ActionCard),
+            // The last action card resolved off to the side rather than through the
+            // normal 3-slot flow (currently just Mining) - kept around purely so the
+            // client has something to show on its discard pile after the card resolves
+            // and before the next one is manually drawn.
+            discardedActionCard: Type.Optional(ActionCard),
             // Decision-card placements committed so far this round. Reset to [] whenever
             // a new standard card is drawn.
             decisions: Type.Array(Decision),
@@ -124,6 +131,14 @@ export const LowenherzGameState = Type.Evaluate(
             // stock ran out first).
             knightsRemaining: Type.Optional(Type.Number()),
             knightPlacingPlayerId: Type.Optional(Type.String()),
+            // Set right after a region expansion's first space, naming which region -
+            // a 1-2 space expansion is submitted as up to two separate ExpandRegion
+            // actions (one space each) rather than one combined action, so Undo can
+            // step back a single space at a time. Its presence is what allows a 2nd
+            // ExpandRegion action for the SAME region even though expanding already
+            // zeroed knightsRemaining (see ExpandRegion.apply) - cleared once that 2nd
+            // space is added, or the player stops after just the first (a Pass).
+            expandingRegionId: Type.Optional(Type.String()),
 
             // The two face-down politics-card piles the "Crown and Scepter" action
             // draws from - set once at game start, drawn down over the game.
@@ -170,6 +185,7 @@ export class HydratedLowenherzGameState
 
     declare actionDeck: ActionCard[]
     declare currentActionCard?: ActionCard
+    declare discardedActionCard?: ActionCard
     declare decisions: Decision[]
 
     declare resolvedSlots: ResolvedSlot[]
@@ -179,6 +195,7 @@ export class HydratedLowenherzGameState
     declare wallPlacingPlayerId?: string
     declare knightsRemaining?: number
     declare knightPlacingPlayerId?: string
+    declare expandingRegionId?: string
 
     declare politicsCardPileA: PoliticsCard[]
     declare politicsCardPileB: PoliticsCard[]

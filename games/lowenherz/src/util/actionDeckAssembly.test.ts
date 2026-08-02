@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Prng } from '@tabletop/common'
-import { assembleActionDeck } from './actionDeckAssembly.js'
+import { assembleActionDeck, assembleActionDeckWithConstruction } from './actionDeckAssembly.js'
 import { ActionCardType, CardBack } from '../definition/actionCards.js'
 
 describe('assembleActionDeck', () => {
@@ -57,6 +57,29 @@ describe('assembleActionDeck', () => {
         expect(deckA.map((c) => c.id)).toEqual(deckB.map((c) => c.id))
 
         const deckC = assembleActionDeck(new Prng({ seed: 43, invocations: 0 }))
+        expect(deckC.map((c) => c.id)).not.toEqual(deckA.map((c) => c.id))
+    })
+})
+
+describe('assembleActionDeckWithConstruction', () => {
+    it('stacks all 6 A cards on top of the same B/C/D/E composition (31 cards)', () => {
+        const deck = assembleActionDeckWithConstruction(new Prng({ seed: 1, invocations: 0 }))
+
+        expect(deck.length).toBe(31)
+        expect(deck.slice(0, 6).every((card) => card.back === CardBack.A)).toBe(true)
+        expect(deck.slice(6).every((card) => card.back !== CardBack.A)).toBe(true)
+
+        const counts: Record<string, number> = {}
+        for (const card of deck) counts[card.back] = (counts[card.back] ?? 0) + 1
+        expect(counts).toEqual({ A: 6, B: 7, C: 7, D: 7, E: 4 })
+    })
+
+    it('is deterministic for a given seed but varies across seeds', () => {
+        const deckA = assembleActionDeckWithConstruction(new Prng({ seed: 42, invocations: 0 }))
+        const deckB = assembleActionDeckWithConstruction(new Prng({ seed: 42, invocations: 0 }))
+        expect(deckA.map((c) => c.id)).toEqual(deckB.map((c) => c.id))
+
+        const deckC = assembleActionDeckWithConstruction(new Prng({ seed: 43, invocations: 0 }))
         expect(deckC.map((c) => c.id)).not.toEqual(deckA.map((c) => c.id))
     })
 })

@@ -8,6 +8,7 @@ import {
     BOARD_COLS,
     BOARD_ROWS,
     CancelAlliance,
+    CardBack,
     ChooseAction,
     detectNewRegions,
     DrawActionCard,
@@ -19,6 +20,7 @@ import {
     HydratedExpandRegion,
     HydratedLookAtPoliticsPile,
     HydratedLowenherzGameState,
+    HydratedLowenherzPlayerState,
     HydratedNegotiationMove,
     HydratedPlaceCastle,
     HydratedPlaceKnight,
@@ -178,6 +180,16 @@ export class LowenherzGameSession extends GameSession<
 
             this.selectCastleSquare(castleSquare.col, castleSquare.row)
             await this.placeCastleWithKnight(knightSquare.col, knightSquare.row)
+        }
+
+        // Auto-placing is a testing shortcut past the deliberate variable-construction
+        // setup, so also discard the A-lettered cards (which only exist to be shuffled
+        // on top for that setup) - play then begins from the B deck, exactly like the
+        // rulebook's basic game. A no-op in standard-setup games, whose deck never had
+        // A cards to begin with.
+        if (this.gameState.actionDeck.some((c) => c.back === CardBack.A)) {
+            this.gameState.actionDeck = this.gameState.actionDeck.filter((c) => c.back !== CardBack.A)
+            await this.setGameState(this.gameState.dehydrate())
         }
     }
 
@@ -356,6 +368,37 @@ export class LowenherzGameSession extends GameSession<
         await this.setGameState(this.gameState.dehydrate())
     }
 
+    // Gives every player a random 1-5 politics cards (any mix of types, with a
+    // plausible value for Parchment/Treasure) - for testing the hand-splay UI with
+    // varied, realistic-looking counts across every seat at once, without grinding
+    // through Crown and Scepter draws to build them up naturally.
+    async giveTestRandomPoliticsCards() {
+        const valuesByType: Record<PoliticsCardType, number[] | undefined> = {
+            [PoliticsCardType.Alliance]: undefined,
+            [PoliticsCardType.Renegade]: undefined,
+            [PoliticsCardType.Parchment]: [3, 4, 5],
+            [PoliticsCardType.Treasure]: [8, 10, 12, 15]
+        }
+        const types = Object.values(PoliticsCardType)
+
+        for (const playerState of this.gameState.players) {
+            const count = 1 + Math.floor(Math.random() * 5)
+            const newCards: PoliticsCard[] = Array.from({ length: count }, () => {
+                const type = types[Math.floor(Math.random() * types.length)]
+                const values = valuesByType[type]
+                const value = values ? values[Math.floor(Math.random() * values.length)] : undefined
+                return {
+                    id: `test-${type}-${Math.random().toString(36).slice(2)}`,
+                    type,
+                    ...(value !== undefined ? { value } : {})
+                }
+            })
+            playerState.politicsCards = [...playerState.politicsCards, ...newCards]
+        }
+
+        await this.setGameState(this.gameState.dehydrate())
+    }
+
     get canDrawActionCard(): boolean {
         if (!this.myPlayer) return false
         return HydratedDrawActionCard.canDrawActionCard(this.gameState, this.myPlayer.id)
@@ -364,7 +407,7 @@ export class LowenherzGameSession extends GameSession<
     async drawActionCard() {
         if (!this.canDrawActionCard) return
 
-        const action = this.createPlayerAction(DrawActionCard, {})
+        const action = this.createPlayerAction(DrawActionCard, { revealsInfo: true })
         this.errorMessage = undefined
         try {
             await this.applyAction(action)
@@ -445,7 +488,13 @@ export class LowenherzGameSession extends GameSession<
 
     get canSignNegotiationOffer(): boolean {
         if (!this.isNegotiator) return false
-        return this.gameState.negotiation?.offer !== undefined && !this.hasSignedNegotiationOffer
+        // Doesn't require an offer to already exist - see RealBoard.svelte's Signed
+        // button, which proposes the current draft first if nothing's been proposed
+        // yet, then signs it, so the button is usable immediately without a
+        // separate action having to be auto-submitted the moment negotiation starts
+        // (that used to block Undo - the auto-proposal itself was always the
+        // nearest undoable action, hiding whatever came before the negotiation).
+        return !this.hasSignedNegotiationOffer
     }
 
     async signNegotiationOffer() {
@@ -785,8 +834,11 @@ export class LowenherzGameSession extends GameSession<
         return this.canPlaceKnight && this.myRegions.length > 0
     }
 
-    // The region currently being expanded (auto-selected if the player only owns one),
-    // and the 1-2 spaces picked so far for that expansion.
+    // The region currently being expanded (auto-selected if the player only owns
+    // one), and the 1-2 spaces picked so far for that expansion - each is submitted
+    // as its own ExpandRegion action immediately on pick (see addExpansionSquare),
+    // so this is purely a local record of what's already landed, for highlighting/
+    // ghost-piece rendering; it's not a staged batch waiting on a later submit.
     selectedExpandRegionId: string | undefined = $state(undefined)
     expansionSquares: { col: number; row: number }[] = $state([])
 
@@ -802,12 +854,8 @@ export class LowenherzGameSession extends GameSession<
         this.expansionSquares = []
     }
 
-    private isValidExpansionAttempt(regionId: string, spaces: { col: number; row: number }[]): boolean {
+    private isValidExpansionAttempt(regionId: string, space: { col: number; row: number }): boolean {
         if (!this.myPlayer) return false
-        // spaces is (or is derived from) the $state array expansionSquares - its
-        // elements are Svelte reactive proxies, which the Hydratable base class can't
-        // structuredClone. Snapshot to plain data first.
-        const plainSpaces = $state.snapshot(spaces)
         const candidate = new HydratedExpandRegion({
             id: 'candidate',
             gameId: this.gameState.gameId,
@@ -815,14 +863,14 @@ export class LowenherzGameSession extends GameSession<
             type: ActionType.ExpandRegion,
             playerId: this.myPlayer.id,
             regionId,
-            spaces: plainSpaces
+            space
         })
         return candidate.isValidExpandRegion(this.gameState)
     }
 
-    // Squares that would legally extend the region-in-progress, given whatever's
-    // already been picked (adjacent to the original region for the 1st pick, or to
-    // the region as extended by the 1st pick for the 2nd) - never more than 2 total.
+    // Squares that would legally extend the region-in-progress (adjacent to the
+    // original region for the 1st pick, or to the region as extended by the 1st pick
+    // for the 2nd, per the server's own current state) - never more than 2 total.
     get legalNextExpansionSquares(): { col: number; row: number }[] {
         const regionId = this.selectedExpandRegionId
         if (!regionId || this.expansionSquares.length >= 2) return []
@@ -830,7 +878,7 @@ export class LowenherzGameSession extends GameSession<
         const result: { col: number; row: number }[] = []
         for (let row = 0; row < BOARD_ROWS; row++) {
             for (let col = 0; col < BOARD_COLS; col++) {
-                if (this.isValidExpansionAttempt(regionId, [...this.expansionSquares, { col, row }])) {
+                if (this.isValidExpansionAttempt(regionId, { col, row })) {
                     result.push({ col, row })
                 }
             }
@@ -838,28 +886,19 @@ export class LowenherzGameSession extends GameSession<
         return result
     }
 
-    // Picking a 2nd space always maxes out this expansion (never more than 2 - "using
-    // this card to expand twice is not allowed" already means one card only ever
-    // grants 1-2 spaces total), so there's nothing left to decide once it's picked -
-    // submit immediately rather than making the player click Confirm too. Undo is
-    // there if they change their mind. A 1-space expansion still waits for an
-    // explicit Confirm/Cancel, since the player might want to add a 2nd space instead.
+    // Each space is its own ExpandRegion action (see expandRegion.ts) rather than a
+    // batch of 1-2 submitted together, so Undo can step back one space at a time
+    // instead of reverting a whole 2-space expansion in one go. A 1-space expansion
+    // still waits for an explicit stop (Pass, via the "Confirm expansion" button -
+    // see RealBoard.svelte) since the player might want to add a 2nd space instead;
+    // the 2nd (once picked) always maxes out the expansion and ends the phase
+    // server-side on its own, no separate confirm needed.
     async addExpansionSquare(col: number, row: number) {
-        if (!this.selectedExpandRegionId || this.expansionSquares.length >= 2) return
-        this.expansionSquares = [...this.expansionSquares, { col, row }]
-        if (this.expansionSquares.length >= 2) {
-            await this.confirmExpansion()
-        }
-    }
-
-    async confirmExpansion() {
         const regionId = this.selectedExpandRegionId
-        if (!regionId || this.expansionSquares.length === 0 || !this.myPlayer) return
+        if (!regionId || this.expansionSquares.length >= 2 || !this.myPlayer) return
 
-        const spaces = $state.snapshot(this.expansionSquares)
-        const action = this.createPlayerAction(ExpandRegion, { regionId, spaces })
-
-        if (!this.isValidExpansionAttempt(regionId, spaces)) {
+        const space = { col, row }
+        if (!this.isValidExpansionAttempt(regionId, space)) {
             const candidate = new HydratedExpandRegion({
                 id: 'candidate',
                 gameId: this.gameState.gameId,
@@ -867,17 +906,17 @@ export class LowenherzGameSession extends GameSession<
                 type: ActionType.ExpandRegion,
                 playerId: this.myPlayer.id,
                 regionId,
-                spaces
+                space
             })
             this.errorMessage = candidate.invalidExpandRegionReason(this.gameState)
-            this.cancelExpansion()
             return
         }
 
         this.errorMessage = undefined
-        this.cancelExpansion()
+        const action = this.createPlayerAction(ExpandRegion, { regionId, space })
         try {
             await this.applyAction(action)
+            this.expansionSquares = [...this.expansionSquares, space]
         } catch (e) {
             console.warn('Failed to expand region:', e)
             this.errorMessage = 'That expansion was rejected.'
@@ -1032,9 +1071,16 @@ export class LowenherzGameSession extends GameSession<
     get canPlayRenegadeCard(): boolean {
         if (!this.myPlayer || !this.canChooseAction) return false
         const playerState = this.gameState.getPlayerState(this.myPlayer.id)
-        return (
-            playerState.knightsInStock > 0 &&
-            playerState.politicsCards.some((c) => c.type === PoliticsCardType.Renegade)
+        if (playerState.knightsInStock <= 0) return false
+        if (!playerState.politicsCards.some((c) => c.type === PoliticsCardType.Renegade)) return false
+        // Holding the card and having a spare knight isn't enough - there also needs
+        // to be at least one of the player's own regions with both a legal square for
+        // the replacement knight AND a bordering enemy region with a knight actually
+        // safe to remove, or the 4-step targeting flow would have nowhere to go.
+        return this.myRegions.some(
+            (region) =>
+                this.regionHasRenegadeCandidateSquare(region, playerState) &&
+                this.gameState.regions.some((r) => this.isEligibleRenegadeEnemyRegion(region, r))
         )
     }
 
@@ -1075,59 +1121,73 @@ export class LowenherzGameSession extends GameSession<
         this.renegadeRemovedSquare = undefined
     }
 
-    // Which of the player's own regions could actually receive the replacement knight
-    // - same space/terrain/adjacency/affordability rules as a normal knight placement
-    // (ignoring the possible extra removal-side wooded cost, which the final
-    // confirmRenegadePlacement validates exactly) - a region with no candidate square
-    // at all (full, or its only wooded spot they can't afford) can't be chosen as the
-    // starting region in the first place.
+    // Whether a region has any square that could receive the Renegade's replacement
+    // knight - same space/terrain/adjacency/affordability rules as a normal knight
+    // placement (ignoring the possible extra removal-side wooded cost, which the
+    // final confirmRenegadePlacement validates exactly). Shared by
+    // legalRenegadeOwnRegionIds (restricted to the in-progress flow) and
+    // canPlayRenegadeCard (checked across every region, to know up front whether the
+    // card has any legal play at all).
+    private regionHasRenegadeCandidateSquare(region: Region, playerState: HydratedLowenherzPlayerState): boolean {
+        const board = this.gameState.board
+        return region.squareKeys.some((key) => {
+            const [col, row] = key.split(',').map(Number)
+            const square = getSquare(board, col, row)
+            if (!square) return false
+            if (square.type !== SquareType.Blank && square.type !== SquareType.Forest) return false
+            if (square.knightColor || square.castleColor) return false
+            if (square.type === SquareType.Forest && playerState.money < WOODED_KNIGHT_COST) return false
+            return neighbors(col, row).some((n) => {
+                if (!isOnBoard(n.col, n.row)) return false
+                if (isWalledBetween(board, col, row, n.col, n.row)) return false
+                const ns = getSquare(board, n.col, n.row)
+                return ns?.knightColor === playerState.color || ns?.castleColor === playerState.color
+            })
+        })
+    }
+
+    // Which of the player's own regions could actually receive the replacement
+    // knight - a region with no candidate square at all (full, or its only wooded
+    // spot they can't afford) can't be chosen as the starting region in the first
+    // place.
     get legalRenegadeOwnRegionIds(): Set<string> {
         if (!this.isPlayingRenegadeCard || !this.myPlayer) return new Set()
         const playerState = this.gameState.getPlayerState(this.myPlayer.id)
-        const board = this.gameState.board
         const result = new Set<string>()
         for (const region of this.myRegions) {
-            const hasCandidate = region.squareKeys.some((key) => {
-                const [col, row] = key.split(',').map(Number)
-                const square = getSquare(board, col, row)
-                if (!square) return false
-                if (square.type !== SquareType.Blank && square.type !== SquareType.Forest) return false
-                if (square.knightColor || square.castleColor) return false
-                if (square.type === SquareType.Forest && playerState.money < WOODED_KNIGHT_COST) return false
-                return neighbors(col, row).some((n) => {
-                    if (!isOnBoard(n.col, n.row)) return false
-                    if (isWalledBetween(board, col, row, n.col, n.row)) return false
-                    const ns = getSquare(board, n.col, n.row)
-                    return ns?.knightColor === playerState.color || ns?.castleColor === playerState.color
-                })
-            })
-            if (hasCandidate) result.add(region.id)
+            if (this.regionHasRenegadeCandidateSquare(region, playerState)) result.add(region.id)
         }
         return result
     }
 
+    // Whether `candidate` is a legal Renegade/Alliance target for `ownRegion` -
+    // another prince's region, bordering ownRegion, with at least one knight actually
+    // safe to remove (a region with none, or only knights whose removal would strand
+    // another, can't be targeted at all). Shared by legalRenegadeEnemyRegions (the
+    // in-progress flow's choices) and canPlayRenegadeCard (checked across every
+    // region pair, to know up front whether the card has any legal play at all).
+    private isEligibleRenegadeEnemyRegion(ownRegion: Region, candidate: Region): boolean {
+        return (
+            !!candidate.ownerColor &&
+            candidate.ownerColor !== ownRegion.ownerColor &&
+            regionsAreNeighboring(ownRegion, candidate) &&
+            candidate.squareKeys.some((key) => {
+                const [col, row] = key.split(',').map(Number)
+                const square = getSquare(this.gameState.board, col, row)
+                return (
+                    square?.knightColor === candidate.ownerColor &&
+                    isKnightSafeToRemove(this.gameState, candidate.ownerColor!, col, row)
+                )
+            })
+        )
+    }
+
     // Any of another prince's regions bordering the chosen own region - the pair of
-    // regions Renegade (like Alliance) acts on. Also requires at least one knight in
-    // that region actually safe to remove - a region with none (or only knights whose
-    // removal would strand another) can't be targeted at all, so it shouldn't be
-    // offered as a choice in the first place.
+    // regions Renegade (like Alliance) acts on.
     get legalRenegadeEnemyRegions(): Region[] {
         const ownRegion = this.gameState.regions.find((r) => r.id === this.renegadeOwnRegionId)
         if (!ownRegion) return []
-        return this.gameState.regions.filter(
-            (r) =>
-                r.ownerColor &&
-                r.ownerColor !== ownRegion.ownerColor &&
-                regionsAreNeighboring(ownRegion, r) &&
-                r.squareKeys.some((key) => {
-                    const [col, row] = key.split(',').map(Number)
-                    const square = getSquare(this.gameState.board, col, row)
-                    return (
-                        square?.knightColor === r.ownerColor &&
-                        isKnightSafeToRemove(this.gameState, r.ownerColor!, col, row)
-                    )
-                })
-        )
+        return this.gameState.regions.filter((r) => this.isEligibleRenegadeEnemyRegion(ownRegion, r))
     }
 
     selectRenegadeEnemyRegion(regionId: string) {
@@ -1254,7 +1314,13 @@ export class LowenherzGameSession extends GameSession<
     get canPlayAllianceCard(): boolean {
         if (!this.myPlayer || !this.canChooseAction) return false
         const playerState = this.gameState.getPlayerState(this.myPlayer.id)
-        return playerState.politicsCards.some((c) => c.type === PoliticsCardType.Alliance)
+        if (!playerState.politicsCards.some((c) => c.type === PoliticsCardType.Alliance)) return false
+        // Holding the card isn't enough on its own - there also needs to be at least
+        // one of the player's own regions bordering an enemy region it isn't already
+        // allied with, or there'd be nothing legal to pick in the 2-step flow.
+        return this.myRegions.some((region) =>
+            this.gameState.regions.some((r) => this.isEligibleAllianceEnemyRegion(region, r))
+        )
     }
 
     // Which Alliance card is currently being played, and whether the player has
@@ -1286,18 +1352,26 @@ export class LowenherzGameSession extends GameSession<
         this.allianceOwnRegionId = regionId
     }
 
+    // Whether `candidate` is a legal Alliance target for `ownRegion` - another
+    // prince's region, bordering ownRegion, not already allied with it. Shared by
+    // legalAllianceEnemyRegions (the in-progress flow's choices) and
+    // canPlayAllianceCard (checked across every region pair, to know up front
+    // whether the card has any legal play at all).
+    private isEligibleAllianceEnemyRegion(ownRegion: Region, candidate: Region): boolean {
+        return (
+            !!candidate.ownerColor &&
+            candidate.ownerColor !== ownRegion.ownerColor &&
+            regionsAreNeighboring(ownRegion, candidate) &&
+            !areRegionsAllied(this.gameState.alliances, ownRegion.id, candidate.id)
+        )
+    }
+
     // Any of another prince's regions bordering the chosen own region that isn't
     // already allied with it.
     get legalAllianceEnemyRegions(): Region[] {
         const ownRegion = this.gameState.regions.find((r) => r.id === this.allianceOwnRegionId)
         if (!ownRegion) return []
-        return this.gameState.regions.filter(
-            (r) =>
-                r.ownerColor &&
-                r.ownerColor !== ownRegion.ownerColor &&
-                regionsAreNeighboring(ownRegion, r) &&
-                !areRegionsAllied(this.gameState.alliances, ownRegion.id, r.id)
-        )
+        return this.gameState.regions.filter((r) => this.isEligibleAllianceEnemyRegion(ownRegion, r))
     }
 
     // Picking the enemy region immediately confirms the play - there's no further
@@ -1439,12 +1513,14 @@ export class LowenherzGameSession extends GameSession<
                 // from here we can propose and sign for ourselves, but can never supply
                 // the OTHER negotiator's signature. Stop rather than spin forever;
                 // completing a negotiation end-to-end needs a second session/tab (or an
-                // engine-level test) acting as the other player.
-                if (this.canSignNegotiationOffer) {
-                    await this.signNegotiationOffer()
-                } else if (!this.gameState.negotiation?.offer) {
+                // engine-level test) acting as the other player. Checked in this order
+                // (propose before sign) since canSignNegotiationOffer no longer requires
+                // an offer to already exist - see its own comment.
+                if (!this.gameState.negotiation?.offer) {
                     const myMoney = this.gameState.getPlayerState(this.myPlayer.id).money
                     await this.proposeNegotiationOffer(this.myPlayer.id, Math.min(1, myMoney))
+                } else if (this.canSignNegotiationOffer) {
+                    await this.signNegotiationOffer()
                 }
                 break
             }

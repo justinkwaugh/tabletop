@@ -169,7 +169,7 @@ describe('PlacingKnightsStateHandler', () => {
         expect(handler.isValidAction(action, context)).toBe(false)
     })
 
-    it('ends the turn immediately when an ExpandRegion action is applied, even with knightsRemaining > 1', () => {
+    it('zeroes knightsRemaining but keeps the phase open for a possible 2nd space, even with knightsRemaining > 1', () => {
         const state = buildState({
             knightsRemaining: 2,
             regions: [{ id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] }]
@@ -184,12 +184,53 @@ describe('PlacingKnightsStateHandler', () => {
             type: ActionType.ExpandRegion,
             playerId: 'p1',
             regionId: 'r1',
-            spaces: [{ col: 1, row: 0 }]
+            space: { col: 1, row: 0 }
         })
         expect(handler.isValidAction(action, context)).toBe(true)
         action.apply(state, context)
 
         expect(state.knightsRemaining).toBe(0)
+        expect(state.expandingRegionId).toBe('r1')
+        // Still open - a 2nd space of the same region (or a Pass to stop) is next,
+        // not placing a knight (see validActionsForPlayer above).
+        expect(handler.onAction(action, context)).toBe(MachineState.PlacingKnights)
+        expect(handler.validActionsForPlayer('p1', context)).toEqual([ActionType.ExpandRegion, ActionType.Pass])
+
+        // Passing now stops the expansion at 1 space and ends the phase.
+        const passAction = new HydratedPass({
+            id: 'pass-1',
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: ActionType.Pass,
+            playerId: 'p1'
+        })
+        expect(handler.onAction(passAction, context)).toBe(MachineState.ResolvingActions)
+        expect(state.expandingRegionId).toBeUndefined()
+    })
+
+    it('ends the phase once a 2nd space completes the expansion', () => {
+        const state = buildState({
+            knightsRemaining: 2,
+            expandingRegionId: 'r1',
+            regions: [{ id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0', '1,0'] }]
+        })
+        state.knightsRemaining = 0
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+        const handler = new PlacingKnightsStateHandler()
+
+        const action = new HydratedExpandRegion({
+            id: 'expand-2',
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: ActionType.ExpandRegion,
+            playerId: 'p1',
+            regionId: 'r1',
+            space: { col: 2, row: 0 }
+        })
+        expect(handler.isValidAction(action, context)).toBe(true)
+        action.apply(state, context)
+
+        expect(state.expandingRegionId).toBeUndefined()
         expect(handler.onAction(action, context)).toBe(MachineState.ResolvingActions)
     })
 })

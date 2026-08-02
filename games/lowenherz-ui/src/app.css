@@ -45,6 +45,16 @@
     font-display: swap;
 }
 
+/* Blackletter, for the pack-letter callout on the action-card draw pile only - echoes
+   the big Fraktur capital printed on the actual card backs (back-a.jpg etc). */
+@font-face {
+    font-family: 'UnifrakturMaguntia';
+    src: url('./lib/fonts/UnifrakturMaguntia-Book.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
@@ -93,6 +103,16 @@
     font-weight: bold;
     font-size: 1.75rem;
     line-height: 1;
+}
+
+/* The pack letter in "N until C" on the draw pile - see .signature-text-warmup
+   below for why Tangerine gets a warmup element; this one's small/simple enough
+   that a flash on first use isn't a practical concern. */
+.pack-letter {
+    font-family: 'UnifrakturMaguntia', cursive;
+    /* Fixed, not em-relative - so bumping the surrounding "N until" text size doesn't
+       inflate this too. */
+    font-size: 14px;
 }
 
 /* Invisible - forces the browser to fetch/cache Tangerine as soon as the board

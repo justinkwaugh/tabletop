@@ -31,8 +31,10 @@ export const AdvanceResolutionMetadata = Type.Object({
     tiedPlayerIds: Type.Optional(Type.Array(Type.String())),
     tieWentToDuel: Type.Optional(Type.Boolean()),
     // Set on the final AdvanceResolution once all 3 slots are done and the round rolls
-    // over to the next player's turn.
-    roundAdvanced: Type.Optional(Type.Boolean())
+    // over to the next player's turn - newFirstPlayerId is who becomes first player for
+    // the new round (see advanceRound), so history can name them.
+    roundAdvanced: Type.Optional(Type.Boolean()),
+    newFirstPlayerId: Type.Optional(Type.String())
 })
 
 // A system-only action - never submitted by a real player (see ResolvingActionsStateHandler,

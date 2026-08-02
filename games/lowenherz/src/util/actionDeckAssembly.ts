@@ -15,3 +15,13 @@ export function assembleActionDeck(prng: Prng): ActionCard[] {
         return group
     })
 }
+
+// Variable-construction setup (player-placed castles): "The game starts with action
+// cards lettered A. The action pile is shuffled as in the basic game, except that the
+// cards from A are added to the top of the pile." - so the A-lettered set (shuffled on
+// its own) draws first, then the same B/C/D/E assembly as the basic game.
+export function assembleActionDeckWithConstruction(prng: Prng): ActionCard[] {
+    const aCards = ActionCardDeck.filter((card) => card.back === CardBack.A)
+    shuffle(aCards, prng.random)
+    return [...aCards, ...assembleActionDeck(prng)]
+}

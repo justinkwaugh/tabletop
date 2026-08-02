@@ -37,6 +37,9 @@
     }
 
     const slotLabels: Record<1 | 2 | 3, string> = { 1: 'top', 2: 'middle', 3: 'bottom' }
+    // Pile A always renders on the left, pile B on the right (see DeckPiles.svelte) -
+    // history should describe piles the way a player actually sees them on screen.
+    const pileLabels: Record<'A' | 'B', string> = { A: 'left', B: 'right' }
 
     function politicsCardLabel(type: PoliticsCardType, value?: number): string {
         switch (type) {
@@ -53,16 +56,16 @@
 </script>
 
 {#if isPlaceCastle(action)}
-    placed a castle at ({action.castleCol}, {action.castleRow}) with a knight at ({action.knightCol},
-    {action.knightRow})
+    placed a castle with a knight
 {:else if isDrawActionCard(action)}
     {#if action.metadata?.cardType === ActionCardType.Mining}
         drew a Silver Mine card
         {#if action.metadata.hillScoring && action.metadata.hillScoring.length > 0}
-            —
-            {#each action.metadata.hillScoring as entry, i (entry.playerId)}
-                {i > 0 ? ', ' : ''}<PlayerName playerId={entry.playerId} /> gained {entry.points}
-                power point{entry.points === 1 ? '' : 's'}
+            {#each action.metadata.hillScoring as entry (entry.playerId)}
+                <br />
+                <PlayerName playerId={entry.playerId} /> gained {entry.points} power point{entry.points === 1
+                    ? ''
+                    : 's'}
             {/each}
         {/if}
     {:else if action.metadata?.cardType === ActionCardType.KingIsDead}
@@ -88,10 +91,10 @@
     {:else if action.kind === NegotiationMoveKind.Sign}
         {@const executedOffer = action.metadata?.executedOffer}
         {#if executedOffer}
-            signed — <PlayerName playerId={executedOffer.fromPlayerId} /> pays {executedOffer.amount} ducat{executedOffer.amount ===
+            signed — <PlayerName playerId={executedOffer.fromPlayerId} /> paid {executedOffer.amount} ducat{executedOffer.amount ===
             1
                 ? ''
-                : 's'} and performs the action
+                : 's'} and performed the action
         {:else}
             signed the standing offer
         {/if}
@@ -104,7 +107,20 @@
             action.metadata.treasureCardUsed.type,
             action.metadata.treasureCardUsed.value
         )} card
-    {/if} in the duel
+    {/if} in the duel{#if action.metadata?.duelResult};{/if}
+    {#if action.metadata?.duelResult === 'win' && action.metadata.winnerId}
+        <br /><PlayerName playerId={action.metadata.winnerId} /> won the duel
+    {:else if action.metadata?.duelResult === 'reduel'}
+        {@const tied = action.metadata.reduelPlayerIds ?? []}
+        <br />the duel was tied{#if tied.length > 0}{' '}between{' '}{#each tied as playerId, i (playerId)}{i >
+                0
+                    ? i === tied.length - 1
+                        ? ' and '
+                        : ', '
+                    : ''}<PlayerName {playerId} />{/each}{/if} — they duel again
+    {:else if action.metadata?.duelResult === 'giveUp'}
+        <br />the second duel was tied too, so no one performs the action
+    {/if}
 {:else if isPlaceWall(action)}
     placed a wall
     {#if action.metadata?.completedRegions && action.metadata.completedRegions.length > 0}
@@ -113,7 +129,7 @@
             {#if region.ownerColor}
                 {@const ownerId = playerIdForColor(region.ownerColor)}
                 {#if ownerId}
-                    <PlayerName playerId={ownerId} />
+                    <PlayerName playerId={ownerId} possessive />
                 {:else}
                     A neutral prince's
                 {/if}
@@ -127,7 +143,7 @@
         {/each}
     {/if}
 {:else if isPlaceKnight(action)}
-    placed a knight at ({action.col}, {action.row})
+    placed a knight
     {#if action.metadata?.paidWithTreasureCard}
         , paying with a {politicsCardLabel(
             action.metadata.paidWithTreasureCard.type,
@@ -137,10 +153,7 @@
         , paying {action.metadata.woodedCostPaid} ducats for the wooded space
     {/if}
 {:else if isExpandRegion(action)}
-    expanded a region by {action.metadata?.spacesTaken ?? action.spaces.length} space{(action
-        .metadata?.spacesTaken ?? action.spaces.length) === 1
-        ? ''
-        : 's'}
+    expanded a region by 1 space
     {#if action.metadata?.townsTaken}, including a town{/if}
     for +{action.metadata?.pointsGained ?? 0} power point{(action.metadata?.pointsGained ?? 0) === 1
         ? ''
@@ -172,7 +185,7 @@
             {#if region.ownerColor}
                 {@const ownerId = playerIdForColor(region.ownerColor)}
                 {#if ownerId}
-                    <PlayerName playerId={ownerId} />
+                    <PlayerName playerId={ownerId} possessive />
                 {:else}
                     A neutral prince's
                 {/if}
@@ -190,13 +203,13 @@
         {/each}
     {/if}
 {:else if isLookAtPoliticsPile(action)}
-    looked through politics pile {action.pile}
+    looked through the {pileLabels[action.pile]} politics pile
 {:else if isTakePoliticsCard(action)}
     {@const isMe = gameSession.myPlayer?.id === action.playerId}
     {@const takenCard = gameSession.gameState
         .getPlayerState(action.playerId)
         .politicsCards.find((c) => c.id === action.cardId)}
-    took a politics card from pile {action.pile}{#if isMe && takenCard}
+    took a politics card from the {pileLabels[action.pile]} pile{#if isMe && takenCard}
         {' '}({politicsCardLabel(takenCard.type, takenCard.value)}){/if}
 {:else if isPlayRenegadeCard(action)}
     {@const victimId = playerIdForColor(action.metadata?.victimColor)}
@@ -273,12 +286,15 @@
         {#each meta.tiedPlayerIds as playerId, i (playerId)}
             {i > 0 ? (i === meta.tiedPlayerIds.length - 1 ? ' and ' : ', ') : ''}<PlayerName {playerId} />
         {/each}
-        tied for the {slotLabels[meta.slot!]} action and
-        <span class="text-amber-700 font-semibold"
-            >{meta.tieWentToDuel ? 'duel for it' : 'enter negotiations'}</span
-        >
+        tied for the {slotLabels[meta.slot!]} action and {meta.tieWentToDuel ? 'duel for it' : 'enter negotiations'}
     {:else if meta?.roundAdvanced}
-        <span class="text-gray-500">the round is over — drawing the next card</span>
+        {@const newFirstIsMe = gameSession.myPlayer?.id === meta.newFirstPlayerId}
+        <span class="text-gray-500">
+            the round is over and {#if meta.newFirstPlayerId}<PlayerName
+                    playerId={meta.newFirstPlayerId}
+                />{:else}the next player{/if}
+            {newFirstIsMe ? 'became' : 'becomes'} the first player
+        </span>
     {:else}
         <span class="text-gray-500">(the round continues...)</span>
     {/if}

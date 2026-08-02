@@ -141,7 +141,7 @@ export class HydratedNegotiationMove
                 return (
                     this.amount !== undefined &&
                     Number.isInteger(this.amount) &&
-                    this.amount >= 0 &&
+                    this.amount >= 1 &&
                     this.amount <= proposerMoney
                 )
             }

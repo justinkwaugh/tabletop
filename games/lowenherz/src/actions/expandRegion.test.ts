@@ -68,16 +68,16 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
 function makeExpandRegion(
     playerId: string,
     regionId: string,
-    spaces: { col: number; row: number }[]
+    space: { col: number; row: number }
 ): HydratedExpandRegion {
     return new HydratedExpandRegion({
-        id: `expand-${regionId}`,
+        id: `expand-${regionId}-${space.col},${space.row}`,
         gameId: 'game-1',
         source: ActionSource.User,
         type: ActionType.ExpandRegion,
         playerId,
         regionId,
-        spaces
+        space
     })
 }
 
@@ -100,7 +100,7 @@ describe('HydratedExpandRegion', () => {
             regions: [{ id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' }]
         })
 
-        const action = makeExpandRegion('p1', 'r1', [{ col: 1, row: 0 }])
+        const action = makeExpandRegion('p1', 'r1', { col: 1, row: 0 })
         expect(action.isValidExpandRegion(state)).toBe(true)
         action.apply(state)
 
@@ -143,33 +143,36 @@ describe('HydratedExpandRegion', () => {
             regions: [{ id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' }]
         })
 
-        // Expand pink by 2 chained spaces: (1,0) then (1,1). Walling off their
-        // exterior edges adds the one missing wall around yellow's pair, sealing it.
-        const action = makeExpandRegion('p1', 'r1', [
-            { col: 1, row: 0 },
-            { col: 1, row: 1 }
-        ])
-        expect(action.isValidExpandRegion(state)).toBe(true)
-        action.apply(state)
+        // Expand pink by 2 chained spaces: (1,0) then (1,1), as two separate actions
+        // (see expandRegion.ts) - walling off their exterior edges adds the one
+        // missing wall around yellow's pair, sealing it.
+        const first = makeExpandRegion('p1', 'r1', { col: 1, row: 0 })
+        expect(first.isValidExpandRegion(state)).toBe(true)
+        first.apply(state)
+        expect(state.expandingRegionId).toBe('r1')
+
+        const second = makeExpandRegion('p1', 'r1', { col: 1, row: 1 })
+        expect(second.isValidExpandRegion(state)).toBe(true)
+        second.apply(state)
+        expect(state.expandingRegionId).toBeUndefined()
 
         const yellowRegion = state.regions.find((r) => r.ownerColor === Color.Yellow)
         expect(yellowRegion).toBeDefined()
         expect(yellowRegion!.squareKeys.slice().sort()).toEqual(['2,0', '2,1'])
         expect(state.getPlayerState('p1').powerPoints).toBe(2)
         expect(state.getPlayerState('p2').powerPoints).toBe(3) // region-creation table: 2 spaces
-        expect(action.metadata).toEqual({
-            spacesTaken: 2,
+        expect(second.metadata).toEqual({
             townsTaken: 0,
-            pointsGained: 2,
+            pointsGained: 1,
             completedRegions: [
                 { ownerColor: Color.Yellow, spaceCount: 2, townCount: 0, points: 3, anchorSquareKey: '2,0' }
             ]
         })
     })
 
-    it('expands into one open adjacent space, scoring 1 point and ending the turn', () => {
+    it('expands into one open adjacent space, scoring 1 point and consuming the rest of the knight action', () => {
         const state = buildState()
-        const action = makeExpandRegion('p1', 'r1', [{ col: 1, row: 0 }])
+        const action = makeExpandRegion('p1', 'r1', { col: 1, row: 0 })
 
         expect(action.isValidExpandRegion(state)).toBe(true)
         action.apply(state)
@@ -177,7 +180,10 @@ describe('HydratedExpandRegion', () => {
         expect(state.regions[0].squareKeys).toEqual(['0,0', '1,0'])
         expect(state.getPlayerState('p1').powerPoints).toBe(1)
         expect(state.knightsRemaining).toBe(0)
-        expect(action.metadata).toEqual({ spacesTaken: 1, townsTaken: 0, pointsGained: 1 })
+        // A 2nd space of the SAME region is still allowed (see expandingRegionId) -
+        // placing a knight or expanding elsewhere is not (see placingKnights.test.ts).
+        expect(state.expandingRegionId).toBe('r1')
+        expect(action.metadata).toEqual({ townsTaken: 0, pointsGained: 1 })
         // The region must stay fully enclosed - (1,0)'s open edges get new walls, but
         // the edge it shares with the rest of the region ((0,0)) stays open.
         expect(state.board.walls).toEqual(
@@ -189,20 +195,21 @@ describe('HydratedExpandRegion', () => {
         expect(state.board.walls).toHaveLength(2)
     })
 
-    it('expands by 2 spaces where the 2nd is adjacent to the region as extended by the 1st', () => {
+    it('expands by a 2nd space adjacent to the region as extended by the 1st, ending the expansion', () => {
         const state = buildState()
         // (1,0) is adjacent to the original region (0,0); (2,0) is only adjacent to
         // (1,0), not to the original region - valid because of the chaining rule.
-        const action = makeExpandRegion('p1', 'r1', [
-            { col: 1, row: 0 },
-            { col: 2, row: 0 }
-        ])
+        const first = makeExpandRegion('p1', 'r1', { col: 1, row: 0 })
+        expect(first.isValidExpandRegion(state)).toBe(true)
+        first.apply(state)
 
-        expect(action.isValidExpandRegion(state)).toBe(true)
-        action.apply(state)
+        const second = makeExpandRegion('p1', 'r1', { col: 2, row: 0 })
+        expect(second.isValidExpandRegion(state)).toBe(true)
+        second.apply(state)
 
         expect(state.regions[0].squareKeys).toEqual(['0,0', '1,0', '2,0'])
         expect(state.getPlayerState('p1').powerPoints).toBe(2)
+        expect(state.expandingRegionId).toBeUndefined()
         // No wall between the two newly-claimed squares (interior to the region now),
         // nor between (0,0) and (1,0) (the shared edge with the rest of the region) -
         // only the truly exterior edges get walled.
@@ -218,13 +225,39 @@ describe('HydratedExpandRegion', () => {
 
     it('rejects a 2nd space not adjacent to the region as extended by the 1st', () => {
         const state = buildState()
-        // (5,5) is nowhere near (0,0) or (1,0).
-        const action = makeExpandRegion('p1', 'r1', [
-            { col: 1, row: 0 },
-            { col: 5, row: 5 }
-        ])
+        const first = makeExpandRegion('p1', 'r1', { col: 1, row: 0 })
+        first.apply(state)
 
-        expect(action.isValidExpandRegion(state)).toBe(false)
+        // (5,5) is nowhere near (0,0) or (1,0).
+        const second = makeExpandRegion('p1', 'r1', { col: 5, row: 5 })
+        expect(second.isValidExpandRegion(state)).toBe(false)
+    })
+
+    it('rejects starting a 2nd, different region while one expansion is already in progress', () => {
+        const state = buildState({
+            regions: [
+                { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' },
+                { id: 'r2', ownerColor: Color.Pink, squareKeys: ['5,5'], castleSquareKey: '5,5' }
+            ]
+        })
+        const first = makeExpandRegion('p1', 'r1', { col: 1, row: 0 })
+        first.apply(state)
+
+        const second = makeExpandRegion('p1', 'r2', { col: 5, row: 4 })
+        expect(second.isValidExpandRegion(state)).toBe(false)
+        expect(second.invalidExpandRegionReason(state)).toBe(
+            "You're already expanding a different region this turn."
+        )
+    })
+
+    it('allows a 2nd space of the SAME region even though knightsRemaining is already 0', () => {
+        const state = buildState()
+        const first = makeExpandRegion('p1', 'r1', { col: 1, row: 0 })
+        first.apply(state)
+        expect(state.knightsRemaining).toBe(0)
+
+        const second = makeExpandRegion('p1', 'r1', { col: 2, row: 0 })
+        expect(second.isValidExpandRegion(state)).toBe(true)
     })
 
     it('awards a +5 bonus for capturing a town', () => {
@@ -232,21 +265,21 @@ describe('HydratedExpandRegion', () => {
         board.squares[0][1] = { type: SquareType.Village }
         const state = buildState({ board })
 
-        const action = makeExpandRegion('p1', 'r1', [{ col: 1, row: 0 }])
+        const action = makeExpandRegion('p1', 'r1', { col: 1, row: 0 })
         action.apply(state)
 
         expect(state.getPlayerState('p1').powerPoints).toBe(1 + 5)
-        expect(action.metadata).toEqual({ spacesTaken: 1, townsTaken: 1, pointsGained: 6 })
+        expect(action.metadata).toEqual({ townsTaken: 1, pointsGained: 6 })
     })
 
     it('rejects when it is not the designated player\'s turn', () => {
         const state = buildState()
-        expect(makeExpandRegion('p2', 'r1', [{ col: 1, row: 0 }]).isValidExpandRegion(state)).toBe(false)
+        expect(makeExpandRegion('p2', 'r1', { col: 1, row: 0 }).isValidExpandRegion(state)).toBe(false)
     })
 
     it('rejects once knightsRemaining is exhausted', () => {
         const state = buildState({ knightsRemaining: 0 })
-        expect(makeExpandRegion('p1', 'r1', [{ col: 1, row: 0 }]).isValidExpandRegion(state)).toBe(false)
+        expect(makeExpandRegion('p1', 'r1', { col: 1, row: 0 }).isValidExpandRegion(state)).toBe(false)
     })
 
     it('rejects a regionId the player does not own', () => {
@@ -256,26 +289,26 @@ describe('HydratedExpandRegion', () => {
                 { id: 'r2', ownerColor: Color.Yellow, squareKeys: ['5,5'] }
             ]
         })
-        expect(makeExpandRegion('p1', 'r2', [{ col: 5, row: 4 }]).isValidExpandRegion(state)).toBe(false)
+        expect(makeExpandRegion('p1', 'r2', { col: 5, row: 4 }).isValidExpandRegion(state)).toBe(false)
     })
 
     it('rejects a square already inside the region being expanded', () => {
         const state = buildState()
-        expect(makeExpandRegion('p1', 'r1', [{ col: 0, row: 0 }]).isValidExpandRegion(state)).toBe(false)
+        expect(makeExpandRegion('p1', 'r1', { col: 0, row: 0 }).isValidExpandRegion(state)).toBe(false)
     })
 
     it('rejects a space with an opposing knight or castle', () => {
         const board = blankBoard()
         board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Yellow }
         const state = buildState({ board })
-        expect(makeExpandRegion('p1', 'r1', [{ col: 1, row: 0 }]).isValidExpandRegion(state)).toBe(false)
+        expect(makeExpandRegion('p1', 'r1', { col: 1, row: 0 }).isValidExpandRegion(state)).toBe(false)
     })
 
     it('allows a space with the player\'s own knight already on it', () => {
         const board = blankBoard()
         board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Pink }
         const state = buildState({ board })
-        expect(makeExpandRegion('p1', 'r1', [{ col: 1, row: 0 }]).isValidExpandRegion(state)).toBe(true)
+        expect(makeExpandRegion('p1', 'r1', { col: 1, row: 0 }).isValidExpandRegion(state)).toBe(true)
     })
 
     it('rejects merging one of the player\'s own other regions', () => {
@@ -285,7 +318,7 @@ describe('HydratedExpandRegion', () => {
                 { id: 'r2', ownerColor: Color.Pink, squareKeys: ['1,0'] }
             ]
         })
-        expect(makeExpandRegion('p1', 'r1', [{ col: 1, row: 0 }]).isValidExpandRegion(state)).toBe(false)
+        expect(makeExpandRegion('p1', 'r1', { col: 1, row: 0 }).isValidExpandRegion(state)).toBe(false)
     })
 
     it('rejects invading another region when the invader\'s knights do not outnumber the defender\'s', () => {
@@ -301,7 +334,7 @@ describe('HydratedExpandRegion', () => {
             ]
         })
 
-        const action = makeExpandRegion('p1', 'r1', [{ col: 1, row: 0 }])
+        const action = makeExpandRegion('p1', 'r1', { col: 1, row: 0 })
         expect(action.isValidExpandRegion(state)).toBe(false)
         expect(action.invalidExpandRegionReason(state)).toBe(
             "Your knights in this region must outnumber the target region's knights to invade it."
@@ -324,7 +357,7 @@ describe('HydratedExpandRegion', () => {
             alliances: [{ id: 'alliance-1', regionAId: 'r1', regionBId: 'r2' }]
         })
 
-        const action = makeExpandRegion('p1', 'r1', [{ col: 1, row: 1 }])
+        const action = makeExpandRegion('p1', 'r1', { col: 1, row: 1 })
         expect(action.isValidExpandRegion(state)).toBe(false)
         expect(action.invalidExpandRegionReason(state)).toBe(
             "An alliance protects that region from expansion - it can't be invaded while allied."
@@ -346,7 +379,7 @@ describe('HydratedExpandRegion', () => {
             ]
         })
 
-        const action = makeExpandRegion('p1', 'r1', [{ col: 1, row: 1 }])
+        const action = makeExpandRegion('p1', 'r1', { col: 1, row: 1 })
         expect(action.isValidExpandRegion(state)).toBe(true)
         action.apply(state)
 
@@ -355,7 +388,6 @@ describe('HydratedExpandRegion', () => {
         expect(state.getPlayerState('p1').powerPoints).toBe(1)
         expect(state.getPlayerState('p2').powerPoints).toBe(-1)
         expect(action.metadata).toEqual({
-            spacesTaken: 1,
             townsTaken: 0,
             pointsGained: 1,
             invasions: [
@@ -397,7 +429,7 @@ describe('HydratedExpandRegion', () => {
 
         // Taking the connector square (2,1) splits the defender's region: (0,1)/(1,1)
         // stay connected to the castle, but (3,1) is cut off entirely.
-        const action = makeExpandRegion('p1', 'r1', [{ col: 2, row: 1 }])
+        const action = makeExpandRegion('p1', 'r1', { col: 2, row: 1 })
         expect(action.isValidExpandRegion(state)).toBe(true)
         action.apply(state)
 
@@ -420,7 +452,6 @@ describe('HydratedExpandRegion', () => {
         // the town) - the invader does not gain any of that second part.
         expect(state.getPlayerState('p2').powerPoints).toBe(-(1 + 3 + 5))
         expect(action.metadata).toEqual({
-            spacesTaken: 1,
             townsTaken: 0,
             pointsGained: 1,
             invasions: [
@@ -444,7 +475,7 @@ describe('HydratedExpandRegion', () => {
                 { id: 'neutral', ownerColor: undefined, squareKeys: ['1,0', '2,0'] }
             ]
         })
-        const action = makeExpandRegion('p1', 'r1', [{ col: 1, row: 0 }])
+        const action = makeExpandRegion('p1', 'r1', { col: 1, row: 0 })
         expect(action.isValidExpandRegion(state)).toBe(true)
         action.apply(state)
 
@@ -465,21 +496,9 @@ describe('HydratedExpandRegion', () => {
                 { id: 'neutral', ownerColor: undefined, squareKeys: ['1,0'] }
             ]
         })
-        const action = makeExpandRegion('p1', 'r1', [{ col: 1, row: 0 }])
+        const action = makeExpandRegion('p1', 'r1', { col: 1, row: 0 })
         action.apply(state)
 
         expect(state.regions.find((r) => r.id === 'neutral')).toBeUndefined()
-    })
-
-    it('rejects an expansion of 0 or 3+ spaces', () => {
-        const state = buildState()
-        expect(makeExpandRegion('p1', 'r1', []).isValidExpandRegion(state)).toBe(false)
-        expect(
-            makeExpandRegion('p1', 'r1', [
-                { col: 1, row: 0 },
-                { col: 2, row: 0 },
-                { col: 3, row: 0 }
-            ]).isValidExpandRegion(state)
-        ).toBe(false)
     })
 })

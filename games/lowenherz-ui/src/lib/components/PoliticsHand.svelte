@@ -192,10 +192,10 @@
     // Only relevant in the read-only my-hand view (see PlayerState.svelte) - a card
     // already in hand can be applied right now if its type's specific play window is
     // currently open. Renegade/Alliance share the same window (your decision-laying
-    // turn) via the existing multi-step targeting flow (see PoliticsCardArea.svelte,
-    // which offers the same "Play" trigger in the sidebar - this is just a second,
-    // on-the-card entry point into the same session methods). Treasure has no
-    // dedicated "play" action of its own - applying it here just arms it (the same
+    // turn) via the existing multi-step targeting flow (this is just a second entry
+    // point into the same session methods, alongside the glowing card in the player
+    // panel splay - see PlayerState.svelte). Treasure has no dedicated "play" action
+    // of its own - applying it here just arms it (the same
     // selectTreasureCard() mechanism RealBoard's wooded-square picker and the duel-bid
     // form already use), for the next knight placement or duel bid to pick up.
     function canApplyCard(card: PoliticsCardData): boolean {
@@ -313,7 +313,7 @@
                             {#if canApplyCard(card)}
                                 <button
                                     type="button"
-                                    class="absolute top-[29px] left-1/2 -translate-x-1/2 cursor-pointer rounded-lg bg-black/80 text-white text-xs tracking-widest px-3 py-1 border-2 border-transparent hover:border-white"
+                                    class="absolute top-[35px] left-1/2 -translate-x-1/2 cursor-pointer rounded-lg bg-black/80 text-white text-xs tracking-widest px-3 py-1 border-2 border-transparent hover:border-white"
                                     onclick={() => applyCard(card)}
                                 >
                                     APPLY

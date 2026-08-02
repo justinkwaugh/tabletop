@@ -12,7 +12,8 @@ import { MachineState } from './states.js'
 import { LowenherzGameConfig } from './config.js'
 import { LowenherzColors } from './colors.js'
 import { assembleBoard } from '../util/boardAssembly.js'
-import { assembleActionDeck } from '../util/actionDeckAssembly.js'
+import { assembleActionDeck, assembleActionDeckWithConstruction } from '../util/actionDeckAssembly.js'
+import { assembleStandardBoard, applyStandardSetup } from '../util/standardSetup.js'
 import { dealPoliticsCardPiles } from '../util/politicsCardAssembly.js'
 
 const STARTING_MONEY = 12
@@ -53,6 +54,10 @@ export class LowenherzGameInitializer
         }
 
         const config = game.config as LowenherzGameConfig
+        // Defaults to on (player-placed castles/knights, via the PlacingCastles flow) -
+        // turning it off uses the rulebook's fixed "basic game" board/castle/knight/
+        // wall layout instead, skipping manual placement entirely.
+        const playerPlacedCastles = config.playerPlacedCastles !== false
 
         // 2- and 3-player games use one of the unused colors as a neutral color (an
         // obstacle-only "prince" in 3p, or the 2-player variant's dedicated neutral
@@ -64,9 +69,9 @@ export class LowenherzGameInitializer
 
         const lowenherzGameState: LowenherzGameState = Object.assign(state, {
             players: orderedPlayers,
-            machineState: MachineState.PlacingCastles,
+            machineState: playerPlacedCastles ? MachineState.PlacingCastles : MachineState.StartOfTurn,
             turnManager: turnManager,
-            board: assembleBoard(prng),
+            board: playerPlacedCastles ? assembleBoard(prng) : assembleStandardBoard(),
             regions: [],
             alliances: [],
             // Cloned, not aliased: turnManager.turnOrder gets rotated in place by
@@ -76,8 +81,11 @@ export class LowenherzGameInitializer
             firstPlayerId: turnManager.turnOrder[0],
             neutralColor,
 
-            actionDeck: assembleActionDeck(prng),
+            actionDeck: playerPlacedCastles
+                ? assembleActionDeckWithConstruction(prng)
+                : assembleActionDeck(prng),
             currentActionCard: undefined,
+            discardedActionCard: undefined,
             decisions: [],
 
             resolvedSlots: [],
@@ -95,7 +103,11 @@ export class LowenherzGameInitializer
 
         // I suppose the engine could actually do the hydration with the hydrator, but this is how it
         // it is done currently.
-        return new HydratedLowenherzGameState(lowenherzGameState)
+        const hydratedState = new HydratedLowenherzGameState(lowenherzGameState)
+        if (!playerPlacedCastles) {
+            applyStandardSetup(hydratedState)
+        }
+        return hydratedState
     }
 
     // Initialize player states for all players in the game

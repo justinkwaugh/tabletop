@@ -10,7 +10,17 @@ export const SubmitDuelBidMetadata = Type.Object({
     // A snapshot of the Treasure card used (if any), captured here since the card
     // itself gets removed from the bidder's hand if they end up winning - history
     // needs to be able to describe it even after that happens.
-    treasureCardUsed: Type.Optional(PoliticsCard)
+    treasureCardUsed: Type.Optional(PoliticsCard),
+    // Set only on the bid that COMPLETES a duel round (the last bidder), recording how
+    // that round ended so history can describe it: 'win' (someone outbid everyone),
+    // 'reduel' (tie for the top bid - the tied players duel again), or 'giveUp' (a
+    // second consecutive tie, so no one performs the action). reduelPlayerIds lists
+    // the tied players for 'reduel'/'giveUp'; winnerId is set for 'win'.
+    duelResult: Type.Optional(
+        Type.Union([Type.Literal('win'), Type.Literal('reduel'), Type.Literal('giveUp')])
+    ),
+    reduelPlayerIds: Type.Optional(Type.Array(Type.String())),
+    winnerId: Type.Optional(Type.String())
 })
 
 export type SubmitDuelBid = Type.Static<typeof SubmitDuelBid>

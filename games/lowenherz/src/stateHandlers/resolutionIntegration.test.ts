@@ -20,6 +20,7 @@ import { NegotiationMove, NegotiationMoveKind } from '../actions/negotiationMove
 import { SubmitDuelBid } from '../actions/submitDuelBid.js'
 import { PlaceKnight } from '../actions/placeKnight.js'
 import { ExpandRegion } from '../actions/expandRegion.js'
+import { Pass } from '../actions/pass.js'
 import { LookAtPoliticsPile } from '../actions/lookAtPoliticsPile.js'
 import { TakePoliticsCard } from '../actions/takePoliticsCard.js'
 import { isAdvanceResolution } from '../actions/advanceResolution.js'
@@ -159,7 +160,7 @@ function placeKnight(playerId: string, col: number, row: number): PlaceKnight {
 function expandRegion(
     playerId: string,
     regionId: string,
-    spaces: { col: number; row: number }[]
+    space: { col: number; row: number }
 ): ExpandRegion {
     return {
         id: `expand-${regionId}`,
@@ -168,7 +169,17 @@ function expandRegion(
         type: ActionType.ExpandRegion,
         playerId,
         regionId,
-        spaces
+        space
+    }
+}
+
+function pass(playerId: string): Pass {
+    return {
+        id: `pass-${playerId}`,
+        gameId: 'game-1',
+        source: ActionSource.User,
+        type: ActionType.Pass,
+        playerId
     }
 }
 
@@ -448,12 +459,20 @@ describe('resolution cascade (via the real GameEngine)', () => {
         expect(state.knightPlacingPlayerId).toBe('p1')
         expect(state.knightsRemaining).toBe(1)
 
-        state = engine.run(expandRegion('p1', 'r1', [{ col: 1, row: 0 }]), state, game).updatedState
+        state = engine.run(expandRegion('p1', 'r1', { col: 1, row: 0 }), state, game).updatedState
 
         expect(state.regions.find((r) => r.id === 'r1')!.squareKeys).toEqual(['0,0', '1,0'])
         expect(state.players.find((p) => p.playerId === 'p1')!.powerPoints).toBe(1)
-        // Slot 3 had no choosers, so the round completes immediately after the
-        // expansion - just like the knight-placement case.
+        // A 2nd space of the same region is still on the table (up to 2 are always
+        // allowed, regardless of the card's knight count) - the round doesn't
+        // complete until p1 stops here instead.
+        expect(state.machineState).toBe(MachineState.PlacingKnights)
+        expect(state.expandingRegionId).toBe('r1')
+
+        state = engine.run(pass('p1'), state, game).updatedState
+
+        // Slot 3 had no choosers, so the round completes immediately after p1 stops
+        // expanding - just like the knight-placement case.
         expect(state.machineState).toBe(MachineState.StartOfTurn)
         expect(state.firstPlayerId).toBe('p2') // rotated from p1
     })
@@ -509,7 +528,7 @@ describe('resolution cascade (via the real GameEngine)', () => {
             bandCount: 2,
             placementSkippedReason: 'noKnightsInStock'
         })
-        expect(advances[3].metadata).toEqual({ roundAdvanced: true })
+        expect(advances[3].metadata).toEqual({ roundAdvanced: true, newFirstPlayerId: 'p2' })
     })
 
     it('records tiedPlayerIds/tieWentToDuel:false metadata when a 2-way tie goes to negotiation', () => {

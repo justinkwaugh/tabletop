@@ -41,7 +41,7 @@ export class ResolvingActionsStateHandler
 
         if (gameState.resolvedSlots.length >= 3) {
             advanceRound(gameState)
-            action.metadata = { roundAdvanced: true }
+            action.metadata = { roundAdvanced: true, newFirstPlayerId: gameState.firstPlayerId }
             return MachineState.StartOfTurn
         }
 

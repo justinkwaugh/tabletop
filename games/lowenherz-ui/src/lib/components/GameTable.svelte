@@ -1,7 +1,8 @@
 <script lang="ts">
     import {
         ScalingWrapper,
-        DefaultSideContent,
+        HistoryControls,
+        DefaultTabs,
         DefaultTableLayout,
         GameSession
     } from '@tabletop/frontend-components'
@@ -38,7 +39,17 @@
 >
     <DefaultTableLayout>
         {#snippet sideContent()}
-            <DefaultSideContent>
+            <div class="max-sm:hidden">
+                <HistoryControls
+                    borderClass="border-b-2 border-black/20"
+                    bgClass="bg-transparent"
+                    enabledColor="text-black"
+                    disabledColor="text-black/30"
+                />
+            </div>
+            <DefaultTabs
+                inactiveTabClass="text-black py-1 px-3 rounded-lg border-2 border-transparent hover:border-black/40"
+            >
                 {#snippet playersPanel()}
                     <PlayersPanel />
                     <TestingControls />
@@ -46,7 +57,7 @@
                 {#snippet history()}
                    <History />
                 {/snippet}
-            </DefaultSideContent>
+            </DefaultTabs>
         {/snippet}
         {#snippet gameContent()}
             <!--  Top part is not allowed to shrink -->

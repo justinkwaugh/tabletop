@@ -31,6 +31,15 @@ export class PlacingKnightsStateHandler
     ): ActionType[] {
         const gameState = context.gameState
         if (gameState.knightPlacingPlayerId !== playerId) return []
+
+        // Mid-expansion (the 1st of its 1-2 spaces already placed as its own action -
+        // see expandRegion.ts) - only a 2nd space of that SAME region, or stopping
+        // here (a Pass), are on the table; placing a knight is not. Checked before
+        // the knightsRemaining bail-out below since a fresh expansion's 1st space
+        // already zeroed it, even though this continuation is still legal.
+        if (gameState.expandingRegionId) {
+            return [ActionType.ExpandRegion, ActionType.Pass]
+        }
         if (!gameState.knightsRemaining || gameState.knightsRemaining <= 0) return []
 
         const validActions: ActionType[] = [ActionType.PlaceKnight, ActionType.Pass]
@@ -52,13 +61,19 @@ export class PlacingKnightsStateHandler
     ): MachineState {
         const gameState = context.gameState
 
-        // A Pass ends the phase immediately, regardless of how many knights remain -
-        // the player is voluntarily declining the rest of their allotment.
-        // Otherwise, the action already placed the knight before onAction runs, so
-        // knightsRemaining already reflects it. Expanding a region always consumes
-        // the whole action too (see ExpandRegion.apply), so it falls into this same
-        // branch once knightsRemaining hits 0.
-        if (action instanceof HydratedPass || (gameState.knightsRemaining ?? 0) <= 0) {
+        // A Pass ends the phase immediately, regardless of how many knights (or
+        // expansion spaces - see expandRegion.ts) remain - the player is voluntarily
+        // declining the rest of their allotment, including stopping an expansion
+        // after just its 1st space. Otherwise, the action already placed the knight
+        // (or expansion space) before onAction runs, so knightsRemaining/
+        // expandingRegionId already reflect it - a fresh expansion's 1st space
+        // zeroes knightsRemaining but leaves expandingRegionId set, so the phase
+        // keeps going (to allow a 2nd space) rather than ending here too.
+        if (
+            action instanceof HydratedPass ||
+            ((gameState.knightsRemaining ?? 0) <= 0 && !gameState.expandingRegionId)
+        ) {
+            gameState.expandingRegionId = undefined
             gameState.knightsRemaining = undefined
             gameState.knightPlacingPlayerId = undefined
             return MachineState.ResolvingActions

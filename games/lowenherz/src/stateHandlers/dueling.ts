@@ -58,6 +58,13 @@ export class DuelingStateHandler
             return MachineState.Dueling
         }
 
+        // This is the bid that completes the round - win, re-duel-worthy tie, or
+        // give-up-worthy tie, all three below reveal every bid at once. Marking it
+        // keeps Undo from rewinding back into the bidding phase with hindsight
+        // knowledge of what it took to win (see GameSession.undoableAction, which
+        // refuses to cross any action flagged revealsInfo).
+        action.revealsInfo = true
+
         const maxBid = Math.max(...duel.bids.map((b) => effectiveBidAmount(gameState, b)))
         const topBidders = duel.bids
             .filter((b) => effectiveBidAmount(gameState, b) === maxBid)
@@ -75,6 +82,7 @@ export class DuelingStateHandler
                     (c) => c.id !== winningBid.treasureCardId
                 )
             }
+            action.metadata = { ...action.metadata, duelResult: 'win', winnerId }
             gameState.resolvedSlots.push({ slot: duel.slot, winnerPlayerId: winnerId })
             gameState.duel = undefined
             return routeAfterSlotResolved(gameState).nextState
@@ -82,12 +90,15 @@ export class DuelingStateHandler
 
         // A second consecutive tie: give up entirely, no one performs the action.
         if (duel.tieCount >= 1) {
+            action.metadata = { ...action.metadata, duelResult: 'giveUp', reduelPlayerIds: topBidders }
             gameState.resolvedSlots.push({ slot: duel.slot, winnerPlayerId: undefined })
             gameState.duel = undefined
             return routeAfterSlotResolved(gameState).nextState
         }
 
-        // First tie: re-duel among just the tied bidders.
+        // First tie: re-duel among just the tied bidders (any lower bidders are
+        // dropped and don't participate in the second duel).
+        action.metadata = { ...action.metadata, duelResult: 'reduel', reduelPlayerIds: topBidders }
         gameState.duel = { slot: duel.slot, playerIds: topBidders, bids: [], tieCount: duel.tieCount + 1 }
         return MachineState.Dueling
     }

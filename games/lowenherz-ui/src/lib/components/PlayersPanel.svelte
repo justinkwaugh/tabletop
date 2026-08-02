@@ -1,6 +1,8 @@
 <script lang="ts">
     import type { Player } from '@tabletop/common'
-    import type { HydratedLowenherzPlayerState, LowenherzPlayerState } from '@tabletop/lowenherz'
+    import { type HydratedLowenherzPlayerState, type LowenherzPlayerState } from '@tabletop/lowenherz'
+    import { flip } from 'svelte/animate'
+    import { cubicOut } from 'svelte/easing'
     import PlayerState from '$lib/components/PlayerState.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -19,9 +21,16 @@
         const playersAndStatesById = new Map(
             playersAndStates.map((item) => [item.playerState.playerId, item])
         )
-        const turnOrderSorted = gameSession.gameState.turnManager.turnOrder.map(
-            (playerId) => playersAndStatesById.get(playerId)!
-        ) as PlayerAndState[]
+        // Löwenherz rotates its own firstPlayerId over a fixed turnOrder each round
+        // (see resolutionHelpers.ts's advanceRound()) rather than reordering the
+        // shared turnManager's turnOrder array - so this list has to be sorted
+        // relative to firstPlayerId directly for the flip animation below to have
+        // anything to animate.
+        const rotated = [...gameSession.gameState.turnOrder]
+        while (rotated[0] !== gameSession.gameState.firstPlayerId) {
+            rotated.push(rotated.shift()!)
+        }
+        const turnOrderSorted = rotated.map((playerId) => playersAndStatesById.get(playerId)!) as PlayerAndState[]
 
         // if not hotseat, rotate until user player is at top
         if (gameSession.myPlayer && !gameSession.primaryGame.hotseat) {
@@ -42,6 +51,8 @@
 
 <div class="rounded-lg space-y-2 text-center grow-0 shrink-0">
     {#each playersAndStates as playerAndState (playerAndState.player.id)}
-        <PlayerState player={playerAndState.player} playerState={playerAndState.playerState} />
+        <div animate:flip={{ duration: 320, easing: cubicOut }}>
+            <PlayerState player={playerAndState.player} playerState={playerAndState.playerState} />
+        </div>
     {/each}
 </div>

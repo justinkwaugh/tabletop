@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { Game, GameStatus, GameStorage, PlayerStatus } from '@tabletop/common'
+import { Game, GameConfig, GameStatus, GameStorage, PlayerStatus } from '@tabletop/common'
 import { LowenherzGameInitializer } from './initializer.js'
+import { MachineState } from './states.js'
+import { CardBack } from './actionCards.js'
 
-function buildGame(playerCount: number): Game {
+function buildGame(playerCount: number, config: GameConfig = {}): Game {
     return {
         id: 'game-1',
         typeId: 'lowenherz',
@@ -17,7 +19,7 @@ function buildGame(playerCount: number): Game {
             name: `Player ${i + 1}`,
             status: PlayerStatus.Joined
         })),
-        config: {},
+        config,
         hotseat: true,
         createdAt: new Date(),
         winningPlayerIds: [],
@@ -74,6 +76,56 @@ describe('LowenherzGameInitializer', () => {
 
         for (const player of state.players) {
             expect(player.politicsCards).toEqual([])
+        }
+    })
+
+    it('defaults to the player-placed-castles flow, with the A-deck stacked on top', () => {
+        const initializer = new LowenherzGameInitializer()
+        const game = buildGame(4)
+
+        const state = initializer.initializeGameState(game, {
+            id: 'game-1',
+            gameId: 'game-1',
+            activePlayerIds: [],
+            actionCount: 0,
+            actionChecksum: 0,
+            prng: { seed: 1, invocations: 0 },
+            winningPlayerIds: []
+        })
+
+        expect(state.machineState).toBe(MachineState.PlacingCastles)
+        expect(state.actionDeck.length).toBe(31)
+        expect(state.actionDeck.slice(0, 6).every((c) => c.back === CardBack.A)).toBe(true)
+        expect(state.board.squares.every((row) => row.every((sq) => !sq.castleColor && !sq.knightColor))).toBe(
+            true
+        )
+        expect(state.regions).toEqual([])
+    })
+
+    it('switches to the fixed basic-game setup when playerPlacedCastles is off', () => {
+        const initializer = new LowenherzGameInitializer()
+        const game = buildGame(4, { playerPlacedCastles: false })
+
+        const state = initializer.initializeGameState(game, {
+            id: 'game-1',
+            gameId: 'game-1',
+            activePlayerIds: [],
+            actionCount: 0,
+            actionChecksum: 0,
+            prng: { seed: 1, invocations: 0 },
+            winningPlayerIds: []
+        })
+
+        expect(state.machineState).toBe(MachineState.StartOfTurn)
+        // Basic-game deck: no A cards, 25 total (see actionDeckAssembly.ts).
+        expect(state.actionDeck.length).toBe(25)
+        expect(state.actionDeck.every((c) => c.back !== CardBack.A)).toBe(true)
+        // Every player already has a scored starting region and 9 knights left in
+        // stock (12 - 3 placed), without anyone ever submitting a PlaceCastle action.
+        expect(state.regions.length).toBe(4)
+        for (const player of state.players) {
+            expect(player.knightsInStock).toBe(9)
+            expect(player.powerPoints).toBeGreaterThan(0)
         }
     })
 })
