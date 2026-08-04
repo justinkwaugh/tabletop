@@ -2,8 +2,8 @@
     import { type PoliticsCard, PoliticsCardType } from '@tabletop/lowenherz'
     import allianceImg from '$lib/images/politics-cards/alliance.jpg'
     import renegadeImg from '$lib/images/politics-cards/renegade.jpg'
-    import parchmentFrame from '$lib/images/politics-cards/parchment-frame.png'
-    import treasureFrame from '$lib/images/politics-cards/treasure-frame.png'
+    import parchmentFrame from '$lib/images/politics-cards/parchment-frame.jpg'
+    import treasureFrame from '$lib/images/politics-cards/treasure-frame.jpg'
     import cardBackImg from '$lib/images/politics-cards/card-back.jpg'
 
     // faceDown shows the shared card back instead of this specific card's face - used

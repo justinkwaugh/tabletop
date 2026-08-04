@@ -1646,21 +1646,10 @@
         {/if}
     </div>
 
-    {#each gameSession.myCancellableAlliances as alliance (alliance.id)}
-        {@const otherPlayerId = playerIdForColor(alliance.otherColor)}
-        <div class="text-black text-[16px]">
-            You may also
-            <button
-                type="button"
-                class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20 font-semibold"
-                onclick={() => gameSession.cancelAlliance(alliance.id)}
-            >
-                cancel your alliance
-            </button>
-            with {#if otherPlayerId}{@render playerPill(otherPlayerId)}{:else}a neutral prince{/if} for {ALLIANCE_CANCELLATION_COST}
-            ducats.
-        </div>
-    {/each}
+    <!-- Cancelling an alliance used to be offered as a sentence-with-a-button here. It's
+         the beating heart on the shared boundary wall now (see allianceMarkers) - the price
+         and the consequence both show on hover, and the affordance stays put on the board
+         instead of appearing in a status area whose other messages are turn-scoped. -->
 
     {#if displayNegotiation}
         {@const negotiation = displayNegotiation}

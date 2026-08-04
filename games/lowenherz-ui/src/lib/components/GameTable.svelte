@@ -14,7 +14,7 @@
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import TestingControls from '$lib/components/TestingControls.svelte'
     import PoliticsHand from '$lib/components/PoliticsHand.svelte'
-    import parchmentTexture from '$lib/images/board/parchment-texture.png'
+    import parchmentTexture from '$lib/images/board/parchment-texture.jpg'
 
     import type { LowenherzGameSession } from '$lib/model/session.svelte'
     import type { HydratedLowenherzGameState, LowenherzGameState } from '@tabletop/lowenherz'

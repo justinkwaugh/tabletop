@@ -1,7 +1,7 @@
 <script lang="ts">
-    // The region-creation player aid, drawn rather than photographed - this replaces a
-    // scan of the physical card (region-creation.png), which read as a screenshot
-    // pasted onto the board next to everything else that's actually styled. Same
+    // The region-creation player aid, drawn rather than photographed - it replaced a scan
+    // of the physical card, which read as a screenshot pasted onto the board next to
+    // everything else that's actually styled (that scan has since been deleted). Same
     // numbers as the printed card; "ab 31" is just spelled out in English here.
     const ROWS: { spaces: string; points: number }[] = [
         { spaces: '1 – 4', points: 3 },
