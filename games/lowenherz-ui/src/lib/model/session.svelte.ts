@@ -10,8 +10,10 @@ import {
     BOARD_ROWS,
     CancelAlliance,
     CardBack,
+    buildDecisionPlan,
     ChooseAction,
     countKnights,
+    currentPlacementColor,
     detectNewRegions,
     DrawActionCard,
     ExpandRegion,
@@ -51,6 +53,7 @@ import {
     PoliticsCardType,
     Region,
     regionsAreNeighboring,
+    rotateToStart,
     removeInteriorWalls,
     scoreRegion,
     squareKey,
@@ -86,6 +89,15 @@ export class LowenherzGameSession extends GameSession<
 
     get setupComplete(): boolean {
         return this.gameState.machineState !== MachineState.PlacingCastles
+    }
+
+    // The color the next setup placement will actually be - the placing player's own for
+    // the opening laps, the shared neutral color for the closing ones (2 castles each at 2
+    // players, 1 each at 3). Every setup preview uses this rather than the player's own
+    // color, so the ghost castle/knight matches the piece that's really about to land.
+    get placementColor(): Color | undefined {
+        if (this.setupComplete) return undefined
+        return currentPlacementColor(this.gameState)
     }
 
     // All castle squares the current player could legally pick right now - used to
@@ -455,8 +467,41 @@ export class LowenherzGameSession extends GameSession<
         return HydratedChooseAction.canChooseAction(this.gameState, this.myPlayer.id)
     }
 
+    // Which slots this player has already laid a decision card on this round. A player
+    // owns exactly one card of each number (1/2/3), so these can never be picked again -
+    // and when they get two placements (the first player below 4 players), the second has
+    // to go somewhere new. Clicking one of these used to dispatch an action the engine
+    // rejects outright, which surfaced as an error page rather than a dead click.
+    get mySlotsChosenThisRound(): (1 | 2 | 3)[] {
+        const myPlayerId = this.myPlayer?.id
+        if (!myPlayerId) return []
+        return this.gameState.decisions.filter((d) => d.playerId === myPlayerId).map((d) => d.slot)
+    }
+
+    canChooseSlot(slot: 1 | 2 | 3): boolean {
+        return this.canChooseAction && !this.mySlotsChosenThisRound.includes(slot)
+    }
+
+    // How many decision cards this player lays this round versus how many they've laid so
+    // far - "the first player always lays 2 decision cards" below 4 players (see
+    // buildDecisionPlan), which is worth saying out loud rather than leaving them to
+    // wonder why their turn didn't end.
+    get myDecisionsThisRound(): { laid: number; total: number } {
+        const myPlayerId = this.myPlayer?.id
+        if (!myPlayerId) return { laid: 0, total: 0 }
+        const plan = buildDecisionPlan(
+            rotateToStart(this.gameState.turnOrder, this.gameState.firstPlayerId)
+        )
+        return {
+            laid: this.mySlotsChosenThisRound.length,
+            total: plan.filter((playerId) => playerId === myPlayerId).length
+        }
+    }
+
     async chooseAction(slot: 1 | 2 | 3) {
-        if (!this.canChooseAction) return
+        // Belt and braces alongside canChooseSlot gating the click itself: a slot already
+        // spent this round is simply ignored, never dispatched.
+        if (!this.canChooseSlot(slot)) return
 
         const action = this.createPlayerAction(ChooseAction, { slot })
         this.errorMessage = undefined

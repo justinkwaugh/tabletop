@@ -146,7 +146,10 @@
     function slotFor(slot: 1 | 2 | 3): ActionCardSlot {
         return {
             onClick: () => gameSession.chooseAction(slot),
-            clickable: gameSession.canChooseAction,
+            // Not just "is it my turn" - a slot this player has already used this round
+            // isn't clickable at all (they hold one decision card per number), so a second
+            // click on it reads as inert instead of throwing.
+            clickable: gameSession.canChooseSlot(slot),
             pills: decisionsForSlot(gameSession, slot).map((playerId) => ({
                 playerId,
                 name: playerName(gameSession, playerId),

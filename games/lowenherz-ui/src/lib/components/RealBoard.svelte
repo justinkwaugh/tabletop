@@ -35,6 +35,7 @@
     import RampartCorner from './RampartCorner.svelte'
     import WallSegment from './WallSegment.svelte'
     import PlayerPill from './PlayerPill.svelte'
+    import ActionDescription from './ActionDescription.svelte'
     import knightFill from '$lib/images/pieces/knight-fill.png'
     import knightLines from '$lib/images/pieces/knight-lines.png'
     import castleFill from '$lib/images/pieces/castle-fill.png'
@@ -601,6 +602,15 @@
     const myColor = $derived(
         gameSession.myPlayer ? gameSession.gameState.getPlayerState(gameSession.myPlayer.id).color : undefined
     )
+    // What the next setup placement will really be: your own color at first, the neutral
+    // prince's for the closing laps (see GameSession.placementColor). Distinct from
+    // myColor, which is right for every mid-game preview but wrong during those laps.
+    const placementColor = $derived(gameSession.placementColor)
+
+    // The action currently being looked at while rewound through the history controls -
+    // the one whose result is what's drawn on the board. Already undefined during live play
+    // and when rewound past the very first action, so it doubles as "are we in history".
+    const historyAction = $derived(gameSession.history.currentAction)
     const legalExpansionSquareSet = $derived(
         new Set(gameSession.legalNextExpansionSquares.map((s) => `${s.col},${s.row}`))
     )
@@ -1343,6 +1353,21 @@
          already cached by the time anyone actually signs a negotiation (see
          .signature-text-warmup in app.css). -->
     <span class="signature-text-warmup" aria-hidden="true">warmup</span>
+    <!-- Stepping back through history leaves every message below stale: they narrate the
+         live game ("waiting for X", "click a region..."), which says nothing about the
+         moment you've rewound to. So while in history, lead with what the action you're
+         looking at actually did - the same sentence the history feed uses, since
+         gameSession.actions already reflects the visible (rewound) context rather than the
+         live one. Same idea as Sol's LastActionDescription, just scoped to history. -->
+    {#if historyAction}
+        <div class="text-black text-[20px] border-b-2 border-black/15 pb-1">
+            <span class="italic text-black/60 text-[16px]">Rewound to:</span>
+            {#if historyAction.playerId}
+                {@render playerPill(historyAction.playerId)}
+            {/if}
+            <ActionDescription action={historyAction} justify="start" history={false} />
+        </div>
+    {/if}
     {#if lastBankWin}
         <div class="text-black text-[20px]">
             {@render playerPill(lastBankWin.playerId)} gained {lastBankWin.amount} ducat{lastBankWin.amount === 1
@@ -1566,7 +1591,17 @@
             Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
             next action card...
         {:else if gameSession.canChooseAction}
-            Click a region of the card to pick an action.
+            <!-- Below 4 players the first player lays 2 decision cards (see
+                 buildDecisionPlan). No need to announce the count: the ordinal on the
+                 follow-up prompt ("a second region") is what tells them their turn isn't
+                 over, and it says it exactly when it matters. -->
+            {@const decisions = gameSession.myDecisionsThisRound}
+            {#if decisions.laid > 0}
+                Click a {decisions.laid === 1 ? 'second' : 'third'} region of the card for
+                your next action.
+            {:else}
+                Click a region of the card to pick an action.
+            {/if}
         {:else if gameSession.gameState.machineState === MachineState.ChoosingActions}
             Waiting for the next player to choose...
         {:else if gameSession.gameState.machineState === MachineState.Negotiating && gameSession.gameState.negotiation}
@@ -1834,7 +1869,11 @@
     <!-- A hand-hewn castle-wall frame (see RampartBorder/RampartCorner) around the
          actual board content, sized in a 3x3 grid so the border strips stretch to
          exactly match the board's own width/height. -->
+    <!-- The id is how things outside this component find the board's real position on
+         screen - currently the region-scoring aid, which centers itself on the frame (see
+         ActionToolbar). -->
     <div
+        id="lowenherz-board-frame"
         bind:this={frameEl}
         class="grid drop-shadow-[0_6px_14px_rgba(0,0,0,0.4)]"
         style="grid-template-columns: 20px {boardWidthPx}px 20px; grid-template-rows: 20px {boardHeightPx}px 20px; width: fit-content;"
@@ -1926,30 +1965,34 @@
                                 {@render pieceIcon(knightFill, knightLines, myColor, -1)}
                             </div>
                         {/if}
-                        {#if gameSession.canPlaceCastle && !gameSession.selectedCastleSquare && isLegalCastleSquare(col, row) && myColor}
+                        {#if gameSession.canPlaceCastle && !gameSession.selectedCastleSquare && isLegalCastleSquare(col, row) && placementColor}
                             <!-- Setup phase, before a castle square is picked: a slower,
                                  dimmer pulsing preview of the castle that would go here, at
-                                 every currently-legal square. -->
+                                 every currently-legal square. In the placing player's own
+                                 color for the opening laps, and in the NEUTRAL color for the
+                                 closing ones - those castles belong to the third prince, not
+                                 to whoever happens to be placing them. -->
                             <div class="absolute inset-0 ghost-castle-pulse pointer-events-none">
-                                {@render pieceIcon(castleFill, castleLines, myColor)}
+                                {@render pieceIcon(castleFill, castleLines, placementColor)}
                             </div>
                         {/if}
-                        {#if isLegalKnightSquare(col, row) && myColor}
+                        {#if isLegalKnightSquare(col, row) && placementColor}
                             <!-- Setup phase, once a castle square is picked: same pulsing
                                  preview treatment as regular-play knight placement, for the
-                                 knight that would go adjacent to it. -->
+                                 knight that would go adjacent to it - and the same
+                                 own-then-neutral color as the castle above. -->
                             <div class="absolute inset-0 ghost-knight-pulse pointer-events-none">
-                                {@render pieceIcon(knightFill, knightLines, myColor, -1)}
+                                {@render pieceIcon(knightFill, knightLines, placementColor, -1)}
                             </div>
                         {/if}
                         {#if square.castleColor}
                             {@render pieceIcon(castleFill, castleLines, square.castleColor)}
-                        {:else if isSelected(col, row) && myColor}
+                        {:else if isSelected(col, row) && placementColor}
                             <!-- The castle isn't actually placed yet (still needs its
                                  adjacent knight square picked), but it reads as solid/settled
                                  here - only the knight candidates above should be pulsing at
-                                 this point. -->
-                            {@render pieceIcon(castleFill, castleLines, myColor)}
+                                 this point. Same own-then-neutral color as the ghosts. -->
+                            {@render pieceIcon(castleFill, castleLines, placementColor)}
                         {:else if square.knightColor}
                             {#if isRenegadeRemovedSquare(col, row)}
                                 <!-- The knight the player just clicked to remove - simply

@@ -227,14 +227,14 @@ describe('resolution cascade (via the real GameEngine)', () => {
         let state = buildState(playerIds, card)
         for (const player of state.players) player.knightsInStock = 0
 
-        // 2p decision plan is [p1, p1, p2, p2]. p1 and p2 both pick slot 1 (tied,
-        // negotiable); p1 also picks slot 2 solo, p2 also picks slot 3 solo.
+        // 2p decision plan is [p1, p1, p2] - only the first player lays two. p1 and p2
+        // both pick slot 1 (tied, negotiable); p1's other card goes to slot 2 solo, and
+        // slot 3 ends up unchosen.
         state = engine.run(chooseAction('p1', 1), state, game).updatedState
         state = engine.run(chooseAction('p1', 2), state, game).updatedState
-        state = engine.run(chooseAction('p2', 1), state, game).updatedState
-        // This is the 4th and final decision - it should cascade straight into
+        // This is the 3rd and final decision - it should cascade straight into
         // negotiation over slot 1 within this same run() call.
-        state = engine.run(chooseAction('p2', 3), state, game).updatedState
+        state = engine.run(chooseAction('p2', 1), state, game).updatedState
 
         expect(state.machineState).toBe(MachineState.Negotiating)
         expect(state.negotiation).toEqual({
@@ -313,10 +313,11 @@ describe('resolution cascade (via the real GameEngine)', () => {
         }
         let state = buildState(playerIds, card)
 
+        // 2p plan is [p1, p1, p2]: p1 and p2 tie on slot 1, p1's other card is solo on
+        // slot 2, slot 3 unchosen.
         state = engine.run(chooseAction('p1', 1), state, game).updatedState
         state = engine.run(chooseAction('p1', 2), state, game).updatedState
         state = engine.run(chooseAction('p2', 1), state, game).updatedState
-        state = engine.run(chooseAction('p2', 3), state, game).updatedState
 
         expect(state.machineState).toBe(MachineState.Negotiating)
 
@@ -505,11 +506,10 @@ describe('resolution cascade (via the real GameEngine)', () => {
 
         state = engine.run(chooseAction('p1', 1), state, game).updatedState
         state = engine.run(chooseAction('p1', 2), state, game).updatedState
-        state = engine.run(chooseAction('p2', 1), state, game).updatedState
-        // This last decision (2p plan's 4th and final) cascades the whole rest of the
+        // This last decision (2p plan's 3rd and final) cascades the whole rest of the
         // round - money bag split, slot 2 solo win, slot 3 unclaimed, round advance -
         // all within this one run() call.
-        const result = engine.run(chooseAction('p2', 3), state, game)
+        const result = engine.run(chooseAction('p2', 1), state, game)
         state = result.updatedState
 
         expect(state.machineState).toBe(MachineState.StartOfTurn)
@@ -530,13 +530,11 @@ describe('resolution cascade (via the real GameEngine)', () => {
             bandCount: 1,
             placementSkippedReason: 'noKnightsInStock'
         })
+        // Nobody chose slot 3 - with only 3 decision cards between two players, a slot
+        // going unclaimed is now an ordinary outcome, and it resolves with no winner.
         expect(advances[2].metadata).toEqual({
             slot: 3,
-            slotResolved: true,
-            slotWinnerPlayerId: 'p2', // p2's 2nd decision (this test's cascade trigger)
-            bandKind: 'knight',
-            bandCount: 2,
-            placementSkippedReason: 'noKnightsInStock'
+            slotResolved: true
         })
         expect(advances[3].metadata).toEqual({ roundAdvanced: true, newFirstPlayerId: 'p2' })
     })

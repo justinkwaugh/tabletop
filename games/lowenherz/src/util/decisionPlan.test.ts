@@ -10,8 +10,11 @@ describe('buildDecisionPlan', () => {
         expect(buildDecisionPlan(['p1', 'p2', 'p3'])).toEqual(['p1', 'p1', 'p2', 'p3'])
     })
 
-    it('gives both players 2 slots each (front-loaded), for 2 players', () => {
-        expect(buildDecisionPlan(['p1', 'p2'])).toEqual(['p1', 'p1', 'p2', 'p2'])
+    it('gives only the first player a 2nd slot, for 2 players', () => {
+        // "The first player always lays 2 decision cards" - the rule names the first
+        // player alone, so the second lays the ordinary single card: 3 decisions over the
+        // card's 3 actions, which may or may not collide.
+        expect(buildDecisionPlan(['p1', 'p2'])).toEqual(['p1', 'p1', 'p2'])
     })
 })
 

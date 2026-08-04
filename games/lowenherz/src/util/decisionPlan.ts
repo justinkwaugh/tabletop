@@ -1,28 +1,24 @@
-// Builds the ordered sequence of decision-card placements for one round, following the
-// rulebook's per-player-count rules for compensating for missing "seats" (there are
-// always 3 actions on a card, and rounds are built around 4 conceptual player seats):
-//   - 4 players: each of the 4 players places exactly 1 decision card, in turn order.
-//   - 3 players: the first player places 2 decision cards (compensating for the
-//     missing 4th seat), then each other player places 1 - "the first player selects
-//     two decision cards, placing both face up on the table."
-//   - 2 players: the first player places 2, then the second player also places 2 -
-//     "The first player always lays 2 decision cards" (and, symmetrically, so does the
-//     second, since together they must cover all 4 seats).
+// Builds the ordered sequence of decision-card placements for one round. Every player
+// lays one decision card; below 4 players the FIRST player lays a second one, and only
+// the first:
+//   - 4 players: 1 card each, in turn order.
+//   - 3 players: "the first player selects two decision cards, placing both face up on
+//     the table" - so 2, 1, 1.
+//   - 2 players: "The first player always lays 2 decision cards" - so 2, 1. The rule
+//     singles out the first player, exactly as the 3-player rule does, rather than
+//     handing both players an extra card to fill some fixed number of slots (an earlier
+//     reading here gave 2 and 2, which guaranteed a contested action every round by
+//     pigeonhole - 4 cards over 3 actions - and gave the second player influence the
+//     rulebook doesn't).
 // A player's slots are always placed back-to-back (front-loaded), never interleaved
 // with another player's turn, matching how the rulebook describes it.
 export function buildDecisionPlan(turnOrderFromFirstPlayer: string[]): string[] {
-    const totalSlots = 4
     const playerCount = turnOrderFromFirstPlayer.length
-
-    const counts = new Array(playerCount).fill(Math.floor(totalSlots / playerCount))
-    let deficit = totalSlots - counts.reduce((sum: number, count: number) => sum + count, 0)
-    for (let i = 0; deficit > 0; i++, deficit--) {
-        counts[i % playerCount] += 1
-    }
 
     const plan: string[] = []
     turnOrderFromFirstPlayer.forEach((playerId, index) => {
-        for (let i = 0; i < counts[index]; i++) plan.push(playerId)
+        const cards = index === 0 && playerCount < 4 ? 2 : 1
+        for (let i = 0; i < cards; i++) plan.push(playerId)
     })
     return plan
 }

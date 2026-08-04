@@ -4,7 +4,7 @@ import { HydratedLowenherzGameState, LowenherzGameState } from '../model/gameSta
 import { BOARD_COLS, BOARD_ROWS, BoardSquare, SquareType } from '../model/board.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
-import { HydratedPlaceCastle, PlaceCastle } from './placeCastle.js'
+import { currentPlacementColor, HydratedPlaceCastle, PlaceCastle } from './placeCastle.js'
 
 function blankBoard(): { squares: BoardSquare[][]; walls: [] } {
     return {
@@ -226,5 +226,56 @@ describe('HydratedPlaceCastle', () => {
 
         expect(state.board.squares[8][8].castleColor).toBe(Color.Gray) // neutral color
         expect(state.getPlayerState('p1').knightsInStock).toBe(12) // unchanged
+    })
+})
+
+describe('currentPlacementColor', () => {
+    // What the client previews as the piece about to be placed. It has to follow the
+    // PLAN's color, not the placing player's own, or the ghost castles change color from
+    // seat to seat during the neutral laps when every one of them will be neutral.
+    it('runs own-color laps then neutral laps, for 2 players', () => {
+        const state = buildState(['p1', 'p2'])
+        const board = state.board
+
+        // 2p plan: 4 own-color laps (p1, p2 each lap), then 2 neutral laps.
+        const expected = [
+            Color.Pink, Color.Yellow,
+            Color.Pink, Color.Yellow,
+            Color.Pink, Color.Yellow,
+            Color.Pink, Color.Yellow,
+            Color.Gray, Color.Gray,
+            Color.Gray, Color.Gray
+        ]
+
+        for (const [index, color] of expected.entries()) {
+            expect(currentPlacementColor(state)).toBe(color)
+            // Stand in for a completed placement - the plan is driven purely by how many
+            // castles are on the board.
+            board.squares[Math.floor(index / BOARD_COLS)][index % BOARD_COLS] = {
+                type: SquareType.Blank,
+                castleColor: color
+            }
+        }
+
+        // 12 placements is the whole plan - nothing left to preview.
+        expect(currentPlacementColor(state)).toBeUndefined()
+    })
+
+    it('is the neutral color for the single closing lap, for 3 players', () => {
+        const state = buildState(['p1', 'p2', 'p3'])
+        const board = state.board
+        for (let index = 0; index < 9; index++) {
+            board.squares[Math.floor(index / BOARD_COLS)][index % BOARD_COLS] = {
+                type: SquareType.Blank,
+                castleColor: Color.Pink
+            }
+        }
+        // 9 own-color placements done, so the 3 neutral ones are next.
+        expect(currentPlacementColor(state)).toBe(Color.Gray)
+    })
+
+    it('is always the placing player\'s own color at 4 players, which has no neutral lap', () => {
+        const state = buildState(['p1', 'p2', 'p3', 'p4'])
+        expect(currentPlacementColor(state)).toBe(Color.Pink)
     })
 })

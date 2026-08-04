@@ -1,11 +1,28 @@
 <script lang="ts">
-    import { Popover } from 'flowbite-svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { MachineState } from '@tabletop/lowenherz'
     import PlayerPill from './PlayerPill.svelte'
     import RegionScoringCard from './RegionScoringCard.svelte'
 
     const gameSession = getGameSession()
+
+    // The region-scoring aid is a plain overlay rather than a popover anchored to the ?
+    // button, because it's meant to land on the middle of the board. The board's position
+    // is read at click time (it moves with the window, the zoom wrapper's scale, and the
+    // status text above it growing/shrinking), so there's nothing to keep in sync while
+    // the card is closed.
+    let showRegionAid = $state(false)
+    let boardCenter: { x: number; y: number } | undefined = $state(undefined)
+
+    function toggleRegionAid() {
+        if (showRegionAid) {
+            showRegionAid = false
+            return
+        }
+        const rect = document.getElementById('lowenherz-board-frame')?.getBoundingClientRect()
+        boardCenter = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined
+        showRegionAid = true
+    }
 
     // Backing out of an in-progress local-only selection (playing a Renegade/
     // Alliance card, or the expand-region sub-flow) takes priority over reverting a
@@ -161,27 +178,43 @@
     >
         Undo
     </button>
-    <!-- Region-scoring player-aid card, same pattern as Sol's ? help icon: click to
-         pop the reference card near the icon, click anywhere outside to dismiss. -->
+    <!-- Region-scoring player aid: click to lay the reference card over the middle of the
+         board, click anywhere outside (or Escape) to dismiss. -->
     <button
-        id="region-aid"
         type="button"
         aria-label="Region scoring reference"
+        aria-expanded={showRegionAid}
         class="leading-none rounded-full bg-black/10 hover:bg-black/20 h-6 w-6 flex items-center justify-center text-lg font-bold text-black"
+        onclick={toggleRegionAid}
     >
         ?
     </button>
-    <Popover
-        reference="#lowenherz-action-bar"
-        classes={{ content: 'p-0 bg-transparent border-0 shadow-none dark:bg-transparent dark:border-0' }}
-        placement="bottom"
-        triggeredBy="#region-aid"
-        trigger="click"
-        offset={16}
-        arrow={false}
-    >
-        <!-- Transparent popover shell, so the card's own rounded corners show the board
-             behind them rather than the popover's (dark, in dark mode) background box. -->
-        <RegionScoringCard />
-    </Popover>
 </div>
+
+{#if showRegionAid}
+    <!-- Centered on the BOARD rather than the viewport - the table layout puts a sidebar
+         down one side, so viewport-centering lands the card visibly off to one side of the
+         board it's meant to sit on. boardCenter is measured at click time (see
+         toggleRegionAid); if the frame can't be found, this falls back to centering in the
+         viewport rather than rendering the card in a corner. -->
+    <div
+        class="fixed inset-0 z-50 {boardCenter ? '' : 'flex items-center justify-center'}"
+        role="button"
+        tabindex="0"
+        onclick={() => (showRegionAid = false)}
+        onkeydown={(e) => {
+            if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') showRegionAid = false
+        }}
+    >
+        <div
+            class={boardCenter ? 'absolute' : ''}
+            style={boardCenter
+                ? `left: ${boardCenter.x}px; top: ${boardCenter.y}px; transform: translate(-50%, -50%);`
+                : ''}
+            role="presentation"
+            onclick={(e) => e.stopPropagation()}
+        >
+            <RegionScoringCard />
+        </div>
+    </div>
+{/if}

@@ -141,7 +141,10 @@
         const count = displayCards.length
         const preferred = CARD_W + CARD_GAP
         if (count <= 1) return preferred
-        const maxThatFits = (politicsAreaWidth - CARD_EDGE_BUFFER - CARD_W) / (count - 1)
+        // 2x the buffer, matching the width the layout below actually asks for - counting
+        // it once here let a full hand come out a buffer wider than the space measured for
+        // it, which is what the compression is meant to prevent.
+        const maxThatFits = (politicsAreaWidth - 2 * CARD_EDGE_BUFFER - CARD_W) / (count - 1)
         return Math.max(MIN_SLIVER, Math.min(preferred, maxThatFits))
     })
     // Once cards are actually overlapping, only the frontmost one is fully visible/
@@ -201,10 +204,15 @@
          the pole rather than a header spanning the whole panel. Ducats flank it on
          the left (number then icon) and knights on the right (icon then number) -
          power points moved up to the toolbar's "Points:" readout instead, so this row
-         is the only place per-player stats live now. -->
+         is the only place per-player stats live now.
+         The two flanking stats are locked to the same width and pushed outward (ducats
+         right-aligned, knights left-aligned) so the pill lands on the panel's true center
+         - laid out naturally they differ by however much their numbers differ ("12" vs
+         "9", or a hidden total's single "?"), which slid the pill a few pixels off the
+         center the flag bar and card row below it both use. -->
     <div class="pt-1.5 pb-1 flex justify-center items-center gap-2">
         <span
-            class="flex items-center gap-1 text-gray-800 text-[19px] font-semibold"
+            class="w-[64px] shrink-0 flex items-center justify-end gap-1 text-gray-800 text-[19px] font-semibold"
             title={showMoney ? 'Ducats' : 'Ducats (hidden)'}
         >
             {showMoney ? playerState.money : '?'}
@@ -213,12 +221,15 @@
             </span>
         </span>
         <span
-            class="inline-block max-w-full truncate px-3 pt-[3px] pb-[1px] rounded-md font-bold uppercase tracking-wide text-base text-white"
+            class="inline-block min-w-0 truncate px-3 pt-[3px] pb-[1px] rounded-md font-bold uppercase tracking-wide text-base text-white"
             style="background-color: {headerColor}"
         >
             {player.name}
         </span>
-        <span class="flex items-center gap-1 text-gray-800 text-[19px] font-semibold" title="Knights in stock">
+        <span
+            class="w-[64px] shrink-0 flex items-center justify-start gap-1 text-gray-800 text-[19px] font-semibold"
+            title="Knights in stock"
+        >
             <span class="relative w-[28px] h-[28px] shrink-0">
                 {@render tintedIcon(knightFill, knightLines, playerState.color, 0, -2)}
             </span>
@@ -238,9 +249,14 @@
                  up (see shouldRevealFace) on your own turn, or at any time if it's
                  currently applicable (glowing, via card-glow-pulse); otherwise it
                  stays face-down. -->
+            <!-- CARD_EDGE_BUFFER on BOTH sides, not just the right: the cards are laid out
+                 from the right edge inward (see the `right` offsets below), so a buffer
+                 counted into the width once left the group flush against this box's left
+                 edge and 6px short of its right - putting the hand half a buffer left of
+                 the center that mx-auto was carefully finding. -->
             <div
                 class="relative h-[103px] mx-auto"
-                style="width: {CARD_W + (count - 1) * step + CARD_EDGE_BUFFER}px;"
+                style="width: {CARD_W + (count - 1) * step + 2 * CARD_EDGE_BUFFER}px;"
             >
                 {#each displayCards as card, i (card.id)}
                     {@const isTop = i === count - 1}
@@ -248,16 +264,27 @@
                     {@const isApplicableCard = applicableCardIds.includes(card.id)}
                     {@const revealFace = shouldRevealFace(card)}
                     {@const jitter = jitterFor(card.id)}
+                    <!-- Every card gets a resting drop shadow, so it sits ON the panel
+                         rather than looking printed onto it. PoliticsCard's own shadow-md
+                         is far too faint to read at this size against the parchment, and
+                         only the overlap shadow below was ever visible - which made the
+                         cards look like they gained a shadow at 4-5 cards. Overlapped
+                         cards keep the extra leftward shadow on top of it, since that's
+                         what separates each card from the one it's tucked under.
+                         An applicable card's glow animation overrides both while it
+                         pulses (animations outrank inline styles in the cascade), which is
+                         the same thing it did before. -->
                     <div
-                        class="absolute top-0 h-full {isInteractive
+                        class="absolute top-0 h-full rounded-md {isInteractive
                             ? ''
-                            : 'pointer-events-none'} {isOverlapping && i > 0
-                            ? 'shadow-[-2px_0_3px_rgba(0,0,0,0.35)]'
-                            : ''} {isApplicableCard ? 'card-glow-pulse' : ''}"
+                            : 'pointer-events-none'} {isApplicableCard ? 'card-glow-pulse' : ''}"
                         style="
                             right: {CARD_EDGE_BUFFER + (count - 1 - i) * step}px;
                             width: {CARD_W}px;
                             z-index: {i};
+                            box-shadow: {isOverlapping && i > 0
+                            ? '-2px 0 3px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.4)'
+                            : '0 2px 4px rgba(0, 0, 0, 0.4)'};
                             transform: translate({jitter.dx}px, {jitter.dy}px) rotate({jitter.rotate}deg);
                             transition: right 220ms ease-out, transform 220ms ease-out;
                         "

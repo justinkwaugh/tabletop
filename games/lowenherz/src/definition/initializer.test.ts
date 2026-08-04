@@ -128,4 +128,34 @@ describe('LowenherzGameInitializer', () => {
             expect(player.powerPoints).toBeGreaterThan(0)
         }
     })
+
+    it('ignores playerPlacedCastles=off at 2 players, since that variant IS manual placement', () => {
+        const initializer = new LowenherzGameInitializer()
+        const game = buildGame(2, { playerPlacedCastles: false })
+
+        const state = initializer.initializeGameState(game, {
+            id: 'game-1',
+            gameId: 'game-1',
+            activePlayerIds: [],
+            actionCount: 0,
+            actionChecksum: 0,
+            prng: { seed: 1, invocations: 0 },
+            winningPlayerIds: []
+        })
+
+        // The 2-player rules build on the variable construction rules (4 castles each
+        // plus 2 of a neutral color), so the fixed basic-game layout - a 4-color,
+        // one-castle-each diagram with no neutral prince - would discard the variant
+        // wholesale. Placement happens regardless of the config option.
+        expect(state.machineState).toBe(MachineState.PlacingCastles)
+        expect(state.regions).toEqual([])
+        expect(state.board.squares.every((row) => row.every((sq) => !sq.castleColor && !sq.knightColor))).toBe(
+            true
+        )
+        // ...and a neutral color exists for the 2 castles each player places in it.
+        expect(state.neutralColor).toBeDefined()
+        expect(state.players.some((p) => p.color === state.neutralColor)).toBe(false)
+        // A-lettered cards are stacked on top, as variable construction requires.
+        expect(state.actionDeck[0].back).toBe(CardBack.A)
+    })
 })

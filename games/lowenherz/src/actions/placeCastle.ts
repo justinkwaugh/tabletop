@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { Color, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import {
@@ -42,6 +42,21 @@ export const PlaceCastleValidator = Compile(PlaceCastle)
 
 export function isPlaceCastle(action?: GameAction): action is PlaceCastle {
     return action?.type === ActionType.PlaceCastle
+}
+
+// The color the NEXT setup placement will actually be - the acting player's own for the
+// first laps, then the shared neutral color for the final ones (3 players place 1 neutral
+// castle each, 2 players place 2 - see buildPlacementPlan). Undefined once setup is done.
+// Exported because the client needs it to preview the piece it's about to place: showing
+// the player's own color through the neutral laps means the ghost castles/knights change
+// color from seat to seat when every one of them is going to be neutral.
+export function currentPlacementColor(state: HydratedLowenherzGameState): Color | undefined {
+    const plan = buildPlacementPlan(
+        state.turnOrder,
+        (playerId) => state.getPlayerState(playerId).color,
+        state.neutralColor
+    )
+    return currentPlacementSlot(plan, totalCastlesPlaced(state))?.color
 }
 
 // The total number of castles (any color) currently on the board - this always equals

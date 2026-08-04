@@ -28,7 +28,8 @@ const playerPlacedCastlesOption: BooleanConfigOption = {
     id: 'playerPlacedCastles',
     type: ConfigOptionType.Boolean,
     name: 'Player-Placed Castles',
-    description: 'Allow the players to place their own castles and knights. Turn off to begin with the standard setup in the rulebook.',
+    description:
+        'Allow the players to place their own castles and knights. Turn off to begin with the standard setup in the rulebook. Ignored in a 2-player game, whose variant is built on player placement (4 castles each, plus 2 of a neutral color).',
     default: true
 }
 

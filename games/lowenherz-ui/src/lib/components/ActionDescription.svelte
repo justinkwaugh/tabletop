@@ -3,6 +3,7 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import {
         ActionCardType,
+        getSquare,
         isAdvanceResolution,
         isChooseAction,
         isDrawActionCard,
@@ -64,7 +65,19 @@
 </script>
 
 {#if isPlaceCastle(action)}
-    placed a castle with a knight
+    <!-- Below 4 players the setup ends with castles of the shared NEUTRAL color (2 each at
+         2 players, 1 each at 3 - see buildPlacementPlan), and "placed a castle" reads as
+         the player's own either way. The color isn't in the action, so it's read off the
+         square: a castle never moves or changes color once placed, so this stays right for
+         every past action in the feed too. Its knight is the same color, hence "and
+         knight" rather than repeating the word. -->
+    {@const placedColor = getSquare(gameSession.gameState.board, action.castleCol, action.castleRow)
+        ?.castleColor}
+    {#if placedColor !== undefined && placedColor === gameSession.gameState.neutralColor}
+        placed a neutral castle and knight
+    {:else}
+        placed a castle with a knight
+    {/if}
 {:else if isDrawActionCard(action)}
     {#if action.metadata?.cardType === ActionCardType.Mining}
         drew a Silver Mine card
