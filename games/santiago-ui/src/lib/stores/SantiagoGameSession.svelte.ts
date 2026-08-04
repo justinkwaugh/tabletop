@@ -84,26 +84,22 @@ export class SantiagoGameSession extends GameSession<
         return this.bidValue > 0 && this.takenBids.includes(this.bidValue)
     }
 
-    // Who currently holds (or, mid-bidding, is projected to hold) the canal overseer role —
-    // shown as an "Overseer" tag. During bidding, canalOverseerId is cleared until all bids
-    // resolve, so this projects from bids placed so far (lowest bid, ties broken by bidding
-    // order — same rule BiddingStateHandler.resolveBids uses for the real result). Before
-    // anyone has bid, the previous overseer nominally still holds the role until someone
-    // bids lower — biddingOrder starts right after them, so they're always its last entry
-    // (this also covers round 1, where "previous overseer" is the game's randomly-chosen
-    // initial one, seeded into canalOverseerId before bidding ever begins).
+    // Who currently holds the canal overseer role — shown as an "Overseer" tag. Once bids
+    // resolve that's simply canalOverseerId.
+    //
+    // Mid-bidding it used to project the role onto whoever was lowest so far, which was
+    // misleading: any nonzero bid can still be undercut by someone yet to bid, so the tag
+    // moved from player to player as the round went on. The one bid that CAN'T be beaten is
+    // 0 — it can only be tied, and ties at 0 go to the earliest bidder in this round's
+    // bidding order (see BiddingStateHandler.resolveBids). So the first player to bid 0 is
+    // already certain to be the overseer and gets the tag; until then nobody does.
     get projectedOverseerId(): string | undefined {
         const state = this.gameState
         if (state.machineState !== MachineState.Bidding) return state.canalOverseerId
-        const biddedPlayers = state.players.filter((p) => p.bid !== undefined)
-        if (!biddedPlayers.length) {
-            return state.biddingOrder[state.biddingOrder.length - 1]
-        }
-        const minBid = Math.min(...biddedPlayers.map((p) => p.bid!))
-        const candidates = biddedPlayers
-            .filter((p) => p.bid === minBid)
+        const zeroBidders = state.players
+            .filter((p) => p.bid === 0)
             .sort((a, b) => state.biddingOrder.indexOf(a.playerId) - state.biddingOrder.indexOf(b.playerId))
-        return candidates[0]?.playerId
+        return zeroBidders[0]?.playerId
     }
 
     // True when the local player is the first player and must place the spring
@@ -115,7 +111,7 @@ export class SantiagoGameSession extends GameSession<
         )
     }
 
-    // Valid spring locations (all intersections except the four corners). Set of "col,row" keys.
+    // Valid spring locations (every intersection, corners included). Set of "col,row" keys.
     get validSpringSpots(): Set<string> {
         if (this.gameState.machineState !== MachineState.SpringPlacement) return new Set()
         return new Set(validSpringPlacements().map((p) => `${p.col},${p.row}`))
@@ -160,18 +156,30 @@ export class SantiagoGameSession extends GameSession<
         return result
     }
 
-    // Valid canal segments to show as clickable
-    get validSegments(): CanalSegment[] {
+    // Canal segments to DRAW as dashed lines. Through the whole canal-building (bribe)
+    // phase these show for everyone, not just whoever is acting: bribe labels are pinned to
+    // the segment they're bidding on, so an observer who couldn't see the dashed canals had
+    // labels floating free of anything. Extra irrigation stays private to the player who
+    // holds the personal canal - nobody else has a decision to read there.
+    get visibleSegments(): CanalSegment[] {
         const state = this.gameState
-        if (state.machineState === MachineState.ExtraIrrigation) {
-            if (!this.isMyTurn) return []
-            const me = this.mySantiagoPlayer
-            if (!me?.hasPersonalCanal) return []
+        if (state.machineState === MachineState.CanalBuilding) {
             return validCanalPlacements(state.board)
         }
-        if (state.machineState !== MachineState.CanalBuilding) return []
+        if (state.machineState === MachineState.ExtraIrrigation) {
+            if (!this.isMyTurn) return []
+            if (!this.mySantiagoPlayer?.hasPersonalCanal) return []
+            return validCanalPlacements(state.board)
+        }
+        return []
+    }
+
+    // Canal segments the local player can actually CLICK - the drawn set, but only while
+    // it's their turn to act on one. Separate from visibleSegments so observers can follow
+    // the bribing without the lines inviting a click that would be rejected.
+    get validSegments(): CanalSegment[] {
         if (!this.isMyTurn) return []
-        return validCanalPlacements(state.board)
+        return this.visibleSegments
     }
 
     get currentPlantingCrop(): CropType | undefined {

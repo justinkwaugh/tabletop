@@ -589,7 +589,7 @@
             {#if isOverseerDeciding}
                 {@const key = labelKey(ps.segment)}
                 {@const hovered = hoveredLabelKey === key}
-                <g style="pointer-events: all; cursor: pointer"
+                <g style="pointer-events: all; cursor: pointer; touch-action: manipulation"
                    onclick={() => session.acceptProposal(ps.segment)}
                    onmouseenter={() => hoveredLabelKey = key}
                    onmouseleave={() => hoveredLabelKey = null}>
@@ -620,7 +620,7 @@
             {@const key = labelKey(seg)}
             {@const hovered = hoveredLabelKey === key}
             {@const popStyle = `transform-origin: ${cx}px ${cy}px; transform: scale(${hovered ? 1.15 : 1}); transition: transform 0.12s ease-out`}
-            <g style="pointer-events: all; cursor: pointer"
+            <g style="pointer-events: all; cursor: pointer; touch-action: manipulation"
                onclick={() => session.rejectAndBuild(seg)}
                onmouseenter={() => hoveredLabelKey = key}
                onmouseleave={() => hoveredLabelKey = null}>
@@ -641,14 +641,27 @@
              proposing, picking a location just selects it (see selectedBribeSegment) —
              it's drawn as a solid gold line instead of the usual animated dashed one,
              so it's clear which spot is currently chosen versus still just available. -->
-        {#each session.validSegments as seg}
+        {#each session.visibleSegments as seg}
             {@const c = segCoords(seg)}
             {@const dir = segFlowDir(seg)}
             {@const isSelectedBribe = session.selectedBribeSegment !== undefined && isSameSegment(seg, session.selectedBribeSegment)}
-            <!-- Wider transparent hit area -->
-            <line {...c} stroke="transparent" stroke-width="16"
-                  style="pointer-events: all; cursor: pointer"
-                  onclick={() => handleSegmentClick(seg)} />
+            <!-- Drawn from visibleSegments (everyone, all through the bribe phase) but only
+                 given a hit area when this player can actually act on it - see
+                 SantiagoGameSession.validSegments. An observer sees where the bribes are
+                 pointing without the lines inviting a click that would be rejected. -->
+            {#if session.isMyTurn}
+                <!-- Wider transparent hit area. 34 user units rather than 16: the board is
+                     drawn in a 768x576 viewBox and scaled to fit, so on a phone (~350px
+                     wide) 16 units came out around 7 physical pixels - fine for a mouse,
+                     essentially unhittable with a fingertip, which is what an Android
+                     player reported. Parallel canals sit ~99 units apart, so 34 still
+                     leaves a wide gap between neighbouring hit areas.
+                     touch-action stops Android from holding the tap back to see whether a
+                     double-tap zoom is coming. -->
+                <line {...c} stroke="transparent" stroke-width="34"
+                      style="pointer-events: all; cursor: pointer; touch-action: manipulation"
+                      onclick={() => handleSegmentClick(seg)} />
+            {/if}
             {#if isSelectedBribe}
                 <line {...c}
                       stroke="#fbbf24"

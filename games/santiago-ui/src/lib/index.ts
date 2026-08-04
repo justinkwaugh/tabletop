@@ -10,10 +10,5 @@ export const UiDefinition: GameUiDefinition<SantiagoGameState, HydratedSantiagoG
     },
     runtime: async () => {
         return (await import('./definition/gameUiRuntime.js')).SantiagoUiRuntime
-    },
-    createGameDefaults: {
-        name: 'Dev',
-        additionalPlayerNames: ['Tom', 'Steven', 'Will'],
-        config: { palmTrees: false }
     }
 }
