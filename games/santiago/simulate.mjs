@@ -78,13 +78,13 @@ function buildAction(type, playerId, state) {
             return { ...base, amount }
         }
 
-        case ActionType.SelectTile:
-            return { ...base, tileIndex: 0 }
-
         case ActionType.PlaceField: {
             const sq = firstEmptySquare(state)
             if (!sq) throw new Error(`${name(playerId)}: no empty square to place field`)
-            return { ...base, col: sq.col, row: sq.row }
+            // Planting takes the tile and the square in one action (there is no separate
+            // select-tile step any more), so a tileIndex is required - always take the
+            // first revealed tile still on offer.
+            return { ...base, tileIndex: 0, col: sq.col, row: sq.row }
         }
 
         case ActionType.PlaceNeutralTile: {

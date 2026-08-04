@@ -65,9 +65,16 @@ export class HydratedOverseerDecision
                 overseer.earn(proposal.amount)
             }
         } else {
-            // Reject all: overseer pays bank (max combined segment offer) + 1
+            // Reject all: overseer pays the bank one more than the best bribe on the table.
+            // With no bribes at all that's 1 escudo - it used to be free, which is what left
+            // the history with nothing to report for a no-bribe round.
+            // Capped at what the overseer actually holds: pay() throws on insufficient
+            // funds, and a penniless overseer has no other legal move (there are no bribes
+            // to accept either), so charging strictly would deadlock the phase rather than
+            // enforce anything. Also see CanalBuildingStateHandler.isValidAction, which
+            // only lets an overseer who can't cover the cost through in exactly that case.
             const penalty = maxSegmentTotal(state.canalProposals)
-            if (penalty > 0) overseer.pay(penalty + 1)
+            overseer.pay(Math.min(penalty + 1, overseer.money))
         }
     }
 }

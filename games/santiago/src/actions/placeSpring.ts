@@ -22,9 +22,10 @@ export function isPlaceSpring(action: GameAction): action is PlaceSpring {
     return action.type === ActionType.PlaceSpring
 }
 
-// One-time setup action: the first player places the spring. The four corner
-// intersections are excluded — enforced by SpringPlacementStateHandler.isValidAction,
-// via util/placement.ts's validSpringPlacements(), not here.
+// One-time setup action: the first player places the spring, on any intersection at all
+// (the schema's own col/row bounds are the only limit). Which spots count as legal is
+// enforced by SpringPlacementStateHandler.isValidAction, via util/placement.ts's
+// validSpringPlacements(), not here.
 export class HydratedPlaceSpring
     extends HydratableAction<typeof PlaceSpring>
     implements PlaceSpring
