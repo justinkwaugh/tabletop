@@ -3,7 +3,6 @@ import { Compile } from 'typebox/compile'
 import { Color, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { currentChoosingPlayerId } from '../util/decisionPlan.js'
 
 export const ALLIANCE_CANCELLATION_COST = 10
 
@@ -33,9 +32,19 @@ export function isCancelAlliance(action?: GameAction): action is CancelAlliance 
 
 // Ends an existing alliance early, by paying its 10-ducat cancellation cost to the
 // bank - "an alliance can be ended at any time if one of the two players
-// participating in it pays ten ducats to the bank." Scoped (like playing the card in
-// the first place) to only be available on the canceling player's own turn to lay a
-// decision card, rather than truly "any time" in the round.
+// participating in it pays ten ducats to the bank."
+//
+// "Any time" here means any time it's the canceling player's turn to act at all -
+// laying a decision card, but equally while spending an action they've won (placing
+// knights, placing walls, taking a politics card). That's what makes the rulebook's
+// central use of this card possible: an alliance blocks expansion between the two
+// regions, so cancelling has to be available in the same breath as the knight action
+// you'd then expand with - which is long past your decision-laying turn.
+//
+// It stops short of letting you cancel while ANOTHER player is acting, and that's a
+// platform limit rather than a rules judgment: GameEngine.isPlayerAllowed rejects any
+// action from a player who isn't in activePlayerIds, so out-of-turn actions aren't
+// expressible for any game here.
 export class HydratedCancelAlliance extends HydratableAction<typeof CancelAlliance> implements CancelAlliance {
     declare type: ActionType.CancelAlliance
     declare playerId: string
@@ -71,8 +80,8 @@ export class HydratedCancelAlliance extends HydratableAction<typeof CancelAllian
     // rejected - the client uses this to show a specific message instead of one
     // generic one.
     invalidCancelAllianceReason(state: HydratedLowenherzGameState): string | undefined {
-        if (currentChoosingPlayerId(state.turnOrder, state.firstPlayerId, state.decisions.length) !== this.playerId) {
-            return "It isn't your turn to lay a decision card."
+        if (!state.activePlayerIds.includes(this.playerId)) {
+            return "You can only cancel an alliance while it's your turn to act."
         }
 
         const alliance = state.alliances.find((a) => a.id === this.allianceId)

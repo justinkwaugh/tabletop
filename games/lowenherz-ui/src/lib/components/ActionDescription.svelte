@@ -41,6 +41,14 @@
     // history should describe piles the way a player actually sees them on screen.
     const pileLabels: Record<'A' | 'B', string> = { A: 'left', B: 'right' }
 
+    // A region can enclose any number of towns (each worth 5 points), so the count
+    // has to be spelled out rather than a bare "including a town" - the plain
+    // article only reads better in the singular.
+    function townsPhrase(count?: number): string {
+        if (!count) return ''
+        return count === 1 ? ', including a town' : `, including ${count} towns`
+    }
+
     function politicsCardLabel(type: PoliticsCardType, value?: number): string {
         switch (type) {
             case PoliticsCardType.Alliance:
@@ -133,10 +141,12 @@
                 {:else}
                     A neutral prince's
                 {/if}
-                region was completed ({region.spaceCount} space{region.spaceCount === 1 ? '' : 's'}{region.townCount >
-                0
-                    ? ', including a town'
-                    : ''}) for +{region.points} power point{region.points === 1 ? '' : 's'}
+                region was completed ({region.spaceCount} space{region.spaceCount === 1
+                    ? ''
+                    : 's'}{townsPhrase(region.townCount)}) for +{region.points} power point{region.points ===
+                1
+                    ? ''
+                    : 's'}
             {:else}
                 a neutral zone ({region.spaceCount} space{region.spaceCount === 1 ? '' : 's'}) was sealed off
             {/if}
@@ -154,7 +164,7 @@
     {/if}
 {:else if isExpandRegion(action)}
     expanded a region by 1 space
-    {#if action.metadata?.townsTaken}, including a town{/if}
+    {townsPhrase(action.metadata?.townsTaken)}
     for +{action.metadata?.pointsGained ?? 0} power point{(action.metadata?.pointsGained ?? 0) === 1
         ? ''
         : 's'}
@@ -192,7 +202,7 @@
                 region elsewhere was incidentally completed ({region.spaceCount} space{region.spaceCount ===
                 1
                     ? ''
-                    : 's'}{region.townCount > 0 ? ', including a town' : ''}) for +{region.points} power point{region.points ===
+                    : 's'}{townsPhrase(region.townCount)}) for +{region.points} power point{region.points ===
                 1
                     ? ''
                     : 's'}
@@ -274,7 +284,12 @@
             {:else if meta.bandKind === 'knight'}
                 won the right to place {meta.bandCount} knight{meta.bandCount === 1 ? '' : 's'}
                 {#if meta.placementSkippedReason === 'noKnightsInStock'}
-                    <span class="text-gray-500">— but has no knights left in stock; their turn is skipped</span>
+                    <!-- An empty stock alone no longer wastes the action - it can still
+                         be spent expanding a region, so this only fires when there's no
+                         region of theirs to expand either (see resolveBandForWinner). -->
+                    <span class="text-gray-500"
+                        >— but has no knights left in stock and no region to expand; their turn is skipped</span
+                    >
                 {/if}
             {:else}
                 won the {slotLabels[meta.slot!]} action outright

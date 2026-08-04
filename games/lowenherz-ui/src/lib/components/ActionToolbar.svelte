@@ -3,7 +3,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { MachineState } from '@tabletop/lowenherz'
     import PlayerPill from './PlayerPill.svelte'
-    import regionCreationAid from '$lib/images/region-creation.png'
+    import RegionScoringCard from './RegionScoringCard.svelte'
 
     const gameSession = getGameSession()
 
@@ -15,7 +15,11 @@
     const hasLocalStepToCancel = $derived(
         gameSession.isPlayingRenegadeCard ||
             gameSession.isPlayingAllianceCard ||
-            gameSession.selectedExpandRegionId !== undefined
+            // A declared knight-action plan (see GameSession.knightPlan) is local-only
+            // too, and it's the sole way back out of one now that the flow has no cancel
+            // buttons - but only while nothing's landed under it yet. Once a knight or an
+            // expansion space is down, Undo has a real action to revert instead.
+            (gameSession.knightPlan !== undefined && !gameSession.knightPlanHasProgress)
     )
     const canUndo = $derived(hasLocalStepToCancel || !!gameSession.undoableAction)
 
@@ -24,9 +28,14 @@
             gameSession.cancelPlayingRenegadeCard()
         } else if (gameSession.isPlayingAllianceCard) {
             gameSession.cancelPlayingAllianceCard()
-        } else if (gameSession.selectedExpandRegionId !== undefined) {
-            gameSession.cancelExpansion()
+        } else if (gameSession.knightPlan !== undefined && !gameSession.knightPlanHasProgress) {
+            gameSession.clearKnightPlan()
         } else {
+            // Reverting an expansion space leaves the local record of picked spaces
+            // (previews, the 1-2 space cap) stale, since nothing else hears about an
+            // undo - clearing it lets the space be re-picked. The region auto-reselects
+            // when the player owns only one (see RealBoard).
+            gameSession.cancelExpansion()
             gameSession.undo()
         }
     }
@@ -39,17 +48,22 @@
     // name alone or are too momentary to be worth a label here.
     const isEndOfGame = $derived(gameSession.gameState.machineState === MachineState.EndOfGame)
     const activePlayerIds = $derived(gameSession.gameState.activePlayerIds)
-    const isNegotiating = $derived(gameSession.gameState.machineState === MachineState.Negotiating)
-    // Almost always a single active player ("Waiting for X to take an action.."),
-    // but Negotiating always has exactly the two negotiators active at once ("...to
-    // negotiate.."), and a 3+-way Dueling tie could in principle leave more than one
-    // active too - "to take their actions.." covers that generic multi-player case.
+    // Almost always a single active player ("Waiting for X to take an action"), but
+    // Negotiating always has exactly the two negotiators active at once, and a 3+-way
+    // Dueling tie leaves all the tied players active too - the plural covers both.
+    // Which of those it is doesn't need spelling out here anymore, since the phase
+    // label below now names the specific thing they're doing.
     const waitingVerb = $derived(
-        isNegotiating
-            ? 'to negotiate:'
-            : activePlayerIds.length > 1
-              ? 'to take their actions:'
-              : 'to take an action:'
+        activePlayerIds.length > 1 ? 'to take their actions' : 'to take an action'
+    )
+    // Every machine state that can actually be waiting on someone gets a label - a
+    // bare "Performing actions" covered the three action states without saying which
+    // one, and Negotiating/Dueling/ResolvingActions had no label at all. Exhaustive
+    // (no default) so a new state can't silently fall through to blank.
+    // Per-player Silver Mine payout, while a revealed mine is still sitting on the
+    // discard pile (see GameSession.lastMineHillScoring) - keyed for the lookup below.
+    const minePointsByPlayerId = $derived(
+        new Map((gameSession.lastMineHillScoring ?? []).map((entry) => [entry.playerId, entry.points]))
     )
     const phase = $derived.by(() => {
         switch (gameSession.gameState.machineState) {
@@ -59,11 +73,22 @@
                 return 'Starting a new round'
             case MachineState.ChoosingActions:
                 return 'Choosing actions'
+            case MachineState.ResolvingActions:
+                return 'Resolving the action'
+            case MachineState.Negotiating:
+                return 'Negotiating'
+            case MachineState.Dueling:
+                return 'Dueling'
             case MachineState.PlacingWalls:
+                return 'Placing walls'
+            // Either half of the knight action - a player who'd rather expand a region
+            // than place a knight does it from this same state (see canExpandRegion).
             case MachineState.PlacingKnights:
+                return 'Placing knights or expanding a region'
             case MachineState.TakingPoliticsCard:
-                return 'Performing actions'
-            default:
+                return 'Taking a politics card'
+            // Never rendered - the whole readout is replaced by "Game over" above.
+            case MachineState.EndOfGame:
                 return undefined
         }
     })
@@ -81,10 +106,10 @@
     {#if isEndOfGame}
         <span class="font-bold uppercase tracking-wide">Game over</span>
     {:else if activePlayerIds.length > 0}
-        <!-- One inline span (not separate flex children) so "Waiting for...", the dot,
-             and the italic phase all share a single baseline - as separate
-             items-center flex children the italic phase didn't line up with the text
-             to its left. -->
+        <!-- One inline span (not separate flex children) so "Waiting for..." and the
+             italic phase share a single baseline - as separate items-center flex
+             children the italic phase didn't line up with the text to its left. The
+             colon only appears when there's actually a phase to introduce. -->
         <span class="min-w-0 truncate">
             <span class="font-bold"
                 >Waiting for
@@ -93,8 +118,8 @@
                             ? ' and '
                             : ', '
                         : ''}<PlayerPill {playerId} showAsYou={false} />{/each}
-                {waitingVerb}</span
-            >{#if phase}<span class="text-black/40 mx-2">·</span><span class="italic">{phase}</span>{/if}
+                {waitingVerb}{phase ? ':' : ''}</span
+            >{#if phase}<span class="italic">&nbsp;{phase}</span>{/if}
         </span>
     {/if}
     <!-- ml-auto lives here (not on a separate wrapper) so this points readout rides
@@ -103,11 +128,29 @@
     <div class="ml-auto flex items-center gap-1.5">
         <span class="font-semibold">Points:</span>
         {#each gameSession.gameState.players as ps (ps.playerId)}
-            <span
-                class="w-9 shrink-0 text-center px-1 py-0.5 rounded-md font-bold text-white"
-                style="background-color: {gameSession.colors.getPlayerUiColor(ps.playerId)}"
-            >
-                {ps.powerPoints}
+            {@const mineGain = minePointsByPlayerId.get(ps.playerId) ?? 0}
+            <!-- relative, so a Silver Mine payout can hang a "+N" directly beneath THIS
+                 player's points box - the board only announces the reveal (see
+                 RealBoard), the per-player numbers are read off here where each
+                 player's running total already is. Absolutely positioned (and
+                 pointer-events-none) so it can't change the bar's fixed 44px height
+                 or nudge the boxes around. -->
+            <span class="relative w-9 shrink-0">
+                <span
+                    class="block text-center px-1 py-0.5 rounded-md font-bold text-white"
+                    style="background-color: {gameSession.colors.getPlayerUiColor(ps.playerId)}"
+                >
+                    {ps.powerPoints}
+                </span>
+                {#if mineGain > 0}
+                    <span
+                        class="pointer-events-none absolute top-full left-0 mt-[3px] w-full text-center px-1 py-0.5 rounded-md text-[13px] font-bold leading-none text-white shadow-sm"
+                        style="background-color: {gameSession.colors.getPlayerUiColor(ps.playerId)}"
+                        title="Silver Mine: power points for enclosed hills"
+                    >
+                        +{mineGain}
+                    </span>
+                {/if}
             </span>
         {/each}
     </div>
@@ -137,13 +180,8 @@
         offset={16}
         arrow={false}
     >
-        <!-- Transparent popover shell + slightly see-through card, so the card's own
-             rounded corners show the board behind them rather than the popover's
-             (dark, in dark mode) background box. -->
-        <img
-            src={regionCreationAid}
-            alt="Region creation scoring table"
-            class="w-[260px] opacity-90 drop-shadow-lg"
-        />
+        <!-- Transparent popover shell, so the card's own rounded corners show the board
+             behind them rather than the popover's (dark, in dark mode) background box. -->
+        <RegionScoringCard />
     </Popover>
 </div>

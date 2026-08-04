@@ -182,6 +182,21 @@ describe('HydratedPlaceKnight', () => {
         expect(makePlaceKnight('p1', 1, 0).isValidPlaceKnight(state)).toBe(false)
     })
 
+    it('rejects placement when the knight stock is empty, even with a sword left', () => {
+        const board = blankBoard()
+        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        // knightsRemaining counts the action's swords and isn't capped by stock (the
+        // spare one is spendable on a region expansion instead - see
+        // resolveBandForWinner), so PlaceKnight is where "if he has no more knights, he
+        // may place no more" gets enforced.
+        const state = buildState({ board, knightsRemaining: 2 })
+        state.getPlayerState('p1').knightsInStock = 0
+
+        const action = makePlaceKnight('p1', 1, 0)
+        expect(action.isValidPlaceKnight(state)).toBe(false)
+        expect(action.invalidPlaceKnightReason(state)).toBe('You have no knights left in your stock.')
+    })
+
     it('rejects a hill space', () => {
         const board = blankBoard()
         board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }

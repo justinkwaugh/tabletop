@@ -68,6 +68,15 @@ const cardWithBorderMiddle: ActionCard = {
     bottom: { kind: 'knight', count: 1 }
 }
 
+const cardWithTwoKnightsBottom: ActionCard = {
+    id: 'card-2',
+    back: CardBack.B,
+    type: ActionCardType.Standard,
+    top: { kind: 'politics' },
+    middle: { kind: 'border', count: 2 },
+    bottom: { kind: 'knight', count: 2 }
+}
+
 describe('routeAfterSlotResolved', () => {
     it('routes a border-slot winner into PlacingWalls with the right wall count', () => {
         const state = buildState([{ slot: 2, winnerPlayerId: 'p1' }], cardWithBorderMiddle)
@@ -126,9 +135,10 @@ describe('routeAfterSlotResolved', () => {
         expect(state.knightPlacingPlayerId).toBe('p1')
     })
 
-    it('caps knightsRemaining at the winner\'s knight stock, and skips entirely if they have none', () => {
+    it('skips the knight action entirely when the winner can neither place nor expand', () => {
         const state = buildState([{ slot: 3, winnerPlayerId: 'p1' }], cardWithBorderMiddle)
         state.getPlayerState('p1').knightsInStock = 0
+        state.regions = []
 
         const routing = routeAfterSlotResolved(state)
         expect(routing.nextState).toBe(MachineState.ResolvingActions)
@@ -136,6 +146,38 @@ describe('routeAfterSlotResolved', () => {
         expect(routing.placementSkippedReason).toBe('noKnightsInStock')
         expect(state.knightsRemaining).toBeUndefined()
         expect(state.knightPlacingPlayerId).toBeUndefined()
+    })
+
+    it('still routes an empty-stock winner into PlacingKnights when they have a region to expand', () => {
+        const state = buildState([{ slot: 3, winnerPlayerId: 'p1' }], cardWithBorderMiddle)
+        state.getPlayerState('p1').knightsInStock = 0
+        state.regions = [
+            {
+                id: 'r1',
+                ownerColor: state.getPlayerState('p1').color,
+                squareKeys: ['0,0'],
+                castleSquareKey: '0,0'
+            }
+        ]
+
+        // "If he has no more knights, he may place no more" only closes off the placing
+        // half - "or extend one of his regions by two spaces" is still available.
+        const routing = routeAfterSlotResolved(state)
+        expect(routing.nextState).toBe(MachineState.PlacingKnights)
+        expect(state.knightPlacingPlayerId).toBe('p1')
+        expect(state.knightsRemaining).toBe(1)
+    })
+
+    it('does not cap knightsRemaining at the knight stock - a spare sword can still expand', () => {
+        // A 2-knight card whose winner only holds one knight: the 2nd sword is unusable
+        // for placing, but must still be spendable on a region expansion.
+        const state = buildState([{ slot: 3, winnerPlayerId: 'p1' }], cardWithTwoKnightsBottom)
+        state.getPlayerState('p1').knightsInStock = 1
+
+        const routing = routeAfterSlotResolved(state)
+        expect(routing.nextState).toBe(MachineState.PlacingKnights)
+        expect(routing.bandCount).toBe(2)
+        expect(state.knightsRemaining).toBe(2)
     })
 
     it('does not route anywhere when there is no winner', () => {

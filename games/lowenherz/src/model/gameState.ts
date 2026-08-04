@@ -14,6 +14,7 @@ import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 import { ActionCard } from '../definition/actionCards.js'
 import { PoliticsCard } from '../definition/politicsCards.js'
+import { repairDuplicateRegionIds } from '../util/regionDetection.js'
 
 // One committed decision-card placement: which player placed it, and which slot
 // (1 = top action, 2 = middle, 3 = bottom) they chose.
@@ -126,19 +127,28 @@ export const LowenherzGameState = Type.Evaluate(
             // down from the card's border count (1-3) to 0.
             wallsRemaining: Type.Optional(Type.Number()),
             wallPlacingPlayerId: Type.Optional(Type.String()),
-            // Set while the winner of a knight action is placing their knights - counts
-            // down from the card's knight count (1-2) to 0 (or fewer, if their knight
-            // stock ran out first).
+            // Set while the winner of a knight action is spending it - counts down from
+            // the card's knight count (1-2, "swords") to 0. One sword buys either one
+            // knight placement or one region expansion (of the expansion's full 1-2
+            // spaces), which is how "place one knight and expand one of his regions by
+            // two spaces" fits inside a single two-sword action. NOT capped by the
+            // player's knight stock: an empty stock only rules out the placing half
+            // (see PlaceKnight.invalidPlaceKnightReason), not the expanding half.
             knightsRemaining: Type.Optional(Type.Number()),
             knightPlacingPlayerId: Type.Optional(Type.String()),
             // Set right after a region expansion's first space, naming which region -
             // a 1-2 space expansion is submitted as up to two separate ExpandRegion
             // actions (one space each) rather than one combined action, so Undo can
             // step back a single space at a time. Its presence is what allows a 2nd
-            // ExpandRegion action for the SAME region even though expanding already
-            // zeroed knightsRemaining (see ExpandRegion.apply) - cleared once that 2nd
-            // space is added, or the player stops after just the first (a Pass).
+            // ExpandRegion action for the SAME region without paying a second sword
+            // (see ExpandRegion.apply) - cleared once that 2nd space is added, the
+            // player moves on to a knight instead, or they stop after just the first.
             expandingRegionId: Type.Optional(Type.String()),
+            // Whether this knight action has already been used to expand a region -
+            // "using this action to expand twice is not allowed", so a second FRESH
+            // expansion is refused even when a sword is still unspent. Cleared when a
+            // new knight action starts (see resolveBandForWinner).
+            expansionUsed: Type.Optional(Type.Boolean()),
 
             // The two face-down politics-card piles the "Crown and Scepter" action
             // draws from - set once at game start, drawn down over the game.
@@ -196,6 +206,7 @@ export class HydratedLowenherzGameState
     declare knightsRemaining?: number
     declare knightPlacingPlayerId?: string
     declare expandingRegionId?: string
+    declare expansionUsed?: boolean
 
     declare politicsCardPileA: PoliticsCard[]
     declare politicsCardPileB: PoliticsCard[]
@@ -206,5 +217,12 @@ export class HydratedLowenherzGameState
         super(data, LowenherzGameStateValidator)
 
         this.players = data.players.map((player) => new HydratedLowenherzPlayerState(player))
+
+        // Games that started before detectNewRegions minted collision-free ids can have
+        // two live regions sharing one - which breaks every find-by-id in this engine
+        // (region ownership, alliances, the in-progress expansion). Repaired here rather
+        // than left to each lookup to second-guess: it's deterministic and runs the same
+        // way on client and server, so both agree on the resulting ids.
+        repairDuplicateRegionIds(this.regions)
     }
 }

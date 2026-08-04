@@ -14,7 +14,6 @@
         isOnBoard,
         isPlaceWall,
         isSubmitDuelBid,
-        ActionCardType,
         MachineState,
         type Negotiation,
         NegotiationMoveKind,
@@ -40,7 +39,10 @@
     import knightLines from '$lib/images/pieces/knight-lines.png'
     import castleFill from '$lib/images/pieces/castle-fill.png'
     import castleLines from '$lib/images/pieces/castle-lines.png'
+    import iconMoneybagFill from '$lib/images/action-cards/icons/icon-moneybag-transparent.png'
+    import iconMoneybagLines from '$lib/images/action-cards/icons/icon-moneybag-lines.png'
     import { playerName } from '$lib/model/actionCardHelpers.js'
+    import type { KnightPlan } from '$lib/model/session.svelte.js'
 
     const gameSession = getGameSession()
     // The band kind (border/knight/politics) at a given slot, translated to the noun
@@ -121,25 +123,10 @@
         return undefined
     })
 
-    // A Silver Mine sitting on the discard pile means it was just revealed and is
-    // waiting for the active player to manually draw the next card (see
-    // startOfTurn.ts). Its per-player hill scoring lives on the DrawActionCard action
-    // that drew it - the most recent draw, since nothing's been drawn since. Returns
-    // undefined once a later card is drawn (that draw becomes the most recent one).
-    const lastMineReveal = $derived.by(() => {
-        const discarded = gameSession.gameState.discardedActionCard
-        if (discarded?.type !== ActionCardType.Mining) return undefined
-        const actions = gameSession.actions
-        for (let i = actions.length - 1; i >= 0; i--) {
-            const action = actions[i]
-            if (isDrawActionCard(action)) {
-                return action.metadata?.cardType === ActionCardType.Mining
-                    ? (action.metadata.hillScoring ?? [])
-                    : undefined
-            }
-        }
-        return undefined
-    })
+    // The just-revealed Silver Mine's per-player hill payout, if one is sitting on the
+    // discard pile - derived in the session since the action bar needs it too (it shows
+    // each player's "+N" under their points box).
+    const lastMineReveal = $derived(gameSession.lastMineHillScoring)
 
     // True at the start of a round (before its card is drawn) when the round that just
     // ended concluded with a duel that tied a second time - i.e. nobody performed the
@@ -457,15 +444,22 @@
     // unlike negotiation's single shared offer (a duel bid is a one-shot commitment
     // per player, not a joint draft either side can revise).
     let duelBidAmounts = $state<Record<string, number>>({})
-    let duelBidTreasureCardId = $state<string | undefined>(undefined)
     let lastSeenDuelSignature: string | undefined = undefined
+
+    // Master switch for the bid-on-another-player's-behalf affordance, same pattern as
+    // TestingControls' own constant - it only exists because hotseat resolves myPlayer
+    // to a single duelist, so a solo tester otherwise can't finish a duel at all. Flip
+    // to false once real two-session play exists and opponents' rows become purely
+    // informational.
+    const SHOW_DUEL_TEST_CONTROLS = true
+    let testBiddingForPlayerId: string | undefined = $state(undefined)
 
     $effect(() => {
         const duel = gameSession.gameState.duel
         if (!duel) {
             lastSeenDuelSignature = undefined
             duelBidAmounts = {}
-            duelBidTreasureCardId = undefined
+            testBiddingForPlayerId = undefined
             return
         }
         // A re-duel replaces gameState.duel directly (never passing through
@@ -477,7 +471,10 @@
         if (signature !== lastSeenDuelSignature) {
             lastSeenDuelSignature = signature
             duelBidAmounts = {}
-            duelBidTreasureCardId = undefined
+            testBiddingForPlayerId = undefined
+            // A card armed for the previous round shouldn't silently ride along into
+            // the re-duel - the player re-applies it if they still want to spend it.
+            gameSession.selectTreasureCard(undefined)
         }
     })
 
@@ -517,30 +514,65 @@
         }
     }
 
-    // Every boundary wall that sits directly between two allied regions - a visual
-    // marker (a heart) since the alliance itself has no other on-board indication.
-    // "wall north of (c,r)" separates (c,r) from (c,r-1); "wall west of (c,r)"
-    // separates (c,r) from (c-1,r) - see model/board.ts's wallBetween().
-    const allianceWalls = $derived.by(() => {
+    // One entry per alliance, with every boundary wall that sits directly between its
+    // two allied regions - each of those walls carries a heart, the alliance's only
+    // on-board indication. "wall north of (c,r)" separates (c,r) from (c,r-1); "wall west
+    // of (c,r)" separates (c,r) from (c-1,r) - see model/board.ts's wallBetween().
+    // Grouped by alliance (rather than a flat wall list) because the hearts are also the
+    // control for cancelling one, which is an alliance-wide interaction: hovering any of
+    // its hearts previews the whole alliance ending.
+    const myCancellableAllianceIds = $derived(
+        new Map(gameSession.myCancellableAlliances.map((a) => [a.id, a.otherColor]))
+    )
+
+    const allianceMarkers = $derived.by(() => {
         if (alliances.length === 0) return []
-        const result: { col: number; row: number; edge: 'north' | 'west' }[] = []
-        for (const wall of board.walls) {
-            const keyHere = squareKey(wall.col, wall.row)
-            const keyThere =
-                wall.edge === 'north' ? squareKey(wall.col, wall.row - 1) : squareKey(wall.col - 1, wall.row)
-            const isAllianceBoundary = alliances.some((alliance) => {
+        return alliances
+            .map((alliance) => {
                 const regionA = regions.find((r) => r.id === alliance.regionAId)
                 const regionB = regions.find((r) => r.id === alliance.regionBId)
-                if (!regionA || !regionB) return false
-                return (
-                    (regionA.squareKeys.includes(keyHere) && regionB.squareKeys.includes(keyThere)) ||
-                    (regionB.squareKeys.includes(keyHere) && regionA.squareKeys.includes(keyThere))
-                )
+                const walls =
+                    !regionA || !regionB
+                        ? []
+                        : board.walls.filter((wall) => {
+                              const keyHere = squareKey(wall.col, wall.row)
+                              const keyThere =
+                                  wall.edge === 'north'
+                                      ? squareKey(wall.col, wall.row - 1)
+                                      : squareKey(wall.col - 1, wall.row)
+                              return (
+                                  (regionA.squareKeys.includes(keyHere) &&
+                                      regionB.squareKeys.includes(keyThere)) ||
+                                  (regionB.squareKeys.includes(keyHere) &&
+                                      regionA.squareKeys.includes(keyThere))
+                              )
+                          })
+                return {
+                    id: alliance.id,
+                    walls,
+                    // Cancellable means the rulebook's "one of the two players
+                    // participating in it pays ten ducats" is genuinely open to ME right
+                    // now - myCancellableAlliances already checks both the participation
+                    // and the 10 ducats.
+                    cancellable: myCancellableAllianceIds.has(alliance.id),
+                    otherColor: myCancellableAllianceIds.get(alliance.id)
+                }
             })
-            if (isAllianceBoundary) result.push(wall)
-        }
-        return result
+            .filter((marker) => marker.walls.length > 0)
     })
+
+    // Cancelling costs 10 ducats and is legal at any time, so the affordance lives on the
+    // board rather than in the turn-scoped status text. One click does it: the hover state
+    // (broken heart, the wall sweeping back, the -10 medallion) is the confirmation step,
+    // so a second click would only ask a question already answered - and Undo covers a
+    // genuine misclick.
+    let hoveredAllianceId: string | undefined = $state(undefined)
+
+    function allianceCancelLabel(marker: { otherColor?: Color }): string {
+        const otherPlayerId = marker.otherColor ? playerIdForColor(marker.otherColor) : undefined
+        const other = otherPlayerId ? playerName(gameSession, otherPlayerId) : 'a neutral prince'
+        return `Cancel your alliance with ${other} for ${ALLIANCE_CANCELLATION_COST} ducats`
+    }
 
     const tileImages: Record<BoardTileId, string> = {
         A: boardTileA,
@@ -581,26 +613,148 @@
     )
     const legalAllianceEnemyRegionIds = $derived(new Set(gameSession.legalAllianceEnemyRegions.map((r) => r.id)))
 
-    // Whether the player is currently trying to expand a region rather than place a
-    // knight - both are possible whenever canExpandRegion is true, so this is a plain
-    // UI toggle, not game state.
-    let expandMode = $state(false)
+    // The knight action is driven by a plan declared up front (see
+    // GameSession.knightPlan) rather than a mode the player toggles: everything below
+    // derives which half of the action a board click means from that plan plus what the
+    // engine says has been spent, so no confirm/cancel chrome is needed - Undo backs out
+    // of the plan (or the last real placement) instead.
+    const knightSwordsLeft = $derived(gameSession.gameState.knightsRemaining ?? 0)
+    const expansionStarted = $derived(gameSession.gameState.expansionUsed === true)
 
-    // Reset expand-mode and any in-progress region selection every time a new
-    // knight-placement turn begins (knightPlacingPlayerId goes through undefined
-    // between turns, so this fires on every transition, including the same player
-    // getting a later turn). Without this, a previous player's expandMode/selected
-    // region carried over into the next player's turn - canExpandRegion would
-    // correctly show the button, but legalNextExpansionSquares silently computed
-    // legality against the wrong (stale) region id and came back empty, making it
-    // look like there was nothing to click.
-    let lastKnightPlacingPlayerId: string | undefined = $state(undefined)
+    // The plans actually on the table right now. A two-sword action is the interesting
+    // case: two knights, or one knight plus one expansion in either order. Either half
+    // can also be unavailable on its own (an empty knight stock or nowhere legal to
+    // place; no region of your own to expand), which just prunes the list.
+    const availableKnightPlans = $derived.by((): KnightPlan[] => {
+        if (!gameSession.canPlaceKnight) return []
+        const canKnight = gameSession.canPlaceAnotherKnight
+        const canExpand = gameSession.canExpandRegion
+        if (knightSwordsLeft > 1) {
+            const plans: KnightPlan[] = []
+            if (canKnight) plans.push('twoKnights')
+            if (canKnight && canExpand) plans.push('knightThenExpand', 'expandThenKnight')
+            // Both swords, but only the expanding half is open - one expansion is all
+            // this action can become ("expand twice is not allowed").
+            if (!canKnight && canExpand) plans.push('expand')
+            return plans
+        }
+        const plans: KnightPlan[] = []
+        if (canKnight) plans.push('knight')
+        if (canExpand) plans.push('expand')
+        return plans
+    })
+
+    const KNIGHT_PLAN_LABELS: Record<KnightPlan, string> = {
+        knight: 'place a knight',
+        expand: 'expand a region',
+        twoKnights: 'place two knights',
+        knightThenExpand: 'place a knight and then expand',
+        expandThenKnight: 'expand and then place a knight'
+    }
+
+    // Whether a board click right now means "expand into this space" / "place a knight
+    // here". Both can be live at once: mid-expansion under an expand-then-knight plan,
+    // clicking a knight square is what stops the expansion after a single space (there's
+    // no Done button anymore). Each stage also falls through to the other if its own
+    // half turns out to be impossible after all.
+    const expandStageActive = $derived.by(() => {
+        const plan = gameSession.knightPlan
+        if (!plan || !gameSession.canExpandRegion) return false
+        switch (plan) {
+            case 'knight':
+            case 'twoKnights':
+                return false
+            case 'knightThenExpand':
+                // Its knight is done once a sword has gone somewhere (compared against
+                // the count when the plan was picked, so this still reads correctly after
+                // an Undo mid-action).
+                return (
+                    expansionStarted ||
+                    knightSwordsLeft < gameSession.knightPlanStartSwords ||
+                    !gameSession.canPlaceAnotherKnight
+                )
+            case 'expand':
+            case 'expandThenKnight':
+                return true
+        }
+    })
+
+    // The region being expanded turned out to have nowhere legal to grow into. Its sword
+    // is better spent on a knight than forfeited, so this hands the knight half the
+    // board even under an expansion-first plan (and there's no overlap to disambiguate,
+    // since there are no legal expansion squares left to compete with).
+    const expansionDeadEnd = $derived(
+        expandStageActive &&
+            gameSession.selectedExpandRegionId !== undefined &&
+            gameSession.expansionSquares.length === 0 &&
+            gameSession.legalNextExpansionSquares.length === 0
+    )
+
+    // Only meaningful while expansionDeadEnd holds - which rule(s) are actually blocking
+    // every square around the region (see GameSession.expansionBlockedReasons).
+    const expansionBlockedReasons = $derived(expansionDeadEnd ? gameSession.expansionBlockedReasons : [])
+
+    const knightStageActive = $derived.by(() => {
+        const plan = gameSession.knightPlan
+        if (!plan || !gameSession.canPlaceAnotherKnight) return false
+        switch (plan) {
+            case 'expand':
+                return expansionDeadEnd
+            case 'knight':
+            case 'twoKnights':
+                return true
+            case 'knightThenExpand':
+                // Its knight comes first; once that's down, the leftover sword is
+                // earmarked for the expansion (Undo to change your mind).
+                return (
+                    (knightSwordsLeft >= gameSession.knightPlanStartSwords && !expansionStarted) ||
+                    !gameSession.canExpandRegion ||
+                    expansionDeadEnd
+                )
+            case 'expandThenKnight':
+                return expansionStarted || !gameSession.canExpandRegion || expansionDeadEnd
+        }
+    })
+
+    // Drop a plan belonging to an earlier knight action, so a previous player's plan (or
+    // this player's own from a previous action) can't carry over - otherwise
+    // canExpandRegion would correctly show the choice, but legalNextExpansionSquares
+    // silently computed legality against the wrong (stale) region id and came back empty,
+    // making it look like there was nothing to click. Keyed to the action itself rather
+    // than "the placing player changed", so an Undo that steps back into an action that
+    // had already ended keeps its plan (see syncKnightPlanWithState).
     $effect(() => {
-        const current = gameSession.gameState.knightPlacingPlayerId
-        if (current !== lastKnightPlacingPlayerId) {
-            lastKnightPlacingPlayerId = current
-            expandMode = false
-            gameSession.cancelExpansion()
+        gameSession.syncKnightPlanWithState()
+    })
+
+    // With only one shape left there's nothing to choose - skip the prompt and go
+    // straight to clicking the board. Also re-offers the choice if a plan runs out of
+    // live stages while the action is still open (e.g. a "two knights" plan whose stock
+    // ran dry, leaving only an expansion).
+    $effect(() => {
+        if (!gameSession.knightPlan) {
+            if (availableKnightPlans.length === 1) gameSession.selectKnightPlan(availableKnightPlans[0])
+        } else if (gameSession.canPlaceKnight && !expandStageActive && !knightStageActive) {
+            gameSession.clearKnightPlan()
+        }
+    })
+
+    // A region picked to expand outlives its usefulness the moment the expanding stage
+    // closes (the expansion finished, a knight was placed instead, or the action ended).
+    $effect(() => {
+        if (!expandStageActive && gameSession.selectedExpandRegionId) gameSession.cancelExpansion()
+    })
+
+    // One region means there's nothing to pick - jump straight to choosing spaces. Also
+    // covers re-entering an expansion the engine still has open (expandableRegions is
+    // just that region then), so its 2nd space can't be misdirected at another region.
+    $effect(() => {
+        if (
+            expandStageActive &&
+            !gameSession.selectedExpandRegionId &&
+            gameSession.expandableRegions.length === 1
+        ) {
+            gameSession.selectRegionToExpand(gameSession.expandableRegions[0].id)
         }
     })
 
@@ -647,7 +801,9 @@
         regions: { ownerColor?: Color; points: number; anchorSquareKey: string }[] | undefined
     ) {
         for (const region of regions ?? []) {
-            const color = region.ownerColor ? gameSession.colors.getUiColor(region.ownerColor) : '#888888'
+            // Slate rather than the gray prince's #888888 - an unowned region's popup
+            // shouldn't read as that player's (see NEUTRAL_ZONE_PAINT).
+            const color = region.ownerColor ? gameSession.colors.getUiColor(region.ownerColor) : '#3f3f46'
             addPopup(region.anchorSquareKey, region.points, color)
         }
     }
@@ -696,10 +852,27 @@
     const boardWidthPx = $derived(board.squares[0].length * CELL_SIZE + 4)
     const boardHeightPx = $derived(board.squares.length * CELL_SIZE + 4)
 
-    // Mouse position relative to the board (see the mousemove/mouseleave handlers
-    // below) - undefined whenever the cursor isn't over the board at all, which is
+    // Mouse position in BOARD pixels - i.e. the same unscaled coordinate space as
+    // CELL_SIZE and every left/top below, not screen pixels. The board is rendered
+    // inside ScalingWrapper's CSS transform (see GameTable), so a raw
+    // clientX - rect.left is screen-space and comes out multiplied by the current
+    // scale: fine at 1:1, but at (say) 0.85 the ghost wall drifted further and further
+    // up-left of the cursor the further from the board's top-left corner you went - two
+    // whole cells off in the far corner, which made the thin wall hit-boxes feel like
+    // they'd moved. Undefined whenever the cursor isn't over the board at all, which is
     // exactly when the ghost wall preview should show nothing.
     let hoverPoint: { x: number; y: number } | undefined = $state(undefined)
+
+    // The scale ScalingWrapper is currently applying, read off the element itself
+    // (getBoundingClientRect is post-transform, offsetWidth is pre-transform layout)
+    // rather than plumbed down from the wrapper - no coordination needed, and it stays
+    // correct through window resizes and the wrapper's own zoom controls.
+    function boardPointFromEvent(el: HTMLElement, clientX: number, clientY: number) {
+        const rect = el.getBoundingClientRect()
+        const scale = el.offsetWidth > 0 ? rect.width / el.offsetWidth : 1
+        const safeScale = scale > 0 ? scale : 1
+        return { x: (clientX - rect.left) / safeScale, y: (clientY - rect.top) / safeScale }
+    }
 
     // Whichever legal wall edge's clickable hit-box center is closest to the mouse -
     // the one spot that gets the pulsing ghost preview, rather than glowing every
@@ -735,7 +908,7 @@
     // so-far (never diagonal - see ExpandRegion's own adjacency check), so there's
     // always a real wall between it and whichever already-claimed square it borders.
     const expansionArrows = $derived.by(() => {
-        if (!expandMode || !gameSession.selectedExpandRegionId) return []
+        if (!expandStageActive || !gameSession.selectedExpandRegionId) return []
         const region = gameSession.gameState.regions.find((r) => r.id === gameSession.selectedExpandRegionId)
         if (!region) return []
 
@@ -776,7 +949,7 @@
     // them once applied (every edge that doesn't border the rest of the hypothetical
     // region), so the picked space visually reads as already merged in.
     const expansionPreviewWalls = $derived.by(() => {
-        if (!expandMode || gameSession.expansionSquares.length === 0) return []
+        if (!expandStageActive || gameSession.expansionSquares.length === 0) return []
         const region = gameSession.gameState.regions.find((r) => r.id === gameSession.selectedExpandRegionId)
         if (!region) return []
 
@@ -808,7 +981,7 @@
     // reads as already merged in, matching expansionPreviewWalls' own treatment of the
     // OTHER (still-exterior) edges.
     const expansionHiddenWallKeys = $derived.by(() => {
-        if (!expandMode || gameSession.expansionSquares.length === 0) return new Set<string>()
+        if (!expandStageActive || gameSession.expansionSquares.length === 0) return new Set<string>()
         const region = gameSession.gameState.regions.find((r) => r.id === gameSession.selectedExpandRegionId)
         if (!region) return new Set<string>()
 
@@ -871,6 +1044,14 @@
         return gameSession.myRegions.some((r) => r.squareKeys.includes(key))
     }
 
+    // Same, but for the expansion flow specifically, which can't offer every region of
+    // yours while one expansion is already under way (see expandableRegions).
+    function isSelectableExpandRegion(col: number, row: number): boolean {
+        if (gameSession.selectedExpandRegionId) return false
+        const key = squareKey(col, row)
+        return gameSession.expandableRegions.some((r) => r.squareKeys.includes(key))
+    }
+
     function regionAt(col: number, row: number) {
         const key = squareKey(col, row)
         return regions.find((r) => r.squareKeys.includes(key))
@@ -904,7 +1085,11 @@
 
     function isOwnSelectableAllianceRegion(col: number, row: number): boolean {
         if (!gameSession.isPlayingAllianceCard || gameSession.allianceOwnRegionId) return false
-        return isOwnSelectableRegion(col, row)
+        if (!isOwnSelectableRegion(col, row)) return false
+        // Only regions that actually have something to ally with (see
+        // legalAllianceOwnRegionIds) - a dead-end region isn't clickable at all.
+        const region = regionAt(col, row)
+        return region !== undefined && gameSession.legalAllianceOwnRegionIds.has(region.id)
     }
 
     function isSelectableAllianceEnemyRegion(col: number, row: number): boolean {
@@ -913,8 +1098,12 @@
         return region !== undefined && legalAllianceEnemyRegionIds.has(region.id)
     }
 
-    // A faint tint over any square already claimed by a region, so newly-created
-    // regions are visible at a glance. Neutral zones (no owner) get a plain gray tint.
+    // A faint tint in the owning prince's color over any square claimed by a region, so
+    // newly-created regions are visible at a glance. A neutral zone gets no tint at all:
+    // it isn't anybody's, and the walls around it already show it's a zone. (It used to
+    // be painted #888888 - which is precisely the gray prince's own color, so an
+    // unclaimed zone read as that player's territory, most alarmingly right after an
+    // invasion cut one loose.) So: tinted means owned, untinted means unowned.
     function regionTint(col: number, row: number): string | undefined {
         const key = squareKey(col, row)
 
@@ -922,14 +1111,14 @@
         // reads as already part of the region, tinted the same as the rest of it -
         // rather than a separate "pending" ring - since the walls around it are drawn
         // the same way too (see expansionPreviewWalls).
-        if (expandMode && gameSession.expansionSquares.some((s) => s.col === col && s.row === row)) {
+        if (expandStageActive && gameSession.expansionSquares.some((s) => s.col === col && s.row === row)) {
             const region = regions.find((r) => r.id === gameSession.selectedExpandRegionId)
-            if (region) return region.ownerColor ? gameSession.colors.getUiColor(region.ownerColor) : '#888888'
+            if (region?.ownerColor) return gameSession.colors.getUiColor(region.ownerColor)
         }
 
         const region = regions.find((r) => r.squareKeys.includes(key))
-        if (!region) return undefined
-        return region.ownerColor ? gameSession.colors.getUiColor(region.ownerColor) : '#888888'
+        if (!region?.ownerColor) return undefined
+        return gameSession.colors.getUiColor(region.ownerColor)
     }
 
     async function onSquareClick(col: number, row: number) {
@@ -985,22 +1174,33 @@
             return
         }
 
-        if (expandMode && gameSession.canExpandRegion) {
+        if (expandStageActive) {
             if (!gameSession.selectedExpandRegionId) {
-                if (isOwnSelectableRegion(col, row)) {
+                if (isSelectableExpandRegion(col, row)) {
                     const key = squareKey(col, row)
-                    const region = gameSession.myRegions.find((r) => r.squareKeys.includes(key))
+                    const region = gameSession.expandableRegions.find((r) => r.squareKeys.includes(key))
                     if (region) gameSession.selectRegionToExpand(region.id)
                 }
                 return
             }
             if (isLegalExpansionSquare(col, row)) {
                 await gameSession.addExpansionSquare(col, row)
+                return
+            }
+            // Under an expand-then-knight plan the knight is live alongside the
+            // expansion's optional 2nd space, and placing it is what ends the expansion
+            // early - the only way to stop at one space now that there's no Done button.
+            // Expanding wins on a square that would serve either purpose (it's the stage
+            // the plan says comes first); Undo covers a misclick.
+            if (knightStageActive && isLegalKnightPlacement(col, row)) {
+                await gameSession.placeKnight(col, row)
             }
             return
         }
 
-        if (gameSession.canPlaceKnight) {
+        // Deliberately not gated on isLegalKnightPlacement - placeKnight reports exactly
+        // why an illegal square was rejected, which is more useful than a dead click.
+        if (knightStageActive) {
             await gameSession.placeKnight(col, row)
         }
     }
@@ -1011,7 +1211,10 @@
     // (the status/instruction text above it grows and shrinks with game state, so
     // this isn't a fixed number) - lets Board.svelte match that same offset on the
     // deck-piles column so their tops stay level with the actual board frame instead
-    // of the top of this whole component.
+    // of the top of this whole component. Reported in LAYOUT px: the rects below are
+    // post-transform (ScalingWrapper - see the hoverPoint note above), but Board.svelte
+    // spends this as a padding-top inside that same transform, so a screen-px number
+    // would drift the piles off the frame by 1/scale at any zoom but 1:1.
     let rootEl: HTMLElement | undefined = $state()
     let frameEl: HTMLElement | undefined = $state()
     $effect(() => {
@@ -1019,7 +1222,9 @@
         const report = () => {
             const rootRect = rootEl!.getBoundingClientRect()
             const frameRect = frameEl!.getBoundingClientRect()
-            onFrameOffset!(frameRect.top - rootRect.top)
+            const scale = rootEl!.offsetHeight > 0 ? rootRect.height / rootEl!.offsetHeight : 1
+            const safeScale = scale > 0 ? scale : 1
+            onFrameOffset!((frameRect.top - rootRect.top) / safeScale)
         }
         report()
         const observer = new ResizeObserver(report)
@@ -1057,6 +1262,32 @@
     </div>
 {/snippet}
 
+{#snippet ducatMedallion()}
+    <!-- The same embossed-parchment coin the player panels mint their ducat count on
+         (see PlayerState's tintedIcon), reused here so a price on the board reads in the
+         game's own currency iconography. Tinted in my own color - it's my money. -->
+    <div
+        class="absolute inset-0 rounded-full"
+        style="
+            background: radial-gradient(circle at 38% 30%, #fdfaf0 0%, #efe6d0 58%, #d3c3a0 100%);
+            border: 1px solid rgba(94, 73, 42, 0.5);
+            box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.75), 0 1px 2px rgba(0, 0, 0, 0.4);
+        "
+    ></div>
+    <div class="absolute inset-[16%]" style="filter: drop-shadow(0 0.5px 1px rgba(0, 0, 0, 0.45));">
+        <div
+            class="absolute inset-0"
+            style="
+                background-color:{myColor ? gameSession.colors.getUiColor(myColor) : '#d4af37'};
+                mask-image:url({iconMoneybagFill}); mask-size:contain; mask-repeat:no-repeat; mask-position:center;
+                -webkit-mask-image:url({iconMoneybagFill}); -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat; -webkit-mask-position:center;
+                filter: saturate(1.7) brightness(1.18);
+            "
+        ></div>
+        <img src={iconMoneybagLines} alt="" class="absolute inset-0 w-full h-full object-contain" />
+    </div>
+{/snippet}
+
 {#snippet playerPill(playerId: string)}
     <PlayerPill {playerId} />
 {/snippet}
@@ -1071,6 +1302,31 @@
     {#each playerIds as playerId, i (playerId)}
         {i > 0 ? (i === playerIds.length - 1 ? ' and ' : ', ') : ''}{@render playerPill(playerId)}
     {/each}
+{/snippet}
+
+{#snippet duelBidStepper(playerId: string, bidAmount: number, maxAmount: number)}
+    <button
+        type="button"
+        class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
+        disabled={bidAmount <= 0}
+        onclick={() => {
+            duelBidAmounts[playerId] = Math.max(0, bidAmount - 1)
+        }}
+    >
+        −
+    </button>
+    <span class="w-6 text-center font-semibold">{bidAmount}</span>
+    <button
+        type="button"
+        class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
+        disabled={bidAmount >= maxAmount}
+        onclick={() => {
+            duelBidAmounts[playerId] = bidAmount + 1
+        }}
+    >
+        +
+    </button>
+    <span>ducat{bidAmount === 1 ? '' : 's'}</span>
 {/snippet}
 
 {#snippet bidList(bids: SubmitDuelBid[])}
@@ -1104,11 +1360,20 @@
     {#if lastAllianceCancellation}
         {@const otherId = playerIdForColor(lastAllianceCancellation.otherColor)}
         {@const cancelerIsMe = gameSession.myPlayer?.id === lastAllianceCancellation.playerId}
+        {@const otherIsMe = otherId !== undefined && otherId === gameSession.myPlayer?.id}
+        <!-- Names the price, since that's the whole weight of the decision - and the
+             cancellation is now a single board click (see the alliance hearts), so this is
+             where the 10 ducats leaving your purse gets accounted for. -->
         <div class="text-black text-[20px]">
-            {@render playerPill(lastAllianceCancellation.playerId)} canceled {cancelerIsMe
-                ? 'your'
-                : 'their'} alliance with
-            {#if otherId}
+            {#if cancelerIsMe}
+                You paid
+            {:else}
+                {@render playerPill(lastAllianceCancellation.playerId)} paid
+            {/if}
+            {ALLIANCE_CANCELLATION_COST} ducats to cancel an alliance with
+            {#if otherIsMe}
+                you
+            {:else if otherId}
                 {@render playerPill(otherId)}
             {:else}
                 a neutral prince
@@ -1117,29 +1382,26 @@
     {/if}
     <div class="text-black text-[20px] leading-loose">
         {#if gameSession.isPlayingAllianceCard}
+            <!-- No "that region has nothing to ally with" case to report: a region with no
+                 eligible neighbor isn't offered in the first place (see
+                 legalAllianceOwnRegionIds), so reaching the second step guarantees there's
+                 something to click. -->
             {#if !gameSession.allianceOwnRegionId}
                 Playing Alliance — click one of your regions.
-            {:else if legalAllianceEnemyRegionIds.size === 0}
-                That region has no neighboring enemy region left to ally with. Click Undo
-                to try a different region.
             {:else}
                 Click a bordering enemy region.
             {/if}
         {:else if gameSession.isPlayingRenegadeCard}
             {#if !gameSession.renegadeOwnRegionId}
                 {#if gameSession.legalRenegadeOwnRegionIds.size === 0}
-                    None of your regions have room for the replacement knight right now (no
-                    open space, or they can't afford a wooded one). Click Undo.
+                    None of your regions can play Renegade right now — they either have no
+                    room for the replacement knight (no open space, or they can't afford a
+                    wooded one) or nothing bordering them to take a knight from. Click Undo.
                 {:else}
                     Playing Renegade — click one of your regions.
                 {/if}
             {:else if !gameSession.renegadeEnemyRegionId}
-                {#if legalRenegadeEnemyRegionIds.size === 0}
-                    That region has no neighboring enemy region to target. Click Undo to
-                    try a different region.
-                {:else}
-                    Now click a bordering enemy region.
-                {/if}
+                Now click a bordering enemy region.
             {:else if !gameSession.renegadeRemovedSquare}
                 {#if gameSession.legalRenegadeRemovableSquares.length === 0}
                     Every knight in that region is protecting another from being cut off from
@@ -1182,19 +1444,48 @@
             >
                 pass
             </button>.
-        {:else if gameSession.canPlaceKnight && expandMode}
-            {#if !gameSession.selectedExpandRegionId}
+        {:else if gameSession.canPlaceKnight && gameSession.knightPlan}
+            <!-- A plan's already declared, so this just narrates the current step. No
+                 confirm or cancel buttons: every step is a board click, and Undo (which
+                 backs out of the plan itself while nothing's landed yet - see
+                 ActionToolbar) is the way back. Pass stays, since declining the rest of
+                 an action is a real rulebook option, not a cancel. -->
+            {#if expandStageActive && !gameSession.selectedExpandRegionId}
                 Click one of your regions to expand it.
-            {:else if gameSession.expansionSquares.length === 0 && gameSession.legalNextExpansionSquares.length === 0}
-                This region has nowhere legal to expand into right now.
-                {#if gameSession.myRegions.length > 1}
-                    Click Undo to try a different region, or place a knight / pass instead.
-                {:else}
-                    Click Undo, then place a knight or pass instead.
-                {/if}
+            {:else if expansionDeadEnd}
+                <!-- Names the rule that's actually in the way (see
+                     expansionBlockedReasons) rather than leaving the player to guess -
+                     usually the invasion knight-count rule, which is easy to be
+                     surprised by, and which now comes with the real counts attached. -->
+                This region has nowhere legal to expand into right now{#if expansionBlockedReasons.length > 0}
+                    — {expansionBlockedReasons.join('; ')}{/if}.{#if knightStageActive}
+                    Click a square to place a knight instead.{:else if gameSession.expandableRegions.length > 1}
+                    Click Undo to pick a different region.{/if}
+            {:else if expandStageActive}
+                <!-- Counted from engine state (see expansionSpacesTaken), not the local
+                     record of clicks, so an Undo mid-expansion doesn't leave this
+                     claiming a space that's been taken back. -->
+                Click to expand ({gameSession.expansionSpacesTaken}/2 so far){#if knightStageActive}, or
+                    place your knight to stop expanding{/if}.
             {:else}
-                Click to expand ({gameSession.expansionSquares.length}/2 so far).
+                <!-- Only a two-knights plan has more than one to place - under the mixed
+                     plans the leftover sword is earmarked for the expansion, so a count
+                     there would be misleading. -->
+                Click a square to place your knight{gameSession.knightPlan === 'twoKnights' &&
+                knightSwordsLeft > 1
+                    ? ` (${knightSwordsLeft} to place)`
+                    : ''}.
             {/if}
+            <br class="block mb-[7px]" />
+            Or
+            <button
+                type="button"
+                class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
+                onclick={() => gameSession.passKnightPlacement()}
+            >
+                pass
+            </button>
+            to stop here.
         {:else if gameSession.canPlaceKnight}
             {#if lastNegotiationPayment && lastNegotiationPayment.fromPlayerId === gameSession.gameState.knightPlacingPlayerId}
                 {@render playerPill(lastNegotiationPayment.fromPlayerId)} paid {@render playerPill(
@@ -1211,32 +1502,13 @@
                 {@render myPill()} won a knight action.
             {/if}
             <br class="block mb-[7px]" />
-            {#if gameSession.canExpandRegion}
-                Either
-                <button
-                    type="button"
-                    class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
-                    onclick={() => {
-                        expandMode = false
-                        gameSession.cancelExpansion()
-                    }}
-                >
-                    place a knight
-                </button>
-                or
-                <button
-                    type="button"
-                    class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
-                    onclick={() => {
-                        expandMode = true
-                        if (gameSession.myRegions.length === 1) {
-                            gameSession.selectRegionToExpand(gameSession.myRegions[0].id)
-                        }
-                    }}
-                >
-                    expand a region
-                </button>
-                or
+            <!-- The whole shape of the action is chosen here, up front - for a two-sword
+                 card that's exactly three possibilities (see availableKnightPlans), minus
+                 any whose halves aren't actually available. Everything after this is
+                 board clicks; a single available plan is auto-picked, so this prompt only
+                 appears when there's a genuine choice. -->
+            {#if availableKnightPlans.length === 0}
+                There's nothing legal left to do with it, so
                 <button
                     type="button"
                     class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
@@ -1245,7 +1517,15 @@
                     pass
                 </button>.
             {:else}
-                Place a knight or
+                Either
+                {#each availableKnightPlans as plan, i (plan)}{i > 0 ? ' or ' : ''}<button
+                        type="button"
+                        class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
+                        onclick={() => gameSession.selectKnightPlan(plan)}
+                    >
+                        {KNIGHT_PLAN_LABELS[plan]}
+                    </button>{/each}
+                or
                 <button
                     type="button"
                     class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
@@ -1256,16 +1536,12 @@
             {/if}
         {:else if lastMineReveal}
             {@const mineScorers = lastMineReveal.filter((entry) => entry.points > 0)}
-            The deck revealed a Silver Mine:
-            {#if mineScorers.length > 0}
-                {#each mineScorers as entry (entry.playerId)}
-                    <br />
-                    {@render playerPill(entry.playerId)} earned {entry.points} power point{entry.points === 1
-                        ? ''
-                        : 's'}
-                {/each}
-            {:else}
-                <br />
+            <!-- Who earned what is shown as a "+N" hanging under each player's points box
+                 in the action bar above (see ActionToolbar) rather than as a row of text
+                 per scorer down here - the numbers land right where that player's
+                 running total already is, and this stays one line. -->
+            The deck revealed a Silver Mine.
+            {#if mineScorers.length === 0}
                 No one had hills enclosed in a region, so no power points were awarded.
             {/if}
             <br />
@@ -1304,7 +1580,11 @@
                 force a duel
             </button>.
         {:else if gameSession.gameState.machineState === MachineState.Dueling && gameSession.gameState.duel}
-            Dueling for {duelActionNoun}{gameSession.gameState.duel.tieCount >= 1 ? ' again' : ''}.
+            <!-- The duelists are named right here rather than getting a row each below,
+                 so the whole duel fits in two lines: who's in it, then your own bid. -->
+            Dueling for {duelActionNoun}{gameSession.gameState.duel.tieCount >= 1
+                ? ' again'
+                : ''}: {@render playerPillList(gameSession.gameState.duel.playerIds)}.
             {#if previousTiedRoundBids}
                 <br class="block mb-0.5" />
                 Tied last round: {@render bidList(previousTiedRoundBids)}.
@@ -1434,116 +1714,114 @@
 
     {#if gameSession.gameState.machineState === MachineState.Dueling && gameSession.gameState.duel}
         {@const duel = gameSession.gameState.duel}
+        {@const myId = gameSession.myPlayer?.id}
         <div class="flex flex-col gap-1 text-black text-[18px]">
-            {#each duel.playerIds as playerId (playerId)}
-                {@const myMoney = gameSession.gameState.getPlayerState(playerId).money}
-                {@const bidAmount = Math.min(duelBidAmounts[playerId] ?? 0, myMoney)}
+            <!-- Your own bid, and nothing else - the duelists are all named in the status
+                 message above instead of getting a row each, and a sealed bid means an
+                 opponent's row would have had nothing actionable on it anyway. This row
+                 does confirm your OWN bid once it's in, since the action bar keeps
+                 listing every duelist as active for the whole duel (see dueling.ts's
+                 enter()) and nothing else on screen would tell you it landed. -->
+            {#if myId && duel.playerIds.includes(myId)}
+                {@const money = gameSession.gameState.getPlayerState(myId).money}
+                {@const bidAmount = Math.min(duelBidAmounts[myId] ?? 0, money)}
                 <div class="flex flex-wrap items-center gap-2">
-                    <div class="w-28 flex justify-end">
-                        {@render playerPill(playerId)}
-                    </div>
-                    {#if gameSession.hasPlayerBidInDuel(playerId)}
-                        <span class="text-black/60">bid submitted</span>
+                    {#if gameSession.hasPlayerBidInDuel(myId)}
+                        <span class="text-black/60">Your bid is in.</span>
                     {:else}
-                        <button
-                            type="button"
-                            class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
-                            disabled={bidAmount <= 0}
-                            onclick={() => {
-                                duelBidAmounts[playerId] = Math.max(0, bidAmount - 1)
-                            }}
-                        >
-                            −
-                        </button>
-                        <span class="w-6 text-center font-semibold">{bidAmount}</span>
-                        <button
-                            type="button"
-                            class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
-                            disabled={bidAmount >= myMoney}
-                            onclick={() => {
-                                duelBidAmounts[playerId] = bidAmount + 1
-                            }}
-                        >
-                            +
-                        </button>
-                        <span>ducat{bidAmount === 1 ? '' : 's'}</span>
-                        {#if gameSession.myPlayer?.id === playerId}
-                            {#if gameSession.myTreasureCards.length > 0}
-                                <span>+</span>
-                                <select
-                                    bind:value={duelBidTreasureCardId}
-                                    class="rounded border border-black/30 px-1 py-0.5"
-                                >
-                                    <option value={undefined}>no Treasure card</option>
-                                    {#each gameSession.myTreasureCards as treasureCard (treasureCard.id)}
-                                        <option value={treasureCard.id}>Treasure ({treasureCard.value})</option>
-                                    {/each}
-                                </select>
-                            {/if}
-                            <button
-                                type="button"
-                                class="px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 font-semibold"
-                                onclick={() => {
-                                    gameSession.submitDuelBid(bidAmount, duelBidTreasureCardId)
-                                    duelBidTreasureCardId = undefined
-                                }}
-                            >
-                                Submit bid
-                            </button>
-                        {:else}
-                            <button
-                                type="button"
-                                title="Temporary solo-testing stand-in for a second session/tab"
-                                class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
-                                onclick={() => gameSession.debugSubmitDuelBidAs(playerId, bidAmount)}
-                            >
-                                submit bid (test)
-                            </button>
+                        <span class="font-semibold">Your bid:</span>
+                        {@render duelBidStepper(myId, bidAmount, money)}
+                        {#if gameSession.selectedTreasureCard}
+                            <span class="font-semibold">
+                                + Treasure ({gameSession.selectedTreasureCard.value})
+                            </span>
                         {/if}
+                        <button
+                            type="button"
+                            class="px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 font-semibold"
+                            onclick={() =>
+                                gameSession.submitDuelBid(
+                                    bidAmount,
+                                    gameSession.selectedTreasureCard?.id
+                                )}
+                        >
+                            Submit bid
+                        </button>
                     {/if}
                 </div>
-            {/each}
-        </div>
-    {/if}
+            {/if}
 
-    <!-- The top-level "place knight / expand region / pass" choice is embedded
-         directly in the status message above now - this toolbar only needs to cover
-         the expand-region sub-flow (once that mode's actually engaged), since
-         Confirm/a way back to knight-placing/Pass all still need to be reachable
-         without backing all the way out to the top-level message first. Backing out
-         of an in-progress region selection (like backing out of playing a
-         Renegade/Alliance card above) is handled by the Undo button instead of a
-         separate Cancel here - see ActionToolbar.svelte. -->
-    {#if gameSession.canExpandRegion && expandMode}
-        <div class="flex gap-2 items-center">
-            {#if gameSession.selectedExpandRegionId}
-                {#if gameSession.expansionSquares.length > 0}
-                    <button
-                        type="button"
-                        class="px-2 py-[3px] rounded bg-green-700 text-white text-sm hover:bg-green-800"
-                        onclick={() => gameSession.passKnightPlacement()}
-                    >
-                        Confirm expansion
-                    </button>
+            <!-- Solo-testing stand-in for a second session, kept to one shared row of
+                 small dashed buttons (one per opponent who hasn't bid), each expanding
+                 into a stepper only once clicked. Flip SHOW_DUEL_TEST_CONTROLS off to
+                 lose this row entirely. -->
+            {#if SHOW_DUEL_TEST_CONTROLS}
+                {@const pending = duel.playerIds.filter(
+                    (id) => id !== myId && !gameSession.hasPlayerBidInDuel(id)
+                )}
+                {#if pending.length > 0}
+                    <div class="flex flex-wrap items-center gap-2">
+                        {#each pending as playerId (playerId)}
+                            {@const money = gameSession.gameState.getPlayerState(playerId).money}
+                            {@const bidAmount = Math.min(duelBidAmounts[playerId] ?? 0, money)}
+                            {#if testBiddingForPlayerId === playerId}
+                                {@render playerPill(playerId)}
+                                {@render duelBidStepper(playerId, bidAmount, money)}
+                                <button
+                                    type="button"
+                                    class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
+                                    onclick={() => {
+                                        gameSession.debugSubmitDuelBidAs(playerId, bidAmount)
+                                        testBiddingForPlayerId = undefined
+                                    }}
+                                >
+                                    submit (test)
+                                </button>
+                            {:else}
+                                <button
+                                    type="button"
+                                    title="Temporary solo-testing stand-in for a second session/tab"
+                                    class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
+                                    onclick={() => (testBiddingForPlayerId = playerId)}
+                                >
+                                    bid for {playerName(gameSession, playerId)} (test)
+                                </button>
+                            {/if}
+                        {/each}
+                    </div>
                 {/if}
             {/if}
-            <button
-                type="button"
-                class="px-2 py-[3px] rounded bg-black/10 text-black text-sm hover:bg-black/20"
-                onclick={() => {
-                    expandMode = false
-                    gameSession.cancelExpansion()
-                }}
-            >
-                Place a knight instead
-            </button>
-            <button
-                type="button"
-                class="px-2 py-[3px] rounded bg-black/10 text-black text-sm hover:bg-black/20"
-                onclick={() => gameSession.passKnightPlacement()}
-            >
-                Pass
-            </button>
+
+            <!-- There's deliberately no card picker in the bid row above: a Treasure
+                 card is played the same way everywhere else in the game - open your
+                 hand (click your cards in your player panel), then hit APPLY on the
+                 card, which arms it (see PoliticsHand/selectTreasureCard) for the bid
+                 you submit next. This line only exists so a duelist knows the option is
+                 there at all, and then confirms it once a card is armed. -->
+            {#if gameSession.canSubmitDuelBid && gameSession.myTreasureCards.length > 0}
+                <div class="flex flex-wrap items-center gap-2 text-[15px]">
+                    {#if gameSession.selectedTreasureCard}
+                        <span class="font-semibold text-green-900">
+                            You're playing a Treasure ({gameSession.selectedTreasureCard.value}) with your
+                            bid — its value is added to the ducats above.
+                        </span>
+                        <button
+                            type="button"
+                            class="px-1.5 py-0.5 rounded border border-black/30 text-black/60 text-xs hover:bg-black/10"
+                            onclick={() => gameSession.selectTreasureCard(undefined)}
+                        >
+                            don't play it
+                        </button>
+                    {:else}
+                        <span class="text-black/70">
+                            You hold {gameSession.myTreasureCards.length} Treasure card{gameSession
+                                .myTreasureCards.length === 1
+                                ? ''
+                                : 's'} you could add to your bid — click one in your hand and press APPLY.
+                        </span>
+                    {/if}
+                </div>
+            {/if}
         </div>
     {/if}
 
@@ -1571,8 +1849,7 @@
             style="width: fit-content;"
             role="presentation"
             onmousemove={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect()
-                hoverPoint = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+                hoverPoint = boardPointFromEvent(e.currentTarget, e.clientX, e.clientY)
             }}
             onmouseleave={() => (hoverPoint = undefined)}
         >
@@ -1620,7 +1897,7 @@
                     >
                         {#if tint}
                             {@const pulsing =
-                                (expandMode && isOwnSelectableRegion(col, row)) ||
+                                (expandStageActive && isSelectableExpandRegion(col, row)) ||
                                 isOwnSelectableRenegadeRegion(col, row) ||
                                 isOwnSelectableAllianceRegion(col, row) ||
                                 isSelectableRenegadeEnemyRegion(col, row) ||
@@ -1635,7 +1912,7 @@
                                 style="background-color:{tint}; {pulsing ? '' : 'opacity:0.385;'}"
                             ></span>
                         {/if}
-                        {#if !expandMode && isLegalKnightPlacement(col, row) && myColor}
+                        {#if knightStageActive && isLegalKnightPlacement(col, row) && myColor}
                             <!-- A faded preview of the knight that would actually be placed here,
                                  fading in and out - rather than a border/ring highlight. -->
                             <div class="absolute inset-0 ghost-knight-pulse pointer-events-none">
@@ -1732,23 +2009,106 @@
             </div>
         {/each}
 
-        <!-- Alliance markers: a small heart on every boundary wall between two -->
-        <!-- allied regions - the only on-board sign an alliance exists. -->
-        {#each allianceWalls as wall (wall.col + ',' + wall.row + ',' + wall.edge + '-heart')}
-            <div
-                class="absolute pointer-events-none flex items-center justify-center z-40"
-                style="
-                    left: {(wall.edge === 'west' ? wall.col * CELL_SIZE : wall.col * CELL_SIZE + CELL_SIZE / 2) -
-                        10.5}px;
-                    top: {(wall.edge === 'west' ? wall.row * CELL_SIZE + CELL_SIZE / 2 : wall.row * CELL_SIZE) -
-                        10.5}px;
-                    width: 21px;
-                    height: 21px;
-                    font-size: 19px;
-                "
-            >
-                🩷
-            </div>
+        <!-- Alliance markers: a small heart on every boundary wall between two allied
+             regions - the only on-board sign an alliance exists, and (when I'm a
+             participant who can afford the 10 ducats) the control for ending it. -->
+        {#each allianceMarkers as marker (marker.id)}
+            {@const previewing = hoveredAllianceId === marker.id}
+
+            <!-- The rulebook's sign of an alliance is one of the shared walls "turned by
+                 90 degrees"; ending it puts that wall back in line. We draw allied walls
+                 flush all along, so the restoration only plays on the preview: a ghost
+                 segment sweeps from turned back to flush, landing on the real wall. -->
+            {#if previewing}
+                {#each marker.walls as wall (wall.col + ',' + wall.row + ',' + wall.edge + '-restore')}
+                    <div
+                        class="absolute pointer-events-none z-30 alliance-wall-restore"
+                        style="
+                            left: {wall.col * CELL_SIZE}px;
+                            top: {wall.row * CELL_SIZE}px;
+                            transform-origin: {wall.edge === 'west' ? `0px ${CELL_SIZE / 2}px` : `${CELL_SIZE / 2}px 0px`};
+                        "
+                    >
+                        <WallSegment orientation={wall.edge === 'west' ? 'vertical' : 'horizontal'} />
+                    </div>
+                {/each}
+            {/if}
+
+            {#each marker.walls as wall (wall.col + ',' + wall.row + ',' + wall.edge + '-heart')}
+                {@const left =
+                    (wall.edge === 'west' ? wall.col * CELL_SIZE : wall.col * CELL_SIZE + CELL_SIZE / 2) - 12}
+                {@const top =
+                    (wall.edge === 'west' ? wall.row * CELL_SIZE + CELL_SIZE / 2 : wall.row * CELL_SIZE) - 12}
+                {#if marker.cancellable}
+                    <!-- A heart's own idle animation is a heartbeat, which is exactly the
+                         "alive, touchable" cue this needs - it beats only while cancelling
+                         is actually open to this player, and sits dead still otherwise.
+                         The words live in aria-label rather than on screen. -->
+                    <button
+                        type="button"
+                        aria-label={allianceCancelLabel(marker)}
+                        title={allianceCancelLabel(marker)}
+                        class="absolute flex items-center justify-center z-40 cursor-pointer rounded-full {previewing
+                            ? ''
+                            : 'alliance-heartbeat'}"
+                        style="left: {left}px; top: {top}px; width: 24px; height: 24px; font-size: 19px;"
+                        onmouseenter={() => (hoveredAllianceId = marker.id)}
+                        onmouseleave={() => (hoveredAllianceId = undefined)}
+                        onfocus={() => (hoveredAllianceId = marker.id)}
+                        onblur={() => (hoveredAllianceId = undefined)}
+                        onclick={(e) => {
+                            e.stopPropagation()
+                            hoveredAllianceId = undefined
+                            gameSession.cancelAlliance(marker.id)
+                        }}
+                    >
+                        <!-- Ducat-gold ring, so the beating heart reads as costing money
+                             rather than as decoration. -->
+                        <span
+                            class="absolute inset-0 rounded-full pointer-events-none"
+                            style="border: 1.5px solid rgba(217, 180, 74, {previewing
+                                ? 1
+                                : 0.85}); box-shadow: 0 0 6px rgba(217, 180, 74, 0.55);"
+                        ></span>
+                        <span class="relative leading-none">{previewing ? '💔' : '🩷'}</span>
+                    </button>
+                {:else}
+                    <div
+                        class="absolute pointer-events-none flex items-center justify-center z-40"
+                        style="left: {left}px; top: {top}px; width: 24px; height: 24px; font-size: 19px;"
+                    >
+                        🩷
+                    </div>
+                {/if}
+            {/each}
+
+            <!-- The price, shown once per alliance (on its first heart) while previewing -
+                 the same minted-ducat medallion the player panels use, so the cost reads
+                 in the game's own currency iconography instead of a sentence. -->
+            {#if previewing}
+                {@const wall = marker.walls[0]}
+                <div
+                    class="absolute pointer-events-none z-50 flex items-center gap-0.5 alliance-price-rise"
+                    style="
+                        left: {(wall.edge === 'west'
+                        ? wall.col * CELL_SIZE
+                        : wall.col * CELL_SIZE + CELL_SIZE / 2) + 12}px;
+                        top: {(wall.edge === 'west'
+                        ? wall.row * CELL_SIZE + CELL_SIZE / 2
+                        : wall.row * CELL_SIZE) - 30}px;
+                    "
+                >
+                    <span
+                        class="text-[14px] font-bold leading-none"
+                        style="color: #7a2e2e; text-shadow: 0 1px 0 rgba(255,255,255,0.8);"
+                    >
+                        −{ALLIANCE_CANCELLATION_COST}
+                    </span>
+                    <span class="relative w-[20px] h-[20px] shrink-0">
+                        {@render ducatMedallion()}
+                    </span>
+                </div>
+            {/if}
         {/each}
 
         <!-- A single pulsing preview of the wall that would actually be placed at
@@ -1925,5 +2285,68 @@
 
     .expansion-arrow-bounce {
         animation: expansion-arrow-bounce-frames 1s ease-in-out infinite;
+    }
+
+    /* A real heartbeat: two quick beats, then a rest - the idle state of an alliance
+       heart this player could actually afford to break. Runs only while cancelling is
+       open to them, so a beating heart always means "you can end this".
+       Beats every 5.7s rather than every 1.9s. The percentages keep the two beats at
+       their original absolute speed (266ms apart) and put the whole 3x slowdown into the
+       rest between them - stretching the beats themselves would read as a slow squish
+       instead of a pulse. */
+    @keyframes alliance-heartbeat-frames {
+        0% {
+            transform: scale(1);
+        }
+        4.7% {
+            transform: scale(1.22);
+        }
+        9.3% {
+            transform: scale(1);
+        }
+        14% {
+            transform: scale(1.16);
+        }
+        18.7%,
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    .alliance-heartbeat {
+        animation: alliance-heartbeat-frames 5.7s ease-in-out infinite;
+    }
+
+    /* The rulebook's turned boundary wall sweeping back into line - played on hover as a
+       preview of what cancelling restores. Ends flush and slightly transparent, sitting
+       right on top of the real wall. */
+    @keyframes alliance-wall-restore-frames {
+        0% {
+            transform: rotate(90deg);
+            opacity: 0.15;
+        }
+        100% {
+            transform: rotate(0deg);
+            opacity: 0.75;
+        }
+    }
+
+    .alliance-wall-restore {
+        animation: alliance-wall-restore-frames 420ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes alliance-price-rise-frames {
+        0% {
+            transform: translateY(6px);
+            opacity: 0;
+        }
+        100% {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .alliance-price-rise {
+        animation: alliance-price-rise-frames 220ms ease-out forwards;
     }
 </style>

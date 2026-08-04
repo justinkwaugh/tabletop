@@ -50,12 +50,20 @@
     // (not re-rolled every render, which would make cards visibly jitter/flicker
     // whenever anything else about the panel re-renders), same "randomize once, hold
     // stable" approach as WallSegment/RampartCorner's own jitter.
+    // Only applied once the hand actually has to overlap (see isOverlapping below) -
+    // a small hand that lays out flat reads better as a tidy, deliberately aligned
+    // row; the loose-hand look is what sells the overlapped stack.
+    // Max rotation in either direction - the splay used to reach ±3.5°, which read as
+    // messier than intended once several cards were in hand.
+    const MAX_CARD_TILT_DEG = 2.1
+    const NO_JITTER = { rotate: 0, dx: 0, dy: 0 }
     const cardJitter = new Map<string, { rotate: number; dx: number; dy: number }>()
     function jitterFor(cardId: string): { rotate: number; dx: number; dy: number } {
+        if (!isOverlapping) return NO_JITTER
         let jitter = cardJitter.get(cardId)
         if (!jitter) {
             jitter = {
-                rotate: (Math.random() * 2 - 1) * 3.5,
+                rotate: (Math.random() * 2 - 1) * MAX_CARD_TILT_DEG,
                 dx: (Math.random() * 2 - 1) * 2,
                 dy: (Math.random() * 2 - 1) * 2
             }

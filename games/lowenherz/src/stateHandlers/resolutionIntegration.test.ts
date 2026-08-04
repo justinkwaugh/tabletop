@@ -263,15 +263,25 @@ describe('resolution cascade (via the real GameEngine)', () => {
         expect(state.negotiation?.offer).toEqual({ fromPlayerId: 'p2', amount: 4 })
         expect(state.negotiation?.signedPlayerIds).toEqual([])
 
-        // p2 signs their own proposal first - negotiation stays open on one signature.
-        state = engine.run(negotiationMove('p2', NegotiationMoveKind.Sign), state, game).updatedState
+        // p2 signs their own proposal first - negotiation stays open on one signature,
+        // and that signature stays undoable (nothing binds until both sides commit).
+        // (revealsInfo is read off the PROCESSED action - the engine applies a clone and
+        // hands the flagged, dehydrated copy back, which is what gets stored.)
+        const firstSignResult = engine.run(negotiationMove('p2', NegotiationMoveKind.Sign), state, game)
+        state = firstSignResult.updatedState
         expect(state.machineState).toBe(MachineState.Negotiating)
         expect(state.negotiation?.signedPlayerIds).toEqual(['p2'])
+        expect(firstSignResult.processedActions[0].revealsInfo).toBeUndefined()
 
         // p1's signature completes the deal, handing p2 the politics slot - they must
         // take a card before the cascade can continue through slot 2, slot 3, and the
         // round advance.
-        state = engine.run(negotiationMove('p1', NegotiationMoveKind.Sign), state, game).updatedState
+        const closingSignResult = engine.run(negotiationMove('p1', NegotiationMoveKind.Sign), state, game)
+        state = closingSignResult.updatedState
+        // A completed deal is binding: money has changed hands under a two-party
+        // agreement, so Undo must not be able to cross back over it (see
+        // GameSession.undoableAction, which stops at any action flagged revealsInfo).
+        expect(closingSignResult.processedActions[0].revealsInfo).toBe(true)
         expect(state.machineState).toBe(MachineState.TakingPoliticsCard)
         expect(state.politicsTakingPlayerId).toBe('p2')
 

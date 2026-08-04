@@ -100,6 +100,13 @@ export class HydratedPlaceKnight
         if (!state.knightsRemaining || state.knightsRemaining <= 0) {
             return 'You have no knights left to place this turn.'
         }
+        // "If he has no more knights, he may place no more" - knightsRemaining counts
+        // the action's swords, which aren't capped by stock (an unspendable-on-knights
+        // sword can still buy a region expansion - see resolveBandForWinner), so the
+        // stock limit is enforced here instead.
+        if (state.getPlayerState(this.playerId).knightsInStock <= 0) {
+            return 'You have no knights left in your stock.'
+        }
 
         if (!isOnBoard(this.col, this.row)) {
             return 'That square is off the board.'

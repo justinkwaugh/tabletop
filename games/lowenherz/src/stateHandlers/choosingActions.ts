@@ -5,7 +5,8 @@ import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { HydratedChooseAction } from '../actions/chooseAction.js'
 import { HydratedPlayRenegadeCard } from '../actions/playRenegadeCard.js'
 import { HydratedPlayAllianceCard } from '../actions/playAllianceCard.js'
-import { HydratedCancelAlliance, ALLIANCE_CANCELLATION_COST } from '../actions/cancelAlliance.js'
+import { HydratedCancelAlliance } from '../actions/cancelAlliance.js'
+import { canCancelAnAlliance } from '../util/allianceCancellation.js'
 import { PoliticsCardType } from '../definition/politicsCards.js'
 import {
     buildDecisionPlan,
@@ -65,14 +66,7 @@ export class ChoosingActionsStateHandler
         if (hasAllianceCard) {
             result.push(ActionType.PlayAllianceCard)
         }
-        const canCancelAnAlliance =
-            playerState.money >= ALLIANCE_CANCELLATION_COST &&
-            context.gameState.alliances.some((a) => {
-                const regionA = context.gameState.regions.find((r) => r.id === a.regionAId)
-                const regionB = context.gameState.regions.find((r) => r.id === a.regionBId)
-                return regionA?.ownerColor === playerState.color || regionB?.ownerColor === playerState.color
-            })
-        if (canCancelAnAlliance) {
+        if (canCancelAnAlliance(context.gameState, playerId)) {
             result.push(ActionType.CancelAlliance)
         }
         return result

@@ -170,7 +170,7 @@ describe('HydratedExpandRegion', () => {
         })
     })
 
-    it('expands into one open adjacent space, scoring 1 point and consuming the rest of the knight action', () => {
+    it('expands into one open adjacent space, scoring 1 point and spending one sword', () => {
         const state = buildState()
         const action = makeExpandRegion('p1', 'r1', { col: 1, row: 0 })
 
@@ -179,10 +179,13 @@ describe('HydratedExpandRegion', () => {
 
         expect(state.regions[0].squareKeys).toEqual(['0,0', '1,0'])
         expect(state.getPlayerState('p1').powerPoints).toBe(1)
-        expect(state.knightsRemaining).toBe(0)
-        // A 2nd space of the SAME region is still allowed (see expandingRegionId) -
-        // placing a knight or expanding elsewhere is not (see placingKnights.test.ts).
+        // One of the two swords, not the whole action - the other is still owed as a
+        // knight placement ("place one knight and expand one of his regions").
+        expect(state.knightsRemaining).toBe(1)
+        // A 2nd space of the SAME region is still allowed (see expandingRegionId), and
+        // costs nothing further; a 2nd separate expansion is not (see expansionUsed).
         expect(state.expandingRegionId).toBe('r1')
+        expect(state.expansionUsed).toBe(true)
         expect(action.metadata).toEqual({ townsTaken: 0, pointsGained: 1 })
         // The region must stay fully enclosed - (1,0)'s open edges get new walls, but
         // the edge it shares with the rest of the region ((0,0)) stays open.
@@ -250,14 +253,38 @@ describe('HydratedExpandRegion', () => {
         )
     })
 
-    it('allows a 2nd space of the SAME region even though knightsRemaining is already 0', () => {
-        const state = buildState()
+    it('allows a 2nd space of the SAME region without spending another sword', () => {
+        const state = buildState({ knightsRemaining: 1 })
         const first = makeExpandRegion('p1', 'r1', { col: 1, row: 0 })
         first.apply(state)
         expect(state.knightsRemaining).toBe(0)
 
         const second = makeExpandRegion('p1', 'r1', { col: 2, row: 0 })
         expect(second.isValidExpandRegion(state)).toBe(true)
+        second.apply(state)
+        expect(state.knightsRemaining).toBe(0)
+    })
+
+    it('refuses a 2nd, separate expansion even with a sword still unspent', () => {
+        const state = buildState({
+            knightsRemaining: 2,
+            regions: [
+                { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' },
+                { id: 'r2', ownerColor: Color.Pink, squareKeys: ['5,5'], castleSquareKey: '5,5' }
+            ]
+        })
+        // A complete 1-space expansion of r1: expand, then stop short of the optional
+        // 2nd space (which is what clears expandingRegionId in real play - see
+        // placingKnights.ts - so clear it directly here).
+        makeExpandRegion('p1', 'r1', { col: 1, row: 0 }).apply(state)
+        state.expandingRegionId = undefined
+
+        expect(state.knightsRemaining).toBe(1)
+        const second = makeExpandRegion('p1', 'r2', { col: 5, row: 4 })
+        expect(second.isValidExpandRegion(state)).toBe(false)
+        expect(second.invalidExpandRegionReason(state)).toBe(
+            'This action can only expand a region once - place a knight instead.'
+        )
     })
 
     it('awards a +5 bonus for capturing a town', () => {

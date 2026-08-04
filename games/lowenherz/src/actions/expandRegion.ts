@@ -99,8 +99,10 @@ export function isExpandRegion(action?: GameAction): action is ExpandRegion {
 // castle, the disconnected piece(s) become a new neutral zone and the defender loses
 // extra points for them (see apply()). A 2nd space of the SAME region is allowed as a
 // follow-up action (see state.expandingRegionId) - "using this card to expand twice"
-// (i.e. a 2nd, separate expansion) is not allowed, but growing the same one by its
-// full 1-2 space allotment across two actions is exactly that allotment, just split.
+// (i.e. a 2nd, separate expansion - see state.expansionUsed) is not allowed, but
+// growing the same one by its full 1-2 space allotment across two actions is exactly
+// that allotment, just split. The expansion costs one of the action's 1-2 swords, so a
+// two-sword action still has a knight placement left over afterward.
 export class HydratedExpandRegion
     extends HydratableAction<typeof ExpandRegion>
     implements ExpandRegion
@@ -262,12 +264,16 @@ export class HydratedExpandRegion
 
         if (isContinuation) {
             // This was the 2nd (and final - only ever 1-2 total) space of an
-            // in-progress expansion - knightsRemaining was already zeroed by the 1st.
+            // in-progress expansion - its sword was already paid by the 1st.
             state.expandingRegionId = undefined
         } else {
-            // A fresh expansion always consumes the rest of the knight action, but
-            // leaves the door open for exactly one more space of this SAME region.
-            state.knightsRemaining = 0
+            // A fresh expansion costs exactly one sword (not the whole action - a
+            // two-sword card is explicitly "place one knight and expand one of his
+            // regions", in either order), and leaves the door open for one more space
+            // of this SAME region. expansionUsed is what stops the leftover sword from
+            // buying a SECOND expansion.
+            state.knightsRemaining = Math.max(0, (state.knightsRemaining ?? 1) - 1)
+            state.expansionUsed = true
             state.expandingRegionId = this.regionId
         }
 
@@ -292,10 +298,15 @@ export class HydratedExpandRegion
 
         const isContinuation = state.expandingRegionId === this.regionId
         if (isContinuation) {
-            // Nothing further to check here - continuing the SAME in-progress
-            // expansion is always allowed regardless of knightsRemaining (already 0).
+            // Nothing further to check here - continuing the SAME in-progress expansion
+            // is always allowed; its sword was paid by the 1st space, so it doesn't
+            // matter whether any sword is left.
         } else if (state.expandingRegionId) {
             return "You're already expanding a different region this turn."
+        } else if (state.expansionUsed) {
+            // "Using this action to expand twice is not allowed" - even if the action's
+            // other sword is still unspent, it can only go to a knight now.
+            return "This action can only expand a region once - place a knight instead."
         } else if (!state.knightsRemaining || state.knightsRemaining <= 0) {
             return "You've already used this action."
         }

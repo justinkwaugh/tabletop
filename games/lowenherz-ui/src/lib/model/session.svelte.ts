@@ -2,6 +2,7 @@ import { ActionSource, createAction, type Color } from '@tabletop/common'
 import { GameSession } from '@tabletop/frontend-components'
 import { nanoid } from 'nanoid'
 import {
+    ActionCardType,
     ActionType,
     ALLIANCE_CANCELLATION_COST,
     areRegionsAllied,
@@ -10,6 +11,7 @@ import {
     CancelAlliance,
     CardBack,
     ChooseAction,
+    countKnights,
     detectNewRegions,
     DrawActionCard,
     ExpandRegion,
@@ -28,6 +30,7 @@ import {
     HydratedPlayAllianceCard,
     HydratedPlayRenegadeCard,
     HydratedSubmitDuelBid,
+    isDrawActionCard,
     isKnightSafeToRemove,
     isOnBoard,
     isWalledBetween,
@@ -58,6 +61,11 @@ import {
     wallBetween,
     WOODED_KNIGHT_COST
 } from '@tabletop/lowenherz'
+
+// How the winner of a knight action has chosen to spend it. The two single-sword shapes
+// ('knight'/'expand') plus the three - and only three - a two-sword action allows: both
+// swords on knights, or one on each in either order. See LowenherzGameSession.knightPlan.
+export type KnightPlan = 'knight' | 'expand' | 'twoKnights' | 'knightThenExpand' | 'expandThenKnight'
 
 export class LowenherzGameSession extends GameSession<
     LowenherzGameState,
@@ -155,6 +163,28 @@ export class LowenherzGameSession extends GameSession<
             console.warn('Failed to place castle/knight:', e)
             this.errorMessage = 'That placement was rejected. Please try a different spot.'
         }
+    }
+
+    // A Silver Mine sitting on the discard pile means it was just revealed and is
+    // waiting for the active player to manually draw the next card (see startOfTurn.ts).
+    // Its per-player hill scoring lives on the DrawActionCard action that drew it - the
+    // most recent draw, since nothing's been drawn since. Returns undefined once a later
+    // card is drawn (that draw becomes the most recent one). Lives here rather than in
+    // RealBoard because the board announces the reveal while the action bar shows each
+    // player's payout under their points (see ActionToolbar).
+    get lastMineHillScoring(): { playerId: string; points: number }[] | undefined {
+        const discarded = this.gameState.discardedActionCard
+        if (discarded?.type !== ActionCardType.Mining) return undefined
+        const actions = this.actions
+        for (let i = actions.length - 1; i >= 0; i--) {
+            const action = actions[i]
+            if (isDrawActionCard(action)) {
+                return action.metadata?.cardType === ActionCardType.Mining
+                    ? (action.metadata.hillScoring ?? [])
+                    : undefined
+            }
+        }
+        return undefined
     }
 
     // Testing convenience only - not a real player action. Repeatedly picks a
@@ -371,7 +401,10 @@ export class LowenherzGameSession extends GameSession<
     // Gives every player a random 1-5 politics cards (any mix of types, with a
     // plausible value for Parchment/Treasure) - for testing the hand-splay UI with
     // varied, realistic-looking counts across every seat at once, without grinding
-    // through Crown and Scepter draws to build them up naturally.
+    // through Crown and Scepter draws to build them up naturally. Each click REPLACES
+    // whatever every player was holding rather than adding to it, so clicking
+    // repeatedly re-rolls the counts through the 1-5 range (appending would run hands
+    // straight past 5 after a click or two, which is exactly the range worth eyeing).
     async giveTestRandomPoliticsCards() {
         const valuesByType: Record<PoliticsCardType, number[] | undefined> = {
             [PoliticsCardType.Alliance]: undefined,
@@ -393,7 +426,7 @@ export class LowenherzGameSession extends GameSession<
                     ...(value !== undefined ? { value } : {})
                 }
             })
-            playerState.politicsCards = [...playerState.politicsCards, ...newCards]
+            playerState.politicsCards = newCards
         }
 
         await this.setGameState(this.gameState.dehydrate())
@@ -593,6 +626,7 @@ export class LowenherzGameSession extends GameSession<
             ...(treasureCardId ? { treasureCardId } : {})
         })
         this.errorMessage = undefined
+        this.selectedTreasureCardId = undefined
         try {
             await this.applyAction(action)
         } catch (e) {
@@ -741,6 +775,14 @@ export class LowenherzGameSession extends GameSession<
         this.selectedTreasureCardId = cardId
     }
 
+    // The armed card itself, but only while it's genuinely still in hand - a card
+    // that got spent (or a selection left over from an earlier turn) resolves to
+    // undefined here rather than showing a phantom "you're playing this" message.
+    get selectedTreasureCard(): PoliticsCard | undefined {
+        if (!this.selectedTreasureCardId) return undefined
+        return this.myTreasureCards.find((c) => c.id === this.selectedTreasureCardId)
+    }
+
     private treasureCardIdFor(col: number, row: number): string | undefined {
         const square = getSquare(this.gameState.board, col, row)
         return square?.type === SquareType.Forest ? this.selectedTreasureCardId : undefined
@@ -830,8 +872,105 @@ export class LowenherzGameSession extends GameSession<
         return this.gameState.regions.filter((r) => r.ownerColor === myColor)
     }
 
+    // The regions a board click could legitimately pick to expand right now. Normally
+    // any of your own, but an expansion already under way pins the choice to ITS region:
+    // the engine only allows a 2nd space of that same region ("You're already expanding a
+    // different region this turn"), so offering the others led to picking one whose every
+    // square was then rejected - which surfaced as the region having "nowhere legal to
+    // expand into", the one dead end that isn't about the board at all. That's reachable
+    // whenever the local pick is dropped while the engine's expansion stays open (an Undo,
+    // or the expand stage briefly closing - see RealBoard's cancelExpansion effect).
+    get expandableRegions(): Region[] {
+        const inProgressId = this.gameState.expandingRegionId
+        if (inProgressId) return this.myRegions.filter((r) => r.id === inProgressId)
+        return this.myRegions
+    }
+
     get canExpandRegion(): boolean {
-        return this.canPlaceKnight && this.myRegions.length > 0
+        if (!this.canPlaceKnight || this.myRegions.length === 0) return false
+        // "Using this action to expand twice is not allowed" - once this action's
+        // expansion is spent, only its leftover sword's knight is left. An expansion
+        // still in progress (its optional 2nd space) doesn't count as a second one, so
+        // the expand UI has to stay up for that.
+        return !this.gameState.expansionUsed || this.gameState.expandingRegionId !== undefined
+    }
+
+    // Whether placing a knight is genuinely still on the table - distinct from
+    // canPlaceKnight, which only says it's your knight action. A player can win the
+    // action with an empty knight stock (and spend it expanding instead), or have a
+    // sword left with nowhere legal to put a knight.
+    get canPlaceAnotherKnight(): boolean {
+        return this.canPlaceKnight && this.legalKnightSquares.length > 0
+    }
+
+    // Which shape the winner of a knight action has declared they're taking. A one-sword
+    // action is just knight-or-expand; a two-sword action has exactly three legal shapes
+    // (two knights, or one knight plus one expansion in either order - "using this
+    // action to expand twice is not allowed"), so the player picks one up front and
+    // every click after that is unambiguous. Purely local UI intent, like
+    // selectedExpandRegionId - the engine only ever sees the individual
+    // PlaceKnight/ExpandRegion actions this produces, and never enforces the order.
+    knightPlan: KnightPlan | undefined = $state(undefined)
+    // The sword count when the plan was picked, so knightPlanHasProgress can tell "just
+    // chose a plan" (Undo should drop the plan) from "already placed/expanded something"
+    // (Undo should revert that real action instead). Also what tells the plan's stages
+    // apart: knightsRemaining below this means the knight half has been spent.
+    knightPlanStartSwords = $state(0)
+    // Which knight action the plan belongs to - see currentKnightActionKey.
+    private knightPlanActionKey: string | undefined = undefined
+
+    // Identifies the knight action currently being performed: the action card, how many
+    // slots had resolved when it started (pushed before the placement phase and stable
+    // throughout it - see resolvingActions.ts), and whose action it is. Undefined outside
+    // a knight phase.
+    private get currentKnightActionKey(): string | undefined {
+        const placingPlayerId = this.gameState.knightPlacingPlayerId
+        if (!placingPlayerId) return undefined
+        const cardId = this.gameState.currentActionCard?.id ?? 'none'
+        return `${cardId}:${this.gameState.resolvedSlots.length}:${placingPlayerId}`
+    }
+
+    selectKnightPlan(plan: KnightPlan) {
+        this.errorMessage = undefined
+        this.knightPlan = plan
+        this.knightPlanActionKey = this.currentKnightActionKey
+        this.knightPlanStartSwords = this.gameState.knightsRemaining ?? 0
+    }
+
+    clearKnightPlan() {
+        this.knightPlan = undefined
+        this.knightPlanActionKey = undefined
+        this.knightPlanStartSwords = 0
+        this.cancelExpansion()
+    }
+
+    // Drops a plan that belongs to some EARLIER knight action - a different player's, or
+    // a later action of this player's own. Deliberately keeps the plan while the phase is
+    // merely closed (no knightPlacingPlayerId): an Undo that steps back into a knight
+    // action that had already finished has to find its plan intact, or the player lands
+    // in the plan chooser looking at a part-spent two-sword action being described as a
+    // fresh one-sword one.
+    syncKnightPlanWithState() {
+        if (!this.knightPlan) return
+        const key = this.currentKnightActionKey
+        if (key && key !== this.knightPlanActionKey) this.clearKnightPlan()
+    }
+
+    get knightPlanHasProgress(): boolean {
+        if (!this.knightPlan) return false
+        return (
+            this.expansionSquares.length > 0 ||
+            (this.gameState.knightsRemaining ?? 0) < this.knightPlanStartSwords
+        )
+    }
+
+    // How many spaces the in-progress expansion has already taken, read off the engine
+    // rather than the local expansionSquares list - the local one is a record of clicks
+    // and goes stale when an Undo reverts one of them. An expansion's 2nd space is what
+    // clears expandingRegionId (see ExpandRegion.apply), so a set id means exactly one
+    // space so far.
+    get expansionSpacesTaken(): number {
+        return this.gameState.expandingRegionId !== undefined ? 1 : 0
     }
 
     // The region currently being expanded (auto-selected if the player only owns
@@ -844,6 +983,7 @@ export class LowenherzGameSession extends GameSession<
 
     selectRegionToExpand(regionId: string) {
         if (!this.canExpandRegion) return
+        if (!this.expandableRegions.some((r) => r.id === regionId)) return
         this.errorMessage = undefined
         this.selectedExpandRegionId = regionId
         this.expansionSquares = []
@@ -854,8 +994,15 @@ export class LowenherzGameSession extends GameSession<
         this.expansionSquares = []
     }
 
-    private isValidExpansionAttempt(regionId: string, space: { col: number; row: number }): boolean {
-        if (!this.myPlayer) return false
+    // The engine's own verdict on one hypothetical expansion - undefined if it's legal,
+    // otherwise exactly the message ExpandRegion would reject it with. Every
+    // expansion-legality question in this class goes through here so the client never
+    // has its own second copy of the rules to drift out of sync.
+    private expansionAttemptReason(
+        regionId: string,
+        space: { col: number; row: number }
+    ): string | undefined {
+        if (!this.myPlayer) return "It isn't your turn to expand a region."
         const candidate = new HydratedExpandRegion({
             id: 'candidate',
             gameId: this.gameState.gameId,
@@ -865,7 +1012,11 @@ export class LowenherzGameSession extends GameSession<
             regionId,
             space
         })
-        return candidate.isValidExpandRegion(this.gameState)
+        return candidate.invalidExpandRegionReason(this.gameState)
+    }
+
+    private isValidExpansionAttempt(regionId: string, space: { col: number; row: number }): boolean {
+        return this.expansionAttemptReason(regionId, space) === undefined
     }
 
     // Squares that would legally extend the region-in-progress (adjacent to the
@@ -886,6 +1037,72 @@ export class LowenherzGameSession extends GameSession<
         return result
     }
 
+    // Why a region picked to expand has no legal target square - the distinct reasons
+    // ExpandRegion itself gave for every square on that region's frontier (the
+    // off-region squares orthogonally touching it, which is exactly the set adjacency
+    // allows), so the UI can say WHICH rule is in the way instead of a bare "nowhere
+    // legal". The invasion rule in particular is easy to be surprised by, so its
+    // reason gets the actual knight counts attached.
+    get expansionBlockedReasons(): string[] {
+        const regionId = this.selectedExpandRegionId
+        if (!regionId || !this.myPlayer) return []
+
+        const matches = this.gameState.regions.filter((r) => r.id === regionId)
+        if (matches.length === 0) return ['that region no longer exists']
+        if (matches.length > 1) {
+            // Two live regions sharing an id is broken state, not a rules situation,
+            // and it silently breaks every find-by-id in the engine - including the one
+            // that decides whether this is even your region (see detectNewRegions'
+            // mintId, which stops NEW ids from colliding but can't repair older state).
+            return [`two different regions share the id "${regionId}" - that's a bug, not a rule`]
+        }
+        const region = matches[0]
+        const regionKeys = new Set(region.squareKeys)
+
+        const frontier = new Set<string>()
+        for (const key of region.squareKeys) {
+            const [col, row] = key.split(',').map(Number)
+            for (const n of neighbors(col, row)) {
+                if (!isOnBoard(n.col, n.row)) continue
+                const nKey = squareKey(n.col, n.row)
+                if (regionKeys.has(nKey)) continue
+                frontier.add(nKey)
+            }
+        }
+
+        const reasons = new Set<string>()
+        for (const key of frontier) {
+            const [col, row] = key.split(',').map(Number)
+            const reason = this.expansionAttemptReason(regionId, { col, row })
+            if (reason) reasons.add(reason)
+        }
+
+        // Spell the knight comparison out with real numbers - "must outnumber" alone
+        // doesn't say by how much you're short, and the counts are what a player would
+        // otherwise be squinting at the board to tally.
+        const outnumberedReason = [...reasons].find((r) => r.includes('outnumber'))
+        if (outnumberedReason) {
+            const myKnights = countKnights(region, this.gameState.board)
+            // Only the neighbors whose knights actually hold this region off - a weaker
+            // one next door (blocked for some other reason, e.g. every square of it that
+            // touches this region is occupied) would make the comparison read as a lie.
+            const blockingCounts = [...frontier]
+                .map((key) => this.gameState.regions.find((r) => r.id !== region.id && r.squareKeys.includes(key)))
+                .filter((r): r is Region => r !== undefined && r.ownerColor !== undefined)
+                .map((r) => countKnights(r, this.gameState.board))
+                .filter((count) => count >= myKnights)
+            const weakestDefender = blockingCounts.length > 0 ? Math.min(...blockingCounts) : undefined
+            reasons.delete(outnumberedReason)
+            reasons.add(
+                weakestDefender === undefined
+                    ? outnumberedReason
+                    : `your ${myKnights} knight${myKnights === 1 ? '' : 's'} here must outnumber the ${weakestDefender} in the neighboring region to invade it`
+            )
+        }
+
+        return [...reasons].map((reason) => reason.charAt(0).toLowerCase() + reason.slice(1).replace(/\.$/, ''))
+    }
+
     // Each space is its own ExpandRegion action (see expandRegion.ts) rather than a
     // batch of 1-2 submitted together, so Undo can step back one space at a time
     // instead of reverting a whole 2-space expansion in one go. A 1-space expansion
@@ -898,17 +1115,9 @@ export class LowenherzGameSession extends GameSession<
         if (!regionId || this.expansionSquares.length >= 2 || !this.myPlayer) return
 
         const space = { col, row }
-        if (!this.isValidExpansionAttempt(regionId, space)) {
-            const candidate = new HydratedExpandRegion({
-                id: 'candidate',
-                gameId: this.gameState.gameId,
-                source: ActionSource.User,
-                type: ActionType.ExpandRegion,
-                playerId: this.myPlayer.id,
-                regionId,
-                space
-            })
-            this.errorMessage = candidate.invalidExpandRegionReason(this.gameState)
+        const reason = this.expansionAttemptReason(regionId, space)
+        if (reason) {
+            this.errorMessage = reason
             return
         }
 
@@ -1155,7 +1364,11 @@ export class LowenherzGameSession extends GameSession<
         const playerState = this.gameState.getPlayerState(this.myPlayer.id)
         const result = new Set<string>()
         for (const region of this.myRegions) {
-            if (this.regionHasRenegadeCandidateSquare(region, playerState)) result.add(region.id)
+            if (!this.regionHasRenegadeCandidateSquare(region, playerState)) continue
+            // A region with room for the replacement knight but nothing bordering it to
+            // take one FROM is just as much a dead end, so it isn't offered either.
+            if (!this.gameState.regions.some((r) => this.isEligibleRenegadeEnemyRegion(region, r))) continue
+            result.add(region.id)
         }
         return result
     }
@@ -1366,6 +1579,22 @@ export class LowenherzGameSession extends GameSession<
         )
     }
 
+    // Which of the player's own regions can actually start an alliance - one with no
+    // eligible neighbor (nothing bordering it but its own color, or only regions it's
+    // already allied with) is a dead end, so it isn't offered as a choice at all rather
+    // than being pickable and then answered with "that region has nothing to ally with,
+    // click Undo". Same shape as legalRenegadeOwnRegionIds.
+    get legalAllianceOwnRegionIds(): Set<string> {
+        if (!this.isPlayingAllianceCard) return new Set()
+        const result = new Set<string>()
+        for (const region of this.myRegions) {
+            if (this.gameState.regions.some((r) => this.isEligibleAllianceEnemyRegion(region, r))) {
+                result.add(region.id)
+            }
+        }
+        return result
+    }
+
     // Any of another prince's regions bordering the chosen own region that isn't
     // already allied with it.
     get legalAllianceEnemyRegions(): Region[] {
@@ -1415,11 +1644,31 @@ export class LowenherzGameSession extends GameSession<
         }
     }
 
-    // Every existing alliance the current player is a participant in and could afford
-    // to cancel right now (still requires it being their own decision-laying turn -
-    // enforced by the engine's own validity check, not re-derived here).
+    // Every existing alliance the current player is a participant in and could afford to
+    // cancel right now. "Any time" per the rulebook, which here means any time it's this
+    // player's turn to act - laying a decision card, or spending an action they've won
+    // (knights, walls, a politics card). Cancelling mid-knight-action is the one that
+    // matters most: an alliance blocks expansion, so paying it off has to be possible in
+    // the same breath as the expansion it unlocks. Being an active player is exactly the
+    // engine's own gate (see HydratedCancelAlliance), which the platform enforces too.
+    // The states whose handlers accept a CancelAlliance - kept in step with the engine's
+    // state handlers so the board never offers a cancellation the engine would reject.
+    // Negotiating/Dueling are deliberately left out even though both participants are
+    // active there: money is mid-flight in both (a standing offer, a sealed bid), and
+    // paying 10 ducats out from under one would leave a deal the player can no longer
+    // honor.
+    private static readonly ALLIANCE_CANCELLATION_STATES: MachineState[] = [
+        MachineState.ChoosingActions,
+        MachineState.PlacingWalls,
+        MachineState.PlacingKnights,
+        MachineState.TakingPoliticsCard
+    ]
+
     get myCancellableAlliances(): { id: string; otherColor: Color }[] {
-        if (!this.myPlayer || !this.canChooseAction) return []
+        if (!this.myPlayer || !this.gameState.activePlayerIds.includes(this.myPlayer.id)) return []
+        if (!LowenherzGameSession.ALLIANCE_CANCELLATION_STATES.includes(this.gameState.machineState)) {
+            return []
+        }
         const myColor = this.gameState.getPlayerState(this.myPlayer.id).color
         if (this.gameState.getPlayerState(this.myPlayer.id).money < ALLIANCE_CANCELLATION_COST) return []
 

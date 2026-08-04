@@ -101,7 +101,16 @@ export class HydratedNegotiationMove
                     break
                 }
 
-                // Both signed - the deal executes immediately.
+                // Both signed - the deal executes immediately, and is binding. Marking
+                // this signature keeps Undo from crossing back over it (see
+                // GameSession.undoableAction, which refuses to cross any action flagged
+                // revealsInfo - the same guard the duel puts on the bid that reveals
+                // every bid). Without it, either signer could unilaterally retract an
+                // agreement the other side had already accepted and been paid for. A
+                // FIRST signature stays undoable: nothing is binding until the
+                // counterparty commits too.
+                this.revealsInfo = true
+
                 const offer = negotiation.offer!
                 const toPlayerId = negotiation.playerIds.find((id) => id !== offer.fromPlayerId)!
                 state.getPlayerState(offer.fromPlayerId).money -= offer.amount

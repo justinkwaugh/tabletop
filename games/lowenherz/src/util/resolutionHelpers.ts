@@ -145,11 +145,13 @@ export function routeAfterSlotResolved(state: HydratedLowenherzGameState): SlotR
     }
 
     if (band.kind === 'knight') {
-        const winnerKnightsInStock = state.getPlayerState(winnerId).knightsInStock
-        const knightsToPlace = Math.min(band.count, winnerKnightsInStock)
-        // "If he has no more knights, he may place no more" - they still won, they
-        // just can't do anything with it.
-        if (knightsToPlace <= 0) {
+        const winnerState = state.getPlayerState(winnerId)
+        // "If he has no more knights, he may place no more" closes off only the placing
+        // half of this action - the other half ("or extend one of his regions by two
+        // spaces") needs no knights from stock at all, so an empty stock only wastes the
+        // whole action when there's also no region of their own to extend.
+        const canExpand = state.regions.some((r) => r.ownerColor === winnerState.color)
+        if (winnerState.knightsInStock <= 0 && !canExpand) {
             return {
                 nextState: MachineState.ResolvingActions,
                 bandKind: 'knight',
@@ -158,9 +160,13 @@ export function routeAfterSlotResolved(state: HydratedLowenherzGameState): SlotR
             }
         }
 
-        state.knightsRemaining = knightsToPlace
+        // The card's full sword count, NOT capped by knight stock - a sword the player
+        // can't place a knight with is still spendable on an expansion, and PlaceKnight
+        // enforces the stock limit itself.
+        state.knightsRemaining = band.count
         state.knightPlacingPlayerId = winnerId
         state.expandingRegionId = undefined
+        state.expansionUsed = undefined
         return { nextState: MachineState.PlacingKnights, bandKind: 'knight', bandCount: band.count }
     }
 

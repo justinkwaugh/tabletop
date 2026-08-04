@@ -4,8 +4,13 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { HydratedLookAtPoliticsPile } from '../actions/lookAtPoliticsPile.js'
 import { HydratedTakePoliticsCard } from '../actions/takePoliticsCard.js'
+import { HydratedCancelAlliance } from '../actions/cancelAlliance.js'
+import { canCancelAnAlliance } from '../util/allianceCancellation.js'
 
-type TakingPoliticsCardAction = HydratedLookAtPoliticsPile | HydratedTakePoliticsCard
+type TakingPoliticsCardAction =
+    | HydratedLookAtPoliticsPile
+    | HydratedTakePoliticsCard
+    | HydratedCancelAlliance
 
 export class TakingPoliticsCardStateHandler
     implements MachineStateHandler<TakingPoliticsCardAction, HydratedLowenherzGameState>
@@ -20,6 +25,11 @@ export class TakingPoliticsCardStateHandler
         if (action instanceof HydratedTakePoliticsCard) {
             return action.isValidTakePoliticsCard(context.gameState)
         }
+        // Cancelling an alliance is available any time it's this player's turn to act -
+        // see the note on HydratedCancelAlliance.
+        if (action instanceof HydratedCancelAlliance) {
+            return action.isValidCancelAlliance(context.gameState)
+        }
         return false
     }
 
@@ -31,9 +41,11 @@ export class TakingPoliticsCardStateHandler
         if (gameState.politicsTakingPlayerId !== playerId) return []
         // Once a pile has been opened, only the specific pick remains - no switching
         // to the other, unopened pile.
-        return gameState.openedPoliticsPile
+        const validActions = gameState.openedPoliticsPile
             ? [ActionType.TakePoliticsCard]
             : [ActionType.LookAtPoliticsPile]
+        if (canCancelAnAlliance(gameState, playerId)) validActions.push(ActionType.CancelAlliance)
+        return validActions
     }
 
     enter(context: MachineContext<HydratedLowenherzGameState>) {
@@ -47,8 +59,11 @@ export class TakingPoliticsCardStateHandler
         action: TakingPoliticsCardAction,
         _context: MachineContext<HydratedLowenherzGameState>
     ): MachineState {
-        // Opening a pile doesn't resolve anything yet - stay put until a specific
-        // card is picked.
+        // Neither opening a pile nor paying to end an alliance resolves anything yet -
+        // stay put until a specific card is picked.
+        if (action instanceof HydratedCancelAlliance) {
+            return MachineState.TakingPoliticsCard
+        }
         if (action instanceof HydratedLookAtPoliticsPile) {
             return MachineState.TakingPoliticsCard
         }

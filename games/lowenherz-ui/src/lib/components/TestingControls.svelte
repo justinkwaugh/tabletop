@@ -11,6 +11,12 @@
     // is kept intact so they can be brought back by setting this to true.
     const SHOW_TESTING_CONTROLS = false
 
+    // ...except this one, which is independently switched on right now: dealing
+    // everyone a random 1-5 cards is the only practical way to eyeball the hand-splay
+    // layout (flat vs. overlapped, and the jitter that only kicks in once cards
+    // overlap - see PlayerState.svelte) at every count.
+    const SHOW_DEAL_POLITICS_CARDS = true
+
     const canFastForwardToActionEffect = $derived(
         actionState.machineState !== MachineState.PlacingCastles &&
             actionState.machineState !== MachineState.PlacingWalls &&
@@ -57,6 +63,12 @@
         >
             Give Renegade + Alliance cards (testing)
         </button>
+    {/if}
+</div>
+{/if}
+
+{#if SHOW_DEAL_POLITICS_CARDS && gameSession.setupComplete}
+    <div class="flex flex-col gap-1">
         <button
             type="button"
             class="px-2 py-1 rounded border border-dashed border-black/40 text-black/70 text-xs hover:bg-black/10"
@@ -64,6 +76,5 @@
         >
             Give 1-5 random politics cards to everyone (testing)
         </button>
-    {/if}
-</div>
+    </div>
 {/if}

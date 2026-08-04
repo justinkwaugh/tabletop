@@ -103,11 +103,42 @@ describe('HydratedCancelAlliance', () => {
         expect(action.metadata).toEqual({ otherColor: Color.Pink })
     })
 
-    it("rejects cancellation when it isn't the player's turn to lay a decision card", () => {
-        const state = buildState({ decisions: [{ playerId: 'p1', slot: 1 }, { playerId: 'p1', slot: 2 }] })
-        // With both of p1's front-loaded decisions used, it's now p2's turn - p1 can no
-        // longer act even though p1 is one of the alliance's participants.
+    it("rejects cancellation while it isn't the player's turn to act at all", () => {
+        const state = buildState({
+            activePlayerIds: ['p2'],
+            decisions: [{ playerId: 'p1', slot: 1 }, { playerId: 'p1', slot: 2 }]
+        })
+        // p1 is a participant and can afford it, but p2 is the one acting - and the
+        // platform (GameEngine.isPlayerAllowed) wouldn't accept an action from a
+        // non-active player anyway, so this mirrors that rather than inventing a
+        // second, looser rule.
         expect(makeCancelAlliance('p1').isValidCancelAlliance(state)).toBe(false)
+    })
+
+    it('allows cancelling mid-knight-action, which is what unblocks expanding into the ex-ally', () => {
+        // The rulebook's own example of why you'd pay: "If gold pays 10 ducats to the
+        // bank, he may cancel the alliance and is then free to expand into either
+        // region." Expansion happens during the knight action, long after this player's
+        // decision-laying turn - so gating cancellation on that turn made the sequence
+        // impossible to perform.
+        const state = buildState({
+            machineState: MachineState.PlacingKnights,
+            activePlayerIds: ['p1'],
+            knightsRemaining: 2,
+            knightPlacingPlayerId: 'p1',
+            decisions: [{ playerId: 'p1', slot: 1 }, { playerId: 'p1', slot: 2 }, { playerId: 'p2', slot: 3 }],
+            resolvedSlots: [{ slot: 1, winnerPlayerId: 'p1' }]
+        })
+        const action = makeCancelAlliance('p1')
+
+        expect(action.isValidCancelAlliance(state)).toBe(true)
+        action.apply(state)
+
+        expect(state.alliances).toEqual([])
+        expect(state.getPlayerState('p1').money).toBe(2)
+        // The knight action itself is untouched - the ducats are the only cost.
+        expect(state.knightsRemaining).toBe(2)
+        expect(state.knightPlacingPlayerId).toBe('p1')
     })
 
     it("rejects cancellation from a player who isn't one of the two alliance participants", () => {
