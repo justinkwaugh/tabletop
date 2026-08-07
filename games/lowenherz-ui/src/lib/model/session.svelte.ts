@@ -17,6 +17,7 @@ import {
     detectNewRegions,
     DrawActionCard,
     ExpandRegion,
+    isExpandRegion,
     getSquare,
     HydratedCancelAlliance,
     HydratedChooseAction,
@@ -1029,34 +1030,59 @@ export class LowenherzGameSession extends GameSession<
         )
     }
 
-    // How many spaces the in-progress expansion has already taken, read off the engine
-    // rather than the local expansionSquares list - the local one is a record of clicks
-    // and goes stale when an Undo reverts one of them. An expansion's 2nd space is what
-    // clears expandingRegionId (see ExpandRegion.apply), so a set id means exactly one
-    // space so far.
+    // How many spaces the in-progress expansion has already taken, read straight off the
+    // engine's own flag: the 2nd space is what clears expandingRegionId (see
+    // ExpandRegion.apply), so a set id means exactly one space so far. expansionSquares
+    // agrees with this now that it derives from the action log too, but this stays the
+    // cheaper answer where only the count is needed.
     get expansionSpacesTaken(): number {
         return this.gameState.expandingRegionId !== undefined ? 1 : 0
     }
 
-    // The region currently being expanded (auto-selected if the player only owns
-    // one), and the 1-2 spaces picked so far for that expansion - each is submitted
-    // as its own ExpandRegion action immediately on pick (see addExpansionSquare),
-    // so this is purely a local record of what's already landed, for highlighting/
-    // ghost-piece rendering; it's not a staged batch waiting on a later submit.
+    // The region currently being expanded (auto-selected if the player only owns one).
     selectedExpandRegionId: string | undefined = $state(undefined)
-    expansionSquares: { col: number; row: number }[] = $state([])
+
+    // The 1-2 spaces this expansion has taken, read back off the action log rather than
+    // recorded locally as they're clicked. Each space is its own ExpandRegion action,
+    // dispatched and optimistically applied the moment it's picked, so the log IS the
+    // record - and deriving it means the UI can't disagree with the engine.
+    //
+    // It used to be a local array appended to after `await applyAction(...)`, which drifts:
+    // GameSession.applyAction returns early while it's still busy and swallows rejections
+    // without rethrowing, so a second click during the first round-trip appended a space
+    // that was never dispatched. The board then tinted a square and drew walls the engine
+    // didn't have, legalNextExpansionSquares saw 2 spaces and offered none, and the real 2nd
+    // space became unreachable - all while the status line read "1/2" from engine state.
+    // Deriving also self-heals on Undo, which the old comment noted it didn't.
+    get expansionSquares(): { col: number; row: number }[] {
+        const regionId = this.selectedExpandRegionId
+        const myPlayerId = this.myPlayer?.id
+        if (!regionId || !myPlayerId) return []
+
+        // The expansion's spaces are always the trailing run of ExpandRegion actions for
+        // this region: the engine emits nothing between them, and anything else in the log
+        // (a knight placement, the resolution cascade) means that expansion is over.
+        const spaces: { col: number; row: number }[] = []
+        for (let index = this.actions.length - 1; index >= 0; index--) {
+            const action = this.actions[index]
+            if (!isExpandRegion(action)) break
+            if (action.playerId !== myPlayerId || action.regionId !== regionId) break
+            spaces.unshift({ col: action.space.col, row: action.space.row })
+        }
+        return spaces
+    }
 
     selectRegionToExpand(regionId: string) {
         if (!this.canExpandRegion) return
         if (!this.expandableRegions.some((r) => r.id === regionId)) return
         this.errorMessage = undefined
         this.selectedExpandRegionId = regionId
-        this.expansionSquares = []
     }
 
+    // Dropping the region selection empties expansionSquares by itself, since that derives
+    // from the selected region (see above).
     cancelExpansion() {
         this.selectedExpandRegionId = undefined
-        this.expansionSquares = []
     }
 
     // The engine's own verdict on one hypothetical expansion - undefined if it's legal,
@@ -1188,13 +1214,10 @@ export class LowenherzGameSession extends GameSession<
 
         this.errorMessage = undefined
         const action = this.createPlayerAction(ExpandRegion, { regionId, space })
-        try {
-            await this.applyAction(action)
-            this.expansionSquares = [...this.expansionSquares, space]
-        } catch (e) {
-            console.warn('Failed to expand region:', e)
-            this.errorMessage = 'That expansion was rejected.'
-        }
+        // No local bookkeeping to update afterwards: expansionSquares reads the action log,
+        // so a dispatch that was dropped (applyAction returns early while busy) simply
+        // doesn't appear, instead of leaving the board drawing a space that isn't there.
+        await this.applyAction(action)
     }
 
     get canTakePoliticsCard(): boolean {
