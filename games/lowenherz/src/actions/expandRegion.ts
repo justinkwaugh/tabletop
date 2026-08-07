@@ -287,6 +287,8 @@ export class HydratedExpandRegion
         // of who caused it - so it's detected and scored the same way here.
         const newRegions = detectNewRegions(state.board, state.regions)
         const completedRegions: NonNullable<ExpandRegionMetadata['completedRegions']> = []
+        // Same rule as PlaceWall: a region owned by a colour no player holds scores for
+        // nobody. See the note there for why that's deliberate.
         for (const newRegion of newRegions) {
             const points = newRegion.ownerColor ? scoreRegion(newRegion, state.board) : 0
             if (newRegion.ownerColor) {

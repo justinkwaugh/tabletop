@@ -80,6 +80,16 @@ export class HydratedPlaceWall extends HydratableAction<typeof PlaceWall> implem
 
         const newRegions = detectNewRegions(state.board, state.regions)
         const completedRegions: NonNullable<PlaceWallMetadata['completedRegions']> = []
+        // A region belonging to a colour no player holds - the neutral prince in the
+        // 2-player variant, or an unchosen colour's castles at 3 players - scores for
+        // NOBODY. That's deliberate, not an oversight the `if (owner)` guard is hiding:
+        // points exist only to decide who succeeds the King, and a non-player colour can't
+        // win, so there is nobody to award them to. It also gives walling in neutral
+        // territory a purpose of its own - denial, locking its spaces, hills and towns away
+        // from your opponent - rather than the gift that enclosing a real prince's region
+        // is ("the owner of the newly created region... moves his power marker", even when
+        // someone else's play created it). Awarding them to the enclosing player instead
+        // would be a house rule, and a significant change to 2-player balance.
         for (const region of newRegions) {
             const points = region.ownerColor ? scoreRegion(region, state.board) : 0
             if (region.ownerColor) {
