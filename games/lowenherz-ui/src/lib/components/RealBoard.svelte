@@ -645,6 +645,24 @@
     // candidate. They're consulted from per-square helpers inside the 150-cell grid loop,
     // so reading them straight off the session recomputed the whole thing once per square -
     // the same O(n^2) shape that froze the board once before (see the note above).
+    // Which region owns each square, built once per render. regionAt/regionTint are called
+    // for all ~150 squares of the grid, and both used to run regions.find(r =>
+    // r.squareKeys.includes(key)) - a scan of every region, and within each a scan of its
+    // square keys comparing strings. A dozen regions of ten squares each is ~120 string
+    // compares per square, ~18k per render, re-run on every reactive change including the
+    // hoverPoint updates that fire on mouse move. Same hoisting the sets below already got.
+    const regionBySquareKey = $derived.by(() => {
+        const map = new Map<string, (typeof regions)[number]>()
+        for (const region of regions) {
+            for (const key of region.squareKeys) map.set(key, region)
+        }
+        return map
+    })
+    // Region ids by ownership, for the same reason: myRegions/expandableRegions are plain
+    // getters that filter the whole regions array on every read, and the helpers below are
+    // called once per square.
+    const myRegionIdSet = $derived(new Set(gameSession.myRegions.map((r) => r.id)))
+    const expandableRegionIdSet = $derived(new Set(gameSession.expandableRegions.map((r) => r.id)))
     const legalRenegadeOwnRegionIdSet = $derived(gameSession.legalRenegadeOwnRegionIds)
     const legalAllianceOwnRegionIdSet = $derived(gameSession.legalAllianceOwnRegionIds)
 
@@ -1085,21 +1103,20 @@
 
     function isOwnSelectableRegion(col: number, row: number): boolean {
         if (gameSession.selectedExpandRegionId) return false
-        const key = squareKey(col, row)
-        return gameSession.myRegions.some((r) => r.squareKeys.includes(key))
+        const region = regionAt(col, row)
+        return region !== undefined && myRegionIdSet.has(region.id)
     }
 
     // Same, but for the expansion flow specifically, which can't offer every region of
     // yours while one expansion is already under way (see expandableRegions).
     function isSelectableExpandRegion(col: number, row: number): boolean {
         if (gameSession.selectedExpandRegionId) return false
-        const key = squareKey(col, row)
-        return gameSession.expandableRegions.some((r) => r.squareKeys.includes(key))
+        const region = regionAt(col, row)
+        return region !== undefined && expandableRegionIdSet.has(region.id)
     }
 
     function regionAt(col: number, row: number) {
-        const key = squareKey(col, row)
-        return regions.find((r) => r.squareKeys.includes(key))
+        return regionBySquareKey.get(squareKey(col, row))
     }
 
     function isOwnSelectableRenegadeRegion(col: number, row: number): boolean {
@@ -1161,7 +1178,7 @@
             if (region?.ownerColor) return gameSession.colors.getUiColor(region.ownerColor)
         }
 
-        const region = regions.find((r) => r.squareKeys.includes(key))
+        const region = regionBySquareKey.get(key)
         if (!region?.ownerColor) return undefined
         return gameSession.colors.getUiColor(region.ownerColor)
     }
