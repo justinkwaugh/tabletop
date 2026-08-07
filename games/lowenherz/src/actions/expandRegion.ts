@@ -8,6 +8,7 @@ import {
     isOnBoard,
     isWalledBetween,
     neighbors,
+    separatesSamePrincePieces,
     squareKey,
     SquareType,
     wallBetween
@@ -170,10 +171,21 @@ export class HydratedExpandRegion
         // the region, same as if it'd been sealed off by the Boundary Walls action.
         // (The edge shared with the pre-expansion region is deliberately left open -
         // it's already excluded here since it's part of region.squareKeys.)
+        const claimedSquare = getSquare(state.board, space.col, space.row)
         for (const n of neighbors(space.col, space.row)) {
             if (!isOnBoard(n.col, n.row)) continue
             if (region.squareKeys.includes(squareKey(n.col, n.row))) continue
             if (isWalledBetween(state.board, space.col, space.row, n.col, n.row)) continue
+
+            // The same-prince rule PlaceWall enforces ("boundary walls may never be placed
+            // between a knight and a castle of the same prince or between two knights of
+            // the same prince" - see PlaceWall.invalidPlaceWallReason) applies to the walls
+            // an expansion draws too. Expanding onto a square holding your OWN knight is
+            // legal, and ringing it unconditionally could cut that knight off from your
+            // castle chain - a position no wall placement would ever have allowed, and one
+            // that disabled Renegade against that colour entirely (see isKnightSafeToRemove).
+            const neighborSquare = getSquare(state.board, n.col, n.row)
+            if (separatesSamePrincePieces(claimedSquare, neighborSquare)) continue
 
             const wall = wallBetween(space.col, space.row, n.col, n.row)!
             state.board.walls.push(wall)

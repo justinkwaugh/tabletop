@@ -163,3 +163,19 @@ export function castleSquaresForColor(
     }
     return result
 }
+
+// "Boundary walls may never be placed between a knight and a castle of the same prince or
+// between two knights of the same prince." True when a wall on the edge between these two
+// squares would do exactly that. Shared so the rule has one definition: PlaceWall rejects
+// such a wall outright, and ExpandRegion skips it when ringing a newly claimed square
+// (which can legally hold the expanding player's own knight).
+export function separatesSamePrincePieces(
+    square1: BoardSquare | undefined,
+    square2: BoardSquare | undefined
+): boolean {
+    if (!square1 || !square2) return false
+    if (square1.knightColor && square1.knightColor === square2.knightColor) return true
+    if (square1.knightColor && square1.knightColor === square2.castleColor) return true
+    if (square2.knightColor && square2.knightColor === square1.castleColor) return true
+    return false
+}

@@ -98,6 +98,12 @@ describe('isKnightSafeToRemove', () => {
     })
 
     it('treats a wall between two knights as breaking the connection', () => {
+        // A wall between (1,0) and (2,0) means removing (1,0) cannot be what strands
+        // (2,0) - the wall already did. The rulebook's restriction is about a knight that
+        // "serves as the only connecting link"; (1,0) links nothing here, so it's fine to
+        // take. Judging pre-existing damage against the candidate used to make EVERY square
+        // of that colour unsafe for the rest of the game, silently disabling Renegade
+        // against them.
         const board = blankBoard()
         board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
         board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Pink }
@@ -105,9 +111,23 @@ describe('isKnightSafeToRemove', () => {
         board.walls = [{ col: 2, row: 0, edge: WallEdge.West }] // between (1,0) and (2,0)
         const state = buildState(board)
 
-        // (2,0) was already unreachable (wall-blocked) even before considering
-        // removal - removing (1,0) doesn't change that, so this should report
-        // whatever's left as still disconnected either way (false).
+        expect(isKnightSafeToRemove(state, Color.Pink, 1, 0)).toBe(true)
+        // ...and the already-stranded knight itself is still removable - nothing depends
+        // on it either.
+        expect(isKnightSafeToRemove(state, Color.Pink, 2, 0)).toBe(true)
+    })
+
+    it('still refuses a knight that is the sole link even when another is already stranded', () => {
+        // The pre-existing strand must not become a blanket excuse: (1,0) IS the only link
+        // between (2,0) and the castle, so removing it is still refused, while the
+        // separately walled-off knight at (5,5) is irrelevant to that judgement.
+        const board = blankBoard()
+        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Pink }
+        board.squares[0][2] = { type: SquareType.Blank, knightColor: Color.Pink }
+        board.squares[5][5] = { type: SquareType.Blank, knightColor: Color.Pink }
+        const state = buildState(board)
+
         expect(isKnightSafeToRemove(state, Color.Pink, 1, 0)).toBe(false)
     })
 

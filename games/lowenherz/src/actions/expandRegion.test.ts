@@ -6,6 +6,8 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { Region } from '../model/region.js'
 import { HydratedExpandRegion } from './expandRegion.js'
+import { isWalledBetween } from '../model/board.js'
+import { isKnightSafeToRemove } from '../util/knightConnectivity.js'
 
 function blankBoard(): { squares: BoardSquare[][]; walls: { col: number; row: number; edge: WallEdge }[] } {
     const squares = Array.from({ length: BOARD_ROWS }, () =>
@@ -493,6 +495,38 @@ describe('HydratedExpandRegion', () => {
                 }
             ]
         })
+    })
+
+    it("doesn't wall the expanding player's own knight off from its castle chain", () => {
+        // Expanding onto a square holding your OWN knight is legal, but the wall ring drawn
+        // around the new square must honour the same rule PlaceWall enforces: no wall
+        // between a knight and a castle of the same prince, or between two of that prince's
+        // knights. Ringing it unconditionally stranded the knight beyond it - a position no
+        // wall placement could produce - and that in turn disabled Renegade against this
+        // colour entirely (see isKnightSafeToRemove).
+        const board = blankBoard()
+        board.squares[0][2] = { type: SquareType.Blank, castleColor: Color.Pink } // (2,0)
+        board.squares[1][2] = { type: SquareType.Blank } // (2,1), in the region
+        board.squares[1][3] = { type: SquareType.Blank, knightColor: Color.Pink } // (3,1) expanded onto
+        board.squares[1][4] = { type: SquareType.Blank, knightColor: Color.Pink } // (4,1) mustn't be cut off
+        const state = buildState({
+            board,
+            regions: [
+                { id: 'r1', ownerColor: Color.Pink, squareKeys: ['2,0', '2,1'], castleSquareKey: '2,0' }
+            ]
+        })
+        expect(isKnightSafeToRemove(state, Color.Pink, 4, 1)).toBe(true)
+
+        const action = makeExpandRegion('p1', 'r1', { col: 3, row: 1 })
+        expect(action.isValidExpandRegion(state)).toBe(true)
+        action.apply(state)
+
+        // No wall between the two Pink knights at (3,1) and (4,1)...
+        expect(isWalledBetween(state.board, 3, 1, 4, 1)).toBe(false)
+        // ...so (4,1) is still connected to Pink's castle, and Renegade still works.
+        expect(isKnightSafeToRemove(state, Color.Pink, 4, 1)).toBe(true)
+        // The ring is still drawn everywhere it's allowed - e.g. below the claimed square.
+        expect(isWalledBetween(state.board, 3, 1, 3, 2)).toBe(true)
     })
 
     it('absorbs a neutral zone space, shrinking it', () => {

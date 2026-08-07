@@ -3,7 +3,14 @@ import { Compile } from 'typebox/compile'
 import { Color, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { getSquare, isOnBoard, isWalledBetween, squareKey, wallBetween } from '../model/board.js'
+import {
+    getSquare,
+    isOnBoard,
+    isWalledBetween,
+    separatesSamePrincePieces,
+    squareKey,
+    wallBetween
+} from '../model/board.js'
 import { detectNewRegions } from '../util/regionDetection.js'
 import { countTowns, removeInteriorWalls, scoreRegion } from '../util/regionScoring.js'
 
@@ -129,14 +136,12 @@ export class HydratedPlaceWall extends HydratableAction<typeof PlaceWall> implem
         }
 
         // Never between two knights of the same prince, or a knight and that same
-        // prince's castle.
-        if (square1.knightColor && square2.knightColor && square1.knightColor === square2.knightColor) {
-            return "A wall can't separate two knights of the same color."
-        }
-        if (
-            (square1.knightColor && square2.castleColor && square1.knightColor === square2.castleColor) ||
-            (square2.knightColor && square1.castleColor && square2.knightColor === square1.castleColor)
-        ) {
+        // prince's castle (see separatesSamePrincePieces - ExpandRegion's wall ring honours
+        // the same rule, so it lives next to the board model rather than in here).
+        if (separatesSamePrincePieces(square1, square2)) {
+            if (square1.knightColor && square1.knightColor === square2.knightColor) {
+                return "A wall can't separate two knights of the same color."
+            }
             return "A wall can't separate a knight from its own castle."
         }
 
