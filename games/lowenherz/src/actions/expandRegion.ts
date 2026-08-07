@@ -21,7 +21,8 @@ import {
     countTowns,
     findConnectedComponents,
     removeInteriorWalls,
-    scoreRegion
+    scoreRegion,
+    scoreSpacesAndTowns
 } from '../util/regionScoring.js'
 
 export type ExpandRegionSpace = Type.Static<typeof ExpandRegionSpace>
@@ -221,8 +222,39 @@ export class HydratedExpandRegion
             if (strandedComponents.length > 0) {
                 const strandedKeys = strandedComponents.flat()
                 disconnectedSpaces = strandedKeys.length
-                disconnectedPointsLost = scoreRegion({ id: '', squareKeys: strandedKeys }, state.board)
                 disconnectedAnchorSquareKey = strandedKeys[0]
+
+                // "If a player loses spaces in two or more neutral zones, the spaces are
+                // added together to determine the lost power points." The two spaces of one
+                // expansion are two separate actions, so each stranding used to get its own
+                // table lookup - stranding 1 space and then another cost 3 + 3 where the
+                // rulebook charges a single lookup on 2 combined spaces (3). This charges
+                // the DIFFERENCE between the combined total and what's already been taken
+                // from this victim during this expansion.
+                const victimColor = victimRegion.ownerColor!
+                const strandings = state.expansionStrandings ?? []
+                const previous = strandings.find((entry) => entry.color === victimColor)
+                const combinedSpaces = (previous?.spaces ?? 0) + strandedKeys.length
+                const combinedTowns =
+                    (previous?.towns ?? 0) +
+                    countTowns({ id: '', squareKeys: strandedKeys }, state.board)
+                const combinedPoints = scoreSpacesAndTowns(combinedSpaces, combinedTowns)
+                disconnectedPointsLost = combinedPoints - (previous?.pointsCharged ?? 0)
+
+                if (previous) {
+                    previous.spaces = combinedSpaces
+                    previous.towns = combinedTowns
+                    previous.pointsCharged = combinedPoints
+                } else {
+                    strandings.push({
+                        color: victimColor,
+                        spaces: combinedSpaces,
+                        towns: combinedTowns,
+                        pointsCharged: combinedPoints
+                    })
+                }
+                state.expansionStrandings = strandings
+
                 if (victimPlayer) {
                     victimPlayer.powerPoints -= disconnectedPointsLost
                 }
@@ -278,6 +310,7 @@ export class HydratedExpandRegion
             // This was the 2nd (and final - only ever 1-2 total) space of an
             // in-progress expansion - its sword was already paid by the 1st.
             state.expandingRegionId = undefined
+            state.expansionStrandings = undefined
         } else {
             // A fresh expansion costs exactly one sword (not the whole action - a
             // two-sword card is explicitly "place one knight and expand one of his

@@ -180,12 +180,47 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
         if (castleSquare.castleColor || castleSquare.knightColor) return 'occupied'
 
         const existingSameColorCastles = castleSquaresForColor(state.board, slot.color)
+        const requiredGap = HydratedPlaceCastle.requiredCastleGap(state, slot.color)
         const tooClose = existingSameColorCastles.some(
             (existing) =>
-                manhattanDistance(existing.col, existing.row, castleCol, castleRow) <
-                SAME_COLOR_CASTLE_MIN_GAP
+                manhattanDistance(existing.col, existing.row, castleCol, castleRow) < requiredGap
         )
         return tooClose ? 'tooClose' : undefined
+    }
+
+    // The same-colour spacing this placement actually has to clear. Normally the rulebook's
+    // "at least 6 spaces between them", but relaxed to the best the board still offers when
+    // NOTHING clears 6.
+    //
+    // Setup places 12 castles under a hard spacing rule with no Pass and no take-backs, so a
+    // sequence of individually legal placements can leave the next one with nowhere to go -
+    // the game then hangs before turn 1. Random legal play reached that state in roughly
+    // 1 in 500 two-player games (the variant places four own-colour castles each, so its
+    // spacing is by far the tightest). Rather than let a game die at setup, the requirement
+    // degrades to the largest gap any legal square can offer, which still spreads castles as
+    // far apart as the board permits. It only ever engages when the strict rule is
+    // unsatisfiable, so ordinary games are unaffected.
+    static requiredCastleGap(state: HydratedLowenherzGameState, color: Color): number {
+        const existing = castleSquaresForColor(state.board, color)
+        if (existing.length === 0) return SAME_COLOR_CASTLE_MIN_GAP
+
+        let bestAchievableGap = 0
+        for (let row = 0; row < state.board.squares.length; row++) {
+            for (let col = 0; col < state.board.squares[row].length; col++) {
+                const square = getSquare(state.board, col, row)
+                if (!square || square.type !== SquareType.Blank) continue
+                if (square.castleColor || square.knightColor) continue
+                if (!HydratedPlaceCastle.hasLegalKnightSquare(state, col, row)) continue
+
+                let nearest = Number.POSITIVE_INFINITY
+                for (const castle of existing) {
+                    nearest = Math.min(nearest, manhattanDistance(castle.col, castle.row, col, row))
+                }
+                if (nearest >= SAME_COLOR_CASTLE_MIN_GAP) return SAME_COLOR_CASTLE_MIN_GAP
+                bestAchievableGap = Math.max(bestAchievableGap, nearest)
+            }
+        }
+        return bestAchievableGap
     }
 
     static isValidKnightSquare(

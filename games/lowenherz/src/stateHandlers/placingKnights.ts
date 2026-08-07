@@ -89,6 +89,7 @@ export class PlacingKnightsStateHandler
         // space was never owed to them.
         if (action instanceof HydratedPlaceKnight) {
             gameState.expandingRegionId = undefined
+            gameState.expansionStrandings = undefined
         }
 
         // A Pass ends the phase immediately, however much of the action is left - the
@@ -103,6 +104,7 @@ export class PlacingKnightsStateHandler
             !hasKnightActionOptions(gameState, action.playerId)
         ) {
             gameState.expandingRegionId = undefined
+            gameState.expansionStrandings = undefined
             gameState.expansionUsed = undefined
             gameState.knightsRemaining = undefined
             gameState.knightPlacingPlayerId = undefined

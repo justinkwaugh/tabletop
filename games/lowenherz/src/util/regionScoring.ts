@@ -67,9 +67,12 @@ export function regionsAreNeighboring(a: Region, b: Region): boolean {
 }
 
 // Region creation table from the rulebook: total spaces -> power points, plus a flat
-// +5 for each town (village) space contained in the region.
-export function scoreRegion(region: Region, board: LowenherzBoard): number {
-    const spaceCount = region.squareKeys.length
+// +5 for each town (village) space contained in the region. Exposed on its own (rather
+// than only via scoreRegion) because a neutral-zone loss can be spread across the two
+// spaces of a single expansion and has to be scored on the COMBINED totals - see
+// ExpandRegion.apply.
+export function scoreSpacesAndTowns(spaceCount: number, townCount: number): number {
+    if (spaceCount <= 0) return 0
 
     let points: number
     if (spaceCount <= 4) points = 3
@@ -78,7 +81,11 @@ export function scoreRegion(region: Region, board: LowenherzBoard): number {
     else if (spaceCount <= 30) points = 9
     else points = 12
 
-    return points + countTowns(region, board) * 5
+    return points + townCount * 5
+}
+
+export function scoreRegion(region: Region, board: LowenherzBoard): number {
+    return scoreSpacesAndTowns(region.squareKeys.length, countTowns(region, board))
 }
 
 // Once a region is sealed, any wall entirely interior to it (both sides inside the

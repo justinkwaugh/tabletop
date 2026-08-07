@@ -531,8 +531,12 @@ export class LowenherzGameSession extends GameSession<
 
     // A proposal names either negotiator as the payer ("I'll pay you" or "you pay
     // me") - it's a suggested deal shape, not necessarily an offer of your own money.
-    async proposeNegotiationOffer(fromPlayerId: string, amount: number) {
-        if (!this.myPlayer || !this.isNegotiator) return
+    // Returns whether the offer actually became the standing one. Callers keep local draft
+    // state (who pays, how much) that has to be rolled back when it didn't - otherwise the
+    // panel goes on displaying an offer nobody submitted, and Signed then signs whatever the
+    // real standing offer is, which can be the opposite payment direction.
+    async proposeNegotiationOffer(fromPlayerId: string, amount: number): Promise<boolean> {
+        if (!this.myPlayer || !this.isNegotiator) return false
 
         const candidate = new HydratedNegotiationMove({
             id: 'candidate',
@@ -547,7 +551,7 @@ export class LowenherzGameSession extends GameSession<
         if (!candidate.isValidNegotiationMove(this.gameState)) {
             this.errorMessage =
                 "That offer isn't allowed — it must be a whole number of ducats the payer can afford."
-            return
+            return false
         }
 
         const action = this.createPlayerAction(NegotiationMove, {
@@ -558,14 +562,20 @@ export class LowenherzGameSession extends GameSession<
         this.errorMessage = undefined
         try {
             await this.applyAction(action)
+            return true
         } catch (e) {
             console.warn('Failed to propose negotiation offer:', e)
             this.errorMessage = 'That offer was rejected.'
+            return false
         }
     }
 
     get canSignNegotiationOffer(): boolean {
         if (!this.isNegotiator) return false
+        // A Sign with no standing offer is rejected by the engine
+        // (NegotiationMove.invalidNegotiationMoveReason), so signing has to be paired with a
+        // proposal that actually succeeded - see RealBoard's signNegotiation, which stops if
+        // its proposal is refused rather than dispatching a Sign that can't land.
         // Doesn't require an offer to already exist - see RealBoard.svelte's Signed
         // button, which proposes the current draft first if nothing's been proposed
         // yet, then signs it, so the button is usable immediately without a

@@ -28,8 +28,20 @@ export class LowenherzGameInitializer
     // When an exploration state is created, in order to avoid allowing the player to discover
     // hidden information, this method can be used to modify the game state to hide such information.
     // Shuffling the remaining cards in a deck would be a reasonable example.
+    //
+    // This game has three such sources, and returning the state untouched handed all of
+    // them over: actionDeck is ordered (index 0 draws next) and the position of the King is
+    // Dead card is literally when the game ends, and each politics pile is face-down until
+    // a Crown-and-Scepter winner looks through one. Shuffled in place with Math.random
+    // rather than the state's own seeded prng - an exploration branch must not be
+    // reproducible from the real game's seed, and the same pattern is used by
+    // santiago/estates/fresh-fish.
     initializeExplorationState(state: LowenherzGameState): LowenherzGameState {
-        return state
+        const explorationState = structuredClone(state)
+        shuffle(explorationState.actionDeck, () => Math.random())
+        shuffle(explorationState.politicsCardPileA, () => Math.random())
+        shuffle(explorationState.politicsCardPileB, () => Math.random())
+        return explorationState
     }
 
     // Initialize the game state based on things like the number of players and the game config

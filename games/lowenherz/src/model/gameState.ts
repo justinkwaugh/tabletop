@@ -149,6 +149,23 @@ export const LowenherzGameState = Type.Evaluate(
             // expansion is refused even when a sword is still unspent. Cleared when a
             // new knight action starts (see resolveBandForWinner).
             expansionUsed: Type.Optional(Type.Boolean()),
+            // Neutral zones this expansion has already stranded, per victim colour, with
+            // the points already charged for them. A 1-2 space expansion is submitted as up
+            // to two separate ExpandRegion actions, but the rulebook scores the loss as one
+            // event - "if a player loses spaces in two or more neutral zones, the spaces are
+            // added together to determine the lost power points" - so the 2nd space charges
+            // the DIFFERENCE between the combined total and what the 1st already took (see
+            // ExpandRegion.apply). Cleared with expandingRegionId when the expansion ends.
+            expansionStrandings: Type.Optional(
+                Type.Array(
+                    Type.Object({
+                        color: Type.Enum(Color),
+                        spaces: Type.Number(),
+                        towns: Type.Number(),
+                        pointsCharged: Type.Number()
+                    })
+                )
+            ),
 
             // The two face-down politics-card piles the "Crown and Scepter" action
             // draws from - set once at game start, drawn down over the game.
@@ -207,6 +224,12 @@ export class HydratedLowenherzGameState
     declare knightPlacingPlayerId?: string
     declare expandingRegionId?: string
     declare expansionUsed?: boolean
+    declare expansionStrandings?: {
+        color: Color
+        spaces: number
+        towns: number
+        pointsCharged: number
+    }[]
 
     declare politicsCardPileA: PoliticsCard[]
     declare politicsCardPileB: PoliticsCard[]

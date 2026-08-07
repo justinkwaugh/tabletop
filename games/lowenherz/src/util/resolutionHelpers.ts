@@ -203,6 +203,7 @@ export function routeAfterSlotResolved(state: HydratedLowenherzGameState): SlotR
         state.knightsRemaining = band.count
         state.knightPlacingPlayerId = winnerId
         state.expandingRegionId = undefined
+        state.expansionStrandings = undefined
         state.expansionUsed = undefined
         return { nextState: MachineState.PlacingKnights, bandKind: 'knight', bandCount: band.count }
     }

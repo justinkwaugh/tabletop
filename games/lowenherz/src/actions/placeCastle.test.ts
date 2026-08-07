@@ -229,6 +229,45 @@ describe('HydratedPlaceCastle', () => {
     })
 })
 
+describe('HydratedPlaceCastle.requiredCastleGap', () => {
+    it('keeps the rulebook 6-space gap while any legal square can clear it', () => {
+        const state = buildState(['p1', 'p2', 'p3', 'p4'])
+        state.board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+
+        expect(HydratedPlaceCastle.requiredCastleGap(state, Color.Pink)).toBe(6)
+    })
+
+    it('relaxes to the best the board offers when nothing can clear 6', () => {
+        // Setup has no Pass and no take-backs, so a placement with zero legal squares hangs
+        // the game before turn 1 - reachable because 12 castles go down under a hard spacing
+        // rule (tightest in the 2-player variant, which places four of each colour). When
+        // the strict gap is unsatisfiable the requirement degrades to the widest gap still
+        // available, which keeps castles as spread out as the board permits.
+        const state = buildState(['p1', 'p2'])
+        // Hills can't take a castle, so fencing the board off with them leaves only a small
+        // blank pocket beside Pink's existing castle - every candidate is 1-2 away.
+        for (let row = 0; row < state.board.squares.length; row++) {
+            for (let col = 0; col < state.board.squares[row].length; col++) {
+                state.board.squares[row][col] = { type: SquareType.Hill }
+            }
+        }
+        state.board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        state.board.squares[0][1] = { type: SquareType.Blank } // (1,0) - gap 1
+        state.board.squares[0][2] = { type: SquareType.Blank } // (2,0) - gap 2, needs a knight square
+        state.board.squares[1][2] = { type: SquareType.Blank } // (2,1) - knight square for (2,0)
+        // Two castles on the board puts the placement plan back on p1 (Pink) - one apiece,
+        // and the 2-player plan alternates - so the relaxation is exercised for a colour
+        // that already HAS a castle. Yellow's sits far away and blocks nothing.
+        state.board.squares[9][14] = { type: SquareType.Blank, castleColor: Color.Yellow }
+
+        // Widest available is (2,1) at manhattan distance 3 - it's a candidate in its own
+        // right, with (2,0) serving as its knight square - so 3 becomes the requirement...
+        expect(HydratedPlaceCastle.requiredCastleGap(state, Color.Pink)).toBe(3)
+        // ...which means the game can still proceed: there IS a legal square.
+        expect(HydratedPlaceCastle.legalCastleSquares(state, 'p1').length).toBeGreaterThan(0)
+    })
+})
+
 describe('currentPlacementColor', () => {
     // What the client previews as the piece about to be placed. It has to follow the
     // PLAN's color, not the placing player's own, or the ghost castles change color from

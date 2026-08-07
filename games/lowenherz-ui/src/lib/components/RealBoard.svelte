@@ -410,9 +410,10 @@
         negotiationProposerId ? gameSession.gameState.getPlayerState(negotiationProposerId).money : 0
     )
 
-    function submitNegotiationProposal() {
-        if (!negotiationProposerId) return
-        gameSession.proposeNegotiationOffer(negotiationProposerId, negotiationAmount)
+    // Reports whether the offer landed, so callers can put their draft back if it didn't.
+    async function submitNegotiationProposal(): Promise<boolean> {
+        if (!negotiationProposerId) return false
+        return await gameSession.proposeNegotiationOffer(negotiationProposerId, negotiationAmount)
     }
 
     // The Signed button needs a real standing offer to exist before it can sign one
@@ -422,7 +423,15 @@
     async function signNegotiation(hasRealOffer: boolean) {
         if (!hasRealOffer) {
             if (!negotiationProposerId) return
-            await gameSession.proposeNegotiationOffer(negotiationProposerId, negotiationAmount)
+            // If the draft can't be proposed (e.g. a negotiator with no ducats, whose only
+            // real option is to force a duel), stop here rather than dispatching a Sign the
+            // engine will refuse for having nothing to sign - that surfaced as a generic
+            // "resyncing" toast instead of the reason.
+            const proposed = await gameSession.proposeNegotiationOffer(
+                negotiationProposerId,
+                negotiationAmount
+            )
+            if (!proposed) return
         }
         await gameSession.signNegotiationOffer()
     }
@@ -833,6 +842,16 @@
     $effect(() => {
         const actions = gameSession.actions
         if (processedActionCount === -1) {
+            processedActionCount = actions.length
+            return
+        }
+        // gameSession.actions is the VISIBLE context, which the history controls truncate
+        // to whatever you've rewound to - so stepping back shrinks it and stepping forward
+        // (or leaving history) grows it again. Both are re-runs of actions that already
+        // happened, not new events: replaying their popups flashed a "-8" over a player who
+        // had just lost nothing. Only live play fires them; scrubbing just re-baselines the
+        // count. The mount guard above covers the first run, this covers every rewind.
+        if (gameSession.history.inHistory || actions.length < processedActionCount) {
             processedActionCount = actions.length
             return
         }
@@ -1671,9 +1690,12 @@
                             class="text-left {negotiationProposerId === playerId
                                 ? 'font-semibold text-black'
                                 : 'text-black/40 hover:text-black/60'}"
-                            onclick={() => {
+                            onclick={async () => {
+                                const previousProposerId = negotiationProposerId
                                 negotiationProposerId = playerId
-                                submitNegotiationProposal()
+                                if (!(await submitNegotiationProposal())) {
+                                    negotiationProposerId = previousProposerId
+                                }
                             }}
                         >
                             {playerName(gameSession, playerId)}
@@ -1685,9 +1707,10 @@
                     type="button"
                     class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
                     disabled={!gameSession.isNegotiator || negotiationAmount <= 1}
-                    onclick={() => {
+                    onclick={async () => {
+                        const previousAmount = negotiationAmount
                         negotiationAmount = Math.max(1, negotiationAmount - 1)
-                        submitNegotiationProposal()
+                        if (!(await submitNegotiationProposal())) negotiationAmount = previousAmount
                     }}
                 >
                     −
@@ -1697,9 +1720,10 @@
                     type="button"
                     class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
                     disabled={!gameSession.isNegotiator || negotiationAmount >= negotiationProposerMoney}
-                    onclick={() => {
+                    onclick={async () => {
+                        const previousAmount = negotiationAmount
                         negotiationAmount = negotiationAmount + 1
-                        submitNegotiationProposal()
+                        if (!(await submitNegotiationProposal())) negotiationAmount = previousAmount
                     }}
                 >
                     +

@@ -11,11 +11,13 @@
     // is kept intact so they can be brought back by setting this to true.
     const SHOW_TESTING_CONTROLS = false
 
-    // ...except this one, which is independently switched on right now: dealing
-    // everyone a random 1-5 cards is the only practical way to eyeball the hand-splay
-    // layout (flat vs. overlapped, and the jitter that only kicks in once cards
-    // overlap - see PlayerState.svelte) at every count.
-    const SHOW_DEAL_POLITICS_CARDS = true
+    // Switched off again now the hand-splay layout it was for has been checked. Worth
+    // knowing before flipping it back on: it writes game state through
+    // GameSession.setGameState (the admin /admin/setGameState route) rather than through an
+    // action, so the resulting state has no action behind it - history, undo and replay
+    // can't reproduce it. Fine for local eyeballing, not something to leave enabled in a
+    // real game.
+    const SHOW_DEAL_POLITICS_CARDS = false
 
     const canFastForwardToActionEffect = $derived(
         actionState.machineState !== MachineState.PlacingCastles &&

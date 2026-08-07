@@ -529,6 +529,61 @@ describe('HydratedExpandRegion', () => {
         expect(isWalledBetween(state.board, 3, 1, 3, 2)).toBe(true)
     })
 
+    it('scores two strandings from one expansion on their combined total, not separately', () => {
+        // "If a player loses spaces in two or more neutral zones, the spaces are added
+        // together to determine the lost power points." A 1-2 space expansion is two
+        // actions, so each stranding used to get its own table lookup: 1 space (-3) then
+        // another (-3) instead of a single lookup on 2 combined spaces (-3).
+        const board = blankBoard()
+        // Invader (Pink): row 0, cols 5-9. Castle (7,0), knights (6,0) and (8,0) - 2 knights,
+        // outnumbering Yellow's 1. Sitting directly above the victim's row means BOTH taken
+        // squares are adjacent to Pink's region, which expansion requires.
+        board.squares[0][6] = { type: SquareType.Blank, knightColor: Color.Pink }
+        board.squares[0][7] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][8] = { type: SquareType.Blank, knightColor: Color.Pink }
+        // Victim (Yellow): row 1, cols 5-9, castle in the middle at (7,1). Taking (6,1)
+        // strands (5,1); taking (8,1) strands (9,1). Yellow's single knight is on (5,1) - it
+        // must not be on either square Pink takes, since another prince's knight blocks
+        // expansion outright.
+        board.squares[1][5] = { type: SquareType.Blank, knightColor: Color.Yellow }
+        board.squares[1][7] = { type: SquareType.Blank, castleColor: Color.Yellow }
+        const state = buildState({
+            board,
+            regions: [
+                {
+                    id: 'r1',
+                    ownerColor: Color.Pink,
+                    squareKeys: ['5,0', '6,0', '7,0', '8,0', '9,0'],
+                    castleSquareKey: '7,0'
+                },
+                {
+                    id: 'r2',
+                    ownerColor: Color.Yellow,
+                    squareKeys: ['5,1', '6,1', '7,1', '8,1', '9,1'],
+                    castleSquareKey: '7,1'
+                }
+            ]
+        })
+        state.getPlayerState('p2').powerPoints = 100
+
+        // 1st space: take (6,1), stranding (5,1) - 1 space, table value 3.
+        const first = makeExpandRegion('p1', 'r1', { col: 6, row: 1 })
+        expect(first.invalidExpandRegionReason(state)).toBeUndefined()
+        first.apply(state)
+        expect(first.metadata?.invasions?.[0].disconnectedPointsLost).toBe(3)
+
+        // 2nd space of the SAME expansion: take (8,1), stranding (9,1). Combined that's 2
+        // stranded spaces - still table value 3 - so nothing further is owed for it.
+        const second = makeExpandRegion('p1', 'r1', { col: 8, row: 1 })
+        expect(second.invalidExpandRegionReason(state)).toBeUndefined()
+        second.apply(state)
+        expect(second.metadata?.invasions?.[0].disconnectedSpaces).toBe(1)
+        expect(second.metadata?.invasions?.[0].disconnectedPointsLost).toBe(0)
+
+        // 100 - (1 direct + 3 stranded) - (1 direct + 0) = 95, the rulebook's total.
+        expect(state.getPlayerState('p2').powerPoints).toBe(95)
+    })
+
     it('absorbs a neutral zone space, shrinking it', () => {
         const state = buildState({
             regions: [
