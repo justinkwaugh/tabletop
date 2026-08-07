@@ -7,10 +7,11 @@ import { PoliticsCardType } from '../definition/politicsCards.js'
 // (see StartOfTurnStateHandler) - all that's left is applying held Parchment cards and
 // declaring a winner. Per the rulebook: "the new king (and winner) is the player whose
 // power marker has moved the farthest... in case of a tie, the player (among those
-// tied) with the most ducats wins (treasure cards are included)." Treasure cards
-// aren't playable yet, so the ducat tiebreaker only counts plain money for now - a
-// true tie survives as multiple winningPlayerIds/GameResult.Draw, matching every
-// other game in this repo's end-of-game convention.
+// tied) with the most ducats wins (treasure cards are included)." An unspent Treasure
+// card counts at its face value in that tiebreak, exactly like the ducats it stands in
+// for - a player holding Treasure(15) and 3 ducats beats one holding 5. A true tie
+// survives as multiple winningPlayerIds/GameResult.Draw, matching every other game in
+// this repo's end-of-game convention.
 export class EndOfGameStateHandler
     implements MachineStateHandler<HydratedAction, HydratedLowenherzGameState>
 {
@@ -45,8 +46,17 @@ export class EndOfGameStateHandler
         const maxPowerPoints = Math.max(...state.players.map((p) => p.powerPoints))
         const powerPointLeaders = state.players.filter((p) => p.powerPoints === maxPowerPoints)
 
-        const maxMoney = Math.max(...powerPointLeaders.map((p) => p.money))
-        const winners = powerPointLeaders.filter((p) => p.money === maxMoney)
+        // "Treasure cards are included" - a Treasure card IS ducats for this purpose (it's
+        // spendable as money on a wooded knight placement or a duel bid), so an unspent one
+        // counts at face value here.
+        const spendableWealth = (player: (typeof state.players)[number]) =>
+            player.money +
+            player.politicsCards
+                .filter((c) => c.type === PoliticsCardType.Treasure)
+                .reduce((sum, c) => sum + (c.value ?? 0), 0)
+
+        const maxWealth = Math.max(...powerPointLeaders.map(spendableWealth))
+        const winners = powerPointLeaders.filter((p) => spendableWealth(p) === maxWealth)
 
         state.winningPlayerIds = winners.map((p) => p.playerId)
         state.result = winners.length > 1 ? GameResult.Draw : GameResult.Win

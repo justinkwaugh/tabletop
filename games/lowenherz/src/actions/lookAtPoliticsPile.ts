@@ -71,6 +71,15 @@ export class HydratedLookAtPoliticsPile
             return "You've already looked through the other pile."
         }
 
+        // Opening a pile is a one-way commitment - once openedPoliticsPile is set, the only
+        // legal follow-up is taking a card FROM that pile. Committing to an empty one left
+        // the phase with no legal action at all for its only active player, and there's no
+        // Pass here to escape with, so the game hung.
+        const pile = this.pile === 'A' ? state.politicsCardPileA : state.politicsCardPileB
+        if (pile.length === 0) {
+            return 'That pile is empty - look through the other one.'
+        }
+
         return undefined
     }
 }

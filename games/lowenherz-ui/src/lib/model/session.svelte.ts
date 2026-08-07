@@ -820,17 +820,23 @@ export class LowenherzGameSession extends GameSession<
         this.selectedTreasureCardId = cardId
     }
 
-    // The armed card itself, but only while it's genuinely still in hand - a card
-    // that got spent (or a selection left over from an earlier turn) resolves to
-    // undefined here rather than showing a phantom "you're playing this" message.
+    // The armed card itself, but only while arming it still means anything: it has to be
+    // genuinely in hand (not already spent, not left over from an earlier turn) AND there
+    // has to be a live window to spend it in - a wooded knight placement or a duel bid.
+    // Without that second condition an arming from one turn stayed live indefinitely, and
+    // the next wooded knight placement silently paid with the card instead of ducats, with
+    // nothing on screen to say a card was armed at all.
     get selectedTreasureCard(): PoliticsCard | undefined {
         if (!this.selectedTreasureCardId) return undefined
+        if (!this.canPlaceKnight && !this.canSubmitDuelBid) return undefined
         return this.myTreasureCards.find((c) => c.id === this.selectedTreasureCardId)
     }
 
+    // Deliberately routed through selectedTreasureCard rather than the raw id, so a stale
+    // arming can never be attached to a placement.
     private treasureCardIdFor(col: number, row: number): string | undefined {
         const square = getSquare(this.gameState.board, col, row)
-        return square?.type === SquareType.Forest ? this.selectedTreasureCardId : undefined
+        return square?.type === SquareType.Forest ? this.selectedTreasureCard?.id : undefined
     }
 
     // Every square the current player could legally place a knight on right now -
@@ -900,6 +906,10 @@ export class LowenherzGameSession extends GameSession<
     async passKnightPlacement() {
         if (!this.canPlaceKnight) return
         this.cancelExpansion()
+        // Declining the rest of the action also disarms any Treasure card armed for it -
+        // belt and braces alongside selectedTreasureCard's window check, so the local
+        // selection doesn't outlive the thing it was armed for.
+        this.selectedTreasureCardId = undefined
 
         const action = this.createPlayerAction(Pass, {})
         this.errorMessage = undefined

@@ -622,6 +622,14 @@
         new Set(gameSession.legalRenegadePlacementSquares.map((s) => `${s.col},${s.row}`))
     )
     const legalAllianceEnemyRegionIds = $derived(new Set(gameSession.legalAllianceEnemyRegions.map((r) => r.id)))
+    // These two are hoisted for the same reason as the sets above, and it matters more
+    // here: both are plain class getters (unmemoized), and legalRenegadeOwnRegionIds walks
+    // every square of every region of yours and runs a knight-connectivity BFS per
+    // candidate. They're consulted from per-square helpers inside the 150-cell grid loop,
+    // so reading them straight off the session recomputed the whole thing once per square -
+    // the same O(n^2) shape that froze the board once before (see the note above).
+    const legalRenegadeOwnRegionIdSet = $derived(gameSession.legalRenegadeOwnRegionIds)
+    const legalAllianceOwnRegionIdSet = $derived(gameSession.legalAllianceOwnRegionIds)
 
     // The knight action is driven by a plan declared up front (see
     // GameSession.knightPlan) rather than a mode the player toggles: everything below
@@ -1071,7 +1079,7 @@
         if (!gameSession.isPlayingRenegadeCard || gameSession.renegadeOwnRegionId) return false
         if (!isOwnSelectableRegion(col, row)) return false
         const region = regionAt(col, row)
-        return region !== undefined && gameSession.legalRenegadeOwnRegionIds.has(region.id)
+        return region !== undefined && legalRenegadeOwnRegionIdSet.has(region.id)
     }
 
     function isSelectableRenegadeEnemyRegion(col: number, row: number): boolean {
@@ -1099,7 +1107,7 @@
         // Only regions that actually have something to ally with (see
         // legalAllianceOwnRegionIds) - a dead-end region isn't clickable at all.
         const region = regionAt(col, row)
-        return region !== undefined && gameSession.legalAllianceOwnRegionIds.has(region.id)
+        return region !== undefined && legalAllianceOwnRegionIdSet.has(region.id)
     }
 
     function isSelectableAllianceEnemyRegion(col: number, row: number): boolean {
@@ -1418,7 +1426,7 @@
             {/if}
         {:else if gameSession.isPlayingRenegadeCard}
             {#if !gameSession.renegadeOwnRegionId}
-                {#if gameSession.legalRenegadeOwnRegionIds.size === 0}
+                {#if legalRenegadeOwnRegionIdSet.size === 0}
                     None of your regions can play Renegade right now — they either have no
                     room for the replacement knight (no open space, or they can't afford a
                     wooded one) or nothing bordering them to take a knight from. Click Undo.

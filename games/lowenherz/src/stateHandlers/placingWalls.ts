@@ -6,6 +6,7 @@ import { HydratedPlaceWall } from '../actions/placeWall.js'
 import { HydratedPass } from '../actions/pass.js'
 import { HydratedCancelAlliance } from '../actions/cancelAlliance.js'
 import { canCancelAnAlliance } from '../util/allianceCancellation.js'
+import { hasEveryCastleEnclosed } from '../util/resolutionHelpers.js'
 
 type PlacingWallsAction = HydratedPlaceWall | HydratedPass | HydratedCancelAlliance
 
@@ -63,7 +64,16 @@ export class PlacingWallsStateHandler
         // the player is voluntarily declining the rest of their allotment.
         // Otherwise, the action already placed the wall (and any newly-sealed
         // regions) before onAction runs, so wallsRemaining already reflects it.
-        if (action instanceof HydratedPass || (gameState.wallsRemaining ?? 0) <= 0) {
+        //
+        // The region cap is re-checked here, not just when the phase was entered: a
+        // two- or three-wall allotment can seal the player's last unenclosed castle with
+        // its first wall, and "he can place no more boundary walls" applies from that
+        // moment rather than from the next action card.
+        const placerId = gameState.wallPlacingPlayerId
+        const cappedNow =
+            placerId !== undefined &&
+            hasEveryCastleEnclosed(gameState, gameState.getPlayerState(placerId).color)
+        if (action instanceof HydratedPass || cappedNow || (gameState.wallsRemaining ?? 0) <= 0) {
             gameState.wallsRemaining = undefined
             gameState.wallPlacingPlayerId = undefined
             return MachineState.ResolvingActions

@@ -106,6 +106,30 @@ describe('TakingPoliticsCardStateHandler', () => {
         expect(state.openedPoliticsPile).toBe('A')
     })
 
+    it('refuses to open an empty pile, which would leave no legal action at all', () => {
+        // Opening a pile is a one-way commitment: openedPoliticsPile is set and the only
+        // legal follow-up is taking a card from THAT pile. Committing to an empty one used
+        // to hang the game outright - this phase has no Pass to escape with.
+        const state = buildState({ politicsCardPileB: [] })
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+        const handler = new TakingPoliticsCardStateHandler()
+
+        const action = new HydratedLookAtPoliticsPile({
+            id: 'look-empty',
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: ActionType.LookAtPoliticsPile,
+            playerId: 'p1',
+            pile: 'B',
+            revealsInfo: true
+        })
+        expect(handler.isValidAction(action, context)).toBe(false)
+        expect(action.invalidLookAtPoliticsPileReason(state)).toBe(
+            'That pile is empty - look through the other one.'
+        )
+        expect(state.openedPoliticsPile).toBeUndefined()
+    })
+
     it('returns to ResolvingActions once a card is taken', () => {
         const state = buildState({ openedPoliticsPile: 'A' })
         const context = new MachineContext({ gameConfig: {}, gameState: state })

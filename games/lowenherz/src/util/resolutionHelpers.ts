@@ -1,9 +1,9 @@
-import { ActionSource } from '@tabletop/common'
+import { ActionSource, Color } from '@tabletop/common'
 import type { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionCardType } from '../definition/actionCards.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
-import { BOARD_COLS, BOARD_ROWS } from '../model/board.js'
+import { BOARD_COLS, BOARD_ROWS, castleSquaresForColor } from '../model/board.js'
 import { HydratedPlaceWall } from '../actions/placeWall.js'
 
 // Money Bag never negotiates or duels - the rulebook's one exception to "an action can
@@ -30,6 +30,24 @@ export function advanceRound(state: HydratedLowenherzGameState) {
     state.decisions = []
     state.currentActionCard = undefined
     state.resolvedSlots = []
+}
+
+// The rulebook's "when a prince has three regions, he can place no more boundary walls",
+// expressed as what that number actually means: a region contains exactly one castle, so a
+// prince with a region per castle has nothing left to enclose. Three is simply how many
+// castles a prince has in the standard game; the 2-player variant gives each of them four
+// (see buildPlacementPlan), which a hardcoded 3 would lock out one castle early.
+// Neutral-colour castles belong to no player and are counted for nobody.
+export function hasEveryCastleEnclosed(state: HydratedLowenherzGameState, color: Color): boolean {
+    const castleCount = castleSquaresForColor(state.board, color).length
+    // No castles on the board at all: vacuously "all enclosed", but read as UNcapped
+    // rather than capped. The cap exists to stop wall placement that can't accomplish
+    // anything, and silently locking a colour out of walls on a count of zero is the worse
+    // failure. Real games always place castles during setup, so this only comes up in
+    // synthetic states.
+    if (castleCount === 0) return false
+    const regionCount = state.regions.filter((r) => r.ownerColor === color).length
+    return regionCount >= castleCount
 }
 
 // Whether ANY wall could legally be placed anywhere on the board right now, by the
@@ -82,7 +100,11 @@ export type SlotRouting = {
     // read long after wallsRemaining/knightsRemaining have moved on.
     bandKind?: 'border' | 'knight'
     bandCount?: number
-    placementSkippedReason?: 'regionCap' | 'noKnightsInStock' | 'noLegalWallSpots'
+    placementSkippedReason?:
+        | 'regionCap'
+        | 'noKnightsInStock'
+        | 'noLegalWallSpots'
+        | 'noPoliticsCardsLeft'
 }
 
 // Called right after a slot's contest is settled (money bag payout, solo win,
@@ -105,6 +127,15 @@ export function routeAfterSlotResolved(state: HydratedLowenherzGameState): SlotR
     // ResolvingActionsStateHandler (it never has a real winner, so it can't reach
     // here), so the only slot-1 case reaching here with a winner is Crown and Scepter.
     if (lastResolved.slot === 1 && card.top.kind === 'politics') {
+        // Both piles exhausted: there is nothing to look through and nothing to take, and
+        // TakingPoliticsCard has no Pass, so entering it would strand its only active
+        // player with no legal action. They won the slot; it just can't pay out.
+        if (state.politicsCardPileA.length === 0 && state.politicsCardPileB.length === 0) {
+            return {
+                nextState: MachineState.ResolvingActions,
+                placementSkippedReason: 'noPoliticsCardsLeft'
+            }
+        }
         state.politicsTakingPlayerId = winnerId
         return { nextState: MachineState.TakingPoliticsCard }
     }
@@ -115,10 +146,16 @@ export function routeAfterSlotResolved(state: HydratedLowenherzGameState): SlotR
 
     if (band.kind === 'border') {
         const winnerColor = state.getPlayerState(winnerId).color
-        const winnerRegionCount = state.regions.filter((r) => r.ownerColor === winnerColor).length
-        // "When a prince has three regions, he can place no more boundary walls" -
-        // they still won the action, they just can't do anything with it.
-        if (winnerRegionCount >= 3) {
+        // "When a prince has three regions, he can place no more boundary walls" - they
+        // still won the action, they just can't do anything with it.
+        //
+        // Three is the count of castles a prince has in the standard game, and a region
+        // holds exactly one castle, so the real rule is "every one of your castles is
+        // already enclosed". Counting castles rather than hardcoding 3 is what makes the
+        // 2-player variant work: there each prince places FOUR castles of their own, and a
+        // hardcoded 3 locked them out of wall placement with a castle still unenclosed -
+        // permanently, since that castle could then never be sealed or scored.
+        if (hasEveryCastleEnclosed(state, winnerColor)) {
             return {
                 nextState: MachineState.ResolvingActions,
                 bandKind: 'border',

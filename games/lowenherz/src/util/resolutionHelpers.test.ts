@@ -5,6 +5,7 @@ import { BOARD_COLS, BOARD_ROWS, BoardSquare, SquareType, WallEdge } from '../mo
 import { MachineState } from '../definition/states.js'
 import { ActionCard, ActionCardType, CardBack } from '../definition/actionCards.js'
 import { Region } from '../model/region.js'
+import { PoliticsCardType } from '../definition/politicsCards.js'
 import { routeAfterSlotResolved } from './resolutionHelpers.js'
 
 function blankBoard(): { squares: BoardSquare[][]; walls: [] } {
@@ -90,13 +91,19 @@ describe('routeAfterSlotResolved', () => {
         expect(state.wallPlacingPlayerId).toBe('p1')
     })
 
-    it('does not route to PlacingWalls when the winning player already has 3 regions', () => {
+    it('does not route to PlacingWalls once every one of the winner\'s castles is enclosed', () => {
+        // The rulebook's cap is "three regions" because a prince has three castles and a
+        // region holds exactly one - so the cap is really "nothing left to enclose", and
+        // the castles have to be on the board for it to mean anything.
         const existingRegions: Region[] = [
-            { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] },
-            { id: 'r2', ownerColor: Color.Pink, squareKeys: ['1,0'] },
-            { id: 'r3', ownerColor: Color.Pink, squareKeys: ['2,0'] }
+            { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' },
+            { id: 'r2', ownerColor: Color.Pink, squareKeys: ['1,0'], castleSquareKey: '1,0' },
+            { id: 'r3', ownerColor: Color.Pink, squareKeys: ['2,0'], castleSquareKey: '2,0' }
         ]
         const state = buildState([{ slot: 2, winnerPlayerId: 'p1' }], cardWithBorderMiddle, existingRegions)
+        for (const [col, row] of [[0, 0], [1, 0], [2, 0]]) {
+            state.board.squares[row][col] = { type: SquareType.Blank, castleColor: Color.Pink }
+        }
 
         const routing = routeAfterSlotResolved(state)
         expect(routing.nextState).toBe(MachineState.ResolvingActions)
@@ -104,6 +111,27 @@ describe('routeAfterSlotResolved', () => {
         expect(routing.placementSkippedReason).toBe('regionCap')
         expect(state.wallsRemaining).toBeUndefined()
         expect(state.wallPlacingPlayerId).toBeUndefined()
+    })
+
+    it('still routes to PlacingWalls at 3 regions when the player has a 4th castle (2-player variant)', () => {
+        // The 2-player variant gives each prince FOUR castles of their own. A hardcoded
+        // 3-region cap locked them out of wall placement here - permanently, since their
+        // 4th castle could then never be enclosed or scored.
+        const existingRegions: Region[] = [
+            { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' },
+            { id: 'r2', ownerColor: Color.Pink, squareKeys: ['1,0'], castleSquareKey: '1,0' },
+            { id: 'r3', ownerColor: Color.Pink, squareKeys: ['2,0'], castleSquareKey: '2,0' }
+        ]
+        const state = buildState([{ slot: 2, winnerPlayerId: 'p1' }], cardWithBorderMiddle, existingRegions)
+        for (const [col, row] of [[0, 0], [1, 0], [2, 0], [8, 5]]) {
+            state.board.squares[row][col] = { type: SquareType.Blank, castleColor: Color.Pink }
+        }
+
+        const routing = routeAfterSlotResolved(state)
+        expect(routing.nextState).toBe(MachineState.PlacingWalls)
+        expect(routing.placementSkippedReason).toBeUndefined()
+        expect(state.wallsRemaining).toBe(2)
+        expect(state.wallPlacingPlayerId).toBe('p1')
     })
 
     it('does not route to PlacingWalls when there is nowhere left to legally place a wall', () => {
@@ -123,6 +151,29 @@ describe('routeAfterSlotResolved', () => {
         expect(routing.placementSkippedReason).toBe('noLegalWallSpots')
         expect(state.wallsRemaining).toBeUndefined()
         expect(state.wallPlacingPlayerId).toBeUndefined()
+    })
+
+    it('skips the politics slot entirely when both piles are exhausted', () => {
+        // TakingPoliticsCard has no Pass, so entering it with nothing to take would strand
+        // its only active player with no legal action at all.
+        const state = buildState([{ slot: 1, winnerPlayerId: 'p1' }], cardWithBorderMiddle) // top = politics
+        state.politicsCardPileA = []
+        state.politicsCardPileB = []
+
+        const routing = routeAfterSlotResolved(state)
+        expect(routing.nextState).toBe(MachineState.ResolvingActions)
+        expect(routing.placementSkippedReason).toBe('noPoliticsCardsLeft')
+        expect(state.politicsTakingPlayerId).toBeUndefined()
+    })
+
+    it('still routes to TakingPoliticsCard when only one pile has cards left', () => {
+        const state = buildState([{ slot: 1, winnerPlayerId: 'p1' }], cardWithBorderMiddle)
+        state.politicsCardPileA = []
+        state.politicsCardPileB = [{ id: 'c1', type: PoliticsCardType.Alliance }]
+
+        const routing = routeAfterSlotResolved(state)
+        expect(routing.nextState).toBe(MachineState.TakingPoliticsCard)
+        expect(state.politicsTakingPlayerId).toBe('p1')
     })
 
     it('routes a knight-slot winner into PlacingKnights with the right knight count', () => {
@@ -187,6 +238,9 @@ describe('routeAfterSlotResolved', () => {
 
     it('routes a politics-slot (slot 1) winner into TakingPoliticsCard', () => {
         const state = buildState([{ slot: 1, winnerPlayerId: 'p1' }], cardWithBorderMiddle)
+        // There has to be something left to take - buildState's piles start empty, and an
+        // exhausted pair now skips the slot instead (see the test below).
+        state.politicsCardPileA = [{ id: 'c1', type: PoliticsCardType.Alliance }]
         expect(routeAfterSlotResolved(state).nextState).toBe(MachineState.TakingPoliticsCard)
         expect(state.politicsTakingPlayerId).toBe('p1')
     })

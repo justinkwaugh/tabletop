@@ -288,7 +288,11 @@
             {#if meta.bandKind === 'border'}
                 won the right to place {meta.bandCount} wall{meta.bandCount === 1 ? '' : 's'}
                 {#if meta.placementSkippedReason === 'regionCap'}
-                    <span class="text-gray-500">— but already controls 3 regions; their turn is skipped</span>
+                    <!-- Not "3 regions": the cap is a region per castle, and the 2-player
+                         variant gives each prince four (see hasEveryCastleEnclosed). -->
+                    <span class="text-gray-500"
+                        >— but every one of their castles is already enclosed; their turn is skipped</span
+                    >
                 {:else if meta.placementSkippedReason === 'noLegalWallSpots'}
                     <span class="text-gray-500"
                         >— but there's nowhere left to legally place one, so their turn is skipped</span
@@ -304,6 +308,9 @@
                         >— but has no knights left in stock and no region to expand; their turn is skipped</span
                     >
                 {/if}
+            {:else if meta.placementSkippedReason === 'noPoliticsCardsLeft'}
+                won the {slotLabels[meta.slot!]} action
+                <span class="text-gray-500">— but both politics piles are empty, so there's nothing to take</span>
             {:else}
                 won the {slotLabels[meta.slot!]} action outright
             {/if}

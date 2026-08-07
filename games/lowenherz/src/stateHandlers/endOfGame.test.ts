@@ -110,6 +110,42 @@ describe('EndOfGameStateHandler', () => {
         expect(state.winningPlayerIds).toEqual(['p1'])
     })
 
+    it('counts an unspent Treasure card as ducats in the tiebreak', () => {
+        // "in case of a tie, the player (among those tied) with the most ducats wins
+        // (treasure cards are included)" - a Treasure card is spendable as money during
+        // the game, so it counts at face value here too.
+        const state = buildState([
+            { playerId: 'p1', color: Color.Pink, money: 5, powerPoints: 40 },
+            { playerId: 'p2', color: Color.Yellow, money: 3, powerPoints: 40 }
+        ])
+        state.getPlayerState('p2').politicsCards = [
+            { id: 'treasure-15', type: PoliticsCardType.Treasure, value: 15 }
+        ]
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+
+        new EndOfGameStateHandler().enter(context)
+
+        // p2: 3 + 15 = 18 beats p1's 5, despite p1 holding more loose ducats.
+        expect(state.winningPlayerIds).toEqual(['p2'])
+        expect(state.result).toBe(GameResult.Win)
+    })
+
+    it('draws when power points and total wealth including Treasure are both tied', () => {
+        const state = buildState([
+            { playerId: 'p1', color: Color.Pink, money: 12, powerPoints: 40 },
+            { playerId: 'p2', color: Color.Yellow, money: 4, powerPoints: 40 }
+        ])
+        state.getPlayerState('p2').politicsCards = [
+            { id: 'treasure-8', type: PoliticsCardType.Treasure, value: 8 }
+        ]
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+
+        new EndOfGameStateHandler().enter(context)
+
+        expect(state.winningPlayerIds).toEqual(['p1', 'p2'])
+        expect(state.result).toBe(GameResult.Draw)
+    })
+
     it('rejects any action - EndOfGame is a terminal state', () => {
         const state = buildState([{ playerId: 'p1', color: Color.Pink, money: 5, powerPoints: 20 }])
         const context = new MachineContext({ gameConfig: {}, gameState: state })

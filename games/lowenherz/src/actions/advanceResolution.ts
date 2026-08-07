@@ -25,7 +25,12 @@ export const AdvanceResolutionMetadata = Type.Object({
     bandKind: Type.Optional(Type.Union([Type.Literal('border'), Type.Literal('knight')])),
     bandCount: Type.Optional(Type.Number()),
     placementSkippedReason: Type.Optional(
-        Type.Union([Type.Literal('regionCap'), Type.Literal('noKnightsInStock'), Type.Literal('noLegalWallSpots')])
+        Type.Union([
+            Type.Literal('regionCap'),
+            Type.Literal('noKnightsInStock'),
+            Type.Literal('noLegalWallSpots'),
+            Type.Literal('noPoliticsCardsLeft')
+        ])
     ),
     // A tie sent this slot to negotiation (2 tied) or a duel (3+ tied) instead.
     tiedPlayerIds: Type.Optional(Type.Array(Type.String())),

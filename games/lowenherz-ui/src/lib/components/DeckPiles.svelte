@@ -116,6 +116,11 @@
     // up - that's not "backing out," just re-showing what they already committed to.
     function canSelectPile(pile: 'A' | 'B'): boolean {
         if (!gameSession.canTakePoliticsCard) return false
+        // An exhausted pile isn't a choice at all - opening one is a one-way commitment
+        // (the rulebook has you look through ONE pile), so the engine refuses an empty one
+        // outright. Better for the dashed "empty" slot to be inert than to invite a click
+        // that can only produce an error message.
+        if ((pile === 'A' ? pileA : pileB).length === 0) return false
         return !gameSession.selectedPoliticsPile || gameSession.selectedPoliticsPile === pile
     }
 
