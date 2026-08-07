@@ -410,29 +410,37 @@
         negotiationProposerId ? gameSession.gameState.getPlayerState(negotiationProposerId).money : 0
     )
 
-    // Reports whether the offer landed, so callers can put their draft back if it didn't.
-    async function submitNegotiationProposal(): Promise<boolean> {
-        if (!negotiationProposerId) return false
-        return await gameSession.proposeNegotiationOffer(negotiationProposerId, negotiationAmount)
-    }
+    // The payer dropdown and the amount stepper edit a local draft only - nothing is
+    // dispatched until the player commits by signing. Every stepper click used to submit a
+    // real NegotiationMove.Propose, so nudging an offer from 1 to 8 wrote seven actions into
+    // the game log, each of them the nearest undoable action: undoing the decision card that
+    // started the negotiation meant pressing Undo eight times, back through your own
+    // fiddling. (A comment further up records that an auto-proposal was removed for exactly
+    // this reason; the stepper had reintroduced it one click at a time.) The trade-off is
+    // that the other player doesn't watch the number move - they see the offer when it's
+    // made.
+    async function commitNegotiationOffer() {
+        const negotiation = displayNegotiation
+        if (!negotiation || !negotiationProposerId) return
 
-    // The Signed button needs a real standing offer to exist before it can sign one
-    // (see canSignNegotiationOffer) - if nobody's touched the stepper yet, this
-    // submits the current draft for real first, then signs it, so the button still
-    // works as a single click without a phantom offer having to exist beforehand.
-    async function signNegotiation(hasRealOffer: boolean) {
-        if (!hasRealOffer) {
-            if (!negotiationProposerId) return
-            // If the draft can't be proposed (e.g. a negotiator with no ducats, whose only
-            // real option is to force a duel), stop here rather than dispatching a Sign the
-            // engine will refuse for having nothing to sign - that surfaced as a generic
-            // "resyncing" toast instead of the reason.
+        // Signing means "I commit to what's on screen", so submit the draft first whenever
+        // it isn't already the standing offer. Proposing clears existing signatures
+        // engine-side, which is correct: it's a different deal.
+        const offer = negotiation.offer
+        const draftIsStandingOffer =
+            offer !== undefined &&
+            offer.fromPlayerId === negotiationProposerId &&
+            offer.amount === negotiationAmount
+        if (!draftIsStandingOffer) {
             const proposed = await gameSession.proposeNegotiationOffer(
                 negotiationProposerId,
                 negotiationAmount
             )
+            // Refused (e.g. a payer who can't afford it) - don't follow up with a Sign that
+            // has nothing valid to sign.
             if (!proposed) return
         }
+
         await gameSession.signNegotiationOffer()
     }
 
@@ -1690,13 +1698,7 @@
                             class="text-left {negotiationProposerId === playerId
                                 ? 'font-semibold text-black'
                                 : 'text-black/40 hover:text-black/60'}"
-                            onclick={async () => {
-                                const previousProposerId = negotiationProposerId
-                                negotiationProposerId = playerId
-                                if (!(await submitNegotiationProposal())) {
-                                    negotiationProposerId = previousProposerId
-                                }
-                            }}
+                            onclick={() => (negotiationProposerId = playerId)}
                         >
                             {playerName(gameSession, playerId)}
                         </button>
@@ -1707,11 +1709,7 @@
                     type="button"
                     class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
                     disabled={!gameSession.isNegotiator || negotiationAmount <= 1}
-                    onclick={async () => {
-                        const previousAmount = negotiationAmount
-                        negotiationAmount = Math.max(1, negotiationAmount - 1)
-                        if (!(await submitNegotiationProposal())) negotiationAmount = previousAmount
-                    }}
+                    onclick={() => (negotiationAmount = Math.max(1, negotiationAmount - 1))}
                 >
                     −
                 </button>
@@ -1720,11 +1718,7 @@
                     type="button"
                     class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
                     disabled={!gameSession.isNegotiator || negotiationAmount >= negotiationProposerMoney}
-                    onclick={async () => {
-                        const previousAmount = negotiationAmount
-                        negotiationAmount = negotiationAmount + 1
-                        if (!(await submitNegotiationProposal())) negotiationAmount = previousAmount
-                    }}
+                    onclick={() => (negotiationAmount = negotiationAmount + 1)}
                 >
                     +
                 </button>
@@ -1743,7 +1737,7 @@
                             class="px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 font-semibold disabled:opacity-40 disabled:hover:bg-green-700/20"
                             disabled={gameSession.myPlayer?.id !== playerId ||
                                 negotiation.signedPlayerIds.includes(playerId)}
-                            onclick={() => signNegotiation(!!negotiation.offer)}
+                            onclick={() => commitNegotiationOffer()}
                         >
                             Signed
                         </button>
