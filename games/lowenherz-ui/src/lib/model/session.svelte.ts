@@ -16,23 +16,28 @@ import {
     currentPlacementColor,
     detectNewRegions,
     DrawActionCard,
+    expandRegionReason,
     ExpandRegion,
     isExpandRegion,
+    takePoliticsCardReason,
+    playRenegadeCardReason,
+    playAllianceCardReason,
+    placeKnightReason,
+    placeCastleIsValid,
+    negotiationProposalIsValid,
+    lookAtPoliticsPileReason,
+    duelBidIsValid,
+    cancelAllianceReason,
+    legalExpansionSquares,
+    legalKnightSquares,
+    legalWallEdges,
     getSquare,
     HydratedCancelAlliance,
     HydratedChooseAction,
     HydratedDrawActionCard,
-    HydratedExpandRegion,
-    HydratedLookAtPoliticsPile,
     HydratedLowenherzGameState,
     HydratedLowenherzPlayerState,
-    HydratedNegotiationMove,
     HydratedPlaceCastle,
-    HydratedPlaceKnight,
-    HydratedPlaceWall,
-    HydratedPlayAllianceCard,
-    HydratedPlayRenegadeCard,
-    HydratedSubmitDuelBid,
     isDrawActionCard,
     isKnightSafeToRemove,
     isOnBoard,
@@ -48,6 +53,7 @@ import {
     PlaceCastle,
     PlaceKnight,
     PlaceWall,
+    placeWallReason,
     PlayAllianceCard,
     PlayRenegadeCard,
     type PoliticsCard,
@@ -61,7 +67,6 @@ import {
     SquareType,
     SubmitDuelBid,
     TakePoliticsCard,
-    HydratedTakePoliticsCard,
     wallBetween,
     WOODED_KNIGHT_COST
 } from '@tabletop/lowenherz'
@@ -149,19 +154,16 @@ export class LowenherzGameSession extends GameSession<
         // an illegal attempt gets a friendly message instead of the engine's assert()
         // throwing (that throw is meant to catch programming bugs, not expected
         // rule-violation attempts from a player experimenting with the board).
-        const candidate = new HydratedPlaceCastle({
-            id: 'candidate',
-            gameId: this.gameState.gameId,
-            source: ActionSource.User,
-            type: ActionType.PlaceCastle,
-            playerId: action.playerId,
-            castleCol: castleSquare.col,
-            castleRow: castleSquare.row,
-            knightCol,
-            knightRow
-        })
-
-        if (!candidate.isValidPlaceCastle(this.gameState)) {
+        if (
+            !placeCastleIsValid(
+                this.gameState,
+                action.playerId,
+                castleSquare.col,
+                castleSquare.row,
+                knightCol,
+                knightRow
+            )
+        ) {
             this.errorMessage =
                 "That knight square isn't allowed — it must be directly adjacent to the castle, empty, and not a hill or village. Pick a different spot."
             this.clearCastleSelection()
@@ -539,17 +541,7 @@ export class LowenherzGameSession extends GameSession<
     async proposeNegotiationOffer(fromPlayerId: string, amount: number): Promise<boolean> {
         if (!this.myPlayer || !this.isNegotiator) return false
 
-        const candidate = new HydratedNegotiationMove({
-            id: 'candidate',
-            gameId: this.gameState.gameId,
-            source: ActionSource.User,
-            type: ActionType.NegotiationMove,
-            playerId: this.myPlayer.id,
-            kind: NegotiationMoveKind.Propose,
-            fromPlayerId,
-            amount
-        })
-        if (!candidate.isValidNegotiationMove(this.gameState)) {
+        if (!negotiationProposalIsValid(this.gameState, this.myPlayer.id, fromPlayerId, amount)) {
             this.errorMessage =
                 "That offer isn't allowed — it must be a whole number of ducats the payer can afford."
             return false
@@ -663,16 +655,7 @@ export class LowenherzGameSession extends GameSession<
     async submitDuelBid(amount: number, treasureCardId?: string) {
         if (!this.myPlayer || !this.canSubmitDuelBid) return
 
-        const candidate = new HydratedSubmitDuelBid({
-            id: 'candidate',
-            gameId: this.gameState.gameId,
-            source: ActionSource.User,
-            type: ActionType.SubmitDuelBid,
-            playerId: this.myPlayer.id,
-            amount,
-            ...(treasureCardId ? { treasureCardId } : {})
-        })
-        if (!candidate.isValidSubmitDuelBid(this.gameState)) {
+        if (!duelBidIsValid(this.gameState, this.myPlayer.id, amount, treasureCardId)) {
             this.errorMessage = "That bid isn't allowed — it must be a whole number of ducats you can afford, backed by a Treasure card you actually hold (if any)."
             return
         }
@@ -730,18 +713,7 @@ export class LowenherzGameSession extends GameSession<
 
     private isValidWallBetween(col1: number, row1: number, col2: number, row2: number): boolean {
         if (!this.myPlayer) return false
-        const candidate = new HydratedPlaceWall({
-            id: 'candidate',
-            gameId: this.gameState.gameId,
-            source: ActionSource.User,
-            type: ActionType.PlaceWall,
-            playerId: this.myPlayer.id,
-            col1,
-            row1,
-            col2,
-            row2
-        })
-        return candidate.isValidPlaceWall(this.gameState)
+        return placeWallReason(this.gameState, this.myPlayer.id, col1, row1, col2, row2) === undefined
     }
 
     // Every currently-legal wall position, as the pair of squares it separates - one
@@ -751,18 +723,8 @@ export class LowenherzGameSession extends GameSession<
     // legalCastleSquares pattern.
     get legalWallEdges(): { col1: number; row1: number; col2: number; row2: number }[] {
         if (!this.canPlaceWall) return []
-        const result: { col1: number; row1: number; col2: number; row2: number }[] = []
-        for (let row = 0; row < BOARD_ROWS; row++) {
-            for (let col = 0; col < BOARD_COLS; col++) {
-                if (col + 1 < BOARD_COLS && this.isValidWallBetween(col, row, col + 1, row)) {
-                    result.push({ col1: col, row1: row, col2: col + 1, row2: row })
-                }
-                if (row + 1 < BOARD_ROWS && this.isValidWallBetween(col, row, col, row + 1)) {
-                    result.push({ col1: col, row1: row, col2: col, row2: row + 1 })
-                }
-            }
-        }
-        return result
+        if (!this.myPlayer) return []
+        return legalWallEdges(this.gameState, this.myPlayer.id)
     }
 
     async placeWallBetween(col1: number, row1: number, col2: number, row2: number) {
@@ -770,19 +732,7 @@ export class LowenherzGameSession extends GameSession<
 
         const action = this.createPlayerAction(PlaceWall, { col1, row1, col2, row2 })
 
-        const candidate = new HydratedPlaceWall({
-            id: 'candidate',
-            gameId: this.gameState.gameId,
-            source: ActionSource.User,
-            type: ActionType.PlaceWall,
-            playerId: action.playerId,
-            col1,
-            row1,
-            col2,
-            row2
-        })
-
-        const invalidReason = candidate.invalidPlaceWallReason(this.gameState)
+        const invalidReason = placeWallReason(this.gameState, action.playerId, col1, row1, col2, row2)
         if (invalidReason) {
             this.errorMessage = invalidReason
             return
@@ -854,24 +804,9 @@ export class LowenherzGameSession extends GameSession<
     // highlighted before it's clicked, same pattern as legalCastleSquares.
     get legalKnightSquares(): { col: number; row: number }[] {
         if (!this.myPlayer || !this.canPlaceKnight) return []
-        const result: { col: number; row: number }[] = []
-        for (let row = 0; row < BOARD_ROWS; row++) {
-            for (let col = 0; col < BOARD_COLS; col++) {
-                const treasureCardId = this.treasureCardIdFor(col, row)
-                const candidate = new HydratedPlaceKnight({
-                    id: 'candidate',
-                    gameId: this.gameState.gameId,
-                    source: ActionSource.User,
-                    type: ActionType.PlaceKnight,
-                    playerId: this.myPlayer.id,
-                    col,
-                    row,
-                    ...(treasureCardId ? { treasureCardId } : {})
-                })
-                if (candidate.isValidPlaceKnight(this.gameState)) result.push({ col, row })
-            }
-        }
-        return result
+        return legalKnightSquares(this.gameState, this.myPlayer.id, (col, row) =>
+            this.treasureCardIdFor(col, row)
+        )
     }
 
     async placeKnight(col: number, row: number) {
@@ -884,18 +819,13 @@ export class LowenherzGameSession extends GameSession<
             ...(treasureCardId ? { treasureCardId } : {})
         })
 
-        const candidate = new HydratedPlaceKnight({
-            id: 'candidate',
-            gameId: this.gameState.gameId,
-            source: ActionSource.User,
-            type: ActionType.PlaceKnight,
-            playerId: action.playerId,
+        const invalidReason = placeKnightReason(
+            this.gameState,
+            action.playerId,
             col,
             row,
-            ...(treasureCardId ? { treasureCardId } : {})
-        })
-
-        const invalidReason = candidate.invalidPlaceKnightReason(this.gameState)
+            treasureCardId
+        )
         if (invalidReason) {
             this.errorMessage = invalidReason
             return
@@ -1094,16 +1024,7 @@ export class LowenherzGameSession extends GameSession<
         space: { col: number; row: number }
     ): string | undefined {
         if (!this.myPlayer) return "It isn't your turn to expand a region."
-        const candidate = new HydratedExpandRegion({
-            id: 'candidate',
-            gameId: this.gameState.gameId,
-            source: ActionSource.User,
-            type: ActionType.ExpandRegion,
-            playerId: this.myPlayer.id,
-            regionId,
-            space
-        })
-        return candidate.invalidExpandRegionReason(this.gameState)
+        return expandRegionReason(this.gameState, this.myPlayer.id, regionId, space)
     }
 
     private isValidExpansionAttempt(regionId: string, space: { col: number; row: number }): boolean {
@@ -1117,15 +1038,7 @@ export class LowenherzGameSession extends GameSession<
         const regionId = this.selectedExpandRegionId
         if (!regionId || this.expansionSquares.length >= 2) return []
 
-        const result: { col: number; row: number }[] = []
-        for (let row = 0; row < BOARD_ROWS; row++) {
-            for (let col = 0; col < BOARD_COLS; col++) {
-                if (this.isValidExpansionAttempt(regionId, { col, row })) {
-                    result.push({ col, row })
-                }
-            }
-        }
-        return result
+        return legalExpansionSquares(this.gameState, this.myPlayer!.id, regionId)
     }
 
     // Why a region picked to expand has no legal target square - the distinct reasons
@@ -1257,17 +1170,7 @@ export class LowenherzGameSession extends GameSession<
 
         const action = this.createPlayerAction(LookAtPoliticsPile, { pile, revealsInfo: true })
 
-        const candidate = new HydratedLookAtPoliticsPile({
-            id: 'candidate',
-            gameId: this.gameState.gameId,
-            source: ActionSource.User,
-            type: ActionType.LookAtPoliticsPile,
-            playerId: action.playerId,
-            pile,
-            revealsInfo: true
-        })
-
-        const invalidReason = candidate.invalidLookAtPoliticsPileReason(this.gameState)
+        const invalidReason = lookAtPoliticsPileReason(this.gameState, action.playerId, pile)
         if (invalidReason) {
             this.errorMessage = invalidReason
             return
@@ -1339,17 +1242,7 @@ export class LowenherzGameSession extends GameSession<
 
         const action = this.createPlayerAction(TakePoliticsCard, { pile, cardId })
 
-        const candidate = new HydratedTakePoliticsCard({
-            id: 'candidate',
-            gameId: this.gameState.gameId,
-            source: ActionSource.User,
-            type: ActionType.TakePoliticsCard,
-            playerId: action.playerId,
-            pile,
-            cardId
-        })
-
-        const invalidReason = candidate.invalidTakePoliticsCardReason(this.gameState)
+        const invalidReason = takePoliticsCardReason(this.gameState, action.playerId, pile, cardId)
         if (invalidReason) {
             this.errorMessage = invalidReason
             return
@@ -1534,21 +1427,17 @@ export class LowenherzGameSession extends GameSession<
         ) {
             return false
         }
-        const candidate = new HydratedPlayRenegadeCard({
-            id: 'candidate',
-            gameId: this.gameState.gameId,
-            source: ActionSource.User,
-            type: ActionType.PlayRenegadeCard,
-            playerId: this.myPlayer.id,
-            cardId: this.renegadeCardId,
-            ownRegionId: this.renegadeOwnRegionId,
-            enemyRegionId: this.renegadeEnemyRegionId,
-            removedCol: this.renegadeRemovedSquare.col,
-            removedRow: this.renegadeRemovedSquare.row,
-            placedCol,
-            placedRow
-        })
-        return candidate.isValidPlayRenegadeCard(this.gameState)
+        return (
+            playRenegadeCardReason(this.gameState, this.myPlayer.id, {
+                cardId: this.renegadeCardId,
+                ownRegionId: this.renegadeOwnRegionId,
+                enemyRegionId: this.renegadeEnemyRegionId,
+                removedCol: this.renegadeRemovedSquare.col,
+                removedRow: this.renegadeRemovedSquare.row,
+                placedCol,
+                placedRow
+            }) === undefined
+        )
     }
 
     // Squares in the player's own region that would legally receive the replacement
@@ -1583,12 +1472,7 @@ export class LowenherzGameSession extends GameSession<
         })
 
         if (!this.isValidRenegadeAttempt(placedCol, placedRow)) {
-            const candidate = new HydratedPlayRenegadeCard({
-                id: 'candidate',
-                gameId: this.gameState.gameId,
-                source: ActionSource.User,
-                type: ActionType.PlayRenegadeCard,
-                playerId: myPlayer.id,
+            this.errorMessage = playRenegadeCardReason(this.gameState, myPlayer.id, {
                 cardId: renegadeCardId,
                 ownRegionId: renegadeOwnRegionId,
                 enemyRegionId: renegadeEnemyRegionId,
@@ -1597,7 +1481,6 @@ export class LowenherzGameSession extends GameSession<
                 placedCol,
                 placedRow
             })
-            this.errorMessage = candidate.invalidPlayRenegadeCardReason(this.gameState)
             this.cancelPlayingRenegadeCard()
             return
         }
@@ -1704,18 +1587,11 @@ export class LowenherzGameSession extends GameSession<
             enemyRegionId: regionId
         })
 
-        const candidate = new HydratedPlayAllianceCard({
-            id: 'candidate',
-            gameId: this.gameState.gameId,
-            source: ActionSource.User,
-            type: ActionType.PlayAllianceCard,
-            playerId: myPlayer.id,
+        const invalidReason = playAllianceCardReason(this.gameState, myPlayer.id, {
             cardId: allianceCardId,
             ownRegionId: allianceOwnRegionId,
             enemyRegionId: regionId
         })
-
-        const invalidReason = candidate.invalidPlayAllianceCardReason(this.gameState)
         if (invalidReason) {
             this.errorMessage = invalidReason
             this.cancelPlayingAllianceCard()
@@ -1778,16 +1654,7 @@ export class LowenherzGameSession extends GameSession<
 
         const action = this.createPlayerAction(CancelAlliance, { allianceId })
 
-        const candidate = new HydratedCancelAlliance({
-            id: 'candidate',
-            gameId: this.gameState.gameId,
-            source: ActionSource.User,
-            type: ActionType.CancelAlliance,
-            playerId: this.myPlayer.id,
-            allianceId
-        })
-
-        const invalidReason = candidate.invalidCancelAllianceReason(this.gameState)
+        const invalidReason = cancelAllianceReason(this.gameState, this.myPlayer.id, allianceId)
         if (invalidReason) {
             this.errorMessage = invalidReason
             return
