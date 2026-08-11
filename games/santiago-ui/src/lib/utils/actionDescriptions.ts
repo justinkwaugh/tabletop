@@ -3,12 +3,14 @@ import {
     isPlaceBid,
     isPlaceField,
     isPlaceNeutralTile,
+    isPlaceSpring,
     isBuildCanal,
     isPass,
     isProposeCanal,
     isOverseerDecision,
     isEndRoundEvent,
-    isSameSegment
+    isSameSegment,
+    maxSegmentTotal
 } from '@tabletop/santiago'
 import type { ProposeCanal } from '@tabletop/santiago'
 
@@ -70,6 +72,9 @@ export function getDescriptionSegments(action: GameAction, ctx?: ActionDescripti
     if (isPlaceNeutralTile(action)) {
         return [['planted the neutral field']]
     }
+    if (isPlaceSpring(action)) {
+        return [['placed the spring']]
+    }
     if (isBuildCanal(action)) {
         return [['placed a personal canal']]
     }
@@ -95,9 +100,16 @@ export function getDescriptionSegments(action: GameAction, ctx?: ActionDescripti
             }
             return [['accepted a canal bribe']]
         } else {
+            // Refusing costs the bank one escudo more than the best bribe on the table -
+            // which is 1 escudo even when nobody bribed at all, the case the history used
+            // to leave unmentioned entirely.
             if (ctx?.allActions) {
                 const anyProposals = getAllProposalsThisRound(a, ctx.allActions)
-                if (anyProposals.length === 0) return [['was offered no bribes and built a canal']]
+                const cost = maxSegmentTotal(anyProposals) + 1
+                if (anyProposals.length === 0) {
+                    return [[`was offered no bribes and paid ${escudos(cost)} to build a canal`]]
+                }
+                return [[`rejected all bribes and paid ${escudos(cost)} to build a canal`]]
             }
             return [['rejected all bribes and built a canal']]
         }
@@ -134,7 +146,19 @@ export function getDescriptionSegments(action: GameAction, ctx?: ActionDescripti
         }
         return segments
     }
-    return [[action.type]]
+    // Anything without a case above: split the camelCase type into words rather than
+    // showing it raw ("placeCanal"), which read as a leaked identifier in the history.
+    return [[humanizeActionType(action.type)]]
+}
+
+function escudos(amount: number): string {
+    return `${amount} escudo${amount !== 1 ? 's' : ''}`
+}
+
+function humanizeActionType(type: string): string {
+    return type
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .toLowerCase()
 }
 
 // Flattened, single-line form — segments joined with a dash separator — for callers that

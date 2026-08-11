@@ -6,7 +6,7 @@ import { HydratedPlaceSpring, isPlaceSpring } from '../actions/placeSpring.js'
 import { validSpringPlacements } from '../util/placement.js'
 
 // One-time setup step, before round 1 begins: the first player (seatOrder[0]) places the
-// spring anywhere except the four corner intersections. Only reached when the game's
+// spring on any intersection - corners included. Only reached when the game's
 // "Randomize Spring Location" config option is off — otherwise the spring is placed
 // randomly during game initialization and play starts directly in Bidding.
 export class SpringPlacementStateHandler

@@ -60,10 +60,15 @@ export class CanalBuildingStateHandler
                 // Must have at least one proposal at this segment
                 return state.canalProposals.some((p) => isSameSegment(p.segment, action.segment))
             } else {
-                // Rejecting: overseer pays max(combined segment total) + 1
+                // Rejecting: overseer pays max(combined segment total) + 1 - so 1 escudo
+                // even when nobody bribed at all.
                 const penalty = maxSegmentTotal(state.canalProposals)
                 const overseer = state.getPlayerState(state.canalOverseerId!)
-                return overseer.money >= (penalty > 0 ? penalty + 1 : 0)
+                if (overseer.money >= penalty + 1) return true
+                // Can't cover it: allowed only when there were no bribes to accept either,
+                // since otherwise this player would have no legal move and the phase would
+                // stall. OverseerDecision.apply caps the payment at what they hold.
+                return state.canalProposals.length === 0
             }
         }
 

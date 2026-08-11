@@ -9,7 +9,7 @@ const randomizeSpringOption: BooleanConfigOption = {
     id: 'randomizeSpring',
     type: ConfigOptionType.Boolean,
     name: 'Randomize Spring Location',
-    description: 'Randomly place the spring (excluding the four corners) instead of letting the first player choose where to place it',
+    description: 'Randomly place the spring instead of letting the first player choose where to place it',
     default: true
 }
 
