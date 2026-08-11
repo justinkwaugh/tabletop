@@ -19,13 +19,14 @@ export function isPlaceableSegment(board: SantiagoBoard, segment: CanalSegment):
     return !isCanalPlaced(board, segment) && isConnectedToSpring(board, segment)
 }
 
-// Valid spring locations at game start: any intersection except the four corners.
+// Valid spring locations at game start: any intersection on the board. The four corners
+// used to be excluded, both for a randomized spring and for a first player placing it by
+// hand; that restriction is gone, so all 20 intersections are open.
 export function validSpringPlacements(): { col: number; row: number }[] {
     const spots: { col: number; row: number }[] = []
     for (let col = 0; col <= 4; col++) {
         for (let row = 0; row <= 3; row++) {
-            const isCorner = (col === 0 || col === 4) && (row === 0 || row === 3)
-            if (!isCorner) spots.push({ col, row })
+            spots.push({ col, row })
         }
     }
     return spots

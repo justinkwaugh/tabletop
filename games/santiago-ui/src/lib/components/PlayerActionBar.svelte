@@ -65,7 +65,7 @@
         <!-- SPRING PLACEMENT -->
         {#if isMySpringPlacementTurn}
             <span class="shrink-0 whitespace-nowrap text-amber-300 font-semibold">Place the spring</span>
-            <span class="shrink-0 whitespace-nowrap text-sm text-amber-500">Click a highlighted intersection on the board (corners aren't allowed)</span>
+            <span class="shrink-0 whitespace-nowrap text-sm text-amber-500">Click a highlighted intersection on the board</span>
 
         <!-- BIDDING -->
         {:else if isBidding}

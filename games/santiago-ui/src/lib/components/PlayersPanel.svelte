@@ -68,27 +68,20 @@
                 .filter(p => p !== undefined)
         }
 
-        // While bidding, show players in their permanent seat order — no reshuffling to
-        // bring the active bidder to the top, per Justin.
-        if (state.machineState === MachineState.Bidding) {
-            let ordered = inOrder
-
-            // Bids of 0 are the only ones that can tie (non-zero bids must be unique) —
-            // the overseer wins that tie (lowest bid, earliest in biddingOrder), so they
-            // should lead the tied group rather than fall wherever seat order happens to
-            // put them. Seat order still governs the rest of that group relative to
-            // each other.
-            const overseerId = projectedOverseerId
-            const zeroBidders = ordered.filter(p => p.bid === 0)
-            if (overseerId && zeroBidders.length > 1 && zeroBidders[0].playerId !== overseerId) {
-                const overseer = ordered.find(p => p.playerId === overseerId)
-                if (overseer) {
-                    ordered = ordered.filter(p => p.playerId !== overseerId)
-                    const insertAt = ordered.findIndex(p => p.bid === 0)
-                    ordered.splice(insertAt, 0, overseer)
-                }
-            }
-            return ordered
+        // While bidding, show players in the order they're going to bid — biddingOrder runs
+        // clockwise from the player left of the previous overseer, so that overseer lands at
+        // the bottom and seat order follows on from them. Still no reshuffling to bring the
+        // active bidder to the top, per Justin: the list is a fixed running order you read
+        // top to bottom.
+        //
+        // This also retires the tie-break shuffle that used to sit here. Ties are only
+        // possible at 0 (non-zero bids must be unique) and go to the earliest bidder in
+        // biddingOrder, so ordering by biddingOrder already puts the winner of a tie above
+        // the players tied with them.
+        if (state.machineState === MachineState.Bidding && state.biddingOrder.length > 0) {
+            return state.biddingOrder
+                .map(id => state.players.find(p => p.playerId === id))
+                .filter(p => p !== undefined)
         }
 
         // Only SpringPlacement reaches here now (Bidding, PlantingPhase, CanalBuilding,
