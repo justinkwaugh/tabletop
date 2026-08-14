@@ -12,10 +12,17 @@ export const LowenherzPlayerState = Type.Evaluate(
             money: Type.Number(),
             powerPoints: Type.Number(),
             knightsInStock: Type.Number(), // starts at 12, minus those placed on the board
-            // Held face-down until played (per the rulebook) - kept as plain visible
-            // state like everything else in this engine (see submitDuelBid.ts's note
-            // on the same simplification for duel bids); the UI is responsible for not
-            // showing other players' hands.
+            // Held face-down at the table, but plain visible state here - and that cannot
+            // currently be fixed from a game package. The platform serves one authoritative
+            // state and the entire action log to every client (GET /api/game/:id returns
+            // game.state plus all actions, unfiltered and identical for every requester), so
+            // anything in state, or derivable from the actions, is in every player's browser.
+            // Drawing an opponent's hand face-down is presentation, not concealment.
+            //
+            // Every game here with concealed information has this shape - Indonesia's city
+            // cards, Sol's cards, and duel bids in this engine (see submitDuelBid.ts). Real
+            // concealment needs per-player redaction in the platform, of both served state and
+            // broadcast actions; the piles below leak their future order the same way.
             politicsCards: Type.Array(PoliticsCard)
         })
     ])

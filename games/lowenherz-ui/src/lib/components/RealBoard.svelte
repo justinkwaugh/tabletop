@@ -1,6 +1,7 @@
 <script lang="ts">
+    import { onMount } from 'svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import type { Color } from '@tabletop/common'
+    import type { Color, GameAction } from '@tabletop/common'
     import {
         ALLIANCE_CANCELLATION_COST,
         BOARD_COLS,
@@ -832,10 +833,9 @@
 
     // Floating "+N"/"-N" popups near wherever a region was just created, expanded,
     // invaded, or shrunk - one per scoring event, in the affected player's color,
-    // auto-removed after a couple seconds. Watches gameSession.actions (append-only
-    // while actively playing) for newly-arrived PlaceWall/ExpandRegion actions and
-    // reads their metadata for exact anchor squares/amounts - see the anchorSquareKey
-    // fields on PlaceWallMetadata/ExpandRegionMetadata.
+    // auto-removed after a couple seconds. Fired from PlaceWall/ExpandRegion actions as they
+    // are applied, reading their metadata for exact anchor squares/amounts - see the
+    // anchorSquareKey fields on PlaceWallMetadata/ExpandRegionMetadata.
     type ScorePopup = { id: string; col: number; row: number; text: string; color: string }
     let popups: ScorePopup[] = $state([])
     const POPUP_LIFETIME_MS = 4000
@@ -861,49 +861,45 @@
         }
     }
 
-    // processedActionCount starts uninitialized (-1) so the first effect run just
-    // records the current history length instead of firing a popup for every past
-    // action already in the game when this component mounts.
-    let processedActionCount = -1
-    $effect(() => {
-        const actions = gameSession.actions
-        if (processedActionCount === -1) {
-            processedActionCount = actions.length
-            return
-        }
-        // gameSession.actions is the VISIBLE context, which the history controls truncate
-        // to whatever you've rewound to - so stepping back shrinks it and stepping forward
-        // (or leaving history) grows it again. Both are re-runs of actions that already
-        // happened, not new events: replaying their popups flashed a "-8" over a player who
-        // had just lost nothing. Only live play fires them; scrubbing just re-baselines the
-        // count. The mount guard above covers the first run, this covers every rewind.
-        if (gameSession.history.inHistory || actions.length < processedActionCount) {
-            processedActionCount = actions.length
-            return
-        }
-        const newActions = actions.slice(processedActionCount)
-        processedActionCount = actions.length
-
-        for (const action of newActions) {
-            if (isPlaceWall(action)) {
-                popupsForCompletedRegions(action.metadata?.completedRegions)
-            } else if (isExpandRegion(action)) {
-                if (action.metadata?.pointsGained) {
-                    const color = gameSession.colors.getUiColor(
-                        gameSession.gameState.getPlayerState(action.playerId).color
-                    )
-                    addPopup(squareKey(action.space.col, action.space.row), action.metadata.pointsGained, color)
-                }
-                for (const invasion of action.metadata?.invasions ?? []) {
-                    const victimColor = gameSession.colors.getUiColor(invasion.victimColor)
-                    addPopup(invasion.directAnchorSquareKey, -invasion.directPointsLost, victimColor)
-                    if (invasion.disconnectedAnchorSquareKey) {
-                        addPopup(invasion.disconnectedAnchorSquareKey, -invasion.disconnectedPointsLost, victimColor)
-                    }
-                }
-                popupsForCompletedRegions(action.metadata?.completedRegions)
+    function popupsForAction(action: GameAction) {
+        if (isPlaceWall(action)) {
+            popupsForCompletedRegions(action.metadata?.completedRegions)
+        } else if (isExpandRegion(action)) {
+            if (action.metadata?.pointsGained) {
+                const color = gameSession.colors.getUiColor(
+                    gameSession.gameState.getPlayerState(action.playerId).color
+                )
+                addPopup(squareKey(action.space.col, action.space.row), action.metadata.pointsGained, color)
             }
+            for (const invasion of action.metadata?.invasions ?? []) {
+                const victimColor = gameSession.colors.getUiColor(invasion.victimColor)
+                addPopup(invasion.directAnchorSquareKey, -invasion.directPointsLost, victimColor)
+                if (invasion.disconnectedAnchorSquareKey) {
+                    addPopup(invasion.disconnectedAnchorSquareKey, -invasion.disconnectedPointsLost, victimColor)
+                }
+            }
+            popupsForCompletedRegions(action.metadata?.completedRegions)
         }
+    }
+
+    // The session tells us about each action as it is applied, one at a time and in order, so
+    // there is nothing here to notice or diff. That is the whole reason this is a listener and
+    // not an $effect: an effect can only watch gameSession.actions and work out for itself which
+    // entries are new, which needs a high-water mark, a mount baseline to avoid replaying the
+    // whole game, and a guard for the history controls shrinking and regrowing the list. All
+    // three were bookkeeping for information the session already had.
+    //
+    // Still skipped while scrubbing history: those points were scored long ago, and flashing a
+    // "-8" over a player who has just lost nothing is what the old high-water mark was working
+    // around.
+    onMount(() => {
+        const listener = async ({ action }: { action?: GameAction }) => {
+            if (!action || gameSession.isViewingHistory) return
+            popupsForAction(action)
+        }
+
+        gameSession.addGameStateChangeListener(listener)
+        return () => gameSession.removeGameStateChangeListener(listener)
     })
 
     const CELL_SIZE = 44

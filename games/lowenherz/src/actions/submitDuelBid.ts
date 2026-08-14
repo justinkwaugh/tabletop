@@ -46,9 +46,11 @@ export function isSubmitDuelBid(action?: GameAction): action is SubmitDuelBid {
     return action?.type === ActionType.SubmitDuelBid
 }
 
-// One participant's bid in a duel over a tied slot. Bids aren't hidden from other
-// clients in this implementation (money is plain visible state, not private per-player
-// state) - a simplification versus the rulebook's genuinely blind/concealed bids.
+// One participant's bid in a duel over a tied slot. Bids aren't concealed from other clients:
+// the platform serves the same state and action log to everyone, so nothing a game package puts
+// in state can be private (see the note on politicsCards in model/playerState.ts). A
+// simplification versus the rulebook's genuinely blind bids, and one that needs platform
+// support to lift rather than a change here.
 export class HydratedSubmitDuelBid
     extends HydratableAction<typeof SubmitDuelBid>
     implements SubmitDuelBid
