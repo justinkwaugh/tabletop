@@ -158,4 +158,48 @@ describe('LowenherzGameInitializer', () => {
         // A-lettered cards are stacked on top, as variable construction requires.
         expect(state.actionDeck[0].back).toBe(CardBack.A)
     })
+
+    it('redistributes the politics piles for exploration, not just shuffles within them', () => {
+        // The piles are unordered - a player commits to a pile and takes whichever card in it
+        // they like - so shuffling each in place conceals nothing. What has to be randomized is
+        // which pile a card is in.
+        const initializer = new LowenherzGameInitializer()
+        const state = initializer.initializeGameState(buildGame(3), {
+            id: 'game-1',
+            gameId: 'game-1',
+            activePlayerIds: [],
+            actionCount: 0,
+            actionChecksum: 0,
+            prng: { seed: 1, invocations: 0 },
+            winningPlayerIds: []
+        })
+
+        const startingA = new Set(state.politicsCardPileA.map((card) => card.id))
+        const sizeA = state.politicsCardPileA.length
+        const sizeB = state.politicsCardPileB.length
+        const everyCard = [...state.politicsCardPileA, ...state.politicsCardPileB]
+            .map((card) => card.id)
+            .sort()
+
+        let anyCardMoved = false
+        for (let attempt = 0; attempt < 40; attempt++) {
+            const explored = initializer.initializeExplorationState(state.dehydrate())
+
+            // Same cards, same pile sizes - only the split between them may differ.
+            expect(explored.politicsCardPileA).toHaveLength(sizeA)
+            expect(explored.politicsCardPileB).toHaveLength(sizeB)
+            expect(
+                [...explored.politicsCardPileA, ...explored.politicsCardPileB]
+                    .map((card) => card.id)
+                    .sort()
+            ).toEqual(everyCard)
+
+            if (explored.politicsCardPileA.some((card) => !startingA.has(card.id))) {
+                anyCardMoved = true
+            }
+        }
+
+        // Forty redeals of a 13-card deck: an in-place shuffle would never move one across.
+        expect(anyCardMoved).toBe(true)
+    })
 })

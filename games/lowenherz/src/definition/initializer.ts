@@ -38,9 +38,24 @@ export class LowenherzGameInitializer
     // santiago/estates/fresh-fish.
     initializeExplorationState(state: LowenherzGameState): LowenherzGameState {
         const explorationState = structuredClone(state)
+
+        // The action deck is ordered - index 0 draws next - so shuffling it is what stops an
+        // exploration branch being read as an oracle for the real game's next cards.
         shuffle(explorationState.actionDeck, () => Math.random())
-        shuffle(explorationState.politicsCardPileA, () => Math.random())
-        shuffle(explorationState.politicsCardPileB, () => Math.random())
+
+        // The politics piles are NOT ordered: a player commits to a pile and takes whichever
+        // card in it they like, by id. Shuffling each pile in place therefore hides nothing -
+        // the same cards stay in the same pile. What is concealed is which pile holds what, so
+        // the two are pooled and redealt at their original sizes.
+        const pooled = [
+            ...explorationState.politicsCardPileA,
+            ...explorationState.politicsCardPileB
+        ]
+        shuffle(pooled, () => Math.random())
+        const pileASize = explorationState.politicsCardPileA.length
+        explorationState.politicsCardPileA = pooled.slice(0, pileASize)
+        explorationState.politicsCardPileB = pooled.slice(pileASize)
+
         return explorationState
     }
 
