@@ -14,6 +14,8 @@
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import TestingControls from '$lib/components/TestingControls.svelte'
     import PoliticsHand from '$lib/components/PoliticsHand.svelte'
+    import SummaryStrip from '$lib/components/SummaryStrip.svelte'
+    import PoliticsPileOverlay from '$lib/components/PoliticsPileOverlay.svelte'
     import parchmentTexture from '$lib/images/board/parchment-texture.jpg'
 
     import type { LowenherzGameSession } from '$lib/model/session.svelte'
@@ -47,7 +49,13 @@
                     disabledColor="text-black/30"
                 />
             </div>
+            <SummaryStrip />
+            <!-- The default active pill is bg-gray-300, which reads as a stray UI chip on
+                 the parchment. bg-black/15 introduces no new hue at all - it just darkens
+                 whatever the parchment already is, so the selected tab reads as a pressed
+                 area of the same surface rather than a separate object sitting on it. -->
             <DefaultTabs
+                activeTabClass="py-1 px-3 bg-black/15 border-2 border-black/25 rounded-lg text-black font-semibold"
                 inactiveTabClass="text-black py-1 px-3 rounded-lg border-2 border-transparent hover:border-black/40"
             >
                 {#snippet playersPanel()}
@@ -84,3 +92,9 @@
      `position: fixed` is genuinely relative to the browser viewport, not scaled or
      clipped by the board's own responsive scaling. -->
 <PoliticsHand />
+
+<!-- Also outside ScalingWrapper, for the same reason as PoliticsHand: it positions
+     itself against the viewport, so it must not sit inside the board's CSS transform.
+     Rendered after PoliticsHand is irrelevant to stacking - the overlay is z-40 and the
+     fanned hand z-50, so opening a pile draws its contents over these piles. -->
+<PoliticsPileOverlay />

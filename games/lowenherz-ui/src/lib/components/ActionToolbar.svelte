@@ -77,11 +77,6 @@
     // bare "Performing actions" covered the three action states without saying which
     // one, and Negotiating/Dueling/ResolvingActions had no label at all. Exhaustive
     // (no default) so a new state can't silently fall through to blank.
-    // Per-player Silver Mine payout, while a revealed mine is still sitting on the
-    // discard pile (see GameSession.lastMineHillScoring) - keyed for the lookup below.
-    const minePointsByPlayerId = $derived(
-        new Map((gameSession.lastMineHillScoring ?? []).map((entry) => [entry.playerId, entry.points]))
-    )
     const phase = $derived.by(() => {
         switch (gameSession.gameState.machineState) {
             case MachineState.PlacingCastles:
@@ -139,40 +134,11 @@
             >{#if phase}<span class="italic">&nbsp;{phase}</span>{/if}
         </span>
     {/if}
-    <!-- ml-auto lives here (not on a separate wrapper) so this points readout rides
-         along with the Undo button at the far right, rather than each needing its
-         own margin. -->
-    <div class="ml-auto flex items-center gap-1.5">
-        <span class="font-semibold">Points:</span>
-        {#each gameSession.gameState.players as ps (ps.playerId)}
-            {@const mineGain = minePointsByPlayerId.get(ps.playerId) ?? 0}
-            <!-- relative, so a Silver Mine payout can hang a "+N" directly beneath THIS
-                 player's points box - the board only announces the reveal (see
-                 RealBoard), the per-player numbers are read off here where each
-                 player's running total already is. Absolutely positioned (and
-                 pointer-events-none) so it can't change the bar's fixed 44px height
-                 or nudge the boxes around. -->
-            <span class="relative w-9 shrink-0">
-                <span
-                    class="block text-center px-1 py-0.5 rounded-md font-bold text-white"
-                    style="background-color: {gameSession.colors.getPlayerUiColor(ps.playerId)}"
-                >
-                    {ps.powerPoints}
-                </span>
-                {#if mineGain > 0}
-                    <span
-                        class="pointer-events-none absolute top-full left-0 mt-[3px] w-full text-center px-1 py-0.5 rounded-md text-[13px] font-bold leading-none text-white shadow-sm"
-                        style="background-color: {gameSession.colors.getPlayerUiColor(ps.playerId)}"
-                        title="Silver Mine: power points for enclosed hills"
-                    >
-                        +{mineGain}
-                    </span>
-                {/if}
-            </span>
-        {/each}
-    </div>
+    <!-- The points readout used to ride here at the far right (with the ml-auto that now
+         lives on the Undo button). It went to the side panel first, then onto the gold
+         coin in each player's own panel - see PlayerState's .points-roundel. -->
     <button
-        class="px-3 py-1 rounded-lg bg-black/10 hover:bg-black/20 text-black font-semibold transition-colors disabled:opacity-40 disabled:hover:bg-black/10 disabled:cursor-not-allowed"
+        class="ml-auto px-3 py-1 rounded-lg bg-black/10 hover:bg-black/20 text-black font-semibold transition-colors disabled:opacity-40 disabled:hover:bg-black/10 disabled:cursor-not-allowed"
         disabled={!canUndo}
         onclick={handleUndo}
     >

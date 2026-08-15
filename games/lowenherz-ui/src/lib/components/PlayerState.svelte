@@ -4,6 +4,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import iconMoneybagFill from '$lib/images/action-cards/icons/icon-moneybag-transparent.png'
     import iconMoneybagLines from '$lib/images/action-cards/icons/icon-moneybag-lines.png'
+    import Numeral from './Numeral.svelte'
     import knightFill from '$lib/images/pieces/knight-fill.png'
     import knightLines from '$lib/images/pieces/knight-lines.png'
     import PoliticsCardView from './PoliticsCard.svelte'
@@ -120,6 +121,15 @@
     // distracting than helpful.
     const displayCards = $derived(playerState.politicsCards)
 
+    // An empty hand still gets a slot (so cards don't pop the panel taller the moment
+    // someone picks one up), but it doesn't need to reserve a full card's height to say
+    // "nothing here" - at full size the placeholder was the tallest thing in the panel
+    // and made card-less players look as heavy as card-holding ones. Half height keeps
+    // the slot legible as a card-shaped outline while giving the row back to the panel.
+    const hasPoliticsCards = $derived(playerState.politicsCards.length > 0)
+    const EMPTY_SLOT_H = Math.round(CARD_H / 2)
+
+
     // A card's face only ever shows for your own hand (never an opponent's - that's
     // still purely a client-side convention, not server-enforced, same as before).
     // Every card shows face-up on your own turn (so you can see your whole hand
@@ -203,8 +213,8 @@
          rather than a full-width bar, so it reads as its own badge sitting just above
          the pole rather than a header spanning the whole panel. Ducats flank it on
          the left (number then icon) and knights on the right (icon then number) -
-         power points moved up to the toolbar's "Points:" readout instead, so this row
-         is the only place per-player stats live now.
+         power points live in the summary strip above these panels (see SummaryStrip),
+         so this row carries only the two per-player supplies.
          The two flanking stats are locked to the same width and pushed outward (ducats
          right-aligned, knights left-aligned) so the pill lands on the panel's true center
          - laid out naturally they differ by however much their numbers differ ("12" vs
@@ -215,7 +225,7 @@
             class="w-[64px] shrink-0 flex items-center justify-end gap-1 text-gray-800 text-[19px] font-semibold"
             title={showMoney ? 'Ducats' : 'Ducats (hidden)'}
         >
-            {showMoney ? playerState.money : '?'}
+            {#if showMoney}<Numeral value={playerState.money} />{:else}?{/if}
             <span class="relative w-[28px] h-[28px] shrink-0">
                 {@render tintedIcon(iconMoneybagFill, iconMoneybagLines, playerState.color, 2, 0)}
             </span>
@@ -223,6 +233,7 @@
         <span
             class="inline-block min-w-0 truncate px-3 pt-[3px] pb-[1px] rounded-md font-bold uppercase tracking-wide text-base text-white"
             style="background-color: {headerColor}"
+            title={player.name}
         >
             {player.name}
         </span>
@@ -233,15 +244,18 @@
             <span class="relative w-[28px] h-[28px] shrink-0">
                 {@render tintedIcon(knightFill, knightLines, playerState.color, 0, -2)}
             </span>
-            {playerState.knightsInStock}
+            <Numeral value={playerState.knightsInStock} />
         </span>
     </div>
     <FlagBorder color={playerState.color} />
     <!-- The permanent politics-card spot - empty (just a card-shaped outline) when the
          player holds none, so the slot is always there rather than popping in once
          they pick up their first card. -->
-    <div class="py-2 px-2 flex items-center" bind:clientWidth={politicsAreaWidth}>
-        {#if playerState.politicsCards.length > 0}
+    <div
+        class="px-2 flex items-center {hasPoliticsCards ? 'py-2' : 'py-1'}"
+        bind:clientWidth={politicsAreaWidth}
+    >
+        {#if hasPoliticsCards}
             {@const count = displayCards.length}
             <!-- Laid out flat (full CARD_W + CARD_GAP spacing) as long as the hand
                  fits that way - only once it wouldn't does step compress below
@@ -334,7 +348,8 @@
             </div>
         {:else}
             <div
-                class="h-[103px] aspect-[534/832] rounded-md border border-dashed border-white/25 mx-auto"
+                class="aspect-[534/832] rounded-md border border-dashed border-white/25 mx-auto"
+                style="height: {EMPTY_SLOT_H}px;"
             ></div>
         {/if}
     </div>

@@ -4,7 +4,6 @@
     import type { ActionCardSlot } from '$lib/model/actionCardTypes.js'
     import { decisionsForSlot, playerName } from '$lib/model/actionCardHelpers.js'
     import ActionCard from './ActionCard.svelte'
-    import PoliticsCard from './PoliticsCard.svelte'
     import backA from '$lib/images/action-cards/backs/back-a.jpg'
     import backB from '$lib/images/action-cards/backs/back-b.jpg'
     import backC from '$lib/images/action-cards/backs/back-c.jpg'
@@ -48,9 +47,6 @@
         if (count >= deck.length) return undefined
         return { count, nextBack: deck[count].back }
     })
-    const pileA = $derived(actionState.politicsCardPileA)
-    const pileB = $derived(actionState.politicsCardPileB)
-
     // Plays a 3D flip (back design -> the actual card face) the moment a freshly
     // drawn card shows up in the middle slot, rather than having it just appear.
     // Only fires for an actual draw, not for the card that's already sitting there
@@ -109,35 +105,6 @@
         previousCardId = id
     })
 
-    // While it's my turn and I haven't picked a pile yet, either one is selectable -
-    // the rulebook lets you look through just one, so once picked, the OTHER pile
-    // stops being clickable. The chosen pile itself stays clickable though, so a
-    // player who hid the fanned view (see PoliticsHand) can bring the same pile back
-    // up - that's not "backing out," just re-showing what they already committed to.
-    function canSelectPile(pile: 'A' | 'B'): boolean {
-        if (!gameSession.canTakePoliticsCard) return false
-        // An exhausted pile isn't a choice at all - opening one is a one-way commitment
-        // (the rulebook has you look through ONE pile), so the engine refuses an empty one
-        // outright. Better for the dashed "empty" slot to be inert than to invite a click
-        // that can only produce an error message.
-        if ((pile === 'A' ? pileA : pileB).length === 0) return false
-        return !gameSession.selectedPoliticsPile || gameSession.selectedPoliticsPile === pile
-    }
-
-    // Feeds PoliticsHand's "deal" animation - the cards fly out from wherever the
-    // pile button actually is on screen, so it needs the button's real viewport
-    // position at click time, not just which pile was picked.
-    function onPileClick(pile: 'A' | 'B', event: MouseEvent) {
-        const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-        const origin = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
-
-        if (gameSession.selectedPoliticsPile === pile) {
-            gameSession.revealPoliticsHand(origin)
-        } else {
-            gameSession.selectPoliticsPile(pile, origin)
-        }
-    }
-
     const backImages: Record<CardBack, string> = {
         [CardBack.A]: backA,
         [CardBack.B]: backB,
@@ -177,18 +144,13 @@
     </div>
 {/snippet}
 
-{#snippet countBadge(count: number)}
-    {#if count > 0}
-        <span
-            class="absolute inset-0 flex items-center justify-center text-white font-bold pointer-events-none"
-            style="font-size: 66px; line-height: 1; text-shadow: 0 0 8px rgba(0, 0, 0, 0.85), 0 0 16px rgba(0, 0, 0, 0.6);"
-        >
-            {count}
-        </span>
-    {/if}
-{/snippet}
-
-<div class="grid grid-cols-2 gap-2" style="width: fit-content;">
+<!-- The action deck's two spots stack vertically (they used to sit side by side, with
+     the politics piles on a second row below). One column instead of two halves this
+     area's width and hands the difference straight to the board. The politics piles
+     left entirely - only their counts matter turn to turn, so those moved to the side
+     panel, and the piles themselves now appear over the board when someone actually
+     wins politics (see PoliticsPileOverlay). -->
+<div class="flex flex-col gap-2" style="width: fit-content;">
     <button
         type="button"
         bind:this={drawPileEl}
@@ -251,36 +213,6 @@
             {@render emptySlot('')}
         {/if}
     </div>
-    <button
-        type="button"
-        disabled={!canSelectPile('A')}
-        onclick={(e) => onPileClick('A', e)}
-        class="w-[106px] relative shadow-[0_4px_10px_rgba(0,0,0,0.35)] {canSelectPile('A')
-            ? 'cursor-pointer hover:brightness-95'
-            : ''}"
-    >
-        {#if pileA.length > 0}
-            <PoliticsCard card={pileA[0]} faceDown />
-        {:else}
-            {@render emptySlot('empty')}
-        {/if}
-        {@render countBadge(pileA.length)}
-    </button>
-    <button
-        type="button"
-        disabled={!canSelectPile('B')}
-        onclick={(e) => onPileClick('B', e)}
-        class="w-[106px] relative shadow-[0_4px_10px_rgba(0,0,0,0.35)] {canSelectPile('B')
-            ? 'cursor-pointer hover:brightness-95'
-            : ''}"
-    >
-        {#if pileB.length > 0}
-            <PoliticsCard card={pileB[0]} faceDown />
-        {:else}
-            {@render emptySlot('empty')}
-        {/if}
-        {@render countBadge(pileB.length)}
-    </button>
 </div>
 
 <style>

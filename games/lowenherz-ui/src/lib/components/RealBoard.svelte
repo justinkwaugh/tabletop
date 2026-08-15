@@ -682,7 +682,10 @@
     const availableKnightPlans = $derived.by((): KnightPlan[] => {
         if (!gameSession.canPlaceKnight) return []
         const canKnight = gameSession.canPlaceAnotherKnight
-        const canExpand = gameSession.canExpandRegion
+        // canStartExpansion, not canExpandRegion: the latter is true whenever you own a
+        // region, even if every one of them is boxed in, which is how "expand a region"
+        // used to be offered and then dead-end once a region was picked.
+        const canExpand = gameSession.canStartExpansion
         if (knightSwordsLeft > 1) {
             const plans: KnightPlan[] = []
             if (canKnight) plans.push('twoKnights')

@@ -876,10 +876,18 @@ export class LowenherzGameSession extends GameSession<
     // expand into", the one dead end that isn't about the board at all. That's reachable
     // whenever the local pick is dropped while the engine's expansion stays open (an Undo,
     // or the expand stage briefly closing - see RealBoard's cancelExpansion effect).
+    // Regions with nowhere legal to go are excluded outright, rather than being offered
+    // and then rejected on the next click. That dead end was the ONLY way to reach the
+    // "this region has nowhere legal to expand into" message, so pruning here means a
+    // player can no longer walk into it: every region still on offer has a legal target.
     get expandableRegions(): Region[] {
         const inProgressId = this.gameState.expandingRegionId
         if (inProgressId) return this.myRegions.filter((r) => r.id === inProgressId)
-        return this.myRegions
+        if (!this.myPlayer) return []
+        const playerId = this.myPlayer.id
+        return this.myRegions.filter(
+            (region) => legalExpansionSquares(this.gameState, playerId, region.id).length > 0
+        )
     }
 
     get canExpandRegion(): boolean {
@@ -897,6 +905,22 @@ export class LowenherzGameSession extends GameSession<
     // sword left with nowhere legal to put a knight.
     get canPlaceAnotherKnight(): boolean {
         return this.canPlaceKnight && this.legalKnightSquares.length > 0
+    }
+
+    // Whether STARTING an expansion is a real option - the same question
+    // canPlaceAnotherKnight asks of knights. canExpandRegion only establishes that the
+    // action allows an expansion and that I own a region at all; it says nothing about
+    // whether any of them can actually move, which is what let a boxed-in player choose
+    // "expand a region" and only then discover there was nowhere to go.
+    // Deliberately separate from canExpandRegion, which also governs an expansion already
+    // under way: once the first space is down the expand UI has to stay up to offer the
+    // optional second one, even when no second space is legal - that case ends the
+    // expansion, it doesn't invalidate the choice already made.
+    get canStartExpansion(): boolean {
+        if (!this.canExpandRegion) return false
+        if (this.gameState.expandingRegionId !== undefined) return true
+        // expandableRegions is already filtered to regions with a legal target.
+        return this.expandableRegions.length > 0
     }
 
     // Which shape the winner of a knight action has declared they're taking. A one-sword

@@ -24,6 +24,21 @@
     } = $props()
 
     const numeralStyle = "font-family:'DejaVu Serif', 'Liberation Serif', Georgia, 'Times New Roman', serif"
+
+    // Optically centres a player's initial inside its pill. Flexbox centres the LINE BOX,
+    // not the glyph, and IM Fell English's line box is badly lopsided: 0.905em of ascent
+    // against 0.363em of descent puts the box centre 0.271em above the baseline, while a
+    // capital's ink centres at about 0.35em. Every letter therefore rides ~0.08em high
+    // until it's pushed back down.
+    // J and Q are the exceptions - measured against a fixed baseline they drop ~0.29em
+    // below it, where every other capital sits on it, so their ink centre falls BELOW the
+    // box centre and they need lifting instead. (Both numbers are measured off the
+    // shipped TTF, same method as Numeral.svelte's digit table.)
+    const CAP_SHIFT = '0.08em'
+    const DESCENDING_CAP_SHIFT: Record<string, string> = { J: '-0.06em', Q: '-0.064em' }
+    function capShift(letter: string): string {
+        return DESCENDING_CAP_SHIFT[letter] ?? CAP_SHIFT
+    }
 </script>
 
 {#snippet numeral(value: number)}
@@ -46,12 +61,17 @@
                 : 'left-0 -translate-x-1/2'}"
         >
             {#each pills as pill (pill.playerId)}
+                {@const letter = pill.name.charAt(0).toUpperCase()}
                 <span
-                    class="pointer-events-auto w-6 h-6 rounded-full shadow flex items-center justify-center text-xs font-bold border border-black/20"
+                    class="pointer-events-auto w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border border-black/20 shadow-[0_2px_5px_rgba(0,0,0,0.5)]"
                     style="background-color:{pill.color}; color:{pill.textColor}"
                     title={pill.name}
                 >
-                    {pill.name.charAt(0).toUpperCase()}
+                    <!-- translate rather than padding/line-height: it moves the glyph
+                         without resizing the pill or shifting the one stacked below it. -->
+                    <span style="display: block; transform: translateY({capShift(letter)});">
+                        {letter}
+                    </span>
                 </span>
             {/each}
         </div>

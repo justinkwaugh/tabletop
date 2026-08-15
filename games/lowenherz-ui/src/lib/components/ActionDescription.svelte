@@ -166,15 +166,10 @@
         {/each}
     {/if}
 {:else if isPlaceKnight(action)}
-    placed a knight
-    {#if action.metadata?.paidWithTreasureCard}
-        , paying with a {politicsCardLabel(
+    placed a knight{#if action.metadata?.paidWithTreasureCard}, paying with a {politicsCardLabel(
             action.metadata.paidWithTreasureCard.type,
             action.metadata.paidWithTreasureCard.value
-        )} card for the wooded space
-    {:else if action.metadata?.woodedCostPaid}
-        , paying {action.metadata.woodedCostPaid} ducats for the wooded space
-    {/if}
+        )} card for the wooded space{:else if action.metadata?.woodedCostPaid}, paying {action.metadata.woodedCostPaid} ducats for the wooded space{/if}
 {:else if isExpandRegion(action)}
     expanded a region by 1 space
     {townsPhrase(action.metadata?.townsTaken)}
@@ -191,9 +186,7 @@
                 A neutral prince
             {/if}
             lost {invasion.directSpacesLost} space{invasion.directSpacesLost === 1 ? '' : 's'} (-{invasion.directPointsLost}
-            power point{invasion.directPointsLost === 1 ? '' : 's'})
-            {#if invasion.disconnectedSpaces > 0}
-                , and {invasion.disconnectedSpaces} more space{invasion.disconnectedSpaces === 1
+            power point{invasion.directPointsLost === 1 ? '' : 's'}){#if invasion.disconnectedSpaces > 0}, and {invasion.disconnectedSpaces} more space{invasion.disconnectedSpaces === 1
                     ? ''
                     : 's'} were cut off into a neutral zone (-{invasion.disconnectedPointsLost} power point{invasion.disconnectedPointsLost ===
                 1
@@ -242,13 +235,7 @@
     {:else}
         a neutral prince's
     {/if}
-    region and placed one of their own in exchange
-    {#if action.metadata?.removalWoodedCostPaid}
-        , paying {action.metadata.removalWoodedCostPaid} ducats to remove it from the woods
-    {/if}
-    {#if action.metadata?.placementWoodedCostPaid}
-        , paying {action.metadata.placementWoodedCostPaid} ducats to place into the woods
-    {/if}
+    region and placed one of their own in exchange{#if action.metadata?.removalWoodedCostPaid}, paying {action.metadata.removalWoodedCostPaid} ducats to remove it from the woods{/if}{#if action.metadata?.placementWoodedCostPaid}, paying {action.metadata.placementWoodedCostPaid} ducats to place into the woods{/if}
 {:else if isPlayAllianceCard(action)}
     {@const enemyId = playerIdForColor(action.metadata?.enemyColor)}
     played an Alliance card — allied one of their regions with
