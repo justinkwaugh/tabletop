@@ -55,13 +55,24 @@
 
     const characters = $derived(String(value).split(''))
 </script>
-<!-- A character needs a span if it's shifted vertically, or if it follows a 1 and so
-     needs tucking in. Anything else stays bare text.
-     position: relative shifts the glyph without touching layout, so a shifted digit can't
-     change the line's height or nudge anything beside it. -->
-{#each characters as character, i (i)}{@const lift = LIFT[character]}{@const tuck =
-        i > 0 && characters[i - 1] === '1' ? TUCK_AFTER_ONE : undefined}{#if lift || tuck}<span
-            style="{lift ? `position: relative; bottom: ${lift};` : ''}{tuck
-                ? ` margin-left: ${tuck};`
-                : ''}">{character}</span
-        >{:else}{character}{/if}{/each}
+<!-- The whole number is wrapped in ONE element so it is a single child of whatever
+     contains it. Emitting the digits as separate top-level nodes (a bare text node here,
+     a styled span there) breaks inside a flex container: every child becomes a flex item,
+     anonymous text nodes included, so the container's gap gets inserted BETWEEN the
+     digits. That put 4px inside "10" and "12" in the player panels, whose ducat and
+     knight rows are flex with gap-1, while the same numbers looked correct in the summary
+     strip because those boxes are block. Only numbers whose second digit is wrapped
+     showed it, which is why it looked like a 0/1/2 problem rather than a layout one.
+
+     Within the wrapper, a character needs its own span if it's shifted vertically or
+     follows a 1; anything else stays bare text. position: relative shifts the glyph
+     without touching layout, so a shifted digit can't change the line's height or nudge
+     anything beside it. -->
+<span
+    >{#each characters as character, i (i)}{@const lift = LIFT[character]}{@const tuck =
+            i > 0 && characters[i - 1] === '1' ? TUCK_AFTER_ONE : undefined}{#if lift || tuck}<span
+                style="{lift ? `position: relative; bottom: ${lift};` : ''}{tuck
+                    ? ` margin-left: ${tuck};`
+                    : ''}">{character}</span
+            >{:else}{character}{/if}{/each}</span
+>

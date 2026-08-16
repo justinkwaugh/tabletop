@@ -250,7 +250,10 @@
             }
         }}
     >
-        <span class="text-white text-sm font-medium">
+        <!-- Matches the pile-choosing prompt in PoliticsPileOverlay (text-2xl semibold with
+             a drop shadow): the two are consecutive steps of the same flow, and at text-sm
+             this one read as a caption where the first read as an instruction. -->
+        <span class="text-white text-2xl font-semibold drop-shadow">
             {#if takingCardId}
                 Dealing your card...
             {:else if viewingMyHand}

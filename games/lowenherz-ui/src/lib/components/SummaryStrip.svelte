@@ -17,6 +17,12 @@
         new Map((gameSession.lastMineHillScoring ?? []).map((entry) => [entry.playerId, entry.points]))
     )
 
+    // The caption sits snug under the scores normally. A mine payout pushes it down by the
+    // pill's own height (the pill is in flow), which is the lowering that was missing
+    // before - but landing 2px under a pill reads as jammed where 2px under a score box
+    // reads as attached, so it gets a little extra clearance in that case only.
+    const anyMineGain = $derived(minePointsByPlayerId.size > 0)
+
 </script>
 
 <!-- The Silver Mine "+N" sits in NORMAL FLOW under its player's score, not absolutely
@@ -74,7 +80,11 @@
                 </span>
             {/each}
         </div>
-        <span class="mt-1.5 text-[13px] font-semibold uppercase tracking-wide text-black/60">
+        <span
+            class="{anyMineGain
+                ? 'mt-2'
+                : ''} text-[13px] font-semibold uppercase tracking-wide text-black/60"
+        >
             Points
         </span>
     </div>

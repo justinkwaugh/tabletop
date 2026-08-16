@@ -37,6 +37,27 @@
         return gameSession.gameState.players.find((p) => p.color === color)?.playerId
     }
 
+    // The pack this draw rolled the deck into, or undefined if it stayed in the same one.
+    // Found by walking back to the PREVIOUS draw and comparing backs - the deck keeps no
+    // record of the card drawn before this one. The scan stops at the first earlier draw,
+    // which is at most a round away, so it doesn't grow with the length of the game.
+    const packRolledTo = $derived.by(() => {
+        if (!isDrawActionCard(action) || !action.metadata?.back) return undefined
+        const actions = gameSession.actions
+        const index = actions.findIndex((candidate) => candidate.id === action.id)
+        if (index < 0) return undefined
+        for (let i = index - 1; i >= 0; i--) {
+            const earlier = actions[i]
+            if (!isDrawActionCard(earlier)) continue
+            // The first draw of the game has no predecessor to differ from, so it never
+            // announces a change - deck A isn't news.
+            return earlier.metadata?.back && earlier.metadata.back !== action.metadata.back
+                ? { from: earlier.metadata.back, to: action.metadata.back }
+                : undefined
+        }
+        return undefined
+    })
+
     const slotLabels: Record<1 | 2 | 3, string> = { 1: 'top', 2: 'middle', 3: 'bottom' }
     // Pile A always renders on the left, pile B on the right (see DeckPiles.svelte) -
     // history should describe piles the way a player actually sees them on screen.
@@ -100,7 +121,7 @@
         {/if}
     {:else}
         drew the next action card
-    {/if}
+    {/if}{#if packRolledTo}, and the deck moved from pack {packRolledTo.from} to pack {packRolledTo.to}{/if}
 {:else if isChooseAction(action)}
     chose the {slotLabels[action.slot]} action
 {:else if isNegotiationMove(action)}
@@ -188,7 +209,8 @@
             lost {invasion.directSpacesLost} space{invasion.directSpacesLost === 1 ? '' : 's'} (-{invasion.directPointsLost}
             power point{invasion.directPointsLost === 1 ? '' : 's'}){#if invasion.disconnectedSpaces > 0}, and {invasion.disconnectedSpaces} more space{invasion.disconnectedSpaces === 1
                     ? ''
-                    : 's'} were cut off into a neutral zone (-{invasion.disconnectedPointsLost} power point{invasion.disconnectedPointsLost ===
+                    : 's'}
+            {invasion.disconnectedSpaces === 1 ? 'was' : 'were'} cut off into a neutral zone (-{invasion.disconnectedPointsLost} power point{invasion.disconnectedPointsLost ===
                 1
                     ? ''
                     : 's'})
@@ -254,7 +276,11 @@
         a neutral prince
     {/if}
 {:else if isPass(action)}
-    passed, declining to place any more
+    {#if action.metadata?.noLegalPlacement}
+        stopped — there was nowhere legal left to place a wall
+    {:else}
+        passed, declining to place any more
+    {/if}
 {:else if isAdvanceResolution(action)}
     {@const meta = action.metadata}
     {#if meta?.moneyBagRecipientIds}

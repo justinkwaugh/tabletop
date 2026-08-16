@@ -127,7 +127,10 @@
     // and made card-less players look as heavy as card-holding ones. Half height keeps
     // the slot legible as a card-shaped outline while giving the row back to the panel.
     const hasPoliticsCards = $derived(playerState.politicsCards.length > 0)
-    const EMPTY_SLOT_H = Math.round(CARD_H / 2)
+    // Started at half a card's height; trimmed another 20% from there, which is as small
+    // as the outline can get while still reading as a card-shaped placeholder rather than
+    // a stray divider. Derived from CARD_H so it tracks the real card size.
+    const EMPTY_SLOT_H = Math.round(CARD_H * 0.4)
 
 
     // A card's face only ever shows for your own hand (never an opponent's - that's

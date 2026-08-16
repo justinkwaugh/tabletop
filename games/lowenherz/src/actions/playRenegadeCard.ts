@@ -79,7 +79,12 @@ export class HydratedPlayRenegadeCard
         const playerState = state.getPlayerState(this.playerId)
         const enemyRegion = state.regions.find((r) => r.id === this.enemyRegionId)!
         const victimColor = enemyRegion.ownerColor!
-        const victimPlayer = state.players.find((p) => p.color === victimColor)!
+        // No "!" here: a region can belong to a NEUTRAL prince, which is a colour no player
+        // holds, so this is legitimately undefined and the knight has no stock to go back
+        // to. Asserting it non-null crashed the whole action the moment anyone played
+        // Renegade against a neutral region. Same guarded lookup expandRegion uses when an
+        // invasion takes spaces off a neutral owner.
+        const victimPlayer = state.players.find((p) => p.color === victimColor)
 
         const removedSquare = getSquare(state.board, this.removedCol, this.removedRow)!
         const removalWoodedCostPaid = removedSquare.type === SquareType.Forest ? WOODED_KNIGHT_COST : undefined
@@ -88,7 +93,10 @@ export class HydratedPlayRenegadeCard
         }
         const { knightColor: _removedKnightColor, ...clearedSquare } = removedSquare
         state.board.squares[this.removedRow][this.removedCol] = clearedSquare
-        victimPlayer.knightsInStock += 1
+        // A neutral prince keeps no stock, so its removed knight simply leaves the board.
+        if (victimPlayer) {
+            victimPlayer.knightsInStock += 1
+        }
 
         const placedSquare = getSquare(state.board, this.placedCol, this.placedRow)!
         state.board.squares[this.placedRow][this.placedCol] = { ...placedSquare, knightColor: playerState.color }

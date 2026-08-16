@@ -4,7 +4,7 @@ import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { ActionCardType } from '../definition/actionCards.js'
+import { ActionCardType, CardBack } from '../definition/actionCards.js'
 
 export type DrawActionCardMetadata = Type.Static<typeof DrawActionCardMetadata>
 export const DrawActionCardMetadata = Type.Object({
@@ -13,6 +13,12 @@ export const DrawActionCardMetadata = Type.Object({
     // to describe the draw (and, for Mining/King is Dead, the state handler adds
     // hillScoring below once it computes the hill-power-point payout).
     cardType: Type.Optional(Type.Enum(ActionCardType)),
+    // Which lettered pack this card came off. Recorded on every draw so history can spot
+    // the moment the deck rolls from one pack to the next by comparing consecutive draws -
+    // there's nowhere in state that remembers the previously drawn card (discardedActionCard
+    // only survives for a Silver Mine), and it matters to anyone tracking which Silver Mines
+    // are still to come.
+    back: Type.Optional(Type.Enum(CardBack)),
     hillScoring: Type.Optional(
         Type.Array(Type.Object({ playerId: Type.String(), points: Type.Number() }))
     )
@@ -58,7 +64,10 @@ export class HydratedDrawActionCard
         }
 
         state.currentActionCard = state.actionDeck.shift()
-        this.metadata = { cardType: state.currentActionCard?.type }
+        this.metadata = {
+            cardType: state.currentActionCard?.type,
+            back: state.currentActionCard?.back
+        }
     }
 
     isValidDrawActionCard(state: HydratedLowenherzGameState): boolean {

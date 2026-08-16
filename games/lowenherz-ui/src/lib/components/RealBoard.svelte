@@ -14,6 +14,7 @@
         isNegotiationMove,
         isOnBoard,
         isPlaceWall,
+        isPlayRenegadeCard,
         isSubmitDuelBid,
         MachineState,
         type Negotiation,
@@ -580,6 +581,102 @@
             .filter((marker) => marker.walls.length > 0)
     })
 
+    // Where a heart sits for a given boundary wall - the same maths the markers and the
+    // burst below both need, so neither can drift from the other.
+    function heartPosition(wall: { col: number; row: number; edge: string }) {
+        return {
+            left: (wall.edge === 'west' ? wall.col * CELL_SIZE : wall.col * CELL_SIZE + CELL_SIZE / 2) - 12,
+            top: (wall.edge === 'west' ? wall.row * CELL_SIZE + CELL_SIZE / 2 : wall.row * CELL_SIZE) - 12
+        }
+    }
+
+    // Cancelling an alliance deletes it from state, so by the time we hear about the
+    // action its hearts are already gone from allianceMarkers and there is nothing left to
+    // animate. This keeps the last known wall positions per alliance so the burst still
+    // knows where to play. A plain Map, not $state: nothing renders from it directly.
+    const lastKnownAllianceWalls = new Map<string, { col: number; row: number; edge: string }[]>()
+    $effect(() => {
+        for (const marker of allianceMarkers) {
+            lastKnownAllianceWalls.set(marker.id, marker.walls)
+        }
+    })
+
+    type AllianceBurst = { id: string; left: number; top: number }
+    let allianceBursts: AllianceBurst[] = $state([])
+    const ALLIANCE_BURST_MS = 700
+    // Directions the shards fly. Not evenly spaced round the circle - a slightly irregular
+    // spray reads as something breaking rather than as a diagram.
+    const BURST_SHARD_ANGLES = [-72, -28, 14, 58, 104, 152, 196, 250]
+
+    // The renegade knight changing sides: it lifts off its old square, arcs across, and
+    // settles on the new one having taken the new owner's colour on the way. Renegade is
+    // "remove theirs, place yours" in the rules, but as a single gesture it reads as one
+    // knight defecting - which is what the card is called.
+    type RenegadeFlight = {
+        id: string
+        left: number
+        top: number
+        dx: number
+        dy: number
+        toCol: number
+        toRow: number
+        fromColor: Color
+        toColor: Color
+    }
+    let renegadeFlight: RenegadeFlight | undefined = $state(undefined)
+    const RENEGADE_FLIGHT_MS = 900
+
+    // The landing square already holds the new knight the moment the action applies, so it
+    // is hidden for the duration - otherwise the piece would be sitting there waiting while
+    // its own arrival is still in the air.
+    function isRenegadeArrivalSquare(col: number, row: number): boolean {
+        return renegadeFlight !== undefined && renegadeFlight.toCol === col && renegadeFlight.toRow === row
+    }
+
+    function flyRenegadeKnight(action: { id: string; playerId: string; metadata?: unknown }) {
+        const metadata = action.metadata as
+            | { victimColor: Color; removedSquareKey: string; placedSquareKey: string }
+            | undefined
+        if (!metadata) return
+
+        const [fromCol, fromRow] = metadata.removedSquareKey.split(',').map(Number)
+        const [toCol, toRow] = metadata.placedSquareKey.split(',').map(Number)
+        const mover = gameSession.gameState.getPlayerState(action.playerId)
+
+        renegadeFlight = {
+            id: action.id,
+            left: fromCol * CELL_SIZE,
+            top: fromRow * CELL_SIZE,
+            dx: (toCol - fromCol) * CELL_SIZE,
+            dy: (toRow - fromRow) * CELL_SIZE,
+            toCol,
+            toRow,
+            fromColor: metadata.victimColor,
+            toColor: mover.color
+        }
+
+        setTimeout(() => {
+            if (renegadeFlight?.id === action.id) renegadeFlight = undefined
+        }, RENEGADE_FLIGHT_MS)
+    }
+
+    function burstAlliance(allianceId: string) {
+        const walls = lastKnownAllianceWalls.get(allianceId)
+        if (!walls || walls.length === 0) return
+
+        const added = walls.map((wall, i) => ({
+            id: `${allianceId}-${wall.col},${wall.row},${wall.edge}-${i}`,
+            ...heartPosition(wall)
+        }))
+        allianceBursts = [...allianceBursts, ...added]
+
+        setTimeout(() => {
+            const spent = new Set(added.map((burst) => burst.id))
+            allianceBursts = allianceBursts.filter((burst) => !spent.has(burst.id))
+            lastKnownAllianceWalls.delete(allianceId)
+        }, ALLIANCE_BURST_MS)
+    }
+
     // Cancelling costs 10 ducats and is legal at any time, so the affordance lives on the
     // board rather than in the turn-scoped status text. One click does it: the hover state
     // (broken heart, the wall sweeping back, the -10 medallion) is the confirmation step,
@@ -790,10 +887,45 @@
     // ran dry, leaving only an expansion).
     $effect(() => {
         if (!gameSession.knightPlan) {
-            if (availableKnightPlans.length === 1) gameSession.selectKnightPlan(availableKnightPlans[0])
+            if (availableKnightPlans.length === 1) choosePlan(availableKnightPlans[0])
         } else if (gameSession.canPlaceKnight && !expandStageActive && !knightStageActive) {
             gameSession.clearKnightPlan()
         }
+    })
+
+    // Whether expanding was actually on the table when the current plan was picked. A plan
+    // chosen while expansion WAS possible is a real decision and must stand; one chosen
+    // while it was impossible was made without that option ever being shown.
+    let expansionWasAvailableAtPlanTime = $state(false)
+
+    function choosePlan(plan: KnightPlan) {
+        expansionWasAvailableAtPlanTime = gameSession.canStartExpansion
+        gameSession.selectKnightPlan(plan)
+    }
+
+    const planIncludesExpansion = $derived(
+        gameSession.knightPlan === 'expand' ||
+            gameSession.knightPlan === 'knightThenExpand' ||
+            gameSession.knightPlan === 'expandThenKnight'
+    )
+
+    // A player's own move can unlock an option they were never offered: placing the first
+    // knight can tip a neighbour's count so it can finally be outnumbered, and breaking an
+    // alliance mid-action drops the protection that was shutting expansion out. Both leave
+    // a plan on file - auto-selected, since "two knights" was the only shape available -
+    // that no longer reflects what's possible.
+    //
+    // So when expansion becomes possible mid-action and the plan has none in it, drop the
+    // plan and let the choice be made again for the swords that are left. Only local intent
+    // is cleared; anything already placed stays put. Guarded so it can't overturn a genuine
+    // decision (expansionWasAvailableAtPlanTime) or interrupt an expansion under way.
+    $effect(() => {
+        if (!gameSession.canPlaceKnight) return
+        if (!gameSession.knightPlan || planIncludesExpansion) return
+        if (expansionWasAvailableAtPlanTime) return
+        if (gameSession.gameState.expandingRegionId !== undefined) return
+        if (!gameSession.canStartExpansion) return
+        gameSession.clearKnightPlan()
     })
 
     // A region picked to expand outlives its usefulness the moment the expanding stage
@@ -882,6 +1014,12 @@
                 }
             }
             popupsForCompletedRegions(action.metadata?.completedRegions)
+        } else if (isPlayRenegadeCard(action)) {
+            flyRenegadeKnight(action)
+        } else if (isCancelAlliance(action)) {
+            // Fires from the same per-action listener as the score popups, so it plays once,
+            // for everyone at the table, and stays quiet while scrubbing history.
+            burstAlliance(action.allianceId)
         }
     }
 
@@ -958,6 +1096,49 @@
 
     // The canonical col/row/edge form (matching how real placed walls are stored and
     // rendered) for whichever edge is currently nearest the mouse.
+    // Whether the cursor is currently over a village square. Villages are worth 5 power
+    // points each and decide a lot of scoring, but on the printed tiles they sit in the
+    // same palette as forests and hills and are easy to lose. Hovering one lights up every
+    // village on the board, so a player can see the whole set at a glance without a legend
+    // or a permanent highlight cluttering the board.
+    //
+    // Read off hoverPoint (board pixels, already tracked for the ghost wall) rather than
+    // per-square mouse handlers - that would be one pair of listeners on every square of
+    // the grid to answer a question the board already knows the answer to.
+    const hoveringVillage = $derived.by(() => {
+        if (!hoverPoint) return false
+        const col = Math.floor(hoverPoint.x / CELL_SIZE)
+        const row = Math.floor(hoverPoint.y / CELL_SIZE)
+        if (!isOnBoard(col, row)) return false
+        return board.squares[row]?.[col]?.type === SquareType.Village
+    })
+
+    // Löwenherz is Teuber's, and its princes compete to succeed a King while paying in
+    // ducats - Holy Roman Empire rather than England, whose coin was the pound. These are
+    // all real towns that were long established by the 1100s, so a board reads as a
+    // plausible stretch of the Empire rather than as invented fantasy names.
+    const VILLAGE_NAMES = [
+        'Quedlinburg', 'Goslar', 'Bamberg', 'Speyer', 'Worms', 'Trier',
+        'Regensburg', 'Hildesheim', 'Soest', 'Naumburg', 'Fulda', 'Eisenach',
+        'Marburg', 'Nördlingen', 'Meissen', 'Erfurt', 'Passau', 'Konstanz',
+        'Rothenburg', 'Dinkelsbühl', 'Landshut', 'Görlitz', 'Wetzlar', 'Hameln'
+    ]
+
+    // Every village on the board with the name it keeps for the whole game. Assigned in
+    // row-major order rather than at random, so every player at the table sees the same
+    // name on the same square without any of it having to live in game state.
+    const villages = $derived.by(() => {
+        const found: { col: number; row: number; name: string }[] = []
+        for (let row = 0; row < board.squares.length; row++) {
+            for (let col = 0; col < board.squares[row].length; col++) {
+                if (board.squares[row][col].type === SquareType.Village) {
+                    found.push({ col, row, name: VILLAGE_NAMES[found.length % VILLAGE_NAMES.length] })
+                }
+            }
+        }
+        return found
+    })
+
     const ghostWall = $derived.by(() => {
         const edge = nearestWallEdge
         if (!edge) return undefined
@@ -1399,7 +1580,10 @@
     {/each}
 {/snippet}
 
-<div class="flex flex-col gap-2" bind:this={rootEl}>
+<!-- items-center so each message box is centred over the board rather than
+     starting at its left edge; text-center on the boxes themselves handles the
+     wrapping lines within them. -->
+<div class="flex flex-col gap-2 items-center" bind:this={rootEl}>
     <!-- Warms up the Tangerine signature font as soon as the board mounts, so it's
          already cached by the time anyone actually signs a negotiation (see
          .signature-text-warmup in app.css). -->
@@ -1411,7 +1595,7 @@
          gameSession.actions already reflects the visible (rewound) context rather than the
          live one. Same idea as Sol's LastActionDescription, just scoped to history. -->
     {#if historyAction}
-        <div class="text-black text-[20px] border-b-2 border-black/15 pb-1">
+        <div class="text-black text-[20px] text-center border-b-2 border-black/15 pb-1">
             <span class="italic text-black/60 text-[16px]">Rewound to:</span>
             {#if historyAction.playerId}
                 {@render playerPill(historyAction.playerId)}
@@ -1420,14 +1604,14 @@
         </div>
     {/if}
     {#if lastBankWin}
-        <div class="text-black text-[20px]">
+        <div class="text-black text-[20px] text-center">
             {@render playerPill(lastBankWin.playerId)} gained {lastBankWin.amount} ducat{lastBankWin.amount === 1
                 ? ''
                 : 's'} from the bank.
         </div>
     {/if}
     {#if lastDuelOutcome?.type === 'giveUp'}
-        <div class="text-black text-[20px]">
+        <div class="text-black text-[20px] text-center">
             {@render bidList(lastDuelOutcome.bids)} — tied again, so no one performs the{lastDuelOutcome.actionNoun
                 ? ` ${lastDuelOutcome.actionNoun}`
                 : ''} action.
@@ -1440,7 +1624,7 @@
         <!-- Names the price, since that's the whole weight of the decision - and the
              cancellation is now a single board click (see the alliance hearts), so this is
              where the 10 ducats leaving your purse gets accounted for. -->
-        <div class="text-black text-[20px]">
+        <div class="text-black text-[20px] text-center">
             {#if cancelerIsMe}
                 You paid
             {:else}
@@ -1456,7 +1640,7 @@
             {/if}.
         </div>
     {/if}
-    <div class="text-black text-[20px] leading-loose">
+    <div class="text-black text-[20px] text-center leading-loose">
         {#if gameSession.isPlayingAllianceCard}
             <!-- No "that region has nothing to ally with" case to report: a region with no
                  eligible neighbor isn't offered in the first place (see
@@ -1509,7 +1693,6 @@
             {:else}
                 {@render myPill()} won a wall action.
             {/if}
-            <br class="block mb-0.5" />
             Place {gameSession.gameState.wallsRemaining} wall{gameSession.gameState.wallsRemaining === 1
                 ? ''
                 : 's'} or
@@ -1552,7 +1735,6 @@
                     ? ` (${knightSwordsLeft} to place)`
                     : ''}.
             {/if}
-            <br class="block mb-[7px]" />
             Or
             <button
                 type="button"
@@ -1577,7 +1759,6 @@
             {:else}
                 {@render myPill()} won a knight action.
             {/if}
-            <br class="block mb-[7px]" />
             <!-- The whole shape of the action is chosen here, up front - for a two-sword
                  card that's exactly three possibilities (see availableKnightPlans), minus
                  any whose halves aren't actually available. Everything after this is
@@ -1597,7 +1778,7 @@
                 {#each availableKnightPlans as plan, i (plan)}{i > 0 ? ' or ' : ''}<button
                         type="button"
                         class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
-                        onclick={() => gameSession.selectKnightPlan(plan)}
+                        onclick={() => choosePlan(plan)}
                     >
                         {KNIGHT_PLAN_LABELS[plan]}
                     </button>{/each}
@@ -1616,11 +1797,10 @@
                  in the action bar above (see ActionToolbar) rather than as a row of text
                  per scorer down here - the numbers land right where that player's
                  running total already is, and this stays one line. -->
-            The deck revealed a Silver Mine.
+            A Silver Mine!
             {#if mineScorers.length === 0}
-                No one had hills enclosed in a region, so no power points were awarded.
+                No hills were enclosed, so no points were awarded.
             {/if}
-            <br />
             {#if gameSession.canDrawActionCard}
                 Click the action card draw pile to start the next round.
             {:else}
@@ -1629,7 +1809,6 @@
             {/if}
         {:else if lastRoundEndedInDuelGiveUp}
             The duel was tied a second time, so no one performs the action.
-            <br />
             {#if gameSession.canDrawActionCard}
                 Click the action card draw pile to start the next round.
             {:else}
@@ -1656,7 +1835,7 @@
         {:else if gameSession.gameState.machineState === MachineState.ChoosingActions}
             Waiting for the next player to choose...
         {:else if gameSession.gameState.machineState === MachineState.Negotiating && gameSession.gameState.negotiation}
-            Negotiation for {negotiationActionNoun} or either player may
+            Negotiate for {negotiationActionNoun} or
             <button
                 type="button"
                 class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-red-700/10 hover:bg-red-700/20 font-semibold disabled:opacity-40"
@@ -1672,6 +1851,10 @@
                 ? ' again'
                 : ''}: {@render playerPillList(gameSession.gameState.duel.playerIds)}.
             {#if previousTiedRoundBids}
+                <!-- Kept on its own line, unlike the other two-sentence messages: naming
+                     the duelists and then listing everyone's previous bid is reliably too
+                     long to sit on one line, so letting it wrap mid-sentence reads worse
+                     than an intentional break here. -->
                 <br class="block mb-0.5" />
                 Tied last round: {@render bidList(previousTiedRoundBids)}.
             {/if}
@@ -1690,7 +1873,6 @@
             {:else}
                 {@render myPill()} won Crown and Scepter.
             {/if}
-            <br class="block mb-0.5" />
             Click one of the politics piles to look through it.
         {:else if !gameSession.setupComplete}
             Waiting for the other player(s) to place a castle...
@@ -1798,9 +1980,18 @@
                         <span class="font-semibold">Your bid:</span>
                         {@render duelBidStepper(myId, bidAmount, money)}
                         {#if gameSession.selectedTreasureCard}
-                            <span class="font-semibold">
-                                + Treasure ({gameSession.selectedTreasureCard.value})
-                            </span>
+                            <!-- Clicking the chip unarms the card. This is the ONLY way back:
+                                 arming is local UI state, not a game action, so Undo never
+                                 touches it, and APPLY in the hand only ever arms. It used to
+                                 be a "don't play it" button on a sentence below. -->
+                            <button
+                                type="button"
+                                class="px-1.5 py-[3px] rounded font-semibold bg-green-700/15 hover:bg-red-700/20"
+                                title="Click to take this Treasure back out of your bid"
+                                onclick={() => gameSession.selectTreasureCard(undefined)}
+                            >
+                                + Treasure ({gameSession.selectedTreasureCard.value}) ✕
+                            </button>
                         {/if}
                         <button
                             type="button"
@@ -1813,6 +2004,14 @@
                         >
                             Submit bid
                         </button>
+                        <!-- Sits beside the button rather than in a sentence of its own
+                             below: it only needs to tell a duelist the option exists, and
+                             the how-to (open your hand, hit APPLY) is the same gesture a
+                             Treasure takes everywhere else in the game. Once one is armed
+                             this gives way to the confirmation row underneath. -->
+                        {#if gameSession.myTreasureCards.length > 0 && !gameSession.selectedTreasureCard}
+                            <span class="text-black/70 text-[15px]">Nudge: You hold a Treasure!</span>
+                        {/if}
                     {/if}
                 </div>
             {/if}
@@ -1864,30 +2063,6 @@
                  card, which arms it (see PoliticsHand/selectTreasureCard) for the bid
                  you submit next. This line only exists so a duelist knows the option is
                  there at all, and then confirms it once a card is armed. -->
-            {#if gameSession.canSubmitDuelBid && gameSession.myTreasureCards.length > 0}
-                <div class="flex flex-wrap items-center gap-2 text-[15px]">
-                    {#if gameSession.selectedTreasureCard}
-                        <span class="font-semibold text-green-900">
-                            You're playing a Treasure ({gameSession.selectedTreasureCard.value}) with your
-                            bid — its value is added to the ducats above.
-                        </span>
-                        <button
-                            type="button"
-                            class="px-1.5 py-0.5 rounded border border-black/30 text-black/60 text-xs hover:bg-black/10"
-                            onclick={() => gameSession.selectTreasureCard(undefined)}
-                        >
-                            don't play it
-                        </button>
-                    {:else}
-                        <span class="text-black/70">
-                            You hold {gameSession.myTreasureCards.length} Treasure card{gameSession
-                                .myTreasureCards.length === 1
-                                ? ''
-                                : 's'} you could add to your bid — click one in your hand and press APPLY.
-                        </span>
-                    {/if}
-                </div>
-            {/if}
         </div>
     {/if}
 
@@ -2032,6 +2207,9 @@
                                      actually gone from game state until the whole Renegade
                                      play is confirmed, but this square shouldn't look occupied
                                      in the meantime. -->
+                            {:else if isRenegadeArrivalSquare(col, row)}
+                                <!-- Held back until the defecting knight actually lands on
+                                     it - see renegadeFlight. -->
                             {:else if isLegalRenegadeRemovableSquare(col, row)}
                                 <!-- The real knight already there, pulsing in place - rather than
                                      a ring around it - to show it's a legal removal target. -->
@@ -2089,30 +2267,14 @@
         {#each allianceMarkers as marker (marker.id)}
             {@const previewing = hoveredAllianceId === marker.id}
 
-            <!-- The rulebook's sign of an alliance is one of the shared walls "turned by
-                 90 degrees"; ending it puts that wall back in line. We draw allied walls
-                 flush all along, so the restoration only plays on the preview: a ghost
-                 segment sweeps from turned back to flush, landing on the real wall. -->
-            {#if previewing}
-                {#each marker.walls as wall (wall.col + ',' + wall.row + ',' + wall.edge + '-restore')}
-                    <div
-                        class="absolute pointer-events-none z-30 alliance-wall-restore"
-                        style="
-                            left: {wall.col * CELL_SIZE}px;
-                            top: {wall.row * CELL_SIZE}px;
-                            transform-origin: {wall.edge === 'west' ? `0px ${CELL_SIZE / 2}px` : `${CELL_SIZE / 2}px 0px`};
-                        "
-                    >
-                        <WallSegment orientation={wall.edge === 'west' ? 'vertical' : 'horizontal'} />
-                    </div>
-                {/each}
-            {/if}
-
+            <!-- No ghost-wall restoration here any more. The rulebook marks an alliance by
+                 turning one shared wall 90 degrees, and cancelling puts it back in line -
+                 but this board draws allied walls flush at all times and shows the alliance
+                 with hearts instead, so animating a wall "back" into an orientation it
+                 already has was undoing something the player had never seen. The hover
+                 preview is now the hearts themselves. -->
             {#each marker.walls as wall (wall.col + ',' + wall.row + ',' + wall.edge + '-heart')}
-                {@const left =
-                    (wall.edge === 'west' ? wall.col * CELL_SIZE : wall.col * CELL_SIZE + CELL_SIZE / 2) - 12}
-                {@const top =
-                    (wall.edge === 'west' ? wall.row * CELL_SIZE + CELL_SIZE / 2 : wall.row * CELL_SIZE) - 12}
+                {@const { left, top } = heartPosition(wall)}
                 {#if marker.cancellable}
                     <!-- A heart's own idle animation is a heartbeat, which is exactly the
                          "alive, touchable" cue this needs - it beats only while cancelling
@@ -2144,7 +2306,11 @@
                                 ? 1
                                 : 0.85}); box-shadow: 0 0 6px rgba(217, 180, 74, 0.55);"
                         ></span>
-                        <span class="relative leading-none">{previewing ? '💔' : '🩷'}</span>
+                        <!-- The shiver is on the glyph, not the button, so the gold ring
+                             stays put and the heart trembles inside it. -->
+                        <span class="relative leading-none {previewing ? 'alliance-heart-shiver' : ''}"
+                            >{previewing ? '💔' : '🩷'}</span
+                        >
                     </button>
                 {:else}
                     <div
@@ -2183,6 +2349,77 @@
                     </span>
                 </div>
             {/if}
+        {/each}
+
+        <!-- Village names, in the overlay layer rather than inside each square button: a
+             pill is wider than its square and has to be able to spill over its neighbours,
+             which needs a shared stacking context to sit above them all. They're always
+             rendered and merely transparent, so the opacity transition can play in BOTH
+             directions - mounting them on hover would fade in but vanish on the way out. -->
+        {#each villages as village (village.col + ',' + village.row)}
+            <div
+                class="absolute pointer-events-none z-40 village-name {hoveringVillage
+                    ? 'village-name-shown'
+                    : ''}"
+                style="left: {village.col * CELL_SIZE + CELL_SIZE / 2}px; top: {village.row *
+                    CELL_SIZE +
+                    CELL_SIZE / 2}px;"
+            >
+                {village.name}
+            </div>
+        {/each}
+
+        <!-- The defecting knight in flight. Two copies of the same piece stacked - the old
+             owner's colour fading out, the new owner's fading in - so the change of side
+             happens over the arc rather than as a swap at either end. -->
+        {#if renegadeFlight}
+            {#key renegadeFlight.id}
+                <div
+                    class="absolute pointer-events-none z-50 renegade-flight"
+                    style="
+                        left: {renegadeFlight.left}px;
+                        top: {renegadeFlight.top}px;
+                        width: {CELL_SIZE}px;
+                        height: {CELL_SIZE}px;
+                        --renegade-dx: {renegadeFlight.dx}px;
+                        --renegade-dy: {renegadeFlight.dy}px;
+                    "
+                >
+                    <div class="absolute inset-0 renegade-flight-old">
+                        {@render pieceIcon(knightFill, knightLines, renegadeFlight.fromColor, -1)}
+                    </div>
+                    <div class="absolute inset-0 renegade-flight-new">
+                        {@render pieceIcon(knightFill, knightLines, renegadeFlight.toColor, -1)}
+                    </div>
+                </div>
+            {/key}
+        {/if}
+
+        <!-- The alliance breaking. Rendered outside the allianceMarkers loop on purpose:
+             by the time this plays the alliance is gone from state, so there is no marker
+             left to hang it on - the positions come from lastKnownAllianceWalls. One burst
+             per wall that carried a heart, so a long shared border comes apart along its
+             whole length rather than in one spot. -->
+        {#each allianceBursts as burst (burst.id)}
+            <div
+                class="absolute pointer-events-none z-50"
+                style="left: {burst.left}px; top: {burst.top}px; width: 24px; height: 24px;"
+            >
+                <span
+                    class="absolute inset-0 flex items-center justify-center alliance-burst-core"
+                    style="font-size: 19px;"
+                >
+                    💔
+                </span>
+                {#each BURST_SHARD_ANGLES as angle, i (i)}
+                    <span
+                        class="absolute inset-0 flex items-center justify-center alliance-burst-shard"
+                        style="--shard-angle: {angle}deg; animation-delay: {i * 9}ms;"
+                    >
+                        🩷
+                    </span>
+                {/each}
+            </div>
         {/each}
 
         <!-- A single pulsing preview of the wall that would actually be placed at
@@ -2387,26 +2624,163 @@
         }
     }
 
+    /* The alliance coming apart: the heart swells, cracks and collapses while shards spray
+       outward. Deliberately quick (620ms against the heartbeat's 5.7s cycle) - it marks a
+       moment rather than holding the board. */
+    @keyframes alliance-burst-core-frames {
+        0% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        30% {
+            transform: scale(1.55) rotate(-6deg);
+            opacity: 1;
+        }
+        100% {
+            transform: scale(0.35) rotate(8deg);
+            opacity: 0;
+        }
+    }
+
+    .alliance-burst-core {
+        animation: alliance-burst-core-frames 620ms ease-out forwards;
+    }
+
+    /* Each shard is rotated to its own angle first, then thrown "up" along that rotated
+       axis - which sends it outward in that direction without needing per-shard x/y. */
+    @keyframes alliance-burst-shard-frames {
+        0% {
+            transform: rotate(var(--shard-angle)) translateY(0) scale(0.85);
+            opacity: 0.95;
+        }
+        100% {
+            transform: rotate(var(--shard-angle)) translateY(-30px) scale(0.3);
+            opacity: 0;
+        }
+    }
+
+    .alliance-burst-shard {
+        font-size: 11px;
+        animation: alliance-burst-shard-frames 620ms cubic-bezier(0.2, 0.75, 0.3, 1) forwards;
+    }
+
     .alliance-heartbeat {
         animation: alliance-heartbeat-frames 5.7s ease-in-out infinite;
     }
 
-    /* The rulebook's turned boundary wall sweeping back into line - played on hover as a
-       preview of what cancelling restores. Ends flush and slightly transparent, sitting
-       right on top of the real wall. */
-    @keyframes alliance-wall-restore-frames {
+    /* The town's name laid across the village itself, dark on parchment so it stays
+       legible over forest, hill and village art alike. Centred on the square in both axes
+       (hence -50%, -50%) and free to overhang its neighbours, since a town name is nearly
+       always wider than one cell - which is also why these live in the overlay layer
+       rather than inside a square. */
+    .village-name {
+        transform: translate(-50%, -50%);
+        white-space: nowrap;
+        padding: 1px 6px 2px;
+        border-radius: 9999px;
+        font-size: 12px;
+        line-height: 1.25;
+        color: #f6e8c8;
+        background-color: rgba(43, 26, 10, 0.92);
+        border: 1px solid rgba(217, 180, 74, 0.75);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45);
+        opacity: 0;
+        /* Out is slower than in: names appear promptly when wanted, and linger a moment on
+           the way out so sweeping across the board doesn't strobe. */
+        transition: opacity 260ms ease-out;
+    }
+
+    .village-name-shown {
+        opacity: 1;
+        transition: opacity 160ms ease-in;
+    }
+
+    /* The renegade knight's arc. The horizontal and vertical travel come in as custom
+       properties (the squares differ every time), while the -34px at the midpoint is the
+       lift: it's what makes the path bow upward instead of sliding flat across the board.
+       Scaling up at the apex and back down on landing does the rest of the 3D read - a
+       piece nearer the eye is bigger - and the drop shadow stretching and softening at the
+       same moment says the same thing a second way. */
+    @keyframes renegade-flight-frames {
         0% {
-            transform: rotate(90deg);
-            opacity: 0.15;
+            transform: translate(0, 0) scale(1);
+            filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
+        }
+        50% {
+            transform: translate(
+                    calc(var(--renegade-dx) / 2),
+                    calc(var(--renegade-dy) / 2 - 34px)
+                )
+                scale(1.4);
+            filter: drop-shadow(0 14px 9px rgba(0, 0, 0, 0.33));
         }
         100% {
-            transform: rotate(0deg);
-            opacity: 0.75;
+            transform: translate(var(--renegade-dx), var(--renegade-dy)) scale(1);
+            filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
         }
     }
 
-    .alliance-wall-restore {
-        animation: alliance-wall-restore-frames 420ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    .renegade-flight {
+        animation: renegade-flight-frames 900ms cubic-bezier(0.36, 0, 0.35, 1) forwards;
+    }
+
+    /* The turn of coat, held to the middle of the arc: still clearly the old colour as it
+       lifts, unmistakably the new one as it lands. */
+    @keyframes renegade-colour-out {
+        0%,
+        22% {
+            opacity: 1;
+        }
+        72%,
+        100% {
+            opacity: 0;
+        }
+    }
+
+    @keyframes renegade-colour-in {
+        0%,
+        22% {
+            opacity: 0;
+        }
+        72%,
+        100% {
+            opacity: 1;
+        }
+    }
+
+    .renegade-flight-old {
+        animation: renegade-colour-out 900ms linear forwards;
+    }
+
+    .renegade-flight-new {
+        animation: renegade-colour-in 900ms linear forwards;
+    }
+
+    /* The broken heart trembling while you hover it - the alliance is about to give. Fast
+       and small (a couple of pixels, a few degrees) so it reads as a shiver rather than a
+       wobble, and it runs only during the hover preview, where the heartbeat has stopped. */
+    @keyframes alliance-heart-shiver-frames {
+        0%,
+        100% {
+            transform: translate(0, 0) rotate(0deg);
+        }
+        20% {
+            transform: translate(-0.6px, 0.2px) rotate(-2.5deg);
+        }
+        40% {
+            transform: translate(0.6px, -0.2px) rotate(2.5deg);
+        }
+        60% {
+            transform: translate(-0.45px, -0.3px) rotate(-1.75deg);
+        }
+        80% {
+            transform: translate(0.45px, 0.3px) rotate(1.75deg);
+        }
+    }
+
+    .alliance-heart-shiver {
+        display: inline-block; /* transforms don't apply to a purely inline box */
+        animation: alliance-heart-shiver-frames 240ms linear infinite;
     }
 
     @keyframes alliance-price-rise-frames {

@@ -123,6 +123,32 @@ describe('HydratedPlayRenegadeCard', () => {
         })
     })
 
+    it("removes a NEUTRAL prince's knight without crediting anyone's stock", () => {
+        // A neutral prince owns regions under a real colour (see neutralColor, used in 2-
+        // and 3-player games) that no player holds. That passes the legality check - which
+        // only refuses a region with NO owner colour - so this is an ordinary, legal play,
+        // and it used to throw on `victimPlayer.knightsInStock` because the lookup by
+        // colour found nobody.
+        const state = buildState({
+            neutralColor: Color.Green,
+            regions: [ownRegion(), { ...enemyRegion(), ownerColor: Color.Green }]
+        })
+        state.board.squares[1][0] = { type: SquareType.Blank, castleColor: Color.Green }
+        state.board.squares[1][1] = { type: SquareType.Blank, knightColor: Color.Green }
+
+        const action = makePlayRenegadeCard('p1')
+        expect(action.isValidPlayRenegadeCard(state)).toBe(true)
+        expect(() => action.apply(state)).not.toThrow()
+
+        // The knight leaves the board and simply ceases to exist - a neutral prince has no
+        // stock for it to return to - while the player's own half resolves as normal.
+        expect(state.board.squares[1][1].knightColor).toBeUndefined()
+        expect(state.board.squares[0][2].knightColor).toBe(Color.Pink)
+        expect(state.getPlayerState('p1').knightsInStock).toBe(4)
+        expect(state.getPlayerState('p2').knightsInStock).toBe(5)
+        expect(action.metadata?.victimColor).toBe(Color.Green)
+    })
+
     it('does not consume any ducats when neither square is wooded', () => {
         const state = buildState()
         const action = makePlayRenegadeCard('p1')

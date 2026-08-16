@@ -107,6 +107,9 @@ describe('StartOfTurnStateHandler', () => {
         expect(state.getPlayerState('p2').powerPoints).toBe(0)
         expect(action.metadata).toEqual({
             cardType: ActionCardType.KingIsDead,
+            // Every draw records which lettered pack it came off, so history can report the
+            // deck rolling from one pack to the next (see DrawActionCardMetadata.back).
+            back: CardBack.E,
             hillScoring: [
                 { playerId: 'p1', points: 1 },
                 { playerId: 'p2', points: 0 }
