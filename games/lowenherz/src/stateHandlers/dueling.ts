@@ -1,0 +1,105 @@
+import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import { MachineState } from '../definition/states.js'
+import { ActionType } from '../definition/actions.js'
+import { Duel, HydratedLowenherzGameState } from '../model/gameState.js'
+import { HydratedSubmitDuelBid } from '../actions/submitDuelBid.js'
+import { routeAfterSlotResolved } from '../util/resolutionHelpers.js'
+
+type DuelingAction = HydratedSubmitDuelBid
+
+// A bid's actual strength includes any Treasure card added on top of the ducat
+// amount - "it can be used during a duel together with other money cards, or on its
+// own." Looked up fresh each time rather than stored, since the card is still
+// sitting untouched in the bidder's hand until (and unless) this bid wins.
+function effectiveBidAmount(state: HydratedLowenherzGameState, bid: Duel['bids'][number]): number {
+    if (!bid.treasureCardId) return bid.amount
+    const card = state.getPlayerState(bid.playerId).politicsCards.find((c) => c.id === bid.treasureCardId)
+    return bid.amount + (card?.value ?? 0)
+}
+
+export class DuelingStateHandler
+    implements MachineStateHandler<DuelingAction, HydratedLowenherzGameState>
+{
+    isValidAction(
+        action: HydratedAction,
+        context: MachineContext<HydratedLowenherzGameState>
+    ): action is DuelingAction {
+        return action instanceof HydratedSubmitDuelBid && action.isValidSubmitDuelBid(context.gameState)
+    }
+
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedLowenherzGameState>
+    ): ActionType[] {
+        const duel = context.gameState.duel
+        if (!duel) return []
+        const alreadyBid = duel.bids.some((b) => b.playerId === playerId)
+        return duel.playerIds.includes(playerId) && !alreadyBid ? [ActionType.SubmitDuelBid] : []
+    }
+
+    enter(context: MachineContext<HydratedLowenherzGameState>) {
+        const duel = context.gameState.duel
+        // Every duelist stays listed as active for the whole duel, in any order -
+        // unlike negotiation's fixed 2, a duel can have 3+ participants, and this
+        // keeps the full set visible/actionable throughout rather than shrinking as
+        // bids land (validActionsForPlayer already excludes anyone who's already
+        // bid from actually being able to bid again).
+        context.gameState.activePlayerIds = duel ? [...duel.playerIds] : []
+    }
+
+    onAction(
+        action: DuelingAction,
+        context: MachineContext<HydratedLowenherzGameState>
+    ): MachineState {
+        const gameState = context.gameState
+        const duel = gameState.duel!
+
+        if (duel.bids.length < duel.playerIds.length) {
+            return MachineState.Dueling
+        }
+
+        // This is the bid that completes the round - win, re-duel-worthy tie, or
+        // give-up-worthy tie, all three below reveal every bid at once. Marking it
+        // keeps Undo from rewinding back into the bidding phase with hindsight
+        // knowledge of what it took to win (see GameSession.undoableAction, which
+        // refuses to cross any action flagged revealsInfo).
+        action.revealsInfo = true
+
+        const maxBid = Math.max(...duel.bids.map((b) => effectiveBidAmount(gameState, b)))
+        const topBidders = duel.bids
+            .filter((b) => effectiveBidAmount(gameState, b) === maxBid)
+            .map((b) => b.playerId)
+
+        if (topBidders.length === 1) {
+            const winnerId = topBidders[0]
+            const winningBid = duel.bids.find((b) => b.playerId === winnerId)!
+            const winnerState = gameState.getPlayerState(winnerId)
+            // Only the ducat portion comes out of money - the Treasure card (if any)
+            // is paid to the bank as itself, discarded rather than converted to cash.
+            winnerState.money -= winningBid.amount
+            if (winningBid.treasureCardId) {
+                winnerState.politicsCards = winnerState.politicsCards.filter(
+                    (c) => c.id !== winningBid.treasureCardId
+                )
+            }
+            action.metadata = { ...action.metadata, duelResult: 'win', winnerId }
+            gameState.resolvedSlots.push({ slot: duel.slot, winnerPlayerId: winnerId })
+            gameState.duel = undefined
+            return routeAfterSlotResolved(gameState).nextState
+        }
+
+        // A second consecutive tie: give up entirely, no one performs the action.
+        if (duel.tieCount >= 1) {
+            action.metadata = { ...action.metadata, duelResult: 'giveUp', reduelPlayerIds: topBidders }
+            gameState.resolvedSlots.push({ slot: duel.slot, winnerPlayerId: undefined })
+            gameState.duel = undefined
+            return routeAfterSlotResolved(gameState).nextState
+        }
+
+        // First tie: re-duel among just the tied bidders (any lower bidders are
+        // dropped and don't participate in the second duel).
+        action.metadata = { ...action.metadata, duelResult: 'reduel', reduelPlayerIds: topBidders }
+        gameState.duel = { slot: duel.slot, playerIds: topBidders, bids: [], tieCount: duel.tieCount + 1 }
+        return MachineState.Dueling
+    }
+}

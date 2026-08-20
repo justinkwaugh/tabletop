@@ -1,0 +1,130 @@
+@import 'tailwindcss';
+@plugin 'flowbite/plugin';
+
+@font-face {
+    font-family: 'Blankenburg';
+    src: url('./lib/fonts/Blankenburg.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* Medieval-England-flavored body/heading face - readable enough for dense text (the
+   history log, tooltips) unlike a display-only blackletter would be. */
+@font-face {
+    font-family: 'IM Fell English';
+    src: url('./lib/fonts/IMFellEnglish-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'IM Fell English';
+    src: url('./lib/fonts/IMFellEnglish-Italic.ttf') format('truetype');
+    font-weight: normal;
+    font-style: italic;
+}
+
+/* Cursive script for the negotiation signature blanks only - not applied app-wide.
+   font-display: swap (rather than the browser default, which behaves like "block" in
+   most browsers) avoids a brief invisible period, but the real fix for the fallback-
+   font flash on first use is warming this up on mount - see .signature-text-warmup
+   below, rendered as soon as the board mounts, well before anyone signs anything. */
+@font-face {
+    font-family: 'Tangerine';
+    src: url('./lib/fonts/Tangerine-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Tangerine';
+    src: url('./lib/fonts/Tangerine-Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* Blackletter, for the pack-letter callout on the action-card draw pile only - echoes
+   the big Fraktur capital printed on the actual card backs (back-a.jpg etc). */
+@font-face {
+    font-family: 'UnifrakturMaguntia';
+    src: url('./lib/fonts/UnifrakturMaguntia-Book.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --color-primary-50: #fff5f2;
+    --color-primary-100: #fff1ee;
+    --color-primary-200: #ffe4de;
+    --color-primary-300: #ffd5cc;
+    --color-primary-400: #ffbcad;
+    --color-primary-500: #fe795d;
+    --color-primary-600: #ef562f;
+    --color-primary-700: #eb4f27;
+    --color-primary-800: #cc4522;
+    --color-primary-900: #a5371b;
+
+    --color-secondary-50: #f0f9ff;
+    --color-secondary-100: #e0f2fe;
+    --color-secondary-200: #bae6fd;
+    --color-secondary-300: #7dd3fc;
+    --color-secondary-400: #38bdf8;
+    --color-secondary-500: #0ea5e9;
+    --color-secondary-600: #0284c7;
+    --color-secondary-700: #0369a1;
+    --color-secondary-800: #075985;
+    --color-secondary-900: #0c4a6e;
+}
+
+@source "../node_modules/flowbite-svelte/dist";
+@source "../node_modules/flowbite-svelte-icons/dist";
+@source "../../../libs/frontend-components/src/**/*.{html,js,svelte,ts}";
+@source "./**/*.{html,js,svelte,ts}";
+
+@layer base {
+    html {
+        font-family: 'IM Fell English', Georgia, 'Times New Roman', serif;
+    }
+
+    /* disable chrome cancel button */
+    input[type='search']::-webkit-search-cancel-button {
+        display: none;
+    }
+}
+
+/* A negotiator's name, rendered as if just signed by hand onto a signature blank. */
+.signature-text {
+    font-family: 'Tangerine', cursive;
+    font-weight: bold;
+    font-size: 1.75rem;
+    line-height: 1;
+}
+
+/* The pack letter in "N until C" on the draw pile - see .signature-text-warmup
+   below for why Tangerine gets a warmup element; this one's small/simple enough
+   that a flash on first use isn't a practical concern. */
+.pack-letter {
+    font-family: 'UnifrakturMaguntia', cursive;
+    /* Fixed, not em-relative - so bumping the surrounding "N until" text size doesn't
+       inflate this too. */
+    font-size: 14px;
+}
+
+/* Invisible - forces the browser to fetch/cache Tangerine as soon as the board
+   mounts, instead of on first actual use (a real signature), which is what caused a
+   visible flash of the fallback cursive font at the wrong size before swapping in. */
+.signature-text-warmup {
+    font-family: 'Tangerine', cursive;
+    font-weight: bold;
+    font-size: 1.75rem;
+    line-height: 1;
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
