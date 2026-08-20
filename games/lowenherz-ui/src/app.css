@@ -3,35 +3,40 @@
 
 @font-face {
     font-family: 'Blankenburg';
-    src: url('./lib/fonts/Blankenburg.ttf') format('truetype');
+    src: url('./lib/fonts/Blankenburg.woff2') format('woff2');
     font-weight: normal;
     font-style: normal;
+    font-display: swap;
 }
 
 /* Medieval-England-flavored body/heading face - readable enough for dense text (the
    history log, tooltips) unlike a display-only blackletter would be. */
 @font-face {
     font-family: 'IM Fell English';
-    src: url('./lib/fonts/IMFellEnglish-Regular.ttf') format('truetype');
+    src: url('./lib/fonts/IMFellEnglish-Regular.woff2') format('woff2');
     font-weight: normal;
     font-style: normal;
+    font-display: swap;
 }
 
 @font-face {
     font-family: 'IM Fell English';
-    src: url('./lib/fonts/IMFellEnglish-Italic.ttf') format('truetype');
+    src: url('./lib/fonts/IMFellEnglish-Italic.woff2') format('woff2');
     font-weight: normal;
     font-style: italic;
+    font-display: swap;
 }
 
 /* Cursive script for the negotiation signature blanks only - not applied app-wide.
-   font-display: swap (rather than the browser default, which behaves like "block" in
-   most browsers) avoids a brief invisible period, but the real fix for the fallback-
-   font flash on first use is warming this up on mount - see .signature-text-warmup
-   below, rendered as soon as the board mounts, well before anyone signs anything. */
+   Every face here is font-display: swap, so text is painted in the fallback rather than
+   held invisible while the font arrives. That is not the whole story for this one: swap
+   means the fallback is VISIBLE first, so a signature would appear in the wrong face and
+   then change under the reader. The fix for that is warming the font up on mount - see
+   .signature-text-warmup below, rendered as soon as the board mounts, well before anyone
+   signs anything. */
 @font-face {
     font-family: 'Tangerine';
-    src: url('./lib/fonts/Tangerine-Regular.ttf') format('truetype');
+    src: url('./lib/fonts/Tangerine-Regular.woff2') format('woff2');
     font-weight: normal;
     font-style: normal;
     font-display: swap;
@@ -39,7 +44,7 @@
 
 @font-face {
     font-family: 'Tangerine';
-    src: url('./lib/fonts/Tangerine-Bold.ttf') format('truetype');
+    src: url('./lib/fonts/Tangerine-Bold.woff2') format('woff2');
     font-weight: bold;
     font-style: normal;
     font-display: swap;
@@ -49,7 +54,7 @@
    the big Fraktur capital printed on the actual card backs (back-a.jpg etc). */
 @font-face {
     font-family: 'UnifrakturMaguntia';
-    src: url('./lib/fonts/UnifrakturMaguntia-Book.ttf') format('truetype');
+    src: url('./lib/fonts/UnifrakturMaguntia-Book.woff2') format('woff2');
     font-weight: normal;
     font-style: normal;
     font-display: swap;
