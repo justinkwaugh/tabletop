@@ -32,6 +32,15 @@
     const hasLocalStepToCancel = $derived(
         gameSession.isPlayingRenegadeCard ||
             gameSession.isPlayingAllianceCard ||
+            // A picked castle square during setup is local-only in exactly the same way: the
+            // castle is drawn as settled, but nothing is submitted until its knight square is
+            // chosen too, so there is no action to revert and Undo is the only way back.
+            //
+            // Most visible on the very FIRST castle of the game, where no action exists yet and
+            // Undo therefore sat dark with a castle apparently on the board. On later castles it
+            // lit up, but only because it had the PREVIOUS placement to offer - which is not what
+            // the player is trying to take back.
+            gameSession.selectedCastleSquare !== undefined ||
             // A declared knight-action plan (see GameSession.knightPlan) is local-only
             // too, and it's the sole way back out of one now that the flow has no cancel
             // buttons - but only while nothing's landed under it yet. Once a knight or an
@@ -47,6 +56,10 @@
             gameSession.cancelPlayingAllianceCard()
         } else if (gameSession.knightPlan !== undefined && !gameSession.knightPlanHasProgress) {
             gameSession.clearKnightPlan()
+        } else if (gameSession.selectedCastleSquare) {
+            // Before the fall-through on purpose: with a castle square picked, Undo has to mean
+            // "put that castle back" rather than "revert whoever placed one before me".
+            gameSession.clearCastleSelection()
         } else {
             // Reverting an expansion space leaves the local record of picked spaces
             // (previews, the 1-2 space cap) stale, since nothing else hears about an
