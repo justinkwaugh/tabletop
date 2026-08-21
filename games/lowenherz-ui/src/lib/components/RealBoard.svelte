@@ -1782,7 +1782,11 @@
             {/if}
         {:else if gameSession.canPlaceCastle}
             {#if gameSession.selectedCastleSquare}
-                Place a knight adjacent to the castle.
+                {#if placingNeutral}
+                    Place a neutral knight adjacent to the castle.
+                {:else}
+                    Place a knight adjacent to the castle.
+                {/if}
             {:else if placingNeutral}
                 Place a neutral castle on the board.
             {:else}
