@@ -211,6 +211,82 @@ export class LowenherzGameSession extends GameSession<
     // card is drawn (that draw becomes the most recent one). Lives here rather than in
     // RealBoard because the board announces the reveal while the action bar shows each
     // player's payout under their points (see ActionToolbar).
+    // One marker per alliance, carrying the walls along the shared border it was struck across.
+    // The board draws hearts on those walls and bursts them when the alliance breaks; the status
+    // panel names the alliance - so both halves need this, and neither owns it.
+    //
+    // Alliances with no shared border are filtered out: an alliance whose regions no longer touch
+    // has nothing to draw and nothing to say.
+    get allianceMarkers(): {
+        id: string
+        walls: { col: number; row: number; edge: string }[]
+        cancellable: boolean
+        otherColor: Color | undefined
+    }[] {
+        const alliances = this.gameState.alliances
+        if (alliances.length === 0) return []
+
+        const regions = this.gameState.regions
+        const cancellable = new Map(this.myCancellableAlliances.map((a) => [a.id, a.otherColor]))
+
+        return alliances
+            .map((alliance) => {
+                const regionA = regions.find((r) => r.id === alliance.regionAId)
+                const regionB = regions.find((r) => r.id === alliance.regionBId)
+                const walls =
+                    !regionA || !regionB
+                        ? []
+                        : this.gameState.board.walls.filter((wall) => {
+                              const keyHere = squareKey(wall.col, wall.row)
+                              const keyThere =
+                                  wall.edge === 'north'
+                                      ? squareKey(wall.col, wall.row - 1)
+                                      : squareKey(wall.col - 1, wall.row)
+                              return (
+                                  (regionA.squareKeys.includes(keyHere) &&
+                                      regionB.squareKeys.includes(keyThere)) ||
+                                  (regionB.squareKeys.includes(keyHere) &&
+                                      regionA.squareKeys.includes(keyThere))
+                              )
+                          })
+                return {
+                    id: alliance.id,
+                    walls,
+                    // Cancellable means the rulebook's "one of the two players participating in it
+                    // pays ten ducats" is genuinely open to ME right now - myCancellableAlliances
+                    // already checks both the participation and the 10 ducats.
+                    cancellable: cancellable.has(alliance.id),
+                    otherColor: cancellable.get(alliance.id)
+                }
+            })
+            .filter((marker) => marker.walls.length > 0)
+    }
+
+    // The knight-action plans actually on the table right now. A two-sword action is the
+    // interesting case: two knights, or one knight plus one expansion in either order. Either half
+    // can be unavailable, which is what the branches below are sorting out.
+    get availableKnightPlans(): KnightPlan[] {
+        if (!this.canPlaceKnight) return []
+        const canKnight = this.canPlaceAnotherKnight
+        // canStartExpansion, not canExpandRegion: the latter is true whenever you own a region,
+        // even if every one of them is boxed in, which is how "expand a region" used to be offered
+        // and then dead-end once a region was picked.
+        const canExpand = this.canStartExpansion
+        if ((this.gameState.knightsRemaining ?? 0) > 1) {
+            const plans: KnightPlan[] = []
+            if (canKnight) plans.push('twoKnights')
+            if (canKnight && canExpand) plans.push('knightThenExpand', 'expandThenKnight')
+            // Both swords, but only the expanding half is open - one expansion is all this action
+            // can become ("expand twice is not allowed").
+            if (!canKnight && canExpand) plans.push('expand')
+            return plans
+        }
+        const plans: KnightPlan[] = []
+        if (canKnight) plans.push('knight')
+        if (canExpand) plans.push('expand')
+        return plans
+    }
+
     // Whether a board click right now means "expand into this space" / "place a knight here". Both
     // can be live at once: mid-expansion under an expand-then-knight plan, clicking a knight square
     // is what stops the expansion after a single space (there is no Done button). Each stage also

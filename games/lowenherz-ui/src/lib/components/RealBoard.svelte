@@ -498,41 +498,7 @@
         new Map(gameSession.myCancellableAlliances.map((a) => [a.id, a.otherColor]))
     )
 
-    const allianceMarkers = $derived.by(() => {
-        if (alliances.length === 0) return []
-        return alliances
-            .map((alliance) => {
-                const regionA = regions.find((r) => r.id === alliance.regionAId)
-                const regionB = regions.find((r) => r.id === alliance.regionBId)
-                const walls =
-                    !regionA || !regionB
-                        ? []
-                        : board.walls.filter((wall) => {
-                              const keyHere = squareKey(wall.col, wall.row)
-                              const keyThere =
-                                  wall.edge === 'north'
-                                      ? squareKey(wall.col, wall.row - 1)
-                                      : squareKey(wall.col - 1, wall.row)
-                              return (
-                                  (regionA.squareKeys.includes(keyHere) &&
-                                      regionB.squareKeys.includes(keyThere)) ||
-                                  (regionB.squareKeys.includes(keyHere) &&
-                                      regionA.squareKeys.includes(keyThere))
-                              )
-                          })
-                return {
-                    id: alliance.id,
-                    walls,
-                    // Cancellable means the rulebook's "one of the two players
-                    // participating in it pays ten ducats" is genuinely open to ME right
-                    // now - myCancellableAlliances already checks both the participation
-                    // and the 10 ducats.
-                    cancellable: myCancellableAllianceIds.has(alliance.id),
-                    otherColor: myCancellableAllianceIds.get(alliance.id)
-                }
-            })
-            .filter((marker) => marker.walls.length > 0)
-    })
+    const allianceMarkers = $derived(gameSession.allianceMarkers)
 
     // Where a heart sits for a given boundary wall - the same maths the markers and the
     // burst below both need, so neither can drift from the other.
@@ -737,27 +703,7 @@
     // case: two knights, or one knight plus one expansion in either order. Either half
     // can also be unavailable on its own (an empty knight stock or nowhere legal to
     // place; no region of your own to expand), which just prunes the list.
-    const availableKnightPlans = $derived.by((): KnightPlan[] => {
-        if (!gameSession.canPlaceKnight) return []
-        const canKnight = gameSession.canPlaceAnotherKnight
-        // canStartExpansion, not canExpandRegion: the latter is true whenever you own a
-        // region, even if every one of them is boxed in, which is how "expand a region"
-        // used to be offered and then dead-end once a region was picked.
-        const canExpand = gameSession.canStartExpansion
-        if (knightSwordsLeft > 1) {
-            const plans: KnightPlan[] = []
-            if (canKnight) plans.push('twoKnights')
-            if (canKnight && canExpand) plans.push('knightThenExpand', 'expandThenKnight')
-            // Both swords, but only the expanding half is open - one expansion is all
-            // this action can become ("expand twice is not allowed").
-            if (!canKnight && canExpand) plans.push('expand')
-            return plans
-        }
-        const plans: KnightPlan[] = []
-        if (canKnight) plans.push('knight')
-        if (canExpand) plans.push('expand')
-        return plans
-    })
+    const availableKnightPlans = $derived(gameSession.availableKnightPlans)
 
     const KNIGHT_PLAN_LABELS: Record<KnightPlan, string> = {
         knight: 'place a knight',
