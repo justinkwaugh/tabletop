@@ -211,6 +211,74 @@ export class LowenherzGameSession extends GameSession<
     // card is drawn (that draw becomes the most recent one). Lives here rather than in
     // RealBoard because the board announces the reveal while the action bar shows each
     // player's payout under their points (see ActionToolbar).
+    // Whether a board click right now means "expand into this space" / "place a knight here". Both
+    // can be live at once: mid-expansion under an expand-then-knight plan, clicking a knight square
+    // is what stops the expansion after a single space (there is no Done button). Each stage also
+    // falls through to the other if its own half turns out to be impossible after all.
+    //
+    // These four move together - each reads the others - and they are here rather than in RealBoard
+    // because the board's click handling and the status panel's wording both ask them.
+    get expandStageActive(): boolean {
+        const plan = this.knightPlan
+        if (!plan || !this.canExpandRegion) return false
+        switch (plan) {
+            case 'knight':
+            case 'twoKnights':
+                return false
+            case 'knightThenExpand':
+                // Its knight is done once a sword has gone somewhere, compared against the count
+                // when the plan was picked, so this still reads correctly after an Undo mid-action.
+                return (
+                    this.gameState.expansionUsed === true ||
+                    (this.gameState.knightsRemaining ?? 0) < this.knightPlanStartSwords ||
+                    !this.canPlaceAnotherKnight
+                )
+            case 'expand':
+            case 'expandThenKnight':
+                return true
+        }
+    }
+
+    // The region being expanded turned out to have nowhere legal to grow into. Its sword is better
+    // spent on a knight than forfeited, so this hands the knight half the board even under an
+    // expansion-first plan - and there is no overlap to disambiguate, since there are no legal
+    // expansion squares left to compete with.
+    get expansionDeadEnd(): boolean {
+        return (
+            this.expandStageActive &&
+            this.selectedExpandRegionId !== undefined &&
+            this.expansionSquares.length === 0 &&
+            this.legalNextExpansionSquares.length === 0
+        )
+    }
+
+    get knightStageActive(): boolean {
+        const plan = this.knightPlan
+        if (!plan || !this.canPlaceAnotherKnight) return false
+        switch (plan) {
+            case 'expand':
+                return this.expansionDeadEnd
+            case 'knight':
+            case 'twoKnights':
+                return true
+            case 'knightThenExpand':
+                // Its knight comes first; once that is down, the leftover sword is earmarked for
+                // the expansion (Undo to change your mind).
+                return (
+                    ((this.gameState.knightsRemaining ?? 0) >= this.knightPlanStartSwords &&
+                        this.gameState.expansionUsed !== true) ||
+                    !this.canExpandRegion ||
+                    this.expansionDeadEnd
+                )
+            case 'expandThenKnight':
+                return (
+                    this.gameState.expansionUsed === true ||
+                    !this.canExpandRegion ||
+                    this.expansionDeadEnd
+                )
+        }
+    }
+
     // Public rather than private: the narration deriveds that use these are being moved out of
     // RealBoard in stages, and until the last of them lands here they are called from components.
     //

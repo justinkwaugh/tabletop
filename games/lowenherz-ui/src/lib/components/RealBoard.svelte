@@ -767,69 +767,15 @@
         expandThenKnight: 'expand and then place a knight'
     }
 
-    // Whether a board click right now means "expand into this space" / "place a knight
-    // here". Both can be live at once: mid-expansion under an expand-then-knight plan,
-    // clicking a knight square is what stops the expansion after a single space (there's
-    // no Done button anymore). Each stage also falls through to the other if its own
-    // half turns out to be impossible after all.
-    const expandStageActive = $derived.by(() => {
-        const plan = gameSession.knightPlan
-        if (!plan || !gameSession.canExpandRegion) return false
-        switch (plan) {
-            case 'knight':
-            case 'twoKnights':
-                return false
-            case 'knightThenExpand':
-                // Its knight is done once a sword has gone somewhere (compared against
-                // the count when the plan was picked, so this still reads correctly after
-                // an Undo mid-action).
-                return (
-                    expansionStarted ||
-                    knightSwordsLeft < gameSession.knightPlanStartSwords ||
-                    !gameSession.canPlaceAnotherKnight
-                )
-            case 'expand':
-            case 'expandThenKnight':
-                return true
-        }
-    })
-
-    // The region being expanded turned out to have nowhere legal to grow into. Its sword
-    // is better spent on a knight than forfeited, so this hands the knight half the
-    // board even under an expansion-first plan (and there's no overlap to disambiguate,
-    // since there are no legal expansion squares left to compete with).
-    const expansionDeadEnd = $derived(
-        expandStageActive &&
-            gameSession.selectedExpandRegionId !== undefined &&
-            gameSession.expansionSquares.length === 0 &&
-            gameSession.legalNextExpansionSquares.length === 0
+    // All four now live on the session, which the board's click handling and the status panel's
+    // wording both read. Kept under their old names here so the call sites below are unchanged.
+    const expandStageActive = $derived(gameSession.expandStageActive)
+    const expansionDeadEnd = $derived(gameSession.expansionDeadEnd)
+    const expansionBlockedReasons = $derived(
+        expansionDeadEnd ? gameSession.expansionBlockedReasons : []
     )
 
-    // Only meaningful while expansionDeadEnd holds - which rule(s) are actually blocking
-    // every square around the region (see GameSession.expansionBlockedReasons).
-    const expansionBlockedReasons = $derived(expansionDeadEnd ? gameSession.expansionBlockedReasons : [])
-
-    const knightStageActive = $derived.by(() => {
-        const plan = gameSession.knightPlan
-        if (!plan || !gameSession.canPlaceAnotherKnight) return false
-        switch (plan) {
-            case 'expand':
-                return expansionDeadEnd
-            case 'knight':
-            case 'twoKnights':
-                return true
-            case 'knightThenExpand':
-                // Its knight comes first; once that's down, the leftover sword is
-                // earmarked for the expansion (Undo to change your mind).
-                return (
-                    (knightSwordsLeft >= gameSession.knightPlanStartSwords && !expansionStarted) ||
-                    !gameSession.canExpandRegion ||
-                    expansionDeadEnd
-                )
-            case 'expandThenKnight':
-                return expansionStarted || !gameSession.canExpandRegion || expansionDeadEnd
-        }
-    })
+    const knightStageActive = $derived(gameSession.knightStageActive)
 
     // Drop a plan belonging to an earlier knight action, so a previous player's plan (or
     // this player's own from a previous action) can't carry over - otherwise
