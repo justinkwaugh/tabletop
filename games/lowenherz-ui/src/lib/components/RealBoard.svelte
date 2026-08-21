@@ -731,6 +731,14 @@
     // myColor, which is right for every mid-game preview but wrong during those laps.
     const placementColor = $derived(gameSession.placementColor)
 
+    // Whether the castle about to be placed belongs to the neutral prince rather than to the
+    // player placing it. Asked of the colour rather than of the player count: the closing laps
+    // place neutral castles at two players AND at three, so counting seats would get three-player
+    // games wrong.
+    const placingNeutral = $derived(
+        placementColor !== undefined && placementColor === gameSession.gameState.neutralColor
+    )
+
     // The action currently being looked at while rewound through the history controls -
     // the one whose result is what's drawn on the board. Already undefined during live play
     // and when rewound past the very first action, so it doubles as "are we in history".
@@ -1775,6 +1783,8 @@
         {:else if gameSession.canPlaceCastle}
             {#if gameSession.selectedCastleSquare}
                 Place a knight adjacent to the castle.
+            {:else if placingNeutral}
+                Place a neutral castle on the board.
             {:else}
                 Place a castle on the board.
             {/if}
