@@ -1276,6 +1276,88 @@
         return HydratedPlaceCastle.isValidKnightSquare(gameSession.gameState, sel.col, sel.row, col, row)
     }
 
+    // Opening placement says what CANNOT be used rather than animating what can: a scrim over
+    // every illegal square, leaving the legal ones reading as ordinary board. Both halves of the
+    // two-click flow are covered - castle squares first, then the knight squares around the one
+    // just picked.
+    //
+    // canPlaceCastle stays true across both halves because picking a castle square is local UI
+    // state, not a game action, so the selection is what tells the two apart.
+    // Which square the mouse is over, for the opening castle preview. Tracked on the square
+    // buttons rather than the grid container: a div with a mouse handler wants an ARIA role, and
+    // giving the board a half-built grid role would be worse for a screen reader than leaving the
+    // buttons to speak for themselves.
+    let hoveredSquare: { col: number; row: number } | undefined = $state(undefined)
+
+    // A castle drawn under the cursor on a square that would take it. One square at a time, and
+    // only before a castle square is picked - once one is, the question has moved on to its
+    // knight.
+    function isCastlePreviewSquare(col: number, row: number): boolean {
+        if (!gameSession.canPlaceCastle || gameSession.selectedCastleSquare) return false
+        if (hoveredSquare?.col !== col || hoveredSquare?.row !== row) return false
+        return isLegalCastleSquare(col, row)
+    }
+
+    // How opening placement tells the player where a piece may go. Three treatments, all kept,
+    // because which one reads best is a question for the eye rather than the code:
+    //
+    //   'legal' - the squares that WILL work, tinted in the placing colour with a matching
+    //             border. Positive marking: the only one of the three that says yes.
+    //   'gray'  - a scrim over every square that will not.
+    //   'x'     - a red X in each square that will not.
+    //
+    // The two negative treatments were tried first, in that order.
+    const PLACEMENT_HINT: 'legal' | 'gray' | 'x' = 'legal'
+
+    // Illegal for the click being asked for right now, whichever mark is in use. Non-plains is
+    // excluded here because terrain is a hard precondition the engine applies to the castle square
+    // AND its knight, so a forest, hill or village was never in the running and saying so is
+    // noise.
+    function isIllegalPlacementSpot(col: number, row: number): boolean {
+        if (!gameSession.canPlaceCastle) return false
+
+        const square = board.squares[row]?.[col]
+        if (square?.type !== SquareType.Blank) return false
+
+        return gameSession.selectedCastleSquare
+            ? !isLegalKnightSquare(col, row)
+            : !isLegalCastleSquare(col, row)
+    }
+
+    // A scrim can go anywhere the rule applies: it dims a square rather than adding to it, so it
+    // covers both halves of the flow and dims a piece along with its square.
+    function showsIllegalScrim(col: number, row: number): boolean {
+        return PLACEMENT_HINT === 'gray' && isIllegalPlacementSpot(col, row)
+    }
+
+    // The positive treatment: the squares the current click would actually accept. Covers both
+    // halves of the flow - the castle squares, then the knight squares around the one picked - and
+    // both are small enough sets that marking them is the clearer direction.
+    function showsLegalHighlight(col: number, row: number): boolean {
+        if (PLACEMENT_HINT !== 'legal' || !gameSession.canPlaceCastle) return false
+
+        return gameSession.selectedCastleSquare
+            ? isLegalKnightSquare(col, row)
+            : isLegalCastleSquare(col, row)
+    }
+
+    // The X cannot go everywhere the scrim can, which is a property of the mark rather than of the
+    // rule:
+    //   - Not during the knight stage. At most four squares are legal there, so an X would land on
+    //     nearly every plains square and measle the map. Dimming that many is fine; marking them
+    //     is not.
+    //   - Not on an occupied square. The piece already says "taken", and a glyph would either hide
+    //     under it or deface it - where a scrim simply dims both together.
+    function showsIllegalX(col: number, row: number): boolean {
+        if (PLACEMENT_HINT !== 'x') return false
+        if (gameSession.selectedCastleSquare) return false
+
+        const square = board.squares[row]?.[col]
+        if (square?.castleColor || square?.knightColor) return false
+
+        return isIllegalPlacementSpot(col, row)
+    }
+
     function isLegalCastleSquare(col: number, row: number): boolean {
         return legalCastleSquareSet.has(`${col},${row}`)
     }
@@ -1416,12 +1498,21 @@
         }
 
         if (gameSession.selectedCastleSquare) {
-            await gameSession.placeCastleWithKnight(col, row)
+            // Ignored too, for consistency within one flow - and because reporting it used to
+            // clear the selection, so a stray click took the castle back off the board. The ring
+            // marks the squares that will work, and Undo releases the castle.
+            if (isLegalKnightSquare(col, row)) {
+                await gameSession.placeCastleWithKnight(col, row)
+            }
             return
         }
 
         if (gameSession.canPlaceCastle) {
-            gameSession.selectCastleSquare(col, row)
+            // Ignored rather than explained: the X on the square has already said why, and an
+            // error dialog for a click the board visibly refused is nagging.
+            if (isLegalCastleSquare(col, row)) {
+                gameSession.selectCastleSquare(col, row)
+            }
             return
         }
 
@@ -2146,7 +2237,16 @@
                     <button
                         type="button"
                         onclick={() => onSquareClick(col, row)}
-                        class="relative flex items-center justify-center border border-black/20 {isSelected(col, row) ? 'ring-4 ring-yellow-300 z-10' : ''} {isLegalKnightSquare(col, row) ? 'ring-2 ring-yellow-100' : ''}"
+                        onmouseenter={() => (hoveredSquare = { col, row })}
+                        onmouseleave={() => {
+                            // Guarded so that moving between two squares cannot blank the
+                            // preview: leaving A clears only while A is still the hovered one, and
+                            // entering B has already overwritten it by then.
+                            if (hoveredSquare?.col === col && hoveredSquare?.row === row) {
+                                hoveredSquare = undefined
+                            }
+                        }}
+                        class="relative flex items-center justify-center border border-black/20 {isSelected(col, row) ? 'ring-4 ring-yellow-300 z-10' : ''} {isLegalKnightSquare(col, row) && PLACEMENT_HINT !== 'legal' ? 'ring-2 ring-yellow-100' : ''}"
                         style="width:{CELL_SIZE}px; height:{CELL_SIZE}px; {tileLayout.length > 0 ? '' : `background-color:${terrainBg[square.type]};`}"
                     >
                         {#if tint}
@@ -2166,6 +2266,78 @@
                                 style="background-color:{tint}; {pulsing ? '' : 'opacity:0.385;'}"
                             ></span>
                         {/if}
+                        {#if isCastlePreviewSquare(col, row) && placementColor}
+                            <!-- The castle that would go here, under the cursor. Static rather
+                                 than pulsing: it is answering "this one?", and one square at a
+                                 time needs no animation to be noticed. Own colour for the opening
+                                 laps and the NEUTRAL colour for the closing ones, since those
+                                 castles belong to the third prince. -->
+                            <div class="absolute inset-0 pointer-events-none opacity-60">
+                                {@render pieceIcon(castleFill, castleLines, placementColor)}
+                            </div>
+                        {/if}
+                        <!-- The circle is suppressed on the square the hover preview is drawn on,
+                             just above: the castle already says this square will take one, and a
+                             ring around it is the same claim twice. Tied to the preview rather
+                             than to hover itself, so hovering during the KNIGHT stage - which has
+                             no preview - does not blank the only mark on the square. -->
+                        {#if showsLegalHighlight(col, row) && !isCastlePreviewSquare(col, row) && placementColor}
+                            {@const hintColor = gameSession.colors.getUiColor(placementColor)}
+                            <!-- A filled disc, about a third of the square. r 1.85 of the
+                                 ten-unit viewBox is a 3.7-unit diameter - the same outer edge the
+                                 stroked ring had, so "filled in" means exactly that rather than
+                                 also changing size.
+                                 
+                                 Expressed as a fill with no stroke rather than a fill plus the old
+                                 stroke: one property doing one job, and nothing to keep in step if
+                                 the size changes again. The svg still fills the cell, so the
+                                 geometry carries the size and there is no scaling to distort.
+                                 
+                                 In the PLACING colour, so the closing laps mark the neutral
+                                 prince's spots in the neutral colour rather than claiming them
+                                 for whoever is placing. -->
+                            <svg
+                                viewBox="0 0 10 10"
+                                class="absolute inset-0 w-full h-full pointer-events-none"
+                                aria-hidden="true"
+                            >
+                                <circle cx="5" cy="5" r="1.85" fill={hintColor} fill-opacity="0.8" />
+                            </svg>
+
+                        {/if}
+                        {#if showsIllegalScrim(col, row)}
+                            <!-- Drawn after the region tint but before the pieces, so a piece
+                                 standing on a dimmed square is dimmed WITH it rather than painted
+                                 over. -->
+                            <span class="absolute inset-0 pointer-events-none bg-black/40"></span>
+                        {/if}
+                        {#if showsIllegalX(col, row)}
+                            <!-- Small, centred, and the only thing on the square: showsIllegalX
+                                 has already excluded every square that holds a piece, so there is
+                                 nothing here to obscure. -->
+                            <span
+                                class="absolute inset-0 pointer-events-none flex items-center justify-center"
+                            >
+                                <!-- The X spans ~90% of the square: the svg fills the cell and
+                                     the stroke runs corner to corner inset by half a unit of the
+                                     ten-unit viewBox.
+                                     
+                                     stroke-width is in viewBox units, so it grows with the square
+                                     - 0.6 of 10 across a 44px cell is about 2.6px. That matters
+                                     because the width was tuned against a much smaller mark:
+                                     keeping the old 1.9 here would have drawn a line over 8px
+                                     thick, a red barrier rather than a red X. -->
+                                <svg viewBox="0 0 10 10" class="w-full h-full opacity-70" aria-hidden="true">
+                                    <path
+                                        d="M0.5 0.5 L9.5 9.5 M9.5 0.5 L0.5 9.5"
+                                        stroke="#b0201a"
+                                        stroke-width="0.6"
+                                        stroke-linecap="round"
+                                        fill="none"
+                                    />
+                                </svg>
+                            </span>
+                        {/if}
                         {#if knightStageActive && isLegalKnightPlacement(col, row) && myColor}
                             <!-- A faded preview of the knight that would actually be placed here,
                                  fading in and out - rather than a border/ring highlight. -->
@@ -2180,33 +2352,17 @@
                                 {@render pieceIcon(knightFill, knightLines, myColor, -1)}
                             </div>
                         {/if}
-                        {#if gameSession.canPlaceCastle && !gameSession.selectedCastleSquare && isLegalCastleSquare(col, row) && placementColor}
-                            <!-- Setup phase, before a castle square is picked: a slower,
-                                 dimmer pulsing preview of the castle that would go here, at
-                                 every currently-legal square. In the placing player's own
-                                 color for the opening laps, and in the NEUTRAL color for the
-                                 closing ones - those castles belong to the third prince, not
-                                 to whoever happens to be placing them. -->
-                            <div class="absolute inset-0 ghost-castle-pulse pointer-events-none">
-                                {@render pieceIcon(castleFill, castleLines, placementColor)}
-                            </div>
-                        {/if}
-                        {#if isLegalKnightSquare(col, row) && placementColor}
-                            <!-- Setup phase, once a castle square is picked: same pulsing
-                                 preview treatment as regular-play knight placement, for the
-                                 knight that would go adjacent to it - and the same
-                                 own-then-neutral color as the castle above. -->
-                            <div class="absolute inset-0 ghost-knight-pulse pointer-events-none">
-                                {@render pieceIcon(knightFill, knightLines, placementColor, -1)}
-                            </div>
-                        {/if}
                         {#if square.castleColor}
                             {@render pieceIcon(castleFill, castleLines, square.castleColor)}
                         {:else if isSelected(col, row) && placementColor}
-                            <!-- The castle isn't actually placed yet (still needs its
-                                 adjacent knight square picked), but it reads as solid/settled
-                                 here - only the knight candidates above should be pulsing at
-                                 this point. Same own-then-neutral color as the ghosts. -->
+                            <!-- The castle isn't actually placed yet (still needs its adjacent
+                                 knight square picked), but it reads as solid and settled here.
+                                 Same own-then-neutral colour as the hover preview.
+                                 
+                                 Deliberately not animated. A hop on landing was tried and read as
+                                 forced: the hover preview already shows the castle on the square
+                                 before the click, so the click has nothing left to announce - it
+                                 only has to stop looking like a preview. -->
                             {@render pieceIcon(castleFill, castleLines, placementColor)}
                         {:else if square.knightColor}
                             {#if isRenegadeRemovedSquare(col, row)}
@@ -2546,22 +2702,6 @@
 
     .ghost-knight-pulse {
         animation: ghost-knight-pulse-frames 1.8s ease-in-out infinite;
-    }
-
-    /* Same shape as ghost-knight-pulse but half speed and a lower peak opacity - just
-       for the opening castle-placement preview (see isLegalCastleSquare above). */
-    @keyframes ghost-castle-pulse-frames {
-        0%,
-        100% {
-            opacity: 0.15;
-        }
-        50% {
-            opacity: 0.45;
-        }
-    }
-
-    .ghost-castle-pulse {
-        animation: ghost-castle-pulse-frames 3.6s ease-in-out infinite;
     }
 
     @keyframes ghost-wall-pulse-frames {
