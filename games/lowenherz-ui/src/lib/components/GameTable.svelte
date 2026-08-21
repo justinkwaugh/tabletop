@@ -4,6 +4,7 @@
         HistoryControls,
         DefaultTabs,
         DefaultTableLayout,
+        CustomFont,
         GameSession
     } from '@tabletop/frontend-components'
 
@@ -17,6 +18,13 @@
     import SummaryStrip from '$lib/components/SummaryStrip.svelte'
     import PoliticsPileOverlay from '$lib/components/PoliticsPileOverlay.svelte'
     import parchmentTexture from '$lib/images/board/parchment-texture.jpg'
+
+    import BlankenburgFont from '$lib/fonts/Blankenburg.woff2'
+    import IMFellEnglishFont from '$lib/fonts/IMFellEnglish-Regular.woff2'
+    import IMFellEnglishItalicFont from '$lib/fonts/IMFellEnglish-Italic.woff2'
+    import TangerineFont from '$lib/fonts/Tangerine-Regular.woff2'
+    import TangerineBoldFont from '$lib/fonts/Tangerine-Bold.woff2'
+    import UnifrakturMaguntiaFont from '$lib/fonts/UnifrakturMaguntia-Book.woff2'
 
     import type { LowenherzGameSession } from '$lib/model/session.svelte'
     import type { HydratedLowenherzGameState, LowenherzGameState } from '@tabletop/lowenherz'
@@ -34,6 +42,24 @@
         ;(window as any).__gameSession = gameSession
     }
 </script>
+
+<!-- The game's faces, declared the way every other game here declares them. Two of these
+     families have two faces each, which is what the fontWeight/fontStyle props are for: without
+     them both faces of a family land on the same family name with identical descriptors, the
+     later rule wins, and the browser synthesises the italic and the bold from whichever face
+     survived - shipping the real ones and then not using them. CustomFont supplies
+     font-display: swap itself. -->
+<CustomFont fontFamily="Blankenburg" url={BlankenburgFont} format="woff2" />
+<CustomFont fontFamily="IM Fell English" url={IMFellEnglishFont} format="woff2" />
+<CustomFont
+    fontFamily="IM Fell English"
+    url={IMFellEnglishItalicFont}
+    format="woff2"
+    fontStyle="italic"
+/>
+<CustomFont fontFamily="Tangerine" url={TangerineFont} format="woff2" />
+<CustomFont fontFamily="Tangerine" url={TangerineBoldFont} format="woff2" fontWeight="bold" />
+<CustomFont fontFamily="UnifrakturMaguntia" url={UnifrakturMaguntiaFont} format="woff2" />
 
 <!-- Full Height and Width with 8px padding-->
 <div

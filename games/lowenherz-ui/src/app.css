@@ -1,65 +1,14 @@
 @import 'tailwindcss';
 @plugin 'flowbite/plugin';
 
-@font-face {
-    font-family: 'Blankenburg';
-    src: url('./lib/fonts/Blankenburg.woff2') format('woff2');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-
-/* Medieval-England-flavored body/heading face - readable enough for dense text (the
-   history log, tooltips) unlike a display-only blackletter would be. */
-@font-face {
-    font-family: 'IM Fell English';
-    src: url('./lib/fonts/IMFellEnglish-Regular.woff2') format('woff2');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'IM Fell English';
-    src: url('./lib/fonts/IMFellEnglish-Italic.woff2') format('woff2');
-    font-weight: normal;
-    font-style: italic;
-    font-display: swap;
-}
-
-/* Cursive script for the negotiation signature blanks only - not applied app-wide.
-   Every face here is font-display: swap, so text is painted in the fallback rather than
-   held invisible while the font arrives. That is not the whole story for this one: swap
-   means the fallback is VISIBLE first, so a signature would appear in the wrong face and
-   then change under the reader. The fix for that is warming the font up on mount - see
-   .signature-text-warmup below, rendered as soon as the board mounts, well before anyone
-   signs anything. */
-@font-face {
-    font-family: 'Tangerine';
-    src: url('./lib/fonts/Tangerine-Regular.woff2') format('woff2');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Tangerine';
-    src: url('./lib/fonts/Tangerine-Bold.woff2') format('woff2');
-    font-weight: bold;
-    font-style: normal;
-    font-display: swap;
-}
-
-/* Blackletter, for the pack-letter callout on the action-card draw pile only - echoes
-   the big Fraktur capital printed on the actual card backs (back-a.jpg etc). */
-@font-face {
-    font-family: 'UnifrakturMaguntia';
-    src: url('./lib/fonts/UnifrakturMaguntia-Book.woff2') format('woff2');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-
+/* The faces themselves are declared in GameTable.svelte via CustomFont, which is where
+   every other game in this repo declares them; only their USE stays here.
+   
+   Tangerine is the cursive for the negotiation signature blanks, and is the one face whose
+   loading needs more than font-display: swap. Swap means the fallback is VISIBLE first, so a
+   signature would appear in the wrong face and then change under the reader. The fix is
+   warming the font up on mount - see .signature-text-warmup below, rendered as soon as the
+   board mounts, well before anyone signs anything. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
