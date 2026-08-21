@@ -46,6 +46,7 @@ import {
     LowenherzGameState,
     MachineState,
     manhattanDistance,
+    type Negotiation,
     NegotiationMove,
     NegotiationMoveKind,
     neighbors,
@@ -87,6 +88,26 @@ export class LowenherzGameSession extends GameSession<
     // A friendly message describing why the last placement attempt was rejected, shown
     // in the UI instead of letting the engine's validation error surface as a raw crash.
     errorMessage: string | undefined = $state(undefined)
+
+    // Draft state for the negotiation and duel panels: what the player has typed in but not yet
+    // submitted, plus the brief hold on a finished negotiation so both signatures can be seen.
+    //
+    // Session-owned rather than component-owned because two components need it. The panels that
+    // render these controls are moving out of the board's scaled subtree - instructions should not
+    // grow and shrink with the map - while the board's own click handlers still read and write the
+    // same drafts. One of the two had to be the owner, and neither component is a parent of the
+    // other, so it is this.
+    //
+    // The EFFECTS that maintain these stay in whichever component renders the panel: $effect needs
+    // an owner and a session class is not one. What lives here is the value, not the syncing.
+    negotiationProposerId: string | undefined = $state(undefined)
+    negotiationAmount: number = $state(0)
+    frozenNegotiation: Negotiation | undefined = $state(undefined)
+
+    // Per-player draft bids. A duel bid is a one-shot commitment per player, unlike negotiation's
+    // single shared offer, so each duelist gets their own.
+    duelBidAmounts: Record<string, number> = $state({})
+    testBiddingForPlayerId: string | undefined = $state(undefined)
 
     get canPlaceCastle(): boolean {
         if (!this.myPlayer) return false

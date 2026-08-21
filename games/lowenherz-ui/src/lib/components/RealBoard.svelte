@@ -333,8 +333,6 @@
     // immediately usable, but it meant a real action always existed the instant a
     // negotiation began, and that action (being the nearest one) was always what
     // Undo targeted - hiding whatever the player actually wanted to undo back to.
-    let negotiationProposerId = $state<string | undefined>(undefined)
-    let negotiationAmount = $state(0)
 
     // Once both sides have signed, gameState.negotiation disappears immediately (the
     // machine moves straight on to whatever the settled action needs next) - which
@@ -344,7 +342,6 @@
     // an actual completed deal, not a decline (which routes straight to a duel and
     // should switch over immediately).
     const NEGOTIATION_HOLD_MS = 1000
-    let frozenNegotiation: Negotiation | undefined = $state(undefined)
     let lastLiveNegotiation: Negotiation | undefined
     let negotiationFreezeTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -357,24 +354,24 @@
                 clearTimeout(negotiationFreezeTimer)
                 negotiationFreezeTimer = undefined
             }
-            frozenNegotiation = undefined
+            gameSession.frozenNegotiation = undefined
 
             if (negotiation.offer) {
-                negotiationProposerId = negotiation.offer.fromPlayerId
-                negotiationAmount = negotiation.offer.amount
+                gameSession.negotiationProposerId = negotiation.offer.fromPlayerId
+                gameSession.negotiationAmount = negotiation.offer.amount
                 return
             }
 
             // No offer yet - always recompute the default proposer, regardless of
-            // whatever negotiationProposerId held before. Relying on that leftover
+            // whatever gameSession.negotiationProposerId held before. Relying on that leftover
             // value to detect "is this a fresh negotiation" broke when one
             // negotiation resolved straight into a new one sharing a participant
             // with the old one (no intervening tick with negotiation undefined to
             // reset it) - this branch only runs at all while offer is undefined, so
             // re-entering it every tick is harmless.
             const myId = gameSession.myPlayer?.id
-            negotiationProposerId = myId && negotiation.playerIds.includes(myId) ? myId : negotiation.playerIds[0]
-            negotiationAmount = 1
+            gameSession.negotiationProposerId = myId && negotiation.playerIds.includes(myId) ? myId : negotiation.playerIds[0]
+            gameSession.negotiationAmount = 1
             return
         }
 
@@ -383,16 +380,16 @@
         if (
             lastLiveNegotiation &&
             lastLiveNegotiation.signedPlayerIds.length === lastLiveNegotiation.playerIds.length &&
-            !frozenNegotiation
+            !gameSession.frozenNegotiation
         ) {
-            frozenNegotiation = lastLiveNegotiation
+            gameSession.frozenNegotiation = lastLiveNegotiation
             negotiationFreezeTimer = setTimeout(() => {
-                frozenNegotiation = undefined
+                gameSession.frozenNegotiation = undefined
                 negotiationFreezeTimer = undefined
-                negotiationProposerId = undefined
+                gameSession.negotiationProposerId = undefined
             }, NEGOTIATION_HOLD_MS)
-        } else if (!frozenNegotiation) {
-            negotiationProposerId = undefined
+        } else if (!gameSession.frozenNegotiation) {
+            gameSession.negotiationProposerId = undefined
         }
         lastLiveNegotiation = undefined
     })
@@ -400,16 +397,16 @@
     // What the negotiation panel actually renders - the live negotiation normally,
     // or the frozen snapshot during the brief hold after it just finished (see
     // above). Everything below reads this instead of gameState.negotiation directly.
-    const displayNegotiation = $derived(gameSession.gameState.negotiation ?? frozenNegotiation)
+    const displayNegotiation = $derived(gameSession.gameState.negotiation ?? gameSession.frozenNegotiation)
 
     const negotiationOtherPlayerId = $derived.by(() => {
         const negotiation = displayNegotiation
-        if (!negotiation || !negotiationProposerId) return undefined
-        return negotiation.playerIds.find((id) => id !== negotiationProposerId)
+        if (!negotiation || !gameSession.negotiationProposerId) return undefined
+        return negotiation.playerIds.find((id) => id !== gameSession.negotiationProposerId)
     })
 
     const negotiationProposerMoney = $derived(
-        negotiationProposerId ? gameSession.gameState.getPlayerState(negotiationProposerId).money : 0
+        gameSession.negotiationProposerId ? gameSession.gameState.getPlayerState(gameSession.negotiationProposerId).money : 0
     )
 
     // The payer dropdown and the amount stepper edit a local draft only - nothing is
@@ -423,7 +420,7 @@
     // made.
     async function commitNegotiationOffer() {
         const negotiation = displayNegotiation
-        if (!negotiation || !negotiationProposerId) return
+        if (!negotiation || !gameSession.negotiationProposerId) return
 
         // Signing means "I commit to what's on screen", so submit the draft first whenever
         // it isn't already the standing offer. Proposing clears existing signatures
@@ -431,12 +428,12 @@
         const offer = negotiation.offer
         const draftIsStandingOffer =
             offer !== undefined &&
-            offer.fromPlayerId === negotiationProposerId &&
-            offer.amount === negotiationAmount
+            offer.fromPlayerId === gameSession.negotiationProposerId &&
+            offer.amount === gameSession.negotiationAmount
         if (!draftIsStandingOffer) {
             const proposed = await gameSession.proposeNegotiationOffer(
-                negotiationProposerId,
-                negotiationAmount
+                gameSession.negotiationProposerId,
+                gameSession.negotiationAmount
             )
             // Refused (e.g. a payer who can't afford it) - don't follow up with a Sign that
             // has nothing valid to sign.
@@ -454,7 +451,7 @@
     const orderedNegotiatorIds = $derived.by(() => {
         const negotiation = displayNegotiation
         if (!negotiation) return []
-        const payerId = negotiation.offer?.fromPlayerId ?? negotiationProposerId
+        const payerId = negotiation.offer?.fromPlayerId ?? gameSession.negotiationProposerId
         if (!payerId || !negotiation.playerIds.includes(payerId)) return negotiation.playerIds
         const payeeId = negotiation.playerIds.find((id) => id !== payerId)
         return payeeId ? [payerId, payeeId] : negotiation.playerIds
@@ -469,7 +466,6 @@
     // affordance still visible when the others had long been gated off.
     const SHOW_NEGOTIATION_TEST_CONTROLS = false
 
-    let duelBidAmounts = $state<Record<string, number>>({})
     let lastSeenDuelSignature: string | undefined = undefined
 
     // Master switch for the bid-on-another-player's-behalf affordance, same pattern as
@@ -481,14 +477,13 @@
     // ducats for them. Everything behind it is intact - flip this back to true for
     // another solo pass.
     const SHOW_DUEL_TEST_CONTROLS = false
-    let testBiddingForPlayerId: string | undefined = $state(undefined)
 
     $effect(() => {
         const duel = gameSession.gameState.duel
         if (!duel) {
             lastSeenDuelSignature = undefined
-            duelBidAmounts = {}
-            testBiddingForPlayerId = undefined
+            gameSession.duelBidAmounts = {}
+            gameSession.testBiddingForPlayerId = undefined
             return
         }
         // A re-duel replaces gameState.duel directly (never passing through
@@ -499,8 +494,8 @@
         const signature = `${duel.slot}:${duel.playerIds.join(',')}:${duel.tieCount}`
         if (signature !== lastSeenDuelSignature) {
             lastSeenDuelSignature = signature
-            duelBidAmounts = {}
-            testBiddingForPlayerId = undefined
+            gameSession.duelBidAmounts = {}
+            gameSession.testBiddingForPlayerId = undefined
             // A card armed for the previous round shouldn't silently ride along into
             // the re-duel - the player re-applies it if they still want to spend it.
             gameSession.selectTreasureCard(undefined)
@@ -1660,7 +1655,7 @@
         class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
         disabled={bidAmount <= 0}
         onclick={() => {
-            duelBidAmounts[playerId] = Math.max(0, bidAmount - 1)
+            gameSession.duelBidAmounts[playerId] = Math.max(0, bidAmount - 1)
         }}
     >
         −
@@ -1671,7 +1666,7 @@
         class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
         disabled={bidAmount >= maxAmount}
         onclick={() => {
-            duelBidAmounts[playerId] = bidAmount + 1
+            gameSession.duelBidAmounts[playerId] = bidAmount + 1
         }}
     >
         +
@@ -2007,10 +2002,10 @@
                         <button
                             type="button"
                             disabled={!gameSession.isNegotiator}
-                            class="text-left {negotiationProposerId === playerId
+                            class="text-left {gameSession.negotiationProposerId === playerId
                                 ? 'font-semibold text-black'
                                 : 'text-black/40 hover:text-black/60'}"
-                            onclick={() => (negotiationProposerId = playerId)}
+                            onclick={() => (gameSession.negotiationProposerId = playerId)}
                         >
                             {playerName(gameSession, playerId)}
                         </button>
@@ -2020,22 +2015,22 @@
                 <button
                     type="button"
                     class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
-                    disabled={!gameSession.isNegotiator || negotiationAmount <= 1}
-                    onclick={() => (negotiationAmount = Math.max(1, negotiationAmount - 1))}
+                    disabled={!gameSession.isNegotiator || gameSession.negotiationAmount <= 1}
+                    onclick={() => (gameSession.negotiationAmount = Math.max(1, gameSession.negotiationAmount - 1))}
                 >
                     −
                 </button>
-                <span class="w-6 text-center font-semibold">{negotiationAmount}</span>
+                <span class="w-6 text-center font-semibold">{gameSession.negotiationAmount}</span>
                 <button
                     type="button"
                     class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
-                    disabled={!gameSession.isNegotiator || negotiationAmount >= negotiationProposerMoney}
-                    onclick={() => (negotiationAmount = negotiationAmount + 1)}
+                    disabled={!gameSession.isNegotiator || gameSession.negotiationAmount >= negotiationProposerMoney}
+                    onclick={() => (gameSession.negotiationAmount = gameSession.negotiationAmount + 1)}
                 >
                     +
                 </button>
                 <span>
-                    ducat{negotiationAmount === 1 ? '' : 's'} to {negotiationOtherPlayerId
+                    ducat{gameSession.negotiationAmount === 1 ? '' : 's'} to {negotiationOtherPlayerId
                         ? playerName(gameSession, negotiationOtherPlayerId)
                         : ''}
                 </span>
@@ -2086,7 +2081,7 @@
                  enter()) and nothing else on screen would tell you it landed. -->
             {#if myId && duel.playerIds.includes(myId)}
                 {@const money = gameSession.gameState.getPlayerState(myId).money}
-                {@const bidAmount = Math.min(duelBidAmounts[myId] ?? 0, money)}
+                {@const bidAmount = Math.min(gameSession.duelBidAmounts[myId] ?? 0, money)}
                 <div class="flex flex-wrap items-center gap-2">
                     {#if gameSession.hasPlayerBidInDuel(myId)}
                         <span class="text-black/60">Your bid is in.</span>
@@ -2142,8 +2137,8 @@
                     <div class="flex flex-wrap items-center gap-2">
                         {#each pending as playerId (playerId)}
                             {@const money = gameSession.gameState.getPlayerState(playerId).money}
-                            {@const bidAmount = Math.min(duelBidAmounts[playerId] ?? 0, money)}
-                            {#if testBiddingForPlayerId === playerId}
+                            {@const bidAmount = Math.min(gameSession.duelBidAmounts[playerId] ?? 0, money)}
+                            {#if gameSession.testBiddingForPlayerId === playerId}
                                 {@render playerPill(playerId)}
                                 {@render duelBidStepper(playerId, bidAmount, money)}
                                 <button
@@ -2151,7 +2146,7 @@
                                     class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
                                     onclick={() => {
                                         gameSession.debugSubmitDuelBidAs(playerId, bidAmount)
-                                        testBiddingForPlayerId = undefined
+                                        gameSession.testBiddingForPlayerId = undefined
                                     }}
                                 >
                                     submit (test)
@@ -2161,7 +2156,7 @@
                                     type="button"
                                     title="Temporary solo-testing stand-in for a second session/tab"
                                     class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
-                                    onclick={() => (testBiddingForPlayerId = playerId)}
+                                    onclick={() => (gameSession.testBiddingForPlayerId = playerId)}
                                 >
                                     bid for {playerName(gameSession, playerId)} (test)
                                 </button>
