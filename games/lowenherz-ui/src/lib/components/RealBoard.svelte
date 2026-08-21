@@ -463,15 +463,24 @@
     // A local, per-player draft bid amount - each duelist's own private stepper,
     // unlike negotiation's single shared offer (a duel bid is a one-shot commitment
     // per player, not a joint draft either side can revise).
+    // The negotiation counterpart of SHOW_DUEL_TEST_CONTROLS, and off for the same
+    // reason. This one had no switch at all until now: it rendered whenever a solo
+    // tester faced an unsigned opponent, which is exactly why it was the testing
+    // affordance still visible when the others had long been gated off.
+    const SHOW_NEGOTIATION_TEST_CONTROLS = false
+
     let duelBidAmounts = $state<Record<string, number>>({})
     let lastSeenDuelSignature: string | undefined = undefined
 
     // Master switch for the bid-on-another-player's-behalf affordance, same pattern as
     // TestingControls' own constant - it only exists because hotseat resolves myPlayer
-    // to a single duelist, so a solo tester otherwise can't finish a duel at all. Flip
-    // to false once real two-session play exists and opponents' rows become purely
-    // informational.
-    const SHOW_DUEL_TEST_CONTROLS = true
+    // to a single duelist, so a solo tester otherwise can't finish a duel at all.
+    //
+    // Off for beta: a tester who can bid for their opponent can settle a duel from one
+    // seat, which is not a shortcut through the flow but a way to decide someone else's
+    // ducats for them. Everything behind it is intact - flip this back to true for
+    // another solo pass.
+    const SHOW_DUEL_TEST_CONTROLS = false
     let testBiddingForPlayerId: string | undefined = $state(undefined)
 
     $effect(() => {
@@ -1944,7 +1953,7 @@
                                 {playerName(gameSession, playerId)}
                             {/if}
                         </span>
-                        {#if negotiation.offer && gameSession.myPlayer?.id !== playerId && !negotiation.signedPlayerIds.includes(playerId)}
+                        {#if SHOW_NEGOTIATION_TEST_CONTROLS && negotiation.offer && gameSession.myPlayer?.id !== playerId && !negotiation.signedPlayerIds.includes(playerId)}
                             <button
                                 type="button"
                                 title="Temporary solo-testing stand-in for a second session/tab"

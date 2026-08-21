@@ -1,7 +1,7 @@
 import type { GameUiDefinition } from '@tabletop/frontend-components/definition/gameUiDefinition'
 import { LowenherzInfo } from '@tabletop/lowenherz'
 import type { LowenherzGameState, HydratedLowenherzGameState } from '@tabletop/lowenherz'
-import coverImg from '$lib/images/cover.jpg'
+import coverImg from '$lib/images/lowenherz-cover.jpg'
 
 export const UiDefinition: GameUiDefinition<LowenherzGameState, HydratedLowenherzGameState> = {
     info: {
