@@ -50,28 +50,15 @@
     const gameSession = getGameSession()
     // The band kind (border/knight/politics) at a given slot, translated to the noun
     // used in status messages - money-bag slots never reach negotiation or dueling
-    // (they always split among every chooser), so 'income' never shows up here.
-    function actionNounForSlot(slot: 1 | 2 | 3): string {
-        const card = gameSession.gameState.currentActionCard
-        if (!card || card.type !== 'standard') return ''
-        const band = slot === 1 ? card.top : slot === 2 ? card.middle : card.bottom
-        if (band.kind === 'border') return 'walls'
-        if (band.kind === 'knight') return 'knights'
-        if (band.kind === 'politics') return 'politics'
-        return ''
-    }
     const negotiationActionNoun = $derived.by(() => {
         const negotiation = gameSession.gameState.negotiation
-        return negotiation ? actionNounForSlot(negotiation.slot) : ''
+        return negotiation ? gameSession.actionNounForSlot(negotiation.slot) : ''
     })
     const duelActionNoun = $derived.by(() => {
         const duel = gameSession.gameState.duel
-        return duel ? actionNounForSlot(duel.slot) : ''
+        return duel ? gameSession.actionNounForSlot(duel.slot) : ''
     })
 
-    function playerIdForColor(color: Color): string | undefined {
-        return gameSession.gameState.players.find((p) => p.color === color)?.playerId
-    }
 
     // roundAdvanced marks the END of a round, so scanning backward from "now" always
     // hits it BEFORE anything else that happened earlier in the very round we're
@@ -79,52 +66,14 @@
     // - stopping on the first one would mean never finding anything, even when it's
     // squarely within the round the message is meant to describe. The first
     // roundAdvanced just closes out that round; only a SECOND one confirms we've
-    // scanned past it entirely into the round before it.
-    function isPastCurrentRound(roundBoundariesSeen: number): boolean {
-        return roundBoundariesSeen >= 2
-    }
 
     // A slot's resolution is "stale" (superseded, no longer the single most recent
     // notable thing) once a later slot has resolved since it - resolvedSlots grows
     // by exactly one, in order, every time ANY slot fully resolves (money bag, solo
     // win, negotiation, or duel - see resolutionHelpers/negotiationMove/dueling),
     // so a slot's own number matching its current length means nothing has
-    // resolved more recently than it.
-    function isFreshestResolvedSlot(slot: number | undefined): boolean {
-        return slot !== undefined && slot === gameSession.gameState.resolvedSlots.length
-    }
 
-    // The most recent solo Money Bag win this round (a single chooser gets the whole
-    // amount rather than splitting it) - scans back through history rather than
-    // gameState, since the distribution happens instantly as part of the
-    // AdvanceResolution cascade with no dedicated "just resolved" machine state to
-    // hook into.
-    const lastBankWin = $derived.by(() => {
-        const actions = gameSession.actions
-        let roundBoundariesSeen = 0
-        for (let i = actions.length - 1; i >= 0; i--) {
-            const action = actions[i]
-            // A round can draw several action cards before it advances - bounding by
-            // round alone let a money bag win from an EARLIER card in the same round
-            // keep showing once a later card in that round became current. The
-            // current card's own draw is where its own story starts, so stop there.
-            if (isDrawActionCard(action)) return undefined
-            if (!isAdvanceResolution(action)) continue
-            if (action.metadata?.roundAdvanced) {
-                roundBoundariesSeen++
-                if (isPastCurrentRound(roundBoundariesSeen)) return undefined
-                continue
-            }
-            if (action.metadata?.moneyBagRecipientIds?.length === 1) {
-                if (!isFreshestResolvedSlot(action.metadata.slot)) return undefined
-                return {
-                    playerId: action.metadata.moneyBagRecipientIds[0],
-                    amount: action.metadata.moneyBagAmountEach ?? 0
-                }
-            }
-        }
-        return undefined
-    })
+    const lastBankWin = $derived(gameSession.lastBankWin)
 
     // The just-revealed Silver Mine's per-player hill payout, if one is sitting on the
     // discard pile - derived in the session since the action bar needs it too (it shows
@@ -173,7 +122,7 @@
             if (isDrawActionCard(action)) return undefined
             if (isAdvanceResolution(action) && action.metadata?.roundAdvanced) {
                 roundBoundariesSeen++
-                if (isPastCurrentRound(roundBoundariesSeen)) return undefined
+                if (gameSession.isPastCurrentRound(roundBoundariesSeen)) return undefined
                 continue
             }
             if (
@@ -202,7 +151,7 @@
             if (isAdvanceResolution(action)) {
                 if (action.metadata?.roundAdvanced) {
                     roundBoundariesSeen++
-                    if (isPastCurrentRound(roundBoundariesSeen)) return undefined
+                    if (gameSession.isPastCurrentRound(roundBoundariesSeen)) return undefined
                     continue
                 }
                 return undefined
@@ -271,7 +220,7 @@
                 }
                 if (action.metadata?.roundAdvanced) {
                     roundBoundariesSeen++
-                    if (isPastCurrentRound(roundBoundariesSeen)) break
+                    if (gameSession.isPastCurrentRound(roundBoundariesSeen)) break
                 }
             }
         }
@@ -315,11 +264,11 @@
         // whoever's currently placing/taking as a result) - so this one needs its
         // own freshness check (see lastBankWin) to avoid lingering once a later
         // slot has resolved.
-        if (!isFreshestResolvedSlot(recentDuelContext.slot)) return undefined
+        if (!gameSession.isFreshestResolvedSlot(recentDuelContext.slot)) return undefined
         return {
             type: 'giveUp' as const,
             bids: lastRound,
-            actionNoun: recentDuelContext.slot ? actionNounForSlot(recentDuelContext.slot) : ''
+            actionNoun: recentDuelContext.slot ? gameSession.actionNounForSlot(recentDuelContext.slot) : ''
         }
     })
 
@@ -689,7 +638,7 @@
     let hoveredAllianceId: string | undefined = $state(undefined)
 
     function allianceCancelLabel(marker: { otherColor?: Color }): string {
-        const otherPlayerId = marker.otherColor ? playerIdForColor(marker.otherColor) : undefined
+        const otherPlayerId = marker.otherColor ? gameSession.playerIdForColor(marker.otherColor) : undefined
         const other = otherPlayerId ? playerName(gameSession, otherPlayerId) : 'a neutral prince'
         return `Cancel your alliance with ${other} for ${ALLIANCE_CANCELLATION_COST} ducats`
     }
@@ -1721,7 +1670,7 @@
         </div>
     {/if}
     {#if lastAllianceCancellation}
-        {@const otherId = playerIdForColor(lastAllianceCancellation.otherColor)}
+        {@const otherId = gameSession.playerIdForColor(lastAllianceCancellation.otherColor)}
         {@const cancelerIsMe = gameSession.myPlayer?.id === lastAllianceCancellation.playerId}
         {@const otherIsMe = otherId !== undefined && otherId === gameSession.myPlayer?.id}
         <!-- Names the price, since that's the whole weight of the decision - and the

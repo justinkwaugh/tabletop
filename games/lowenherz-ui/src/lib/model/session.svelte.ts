@@ -38,6 +38,7 @@ import {
     HydratedLowenherzGameState,
     HydratedLowenherzPlayerState,
     HydratedPlaceCastle,
+    isAdvanceResolution,
     isDrawActionCard,
     isKnightSafeToRemove,
     isOnBoard,
@@ -210,6 +211,72 @@ export class LowenherzGameSession extends GameSession<
     // card is drawn (that draw becomes the most recent one). Lives here rather than in
     // RealBoard because the board announces the reveal while the action bar shows each
     // player's payout under their points (see ActionToolbar).
+    // Public rather than private: the narration deriveds that use these are being moved out of
+    // RealBoard in stages, and until the last of them lands here they are called from components.
+    //
+    // roundAdvanced marks the END of a round, so scanning backward from "now" always hits it
+    // BEFORE anything else that happened earlier in the very round we are trying to inspect -
+    // money bag payouts, a completed negotiation, duel bids. Stopping on the first one would mean
+    // never finding anything, even when it is squarely within the round the message describes. The
+    // first roundAdvanced just closes out that round; only a SECOND confirms we have scanned past
+    // it entirely into the round before.
+    isPastCurrentRound(roundBoundariesSeen: number): boolean {
+        return roundBoundariesSeen >= 2
+    }
+
+    // A slot's resolution is stale - superseded, no longer the single most recent notable thing -
+    // once a later slot has resolved since it. resolvedSlots grows by exactly one, in order, every
+    // time ANY slot fully resolves, so a slot's own number matching the current length means
+    // nothing has resolved more recently than it.
+    isFreshestResolvedSlot(slot: number | undefined): boolean {
+        return slot !== undefined && slot === this.gameState.resolvedSlots.length
+    }
+
+    // What a slot's band is called, for the sentences that describe winning it.
+    actionNounForSlot(slot: 1 | 2 | 3): string {
+        const card = this.gameState.currentActionCard
+        if (!card || card.type !== 'standard') return ''
+        const band = slot === 1 ? card.top : slot === 2 ? card.middle : card.bottom
+        if (band.kind === 'border') return 'walls'
+        if (band.kind === 'knight') return 'knights'
+        if (band.kind === 'politics') return 'politics'
+        return ''
+    }
+
+    playerIdForColor(color: Color): string | undefined {
+        return this.gameState.players.find((p) => p.color === color)?.playerId
+    }
+
+    // The most recent solo Money Bag win this round - a single chooser gets the whole amount
+    // rather than splitting it. Scans back through history rather than gameState, since the
+    // distribution happens instantly as part of the AdvanceResolution cascade with no dedicated
+    // "just resolved" machine state to hook into.
+    get lastBankWin(): { playerId: string; amount: number } | undefined {
+        const actions = this.actions
+        let roundBoundariesSeen = 0
+        for (let i = actions.length - 1; i >= 0; i--) {
+            const action = actions[i]
+            // A round can draw several action cards before it advances - bounding by round alone
+            // let a money bag win from an EARLIER card in the same round keep showing once a later
+            // card became current. The current card's own draw is where its story starts.
+            if (isDrawActionCard(action)) return undefined
+            if (!isAdvanceResolution(action)) continue
+            if (action.metadata?.roundAdvanced) {
+                roundBoundariesSeen++
+                if (this.isPastCurrentRound(roundBoundariesSeen)) return undefined
+                continue
+            }
+            if (action.metadata?.moneyBagRecipientIds?.length === 1) {
+                if (!this.isFreshestResolvedSlot(action.metadata.slot)) return undefined
+                return {
+                    playerId: action.metadata.moneyBagRecipientIds[0],
+                    amount: action.metadata.moneyBagAmountEach ?? 0
+                }
+            }
+        }
+        return undefined
+    }
+
     get lastMineHillScoring(): { playerId: string; points: number }[] | undefined {
         const discarded = this.gameState.discardedActionCard
         if (discarded?.type !== ActionCardType.Mining) return undefined
