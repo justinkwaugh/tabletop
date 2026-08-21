@@ -125,6 +125,8 @@ export class LowenherzGameSession extends GameSession<
                 notYourTurn: "It's not your turn to place a castle right now.",
                 wrongTerrain: "That spot isn't allowed for a castle — it can't be a hill or village.",
                 occupied: "That spot isn't allowed for a castle — it's already occupied.",
+                noKnightSquare:
+                    "That spot isn't allowed for a castle — there's nowhere beside it to put its knight.",
                 tooClose:
                     "That spot isn't allowed for a castle — it needs to be at least 6 spaces from your other same-color castles."
             }[problem]

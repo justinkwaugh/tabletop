@@ -17,7 +17,12 @@ const SAME_COLOR_CASTLE_MIN_GAP = 6
 // Specific reasons a candidate castle square can be rejected - see
 // describeCastleSquareProblem(). Not "wrong-terrain"/"occupied" combined into one
 // generic reason because the UI needs to tell them apart to report accurately.
-export type CastleSquareProblem = 'notYourTurn' | 'wrongTerrain' | 'occupied' | 'tooClose'
+export type CastleSquareProblem =
+    | 'notYourTurn'
+    | 'wrongTerrain'
+    | 'occupied'
+    | 'noKnightSquare'
+    | 'tooClose'
 
 export type PlaceCastleMetadata = Type.Static<typeof PlaceCastleMetadata>
 export const PlaceCastleMetadata = Type.Object({})
@@ -179,6 +184,21 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
         if (!castleSquare || castleSquare.type !== SquareType.Blank) return 'wrongTerrain'
         if (castleSquare.castleColor || castleSquare.knightColor) return 'occupied'
 
+        // A castle arrives with a knight beside it, so a square with nowhere legal to put that
+        // knight is not a placement that can be completed - it is a dead end that only reveals
+        // itself on the second click, after the castle appears to have been placed.
+        //
+        // legalCastleSquares has always excluded these; this check is what makes
+        // isValidCastleSquare agree with it. The two disagreeing is what let a player select an
+        // isolated square that the board had already greyed out.
+        //
+        // Asked before the spacing rule on purpose: requiredCastleGap measures the best gap
+        // available among squares that DO have a knight square, so reporting 'tooClose' for a
+        // square that was never viable would name the wrong reason.
+        if (!HydratedPlaceCastle.hasLegalKnightSquare(state, castleCol, castleRow)) {
+            return 'noKnightSquare'
+        }
+
         const existingSameColorCastles = castleSquaresForColor(state.board, slot.color)
         const requiredGap = HydratedPlaceCastle.requiredCastleGap(state, slot.color)
         const tooClose = existingSameColorCastles.some(
@@ -265,10 +285,9 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
         const result: { col: number; row: number }[] = []
         for (let row = 0; row < state.board.squares.length; row++) {
             for (let col = 0; col < state.board.squares[row].length; col++) {
-                if (
-                    HydratedPlaceCastle.isValidCastleSquare(state, playerId, col, row) &&
-                    HydratedPlaceCastle.hasLegalKnightSquare(state, col, row)
-                ) {
+                // No separate hasLegalKnightSquare test any more: isValidCastleSquare asks it,
+                // so this list and that predicate cannot drift apart again.
+                if (HydratedPlaceCastle.isValidCastleSquare(state, playerId, col, row)) {
                     result.push({ col, row })
                 }
             }
