@@ -63,7 +63,6 @@
     // win, negotiation, or duel - see resolutionHelpers/negotiationMove/dueling),
     // so a slot's own number matching its current length means nothing has
 
-    const lastBankWin = $derived(gameSession.lastBankWin)
 
 
 

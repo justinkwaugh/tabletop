@@ -396,35 +396,6 @@ export class LowenherzGameSession extends GameSession<
         return this.gameState.players.find((p) => p.color === color)?.playerId
     }
 
-    // The most recent solo Money Bag win this round - a single chooser gets the whole amount
-    // rather than splitting it. Scans back through history rather than gameState, since the
-    // distribution happens instantly as part of the AdvanceResolution cascade with no dedicated
-    // "just resolved" machine state to hook into.
-    get lastBankWin(): { playerId: string; amount: number } | undefined {
-        const actions = this.actions
-        let roundBoundariesSeen = 0
-        for (let i = actions.length - 1; i >= 0; i--) {
-            const action = actions[i]
-            // A round can draw several action cards before it advances - bounding by round alone
-            // let a money bag win from an EARLIER card in the same round keep showing once a later
-            // card became current. The current card's own draw is where its story starts.
-            if (isDrawActionCard(action)) return undefined
-            if (!isAdvanceResolution(action)) continue
-            if (action.metadata?.roundAdvanced) {
-                roundBoundariesSeen++
-                if (this.isPastCurrentRound(roundBoundariesSeen)) return undefined
-                continue
-            }
-            if (action.metadata?.moneyBagRecipientIds?.length === 1) {
-                if (!this.isFreshestResolvedSlot(action.metadata.slot)) return undefined
-                return {
-                    playerId: action.metadata.moneyBagRecipientIds[0],
-                    amount: action.metadata.moneyBagAmountEach ?? 0
-                }
-            }
-        }
-        return undefined
-    }
 
     get lastMineHillScoring(): { playerId: string; points: number }[] | undefined {
         const discarded = this.gameState.discardedActionCard

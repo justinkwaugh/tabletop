@@ -42,7 +42,6 @@
         gameSession.gameState.negotiation ?? gameSession.frozenNegotiation
     )
     const legalRenegadeOwnRegionIdSet = $derived(gameSession.legalRenegadeOwnRegionIds)
-    const lastBankWin = $derived(gameSession.lastBankWin)
     const allianceMarkers = $derived(gameSession.allianceMarkers)
     const availableKnightPlans = $derived(gameSession.availableKnightPlans)
     const expandStageActive = $derived(gameSession.expandStageActive)
@@ -143,7 +142,7 @@
     // walls/knights/taking a politics card as a result. Guarded by fromPlayerId
     // matching the current placer so an earlier slot's (already-resolved) negotiation
     // this same round can't leak into a later, unrelated solo-win placement phase.
-    // Also bounded by the current action card's own draw (see lastBankWin) so an
+    // Also bounded by the current action card's own draw (see lastMineReveal) so an
     // earlier card's negotiation in the same round can't leak into a later one.
     const lastNegotiationPayment = $derived.by(() => {
         const actions = gameSession.actions
@@ -167,7 +166,7 @@
         return undefined
     })
 
-    // The most recent alliance cancellation this action card (see lastBankWin) -
+    // The most recent alliance cancellation this action card (see lastMineReveal) -
     // worth a status note since it's easy to miss (it happens instantly as part of
     // laying a decision card, with no dedicated machine state of its own). Can only
     // ever happen before any slot has resolved (it requires still being able to lay
@@ -231,7 +230,7 @@
     // round-bounded window rather than stopping at the first non-bid action, since
     // other slots can resolve (money bag, solo wins, a negotiation) before or after
     // this one within the same cascaded batch of actions. Also bounded by the
-    // current action card's own draw (see lastBankWin) so an earlier card's duel in
+    // current action card's own draw (see lastMineReveal) so an earlier card's duel in
     // the same round can't leak into a later, unrelated one.
     const recentDuelContext = $derived.by(() => {
         const actions = gameSession.actions
@@ -293,7 +292,7 @@
         // Shown unconditionally as a top-of-status banner (unlike the win case
         // above, which is only ever read contextually, already gated on matching
         // whoever's currently placing/taking as a result) - so this one needs its
-        // own freshness check (see lastBankWin) to avoid lingering once a later
+        // own freshness check (see lastMineReveal) to avoid lingering once a later
         // slot has resolved.
         if (!gameSession.isFreshestResolvedSlot(recentDuelContext.slot)) return undefined
         return {
@@ -508,13 +507,6 @@
                 {@render playerPill(historyAction.playerId)}
             {/if}
             <ActionDescription action={historyAction} justify="start" history={false} />
-        </div>
-    {/if}
-    {#if lastBankWin}
-        <div class="text-black text-[20px] text-center">
-            {@render playerPill(lastBankWin.playerId)} gained {lastBankWin.amount} ducat{lastBankWin.amount === 1
-                ? ''
-                : 's'} from the bank.
         </div>
     {/if}
     {#if lastDuelOutcome?.type === 'giveUp'}
