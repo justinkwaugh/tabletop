@@ -282,6 +282,11 @@ export class LowenherzGameSession extends GameSession<
     get availableKnightPlans(): KnightPlan[] {
         if (!this.canPlaceKnight) return []
 
+        // Nothing else is offered while an expansion is open. Its second space is free and the
+        // board shows only expansion squares, so asking what to do with the next sword here would
+        // put knight dots on the map at the one moment a knight cannot be placed.
+        if (this.canContinueExpansion) return []
+
         const plans: KnightPlan[] = []
         if (this.canPlaceAnotherKnight) plans.push('knight')
         if (this.canStartFreshExpansion) plans.push('expand')
@@ -1129,11 +1134,22 @@ export class LowenherzGameSession extends GameSession<
         return this.canStartExpansion
     }
 
+    // Set when the player has finished expanding at one space. The engine has no action for
+    // "that's enough" - expandingRegionId stays set until the second space is taken or the action
+    // ends - so declining it is local, like the step choice itself.
+    //
+    // It exists because knight squares are no longer offered while an expansion is open. Something
+    // has to end the expansion, and it cannot be the knight click that used to end it.
+    expansionSecondSpaceDeclined: boolean = $state(false)
+
+    declineSecondSpace() {
+        this.expansionSecondSpaceDeclined = true
+    }
+
     // The optional second space of an expansion already under way. Costs no sword - it was paid
-    // for by the one that started it - so it is available alongside whatever the remaining sword
-    // is being spent on.
+    // for by the one that started it - so it outlives the step that bought it.
     get canContinueExpansion(): boolean {
-        return this.gameState.expandingRegionId !== undefined
+        return this.gameState.expandingRegionId !== undefined && !this.expansionSecondSpaceDeclined
     }
 
     // Which shape the winner of a knight action has declared they're taking. A one-sword
@@ -1188,6 +1204,10 @@ export class LowenherzGameSession extends GameSession<
         this.knightPlanStartSwords = 0
     }
 
+    private resetExpansionDecline() {
+        this.expansionSecondSpaceDeclined = false
+    }
+
     // Drops a plan that belongs to some EARLIER knight action - a different player's, or
     // a later action of this player's own. Deliberately keeps the plan while the phase is
     // merely closed (no knightPlacingPlayerId): an Undo that steps back into a knight
@@ -1195,9 +1215,15 @@ export class LowenherzGameSession extends GameSession<
     // in the plan chooser looking at a part-spent two-sword action being described as a
     // fresh one-sword one.
     syncKnightPlanWithState() {
+        // A finished expansion cannot be declined again, and a new action starts undeclined.
+        if (this.gameState.expandingRegionId === undefined) this.resetExpansionDecline()
+
         if (!this.knightPlan) return
         const key = this.currentKnightActionKey
-        if (key && key !== this.knightPlanActionKey) this.clearKnightPlan()
+        if (key && key !== this.knightPlanActionKey) {
+            this.clearKnightPlan()
+            this.resetExpansionDecline()
+        }
     }
 
     // Whether this knight ACTION has produced anything real yet - which decides whether Undo

@@ -614,8 +614,13 @@
             >
                 pass
             </button>.
-        {:else if gameSession.canPlaceKnight && gameSession.knightPlan}
-            <!-- A plan's already declared, so this just narrates the current step. No
+        {:else if gameSession.canPlaceKnight && (gameSession.knightPlan || gameSession.canContinueExpansion)}
+            <!-- Either a step is under way, or an expansion is open between steps - the second is
+                 why canContinueExpansion is here too: no step is chosen at that moment, and
+                 without it this whole block fell through to the chooser while the board was
+                 offering expansion squares.
+                 
+                 A plan's already declared, so this just narrates the current step. No
                  confirm or cancel buttons: every step is a board click, and Undo (which
                  backs out of the plan itself while nothing's landed yet - see
                  ActionToolbar) is the way back. Pass stays, since declining the rest of
@@ -631,27 +636,48 @@
                     — {expansionBlockedReasons.join('; ')}{/if}.{#if knightStageActive}
                     Click a square to place a knight instead.{:else if gameSession.expandableRegions.length > 1}
                     Click Undo to pick a different region.{/if}
+            {:else if gameSession.canContinueExpansion}
+                <!-- The one moment with its own stop button. Knight squares are not offered while
+                     an expansion is open, so the click that used to end it - placing the knight -
+                     is gone, and something has to say "that's enough".
+                     
+                     What that button does depends on whether a sword is left: with one it ends the
+                     expansion and moves on to the knight, with none there is nothing to move on to
+                     and it ends the action. Either way the player is stopping, which is why both
+                     read as "pass". -->
+                Click to expand a second time, or
+                <button
+                    type="button"
+                    class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
+                    onclick={() =>
+                        knightSwordsLeft > 0
+                            ? gameSession.declineSecondSpace()
+                            : gameSession.passKnightPlacement()}
+                >
+                    pass
+                </button>.
             {:else if expandStageActive}
                 <!-- Counted from engine state (see expansionSpacesTaken), not the local
                      record of clicks, so an Undo mid-expansion doesn't leave this
                      claiming a space that's been taken back. -->
-                Click to expand ({gameSession.expansionSpacesTaken}/2 so far){#if knightStageActive}, or
-                    place your knight to stop expanding{/if}.
+                Click to expand ({gameSession.expansionSpacesTaken}/2 so far).
             {:else}
                 <!-- No count here any more. A step is one knight, so "2 to place" would be
                      describing a second sword the player has not chosen how to spend yet - they
                      are asked again once this one is down. -->
                 Click a square to place your knight.
             {/if}
-            Or
-            <button
-                type="button"
-                class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
-                onclick={() => gameSession.passKnightPlacement()}
-            >
-                pass
-            </button>
-            to stop here.
+            {#if !gameSession.canContinueExpansion}
+                Or
+                <button
+                    type="button"
+                    class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
+                    onclick={() => gameSession.passKnightPlacement()}
+                >
+                    pass
+                </button>
+                to stop here.
+            {/if}
         {:else if gameSession.canPlaceKnight}
             {#if lastNegotiationPayment && lastNegotiationPayment.fromPlayerId === gameSession.gameState.knightPlacingPlayerId}
                 {@render playerPill(lastNegotiationPayment.fromPlayerId)} paid {@render playerPill(
@@ -706,16 +732,7 @@
                 >
                     pass
                 </button>.
-                <!-- An expansion under way is still open while this question is being answered:
-                     its second space costs no sword, so it is not one of the options above and
-                     needs saying separately. Without this the board was flashing arrows at a
-                     player whose prompt only mentioned knights - and the sentence has to appear
-                     HERE rather than in the step narration below, which only renders once a step
-                     has been chosen. -->
-                {#if gameSession.canContinueExpansion}
-                    Your expansion is still open ({gameSession.expansionSpacesTaken}/2) — click
-                    another space to take it, or leave it as it is.
-                {/if}
+
             {/if}
         {:else if lastMineReveal}
             {@const mineScorers = lastMineReveal.filter((entry) => entry.points > 0)}
