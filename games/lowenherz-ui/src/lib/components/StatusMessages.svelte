@@ -591,9 +591,9 @@
             {/if}
         {:else if gameSession.canPlaceWall}
             {#if lastNegotiationPayment && lastNegotiationPayment.fromPlayerId === gameSession.gameState.wallPlacingPlayerId}
-                {@render playerPill(lastNegotiationPayment.fromPlayerId)} paid {@render playerPill(
-                    lastNegotiationPayment.toPlayerId
-                )}
+                    {@render playerPill(lastNegotiationPayment.fromPlayerId)} paid {@render playerPill(
+                        lastNegotiationPayment.toPlayerId
+                    )}
                 {lastNegotiationPayment.amount} ducat{lastNegotiationPayment.amount === 1
                     ? ''
                     : 's'} for the walls action.
@@ -690,25 +690,27 @@
                 to stop here.
             {/if}
         {:else if gameSession.canPlaceKnight}
-            {#if lastNegotiationPayment && lastNegotiationPayment.fromPlayerId === gameSession.gameState.knightPlacingPlayerId}
+            <!-- How the action was won, said once. It is news when the action opens and noise on
+                 the second question, where the player has already spent a sword on it - so it is
+                 shown only while nothing has been spent yet. -->
+            {#if knightSwordsLeft >= gameSession.knightActionSwords}
+                {#if lastNegotiationPayment && lastNegotiationPayment.fromPlayerId === gameSession.gameState.knightPlacingPlayerId}
                 {@render playerPill(lastNegotiationPayment.fromPlayerId)} paid {@render playerPill(
                     lastNegotiationPayment.toPlayerId
                 )}
-                {lastNegotiationPayment.amount} ducat{lastNegotiationPayment.amount === 1
-                    ? ''
-                    : 's'} for the {knightActionName}.
-            {:else if lastDuelOutcome?.type === 'win' && lastDuelOutcome.winnerId === gameSession.gameState.knightPlacingPlayerId}
-                {@render playerPill(lastDuelOutcome.winnerId)} outspent {@render playerPillList(
-                    lastDuelOutcome.otherIds
-                )} to win a {knightActionName}.
-            {:else}
-                {@render myPill()} won a {knightActionName}.
+                    {lastNegotiationPayment.amount} ducat{lastNegotiationPayment.amount === 1
+                        ? ''
+                        : 's'} for the {knightActionName}.
+                {:else if lastDuelOutcome?.type === 'win' && lastDuelOutcome.winnerId === gameSession.gameState.knightPlacingPlayerId}
+                    {@render playerPill(lastDuelOutcome.winnerId)} outspent {@render playerPillList(
+                        lastDuelOutcome.otherIds
+                    )} to win a {knightActionName}.
+                {:else}
+                    {@render myPill()} won a {knightActionName}.
+                {/if}
             {/if}
-            <!-- The whole shape of the action is chosen here, up front - for a two-sword
-                 card that's exactly three possibilities (see availableKnightPlans), minus
-                 any whose halves aren't actually available. Everything after this is
-                 board clicks; a single available plan is auto-picked, so this prompt only
-                 appears when there's a genuine choice. -->
+            <!-- One question per sword. A single available option is taken for the player, so this
+                 only appears when there is a genuine choice to make. -->
             {#if availableKnightPlans.length === 0}
                 There's nothing legal left to do with it, so
                 <button
