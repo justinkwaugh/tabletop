@@ -922,20 +922,20 @@
         {@const duel = gameSession.gameState.duel}
         {@const myId = gameSession.myPlayer?.id}
         <div class="flex flex-col gap-1 text-black text-[18px]">
-            <!-- Your own bid, and nothing else - the duelists are all named in the status
-                 message above instead of getting a row each, and a sealed bid means an
-                 opponent's row would have had nothing actionable on it anyway. This row
-                 does confirm your OWN bid once it's in, since the action bar keeps
-                 listing every duelist as active for the whole duel (see dueling.ts's
-                 enter()) and nothing else on screen would tell you it landed. -->
-            {#if myId && duel.playerIds.includes(myId)}
+            <!-- Your own bid form, and nothing else - the duelists are named in the status bar
+                 rather than getting a row each, and a sealed bid means an opponent's row would
+                 have had nothing actionable on it anyway.
+                 
+                 It used to also confirm "Your bid is in." once you had bid, because the bar kept
+                 listing every duelist as active for the whole duel (see dueling.ts's enter()) and
+                 nothing else said your bid had landed. The bar now drops whoever has bid, so your
+                 own name disappearing from it is the confirmation - and the row goes away entirely
+                 rather than saying so twice. -->
+            {#if myId && duel.playerIds.includes(myId) && !gameSession.hasPlayerBidInDuel(myId)}
                 {@const money = gameSession.gameState.getPlayerState(myId).money}
                 {@const bidAmount = Math.min(gameSession.duelBidAmounts[myId] ?? 0, money)}
                 <div class="flex flex-wrap items-center gap-2">
-                    {#if gameSession.hasPlayerBidInDuel(myId)}
-                        <span class="text-black/60">Your bid is in.</span>
-                    {:else}
-                        <span class="font-semibold">Your bid:</span>
+                    <span class="font-semibold">Your bid:</span>
                         {@render duelBidStepper(myId, bidAmount, money)}
                         {#if gameSession.selectedTreasureCard}
                             <!-- Clicking the chip unarms the card. This is the ONLY way back:
@@ -973,7 +973,6 @@
                         {#if gameSession.myTreasureCards.length > 0 && !gameSession.selectedTreasureCard}
                             <span class="text-black/70 text-[15px]">Nudge: You hold a Treasure!</span>
                         {/if}
-                    {/if}
                 </div>
             {/if}
 
