@@ -822,16 +822,30 @@
         return PLACEMENT_HINT === 'gray' && isIllegalPlacementSpot(col, row)
     }
 
-    // The positive treatment: the squares the current click would actually accept. Covers both
-    // halves of the flow - the castle squares, then the knight squares around the one picked - and
-    // both are small enough sets that marking them is the clearer direction.
+    // The positive treatment: the squares the current click would actually accept, marked with a
+    // dot. Every placement question the board asks now answers it the same way - opening castles,
+    // the knight beside one, a knight in regular play, and Renegade's replacement knight.
+    //
+    // The knight cases used to fade a ghost knight in and out on each legal square instead. A dot
+    // says the same thing without moving, and one visual language across every placement beats two.
     function showsLegalHighlight(col: number, row: number): boolean {
-        if (PLACEMENT_HINT !== 'legal' || !gameSession.canPlaceCastle) return false
+        if (PLACEMENT_HINT !== 'legal') return false
 
-        return gameSession.selectedCastleSquare
-            ? isLegalKnightSquare(col, row)
-            : isLegalCastleSquare(col, row)
+        // Setup: the castle squares, then the knight squares around the one just picked.
+        if (gameSession.canPlaceCastle) {
+            return gameSession.selectedCastleSquare
+                ? isLegalKnightSquare(col, row)
+                : isLegalCastleSquare(col, row)
+        }
+
+        if (knightStageActive && isLegalKnightPlacement(col, row)) return true
+        return isLegalRenegadePlacementSquare(col, row)
     }
+
+    // Whose colour the dot is drawn in. placementColor covers setup, where a closing lap places the
+    // neutral prince's castle rather than the player's own; outside setup it is undefined and the
+    // piece being placed is simply mine.
+    const legalHintColor = $derived(placementColor ?? myColor)
 
     // The X cannot go everywhere the scrim can, which is a property of the mark rather than of the
     // rule:
@@ -1214,8 +1228,8 @@
                              ring around it is the same claim twice. Tied to the preview rather
                              than to hover itself, so hovering during the KNIGHT stage - which has
                              no preview - does not blank the only mark on the square. -->
-                        {#if showsLegalHighlight(col, row) && !isCastlePreviewSquare(col, row) && placementColor}
-                            {@const hintColor = gameSession.colors.getUiColor(placementColor)}
+                        {#if showsLegalHighlight(col, row) && !isCastlePreviewSquare(col, row) && legalHintColor}
+                            {@const hintColor = gameSession.colors.getUiColor(legalHintColor)}
                             <!-- A filled disc, about a third of the square. r 1.85 of the
                                  ten-unit viewBox is a 3.7-unit diameter - the same outer edge the
                                  stroked ring had, so "filled in" means exactly that rather than
@@ -1270,20 +1284,6 @@
                                     />
                                 </svg>
                             </span>
-                        {/if}
-                        {#if knightStageActive && isLegalKnightPlacement(col, row) && myColor}
-                            <!-- A faded preview of the knight that would actually be placed here,
-                                 fading in and out - rather than a border/ring highlight. -->
-                            <div class="absolute inset-0 ghost-knight-pulse pointer-events-none">
-                                {@render pieceIcon(knightFill, knightLines, myColor, -1)}
-                            </div>
-                        {/if}
-                        {#if isLegalRenegadePlacementSquare(col, row) && myColor}
-                            <!-- Same faded preview, for the replacement knight Renegade would
-                                 place here. -->
-                            <div class="absolute inset-0 ghost-knight-pulse pointer-events-none">
-                                {@render pieceIcon(knightFill, knightLines, myColor, -1)}
-                            </div>
                         {/if}
                         {#if square.castleColor}
                             {@render pieceIcon(castleFill, castleLines, square.castleColor)}
