@@ -1,7 +1,8 @@
 <script lang="ts">
     import { onMount } from 'svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import type { Color, GameAction } from '@tabletop/common'
+    import { Color } from '@tabletop/common'
+    import type { GameAction } from '@tabletop/common'
     import {
         ALLIANCE_CANCELLATION_COST,
         BOARD_COLS,
@@ -842,6 +843,19 @@
         return isLegalRenegadePlacementSquare(col, row)
     }
 
+    // The placement dots sit directly on the tile art, where gold (#d4af37, standing in for the
+    // real game's Gold) sinks into the dark greens of the forest tiles. Brightened for the DOT
+    // only: a player's colour everywhere else - their pieces, their pill, their region tint, their
+    // score popups - is their identity, and it should not shift because one marker needs contrast
+    // against one kind of terrain.
+    const HINT_COLOR_OVERRIDES: Partial<Record<Color, string>> = {
+        [Color.Yellow]: '#ffe11a'
+    }
+
+    function hintColorFor(color: Color): string {
+        return HINT_COLOR_OVERRIDES[color] ?? gameSession.colors.getUiColor(color)
+    }
+
     // Whose colour the dot is drawn in. placementColor covers setup, where a closing lap places the
     // neutral prince's castle rather than the player's own; outside setup it is undefined and the
     // piece being placed is simply mine.
@@ -1229,7 +1243,7 @@
                              than to hover itself, so hovering during the KNIGHT stage - which has
                              no preview - does not blank the only mark on the square. -->
                         {#if showsLegalHighlight(col, row) && !isCastlePreviewSquare(col, row) && legalHintColor}
-                            {@const hintColor = gameSession.colors.getUiColor(legalHintColor)}
+                            {@const hintColor = hintColorFor(legalHintColor)}
                             <!-- A filled disc, about a third of the square. r 1.85 of the
                                  ten-unit viewBox is a 3.7-unit diameter - the same outer edge the
                                  stroked ring had, so "filled in" means exactly that rather than
