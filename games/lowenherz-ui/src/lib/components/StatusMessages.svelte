@@ -375,19 +375,6 @@
         gameSession.negotiationProposerId ? gameSession.gameState.getPlayerState(gameSession.negotiationProposerId).money : 0
     )
 
-    // The payer's signature line always comes first, the payee's second - so the
-    // signature buttons "activate" (enable for whichever player you are) in payer-
-    // then-payee order too, since they're driven by whichever playerId lands in each
-    // position here. Before a real offer is submitted, falls back to the live
-    // dropdown draft so the order still previews correctly.
-    const orderedNegotiatorIds = $derived.by(() => {
-        const negotiation = displayNegotiation
-        if (!negotiation) return []
-        const payerId = negotiation.offer?.fromPlayerId ?? gameSession.negotiationProposerId
-        if (!payerId || !negotiation.playerIds.includes(payerId)) return negotiation.playerIds
-        const payeeId = negotiation.playerIds.find((id) => id !== payerId)
-        return payeeId ? [payerId, payeeId] : negotiation.playerIds
-    })
 
     // A local, per-player draft bid amount - each duelist's own private stepper,
     // unlike negotiation's single shared offer (a duel bid is a one-shot commitment
@@ -856,57 +843,62 @@
                         ? playerName(gameSession, negotiationOtherPlayerId)
                         : ''}
                 </span>
+
+                <!-- One signature line, and it is the viewing player's own. There used to be a row
+                     per negotiator, which cost a whole line of the space above the board to tell
+                     you something the flow already implies: a standing offer exists only because
+                     somebody proposed and signed it, so the other side's signature is not news -
+                     and when it IS news, the sentence below says so by name. -->
+                <button
+                    type="button"
+                    class="ml-2 px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 text-[18px] font-semibold disabled:opacity-40 disabled:hover:bg-green-700/20"
+                    disabled={!gameSession.isNegotiator || gameSession.hasSignedNegotiationOffer}
+                    onclick={() => commitNegotiationOffer()}
+                >
+                    Signed
+                </button>
+                <span class="signature-text inline-block h-8 w-32 border-b border-black/40 px-1">
+                    {#if gameSession.myPlayer && negotiation.signedPlayerIds.includes(gameSession.myPlayer.id)}
+                        {playerName(gameSession, gameSession.myPlayer.id)}
+                    {/if}
+                </span>
             </div>
 
-            <div class="flex flex-wrap items-center gap-4">
-                {#each orderedNegotiatorIds as playerId (playerId)}
-                    <div class="flex items-center gap-2">
+            <!-- Which half of the exchange you are in, in one line. This is also where the other
+                 player's signature is reported, now that they have no row of their own: it is only
+                 worth a mention when it changes what your click does, and then it wants naming
+                 rather than a blank with a name on it. -->
+            {#if gameSession.isNegotiator}
+                {@const myId = gameSession.myPlayer?.id}
+                {@const otherId = negotiation.playerIds.find((id) => id !== myId)}
+                <div class="flex flex-wrap items-center gap-2 text-black/60 text-[16px]">
+                    {#if gameSession.hasSignedNegotiationOffer}
+                        <span>
+                            Waiting for {@render playerPill(otherId ?? '')} to sign these terms, or
+                            to counter with different ones.
+                        </span>
+                    {:else if otherId && negotiation.signedPlayerIds.includes(otherId)}
+                        <span>
+                            {@render playerPill(otherId)} has signed. Sign to accept these terms as
+                            they stand, or change them to counter - which withdraws their signature.
+                        </span>
+                    {:else}
+                        <span>
+                            Set the terms and sign. Whoever signs first waits on the other to accept
+                            or counter.
+                        </span>
+                    {/if}
+                    {#if SHOW_NEGOTIATION_TEST_CONTROLS && negotiation.offer && otherId && !negotiation.signedPlayerIds.includes(otherId)}
                         <button
                             type="button"
-                            class="px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 font-semibold disabled:opacity-40 disabled:hover:bg-green-700/20"
-                            disabled={gameSession.myPlayer?.id !== playerId ||
-                                negotiation.signedPlayerIds.includes(playerId)}
-                            onclick={() => commitNegotiationOffer()}
+                            title="Temporary solo-testing stand-in for a second session/tab"
+                            class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
+                            onclick={() => gameSession.debugSignNegotiationOfferAs(otherId)}
                         >
-                            Signed
+                            sign for them (test)
                         </button>
-                        <span class="signature-text inline-block h-8 w-32 border-b border-black/40 px-1">
-                            {#if negotiation.signedPlayerIds.includes(playerId)}
-                                {playerName(gameSession, playerId)}
-                            {/if}
-                        </span>
-                        {#if SHOW_NEGOTIATION_TEST_CONTROLS && negotiation.offer && gameSession.myPlayer?.id !== playerId && !negotiation.signedPlayerIds.includes(playerId)}
-                            <button
-                                type="button"
-                                title="Temporary solo-testing stand-in for a second session/tab"
-                                class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
-                                onclick={() => gameSession.debugSignNegotiationOfferAs(playerId)}
-                            >
-                                sign for them (test)
-                            </button>
-                        {/if}
-                    </div>
-                {/each}
-            </div>
-
-            <!-- Which half of the exchange you are in. The mechanics already worked - a Sign
-                 proposes the draft first whenever it differs from the standing offer, and the
-                 engine clears both signatures on any proposal, so changing the terms IS a
-                 counter-proposal - but nothing on screen said so, and a player who had signed was
-                 left looking at live-looking controls with a dead button beside them. -->
-            {#if gameSession.isNegotiator && negotiation.offer}
-                {#if gameSession.hasSignedNegotiationOffer}
-                    <span class="text-black/60 text-[16px]">
-                        Signed. Waiting for {@render playerPill(
-                            negotiation.playerIds.find((id) => id !== gameSession.myPlayer?.id) ?? ''
-                        )} to sign these terms, or to counter with different ones.
-                    </span>
-                {:else}
-                    <span class="text-black/60 text-[16px]">
-                        Sign to accept these terms as they stand, or change them to counter - which
-                        withdraws the other signature and sends it back.
-                    </span>
-                {/if}
+                    {/if}
+                </div>
             {/if}
         </div>
     {/if}
