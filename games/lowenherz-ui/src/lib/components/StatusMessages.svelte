@@ -12,7 +12,6 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { Color } from '@tabletop/common'
     import {
-        ALLIANCE_CANCELLATION_COST,
         isAdvanceResolution,
         isCancelAlliance,
         isDrawActionCard,
@@ -166,33 +165,6 @@
         return undefined
     })
 
-    // The most recent alliance cancellation this action card (see lastMineReveal) -
-    // worth a status note since it's easy to miss (it happens instantly as part of
-    // laying a decision card, with no dedicated machine state of its own). Can only
-    // ever happen before any slot has resolved (it requires still being able to lay
-    // a decision card), so it's only ever "freshest" while resolvedSlots is still
-    // empty for this card - once the first slot resolves, something newer exists.
-    const lastAllianceCancellation = $derived.by(() => {
-        const actions = gameSession.actions
-        let roundBoundariesSeen = 0
-        for (let i = actions.length - 1; i >= 0; i--) {
-            const action = actions[i]
-            if (isDrawActionCard(action)) return undefined
-            if (isAdvanceResolution(action)) {
-                if (action.metadata?.roundAdvanced) {
-                    roundBoundariesSeen++
-                    if (gameSession.isPastCurrentRound(roundBoundariesSeen)) return undefined
-                    continue
-                }
-                return undefined
-            }
-            if (isCancelAlliance(action) && action.metadata?.otherColor) {
-                if (gameSession.gameState.resolvedSlots.length > 0) return undefined
-                return { playerId: action.playerId, otherColor: action.metadata.otherColor }
-            }
-        }
-        return undefined
-    })
 
     // A bid's actual strength, including any Treasure card added on top - metadata
     // keeps a snapshot of the card used (see SubmitDuelBidMetadata's comment) since
@@ -520,29 +492,6 @@
             {@render bidList(lastDuelOutcome.bids)} — tied again, so no one performs the{lastDuelOutcome.actionNoun
                 ? ` ${lastDuelOutcome.actionNoun}`
                 : ''} action.
-        </div>
-    {/if}
-    {#if lastAllianceCancellation}
-        {@const otherId = gameSession.playerIdForColor(lastAllianceCancellation.otherColor)}
-        {@const cancelerIsMe = gameSession.myPlayer?.id === lastAllianceCancellation.playerId}
-        {@const otherIsMe = otherId !== undefined && otherId === gameSession.myPlayer?.id}
-        <!-- Names the price, since that's the whole weight of the decision - and the
-             cancellation is now a single board click (see the alliance hearts), so this is
-             where the 10 ducats leaving your purse gets accounted for. -->
-        <div class="text-black text-[20px] text-center">
-            {#if cancelerIsMe}
-                You paid
-            {:else}
-                {@render playerPill(lastAllianceCancellation.playerId)} paid
-            {/if}
-            {ALLIANCE_CANCELLATION_COST} ducats to cancel an alliance with
-            {#if otherIsMe}
-                you
-            {:else if otherId}
-                {@render playerPill(otherId)}
-            {:else}
-                a neutral prince
-            {/if}.
         </div>
     {/if}
     <div class="text-black text-[20px] text-center leading-loose">
