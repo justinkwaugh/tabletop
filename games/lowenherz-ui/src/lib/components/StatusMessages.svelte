@@ -792,13 +792,13 @@
     {#if displayNegotiation}
         {@const negotiation = displayNegotiation}
         <div class="flex flex-col gap-2 text-black text-sm">
-            <div class="flex flex-wrap items-center gap-2 text-[20px]">
+            <div class="flex flex-wrap items-center gap-2 pb-4 text-[20px]">
                 <!-- Side by side rather than stacked. Two names in a column made this box two lines
                      tall on its own, which set the height of the whole row and so of the space the
                      panel takes above the board. The caption underneath is what the stacked layout
                      got for free: a column of two names reads as a choice, a row of two names reads
                      as a score, so with them side by side the box has to say what it is. -->
-                <div class="flex flex-col items-center leading-tight">
+                <div class="relative flex flex-col items-center leading-tight">
                     <div class="flex flex-row items-center border border-black/30 rounded px-2 py-1">
                         {#each negotiation.playerIds as playerId, i (playerId)}
                             {#if i > 0}
@@ -817,7 +817,16 @@
                             </button>
                         {/each}
                     </div>
-                    <span class="text-[12px] text-black/50">Choose a player</span>
+                    <!-- Out of flow, so the column's height is the box's height and the box
+                         centres on the row exactly as the sentence text does. In flow the column
+                         was box-plus-caption tall, and items-center centred THAT - which lifted the
+                         names about half a caption above the line they are meant to sit on. The
+                         row's pb-4 is where this now sits. -->
+                    <span
+                        class="absolute top-full mt-0.5 text-[12px] text-black/50 whitespace-nowrap"
+                    >
+                        Choose a player
+                    </span>
                 </div>
                 <span>offers</span>
                 <button
