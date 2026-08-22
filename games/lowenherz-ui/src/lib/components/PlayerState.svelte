@@ -291,7 +291,8 @@
                          An applicable card prepends a 2px ring in the owner's colour to
                          that same box-shadow, rather than the pulsing yellow glow this used
                          to carry: a card you could play is the player's own, so their colour
-                         says it without moving, and nothing else on the board pulses now. -->
+                         says it, and the dashes below say it is actionable without the board
+                         pulsing at anything. -->
                     <div
                         class="absolute top-0 h-full rounded-md {isInteractive
                             ? ''
@@ -300,9 +301,7 @@
                             right: {CARD_EDGE_BUFFER + (count - 1 - i) * step}px;
                             width: {CARD_W}px;
                             z-index: {i};
-                            box-shadow: {isApplicableCard
-                            ? `0 0 0 2px ${headerColor}, `
-                            : ''}{isOverlapping && i > 0
+                            box-shadow: {isOverlapping && i > 0
                             ? '-2px 0 3px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.4)'
                             : '0 2px 4px rgba(0, 0, 0, 0.4)'};
                             transform: translate({jitter.dx}px, {jitter.dy}px) rotate({jitter.rotate}deg);
@@ -349,6 +348,40 @@
                         {:else}
                             <PoliticsCardView {card} faceDown />
                         {/if}
+                        {#if isApplicableCard}
+                            <!-- Marching ants in the owner's colour: a dashed outline whose dashes
+                                 travel around the card. Drawn last so it sits over the art, and
+                                 inert to the mouse so it never takes a click meant for the card.
+                                 
+                                 An svg rect rather than a CSS border, because only stroke-dashoffset
+                                 can be animated into travelling - a dashed border can blink or
+                                 change colour but its dashes cannot move. non-scaling-stroke keeps
+                                 the line 2px whatever size the card is drawn at, and the rect is
+                                 inset half a stroke so neither edge is clipped.
+                                 
+                                 The animation is declared with the `animation` shorthand on
+                                 purpose: Svelte scopes @keyframes to a hashed name and rewrites the
+                                 reference only there, so animation-name would point at a name that
+                                 does not exist and the dashes would sit still. -->
+                            <svg
+                                class="absolute inset-0 w-full h-full pointer-events-none overflow-visible"
+                                aria-hidden="true"
+                            >
+                                <rect
+                                    class="card-ants"
+                                    x="1"
+                                    y="1"
+                                    width="calc(100% - 2px)"
+                                    height="calc(100% - 2px)"
+                                    rx="5"
+                                    fill="none"
+                                    stroke={headerColor}
+                                    stroke-width="2"
+                                    stroke-dasharray="6 4"
+                                    vector-effect="non-scaling-stroke"
+                                />
+                            </svg>
+                        {/if}
                     </div>
                 {/each}
             </div>
@@ -365,4 +398,19 @@
 </div>
 
 <style>
+    /* 10 = the 6+4 dasharray, so one cycle moves the pattern exactly one repeat and the loop has
+       no visible seam. Negative offset so the dashes run clockwise. */
+    @keyframes card-ants-march {
+        from {
+            stroke-dashoffset: 0;
+        }
+        to {
+            stroke-dashoffset: -10;
+        }
+    }
+
+    .card-ants {
+        animation: card-ants-march 2.4s linear infinite;
+    }
+
 </style>
