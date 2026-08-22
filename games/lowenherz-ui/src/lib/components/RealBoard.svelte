@@ -1248,8 +1248,9 @@
                                 class="absolute inset-0 w-full h-full pointer-events-none"
                                 aria-hidden="true"
                             >
-                                <!-- Same saturate/brightness boost pieceIcon puts on a castle or a
-                                     knight, so the dot is the colour of the piece it stands for
+                                <!-- The same boost AND the same soft white glow pieceIcon puts on a
+                                     castle or a knight, so the dot is the colour of the piece it
+                                     stands for
                                      rather than of the raw palette entry. getUiColor's yellow is
                                      #d4af37, but no castle is ever drawn in it - which is why the
                                      dot looked like a different yellow from the pieces. Matched by
@@ -1268,8 +1269,10 @@
                                     fill={hintColor}
                                     stroke="#000000"
                                     stroke-opacity="0.55"
-                                    stroke-width="0.4"
-                                    style="filter: saturate(1.5) brightness(1.15);"
+                                    stroke-width="0.16"
+                                    style="filter: saturate(1.5) brightness(1.15)
+                                        drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.9))
+                                        drop-shadow(0 0 3px rgba(255, 255, 255, 0.8));"
                                 />
                             </svg>
 
