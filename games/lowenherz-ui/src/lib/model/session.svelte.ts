@@ -101,6 +101,11 @@ export class LowenherzGameSession extends GameSession<
     //
     // The EFFECTS that maintain these stay in whichever component renders the panel: $effect needs
     // an owner and a session class is not one. What lives here is the value, not the syncing.
+    // Whether expanding was on the table when the player picked their knight-action plan. Written
+    // by the plan buttons in the status panel, read by the board when deciding what a click means -
+    // so it belongs to neither.
+    expansionWasAvailableAtPlanTime: boolean = $state(false)
+
     negotiationProposerId: string | undefined = $state(undefined)
     negotiationAmount: number = $state(0)
     frozenNegotiation: Negotiation | undefined = $state(undefined)
