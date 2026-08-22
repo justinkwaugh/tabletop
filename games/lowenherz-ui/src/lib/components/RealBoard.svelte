@@ -1248,7 +1248,7 @@
                                 class="absolute inset-0 w-full h-full pointer-events-none"
                                 aria-hidden="true"
                             >
-                                <circle cx="5" cy="5" r="1.85" fill={hintColor} fill-opacity="0.8" />
+                                <circle cx="5" cy="5" r="1.85" fill={hintColor} />
                             </svg>
 
                         {/if}
