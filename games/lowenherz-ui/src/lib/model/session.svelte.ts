@@ -284,7 +284,7 @@ export class LowenherzGameSession extends GameSession<
 
         const plans: KnightPlan[] = []
         if (this.canPlaceAnotherKnight) plans.push('knight')
-        if (this.canStartExpansion) plans.push('expand')
+        if (this.canStartFreshExpansion) plans.push('expand')
         return plans
     }
 
@@ -1117,6 +1117,23 @@ export class LowenherzGameSession extends GameSession<
         if (this.gameState.expandingRegionId !== undefined) return true
         // expandableRegions is already filtered to regions with a legal target.
         return this.expandableRegions.length > 0
+    }
+
+    // A FRESH expansion, as opposed to the second space of one already under way.
+    // canStartExpansion above answers true mid-expansion, which is right for "is expanding still
+    // part of this action" and wrong for "may this sword buy an expansion" - the rulebook allows
+    // one expansion per action, and offering it again was offering the same one twice.
+    get canStartFreshExpansion(): boolean {
+        if (this.gameState.expansionUsed === true) return false
+        if (this.gameState.expandingRegionId !== undefined) return false
+        return this.canStartExpansion
+    }
+
+    // The optional second space of an expansion already under way. Costs no sword - it was paid
+    // for by the one that started it - so it is available alongside whatever the remaining sword
+    // is being spent on.
+    get canContinueExpansion(): boolean {
+        return this.gameState.expandingRegionId !== undefined
     }
 
     // Which shape the winner of a knight action has declared they're taking. A one-sword

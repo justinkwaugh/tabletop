@@ -682,7 +682,15 @@
                     pass
                 </button>.
             {:else}
-                Either
+                <!-- "First," only when a second question is actually coming, and "Then," once it
+                     has arrived. A one-sword action keeps "Either", where "First" would promise a
+                     second step that does not exist - and the second step of a two-sword action
+                     would otherwise still be calling itself the first. -->
+                {#if gameSession.knightActionSwords === 2}
+                    {(gameSession.gameState.knightsRemaining ?? 0) === 2 ? 'First,' : 'Then,'}
+                {:else}
+                    Either
+                {/if}
                 {#each availableKnightPlans as plan, i (plan)}{i > 0 ? ' or ' : ''}<button
                         type="button"
                         class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
@@ -698,6 +706,16 @@
                 >
                     pass
                 </button>.
+                <!-- An expansion under way is still open while this question is being answered:
+                     its second space costs no sword, so it is not one of the options above and
+                     needs saying separately. Without this the board was flashing arrows at a
+                     player whose prompt only mentioned knights - and the sentence has to appear
+                     HERE rather than in the step narration below, which only renders once a step
+                     has been chosen. -->
+                {#if gameSession.canContinueExpansion}
+                    Your expansion is still open ({gameSession.expansionSpacesTaken}/2) — click
+                    another space to take it, or leave it as it is.
+                {/if}
             {/if}
         {:else if lastMineReveal}
             {@const mineScorers = lastMineReveal.filter((entry) => entry.points > 0)}
