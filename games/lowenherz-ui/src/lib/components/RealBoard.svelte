@@ -1270,6 +1270,7 @@
                                     stroke="#000000"
                                     stroke-opacity="0.55"
                                     stroke-width="0.16"
+                                    opacity="0.7"
                                     style="filter: saturate(1.5) brightness(1.15)
                                         drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.9))
                                         drop-shadow(0 0 3px rgba(255, 255, 255, 0.8));"
