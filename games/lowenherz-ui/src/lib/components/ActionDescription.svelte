@@ -167,7 +167,9 @@
     placed a wall
     {#if action.metadata?.completedRegions && action.metadata.completedRegions.length > 0}
         {#each action.metadata.completedRegions as region, i (i)}
-            <br />
+            <!-- A semicolon rather than a line break: this is a consequence of the expansion just
+                 described, so it reads as the same sentence continuing. -->
+            {'; '}
             {#if region.ownerColor}
                 {@const ownerId = playerIdForColor(region.ownerColor)}
                 {#if ownerId}
@@ -278,7 +280,14 @@
 {:else if isPass(action)}
     {#if action.metadata?.noLegalPlacement}
         stopped — there was nowhere legal left to place a wall
+    {:else if action.metadata?.phase === 'expansion'}
+        passed, declining to expand any further
+    {:else if action.metadata?.phase === 'knights'}
+        passed, declining to place a knight
+    {:else if action.metadata?.phase === 'walls'}
+        passed, declining to place another wall
     {:else}
+        <!-- No phase recorded: an action from before Pass carried one. -->
         passed, declining to place any more
     {/if}
 {:else if isAdvanceResolution(action)}
