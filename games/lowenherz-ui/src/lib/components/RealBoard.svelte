@@ -1,8 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { Color } from '@tabletop/common'
-    import type { GameAction } from '@tabletop/common'
+    import type { Color, GameAction } from '@tabletop/common'
     import {
         ALLIANCE_CANCELLATION_COST,
         BOARD_COLS,
@@ -843,19 +842,6 @@
         return isLegalRenegadePlacementSquare(col, row)
     }
 
-    // The placement dots sit directly on the tile art, where gold (#d4af37, standing in for the
-    // real game's Gold) sinks into the dark greens of the forest tiles. Brightened for the DOT
-    // only: a player's colour everywhere else - their pieces, their pill, their region tint, their
-    // score popups - is their identity, and it should not shift because one marker needs contrast
-    // against one kind of terrain.
-    const HINT_COLOR_OVERRIDES: Partial<Record<Color, string>> = {
-        [Color.Yellow]: '#ffe11a'
-    }
-
-    function hintColorFor(color: Color): string {
-        return HINT_COLOR_OVERRIDES[color] ?? gameSession.colors.getUiColor(color)
-    }
-
     // Whose colour the dot is drawn in. placementColor covers setup, where a closing lap places the
     // neutral prince's castle rather than the player's own; outside setup it is undefined and the
     // piece being placed is simply mine.
@@ -1243,7 +1229,7 @@
                              than to hover itself, so hovering during the KNIGHT stage - which has
                              no preview - does not blank the only mark on the square. -->
                         {#if showsLegalHighlight(col, row) && !isCastlePreviewSquare(col, row) && legalHintColor}
-                            {@const hintColor = hintColorFor(legalHintColor)}
+                            {@const hintColor = gameSession.colors.getUiColor(legalHintColor)}
                             <!-- A filled disc, about a third of the square. r 1.85 of the
                                  ten-unit viewBox is a 3.7-unit diameter - the same outer edge the
                                  stroked ring had, so "filled in" means exactly that rather than
@@ -1262,7 +1248,29 @@
                                 class="absolute inset-0 w-full h-full pointer-events-none"
                                 aria-hidden="true"
                             >
-                                <circle cx="5" cy="5" r="1.85" fill={hintColor} />
+                                <!-- Same saturate/brightness boost pieceIcon puts on a castle or a
+                                     knight, so the dot is the colour of the piece it stands for
+                                     rather than of the raw palette entry. getUiColor's yellow is
+                                     #d4af37, but no castle is ever drawn in it - which is why the
+                                     dot looked like a different yellow from the pieces. Matched by
+                                     construction, so all four colours track their own pieces.
+                                     
+                                     A dark rim rather than a brighter hue. Brightening the yellow
+                                     made it legible on the forests and then invisible on the
+                                     plains, which is the shape of the real problem: the dot has to
+                                     read against light parchment AND dark green, and no single
+                                     colour does both. An outline is terrain-independent, and it
+                                     fixes all four colours at once instead of one per complaint. -->
+                                <circle
+                                    cx="5"
+                                    cy="5"
+                                    r="1.85"
+                                    fill={hintColor}
+                                    stroke="#000000"
+                                    stroke-opacity="0.55"
+                                    stroke-width="0.4"
+                                    style="filter: saturate(1.5) brightness(1.15);"
+                                />
                             </svg>
 
                         {/if}
