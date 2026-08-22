@@ -420,13 +420,19 @@
     // and when rewound past the very first action, so it doubles as "are we in history".
     const historyAction = $derived(gameSession.history.currentAction)
 
+    // One label per thing a single sword can buy. The composite labels are gone with the
+    // composite plans - a two-sword action now reads this list twice.
     const KNIGHT_PLAN_LABELS: Record<KnightPlan, string> = {
         knight: 'place a knight',
-        expand: 'expand a region',
-        twoKnights: 'place two knights',
-        knightThenExpand: 'place a knight and then expand',
-        expandThenKnight: 'expand and then place a knight'
+        expand: 'expand a region'
     }
+
+    // "two knights action" when the card gives two swords, so the player knows there is a second
+    // question coming before they answer the first. Named from the slot's own band count, which
+    // does not move as the action is spent.
+    const knightActionName = $derived(
+        gameSession.knightActionSwords === 2 ? 'two knights action' : 'knight action'
+    )
 
     // Whether expanding was actually on the table when the current plan was picked. A plan
     // chosen while expansion WAS possible is a real decision and must stand; one chosen
@@ -632,13 +638,10 @@
                 Click to expand ({gameSession.expansionSpacesTaken}/2 so far){#if knightStageActive}, or
                     place your knight to stop expanding{/if}.
             {:else}
-                <!-- Only a two-knights plan has more than one to place - under the mixed
-                     plans the leftover sword is earmarked for the expansion, so a count
-                     there would be misleading. -->
-                Click a square to place your knight{gameSession.knightPlan === 'twoKnights' &&
-                knightSwordsLeft > 1
-                    ? ` (${knightSwordsLeft} to place)`
-                    : ''}.
+                <!-- No count here any more. A step is one knight, so "2 to place" would be
+                     describing a second sword the player has not chosen how to spend yet - they
+                     are asked again once this one is down. -->
+                Click a square to place your knight.
             {/if}
             Or
             <button
@@ -656,13 +659,13 @@
                 )}
                 {lastNegotiationPayment.amount} ducat{lastNegotiationPayment.amount === 1
                     ? ''
-                    : 's'} for the knights action.
+                    : 's'} for the {knightActionName}.
             {:else if lastDuelOutcome?.type === 'win' && lastDuelOutcome.winnerId === gameSession.gameState.knightPlacingPlayerId}
                 {@render playerPill(lastDuelOutcome.winnerId)} outspent {@render playerPillList(
                     lastDuelOutcome.otherIds
-                )} to win a knight action.
+                )} to win a {knightActionName}.
             {:else}
-                {@render myPill()} won a knight action.
+                {@render myPill()} won a {knightActionName}.
             {/if}
             <!-- The whole shape of the action is chosen here, up front - for a two-sword
                  card that's exactly three possibilities (see availableKnightPlans), minus

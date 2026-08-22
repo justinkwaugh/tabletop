@@ -73,10 +73,14 @@ import {
     WOODED_KNIGHT_COST
 } from '@tabletop/lowenherz'
 
-// How the winner of a knight action has chosen to spend it. The two single-sword shapes
-// ('knight'/'expand') plus the three - and only three - a two-sword action allows: both
-// swords on knights, or one on each in either order. See LowenherzGameSession.knightPlan.
-export type KnightPlan = 'knight' | 'expand' | 'twoKnights' | 'knightThenExpand' | 'expandThenKnight'
+// What the winner of a knight action is spending the sword IN HAND on. One sword buys one of
+// these, so a two-sword action asks twice rather than asking once for a shape.
+//
+// It used to name whole shapes - twoKnights, knightThenExpand, expandThenKnight - declared up
+// front. Asking per sword says the same thing in smaller pieces: the second question simply omits
+// 'expand' once an expansion has been used, which is the rulebook's "using this action to expand
+// twice is not allowed" falling out of the options rather than being encoded in the shapes.
+export type KnightPlan = 'knight' | 'expand'
 
 export class LowenherzGameSession extends GameSession<
     LowenherzGameState,
@@ -267,62 +271,67 @@ export class LowenherzGameSession extends GameSession<
             .filter((marker) => marker.walls.length > 0)
     }
 
-    // The knight-action plans actually on the table right now. A two-sword action is the
-    // interesting case: two knights, or one knight plus one expansion in either order. Either half
-    // can be unavailable, which is what the branches below are sorting out.
+    // What the sword in hand can be spent on, right now. Asked once per sword, so a two-sword
+    // action reaches this twice and the second visit is narrower: canStartExpansion is already
+    // false once an expansion has been used, which is how "expand twice is not allowed" removes
+    // itself from the second question.
+    //
+    // canStartExpansion rather than canExpandRegion: the latter is true whenever you own a region
+    // at all, even if every one of them is boxed in, which is how "expand a region" used to be
+    // offered and then dead-end once a region was picked.
     get availableKnightPlans(): KnightPlan[] {
         if (!this.canPlaceKnight) return []
-        const canKnight = this.canPlaceAnotherKnight
-        // canStartExpansion, not canExpandRegion: the latter is true whenever you own a region,
-        // even if every one of them is boxed in, which is how "expand a region" used to be offered
-        // and then dead-end once a region was picked.
-        const canExpand = this.canStartExpansion
-        if ((this.gameState.knightsRemaining ?? 0) > 1) {
-            const plans: KnightPlan[] = []
-            if (canKnight) plans.push('twoKnights')
-            if (canKnight && canExpand) plans.push('knightThenExpand', 'expandThenKnight')
-            // Both swords, but only the expanding half is open - one expansion is all this action
-            // can become ("expand twice is not allowed").
-            if (!canKnight && canExpand) plans.push('expand')
-            return plans
-        }
+
         const plans: KnightPlan[] = []
-        if (canKnight) plans.push('knight')
-        if (canExpand) plans.push('expand')
+        if (this.canPlaceAnotherKnight) plans.push('knight')
+        if (this.canStartExpansion) plans.push('expand')
         return plans
     }
 
-    // Whether a board click right now means "expand into this space" / "place a knight here". Both
-    // can be live at once: mid-expansion under an expand-then-knight plan, clicking a knight square
-    // is what stops the expansion after a single space (there is no Done button). Each stage also
-    // falls through to the other if its own half turns out to be impossible after all.
+    // Whether the sword this step was chosen for has been spent. That is what ends a step and
+    // sends the player back to the question, rather than the stage flags going quiet - after one
+    // knight of a two-sword action, "can you place another knight" is still yes, and reading that
+    // as "carry on" would place both without asking again.
+    get knightStepSpent(): boolean {
+        if (!this.knightPlan) return false
+        return (this.gameState.knightsRemaining ?? 0) < this.knightPlanStartSwords
+    }
+
+    // How many swords this knight action started with, for wording it. Read off the band of the
+    // slot being resolved - resolvedSlots is pushed before the placement phase, so its length IS
+    // that slot's number - rather than off knightsRemaining, which counts down as the action is
+    // spent and would relabel a two-sword action as a one-sword one halfway through.
     //
-    // These four move together - each reads the others - and they are here rather than in RealBoard
-    // because the board's click handling and the status panel's wording both ask them.
+    // The band has to come from the slot rather than from "whichever band is a knight band":
+    // several cards carry knight bands in BOTH the middle and bottom slots, with different counts.
+    get knightActionSwords(): number {
+        const card = this.gameState.currentActionCard
+        if (card?.type !== ActionCardType.Standard) return 0
+
+        const slot = this.gameState.resolvedSlots.length
+        const band = slot === 2 ? card.middle : slot === 3 ? card.bottom : undefined
+        return band?.kind === 'knight' ? band.count : 0
+    }
+
+    // Whether a board click right now means "expand into this space" / "place a knight here".
+    // Both can be live at once: after an expansion's first space, its optional second space is
+    // still clickable while the leftover sword is being spent on a knight, and clicking the knight
+    // square is what ends the expansion at one space (there is no Done button).
+    //
+    // Each is gated on the step's sword not being spent yet, which is what makes a two-sword action
+    // ask twice instead of running straight through.
     get expandStageActive(): boolean {
-        const plan = this.knightPlan
-        if (!plan || !this.canExpandRegion) return false
-        switch (plan) {
-            case 'knight':
-            case 'twoKnights':
-                return false
-            case 'knightThenExpand':
-                // Its knight is done once a sword has gone somewhere, compared against the count
-                // when the plan was picked, so this still reads correctly after an Undo mid-action.
-                return (
-                    this.gameState.expansionUsed === true ||
-                    (this.gameState.knightsRemaining ?? 0) < this.knightPlanStartSwords ||
-                    !this.canPlaceAnotherKnight
-                )
-            case 'expand':
-            case 'expandThenKnight':
-                return true
-        }
+        // An expansion already under way stays clickable whatever the current step is: its second
+        // space was paid for by the sword that started it, so it costs nothing and belongs to no
+        // step.
+        if (this.gameState.expandingRegionId !== undefined) return true
+
+        return this.knightPlan === 'expand' && !this.knightStepSpent && this.canExpandRegion
     }
 
     // The region being expanded turned out to have nowhere legal to grow into. Its sword is better
     // spent on a knight than forfeited, so this hands the knight half the board even under an
-    // expansion-first plan - and there is no overlap to disambiguate, since there are no legal
+    // expansion-first choice - and there is no overlap to disambiguate, since there are no legal
     // expansion squares left to compete with.
     get expansionDeadEnd(): boolean {
         return (
@@ -334,30 +343,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get knightStageActive(): boolean {
-        const plan = this.knightPlan
-        if (!plan || !this.canPlaceAnotherKnight) return false
-        switch (plan) {
-            case 'expand':
-                return this.expansionDeadEnd
-            case 'knight':
-            case 'twoKnights':
-                return true
-            case 'knightThenExpand':
-                // Its knight comes first; once that is down, the leftover sword is earmarked for
-                // the expansion (Undo to change your mind).
-                return (
-                    ((this.gameState.knightsRemaining ?? 0) >= this.knightPlanStartSwords &&
-                        this.gameState.expansionUsed !== true) ||
-                    !this.canExpandRegion ||
-                    this.expansionDeadEnd
-                )
-            case 'expandThenKnight':
-                return (
-                    this.gameState.expansionUsed === true ||
-                    !this.canExpandRegion ||
-                    this.expansionDeadEnd
-                )
-        }
+        return this.knightPlan === 'knight' && !this.knightStepSpent && this.canPlaceAnotherKnight
     }
 
     // Public rather than private: the narration deriveds that use these are being moved out of

@@ -381,19 +381,29 @@
         gameSession.syncKnightPlanWithState()
     })
 
-    // With only one shape left there's nothing to choose - skip the prompt and go
-    // straight to clicking the board. Also re-offers the choice if a plan runs out of
-    // live stages while the action is still open (e.g. a "two knights" plan whose stock
-    // ran dry, leaving only an expansion).
-    // Also declared in StatusMessages, which owns the plan buttons. Two lines in two places
-    // rather than a session method, because the write it makes is to session state either way and
-    // the indirection would hide that.
+    // Also declared in StatusMessages, which owns the buttons. Two lines in two places rather
+    // than a session method, because the write it makes is to session state either way and the
+    // indirection would hide that.
     function choosePlan(plan: KnightPlan) {
         gameSession.expansionWasAvailableAtPlanTime = gameSession.canStartExpansion
         gameSession.selectKnightPlan(plan)
     }
 
+    // What drives the two-step shape of a two-sword action.
+    //
+    // Once a step's sword is spent, the step is over: the choice is dropped so the question is
+    // asked again for the sword that is left. That is the whole mechanism - the second question
+    // is the first one asked twice, and it narrows itself because canStartExpansion is already
+    // false once an expansion has been used.
+    //
+    // With only one option there is nothing to choose, so it is taken and the player goes straight
+    // to clicking the board. That also covers a step whose option dies mid-action: place a knight,
+    // find the stock empty for the second, and the leftover sword auto-selects the expansion.
     $effect(() => {
+        if (gameSession.knightStepSpent) {
+            gameSession.clearKnightPlan()
+            return
+        }
         if (!gameSession.knightPlan) {
             if (availableKnightPlans.length === 1) choosePlan(availableKnightPlans[0])
         } else if (gameSession.canPlaceKnight && !expandStageActive && !knightStageActive) {
@@ -403,11 +413,9 @@
 
 
 
-    const planIncludesExpansion = $derived(
-        gameSession.knightPlan === 'expand' ||
-            gameSession.knightPlan === 'knightThenExpand' ||
-            gameSession.knightPlan === 'expandThenKnight'
-    )
+    // A step spent on expanding. There is no longer a composite plan that "includes" an
+    // expansion - each sword is chosen for one thing - so this is now just the step itself.
+    const planIncludesExpansion = $derived(gameSession.knightPlan === 'expand')
 
     // A player's own move can unlock an option they were never offered: placing the first
     // knight can tip a neighbour's count so it can finally be outnumbered, and breaking an
