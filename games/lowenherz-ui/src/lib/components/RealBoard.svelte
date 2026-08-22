@@ -401,7 +401,10 @@
     // find the stock empty for the second, and the leftover sword auto-selects the expansion.
     $effect(() => {
         if (gameSession.knightStepSpent) {
-            gameSession.clearKnightPlan()
+            // endKnightStep, not clearKnightPlan: the step is over but the expansion it may have
+            // started is not, and cancelling the region selection would both hide its second space
+            // and make Undo think nothing had happened.
+            gameSession.endKnightStep()
             return
         }
         if (!gameSession.knightPlan) {

@@ -1154,10 +1154,21 @@ export class LowenherzGameSession extends GameSession<
     }
 
     clearKnightPlan() {
+        this.endKnightStep()
+        this.cancelExpansion()
+    }
+
+    // Ends the current step without touching the expansion selection.
+    //
+    // clearKnightPlan cancels that selection too, which is right when the player is backing out,
+    // and wrong when a step has simply finished: the expansion it started may still have its
+    // second space to give, and expansionSquares reads [] with no region selected - so clearing it
+    // made "has anything happened yet?" answer no, and Undo offered to cancel a step instead of
+    // reverting the expansion.
+    endKnightStep() {
         this.knightPlan = undefined
         this.knightPlanActionKey = undefined
         this.knightPlanStartSwords = 0
-        this.cancelExpansion()
     }
 
     // Drops a plan that belongs to some EARLIER knight action - a different player's, or
@@ -1172,11 +1183,22 @@ export class LowenherzGameSession extends GameSession<
         if (key && key !== this.knightPlanActionKey) this.clearKnightPlan()
     }
 
+    // Whether this knight ACTION has produced anything real yet - which decides whether Undo
+    // cancels a choice or reverts a move.
+    //
+    // Read entirely off engine state, and deliberately not off expansionSquares: that derives from
+    // the locally selected region, so anything that cleared the selection made a spent action look
+    // untouched, and Undo would cancel the step and let it be re-chosen instead of reverting.
+    //
+    // Compared against the action's own sword count rather than the step's, because a step now
+    // starts fresh after each sword: measuring against the step would report no progress at the
+    // start of the second one, with a knight already on the board.
     get knightPlanHasProgress(): boolean {
         if (!this.knightPlan) return false
         return (
-            this.expansionSquares.length > 0 ||
-            (this.gameState.knightsRemaining ?? 0) < this.knightPlanStartSwords
+            this.gameState.expansionUsed === true ||
+            this.gameState.expandingRegionId !== undefined ||
+            (this.gameState.knightsRemaining ?? 0) < this.knightActionSwords
         )
     }
 
