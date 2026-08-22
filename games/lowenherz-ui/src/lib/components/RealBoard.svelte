@@ -48,30 +48,7 @@
     import type { KnightPlan } from '$lib/model/session.svelte.js'
 
     const gameSession = getGameSession()
-    // The band kind (border/knight/politics) at a given slot, translated to the noun
-    // used in status messages - money-bag slots never reach negotiation or dueling
-    // (they always split among every chooser), so 'income' never shows up here.
-    function actionNounForSlot(slot: 1 | 2 | 3): string {
-        const card = gameSession.gameState.currentActionCard
-        if (!card || card.type !== 'standard') return ''
-        const band = slot === 1 ? card.top : slot === 2 ? card.middle : card.bottom
-        if (band.kind === 'border') return 'walls'
-        if (band.kind === 'knight') return 'knights'
-        if (band.kind === 'politics') return 'politics'
-        return ''
-    }
-    const negotiationActionNoun = $derived.by(() => {
-        const negotiation = gameSession.gameState.negotiation
-        return negotiation ? actionNounForSlot(negotiation.slot) : ''
-    })
-    const duelActionNoun = $derived.by(() => {
-        const duel = gameSession.gameState.duel
-        return duel ? actionNounForSlot(duel.slot) : ''
-    })
 
-    function playerIdForColor(color: Color): string | undefined {
-        return gameSession.gameState.players.find((p) => p.color === color)?.playerId
-    }
 
     // roundAdvanced marks the END of a round, so scanning backward from "now" always
     // hits it BEFORE anything else that happened earlier in the very round we're
@@ -79,249 +56,22 @@
     // - stopping on the first one would mean never finding anything, even when it's
     // squarely within the round the message is meant to describe. The first
     // roundAdvanced just closes out that round; only a SECOND one confirms we've
-    // scanned past it entirely into the round before it.
-    function isPastCurrentRound(roundBoundariesSeen: number): boolean {
-        return roundBoundariesSeen >= 2
-    }
 
     // A slot's resolution is "stale" (superseded, no longer the single most recent
     // notable thing) once a later slot has resolved since it - resolvedSlots grows
     // by exactly one, in order, every time ANY slot fully resolves (money bag, solo
     // win, negotiation, or duel - see resolutionHelpers/negotiationMove/dueling),
     // so a slot's own number matching its current length means nothing has
-    // resolved more recently than it.
-    function isFreshestResolvedSlot(slot: number | undefined): boolean {
-        return slot !== undefined && slot === gameSession.gameState.resolvedSlots.length
-    }
 
-    // The most recent solo Money Bag win this round (a single chooser gets the whole
-    // amount rather than splitting it) - scans back through history rather than
-    // gameState, since the distribution happens instantly as part of the
-    // AdvanceResolution cascade with no dedicated "just resolved" machine state to
-    // hook into.
-    const lastBankWin = $derived.by(() => {
-        const actions = gameSession.actions
-        let roundBoundariesSeen = 0
-        for (let i = actions.length - 1; i >= 0; i--) {
-            const action = actions[i]
-            // A round can draw several action cards before it advances - bounding by
-            // round alone let a money bag win from an EARLIER card in the same round
-            // keep showing once a later card in that round became current. The
-            // current card's own draw is where its own story starts, so stop there.
-            if (isDrawActionCard(action)) return undefined
-            if (!isAdvanceResolution(action)) continue
-            if (action.metadata?.roundAdvanced) {
-                roundBoundariesSeen++
-                if (isPastCurrentRound(roundBoundariesSeen)) return undefined
-                continue
-            }
-            if (action.metadata?.moneyBagRecipientIds?.length === 1) {
-                if (!isFreshestResolvedSlot(action.metadata.slot)) return undefined
-                return {
-                    playerId: action.metadata.moneyBagRecipientIds[0],
-                    amount: action.metadata.moneyBagAmountEach ?? 0
-                }
-            }
-        }
-        return undefined
-    })
 
-    // The just-revealed Silver Mine's per-player hill payout, if one is sitting on the
-    // discard pile - derived in the session since the action bar needs it too (it shows
-    // each player's "+N" under their points box).
-    const lastMineReveal = $derived(gameSession.lastMineHillScoring)
 
-    // True at the start of a round (before its card is drawn) when the round that just
-    // ended concluded with a duel that tied a second time - i.e. nobody performed the
-    // final slot's action. Lets the draw-pile prompt explain why the round fizzled.
-    // Scans back from now: a give-up duel bid sitting right before the round rollover
-    // (only system AdvanceResolution actions between it and now) is the signal; hitting
-    // any real action or a prior draw/round-boundary first means it wasn't that.
-    const lastRoundEndedInDuelGiveUp = $derived.by(() => {
-        if (gameSession.gameState.machineState !== MachineState.StartOfTurn) return false
-        const actions = gameSession.actions
-        let sawRoundBoundary = false
-        for (let i = actions.length - 1; i >= 0; i--) {
-            const action = actions[i]
-            if (isDrawActionCard(action)) return false
-            if (isAdvanceResolution(action)) {
-                if (action.metadata?.roundAdvanced) {
-                    if (sawRoundBoundary) return false
-                    sawRoundBoundary = true
-                }
-                continue
-            }
-            if (isSubmitDuelBid(action)) return action.metadata?.duelResult === 'giveUp'
-            // Any other real action means the round didn't end on a duel give-up.
-            return false
-        }
-        return false
-    })
 
-    // The most recent completed negotiation this round - substitutes "X won a Y
-    // action" with "X paid Y N ducats for the Z action" for whoever's now placing
-    // walls/knights/taking a politics card as a result. Guarded by fromPlayerId
-    // matching the current placer so an earlier slot's (already-resolved) negotiation
-    // this same round can't leak into a later, unrelated solo-win placement phase.
-    // Also bounded by the current action card's own draw (see lastBankWin) so an
-    // earlier card's negotiation in the same round can't leak into a later one.
-    const lastNegotiationPayment = $derived.by(() => {
-        const actions = gameSession.actions
-        let roundBoundariesSeen = 0
-        for (let i = actions.length - 1; i >= 0; i--) {
-            const action = actions[i]
-            if (isDrawActionCard(action)) return undefined
-            if (isAdvanceResolution(action) && action.metadata?.roundAdvanced) {
-                roundBoundariesSeen++
-                if (isPastCurrentRound(roundBoundariesSeen)) return undefined
-                continue
-            }
-            if (
-                isNegotiationMove(action) &&
-                action.kind === NegotiationMoveKind.Sign &&
-                action.metadata?.executedOffer
-            ) {
-                return action.metadata.executedOffer
-            }
-        }
-        return undefined
-    })
 
-    // The most recent alliance cancellation this action card (see lastBankWin) -
-    // worth a status note since it's easy to miss (it happens instantly as part of
-    // laying a decision card, with no dedicated machine state of its own). Can only
-    // ever happen before any slot has resolved (it requires still being able to lay
-    // a decision card), so it's only ever "freshest" while resolvedSlots is still
-    // empty for this card - once the first slot resolves, something newer exists.
-    const lastAllianceCancellation = $derived.by(() => {
-        const actions = gameSession.actions
-        let roundBoundariesSeen = 0
-        for (let i = actions.length - 1; i >= 0; i--) {
-            const action = actions[i]
-            if (isDrawActionCard(action)) return undefined
-            if (isAdvanceResolution(action)) {
-                if (action.metadata?.roundAdvanced) {
-                    roundBoundariesSeen++
-                    if (isPastCurrentRound(roundBoundariesSeen)) return undefined
-                    continue
-                }
-                return undefined
-            }
-            if (isCancelAlliance(action) && action.metadata?.otherColor) {
-                if (gameSession.gameState.resolvedSlots.length > 0) return undefined
-                return { playerId: action.playerId, otherColor: action.metadata.otherColor }
-            }
-        }
-        return undefined
-    })
 
-    // A bid's actual strength, including any Treasure card added on top - metadata
-    // keeps a snapshot of the card used (see SubmitDuelBidMetadata's comment) since
-    // the real card gets removed from the winner's hand once it's spent, so it can't
-    // be looked up fresh from current player state after the fact.
-    function effectiveBidAmount(bid: SubmitDuelBid): number {
-        return bid.amount + (bid.metadata?.treasureCardUsed?.value ?? 0)
-    }
 
-    // Splits a flat run of consecutive SubmitDuelBid actions into per-round groups.
-    // Each round starts fresh (duel.bids resets to [] on both a re-duel and a brand
-    // new duel), so a player bidding again before every OTHER round-mate has bid
-    // again can only mean a new round just started - that repeat is the only signal
-    // needed to find round boundaries, no other bookkeeping required.
-    function splitDuelBidsIntoRounds(bids: SubmitDuelBid[]): SubmitDuelBid[][] {
-        const rounds: SubmitDuelBid[][] = []
-        let current: SubmitDuelBid[] = []
-        let seen = new Set<string>()
-        for (const bid of bids) {
-            if (seen.has(bid.playerId)) {
-                rounds.push(current)
-                current = []
-                seen = new Set()
-            }
-            current.push(bid)
-            seen.add(bid.playerId)
-        }
-        if (current.length > 0) rounds.push(current)
-        return rounds
-    }
 
-    // This round's SubmitDuelBid actions (if any), plus the slot they were fought
-    // over - read off the tieWentToDuel AdvanceResolution (re-duels never insert
-    // another one, only the original tie-to-duel routing does). Scans the whole
-    // round-bounded window rather than stopping at the first non-bid action, since
-    // other slots can resolve (money bag, solo wins, a negotiation) before or after
-    // this one within the same cascaded batch of actions. Also bounded by the
-    // current action card's own draw (see lastBankWin) so an earlier card's duel in
-    // the same round can't leak into a later, unrelated one.
-    const recentDuelContext = $derived.by(() => {
-        const actions = gameSession.actions
-        const bids: SubmitDuelBid[] = []
-        let slot: 1 | 2 | 3 | undefined
-        let roundBoundariesSeen = 0
-        for (let i = actions.length - 1; i >= 0; i--) {
-            const action = actions[i]
-            if (isDrawActionCard(action)) break
-            if (isSubmitDuelBid(action)) {
-                bids.unshift(action)
-                continue
-            }
-            if (isAdvanceResolution(action)) {
-                if (action.metadata?.tieWentToDuel && slot === undefined) {
-                    slot = action.metadata.slot
-                }
-                if (action.metadata?.roundAdvanced) {
-                    roundBoundariesSeen++
-                    if (isPastCurrentRound(roundBoundariesSeen)) break
-                }
-            }
-        }
-        return { bids, slot }
-    })
 
-    // While still dueling, whatever the immediately preceding (tied) round's bids
-    // were - lets the status area explain what just happened when a tie sends the
-    // duel into a re-duel among the tied subset.
-    const previousTiedRoundBids = $derived.by(() => {
-        const duel = gameSession.gameState.duel
-        if (!duel || duel.tieCount === 0) return undefined
-        const rounds = splitDuelBidsIntoRounds(recentDuelContext.bids)
-        const completedRounds = duel.bids.length > 0 ? rounds.length - 1 : rounds.length
-        if (completedRounds <= 0) return undefined
-        return rounds[completedRounds - 1]
-    })
 
-    // Once a duel has fully resolved (gameState.duel cleared), whether the final
-    // round produced a winner (who outspent the rest) or gave up (a second
-    // consecutive tie - no one performs the action).
-    const lastDuelOutcome = $derived.by(() => {
-        if (gameSession.gameState.duel) return undefined
-        const rounds = splitDuelBidsIntoRounds(recentDuelContext.bids)
-        const lastRound = rounds.at(-1)
-        if (!lastRound || lastRound.length === 0) return undefined
-
-        const maxAmount = Math.max(...lastRound.map(effectiveBidAmount))
-        const topBidders = lastRound.filter((b) => effectiveBidAmount(b) === maxAmount)
-
-        if (topBidders.length === 1) {
-            return {
-                type: 'win' as const,
-                winnerId: topBidders[0].playerId,
-                otherIds: lastRound.filter((b) => b.playerId !== topBidders[0].playerId).map((b) => b.playerId),
-                bids: lastRound
-            }
-        }
-        // Shown unconditionally as a top-of-status banner (unlike the win case
-        // above, which is only ever read contextually, already gated on matching
-        // whoever's currently placing/taking as a result) - so this one needs its
-        // own freshness check (see lastBankWin) to avoid lingering once a later
-        // slot has resolved.
-        if (!isFreshestResolvedSlot(recentDuelContext.slot)) return undefined
-        return {
-            type: 'giveUp' as const,
-            bids: lastRound,
-            actionNoun: recentDuelContext.slot ? actionNounForSlot(recentDuelContext.slot) : ''
-        }
-    })
 
     // Mirrors the shared standing offer once one exists, so both negotiators see the
     // same live draft; before any offer exists, defaults to "I offer" for whichever
@@ -333,84 +83,15 @@
     // immediately usable, but it meant a real action always existed the instant a
     // negotiation began, and that action (being the nearest one) was always what
     // Undo targeted - hiding whatever the player actually wanted to undo back to.
-    let negotiationProposerId = $state<string | undefined>(undefined)
-    let negotiationAmount = $state(0)
 
-    // Once both sides have signed, gameState.negotiation disappears immediately (the
-    // machine moves straight on to whatever the settled action needs next) - which
-    // read as an abrupt cut, control handed to the next player before anyone could
-    // actually see both signatures land. This holds the fully-signed view on screen
-    // a beat longer instead of snapping away the instant it clears. Only applies to
-    // an actual completed deal, not a decline (which routes straight to a duel and
-    // should switch over immediately).
-    const NEGOTIATION_HOLD_MS = 1000
-    let frozenNegotiation: Negotiation | undefined = $state(undefined)
-    let lastLiveNegotiation: Negotiation | undefined
-    let negotiationFreezeTimer: ReturnType<typeof setTimeout> | undefined
 
-    $effect(() => {
-        const negotiation = gameSession.gameState.negotiation
-
-        if (negotiation) {
-            lastLiveNegotiation = negotiation
-            if (negotiationFreezeTimer) {
-                clearTimeout(negotiationFreezeTimer)
-                negotiationFreezeTimer = undefined
-            }
-            frozenNegotiation = undefined
-
-            if (negotiation.offer) {
-                negotiationProposerId = negotiation.offer.fromPlayerId
-                negotiationAmount = negotiation.offer.amount
-                return
-            }
-
-            // No offer yet - always recompute the default proposer, regardless of
-            // whatever negotiationProposerId held before. Relying on that leftover
-            // value to detect "is this a fresh negotiation" broke when one
-            // negotiation resolved straight into a new one sharing a participant
-            // with the old one (no intervening tick with negotiation undefined to
-            // reset it) - this branch only runs at all while offer is undefined, so
-            // re-entering it every tick is harmless.
-            const myId = gameSession.myPlayer?.id
-            negotiationProposerId = myId && negotiation.playerIds.includes(myId) ? myId : negotiation.playerIds[0]
-            negotiationAmount = 1
-            return
-        }
-
-        // Negotiation just cleared - if it resolved with everyone having signed
-        // (rather than a decline), hold that view a little longer.
-        if (
-            lastLiveNegotiation &&
-            lastLiveNegotiation.signedPlayerIds.length === lastLiveNegotiation.playerIds.length &&
-            !frozenNegotiation
-        ) {
-            frozenNegotiation = lastLiveNegotiation
-            negotiationFreezeTimer = setTimeout(() => {
-                frozenNegotiation = undefined
-                negotiationFreezeTimer = undefined
-                negotiationProposerId = undefined
-            }, NEGOTIATION_HOLD_MS)
-        } else if (!frozenNegotiation) {
-            negotiationProposerId = undefined
-        }
-        lastLiveNegotiation = undefined
-    })
 
     // What the negotiation panel actually renders - the live negotiation normally,
     // or the frozen snapshot during the brief hold after it just finished (see
     // above). Everything below reads this instead of gameState.negotiation directly.
-    const displayNegotiation = $derived(gameSession.gameState.negotiation ?? frozenNegotiation)
+    const displayNegotiation = $derived(gameSession.gameState.negotiation ?? gameSession.frozenNegotiation)
 
-    const negotiationOtherPlayerId = $derived.by(() => {
-        const negotiation = displayNegotiation
-        if (!negotiation || !negotiationProposerId) return undefined
-        return negotiation.playerIds.find((id) => id !== negotiationProposerId)
-    })
 
-    const negotiationProposerMoney = $derived(
-        negotiationProposerId ? gameSession.gameState.getPlayerState(negotiationProposerId).money : 0
-    )
 
     // The payer dropdown and the amount stepper edit a local draft only - nothing is
     // dispatched until the player commits by signing. Every stepper click used to submit a
@@ -421,56 +102,9 @@
     // this reason; the stepper had reintroduced it one click at a time.) The trade-off is
     // that the other player doesn't watch the number move - they see the offer when it's
     // made.
-    async function commitNegotiationOffer() {
-        const negotiation = displayNegotiation
-        if (!negotiation || !negotiationProposerId) return
 
-        // Signing means "I commit to what's on screen", so submit the draft first whenever
-        // it isn't already the standing offer. Proposing clears existing signatures
-        // engine-side, which is correct: it's a different deal.
-        const offer = negotiation.offer
-        const draftIsStandingOffer =
-            offer !== undefined &&
-            offer.fromPlayerId === negotiationProposerId &&
-            offer.amount === negotiationAmount
-        if (!draftIsStandingOffer) {
-            const proposed = await gameSession.proposeNegotiationOffer(
-                negotiationProposerId,
-                negotiationAmount
-            )
-            // Refused (e.g. a payer who can't afford it) - don't follow up with a Sign that
-            // has nothing valid to sign.
-            if (!proposed) return
-        }
 
-        await gameSession.signNegotiationOffer()
-    }
 
-    // The payer's signature line always comes first, the payee's second - so the
-    // signature buttons "activate" (enable for whichever player you are) in payer-
-    // then-payee order too, since they're driven by whichever playerId lands in each
-    // position here. Before a real offer is submitted, falls back to the live
-    // dropdown draft so the order still previews correctly.
-    const orderedNegotiatorIds = $derived.by(() => {
-        const negotiation = displayNegotiation
-        if (!negotiation) return []
-        const payerId = negotiation.offer?.fromPlayerId ?? negotiationProposerId
-        if (!payerId || !negotiation.playerIds.includes(payerId)) return negotiation.playerIds
-        const payeeId = negotiation.playerIds.find((id) => id !== payerId)
-        return payeeId ? [payerId, payeeId] : negotiation.playerIds
-    })
-
-    // A local, per-player draft bid amount - each duelist's own private stepper,
-    // unlike negotiation's single shared offer (a duel bid is a one-shot commitment
-    // per player, not a joint draft either side can revise).
-    // The negotiation counterpart of SHOW_DUEL_TEST_CONTROLS, and off for the same
-    // reason. This one had no switch at all until now: it rendered whenever a solo
-    // tester faced an unsigned opponent, which is exactly why it was the testing
-    // affordance still visible when the others had long been gated off.
-    const SHOW_NEGOTIATION_TEST_CONTROLS = false
-
-    let duelBidAmounts = $state<Record<string, number>>({})
-    let lastSeenDuelSignature: string | undefined = undefined
 
     // Master switch for the bid-on-another-player's-behalf affordance, same pattern as
     // TestingControls' own constant - it only exists because hotseat resolves myPlayer
@@ -480,32 +114,7 @@
     // seat, which is not a shortcut through the flow but a way to decide someone else's
     // ducats for them. Everything behind it is intact - flip this back to true for
     // another solo pass.
-    const SHOW_DUEL_TEST_CONTROLS = false
-    let testBiddingForPlayerId: string | undefined = $state(undefined)
 
-    $effect(() => {
-        const duel = gameSession.gameState.duel
-        if (!duel) {
-            lastSeenDuelSignature = undefined
-            duelBidAmounts = {}
-            testBiddingForPlayerId = undefined
-            return
-        }
-        // A re-duel replaces gameState.duel directly (never passing through
-        // undefined in between - same reason negotiation needed this treatment), so
-        // this signature - not "was there an empty tick" - is what detects a fresh
-        // round and resets every bid back to 0 rather than carrying over stale
-        // amounts (which could exceed a player's CURRENT money if it changed since).
-        const signature = `${duel.slot}:${duel.playerIds.join(',')}:${duel.tieCount}`
-        if (signature !== lastSeenDuelSignature) {
-            lastSeenDuelSignature = signature
-            duelBidAmounts = {}
-            testBiddingForPlayerId = undefined
-            // A card armed for the previous round shouldn't silently ride along into
-            // the re-duel - the player re-applies it if they still want to spend it.
-            gameSession.selectTreasureCard(undefined)
-        }
-    })
 
     const board = $derived(gameSession.gameState.board)
     const regions = $derived(gameSession.gameState.regions)
@@ -554,41 +163,7 @@
         new Map(gameSession.myCancellableAlliances.map((a) => [a.id, a.otherColor]))
     )
 
-    const allianceMarkers = $derived.by(() => {
-        if (alliances.length === 0) return []
-        return alliances
-            .map((alliance) => {
-                const regionA = regions.find((r) => r.id === alliance.regionAId)
-                const regionB = regions.find((r) => r.id === alliance.regionBId)
-                const walls =
-                    !regionA || !regionB
-                        ? []
-                        : board.walls.filter((wall) => {
-                              const keyHere = squareKey(wall.col, wall.row)
-                              const keyThere =
-                                  wall.edge === 'north'
-                                      ? squareKey(wall.col, wall.row - 1)
-                                      : squareKey(wall.col - 1, wall.row)
-                              return (
-                                  (regionA.squareKeys.includes(keyHere) &&
-                                      regionB.squareKeys.includes(keyThere)) ||
-                                  (regionB.squareKeys.includes(keyHere) &&
-                                      regionA.squareKeys.includes(keyThere))
-                              )
-                          })
-                return {
-                    id: alliance.id,
-                    walls,
-                    // Cancellable means the rulebook's "one of the two players
-                    // participating in it pays ten ducats" is genuinely open to ME right
-                    // now - myCancellableAlliances already checks both the participation
-                    // and the 10 ducats.
-                    cancellable: myCancellableAllianceIds.has(alliance.id),
-                    otherColor: myCancellableAllianceIds.get(alliance.id)
-                }
-            })
-            .filter((marker) => marker.walls.length > 0)
-    })
+    const allianceMarkers = $derived(gameSession.allianceMarkers)
 
     // Where a heart sits for a given boundary wall - the same maths the markers and the
     // burst below both need, so neither can drift from the other.
@@ -694,7 +269,7 @@
     let hoveredAllianceId: string | undefined = $state(undefined)
 
     function allianceCancelLabel(marker: { otherColor?: Color }): string {
-        const otherPlayerId = marker.otherColor ? playerIdForColor(marker.otherColor) : undefined
+        const otherPlayerId = marker.otherColor ? gameSession.playerIdForColor(marker.otherColor) : undefined
         const other = otherPlayerId ? playerName(gameSession, otherPlayerId) : 'a neutral prince'
         return `Cancel your alliance with ${other} for ${ALLIANCE_CANCELLATION_COST} ducats`
     }
@@ -731,10 +306,7 @@
     // myColor, which is right for every mid-game preview but wrong during those laps.
     const placementColor = $derived(gameSession.placementColor)
 
-    // The action currently being looked at while rewound through the history controls -
-    // the one whose result is what's drawn on the board. Already undefined during live play
-    // and when rewound past the very first action, so it doubles as "are we in history".
-    const historyAction = $derived(gameSession.history.currentAction)
+
     const legalExpansionSquareSet = $derived(
         new Set(gameSession.legalNextExpansionSquares.map((s) => `${s.col},${s.row}`))
     )
@@ -785,99 +357,18 @@
     // case: two knights, or one knight plus one expansion in either order. Either half
     // can also be unavailable on its own (an empty knight stock or nowhere legal to
     // place; no region of your own to expand), which just prunes the list.
-    const availableKnightPlans = $derived.by((): KnightPlan[] => {
-        if (!gameSession.canPlaceKnight) return []
-        const canKnight = gameSession.canPlaceAnotherKnight
-        // canStartExpansion, not canExpandRegion: the latter is true whenever you own a
-        // region, even if every one of them is boxed in, which is how "expand a region"
-        // used to be offered and then dead-end once a region was picked.
-        const canExpand = gameSession.canStartExpansion
-        if (knightSwordsLeft > 1) {
-            const plans: KnightPlan[] = []
-            if (canKnight) plans.push('twoKnights')
-            if (canKnight && canExpand) plans.push('knightThenExpand', 'expandThenKnight')
-            // Both swords, but only the expanding half is open - one expansion is all
-            // this action can become ("expand twice is not allowed").
-            if (!canKnight && canExpand) plans.push('expand')
-            return plans
-        }
-        const plans: KnightPlan[] = []
-        if (canKnight) plans.push('knight')
-        if (canExpand) plans.push('expand')
-        return plans
-    })
+    const availableKnightPlans = $derived(gameSession.availableKnightPlans)
 
-    const KNIGHT_PLAN_LABELS: Record<KnightPlan, string> = {
-        knight: 'place a knight',
-        expand: 'expand a region',
-        twoKnights: 'place two knights',
-        knightThenExpand: 'place a knight and then expand',
-        expandThenKnight: 'expand and then place a knight'
-    }
 
-    // Whether a board click right now means "expand into this space" / "place a knight
-    // here". Both can be live at once: mid-expansion under an expand-then-knight plan,
-    // clicking a knight square is what stops the expansion after a single space (there's
-    // no Done button anymore). Each stage also falls through to the other if its own
-    // half turns out to be impossible after all.
-    const expandStageActive = $derived.by(() => {
-        const plan = gameSession.knightPlan
-        if (!plan || !gameSession.canExpandRegion) return false
-        switch (plan) {
-            case 'knight':
-            case 'twoKnights':
-                return false
-            case 'knightThenExpand':
-                // Its knight is done once a sword has gone somewhere (compared against
-                // the count when the plan was picked, so this still reads correctly after
-                // an Undo mid-action).
-                return (
-                    expansionStarted ||
-                    knightSwordsLeft < gameSession.knightPlanStartSwords ||
-                    !gameSession.canPlaceAnotherKnight
-                )
-            case 'expand':
-            case 'expandThenKnight':
-                return true
-        }
-    })
-
-    // The region being expanded turned out to have nowhere legal to grow into. Its sword
-    // is better spent on a knight than forfeited, so this hands the knight half the
-    // board even under an expansion-first plan (and there's no overlap to disambiguate,
-    // since there are no legal expansion squares left to compete with).
-    const expansionDeadEnd = $derived(
-        expandStageActive &&
-            gameSession.selectedExpandRegionId !== undefined &&
-            gameSession.expansionSquares.length === 0 &&
-            gameSession.legalNextExpansionSquares.length === 0
+    // All four now live on the session, which the board's click handling and the status panel's
+    // wording both read. Kept under their old names here so the call sites below are unchanged.
+    const expandStageActive = $derived(gameSession.expandStageActive)
+    const expansionDeadEnd = $derived(gameSession.expansionDeadEnd)
+    const expansionBlockedReasons = $derived(
+        expansionDeadEnd ? gameSession.expansionBlockedReasons : []
     )
 
-    // Only meaningful while expansionDeadEnd holds - which rule(s) are actually blocking
-    // every square around the region (see GameSession.expansionBlockedReasons).
-    const expansionBlockedReasons = $derived(expansionDeadEnd ? gameSession.expansionBlockedReasons : [])
-
-    const knightStageActive = $derived.by(() => {
-        const plan = gameSession.knightPlan
-        if (!plan || !gameSession.canPlaceAnotherKnight) return false
-        switch (plan) {
-            case 'expand':
-                return expansionDeadEnd
-            case 'knight':
-            case 'twoKnights':
-                return true
-            case 'knightThenExpand':
-                // Its knight comes first; once that's down, the leftover sword is
-                // earmarked for the expansion (Undo to change your mind).
-                return (
-                    (knightSwordsLeft >= gameSession.knightPlanStartSwords && !expansionStarted) ||
-                    !gameSession.canExpandRegion ||
-                    expansionDeadEnd
-                )
-            case 'expandThenKnight':
-                return expansionStarted || !gameSession.canExpandRegion || expansionDeadEnd
-        }
-    })
+    const knightStageActive = $derived(gameSession.knightStageActive)
 
     // Drop a plan belonging to an earlier knight action, so a previous player's plan (or
     // this player's own from a previous action) can't carry over - otherwise
@@ -890,11 +381,32 @@
         gameSession.syncKnightPlanWithState()
     })
 
-    // With only one shape left there's nothing to choose - skip the prompt and go
-    // straight to clicking the board. Also re-offers the choice if a plan runs out of
-    // live stages while the action is still open (e.g. a "two knights" plan whose stock
-    // ran dry, leaving only an expansion).
+    // Also declared in StatusMessages, which owns the buttons. Two lines in two places rather
+    // than a session method, because the write it makes is to session state either way and the
+    // indirection would hide that.
+    function choosePlan(plan: KnightPlan) {
+        gameSession.expansionWasAvailableAtPlanTime = gameSession.canStartExpansion
+        gameSession.selectKnightPlan(plan)
+    }
+
+    // What drives the two-step shape of a two-sword action.
+    //
+    // Once a step's sword is spent, the step is over: the choice is dropped so the question is
+    // asked again for the sword that is left. That is the whole mechanism - the second question
+    // is the first one asked twice, and it narrows itself because canStartExpansion is already
+    // false once an expansion has been used.
+    //
+    // With only one option there is nothing to choose, so it is taken and the player goes straight
+    // to clicking the board. That also covers a step whose option dies mid-action: place a knight,
+    // find the stock empty for the second, and the leftover sword auto-selects the expansion.
     $effect(() => {
+        if (gameSession.knightStepSpent) {
+            // endKnightStep, not clearKnightPlan: the step is over but the expansion it may have
+            // started is not, and cancelling the region selection would both hide its second space
+            // and make Undo think nothing had happened.
+            gameSession.endKnightStep()
+            return
+        }
         if (!gameSession.knightPlan) {
             if (availableKnightPlans.length === 1) choosePlan(availableKnightPlans[0])
         } else if (gameSession.canPlaceKnight && !expandStageActive && !knightStageActive) {
@@ -902,21 +414,11 @@
         }
     })
 
-    // Whether expanding was actually on the table when the current plan was picked. A plan
-    // chosen while expansion WAS possible is a real decision and must stand; one chosen
-    // while it was impossible was made without that option ever being shown.
-    let expansionWasAvailableAtPlanTime = $state(false)
 
-    function choosePlan(plan: KnightPlan) {
-        expansionWasAvailableAtPlanTime = gameSession.canStartExpansion
-        gameSession.selectKnightPlan(plan)
-    }
 
-    const planIncludesExpansion = $derived(
-        gameSession.knightPlan === 'expand' ||
-            gameSession.knightPlan === 'knightThenExpand' ||
-            gameSession.knightPlan === 'expandThenKnight'
-    )
+    // A step spent on expanding. There is no longer a composite plan that "includes" an
+    // expansion - each sword is chosen for one thing - so this is now just the step itself.
+    const planIncludesExpansion = $derived(gameSession.knightPlan === 'expand')
 
     // A player's own move can unlock an option they were never offered: placing the first
     // knight can tip a neighbour's count so it can finally be outnumbered, and breaking an
@@ -927,11 +429,11 @@
     // So when expansion becomes possible mid-action and the plan has none in it, drop the
     // plan and let the choice be made again for the swords that are left. Only local intent
     // is cleared; anything already placed stays put. Guarded so it can't overturn a genuine
-    // decision (expansionWasAvailableAtPlanTime) or interrupt an expansion under way.
+    // decision (gameSession.expansionWasAvailableAtPlanTime) or interrupt an expansion under way.
     $effect(() => {
         if (!gameSession.canPlaceKnight) return
         if (!gameSession.knightPlan || planIncludesExpansion) return
-        if (expansionWasAvailableAtPlanTime) return
+        if (gameSession.expansionWasAvailableAtPlanTime) return
         if (gameSession.gameState.expandingRegionId !== undefined) return
         if (!gameSession.canStartExpansion) return
         gameSession.clearKnightPlan()
@@ -1276,6 +778,102 @@
         return HydratedPlaceCastle.isValidKnightSquare(gameSession.gameState, sel.col, sel.row, col, row)
     }
 
+    // Opening placement says what CANNOT be used rather than animating what can: a scrim over
+    // every illegal square, leaving the legal ones reading as ordinary board. Both halves of the
+    // two-click flow are covered - castle squares first, then the knight squares around the one
+    // just picked.
+    //
+    // canPlaceCastle stays true across both halves because picking a castle square is local UI
+    // state, not a game action, so the selection is what tells the two apart.
+    // Which square the mouse is over, for the opening castle preview. Tracked on the square
+    // buttons rather than the grid container: a div with a mouse handler wants an ARIA role, and
+    // giving the board a half-built grid role would be worse for a screen reader than leaving the
+    // buttons to speak for themselves.
+    let hoveredSquare: { col: number; row: number } | undefined = $state(undefined)
+
+    // A castle drawn under the cursor on a square that would take it. One square at a time, and
+    // only before a castle square is picked - once one is, the question has moved on to its
+    // knight.
+    function isCastlePreviewSquare(col: number, row: number): boolean {
+        if (!gameSession.canPlaceCastle || gameSession.selectedCastleSquare) return false
+        if (hoveredSquare?.col !== col || hoveredSquare?.row !== row) return false
+        return isLegalCastleSquare(col, row)
+    }
+
+    // How opening placement tells the player where a piece may go. Three treatments, all kept,
+    // because which one reads best is a question for the eye rather than the code:
+    //
+    //   'legal' - the squares that WILL work, tinted in the placing colour with a matching
+    //             border. Positive marking: the only one of the three that says yes.
+    //   'gray'  - a scrim over every square that will not.
+    //   'x'     - a red X in each square that will not.
+    //
+    // The two negative treatments were tried first, in that order.
+    const PLACEMENT_HINT: 'legal' | 'gray' | 'x' = 'legal'
+
+    // Illegal for the click being asked for right now, whichever mark is in use. Non-plains is
+    // excluded here because terrain is a hard precondition the engine applies to the castle square
+    // AND its knight, so a forest, hill or village was never in the running and saying so is
+    // noise.
+    function isIllegalPlacementSpot(col: number, row: number): boolean {
+        if (!gameSession.canPlaceCastle) return false
+
+        const square = board.squares[row]?.[col]
+        if (square?.type !== SquareType.Blank) return false
+
+        return gameSession.selectedCastleSquare
+            ? !isLegalKnightSquare(col, row)
+            : !isLegalCastleSquare(col, row)
+    }
+
+    // A scrim can go anywhere the rule applies: it dims a square rather than adding to it, so it
+    // covers both halves of the flow and dims a piece along with its square.
+    function showsIllegalScrim(col: number, row: number): boolean {
+        return PLACEMENT_HINT === 'gray' && isIllegalPlacementSpot(col, row)
+    }
+
+    // The positive treatment: the squares the current click would actually accept, marked with a
+    // dot. Every placement question the board asks now answers it the same way - opening castles,
+    // the knight beside one, a knight in regular play, and Renegade's replacement knight.
+    //
+    // The knight cases used to fade a ghost knight in and out on each legal square instead. A dot
+    // says the same thing without moving, and one visual language across every placement beats two.
+    function showsLegalHighlight(col: number, row: number): boolean {
+        if (PLACEMENT_HINT !== 'legal') return false
+
+        // Setup: the castle squares, then the knight squares around the one just picked.
+        if (gameSession.canPlaceCastle) {
+            return gameSession.selectedCastleSquare
+                ? isLegalKnightSquare(col, row)
+                : isLegalCastleSquare(col, row)
+        }
+
+        if (knightStageActive && isLegalKnightPlacement(col, row)) return true
+        return isLegalRenegadePlacementSquare(col, row)
+    }
+
+    // Whose colour the dot is drawn in. placementColor covers setup, where a closing lap places the
+    // neutral prince's castle rather than the player's own; outside setup it is undefined and the
+    // piece being placed is simply mine.
+    const legalHintColor = $derived(placementColor ?? myColor)
+
+    // The X cannot go everywhere the scrim can, which is a property of the mark rather than of the
+    // rule:
+    //   - Not during the knight stage. At most four squares are legal there, so an X would land on
+    //     nearly every plains square and measle the map. Dimming that many is fine; marking them
+    //     is not.
+    //   - Not on an occupied square. The piece already says "taken", and a glyph would either hide
+    //     under it or deface it - where a scrim simply dims both together.
+    function showsIllegalX(col: number, row: number): boolean {
+        if (PLACEMENT_HINT !== 'x') return false
+        if (gameSession.selectedCastleSquare) return false
+
+        const square = board.squares[row]?.[col]
+        if (square?.castleColor || square?.knightColor) return false
+
+        return isIllegalPlacementSpot(col, row)
+    }
+
     function isLegalCastleSquare(col: number, row: number): boolean {
         return legalCastleSquareSet.has(`${col},${row}`)
     }
@@ -1416,12 +1014,21 @@
         }
 
         if (gameSession.selectedCastleSquare) {
-            await gameSession.placeCastleWithKnight(col, row)
+            // Ignored too, for consistency within one flow - and because reporting it used to
+            // clear the selection, so a stray click took the castle back off the board. The ring
+            // marks the squares that will work, and Undo releases the castle.
+            if (isLegalKnightSquare(col, row)) {
+                await gameSession.placeCastleWithKnight(col, row)
+            }
             return
         }
 
         if (gameSession.canPlaceCastle) {
-            gameSession.selectCastleSquare(col, row)
+            // Ignored rather than explained: the X on the square has already said why, and an
+            // error dialog for a click the board visibly refused is nagging.
+            if (isLegalCastleSquare(col, row)) {
+                gameSession.selectCastleSquare(col, row)
+            }
             return
         }
 
@@ -1456,32 +1063,14 @@
         }
     }
 
-    let { onFrameOffset }: { onFrameOffset?: (px: number) => void } = $props()
-
-    // Reports how far the castle-wall frame sits below this component's own top edge
-    // (the status/instruction text above it grows and shrinks with game state, so
-    // this isn't a fixed number) - lets Board.svelte match that same offset on the
-    // deck-piles column so their tops stay level with the actual board frame instead
-    // of the top of this whole component. Reported in LAYOUT px: the rects below are
-    // post-transform (ScalingWrapper - see the hoverPoint note above), but Board.svelte
-    // spends this as a padding-top inside that same transform, so a screen-px number
-    // would drift the piles off the frame by 1/scale at any zoom but 1:1.
-    let rootEl: HTMLElement | undefined = $state()
-    let frameEl: HTMLElement | undefined = $state()
-    $effect(() => {
-        if (!rootEl || !frameEl || !onFrameOffset) return
-        const report = () => {
-            const rootRect = rootEl!.getBoundingClientRect()
-            const frameRect = frameEl!.getBoundingClientRect()
-            const scale = rootEl!.offsetHeight > 0 ? rootRect.height / rootEl!.offsetHeight : 1
-            const safeScale = scale > 0 ? scale : 1
-            onFrameOffset!((frameRect.top - rootRect.top) / safeScale)
-        }
-        report()
-        const observer = new ResizeObserver(report)
-        observer.observe(rootEl)
-        return () => observer.disconnect()
-    })
+    // The frame-offset reporting that used to live here is gone with the text it existed for.
+    // It measured how far the board frame sat below this component's top edge, so Board.svelte
+    // could pad the deck column down by the same amount and keep their tops level - the status
+    // text above the frame grew and shrank with game state, so it was never a fixed number.
+    //
+    // That text is now rendered by GameTable outside ScalingWrapper, so the frame is this
+    // component's first row and the offset is zero by construction. A ResizeObserver, a
+    // scale-correction and a prop all disappear with it.
 </script>
 
 {#snippet pieceIcon(fillSrc: string, linesSrc: string, color: Color, offsetY: number = 0)}
@@ -1539,547 +1128,7 @@
     </div>
 {/snippet}
 
-{#snippet playerPill(playerId: string)}
-    <PlayerPill {playerId} />
-{/snippet}
-
-{#snippet myPill()}
-    {#if gameSession.myPlayer}
-        {@render playerPill(gameSession.myPlayer.id)}
-    {/if}
-{/snippet}
-
-{#snippet playerPillList(playerIds: string[])}
-    {#each playerIds as playerId, i (playerId)}
-        {i > 0 ? (i === playerIds.length - 1 ? ' and ' : ', ') : ''}{@render playerPill(playerId)}
-    {/each}
-{/snippet}
-
-{#snippet duelBidStepper(playerId: string, bidAmount: number, maxAmount: number)}
-    <button
-        type="button"
-        class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
-        disabled={bidAmount <= 0}
-        onclick={() => {
-            duelBidAmounts[playerId] = Math.max(0, bidAmount - 1)
-        }}
-    >
-        −
-    </button>
-    <span class="w-6 text-center font-semibold">{bidAmount}</span>
-    <button
-        type="button"
-        class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
-        disabled={bidAmount >= maxAmount}
-        onclick={() => {
-            duelBidAmounts[playerId] = bidAmount + 1
-        }}
-    >
-        +
-    </button>
-    <span>ducat{bidAmount === 1 ? '' : 's'}</span>
-{/snippet}
-
-{#snippet bidList(bids: SubmitDuelBid[])}
-    {#each bids as bid, i (bid.playerId)}
-        {i > 0 ? ', ' : ''}{@render playerPill(bid.playerId)} bid {bid.amount} ducat{bid.amount === 1
-            ? ''
-            : 's'}{#if bid.metadata?.treasureCardUsed}
-            {' '}+ Treasure ({bid.metadata.treasureCardUsed.value}){/if}
-    {/each}
-{/snippet}
-
-<!-- items-center so each message box is centred over the board rather than
-     starting at its left edge; text-center on the boxes themselves handles the
-     wrapping lines within them. -->
-<div class="flex flex-col gap-2 items-center" bind:this={rootEl}>
-    <!-- Warms up the Tangerine signature font as soon as the board mounts, so it's
-         already cached by the time anyone actually signs a negotiation (see
-         .signature-text-warmup in app.css). -->
-    <span class="signature-text-warmup" aria-hidden="true">warmup</span>
-    <!-- Stepping back through history leaves every message below stale: they narrate the
-         live game ("waiting for X", "click a region..."), which says nothing about the
-         moment you've rewound to. So while in history, lead with what the action you're
-         looking at actually did - the same sentence the history feed uses, since
-         gameSession.actions already reflects the visible (rewound) context rather than the
-         live one. Same idea as Sol's LastActionDescription, just scoped to history. -->
-    {#if historyAction}
-        <div class="text-black text-[20px] text-center border-b-2 border-black/15 pb-1">
-            <span class="italic text-black/60 text-[16px]">Rewound to:</span>
-            {#if historyAction.playerId}
-                {@render playerPill(historyAction.playerId)}
-            {/if}
-            <ActionDescription action={historyAction} justify="start" history={false} />
-        </div>
-    {/if}
-    {#if lastBankWin}
-        <div class="text-black text-[20px] text-center">
-            {@render playerPill(lastBankWin.playerId)} gained {lastBankWin.amount} ducat{lastBankWin.amount === 1
-                ? ''
-                : 's'} from the bank.
-        </div>
-    {/if}
-    {#if lastDuelOutcome?.type === 'giveUp'}
-        <div class="text-black text-[20px] text-center">
-            {@render bidList(lastDuelOutcome.bids)} — tied again, so no one performs the{lastDuelOutcome.actionNoun
-                ? ` ${lastDuelOutcome.actionNoun}`
-                : ''} action.
-        </div>
-    {/if}
-    {#if lastAllianceCancellation}
-        {@const otherId = playerIdForColor(lastAllianceCancellation.otherColor)}
-        {@const cancelerIsMe = gameSession.myPlayer?.id === lastAllianceCancellation.playerId}
-        {@const otherIsMe = otherId !== undefined && otherId === gameSession.myPlayer?.id}
-        <!-- Names the price, since that's the whole weight of the decision - and the
-             cancellation is now a single board click (see the alliance hearts), so this is
-             where the 10 ducats leaving your purse gets accounted for. -->
-        <div class="text-black text-[20px] text-center">
-            {#if cancelerIsMe}
-                You paid
-            {:else}
-                {@render playerPill(lastAllianceCancellation.playerId)} paid
-            {/if}
-            {ALLIANCE_CANCELLATION_COST} ducats to cancel an alliance with
-            {#if otherIsMe}
-                you
-            {:else if otherId}
-                {@render playerPill(otherId)}
-            {:else}
-                a neutral prince
-            {/if}.
-        </div>
-    {/if}
-    <div class="text-black text-[20px] text-center leading-loose">
-        {#if gameSession.isPlayingAllianceCard}
-            <!-- No "that region has nothing to ally with" case to report: a region with no
-                 eligible neighbor isn't offered in the first place (see
-                 legalAllianceOwnRegionIds), so reaching the second step guarantees there's
-                 something to click. -->
-            {#if !gameSession.allianceOwnRegionId}
-                Playing Alliance — click one of your regions.
-            {:else}
-                Click a bordering enemy region.
-            {/if}
-        {:else if gameSession.isPlayingRenegadeCard}
-            {#if !gameSession.renegadeOwnRegionId}
-                {#if legalRenegadeOwnRegionIdSet.size === 0}
-                    None of your regions can play Renegade right now — they either have no
-                    room for the replacement knight (no open space, or they can't afford a
-                    wooded one) or nothing bordering them to take a knight from. Click Undo.
-                {:else}
-                    Playing Renegade — click one of your regions.
-                {/if}
-            {:else if !gameSession.renegadeEnemyRegionId}
-                Now click a bordering enemy region.
-            {:else if !gameSession.renegadeRemovedSquare}
-                {#if gameSession.legalRenegadeRemovableSquares.length === 0}
-                    Every knight in that region is protecting another from being cut off from
-                    its castle — none can safely be removed. Click Undo to try again.
-                {:else}
-                    Click the enemy knight to remove.
-                {/if}
-            {:else}
-                Now click a square in your region to place your knight in exchange.
-            {/if}
-        {:else if gameSession.canPlaceCastle}
-            {#if gameSession.selectedCastleSquare}
-                Place a knight adjacent to the castle.
-            {:else}
-                Place a castle on the board.
-            {/if}
-        {:else if gameSession.canPlaceWall}
-            {#if lastNegotiationPayment && lastNegotiationPayment.fromPlayerId === gameSession.gameState.wallPlacingPlayerId}
-                {@render playerPill(lastNegotiationPayment.fromPlayerId)} paid {@render playerPill(
-                    lastNegotiationPayment.toPlayerId
-                )}
-                {lastNegotiationPayment.amount} ducat{lastNegotiationPayment.amount === 1
-                    ? ''
-                    : 's'} for the walls action.
-            {:else if lastDuelOutcome?.type === 'win' && lastDuelOutcome.winnerId === gameSession.gameState.wallPlacingPlayerId}
-                {@render playerPill(lastDuelOutcome.winnerId)} outspent {@render playerPillList(
-                    lastDuelOutcome.otherIds
-                )} to win a wall action.
-            {:else}
-                {@render myPill()} won a wall action.
-            {/if}
-            Place {gameSession.gameState.wallsRemaining} wall{gameSession.gameState.wallsRemaining === 1
-                ? ''
-                : 's'} or
-            <button
-                type="button"
-                class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
-                onclick={() => gameSession.passWallPlacement()}
-            >
-                pass
-            </button>.
-        {:else if gameSession.canPlaceKnight && gameSession.knightPlan}
-            <!-- A plan's already declared, so this just narrates the current step. No
-                 confirm or cancel buttons: every step is a board click, and Undo (which
-                 backs out of the plan itself while nothing's landed yet - see
-                 ActionToolbar) is the way back. Pass stays, since declining the rest of
-                 an action is a real rulebook option, not a cancel. -->
-            {#if expandStageActive && !gameSession.selectedExpandRegionId}
-                Click one of your regions to expand it.
-            {:else if expansionDeadEnd}
-                <!-- Names the rule that's actually in the way (see
-                     expansionBlockedReasons) rather than leaving the player to guess -
-                     usually the invasion knight-count rule, which is easy to be
-                     surprised by, and which now comes with the real counts attached. -->
-                This region has nowhere legal to expand into right now{#if expansionBlockedReasons.length > 0}
-                    — {expansionBlockedReasons.join('; ')}{/if}.{#if knightStageActive}
-                    Click a square to place a knight instead.{:else if gameSession.expandableRegions.length > 1}
-                    Click Undo to pick a different region.{/if}
-            {:else if expandStageActive}
-                <!-- Counted from engine state (see expansionSpacesTaken), not the local
-                     record of clicks, so an Undo mid-expansion doesn't leave this
-                     claiming a space that's been taken back. -->
-                Click to expand ({gameSession.expansionSpacesTaken}/2 so far){#if knightStageActive}, or
-                    place your knight to stop expanding{/if}.
-            {:else}
-                <!-- Only a two-knights plan has more than one to place - under the mixed
-                     plans the leftover sword is earmarked for the expansion, so a count
-                     there would be misleading. -->
-                Click a square to place your knight{gameSession.knightPlan === 'twoKnights' &&
-                knightSwordsLeft > 1
-                    ? ` (${knightSwordsLeft} to place)`
-                    : ''}.
-            {/if}
-            Or
-            <button
-                type="button"
-                class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
-                onclick={() => gameSession.passKnightPlacement()}
-            >
-                pass
-            </button>
-            to stop here.
-        {:else if gameSession.canPlaceKnight}
-            {#if lastNegotiationPayment && lastNegotiationPayment.fromPlayerId === gameSession.gameState.knightPlacingPlayerId}
-                {@render playerPill(lastNegotiationPayment.fromPlayerId)} paid {@render playerPill(
-                    lastNegotiationPayment.toPlayerId
-                )}
-                {lastNegotiationPayment.amount} ducat{lastNegotiationPayment.amount === 1
-                    ? ''
-                    : 's'} for the knights action.
-            {:else if lastDuelOutcome?.type === 'win' && lastDuelOutcome.winnerId === gameSession.gameState.knightPlacingPlayerId}
-                {@render playerPill(lastDuelOutcome.winnerId)} outspent {@render playerPillList(
-                    lastDuelOutcome.otherIds
-                )} to win a knight action.
-            {:else}
-                {@render myPill()} won a knight action.
-            {/if}
-            <!-- The whole shape of the action is chosen here, up front - for a two-sword
-                 card that's exactly three possibilities (see availableKnightPlans), minus
-                 any whose halves aren't actually available. Everything after this is
-                 board clicks; a single available plan is auto-picked, so this prompt only
-                 appears when there's a genuine choice. -->
-            {#if availableKnightPlans.length === 0}
-                There's nothing legal left to do with it, so
-                <button
-                    type="button"
-                    class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
-                    onclick={() => gameSession.passKnightPlacement()}
-                >
-                    pass
-                </button>.
-            {:else}
-                Either
-                {#each availableKnightPlans as plan, i (plan)}{i > 0 ? ' or ' : ''}<button
-                        type="button"
-                        class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
-                        onclick={() => choosePlan(plan)}
-                    >
-                        {KNIGHT_PLAN_LABELS[plan]}
-                    </button>{/each}
-                or
-                <button
-                    type="button"
-                    class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
-                    onclick={() => gameSession.passKnightPlacement()}
-                >
-                    pass
-                </button>.
-            {/if}
-        {:else if lastMineReveal}
-            {@const mineScorers = lastMineReveal.filter((entry) => entry.points > 0)}
-            <!-- Who earned what is shown as a "+N" hanging under each player's points box
-                 in the action bar above (see ActionToolbar) rather than as a row of text
-                 per scorer down here - the numbers land right where that player's
-                 running total already is, and this stays one line. -->
-            A Silver Mine!
-            {#if mineScorers.length === 0}
-                No hills were enclosed, so no points were awarded.
-            {/if}
-            {#if gameSession.canDrawActionCard}
-                Click the action card draw pile to start the next round.
-            {:else}
-                Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
-                next action card...
-            {/if}
-        {:else if lastRoundEndedInDuelGiveUp}
-            The duel was tied a second time, so no one performs the action.
-            {#if gameSession.canDrawActionCard}
-                Click the action card draw pile to start the next round.
-            {:else}
-                Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
-                next action card...
-            {/if}
-        {:else if gameSession.canDrawActionCard}
-            Click the action card draw pile to start the next round.
-        {:else if gameSession.gameState.machineState === MachineState.StartOfTurn}
-            Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
-            next action card...
-        {:else if gameSession.canChooseAction}
-            <!-- Below 4 players the first player lays 2 decision cards (see
-                 buildDecisionPlan). No need to announce the count: the ordinal on the
-                 follow-up prompt ("a second region") is what tells them their turn isn't
-                 over, and it says it exactly when it matters. -->
-            {@const decisions = gameSession.myDecisionsThisRound}
-            {#if decisions.laid > 0}
-                Click a {decisions.laid === 1 ? 'second' : 'third'} region of the card for
-                your next action.
-            {:else}
-                Click a region of the card to pick an action.
-            {/if}
-        {:else if gameSession.gameState.machineState === MachineState.ChoosingActions}
-            Waiting for the next player to choose...
-        {:else if gameSession.gameState.machineState === MachineState.Negotiating && gameSession.gameState.negotiation}
-            Negotiate for {negotiationActionNoun} or
-            <button
-                type="button"
-                class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-red-700/10 hover:bg-red-700/20 font-semibold disabled:opacity-40"
-                disabled={!gameSession.isNegotiator}
-                onclick={() => gameSession.declineNegotiation()}
-            >
-                force a duel
-            </button>.
-        {:else if gameSession.gameState.machineState === MachineState.Dueling && gameSession.gameState.duel}
-            <!-- The duelists are named right here rather than getting a row each below,
-                 so the whole duel fits in two lines: who's in it, then your own bid. -->
-            Dueling for {duelActionNoun}{gameSession.gameState.duel.tieCount >= 1
-                ? ' again'
-                : ''}: {@render playerPillList(gameSession.gameState.duel.playerIds)}.
-            {#if previousTiedRoundBids}
-                <!-- Kept on its own line, unlike the other two-sentence messages: naming
-                     the duelists and then listing everyone's previous bid is reliably too
-                     long to sit on one line, so letting it wrap mid-sentence reads worse
-                     than an intentional break here. -->
-                <br class="block mb-0.5" />
-                Tied last round: {@render bidList(previousTiedRoundBids)}.
-            {/if}
-        {:else if gameSession.canTakePoliticsCard && !gameSession.selectedPoliticsPile}
-            {#if lastNegotiationPayment && lastNegotiationPayment.fromPlayerId === gameSession.gameState.politicsTakingPlayerId}
-                {@render playerPill(lastNegotiationPayment.fromPlayerId)} paid {@render playerPill(
-                    lastNegotiationPayment.toPlayerId
-                )}
-                {lastNegotiationPayment.amount} ducat{lastNegotiationPayment.amount === 1
-                    ? ''
-                    : 's'} for the politics action.
-            {:else if lastDuelOutcome?.type === 'win' && lastDuelOutcome.winnerId === gameSession.gameState.politicsTakingPlayerId}
-                {@render playerPill(lastDuelOutcome.winnerId)} outspent {@render playerPillList(
-                    lastDuelOutcome.otherIds
-                )} to win Crown and Scepter.
-            {:else}
-                {@render myPill()} won Crown and Scepter.
-            {/if}
-            Click one of the politics piles to look through it.
-        {:else if !gameSession.setupComplete}
-            Waiting for the other player(s) to place a castle...
-        {/if}
-    </div>
-
-    <!-- Cancelling an alliance used to be offered as a sentence-with-a-button here. It's
-         the beating heart on the shared boundary wall now (see allianceMarkers) - the price
-         and the consequence both show on hover, and the affordance stays put on the board
-         instead of appearing in a status area whose other messages are turn-scoped. -->
-
-    {#if displayNegotiation}
-        {@const negotiation = displayNegotiation}
-        <div class="flex flex-col gap-2 text-black text-sm">
-            <div class="flex flex-wrap items-center gap-2 text-[20px]">
-                <div class="flex flex-col leading-tight border border-black/30 rounded px-2 py-1">
-                    {#each negotiation.playerIds as playerId (playerId)}
-                        <button
-                            type="button"
-                            disabled={!gameSession.isNegotiator}
-                            class="text-left {negotiationProposerId === playerId
-                                ? 'font-semibold text-black'
-                                : 'text-black/40 hover:text-black/60'}"
-                            onclick={() => (negotiationProposerId = playerId)}
-                        >
-                            {playerName(gameSession, playerId)}
-                        </button>
-                    {/each}
-                </div>
-                <span>offers</span>
-                <button
-                    type="button"
-                    class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
-                    disabled={!gameSession.isNegotiator || negotiationAmount <= 1}
-                    onclick={() => (negotiationAmount = Math.max(1, negotiationAmount - 1))}
-                >
-                    −
-                </button>
-                <span class="w-6 text-center font-semibold">{negotiationAmount}</span>
-                <button
-                    type="button"
-                    class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
-                    disabled={!gameSession.isNegotiator || negotiationAmount >= negotiationProposerMoney}
-                    onclick={() => (negotiationAmount = negotiationAmount + 1)}
-                >
-                    +
-                </button>
-                <span>
-                    ducat{negotiationAmount === 1 ? '' : 's'} to {negotiationOtherPlayerId
-                        ? playerName(gameSession, negotiationOtherPlayerId)
-                        : ''}
-                </span>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-4">
-                {#each orderedNegotiatorIds as playerId (playerId)}
-                    <div class="flex items-center gap-2">
-                        <button
-                            type="button"
-                            class="px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 font-semibold disabled:opacity-40 disabled:hover:bg-green-700/20"
-                            disabled={gameSession.myPlayer?.id !== playerId ||
-                                negotiation.signedPlayerIds.includes(playerId)}
-                            onclick={() => commitNegotiationOffer()}
-                        >
-                            Signed
-                        </button>
-                        <span class="signature-text inline-block h-8 w-32 border-b border-black/40 px-1">
-                            {#if negotiation.signedPlayerIds.includes(playerId)}
-                                {playerName(gameSession, playerId)}
-                            {/if}
-                        </span>
-                        {#if SHOW_NEGOTIATION_TEST_CONTROLS && negotiation.offer && gameSession.myPlayer?.id !== playerId && !negotiation.signedPlayerIds.includes(playerId)}
-                            <button
-                                type="button"
-                                title="Temporary solo-testing stand-in for a second session/tab"
-                                class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
-                                onclick={() => gameSession.debugSignNegotiationOfferAs(playerId)}
-                            >
-                                sign for them (test)
-                            </button>
-                        {/if}
-                    </div>
-                {/each}
-            </div>
-        </div>
-    {/if}
-
-    {#if gameSession.gameState.machineState === MachineState.Dueling && gameSession.gameState.duel}
-        {@const duel = gameSession.gameState.duel}
-        {@const myId = gameSession.myPlayer?.id}
-        <div class="flex flex-col gap-1 text-black text-[18px]">
-            <!-- Your own bid, and nothing else - the duelists are all named in the status
-                 message above instead of getting a row each, and a sealed bid means an
-                 opponent's row would have had nothing actionable on it anyway. This row
-                 does confirm your OWN bid once it's in, since the action bar keeps
-                 listing every duelist as active for the whole duel (see dueling.ts's
-                 enter()) and nothing else on screen would tell you it landed. -->
-            {#if myId && duel.playerIds.includes(myId)}
-                {@const money = gameSession.gameState.getPlayerState(myId).money}
-                {@const bidAmount = Math.min(duelBidAmounts[myId] ?? 0, money)}
-                <div class="flex flex-wrap items-center gap-2">
-                    {#if gameSession.hasPlayerBidInDuel(myId)}
-                        <span class="text-black/60">Your bid is in.</span>
-                    {:else}
-                        <span class="font-semibold">Your bid:</span>
-                        {@render duelBidStepper(myId, bidAmount, money)}
-                        {#if gameSession.selectedTreasureCard}
-                            <!-- Clicking the chip unarms the card. This is the ONLY way back:
-                                 arming is local UI state, not a game action, so Undo never
-                                 touches it, and APPLY in the hand only ever arms. It used to
-                                 be a "don't play it" button on a sentence below. -->
-                            <button
-                                type="button"
-                                class="px-1.5 py-[3px] rounded font-semibold bg-green-700/15 hover:bg-red-700/20"
-                                title="Click to take this Treasure back out of your bid"
-                                onclick={() => gameSession.selectTreasureCard(undefined)}
-                            >
-                                + Treasure ({gameSession.selectedTreasureCard.value}) ✕
-                            </button>
-                        {/if}
-                        <button
-                            type="button"
-                            class="px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 font-semibold"
-                            onclick={() =>
-                                gameSession.submitDuelBid(
-                                    bidAmount,
-                                    gameSession.selectedTreasureCard?.id
-                                )}
-                        >
-                            Submit bid
-                        </button>
-                        <!-- Sits beside the button rather than in a sentence of its own
-                             below: it only needs to tell a duelist the option exists, and
-                             the how-to (open your hand, hit APPLY) is the same gesture a
-                             Treasure takes everywhere else in the game. Once one is armed
-                             this gives way to the confirmation row underneath. -->
-                        {#if gameSession.myTreasureCards.length > 0 && !gameSession.selectedTreasureCard}
-                            <span class="text-black/70 text-[15px]">Nudge: You hold a Treasure!</span>
-                        {/if}
-                    {/if}
-                </div>
-            {/if}
-
-            <!-- Solo-testing stand-in for a second session, kept to one shared row of
-                 small dashed buttons (one per opponent who hasn't bid), each expanding
-                 into a stepper only once clicked. Flip SHOW_DUEL_TEST_CONTROLS off to
-                 lose this row entirely. -->
-            {#if SHOW_DUEL_TEST_CONTROLS}
-                {@const pending = duel.playerIds.filter(
-                    (id) => id !== myId && !gameSession.hasPlayerBidInDuel(id)
-                )}
-                {#if pending.length > 0}
-                    <div class="flex flex-wrap items-center gap-2">
-                        {#each pending as playerId (playerId)}
-                            {@const money = gameSession.gameState.getPlayerState(playerId).money}
-                            {@const bidAmount = Math.min(duelBidAmounts[playerId] ?? 0, money)}
-                            {#if testBiddingForPlayerId === playerId}
-                                {@render playerPill(playerId)}
-                                {@render duelBidStepper(playerId, bidAmount, money)}
-                                <button
-                                    type="button"
-                                    class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
-                                    onclick={() => {
-                                        gameSession.debugSubmitDuelBidAs(playerId, bidAmount)
-                                        testBiddingForPlayerId = undefined
-                                    }}
-                                >
-                                    submit (test)
-                                </button>
-                            {:else}
-                                <button
-                                    type="button"
-                                    title="Temporary solo-testing stand-in for a second session/tab"
-                                    class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
-                                    onclick={() => (testBiddingForPlayerId = playerId)}
-                                >
-                                    bid for {playerName(gameSession, playerId)} (test)
-                                </button>
-                            {/if}
-                        {/each}
-                    </div>
-                {/if}
-            {/if}
-
-            <!-- There's deliberately no card picker in the bid row above: a Treasure
-                 card is played the same way everywhere else in the game - open your
-                 hand (click your cards in your player panel), then hit APPLY on the
-                 card, which arms it (see PoliticsHand/selectTreasureCard) for the bid
-                 you submit next. This line only exists so a duelist knows the option is
-                 there at all, and then confirms it once a card is armed. -->
-        </div>
-    {/if}
-
-    {#if gameSession.errorMessage}
-        <div class="text-red-700 text-sm font-medium">
-            {gameSession.errorMessage}
-        </div>
-    {/if}
+<div class="flex flex-col gap-2 items-center">
 
     <!-- A hand-hewn castle-wall frame (see RampartBorder/RampartCorner) around the
          actual board content, sized in a 3x3 grid so the border strips stretch to
@@ -2089,7 +1138,6 @@
          ActionToolbar). -->
     <div
         id="lowenherz-board-frame"
-        bind:this={frameEl}
         class="grid drop-shadow-[0_6px_14px_rgba(0,0,0,0.4)]"
         style="grid-template-columns: 20px {boardWidthPx}px 20px; grid-template-rows: 20px {boardHeightPx}px 20px; width: fit-content;"
     >
@@ -2146,7 +1194,16 @@
                     <button
                         type="button"
                         onclick={() => onSquareClick(col, row)}
-                        class="relative flex items-center justify-center border border-black/20 {isSelected(col, row) ? 'ring-4 ring-yellow-300 z-10' : ''} {isLegalKnightSquare(col, row) ? 'ring-2 ring-yellow-100' : ''}"
+                        onmouseenter={() => (hoveredSquare = { col, row })}
+                        onmouseleave={() => {
+                            // Guarded so that moving between two squares cannot blank the
+                            // preview: leaving A clears only while A is still the hovered one, and
+                            // entering B has already overwritten it by then.
+                            if (hoveredSquare?.col === col && hoveredSquare?.row === row) {
+                                hoveredSquare = undefined
+                            }
+                        }}
+                        class="relative flex items-center justify-center border border-black/20 {isSelected(col, row) ? 'ring-4 ring-yellow-300 z-10' : ''} {isLegalKnightSquare(col, row) && PLACEMENT_HINT !== 'legal' ? 'ring-2 ring-yellow-100' : ''}"
                         style="width:{CELL_SIZE}px; height:{CELL_SIZE}px; {tileLayout.length > 0 ? '' : `background-color:${terrainBg[square.type]};`}"
                     >
                         {#if tint}
@@ -2166,47 +1223,115 @@
                                 style="background-color:{tint}; {pulsing ? '' : 'opacity:0.385;'}"
                             ></span>
                         {/if}
-                        {#if knightStageActive && isLegalKnightPlacement(col, row) && myColor}
-                            <!-- A faded preview of the knight that would actually be placed here,
-                                 fading in and out - rather than a border/ring highlight. -->
-                            <div class="absolute inset-0 ghost-knight-pulse pointer-events-none">
-                                {@render pieceIcon(knightFill, knightLines, myColor, -1)}
-                            </div>
-                        {/if}
-                        {#if isLegalRenegadePlacementSquare(col, row) && myColor}
-                            <!-- Same faded preview, for the replacement knight Renegade would
-                                 place here. -->
-                            <div class="absolute inset-0 ghost-knight-pulse pointer-events-none">
-                                {@render pieceIcon(knightFill, knightLines, myColor, -1)}
-                            </div>
-                        {/if}
-                        {#if gameSession.canPlaceCastle && !gameSession.selectedCastleSquare && isLegalCastleSquare(col, row) && placementColor}
-                            <!-- Setup phase, before a castle square is picked: a slower,
-                                 dimmer pulsing preview of the castle that would go here, at
-                                 every currently-legal square. In the placing player's own
-                                 color for the opening laps, and in the NEUTRAL color for the
-                                 closing ones - those castles belong to the third prince, not
-                                 to whoever happens to be placing them. -->
-                            <div class="absolute inset-0 ghost-castle-pulse pointer-events-none">
+                        {#if isCastlePreviewSquare(col, row) && placementColor}
+                            <!-- The castle that would go here, under the cursor. Static rather
+                                 than pulsing: it is answering "this one?", and one square at a
+                                 time needs no animation to be noticed. Own colour for the opening
+                                 laps and the NEUTRAL colour for the closing ones, since those
+                                 castles belong to the third prince. -->
+                            <div class="absolute inset-0 pointer-events-none opacity-60">
                                 {@render pieceIcon(castleFill, castleLines, placementColor)}
                             </div>
                         {/if}
-                        {#if isLegalKnightSquare(col, row) && placementColor}
-                            <!-- Setup phase, once a castle square is picked: same pulsing
-                                 preview treatment as regular-play knight placement, for the
-                                 knight that would go adjacent to it - and the same
-                                 own-then-neutral color as the castle above. -->
-                            <div class="absolute inset-0 ghost-knight-pulse pointer-events-none">
-                                {@render pieceIcon(knightFill, knightLines, placementColor, -1)}
-                            </div>
+                        <!-- The circle is suppressed on the square the hover preview is drawn on,
+                             just above: the castle already says this square will take one, and a
+                             ring around it is the same claim twice. Tied to the preview rather
+                             than to hover itself, so hovering during the KNIGHT stage - which has
+                             no preview - does not blank the only mark on the square. -->
+                        {#if showsLegalHighlight(col, row) && !isCastlePreviewSquare(col, row) && legalHintColor}
+                            {@const hintColor = gameSession.colors.getUiColor(legalHintColor)}
+                            <!-- A filled disc, about a third of the square. r 1.85 of the
+                                 ten-unit viewBox is a 3.7-unit diameter - the same outer edge the
+                                 stroked ring had, so "filled in" means exactly that rather than
+                                 also changing size.
+                                 
+                                 Expressed as a fill with no stroke rather than a fill plus the old
+                                 stroke: one property doing one job, and nothing to keep in step if
+                                 the size changes again. The svg still fills the cell, so the
+                                 geometry carries the size and there is no scaling to distort.
+                                 
+                                 In the PLACING colour, so the closing laps mark the neutral
+                                 prince's spots in the neutral colour rather than claiming them
+                                 for whoever is placing. -->
+                            <svg
+                                viewBox="0 0 10 10"
+                                class="absolute inset-0 w-full h-full pointer-events-none"
+                                aria-hidden="true"
+                            >
+                                <!-- The same boost AND the same soft white glow pieceIcon puts on a
+                                     castle or a knight, so the dot is the colour of the piece it
+                                     stands for
+                                     rather than of the raw palette entry. getUiColor's yellow is
+                                     #d4af37, but no castle is ever drawn in it - which is why the
+                                     dot looked like a different yellow from the pieces. Matched by
+                                     construction, so all four colours track their own pieces.
+                                     
+                                     A dark rim rather than a brighter hue. Brightening the yellow
+                                     made it legible on the forests and then invisible on the
+                                     plains, which is the shape of the real problem: the dot has to
+                                     read against light parchment AND dark green, and no single
+                                     colour does both. An outline is terrain-independent, and it
+                                     fixes all four colours at once instead of one per complaint. -->
+                                <circle
+                                    cx="5"
+                                    cy="5"
+                                    r="1.85"
+                                    fill={hintColor}
+                                    stroke="#000000"
+                                    stroke-opacity="0.55"
+                                    stroke-width="0.16"
+                                    opacity="0.7"
+                                    style="filter: saturate(1.5) brightness(1.15)
+                                        drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.9))
+                                        drop-shadow(0 0 3px rgba(255, 255, 255, 0.8));"
+                                />
+                            </svg>
+
+                        {/if}
+                        {#if showsIllegalScrim(col, row)}
+                            <!-- Drawn after the region tint but before the pieces, so a piece
+                                 standing on a dimmed square is dimmed WITH it rather than painted
+                                 over. -->
+                            <span class="absolute inset-0 pointer-events-none bg-black/40"></span>
+                        {/if}
+                        {#if showsIllegalX(col, row)}
+                            <!-- Small, centred, and the only thing on the square: showsIllegalX
+                                 has already excluded every square that holds a piece, so there is
+                                 nothing here to obscure. -->
+                            <span
+                                class="absolute inset-0 pointer-events-none flex items-center justify-center"
+                            >
+                                <!-- The X spans ~90% of the square: the svg fills the cell and
+                                     the stroke runs corner to corner inset by half a unit of the
+                                     ten-unit viewBox.
+                                     
+                                     stroke-width is in viewBox units, so it grows with the square
+                                     - 0.6 of 10 across a 44px cell is about 2.6px. That matters
+                                     because the width was tuned against a much smaller mark:
+                                     keeping the old 1.9 here would have drawn a line over 8px
+                                     thick, a red barrier rather than a red X. -->
+                                <svg viewBox="0 0 10 10" class="w-full h-full opacity-70" aria-hidden="true">
+                                    <path
+                                        d="M0.5 0.5 L9.5 9.5 M9.5 0.5 L0.5 9.5"
+                                        stroke="#b0201a"
+                                        stroke-width="0.6"
+                                        stroke-linecap="round"
+                                        fill="none"
+                                    />
+                                </svg>
+                            </span>
                         {/if}
                         {#if square.castleColor}
                             {@render pieceIcon(castleFill, castleLines, square.castleColor)}
                         {:else if isSelected(col, row) && placementColor}
-                            <!-- The castle isn't actually placed yet (still needs its
-                                 adjacent knight square picked), but it reads as solid/settled
-                                 here - only the knight candidates above should be pulsing at
-                                 this point. Same own-then-neutral color as the ghosts. -->
+                            <!-- The castle isn't actually placed yet (still needs its adjacent
+                                 knight square picked), but it reads as solid and settled here.
+                                 Same own-then-neutral colour as the hover preview.
+                                 
+                                 Deliberately not animated. A hop on landing was tried and read as
+                                 forced: the hover preview already shows the castle on the square
+                                 before the click, so the click has nothing left to announce - it
+                                 only has to stop looking like a preview. -->
                             {@render pieceIcon(castleFill, castleLines, placementColor)}
                         {:else if square.knightColor}
                             {#if isRenegadeRemovedSquare(col, row)}
@@ -2546,22 +1671,6 @@
 
     .ghost-knight-pulse {
         animation: ghost-knight-pulse-frames 1.8s ease-in-out infinite;
-    }
-
-    /* Same shape as ghost-knight-pulse but half speed and a lower peak opacity - just
-       for the opening castle-placement preview (see isLegalCastleSquare above). */
-    @keyframes ghost-castle-pulse-frames {
-        0%,
-        100% {
-            opacity: 0.15;
-        }
-        50% {
-            opacity: 0.45;
-        }
-    }
-
-    .ghost-castle-pulse {
-        animation: ghost-castle-pulse-frames 3.6s ease-in-out infinite;
     }
 
     @keyframes ghost-wall-pulse-frames {
