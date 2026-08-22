@@ -724,7 +724,7 @@
                      second step that does not exist - and the second step of a two-sword action
                      would otherwise still be calling itself the first. -->
                 {#if gameSession.knightActionSwords === 2}
-                    {(gameSession.gameState.knightsRemaining ?? 0) === 2 ? 'First,' : 'Now'}
+                    {(gameSession.gameState.knightsRemaining ?? 0) === 2 ? 'First,' : 'Second,'}
                 {:else}
                     Either
                 {/if}
