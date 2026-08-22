@@ -871,34 +871,42 @@
             {#if gameSession.isNegotiator}
                 {@const myId = gameSession.myPlayer?.id}
                 {@const otherId = negotiation.playerIds.find((id) => id !== myId)}
-                <div class="flex flex-wrap items-center gap-2 text-black/60 text-[16px]">
-                    {#if gameSession.hasSignedNegotiationOffer}
-                        <span>
-                            Waiting for {@render playerPill(otherId ?? '')} to sign these terms, or
-                            to counter with different ones.
-                        </span>
-                    {:else if otherId && negotiation.signedPlayerIds.includes(otherId)}
-                        <span>
-                            {@render playerPill(otherId)} has signed. Sign to accept these terms as
-                            they stand, or change them to counter - which withdraws their signature.
-                        </span>
-                    {:else}
-                        <span>
-                            Set the terms and sign. Whoever signs first waits on the other to accept
-                            or counter.
-                        </span>
-                    {/if}
-                    {#if SHOW_NEGOTIATION_TEST_CONTROLS && negotiation.offer && otherId && !negotiation.signedPlayerIds.includes(otherId)}
-                        <button
-                            type="button"
-                            title="Temporary solo-testing stand-in for a second session/tab"
-                            class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
-                            onclick={() => gameSession.debugSignNegotiationOfferAs(otherId)}
-                        >
-                            sign for them (test)
-                        </button>
-                    {/if}
-                </div>
+                {@const otherHasSigned = otherId
+                    ? negotiation.signedPlayerIds.includes(otherId)
+                    : false}
+                {@const showTestSign =
+                    SHOW_NEGOTIATION_TEST_CONTROLS && !!negotiation.offer && !!otherId && !otherHasSigned}
+                <!-- Only rendered when there is something to report. With nobody signed yet the
+                     controls and the Signed button beside them already say what to do, and a line
+                     restating it was a line of the space above the board earning nothing. The whole
+                     row is conditional rather than just its text, so an empty div does not leave a
+                     gap behind it. -->
+                {#if gameSession.hasSignedNegotiationOffer || otherHasSigned || showTestSign}
+                    <div class="flex flex-wrap items-center gap-2 text-black/60 text-[16px]">
+                        {#if gameSession.hasSignedNegotiationOffer}
+                            <span>
+                                Waiting for {@render playerPill(otherId ?? '')} to sign these terms,
+                                or to counter with different ones.
+                            </span>
+                        {:else if otherHasSigned && otherId}
+                            <span>
+                                {@render playerPill(otherId)} has signed. Sign to accept these terms
+                                as they stand, or change them to counter - which withdraws their
+                                signature.
+                            </span>
+                        {/if}
+                        {#if showTestSign && otherId}
+                            <button
+                                type="button"
+                                title="Temporary solo-testing stand-in for a second session/tab"
+                                class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
+                                onclick={() => gameSession.debugSignNegotiationOfferAs(otherId)}
+                            >
+                                sign for them (test)
+                            </button>
+                        {/if}
+                    </div>
+                {/if}
             {/if}
         </div>
     {/if}
