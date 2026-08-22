@@ -43,7 +43,9 @@
                  72px wide in the deck area and 172px in the pile overlay, and a px size would be
                  unreadable at one end or overbearing at the other. -->
             <div class="bg-[#dbcde4] rounded-lg flex items-baseline gap-[2cqw]" style="padding: 1cqw 3cqw;">
-                <span class="font-bold text-[7cqw] text-[#1a1a1a]" style={numeralStyle}>{card.value}</span>
+                <span class="font-bold text-[10.5cqw] text-[#1a1a1a]" style={numeralStyle}>
+                    {card.value}
+                </span>
                 <span class="text-[7cqw] text-[#1a1a1a]" style={numeralStyle}>Ducats</span>
             </div>
         </div>

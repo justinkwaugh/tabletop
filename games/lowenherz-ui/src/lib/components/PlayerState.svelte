@@ -116,7 +116,7 @@
     // Politics cards in display order - just the hand's natural (acquisition) order.
     // Applicable cards used to get pulled to the front here so they'd surface out
     // from under a heavily overlapped stack, but now that cards mostly lay out flat
-    // instead (see step below), the glow itself (card-glow-pulse) is enough to draw
+    // instead (see step below), the applicable-card ring is enough to draw
     // the eye - shuffling a card's position the moment it becomes playable is more
     // distracting than helpful.
     const displayCards = $derived(playerState.politicsCards)
@@ -138,7 +138,7 @@
     // Every card shows face-up on your own turn (so you can see your whole hand
     // while deciding what to do), and an applicable card (playable Renegade/
     // Alliance, or a spendable Treasure) shows face-up even outside your turn too,
-    // so its glow (see card-glow-pulse) is actually attached to real card art.
+    // so its ring is actually attached to real card art.
     // Everything else stays face-down.
     function shouldRevealFace(card: PoliticsCard): boolean {
         if (!isMe) return false
@@ -264,7 +264,7 @@
                  fits that way - only once it wouldn't does step compress below
                  CARD_W, tucking each card under its neighbor. Every card flips face
                  up (see shouldRevealFace) on your own turn, or at any time if it's
-                 currently applicable (glowing, via card-glow-pulse); otherwise it
+                 currently applicable (ringed in the owner's colour); otherwise it
                  stays face-down. -->
             <!-- CARD_EDGE_BUFFER on BOTH sides, not just the right: the cards are laid out
                  from the right edge inward (see the `right` offsets below), so a buffer
@@ -288,18 +288,21 @@
                          cards look like they gained a shadow at 4-5 cards. Overlapped
                          cards keep the extra leftward shadow on top of it, since that's
                          what separates each card from the one it's tucked under.
-                         An applicable card's glow animation overrides both while it
-                         pulses (animations outrank inline styles in the cascade), which is
-                         the same thing it did before. -->
+                         An applicable card prepends a 2px ring in the owner's colour to
+                         that same box-shadow, rather than the pulsing yellow glow this used
+                         to carry: a card you could play is the player's own, so their colour
+                         says it without moving, and nothing else on the board pulses now. -->
                     <div
                         class="absolute top-0 h-full rounded-md {isInteractive
                             ? ''
-                            : 'pointer-events-none'} {isApplicableCard ? 'card-glow-pulse' : ''}"
+                            : 'pointer-events-none'}"
                         style="
                             right: {CARD_EDGE_BUFFER + (count - 1 - i) * step}px;
                             width: {CARD_W}px;
                             z-index: {i};
-                            box-shadow: {isOverlapping && i > 0
+                            box-shadow: {isApplicableCard
+                            ? `0 0 0 2px ${headerColor}, `
+                            : ''}{isOverlapping && i > 0
                             ? '-2px 0 3px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.4)'
                             : '0 2px 4px rgba(0, 0, 0, 0.4)'};
                             transform: translate({jitter.dx}px, {jitter.dy}px) rotate({jitter.rotate}deg);
@@ -362,22 +365,4 @@
 </div>
 
 <style>
-    @keyframes card-glow-pulsate {
-        0%,
-        100% {
-            box-shadow:
-                0 0 4px 1px rgba(255, 221, 0, 0.35),
-                0 0 0 1px rgba(255, 221, 0, 0.35);
-        }
-        50% {
-            box-shadow:
-                0 0 14px 5px rgba(255, 221, 0, 0.95),
-                0 0 0 2px rgba(255, 221, 0, 0.95);
-        }
-    }
-
-    .card-glow-pulse {
-        border-radius: 0.375rem; /* matches PoliticsCard's own rounded-md corners */
-        animation: card-glow-pulsate 1.6s ease-in-out infinite;
-    }
 </style>

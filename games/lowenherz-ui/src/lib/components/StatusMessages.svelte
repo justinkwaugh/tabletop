@@ -941,14 +941,17 @@
                             <!-- Clicking the chip unarms the card. This is the ONLY way back:
                                  arming is local UI state, not a game action, so Undo never
                                  touches it, and APPLY in the hand only ever arms. It used to
-                                 be a "don't play it" button on a sentence below. -->
+                                 be a "don't play it" button on a sentence below.
+                                 
+                                 The X that used to sit on the end is gone; the hover title and the
+                                 red hover state are what advertise that it is removable now. -->
                             <button
                                 type="button"
                                 class="px-1.5 py-[3px] rounded font-semibold bg-green-700/15 hover:bg-red-700/20"
                                 title="Click to take this Treasure back out of your bid"
                                 onclick={() => gameSession.selectTreasureCard(undefined)}
                             >
-                                + Treasure ({gameSession.selectedTreasureCard.value}) ✕
+                                + Treasure ({gameSession.selectedTreasureCard.value})
                             </button>
                         {/if}
                         <button

@@ -87,11 +87,28 @@
     // signatures does not linger (the deal executes on the second one), but an empty list would
     // read as a stall rather than as a moment.
     const waitingPlayerIds = $derived.by(() => {
+        const duelists = waitingDuelistIds
+        if (duelists) return duelists
+
         const negotiation = gameSession.gameState.negotiation
         if (!negotiation) return activePlayerIds
 
         const unsigned = activePlayerIds.filter((id) => !negotiation.signedPlayerIds.includes(id))
         return unsigned.length > 0 ? unsigned : activePlayerIds
+    })
+
+    // Same narrowing for a duel: every duelist stays active until the bids resolve, so a player
+    // whose bid is in was still being waited on by name.
+    //
+    // It does leak a little. A sealed bid is private, and "Waiting for Tom" tells the table that
+    // everyone except Tom has already bid - something he could otherwise only guess at. Asked for
+    // deliberately: the bid AMOUNTS stay sealed, and knowing who has yet to act is what this bar is
+    // for everywhere else in the game.
+    const waitingDuelistIds = $derived.by(() => {
+        if (!gameSession.gameState.duel) return undefined
+
+        const unbid = activePlayerIds.filter((id) => !gameSession.hasPlayerBidInDuel(id))
+        return unbid.length > 0 ? unbid : activePlayerIds
     })
 
     // Almost always a single player ("Waiting for X to take an action"), but a negotiation with
