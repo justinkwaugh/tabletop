@@ -793,20 +793,31 @@
         {@const negotiation = displayNegotiation}
         <div class="flex flex-col gap-2 text-black text-sm">
             <div class="flex flex-wrap items-center gap-2 text-[20px]">
-                <div class="flex flex-col leading-tight border border-black/30 rounded px-2 py-1">
-                    {#each negotiation.playerIds as playerId (playerId)}
-                        <button
-                            type="button"
-                            disabled={!gameSession.isNegotiator ||
-                                gameSession.hasSignedNegotiationOffer}
-                            class="text-left {gameSession.negotiationProposerId === playerId
-                                ? 'font-semibold text-black'
-                                : 'text-black/40 hover:text-black/60'}"
-                            onclick={() => (gameSession.negotiationProposerId = playerId)}
-                        >
-                            {playerName(gameSession, playerId)}
-                        </button>
-                    {/each}
+                <!-- Side by side rather than stacked. Two names in a column made this box two lines
+                     tall on its own, which set the height of the whole row and so of the space the
+                     panel takes above the board. The caption underneath is what the stacked layout
+                     got for free: a column of two names reads as a choice, a row of two names reads
+                     as a score, so with them side by side the box has to say what it is. -->
+                <div class="flex flex-col items-center leading-tight">
+                    <div class="flex flex-row items-center border border-black/30 rounded px-2 py-1">
+                        {#each negotiation.playerIds as playerId, i (playerId)}
+                            {#if i > 0}
+                                <span class="mx-2 text-black/25" aria-hidden="true">|</span>
+                            {/if}
+                            <button
+                                type="button"
+                                disabled={!gameSession.isNegotiator ||
+                                    gameSession.hasSignedNegotiationOffer}
+                                class={gameSession.negotiationProposerId === playerId
+                                    ? 'font-semibold text-black'
+                                    : 'text-black/40 hover:text-black/60'}
+                                onclick={() => (gameSession.negotiationProposerId = playerId)}
+                            >
+                                {playerName(gameSession, playerId)}
+                            </button>
+                        {/each}
+                    </div>
+                    <span class="text-[12px] text-black/50">Choose a player</span>
                 </div>
                 <span>offers</span>
                 <button
