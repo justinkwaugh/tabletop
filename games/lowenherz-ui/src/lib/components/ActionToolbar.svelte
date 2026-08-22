@@ -78,13 +78,28 @@
     // name alone or are too momentary to be worth a label here.
     const isEndOfGame = $derived(gameSession.gameState.machineState === MachineState.EndOfGame)
     const activePlayerIds = $derived(gameSession.gameState.activePlayerIds)
-    // Almost always a single active player ("Waiting for X to take an action"), but
-    // Negotiating always has exactly the two negotiators active at once, and a 3+-way
-    // Dueling tie leaves all the tied players active too - the plural covers both.
-    // Which of those it is doesn't need spelling out here anymore, since the phase
-    // label below now names the specific thing they're doing.
+    // Who is actually being waited ON, which is not always who the engine has active. Both
+    // negotiators stay active for the whole negotiation, so once one of them has signed the bar
+    // was still naming them both - and the player who had signed was reading "waiting for you"
+    // about themselves.
+    //
+    // Falls back to every active player if that would leave nobody: a standing offer with both
+    // signatures does not linger (the deal executes on the second one), but an empty list would
+    // read as a stall rather than as a moment.
+    const waitingPlayerIds = $derived.by(() => {
+        const negotiation = gameSession.gameState.negotiation
+        if (!negotiation) return activePlayerIds
+
+        const unsigned = activePlayerIds.filter((id) => !negotiation.signedPlayerIds.includes(id))
+        return unsigned.length > 0 ? unsigned : activePlayerIds
+    })
+
+    // Almost always a single player ("Waiting for X to take an action"), but a negotiation with
+    // nobody signed yet has two, and a 3+-way Dueling tie leaves all the tied players active -
+    // the plural covers both. Which of those it is doesn't need spelling out here, since the
+    // phase label names the specific thing they're doing.
     const waitingVerb = $derived(
-        activePlayerIds.length > 1 ? 'to take their actions' : 'to take an action'
+        waitingPlayerIds.length > 1 ? 'to take their actions' : 'to take an action'
     )
     // Every machine state that can actually be waiting on someone gets a label - a
     // bare "Performing actions" covered the three action states without saying which
@@ -142,8 +157,8 @@
         <span class="min-w-0 truncate">
             <span class="font-bold"
                 >Waiting for
-                {#each activePlayerIds as playerId, i (playerId)}{i > 0
-                        ? i === activePlayerIds.length - 1
+                {#each waitingPlayerIds as playerId, i (playerId)}{i > 0
+                        ? i === waitingPlayerIds.length - 1
                             ? ' and '
                             : ', '
                         : ''}<PlayerPill {playerId} showAsYou={false} />{/each}

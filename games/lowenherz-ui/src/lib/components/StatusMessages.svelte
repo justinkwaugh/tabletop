@@ -881,14 +881,9 @@
                      restating it was a line of the space above the board earning nothing. The whole
                      row is conditional rather than just its text, so an empty div does not leave a
                      gap behind it. -->
-                {#if gameSession.hasSignedNegotiationOffer || otherHasSigned || showTestSign}
+                {#if otherHasSigned || showTestSign}
                     <div class="flex flex-wrap items-center gap-2 text-black/60 text-[16px]">
-                        {#if gameSession.hasSignedNegotiationOffer}
-                            <span>
-                                Waiting for {@render playerPill(otherId ?? '')} to sign these terms,
-                                or to counter with different ones.
-                            </span>
-                        {:else if otherHasSigned && otherId}
+                        {#if otherHasSigned && otherId}
                             <span>
                                 {@render playerPill(otherId)} has signed. Sign to accept these terms
                                 as they stand, or change them to counter - which withdraws their
