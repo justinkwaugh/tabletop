@@ -51,7 +51,18 @@
     const expansionBlockedReasons = $derived(
         expansionDeadEnd ? gameSession.expansionBlockedReasons : []
     )
-    const SHOW_DUEL_TEST_CONTROLS = false
+    // Solo-testing stand-ins for a second session: signing a negotiation, and bidding in a duel,
+    // on another player's behalf. Both exist because hotseat resolves myPlayer to a single seat, so
+    // one person cannot otherwise finish either flow alone.
+    //
+    // Gated on showDebug rather than on a hardcoded flag. showDebug is isAdmin && debugViewEnabled,
+    // so in the dev harness the Debug toggle in the top bar turns them on, and in a real game only
+    // an admin who has deliberately switched debug view on ever sees them - never a beta tester,
+    // who would otherwise be able to settle a duel from one seat and spend an opponent's ducats.
+    //
+    // Not import.meta.env.DEV: this package is built with svelte-package and consumed by the app,
+    // and svelte-package warns about import.meta.env for exactly that reason.
+    const SHOW_DUEL_TEST_CONTROLS = $derived(gameSession.showDebug)
 
     async function commitNegotiationOffer() {
         const negotiation = displayNegotiation
@@ -381,11 +392,8 @@
     // A local, per-player draft bid amount - each duelist's own private stepper,
     // unlike negotiation's single shared offer (a duel bid is a one-shot commitment
     // per player, not a joint draft either side can revise).
-    // The negotiation counterpart of SHOW_DUEL_TEST_CONTROLS, and off for the same
-    // reason. This one had no switch at all until now: it rendered whenever a solo
-    // tester faced an unsigned opponent, which is exactly why it was the testing
-    // affordance still visible when the others had long been gated off.
-    const SHOW_NEGOTIATION_TEST_CONTROLS = false
+    // The negotiation half of the same pair, on the same gate - see SHOW_DUEL_TEST_CONTROLS above.
+    const SHOW_NEGOTIATION_TEST_CONTROLS = $derived(gameSession.showDebug)
 
     let lastSeenDuelSignature: string | undefined = undefined
 

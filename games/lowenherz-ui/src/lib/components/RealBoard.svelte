@@ -115,7 +115,6 @@
     // seat, which is not a shortcut through the flow but a way to decide someone else's
     // ducats for them. Everything behind it is intact - flip this back to true for
     // another solo pass.
-    const SHOW_DUEL_TEST_CONTROLS = false
 
 
     const board = $derived(gameSession.gameState.board)
