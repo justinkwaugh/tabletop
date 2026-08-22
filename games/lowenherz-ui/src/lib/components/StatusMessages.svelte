@@ -657,17 +657,28 @@
                     pass
                 </button>.
             {:else if expandStageActive}
-                <!-- Counted from engine state (see expansionSpacesTaken), not the local
-                     record of clicks, so an Undo mid-expansion doesn't leave this
-                     claiming a space that's been taken back. -->
-                Click to expand ({gameSession.expansionSpacesTaken}/2 so far).
+                <!-- "a first time" rather than a 0/2 count, matching the second-time wording. The
+                     count came off engine state so an Undo could not leave it claiming a space that
+                     had been taken back; with no number there is nothing to go stale. -->
+                Click to expand a first time, or
+                <button
+                    type="button"
+                    class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
+                    onclick={() => gameSession.passKnightPlacement()}
+                >
+                    pass
+                </button>.
             {:else}
                 <!-- No count here any more. A step is one knight, so "2 to place" would be
                      describing a second sword the player has not chosen how to spend yet - they
                      are asked again once this one is down. -->
                 Click a square to place your knight.
             {/if}
-            {#if !gameSession.canContinueExpansion}
+            <!-- Suppressed for the two click-to-expand branches, which end in their own "or pass"
+                 - and only those two. The region-pick and dead-end branches also have
+                 expandStageActive set, and they still want this. -->
+            {#if !gameSession.canContinueExpansion &&
+                !(expandStageActive && gameSession.selectedExpandRegionId && !expansionDeadEnd)}
                 Or
                 <button
                     type="button"
@@ -713,7 +724,7 @@
                      second step that does not exist - and the second step of a two-sword action
                      would otherwise still be calling itself the first. -->
                 {#if gameSession.knightActionSwords === 2}
-                    {(gameSession.gameState.knightsRemaining ?? 0) === 2 ? 'First,' : 'Then,'}
+                    {(gameSession.gameState.knightsRemaining ?? 0) === 2 ? 'First,' : 'Now'}
                 {:else}
                     Either
                 {/if}
