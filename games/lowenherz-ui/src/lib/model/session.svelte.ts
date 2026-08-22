@@ -329,7 +329,12 @@ export class LowenherzGameSession extends GameSession<
         // An expansion already under way stays clickable whatever the current step is: its second
         // space was paid for by the sword that started it, so it costs nothing and belongs to no
         // step.
-        if (this.gameState.expandingRegionId !== undefined) return true
+        //
+        // canContinueExpansion rather than the raw expandingRegionId, because the engine keeps
+        // that id set until the second space is taken or the action ends - it has no notion of the
+        // player declining. Reading it directly left the expansion live after a decline, so the
+        // board went on offering expansion squares and the prompt asked for a first space again.
+        if (this.canContinueExpansion) return true
 
         return this.knightPlan === 'expand' && !this.knightStepSpent && this.canExpandRegion
     }
@@ -1096,8 +1101,10 @@ export class LowenherzGameSession extends GameSession<
         // "Using this action to expand twice is not allowed" - once this action's
         // expansion is spent, only its leftover sword's knight is left. An expansion
         // still in progress (its optional 2nd space) doesn't count as a second one, so
-        // the expand UI has to stay up for that.
-        return !this.gameState.expansionUsed || this.gameState.expandingRegionId !== undefined
+        // the expand UI has to stay up for that - but only while the player still wants
+        // it, hence canContinueExpansion rather than the raw engine flag, which stays set
+        // through a decline.
+        return !this.gameState.expansionUsed || this.canContinueExpansion
     }
 
     // Whether placing a knight is genuinely still on the table - distinct from
