@@ -818,7 +818,8 @@
                     {#each negotiation.playerIds as playerId (playerId)}
                         <button
                             type="button"
-                            disabled={!gameSession.isNegotiator}
+                            disabled={!gameSession.isNegotiator ||
+                                gameSession.hasSignedNegotiationOffer}
                             class="text-left {gameSession.negotiationProposerId === playerId
                                 ? 'font-semibold text-black'
                                 : 'text-black/40 hover:text-black/60'}"
@@ -832,7 +833,9 @@
                 <button
                     type="button"
                     class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
-                    disabled={!gameSession.isNegotiator || gameSession.negotiationAmount <= 1}
+                    disabled={!gameSession.isNegotiator ||
+                        gameSession.hasSignedNegotiationOffer ||
+                        gameSession.negotiationAmount <= 1}
                     onclick={() => (gameSession.negotiationAmount = Math.max(1, gameSession.negotiationAmount - 1))}
                 >
                     −
@@ -841,7 +844,9 @@
                 <button
                     type="button"
                     class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
-                    disabled={!gameSession.isNegotiator || gameSession.negotiationAmount >= negotiationProposerMoney}
+                    disabled={!gameSession.isNegotiator ||
+                        gameSession.hasSignedNegotiationOffer ||
+                        gameSession.negotiationAmount >= negotiationProposerMoney}
                     onclick={() => (gameSession.negotiationAmount = gameSession.negotiationAmount + 1)}
                 >
                     +
@@ -883,6 +888,26 @@
                     </div>
                 {/each}
             </div>
+
+            <!-- Which half of the exchange you are in. The mechanics already worked - a Sign
+                 proposes the draft first whenever it differs from the standing offer, and the
+                 engine clears both signatures on any proposal, so changing the terms IS a
+                 counter-proposal - but nothing on screen said so, and a player who had signed was
+                 left looking at live-looking controls with a dead button beside them. -->
+            {#if gameSession.isNegotiator && negotiation.offer}
+                {#if gameSession.hasSignedNegotiationOffer}
+                    <span class="text-black/60 text-[16px]">
+                        Signed. Waiting for {@render playerPill(
+                            negotiation.playerIds.find((id) => id !== gameSession.myPlayer?.id) ?? ''
+                        )} to sign these terms, or to counter with different ones.
+                    </span>
+                {:else}
+                    <span class="text-black/60 text-[16px]">
+                        Sign to accept these terms as they stand, or change them to counter - which
+                        withdraws the other signature and sends it back.
+                    </span>
+                {/if}
+            {/if}
         </div>
     {/if}
 
