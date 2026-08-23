@@ -749,6 +749,20 @@
         return isLegalCastleSquare(col, row)
     }
 
+    // The knight that would land here, drawn under the cursor exactly as the castle is. Covers
+    // every knight the board ever asks for - the one beside a castle during setup, a knight in
+    // regular play, and Renegade's replacement - because it defers to showsLegalHighlight for
+    // "would this square take the piece being placed", which already knows all three.
+    //
+    // The castle preview wins where both could apply: during the castle stage showsLegalHighlight
+    // is listing castle squares, and a knight drawn on one would be answering a question nobody
+    // asked yet.
+    function isKnightPreviewSquare(col: number, row: number): boolean {
+        if (isCastlePreviewSquare(col, row)) return false
+        if (hoveredSquare?.col !== col || hoveredSquare?.row !== row) return false
+        return showsLegalHighlight(col, row)
+    }
+
     // How opening placement tells the player where a piece may go. Three treatments, all kept,
     // because which one reads best is a question for the eye rather than the code:
     //
@@ -1182,12 +1196,16 @@
                                 {@render pieceIcon(castleFill, castleLines, placementColor)}
                             </div>
                         {/if}
-                        <!-- The circle is suppressed on the square the hover preview is drawn on,
-                             just above: the castle already says this square will take one, and a
-                             ring around it is the same claim twice. Tied to the preview rather
-                             than to hover itself, so hovering during the KNIGHT stage - which has
-                             no preview - does not blank the only mark on the square. -->
-                        {#if showsLegalHighlight(col, row) && !isCastlePreviewSquare(col, row) && legalHintColor}
+                        {#if isKnightPreviewSquare(col, row) && legalHintColor}
+                            <!-- The knight that would land here, same treatment as the castle. -->
+                            <div class="absolute inset-0 pointer-events-none opacity-60">
+                                {@render pieceIcon(knightFill, knightLines, legalHintColor, -1)}
+                            </div>
+                        {/if}
+                        <!-- The dot is suppressed under either preview: the piece drawn there
+                             already says the square will take one, and a dot beside it is the same
+                             claim twice. -->
+                        {#if showsLegalHighlight(col, row) && !isCastlePreviewSquare(col, row) && !isKnightPreviewSquare(col, row) && legalHintColor}
                             {@const hintColor = gameSession.colors.getUiColor(legalHintColor)}
                             <!-- A filled disc, about a third of the square. r 1.85 of the
                                  ten-unit viewBox is a 3.7-unit diameter - the same outer edge the

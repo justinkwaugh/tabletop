@@ -91,9 +91,6 @@
                 {cards.length}
             </span>
         {/if}
-        <span class="mt-2 block text-center text-white text-lg font-semibold tracking-wide">
-            Pile {which}
-        </span>
     </button>
 {/snippet}
 
@@ -113,7 +110,10 @@
                 ? `left: ${boardCenter.x}px; top: ${boardCenter.y}px; transform: translate(-50%, -50%);`
                 : ''}
         >
-            <div class="text-center text-white text-2xl font-semibold mb-4 drop-shadow">
+            <!-- w-fit mx-auto so the heading centres over the PILES: this column is positioned
+                 from the board's centre point, and a full-width heading centred in it drifts off
+                 the row of piles below, which is the widest thing in here. -->
+            <div class="w-fit mx-auto text-center text-white text-2xl font-semibold mb-4 drop-shadow">
                 {gameSession.selectedPoliticsPile
                     ? 'Click your pile to look through it again.'
                     : 'Choose a politics pile to look through.'}
@@ -129,7 +129,7 @@
                     {gameSession.errorMessage}
                 </div>
             {/if}
-            <div class="flex items-start gap-10">
+            <div class="flex w-fit mx-auto items-start gap-10">
                 {@render pile('A', pileA)}
                 {@render pile('B', pileB)}
             </div>
