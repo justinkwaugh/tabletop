@@ -111,8 +111,47 @@ export class LowenherzGameSession extends GameSession<
 
     // Per-player draft bids. A duel bid is a one-shot commitment per player, unlike negotiation's
     // single shared offer, so each duelist gets their own.
-    duelBidAmounts: Record<string, number> = $state({})
-    testBiddingForPlayerId: string | undefined = $state(undefined)
+    // Keyed to the duel they were entered for. A re-duel replaces gameState.duel outright, never
+    // passing through undefined, so an effect had to keep a signature of its own to notice the
+    // change and zero the bids; keying them means a new duel reads as no bids at all.
+    private duelBids: { signature: string; amounts: Record<string, number> } | undefined =
+        $state(undefined)
+    private duelTestBidder: { signature: string; playerId: string } | undefined = $state(undefined)
+
+    // The duel being bid in: its slot, its players, and how many ties it has been through. Any of
+    // those changing is a different duel.
+    private get duelSignature(): string | undefined {
+        const duel = this.gameState.duel
+        if (!duel) return undefined
+        return `${duel.slot}:${duel.playerIds.join(',')}:${duel.tieCount}`
+    }
+
+    get duelBidAmounts(): Record<string, number> {
+        const signature = this.duelSignature
+        if (!signature || this.duelBids?.signature !== signature) return {}
+        return this.duelBids.amounts
+    }
+
+    setDuelBidAmount(playerId: string, amount: number) {
+        const signature = this.duelSignature
+        if (!signature) return
+        const amounts =
+            this.duelBids?.signature === signature ? { ...this.duelBids.amounts } : {}
+        amounts[playerId] = amount
+        this.duelBids = { signature, amounts }
+    }
+
+    get testBiddingForPlayerId(): string | undefined {
+        const signature = this.duelSignature
+        if (!signature || this.duelTestBidder?.signature !== signature) return undefined
+        return this.duelTestBidder.playerId
+    }
+
+    setTestBiddingForPlayerId(playerId: string | undefined) {
+        const signature = this.duelSignature
+        if (!signature) return
+        this.duelTestBidder = playerId === undefined ? undefined : { signature, playerId }
+    }
 
     get canPlaceCastle(): boolean {
         if (!this.myPlayer) return false
@@ -858,7 +897,7 @@ export class LowenherzGameSession extends GameSession<
             ...(treasureCardId ? { treasureCardId } : {})
         })
         this.errorMessage = undefined
-        this.selectedTreasureCardId = undefined
+        this.armedTreasure = undefined
         try {
             await this.applyAction(action)
         } catch (e) {
@@ -968,10 +1007,28 @@ export class LowenherzGameSession extends GameSession<
     // purely local UI selection, same pattern as selectedExpandRegionId. Only actually
     // applied to a knight placement when the target square is wooded (see
     // placeKnight/legalKnightSquares) - arming one doesn't make other squares illegal.
-    selectedTreasureCardId: string | undefined = $state(undefined)
+    // The armed card, recorded with the duel it was armed during - or with no duel, since a
+    // Treasure is also armed to pay for a wooded knight placement.
+    //
+    // Keeping the duel alongside it is what stops an armed card riding into a RE-duel: the
+    // signature changes, the record stops matching, and it reads as unarmed. An effect used to
+    // notice the new duel and unarm it.
+    private armedTreasure: { cardId: string; duelSignature: string | undefined } | undefined =
+        $state(undefined)
+
+    private get selectedTreasureCardId(): string | undefined {
+        const armed = this.armedTreasure
+        if (!armed) return undefined
+        // Armed outside a duel survives one starting; armed DURING a duel dies with it.
+        if (armed.duelSignature !== undefined && armed.duelSignature !== this.duelSignature) {
+            return undefined
+        }
+        return armed.cardId
+    }
 
     selectTreasureCard(cardId: string | undefined) {
-        this.selectedTreasureCardId = cardId
+        this.armedTreasure =
+            cardId === undefined ? undefined : { cardId, duelSignature: this.duelSignature }
     }
 
     // The armed card itself, but only while arming it still means anything: it has to be
@@ -1025,7 +1082,7 @@ export class LowenherzGameSession extends GameSession<
         }
 
         this.errorMessage = undefined
-        this.selectedTreasureCardId = undefined
+        this.armedTreasure = undefined
         try {
             await this.applyAction(action)
         } catch (e) {
@@ -1043,7 +1100,7 @@ export class LowenherzGameSession extends GameSession<
         // Declining the rest of the action also disarms any Treasure card armed for it -
         // belt and braces alongside selectedTreasureCard's window check, so the local
         // selection doesn't outlive the thing it was armed for.
-        this.selectedTreasureCardId = undefined
+        this.armedTreasure = undefined
 
         const action = this.createPlayerAction(Pass, {})
         this.errorMessage = undefined
@@ -1588,8 +1645,12 @@ export class LowenherzGameSession extends GameSession<
     renegadeEnemyRegionId: string | undefined = $state(undefined)
     renegadeRemovedSquare: { col: number; row: number } | undefined = $state(undefined)
 
+    // Only true while playing one is still legal. The window can close from under the player - the
+    // slot resolves, the card leaves the hand, the phase moves on - and an effect used to notice
+    // that and cancel afterwards. Derived, it simply stops being true, and the four selections
+    // below stop being read.
     get isPlayingRenegadeCard(): boolean {
-        return this.renegadeCardId !== undefined
+        return this.renegadeCardId !== undefined && this.canPlayRenegadeCard
     }
 
     startPlayingRenegadeCard(cardId: string) {
@@ -1819,8 +1880,9 @@ export class LowenherzGameSession extends GameSession<
     allianceCardId: string | undefined = $state(undefined)
     allianceOwnRegionId: string | undefined = $state(undefined)
 
+    // Same as isPlayingRenegadeCard: true only while it is still legal to be playing one.
     get isPlayingAllianceCard(): boolean {
-        return this.allianceCardId !== undefined
+        return this.allianceCardId !== undefined && this.canPlayAllianceCard
     }
 
     startPlayingAllianceCard(cardId: string) {

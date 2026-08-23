@@ -406,24 +406,13 @@
     // option appears, and a stored choice is by definition the deliberate one - so the flag that
     // used to tell those two apart is gone with them.
 
-    // Starting to play a Renegade/Alliance card is local-only UI state (see
-    // startPlayingRenegadeCard/startPlayingAllianceCard) - nothing else clears it if
-    // the window to actually play one closes out from under the player, whether
-    // because the round simply moved on (into negotiation/dueling) or an Undo
-    // reverted past the point where it was legal. Without this, the status message
-    // could keep saying "Playing Renegade..."/"Playing Alliance..." long after that
-    // stopped being true, with whatever comes next (a negotiation offer, a duel)
-    // rendering right alongside the stale text.
-    $effect(() => {
-        if (gameSession.isPlayingRenegadeCard && !gameSession.canPlayRenegadeCard) {
-            gameSession.cancelPlayingRenegadeCard()
-        }
-    })
-    $effect(() => {
-        if (gameSession.isPlayingAllianceCard && !gameSession.canPlayAllianceCard) {
-            gameSession.cancelPlayingAllianceCard()
-        }
-    })
+    // Starting to play a Renegade/Alliance card is local-only UI state, and the window to play
+    // one can close from under the player - the slot resolves, the phase moves on. Two effects
+    // used to notice that and cancel the play afterwards.
+    //
+    // GameSession.isPlayingRenegadeCard / isPlayingAllianceCard now answer false the moment
+    // playing one stops being legal, so there is nothing to cancel: the flow reads as not in
+    // progress, and the card id it left behind is never consulted again.
 
     // Floating "+N"/"-N" popups near wherever a region was just created, expanded,
     // invaded, or shrunk - one per scoring event, in the affected player's color,

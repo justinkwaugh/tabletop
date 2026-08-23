@@ -352,31 +352,10 @@
     // The negotiation half of the same pair, on the same gate - see SHOW_DUEL_TEST_CONTROLS above.
     const SHOW_NEGOTIATION_TEST_CONTROLS = $derived(gameSession.showDebug)
 
-    let lastSeenDuelSignature: string | undefined = undefined
-
-    $effect(() => {
-        const duel = gameSession.gameState.duel
-        if (!duel) {
-            lastSeenDuelSignature = undefined
-            gameSession.duelBidAmounts = {}
-            gameSession.testBiddingForPlayerId = undefined
-            return
-        }
-        // A re-duel replaces gameState.duel directly (never passing through
-        // undefined in between - same reason negotiation needed this treatment), so
-        // this signature - not "was there an empty tick" - is what detects a fresh
-        // round and resets every bid back to 0 rather than carrying over stale
-        // amounts (which could exceed a player's CURRENT money if it changed since).
-        const signature = `${duel.slot}:${duel.playerIds.join(',')}:${duel.tieCount}`
-        if (signature !== lastSeenDuelSignature) {
-            lastSeenDuelSignature = signature
-            gameSession.duelBidAmounts = {}
-            gameSession.testBiddingForPlayerId = undefined
-            // A card armed for the previous round shouldn't silently ride along into
-            // the re-duel - the player re-applies it if they still want to spend it.
-            gameSession.selectTreasureCard(undefined)
-        }
-    })
+    // Nothing resets the bids between duels any more. They are keyed to the duel they were
+    // entered for (see GameSession.duelBidAmounts), as is an armed Treasure card, so a re-duel
+    // reads as no bids and nothing armed rather than being cleared afterwards. That also retired a
+    // high-water-mark variable kept solely so an effect could tell one duel from the next.
 
     // Whether the castle about to be placed belongs to the neutral prince rather than to the
     // player placing it. Asked of the colour rather than of the player count: the closing laps
@@ -432,7 +411,7 @@
         class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
         disabled={bidAmount <= 0}
         onclick={() => {
-            gameSession.duelBidAmounts[playerId] = Math.max(0, bidAmount - 1)
+            gameSession.setDuelBidAmount(playerId, Math.max(0, bidAmount - 1))
         }}
     >
         −
@@ -443,7 +422,7 @@
         class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
         disabled={bidAmount >= maxAmount}
         onclick={() => {
-            gameSession.duelBidAmounts[playerId] = bidAmount + 1
+            gameSession.setDuelBidAmount(playerId, bidAmount + 1)
         }}
     >
         +
@@ -996,7 +975,7 @@
                                     class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
                                     onclick={() => {
                                         gameSession.debugSubmitDuelBidAs(playerId, bidAmount)
-                                        gameSession.testBiddingForPlayerId = undefined
+                                        gameSession.setTestBiddingForPlayerId(undefined)
                                     }}
                                 >
                                     submit (test)
@@ -1006,7 +985,7 @@
                                     type="button"
                                     title="Temporary solo-testing stand-in for a second session/tab"
                                     class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
-                                    onclick={() => (gameSession.testBiddingForPlayerId = playerId)}
+                                    onclick={() => (gameSession.setTestBiddingForPlayerId(playerId))}
                                 >
                                     bid for {playerName(gameSession, playerId)} (test)
                                 </button>
