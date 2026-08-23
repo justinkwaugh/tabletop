@@ -75,8 +75,13 @@
 
     // Pattern C, pre-reactivity override: the card being flipped comes from the action's own `to`
     // state, because for the whole length of the flip the derived `card` below is still the
-    // PREVIOUS one. Nothing clears this - it stops being rendered the moment reactive state
-    // catches up and `card.id` matches, which is the pattern's "let state naturally supersede it".
+    // PREVIOUS one.
+    //
+    // Its lifetime is exactly one action - set as the tween is built, dropped in
+    // afterAnimations, which is the last hook before the session assigns the new state (see the
+    // Transient Lifetime Rules in ANIMATION_PATTERN.md: action-scoped transients belong there).
+    // Both writes land in the same microtask drain as the state assignment, so no frame can paint
+    // between the flip node leaving and the real card arriving.
     let flippingCard: ActionCardData | undefined = $state(undefined)
 
     async function flipInDrawnCard(drawn: ActionCardData, animationContext: AnimationContext) {
@@ -102,6 +107,14 @@
             dx = fromRect.left + fromRect.width / 2 - (toRect.left + toRect.width / 2)
             dy = fromRect.top + fromRect.height / 2 - (toRect.top + toRect.height / 2)
         }
+
+        // Leaving this set past its own action was a bug: `card` goes undefined every time a card
+        // is used up, so a stale override matched "the state is not showing my card" all over
+        // again and re-mounted the flip node - un-tweened, at rotationY 0, which is the card back.
+        // A used card is meant to simply disappear.
+        animationContext.afterAnimations(() => {
+            flippingCard = undefined
+        })
 
         gsap.set(flipNode, { x: dx, y: dy, rotationY: 0, transformOrigin: 'center center' })
         animationContext.actionTimeline.to(
@@ -215,7 +228,7 @@
         style="perspective: 900px;"
         bind:this={middleSlotEl}
     >
-        {#if flippingCard && flippingCard.id !== card?.id}
+        {#if flippingCard}
             <div
                 bind:this={flipNode}
                 class="relative w-full aspect-[546/840] pointer-events-none"
