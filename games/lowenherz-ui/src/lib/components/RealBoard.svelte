@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte'
+    import { gsap } from 'gsap'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { Color, GameAction } from '@tabletop/common'
     import {
@@ -426,16 +427,61 @@
     // anchorSquareKey fields on PlaceWallMetadata/ExpandRegionMetadata.
     type ScorePopup = { id: string; col: number; row: number; text: string; color: string }
     let popups: ScorePopup[] = $state([])
-    const POPUP_LIFETIME_MS = 4000
+    let popupSeq = 0
+
+    // Timings for one popup's life, in seconds, all owned by gsap below. They used to be owned
+    // twice - a 4s CSS keyframe for the motion and a 4000ms setTimeout for the removal - which
+    // could only ever agree by hand, and drifted the moment either was tuned.
+    const POPUP_APPEAR_S = 0.18
+    const POPUP_HOLD_S = 2.2
+    const POPUP_FLOAT_S = 1.6
 
     function addPopup(anchorKey: string, amount: number, color: string) {
         if (amount === 0) return
         const [col, row] = anchorKey.split(',').map(Number)
-        const id = `${Date.now()}-${Math.random()}`
+        // A plain counter, not Date.now()/Math.random(): this id exists only to key the each
+        // block, and a monotonic one cannot collide when several popups are added in one action.
+        const id = `popup-${++popupSeq}`
         popups = [...popups, { id, col, row, text: amount > 0 ? `+${amount}` : `${amount}`, color }]
-        setTimeout(() => {
-            popups = popups.filter((p) => p.id !== id)
-        }, POPUP_LIFETIME_MS)
+    }
+
+    // The popup's motion belongs to the node's own lifetime, so it is attached to the node and
+    // gsap's onComplete is the single owner of when the popup goes away.
+    //
+    // Deliberately NOT on the shared actionTimeline, unlike the card flip in DeckPiles: the
+    // session holds the reactive state update until that timeline finishes, so putting a
+    // multi-second float on it would stall the board after every scoring action. A popup is an
+    // annotation that outlives the state change rather than part of the action's own motion - so
+    // it gets its own timeline, and the transient state exists only for presence (the tween never
+    // writes reactive state per frame; it writes it once, at the end, to unmount the node).
+    function floatPopup(id: string) {
+        return (node: HTMLElement) => {
+            // xPercent/yPercent centre the popup on its anchor and compose with the y tween
+            // below, so gsap can own the whole transform - the old keyframes did the centring
+            // with a translate(-50%, -50%) baked into every frame.
+            gsap.set(node, { xPercent: -50, yPercent: -50, transformOrigin: 'center center' })
+            const timeline = gsap.timeline()
+            timeline.fromTo(
+                node,
+                { scale: 0.6, opacity: 0 },
+                { scale: 1, opacity: 1, duration: POPUP_APPEAR_S, ease: 'back.out(2)' },
+                0
+            )
+            timeline.to(
+                node,
+                {
+                    y: -32,
+                    opacity: 0,
+                    duration: POPUP_FLOAT_S,
+                    ease: 'power1.out',
+                    onComplete: () => {
+                        popups = popups.filter((popup) => popup.id !== id)
+                    }
+                },
+                POPUP_APPEAR_S + POPUP_HOLD_S
+            )
+            return () => timeline.kill()
+        }
     }
 
     function popupsForCompletedRegions(
@@ -1594,10 +1640,11 @@
             ></button>
         {/each}
 
-        <!-- Floating score-change popups (see the $effect above) -->
+        <!-- Floating score-change popups - see addPopup/floatPopup above -->
         {#each popups as popup (popup.id)}
             <div
-                class="score-popup absolute z-50 pointer-events-none rounded-full px-2 py-0.5 text-sm font-bold text-white shadow"
+                {@attach floatPopup(popup.id)}
+                class="absolute z-50 pointer-events-none rounded-full px-2 py-0.5 text-sm font-bold text-white shadow"
                 style="left:{popup.col * CELL_SIZE + CELL_SIZE / 2}px; top:{popup.row *
                     CELL_SIZE}px; background-color:{popup.color};"
             >
@@ -1614,21 +1661,6 @@
 </div>
 
 <style>
-    @keyframes score-popup-float {
-        0% {
-            transform: translate(-50%, -50%) translateY(0);
-            opacity: 1;
-        }
-        100% {
-            transform: translate(-50%, -50%) translateY(-32px);
-            opacity: 0;
-        }
-    }
-
-    .score-popup {
-        animation: score-popup-float 4s ease-out forwards;
-    }
-
     @keyframes ghost-knight-pulse-frames {
         0%,
         100% {
