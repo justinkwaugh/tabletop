@@ -2,7 +2,9 @@
     import { type PoliticsCard, PoliticsCardType } from '@tabletop/lowenherz'
     import allianceImg from '$lib/images/politics-cards/alliance.jpg'
     import renegadeImg from '$lib/images/politics-cards/renegade.jpg'
-    import parchmentFrame from '$lib/images/politics-cards/parchment-frame.jpg'
+    import parchment3 from '$lib/images/politics-cards/parchment-3.jpg'
+    import parchment4 from '$lib/images/politics-cards/parchment-4.jpg'
+    import parchment5 from '$lib/images/politics-cards/parchment-5.jpg'
     import treasure8 from '$lib/images/politics-cards/treasure-8.jpg'
     import treasure10 from '$lib/images/politics-cards/treasure-10.jpg'
     import treasure12 from '$lib/images/politics-cards/treasure-12.jpg'
@@ -15,12 +17,16 @@
     // this isn't enforced server-side).
     let { card, faceDown = false }: { card: PoliticsCard; faceDown?: boolean } = $props()
 
-    const numeralStyle = "font-family:'DejaVu Serif', 'Liberation Serif', Georgia, 'Times New Roman', serif"
+    // One image per value, since every card's number is printed on its own art. Keyed by the value
+    // the engine deals - politicsCards.ts types them 3 | 4 | 5 and 8 | 10 | 12 | 15 - so a value
+    // with no art draws nothing rather than the wrong card. Louder than a silent fallback, and
+    // unreachable unless a deck gains a new value.
+    const parchmentImages: Record<number, string> = {
+        3: parchment3,
+        4: parchment4,
+        5: parchment5
+    }
 
-    // One image per Treasure value, since each card's number is printed on its own art. Keyed by
-    // the value the engine deals - politicsCards.ts types it 8 | 10 | 12 | 15 - so a value with no
-    // art draws nothing rather than the wrong card. Louder than a silent fallback, and unreachable
-    // unless the deck gains a new value.
     const treasureImages: Record<number, string> = {
         8: treasure8,
         10: treasure10,
@@ -39,11 +45,15 @@
     {:else if card.type === PoliticsCardType.Renegade}
         <img src={renegadeImg} alt="Renegade" class="w-full h-full object-cover" />
     {:else if card.type === PoliticsCardType.Parchment}
-        <img src={parchmentFrame} alt="Parchment" class="w-full h-full object-cover" />
-        <div class="absolute inset-x-0 flex items-center justify-center gap-[2cqw]" style="top:73%; height:25%;">
-            <span class="font-bold text-[9cqw] text-[#1a1a1a]" style={numeralStyle}>{card.value}</span>
-            <span class="text-[4.5cqw] text-[#1a1a1a]" style={numeralStyle}>Power points</span>
-        </div>
+        <!-- As with Treasure: the value is printed on the art, one image per card, so nothing is
+             drawn over it. -->
+        {#if card.value !== undefined && parchmentImages[card.value]}
+            <img
+                src={parchmentImages[card.value]}
+                alt="Parchment worth {card.value} power points"
+                class="w-full h-full object-cover"
+            />
+        {/if}
     {:else if card.type === PoliticsCardType.Treasure}
         <!-- No value drawn over this one: it is printed on the art, one image per card. The CSS
              pill that used to carry the number and its unit label went with it. -->
