@@ -293,14 +293,6 @@ export class LowenherzGameSession extends GameSession<
         return plans
     }
 
-    // Whether the sword this step was chosen for has been spent. That is what ends a step and
-    // sends the player back to the question, rather than the stage flags going quiet - after one
-    // knight of a two-sword action, "can you place another knight" is still yes, and reading that
-    // as "carry on" would place both without asking again.
-    get knightStepSpent(): boolean {
-        if (!this.knightPlan) return false
-        return (this.gameState.knightsRemaining ?? 0) < this.knightPlanStartSwords
-    }
 
     // How many swords this knight action started with, for wording it. Read off the band of the
     // slot being resolved - resolvedSlots is pushed before the placement phase, so its length IS
@@ -336,7 +328,7 @@ export class LowenherzGameSession extends GameSession<
         // board went on offering expansion squares and the prompt asked for a first space again.
         if (this.canContinueExpansion) return true
 
-        return this.knightPlan === 'expand' && !this.knightStepSpent && this.canExpandRegion
+        return this.knightPlan === 'expand' && this.canExpandRegion
     }
 
     // The region being expanded turned out to have nowhere legal to grow into. Its sword is better
@@ -353,7 +345,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get knightStageActive(): boolean {
-        return this.knightPlan === 'knight' && !this.knightStepSpent && this.canPlaceAnotherKnight
+        return this.knightPlan === 'knight' && this.canPlaceAnotherKnight
     }
 
     // Public rather than private: the narration deriveds that use these are being moved out of
@@ -1147,16 +1139,29 @@ export class LowenherzGameSession extends GameSession<
     //
     // It exists because knight squares are no longer offered while an expansion is open. Something
     // has to end the expansion, and it cannot be the knight click that used to end it.
-    expansionSecondSpaceDeclined: boolean = $state(false)
+    // Keyed to the expansion it refers to, for the same reason the step choice is keyed to its
+    // step: a decline that applies to THIS expansion cannot leak into the next one, and nothing
+    // has to notice the expansion ended in order to clear it.
+    private declinedExpansion: string | undefined = $state(undefined)
 
     declineSecondSpace() {
-        this.expansionSecondSpaceDeclined = true
+        const openExpansion = this.openExpansionId
+        if (openExpansion) this.declinedExpansion = openExpansion
+    }
+
+    // Identifies the expansion currently open, action and region together - the same region can be
+    // expanded again in a later action, and that is a different expansion.
+    private get openExpansionId(): string | undefined {
+        const regionId = this.gameState.expandingRegionId
+        if (!regionId) return undefined
+        return `${this.currentKnightActionKey ?? 'none'}:${regionId}`
     }
 
     // The optional second space of an expansion already under way. Costs no sword - it was paid
     // for by the one that started it - so it outlives the step that bought it.
     get canContinueExpansion(): boolean {
-        return this.gameState.expandingRegionId !== undefined && !this.expansionSecondSpaceDeclined
+        const openExpansion = this.openExpansionId
+        return openExpansion !== undefined && this.declinedExpansion !== openExpansion
     }
 
     // Which shape the winner of a knight action has declared they're taking. A one-sword
@@ -1166,14 +1171,28 @@ export class LowenherzGameSession extends GameSession<
     // every click after that is unambiguous. Purely local UI intent, like
     // selectedExpandRegionId - the engine only ever sees the individual
     // PlaceKnight/ExpandRegion actions this produces, and never enforces the order.
-    knightPlan: KnightPlan | undefined = $state(undefined)
-    // The sword count when the plan was picked, so knightPlanHasProgress can tell "just
-    // chose a plan" (Undo should drop the plan) from "already placed/expanded something"
-    // (Undo should revert that real action instead). Also what tells the plan's stages
-    // apart: knightsRemaining below this means the knight half has been spent.
-    knightPlanStartSwords = $state(0)
-    // Which knight action the plan belongs to - see currentKnightActionKey.
-    private knightPlanActionKey: string | undefined = undefined
+    // The choice, recorded against the STEP it was made for rather than as a bare value. That is
+    // what makes it expire on its own: spending a sword changes the step id, so the stored choice
+    // stops matching and knightPlan derives undefined - the next question is asked without anything
+    // having to notice the sword was spent and clear up afterwards.
+    //
+    // Which is the repository's rule 34/35, and not merely the letter of it: the version that DID
+    // notice and clear produced exactly the loop rule 24 warns about. Undo dropped the step, an
+    // effect re-selected it, and the button appeared dead.
+    private chosenStep: { stepId: string; plan: KnightPlan } | undefined = $state(undefined)
+
+    // The step currently being answered: the action, plus how many swords are left to spend on it.
+    private get knightStepId(): string | undefined {
+        const actionKey = this.currentKnightActionKey
+        if (!actionKey) return undefined
+        return `${actionKey}:${this.gameState.knightsRemaining ?? 0}`
+    }
+
+    get knightPlan(): KnightPlan | undefined {
+        const stepId = this.knightStepId
+        if (!stepId || this.chosenStep?.stepId !== stepId) return undefined
+        return this.chosenStep.plan
+    }
 
     // Identifies the knight action currently being performed: the action card, how many
     // slots had resolved when it started (pushed before the placement phase and stable
@@ -1188,50 +1207,18 @@ export class LowenherzGameSession extends GameSession<
 
     selectKnightPlan(plan: KnightPlan) {
         this.errorMessage = undefined
-        this.knightPlan = plan
-        this.knightPlanActionKey = this.currentKnightActionKey
-        this.knightPlanStartSwords = this.gameState.knightsRemaining ?? 0
+        const stepId = this.knightStepId
+        if (!stepId) return
+        this.chosenStep = { stepId, plan }
     }
 
     clearKnightPlan() {
-        this.endKnightStep()
+        this.chosenStep = undefined
         this.cancelExpansion()
     }
 
-    // Ends the current step without touching the expansion selection.
-    //
-    // clearKnightPlan cancels that selection too, which is right when the player is backing out,
-    // and wrong when a step has simply finished: the expansion it started may still have its
-    // second space to give, and expansionSquares reads [] with no region selected - so clearing it
-    // made "has anything happened yet?" answer no, and Undo offered to cancel a step instead of
-    // reverting the expansion.
-    endKnightStep() {
-        this.knightPlan = undefined
-        this.knightPlanActionKey = undefined
-        this.knightPlanStartSwords = 0
-    }
 
-    private resetExpansionDecline() {
-        this.expansionSecondSpaceDeclined = false
-    }
 
-    // Drops a plan that belongs to some EARLIER knight action - a different player's, or
-    // a later action of this player's own. Deliberately keeps the plan while the phase is
-    // merely closed (no knightPlacingPlayerId): an Undo that steps back into a knight
-    // action that had already finished has to find its plan intact, or the player lands
-    // in the plan chooser looking at a part-spent two-sword action being described as a
-    // fresh one-sword one.
-    syncKnightPlanWithState() {
-        // A finished expansion cannot be declined again, and a new action starts undeclined.
-        if (this.gameState.expandingRegionId === undefined) this.resetExpansionDecline()
-
-        if (!this.knightPlan) return
-        const key = this.currentKnightActionKey
-        if (key && key !== this.knightPlanActionKey) {
-            this.clearKnightPlan()
-            this.resetExpansionDecline()
-        }
-    }
 
     // Whether this knight ACTION has produced anything real yet - which decides whether Undo
     // cancels a choice or reverts a move.

@@ -377,9 +377,9 @@
     // making it look like there was nothing to click. Keyed to the action itself rather
     // than "the placing player changed", so an Undo that steps back into an action that
     // had already ended keeps its plan (see syncKnightPlanWithState).
-    $effect(() => {
-        gameSession.syncKnightPlanWithState()
-    })
+    // No effect keeps the step choice in step with game state any more. The choice is stored
+    // against the step it was made for, so a stale one simply stops matching - see
+    // GameSession.knightPlan.
 
     // Also declared in StatusMessages, which owns the buttons. Two lines in two places rather
     // than a session method, because the write it makes is to session state either way and the
@@ -400,13 +400,6 @@
     // to clicking the board. That also covers a step whose option dies mid-action: place a knight,
     // find the stock empty for the second, and the leftover sword auto-selects the expansion.
     $effect(() => {
-        if (gameSession.knightStepSpent) {
-            // endKnightStep, not clearKnightPlan: the step is over but the expansion it may have
-            // started is not, and cancelling the region selection would both hide its second space
-            // and make Undo think nothing had happened.
-            gameSession.endKnightStep()
-            return
-        }
         if (!gameSession.knightPlan) {
             if (availableKnightPlans.length === 1) choosePlan(availableKnightPlans[0])
         } else if (gameSession.canPlaceKnight && !expandStageActive && !knightStageActive) {
