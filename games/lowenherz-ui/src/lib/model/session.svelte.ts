@@ -220,7 +220,20 @@ export class LowenherzGameSession extends GameSession<
         this.duelTestBidder = playerId === undefined ? undefined : { signature, playerId }
     }
 
+    // While the history controls have the board rewound, nothing on screen is an offer. Every
+    // gate below opens with this, so an affordance cannot appear against a state the player is
+    // only looking at - a rewound politics phase invited the viewer to open a pile and pick a
+    // card, which both revealed a hidden pile and then failed, since the action does not belong
+    // to the state being viewed.
+    //
+    // Guarded here rather than in each component: these getters are what the components ask, and
+    // there are a dozen of them against three that were remembering to check.
+    private get canActNow(): boolean {
+        return !this.isViewingHistory
+    }
+
     get canPlaceCastle(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer) return false
         return HydratedPlaceCastle.canPlaceCastle(this.gameState, this.myPlayer.id)
     }
@@ -747,6 +760,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get canDrawActionCard(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer) return false
         return HydratedDrawActionCard.canDrawActionCard(this.gameState, this.myPlayer.id)
     }
@@ -765,6 +779,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get canChooseAction(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer) return false
         return HydratedChooseAction.canChooseAction(this.gameState, this.myPlayer.id)
     }
@@ -863,6 +878,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get canSignNegotiationOffer(): boolean {
+        if (!this.canActNow) return false
         if (!this.isNegotiator) return false
         // A Sign with no standing offer is rejected by the engine
         // (NegotiationMove.invalidNegotiationMoveReason), so signing has to be paired with a
@@ -931,6 +947,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get canSubmitDuelBid(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer) return false
         const duel = this.gameState.duel
         if (!duel) return false
@@ -1003,6 +1020,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get canPlaceWall(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer) return false
         return (
             this.gameState.machineState === MachineState.PlacingWalls &&
@@ -1063,6 +1081,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get canPlaceKnight(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer) return false
         return (
             this.gameState.machineState === MachineState.PlacingKnights &&
@@ -1279,6 +1298,7 @@ export class LowenherzGameSession extends GameSession<
     // The optional second space of an expansion already under way. Costs no sword - it was paid
     // for by the one that started it - so it outlives the step that bought it.
     get canContinueExpansion(): boolean {
+        if (!this.canActNow) return false
         const openExpansion = this.openExpansionId
         return openExpansion !== undefined && this.declinedExpansion !== openExpansion
     }
@@ -1563,6 +1583,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get canTakePoliticsCard(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer) return false
         return (
             this.gameState.machineState === MachineState.TakingPoliticsCard &&
@@ -1688,6 +1709,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get canPlayRenegadeCard(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer || !this.canChooseAction) return false
         const playerState = this.gameState.getPlayerState(this.myPlayer.id)
         if (playerState.knightsInStock <= 0) return false
@@ -1929,6 +1951,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get canPlayAllianceCard(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer || !this.canChooseAction) return false
         const playerState = this.gameState.getPlayerState(this.myPlayer.id)
         if (!playerState.politicsCards.some((c) => c.type === PoliticsCardType.Alliance)) return false
