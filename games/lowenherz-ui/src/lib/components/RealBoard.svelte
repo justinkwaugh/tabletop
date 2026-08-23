@@ -385,7 +385,6 @@
     // than a session method, because the write it makes is to session state either way and the
     // indirection would hide that.
     function choosePlan(plan: KnightPlan) {
-        gameSession.expansionWasAvailableAtPlanTime = gameSession.canStartExpansion
         gameSession.selectKnightPlan(plan)
     }
 
@@ -396,60 +395,16 @@
     // is the first one asked twice, and it narrows itself because canStartExpansion is already
     // false once an expansion has been used.
     //
-    // With only one option there is nothing to choose, so it is taken and the player goes straight
-    // to clicking the board. That also covers a step whose option dies mid-action: place a knight,
-    // find the stock empty for the second, and the leftover sword auto-selects the expansion.
-    $effect(() => {
-        if (!gameSession.knightPlan) {
-            if (availableKnightPlans.length === 1) choosePlan(availableKnightPlans[0])
-        } else if (gameSession.canPlaceKnight && !expandStageActive && !knightStageActive) {
-            gameSession.clearKnightPlan()
-        }
-    })
-
-
-
-    // A step spent on expanding. There is no longer a composite plan that "includes" an
-    // expansion - each sword is chosen for one thing - so this is now just the step itself.
-    const planIncludesExpansion = $derived(gameSession.knightPlan === 'expand')
-
-    // A player's own move can unlock an option they were never offered: placing the first
-    // knight can tip a neighbour's count so it can finally be outnumbered, and breaking an
-    // alliance mid-action drops the protection that was shutting expansion out. Both leave
-    // a plan on file - auto-selected, since "two knights" was the only shape available -
-    // that no longer reflects what's possible.
+    // Four effects used to live here: auto-select the only step, drop a step whose half had
+    // closed, drop a step when expansion turned out to be possible after all, cancel a region
+    // selection when the expanding stage closed, and auto-select a lone region. Every one watched
+    // state and then wrote or cleared local UI state - rule 35's exact prohibition, and the shape
+    // that produced the Undo loop.
     //
-    // So when expansion becomes possible mid-action and the plan has none in it, drop the
-    // plan and let the choice be made again for the swords that are left. Only local intent
-    // is cleared; anything already placed stays put. Guarded so it can't overturn a genuine
-    // decision (gameSession.expansionWasAvailableAtPlanTime) or interrupt an expansion under way.
-    $effect(() => {
-        if (!gameSession.canPlaceKnight) return
-        if (!gameSession.knightPlan || planIncludesExpansion) return
-        if (gameSession.expansionWasAvailableAtPlanTime) return
-        if (gameSession.gameState.expandingRegionId !== undefined) return
-        if (!gameSession.canStartExpansion) return
-        gameSession.clearKnightPlan()
-    })
-
-    // A region picked to expand outlives its usefulness the moment the expanding stage
-    // closes (the expansion finished, a knight was placed instead, or the action ended).
-    $effect(() => {
-        if (!expandStageActive && gameSession.selectedExpandRegionId) gameSession.cancelExpansion()
-    })
-
-    // One region means there's nothing to pick - jump straight to choosing spaces. Also
-    // covers re-entering an expansion the engine still has open (expandableRegions is
-    // just that region then), so its 2nd space can't be misdirected at another region.
-    $effect(() => {
-        if (
-            expandStageActive &&
-            !gameSession.selectedExpandRegionId &&
-            gameSession.expandableRegions.length === 1
-        ) {
-            gameSession.selectRegionToExpand(gameSession.expandableRegions[0].id)
-        }
-    })
+    // They are all derivations now, in GameSession.knightPlan and .selectedExpandRegionId. An
+    // auto-selection that is derived rather than written stops applying by itself when a second
+    // option appears, and a stored choice is by definition the deliberate one - so the flag that
+    // used to tell those two apart is gone with them.
 
     // Starting to play a Renegade/Alliance card is local-only UI state (see
     // startPlayingRenegadeCard/startPlayingAllianceCard) - nothing else clears it if

@@ -105,11 +105,6 @@ export class LowenherzGameSession extends GameSession<
     //
     // The EFFECTS that maintain these stay in whichever component renders the panel: $effect needs
     // an owner and a session class is not one. What lives here is the value, not the syncing.
-    // Whether expanding was on the table when the player picked their knight-action plan. Written
-    // by the plan buttons in the status panel, read by the board when deciding what a click means -
-    // so it belongs to neither.
-    expansionWasAvailableAtPlanTime: boolean = $state(false)
-
     negotiationProposerId: string | undefined = $state(undefined)
     negotiationAmount: number = $state(0)
     frozenNegotiation: Negotiation | undefined = $state(undefined)
@@ -1190,8 +1185,24 @@ export class LowenherzGameSession extends GameSession<
 
     get knightPlan(): KnightPlan | undefined {
         const stepId = this.knightStepId
-        if (!stepId || this.chosenStep?.stepId !== stepId) return undefined
-        return this.chosenStep.plan
+        const stored =
+            stepId && this.chosenStep?.stepId === stepId ? this.chosenStep.plan : undefined
+
+        // A stored choice whose half has since closed is stale - the knight stock ran dry, or the
+        // last region got boxed in - and gives way to whatever is still on offer.
+        if (stored && this.knightPlanStillOpen(stored)) return stored
+
+        // With one option there is nothing to choose, so it counts as chosen. Derived rather than
+        // written: an auto-selection that is not stored anywhere simply stops applying the moment a
+        // second option appears, which is what an effect used to have to notice and undo. It is
+        // also what tells an auto-selection from a deliberate one - only the deliberate one is
+        // stored, so only it survives the arrival of a second option.
+        const options = this.availableKnightPlans
+        return options.length === 1 ? options[0] : undefined
+    }
+
+    private knightPlanStillOpen(plan: KnightPlan): boolean {
+        return plan === 'knight' ? this.canPlaceAnotherKnight : this.canExpandRegion
     }
 
     // Identifies the knight action currently being performed: the action card, how many
@@ -1248,8 +1259,23 @@ export class LowenherzGameSession extends GameSession<
         return this.gameState.expandingRegionId !== undefined ? 1 : 0
     }
 
-    // The region currently being expanded (auto-selected if the player only owns one).
-    selectedExpandRegionId: string | undefined = $state(undefined)
+    // The region being expanded. Stored only when the player actually picks one.
+    private chosenExpandRegion: string | undefined = $state(undefined)
+
+    // Reads as nothing at all once the expanding stage closes - the expansion finished, a knight
+    // went down instead, or the action ended - so a stale pick cannot outlive its usefulness and
+    // nothing has to notice the stage closing in order to drop it.
+    //
+    // One region means there is nothing to pick, so it counts as picked. That also covers
+    // re-entering an expansion the engine still has open, where expandableRegions is exactly that
+    // region, so a second space cannot be misdirected at another one.
+    get selectedExpandRegionId(): string | undefined {
+        if (!this.expandStageActive) return undefined
+        if (this.chosenExpandRegion) return this.chosenExpandRegion
+
+        const regions = this.expandableRegions
+        return regions.length === 1 ? regions[0].id : undefined
+    }
 
     // The 1-2 spaces this expansion has taken, read back off the action log rather than
     // recorded locally as they're clicked. Each space is its own ExpandRegion action,
@@ -1285,13 +1311,13 @@ export class LowenherzGameSession extends GameSession<
         if (!this.canExpandRegion) return
         if (!this.expandableRegions.some((r) => r.id === regionId)) return
         this.errorMessage = undefined
-        this.selectedExpandRegionId = regionId
+        this.chosenExpandRegion = regionId
     }
 
     // Dropping the region selection empties expansionSquares by itself, since that derives
     // from the selected region (see above).
     cancelExpansion() {
-        this.selectedExpandRegionId = undefined
+        this.chosenExpandRegion = undefined
     }
 
     // The engine's own verdict on one hypothetical expansion - undefined if it's legal,

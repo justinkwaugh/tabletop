@@ -88,7 +88,6 @@
     }
 
     function choosePlan(plan: KnightPlan) {
-        gameSession.expansionWasAvailableAtPlanTime = gameSession.canStartExpansion
         gameSession.selectKnightPlan(plan)
     }
 
