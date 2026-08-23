@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount, tick } from 'svelte'
     import { gsap } from 'gsap'
+    import { CARD_COLUMN_WIDTH } from '$lib/model/boardMetrics.js'
     import type { GameAction } from '@tabletop/common'
     import type { AnimationContext } from '@tabletop/frontend-components'
     import type { HydratedLowenherzGameState } from '@tabletop/lowenherz'
@@ -200,7 +201,7 @@
         bind:this={drawPileEl}
         disabled={!gameSession.canDrawActionCard}
         onclick={() => gameSession.drawActionCard()}
-        class="w-[106px] relative shadow-[0_4px_10px_rgba(0,0,0,0.35)] {gameSession.canDrawActionCard
+        style="width: {CARD_COLUMN_WIDTH}px;" class="relative shadow-[0_4px_10px_rgba(0,0,0,0.35)] {gameSession.canDrawActionCard
             ? 'cursor-pointer hover:brightness-95'
             : ''} {gameSession.canDrawActionCard && isFirstRound ? 'draw-pile-glow' : ''}"
     >
@@ -222,10 +223,10 @@
         {/if}
     </button>
     <div
-        class="w-[106px] rounded-md {gameSession.canChooseAction && isFirstRound
+        class="rounded-md {gameSession.canChooseAction && isFirstRound
             ? 'action-card-glow'
             : 'shadow-[0_4px_10px_rgba(0,0,0,0.35)]'}"
-        style="perspective: 900px;"
+        style="width: {CARD_COLUMN_WIDTH}px; perspective: 900px;"
         bind:this={middleSlotEl}
     >
         {#if flippingCard}

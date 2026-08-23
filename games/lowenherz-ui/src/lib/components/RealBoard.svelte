@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte'
     import { gsap } from 'gsap'
+    import { CELL_SIZE, scaled } from '$lib/model/boardMetrics.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { Color, GameAction } from '@tabletop/common'
     import {
@@ -470,7 +471,7 @@
             timeline.to(
                 node,
                 {
-                    y: -32,
+                    y: -POPUP_RISE,
                     opacity: 0,
                     duration: POPUP_FLOAT_S,
                     ease: 'power1.out',
@@ -552,8 +553,28 @@
         return () => gameSession.removeGameStateChangeListener(listener)
     })
 
-    const CELL_SIZE = 44
+    // The board is drawn at BOARD_SCALE x its original 44px cell and ScalingWrapper takes it from
+    // there. The wrapper only ever scales DOWN - its fit is
+    // Math.min(wrapperWidth / contentWidth, wrapperHeight / contentHeight, 1) - so a board sized
+    // for the smallest window can never grow into the space a larger one offers, which is what
+    // held this at 660x440 no matter how much room there was. Sizing it up instead and letting the
+    // wrapper shrink it is the right way round, and it gives the zoom controls levels to work with
+    // again on windows where the board no longer fits at 1:1.
+    //
+    // Everything below that would otherwise be pinned in px is derived from CELL_SIZE, so this one
+    // number moves the whole board: change it and the hearts, arrows, village names, medallions and
+    // score popups all follow. Anything expressed in a viewBox already scales on its own.
     const TILE_SIZE = 5
+
+    // Ratios against the original 44px cell, so proportions are preserved exactly.
+    const px = (atCell44: number) => `${scaled(atCell44)}px`
+    const GLYPH_BOX = px(24)      // heart / burst / arrow box
+    const GLYPH_FONT = px(19)     // the emoji inside it
+    const PIECE_INSET = px(3)     // piece art inset within its square
+    const PRICE_FONT = px(14)
+    const MEDALLION = px(20)
+    const POPUP_FONT = px(14)     // was Tailwind's text-sm
+    const POPUP_RISE = scaled(32)
     const TILE_PX = TILE_SIZE * CELL_SIZE
     // +4 accounts for the squares grid's own border-2 (2px on each side) - explicit
     // pixel sizes (not "auto") so the rampart frame's middle track always matches the
@@ -1095,8 +1116,9 @@
          piece's own silhouette, not a box) helps darker knight colors stay visible
          against busy forest tiles. -->
     <div
-        class="absolute inset-[3px]"
+        class="absolute"
         style="
+            inset: {PIECE_INSET};
             {offsetY ? `transform: translateY(${offsetY}px);` : ''}
             filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 3px rgba(255, 255, 255, 0.8));
         "
@@ -1140,7 +1162,7 @@
     </div>
 {/snippet}
 
-<div class="flex flex-col gap-2 items-center">
+<div class="flex flex-col gap-2 items-center" style="--cell: {CELL_SIZE}px;">
 
     <!-- A hand-hewn castle-wall frame (see RampartBorder/RampartCorner) around the
          actual board content, sized in a 3x3 grid so the border strips stretch to
@@ -1437,7 +1459,7 @@
                         class="absolute flex items-center justify-center z-40 cursor-pointer rounded-full {previewing
                             ? ''
                             : 'alliance-heartbeat'}"
-                        style="left: {left}px; top: {top}px; width: 24px; height: 24px; font-size: 19px;"
+                        style="left: {left}px; top: {top}px; width: {GLYPH_BOX}; height: {GLYPH_BOX}; font-size: {GLYPH_FONT};"
                         onmouseenter={() => (hoveredAllianceId = marker.id)}
                         onmouseleave={() => (hoveredAllianceId = undefined)}
                         onfocus={() => (hoveredAllianceId = marker.id)}
@@ -1465,7 +1487,7 @@
                 {:else}
                     <div
                         class="absolute pointer-events-none flex items-center justify-center z-40"
-                        style="left: {left}px; top: {top}px; width: 24px; height: 24px; font-size: 19px;"
+                        style="left: {left}px; top: {top}px; width: {GLYPH_BOX}; height: {GLYPH_BOX}; font-size: {GLYPH_FONT};"
                     >
                         🩷
                     </div>
@@ -1482,19 +1504,19 @@
                     style="
                         left: {(wall.edge === 'west'
                         ? wall.col * CELL_SIZE
-                        : wall.col * CELL_SIZE + CELL_SIZE / 2) + 12}px;
+                        : wall.col * CELL_SIZE + CELL_SIZE / 2) + scaled(12)}px;
                         top: {(wall.edge === 'west'
                         ? wall.row * CELL_SIZE + CELL_SIZE / 2
-                        : wall.row * CELL_SIZE) - 30}px;
+                        : wall.row * CELL_SIZE) - scaled(30)}px;
                     "
                 >
                     <span
-                        class="text-[14px] font-bold leading-none"
-                        style="color: #7a2e2e; text-shadow: 0 1px 0 rgba(255,255,255,0.8);"
+                        class="font-bold leading-none"
+                        style="font-size: {PRICE_FONT}; color: #7a2e2e; text-shadow: 0 1px 0 rgba(255,255,255,0.8);"
                     >
                         −{ALLIANCE_CANCELLATION_COST}
                     </span>
-                    <span class="relative w-[20px] h-[20px] shrink-0">
+                    <span class="relative shrink-0" style="width: {MEDALLION}; height: {MEDALLION};">
                         {@render ducatMedallion()}
                     </span>
                 </div>
@@ -1553,11 +1575,11 @@
         {#each allianceBursts as burst (burst.id)}
             <div
                 class="absolute pointer-events-none z-50"
-                style="left: {burst.left}px; top: {burst.top}px; width: 24px; height: 24px;"
+                style="left: {burst.left}px; top: {burst.top}px; width: {GLYPH_BOX}; height: {GLYPH_BOX};"
             >
                 <span
                     class="absolute inset-0 flex items-center justify-center alliance-burst-core"
-                    style="font-size: 19px;"
+                    style="font-size: {GLYPH_FONT};"
                 >
                     💔
                 </span>
@@ -1602,18 +1624,18 @@
                 style="
                     left: {(arrow.wall.edge === 'west'
                     ? arrow.wall.col * CELL_SIZE
-                    : arrow.wall.col * CELL_SIZE + CELL_SIZE / 2) - 12}px;
+                    : arrow.wall.col * CELL_SIZE + CELL_SIZE / 2) - scaled(12)}px;
                     top: {(arrow.wall.edge === 'west'
                     ? arrow.wall.row * CELL_SIZE + CELL_SIZE / 2
-                    : arrow.wall.row * CELL_SIZE) - 12}px;
-                    width: 24px;
-                    height: 24px;
+                    : arrow.wall.row * CELL_SIZE) - scaled(12)}px;
+                    width: {GLYPH_BOX};
+                    height: {GLYPH_BOX};
                     color: {myColor ? gameSession.colors.getUiColor(myColor) : '#ffffff'};
                     transform: rotate({ARROW_ROTATION[arrow.direction]}deg);
                 "
             >
                 <div class="expansion-arrow-bounce">
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <svg viewBox="0 0 24 24" width={GLYPH_BOX} height={GLYPH_BOX} fill="currentColor">
                         <path d="M12 3 L21 18 L3 18 Z" stroke="black" stroke-width="1" stroke-linejoin="round" />
                     </svg>
                 </div>
@@ -1644,9 +1666,9 @@
         {#each popups as popup (popup.id)}
             <div
                 {@attach floatPopup(popup.id)}
-                class="absolute z-50 pointer-events-none rounded-full px-2 py-0.5 text-sm font-bold text-white shadow"
+                class="absolute z-50 pointer-events-none rounded-full px-2 py-0.5 font-bold text-white shadow"
                 style="left:{popup.col * CELL_SIZE + CELL_SIZE / 2}px; top:{popup.row *
-                    CELL_SIZE}px; background-color:{popup.color};"
+                    CELL_SIZE}px; font-size: {POPUP_FONT}; background-color:{popup.color};"
             >
                 {popup.text}
             </div>
@@ -1774,13 +1796,13 @@
             opacity: 0.95;
         }
         100% {
-            transform: rotate(var(--shard-angle)) translateY(-30px) scale(0.3);
+            transform: rotate(var(--shard-angle)) translateY(calc(var(--cell) * -0.6818)) scale(0.3);
             opacity: 0;
         }
     }
 
     .alliance-burst-shard {
-        font-size: 11px;
+        font-size: calc(var(--cell) * 0.25);
         animation: alliance-burst-shard-frames 620ms cubic-bezier(0.2, 0.75, 0.3, 1) forwards;
     }
 
@@ -1796,9 +1818,10 @@
     .village-name {
         transform: translate(-50%, -50%);
         white-space: nowrap;
-        padding: 1px 6px 2px;
+        padding: calc(var(--cell) * 0.0227) calc(var(--cell) * 0.1364)
+            calc(var(--cell) * 0.0455);
         border-radius: 9999px;
-        font-size: 12px;
+        font-size: calc(var(--cell) * 0.2727);
         line-height: 1.25;
         color: #f6e8c8;
         background-color: rgba(43, 26, 10, 0.92);

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { CARD_COLUMN_WIDTH, scaled } from '$lib/model/boardMetrics.js'
     import RealBoard from './RealBoard.svelte'
     import DeckPiles from './DeckPiles.svelte'
     import ActionCardArea from './ActionCardArea.svelte'
@@ -19,11 +20,11 @@
      box and the top edge gets shaved - which is what "the top looked fine" in the note
      above depended on and no longer does. pt-3 (12px) also covers the 4px ring drawn
      around a selected castle square, which is a box-shadow and equally uncounted. -->
-<div class="flex items-start gap-6 pt-3 pr-4 pb-5">
+<div class="flex items-start pt-3 pr-4 pb-5" style="gap: {scaled(24)}px;">
     <!-- Was w-56 (224px), sized for a 2x2 grid of card slots. The action deck now stacks
          into a single 106px column and the politics piles have left the table entirely,
          so this narrows to just the card width - the ~118px saved goes to the board. -->
-    <div class="w-[106px] shrink-0 flex flex-col gap-4">
+    <div class="shrink-0 flex flex-col gap-4" style="width: {CARD_COLUMN_WIDTH}px;">
         <DeckPiles />
         <ActionCardArea />
     </div>
