@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte'
+    import type { HydratedLowenherzGameState } from '@tabletop/lowenherz'
     // Everything above the board: what just happened, what you are being asked to do, and the
     // negotiation and duel controls.
     //
@@ -293,20 +294,24 @@
     //
     // Only a completed deal is held. A decline routes straight to a duel and should switch over
     // immediately, and it carries no executed offer, so it never reaches the branch.
-    let previousNegotiation: Negotiation | undefined = gameSession.gameState.negotiation
-
     onMount(() => {
-        const listener = async ({ action }: { action?: GameAction }) => {
+        // `from` is the state before this action, so the negotiation about to disappear is right
+        // there in the argument - no snapshot to keep, and no chance of it being a state out of
+        // date. (gameSession.gameState is not usable here: the session notifies its listeners
+        // before assigning the exposed state, so it still reads as the state before `from`.)
+        const listener = async ({
+            action,
+            from
+        }: {
+            action?: GameAction
+            from?: HydratedLowenherzGameState
+        }) => {
             if (!action || gameSession.isViewingHistory) return
 
-            if (
-                isNegotiationMove(action) &&
-                action.metadata?.executedOffer &&
-                previousNegotiation
-            ) {
-                gameSession.freezeNegotiation(previousNegotiation, NEGOTIATION_HOLD_MS)
+            const settling = isNegotiationMove(action) && action.metadata?.executedOffer
+            if (settling && from?.negotiation) {
+                gameSession.freezeNegotiation(from.negotiation, NEGOTIATION_HOLD_MS)
             }
-            previousNegotiation = gameSession.gameState.negotiation
         }
 
         gameSession.addGameStateChangeListener(listener)

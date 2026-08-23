@@ -450,6 +450,11 @@
     }
 
     function popupsForAction(action: GameAction) {
+        // First, and this is the whole trick: during a listener the exposed gameState is still the
+        // state BEFORE this action, so allianceMarkers still holds the alliance this action may be
+        // about to cancel. Capturing here means burstAlliance below finds the hearts it needs.
+        rememberAllianceWalls()
+
         if (isPlaceWall(action)) {
             popupsForCompletedRegions(action.metadata?.completedRegions)
         } else if (isExpandRegion(action)) {
@@ -475,8 +480,6 @@
             burstAlliance(action.allianceId)
         }
 
-        // Last, so this action's own burst has already read the positions from BEFORE it.
-        rememberAllianceWalls()
     }
 
     // The session tells us about each action as it is applied, one at a time and in order, so

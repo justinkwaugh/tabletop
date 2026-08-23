@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte'
     import type { GameAction } from '@tabletop/common'
+    import type { HydratedLowenherzGameState } from '@tabletop/lowenherz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { CardBack, isAdvanceResolution, isDrawActionCard } from '@tabletop/lowenherz'
     import type { ActionCardSlot } from '$lib/model/actionCardTypes.js'
@@ -104,10 +105,20 @@
     }
 
     onMount(() => {
-        const listener = async ({ action }: { action?: GameAction }) => {
+        // `to` is the state this action produced. gameSession.gameState is NOT that yet - the
+        // session calls its listeners and only then assigns the exposed state - so reading it here
+        // returns the PREVIOUS card, flippingCardId never matched the card being rendered, and the
+        // flip silently did nothing.
+        const listener = async ({
+            action,
+            to
+        }: {
+            action?: GameAction
+            to: HydratedLowenherzGameState
+        }) => {
             if (!action || gameSession.isViewingHistory) return
             if (!isDrawActionCard(action)) return
-            const drawn = gameSession.gameState.currentActionCard?.id
+            const drawn = to.currentActionCard?.id
             if (drawn) flipInDrawnCard(drawn)
         }
 
