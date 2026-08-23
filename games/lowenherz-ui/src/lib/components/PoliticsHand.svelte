@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onMount } from 'svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PoliticsCardType, type PoliticsCard as PoliticsCardData } from '@tabletop/lowenherz'
     import PoliticsCard from './PoliticsCard.svelte'
@@ -52,9 +53,10 @@
     let fannedOut = $state(false)
     let hoveredCardId: string | undefined = $state(undefined)
 
-    $effect(() => {
+    // onMount, not an effect: this watches nothing. The fan is a one-shot animation belonging to
+    // this component's appearance, and the component is recreated on every reveal.
+    onMount(() => {
         if (!SHOW_SPLAYED) return
-        fannedOut = false
         const timer = setTimeout(() => {
             fannedOut = true
         }, 40)
@@ -72,56 +74,48 @@
     const DEAL_DURATION = 380 // ms
     const DEAL_STAGGER = 45 // ms between each successive card starting its flight
 
-    $effect(() => {
-        if (SHOW_SPLAYED) return
-        if (!isOpen) return
-        const origin = gameSession.politicsPileOrigin
-        if (!origin) return
+    // An attachment on each card rather than an effect watching isOpen. The deal plays when the
+    // cards APPEAR, and an attachment runs exactly then - per card, with the node in hand, so
+    // there is no cardEls lookup, no requestAnimationFrame to wait for layout (the node is already
+    // in the document and measurable), and nothing to cancel if the hand closes mid-flight because
+    // the attachment's own cleanup runs when the card goes.
+    //
+    // The stagger index comes from the card's position in the hand, which is what the loop was
+    // using anyway.
+    function dealIn(index: number) {
+        return (el: HTMLElement) => {
+            if (SHOW_SPLAYED) return
+            const origin = gameSession.politicsPileOrigin
+            if (!origin) return
 
-        const ids = cards.map((c) => c.id)
-        const timeouts: ReturnType<typeof setTimeout>[] = []
+            const rect = el.getBoundingClientRect()
+            const dx = origin.x - (rect.left + rect.width / 2)
+            const dy = origin.y - (rect.top + rect.height / 2)
+            const delay = index * DEAL_STAGGER
 
-        // Wait a frame so the cards have already been laid out at their final
-        // flex-wrap position before we measure and fly them in from there.
-        const raf = requestAnimationFrame(() => {
-            ids.forEach((id, i) => {
-                const el = cardEls[id]
-                if (!el) return
+            el.style.transition = 'none'
+            el.style.opacity = '0'
+            el.style.transform = `translate(${dx}px, ${dy}px) scale(0.35) rotate(${index % 2 === 0 ? -6 : 6}deg)`
 
-                const rect = el.getBoundingClientRect()
-                const dx = origin.x - (rect.left + rect.width / 2)
-                const dy = origin.y - (rect.top + rect.height / 2)
-                const delay = i * DEAL_STAGGER
+            // Force a reflow so the "from" state above is actually painted before the "to" state
+            // below kicks off the transition.
+            void el.offsetHeight
 
-                el.style.transition = 'none'
-                el.style.opacity = '0'
-                el.style.transform = `translate(${dx}px, ${dy}px) scale(0.35) rotate(${i % 2 === 0 ? -6 : 6}deg)`
+            el.style.transition = `transform ${DEAL_DURATION}ms cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms, opacity 200ms ease-out ${delay}ms`
+            el.style.opacity = '1'
+            el.style.transform = 'translate(0px, 0px) scale(1) rotate(0deg)'
 
-                // Force a reflow so the "from" state above is actually painted before
-                // the "to" state below kicks off the transition.
-                void el.offsetHeight
+            // Once landed, drop back to plain Tailwind-controlled styling so the normal
+            // hover-opacity behaviour still works afterward.
+            const settle = setTimeout(() => {
+                el.style.transition = ''
+                el.style.opacity = ''
+                el.style.transform = ''
+            }, delay + DEAL_DURATION + 50)
 
-                el.style.transition = `transform ${DEAL_DURATION}ms cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms, opacity 200ms ease-out ${delay}ms`
-                el.style.opacity = '1'
-                el.style.transform = 'translate(0px, 0px) scale(1) rotate(0deg)'
-
-                // Once landed, drop back to plain Tailwind-controlled styling so the
-                // normal hover-opacity behavior still works afterward.
-                timeouts.push(
-                    setTimeout(() => {
-                        el.style.transition = ''
-                        el.style.opacity = ''
-                        el.style.transform = ''
-                    }, delay + DEAL_DURATION + 50)
-                )
-            })
-        })
-
-        return () => {
-            cancelAnimationFrame(raf)
-            timeouts.forEach(clearTimeout)
+            return () => clearTimeout(settle)
         }
-    })
+    }
 
     // Animates one card's element from wherever it currently sits to a target
     // viewport point, shrinking and fading out as it flies - the reverse of the
@@ -305,10 +299,11 @@
                 role="presentation"
                 onclick={(e) => e.stopPropagation()}
             >
-                {#each cards as card (card.id)}
+                {#each cards as card, dealIndex (card.id)}
                     {#if viewingMyHand}
                         <div
                             bind:this={cardEls[card.id]}
+                            {@attach dealIn(dealIndex)}
                             class="relative opacity-90"
                             style="width:{CARD_WIDTH}px;"
                         >
@@ -327,6 +322,7 @@
                         <button
                             type="button"
                             bind:this={cardEls[card.id]}
+                            {@attach dealIn(dealIndex)}
                             disabled={takingCardId !== undefined}
                             class="cursor-pointer opacity-90 hover:opacity-100 transition-opacity duration-150"
                             style="width:{CARD_WIDTH}px;"

@@ -1,6 +1,8 @@
 <script lang="ts">
+    import { onMount } from 'svelte'
+    import type { GameAction } from '@tabletop/common'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { CardBack, isAdvanceResolution } from '@tabletop/lowenherz'
+    import { CardBack, isAdvanceResolution, isDrawActionCard } from '@tabletop/lowenherz'
     import type { ActionCardSlot } from '$lib/model/actionCardTypes.js'
     import { decisionsForSlot, playerName } from '$lib/model/actionCardHelpers.js'
     import ActionCard from './ActionCard.svelte'
@@ -57,8 +59,6 @@
     // including the very first draw of a brand new game.
     let flippingCardId: string | undefined = $state(undefined)
     let flipped = $state(false)
-    let previousCardId: string | undefined = undefined
-    let baselineRecorded = false
 
     // The draw pile button and the middle slot are both fixed in place (this grid
     // never reflows), so their on-screen offset from each other only needs
@@ -71,38 +71,51 @@
 
     const FLIP_DURATION = 480 // ms
 
-    $effect(() => {
-        const id = card?.id
-        if (!baselineRecorded) {
-            baselineRecorded = true
-            previousCardId = id
-            return
+    // Driven by the per-action listener rather than by watching card?.id. The session says which
+    // action was just applied, so "a new card was drawn" is something we are told rather than
+    // something inferred by diffing - which is what baselineRecorded and previousCardId were for:
+    // bookkeeping to avoid replaying the flip for the card already on the table at mount, and to
+    // avoid re-flipping when the history controls rewind and replay the list. Both are gone.
+    let flipTimers: ReturnType<typeof setTimeout>[] = []
+
+    function flipInDrawnCard(cardId: string) {
+        flippingCardId = cardId
+        flipped = false
+
+        if (drawPileEl && middleSlotEl) {
+            const fromRect = drawPileEl.getBoundingClientRect()
+            const toRect = middleSlotEl.getBoundingClientRect()
+            flipDx = fromRect.left + fromRect.width / 2 - (toRect.left + toRect.width / 2)
+            flipDy = fromRect.top + fromRect.height / 2 - (toRect.top + toRect.height / 2)
+        } else {
+            flipDx = 0
+            flipDy = 0
         }
-        if (id && id !== previousCardId) {
-            flippingCardId = id
-            flipped = false
-            if (drawPileEl && middleSlotEl) {
-                const fromRect = drawPileEl.getBoundingClientRect()
-                const toRect = middleSlotEl.getBoundingClientRect()
-                flipDx = fromRect.left + fromRect.width / 2 - (toRect.left + toRect.width / 2)
-                flipDy = fromRect.top + fromRect.height / 2 - (toRect.top + toRect.height / 2)
-            } else {
-                flipDx = 0
-                flipDy = 0
-            }
-            const startTimer = setTimeout(() => {
+
+        flipTimers.forEach(clearTimeout)
+        flipTimers = [
+            setTimeout(() => {
                 flipped = true
-            }, 20)
-            const endTimer = setTimeout(() => {
+            }, 20),
+            setTimeout(() => {
                 flippingCardId = undefined
             }, FLIP_DURATION + 40)
-            previousCardId = id
-            return () => {
-                clearTimeout(startTimer)
-                clearTimeout(endTimer)
-            }
+        ]
+    }
+
+    onMount(() => {
+        const listener = async ({ action }: { action?: GameAction }) => {
+            if (!action || gameSession.isViewingHistory) return
+            if (!isDrawActionCard(action)) return
+            const drawn = gameSession.gameState.currentActionCard?.id
+            if (drawn) flipInDrawnCard(drawn)
         }
-        previousCardId = id
+
+        gameSession.addGameStateChangeListener(listener)
+        return () => {
+            gameSession.removeGameStateChangeListener(listener)
+            flipTimers.forEach(clearTimeout)
+        }
     })
 
     const backImages: Record<CardBack, string> = {

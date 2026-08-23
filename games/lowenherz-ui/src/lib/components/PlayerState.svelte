@@ -73,14 +73,15 @@
         return jitter
     }
 
-    // Registers this panel's position as the landing/launch point PoliticsHand uses
-    // for its "deliver the taken card" and hover-peek animations - only meaningful
-    // for the local player's own panel.
-    $effect(() => {
-        if (isMe && rootEl) {
-            gameSession.registerMyPanelAnchor(rootEl)
-        }
-    })
+    // Registers this panel's position as the landing/launch point PoliticsHand uses for its
+    // "deliver the taken card" and hover-peek animations - only meaningful for the local player's
+    // own panel.
+    //
+    // An attachment rather than an effect watching a bound ref: handing a node to something is
+    // exactly what attachments are for, and it arrives with the node instead of on the tick after.
+    function registerPanelAnchor(node: HTMLElement) {
+        if (isMe) gameSession.registerMyPanelAnchor(node)
+    }
 
     // Hovering OR clicking opens the same read-only overlay PoliticsHand shows for a
     // draw pile. It's only ever wired up for isMe (see the template). Deliberately
@@ -209,6 +210,7 @@
 
 <div
     bind:this={rootEl}
+    {@attach registerPanelAnchor}
     class="rounded-lg overflow-hidden"
 >
     <!-- Name pill, centered right above the flags - a nearly-rectangular pill filled

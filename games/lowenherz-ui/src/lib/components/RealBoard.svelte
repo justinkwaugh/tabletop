@@ -179,11 +179,16 @@
     // animate. This keeps the last known wall positions per alliance so the burst still
     // knows where to play. A plain Map, not $state: nothing renders from it directly.
     const lastKnownAllianceWalls = new Map<string, { col: number; row: number; edge: string }[]>()
-    $effect(() => {
+
+    // Refreshed from the per-action listener rather than by an effect mirroring allianceMarkers.
+    // Same timing either way - the listener runs after each applied action, so the map holds
+    // whatever was on the board before the NEXT one - and it keeps the record next to the burst
+    // that consumes it instead of in a watcher three hundred lines away.
+    function rememberAllianceWalls() {
         for (const marker of allianceMarkers) {
             lastKnownAllianceWalls.set(marker.id, marker.walls)
         }
-    })
+    }
 
     type AllianceBurst = { id: string; left: number; top: number }
     let allianceBursts: AllianceBurst[] = $state([])
@@ -469,6 +474,9 @@
             // for everyone at the table, and stays quiet while scrubbing history.
             burstAlliance(action.allianceId)
         }
+
+        // Last, so this action's own burst has already read the positions from BEFORE it.
+        rememberAllianceWalls()
     }
 
     // The session tells us about each action as it is applied, one at a time and in order, so
@@ -482,6 +490,10 @@
     // "-8" over a player who has just lost nothing is what the old high-water mark was working
     // around.
     onMount(() => {
+        // Seeded here as well as after each action: the listener only runs when one arrives, and a
+        // board already carrying alliances can have its first action be the cancellation of one.
+        rememberAllianceWalls()
+
         const listener = async ({ action }: { action?: GameAction }) => {
             if (!action || gameSession.isViewingHistory) return
             popupsForAction(action)

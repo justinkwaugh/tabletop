@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onMount } from 'svelte'
     // Everything above the board: what just happened, what you are being asked to do, and the
     // negotiation and duel controls.
     //
@@ -10,7 +11,7 @@
     // moved rather than being copied. The values both halves need went onto the session in an
     // earlier pass, which is why this file reads them off gameSession instead of receiving props.
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import type { Color } from '@tabletop/common'
+    import type { Color, GameAction } from '@tabletop/common'
     import {
         isAdvanceResolution,
         isCancelAlliance,
@@ -37,9 +38,7 @@
     const placementColor = $derived(gameSession.placementColor)
     const regions = $derived(gameSession.gameState.regions)
     const knightSwordsLeft = $derived(gameSession.gameState.knightsRemaining ?? 0)
-    const displayNegotiation = $derived(
-        gameSession.gameState.negotiation ?? gameSession.frozenNegotiation
-    )
+    const displayNegotiation = $derived(gameSession.displayNegotiation)
     const legalRenegadeOwnRegionIdSet = $derived(gameSession.legalRenegadeOwnRegionIds)
     const allianceMarkers = $derived(gameSession.allianceMarkers)
     const availableKnightPlans = $derived(gameSession.availableKnightPlans)
@@ -282,57 +281,36 @@
     // should switch over immediately).
     const NEGOTIATION_HOLD_MS = 1000
 
-    let lastLiveNegotiation: Negotiation | undefined
+    // Once both sides have signed, gameState.negotiation disappears immediately - the machine moves
+    // straight on to whatever the settled action needs next - which read as an abrupt cut, control
+    // handed over before anyone could see both signatures land. So the fully-signed view is held a
+    // beat longer.
+    //
+    // Driven by the closing NegotiationMove, which carries the executed offer, rather than by an
+    // effect noticing the negotiation vanish. That effect needed lastLiveNegotiation - a copy of
+    // the previous value - because by the time it ran there was nothing left to hold. The listener
+    // is told, so it only needs the snapshot from before this action, refreshed each time.
+    //
+    // Only a completed deal is held. A decline routes straight to a duel and should switch over
+    // immediately, and it carries no executed offer, so it never reaches the branch.
+    let previousNegotiation: Negotiation | undefined = gameSession.gameState.negotiation
 
-    let negotiationFreezeTimer: ReturnType<typeof setTimeout> | undefined
+    onMount(() => {
+        const listener = async ({ action }: { action?: GameAction }) => {
+            if (!action || gameSession.isViewingHistory) return
 
-    $effect(() => {
-        const negotiation = gameSession.gameState.negotiation
-
-        if (negotiation) {
-            lastLiveNegotiation = negotiation
-            if (negotiationFreezeTimer) {
-                clearTimeout(negotiationFreezeTimer)
-                negotiationFreezeTimer = undefined
+            if (
+                isNegotiationMove(action) &&
+                action.metadata?.executedOffer &&
+                previousNegotiation
+            ) {
+                gameSession.freezeNegotiation(previousNegotiation, NEGOTIATION_HOLD_MS)
             }
-            gameSession.frozenNegotiation = undefined
-
-            if (negotiation.offer) {
-                gameSession.negotiationProposerId = negotiation.offer.fromPlayerId
-                gameSession.negotiationAmount = negotiation.offer.amount
-                return
-            }
-
-            // No offer yet - always recompute the default proposer, regardless of
-            // whatever gameSession.negotiationProposerId held before. Relying on that leftover
-            // value to detect "is this a fresh negotiation" broke when one
-            // negotiation resolved straight into a new one sharing a participant
-            // with the old one (no intervening tick with negotiation undefined to
-            // reset it) - this branch only runs at all while offer is undefined, so
-            // re-entering it every tick is harmless.
-            const myId = gameSession.myPlayer?.id
-            gameSession.negotiationProposerId = myId && negotiation.playerIds.includes(myId) ? myId : negotiation.playerIds[0]
-            gameSession.negotiationAmount = 1
-            return
+            previousNegotiation = gameSession.gameState.negotiation
         }
 
-        // Negotiation just cleared - if it resolved with everyone having signed
-        // (rather than a decline), hold that view a little longer.
-        if (
-            lastLiveNegotiation &&
-            lastLiveNegotiation.signedPlayerIds.length === lastLiveNegotiation.playerIds.length &&
-            !gameSession.frozenNegotiation
-        ) {
-            gameSession.frozenNegotiation = lastLiveNegotiation
-            negotiationFreezeTimer = setTimeout(() => {
-                gameSession.frozenNegotiation = undefined
-                negotiationFreezeTimer = undefined
-                gameSession.negotiationProposerId = undefined
-            }, NEGOTIATION_HOLD_MS)
-        } else if (!gameSession.frozenNegotiation) {
-            gameSession.negotiationProposerId = undefined
-        }
-        lastLiveNegotiation = undefined
+        gameSession.addGameStateChangeListener(listener)
+        return () => gameSession.removeGameStateChangeListener(listener)
     })
 
     const negotiationOtherPlayerId = $derived.by(() => {
@@ -789,7 +767,7 @@
                                 class={gameSession.negotiationProposerId === playerId
                                     ? 'font-semibold text-black'
                                     : 'text-black/40 hover:text-black/60'}
-                                onclick={() => (gameSession.negotiationProposerId = playerId)}
+                                onclick={() => gameSession.setNegotiationProposer(playerId)}
                             >
                                 {playerName(gameSession, playerId)}
                             </button>
@@ -813,7 +791,7 @@
                     disabled={!gameSession.isNegotiator ||
                         gameSession.hasSignedNegotiationOffer ||
                         gameSession.negotiationAmount <= 1}
-                    onclick={() => (gameSession.negotiationAmount = Math.max(1, gameSession.negotiationAmount - 1))}
+                    onclick={() => gameSession.setNegotiationAmount(Math.max(1, gameSession.negotiationAmount - 1))}
                 >
                     −
                 </button>
@@ -824,7 +802,7 @@
                     disabled={!gameSession.isNegotiator ||
                         gameSession.hasSignedNegotiationOffer ||
                         gameSession.negotiationAmount >= negotiationProposerMoney}
-                    onclick={() => (gameSession.negotiationAmount = gameSession.negotiationAmount + 1)}
+                    onclick={() => gameSession.setNegotiationAmount(gameSession.negotiationAmount + 1)}
                 >
                     +
                 </button>

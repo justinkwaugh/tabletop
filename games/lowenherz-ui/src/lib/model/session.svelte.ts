@@ -105,9 +105,76 @@ export class LowenherzGameSession extends GameSession<
     //
     // The EFFECTS that maintain these stay in whichever component renders the panel: $effect needs
     // an owner and a session class is not one. What lives here is the value, not the syncing.
-    negotiationProposerId: string | undefined = $state(undefined)
-    negotiationAmount: number = $state(0)
     frozenNegotiation: Negotiation | undefined = $state(undefined)
+
+    // What the negotiation panel shows: the live negotiation, or the fully-signed one being held
+    // on screen for a beat after it resolves.
+    get displayNegotiation(): Negotiation | undefined {
+        return this.gameState.negotiation ?? this.frozenNegotiation
+    }
+
+    // The draft terms. Derived from the standing offer, with the player's edits stored against the
+    // negotiation-and-offer they were made for - so a new offer, or a new negotiation, reads as the
+    // offer says rather than keeping whatever was typed against the old one.
+    //
+    // An effect used to assign these from the offer on every tick and clear them when the
+    // negotiation ended. Deriving them means there is nothing to clear: no negotiation, no draft.
+    private negotiationDraft:
+        | { key: string; proposerId: string | undefined; amount: number }
+        | undefined = $state(undefined)
+
+    private get negotiationKey(): string | undefined {
+        const negotiation = this.displayNegotiation
+        if (!negotiation) return undefined
+        const offer = negotiation.offer
+        return `${negotiation.slot}:${negotiation.playerIds.join(',')}:${
+            offer ? `${offer.fromPlayerId}:${offer.amount}` : 'none'
+        }`
+    }
+
+    get negotiationProposerId(): string | undefined {
+        const key = this.negotiationKey
+        if (!key) return undefined
+        if (this.negotiationDraft?.key === key) return this.negotiationDraft.proposerId
+
+        const negotiation = this.displayNegotiation!
+        if (negotiation.offer) return negotiation.offer.fromPlayerId
+        // No offer yet: default to me if I am in it, otherwise the first participant.
+        const myId = this.myPlayer?.id
+        return myId && negotiation.playerIds.includes(myId) ? myId : negotiation.playerIds[0]
+    }
+
+    get negotiationAmount(): number {
+        const key = this.negotiationKey
+        if (!key) return 0
+        if (this.negotiationDraft?.key === key) return this.negotiationDraft.amount
+        return this.displayNegotiation?.offer?.amount ?? 1
+    }
+
+    setNegotiationProposer(proposerId: string) {
+        const key = this.negotiationKey
+        if (!key) return
+        this.negotiationDraft = { key, proposerId, amount: this.negotiationAmount }
+    }
+
+    setNegotiationAmount(amount: number) {
+        const key = this.negotiationKey
+        if (!key) return
+        this.negotiationDraft = { key, proposerId: this.negotiationProposerId, amount }
+    }
+
+    // Holds a resolved negotiation on screen for a beat. Called from the per-action listener when
+    // the closing signature lands, since that action carries the executed offer - an effect had to
+    // notice the negotiation vanish and remember what it had been.
+    private negotiationFreezeTimer: ReturnType<typeof setTimeout> | undefined
+    freezeNegotiation(negotiation: Negotiation, holdMs: number) {
+        if (this.negotiationFreezeTimer) clearTimeout(this.negotiationFreezeTimer)
+        this.frozenNegotiation = negotiation
+        this.negotiationFreezeTimer = setTimeout(() => {
+            this.frozenNegotiation = undefined
+            this.negotiationFreezeTimer = undefined
+        }, holdMs)
+    }
 
     // Per-player draft bids. A duel bid is a one-shot commitment per player, unlike negotiation's
     // single shared offer, so each duelist gets their own.
