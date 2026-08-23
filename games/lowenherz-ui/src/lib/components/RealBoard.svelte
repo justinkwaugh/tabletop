@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte'
     import { gsap } from 'gsap'
-    import { CELL_SIZE, scaled } from '$lib/model/boardMetrics.js'
+    import { CELL_SIZE, RAMPART_THICKNESS, scaled } from '$lib/model/boardMetrics.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { Color, GameAction } from '@tabletop/common'
     import {
@@ -1173,7 +1173,7 @@
     <div
         id="lowenherz-board-frame"
         class="grid drop-shadow-[0_6px_14px_rgba(0,0,0,0.4)]"
-        style="grid-template-columns: 20px {boardWidthPx}px 20px; grid-template-rows: 20px {boardHeightPx}px 20px; width: fit-content;"
+        style="grid-template-columns: {RAMPART_THICKNESS}px {boardWidthPx}px {RAMPART_THICKNESS}px; grid-template-rows: {RAMPART_THICKNESS}px {boardHeightPx}px {RAMPART_THICKNESS}px; width: fit-content;"
     >
         <RampartCorner />
         <div><RampartBorder side="top" /></div>

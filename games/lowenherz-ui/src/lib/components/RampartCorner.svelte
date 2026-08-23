@@ -1,12 +1,12 @@
 <script lang="ts">
-    import { scaled } from '$lib/model/boardMetrics.js'
+    import { RAMPART_CORNER } from '$lib/model/boardMetrics.js'
     // A corner "fitting" for the rampart frame, using the same octagon-with-inset-
     // yellow design as wall-to-wall junctions (see WallSegment.svelte) - just larger -
     // with a small random tilt for an organic, hand-built look rather than perfectly
     // uniform corners.
     const rotation = (Math.random() * 2 - 1) * 1
 
-    const SIZE = scaled(33)
+    const SIZE = RAMPART_CORNER
     const OCTAGON_CLIP =
         'polygon(29.3% 0%, 70.7% 0%, 100% 29.3%, 100% 70.7%, 70.7% 100%, 29.3% 100%, 0% 70.7%, 0% 29.3%)'
     const INNER_OCTAGON_SCALE = 0.55

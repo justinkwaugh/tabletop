@@ -25,3 +25,14 @@ export const CELL_SIZE = scaled(44)
  * has resolution to spare at this width.
  */
 export const CARD_COLUMN_WIDTH = scaled(106)
+
+/** Rampart frame strip thickness. RealBoard's frame grid uses this for its border tracks. */
+export const RAMPART_THICKNESS = scaled(20)
+
+/**
+ * Rampart corner block. Deliberately larger than RAMPART_THICKNESS, so a corner overhangs its
+ * track by (RAMPART_CORNER - RAMPART_THICKNESS) / 2 on each side - Board.svelte's padding is what
+ * keeps that overhang from being clipped, since ScalingWrapper measures clientWidth/clientHeight
+ * and those exclude anything drawn outside the box.
+ */
+export const RAMPART_CORNER = scaled(33)
