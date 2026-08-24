@@ -902,11 +902,11 @@
                     <span>or</span>
                     <button
                         type="button"
-                        class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-red-700/10 hover:bg-red-700/20 font-semibold disabled:opacity-40"
+                        class="px-2 py-[3px] rounded bg-red-700/10 hover:bg-red-700/20 text-[14px] font-semibold disabled:opacity-40"
                         disabled={!gameSession.isNegotiator}
                         onclick={() => gameSession.declineNegotiation()}
                     >
-                        force a duel
+                        Force a duel
                     </button>
                 {/if}
             </div>
