@@ -474,7 +474,7 @@
          gameSession.actions already reflects the visible (rewound) context rather than the
          live one. Same idea as Sol's LastActionDescription, just scoped to history. -->
     {#if historyAction}
-        <div class="text-black text-[20px] text-center border-b-2 border-black/15 pb-1">
+        <div class="text-black text-[18px] text-center border-b-2 border-black/15 pb-1">
             <span class="italic text-black/60 text-[16px]">Rewound to:</span>
             {#if historyAction.playerId}
                 {@render playerPill(historyAction.playerId)}
@@ -483,13 +483,13 @@
         </div>
     {/if}
     {#if lastDuelOutcome?.type === 'giveUp'}
-        <div class="text-black text-[20px] text-center">
+        <div class="text-black text-[18px] text-center">
             {@render bidList(lastDuelOutcome.bids)} — tied again, so no one performs the{lastDuelOutcome.actionNoun
                 ? ` ${lastDuelOutcome.actionNoun}`
                 : ''} action.
         </div>
     {/if}
-    <div class="text-black text-[20px] text-center leading-loose">
+    <div class="text-black text-[18px] text-center leading-loose">
         {#if gameSession.isPlayingAllianceCard}
             <!-- No "that region has nothing to ally with" case to report: a region with no
                  eligible neighbor isn't offered in the first place (see
@@ -652,6 +652,10 @@
                 {:else}
                     {@render myPill()} won a {knightActionName}.
                 {/if}
+                <!-- Forced rather than left to wrap naturally: how the action was won is one
+                     sentence and what to do with it is another, so they read as two lines on
+                     screen even when both would fit on one. -->
+                <br />
             {/if}
             <!-- One question per sword. A single available option is taken for the player, so this
                  only appears when there is a genuine choice to make. -->
