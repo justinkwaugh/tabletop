@@ -54,7 +54,13 @@
         }
     }
 
+    // Desktop width. On a phone, min() takes over: 42vw keeps two cards plus the gap inside a 320px
+    // viewport with margin to spare, where a fixed 150px pair came to 316px and sat flush against
+    // both edges. A style rather than a Tailwind class because dealIn measures the rendered node,
+    // and every card below shares it.
     const CARD_WIDTH = 150
+    const CARD_WIDTH_CSS = `min(${CARD_WIDTH}px, 42vw)`
+    const cardWidthStyle = `width: ${CARD_WIDTH_CSS};`
     const FAN_ANGLE_STEP = 9 // degrees between adjacent cards
     const FAN_OFFSET_STEP = 56 // px between adjacent card centers once fanned - can be
     // generous now that this floats over the whole viewport instead of living in the
@@ -252,7 +258,7 @@
          announcing itself as a button. Dismissal is off entirely while a card is being taken
          (takingCardId set), so the return-then-deliver animation can't be interrupted partway. -->
     <div
-        class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/50"
+        class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/50 p-3"
         {...dismissible
             ? {
                   role: 'button',
@@ -301,7 +307,7 @@
                                 : 'opacity-80'}"
                             style="
                                 transition-duration: {fanMs}ms;
-                                width:{CARD_WIDTH}px;
+                                width: {CARD_WIDTH_CSS};
                                 transform: translateX(-50%) translateX({offset}px) rotate({angle}deg) {isHovered
                                 ? 'translateY(-24px) scale(1.15)'
                                 : ''};
@@ -321,7 +327,7 @@
                  wrapping as needed, no overlap or hover pop needed since this already
                  floats above the whole board. -->
             <div
-                class="flex flex-wrap items-start justify-center gap-4 max-w-4xl"
+                class="flex flex-wrap items-start justify-center gap-4 max-w-4xl max-h-[calc(100dvh-7rem)] overflow-y-auto px-2 py-1"
                 role="presentation"
                 onclick={(e) => e.stopPropagation()}
             >
@@ -331,13 +337,13 @@
                             bind:this={cardEls[card.id]}
                             {@attach dealIn(dealIndex)}
                             class="relative opacity-90"
-                            style="width:{CARD_WIDTH}px;"
+                            style={cardWidthStyle}
                         >
                             <PoliticsCard {card} />
                             {#if canApplyCard(card)}
                                 <button
                                     type="button"
-                                    class="absolute top-[35px] left-1/2 -translate-x-1/2 cursor-pointer rounded-lg bg-black/80 text-white text-xs tracking-widest px-3 py-1 border-2 border-transparent hover:border-white"
+                                    class="absolute top-[15%] left-1/2 -translate-x-1/2 cursor-pointer rounded-lg bg-black/80 text-white text-xs tracking-widest px-3 py-1 border-2 border-transparent hover:border-white"
                                     onclick={() => applyCard(card)}
                                 >
                                     APPLY
@@ -351,7 +357,7 @@
                             {@attach dealIn(dealIndex)}
                             disabled={takingCardId !== undefined}
                             class="cursor-pointer opacity-90 hover:opacity-100 transition-opacity duration-150"
-                            style="width:{CARD_WIDTH}px;"
+                            style={cardWidthStyle}
                             onclick={() => chooseCard(card)}
                         >
                             <PoliticsCard {card} />
