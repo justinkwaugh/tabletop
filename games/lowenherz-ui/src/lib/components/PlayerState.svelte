@@ -171,7 +171,11 @@
     // Once cards are actually overlapping, only the frontmost one is fully visible/
     // hit-testable, so it alone stays interactive (peek/click) and carries the
     // stacking shadow - laid out flat, every card is fully visible on its own and
-    // gets the same treatment.
+    // gets the same treatment. An applicable card is the exception (see isInteractive
+    // below): a narrower panel - the sidebar's own width doesn't change, but max-w-90vw
+    // can shrink it below that on a phone - overlaps a hand that would lie flat on a
+    // wider one, and a card the player actually needs to reach right now shouldn't
+    // become unclickable just because it isn't the one most recently drawn.
     const isOverlapping = $derived(step < CARD_W + CARD_GAP)
 </script>
 
@@ -286,7 +290,9 @@
             >
                 {#each displayCards as card, i (card.id)}
                     {@const isTop = i === count - 1}
-                    {@const isInteractive = isOverlapping ? isTop : true}
+                    {@const isInteractive = isOverlapping
+                        ? isTop || applicableCardIds.includes(card.id)
+                        : true}
                     {@const revealFace = shouldRevealFace(card)}
                     {@const jitter = jitterFor(card.id)}
                     <!-- Every card gets a resting drop shadow, so it sits ON the panel
