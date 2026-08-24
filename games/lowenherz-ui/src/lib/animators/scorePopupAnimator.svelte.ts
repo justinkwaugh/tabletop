@@ -13,22 +13,29 @@ import { StateAnimator, type StateChange } from './stateAnimator.js'
  * Split across the two timelines on purpose, and it is the one animator here that does not put all
  * of its motion on the shared one:
  *
- * - The pop-in goes on `actionTimeline`, so the number is on screen and readable before the board
- *   changes underneath it. That is the part that belongs to the action.
- * - The float-out starts in `afterAnimations` on its own timeline. The session holds the reactive
- *   state update until the shared timeline finishes, so a multi-second drift there would stall the
- *   board after every scoring action. A popup outlives its action - it is an annotation, not the
+ * - The bounce - pop and settle, 0.34s - goes on `actionTimeline`, so the number is on screen and
+ *   readable before the board changes underneath it. That is the part that belongs to the action.
+ * - The sit and the rise start in `afterAnimations` on its own timeline. The session holds the
+ *   reactive state update until the shared timeline finishes, so putting the full 1.84s there would
+ *   freeze the board after every scoring action - and a wall that completes three regions scores
+ *   three times. A popup outlives its action - it is an annotation, not the
  *   action's own motion - and gsap's onComplete owns when it goes away.
  */
 type Popup = { id: string; col: number; row: number; text: string; color: string }
 
-const POP_IN = 0.18
-// Just long enough to register as a beat after the pop, not a wait. The gsap conversion had this at
-// 2.2s, which kept the old CSS keyframe's ~4s lifetime but not its character: that version rose
-// continuously with an ease-out, so it was already moving as you read it.
-const HOLD = 0.2
-// Long and eased-out, so most of the travel happens early and the tail is a slow drift.
-const FLOAT = 3.4
+// Bounce in, sit, then rise away - the shape bus-ui uses for placing a passenger and sol-ui for
+// constructing a building, down to the overshoot scale and eases (see bus-ui's
+// addPassengersPlacementAnimator: INITIAL_SCALE, POP_OVERSHOOT_SCALE, pop then settle).
+//
+// The bounce is two tweens rather than one. A single `back.out` tween into scale 1 does overshoot,
+// but slightly and implicitly; popping deliberately past rest and then relaxing is what reads as a
+// bounce.
+const INITIAL_SCALE = 0.2
+const OVERSHOOT_SCALE = 1.16
+const POP = 0.18
+const SETTLE = 0.16
+const SIT = 1.0
+const RISE = 0.5
 
 export class ScorePopupAnimator extends StateAnimator {
     popups: Popup[] = $state([])
@@ -121,11 +128,16 @@ export class ScorePopupAnimator extends StateAnimator {
             if (!node) continue
             // xPercent/yPercent centre the popup on its anchor and compose with the y tween below,
             // so gsap owns the whole transform.
-            gsap.set(node, { xPercent: -50, yPercent: -50, scale: 0.6, opacity: 0 })
+            gsap.set(node, { xPercent: -50, yPercent: -50, scale: INITIAL_SCALE, opacity: 0 })
             animationContext.actionTimeline.to(
                 node,
-                { scale: 1, opacity: 1, duration: POP_IN, ease: 'back.out(2)' },
+                { scale: OVERSHOOT_SCALE, opacity: 1, duration: POP, ease: 'back.out(2.2)' },
                 0
+            )
+            animationContext.actionTimeline.to(
+                node,
+                { scale: 1, duration: SETTLE, ease: 'power2.out' },
+                POP
             )
         }
 
@@ -139,8 +151,8 @@ export class ScorePopupAnimator extends StateAnimator {
                 gsap.to(node, {
                     y: -scaled(32),
                     opacity: 0,
-                    duration: FLOAT,
-                    delay: HOLD,
+                    duration: RISE,
+                    delay: SIT,
                     ease: 'power1.out',
                     onComplete: () => {
                         this.popups = this.popups.filter((popup) => popup.id !== id)
