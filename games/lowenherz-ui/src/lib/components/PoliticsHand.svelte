@@ -35,6 +35,17 @@
                 : []
     )
 
+    // Only the read-only peek at your own hand can be dismissed. Choosing a card from an opened pile
+    // cannot: the rulebook has the player "look through one of the two piles... and select one
+    // card", so once a pile is open the only move is to take a card from it. Letting the backdrop
+    // dismiss it just put the player somewhere with a single legal action and a message telling
+    // them to undo the dismissal ("Click your pile to look through it again.").
+    //
+    // That message stays, because it is still reachable: the opened pile is game state
+    // (openedPoliticsPile, so it survives undo and reload) while showPoliticsHand is local, so a
+    // player who reloads mid-choice lands with the pile open and the overlay closed.
+    const dismissible = $derived(viewingMyHand)
+
     function close() {
         if (viewingMyHand) {
             gameSession.hideMyPoliticsCards()
@@ -234,24 +245,29 @@
 </script>
 
 {#if isOpen}
-    <!-- A floating overlay above everything else - doesn't affect the board or
-         sidebar's size at all. Clicking the dimmed backdrop (or Escape) just hides
-         this view - it does NOT back out of the pile choice itself (see
-         DeckPiles.svelte, which lets you click the same pile again to bring it back).
-         The rulebook has the player "look through one of the two piles... and select
-         one card" - a one-way commitment once a pile is opened. Dismissal is
-         disabled entirely while a card is being taken (takingCardId set), so the
-         return-then-deliver animation below can't be interrupted partway through. -->
+    <!-- A floating overlay above everything else - doesn't affect the board or sidebar's size at
+         all. The backdrop dismisses it only when it is dismissible (see above): the peek at your own
+         hand closes on a click or Escape, an opened pile stays up until a card is taken. The
+         handlers and the button role are spread in together so a backdrop that does nothing is not
+         announcing itself as a button. Dismissal is off entirely while a card is being taken
+         (takingCardId set), so the return-then-deliver animation can't be interrupted partway. -->
     <div
         class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/50"
-        role="button"
-        tabindex="0"
-        onclick={() => !takingCardId && close()}
-        onkeydown={(e) => {
-            if ((e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') && !takingCardId) {
-                close()
-            }
-        }}
+        {...dismissible
+            ? {
+                  role: 'button',
+                  tabindex: 0,
+                  onclick: () => !takingCardId && close(),
+                  onkeydown: (e: KeyboardEvent) => {
+                      if (
+                          (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') &&
+                          !takingCardId
+                      ) {
+                          close()
+                      }
+                  }
+              }
+            : {}}
     >
         <!-- Matches the pile-choosing prompt in PoliticsPileOverlay (text-2xl semibold with
              a drop shadow): the two are consecutive steps of the same flow, and at text-sm
