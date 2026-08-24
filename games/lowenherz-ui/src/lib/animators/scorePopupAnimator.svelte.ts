@@ -10,16 +10,22 @@ import { StateAnimator, type StateChange } from './stateAnimator.js'
  * scoring event, in the affected player's colour. Anchors and amounts come from PlaceWall's and
  * ExpandRegion's metadata as they were applied, so nothing here diffs state.
  *
- * Split across the two timelines on purpose, and it is the one animator here that does not put all
- * of its motion on the shared one:
+ * The whole sequence runs on the popup's own timeline, started from `afterAnimations` - the one
+ * animator here that keeps its motion off the shared one. It is deliberate, for two reasons.
  *
- * - The bounce - pop and settle, 0.34s - goes on `actionTimeline`, so the number is on screen and
- *   readable before the board changes underneath it. That is the part that belongs to the action.
- * - The sit and the rise start in `afterAnimations` on its own timeline. The session holds the
- *   reactive state update until the shared timeline finishes, so putting the full 1.84s there would
- *   freeze the board after every scoring action - and a wall that completes three regions scores
- *   three times. A popup outlives its action - it is an annotation, not the
- *   action's own motion - and gsap's onComplete owns when it goes away.
+ * A pill must not precede what it annotates. The session assigns state only after the shared
+ * timeline finishes, so anything placed there plays while the board still shows the state BEFORE the
+ * action: "+3" would bounce over a region that has not filled yet, beside a wall that has not
+ * appeared yet. Starting in afterAnimations puts the pill's first frame in the same drain as the
+ * state assignment, so the fill, the wall and the pill all arrive together.
+ *
+ * The framework's other answer would be Pattern B - render the action's result transiently and
+ * animate that. For a piece being placed that is right, and it is what bus-ui does. Here it would
+ * mean transiently drawing the wall and every newly-tinted square purely so a label could lead them
+ * by a third of a second, which buys nothing.
+ *
+ * It also keeps the board responsive: the shared timeline holds the state update, and a wall that
+ * completes three regions scores three times.
  */
 type Popup = { id: string; col: number; row: number; text: string; color: string }
 
@@ -126,19 +132,11 @@ export class ScorePopupAnimator extends StateAnimator {
         for (const id of ids) {
             const node = this.nodes.get(id)
             if (!node) continue
-            // xPercent/yPercent centre the popup on its anchor and compose with the y tween below,
-            // so gsap owns the whole transform.
+            // Set before the browser can paint - the node has just mounted, and this all runs
+            // inside the same microtask drain - so the pill starts small and invisible rather than
+            // flashing at full size. xPercent/yPercent centre it on its anchor and compose with the
+            // y tween below, so gsap owns the whole transform.
             gsap.set(node, { xPercent: -50, yPercent: -50, scale: INITIAL_SCALE, opacity: 0 })
-            animationContext.actionTimeline.to(
-                node,
-                { scale: OVERSHOOT_SCALE, opacity: 1, duration: POP, ease: 'back.out(2.2)' },
-                0
-            )
-            animationContext.actionTimeline.to(
-                node,
-                { scale: 1, duration: SETTLE, ease: 'power2.out' },
-                POP
-            )
         }
 
         animationContext.afterAnimations(() => {
@@ -148,16 +146,27 @@ export class ScorePopupAnimator extends StateAnimator {
                     this.popups = this.popups.filter((popup) => popup.id !== id)
                     continue
                 }
-                gsap.to(node, {
-                    y: -scaled(32),
-                    opacity: 0,
-                    duration: RISE,
-                    delay: SIT,
-                    ease: 'power1.out',
-                    onComplete: () => {
-                        this.popups = this.popups.filter((popup) => popup.id !== id)
-                    }
-                })
+
+                const timeline = gsap.timeline()
+                timeline.to(
+                    node,
+                    { scale: OVERSHOOT_SCALE, opacity: 1, duration: POP, ease: 'back.out(2.2)' },
+                    0
+                )
+                timeline.to(node, { scale: 1, duration: SETTLE, ease: 'power2.out' }, POP)
+                timeline.to(
+                    node,
+                    {
+                        y: -scaled(32),
+                        opacity: 0,
+                        duration: RISE,
+                        ease: 'power1.out',
+                        onComplete: () => {
+                            this.popups = this.popups.filter((popup) => popup.id !== id)
+                        }
+                    },
+                    POP + SETTLE + SIT
+                )
             }
         })
     }
