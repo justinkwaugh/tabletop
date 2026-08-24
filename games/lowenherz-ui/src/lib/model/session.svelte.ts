@@ -1594,12 +1594,6 @@ export class LowenherzGameSession extends GameSession<
         return this.gameState.openedPoliticsPile
     }
 
-    // Whether the fanned-out pile view is currently showing - separate from WHICH
-    // pile is selected, so a player can hide it (to see the board underneath) and
-    // bring the same pile back up without that counting as backing out of their
-    // choice. Purely local - showing/hiding this view isn't a game action.
-    showPoliticsHand: boolean = $state(false)
-
     // Viewport-space center point of whichever pile button the player last clicked -
     // purely a visual cue so PoliticsHand can animate its cards as if being dealt out
     // from that spot. Has no bearing on game state.
@@ -1621,22 +1615,10 @@ export class LowenherzGameSession extends GameSession<
         this.errorMessage = undefined
         try {
             await this.applyAction(action)
-            this.showPoliticsHand = true
         } catch (e) {
             console.warn('Failed to open politics pile:', e)
             this.errorMessage = 'That pile could not be opened.'
         }
-    }
-
-    hidePoliticsHand() {
-        this.showPoliticsHand = false
-    }
-
-    revealPoliticsHand(origin?: { x: number; y: number }) {
-        if (!this.selectedPoliticsPile) return
-        if (origin) this.politicsPileOrigin = origin
-        this.viewingMyPoliticsCards = false
-        this.showPoliticsHand = true
     }
 
     // Read-only peek at the politics cards a player already holds (as opposed to the
@@ -1671,7 +1653,6 @@ export class LowenherzGameSession extends GameSession<
 
     showMyPoliticsCards(origin: { x: number; y: number }) {
         this.politicsPileOrigin = origin
-        this.showPoliticsHand = false
         this.viewingMyPoliticsCards = true
     }
 
@@ -1691,7 +1672,6 @@ export class LowenherzGameSession extends GameSession<
         }
 
         this.errorMessage = undefined
-        this.showPoliticsHand = false
         try {
             await this.applyAction(action)
         } catch (e) {

@@ -21,9 +21,10 @@
     // (see PlayerState.svelte's hover/click on your own pile). Only the former lets
     // you click a card to take it.
     const viewingMyHand = $derived(gameSession.viewingMyPoliticsCards)
-    const isOpen = $derived(
-        viewingMyHand || (gameSession.selectedPoliticsPile && gameSession.showPoliticsHand)
-    )
+    // Once a pile is opened there's only one legal move left - take a card from it - so its fan
+    // shows itself; there's no separate "reopen" step to gate it on. That holds across a reload
+    // too: openedPoliticsPile is server state, so a player who reloads mid-choice still has it set.
+    const isOpen = $derived(viewingMyHand || !!gameSession.selectedPoliticsPile)
 
     const cards = $derived(
         viewingMyHand
@@ -37,21 +38,14 @@
 
     // Only the read-only peek at your own hand can be dismissed. Choosing a card from an opened pile
     // cannot: the rulebook has the player "look through one of the two piles... and select one
-    // card", so once a pile is open the only move is to take a card from it. Letting the backdrop
-    // dismiss it just put the player somewhere with a single legal action and a message telling
-    // them to undo the dismissal ("Click your pile to look through it again.").
-    //
-    // That message stays, because it is still reachable: the opened pile is game state
-    // (openedPoliticsPile, so it survives undo and reload) while showPoliticsHand is local, so a
-    // player who reloads mid-choice lands with the pile open and the overlay closed.
+    // card", so once a pile is open the only move is to take a card from it - there is nothing a
+    // dismiss would do but strand the player with no way back short of reloading (see isOpen above).
     const dismissible = $derived(viewingMyHand)
 
+    // Only reachable via the backdrop/Escape, which are only wired up when dismissible - i.e. only
+    // for the my-hand peek. An opened pile has no dismiss gesture at all (see isOpen above).
     function close() {
-        if (viewingMyHand) {
-            gameSession.hideMyPoliticsCards()
-        } else {
-            gameSession.hidePoliticsHand()
-        }
+        gameSession.hideMyPoliticsCards()
     }
 
     // Desktop width. On a phone, min() takes over: 42vw keeps two cards plus the gap inside a 320px
