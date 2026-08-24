@@ -11,6 +11,13 @@
     import FlagBorder from './FlagBorder.svelte'
 
     let gameSession = getGameSession()
+
+    // Browsing history is not the same as playing: the harness caps animation during history
+    // navigation at roughly 0.1s (see ANIMATION_PATTERN.md's fast-fallback rule and the
+    // FALLBACK_* durations in bus-ui's animators). These card slides are state-driven - the hand's
+    // contents change and the cards reposition - so scrubbing through a game would otherwise play
+    // them at full length, once per step.
+    const cardSlideMs = $derived(gameSession.isViewingHistory ? 100 : 220)
     let { player, playerState }: { player: Player; playerState: LowenherzPlayerState } = $props()
 
     let isTurn = $derived(gameSession.gameState.activePlayerIds.includes(player.id))
@@ -73,14 +80,15 @@
         return jitter
     }
 
-    // Registers this panel's position as the landing/launch point PoliticsHand uses
-    // for its "deliver the taken card" and hover-peek animations - only meaningful
-    // for the local player's own panel.
-    $effect(() => {
-        if (isMe && rootEl) {
-            gameSession.registerMyPanelAnchor(rootEl)
-        }
-    })
+    // Registers this panel's position as the landing/launch point PoliticsHand uses for its
+    // "deliver the taken card" and hover-peek animations - only meaningful for the local player's
+    // own panel.
+    //
+    // An attachment rather than an effect watching a bound ref: handing a node to something is
+    // exactly what attachments are for, and it arrives with the node instead of on the tick after.
+    function registerPanelAnchor(node: HTMLElement) {
+        if (isMe) gameSession.registerMyPanelAnchor(node)
+    }
 
     // Hovering OR clicking opens the same read-only overlay PoliticsHand shows for a
     // draw pile. It's only ever wired up for isMe (see the template). Deliberately
@@ -116,7 +124,7 @@
     // Politics cards in display order - just the hand's natural (acquisition) order.
     // Applicable cards used to get pulled to the front here so they'd surface out
     // from under a heavily overlapped stack, but now that cards mostly lay out flat
-    // instead (see step below), the glow itself (card-glow-pulse) is enough to draw
+    // instead (see step below), the applicable-card ring is enough to draw
     // the eye - shuffling a card's position the moment it becomes playable is more
     // distracting than helpful.
     const displayCards = $derived(playerState.politicsCards)
@@ -138,7 +146,7 @@
     // Every card shows face-up on your own turn (so you can see your whole hand
     // while deciding what to do), and an applicable card (playable Renegade/
     // Alliance, or a spendable Treasure) shows face-up even outside your turn too,
-    // so its glow (see card-glow-pulse) is actually attached to real card art.
+    // so its ring is actually attached to real card art.
     // Everything else stays face-down.
     function shouldRevealFace(card: PoliticsCard): boolean {
         if (!isMe) return false
@@ -209,6 +217,7 @@
 
 <div
     bind:this={rootEl}
+    {@attach registerPanelAnchor}
     class="rounded-lg overflow-hidden"
 >
     <!-- Name pill, centered right above the flags - a nearly-rectangular pill filled
@@ -264,7 +273,7 @@
                  fits that way - only once it wouldn't does step compress below
                  CARD_W, tucking each card under its neighbor. Every card flips face
                  up (see shouldRevealFace) on your own turn, or at any time if it's
-                 currently applicable (glowing, via card-glow-pulse); otherwise it
+                 currently applicable (ringed in the owner's colour); otherwise it
                  stays face-down. -->
             <!-- CARD_EDGE_BUFFER on BOTH sides, not just the right: the cards are laid out
                  from the right edge inward (see the `right` offsets below), so a buffer
@@ -278,7 +287,6 @@
                 {#each displayCards as card, i (card.id)}
                     {@const isTop = i === count - 1}
                     {@const isInteractive = isOverlapping ? isTop : true}
-                    {@const isApplicableCard = applicableCardIds.includes(card.id)}
                     {@const revealFace = shouldRevealFace(card)}
                     {@const jitter = jitterFor(card.id)}
                     <!-- Every card gets a resting drop shadow, so it sits ON the panel
@@ -288,13 +296,16 @@
                          cards look like they gained a shadow at 4-5 cards. Overlapped
                          cards keep the extra leftward shadow on top of it, since that's
                          what separates each card from the one it's tucked under.
-                         An applicable card's glow animation overrides both while it
-                         pulses (animations outrank inline styles in the cascade), which is
-                         the same thing it did before. -->
+                         An applicable card prepends a 2px ring in the owner's colour to
+                         that same box-shadow, rather than the pulsing yellow glow this used
+                         to carry: a card you could play is the player's own, so their colour
+                         says it. A playable card is no longer marked at all - a ring, then a
+                         pulse, then travelling dashes were each tried and each read as the board
+                         nagging. Knowing which cards are playable is the player's job. -->
                     <div
                         class="absolute top-0 h-full rounded-md {isInteractive
                             ? ''
-                            : 'pointer-events-none'} {isApplicableCard ? 'card-glow-pulse' : ''}"
+                            : 'pointer-events-none'}"
                         style="
                             right: {CARD_EDGE_BUFFER + (count - 1 - i) * step}px;
                             width: {CARD_W}px;
@@ -303,7 +314,7 @@
                             ? '-2px 0 3px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.4)'
                             : '0 2px 4px rgba(0, 0, 0, 0.4)'};
                             transform: translate({jitter.dx}px, {jitter.dy}px) rotate({jitter.rotate}deg);
-                            transition: right 220ms ease-out, transform 220ms ease-out;
+                            transition: right {cardSlideMs}ms ease-out, transform {cardSlideMs}ms ease-out;
                         "
                     >
                         {#if isInteractive && revealFace}
@@ -362,22 +373,5 @@
 </div>
 
 <style>
-    @keyframes card-glow-pulsate {
-        0%,
-        100% {
-            box-shadow:
-                0 0 4px 1px rgba(255, 221, 0, 0.35),
-                0 0 0 1px rgba(255, 221, 0, 0.35);
-        }
-        50% {
-            box-shadow:
-                0 0 14px 5px rgba(255, 221, 0, 0.95),
-                0 0 0 2px rgba(255, 221, 0, 0.95);
-        }
-    }
 
-    .card-glow-pulse {
-        border-radius: 0.375rem; /* matches PoliticsCard's own rounded-md corners */
-        animation: card-glow-pulsate 1.6s ease-in-out infinite;
-    }
 </style>

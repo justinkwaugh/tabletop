@@ -5,6 +5,7 @@ import { BOARD_COLS, BOARD_ROWS, BoardSquare, SquareType } from '../model/board.
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { currentPlacementColor, HydratedPlaceCastle, PlaceCastle } from './placeCastle.js'
+import { neighbors } from '../model/board.js'
 
 function blankBoard(): { squares: BoardSquare[][]; walls: [] } {
     return {
@@ -192,6 +193,35 @@ describe('HydratedPlaceCastle', () => {
         expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 3, 3)).toBe('wrongTerrain')
         expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 4, 4)).toBe('occupied')
         expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 2, 7)).toBe('tooClose') // distance 5
+        expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 5, 5)).toBeUndefined()
+    })
+
+    it('rejects a castle square with nowhere legal to put its knight', () => {
+        // A castle comes with a knight beside it, so a plains square ringed by squares that can
+        // take no knight is a dead end. It used to pass this check while being absent from
+        // legalCastleSquares, which is how a player could select a square the board had greyed
+        // out and then be told, on the SECOND click, that the placement was illegal.
+        const state = buildState(['p1'])
+        // (5,5) stays plains; every square touching it becomes a hill, which takes no knight
+        // during setup.
+        for (const n of neighbors(5, 5)) {
+            state.board.squares[n.row][n.col].type = SquareType.Hill
+        }
+
+        expect(state.board.squares[5][5].type).toBe(SquareType.Blank)
+        expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 5, 5)).toBe(
+            'noKnightSquare'
+        )
+        expect(HydratedPlaceCastle.isValidCastleSquare(state, 'p1', 5, 5)).toBe(false)
+
+        // The two answers agreeing IS the fix - legalCastleSquares always excluded this square,
+        // while isValidCastleSquare accepted it.
+        const legal = HydratedPlaceCastle.legalCastleSquares(state, 'p1')
+        expect(legal.some((square) => square.col === 5 && square.row === 5)).toBe(false)
+
+        // And a square with one open neighbour is still fine, so the check is not simply
+        // rejecting everything near a hill.
+        state.board.squares[neighbors(5, 5)[0].row][neighbors(5, 5)[0].col].type = SquareType.Blank
         expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 5, 5)).toBeUndefined()
     })
 

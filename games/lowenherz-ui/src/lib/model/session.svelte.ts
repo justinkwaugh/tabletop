@@ -1,4 +1,5 @@
 import { ActionSource, createAction, type Color } from '@tabletop/common'
+import { allianceWalls } from '$lib/model/allianceGeometry.js'
 import { GameSession } from '@tabletop/frontend-components'
 import { nanoid } from 'nanoid'
 import {
@@ -38,6 +39,7 @@ import {
     HydratedLowenherzGameState,
     HydratedLowenherzPlayerState,
     HydratedPlaceCastle,
+    isAdvanceResolution,
     isDrawActionCard,
     isKnightSafeToRemove,
     isOnBoard,
@@ -46,6 +48,7 @@ import {
     LowenherzGameState,
     MachineState,
     manhattanDistance,
+    type Negotiation,
     NegotiationMove,
     NegotiationMoveKind,
     neighbors,
@@ -71,10 +74,14 @@ import {
     WOODED_KNIGHT_COST
 } from '@tabletop/lowenherz'
 
-// How the winner of a knight action has chosen to spend it. The two single-sword shapes
-// ('knight'/'expand') plus the three - and only three - a two-sword action allows: both
-// swords on knights, or one on each in either order. See LowenherzGameSession.knightPlan.
-export type KnightPlan = 'knight' | 'expand' | 'twoKnights' | 'knightThenExpand' | 'expandThenKnight'
+// What the winner of a knight action is spending the sword IN HAND on. One sword buys one of
+// these, so a two-sword action asks twice rather than asking once for a shape.
+//
+// It used to name whole shapes - twoKnights, knightThenExpand, expandThenKnight - declared up
+// front. Asking per sword says the same thing in smaller pieces: the second question simply omits
+// 'expand' once an expansion has been used, which is the rulebook's "using this action to expand
+// twice is not allowed" falling out of the options rather than being encoded in the shapes.
+export type KnightPlan = 'knight' | 'expand'
 
 export class LowenherzGameSession extends GameSession<
     LowenherzGameState,
@@ -88,7 +95,146 @@ export class LowenherzGameSession extends GameSession<
     // in the UI instead of letting the engine's validation error surface as a raw crash.
     errorMessage: string | undefined = $state(undefined)
 
+    // Draft state for the negotiation and duel panels: what the player has typed in but not yet
+    // submitted, plus the brief hold on a finished negotiation so both signatures can be seen.
+    //
+    // Session-owned rather than component-owned because two components need it. The panels that
+    // render these controls are moving out of the board's scaled subtree - instructions should not
+    // grow and shrink with the map - while the board's own click handlers still read and write the
+    // same drafts. One of the two had to be the owner, and neither component is a parent of the
+    // other, so it is this.
+    //
+    // The EFFECTS that maintain these stay in whichever component renders the panel: $effect needs
+    // an owner and a session class is not one. What lives here is the value, not the syncing.
+    frozenNegotiation: Negotiation | undefined = $state(undefined)
+
+    // What the negotiation panel shows: the live negotiation, or the fully-signed one being held
+    // on screen for a beat after it resolves.
+    get displayNegotiation(): Negotiation | undefined {
+        return this.gameState.negotiation ?? this.frozenNegotiation
+    }
+
+    // The draft terms. Derived from the standing offer, with the player's edits stored against the
+    // negotiation-and-offer they were made for - so a new offer, or a new negotiation, reads as the
+    // offer says rather than keeping whatever was typed against the old one.
+    //
+    // An effect used to assign these from the offer on every tick and clear them when the
+    // negotiation ended. Deriving them means there is nothing to clear: no negotiation, no draft.
+    private negotiationDraft:
+        | { key: string; proposerId: string | undefined; amount: number }
+        | undefined = $state(undefined)
+
+    private get negotiationKey(): string | undefined {
+        const negotiation = this.displayNegotiation
+        if (!negotiation) return undefined
+        const offer = negotiation.offer
+        return `${negotiation.slot}:${negotiation.playerIds.join(',')}:${
+            offer ? `${offer.fromPlayerId}:${offer.amount}` : 'none'
+        }`
+    }
+
+    get negotiationProposerId(): string | undefined {
+        const key = this.negotiationKey
+        if (!key) return undefined
+        if (this.negotiationDraft?.key === key) return this.negotiationDraft.proposerId
+
+        const negotiation = this.displayNegotiation!
+        if (negotiation.offer) return negotiation.offer.fromPlayerId
+        // No offer yet: default to me if I am in it, otherwise the first participant.
+        const myId = this.myPlayer?.id
+        return myId && negotiation.playerIds.includes(myId) ? myId : negotiation.playerIds[0]
+    }
+
+    get negotiationAmount(): number {
+        const key = this.negotiationKey
+        if (!key) return 0
+        if (this.negotiationDraft?.key === key) return this.negotiationDraft.amount
+        return this.displayNegotiation?.offer?.amount ?? 1
+    }
+
+    setNegotiationProposer(proposerId: string) {
+        const key = this.negotiationKey
+        if (!key) return
+        this.negotiationDraft = { key, proposerId, amount: this.negotiationAmount }
+    }
+
+    setNegotiationAmount(amount: number) {
+        const key = this.negotiationKey
+        if (!key) return
+        this.negotiationDraft = { key, proposerId: this.negotiationProposerId, amount }
+    }
+
+    // Holds a resolved negotiation on screen for a beat. Called from the per-action listener when
+    // the closing signature lands, since that action carries the executed offer - an effect had to
+    // notice the negotiation vanish and remember what it had been.
+    private negotiationFreezeTimer: ReturnType<typeof setTimeout> | undefined
+    freezeNegotiation(negotiation: Negotiation, holdMs: number) {
+        if (this.negotiationFreezeTimer) clearTimeout(this.negotiationFreezeTimer)
+        this.frozenNegotiation = negotiation
+        this.negotiationFreezeTimer = setTimeout(() => {
+            this.frozenNegotiation = undefined
+            this.negotiationFreezeTimer = undefined
+        }, holdMs)
+    }
+
+    // Per-player draft bids. A duel bid is a one-shot commitment per player, unlike negotiation's
+    // single shared offer, so each duelist gets their own.
+    // Keyed to the duel they were entered for. A re-duel replaces gameState.duel outright, never
+    // passing through undefined, so an effect had to keep a signature of its own to notice the
+    // change and zero the bids; keying them means a new duel reads as no bids at all.
+    private duelBids: { signature: string; amounts: Record<string, number> } | undefined =
+        $state(undefined)
+    private duelTestBidder: { signature: string; playerId: string } | undefined = $state(undefined)
+
+    // The duel being bid in: its slot, its players, and how many ties it has been through. Any of
+    // those changing is a different duel.
+    private get duelSignature(): string | undefined {
+        const duel = this.gameState.duel
+        if (!duel) return undefined
+        return `${duel.slot}:${duel.playerIds.join(',')}:${duel.tieCount}`
+    }
+
+    get duelBidAmounts(): Record<string, number> {
+        const signature = this.duelSignature
+        if (!signature || this.duelBids?.signature !== signature) return {}
+        return this.duelBids.amounts
+    }
+
+    setDuelBidAmount(playerId: string, amount: number) {
+        const signature = this.duelSignature
+        if (!signature) return
+        const amounts =
+            this.duelBids?.signature === signature ? { ...this.duelBids.amounts } : {}
+        amounts[playerId] = amount
+        this.duelBids = { signature, amounts }
+    }
+
+    get testBiddingForPlayerId(): string | undefined {
+        const signature = this.duelSignature
+        if (!signature || this.duelTestBidder?.signature !== signature) return undefined
+        return this.duelTestBidder.playerId
+    }
+
+    setTestBiddingForPlayerId(playerId: string | undefined) {
+        const signature = this.duelSignature
+        if (!signature) return
+        this.duelTestBidder = playerId === undefined ? undefined : { signature, playerId }
+    }
+
+    // While the history controls have the board rewound, nothing on screen is an offer. Every
+    // gate below opens with this, so an affordance cannot appear against a state the player is
+    // only looking at - a rewound politics phase invited the viewer to open a pile and pick a
+    // card, which both revealed a hidden pile and then failed, since the action does not belong
+    // to the state being viewed.
+    //
+    // Guarded here rather than in each component: these getters are what the components ask, and
+    // there are a dozen of them against three that were remembering to check.
+    private get canActNow(): boolean {
+        return !this.isViewingHistory
+    }
+
     get canPlaceCastle(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer) return false
         return HydratedPlaceCastle.canPlaceCastle(this.gameState, this.myPlayer.id)
     }
@@ -125,6 +271,8 @@ export class LowenherzGameSession extends GameSession<
                 notYourTurn: "It's not your turn to place a castle right now.",
                 wrongTerrain: "That spot isn't allowed for a castle — it can't be a hill or village.",
                 occupied: "That spot isn't allowed for a castle — it's already occupied.",
+                noKnightSquare:
+                    "That spot isn't allowed for a castle — there's nowhere beside it to put its knight.",
                 tooClose:
                     "That spot isn't allowed for a castle — it needs to be at least 6 spaces from your other same-color castles."
             }[problem]
@@ -187,6 +335,159 @@ export class LowenherzGameSession extends GameSession<
     // card is drawn (that draw becomes the most recent one). Lives here rather than in
     // RealBoard because the board announces the reveal while the action bar shows each
     // player's payout under their points (see ActionToolbar).
+    // One marker per alliance, carrying the walls along the shared border it was struck across.
+    // The board draws hearts on those walls and bursts them when the alliance breaks; the status
+    // panel names the alliance - so both halves need this, and neither owns it.
+    //
+    // Alliances with no shared border are filtered out: an alliance whose regions no longer touch
+    // has nothing to draw and nothing to say.
+    get allianceMarkers(): {
+        id: string
+        walls: { col: number; row: number; edge: string }[]
+        cancellable: boolean
+        otherColor: Color | undefined
+    }[] {
+        const alliances = this.gameState.alliances
+        if (alliances.length === 0) return []
+
+        const regions = this.gameState.regions
+        const cancellable = new Map(this.myCancellableAlliances.map((a) => [a.id, a.otherColor]))
+
+        return alliances
+            .map((alliance) => {
+                const regionA = regions.find((r) => r.id === alliance.regionAId)
+                const regionB = regions.find((r) => r.id === alliance.regionBId)
+                // Shared with the burst animator, which needs the same walls out of a state this
+                // getter cannot reach (see model/allianceGeometry.ts).
+                const walls =
+                    !regionA || !regionB ? [] : allianceWalls(this.gameState, alliance.id)
+                return {
+                    id: alliance.id,
+                    walls,
+                    // Cancellable means the rulebook's "one of the two players participating in it
+                    // pays ten ducats" is genuinely open to ME right now - myCancellableAlliances
+                    // already checks both the participation and the 10 ducats.
+                    cancellable: cancellable.has(alliance.id),
+                    otherColor: cancellable.get(alliance.id)
+                }
+            })
+            .filter((marker) => marker.walls.length > 0)
+    }
+
+    // What the sword in hand can be spent on, right now. Asked once per sword, so a two-sword
+    // action reaches this twice and the second visit is narrower: canStartExpansion is already
+    // false once an expansion has been used, which is how "expand twice is not allowed" removes
+    // itself from the second question.
+    //
+    // canStartExpansion rather than canExpandRegion: the latter is true whenever you own a region
+    // at all, even if every one of them is boxed in, which is how "expand a region" used to be
+    // offered and then dead-end once a region was picked.
+    get availableKnightPlans(): KnightPlan[] {
+        if (!this.canPlaceKnight) return []
+
+        // Nothing else is offered while an expansion is open. Its second space is free and the
+        // board shows only expansion squares, so asking what to do with the next sword here would
+        // put knight dots on the map at the one moment a knight cannot be placed.
+        if (this.canContinueExpansion) return []
+
+        const plans: KnightPlan[] = []
+        if (this.canPlaceAnotherKnight) plans.push('knight')
+        if (this.canStartFreshExpansion) plans.push('expand')
+        return plans
+    }
+
+
+    // How many swords this knight action started with, for wording it. Read off the band of the
+    // slot being resolved - resolvedSlots is pushed before the placement phase, so its length IS
+    // that slot's number - rather than off knightsRemaining, which counts down as the action is
+    // spent and would relabel a two-sword action as a one-sword one halfway through.
+    //
+    // The band has to come from the slot rather than from "whichever band is a knight band":
+    // several cards carry knight bands in BOTH the middle and bottom slots, with different counts.
+    get knightActionSwords(): number {
+        const card = this.gameState.currentActionCard
+        if (card?.type !== ActionCardType.Standard) return 0
+
+        const slot = this.gameState.resolvedSlots.length
+        const band = slot === 2 ? card.middle : slot === 3 ? card.bottom : undefined
+        return band?.kind === 'knight' ? band.count : 0
+    }
+
+    // Whether a board click right now means "expand into this space" / "place a knight here".
+    // Both can be live at once: after an expansion's first space, its optional second space is
+    // still clickable while the leftover sword is being spent on a knight, and clicking the knight
+    // square is what ends the expansion at one space (there is no Done button).
+    //
+    // Each is gated on the step's sword not being spent yet, which is what makes a two-sword action
+    // ask twice instead of running straight through.
+    get expandStageActive(): boolean {
+        // An expansion already under way stays clickable whatever the current step is: its second
+        // space was paid for by the sword that started it, so it costs nothing and belongs to no
+        // step.
+        //
+        // canContinueExpansion rather than the raw expandingRegionId, because the engine keeps
+        // that id set until the second space is taken or the action ends - it has no notion of the
+        // player declining. Reading it directly left the expansion live after a decline, so the
+        // board went on offering expansion squares and the prompt asked for a first space again.
+        if (this.canContinueExpansion) return true
+
+        return this.knightPlan === 'expand' && this.canExpandRegion
+    }
+
+    // The region being expanded turned out to have nowhere legal to grow into. Its sword is better
+    // spent on a knight than forfeited, so this hands the knight half the board even under an
+    // expansion-first choice - and there is no overlap to disambiguate, since there are no legal
+    // expansion squares left to compete with.
+    get expansionDeadEnd(): boolean {
+        return (
+            this.expandStageActive &&
+            this.selectedExpandRegionId !== undefined &&
+            this.expansionSquares.length === 0 &&
+            this.legalNextExpansionSquares.length === 0
+        )
+    }
+
+    get knightStageActive(): boolean {
+        return this.knightPlan === 'knight' && this.canPlaceAnotherKnight
+    }
+
+    // Public rather than private: the narration deriveds that use these are being moved out of
+    // RealBoard in stages, and until the last of them lands here they are called from components.
+    //
+    // roundAdvanced marks the END of a round, so scanning backward from "now" always hits it
+    // BEFORE anything else that happened earlier in the very round we are trying to inspect -
+    // money bag payouts, a completed negotiation, duel bids. Stopping on the first one would mean
+    // never finding anything, even when it is squarely within the round the message describes. The
+    // first roundAdvanced just closes out that round; only a SECOND confirms we have scanned past
+    // it entirely into the round before.
+    isPastCurrentRound(roundBoundariesSeen: number): boolean {
+        return roundBoundariesSeen >= 2
+    }
+
+    // A slot's resolution is stale - superseded, no longer the single most recent notable thing -
+    // once a later slot has resolved since it. resolvedSlots grows by exactly one, in order, every
+    // time ANY slot fully resolves, so a slot's own number matching the current length means
+    // nothing has resolved more recently than it.
+    isFreshestResolvedSlot(slot: number | undefined): boolean {
+        return slot !== undefined && slot === this.gameState.resolvedSlots.length
+    }
+
+    // What a slot's band is called, for the sentences that describe winning it.
+    actionNounForSlot(slot: 1 | 2 | 3): string {
+        const card = this.gameState.currentActionCard
+        if (!card || card.type !== 'standard') return ''
+        const band = slot === 1 ? card.top : slot === 2 ? card.middle : card.bottom
+        if (band.kind === 'border') return 'walls'
+        if (band.kind === 'knight') return 'knights'
+        if (band.kind === 'politics') return 'politics'
+        return ''
+    }
+
+    playerIdForColor(color: Color): string | undefined {
+        return this.gameState.players.find((p) => p.color === color)?.playerId
+    }
+
+
     get lastMineHillScoring(): { playerId: string; points: number }[] | undefined {
         const discarded = this.gameState.discardedActionCard
         if (discarded?.type !== ActionCardType.Mining) return undefined
@@ -448,6 +749,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get canDrawActionCard(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer) return false
         return HydratedDrawActionCard.canDrawActionCard(this.gameState, this.myPlayer.id)
     }
@@ -466,6 +768,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get canChooseAction(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer) return false
         return HydratedChooseAction.canChooseAction(this.gameState, this.myPlayer.id)
     }
@@ -564,6 +867,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get canSignNegotiationOffer(): boolean {
+        if (!this.canActNow) return false
         if (!this.isNegotiator) return false
         // A Sign with no standing offer is rejected by the engine
         // (NegotiationMove.invalidNegotiationMoveReason), so signing has to be paired with a
@@ -632,6 +936,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get canSubmitDuelBid(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer) return false
         const duel = this.gameState.duel
         if (!duel) return false
@@ -665,7 +970,7 @@ export class LowenherzGameSession extends GameSession<
             ...(treasureCardId ? { treasureCardId } : {})
         })
         this.errorMessage = undefined
-        this.selectedTreasureCardId = undefined
+        this.armedTreasure = undefined
         try {
             await this.applyAction(action)
         } catch (e) {
@@ -704,6 +1009,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get canPlaceWall(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer) return false
         return (
             this.gameState.machineState === MachineState.PlacingWalls &&
@@ -764,6 +1070,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get canPlaceKnight(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer) return false
         return (
             this.gameState.machineState === MachineState.PlacingKnights &&
@@ -775,10 +1082,28 @@ export class LowenherzGameSession extends GameSession<
     // purely local UI selection, same pattern as selectedExpandRegionId. Only actually
     // applied to a knight placement when the target square is wooded (see
     // placeKnight/legalKnightSquares) - arming one doesn't make other squares illegal.
-    selectedTreasureCardId: string | undefined = $state(undefined)
+    // The armed card, recorded with the duel it was armed during - or with no duel, since a
+    // Treasure is also armed to pay for a wooded knight placement.
+    //
+    // Keeping the duel alongside it is what stops an armed card riding into a RE-duel: the
+    // signature changes, the record stops matching, and it reads as unarmed. An effect used to
+    // notice the new duel and unarm it.
+    private armedTreasure: { cardId: string; duelSignature: string | undefined } | undefined =
+        $state(undefined)
+
+    private get selectedTreasureCardId(): string | undefined {
+        const armed = this.armedTreasure
+        if (!armed) return undefined
+        // Armed outside a duel survives one starting; armed DURING a duel dies with it.
+        if (armed.duelSignature !== undefined && armed.duelSignature !== this.duelSignature) {
+            return undefined
+        }
+        return armed.cardId
+    }
 
     selectTreasureCard(cardId: string | undefined) {
-        this.selectedTreasureCardId = cardId
+        this.armedTreasure =
+            cardId === undefined ? undefined : { cardId, duelSignature: this.duelSignature }
     }
 
     // The armed card itself, but only while arming it still means anything: it has to be
@@ -832,7 +1157,7 @@ export class LowenherzGameSession extends GameSession<
         }
 
         this.errorMessage = undefined
-        this.selectedTreasureCardId = undefined
+        this.armedTreasure = undefined
         try {
             await this.applyAction(action)
         } catch (e) {
@@ -850,7 +1175,7 @@ export class LowenherzGameSession extends GameSession<
         // Declining the rest of the action also disarms any Treasure card armed for it -
         // belt and braces alongside selectedTreasureCard's window check, so the local
         // selection doesn't outlive the thing it was armed for.
-        this.selectedTreasureCardId = undefined
+        this.armedTreasure = undefined
 
         const action = this.createPlayerAction(Pass, {})
         this.errorMessage = undefined
@@ -895,8 +1220,10 @@ export class LowenherzGameSession extends GameSession<
         // "Using this action to expand twice is not allowed" - once this action's
         // expansion is spent, only its leftover sword's knight is left. An expansion
         // still in progress (its optional 2nd space) doesn't count as a second one, so
-        // the expand UI has to stay up for that.
-        return !this.gameState.expansionUsed || this.gameState.expandingRegionId !== undefined
+        // the expand UI has to stay up for that - but only while the player still wants
+        // it, hence canContinueExpansion rather than the raw engine flag, which stays set
+        // through a decline.
+        return !this.gameState.expansionUsed || this.canContinueExpansion
     }
 
     // Whether placing a knight is genuinely still on the table - distinct from
@@ -923,6 +1250,48 @@ export class LowenherzGameSession extends GameSession<
         return this.expandableRegions.length > 0
     }
 
+    // A FRESH expansion, as opposed to the second space of one already under way.
+    // canStartExpansion above answers true mid-expansion, which is right for "is expanding still
+    // part of this action" and wrong for "may this sword buy an expansion" - the rulebook allows
+    // one expansion per action, and offering it again was offering the same one twice.
+    get canStartFreshExpansion(): boolean {
+        if (this.gameState.expansionUsed === true) return false
+        if (this.gameState.expandingRegionId !== undefined) return false
+        return this.canStartExpansion
+    }
+
+    // Set when the player has finished expanding at one space. The engine has no action for
+    // "that's enough" - expandingRegionId stays set until the second space is taken or the action
+    // ends - so declining it is local, like the step choice itself.
+    //
+    // It exists because knight squares are no longer offered while an expansion is open. Something
+    // has to end the expansion, and it cannot be the knight click that used to end it.
+    // Keyed to the expansion it refers to, for the same reason the step choice is keyed to its
+    // step: a decline that applies to THIS expansion cannot leak into the next one, and nothing
+    // has to notice the expansion ended in order to clear it.
+    private declinedExpansion: string | undefined = $state(undefined)
+
+    declineSecondSpace() {
+        const openExpansion = this.openExpansionId
+        if (openExpansion) this.declinedExpansion = openExpansion
+    }
+
+    // Identifies the expansion currently open, action and region together - the same region can be
+    // expanded again in a later action, and that is a different expansion.
+    private get openExpansionId(): string | undefined {
+        const regionId = this.gameState.expandingRegionId
+        if (!regionId) return undefined
+        return `${this.currentKnightActionKey ?? 'none'}:${regionId}`
+    }
+
+    // The optional second space of an expansion already under way. Costs no sword - it was paid
+    // for by the one that started it - so it outlives the step that bought it.
+    get canContinueExpansion(): boolean {
+        if (!this.canActNow) return false
+        const openExpansion = this.openExpansionId
+        return openExpansion !== undefined && this.declinedExpansion !== openExpansion
+    }
+
     // Which shape the winner of a knight action has declared they're taking. A one-sword
     // action is just knight-or-expand; a two-sword action has exactly three legal shapes
     // (two knights, or one knight plus one expansion in either order - "using this
@@ -930,14 +1299,44 @@ export class LowenherzGameSession extends GameSession<
     // every click after that is unambiguous. Purely local UI intent, like
     // selectedExpandRegionId - the engine only ever sees the individual
     // PlaceKnight/ExpandRegion actions this produces, and never enforces the order.
-    knightPlan: KnightPlan | undefined = $state(undefined)
-    // The sword count when the plan was picked, so knightPlanHasProgress can tell "just
-    // chose a plan" (Undo should drop the plan) from "already placed/expanded something"
-    // (Undo should revert that real action instead). Also what tells the plan's stages
-    // apart: knightsRemaining below this means the knight half has been spent.
-    knightPlanStartSwords = $state(0)
-    // Which knight action the plan belongs to - see currentKnightActionKey.
-    private knightPlanActionKey: string | undefined = undefined
+    // The choice, recorded against the STEP it was made for rather than as a bare value. That is
+    // what makes it expire on its own: spending a sword changes the step id, so the stored choice
+    // stops matching and knightPlan derives undefined - the next question is asked without anything
+    // having to notice the sword was spent and clear up afterwards.
+    //
+    // Which is the repository's rule 34/35, and not merely the letter of it: the version that DID
+    // notice and clear produced exactly the loop rule 24 warns about. Undo dropped the step, an
+    // effect re-selected it, and the button appeared dead.
+    private chosenStep: { stepId: string; plan: KnightPlan } | undefined = $state(undefined)
+
+    // The step currently being answered: the action, plus how many swords are left to spend on it.
+    private get knightStepId(): string | undefined {
+        const actionKey = this.currentKnightActionKey
+        if (!actionKey) return undefined
+        return `${actionKey}:${this.gameState.knightsRemaining ?? 0}`
+    }
+
+    get knightPlan(): KnightPlan | undefined {
+        const stepId = this.knightStepId
+        const stored =
+            stepId && this.chosenStep?.stepId === stepId ? this.chosenStep.plan : undefined
+
+        // A stored choice whose half has since closed is stale - the knight stock ran dry, or the
+        // last region got boxed in - and gives way to whatever is still on offer.
+        if (stored && this.knightPlanStillOpen(stored)) return stored
+
+        // With one option there is nothing to choose, so it counts as chosen. Derived rather than
+        // written: an auto-selection that is not stored anywhere simply stops applying the moment a
+        // second option appears, which is what an effect used to have to notice and undo. It is
+        // also what tells an auto-selection from a deliberate one - only the deliberate one is
+        // stored, so only it survives the arrival of a second option.
+        const options = this.availableKnightPlans
+        return options.length === 1 ? options[0] : undefined
+    }
+
+    private knightPlanStillOpen(plan: KnightPlan): boolean {
+        return plan === 'knight' ? this.canPlaceAnotherKnight : this.canExpandRegion
+    }
 
     // Identifies the knight action currently being performed: the action card, how many
     // slots had resolved when it started (pushed before the placement phase and stable
@@ -952,35 +1351,35 @@ export class LowenherzGameSession extends GameSession<
 
     selectKnightPlan(plan: KnightPlan) {
         this.errorMessage = undefined
-        this.knightPlan = plan
-        this.knightPlanActionKey = this.currentKnightActionKey
-        this.knightPlanStartSwords = this.gameState.knightsRemaining ?? 0
+        const stepId = this.knightStepId
+        if (!stepId) return
+        this.chosenStep = { stepId, plan }
     }
 
     clearKnightPlan() {
-        this.knightPlan = undefined
-        this.knightPlanActionKey = undefined
-        this.knightPlanStartSwords = 0
+        this.chosenStep = undefined
         this.cancelExpansion()
     }
 
-    // Drops a plan that belongs to some EARLIER knight action - a different player's, or
-    // a later action of this player's own. Deliberately keeps the plan while the phase is
-    // merely closed (no knightPlacingPlayerId): an Undo that steps back into a knight
-    // action that had already finished has to find its plan intact, or the player lands
-    // in the plan chooser looking at a part-spent two-sword action being described as a
-    // fresh one-sword one.
-    syncKnightPlanWithState() {
-        if (!this.knightPlan) return
-        const key = this.currentKnightActionKey
-        if (key && key !== this.knightPlanActionKey) this.clearKnightPlan()
-    }
 
+
+
+    // Whether this knight ACTION has produced anything real yet - which decides whether Undo
+    // cancels a choice or reverts a move.
+    //
+    // Read entirely off engine state, and deliberately not off expansionSquares: that derives from
+    // the locally selected region, so anything that cleared the selection made a spent action look
+    // untouched, and Undo would cancel the step and let it be re-chosen instead of reverting.
+    //
+    // Compared against the action's own sword count rather than the step's, because a step now
+    // starts fresh after each sword: measuring against the step would report no progress at the
+    // start of the second one, with a knight already on the board.
     get knightPlanHasProgress(): boolean {
         if (!this.knightPlan) return false
         return (
-            this.expansionSquares.length > 0 ||
-            (this.gameState.knightsRemaining ?? 0) < this.knightPlanStartSwords
+            this.gameState.expansionUsed === true ||
+            this.gameState.expandingRegionId !== undefined ||
+            (this.gameState.knightsRemaining ?? 0) < this.knightActionSwords
         )
     }
 
@@ -993,8 +1392,23 @@ export class LowenherzGameSession extends GameSession<
         return this.gameState.expandingRegionId !== undefined ? 1 : 0
     }
 
-    // The region currently being expanded (auto-selected if the player only owns one).
-    selectedExpandRegionId: string | undefined = $state(undefined)
+    // The region being expanded. Stored only when the player actually picks one.
+    private chosenExpandRegion: string | undefined = $state(undefined)
+
+    // Reads as nothing at all once the expanding stage closes - the expansion finished, a knight
+    // went down instead, or the action ended - so a stale pick cannot outlive its usefulness and
+    // nothing has to notice the stage closing in order to drop it.
+    //
+    // One region means there is nothing to pick, so it counts as picked. That also covers
+    // re-entering an expansion the engine still has open, where expandableRegions is exactly that
+    // region, so a second space cannot be misdirected at another one.
+    get selectedExpandRegionId(): string | undefined {
+        if (!this.expandStageActive) return undefined
+        if (this.chosenExpandRegion) return this.chosenExpandRegion
+
+        const regions = this.expandableRegions
+        return regions.length === 1 ? regions[0].id : undefined
+    }
 
     // The 1-2 spaces this expansion has taken, read back off the action log rather than
     // recorded locally as they're clicked. Each space is its own ExpandRegion action,
@@ -1030,13 +1444,13 @@ export class LowenherzGameSession extends GameSession<
         if (!this.canExpandRegion) return
         if (!this.expandableRegions.some((r) => r.id === regionId)) return
         this.errorMessage = undefined
-        this.selectedExpandRegionId = regionId
+        this.chosenExpandRegion = regionId
     }
 
     // Dropping the region selection empties expansionSquares by itself, since that derives
     // from the selected region (see above).
     cancelExpansion() {
-        this.selectedExpandRegionId = undefined
+        this.chosenExpandRegion = undefined
     }
 
     // The engine's own verdict on one hypothetical expansion - undefined if it's legal,
@@ -1158,6 +1572,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get canTakePoliticsCard(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer) return false
         return (
             this.gameState.machineState === MachineState.TakingPoliticsCard &&
@@ -1283,6 +1698,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get canPlayRenegadeCard(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer || !this.canChooseAction) return false
         const playerState = this.gameState.getPlayerState(this.myPlayer.id)
         if (playerState.knightsInStock <= 0) return false
@@ -1307,8 +1723,12 @@ export class LowenherzGameSession extends GameSession<
     renegadeEnemyRegionId: string | undefined = $state(undefined)
     renegadeRemovedSquare: { col: number; row: number } | undefined = $state(undefined)
 
+    // Only true while playing one is still legal. The window can close from under the player - the
+    // slot resolves, the card leaves the hand, the phase moves on - and an effect used to notice
+    // that and cancel afterwards. Derived, it simply stops being true, and the four selections
+    // below stop being read.
     get isPlayingRenegadeCard(): boolean {
-        return this.renegadeCardId !== undefined
+        return this.renegadeCardId !== undefined && this.canPlayRenegadeCard
     }
 
     startPlayingRenegadeCard(cardId: string) {
@@ -1520,6 +1940,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get canPlayAllianceCard(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer || !this.canChooseAction) return false
         const playerState = this.gameState.getPlayerState(this.myPlayer.id)
         if (!playerState.politicsCards.some((c) => c.type === PoliticsCardType.Alliance)) return false
@@ -1538,8 +1959,9 @@ export class LowenherzGameSession extends GameSession<
     allianceCardId: string | undefined = $state(undefined)
     allianceOwnRegionId: string | undefined = $state(undefined)
 
+    // Same as isPlayingRenegadeCard: true only while it is still legal to be playing one.
     get isPlayingAllianceCard(): boolean {
-        return this.allianceCardId !== undefined
+        return this.allianceCardId !== undefined && this.canPlayAllianceCard
     }
 
     startPlayingAllianceCard(cardId: string) {

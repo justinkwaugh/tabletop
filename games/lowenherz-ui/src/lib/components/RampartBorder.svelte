@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { RAMPART_THICKNESS, scaled } from '$lib/model/boardMetrics.js'
     // A rough, hand-hewn stone rampart strip: irregular crenellation teeth (randomized
     // width and height) plus a noise-textured fill, rather than a perfectly uniform
     // repeating pattern in flat black.
@@ -6,14 +7,14 @@
 
     const isVertical = side === 'left' || side === 'right'
 
-    const THICKNESS = 20
+    const THICKNESS = RAMPART_THICKNESS
     // The viewBox stretches to fill a fixed container size, so AVG_WIDTH's absolute
     // value cancels out - TOOTH_COUNT is what actually controls rendered tooth size.
     // Top/bottom uses one fewer tooth than before (30 -> 29) to widen each space by
     // ~1px (board is a fixed 664px wide, so 664/29 - 664/30 ≈ 1px); left/right is
     // unchanged.
     const TOOTH_COUNT = isVertical ? 19 : 29
-    const AVG_WIDTH = 24
+    const AVG_WIDTH = scaled(24)
     const PIXEL_JITTER = 1
 
     type Tooth = { pos: number; width: number; isMerlon: boolean; merlonHeight: number }
