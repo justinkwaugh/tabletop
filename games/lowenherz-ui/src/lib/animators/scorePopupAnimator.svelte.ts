@@ -16,15 +16,19 @@ import { StateAnimator, type StateChange } from './stateAnimator.js'
  * - The pop-in goes on `actionTimeline`, so the number is on screen and readable before the board
  *   changes underneath it. That is the part that belongs to the action.
  * - The float-out starts in `afterAnimations` on its own timeline. The session holds the reactive
- *   state update until the shared timeline finishes, so a two-second drift there would stall the
+ *   state update until the shared timeline finishes, so a multi-second drift there would stall the
  *   board after every scoring action. A popup outlives its action - it is an annotation, not the
  *   action's own motion - and gsap's onComplete owns when it goes away.
  */
 type Popup = { id: string; col: number; row: number; text: string; color: string }
 
 const POP_IN = 0.18
-const HOLD = 2.2
-const FLOAT = 1.6
+// Just long enough to register as a beat after the pop, not a wait. The gsap conversion had this at
+// 2.2s, which kept the old CSS keyframe's ~4s lifetime but not its character: that version rose
+// continuously with an ease-out, so it was already moving as you read it.
+const HOLD = 0.2
+// Long and eased-out, so most of the travel happens early and the tail is a slow drift.
+const FLOAT = 3.4
 
 export class ScorePopupAnimator extends StateAnimator {
     popups: Popup[] = $state([])
