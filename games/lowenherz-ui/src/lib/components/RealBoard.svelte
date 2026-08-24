@@ -73,9 +73,9 @@
     // same live draft; before any offer exists, defaults to "I offer" for whichever
     // negotiator this session is, at a 1-ducat opening amount. Purely a local draft
     // until the player actually does something (touches the stepper, or clicks
-    // Signed - see the Signed button below, which proposes this draft for real
+    // Signed - see the Sign button below, which proposes this draft for real
     // first if nothing's been proposed yet). Deliberately NOT auto-submitted the
-    // moment negotiation starts - that used to happen so the Signed button was
+    // moment negotiation starts - that used to happen so the Sign button was
     // immediately usable, but it meant a real action always existed the instant a
     // negotiation began, and that action (being the nearest one) was always what
     // Undo targeted - hiding whatever the player actually wanted to undo back to.

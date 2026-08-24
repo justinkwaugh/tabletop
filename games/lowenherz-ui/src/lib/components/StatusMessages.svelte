@@ -832,7 +832,7 @@
                     disabled={!gameSession.isNegotiator || gameSession.hasSignedNegotiationOffer}
                     onclick={() => commitNegotiationOffer()}
                 >
-                    Signed
+                    Sign
                 </button>
                 <span class="signature-text inline-block h-8 w-32 border-b border-black/40 px-1">
                     {#if gameSession.myPlayer && negotiation.signedPlayerIds.includes(gameSession.myPlayer.id)}
@@ -854,7 +854,7 @@
                 {@const showTestSign =
                     SHOW_NEGOTIATION_TEST_CONTROLS && !!negotiation.offer && !!otherId && !otherHasSigned}
                 <!-- Only rendered when there is something to report. With nobody signed yet the
-                     controls and the Signed button beside them already say what to do, and a line
+                     controls and the Sign button beside them already say what to do, and a line
                      restating it was a line of the space above the board earning nothing. The whole
                      row is conditional rather than just its text, so an empty div does not leave a
                      gap behind it. -->
