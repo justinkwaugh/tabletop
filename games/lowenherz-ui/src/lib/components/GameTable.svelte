@@ -16,6 +16,7 @@
     import TestingControls from '$lib/components/TestingControls.svelte'
     import PoliticsHand from '$lib/components/PoliticsHand.svelte'
     import SummaryStrip from '$lib/components/SummaryStrip.svelte'
+    import StatusMessages from '$lib/components/StatusMessages.svelte'
     import PoliticsPileOverlay from '$lib/components/PoliticsPileOverlay.svelte'
     import parchmentTexture from '$lib/images/board/parchment-texture.jpg'
 
@@ -102,6 +103,9 @@
                     <!-- <InformationPanel /> -->
                 {/if}
                 <ActionToolbar />
+                <!-- Below the toolbar so Undo stays at the very top, and outside ScalingWrapper
+                     below so none of this text scales with the board. -->
+                <StatusMessages />
             </div>
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { CELL_SIZE, scaled } from '$lib/model/boardMetrics.js'
     // A single boundary-wall segment (one square edge long), drawn as a thin base
     // bar with irregular black squares strung along it - a hand-built look, like the
     // rampart frame's crenellations, but for player-placed walls on the board itself.
@@ -16,11 +17,14 @@
     }: { orientation: 'horizontal' | 'vertical'; hideStartJunction?: boolean; hideEndJunction?: boolean } =
         $props()
 
-    const LENGTH = 44 // matches RealBoard's CELL_SIZE - one wall spans one square edge
-    const BASE_THICKNESS = 3
-    const AVG_SQUARE = 8
-    const SIZE_JITTER = 1
-    const ROTATION_JITTER = 1
+    // One wall spans one square edge, so this IS the cell size - it was a hardcoded 44 that
+    // silently became two thirds of an edge when the board scaled up. Everything else here is a
+    // ratio of it, so the crenellations keep their proportions at any scale.
+    const LENGTH = CELL_SIZE
+    const BASE_THICKNESS = scaled(3)
+    const AVG_SQUARE = scaled(8)
+    const SIZE_JITTER = scaled(1)
+    const ROTATION_JITTER = 1 // degrees, not pixels
     const INTERIOR_COUNT = 3
 
     // The two endpoint "squares" are really junction markers (see buildSquares'
@@ -45,7 +49,7 @@
 
         for (let i = 1; i <= INTERIOR_COUNT; i++) {
             const evenPos = (LENGTH * i) / (INTERIOR_COUNT + 1)
-            const pixelNudge = Math.round(Math.random() * 2 - 1) // mostly 0, occasionally -1 or +1
+            const pixelNudge = Math.round(Math.random() * 2 - 1) * SIZE_JITTER // mostly 0
             squares.push({
                 pos: evenPos + pixelNudge,
                 size: AVG_SQUARE + (Math.random() * 2 - 1) * SIZE_JITTER,

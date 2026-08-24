@@ -255,12 +255,21 @@ describe('resolution cascade (via the real GameEngine)', () => {
         expect(state.negotiation?.offer).toEqual({ fromPlayerId: 'p1', amount: 3 })
         expect(state.negotiation?.signedPlayerIds).toEqual([])
 
+        // A signature on the standing offer first, so the counter below has something to
+        // withdraw. This is the ordinary shape of the flow: whoever moves first sets terms and
+        // signs them, and the other side either signs those terms or changes them.
+        state = engine.run(negotiationMove('p1', NegotiationMoveKind.Sign), state, game).updatedState
+        expect(state.negotiation?.signedPlayerIds).toEqual(['p1'])
+
         state = engine.run(
             negotiationMove('p2', NegotiationMoveKind.Propose, 4, 'p2'),
             state,
             game
         ).updatedState
         expect(state.negotiation?.offer).toEqual({ fromPlayerId: 'p2', amount: 4 })
+        // Changing the terms IS the counter-proposal, and it takes p1's signature with it -
+        // nobody is held to terms they did not sign. This is what lets the UI treat "adjust the
+        // offer and sign" as a counter rather than needing a separate action for it.
         expect(state.negotiation?.signedPlayerIds).toEqual([])
 
         // p2 signs their own proposal first - negotiation stays open on one signature,

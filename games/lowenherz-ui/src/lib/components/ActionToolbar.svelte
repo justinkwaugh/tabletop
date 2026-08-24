@@ -32,6 +32,15 @@
     const hasLocalStepToCancel = $derived(
         gameSession.isPlayingRenegadeCard ||
             gameSession.isPlayingAllianceCard ||
+            // A picked castle square during setup is local-only in exactly the same way: the
+            // castle is drawn as settled, but nothing is submitted until its knight square is
+            // chosen too, so there is no action to revert and Undo is the only way back.
+            //
+            // Most visible on the very FIRST castle of the game, where no action exists yet and
+            // Undo therefore sat dark with a castle apparently on the board. On later castles it
+            // lit up, but only because it had the PREVIOUS placement to offer - which is not what
+            // the player is trying to take back.
+            gameSession.selectedCastleSquare !== undefined ||
             // A declared knight-action plan (see GameSession.knightPlan) is local-only
             // too, and it's the sole way back out of one now that the flow has no cancel
             // buttons - but only while nothing's landed under it yet. Once a knight or an
@@ -47,6 +56,10 @@
             gameSession.cancelPlayingAllianceCard()
         } else if (gameSession.knightPlan !== undefined && !gameSession.knightPlanHasProgress) {
             gameSession.clearKnightPlan()
+        } else if (gameSession.selectedCastleSquare) {
+            // Before the fall-through on purpose: with a castle square picked, Undo has to mean
+            // "put that castle back" rather than "revert whoever placed one before me".
+            gameSession.clearCastleSelection()
         } else {
             // Reverting an expansion space leaves the local record of picked spaces
             // (previews, the 1-2 space cap) stale, since nothing else hears about an
@@ -65,13 +78,45 @@
     // name alone or are too momentary to be worth a label here.
     const isEndOfGame = $derived(gameSession.gameState.machineState === MachineState.EndOfGame)
     const activePlayerIds = $derived(gameSession.gameState.activePlayerIds)
-    // Almost always a single active player ("Waiting for X to take an action"), but
-    // Negotiating always has exactly the two negotiators active at once, and a 3+-way
-    // Dueling tie leaves all the tied players active too - the plural covers both.
-    // Which of those it is doesn't need spelling out here anymore, since the phase
-    // label below now names the specific thing they're doing.
+    // Who is actually being waited ON, which is not always who the engine has active. Both
+    // negotiators stay active for the whole negotiation, so once one of them has signed the bar
+    // was still naming them both - and the player who had signed was reading "waiting for you"
+    // about themselves.
+    //
+    // Falls back to every active player if that would leave nobody: a standing offer with both
+    // signatures does not linger (the deal executes on the second one), but an empty list would
+    // read as a stall rather than as a moment.
+    const waitingPlayerIds = $derived.by(() => {
+        const duelists = waitingDuelistIds
+        if (duelists) return duelists
+
+        const negotiation = gameSession.gameState.negotiation
+        if (!negotiation) return activePlayerIds
+
+        const unsigned = activePlayerIds.filter((id) => !negotiation.signedPlayerIds.includes(id))
+        return unsigned.length > 0 ? unsigned : activePlayerIds
+    })
+
+    // Same narrowing for a duel: every duelist stays active until the bids resolve, so a player
+    // whose bid is in was still being waited on by name.
+    //
+    // It does leak a little. A sealed bid is private, and "Waiting for Tom" tells the table that
+    // everyone except Tom has already bid - something he could otherwise only guess at. Asked for
+    // deliberately: the bid AMOUNTS stay sealed, and knowing who has yet to act is what this bar is
+    // for everywhere else in the game.
+    const waitingDuelistIds = $derived.by(() => {
+        if (!gameSession.gameState.duel) return undefined
+
+        const unbid = activePlayerIds.filter((id) => !gameSession.hasPlayerBidInDuel(id))
+        return unbid.length > 0 ? unbid : activePlayerIds
+    })
+
+    // Almost always a single player ("Waiting for X to take an action"), but a negotiation with
+    // nobody signed yet has two, and a 3+-way Dueling tie leaves all the tied players active -
+    // the plural covers both. Which of those it is doesn't need spelling out here, since the
+    // phase label names the specific thing they're doing.
     const waitingVerb = $derived(
-        activePlayerIds.length > 1 ? 'to take their actions' : 'to take an action'
+        waitingPlayerIds.length > 1 ? 'to take their actions' : 'to take an action'
     )
     // Every machine state that can actually be waiting on someone gets a label - a
     // bare "Performing actions" covered the three action states without saying which
@@ -129,8 +174,8 @@
         <span class="min-w-0 truncate">
             <span class="font-bold"
                 >Waiting for
-                {#each activePlayerIds as playerId, i (playerId)}{i > 0
-                        ? i === activePlayerIds.length - 1
+                {#each waitingPlayerIds as playerId, i (playerId)}{i > 0
+                        ? i === waitingPlayerIds.length - 1
                             ? ' and '
                             : ', '
                         : ''}<PlayerPill {playerId} showAsYou={false} />{/each}

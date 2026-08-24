@@ -14,7 +14,17 @@ export const PassMetadata = Type.Object({
     // place your first wall and the second may have nowhere to go. That still arrives as a
     // Pass, and without this history would report it as "declining to place any more",
     // which credits the player with a choice they never had.
-    noLegalPlacement: Type.Optional(Type.Boolean())
+    noLegalPlacement: Type.Optional(Type.Boolean()),
+    // What was being declined. Pass is shared by the wall and knight phases, and within the knight
+    // phase it can decline a knight OR the optional second space of an expansion already under way
+    // - three different sentences in the history feed, which previously had to make do with one
+    // generic "declining to place any more".
+    //
+    // Recorded here rather than inferred later because the reader cannot tell: by the time history
+    // is read the phase has moved on, and expandingRegionId has been cleared.
+    phase: Type.Optional(
+        Type.Union([Type.Literal('walls'), Type.Literal('knights'), Type.Literal('expansion')])
+    )
 })
 
 export type Pass = Type.Static<typeof Pass>
@@ -54,13 +64,27 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
         // Pass leaves playerId optional (it's the one action that doesn't redeclare it as
         // required), so it has to be narrowed before the legality check will take it.
         const playerId = this.playerId
-        if (
-            playerId &&
+
+        // An expansion still open means this pass is declining its second space, not a knight -
+        // the sword that started it is already spent either way.
+        const phase =
+            state.machineState === MachineState.PlacingWalls
+                ? ('walls' as const)
+                : state.machineState === MachineState.PlacingKnights
+                  ? state.expandingRegionId !== undefined
+                      ? ('expansion' as const)
+                      : ('knights' as const)
+                  : undefined
+
+        const noLegalPlacement =
+            playerId !== undefined &&
             state.machineState === MachineState.PlacingWalls &&
             state.wallPlacingPlayerId === playerId &&
             !anyLegalWallPlacement(state, playerId)
-        ) {
-            this.metadata = { noLegalPlacement: true }
+
+        this.metadata = {
+            ...(phase ? { phase } : {}),
+            ...(noLegalPlacement ? { noLegalPlacement: true } : {})
         }
     }
 }

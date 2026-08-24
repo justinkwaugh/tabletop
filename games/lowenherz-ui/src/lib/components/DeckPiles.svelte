@@ -1,4 +1,7 @@
 <script lang="ts">
+    import { CARD_COLUMN_WIDTH } from '$lib/model/boardMetrics.js'
+    import { ActionCardFlipAnimator } from '$lib/animators/actionCardFlipAnimator.svelte.js'
+    import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { CardBack, isAdvanceResolution } from '@tabletop/lowenherz'
     import type { ActionCardSlot } from '$lib/model/actionCardTypes.js'
@@ -47,63 +50,11 @@
         if (count >= deck.length) return undefined
         return { count, nextBack: deck[count].back }
     })
-    // Plays a 3D flip (back design -> the actual card face) the moment a freshly
-    // drawn card shows up in the middle slot, rather than having it just appear.
-    // Only fires for an actual draw, not for the card that's already sitting there
-    // when this component first mounts (e.g. rejoining a game in progress) - the
-    // very first effect run just records that starting card as a baseline (whatever
-    // it is, even undefined) without animating; every run after that compares
-    // against the baseline, so an id change is unambiguously a fresh draw,
-    // including the very first draw of a brand new game.
-    let flippingCardId: string | undefined = $state(undefined)
-    let flipped = $state(false)
-    let previousCardId: string | undefined = undefined
-    let baselineRecorded = false
-
-    // The draw pile button and the middle slot are both fixed in place (this grid
-    // never reflows), so their on-screen offset from each other only needs
-    // measuring once, right as a flip starts - used to make the flip travel from
-    // one to the other instead of just flipping in place.
-    let drawPileEl: HTMLElement | undefined = $state()
-    let middleSlotEl: HTMLElement | undefined = $state()
-    let flipDx = $state(0)
-    let flipDy = $state(0)
-
-    const FLIP_DURATION = 480 // ms
-
-    $effect(() => {
-        const id = card?.id
-        if (!baselineRecorded) {
-            baselineRecorded = true
-            previousCardId = id
-            return
-        }
-        if (id && id !== previousCardId) {
-            flippingCardId = id
-            flipped = false
-            if (drawPileEl && middleSlotEl) {
-                const fromRect = drawPileEl.getBoundingClientRect()
-                const toRect = middleSlotEl.getBoundingClientRect()
-                flipDx = fromRect.left + fromRect.width / 2 - (toRect.left + toRect.width / 2)
-                flipDy = fromRect.top + fromRect.height / 2 - (toRect.top + toRect.height / 2)
-            } else {
-                flipDx = 0
-                flipDy = 0
-            }
-            const startTimer = setTimeout(() => {
-                flipped = true
-            }, 20)
-            const endTimer = setTimeout(() => {
-                flippingCardId = undefined
-            }, FLIP_DURATION + 40)
-            previousCardId = id
-            return () => {
-                clearTimeout(startTimer)
-                clearTimeout(endTimer)
-            }
-        }
-        previousCardId = id
-    })
+    // The flip lives in an animator now (see animators/actionCardFlipAnimator), registered by the
+    // {@attach} below so it is bound to this component's lifetime. It appends its tween to the
+    // shared AnimationContext the session hands each listener, which is what sequences it before
+    // the reactive state update instead of racing it.
+    const flip = new ActionCardFlipAnimator(gameSession)
 
     const backImages: Record<CardBack, string> = {
         [CardBack.A]: backA,
@@ -153,10 +104,13 @@
 <div class="flex flex-col gap-2" style="width: fit-content;">
     <button
         type="button"
-        bind:this={drawPileEl}
+        {@attach (el) => {
+            flip.setDrawPile(el)
+            return () => flip.setDrawPile(undefined)
+        }}
         disabled={!gameSession.canDrawActionCard}
         onclick={() => gameSession.drawActionCard()}
-        class="w-[106px] relative shadow-[0_4px_10px_rgba(0,0,0,0.35)] {gameSession.canDrawActionCard
+        style="width: {CARD_COLUMN_WIDTH}px;" class="relative shadow-[0_4px_10px_rgba(0,0,0,0.35)] {gameSession.canDrawActionCard
             ? 'cursor-pointer hover:brightness-95'
             : ''} {gameSession.canDrawActionCard && isFirstRound ? 'draw-pile-glow' : ''}"
     >
@@ -178,37 +132,42 @@
         {/if}
     </button>
     <div
-        class="w-[106px] rounded-md {gameSession.canChooseAction && isFirstRound
+        class="rounded-md {gameSession.canChooseAction && isFirstRound
             ? 'action-card-glow'
             : 'shadow-[0_4px_10px_rgba(0,0,0,0.35)]'}"
-        style="perspective: 900px;"
-        bind:this={middleSlotEl}
+        style="width: {CARD_COLUMN_WIDTH}px; perspective: 900px;"
+        {@attach attachAnimator(flip)}
+        {@attach (el) => {
+            flip.setSlot(el)
+            return () => flip.setSlot(undefined)
+        }}
     >
-        {#if card}
-            {#if flippingCardId === card.id}
-                <div
-                    class="relative w-full aspect-[546/840] pointer-events-none transition-transform ease-out"
-                    style="
-                        transform-style: preserve-3d;
-                        transform: translate({flipped ? 0 : flipDx}px, {flipped ? 0 : flipDy}px)
-                            rotateY({flipped ? 180 : 0}deg);
-                        transition-duration: {FLIP_DURATION}ms;
-                    "
-                >
-                    <div class="absolute inset-0" style="backface-visibility: hidden;">
-                        <img
-                            src={backImages[card.back]}
-                            alt="Deck {card.back}"
-                            class="w-full h-full rounded-md shadow-md object-cover"
-                        />
-                    </div>
-                    <div class="absolute inset-0" style="backface-visibility: hidden; transform: rotateY(180deg);">
-                        <ActionCard {card} slots={{ top: slotFor(1), middle: slotFor(2), bottom: slotFor(3) }} />
-                    </div>
+        {#if flip.flippingCard}
+            {@const flippingCard = flip.flippingCard}
+            <div
+                {@attach (el) => {
+                    flip.setNode(el)
+                    return () => flip.setNode(undefined)
+                }}
+                class="relative w-full aspect-[546/840] pointer-events-none"
+                style="transform-style: preserve-3d;"
+            >
+                <div class="absolute inset-0" style="backface-visibility: hidden;">
+                    <img
+                        src={backImages[flippingCard.back]}
+                        alt="Deck {flippingCard.back}"
+                        class="w-full h-full rounded-md shadow-md object-cover"
+                    />
                 </div>
-            {:else}
-                <ActionCard {card} slots={{ top: slotFor(1), middle: slotFor(2), bottom: slotFor(3) }} />
-            {/if}
+                <div class="absolute inset-0" style="backface-visibility: hidden; transform: rotateY(180deg);">
+                    <ActionCard
+                        card={flippingCard}
+                        slots={{ top: slotFor(1), middle: slotFor(2), bottom: slotFor(3) }}
+                    />
+                </div>
+            </div>
+        {:else if card}
+            <ActionCard {card} slots={{ top: slotFor(1), middle: slotFor(2), bottom: slotFor(3) }} />
         {:else}
             {@render emptySlot('')}
         {/if}

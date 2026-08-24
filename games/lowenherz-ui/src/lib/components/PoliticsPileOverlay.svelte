@@ -26,15 +26,16 @@
         boardCenter = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined
     }
 
-    $effect(() => {
-        if (!showing) {
-            boardCenter = undefined
-            return
-        }
+    // An attachment rather than an effect keyed on `showing`: the node only exists while showing,
+    // so its lifetime IS the condition, and the listener is registered and torn down with it.
+    function trackBoardCentre() {
         measure()
         window.addEventListener('resize', measure)
-        return () => window.removeEventListener('resize', measure)
-    })
+        return () => {
+            window.removeEventListener('resize', measure)
+            boardCenter = undefined
+        }
+    }
 
     // Same rule the piles carried when they lived in the deck column: the rulebook has
     // you look through ONE pile, so opening one is a one-way commitment and the other
@@ -90,9 +91,6 @@
                 {cards.length}
             </span>
         {/if}
-        <span class="mt-2 block text-center text-white text-lg font-semibold tracking-wide">
-            Pile {which}
-        </span>
     </button>
 {/snippet}
 
@@ -101,6 +99,7 @@
          required decision (the turn can't proceed until a card is taken), so a stray
          click on the backdrop shouldn't strand the player with no piles on screen. -->
     <div
+        {@attach trackBoardCentre}
         class="fixed inset-0 z-40 bg-black/55 {boardCenter
             ? ''
             : 'flex items-center justify-center'}"
@@ -111,7 +110,10 @@
                 ? `left: ${boardCenter.x}px; top: ${boardCenter.y}px; transform: translate(-50%, -50%);`
                 : ''}
         >
-            <div class="text-center text-white text-2xl font-semibold mb-4 drop-shadow">
+            <!-- w-fit mx-auto so the heading centres over the PILES: this column is positioned
+                 from the board's centre point, and a full-width heading centred in it drifts off
+                 the row of piles below, which is the widest thing in here. -->
+            <div class="w-fit mx-auto text-center text-white text-2xl font-semibold mb-4 drop-shadow">
                 {gameSession.selectedPoliticsPile
                     ? 'Click your pile to look through it again.'
                     : 'Choose a politics pile to look through.'}
@@ -127,7 +129,7 @@
                     {gameSession.errorMessage}
                 </div>
             {/if}
-            <div class="flex items-start gap-10">
+            <div class="flex w-fit mx-auto items-start gap-10">
                 {@render pile('A', pileA)}
                 {@render pile('B', pileB)}
             </div>

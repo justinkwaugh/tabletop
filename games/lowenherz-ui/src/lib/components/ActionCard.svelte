@@ -62,8 +62,10 @@
         >
             {#each pills as pill (pill.playerId)}
                 {@const letter = pill.name.charAt(0).toUpperCase()}
+                <!-- cqw, like the slot numeral above: the card's width is now set by the board's
+                     scale, and a pill fixed at 24px would shrink against it. -->
                 <span
-                    class="pointer-events-auto w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border border-black/20 shadow-[0_2px_5px_rgba(0,0,0,0.5)]"
+                    class="pointer-events-auto w-[22.6cqw] h-[22.6cqw] text-[11.3cqw] rounded-full flex items-center justify-center font-bold border border-black/20 shadow-[0_2px_5px_rgba(0,0,0,0.5)]"
                     style="background-color:{pill.color}; color:{pill.textColor}"
                     title={pill.name}
                 >
