@@ -326,9 +326,15 @@
         {:else}
             <!-- Simple tiled grid: every card the same size, laid out side by side and
                  wrapping as needed, no overlap or hover pop needed since this already
-                 floats above the whole board. -->
+                 floats above the whole board.
+
+                 w-full alongside max-w-4xl: the parent's items-center means this isn't stretched
+                 to fill it, only centred within it, so without a width tied to that available
+                 space this sized itself to fit every card on one unwrapped row - up to 896px wide
+                 even on a 375px phone - and overflowed past the fixed backdrop's edge into
+                 whatever sat behind the page rather than actually wrapping. -->
             <div
-                class="flex flex-wrap items-start justify-center gap-4 max-w-4xl max-h-[calc(100dvh-7rem)] overflow-y-auto px-2 py-1"
+                class="flex flex-wrap items-start justify-center gap-4 w-full max-w-4xl max-h-[calc(100dvh-7rem)] overflow-y-auto px-2 py-1"
                 role="presentation"
                 onclick={(e) => e.stopPropagation()}
             >
