@@ -304,7 +304,16 @@
             // actions (see GameSession.onHistoryAction), so this holds only during live play and
             // `full-action` replay - and a replay that steps through a negotiation ought to show
             // the offer it settled on, which the old guard prevented.
-            if (!action) return
+            //
+            // No action also means no "next user action" to release the freeze on - undoing all
+            // the way back out of a completed negotiation, or scrubbing history past it, would
+            // otherwise leave its Sign/decline controls on screen with nothing engine-side behind
+            // them. Release unconditionally rather than trying to detect staleness: the hold is a
+            // live-play-only affordance and nothing here is meant to survive a jump backward.
+            if (!action) {
+                gameSession.releaseFrozenNegotiation()
+                return
+            }
 
             const settling = isNegotiationMove(action) && action.metadata?.executedOffer
             if (settling && from?.negotiation) {
@@ -327,6 +336,21 @@
         gameSession.addGameStateChangeListener(listener)
         return () => gameSession.removeGameStateChangeListener(listener)
     })
+
+    // Once the deal is settled, its winner has somewhere else to be: the wall/knight/politics
+    // prompt above (isPlayingAllianceCard / canPlaceWall / canPlaceKnight / canTakePoliticsCard)
+    // already tells them what to do with what they just won, so re-reading the offer they signed
+    // moments ago is only in their way. Everyone else has nothing to act on right now, so the
+    // frozen offer and both signatures are exactly what they should be looking at.
+    //
+    // Scoped to the frozen hold, not live negotiation: gameState.negotiation is only undefined
+    // once the deal has resolved, and canPlaceWall/etc. are only ever true once a slot's winner
+    // has been routed to their placement phase - the two can never both be true while a
+    // negotiation is still live, so this never hides the panel from an active negotiator.
+    const negotiationHoldHidesForMe = $derived(
+        !gameSession.gameState.negotiation &&
+            (gameSession.canPlaceWall || gameSession.canPlaceKnight || gameSession.canTakePoliticsCard)
+    )
 
     const negotiationOtherPlayerId = $derived.by(() => {
         const negotiation = displayNegotiation
@@ -750,14 +774,14 @@
          and the consequence both show on hover, and the affordance stays put on the board
          instead of appearing in a status area whose other messages are turn-scoped. -->
 
-    {#if displayNegotiation}
+    {#if displayNegotiation && !negotiationHoldHidesForMe}
         {@const negotiation = displayNegotiation}
         <!-- items-center on the column, justify-center on each row: the column is only as wide as
              its widest row (the terms), so without the latter the shorter signing row sat flush
              left under it - centred as a block, but not centred on the board the panel sits above.
              The rows now centre on each other, and the column centres on the game column, which is
              the same column ScalingWrapper centres the board in. -->
-        <div class="flex flex-col items-center gap-1 text-black text-sm">
+        <div class="flex flex-col items-center text-black text-sm">
             <div class="flex flex-wrap items-center justify-center gap-2 pb-3 text-[16px]">
                 <!-- Side by side rather than stacked. Two names in a column made this box two lines
                      tall on its own, which set the height of the whole row and so of the space the
