@@ -164,17 +164,20 @@ export class LowenherzGameSession extends GameSession<
         this.negotiationDraft = { key, proposerId: this.negotiationProposerId, amount }
     }
 
-    // Holds a resolved negotiation on screen for a beat. Called from the per-action listener when
-    // the closing signature lands, since that action carries the executed offer - an effect had to
-    // notice the negotiation vanish and remember what it had been.
-    private negotiationFreezeTimer: ReturnType<typeof setTimeout> | undefined
-    freezeNegotiation(negotiation: Negotiation, holdMs: number) {
-        if (this.negotiationFreezeTimer) clearTimeout(this.negotiationFreezeTimer)
+    // Holds a settled negotiation on screen - the terms and both signatures - until the player who
+    // won the slot goes and does the thing they paid for. Called from the per-action listener when
+    // the closing signature lands, since that action carries the executed offer; an effect would
+    // have had to notice the negotiation vanish and remember what it had been.
+    //
+    // Released by the next user action rather than by a timer. "Until they carry out their action"
+    // is the actual intent, and no number of milliseconds says that: a wall placement can take as
+    // long as it takes. The same listener clears it, so nothing here has to watch the clock.
+    freezeNegotiation(negotiation: Negotiation) {
         this.frozenNegotiation = negotiation
-        this.negotiationFreezeTimer = setTimeout(() => {
-            this.frozenNegotiation = undefined
-            this.negotiationFreezeTimer = undefined
-        }, holdMs)
+    }
+
+    releaseFrozenNegotiation() {
+        this.frozenNegotiation = undefined
     }
 
     // Per-player draft bids. A duel bid is a one-shot commitment per player, unlike negotiation's

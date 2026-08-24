@@ -12,7 +12,7 @@
     // moved rather than being copied. The values both halves need went onto the session in an
     // earlier pass, which is why this file reads them off gameSession instead of receiving props.
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import type { Color, GameAction } from '@tabletop/common'
+    import { ActionSource, type Color, type GameAction } from '@tabletop/common'
     import {
         isAdvanceResolution,
         isCancelAlliance,
@@ -280,7 +280,6 @@
     // a beat longer instead of snapping away the instant it clears. Only applies to
     // an actual completed deal, not a decline (which routes straight to a duel and
     // should switch over immediately).
-    const NEGOTIATION_HOLD_MS = 1000
 
     // Once both sides have signed, gameState.negotiation disappears immediately - the machine moves
     // straight on to whatever the settled action needs next - which read as an abrupt cut, control
@@ -314,7 +313,19 @@
 
             const settling = isNegotiationMove(action) && action.metadata?.executedOffer
             if (settling && from?.negotiation) {
-                gameSession.freezeNegotiation(from.negotiation, NEGOTIATION_HOLD_MS)
+                // `from` is the state before this action, so it carries one signature - the closing
+                // one is this action's own. Freeze a copy with both, since two signatures on the
+                // line is the whole point of holding it there.
+                gameSession.freezeNegotiation({
+                    ...from.negotiation,
+                    signedPlayerIds: [...from.negotiation.signedPlayerIds, action.playerId]
+                })
+                return
+            }
+
+            // Anything else the players do means the deal has been read and acted on.
+            if (action.source === ActionSource.User) {
+                gameSession.releaseFrozenNegotiation()
             }
         }
 
@@ -834,11 +845,28 @@
                 >
                     Sign
                 </button>
-                <span class="signature-text inline-block h-8 w-32 border-b border-black/40 px-1">
-                    {#if gameSession.myPlayer && negotiation.signedPlayerIds.includes(gameSession.myPlayer.id)}
-                        {playerName(gameSession, gameSession.myPlayer.id)}
-                    {/if}
-                </span>
+                <!-- One line per negotiator, as a contract has: a name written on a line is the
+                     signature, and the printed name beneath says whose line it is. This replaces a
+                     sentence that reported the same thing in prose ("X has signed. Sign to accept
+                     these terms as they stand, or change them to counter...") - with both lines on
+                     screen there is nothing left for it to tell anyone. The captions are out of
+                     flow, like the picker's above, so they cost the row no height. -->
+                {#each negotiation.playerIds as playerId (playerId)}
+                    <div class="relative flex flex-col items-center">
+                        <span
+                            class="signature-text inline-block h-8 w-32 border-b border-black/40 px-1"
+                        >
+                            {#if negotiation.signedPlayerIds.includes(playerId)}
+                                {playerName(gameSession, playerId)}
+                            {/if}
+                        </span>
+                        <span
+                            class="absolute top-full mt-0.5 text-[12px] text-black/50 whitespace-nowrap"
+                        >
+                            {playerName(gameSession, playerId)}
+                        </span>
+                    </div>
+                {/each}
             </div>
 
             <!-- Which half of the exchange you are in, in one line. This is also where the other
@@ -858,15 +886,8 @@
                      restating it was a line of the space above the board earning nothing. The whole
                      row is conditional rather than just its text, so an empty div does not leave a
                      gap behind it. -->
-                {#if otherHasSigned || showTestSign}
+                {#if showTestSign}
                     <div class="flex flex-wrap items-center gap-2 text-black/60 text-[16px]">
-                        {#if otherHasSigned && otherId}
-                            <span>
-                                {@render playerPill(otherId)} has signed. Sign to accept these terms
-                                as they stand, or change them to counter - which withdraws their
-                                signature.
-                            </span>
-                        {/if}
                         {#if showTestSign && otherId}
                             <button
                                 type="button"
