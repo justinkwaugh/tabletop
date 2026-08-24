@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { RenegadeFlightAnimator } from '$lib/animators/renegadeFlightAnimator.svelte.js'
     import {
         AllianceBurstAnimator,
         BURST_SHARD_ANGLES
@@ -161,14 +160,13 @@
 
     const allianceMarkers = $derived(gameSession.allianceMarkers)
 
-    // The three cinematics are animators now (see src/lib/animators). Each appends its tweens to
+    // These cinematics are animators now (see src/lib/animators). Each appends its tweens to
     // the shared AnimationContext the session hands every listener, so they are sequenced with the
     // action rather than fired off as detached CSS keyframes with a setTimeout to clean up - and
     // `full-action` history replay plays them, which the old isViewingHistory guard prevented.
     //
     // The burst no longer keeps a map of remembered wall positions either: a listener is handed
     // `from`, the state before the action, and a cancelled alliance is still in it.
-    const renegadeFlight = new RenegadeFlightAnimator(gameSession)
     const allianceBurst = new AllianceBurstAnimator(gameSession)
     const scorePopups = new ScorePopupAnimator(gameSession)
 
@@ -178,13 +176,6 @@
     const visibleAllianceMarkers = $derived(
         allianceMarkers.filter((marker) => marker.id !== allianceBurst.burstingAllianceId)
     )
-
-    // Likewise the departing knight: it is still on its old square for the whole flight, so the
-    // board holds it back and the flying copy stands in for it.
-    function isRenegadeDepartureSquare(col: number, row: number): boolean {
-        const departure = renegadeFlight.departureSquare
-        return departure !== undefined && departure.col === col && departure.row === row
-    }
 
     // Cancelling costs 10 ducats and is legal at any time, so the affordance lives on the
     // board rather than in the turn-scoped status text. One click does it: the hover state
@@ -944,7 +935,6 @@
 <div class="flex flex-col gap-2 items-center" style="--cell: {CELL_SIZE}px;">
     <!-- Registration hosts: each animator subscribes for as long as its host is mounted (see
          attachAnimator), the way bus-ui binds its animators to a <g> in the board. -->
-    <div class="hidden" {@attach attachAnimator(renegadeFlight)}></div>
     <div class="hidden" {@attach attachAnimator(allianceBurst)}></div>
     <div class="hidden" {@attach attachAnimator(scorePopups)}></div>
 
@@ -1163,10 +1153,6 @@
                                      actually gone from game state until the whole Renegade
                                      play is confirmed, but this square shouldn't look occupied
                                      in the meantime. -->
-                            {:else if isRenegadeDepartureSquare(col, row)}
-                                <!-- Held back while the defecting knight is in the air: the flying
-                                     copy stands in for it, and state still shows it here until the
-                                     flight lands - see renegadeFlightAnimator. -->
                             {:else if isLegalRenegadeRemovableSquare(col, row)}
                                 <!-- The real knight already there, pulsing in place - rather than
                                      a ring around it - to show it's a legal removal target. -->
@@ -1325,40 +1311,6 @@
                 {village.name}
             </div>
         {/each}
-
-        <!-- The defecting knight in flight. Two copies of the same piece stacked - the old
-             owner's colour fading out, the new owner's fading in - so the change of side happens
-             over the arc rather than as a swap at either end. Both layers are registered with the
-             animator, which tweens them directly. -->
-        {#if renegadeFlight.flight}
-            {@const flight = renegadeFlight.flight}
-            <div
-                class="absolute pointer-events-none z-50"
-                {@attach (el) => {
-                    renegadeFlight.setWrapper(el)
-                    return () => renegadeFlight.setWrapper(undefined)
-                }}
-                style="
-                    left: {flight.left}px;
-                    top: {flight.top}px;
-                    width: {CELL_SIZE}px;
-                    height: {CELL_SIZE}px;
-                "
-            >
-                <div class="absolute inset-0" {@attach (el) => {
-                        renegadeFlight.setOldColour(el)
-                        return () => renegadeFlight.setOldColour(undefined)
-                    }}>
-                    {@render pieceIcon(knightFill, knightLines, flight.fromColor, -1)}
-                </div>
-                <div class="absolute inset-0" {@attach (el) => {
-                        renegadeFlight.setNewColour(el)
-                        return () => renegadeFlight.setNewColour(undefined)
-                    }}>
-                    {@render pieceIcon(knightFill, knightLines, flight.toColor, -1)}
-                </div>
-            </div>
-        {/if}
 
         <!-- The alliance breaking: one burst per wall that carried a heart, so a long shared
              border comes apart along its whole length rather than in one spot. -->
