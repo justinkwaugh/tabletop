@@ -1,17 +1,9 @@
 <script lang="ts">
-    import { onMount, tick } from 'svelte'
-    import { gsap } from 'gsap'
     import { CARD_COLUMN_WIDTH } from '$lib/model/boardMetrics.js'
-    import type { GameAction } from '@tabletop/common'
-    import type { AnimationContext } from '@tabletop/frontend-components'
-    import type { HydratedLowenherzGameState } from '@tabletop/lowenherz'
+    import { ActionCardFlipAnimator } from '$lib/animators/actionCardFlipAnimator.svelte.js'
+    import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import {
-        CardBack,
-        isAdvanceResolution,
-        isDrawActionCard,
-        type ActionCard as ActionCardData
-    } from '@tabletop/lowenherz'
+    import { CardBack, isAdvanceResolution } from '@tabletop/lowenherz'
     import type { ActionCardSlot } from '$lib/model/actionCardTypes.js'
     import { decisionsForSlot, playerName } from '$lib/model/actionCardHelpers.js'
     import ActionCard from './ActionCard.svelte'
@@ -58,97 +50,11 @@
         if (count >= deck.length) return undefined
         return { count, nextBack: deck[count].back }
     })
-    // Plays a 3D flip (back design -> the actual card face) as a freshly drawn card travels from
-    // the draw pile into the middle slot, rather than having it just appear.
-    //
-    // This runs on the harness's shared AnimationContext (see
-    // libs/frontend-components/src/lib/utils/ANIMATION_PATTERN.md), which is what makes the timing
-    // reliable: the session gathers every listener's tweens, plays the timeline, and only THEN
-    // assigns the new reactive state. The flip is therefore sequenced before the board changes
-    // underneath it, instead of being fired off with a CSS transition and racing the re-render -
-    // which is what the old `setTimeout(..., 20)` was really compensating for. It waited for the
-    // node to mount, and the node only mounted once state had already landed.
-    let drawPileEl: HTMLElement | undefined = $state()
-    let middleSlotEl: HTMLElement | undefined = $state()
-    let flipNode: HTMLElement | undefined = $state()
-
-    const FLIP_DURATION_S = 0.48
-
-    // Pattern C, pre-reactivity override: the card being flipped comes from the action's own `to`
-    // state, because for the whole length of the flip the derived `card` below is still the
-    // PREVIOUS one.
-    //
-    // Its lifetime is exactly one action - set as the tween is built, dropped in
-    // afterAnimations, which is the last hook before the session assigns the new state (see the
-    // Transient Lifetime Rules in ANIMATION_PATTERN.md: action-scoped transients belong there).
-    // Both writes land in the same microtask drain as the state assignment, so no frame can paint
-    // between the flip node leaving and the real card arriving.
-    let flippingCard: ActionCardData | undefined = $state(undefined)
-
-    async function flipInDrawnCard(drawn: ActionCardData, animationContext: AnimationContext) {
-        // Pattern B, new item: write the transient presence state, await the mount, resolve the
-        // node, tween the node itself. No per-frame reactive writes - gsap owns the motion.
-        flippingCard = drawn
-        await tick()
-        if (!flipNode) {
-            // Nothing to tween means nothing to show: leaving the override in place would park a
-            // static card back over the slot until reactive state caught up.
-            flippingCard = undefined
-            return
-        }
-
-        // The draw pile and the middle slot are both fixed in place (this grid never reflows), so
-        // their offset only needs measuring once, as the flip starts - it makes the card travel
-        // from one to the other instead of flipping in place.
-        let dx = 0
-        let dy = 0
-        if (drawPileEl && middleSlotEl) {
-            const fromRect = drawPileEl.getBoundingClientRect()
-            const toRect = middleSlotEl.getBoundingClientRect()
-            dx = fromRect.left + fromRect.width / 2 - (toRect.left + toRect.width / 2)
-            dy = fromRect.top + fromRect.height / 2 - (toRect.top + toRect.height / 2)
-        }
-
-        // Leaving this set past its own action was a bug: `card` goes undefined every time a card
-        // is used up, so a stale override matched "the state is not showing my card" all over
-        // again and re-mounted the flip node - un-tweened, at rotationY 0, which is the card back.
-        // A used card is meant to simply disappear.
-        animationContext.afterAnimations(() => {
-            flippingCard = undefined
-        })
-
-        gsap.set(flipNode, { x: dx, y: dy, rotationY: 0, transformOrigin: 'center center' })
-        animationContext.actionTimeline.to(
-            flipNode,
-            { x: 0, y: 0, rotationY: 180, duration: FLIP_DURATION_S, ease: 'power2.out' },
-            0
-        )
-    }
-
-    onMount(() => {
-        // Driven by the per-action listener rather than by watching card?.id: the session says
-        // which action was just applied, so "a new card was drawn" is something we are told rather
-        // than inferred by diffing - which is what the old baselineRecorded/previousCardId pair was
-        // for (avoiding a replay of the flip for the card already on the table at mount, and a
-        // re-flip when the history controls rewound and regrew the action list).
-        const listener = async ({
-            action,
-            to,
-            animationContext
-        }: {
-            action?: GameAction
-            to: HydratedLowenherzGameState
-            animationContext: AnimationContext
-        }) => {
-            if (!action || gameSession.isViewingHistory) return
-            if (!isDrawActionCard(action)) return
-            const drawn = to.currentActionCard
-            if (drawn) await flipInDrawnCard(drawn, animationContext)
-        }
-
-        gameSession.addGameStateChangeListener(listener)
-        return () => gameSession.removeGameStateChangeListener(listener)
-    })
+    // The flip lives in an animator now (see animators/actionCardFlipAnimator), registered by the
+    // {@attach} below so it is bound to this component's lifetime. It appends its tween to the
+    // shared AnimationContext the session hands each listener, which is what sequences it before
+    // the reactive state update instead of racing it.
+    const flip = new ActionCardFlipAnimator(gameSession)
 
     const backImages: Record<CardBack, string> = {
         [CardBack.A]: backA,
@@ -198,7 +104,10 @@
 <div class="flex flex-col gap-2" style="width: fit-content;">
     <button
         type="button"
-        bind:this={drawPileEl}
+        {@attach (el) => {
+            flip.setDrawPile(el)
+            return () => flip.setDrawPile(undefined)
+        }}
         disabled={!gameSession.canDrawActionCard}
         onclick={() => gameSession.drawActionCard()}
         style="width: {CARD_COLUMN_WIDTH}px;" class="relative shadow-[0_4px_10px_rgba(0,0,0,0.35)] {gameSession.canDrawActionCard
@@ -227,11 +136,19 @@
             ? 'action-card-glow'
             : 'shadow-[0_4px_10px_rgba(0,0,0,0.35)]'}"
         style="width: {CARD_COLUMN_WIDTH}px; perspective: 900px;"
-        bind:this={middleSlotEl}
+        {@attach attachAnimator(flip)}
+        {@attach (el) => {
+            flip.setSlot(el)
+            return () => flip.setSlot(undefined)
+        }}
     >
-        {#if flippingCard}
+        {#if flip.flippingCard}
+            {@const flippingCard = flip.flippingCard}
             <div
-                bind:this={flipNode}
+                {@attach (el) => {
+                    flip.setNode(el)
+                    return () => flip.setNode(undefined)
+                }}
                 class="relative w-full aspect-[546/840] pointer-events-none"
                 style="transform-style: preserve-3d;"
             >

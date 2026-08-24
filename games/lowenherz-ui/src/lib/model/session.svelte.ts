@@ -1,4 +1,5 @@
 import { ActionSource, createAction, type Color } from '@tabletop/common'
+import { allianceWalls } from '$lib/model/allianceGeometry.js'
 import { GameSession } from '@tabletop/frontend-components'
 import { nanoid } from 'nanoid'
 import {
@@ -356,22 +357,10 @@ export class LowenherzGameSession extends GameSession<
             .map((alliance) => {
                 const regionA = regions.find((r) => r.id === alliance.regionAId)
                 const regionB = regions.find((r) => r.id === alliance.regionBId)
+                // Shared with the burst animator, which needs the same walls out of a state this
+                // getter cannot reach (see model/allianceGeometry.ts).
                 const walls =
-                    !regionA || !regionB
-                        ? []
-                        : this.gameState.board.walls.filter((wall) => {
-                              const keyHere = squareKey(wall.col, wall.row)
-                              const keyThere =
-                                  wall.edge === 'north'
-                                      ? squareKey(wall.col, wall.row - 1)
-                                      : squareKey(wall.col - 1, wall.row)
-                              return (
-                                  (regionA.squareKeys.includes(keyHere) &&
-                                      regionB.squareKeys.includes(keyThere)) ||
-                                  (regionB.squareKeys.includes(keyHere) &&
-                                      regionA.squareKeys.includes(keyThere))
-                              )
-                          })
+                    !regionA || !regionB ? [] : allianceWalls(this.gameState, alliance.id)
                 return {
                     id: alliance.id,
                     walls,

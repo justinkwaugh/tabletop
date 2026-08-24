@@ -306,7 +306,11 @@
             action?: GameAction
             from?: HydratedLowenherzGameState
         }) => {
-            if (!action || gameSession.isViewingHistory) return
+            // Action presence, not isViewingHistory: plain history navigation and undo suppress
+            // actions (see GameSession.onHistoryAction), so this holds only during live play and
+            // `full-action` replay - and a replay that steps through a negotiation ought to show
+            // the offer it settled on, which the old guard prevented.
+            if (!action) return
 
             const settling = isNegotiationMove(action) && action.metadata?.executedOffer
             if (settling && from?.negotiation) {

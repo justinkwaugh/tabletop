@@ -1,28 +1,22 @@
 <script lang="ts">
-    import { onMount } from 'svelte'
-    import { gsap } from 'gsap'
+    import { RenegadeFlightAnimator } from '$lib/animators/renegadeFlightAnimator.svelte.js'
+    import {
+        AllianceBurstAnimator,
+        BURST_SHARD_ANGLES
+    } from '$lib/animators/allianceBurstAnimator.svelte.js'
+    import { ScorePopupAnimator } from '$lib/animators/scorePopupAnimator.svelte.js'
+    import { attachAnimator } from '$lib/animators/stateAnimator.js'
+    import { heartPosition } from '$lib/model/allianceGeometry.js'
     import { CELL_SIZE, RAMPART_THICKNESS, scaled } from '$lib/model/boardMetrics.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import type { Color, GameAction } from '@tabletop/common'
+    import type { Color } from '@tabletop/common'
     import {
         ALLIANCE_CANCELLATION_COST,
         BOARD_COLS,
         BOARD_ROWS,
         HydratedPlaceCastle,
-        isAdvanceResolution,
-        isCancelAlliance,
-        isDrawActionCard,
-        isExpandRegion,
-        isNegotiationMove,
         isOnBoard,
-        isPlaceWall,
-        isPlayRenegadeCard,
-        isSubmitDuelBid,
-        MachineState,
-        type Negotiation,
-        NegotiationMoveKind,
         neighbors,
-        type SubmitDuelBid,
         squareKey,
         SquareType,
         wallBetween,
@@ -167,105 +161,29 @@
 
     const allianceMarkers = $derived(gameSession.allianceMarkers)
 
-    // Where a heart sits for a given boundary wall - the same maths the markers and the
-    // burst below both need, so neither can drift from the other.
-    function heartPosition(wall: { col: number; row: number; edge: string }) {
-        return {
-            left: (wall.edge === 'west' ? wall.col * CELL_SIZE : wall.col * CELL_SIZE + CELL_SIZE / 2) - 12,
-            top: (wall.edge === 'west' ? wall.row * CELL_SIZE + CELL_SIZE / 2 : wall.row * CELL_SIZE) - 12
-        }
-    }
+    // The three cinematics are animators now (see src/lib/animators). Each appends its tweens to
+    // the shared AnimationContext the session hands every listener, so they are sequenced with the
+    // action rather than fired off as detached CSS keyframes with a setTimeout to clean up - and
+    // `full-action` history replay plays them, which the old isViewingHistory guard prevented.
+    //
+    // The burst no longer keeps a map of remembered wall positions either: a listener is handed
+    // `from`, the state before the action, and a cancelled alliance is still in it.
+    const renegadeFlight = new RenegadeFlightAnimator(gameSession)
+    const allianceBurst = new AllianceBurstAnimator(gameSession)
+    const scorePopups = new ScorePopupAnimator(gameSession)
 
-    // Cancelling an alliance deletes it from state, so by the time we hear about the
-    // action its hearts are already gone from allianceMarkers and there is nothing left to
-    // animate. This keeps the last known wall positions per alliance so the burst still
-    // knows where to play. A plain Map, not $state: nothing renders from it directly.
-    const lastKnownAllianceWalls = new Map<string, { col: number; row: number; edge: string }[]>()
+    // Hearts are drawn from the live state, and during a burst that state still holds the alliance
+    // being broken - the session assigns the new one only after the timeline finishes. So the
+    // alliance coming apart has its intact hearts held back while its burst plays over them.
+    const visibleAllianceMarkers = $derived(
+        allianceMarkers.filter((marker) => marker.id !== allianceBurst.burstingAllianceId)
+    )
 
-    // Refreshed from the per-action listener rather than by an effect mirroring allianceMarkers.
-    // Same timing either way - the listener runs after each applied action, so the map holds
-    // whatever was on the board before the NEXT one - and it keeps the record next to the burst
-    // that consumes it instead of in a watcher three hundred lines away.
-    function rememberAllianceWalls() {
-        for (const marker of allianceMarkers) {
-            lastKnownAllianceWalls.set(marker.id, marker.walls)
-        }
-    }
-
-    type AllianceBurst = { id: string; left: number; top: number }
-    let allianceBursts: AllianceBurst[] = $state([])
-    const ALLIANCE_BURST_MS = 700
-    // Directions the shards fly. Not evenly spaced round the circle - a slightly irregular
-    // spray reads as something breaking rather than as a diagram.
-    const BURST_SHARD_ANGLES = [-72, -28, 14, 58, 104, 152, 196, 250]
-
-    // The renegade knight changing sides: it lifts off its old square, arcs across, and
-    // settles on the new one having taken the new owner's colour on the way. Renegade is
-    // "remove theirs, place yours" in the rules, but as a single gesture it reads as one
-    // knight defecting - which is what the card is called.
-    type RenegadeFlight = {
-        id: string
-        left: number
-        top: number
-        dx: number
-        dy: number
-        toCol: number
-        toRow: number
-        fromColor: Color
-        toColor: Color
-    }
-    let renegadeFlight: RenegadeFlight | undefined = $state(undefined)
-    const RENEGADE_FLIGHT_MS = 900
-
-    // The landing square already holds the new knight the moment the action applies, so it
-    // is hidden for the duration - otherwise the piece would be sitting there waiting while
-    // its own arrival is still in the air.
-    function isRenegadeArrivalSquare(col: number, row: number): boolean {
-        return renegadeFlight !== undefined && renegadeFlight.toCol === col && renegadeFlight.toRow === row
-    }
-
-    function flyRenegadeKnight(action: { id: string; playerId: string; metadata?: unknown }) {
-        const metadata = action.metadata as
-            | { victimColor: Color; removedSquareKey: string; placedSquareKey: string }
-            | undefined
-        if (!metadata) return
-
-        const [fromCol, fromRow] = metadata.removedSquareKey.split(',').map(Number)
-        const [toCol, toRow] = metadata.placedSquareKey.split(',').map(Number)
-        const mover = gameSession.gameState.getPlayerState(action.playerId)
-
-        renegadeFlight = {
-            id: action.id,
-            left: fromCol * CELL_SIZE,
-            top: fromRow * CELL_SIZE,
-            dx: (toCol - fromCol) * CELL_SIZE,
-            dy: (toRow - fromRow) * CELL_SIZE,
-            toCol,
-            toRow,
-            fromColor: metadata.victimColor,
-            toColor: mover.color
-        }
-
-        setTimeout(() => {
-            if (renegadeFlight?.id === action.id) renegadeFlight = undefined
-        }, RENEGADE_FLIGHT_MS)
-    }
-
-    function burstAlliance(allianceId: string) {
-        const walls = lastKnownAllianceWalls.get(allianceId)
-        if (!walls || walls.length === 0) return
-
-        const added = walls.map((wall, i) => ({
-            id: `${allianceId}-${wall.col},${wall.row},${wall.edge}-${i}`,
-            ...heartPosition(wall)
-        }))
-        allianceBursts = [...allianceBursts, ...added]
-
-        setTimeout(() => {
-            const spent = new Set(added.map((burst) => burst.id))
-            allianceBursts = allianceBursts.filter((burst) => !spent.has(burst.id))
-            lastKnownAllianceWalls.delete(allianceId)
-        }, ALLIANCE_BURST_MS)
+    // Likewise the departing knight: it is still on its old square for the whole flight, so the
+    // board holds it back and the flying copy stands in for it.
+    function isRenegadeDepartureSquare(col: number, row: number): boolean {
+        const departure = renegadeFlight.departureSquare
+        return departure !== undefined && departure.col === col && departure.row === row
     }
 
     // Cancelling costs 10 ducats and is legal at any time, so the affordance lives on the
@@ -426,144 +344,6 @@
     // auto-removed after a couple seconds. Fired from PlaceWall/ExpandRegion actions as they
     // are applied, reading their metadata for exact anchor squares/amounts - see the
     // anchorSquareKey fields on PlaceWallMetadata/ExpandRegionMetadata.
-    type ScorePopup = { id: string; col: number; row: number; text: string; color: string }
-    let popups: ScorePopup[] = $state([])
-    let popupSeq = 0
-
-    // Timings for one popup's life, in seconds, all owned by gsap below. They used to be owned
-    // twice - a 4s CSS keyframe for the motion and a 4000ms setTimeout for the removal - which
-    // could only ever agree by hand, and drifted the moment either was tuned.
-    const POPUP_APPEAR_S = 0.18
-    const POPUP_HOLD_S = 2.2
-    const POPUP_FLOAT_S = 1.6
-
-    function addPopup(anchorKey: string, amount: number, color: string) {
-        if (amount === 0) return
-        const [col, row] = anchorKey.split(',').map(Number)
-        // A plain counter, not Date.now()/Math.random(): this id exists only to key the each
-        // block, and a monotonic one cannot collide when several popups are added in one action.
-        const id = `popup-${++popupSeq}`
-        popups = [...popups, { id, col, row, text: amount > 0 ? `+${amount}` : `${amount}`, color }]
-    }
-
-    // The popup's motion belongs to the node's own lifetime, so it is attached to the node and
-    // gsap's onComplete is the single owner of when the popup goes away.
-    //
-    // Deliberately NOT on the shared actionTimeline, unlike the card flip in DeckPiles: the
-    // session holds the reactive state update until that timeline finishes, so putting a
-    // multi-second float on it would stall the board after every scoring action. A popup is an
-    // annotation that outlives the state change rather than part of the action's own motion - so
-    // it gets its own timeline, and the transient state exists only for presence (the tween never
-    // writes reactive state per frame; it writes it once, at the end, to unmount the node).
-    function floatPopup(id: string) {
-        return (node: HTMLElement) => {
-            // xPercent/yPercent centre the popup on its anchor and compose with the y tween
-            // below, so gsap can own the whole transform - the old keyframes did the centring
-            // with a translate(-50%, -50%) baked into every frame.
-            gsap.set(node, { xPercent: -50, yPercent: -50, transformOrigin: 'center center' })
-            const timeline = gsap.timeline()
-            timeline.fromTo(
-                node,
-                { scale: 0.6, opacity: 0 },
-                { scale: 1, opacity: 1, duration: POPUP_APPEAR_S, ease: 'back.out(2)' },
-                0
-            )
-            timeline.to(
-                node,
-                {
-                    y: -POPUP_RISE,
-                    opacity: 0,
-                    duration: POPUP_FLOAT_S,
-                    ease: 'power1.out',
-                    onComplete: () => {
-                        popups = popups.filter((popup) => popup.id !== id)
-                    }
-                },
-                POPUP_APPEAR_S + POPUP_HOLD_S
-            )
-            return () => timeline.kill()
-        }
-    }
-
-    function popupsForCompletedRegions(
-        regions: { ownerColor?: Color; points: number; anchorSquareKey: string }[] | undefined
-    ) {
-        for (const region of regions ?? []) {
-            // Slate rather than the gray prince's #888888 - an unowned region's popup
-            // shouldn't read as that player's (see NEUTRAL_ZONE_PAINT).
-            const color = region.ownerColor ? gameSession.colors.getUiColor(region.ownerColor) : '#3f3f46'
-            addPopup(region.anchorSquareKey, region.points, color)
-        }
-    }
-
-    function popupsForAction(action: GameAction) {
-        // First, and this is the whole trick: during a listener the exposed gameState is still the
-        // state BEFORE this action, so allianceMarkers still holds the alliance this action may be
-        // about to cancel. Capturing here means burstAlliance below finds the hearts it needs.
-        rememberAllianceWalls()
-
-        if (isPlaceWall(action)) {
-            popupsForCompletedRegions(action.metadata?.completedRegions)
-        } else if (isExpandRegion(action)) {
-            if (action.metadata?.pointsGained) {
-                const color = gameSession.colors.getUiColor(
-                    gameSession.gameState.getPlayerState(action.playerId).color
-                )
-                addPopup(squareKey(action.space.col, action.space.row), action.metadata.pointsGained, color)
-            }
-            for (const invasion of action.metadata?.invasions ?? []) {
-                const victimColor = gameSession.colors.getUiColor(invasion.victimColor)
-                addPopup(invasion.directAnchorSquareKey, -invasion.directPointsLost, victimColor)
-                if (invasion.disconnectedAnchorSquareKey) {
-                    addPopup(invasion.disconnectedAnchorSquareKey, -invasion.disconnectedPointsLost, victimColor)
-                }
-            }
-            popupsForCompletedRegions(action.metadata?.completedRegions)
-        } else if (isPlayRenegadeCard(action)) {
-            flyRenegadeKnight(action)
-        } else if (isCancelAlliance(action)) {
-            // Fires from the same per-action listener as the score popups, so it plays once,
-            // for everyone at the table, and stays quiet while scrubbing history.
-            burstAlliance(action.allianceId)
-        }
-
-    }
-
-    // The session tells us about each action as it is applied, one at a time and in order, so
-    // there is nothing here to notice or diff. That is the whole reason this is a listener and
-    // not an $effect: an effect can only watch gameSession.actions and work out for itself which
-    // entries are new, which needs a high-water mark, a mount baseline to avoid replaying the
-    // whole game, and a guard for the history controls shrinking and regrowing the list. All
-    // three were bookkeeping for information the session already had.
-    //
-    // Still skipped while scrubbing history: those points were scored long ago, and flashing a
-    // "-8" over a player who has just lost nothing is what the old high-water mark was working
-    // around.
-    onMount(() => {
-        // Seeded here as well as after each action: the listener only runs when one arrives, and a
-        // board already carrying alliances can have its first action be the cancellation of one.
-        rememberAllianceWalls()
-
-        const listener = async ({ action }: { action?: GameAction }) => {
-            if (!action || gameSession.isViewingHistory) return
-            popupsForAction(action)
-        }
-
-        gameSession.addGameStateChangeListener(listener)
-        return () => gameSession.removeGameStateChangeListener(listener)
-    })
-
-    // The board is drawn at BOARD_SCALE x its original 44px cell and ScalingWrapper takes it from
-    // there. The wrapper only ever scales DOWN - its fit is
-    // Math.min(wrapperWidth / contentWidth, wrapperHeight / contentHeight, 1) - so a board sized
-    // for the smallest window can never grow into the space a larger one offers, which is what
-    // held this at 660x440 no matter how much room there was. Sizing it up instead and letting the
-    // wrapper shrink it is the right way round, and it gives the zoom controls levels to work with
-    // again on windows where the board no longer fits at 1:1.
-    //
-    // Everything below that would otherwise be pinned in px is derived from CELL_SIZE, so this one
-    // number moves the whole board: change it and the hearts, arrows, village names, medallions and
-    // score popups all follow. Anything expressed in a viewBox already scales on its own.
     const TILE_SIZE = 5
 
     // Ratios against the original 44px cell, so proportions are preserved exactly.
@@ -574,7 +354,6 @@
     const PRICE_FONT = px(14)
     const MEDALLION = px(20)
     const POPUP_FONT = px(14)     // was Tailwind's text-sm
-    const POPUP_RISE = scaled(32)
     const TILE_PX = TILE_SIZE * CELL_SIZE
     // +4 accounts for the squares grid's own border-2 (2px on each side) - explicit
     // pixel sizes (not "auto") so the rampart frame's middle track always matches the
@@ -1163,6 +942,11 @@
 {/snippet}
 
 <div class="flex flex-col gap-2 items-center" style="--cell: {CELL_SIZE}px;">
+    <!-- Registration hosts: each animator subscribes for as long as its host is mounted (see
+         attachAnimator), the way bus-ui binds its animators to a <g> in the board. -->
+    <div class="hidden" {@attach attachAnimator(renegadeFlight)}></div>
+    <div class="hidden" {@attach attachAnimator(allianceBurst)}></div>
+    <div class="hidden" {@attach attachAnimator(scorePopups)}></div>
 
     <!-- A hand-hewn castle-wall frame (see RampartBorder/RampartCorner) around the
          actual board content, sized in a 3x3 grid so the border strips stretch to
@@ -1379,9 +1163,10 @@
                                      actually gone from game state until the whole Renegade
                                      play is confirmed, but this square shouldn't look occupied
                                      in the meantime. -->
-                            {:else if isRenegadeArrivalSquare(col, row)}
-                                <!-- Held back until the defecting knight actually lands on
-                                     it - see renegadeFlight. -->
+                            {:else if isRenegadeDepartureSquare(col, row)}
+                                <!-- Held back while the defecting knight is in the air: the flying
+                                     copy stands in for it, and state still shows it here until the
+                                     flight lands - see renegadeFlightAnimator. -->
                             {:else if isLegalRenegadeRemovableSquare(col, row)}
                                 <!-- The real knight already there, pulsing in place - rather than
                                      a ring around it - to show it's a legal removal target. -->
@@ -1436,7 +1221,7 @@
         <!-- Alliance markers: a small heart on every boundary wall between two allied
              regions - the only on-board sign an alliance exists, and (when I'm a
              participant who can afford the 10 ducats) the control for ending it. -->
-        {#each allianceMarkers as marker (marker.id)}
+        {#each visibleAllianceMarkers as marker (marker.id)}
             {@const previewing = hoveredAllianceId === marker.id}
 
             <!-- No ghost-wall restoration here any more. The rulebook marks an alliance by
@@ -1542,51 +1327,63 @@
         {/each}
 
         <!-- The defecting knight in flight. Two copies of the same piece stacked - the old
-             owner's colour fading out, the new owner's fading in - so the change of side
-             happens over the arc rather than as a swap at either end. -->
-        {#if renegadeFlight}
-            {#key renegadeFlight.id}
-                <div
-                    class="absolute pointer-events-none z-50 renegade-flight"
-                    style="
-                        left: {renegadeFlight.left}px;
-                        top: {renegadeFlight.top}px;
-                        width: {CELL_SIZE}px;
-                        height: {CELL_SIZE}px;
-                        --renegade-dx: {renegadeFlight.dx}px;
-                        --renegade-dy: {renegadeFlight.dy}px;
-                    "
-                >
-                    <div class="absolute inset-0 renegade-flight-old">
-                        {@render pieceIcon(knightFill, knightLines, renegadeFlight.fromColor, -1)}
-                    </div>
-                    <div class="absolute inset-0 renegade-flight-new">
-                        {@render pieceIcon(knightFill, knightLines, renegadeFlight.toColor, -1)}
-                    </div>
-                </div>
-            {/key}
-        {/if}
-
-        <!-- The alliance breaking. Rendered outside the allianceMarkers loop on purpose:
-             by the time this plays the alliance is gone from state, so there is no marker
-             left to hang it on - the positions come from lastKnownAllianceWalls. One burst
-             per wall that carried a heart, so a long shared border comes apart along its
-             whole length rather than in one spot. -->
-        {#each allianceBursts as burst (burst.id)}
+             owner's colour fading out, the new owner's fading in - so the change of side happens
+             over the arc rather than as a swap at either end. Both layers are registered with the
+             animator, which tweens them directly. -->
+        {#if renegadeFlight.flight}
+            {@const flight = renegadeFlight.flight}
             <div
                 class="absolute pointer-events-none z-50"
-                style="left: {burst.left}px; top: {burst.top}px; width: {GLYPH_BOX}; height: {GLYPH_BOX};"
+                {@attach (el) => {
+                    renegadeFlight.setWrapper(el)
+                    return () => renegadeFlight.setWrapper(undefined)
+                }}
+                style="
+                    left: {flight.left}px;
+                    top: {flight.top}px;
+                    width: {CELL_SIZE}px;
+                    height: {CELL_SIZE}px;
+                "
+            >
+                <div class="absolute inset-0" {@attach (el) => {
+                        renegadeFlight.setOldColour(el)
+                        return () => renegadeFlight.setOldColour(undefined)
+                    }}>
+                    {@render pieceIcon(knightFill, knightLines, flight.fromColor, -1)}
+                </div>
+                <div class="absolute inset-0" {@attach (el) => {
+                        renegadeFlight.setNewColour(el)
+                        return () => renegadeFlight.setNewColour(undefined)
+                    }}>
+                    {@render pieceIcon(knightFill, knightLines, flight.toColor, -1)}
+                </div>
+            </div>
+        {/if}
+
+        <!-- The alliance breaking: one burst per wall that carried a heart, so a long shared
+             border comes apart along its whole length rather than in one spot. -->
+        {#each allianceBurst.hearts as heart (heart.id)}
+            <div
+                class="absolute pointer-events-none z-50"
+                style="left: {heart.left}px; top: {heart.top}px; width: {GLYPH_BOX}; height: {GLYPH_BOX};"
             >
                 <span
-                    class="absolute inset-0 flex items-center justify-center alliance-burst-core"
+                    class="absolute inset-0 flex items-center justify-center"
+                    {@attach (el) => {
+                        allianceBurst.setCore(heart.id, el)
+                        return () => allianceBurst.setCore(heart.id, undefined)
+                    }}
                     style="font-size: {GLYPH_FONT};"
                 >
                     💔
                 </span>
-                {#each BURST_SHARD_ANGLES as angle, i (i)}
+                {#each BURST_SHARD_ANGLES as _angle, i (i)}
                     <span
-                        class="absolute inset-0 flex items-center justify-center alliance-burst-shard"
-                        style="--shard-angle: {angle}deg; animation-delay: {i * 9}ms;"
+                        class="absolute inset-0 flex items-center justify-center burst-shard"
+                        {@attach (el) => {
+                            allianceBurst.setShard(heart.id, i, el)
+                            return () => allianceBurst.setShard(heart.id, i, undefined)
+                        }}
                     >
                         🩷
                     </span>
@@ -1662,10 +1459,13 @@
             ></button>
         {/each}
 
-        <!-- Floating score-change popups - see addPopup/floatPopup above -->
-        {#each popups as popup (popup.id)}
+        <!-- Floating score-change popups - the animator owns their motion and their removal. -->
+        {#each scorePopups.popups as popup (popup.id)}
             <div
-                {@attach floatPopup(popup.id)}
+                {@attach (el) => {
+                    scorePopups.setNode(popup.id, el)
+                    return () => scorePopups.setNode(popup.id, undefined)
+                }}
                 class="absolute z-50 pointer-events-none rounded-full px-2 py-0.5 font-bold text-white shadow"
                 style="left:{popup.col * CELL_SIZE + CELL_SIZE / 2}px; top:{popup.row *
                     CELL_SIZE}px; font-size: {POPUP_FONT}; background-color:{popup.color};"
@@ -1769,41 +1569,9 @@
     /* The alliance coming apart: the heart swells, cracks and collapses while shards spray
        outward. Deliberately quick (620ms against the heartbeat's 5.7s cycle) - it marks a
        moment rather than holding the board. */
-    @keyframes alliance-burst-core-frames {
-        0% {
-            transform: scale(1);
-            opacity: 1;
-        }
-        30% {
-            transform: scale(1.55) rotate(-6deg);
-            opacity: 1;
-        }
-        100% {
-            transform: scale(0.35) rotate(8deg);
-            opacity: 0;
-        }
-    }
-
-    .alliance-burst-core {
-        animation: alliance-burst-core-frames 620ms ease-out forwards;
-    }
-
-    /* Each shard is rotated to its own angle first, then thrown "up" along that rotated
-       axis - which sends it outward in that direction without needing per-shard x/y. */
-    @keyframes alliance-burst-shard-frames {
-        0% {
-            transform: rotate(var(--shard-angle)) translateY(0) scale(0.85);
-            opacity: 0.95;
-        }
-        100% {
-            transform: rotate(var(--shard-angle)) translateY(calc(var(--cell) * -0.6818)) scale(0.3);
-            opacity: 0;
-        }
-    }
-
-    .alliance-burst-shard {
+    /* Shard size only - the burst's motion is gsap's now (allianceBurstAnimator). */
+    .burst-shard {
         font-size: calc(var(--cell) * 0.25);
-        animation: alliance-burst-shard-frames 620ms cubic-bezier(0.2, 0.75, 0.3, 1) forwards;
     }
 
     .alliance-heartbeat {
@@ -1844,61 +1612,6 @@
        Scaling up at the apex and back down on landing does the rest of the 3D read - a
        piece nearer the eye is bigger - and the drop shadow stretching and softening at the
        same moment says the same thing a second way. */
-    @keyframes renegade-flight-frames {
-        0% {
-            transform: translate(0, 0) scale(1);
-            filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
-        }
-        50% {
-            transform: translate(
-                    calc(var(--renegade-dx) / 2),
-                    calc(var(--renegade-dy) / 2 - 34px)
-                )
-                scale(1.4);
-            filter: drop-shadow(0 14px 9px rgba(0, 0, 0, 0.33));
-        }
-        100% {
-            transform: translate(var(--renegade-dx), var(--renegade-dy)) scale(1);
-            filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
-        }
-    }
-
-    .renegade-flight {
-        animation: renegade-flight-frames 900ms cubic-bezier(0.36, 0, 0.35, 1) forwards;
-    }
-
-    /* The turn of coat, held to the middle of the arc: still clearly the old colour as it
-       lifts, unmistakably the new one as it lands. */
-    @keyframes renegade-colour-out {
-        0%,
-        22% {
-            opacity: 1;
-        }
-        72%,
-        100% {
-            opacity: 0;
-        }
-    }
-
-    @keyframes renegade-colour-in {
-        0%,
-        22% {
-            opacity: 0;
-        }
-        72%,
-        100% {
-            opacity: 1;
-        }
-    }
-
-    .renegade-flight-old {
-        animation: renegade-colour-out 900ms linear forwards;
-    }
-
-    .renegade-flight-new {
-        animation: renegade-colour-in 900ms linear forwards;
-    }
-
     /* The broken heart trembling while you hover it - the alliance is about to give. Fast
        and small (a couple of pixels, a few degrees) so it reads as a shiver rather than a
        wobble, and it runs only during the hover preview, where the heartbeat has stopped. */
