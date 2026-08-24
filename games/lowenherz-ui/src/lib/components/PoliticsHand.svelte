@@ -6,6 +6,15 @@
 
     const gameSession = getGameSession()
 
+    // Browsing history is not the same as playing: the harness caps animation during history
+    // navigation at roughly 0.1s (see ANIMATION_PATTERN.md's fast-fallback rule and the
+    // FALLBACK_* durations in bus-ui's animators). These card slides are state-driven - the hand's
+    // contents change and the cards reposition - so scrubbing through a game would otherwise play
+    // them at full length, once per step.
+    // The fan's angles and offsets depend on the hand's size, so they move on state change
+    // as well as on hover.
+    const fanMs = $derived(gameSession.isViewingHistory ? 100 : 300)
+
     // Two unrelated things share this same floating-overlay chrome and deal-in
     // animation: the draw-pile flow (pick a NEW card from a pile you've committed
     // to - see DeckPiles.svelte) and this read-only peek at cards you already hold
@@ -271,10 +280,11 @@
                         {@const offset = fannedOut ? (i - mid) * FAN_OFFSET_STEP : 0}
                         <button
                             type="button"
-                            class="absolute bottom-0 left-1/2 origin-bottom cursor-pointer transition-[transform,opacity] duration-300 ease-out {isHovered
+                            class="absolute bottom-0 left-1/2 origin-bottom cursor-pointer transition-[transform,opacity] ease-out {isHovered
                                 ? 'opacity-100'
                                 : 'opacity-80'}"
                             style="
+                                transition-duration: {fanMs}ms;
                                 width:{CARD_WIDTH}px;
                                 transform: translateX(-50%) translateX({offset}px) rotate({angle}deg) {isHovered
                                 ? 'translateY(-24px) scale(1.15)'
