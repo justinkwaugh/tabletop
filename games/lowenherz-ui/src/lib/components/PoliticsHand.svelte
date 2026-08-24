@@ -273,14 +273,21 @@
              a drop shadow): the two are consecutive steps of the same flow, and at text-sm
              this one read as a caption where the first read as an instruction. -->
         <span class="text-white text-2xl font-semibold drop-shadow">
-            {#if takingCardId}
-                Dealing your card...
-            {:else if viewingMyHand}
+            {#if viewingMyHand}
                 Your politics cards
             {:else}
                 Click a card to take it.
             {/if}
         </span>
+        <!-- Matches PoliticsPileOverlay's error readout: this is the only overlay left on screen
+             once a pile is chosen (see its showing), so a rejected take needs somewhere to say so. -->
+        {#if gameSession.errorMessage}
+            <div
+                class="mx-auto max-w-[420px] rounded-md bg-red-900/90 border border-red-300/50 px-3 py-2 text-center text-white text-base"
+            >
+                {gameSession.errorMessage}
+            </div>
+        {/if}
         {#if SHOW_SPLAYED}
             {#key gameSession.selectedPoliticsPile}
                 <div
