@@ -1,10 +1,8 @@
-import { ActionSource, createAction, type Color } from '@tabletop/common'
+import { type Color } from '@tabletop/common'
 import { allianceWalls } from '$lib/model/allianceGeometry.js'
 import { GameSession } from '@tabletop/frontend-components'
-import { nanoid } from 'nanoid'
 import {
     ActionCardType,
-    ActionType,
     ALLIANCE_CANCELLATION_COST,
     areRegionsAllied,
     BOARD_COLS,
@@ -187,7 +185,6 @@ export class LowenherzGameSession extends GameSession<
     // change and zero the bids; keying them means a new duel reads as no bids at all.
     private duelBids: { signature: string; amounts: Record<string, number> } | undefined =
         $state(undefined)
-    private duelTestBidder: { signature: string; playerId: string } | undefined = $state(undefined)
 
     // The duel being bid in: its slot, its players, and how many ties it has been through. Any of
     // those changing is a different duel.
@@ -210,18 +207,6 @@ export class LowenherzGameSession extends GameSession<
             this.duelBids?.signature === signature ? { ...this.duelBids.amounts } : {}
         amounts[playerId] = amount
         this.duelBids = { signature, amounts }
-    }
-
-    get testBiddingForPlayerId(): string | undefined {
-        const signature = this.duelSignature
-        if (!signature || this.duelTestBidder?.signature !== signature) return undefined
-        return this.duelTestBidder.playerId
-    }
-
-    setTestBiddingForPlayerId(playerId: string | undefined) {
-        const signature = this.duelSignature
-        if (!signature) return
-        this.duelTestBidder = playerId === undefined ? undefined : { signature, playerId }
     }
 
     // While the history controls have the board rewound, nothing on screen is an offer. Every
@@ -921,35 +906,6 @@ export class LowenherzGameSession extends GameSession<
             await this.applyAction(action)
         } catch (e) {
             console.warn('Failed to submit duel bid:', e)
-            this.errorMessage = 'That bid was rejected.'
-        }
-    }
-
-    // TEMPORARY - a stand-in for real two-session testing, remove once that exists.
-    // Every duelist stays simultaneously active for the whole duel, but hotseat's
-    // myPlayer only ever resolves to one of them (activePlayers.at(0)), so there's
-    // normally no way for a solo tester to submit a bid for anyone else. This submits
-    // one directly for a specific player, bypassing the myPlayer check that
-    // submitDuelBid() enforces - unlike negotiation's Propose, a duel bid really is
-    // tied to one specific bidder, so this stays debug-only rather than becoming a
-    // real mechanic.
-    async debugSubmitDuelBidAs(playerId: string, amount: number) {
-        const duel = this.gameState.duel
-        if (!duel || !duel.playerIds.includes(playerId) || this.hasPlayerBidInDuel(playerId)) return
-
-        const action = createAction(SubmitDuelBid, {
-            id: nanoid(),
-            gameId: this.gameState.gameId,
-            source: ActionSource.User,
-            type: ActionType.SubmitDuelBid,
-            playerId,
-            amount
-        })
-        this.errorMessage = undefined
-        try {
-            await this.applyAction(action)
-        } catch (e) {
-            console.warn('Failed to submit duel bid (debug):', e)
             this.errorMessage = 'That bid was rejected.'
         }
     }

@@ -48,19 +48,6 @@
     const expansionBlockedReasons = $derived(
         expansionDeadEnd ? gameSession.expansionBlockedReasons : []
     )
-    // Solo-testing stand-ins for a second session: signing a negotiation, and bidding in a duel,
-    // on another player's behalf. Both exist because hotseat resolves myPlayer to a single seat, so
-    // one person cannot otherwise finish either flow alone.
-    //
-    // Gated on showDebug rather than on a hardcoded flag. showDebug is isAdmin && debugViewEnabled,
-    // so in the dev harness the Debug toggle in the top bar turns them on, and in a real game only
-    // an admin who has deliberately switched debug view on ever sees them - never a beta tester,
-    // who would otherwise be able to settle a duel from one seat and spend an opponent's ducats.
-    //
-    // Not import.meta.env.DEV: this package is built with svelte-package and consumed by the app,
-    // and svelte-package warns about import.meta.env for exactly that reason.
-    const SHOW_DUEL_TEST_CONTROLS = $derived(gameSession.showDebug)
-
     // "Sign" is what the button says, but there is no separate signing action any more -
     // clicking it just proposes whatever is on screen. If that happens to match the standing
     // offer exactly, the engine treats it as acceptance and executes the deal immediately
@@ -953,47 +940,6 @@
                             Submit bid
                         </button>
                 </div>
-            {/if}
-
-            <!-- Solo-testing stand-in for a second session, kept to one shared row of
-                 small dashed buttons (one per opponent who hasn't bid), each expanding
-                 into a stepper only once clicked. Flip SHOW_DUEL_TEST_CONTROLS off to
-                 lose this row entirely. -->
-            {#if SHOW_DUEL_TEST_CONTROLS}
-                {@const pending = duel.playerIds.filter(
-                    (id) => id !== myId && !gameSession.hasPlayerBidInDuel(id)
-                )}
-                {#if pending.length > 0}
-                    <div class="flex flex-wrap items-center gap-2">
-                        {#each pending as playerId (playerId)}
-                            {@const money = gameSession.gameState.getPlayerState(playerId).money}
-                            {@const bidAmount = Math.min(gameSession.duelBidAmounts[playerId] ?? 0, money)}
-                            {#if gameSession.testBiddingForPlayerId === playerId}
-                                {@render playerPill(playerId)}
-                                {@render duelBidStepper(playerId, bidAmount, money)}
-                                <button
-                                    type="button"
-                                    class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
-                                    onclick={() => {
-                                        gameSession.debugSubmitDuelBidAs(playerId, bidAmount)
-                                        gameSession.setTestBiddingForPlayerId(undefined)
-                                    }}
-                                >
-                                    submit (test)
-                                </button>
-                            {:else}
-                                <button
-                                    type="button"
-                                    title="Temporary solo-testing stand-in for a second session/tab"
-                                    class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
-                                    onclick={() => (gameSession.setTestBiddingForPlayerId(playerId))}
-                                >
-                                    bid for {playerName(gameSession, playerId)} (test)
-                                </button>
-                            {/if}
-                        {/each}
-                    </div>
-                {/if}
             {/if}
 
             <!-- There's deliberately no card picker in the bid row above: a Treasure
