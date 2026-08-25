@@ -208,6 +208,50 @@ function takePoliticsCard(playerId: string, pile: 'A' | 'B', cardId: string): Ta
 }
 
 describe('resolution cascade (via the real GameEngine)', () => {
+    it('drops a signer from the active players, and undoing the signature puts them back', () => {
+        const playerIds = ['p1', 'p2']
+        const game = buildGame(playerIds)
+        const card: ActionCard = {
+            id: 'card-1',
+            back: CardBack.B,
+            type: ActionCardType.Standard,
+            top: { kind: 'politics' },
+            middle: { kind: 'knight', count: 2 },
+            bottom: { kind: 'knight', count: 1 }
+        }
+        let state = buildState(playerIds, card)
+        for (const player of state.players) player.knightsInStock = 0
+
+        state = engine.run(chooseAction('p1', 1), state, game).updatedState
+        state = engine.run(chooseAction('p1', 2), state, game).updatedState
+        state = engine.run(chooseAction('p2', 1), state, game).updatedState
+        expect(state.machineState).toBe(MachineState.Negotiating)
+        expect(state.activePlayerIds).toEqual(['p1', 'p2'])
+
+        state = engine.run(
+            negotiationMove('p1', NegotiationMoveKind.Propose, 3, 'p1'),
+            state,
+            game
+        ).updatedState
+        // Proposing is not committing: the offer is on the table and both sides still have a move.
+        expect(state.activePlayerIds).toEqual(['p1', 'p2'])
+
+        const signResult = engine.run(negotiationMove('p1', NegotiationMoveKind.Sign), state, game)
+        state = signResult.updatedState
+        expect(state.negotiation?.signedPlayerIds).toEqual(['p1'])
+        expect(state.activePlayerIds).toEqual(['p2'])
+
+        // And the way back. undoAction replays the action's stored undo patch, which the engine
+        // compared over the whole state AFTER enter() had recomputed the active players - so the
+        // signer is restored along with their signature, and can revise or decline. This is what
+        // makes dropping them from activePlayerIds safe: GameEngine.isPlayerAllowed gates actions
+        // on that list, but nothing gates Undo on it.
+        const restored = engine.undoAction(state, signResult.processedActions[0])
+        expect(restored.negotiation?.signedPlayerIds).toEqual([])
+        expect(restored.activePlayerIds).toEqual(['p1', 'p2'])
+        expect(restored.negotiation?.offer).toEqual({ fromPlayerId: 'p1', amount: 3 })
+    })
+
     it('resolves a 2-way tie through negotiation, then auto-cascades solo slots and advances the round', () => {
         const playerIds = ['p1', 'p2']
         const game = buildGame(playerIds)

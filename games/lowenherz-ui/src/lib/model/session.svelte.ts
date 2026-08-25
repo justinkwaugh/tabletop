@@ -164,17 +164,20 @@ export class LowenherzGameSession extends GameSession<
         this.negotiationDraft = { key, proposerId: this.negotiationProposerId, amount }
     }
 
-    // Holds a resolved negotiation on screen for a beat. Called from the per-action listener when
-    // the closing signature lands, since that action carries the executed offer - an effect had to
-    // notice the negotiation vanish and remember what it had been.
-    private negotiationFreezeTimer: ReturnType<typeof setTimeout> | undefined
-    freezeNegotiation(negotiation: Negotiation, holdMs: number) {
-        if (this.negotiationFreezeTimer) clearTimeout(this.negotiationFreezeTimer)
+    // Holds a settled negotiation on screen - the terms and both signatures - until the player who
+    // won the slot goes and does the thing they paid for. Called from the per-action listener when
+    // the closing signature lands, since that action carries the executed offer; an effect would
+    // have had to notice the negotiation vanish and remember what it had been.
+    //
+    // Released by the next user action rather than by a timer. "Until they carry out their action"
+    // is the actual intent, and no number of milliseconds says that: a wall placement can take as
+    // long as it takes. The same listener clears it, so nothing here has to watch the clock.
+    freezeNegotiation(negotiation: Negotiation) {
         this.frozenNegotiation = negotiation
-        this.negotiationFreezeTimer = setTimeout(() => {
-            this.frozenNegotiation = undefined
-            this.negotiationFreezeTimer = undefined
-        }, holdMs)
+    }
+
+    releaseFrozenNegotiation() {
+        this.frozenNegotiation = undefined
     }
 
     // Per-player draft bids. A duel bid is a one-shot commitment per player, unlike negotiation's
@@ -1591,12 +1594,6 @@ export class LowenherzGameSession extends GameSession<
         return this.gameState.openedPoliticsPile
     }
 
-    // Whether the fanned-out pile view is currently showing - separate from WHICH
-    // pile is selected, so a player can hide it (to see the board underneath) and
-    // bring the same pile back up without that counting as backing out of their
-    // choice. Purely local - showing/hiding this view isn't a game action.
-    showPoliticsHand: boolean = $state(false)
-
     // Viewport-space center point of whichever pile button the player last clicked -
     // purely a visual cue so PoliticsHand can animate its cards as if being dealt out
     // from that spot. Has no bearing on game state.
@@ -1618,22 +1615,10 @@ export class LowenherzGameSession extends GameSession<
         this.errorMessage = undefined
         try {
             await this.applyAction(action)
-            this.showPoliticsHand = true
         } catch (e) {
             console.warn('Failed to open politics pile:', e)
             this.errorMessage = 'That pile could not be opened.'
         }
-    }
-
-    hidePoliticsHand() {
-        this.showPoliticsHand = false
-    }
-
-    revealPoliticsHand(origin?: { x: number; y: number }) {
-        if (!this.selectedPoliticsPile) return
-        if (origin) this.politicsPileOrigin = origin
-        this.viewingMyPoliticsCards = false
-        this.showPoliticsHand = true
     }
 
     // Read-only peek at the politics cards a player already holds (as opposed to the
@@ -1668,7 +1653,6 @@ export class LowenherzGameSession extends GameSession<
 
     showMyPoliticsCards(origin: { x: number; y: number }) {
         this.politicsPileOrigin = origin
-        this.showPoliticsHand = false
         this.viewingMyPoliticsCards = true
     }
 
@@ -1688,7 +1672,6 @@ export class LowenherzGameSession extends GameSession<
         }
 
         this.errorMessage = undefined
-        this.showPoliticsHand = false
         try {
             await this.applyAction(action)
         } catch (e) {

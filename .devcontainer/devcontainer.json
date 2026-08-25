@@ -4,6 +4,26 @@
     "workspaceFolder": "/workspace",
     "shutdownAction": "stopCompose",
     "postCreateCommand": "sudo chown -R node:node /workspace/node_modules; npm install; turbo init-project",
+    // Declared explicitly so VS Code establishes these tunnels when the container starts,
+    // rather than sniffing them out of terminal output later. The auto-detected kind can
+    // go stale - a Code Helper process keeps holding the port on the host and silently
+    // stops passing traffic, so the browser opens and spins forever against a dev server
+    // that is in fact serving fine inside the container.
+    // 5173 is the Vite dev port for the main frontend AND every game-ui package (each
+    // pins 5173 in its own vite.config.ts, so only one runs at a time); 3000 is the
+    // backend API the frontend proxies /games to.
+    "forwardPorts": [5173, 3000],
+    "portsAttributes": {
+        "5173": {
+            "label": "Vite dev (frontend / game UI)",
+            "onAutoForward": "notify"
+        },
+        "3000": {
+            // No browser needed for the API itself - the frontend proxies to it.
+            "label": "Backend API",
+            "onAutoForward": "silent"
+        }
+    },
     "features": {
         "ghcr.io/stuartleeks/dev-container-features/shell-history:0": {}
     },

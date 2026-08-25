@@ -28,10 +28,31 @@ export class NegotiatingStateHandler
 
     enter(context: MachineContext<HydratedLowenherzGameState>) {
         const negotiation = context.gameState.negotiation
-        // Both negotiators are active at once - either can propose/sign/decline at
-        // any time, unlike Dueling's initial (soon-to-be-familiar) "everyone who
-        // hasn't acted yet" set, this one never shrinks as moves come in.
-        context.gameState.activePlayerIds = negotiation ? [...negotiation.playerIds] : []
+        if (!negotiation) {
+            context.gameState.activePlayerIds = []
+            return
+        }
+
+        // Signing hands the move to the other side, so a signer stops being active. The engine
+        // calls enter() after EVERY action, not only on a change of state (see
+        // GameEngine.run - nextHandler.enter is unconditional), so this recomputes as moves come
+        // in. A fresh Propose clears every signature (NegotiationMove.apply), which brings both
+        // back.
+        //
+        // activePlayerIds is not only a display list: GameEngine.isPlayerAllowed gates actions on
+        // it, so a signer genuinely cannot act again until the other side moves. What they CAN do
+        // is Undo - undoableAction never consults activePlayerIds, and undoAction applies the
+        // action's stored undo patch, which was compared over the whole state after this ran. So
+        // undoing the signature restores the signer to this list along with everything else, and
+        // they can then revise or decline. Only the SECOND signature is beyond undo, being the one
+        // flagged revealsInfo.
+        //
+        // Unlike Dueling, which deliberately keeps every duelist active until the bids resolve.
+        const unsigned = negotiation.playerIds.filter(
+            (playerId) => !negotiation.signedPlayerIds.includes(playerId)
+        )
+        context.gameState.activePlayerIds =
+            unsigned.length > 0 ? unsigned : [...negotiation.playerIds]
     }
 
     onAction(
