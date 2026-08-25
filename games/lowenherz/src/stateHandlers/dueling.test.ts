@@ -81,9 +81,21 @@ function makeBid(playerId: string, amount: number, treasureCardId?: string): Hyd
 }
 
 describe('DuelingStateHandler', () => {
-    it('keeps every duelist active for the whole duel, even after some have bid', () => {
+    it('drops a duelist from active as soon as their bid lands', () => {
         const state = buildState({
             duel: { slot: 2, playerIds: ['p1', 'p2'], bids: [{ playerId: 'p1', amount: 3 }], tieCount: 0 }
+        })
+        const handler = new DuelingStateHandler()
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+
+        handler.enter(context)
+
+        expect(state.activePlayerIds).toEqual(['p2'])
+    })
+
+    it('brings every tied player back to active once a re-duel starts fresh', () => {
+        const state = buildState({
+            duel: { slot: 2, playerIds: ['p1', 'p2'], bids: [], tieCount: 1 }
         })
         const handler = new DuelingStateHandler()
         const context = new MachineContext({ gameConfig: {}, gameState: state })
