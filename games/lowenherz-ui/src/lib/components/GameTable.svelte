@@ -23,8 +23,6 @@
     import BlankenburgFont from '$lib/fonts/Blankenburg.woff2'
     import IMFellEnglishFont from '$lib/fonts/IMFellEnglish-Regular.woff2'
     import IMFellEnglishItalicFont from '$lib/fonts/IMFellEnglish-Italic.woff2'
-    import TangerineFont from '$lib/fonts/Tangerine-Regular.woff2'
-    import TangerineBoldFont from '$lib/fonts/Tangerine-Bold.woff2'
     import UnifrakturMaguntiaFont from '$lib/fonts/UnifrakturMaguntia-Book.woff2'
 
     import type { LowenherzGameSession } from '$lib/model/session.svelte'
@@ -58,8 +56,6 @@
     format="woff2"
     fontStyle="italic"
 />
-<CustomFont fontFamily="Tangerine" url={TangerineFont} format="woff2" />
-<CustomFont fontFamily="Tangerine" url={TangerineBoldFont} format="woff2" fontWeight="bold" />
 <CustomFont fontFamily="UnifrakturMaguntia" url={UnifrakturMaguntiaFont} format="woff2" />
 
 <!-- Full Height and Width with 8px padding-->

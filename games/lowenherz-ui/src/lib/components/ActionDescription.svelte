@@ -126,19 +126,18 @@
     chose the {slotLabels[action.slot]} action
 {:else if isNegotiationMove(action)}
     {#if action.kind === NegotiationMoveKind.Propose}
-        proposed <PlayerName playerId={action.fromPlayerId ?? ''} /> pay {action.amount} ducat{action.amount ===
-        1
-            ? ''
-            : 's'} for the contested action
-    {:else if action.kind === NegotiationMoveKind.Sign}
         {@const executedOffer = action.metadata?.executedOffer}
         {#if executedOffer}
-            signed — <PlayerName playerId={executedOffer.fromPlayerId} /> paid {executedOffer.amount} ducat{executedOffer.amount ===
+            proposed <PlayerName playerId={executedOffer.fromPlayerId} /> pay {executedOffer.amount} ducat{executedOffer.amount ===
             1
                 ? ''
-                : 's'} and performed the action
+                : 's'} — matching the standing offer, so it executed: they paid and performed the
+            action
         {:else}
-            signed the standing offer
+            proposed <PlayerName playerId={action.fromPlayerId ?? ''} /> pay {action.amount} ducat{action.amount ===
+            1
+                ? ''
+                : 's'} for the contested action
         {/if}
     {:else}
         declined to negotiate further — forcing a duel
