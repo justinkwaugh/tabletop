@@ -1,0 +1,4 @@
+interface:
+  display_name: "Game PR Readiness"
+  short_description: "Audit a game before acceptance and deployment"
+  default_prompt: "Use $game-pr-readiness to audit this game for pull-request acceptance and deployment readiness."

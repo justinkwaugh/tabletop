@@ -2,6 +2,20 @@
 
 See docs/agent-coding-policy.md for shared-code and shared-types rules.
 
+## Agent skills
+
+### Issue tracker
+
+Issues and specs are tracked in this repository's GitHub Issues. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the default five-role triage label vocabulary. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Use the multi-context domain-doc layout. See `docs/agents/domain.md`.
+
 ## General Debugging Policy
 
 - Treat bugs as deterministic unless proven otherwise. If behavior is wrong, there is a causal chain to identify.

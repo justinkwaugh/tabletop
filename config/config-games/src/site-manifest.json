@@ -186,10 +186,18 @@
     {
       "gameId": "lowenherz",
       "packageId": "lowenherz",
-      "logicVersion": "0.0.1",
-      "uiVersion": "0.0.1",
-      "priorLogicVersions": [],
-      "priorUiVersions": []
+      "logicVersion": "0.3.0",
+      "uiVersion": "0.3.0",
+      "priorLogicVersions": [
+        "0.2.0",
+        "0.1.0",
+        "0.0.1"
+      ],
+      "priorUiVersions": [
+        "0.2.0",
+        "0.1.0",
+        "0.0.1"
+      ]
     }
   ]
 }
