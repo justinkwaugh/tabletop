@@ -12,7 +12,7 @@
     // moved rather than being copied. The values both halves need went onto the session in an
     // earlier pass, which is why this file reads them off gameSession instead of receiving props.
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import type { Color, GameAction } from '@tabletop/common'
+    import { ActionSource, type Color, type GameAction } from '@tabletop/common'
     import {
         isAdvanceResolution,
         isCancelAlliance,
@@ -93,11 +93,6 @@
 
     // The band kind (border/knight/politics) at a given slot, translated to the noun
     // used in status messages - money-bag slots never reach negotiation or dueling
-    const negotiationActionNoun = $derived.by(() => {
-        const negotiation = gameSession.gameState.negotiation
-        return negotiation ? gameSession.actionNounForSlot(negotiation.slot) : ''
-    })
-
     const duelActionNoun = $derived.by(() => {
         const duel = gameSession.gameState.duel
         return duel ? gameSession.actionNounForSlot(duel.slot) : ''
@@ -280,7 +275,6 @@
     // a beat longer instead of snapping away the instant it clears. Only applies to
     // an actual completed deal, not a decline (which routes straight to a duel and
     // should switch over immediately).
-    const NEGOTIATION_HOLD_MS = 1000
 
     // Once both sides have signed, gameState.negotiation disappears immediately - the machine moves
     // straight on to whatever the settled action needs next - which read as an abrupt cut, control
@@ -310,17 +304,53 @@
             // actions (see GameSession.onHistoryAction), so this holds only during live play and
             // `full-action` replay - and a replay that steps through a negotiation ought to show
             // the offer it settled on, which the old guard prevented.
-            if (!action) return
+            //
+            // No action also means no "next user action" to release the freeze on - undoing all
+            // the way back out of a completed negotiation, or scrubbing history past it, would
+            // otherwise leave its Sign/decline controls on screen with nothing engine-side behind
+            // them. Release unconditionally rather than trying to detect staleness: the hold is a
+            // live-play-only affordance and nothing here is meant to survive a jump backward.
+            if (!action) {
+                gameSession.releaseFrozenNegotiation()
+                return
+            }
 
             const settling = isNegotiationMove(action) && action.metadata?.executedOffer
             if (settling && from?.negotiation) {
-                gameSession.freezeNegotiation(from.negotiation, NEGOTIATION_HOLD_MS)
+                // `from` is the state before this action, so it carries one signature - the closing
+                // one is this action's own. Freeze a copy with both, since two signatures on the
+                // line is the whole point of holding it there.
+                gameSession.freezeNegotiation({
+                    ...from.negotiation,
+                    signedPlayerIds: [...from.negotiation.signedPlayerIds, action.playerId]
+                })
+                return
+            }
+
+            // Anything else the players do means the deal has been read and acted on.
+            if (action.source === ActionSource.User) {
+                gameSession.releaseFrozenNegotiation()
             }
         }
 
         gameSession.addGameStateChangeListener(listener)
         return () => gameSession.removeGameStateChangeListener(listener)
     })
+
+    // Once the deal is settled, its winner has somewhere else to be: the wall/knight/politics
+    // prompt above (isPlayingAllianceCard / canPlaceWall / canPlaceKnight / canTakePoliticsCard)
+    // already tells them what to do with what they just won, so re-reading the offer they signed
+    // moments ago is only in their way. Everyone else has nothing to act on right now, so the
+    // frozen offer and both signatures are exactly what they should be looking at.
+    //
+    // Scoped to the frozen hold, not live negotiation: gameState.negotiation is only undefined
+    // once the deal has resolved, and canPlaceWall/etc. are only ever true once a slot's winner
+    // has been routed to their placement phase - the two can never both be true while a
+    // negotiation is still live, so this never hides the panel from an active negotiator.
+    const negotiationHoldHidesForMe = $derived(
+        !gameSession.gameState.negotiation &&
+            (gameSession.canPlaceWall || gameSession.canPlaceKnight || gameSession.canTakePoliticsCard)
+    )
 
     const negotiationOtherPlayerId = $derived.by(() => {
         const negotiation = displayNegotiation
@@ -444,7 +474,7 @@
          gameSession.actions already reflects the visible (rewound) context rather than the
          live one. Same idea as Sol's LastActionDescription, just scoped to history. -->
     {#if historyAction}
-        <div class="text-black text-[20px] text-center border-b-2 border-black/15 pb-1">
+        <div class="text-black text-[18px] text-center border-b-2 border-black/15 pb-1">
             <span class="italic text-black/60 text-[16px]">Rewound to:</span>
             {#if historyAction.playerId}
                 {@render playerPill(historyAction.playerId)}
@@ -453,13 +483,13 @@
         </div>
     {/if}
     {#if lastDuelOutcome?.type === 'giveUp'}
-        <div class="text-black text-[20px] text-center">
+        <div class="text-black text-[18px] text-center">
             {@render bidList(lastDuelOutcome.bids)} — tied again, so no one performs the{lastDuelOutcome.actionNoun
                 ? ` ${lastDuelOutcome.actionNoun}`
                 : ''} action.
         </div>
     {/if}
-    <div class="text-black text-[20px] text-center leading-loose">
+    <div class="text-black text-[18px] text-center leading-loose">
         {#if gameSession.isPlayingAllianceCard}
             <!-- No "that region has nothing to ally with" case to report: a region with no
                  eligible neighbor isn't offered in the first place (see
@@ -622,6 +652,10 @@
                 {:else}
                     {@render myPill()} won a {knightActionName}.
                 {/if}
+                <!-- Forced rather than left to wrap naturally: how the action was won is one
+                     sentence and what to do with it is another, so they read as two lines on
+                     screen even when both would fit on one. -->
+                <br />
             {/if}
             <!-- One question per sword. A single available option is taken for the player, so this
                  only appears when there is a genuine choice to make. -->
@@ -704,16 +738,6 @@
             {/if}
         {:else if gameSession.gameState.machineState === MachineState.ChoosingActions}
             Waiting for the next player to choose...
-        {:else if gameSession.gameState.machineState === MachineState.Negotiating && gameSession.gameState.negotiation}
-            Negotiate for {negotiationActionNoun} or
-            <button
-                type="button"
-                class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-red-700/10 hover:bg-red-700/20 font-semibold disabled:opacity-40"
-                disabled={!gameSession.isNegotiator}
-                onclick={() => gameSession.declineNegotiation()}
-            >
-                force a duel
-            </button>.
         {:else if gameSession.gameState.machineState === MachineState.Dueling && gameSession.gameState.duel}
             <!-- The duelists are named right here rather than getting a row each below,
                  so the whole duel fits in two lines: who's in it, then your own bid. -->
@@ -754,10 +778,15 @@
          and the consequence both show on hover, and the affordance stays put on the board
          instead of appearing in a status area whose other messages are turn-scoped. -->
 
-    {#if displayNegotiation}
+    {#if displayNegotiation && !negotiationHoldHidesForMe}
         {@const negotiation = displayNegotiation}
-        <div class="flex flex-col gap-2 text-black text-sm">
-            <div class="flex flex-wrap items-center gap-2 pb-4 text-[20px]">
+        <!-- items-center on the column, justify-center on each row: the column is only as wide as
+             its widest row (the terms), so without the latter the shorter signing row sat flush
+             left under it - centred as a block, but not centred on the board the panel sits above.
+             The rows now centre on each other, and the column centres on the game column, which is
+             the same column ScalingWrapper centres the board in. -->
+        <div class="flex flex-col items-center text-black text-sm">
+            <div class="flex flex-wrap items-center justify-center gap-2 pb-3 text-[16px]">
                 <!-- Side by side rather than stacked. Two names in a column made this box two lines
                      tall on its own, which set the height of the whole row and so of the space the
                      panel takes above the board. The caption underneath is what the stacked layout
@@ -786,9 +815,13 @@
                          centres on the row exactly as the sentence text does. In flow the column
                          was box-plus-caption tall, and items-center centred THAT - which lifted the
                          names about half a caption above the line they are meant to sit on. The
-                         row's pb-4 is where this now sits. -->
+                         row's pb-3 is where this now sits, and leading-none is what lets that
+                         padding be 12px: without it the span inherits the column's text-sm
+                         line-height (20px), so a 22px caption sat under a 16px pad and all but
+                         touched the row below - the two rows could not close up until the
+                         caption stopped being taller than the space reserved for it. -->
                     <span
-                        class="absolute top-full mt-0.5 text-[12px] text-black/50 whitespace-nowrap"
+                        class="absolute top-full mt-0.5 text-[10px] leading-none text-black/50 whitespace-nowrap"
                     >
                         Choose a player
                     </span>
@@ -820,25 +853,62 @@
                         ? playerName(gameSession, negotiationOtherPlayerId)
                         : ''}
                 </span>
+            </div>
 
-                <!-- One signature line, and it is the viewing player's own. There used to be a row
-                     per negotiator, which cost a whole line of the space above the board to tell
-                     you something the flow already implies: a standing offer exists only because
-                     somebody proposed and signed it, so the other side's signature is not news -
-                     and when it IS news, the sentence below says so by name. -->
+            <!-- One line per negotiator, as a contract has: a name written on a line is the
+                 signature, and the printed name beneath says whose line it is. This replaces a
+                 sentence that reported the same thing in prose ("X has signed. Sign to accept
+                 these terms as they stand, or change them to counter...") - with both lines on
+                 screen there is nothing left for it to tell anyone. The captions are out of
+                 flow, like the picker's above, so they cost the row no height.
+
+                 On their own row rather than trailing the terms: the row above is the deal being
+                 written and this one is the signing of it. So the whole row reads as the act -
+                 the lines your name goes on, the button that writes it there, and then the
+                 alternative to signing at all - instead of leaving any of it in a sentence
+                 overhead. -->
+            <div class="flex flex-wrap items-center justify-center gap-2 pb-4 text-[16px]">
+                {#each negotiation.playerIds as playerId (playerId)}
+                    <div class="relative flex flex-col items-center">
+                        <span
+                            class="signature-text inline-block h-8 w-32 border-b border-black/40 px-1 text-center"
+                        >
+                            {#if negotiation.signedPlayerIds.includes(playerId)}
+                                {playerName(gameSession, playerId)}
+                            {/if}
+                        </span>
+                        <span
+                            class="absolute top-full mt-0.5 text-[10px] leading-none text-black/50 whitespace-nowrap"
+                        >
+                            {playerName(gameSession, playerId)}
+                        </span>
+                    </div>
+                {/each}
+                <!-- After the lines, before the alternative to using them: the row reads as the
+                     two choices open to you, in the order you weigh them - put your name on a
+                     line, or refuse and fight for it. -->
                 <button
                     type="button"
-                    class="ml-2 px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 text-[18px] font-semibold disabled:opacity-40 disabled:hover:bg-green-700/20"
+                    class="ml-1 px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 text-[14px] font-semibold disabled:opacity-40 disabled:hover:bg-green-700/20"
                     disabled={!gameSession.isNegotiator || gameSession.hasSignedNegotiationOffer}
                     onclick={() => commitNegotiationOffer()}
                 >
-                    Signed
+                    Sign
                 </button>
-                <span class="signature-text inline-block h-8 w-32 border-b border-black/40 px-1">
-                    {#if gameSession.myPlayer && negotiation.signedPlayerIds.includes(gameSession.myPlayer.id)}
-                        {playerName(gameSession, gameSession.myPlayer.id)}
-                    {/if}
-                </span>
+                <!-- Guarded on the machine state, not just on displayNegotiation: that holds the
+                     settled deal on screen after it resolves (so the signatures stay up), and
+                     there is nothing left to decline by then. -->
+                {#if gameSession.gameState.machineState === MachineState.Negotiating}
+                    <span>or</span>
+                    <button
+                        type="button"
+                        class="px-2 py-[3px] rounded bg-red-700/10 hover:bg-red-700/20 text-[14px] font-semibold disabled:opacity-40"
+                        disabled={!gameSession.isNegotiator}
+                        onclick={() => gameSession.declineNegotiation()}
+                    >
+                        Force a duel
+                    </button>
+                {/if}
             </div>
 
             <!-- Which half of the exchange you are in, in one line. This is also where the other
@@ -854,19 +924,12 @@
                 {@const showTestSign =
                     SHOW_NEGOTIATION_TEST_CONTROLS && !!negotiation.offer && !!otherId && !otherHasSigned}
                 <!-- Only rendered when there is something to report. With nobody signed yet the
-                     controls and the Signed button beside them already say what to do, and a line
+                     controls and the Sign button beside them already say what to do, and a line
                      restating it was a line of the space above the board earning nothing. The whole
                      row is conditional rather than just its text, so an empty div does not leave a
                      gap behind it. -->
-                {#if otherHasSigned || showTestSign}
-                    <div class="flex flex-wrap items-center gap-2 text-black/60 text-[16px]">
-                        {#if otherHasSigned && otherId}
-                            <span>
-                                {@render playerPill(otherId)} has signed. Sign to accept these terms
-                                as they stand, or change them to counter - which withdraws their
-                                signature.
-                            </span>
-                        {/if}
+                {#if showTestSign}
+                    <div class="flex flex-wrap items-center justify-center gap-2 text-black/60 text-[12px]">
                         {#if showTestSign && otherId}
                             <button
                                 type="button"
@@ -918,6 +981,24 @@
                             >
                                 + Treasure ({gameSession.selectedTreasureCard.value})
                             </button>
+                        {:else if gameSession.myTreasureCards.length > 0}
+                            <!-- The empty slot the chip above will fill, shown only to a duelist
+                                 who actually holds a Treasure. It replaces a "Nudge: You hold a
+                                 Treasure!" sentence that sat after Submit bid: same information,
+                                 but pointing at the place the card lands instead of announcing it
+                                 somewhere else in the row, so arming one swaps this for the real
+                                 chip in situ rather than moving anything.
+
+                                 A span, not a button: arming is done from the hand (open it, hit
+                                 APPLY), same as every other Treasure play in the game, so there is
+                                 nothing here to click - the dashed outline says placeholder and the
+                                 title carries the how-to. -->
+                            <span
+                                class="px-1.5 py-[3px] rounded font-semibold border border-dashed border-black/30 text-black/45"
+                                title="Open your hand and hit APPLY on a Treasure to add it to this bid"
+                            >
+                                + Treasure?
+                            </span>
                         {/if}
                         <button
                             type="button"
@@ -930,14 +1011,6 @@
                         >
                             Submit bid
                         </button>
-                        <!-- Sits beside the button rather than in a sentence of its own
-                             below: it only needs to tell a duelist the option exists, and
-                             the how-to (open your hand, hit APPLY) is the same gesture a
-                             Treasure takes everywhere else in the game. Once one is armed
-                             this gives way to the confirmation row underneath. -->
-                        {#if gameSession.myTreasureCards.length > 0 && !gameSession.selectedTreasureCard}
-                            <span class="text-black/70 text-[15px]">Nudge: You hold a Treasure!</span>
-                        {/if}
                 </div>
             {/if}
 

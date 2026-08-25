@@ -90,11 +90,11 @@
         const duelists = waitingDuelistIds
         if (duelists) return duelists
 
-        const negotiation = gameSession.gameState.negotiation
-        if (!negotiation) return activePlayerIds
-
-        const unsigned = activePlayerIds.filter((id) => !negotiation.signedPlayerIds.includes(id))
-        return unsigned.length > 0 ? unsigned : activePlayerIds
+        // Nothing to narrow for a negotiation any more: NegotiatingStateHandler.enter drops a
+        // signer from activePlayerIds, so this list already excludes them - and so do the player
+        // panels, the game list and anything else reading the same field, which a filter here
+        // could never reach.
+        return activePlayerIds
     })
 
     // Same narrowing for a duel: every duelist stays active until the bids resolve, so a player

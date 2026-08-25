@@ -21,9 +21,10 @@
     // (see PlayerState.svelte's hover/click on your own pile). Only the former lets
     // you click a card to take it.
     const viewingMyHand = $derived(gameSession.viewingMyPoliticsCards)
-    const isOpen = $derived(
-        viewingMyHand || (gameSession.selectedPoliticsPile && gameSession.showPoliticsHand)
-    )
+    // Once a pile is opened there's only one legal move left - take a card from it - so its fan
+    // shows itself; there's no separate "reopen" step to gate it on. That holds across a reload
+    // too: openedPoliticsPile is server state, so a player who reloads mid-choice still has it set.
+    const isOpen = $derived(viewingMyHand || !!gameSession.selectedPoliticsPile)
 
     const cards = $derived(
         viewingMyHand
@@ -35,15 +36,25 @@
                 : []
     )
 
+    // Only the read-only peek at your own hand can be dismissed. Choosing a card from an opened pile
+    // cannot: the rulebook has the player "look through one of the two piles... and select one
+    // card", so once a pile is open the only move is to take a card from it - there is nothing a
+    // dismiss would do but strand the player with no way back short of reloading (see isOpen above).
+    const dismissible = $derived(viewingMyHand)
+
+    // Only reachable via the backdrop/Escape, which are only wired up when dismissible - i.e. only
+    // for the my-hand peek. An opened pile has no dismiss gesture at all (see isOpen above).
     function close() {
-        if (viewingMyHand) {
-            gameSession.hideMyPoliticsCards()
-        } else {
-            gameSession.hidePoliticsHand()
-        }
+        gameSession.hideMyPoliticsCards()
     }
 
+    // Desktop width. On a phone, min() takes over: 42vw keeps two cards plus the gap inside a 320px
+    // viewport with margin to spare, where a fixed 150px pair came to 316px and sat flush against
+    // both edges. A style rather than a Tailwind class because dealIn measures the rendered node,
+    // and every card below shares it.
     const CARD_WIDTH = 150
+    const CARD_WIDTH_CSS = `min(${CARD_WIDTH}px, 42vw)`
+    const cardWidthStyle = `width: ${CARD_WIDTH_CSS};`
     const FAN_ANGLE_STEP = 9 // degrees between adjacent cards
     const FAN_OFFSET_STEP = 56 // px between adjacent card centers once fanned - can be
     // generous now that this floats over the whole viewport instead of living in the
@@ -234,37 +245,49 @@
 </script>
 
 {#if isOpen}
-    <!-- A floating overlay above everything else - doesn't affect the board or
-         sidebar's size at all. Clicking the dimmed backdrop (or Escape) just hides
-         this view - it does NOT back out of the pile choice itself (see
-         DeckPiles.svelte, which lets you click the same pile again to bring it back).
-         The rulebook has the player "look through one of the two piles... and select
-         one card" - a one-way commitment once a pile is opened. Dismissal is
-         disabled entirely while a card is being taken (takingCardId set), so the
-         return-then-deliver animation below can't be interrupted partway through. -->
+    <!-- A floating overlay above everything else - doesn't affect the board or sidebar's size at
+         all. The backdrop dismisses it only when it is dismissible (see above): the peek at your own
+         hand closes on a click or Escape, an opened pile stays up until a card is taken. The
+         handlers and the button role are spread in together so a backdrop that does nothing is not
+         announcing itself as a button. Dismissal is off entirely while a card is being taken
+         (takingCardId set), so the return-then-deliver animation can't be interrupted partway. -->
     <div
-        class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/50"
-        role="button"
-        tabindex="0"
-        onclick={() => !takingCardId && close()}
-        onkeydown={(e) => {
-            if ((e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') && !takingCardId) {
-                close()
-            }
-        }}
+        class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/50 p-3"
+        {...dismissible
+            ? {
+                  role: 'button',
+                  tabindex: 0,
+                  onclick: () => !takingCardId && close(),
+                  onkeydown: (e: KeyboardEvent) => {
+                      if (
+                          (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') &&
+                          !takingCardId
+                      ) {
+                          close()
+                      }
+                  }
+              }
+            : {}}
     >
         <!-- Matches the pile-choosing prompt in PoliticsPileOverlay (text-2xl semibold with
              a drop shadow): the two are consecutive steps of the same flow, and at text-sm
              this one read as a caption where the first read as an instruction. -->
         <span class="text-white text-2xl font-semibold drop-shadow">
-            {#if takingCardId}
-                Dealing your card...
-            {:else if viewingMyHand}
+            {#if viewingMyHand}
                 Your politics cards
             {:else}
                 Click a card to take it.
             {/if}
         </span>
+        <!-- Matches PoliticsPileOverlay's error readout: this is the only overlay left on screen
+             once a pile is chosen (see its showing), so a rejected take needs somewhere to say so. -->
+        {#if gameSession.errorMessage}
+            <div
+                class="mx-auto max-w-[420px] rounded-md bg-red-900/90 border border-red-300/50 px-3 py-2 text-center text-white text-base"
+            >
+                {gameSession.errorMessage}
+            </div>
+        {/if}
         {#if SHOW_SPLAYED}
             {#key gameSession.selectedPoliticsPile}
                 <div
@@ -285,7 +308,7 @@
                                 : 'opacity-80'}"
                             style="
                                 transition-duration: {fanMs}ms;
-                                width:{CARD_WIDTH}px;
+                                width: {CARD_WIDTH_CSS};
                                 transform: translateX(-50%) translateX({offset}px) rotate({angle}deg) {isHovered
                                 ? 'translateY(-24px) scale(1.15)'
                                 : ''};
@@ -303,9 +326,15 @@
         {:else}
             <!-- Simple tiled grid: every card the same size, laid out side by side and
                  wrapping as needed, no overlap or hover pop needed since this already
-                 floats above the whole board. -->
+                 floats above the whole board.
+
+                 w-full alongside max-w-4xl: the parent's items-center means this isn't stretched
+                 to fill it, only centred within it, so without a width tied to that available
+                 space this sized itself to fit every card on one unwrapped row - up to 896px wide
+                 even on a 375px phone - and overflowed past the fixed backdrop's edge into
+                 whatever sat behind the page rather than actually wrapping. -->
             <div
-                class="flex flex-wrap items-start justify-center gap-4 max-w-4xl"
+                class="flex flex-wrap items-start justify-center gap-4 w-full max-w-4xl max-h-[calc(100dvh-7rem)] overflow-y-auto px-2 py-1"
                 role="presentation"
                 onclick={(e) => e.stopPropagation()}
             >
@@ -315,13 +344,13 @@
                             bind:this={cardEls[card.id]}
                             {@attach dealIn(dealIndex)}
                             class="relative opacity-90"
-                            style="width:{CARD_WIDTH}px;"
+                            style={cardWidthStyle}
                         >
                             <PoliticsCard {card} />
                             {#if canApplyCard(card)}
                                 <button
                                     type="button"
-                                    class="absolute top-[35px] left-1/2 -translate-x-1/2 cursor-pointer rounded-lg bg-black/80 text-white text-xs tracking-widest px-3 py-1 border-2 border-transparent hover:border-white"
+                                    class="absolute top-[15%] left-1/2 -translate-x-1/2 cursor-pointer rounded-lg bg-black/80 text-white text-xs tracking-widest px-3 py-1 border-2 border-transparent hover:border-white"
                                     onclick={() => applyCard(card)}
                                 >
                                     APPLY
@@ -335,7 +364,7 @@
                             {@attach dealIn(dealIndex)}
                             disabled={takingCardId !== undefined}
                             class="cursor-pointer opacity-90 hover:opacity-100 transition-opacity duration-150"
-                            style="width:{CARD_WIDTH}px;"
+                            style={cardWidthStyle}
                             onclick={() => chooseCard(card)}
                         >
                             <PoliticsCard {card} />
