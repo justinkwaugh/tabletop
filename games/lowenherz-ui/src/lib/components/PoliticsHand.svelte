@@ -154,7 +154,8 @@
 
     const RETURN_DURATION = 300 // ms - the other cards flying back to the pile
     const RETURN_STAGGER = 35 // ms between each returning card starting its flight
-    const DELIVER_DURATION = 420 // ms - the taken card flying to the player's own pile
+    const DELIVER_DURATION = 420 // ms - the taken card flying away to be delivered
+    const DELIVER_DISTANCE = 220 // px - purely horizontal, see addDeliverFlight below
 
     // Appends one card's fly-to-point-and-fade tween onto a shared timeline at an explicit
     // position, computed from the element's CURRENT rect (so a card already mid-animation, or
@@ -171,6 +172,17 @@
         const dx = target.x - (rect.left + rect.width / 2)
         const dy = target.y - (rect.top + rect.height / 2)
         tl.to(el, { x: dx, y: dy, scale: 0.3, opacity: 0, duration, ease: 'power2.in' }, position)
+    }
+
+    // The taken card flies straight off to the left and fades, rather than toward wherever the
+    // player's own pile actually sits (a player panel near the top of the sidebar sent the card
+    // far enough up to exit this overlay's own grid mid-flight, and overflow-y-auto - which also
+    // clips overflow-x, per the CSS spec, once overflow-y isn't 'visible' - cut it off still fully
+    // visible). A fixed, purely horizontal offset never leaves the card's own row, so it always
+    // finishes fading out before it could run into either edge.
+    function addDeliverFlight(tl: gsap.core.Timeline, el: HTMLElement | undefined, duration: number, position: number) {
+        if (!el) return
+        tl.to(el, { x: -DELIVER_DISTANCE, scale: 0.3, opacity: 0, duration, ease: 'power2.in' }, position)
     }
 
     // Only ever called from the draw-pile flow (see the template - viewingMyHand
@@ -203,12 +215,9 @@
             })
         }
 
-        const myPileOrigin = gameSession.myPoliticsPileOrigin
-        if (myPileOrigin) {
-            addFlight(tl, cardEls[card.id], myPileOrigin, DELIVER_DURATION / 1000, tl.duration())
-        }
+        addDeliverFlight(tl, cardEls[card.id], DELIVER_DURATION / 1000, tl.duration())
 
-        // Guarded rather than always awaiting the callback: an empty timeline (both origins
+        // Guarded rather than always awaiting the callback: an empty timeline (the pile origin
         // missing, or every element gone) never has anything to complete.
         if (tl.duration() > 0) {
             await new Promise<void>((resolve) => tl.eventCallback('onComplete', resolve))

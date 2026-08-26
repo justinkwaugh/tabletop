@@ -1552,24 +1552,6 @@ export class LowenherzGameSession extends GameSession<
         return this.myPlayer ? this.gameState.getPlayerState(this.myPlayer.id).politicsCards : []
     }
 
-    // DOM anchor for "my politics pile" (the face-down card + count badge in my own
-    // player panel row - see PlayerState.svelte) - registered once that panel mounts,
-    // so PoliticsHand can compute a live target point for the "deliver the taken
-    // card" animation without the two components needing to know each other's
-    // internals. Read on demand (not $state) since it's only ever consulted
-    // imperatively, mid-animation - it doesn't drive any rendering itself.
-    myPanelAnchorEl: HTMLElement | undefined = undefined
-
-    registerMyPanelAnchor(el: HTMLElement) {
-        this.myPanelAnchorEl = el
-    }
-
-    get myPoliticsPileOrigin(): { x: number; y: number } | undefined {
-        if (!this.myPanelAnchorEl) return undefined
-        const rect = this.myPanelAnchorEl.getBoundingClientRect()
-        return { x: rect.right - 24, y: rect.bottom - 24 }
-    }
-
     showMyPoliticsCards(origin: { x: number; y: number }) {
         this.politicsPileOrigin = origin
         this.viewingMyPoliticsCards = true

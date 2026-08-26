@@ -47,7 +47,6 @@
     const MIN_SLIVER = 6 // narrowest an overlapped card is ever allowed to peek out, once cards no longer fit unoverlapped
     const CARD_EDGE_BUFFER = 6 // px - headroom so a rotated frontmost card doesn't clip against this panel's own rounded/overflow-hidden edge
 
-    let rootEl: HTMLElement | undefined = $state()
     // Measures the politics-card area's actual rendered width - cards lay out flat
     // (see step below) as long as they fit in this; only once a big enough hand
     // wouldn't otherwise fit does the spacing compress down toward MIN_SLIVER.
@@ -78,16 +77,6 @@
             cardJitter.set(cardId, jitter)
         }
         return jitter
-    }
-
-    // Registers this panel's position as the landing/launch point PoliticsHand uses for its
-    // "deliver the taken card" and hover-peek animations - only meaningful for the local player's
-    // own panel.
-    //
-    // An attachment rather than an effect watching a bound ref: handing a node to something is
-    // exactly what attachments are for, and it arrives with the node instead of on the tick after.
-    function registerPanelAnchor(node: HTMLElement) {
-        if (isMe) gameSession.registerMyPanelAnchor(node)
     }
 
     // Hovering OR clicking opens the same read-only overlay PoliticsHand shows for a
@@ -220,8 +209,6 @@
 {/snippet}
 
 <div
-    bind:this={rootEl}
-    {@attach registerPanelAnchor}
     class="rounded-lg overflow-hidden"
 >
     <!-- Name pill, centered right above the flags - a nearly-rectangular pill filled
