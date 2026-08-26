@@ -52,5 +52,5 @@
     font-family: 'UnifrakturMaguntia', cursive;
     /* Fixed, not em-relative - so bumping the surrounding "N until" text size doesn't
        inflate this too. */
-    font-size: 14px;
+    font-size: 28px;
 }
