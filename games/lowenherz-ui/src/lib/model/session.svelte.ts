@@ -1651,6 +1651,14 @@ export class LowenherzGameSession extends GameSession<
         this.renegadeOwnRegionId = undefined
         this.renegadeEnemyRegionId = undefined
         this.renegadeRemovedSquare = undefined
+
+        // Skip the click when there is nothing to choose - same "one option counts as
+        // picked" pattern startPlayingAllianceCard uses. legalRenegadeOwnRegionIds reads
+        // isPlayingRenegadeCard, which is already true now that renegadeCardId is set above.
+        const ownRegionIds = this.legalRenegadeOwnRegionIds
+        if (ownRegionIds.size === 1) {
+            this.selectRenegadeOwnRegion([...ownRegionIds][0])
+        }
     }
 
     cancelPlayingRenegadeCard() {
