@@ -2,13 +2,7 @@
 @plugin 'flowbite/plugin';
 
 /* The faces themselves are declared in GameTable.svelte via CustomFont, which is where
-   every other game in this repo declares them; only their USE stays here.
-   
-   Tangerine is the cursive for the negotiation signature blanks, and is the one face whose
-   loading needs more than font-display: swap. Swap means the fallback is VISIBLE first, so a
-   signature would appear in the wrong face and then change under the reader. The fix is
-   warming the font up on mount - see .signature-text-warmup below, rendered as soon as the
-   board mounts, well before anyone signs anything. */
+   every other game in this repo declares them; only their USE stays here. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
@@ -51,34 +45,12 @@
     }
 }
 
-/* A negotiator's name, rendered as if just signed by hand onto a signature blank. */
-.signature-text {
-    font-family: 'Tangerine', cursive;
-    font-weight: bold;
-    font-size: 1.75rem;
-    line-height: 1;
-}
-
-/* The pack letter in "N until C" on the draw pile - see .signature-text-warmup
-   below for why Tangerine gets a warmup element; this one's small/simple enough
-   that a flash on first use isn't a practical concern. */
+/* The pack letter in "N until C" on the draw pile. Small/simple enough that a flash of
+   the fallback cursive font on first use isn't a practical concern, unlike Tangerine
+   (see git history) which needed a warmup element to avoid exactly that. */
 .pack-letter {
     font-family: 'UnifrakturMaguntia', cursive;
     /* Fixed, not em-relative - so bumping the surrounding "N until" text size doesn't
        inflate this too. */
     font-size: 14px;
-}
-
-/* Invisible - forces the browser to fetch/cache Tangerine as soon as the board
-   mounts, instead of on first actual use (a real signature), which is what caused a
-   visible flash of the fallback cursive font at the wrong size before swapping in. */
-.signature-text-warmup {
-    font-family: 'Tangerine', cursive;
-    font-weight: bold;
-    font-size: 1.75rem;
-    line-height: 1;
-    position: absolute;
-    width: 0;
-    height: 0;
-    overflow: hidden;
 }

@@ -126,22 +126,27 @@
     chose the {slotLabels[action.slot]} action
 {:else if isNegotiationMove(action)}
     {#if action.kind === NegotiationMoveKind.Propose}
-        proposed <PlayerName playerId={action.fromPlayerId ?? ''} /> pay {action.amount} ducat{action.amount ===
-        1
-            ? ''
-            : 's'} for the contested action
-    {:else if action.kind === NegotiationMoveKind.Sign}
         {@const executedOffer = action.metadata?.executedOffer}
         {#if executedOffer}
-            signed — <PlayerName playerId={executedOffer.fromPlayerId} /> paid {executedOffer.amount} ducat{executedOffer.amount ===
+            proposed <PlayerName playerId={executedOffer.fromPlayerId} /> pay {executedOffer.amount} ducat{executedOffer.amount ===
             1
                 ? ''
-                : 's'} and performed the action
+                : 's'} — matching the standing offer, so it executed: they paid and performed the
+            action
         {:else}
-            signed the standing offer
+            proposed <PlayerName playerId={action.fromPlayerId ?? ''} /> pay {action.amount} ducat{action.amount ===
+            1
+                ? ''
+                : 's'} for the contested action
         {/if}
-    {:else}
+    {:else if action.kind === NegotiationMoveKind.Decline}
         declined to negotiate further — forcing a duel
+    {:else}
+        <!-- Only reachable by a NegotiationMove whose kind predates the turn-based redesign
+             (the old Sign action) - never produced going forward, but an unconditional
+             {:else} above would have silently mislabeled it as a decline instead of just
+             not recognizing it. -->
+        took an unrecognized negotiation action
     {/if}
 {:else if isSubmitDuelBid(action)}
     bid {action.amount} ducat{action.amount === 1 ? '' : 's'}{#if action.metadata?.treasureCardUsed}

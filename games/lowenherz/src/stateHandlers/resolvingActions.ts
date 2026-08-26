@@ -86,7 +86,7 @@ export class ResolvingActionsStateHandler
                 slot,
                 playerIds: choosers,
                 offer: undefined,
-                signedPlayerIds: []
+                lastProposedBy: undefined
             }
             action.metadata = { slot, tiedPlayerIds: choosers, tieWentToDuel: false }
             return MachineState.Negotiating

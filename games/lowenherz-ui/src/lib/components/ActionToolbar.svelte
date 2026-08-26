@@ -78,38 +78,11 @@
     // name alone or are too momentary to be worth a label here.
     const isEndOfGame = $derived(gameSession.gameState.machineState === MachineState.EndOfGame)
     const activePlayerIds = $derived(gameSession.gameState.activePlayerIds)
-    // Who is actually being waited ON, which is not always who the engine has active. Both
-    // negotiators stay active for the whole negotiation, so once one of them has signed the bar
-    // was still naming them both - and the player who had signed was reading "waiting for you"
-    // about themselves.
-    //
-    // Falls back to every active player if that would leave nobody: a standing offer with both
-    // signatures does not linger (the deal executes on the second one), but an empty list would
-    // read as a stall rather than as a moment.
-    const waitingPlayerIds = $derived.by(() => {
-        const duelists = waitingDuelistIds
-        if (duelists) return duelists
-
-        // Nothing to narrow for a negotiation any more: NegotiatingStateHandler.enter drops a
-        // signer from activePlayerIds, so this list already excludes them - and so do the player
-        // panels, the game list and anything else reading the same field, which a filter here
-        // could never reach.
-        return activePlayerIds
-    })
-
-    // Same narrowing for a duel: every duelist stays active until the bids resolve, so a player
-    // whose bid is in was still being waited on by name.
-    //
-    // It does leak a little. A sealed bid is private, and "Waiting for Tom" tells the table that
-    // everyone except Tom has already bid - something he could otherwise only guess at. Asked for
-    // deliberately: the bid AMOUNTS stay sealed, and knowing who has yet to act is what this bar is
-    // for everywhere else in the game.
-    const waitingDuelistIds = $derived.by(() => {
-        if (!gameSession.gameState.duel) return undefined
-
-        const unbid = activePlayerIds.filter((id) => !gameSession.hasPlayerBidInDuel(id))
-        return unbid.length > 0 ? unbid : activePlayerIds
-    })
+    // Who is actually being waited on. Nothing to narrow here any more: both
+    // NegotiatingStateHandler (a signer) and DuelingStateHandler (a bidder) drop a player from
+    // activePlayerIds the moment they act, so this list already excludes them - and so do the
+    // player panels, the game list, and anything else reading the same field.
+    const waitingPlayerIds = $derived(activePlayerIds)
 
     // Almost always a single player ("Waiting for X to take an action"), but a negotiation with
     // nobody signed yet has two, and a 3+-way Dueling tie leaves all the tied players active -

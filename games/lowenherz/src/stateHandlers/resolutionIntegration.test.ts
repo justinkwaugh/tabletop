@@ -208,7 +208,7 @@ function takePoliticsCard(playerId: string, pile: 'A' | 'B', cardId: string): Ta
 }
 
 describe('resolution cascade (via the real GameEngine)', () => {
-    it('drops a signer from the active players, and undoing the signature puts them back', () => {
+    it('drops a proposer from the active players, and undoing the proposal puts them back', () => {
         const playerIds = ['p1', 'p2']
         const game = buildGame(playerIds)
         const card: ActionCard = {
@@ -228,28 +228,59 @@ describe('resolution cascade (via the real GameEngine)', () => {
         expect(state.machineState).toBe(MachineState.Negotiating)
         expect(state.activePlayerIds).toEqual(['p1', 'p2'])
 
+        const proposeResult = engine.run(
+            negotiationMove('p1', NegotiationMoveKind.Propose, 3, 'p1'),
+            state,
+            game
+        )
+        state = proposeResult.updatedState
+        // Proposing hands the move to the other side immediately - there is no separate
+        // signing step; the offer is on the table and it's p2's turn to move it forward.
+        expect(state.negotiation?.lastProposedBy).toBe('p1')
+        expect(state.activePlayerIds).toEqual(['p2'])
+
+        // And the way back. undoAction replays the action's stored undo patch, which the engine
+        // compared over the whole state AFTER enter() had recomputed the active players - so the
+        // proposer is restored along with their proposal, and can revise or decline. This is what
+        // makes dropping them from activePlayerIds safe: GameEngine.isPlayerAllowed gates actions
+        // on that list (via isActivePlayer), but nothing gates Undo on it.
+        const restored = engine.undoAction(state, proposeResult.processedActions[0])
+        expect(restored.negotiation?.lastProposedBy).toBeUndefined()
+        expect(restored.activePlayerIds).toEqual(['p1', 'p2'])
+        expect(restored.negotiation?.offer).toBeUndefined()
+    })
+
+    it('a benched negotiator can still decline and force a duel', () => {
+        const playerIds = ['p1', 'p2']
+        const game = buildGame(playerIds)
+        const card: ActionCard = {
+            id: 'card-1',
+            back: CardBack.B,
+            type: ActionCardType.Standard,
+            top: { kind: 'politics' },
+            middle: { kind: 'knight', count: 2 },
+            bottom: { kind: 'knight', count: 1 }
+        }
+        let state = buildState(playerIds, card)
+        for (const player of state.players) player.knightsInStock = 0
+
+        state = engine.run(chooseAction('p1', 1), state, game).updatedState
+        state = engine.run(chooseAction('p1', 2), state, game).updatedState
+        state = engine.run(chooseAction('p2', 1), state, game).updatedState
+
         state = engine.run(
             negotiationMove('p1', NegotiationMoveKind.Propose, 3, 'p1'),
             state,
             game
         ).updatedState
-        // Proposing is not committing: the offer is on the table and both sides still have a move.
-        expect(state.activePlayerIds).toEqual(['p1', 'p2'])
-
-        const signResult = engine.run(negotiationMove('p1', NegotiationMoveKind.Sign), state, game)
-        state = signResult.updatedState
-        expect(state.negotiation?.signedPlayerIds).toEqual(['p1'])
         expect(state.activePlayerIds).toEqual(['p2'])
 
-        // And the way back. undoAction replays the action's stored undo patch, which the engine
-        // compared over the whole state AFTER enter() had recomputed the active players - so the
-        // signer is restored along with their signature, and can revise or decline. This is what
-        // makes dropping them from activePlayerIds safe: GameEngine.isPlayerAllowed gates actions
-        // on that list, but nothing gates Undo on it.
-        const restored = engine.undoAction(state, signResult.processedActions[0])
-        expect(restored.negotiation?.signedPlayerIds).toEqual([])
-        expect(restored.activePlayerIds).toEqual(['p1', 'p2'])
-        expect(restored.negotiation?.offer).toEqual({ fromPlayerId: 'p1', amount: 3 })
+        // p1 is not in activePlayerIds any more, but the engine's own gate
+        // (GameEngine.isPlayerAllowed) still lets a Decline from them through - see
+        // HydratedLowenherzGameState.isActivePlayer.
+        state = engine.run(negotiationMove('p1', NegotiationMoveKind.Decline), state, game).updatedState
+        expect(state.machineState).toBe(MachineState.Dueling)
+        expect(state.duel?.playerIds).toEqual(['p1', 'p2'])
     })
 
     it('resolves a 2-way tie through negotiation, then auto-cascades solo slots and advances the round', () => {
@@ -285,25 +316,18 @@ describe('resolution cascade (via the real GameEngine)', () => {
             slot: 1,
             playerIds: ['p1', 'p2'],
             offer: undefined,
-            signedPlayerIds: []
+            lastProposedBy: undefined
         })
 
-        // p1 proposes to pay 3, p2 counter-proposes p1 should pay 4 instead (clearing
-        // any signatures), both sign the 4-ducat offer - p2 wins slot 1 and pays... no,
-        // p1 is named as payer, so p2 wins slot 1 and p1 pays p2 4.
+        // p1 opens with 3; p2 counters with a different shape (p2 pays 4 instead) - a
+        // counter-proposal just replaces the standing offer and hands the turn back.
         state = engine.run(
             negotiationMove('p1', NegotiationMoveKind.Propose, 3, 'p1'),
             state,
             game
         ).updatedState
         expect(state.negotiation?.offer).toEqual({ fromPlayerId: 'p1', amount: 3 })
-        expect(state.negotiation?.signedPlayerIds).toEqual([])
-
-        // A signature on the standing offer first, so the counter below has something to
-        // withdraw. This is the ordinary shape of the flow: whoever moves first sets terms and
-        // signs them, and the other side either signs those terms or changes them.
-        state = engine.run(negotiationMove('p1', NegotiationMoveKind.Sign), state, game).updatedState
-        expect(state.negotiation?.signedPlayerIds).toEqual(['p1'])
+        expect(state.negotiation?.lastProposedBy).toBe('p1')
 
         state = engine.run(
             negotiationMove('p2', NegotiationMoveKind.Propose, 4, 'p2'),
@@ -311,30 +335,24 @@ describe('resolution cascade (via the real GameEngine)', () => {
             game
         ).updatedState
         expect(state.negotiation?.offer).toEqual({ fromPlayerId: 'p2', amount: 4 })
-        // Changing the terms IS the counter-proposal, and it takes p1's signature with it -
-        // nobody is held to terms they did not sign. This is what lets the UI treat "adjust the
-        // offer and sign" as a counter rather than needing a separate action for it.
-        expect(state.negotiation?.signedPlayerIds).toEqual([])
+        expect(state.negotiation?.lastProposedBy).toBe('p2')
 
-        // p2 signs their own proposal first - negotiation stays open on one signature,
-        // and that signature stays undoable (nothing binds until both sides commit).
+        // p1 proposes back the EXACT same terms p2 just put up - that is acceptance, not
+        // another counter, and it executes immediately: p2 pays p1 4 and wins slot 1, and
+        // must take a politics card before the cascade can continue through slot 2, slot
+        // 3, and the round advance.
         // (revealsInfo is read off the PROCESSED action - the engine applies a clone and
         // hands the flagged, dehydrated copy back, which is what gets stored.)
-        const firstSignResult = engine.run(negotiationMove('p2', NegotiationMoveKind.Sign), state, game)
-        state = firstSignResult.updatedState
-        expect(state.machineState).toBe(MachineState.Negotiating)
-        expect(state.negotiation?.signedPlayerIds).toEqual(['p2'])
-        expect(firstSignResult.processedActions[0].revealsInfo).toBeUndefined()
-
-        // p1's signature completes the deal, handing p2 the politics slot - they must
-        // take a card before the cascade can continue through slot 2, slot 3, and the
-        // round advance.
-        const closingSignResult = engine.run(negotiationMove('p1', NegotiationMoveKind.Sign), state, game)
-        state = closingSignResult.updatedState
+        const acceptResult = engine.run(
+            negotiationMove('p1', NegotiationMoveKind.Propose, 4, 'p2'),
+            state,
+            game
+        )
+        state = acceptResult.updatedState
         // A completed deal is binding: money has changed hands under a two-party
         // agreement, so Undo must not be able to cross back over it (see
         // GameSession.undoableAction, which stops at any action flagged revealsInfo).
-        expect(closingSignResult.processedActions[0].revealsInfo).toBe(true)
+        expect(acceptResult.processedActions[0].revealsInfo).toBe(true)
         expect(state.machineState).toBe(MachineState.TakingPoliticsCard)
         expect(state.politicsTakingPlayerId).toBe('p2')
 

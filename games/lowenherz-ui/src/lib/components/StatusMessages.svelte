@@ -23,7 +23,6 @@
         isTakePoliticsCard,
         MachineState,
         type Negotiation,
-        NegotiationMoveKind,
         type SubmitDuelBid
     } from '@tabletop/lowenherz'
     import PlayerPill from './PlayerPill.svelte'
@@ -49,42 +48,17 @@
     const expansionBlockedReasons = $derived(
         expansionDeadEnd ? gameSession.expansionBlockedReasons : []
     )
-    // Solo-testing stand-ins for a second session: signing a negotiation, and bidding in a duel,
-    // on another player's behalf. Both exist because hotseat resolves myPlayer to a single seat, so
-    // one person cannot otherwise finish either flow alone.
-    //
-    // Gated on showDebug rather than on a hardcoded flag. showDebug is isAdmin && debugViewEnabled,
-    // so in the dev harness the Debug toggle in the top bar turns them on, and in a real game only
-    // an admin who has deliberately switched debug view on ever sees them - never a beta tester,
-    // who would otherwise be able to settle a duel from one seat and spend an opponent's ducats.
-    //
-    // Not import.meta.env.DEV: this package is built with svelte-package and consumed by the app,
-    // and svelte-package warns about import.meta.env for exactly that reason.
-    const SHOW_DUEL_TEST_CONTROLS = $derived(gameSession.showDebug)
-
+    // "Sign" is what the button says, but there is no separate signing action any more -
+    // clicking it just proposes whatever is on screen. If that happens to match the standing
+    // offer exactly, the engine treats it as acceptance and executes the deal immediately
+    // (see NegotiationMove.apply); otherwise it becomes the new standing offer and the turn
+    // passes to the other side.
     async function commitNegotiationOffer() {
-        const negotiation = displayNegotiation
-        if (!negotiation || !gameSession.negotiationProposerId) return
-
-        // Signing means "I commit to what's on screen", so submit the draft first whenever
-        // it isn't already the standing offer. Proposing clears existing signatures
-        // engine-side, which is correct: it's a different deal.
-        const offer = negotiation.offer
-        const draftIsStandingOffer =
-            offer !== undefined &&
-            offer.fromPlayerId === gameSession.negotiationProposerId &&
-            offer.amount === gameSession.negotiationAmount
-        if (!draftIsStandingOffer) {
-            const proposed = await gameSession.proposeNegotiationOffer(
-                gameSession.negotiationProposerId,
-                gameSession.negotiationAmount
-            )
-            // Refused (e.g. a payer who can't afford it) - don't follow up with a Sign that
-            // has nothing valid to sign.
-            if (!proposed) return
-        }
-
-        await gameSession.signNegotiationOffer()
+        if (!gameSession.negotiationProposerId) return
+        await gameSession.proposeNegotiationOffer(
+            gameSession.negotiationProposerId,
+            gameSession.negotiationAmount
+        )
     }
 
     function choosePlan(plan: KnightPlan) {
@@ -148,11 +122,9 @@
                 if (gameSession.isPastCurrentRound(roundBoundariesSeen)) return undefined
                 continue
             }
-            if (
-                isNegotiationMove(action) &&
-                action.kind === NegotiationMoveKind.Sign &&
-                action.metadata?.executedOffer
-            ) {
+            // executedOffer is only ever set on the Propose that completes a deal (see
+            // NegotiationMove.apply) - Decline and every other Propose leave it unset.
+            if (isNegotiationMove(action) && action.metadata?.executedOffer) {
                 return action.metadata.executedOffer
             }
         }
@@ -268,17 +240,9 @@
         }
     })
 
-    // Once both sides have signed, gameState.negotiation disappears immediately (the
-    // machine moves straight on to whatever the settled action needs next) - which
-    // read as an abrupt cut, control handed to the next player before anyone could
-    // actually see both signatures land. This holds the fully-signed view on screen
-    // a beat longer instead of snapping away the instant it clears. Only applies to
-    // an actual completed deal, not a decline (which routes straight to a duel and
-    // should switch over immediately).
-
-    // Once both sides have signed, gameState.negotiation disappears immediately - the machine moves
+    // Once a deal is struck, gameState.negotiation disappears immediately - the machine moves
     // straight on to whatever the settled action needs next - which read as an abrupt cut, control
-    // handed over before anyone could see both signatures land. So the fully-signed view is held a
+    // handed over before anyone could see the agreed terms land. So the completed view is held a
     // beat longer.
     //
     // Driven by the closing NegotiationMove, which carries the executed offer, rather than by an
@@ -317,13 +281,10 @@
 
             const settling = isNegotiationMove(action) && action.metadata?.executedOffer
             if (settling && from?.negotiation) {
-                // `from` is the state before this action, so it carries one signature - the closing
-                // one is this action's own. Freeze a copy with both, since two signatures on the
-                // line is the whole point of holding it there.
-                gameSession.freezeNegotiation({
-                    ...from.negotiation,
-                    signedPlayerIds: [...from.negotiation.signedPlayerIds, action.playerId]
-                })
+                // `from` is the state right before this Propose executed the deal, so its offer
+                // is exactly the terms that were agreed - freeze a copy so the panel can keep
+                // showing them for a beat instead of snapping away the instant negotiation clears.
+                gameSession.freezeNegotiation(from.negotiation)
                 return
             }
 
@@ -366,8 +327,6 @@
     // A local, per-player draft bid amount - each duelist's own private stepper,
     // unlike negotiation's single shared offer (a duel bid is a one-shot commitment
     // per player, not a joint draft either side can revise).
-    // The negotiation half of the same pair, on the same gate - see SHOW_DUEL_TEST_CONTROLS above.
-    const SHOW_NEGOTIATION_TEST_CONTROLS = $derived(gameSession.showDebug)
 
     // Nothing resets the bids between duels any more. They are keyed to the duel they were
     // entered for (see GameSession.duelBidAmounts), as is an armed Treasure card, so a re-duel
@@ -463,10 +422,6 @@
 <!-- items-center so each message box is centred over the board rather than starting at its left
      edge; text-center on the boxes themselves handles the wrapping lines within them. -->
 <div class="flex flex-col gap-2 items-center">
-    <!-- Warms up the Tangerine signature font as soon as the board mounts, so it's
-         already cached by the time anyone actually signs a negotiation (see
-         .signature-text-warmup in app.css). -->
-    <span class="signature-text-warmup" aria-hidden="true">warmup</span>
     <!-- Stepping back through history leaves every message below stale: they narrate the
          live game ("waiting for X", "click a region..."), which says nothing about the
          moment you've rewound to. So while in history, lead with what the action you're
@@ -800,8 +755,7 @@
                             {/if}
                             <button
                                 type="button"
-                                disabled={!gameSession.isNegotiator ||
-                                    gameSession.hasSignedNegotiationOffer}
+                                disabled={!gameSession.isMyNegotiationTurn}
                                 class={gameSession.negotiationProposerId === playerId
                                     ? 'font-semibold text-black'
                                     : 'text-black/40 hover:text-black/60'}
@@ -830,9 +784,7 @@
                 <button
                     type="button"
                     class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
-                    disabled={!gameSession.isNegotiator ||
-                        gameSession.hasSignedNegotiationOffer ||
-                        gameSession.negotiationAmount <= 1}
+                    disabled={!gameSession.isMyNegotiationTurn || gameSession.negotiationAmount <= 1}
                     onclick={() => gameSession.setNegotiationAmount(Math.max(1, gameSession.negotiationAmount - 1))}
                 >
                     −
@@ -841,8 +793,7 @@
                 <button
                     type="button"
                     class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
-                    disabled={!gameSession.isNegotiator ||
-                        gameSession.hasSignedNegotiationOffer ||
+                    disabled={!gameSession.isMyNegotiationTurn ||
                         gameSession.negotiationAmount >= negotiationProposerMoney}
                     onclick={() => gameSession.setNegotiationAmount(gameSession.negotiationAmount + 1)}
                 >
@@ -855,51 +806,33 @@
                 </span>
             </div>
 
-            <!-- One line per negotiator, as a contract has: a name written on a line is the
-                 signature, and the printed name beneath says whose line it is. This replaces a
-                 sentence that reported the same thing in prose ("X has signed. Sign to accept
-                 these terms as they stand, or change them to counter...") - with both lines on
-                 screen there is nothing left for it to tell anyone. The captions are out of
-                 flow, like the picker's above, so they cost the row no height.
-
-                 On their own row rather than trailing the terms: the row above is the deal being
-                 written and this one is the signing of it. So the whole row reads as the act -
-                 the lines your name goes on, the button that writes it there, and then the
-                 alternative to signing at all - instead of leaving any of it in a sentence
-                 overhead. -->
-            <div class="flex flex-wrap items-center justify-center gap-2 pb-4 text-[16px]">
-                {#each negotiation.playerIds as playerId (playerId)}
-                    <div class="relative flex flex-col items-center">
-                        <span
-                            class="signature-text inline-block h-8 w-32 border-b border-black/40 px-1 text-center"
+            {#if gameSession.gameState.machineState === MachineState.Negotiating}
+                {@const turnPlayerId = negotiation.lastProposedBy
+                    ? negotiation.playerIds.find((id) => id !== negotiation.lastProposedBy)
+                    : undefined}
+                <!-- Whoever's turn it is named explicitly, always - not just when you're the one
+                     waiting. In hotseat, proposing hands activePlayerIds (and so myPlayer) to the
+                     other side immediately, and the picker/amount reset to mirror the new standing
+                     offer - so without a name that visibly changes here, a solo hotseat tester who
+                     had just set those same terms up as the FIRST player can click Sign and see an
+                     identical-looking screen a beat later, now the second player's turn to act on
+                     it, and have no way to tell their click actually landed. -->
+                <div class="flex flex-wrap items-center justify-center gap-2 pb-4 text-[16px]">
+                    <span class="text-black/70">
+                        {turnPlayerId
+                            ? `${playerName(gameSession, turnPlayerId)}'s turn.`
+                            : 'Either player may open.'}
+                    </span>
+                    {#if gameSession.isMyNegotiationTurn && gameSession.isNegotiator}
+                        <button
+                            type="button"
+                            class="px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 text-[14px] font-semibold"
+                            onclick={() => commitNegotiationOffer()}
                         >
-                            {#if negotiation.signedPlayerIds.includes(playerId)}
-                                {playerName(gameSession, playerId)}
-                            {/if}
-                        </span>
-                        <span
-                            class="absolute top-full mt-0.5 text-[10px] leading-none text-black/50 whitespace-nowrap"
-                        >
-                            {playerName(gameSession, playerId)}
-                        </span>
-                    </div>
-                {/each}
-                <!-- After the lines, before the alternative to using them: the row reads as the
-                     two choices open to you, in the order you weigh them - put your name on a
-                     line, or refuse and fight for it. -->
-                <button
-                    type="button"
-                    class="ml-1 px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 text-[14px] font-semibold disabled:opacity-40 disabled:hover:bg-green-700/20"
-                    disabled={!gameSession.isNegotiator || gameSession.hasSignedNegotiationOffer}
-                    onclick={() => commitNegotiationOffer()}
-                >
-                    Sign
-                </button>
-                <!-- Guarded on the machine state, not just on displayNegotiation: that holds the
-                     settled deal on screen after it resolves (so the signatures stay up), and
-                     there is nothing left to decline by then. -->
-                {#if gameSession.gameState.machineState === MachineState.Negotiating}
-                    <span>or</span>
+                            Sign
+                        </button>
+                        <span>or</span>
+                    {/if}
                     <button
                         type="button"
                         class="px-2 py-[3px] rounded bg-red-700/10 hover:bg-red-700/20 text-[14px] font-semibold disabled:opacity-40"
@@ -908,40 +841,20 @@
                     >
                         Force a duel
                     </button>
-                {/if}
-            </div>
-
-            <!-- Which half of the exchange you are in, in one line. This is also where the other
-                 player's signature is reported, now that they have no row of their own: it is only
-                 worth a mention when it changes what your click does, and then it wants naming
-                 rather than a blank with a name on it. -->
-            {#if gameSession.isNegotiator}
-                {@const myId = gameSession.myPlayer?.id}
-                {@const otherId = negotiation.playerIds.find((id) => id !== myId)}
-                {@const otherHasSigned = otherId
-                    ? negotiation.signedPlayerIds.includes(otherId)
-                    : false}
-                {@const showTestSign =
-                    SHOW_NEGOTIATION_TEST_CONTROLS && !!negotiation.offer && !!otherId && !otherHasSigned}
-                <!-- Only rendered when there is something to report. With nobody signed yet the
-                     controls and the Sign button beside them already say what to do, and a line
-                     restating it was a line of the space above the board earning nothing. The whole
-                     row is conditional rather than just its text, so an empty div does not leave a
-                     gap behind it. -->
-                {#if showTestSign}
-                    <div class="flex flex-wrap items-center justify-center gap-2 text-black/60 text-[12px]">
-                        {#if showTestSign && otherId}
-                            <button
-                                type="button"
-                                title="Temporary solo-testing stand-in for a second session/tab"
-                                class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
-                                onclick={() => gameSession.debugSignNegotiationOfferAs(otherId)}
-                            >
-                                sign for them (test)
-                            </button>
-                        {/if}
-                    </div>
-                {/if}
+                </div>
+            {:else if negotiation.offer}
+                {@const toPlayerId = negotiation.playerIds.find(
+                    (id) => id !== negotiation.offer!.fromPlayerId
+                )}
+                <!-- The completed hold (see the onMount listener above): the deal is done, so
+                     there is nothing left to sign or decline - just the struck terms, on screen
+                     for a beat before the next thing takes over. -->
+                <div class="pb-4 text-[16px]">
+                    {playerName(gameSession, negotiation.offer.fromPlayerId)} pays {toPlayerId
+                        ? playerName(gameSession, toPlayerId)
+                        : ''}
+                    {negotiation.offer.amount} ducat{negotiation.offer.amount === 1 ? '' : 's'}.
+                </div>
             {/if}
         </div>
     {/if}
@@ -989,16 +902,31 @@
                                  somewhere else in the row, so arming one swaps this for the real
                                  chip in situ rather than moving anything.
 
-                                 A span, not a button: arming is done from the hand (open it, hit
-                                 APPLY), same as every other Treasure play in the game, so there is
-                                 nothing here to click - the dashed outline says placeholder and the
-                                 title carries the how-to. -->
-                            <span
-                                class="px-1.5 py-[3px] rounded font-semibold border border-dashed border-black/30 text-black/45"
-                                title="Open your hand and hit APPLY on a Treasure to add it to this bid"
+                                 With exactly one Treasure there's nothing to choose between, so a
+                                 click arms it directly - same arm-only effect as hitting APPLY in
+                                 the hand, just without the detour. With more than one, this instead
+                                 opens the hand (the same peek PlayerState's pile offers) so the
+                                 player can pick which to APPLY. -->
+                            <button
+                                type="button"
+                                class="px-1.5 py-[3px] rounded font-semibold border border-dashed border-black/30 text-black/45 hover:border-black/50 hover:text-black/70"
+                                title={gameSession.myTreasureCards.length === 1
+                                    ? 'Add this Treasure to your bid'
+                                    : 'Open your hand and hit APPLY on a Treasure to add it to this bid'}
+                                onclick={(event) => {
+                                    if (gameSession.myTreasureCards.length === 1) {
+                                        gameSession.selectTreasureCard(gameSession.myTreasureCards[0].id)
+                                        return
+                                    }
+                                    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+                                    gameSession.showMyPoliticsCards({
+                                        x: rect.left + rect.width / 2,
+                                        y: rect.top + rect.height / 2
+                                    })
+                                }}
                             >
                                 + Treasure?
-                            </span>
+                            </button>
                         {/if}
                         <button
                             type="button"
@@ -1012,47 +940,6 @@
                             Submit bid
                         </button>
                 </div>
-            {/if}
-
-            <!-- Solo-testing stand-in for a second session, kept to one shared row of
-                 small dashed buttons (one per opponent who hasn't bid), each expanding
-                 into a stepper only once clicked. Flip SHOW_DUEL_TEST_CONTROLS off to
-                 lose this row entirely. -->
-            {#if SHOW_DUEL_TEST_CONTROLS}
-                {@const pending = duel.playerIds.filter(
-                    (id) => id !== myId && !gameSession.hasPlayerBidInDuel(id)
-                )}
-                {#if pending.length > 0}
-                    <div class="flex flex-wrap items-center gap-2">
-                        {#each pending as playerId (playerId)}
-                            {@const money = gameSession.gameState.getPlayerState(playerId).money}
-                            {@const bidAmount = Math.min(gameSession.duelBidAmounts[playerId] ?? 0, money)}
-                            {#if gameSession.testBiddingForPlayerId === playerId}
-                                {@render playerPill(playerId)}
-                                {@render duelBidStepper(playerId, bidAmount, money)}
-                                <button
-                                    type="button"
-                                    class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
-                                    onclick={() => {
-                                        gameSession.debugSubmitDuelBidAs(playerId, bidAmount)
-                                        gameSession.setTestBiddingForPlayerId(undefined)
-                                    }}
-                                >
-                                    submit (test)
-                                </button>
-                            {:else}
-                                <button
-                                    type="button"
-                                    title="Temporary solo-testing stand-in for a second session/tab"
-                                    class="px-1.5 py-0.5 rounded border border-dashed border-black/40 text-black/60 text-xs hover:bg-black/10"
-                                    onclick={() => (gameSession.setTestBiddingForPlayerId(playerId))}
-                                >
-                                    bid for {playerName(gameSession, playerId)} (test)
-                                </button>
-                            {/if}
-                        {/each}
-                    </div>
-                {/if}
             {/if}
 
             <!-- There's deliberately no card picker in the bid row above: a Treasure

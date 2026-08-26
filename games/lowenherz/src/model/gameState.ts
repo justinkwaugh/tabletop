@@ -33,17 +33,19 @@ export const ResolvedSlot = Type.Object({
     winnerPlayerId: Type.Optional(Type.String())
 })
 
-// An in-progress 2-player negotiation over a tied slot: both players are active at
-// once (either can propose or revise a shared offer at any time) and the deal only
-// executes once BOTH have signed the currently-standing offer - proposing a new one
-// clears any existing signatures, since they applied to the old terms. Either player
-// can also decline outright at any time, forcing a duel instead.
+// An in-progress 2-player negotiation over a tied slot: turn-based, not simultaneous -
+// whoever proposes last is waited on by the other side, who can either counter with
+// different terms (taking the turn back) or propose the exact same terms back, which
+// is acceptance and executes the deal immediately (see NegotiationMove.apply).
+// lastProposedBy is who made the standing offer; undefined means neither side has
+// proposed yet, and either can open. Either player can also decline outright at any
+// stage, turn or no turn, forcing a duel instead.
 export type Negotiation = Type.Static<typeof Negotiation>
 export const Negotiation = Type.Object({
     slot: Type.Union([Type.Literal(1), Type.Literal(2), Type.Literal(3)]),
     playerIds: Type.Array(Type.String()),
     offer: Type.Optional(Type.Object({ fromPlayerId: Type.String(), amount: Type.Number() })),
-    signedPlayerIds: Type.Array(Type.String())
+    lastProposedBy: Type.Optional(Type.String())
 })
 
 // An in-progress duel over a tied slot: every participant submits one ducat bid
@@ -247,5 +249,24 @@ export class HydratedLowenherzGameState
         // than left to each lookup to second-guess: it's deterministic and runs the same
         // way on client and server, so both agree on the resulting ids.
         repairDuplicateRegionIds(this.regions)
+    }
+
+    // activePlayerIds narrows to whoever's turn it is to move a negotiation forward (see
+    // NegotiatingStateHandler.enter), so the other negotiator can't submit most actions -
+    // correctly, since it isn't their move. Force-a-duel is the one exception: either
+    // negotiator can decline at any stage, turn or no turn (see
+    // NegotiationMove.isValidNegotiationMove), and the engine's own action gate
+    // (GameEngine.isPlayerAllowed) checks isActivePlayer before any action-specific
+    // validation even runs, with no per-action-type exception - so without this, a
+    // negotiator between turns could never submit a Decline at all.
+    //
+    // This only widens what the ENGINE'S GATE allows attempting; it does not touch
+    // activePlayerIds itself, so every display that reads that list directly (player
+    // panels, the action bar, hotseat's active-seat resolution) still correctly shows
+    // only the active proposer. isValidNegotiationMove is what actually rejects an
+    // out-of-turn Propose from the player this lets back in.
+    override isActivePlayer(playerId: string): boolean {
+        if (super.isActivePlayer(playerId)) return true
+        return this.negotiation?.playerIds.includes(playerId) ?? false
     }
 }
