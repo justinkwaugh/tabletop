@@ -833,7 +833,11 @@
                             class="px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 text-[14px] font-semibold"
                             onclick={() => commitNegotiationOffer()}
                         >
-                            {gameSession.isAcceptingNegotiationOffer ? 'Accept' : 'Propose'}
+                            {gameSession.isAcceptingNegotiationOffer
+                                ? 'Accept'
+                                : negotiation.offer
+                                  ? 'Counterpropose'
+                                  : 'Propose'}
                         </button>
                         <span>or</span>
                     {/if}
