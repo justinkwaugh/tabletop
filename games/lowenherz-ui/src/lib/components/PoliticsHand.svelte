@@ -1,7 +1,7 @@
 <script lang="ts">
     import { gsap } from 'gsap'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { PoliticsCardType, type PoliticsCard as PoliticsCardData } from '@tabletop/lowenherz'
+    import type { PoliticsCard as PoliticsCardData } from '@tabletop/lowenherz'
     import PoliticsCard from './PoliticsCard.svelte'
 
     const gameSession = getGameSession()
@@ -89,42 +89,11 @@
         }
     }
 
-    // A card already in hand can be applied right now if its type's specific play window is
-    // currently open. Renegade/Alliance share the same window (your decision-laying turn) via the
-    // existing multi-step targeting flow (this is just a second entry point into the same session
-    // methods, alongside the glowing card in the player panel splay - see PlayerState.svelte).
-    // Treasure has no dedicated "play" action of its own - applying it here just arms it, for the
-    // next knight placement (selectTreasureCard - one card at a time) or duel bid
-    // (armDuelTreasure - any number, since nothing in the rulebook caps a bid at one) to pick up.
-    function canApplyCard(card: PoliticsCardData): boolean {
-        switch (card.type) {
-            case PoliticsCardType.Renegade:
-                return gameSession.canPlayRenegadeCard && !gameSession.isPlayingRenegadeCard
-            case PoliticsCardType.Alliance:
-                return gameSession.canPlayAllianceCard && !gameSession.isPlayingAllianceCard
-            case PoliticsCardType.Treasure:
-                return gameSession.canPlaceKnight || gameSession.canSubmitDuelBid
-            default:
-                return false
-        }
-    }
-
+    // canApplyPoliticsCard/applyPoliticsCard live on the session now - shared with the always-
+    // visible APPLY button PlayerState's own splay puts on an applicable card, the other entry
+    // point into the same handful of session methods.
     function applyCard(card: PoliticsCardData) {
-        switch (card.type) {
-            case PoliticsCardType.Renegade:
-                gameSession.startPlayingRenegadeCard(card.id)
-                break
-            case PoliticsCardType.Alliance:
-                gameSession.startPlayingAllianceCard(card.id)
-                break
-            case PoliticsCardType.Treasure:
-                if (gameSession.canSubmitDuelBid) {
-                    gameSession.armDuelTreasure(card.id)
-                } else {
-                    gameSession.selectTreasureCard(card.id)
-                }
-                break
-        }
+        gameSession.applyPoliticsCard(card)
         // The remaining steps (picking regions/squares, or entering a bid) happen on
         // the board/sidebar behind this overlay, so get out of the way immediately.
         close()
@@ -158,7 +127,7 @@
                     style={cardWidthStyle}
                 >
                     <PoliticsCard {card} />
-                    {#if canApplyCard(card)}
+                    {#if gameSession.canApplyPoliticsCard(card)}
                         <button
                             type="button"
                             class="absolute top-[15%] left-1/2 -translate-x-1/2 cursor-pointer rounded-lg bg-black/80 text-white text-xs tracking-widest px-3 py-1 border-2 border-transparent hover:border-white"

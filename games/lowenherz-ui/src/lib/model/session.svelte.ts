@@ -1983,6 +1983,48 @@ export class LowenherzGameSession extends GameSession<
         }
     }
 
+    // Whether a card already in hand can be applied right now - its type's specific play window
+    // is currently open. Renegade/Alliance share the same window (your decision-laying turn);
+    // Treasure has no dedicated "play" action of its own, so this asks whether there's a live
+    // window (a wooded knight placement, or a duel bid) to arm it for instead. Shared by
+    // PlayerState's own splay (an always-visible APPLY button on an applicable card) and
+    // PoliticsHand's peek overlay - the same two entry points into the same handful of session
+    // methods, so this is the one place that actually decides "applicable".
+    canApplyPoliticsCard(card: PoliticsCard): boolean {
+        switch (card.type) {
+            case PoliticsCardType.Renegade:
+                return this.canPlayRenegadeCard && !this.isPlayingRenegadeCard
+            case PoliticsCardType.Alliance:
+                return this.canPlayAllianceCard && !this.isPlayingAllianceCard
+            case PoliticsCardType.Treasure:
+                return this.canPlaceKnight || this.canSubmitDuelBid
+            default:
+                return false
+        }
+    }
+
+    // Applying a Renegade/Alliance card starts its multi-step targeting flow (picking
+    // regions/squares happens on the board/sidebar afterward); a Treasure card just arms itself,
+    // for the next knight placement (selectTreasureCard - one card at a time) or duel bid
+    // (armDuelTreasure - any number, since nothing in the rulebook caps a bid at one) to pick up.
+    applyPoliticsCard(card: PoliticsCard) {
+        switch (card.type) {
+            case PoliticsCardType.Renegade:
+                this.startPlayingRenegadeCard(card.id)
+                break
+            case PoliticsCardType.Alliance:
+                this.startPlayingAllianceCard(card.id)
+                break
+            case PoliticsCardType.Treasure:
+                if (this.canSubmitDuelBid) {
+                    this.armDuelTreasure(card.id)
+                } else {
+                    this.selectTreasureCard(card.id)
+                }
+                break
+        }
+    }
+
     // Every existing alliance the current player is a participant in and could afford to
     // cancel right now. "Any time" per the rulebook, which here means any time it's this
     // player's turn to act - laying a decision card, or spending an action they've won
