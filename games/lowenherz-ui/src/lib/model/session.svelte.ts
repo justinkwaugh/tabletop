@@ -1881,6 +1881,14 @@ export class LowenherzGameSession extends GameSession<
         this.cancelPlayingRenegadeCard()
         this.allianceCardId = cardId
         this.allianceOwnRegionId = undefined
+
+        // Skip the click when there is nothing to choose - same "one option counts as
+        // picked" pattern selectedExpandRegionId and knightPlan use. legalAllianceOwnRegionIds
+        // reads allianceCardId, which is already set above, so this sees the real choices.
+        const ownRegionIds = this.legalAllianceOwnRegionIds
+        if (ownRegionIds.size === 1) {
+            this.selectAllianceOwnRegion([...ownRegionIds][0])
+        }
     }
 
     cancelPlayingAllianceCard() {
@@ -1891,6 +1899,15 @@ export class LowenherzGameSession extends GameSession<
     selectAllianceOwnRegion(regionId: string) {
         if (!this.allianceCardId) return
         this.allianceOwnRegionId = regionId
+
+        // Same skip-the-click logic for the enemy side: picking the enemy region normally
+        // confirms the play immediately (see selectAllianceEnemyRegion below) - with only
+        // one legal target there is nothing left to choose, so fire it now rather than
+        // waiting on a click that could not go anywhere else.
+        const enemyRegions = this.legalAllianceEnemyRegions
+        if (enemyRegions.length === 1) {
+            this.selectAllianceEnemyRegion(enemyRegions[0].id)
+        }
     }
 
     // Whether `candidate` is a legal Alliance target for `ownRegion` - another
