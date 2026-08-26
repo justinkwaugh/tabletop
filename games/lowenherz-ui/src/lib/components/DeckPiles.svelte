@@ -29,11 +29,14 @@
     // active player manually draws the next one (see startOfTurn.ts's
     // StartOfTurnStateHandler), same as any other card would.
     const card = $derived(actionState.currentActionCard ?? actionState.discardedActionCard)
-    // Before the very first draw (and briefly between rounds), currentActionCard is
-    // unset - show the back of whatever's actually on top of the deck instead of a
-    // blank placeholder, so the correct back (A/B/etc.) is visible before it's ever
-    // clicked.
-    const nextCardBack = $derived(card?.back ?? actionState.actionDeck[0]?.back)
+    // The pile's own back, not the just-drawn card's: actionDeck[0] is whatever a NEXT
+    // draw would actually turn up, so this tracks it directly rather than falling back
+    // to card?.back once nothing more urgent is available. Falling back to card?.back
+    // first looked right for almost every draw - the pile hasn't changed pack since the
+    // last one - but broke exactly at a pack boundary, where the just-drawn card (still
+    // showing in the flipped-card slot below) is the OLD pack's last card while the
+    // pile itself has already moved on to the new one's first.
+    const nextCardBack = $derived(actionState.actionDeck[0]?.back)
     // How many more draws (starting with the current top card) until a new lettered
     // "pack" begins - packs are stacked in order (see actionDeckAssembly.ts) so the
     // deck is just a run of same-back cards followed by a run of the next back, etc.
@@ -125,7 +128,7 @@
         {/if}
         {#if untilNextPack}
             <div
-                class="absolute bottom-[8%] inset-x-0 text-center text-[14px] text-black/80 leading-none"
+                class="absolute bottom-[8%] inset-x-0 text-center text-[28px] text-black/80 leading-none"
             >
                 {untilNextPack.count} until <span class="pack-letter">{untilNextPack.nextBack}</span>
             </div>

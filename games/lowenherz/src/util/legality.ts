@@ -228,7 +228,7 @@ export function duelBidIsValid(
     state: HydratedLowenherzGameState,
     playerId: string,
     amount: number,
-    treasureCardId?: string
+    treasureCardIds?: string[]
 ): boolean {
     return new HydratedSubmitDuelBid({
         id: 'candidate',
@@ -237,7 +237,7 @@ export function duelBidIsValid(
         type: ActionType.SubmitDuelBid,
         playerId,
         amount,
-        ...(treasureCardId ? { treasureCardId } : {})
+        ...(treasureCardIds && treasureCardIds.length > 0 ? { treasureCardIds } : {})
     }).isValidSubmitDuelBid(state)
 }
 

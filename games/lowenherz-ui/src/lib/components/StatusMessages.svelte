@@ -48,11 +48,11 @@
     const expansionBlockedReasons = $derived(
         expansionDeadEnd ? gameSession.expansionBlockedReasons : []
     )
-    // "Sign" is what the button says, but there is no separate signing action any more -
-    // clicking it just proposes whatever is on screen. If that happens to match the standing
-    // offer exactly, the engine treats it as acceptance and executes the deal immediately
-    // (see NegotiationMove.apply); otherwise it becomes the new standing offer and the turn
-    // passes to the other side.
+    // There is no separate signing action - clicking the button just proposes whatever is
+    // on screen. If that happens to match the standing offer exactly, the engine treats it
+    // as acceptance and executes the deal immediately (see NegotiationMove.apply); otherwise
+    // it becomes the new standing offer and the turn passes to the other side. The button's
+    // own label (see the template) reflects which of those this click would do.
     async function commitNegotiationOffer() {
         if (!gameSession.negotiationProposerId) return
         await gameSession.proposeNegotiationOffer(
@@ -132,12 +132,16 @@
     })
 
 
-    // A bid's actual strength, including any Treasure card added on top - metadata
-    // keeps a snapshot of the card used (see SubmitDuelBidMetadata's comment) since
-    // the real card gets removed from the winner's hand once it's spent, so it can't
-    // be looked up fresh from current player state after the fact.
+    // A bid's actual strength, including any Treasure cards added on top - metadata
+    // keeps a snapshot of the cards used (see SubmitDuelBidMetadata's comment) since
+    // the real cards get removed from the winner's hand once they're spent, so they
+    // can't be looked up fresh from current player state after the fact.
     function effectiveBidAmount(bid: SubmitDuelBid): number {
-        return bid.amount + (bid.metadata?.treasureCardUsed?.value ?? 0)
+        const treasureValue = (bid.metadata?.treasureCardsUsed ?? []).reduce(
+            (sum, card) => sum + (card.value ?? 0),
+            0
+        )
+        return bid.amount + treasureValue
     }
 
     // Splits a flat run of consecutive SubmitDuelBid actions into per-round groups.
@@ -329,9 +333,10 @@
     // per player, not a joint draft either side can revise).
 
     // Nothing resets the bids between duels any more. They are keyed to the duel they were
-    // entered for (see GameSession.duelBidAmounts), as is an armed Treasure card, so a re-duel
-    // reads as no bids and nothing armed rather than being cleared afterwards. That also retired a
-    // high-water-mark variable kept solely so an effect could tell one duel from the next.
+    // entered for (see GameSession.duelBidAmounts), as are any armed Treasure cards, so a
+    // re-duel reads as no bids and nothing armed rather than being cleared afterwards. That
+    // also retired a high-water-mark variable kept solely so an effect could tell one duel
+    // from the next.
 
     // Whether the castle about to be placed belongs to the neutral prince rather than to the
     // player placing it. Asked of the colour rather than of the player count: the closing laps
@@ -408,10 +413,14 @@
 
 {#snippet bidList(bids: SubmitDuelBid[])}
     {#each bids as bid, i (bid.playerId)}
+        {@const treasureValue = (bid.metadata?.treasureCardsUsed ?? []).reduce(
+            (sum, card) => sum + (card.value ?? 0),
+            0
+        )}
         {i > 0 ? ', ' : ''}{@render playerPill(bid.playerId)} bid {bid.amount} ducat{bid.amount === 1
             ? ''
-            : 's'}{#if bid.metadata?.treasureCardUsed}
-            {' '}+ Treasure ({bid.metadata.treasureCardUsed.value}){/if}
+            : 's'}{#if treasureValue > 0}
+            {' '}+ Treasure ({treasureValue}){/if}
     {/each}
 {/snippet}
 
@@ -748,20 +757,17 @@
                      got for free: a column of two names reads as a choice, a row of two names reads
                      as a score, so with them side by side the box has to say what it is. -->
                 <div class="relative flex flex-col items-center leading-tight">
-                    <div class="flex flex-row items-center border border-black/30 rounded px-2 py-1">
-                        {#each negotiation.playerIds as playerId, i (playerId)}
-                            {#if i > 0}
-                                <span class="mx-2 text-black/25" aria-hidden="true">|</span>
-                            {/if}
+                    <div class="flex flex-row items-center gap-2 border border-black/30 rounded px-2 py-1">
+                        {#each negotiation.playerIds as playerId (playerId)}
                             <button
                                 type="button"
                                 disabled={!gameSession.isMyNegotiationTurn}
                                 class={gameSession.negotiationProposerId === playerId
-                                    ? 'font-semibold text-black'
-                                    : 'text-black/40 hover:text-black/60'}
+                                    ? ''
+                                    : 'opacity-40 hover:opacity-70'}
                                 onclick={() => gameSession.setNegotiationProposer(playerId)}
                             >
-                                {playerName(gameSession, playerId)}
+                                {@render playerPill(playerId)}
                             </button>
                         {/each}
                     </div>
@@ -780,7 +786,7 @@
                         Choose a player
                     </span>
                 </div>
-                <span>offers</span>
+                <span>{gameSession.negotiationProposerId === gameSession.myPlayer?.id ? 'offer' : 'offers'}</span>
                 <button
                     type="button"
                     class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
@@ -799,37 +805,23 @@
                 >
                     +
                 </button>
-                <span>
-                    ducat{gameSession.negotiationAmount === 1 ? '' : 's'} to {negotiationOtherPlayerId
-                        ? playerName(gameSession, negotiationOtherPlayerId)
-                        : ''}
+                <span class="flex items-center gap-1">
+                    ducat{gameSession.negotiationAmount === 1 ? '' : 's'} to
+                    {#if negotiationOtherPlayerId}
+                        {@render playerPill(negotiationOtherPlayerId)}
+                    {/if}
                 </span>
             </div>
 
             {#if gameSession.gameState.machineState === MachineState.Negotiating}
-                {@const turnPlayerId = negotiation.lastProposedBy
-                    ? negotiation.playerIds.find((id) => id !== negotiation.lastProposedBy)
-                    : undefined}
-                <!-- Whoever's turn it is named explicitly, always - not just when you're the one
-                     waiting. In hotseat, proposing hands activePlayerIds (and so myPlayer) to the
-                     other side immediately, and the picker/amount reset to mirror the new standing
-                     offer - so without a name that visibly changes here, a solo hotseat tester who
-                     had just set those same terms up as the FIRST player can click Sign and see an
-                     identical-looking screen a beat later, now the second player's turn to act on
-                     it, and have no way to tell their click actually landed. -->
                 <div class="flex flex-wrap items-center justify-center gap-2 pb-4 text-[16px]">
-                    <span class="text-black/70">
-                        {turnPlayerId
-                            ? `${playerName(gameSession, turnPlayerId)}'s turn.`
-                            : 'Either player may open.'}
-                    </span>
                     {#if gameSession.isMyNegotiationTurn && gameSession.isNegotiator}
                         <button
                             type="button"
                             class="px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 text-[14px] font-semibold"
                             onclick={() => commitNegotiationOffer()}
                         >
-                            Sign
+                            {gameSession.isAcceptingNegotiationOffer ? 'Accept' : 'Propose'}
                         </button>
                         <span>or</span>
                     {/if}
@@ -862,7 +854,7 @@
     {#if gameSession.gameState.machineState === MachineState.Dueling && gameSession.gameState.duel}
         {@const duel = gameSession.gameState.duel}
         {@const myId = gameSession.myPlayer?.id}
-        <div class="flex flex-col gap-1 text-black text-[18px]">
+        <div class="flex flex-col gap-1 text-black text-[16px]">
             <!-- Your own bid form, and nothing else - the duelists are named in the status bar
                  rather than getting a row each, and a sealed bid means an opponent's row would
                  have had nothing actionable on it anyway.
@@ -875,47 +867,54 @@
             {#if myId && duel.playerIds.includes(myId) && !gameSession.hasPlayerBidInDuel(myId)}
                 {@const money = gameSession.gameState.getPlayerState(myId).money}
                 {@const bidAmount = Math.min(gameSession.duelBidAmounts[myId] ?? 0, money)}
+                {@const unarmedTreasureCards = gameSession.myTreasureCards.filter(
+                    (c) => !gameSession.armedDuelTreasureIds.includes(c.id)
+                )}
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="font-semibold">Your bid:</span>
                         {@render duelBidStepper(myId, bidAmount, money)}
-                        {#if gameSession.selectedTreasureCard}
-                            <!-- Clicking the chip unarms the card. This is the ONLY way back:
-                                 arming is local UI state, not a game action, so Undo never
-                                 touches it, and APPLY in the hand only ever arms. It used to
-                                 be a "don't play it" button on a sentence below.
-                                 
-                                 The X that used to sit on the end is gone; the hover title and the
-                                 red hover state are what advertise that it is removable now. -->
+                        <!-- One chip per armed Treasure - nothing in the rulebook caps a bid at
+                             one, so unlike a wooded knight placement's single armedTreasure this
+                             is a set (see GameSession.armedDuelTreasureIds). Clicking a chip
+                             unarms just that card. This is the ONLY way back: arming is local UI
+                             state, not a game action, so Undo never touches it, and APPLY in the
+                             hand only ever arms. It used to be a "don't play it" button on a
+                             sentence below.
+
+                             The X that used to sit on the end is gone; the hover title and the
+                             red hover state are what advertise that a chip is removable. -->
+                        {#each gameSession.armedDuelTreasureCards as treasureCard (treasureCard.id)}
                             <button
                                 type="button"
                                 class="px-1.5 py-[3px] rounded font-semibold bg-green-700/15 hover:bg-red-700/20"
                                 title="Click to take this Treasure back out of your bid"
-                                onclick={() => gameSession.selectTreasureCard(undefined)}
+                                onclick={() => gameSession.unarmDuelTreasure(treasureCard.id)}
                             >
-                                + Treasure ({gameSession.selectedTreasureCard.value})
+                                + Treasure ({treasureCard.value})
                             </button>
-                        {:else if gameSession.myTreasureCards.length > 0}
-                            <!-- The empty slot the chip above will fill, shown only to a duelist
-                                 who actually holds a Treasure. It replaces a "Nudge: You hold a
+                        {/each}
+                        {#if unarmedTreasureCards.length > 0}
+                            <!-- The empty slot the next chip will fill, shown only while a duelist
+                                 still holds an unarmed Treasure. It replaces a "Nudge: You hold a
                                  Treasure!" sentence that sat after Submit bid: same information,
                                  but pointing at the place the card lands instead of announcing it
                                  somewhere else in the row, so arming one swaps this for the real
                                  chip in situ rather than moving anything.
 
-                                 With exactly one Treasure there's nothing to choose between, so a
-                                 click arms it directly - same arm-only effect as hitting APPLY in
-                                 the hand, just without the detour. With more than one, this instead
-                                 opens the hand (the same peek PlayerState's pile offers) so the
-                                 player can pick which to APPLY. -->
+                                 With exactly one Treasure left unarmed there's nothing to choose
+                                 between, so a click arms it directly - same arm-only effect as
+                                 hitting APPLY in the hand, just without the detour. With more than
+                                 one, this instead opens the hand (the same peek PlayerState's pile
+                                 offers) so the player can pick which to APPLY. -->
                             <button
                                 type="button"
                                 class="px-1.5 py-[3px] rounded font-semibold border border-dashed border-black/30 text-black/45 hover:border-black/50 hover:text-black/70"
-                                title={gameSession.myTreasureCards.length === 1
+                                title={unarmedTreasureCards.length === 1
                                     ? 'Add this Treasure to your bid'
                                     : 'Open your hand and hit APPLY on a Treasure to add it to this bid'}
                                 onclick={(event) => {
-                                    if (gameSession.myTreasureCards.length === 1) {
-                                        gameSession.selectTreasureCard(gameSession.myTreasureCards[0].id)
+                                    if (unarmedTreasureCards.length === 1) {
+                                        gameSession.armDuelTreasure(unarmedTreasureCards[0].id)
                                         return
                                     }
                                     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
@@ -934,7 +933,7 @@
                             onclick={() =>
                                 gameSession.submitDuelBid(
                                     bidAmount,
-                                    gameSession.selectedTreasureCard?.id
+                                    gameSession.armedDuelTreasureIds
                                 )}
                         >
                             Submit bid
@@ -945,7 +944,7 @@
             <!-- There's deliberately no card picker in the bid row above: a Treasure
                  card is played the same way everywhere else in the game - open your
                  hand (click your cards in your player panel), then hit APPLY on the
-                 card, which arms it (see PoliticsHand/selectTreasureCard) for the bid
+                 card, which arms it (see PoliticsHand/armDuelTreasure) for the bid
                  you submit next. This line only exists so a duelist knows the option is
                  there at all, and then confirms it once a card is armed. -->
         </div>

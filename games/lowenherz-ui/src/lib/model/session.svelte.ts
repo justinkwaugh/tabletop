@@ -150,6 +150,20 @@ export class LowenherzGameSession extends GameSession<
         return this.displayNegotiation?.offer?.amount ?? 1
     }
 
+    // True exactly when committing the picker/stepper's current values would accept the
+    // standing offer rather than replace it - the same condition NegotiationMove.apply()
+    // checks to decide whether a Propose executes the deal immediately or becomes the new
+    // standing offer. Lets the panel's button read "Accept" instead of "Propose" whenever
+    // it would.
+    get isAcceptingNegotiationOffer(): boolean {
+        const offer = this.displayNegotiation?.offer
+        if (!offer) return false
+        return (
+            this.negotiationProposerId === offer.fromPlayerId &&
+            this.negotiationAmount === offer.amount
+        )
+    }
+
     setNegotiationProposer(proposerId: string) {
         const key = this.negotiationKey
         if (!key) return
@@ -888,20 +902,20 @@ export class LowenherzGameSession extends GameSession<
             .politicsCards.filter((c) => c.type === PoliticsCardType.Treasure)
     }
 
-    async submitDuelBid(amount: number, treasureCardId?: string) {
+    async submitDuelBid(amount: number, treasureCardIds?: string[]) {
         if (!this.myPlayer || !this.canSubmitDuelBid) return
 
-        if (!duelBidIsValid(this.gameState, this.myPlayer.id, amount, treasureCardId)) {
-            this.errorMessage = "That bid isn't allowed — it must be a whole number of ducats you can afford, backed by a Treasure card you actually hold (if any)."
+        if (!duelBidIsValid(this.gameState, this.myPlayer.id, amount, treasureCardIds)) {
+            this.errorMessage = "That bid isn't allowed — it must be a whole number of ducats you can afford, backed by Treasure cards you actually hold (if any)."
             return
         }
 
         const action = this.createPlayerAction(SubmitDuelBid, {
             amount,
-            ...(treasureCardId ? { treasureCardId } : {})
+            ...(treasureCardIds && treasureCardIds.length > 0 ? { treasureCardIds } : {})
         })
         this.errorMessage = undefined
-        this.armedTreasure = undefined
+        this.armedDuelTreasures = undefined
         try {
             await this.applyAction(action)
         } catch (e) {
@@ -980,44 +994,64 @@ export class LowenherzGameSession extends GameSession<
         )
     }
 
-    // Armed Treasure card (if any) for the next wooded knight placement or duel bid -
-    // purely local UI selection, same pattern as selectedExpandRegionId. Only actually
-    // applied to a knight placement when the target square is wooded (see
-    // placeKnight/legalKnightSquares) - arming one doesn't make other squares illegal.
-    // The armed card, recorded with the duel it was armed during - or with no duel, since a
-    // Treasure is also armed to pay for a wooded knight placement.
+    // Armed Treasure card (if any) for the next wooded knight placement - purely local UI
+    // selection, same pattern as selectedExpandRegionId. Only actually applied to a knight
+    // placement when the target square is wooded (see placeKnight/legalKnightSquares) -
+    // arming one doesn't make other squares illegal.
     //
-    // Keeping the duel alongside it is what stops an armed card riding into a RE-duel: the
-    // signature changes, the record stops matching, and it reads as unarmed. An effect used to
-    // notice the new duel and unarm it.
-    private armedTreasure: { cardId: string; duelSignature: string | undefined } | undefined =
-        $state(undefined)
-
-    private get selectedTreasureCardId(): string | undefined {
-        const armed = this.armedTreasure
-        if (!armed) return undefined
-        // Armed outside a duel survives one starting; armed DURING a duel dies with it.
-        if (armed.duelSignature !== undefined && armed.duelSignature !== this.duelSignature) {
-            return undefined
-        }
-        return armed.cardId
-    }
+    // A duel bid uses a separate, multi-card mechanism (see armedDuelTreasures below) - a
+    // knight placement only ever needs one, but nothing in the rulebook caps a duel bid at
+    // one Treasure card.
+    private armedTreasure: string | undefined = $state(undefined)
 
     selectTreasureCard(cardId: string | undefined) {
-        this.armedTreasure =
-            cardId === undefined ? undefined : { cardId, duelSignature: this.duelSignature }
+        this.armedTreasure = cardId
     }
 
     // The armed card itself, but only while arming it still means anything: it has to be
     // genuinely in hand (not already spent, not left over from an earlier turn) AND there
-    // has to be a live window to spend it in - a wooded knight placement or a duel bid.
-    // Without that second condition an arming from one turn stayed live indefinitely, and
-    // the next wooded knight placement silently paid with the card instead of ducats, with
-    // nothing on screen to say a card was armed at all.
+    // has to be a live window to spend it in - a wooded knight placement. Without that
+    // second condition an arming from one turn stayed live indefinitely, and the next
+    // wooded knight placement silently paid with the card instead of ducats, with nothing
+    // on screen to say a card was armed at all.
     get selectedTreasureCard(): PoliticsCard | undefined {
-        if (!this.selectedTreasureCardId) return undefined
-        if (!this.canPlaceKnight && !this.canSubmitDuelBid) return undefined
-        return this.myTreasureCards.find((c) => c.id === this.selectedTreasureCardId)
+        if (!this.armedTreasure) return undefined
+        if (!this.canPlaceKnight) return undefined
+        return this.myTreasureCards.find((c) => c.id === this.armedTreasure)
+    }
+
+    // Armed Treasure cards for the current duel bid - unlike selectedTreasureCard above,
+    // any number can be armed at once, since nothing in the rulebook caps a bid at one.
+    // Keyed to the duel they were armed during (same signature dueBids/duelBidAmounts use),
+    // so a re-duel - new terms, a bumped tieCount - starts empty rather than carrying an
+    // armed set over from the duel that led to it.
+    private armedDuelTreasures: { signature: string; cardIds: string[] } | undefined =
+        $state(undefined)
+
+    get armedDuelTreasureIds(): string[] {
+        const signature = this.duelSignature
+        if (!signature || this.armedDuelTreasures?.signature !== signature) return []
+        return this.armedDuelTreasures.cardIds
+    }
+
+    get armedDuelTreasureCards(): PoliticsCard[] {
+        const ids = this.armedDuelTreasureIds
+        if (ids.length === 0) return []
+        return this.myTreasureCards.filter((c) => ids.includes(c.id))
+    }
+
+    armDuelTreasure(cardId: string) {
+        const signature = this.duelSignature
+        if (!signature) return
+        const ids = this.armedDuelTreasureIds
+        if (ids.includes(cardId)) return
+        this.armedDuelTreasures = { signature, cardIds: [...ids, cardId] }
+    }
+
+    unarmDuelTreasure(cardId: string) {
+        const signature = this.duelSignature
+        if (!signature) return
+        this.armedDuelTreasures = { signature, cardIds: this.armedDuelTreasureIds.filter((id) => id !== cardId) }
     }
 
     // Deliberately routed through selectedTreasureCard rather than the raw id, so a stale
@@ -1297,18 +1331,24 @@ export class LowenherzGameSession extends GameSession<
     // The region being expanded. Stored only when the player actually picks one.
     private chosenExpandRegion: string | undefined = $state(undefined)
 
-    // Reads as nothing at all once the expanding stage closes - the expansion finished, a knight
-    // went down instead, or the action ended - so a stale pick cannot outlive its usefulness and
-    // nothing has to notice the stage closing in order to drop it.
+    // Validated against expandableRegions rather than trusted outright: cancelExpansion() only
+    // runs on a voluntary pass, a plan switch, or the toolbar's decline - not on an expansion
+    // completing normally - so a pick from an earlier knight action can still be sitting here the
+    // next time this stage opens. Without checking it's still actually on offer, that stale id
+    // would be handed straight to the engine the moment any of the CURRENT candidate regions' own
+    // squares were clicked, rejected as "that region cannot expand" for a region the player never
+    // chose and may not even see on screen.
     //
     // One region means there is nothing to pick, so it counts as picked. That also covers
     // re-entering an expansion the engine still has open, where expandableRegions is exactly that
     // region, so a second space cannot be misdirected at another one.
     get selectedExpandRegionId(): string | undefined {
         if (!this.expandStageActive) return undefined
-        if (this.chosenExpandRegion) return this.chosenExpandRegion
-
         const regions = this.expandableRegions
+        if (this.chosenExpandRegion && regions.some((r) => r.id === this.chosenExpandRegion)) {
+            return this.chosenExpandRegion
+        }
+
         return regions.length === 1 ? regions[0].id : undefined
     }
 
@@ -1530,24 +1570,6 @@ export class LowenherzGameSession extends GameSession<
 
     get myPoliticsCards(): PoliticsCard[] {
         return this.myPlayer ? this.gameState.getPlayerState(this.myPlayer.id).politicsCards : []
-    }
-
-    // DOM anchor for "my politics pile" (the face-down card + count badge in my own
-    // player panel row - see PlayerState.svelte) - registered once that panel mounts,
-    // so PoliticsHand can compute a live target point for the "deliver the taken
-    // card" animation without the two components needing to know each other's
-    // internals. Read on demand (not $state) since it's only ever consulted
-    // imperatively, mid-animation - it doesn't drive any rendering itself.
-    myPanelAnchorEl: HTMLElement | undefined = undefined
-
-    registerMyPanelAnchor(el: HTMLElement) {
-        this.myPanelAnchorEl = el
-    }
-
-    get myPoliticsPileOrigin(): { x: number; y: number } | undefined {
-        if (!this.myPanelAnchorEl) return undefined
-        const rect = this.myPanelAnchorEl.getBoundingClientRect()
-        return { x: rect.right - 24, y: rect.bottom - 24 }
     }
 
     showMyPoliticsCards(origin: { x: number; y: number }) {

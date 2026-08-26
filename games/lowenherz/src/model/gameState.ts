@@ -49,9 +49,10 @@ export const Negotiation = Type.Object({
 })
 
 // An in-progress duel over a tied slot: every participant submits one ducat bid
-// (optionally backed by one Treasure card, added to the ducat amount) - the highest
-// total wins and pays the bank. Ties re-duel once among just the tied bidders
-// (tieCount tracks this) - a second tie means no one performs the action.
+// (optionally backed by any number of Treasure cards, each added to the ducat amount -
+// nothing in the rulebook caps it at one) - the highest total wins and pays the bank.
+// Ties re-duel once among just the tied bidders (tieCount tracks this) - a second tie
+// means no one performs the action.
 export type Duel = Type.Static<typeof Duel>
 export const Duel = Type.Object({
     slot: Type.Union([Type.Literal(1), Type.Literal(2), Type.Literal(3)]),
@@ -60,7 +61,7 @@ export const Duel = Type.Object({
         Type.Object({
             playerId: Type.String(),
             amount: Type.Number(),
-            treasureCardId: Type.Optional(Type.String())
+            treasureCardIds: Type.Optional(Type.Array(Type.String()))
         })
     ),
     tieCount: Type.Number()

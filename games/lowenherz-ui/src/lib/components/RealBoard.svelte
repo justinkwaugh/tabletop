@@ -1495,31 +1495,31 @@
     /* A real heartbeat: two quick beats, then a rest - the idle state of an alliance
        heart this player could actually afford to break. Runs only while cancelling is
        open to them, so a beating heart always means "you can end this".
-       Beats every 5.7s rather than every 1.9s. The percentages keep the two beats at
-       their original absolute speed (266ms apart) and put the whole 3x slowdown into the
-       rest between them - stretching the beats themselves would read as a slow squish
-       instead of a pulse. */
+       Beats every 17.1s rather than every 5.7s - another 3x on top of the first
+       slowdown. The percentages keep the two beats at their original absolute speed
+       (266ms apart) and put both rounds of slowdown into the rest between them -
+       stretching the beats themselves would read as a slow squish instead of a pulse. */
     @keyframes alliance-heartbeat-frames {
         0% {
             transform: scale(1);
         }
-        4.7% {
+        1.6% {
             transform: scale(1.22);
         }
-        9.3% {
+        3.1% {
             transform: scale(1);
         }
-        14% {
+        4.7% {
             transform: scale(1.16);
         }
-        18.7%,
+        6.2%,
         100% {
             transform: scale(1);
         }
     }
 
     /* The alliance coming apart: the heart swells, cracks and collapses while shards spray
-       outward. Deliberately quick (620ms against the heartbeat's 5.7s cycle) - it marks a
+       outward. Deliberately quick (620ms against the heartbeat's 17.1s cycle) - it marks a
        moment rather than holding the board. */
     /* Shard size only - the burst's motion is gsap's now (allianceBurstAnimator). */
     .burst-shard {
@@ -1527,7 +1527,7 @@
     }
 
     .alliance-heartbeat {
-        animation: alliance-heartbeat-frames 5.7s ease-in-out infinite;
+        animation: alliance-heartbeat-frames 17.1s ease-in-out infinite;
     }
 
     /* The town's name laid across the village itself, dark on parchment so it stays
