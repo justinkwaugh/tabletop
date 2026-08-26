@@ -7,7 +7,7 @@
     // How many cards are left in each politics pile. This is the ONLY thing about those
     // piles that matters turn to turn (their contents are hidden until you win politics
     // and look through one), so the piles themselves no longer sit on the table - they
-    // come up over the board at the moment of choosing, via PoliticsPileOverlay.
+    // come up over the board at the moment of choosing, via PoliticsPileChooser.
     const pileACount = $derived(gameSession.gameState.politicsCardPileA.length)
     const pileBCount = $derived(gameSession.gameState.politicsCardPileB.length)
 

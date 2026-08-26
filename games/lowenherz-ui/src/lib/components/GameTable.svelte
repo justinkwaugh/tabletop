@@ -15,9 +15,9 @@
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import TestingControls from '$lib/components/TestingControls.svelte'
     import PoliticsHand from '$lib/components/PoliticsHand.svelte'
+    import PoliticsPileChooser from '$lib/components/PoliticsPileChooser.svelte'
     import SummaryStrip from '$lib/components/SummaryStrip.svelte'
     import StatusMessages from '$lib/components/StatusMessages.svelte'
-    import PoliticsPileOverlay from '$lib/components/PoliticsPileOverlay.svelte'
     import parchmentTexture from '$lib/images/board/parchment-texture.jpg'
 
     import BlankenburgFont from '$lib/fonts/Blankenburg.woff2'
@@ -119,8 +119,7 @@
      clipped by the board's own responsive scaling. -->
 <PoliticsHand />
 
-<!-- Also outside ScalingWrapper, for the same reason as PoliticsHand: it positions
-     itself against the viewport, so it must not sit inside the board's CSS transform.
-     Rendered after PoliticsHand is irrelevant to stacking - the overlay is z-40 and the
-     fanned hand z-50, so opening a pile draws its contents over these piles. -->
-<PoliticsPileOverlay />
+<!-- Also outside ScalingWrapper, for the same reason as PoliticsHand: it measures and
+     positions itself against the real board frame, so it must not sit inside the
+     board's own CSS transform. -->
+<PoliticsPileChooser />

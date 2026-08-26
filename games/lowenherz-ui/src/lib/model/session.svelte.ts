@@ -1540,14 +1540,15 @@ export class LowenherzGameSession extends GameSession<
         return this.gameState.openedPoliticsPile
     }
 
-    // Viewport-space center point of whichever pile button the player last clicked -
-    // purely a visual cue so PoliticsHand can animate its cards as if being dealt out
-    // from that spot. Has no bearing on game state.
+    // Viewport-space center point of wherever the player last clicked to peek at their own
+    // politics cards (see showMyPoliticsCards) - purely a visual cue so PoliticsHand can animate
+    // its cards as if being dealt out from that spot. Has no bearing on game state. The
+    // pile-choosing/draw flow has its own equivalent local to PoliticsPileChooser now, since that
+    // flow no longer shares this component.
     politicsPileOrigin: { x: number; y: number } | undefined = $state(undefined)
 
-    async selectPoliticsPile(pile: 'A' | 'B', origin?: { x: number; y: number }) {
+    async selectPoliticsPile(pile: 'A' | 'B') {
         if (!this.canTakePoliticsCard || this.selectedPoliticsPile) return
-        if (origin) this.politicsPileOrigin = origin
         this.viewingMyPoliticsCards = false
 
         const action = this.createPlayerAction(LookAtPoliticsPile, { pile, revealsInfo: true })
