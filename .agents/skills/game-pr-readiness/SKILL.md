@@ -63,22 +63,22 @@ Search every `.svelte` file in both allowed roots for runtime use of `$effect`, 
 
 Inventory every animation mechanism: GSAP calls/timelines/plugins, Svelte animation and transition directives, CSS `animation`/`transition` and keyframes, Web Animations API, timers or `requestAnimationFrame` used for motion, FLIP helpers, and animation libraries.
 
-GSAP is the default animation engine. Report every non-GSAP animation and determine whether it is a violation; an exception needs a concrete, narrow justification and must not animate a game-state change.
+Choose the mechanism according to the animation's coordination needs. The following are acceptable and are not violations merely because they do not use GSAP:
 
-For every visual change intended to represent a game-state change, require all of the following:
+- Svelte `fade` transitions for local entry and exit;
+- Svelte `flip` for reordering a rendered list, including order changes derived from game state;
+- CSS animations for continuous, repeating presentation such as pulsing, glowing, bouncing, or other ongoing affordance cues;
+- simple CSS transitions for local hover, focus, opacity, color, and transform feedback.
 
-- registration through the game session's state-change listener/animator framework;
-- receipt of the shared `animationContext` for that transition;
-- scheduling on `animationContext.actionTimeline` or `animationContext.finalTimeline`, with cleanup through the framework as applicable;
-- no component-local watcher, Svelte effect, standalone GSAP timeline, CSS transition, or delayed callback independently reacting to game state.
+GSAP is preferred when an animation needs explicit timing, sequencing, cancellation, or coordination across multiple elements. A visual change that must stay synchronized with a committed game-state transition should use the game session's state-change listener/animator framework and the shared `animationContext`. A single-element or self-contained animation does not need the session framework solely because a state-derived condition mounts it, reorders it, or starts/stops a continuous cue.
 
-Trace intent and call paths, not imports alone. An animator that imports GSAP but bypasses the session context is a violation.
+Fail an animation only when its actual coordination contract requires capabilities its implementation does not provide. Examples include independently timed elements that can drift, game-state choreography that races the exposed state update, timers that stand in for completion across several moving elements, or a GSAP state animator that detaches work from the shared context despite needing synchronization. Trace intent and call paths rather than judging by imports or by the presence of non-GSAP syntax alone. Explain the concrete race, drift, sequencing, cleanup, or synchronization failure in every violation.
 
 ### 5. Actionless transition duration
 
-Inspect every game-session state-change listener and every branch reachable when its `action` is `undefined`. Compute the effective total duration contributed to the shared `AnimationContext`, including nested timelines, delays, timeline positions, repeats, `ensureDuration`, callbacks that add timelines, and the sequential action/final timeline contract.
+Inspect every game-session state-change listener and every branch reachable when its `action` is `undefined`. Compute only the effective duration contributed to the shared `AnimationContext`, including nested timelines added to `actionTimeline` or `finalTimeline`, delays, timeline positions, repeats, `ensureDuration`, and callbacks that add work to those context-owned timelines.
 
-Any actionless state transition whose total effective timeline can exceed **0.200 seconds** is a violation. Report the exact actionless path and duration calculation. If a duration cannot be bounded from the code, report that uncertainty as a violation rather than passing it.
+Any actionless state transition whose context-owned timeline can exceed **0.200 seconds** is a violation. Do not include Svelte transitions, Svelte FLIP, CSS transitions/keyframes, component-local GSAP, hover motion, or other animations that are unrelated to the `AnimationContext` in this calculation. Report the exact actionless listener path and context-timeline duration calculation. If a context-owned duration cannot be bounded from the code, report that uncertainty as a violation rather than passing it.
 
 ### 6. Change boundary
 

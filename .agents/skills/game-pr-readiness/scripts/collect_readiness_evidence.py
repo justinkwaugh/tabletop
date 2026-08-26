@@ -51,7 +51,7 @@ def png_info(data: bytes) -> dict[str, Any]:
     if not data.startswith(b"\x89PNG\r\n\x1a\n"):
         raise ValueError("invalid PNG signature")
     width, height, bit_depth, color_type, _, _, interlace = struct.unpack(
-        ">IIBBBBB", data[24:37]
+        ">IIBBBBB", data[16:29]
     )
     chunks: list[tuple[bytes, bytes]] = []
     offset = 8
@@ -239,10 +239,14 @@ def main() -> int:
         "gsap": re.compile(r"\bgsap\b|from\s+['\"]gsap"),
         "animation_context": re.compile(r"\banimationContext\b|\bAnimationContext\b"),
         "state_change_listener": re.compile(r"onGameStateChange|addGameStateChangeListener"),
-        "non_gsap_animation": re.compile(
+        "animation_mechanism": re.compile(
             r"animate:|transition:|\bin:|\bout:|@keyframes|\banimation(?:-[\w-]+)?\s*:|"
             r"\btransition(?:-[\w-]+)?\s*:|\.animate\s*\(|requestAnimationFrame|"
             r"setTimeout\s*\(|setInterval\s*\("
+        ),
+        "animation_context_timeline": re.compile(
+            r"animationContext\.(?:actionTimeline|finalTimeline|ensureDuration)|"
+            r"\b(?:actionTimeline|finalTimeline)\b"
         ),
         "duration": re.compile(r"duration\s*:|ensureDuration\s*\(|repeat\s*:|delay\s*:"),
         "action_branch": re.compile(r"\baction\b"),
