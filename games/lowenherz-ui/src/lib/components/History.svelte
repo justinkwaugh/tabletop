@@ -5,7 +5,6 @@
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
     import { PlayerName } from '@tabletop/frontend-components'
-    import { isNegotiationMove, NegotiationMoveKind } from '@tabletop/lowenherz'
     import ActionDescription from './ActionDescription.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -15,12 +14,6 @@
 
     let reversedActions = $derived.by(() => {
         const reversed = gameSession.actions
-            // A Propose move fires on every +/- tweak of the negotiation stepper
-            // (including an auto-submitted opening 1-ducat offer the instant a
-            // negotiation starts) - none of that is a real, committed decision worth
-            // a history line, unlike Sign (which already shows the final agreed
-            // payer/amount on its own) or Decline.
-            .filter((a) => !(isNegotiationMove(a) && a.kind === NegotiationMoveKind.Propose))
             .toReversed()
             .toSorted(
                 (a, b) =>
