@@ -15,7 +15,7 @@
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import TestingControls from '$lib/components/TestingControls.svelte'
     import PoliticsHand from '$lib/components/PoliticsHand.svelte'
-    import PoliticsPileChooser from '$lib/components/PoliticsPileChooser.svelte'
+    import PoliticsPileReveal from '$lib/components/PoliticsPileReveal.svelte'
     import SummaryStrip from '$lib/components/SummaryStrip.svelte'
     import StatusMessages from '$lib/components/StatusMessages.svelte'
     import parchmentTexture from '$lib/images/board/parchment-texture.jpg'
@@ -32,7 +32,8 @@
     let {
         gameSession
     }: { gameSession: GameSession<LowenherzGameState, HydratedLowenherzGameState> } = $props()
-    setGameSession(gameSession as LowenherzGameSession)
+    const lowenherzSession = gameSession as LowenherzGameSession
+    setGameSession(lowenherzSession)
 
     // Exposes the session for console debugging (Svelte context isn't reachable from
     // devtools otherwise) - e.g. `__gameSession.myRegions`.
@@ -64,31 +65,51 @@
 >
     <DefaultTableLayout>
         {#snippet sideContent()}
-            <div class="max-sm:hidden">
-                <HistoryControls
-                    borderClass="border-b-2 border-black/20"
-                    bgClass="bg-transparent"
-                    enabledColor="text-black"
-                    disabledColor="text-black/30"
-                />
+            <!-- History controls and the tabs below both collapse out of the way while a
+                 politics pile is open (see PoliticsPileReveal, inserted between them),
+                 rather than the dealt cards floating over them - transition-[grid-template-rows]
+                 on a 1fr/0fr grid track animates to/from a height nothing here has to
+                 measure, unlike a max-height guess would. SummaryStrip stays put throughout:
+                 it's what the taking player was pointed at to start this (see its own
+                 highlight), so it anchors the whole sequence rather than moving too. -->
+            <div
+                class="max-sm:hidden grid transition-[grid-template-rows] duration-500 ease-in-out"
+                style="grid-template-rows: {lowenherzSession.selectedPoliticsPile ? '0fr' : '1fr'};"
+            >
+                <div class="overflow-hidden">
+                    <HistoryControls
+                        borderClass="border-b-2 border-black/20"
+                        bgClass="bg-transparent"
+                        enabledColor="text-black"
+                        disabledColor="text-black/30"
+                    />
+                </div>
             </div>
             <SummaryStrip />
+            <PoliticsPileReveal />
             <!-- The default active pill is bg-gray-300, which reads as a stray UI chip on
                  the parchment. bg-black/15 introduces no new hue at all - it just darkens
                  whatever the parchment already is, so the selected tab reads as a pressed
                  area of the same surface rather than a separate object sitting on it. -->
-            <DefaultTabs
-                activeTabClass="py-1 px-3 bg-black/15 border-2 border-black/25 rounded-lg text-black font-semibold"
-                inactiveTabClass="text-black py-1 px-3 rounded-lg border-2 border-transparent hover:border-black/40"
+            <div
+                class="grid transition-[grid-template-rows] duration-500 ease-in-out"
+                style="grid-template-rows: {lowenherzSession.selectedPoliticsPile ? '0fr' : '1fr'};"
             >
-                {#snippet playersPanel()}
-                    <PlayersPanel />
-                    <TestingControls />
-                {/snippet}
-                {#snippet history()}
-                   <History />
-                {/snippet}
-            </DefaultTabs>
+                <div class="overflow-hidden">
+                    <DefaultTabs
+                        activeTabClass="py-1 px-3 bg-black/15 border-2 border-black/25 rounded-lg text-black font-semibold"
+                        inactiveTabClass="text-black py-1 px-3 rounded-lg border-2 border-transparent hover:border-black/40"
+                    >
+                        {#snippet playersPanel()}
+                            <PlayersPanel />
+                            <TestingControls />
+                        {/snippet}
+                        {#snippet history()}
+                           <History />
+                        {/snippet}
+                    </DefaultTabs>
+                </div>
+            </div>
         {/snippet}
         {#snippet gameContent()}
             <!--  Top part is not allowed to shrink -->
@@ -102,11 +123,6 @@
                 <!-- Below the toolbar so Undo stays at the very top, and outside ScalingWrapper
                      below so none of this text scales with the board. -->
                 <StatusMessages />
-                <!-- Also outside ScalingWrapper, and part of this shrink-0 column rather than a
-                     floating overlay: it reserves real height here, pushing the board down (via
-                     the ScalingWrapper below shrinking into whatever's left) while a pile is
-                     being chosen/dealt from, instead of floating over whatever's on screen. -->
-                <PoliticsPileChooser />
             </div>
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->

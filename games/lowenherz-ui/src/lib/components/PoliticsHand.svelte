@@ -8,9 +8,10 @@
 
     // A read-only peek at cards you already hold, triggered by hovering/clicking your own pile in
     // the player panel (see PlayerState.svelte). The pile-choosing/draw flow used to share this
-    // same floating-overlay chrome and deal-in animation, but has its own component now
-    // (PoliticsPileChooser) with its own non-dimming, above-the-board presentation - this
-    // dismissible, full-screen overlay is purely for the peek.
+    // same floating-overlay chrome and deal-in animation, but has its own presentation now
+    // (SummaryStrip's highlighted count pills to choose, PoliticsPileReveal to deal the cards in
+    // the space that opens up beside them) - this dismissible, full-screen overlay is purely for
+    // the peek.
     const isOpen = $derived(gameSession.viewingMyPoliticsCards)
     const cards = $derived(gameSession.myPoliticsCards)
 

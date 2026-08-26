@@ -103,7 +103,7 @@
      area's width and hands the difference straight to the board. The politics piles
      left entirely - only their counts matter turn to turn, so those moved to the side
      panel, and the piles themselves now appear over the board when someone actually
-     wins politics (see PoliticsPileChooser). -->
+     wins politics (see SummaryStrip's highlighted count pills and PoliticsPileReveal). -->
 <div class="flex flex-col gap-2" style="width: fit-content;">
     <button
         type="button"

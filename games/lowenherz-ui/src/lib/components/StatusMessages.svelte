@@ -731,7 +731,7 @@
             {:else}
                 {@render myPill()} won Crown and Scepter.
             {/if}
-            Click one of the politics piles to look through it.
+            Click one of the politics decks.
         {:else if !gameSession.setupComplete}
             Waiting for the other player(s) to place a castle...
         {/if}
