@@ -99,14 +99,18 @@
     // further clicks until it finishes.
     let takingCardId: string | undefined = $state(undefined)
     let cardEls: Record<string, HTMLElement> = {}
+    let rowsEl: HTMLElement | undefined = $state()
 
     const RETURN_DURATION = 300 // ms - the other cards flying back to the pile
     const RETURN_STAGGER = 35 // ms between each returning card starting its flight
-    const DELIVER_DURATION = 420 // ms - the taken card flying away to be delivered
-    const DELIVER_DISTANCE = 220 // px - purely horizontal, matches PoliticsHand's own
-    // addDeliverFlight and its reasoning: a fixed horizontal offset never leaves this row, so it
-    // always finishes fading before it could run into an edge (see that component's note on the
-    // overflow-clipping bug this avoids).
+
+    // Justin's idea: while the rest fly back to the pile, the chosen card gets its own moment -
+    // flies to the center of the cards area and enlarges a bit, holds there, then scales down
+    // and fades out without moving any further.
+    const FOCUS_MOVE_DURATION = 350 // ms - flying to center and enlarging
+    const FOCUS_HOLD_DURATION = 500 // ms - the pause once it's there
+    const FOCUS_FADE_DURATION = 300 // ms - scaling/fading out in place, after the hold
+    const FOCUS_SCALE = 1.3
 
     function addFlight(
         tl: gsap.core.Timeline,
@@ -122,16 +126,33 @@
         tl.to(el, { x: dx, y: dy, scale: 0.3, opacity: 0, duration, ease: 'power2.in' }, position)
     }
 
-    function addDeliverFlight(tl: gsap.core.Timeline, el: HTMLElement | undefined, duration: number, position: number) {
+    function addChosenCardFocus(tl: gsap.core.Timeline, el: HTMLElement | undefined, position: number) {
         if (!el) return
-        tl.to(el, { x: -DELIVER_DISTANCE, scale: 0.3, opacity: 0, duration, ease: 'power2.in' }, position)
+        const rect = el.getBoundingClientRect()
+        const areaRect = rowsEl?.getBoundingClientRect()
+        const centerX = areaRect ? areaRect.left + areaRect.width / 2 : rect.left + rect.width / 2
+        const centerY = areaRect ? areaRect.top + areaRect.height / 2 : rect.top + rect.height / 2
+        const dx = centerX - (rect.left + rect.width / 2)
+        const dy = centerY - (rect.top + rect.height / 2)
+
+        // Above the other (departing) cards for the whole sequence, since it travels over
+        // them on its way to the center.
+        gsap.set(el, { zIndex: 10 })
+        tl.to(el, { x: dx, y: dy, scale: FOCUS_SCALE, duration: FOCUS_MOVE_DURATION / 1000, ease: 'power2.out' }, position)
+        // The hold is just empty timeline space - nothing to tween, so nothing is added for it;
+        // the fade-out below simply starts later.
+        tl.to(
+            el,
+            { scale: 0, opacity: 0, duration: FOCUS_FADE_DURATION / 1000, ease: 'power1.in' },
+            position + (FOCUS_MOVE_DURATION + FOCUS_HOLD_DURATION) / 1000
+        )
     }
 
     // Rather than taking the card immediately, plays it out visually first: every OTHER card
-    // flies back to the pile, then the chosen one flies on to be delivered - only once that's
-    // finished do we actually dispatch TakePoliticsCard. See PoliticsHand's own chooseCard, which
-    // this mirrors, for why this is one shared GSAP timeline kept local rather than registered on
-    // the AnimationContext.
+    // flies back to the pile while the chosen one gets its own center-stage moment (see
+    // addChosenCardFocus) - only once that's finished do we actually dispatch TakePoliticsCard.
+    // See PoliticsHand's own chooseCard, which this mirrors, for why this is one shared GSAP
+    // timeline kept local rather than registered on the AnimationContext.
     async function chooseCard(card: PoliticsCardData) {
         const takingPile = pile
         if (takingCardId || !takingPile) return
@@ -145,7 +166,7 @@
                 addFlight(tl, cardEls[c.id], origin, RETURN_DURATION / 1000, (i * RETURN_STAGGER) / 1000)
             })
         }
-        addDeliverFlight(tl, cardEls[card.id], DELIVER_DURATION / 1000, tl.duration())
+        addChosenCardFocus(tl, cardEls[card.id], 0)
 
         if (tl.duration() > 0) {
             await new Promise<void>((resolve) => tl.eventCallback('onComplete', resolve))
@@ -166,7 +187,7 @@
                 {gameSession.errorMessage}
             </div>
         {/if}
-        <div class="flex flex-col gap-2" bind:clientWidth={rowWidth}>
+        <div class="flex flex-col gap-2" bind:this={rowsEl} bind:clientWidth={rowWidth}>
             {#each cardRows as row, rowIndex (rowIndex)}
                 <div class="flex items-start justify-center gap-2">
                     {#each row as { card, index } (card.id)}
