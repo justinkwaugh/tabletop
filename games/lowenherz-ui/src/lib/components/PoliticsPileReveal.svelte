@@ -23,6 +23,41 @@
     // Same fixed size PlayerState uses for the cards in a player's own hand.
     const CARD_W = 66
     const CARD_WIDTH_CSS = `${CARD_W}px`
+    const CARD_GAP = 8 // px, matches gap-2
+
+    // How many cards actually fit across one row at the row's real measured width - a
+    // plain flex-wrap left it up to the browser, which packs each row as full as it can
+    // before wrapping (5 cards at 4-per-row read as 4 then 1, not 3 and 2). Falls back to
+    // "everything fits" before the real width is known, on the first render.
+    let rowWidth: number = $state(0)
+    const perRow = $derived(
+        rowWidth > 0 ? Math.max(1, Math.floor((rowWidth + CARD_GAP) / (CARD_W + CARD_GAP))) : cards.length
+    )
+
+    // Splits the hand into as many rows as it actually needs (per perRow above), sized as
+    // evenly as possible rather than greedily - 5 cards needing 2 rows come out 3/2, not
+    // 4/1. Each entry keeps the card's index in the full pile, not its row, since that's
+    // what dealIn's stagger and the deal-order more generally are keyed to.
+    const cardRows = $derived.by(() => {
+        const count = cards.length
+        if (count === 0) return []
+        const rowCount = Math.max(1, Math.ceil(count / perRow))
+        const base = Math.floor(count / rowCount)
+        const remainder = count % rowCount
+        const rows: { card: PoliticsCardData; index: number }[][] = []
+        let index = 0
+        for (let r = 0; r < rowCount; r++) {
+            const size = base + (r < remainder ? 1 : 0)
+            rows.push(
+                Array.from({ length: size }, () => {
+                    const entry = { card: cards[index], index }
+                    index++
+                    return entry
+                })
+            )
+        }
+        return rows
+    })
 
     // Tiled "deal" animation: each card slides in from the pile's origin (the count pill that
     // was clicked - see SummaryStrip.choosePile), staggered like a quick riffle deal - the same
@@ -131,19 +166,23 @@
                 {gameSession.errorMessage}
             </div>
         {/if}
-        <div class="flex flex-wrap items-start gap-2">
-            {#each cards as card, dealIndex (card.id)}
-                <button
-                    type="button"
-                    bind:this={cardEls[card.id]}
-                    {@attach dealIn(dealIndex)}
-                    disabled={takingCardId !== undefined}
-                    class="cursor-pointer opacity-90 hover:opacity-100 transition-opacity duration-150"
-                    style="width: {CARD_WIDTH_CSS};"
-                    onclick={() => chooseCard(card)}
-                >
-                    <PoliticsCard {card} />
-                </button>
+        <div class="flex flex-col gap-2" bind:clientWidth={rowWidth}>
+            {#each cardRows as row, rowIndex (rowIndex)}
+                <div class="flex items-start justify-center gap-2">
+                    {#each row as { card, index } (card.id)}
+                        <button
+                            type="button"
+                            bind:this={cardEls[card.id]}
+                            {@attach dealIn(index)}
+                            disabled={takingCardId !== undefined}
+                            class="cursor-pointer opacity-90 hover:opacity-100 transition-opacity duration-150"
+                            style="width: {CARD_WIDTH_CSS};"
+                            onclick={() => chooseCard(card)}
+                        >
+                            <PoliticsCard {card} />
+                        </button>
+                    {/each}
+                </div>
             {/each}
         </div>
     </div>
