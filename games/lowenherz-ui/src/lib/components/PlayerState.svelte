@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { gsap } from 'gsap'
     import { type Player, type Color } from '@tabletop/common'
     import { LowenherzPlayerState, type PoliticsCard } from '@tabletop/lowenherz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -148,6 +149,24 @@
     // card gets the stacking shadow once it is; laid out flat, every card in it is fully
     // visible on its own and gets the same (non-stacked) treatment.
     const isOverlapping = $derived(step < CARD_W + CARD_GAP)
+
+    // APPLY bounces in rather than just appearing - the same pop-in shape ScorePopupAnimator/
+    // AllianceFormAnimator use elsewhere (two tweens past rest and back, not one implicit
+    // overshoot), same constants and easing, but as a plain mount attachment rather than a
+    // StateAnimator: the button's own appearance already IS the moment to key off, so there's
+    // no game-state transition to watch for separately.
+    const BOUNCE_INITIAL_SCALE = 0.2
+    const BOUNCE_OVERSHOOT_SCALE = 1.16
+    const BOUNCE_POP = 0.18
+    const BOUNCE_SETTLE = 0.16
+
+    function bounceIn(el: HTMLElement) {
+        gsap.set(el, { scale: BOUNCE_INITIAL_SCALE, opacity: 0 })
+        const tl = gsap.timeline()
+        tl.to(el, { scale: BOUNCE_OVERSHOOT_SCALE, opacity: 1, duration: BOUNCE_POP, ease: 'back.out(2.2)' }, 0)
+        tl.to(el, { scale: 1, duration: BOUNCE_SETTLE, ease: 'power2.out', clearProps: 'scale' }, BOUNCE_POP)
+        return () => tl.kill()
+    }
 </script>
 
 {#snippet tintedIcon(fillSrc: string, linesSrc: string, color: Color, dx = 0, dy = 0)}
@@ -315,13 +334,16 @@
                                     ACTIVE
                                 </div>
                             {:else}
-                                <!-- left-0/right-0 rather than centered-on-content (as the
-                                     peek overlay's own larger APPLY button still is): sized to
-                                     its text/padding instead of the card, it ran wider than
-                                     this card's 66px. Stretched to match, it can't. -->
+                                <!-- inset-x-1 rather than flush left-0/right-0: a pill this
+                                     narrow reads better with a sliver of card showing on either
+                                     side than stretched edge-to-edge. Border/background/text
+                                     match the board's own village-name pill (see RealBoard.svelte)
+                                     rather than a plain UI button, for the same "labeled thing
+                                     sitting on parchment" look. -->
                                 <button
                                     type="button"
-                                    class="absolute top-[15%] left-0 right-0 cursor-pointer bg-black/80 text-white text-[10px] font-bold tracking-wide text-center py-1 border-2 border-transparent hover:border-white"
+                                    {@attach bounceIn}
+                                    class="absolute top-[15%] inset-x-1 cursor-pointer rounded-full text-[#f6e8c8] text-[10px] font-bold tracking-wide text-center py-1 border border-[rgba(217,180,74,0.75)] bg-[rgba(43,26,10,0.92)] shadow-[0_2px_5px_rgba(0,0,0,0.45)] hover:border-[rgba(217,180,74,1)]"
                                     onclick={() => gameSession.applyPoliticsCard(card)}
                                 >
                                     APPLY

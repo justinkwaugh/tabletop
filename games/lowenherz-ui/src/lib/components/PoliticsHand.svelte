@@ -100,6 +100,22 @@
         // the board/sidebar behind this overlay, so get out of the way immediately.
         close()
     }
+
+    // Same pop-in shape as PlayerState's own APPLY button (see that file's bounceIn for why this
+    // is a plain mount attachment rather than a StateAnimator) - kept as its own local copy here
+    // rather than shared, same as this component's dealIn mirrors PoliticsPileReveal's.
+    const BOUNCE_INITIAL_SCALE = 0.2
+    const BOUNCE_OVERSHOOT_SCALE = 1.16
+    const BOUNCE_POP = 0.18
+    const BOUNCE_SETTLE = 0.16
+
+    function bounceIn(el: HTMLElement) {
+        gsap.set(el, { scale: BOUNCE_INITIAL_SCALE, opacity: 0 })
+        const tl = gsap.timeline()
+        tl.to(el, { scale: BOUNCE_OVERSHOOT_SCALE, opacity: 1, duration: BOUNCE_POP, ease: 'back.out(2.2)' }, 0)
+        tl.to(el, { scale: 1, duration: BOUNCE_SETTLE, ease: 'power2.out', clearProps: 'scale' }, BOUNCE_POP)
+        return () => tl.kill()
+    }
 </script>
 
 {#if isOpen}
@@ -130,9 +146,13 @@
                 >
                     <PoliticsCard {card} />
                     {#if gameSession.canApplyPoliticsCard(card)}
+                        <!-- Border/background/text match the board's own village-name pill (see
+                             RealBoard.svelte) rather than a plain UI button - same "labeled thing
+                             sitting on parchment" look PlayerState's own APPLY button now uses. -->
                         <button
                             type="button"
-                            class="absolute top-[15%] left-1/2 -translate-x-1/2 cursor-pointer rounded-lg bg-black/80 text-white text-xs tracking-widest px-3 py-1 border-2 border-transparent hover:border-white"
+                            {@attach bounceIn}
+                            class="absolute top-[15%] left-1/2 -translate-x-1/2 cursor-pointer rounded-full text-[#f6e8c8] text-xs tracking-widest px-3 py-1 border border-[rgba(217,180,74,0.75)] bg-[rgba(43,26,10,0.92)] shadow-[0_2px_5px_rgba(0,0,0,0.45)] hover:border-[rgba(217,180,74,1)]"
                             onclick={() => applyCard(card)}
                         >
                             APPLY
