@@ -95,13 +95,14 @@
         await gameSession.selectPoliticsPile(pile)
     }
 
-    // Tiled "deal" animation: each card flies in from the pile's landing spot, staggered like a
-    // quick riffle deal, with one full spin along the way - the same shape Sol's own deck-click
-    // animation uses (fly off the deck, one rotation, land in a row), replicated here with plain
-    // GSAP tweens against a measured rect rather than porting GSAP's Flip plugin, to stay
-    // consistent with how every other animation in this codebase is built. An attachment rather
-    // than an effect, so it plays exactly once per card, right as it mounts (see
-    // ANIMATION_PATTERN.md and PoliticsHand's own dealIn, which this mirrors).
+    // Tiled "deal" animation: each card slides in from the pile's landing spot, staggered like a
+    // quick riffle deal - the same shape Sol uses when you inspect its card deck (a plain slide,
+    // no spin - unlike Sol's actual deck-CLICK/draw animation, which does add one rotation; this
+    // is deliberately the calmer of the two). Plain GSAP tweens against a measured rect rather
+    // than porting GSAP's Flip plugin, to stay consistent with how every other animation in this
+    // codebase is built. An attachment rather than an effect, so it plays exactly once per card,
+    // right as it mounts (see ANIMATION_PATTERN.md and PoliticsHand's own dealIn, which this
+    // mirrors).
     const DEAL_DURATION = 420 // ms
     const DEAL_STAGGER = 60 // ms between each successive card starting its flight
 
@@ -113,7 +114,7 @@
             const dx = origin.x - (rect.left + rect.width / 2)
             const dy = origin.y - (rect.top + rect.height / 2)
 
-            gsap.set(el, { x: dx, y: dy, scale: 0.3, opacity: 0, rotate: -360 })
+            gsap.set(el, { x: dx, y: dy, scale: 0.3, opacity: 0 })
 
             const tl = gsap.timeline({
                 delay: (index * DEAL_STAGGER) / 1000,
@@ -121,11 +122,11 @@
                     // Named properties only, not 'all' - clearing the whole inline style would
                     // also wipe the Svelte-set width, collapsing the card (see PoliticsHand's own
                     // note on this exact bug).
-                    gsap.set(el, { clearProps: 'x,y,scale,rotate,opacity' })
+                    gsap.set(el, { clearProps: 'x,y,scale,opacity' })
                 }
             })
             tl.to(el, { opacity: 1, duration: 0.2, ease: 'power1.out' }, 0)
-            tl.to(el, { x: 0, y: 0, scale: 1, rotate: 0, duration: DEAL_DURATION / 1000, ease: 'power2.out' }, 0)
+            tl.to(el, { x: 0, y: 0, scale: 1, duration: DEAL_DURATION / 1000, ease: 'power2.out' }, 0)
 
             return () => tl.kill()
         }
