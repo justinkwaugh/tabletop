@@ -65,18 +65,15 @@
 >
     <DefaultTableLayout>
         {#snippet sideContent()}
-            <!-- History controls and the tabs below both collapse out of the way while a
-                 politics pile is open (see PoliticsPileReveal, inserted between them),
-                 rather than the dealt cards floating over them - transition-[grid-template-rows]
-                 on a 1fr/0fr grid track animates to/from a height nothing here has to
-                 measure, unlike a max-height guess would. SummaryStrip stays put throughout:
-                 it's what the taking player was pointed at to start this (see its own
-                 highlight), so it anchors the whole sequence rather than moving too. -->
-            <div
-                class="max-sm:hidden grid transition-[grid-template-rows] duration-500 ease-in-out"
-                style="grid-template-rows: {lowenherzSession.selectedPoliticsPile ? '0fr' : '1fr'};"
-            >
-                <div class="overflow-hidden">
+            <!-- DefaultTableLayout gives this column a fixed height but no overflow handling of
+                 its own (unlike gameContent's column, which gets both) - harmless normally, since
+                 HistoryControls/SummaryStrip/the tabs are sized to fit it, but PoliticsPileReveal
+                 inserted below pushes everything after it (the tabs) further down, past that fixed
+                 height, without this. Nothing here collapses or hides to make room - the tabs and
+                 HistoryControls both stay fully present, just pushed down (and, past the fixed
+                 height, scrolled to) rather than shrunk away. -->
+            <div class="h-full flex flex-col overflow-y-auto">
+                <div class="max-sm:hidden">
                     <HistoryControls
                         borderClass="border-b-2 border-black/20"
                         bgClass="bg-transparent"
@@ -84,31 +81,39 @@
                         disabledColor="text-black/30"
                     />
                 </div>
-            </div>
-            <SummaryStrip />
-            <PoliticsPileReveal />
-            <!-- The default active pill is bg-gray-300, which reads as a stray UI chip on
-                 the parchment. bg-black/15 introduces no new hue at all - it just darkens
-                 whatever the parchment already is, so the selected tab reads as a pressed
-                 area of the same surface rather than a separate object sitting on it. -->
-            <div
-                class="grid transition-[grid-template-rows] duration-500 ease-in-out"
-                style="grid-template-rows: {lowenherzSession.selectedPoliticsPile ? '0fr' : '1fr'};"
-            >
-                <div class="overflow-hidden">
-                    <DefaultTabs
-                        activeTabClass="py-1 px-3 bg-black/15 border-2 border-black/25 rounded-lg text-black font-semibold"
-                        inactiveTabClass="text-black py-1 px-3 rounded-lg border-2 border-transparent hover:border-black/40"
-                    >
-                        {#snippet playersPanel()}
-                            <PlayersPanel />
-                            <TestingControls />
-                        {/snippet}
-                        {#snippet history()}
-                           <History />
-                        {/snippet}
-                    </DefaultTabs>
+                <SummaryStrip />
+                <!-- Real layout, not an overlay: PoliticsPileReveal only renders content once a
+                     pile is chosen, so it takes up no space at all until then. Grown in rather
+                     than just appearing, so the tabs below visibly slide down out of the way
+                     instead of snapping - transition-[grid-template-rows] on a 0fr/1fr grid track
+                     animates to/from a height nothing here has to measure, unlike a max-height
+                     guess would. Nothing collapses to make room for this growth: the tabs and
+                     HistoryControls both stay fully present throughout (see the scrollable column
+                     above), just pushed down. -->
+                <div
+                    class="grid transition-[grid-template-rows] duration-500 ease-in-out"
+                    style="grid-template-rows: {lowenherzSession.selectedPoliticsPile ? '1fr' : '0fr'};"
+                >
+                    <div class="overflow-hidden">
+                        <PoliticsPileReveal />
+                    </div>
                 </div>
+                <!-- The default active pill is bg-gray-300, which reads as a stray UI chip on
+                     the parchment. bg-black/15 introduces no new hue at all - it just darkens
+                     whatever the parchment already is, so the selected tab reads as a pressed
+                     area of the same surface rather than a separate object sitting on it. -->
+                <DefaultTabs
+                    activeTabClass="py-1 px-3 bg-black/15 border-2 border-black/25 rounded-lg text-black font-semibold"
+                    inactiveTabClass="text-black py-1 px-3 rounded-lg border-2 border-transparent hover:border-black/40"
+                >
+                    {#snippet playersPanel()}
+                        <PlayersPanel />
+                        <TestingControls />
+                    {/snippet}
+                    {#snippet history()}
+                       <History />
+                    {/snippet}
+                </DefaultTabs>
             </div>
         {/snippet}
         {#snippet gameContent()}
