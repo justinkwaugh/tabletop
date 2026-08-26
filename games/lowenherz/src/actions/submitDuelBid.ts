@@ -7,10 +7,10 @@ import { PoliticsCard, PoliticsCardType } from '../definition/politicsCards.js'
 
 export type SubmitDuelBidMetadata = Type.Static<typeof SubmitDuelBidMetadata>
 export const SubmitDuelBidMetadata = Type.Object({
-    // A snapshot of the Treasure card used (if any), captured here since the card
-    // itself gets removed from the bidder's hand if they end up winning - history
-    // needs to be able to describe it even after that happens.
-    treasureCardUsed: Type.Optional(PoliticsCard),
+    // A snapshot of the Treasure card(s) used (if any), captured here since the cards
+    // themselves get removed from the bidder's hand if they end up winning - history
+    // needs to be able to describe them even after that happens.
+    treasureCardsUsed: Type.Optional(Type.Array(PoliticsCard)),
     // Set only on the bid that COMPLETES a duel round (the last bidder), recording how
     // that round ended so history can describe it: 'win' (someone outbid everyone),
     // 'reduel' (tie for the top bid - the tied players duel again), or 'giveUp' (a
@@ -31,10 +31,11 @@ export const SubmitDuelBid = Type.Evaluate(
             type: Type.Literal(ActionType.SubmitDuelBid),
             playerId: Type.String(),
             amount: Type.Number(),
-            // Optional Treasure card added to this bid, on top of the ducat amount -
+            // Any number of Treasure cards added to this bid, on top of the ducat amount -
             // "it can be used during a duel together with other money cards, or on
-            // its own." Only spent (discarded) if this bid ends up winning.
-            treasureCardId: Type.Optional(Type.String()),
+            // its own." Nothing in the rulebook limits a bid to just one. Only spent
+            // (discarded) if this bid ends up winning.
+            treasureCardIds: Type.Optional(Type.Array(Type.String())),
             metadata: Type.Optional(SubmitDuelBidMetadata)
         })
     ])
@@ -58,7 +59,7 @@ export class HydratedSubmitDuelBid
     declare type: ActionType.SubmitDuelBid
     declare playerId: string
     declare amount: number
-    declare treasureCardId?: string
+    declare treasureCardIds?: string[]
     declare metadata?: SubmitDuelBidMetadata
 
     constructor(data: SubmitDuelBid) {
@@ -70,16 +71,18 @@ export class HydratedSubmitDuelBid
             throw Error('Invalid SubmitDuelBid action')
         }
 
+        const treasureCardIds = this.treasureCardIds ?? []
         state.duel!.bids.push({
             playerId: this.playerId,
             amount: this.amount,
-            ...(this.treasureCardId ? { treasureCardId: this.treasureCardId } : {})
+            ...(treasureCardIds.length > 0 ? { treasureCardIds } : {})
         })
 
-        const treasureCard = this.treasureCardId
-            ? state.getPlayerState(this.playerId).politicsCards.find((c) => c.id === this.treasureCardId)
-            : undefined
-        this.metadata = treasureCard ? { treasureCardUsed: treasureCard } : {}
+        const myCards = state.getPlayerState(this.playerId).politicsCards
+        const treasureCards = treasureCardIds
+            .map((id) => myCards.find((c) => c.id === id))
+            .filter((card): card is PoliticsCard => card !== undefined)
+        this.metadata = treasureCards.length > 0 ? { treasureCardsUsed: treasureCards } : {}
     }
 
     isValidSubmitDuelBid(state: HydratedLowenherzGameState): boolean {
@@ -91,8 +94,12 @@ export class HydratedSubmitDuelBid
         const myMoney = state.getPlayerState(this.playerId).money
         if (!Number.isInteger(this.amount) || this.amount < 0 || this.amount > myMoney) return false
 
-        if (this.treasureCardId) {
-            const card = state.getPlayerState(this.playerId).politicsCards.find((c) => c.id === this.treasureCardId)
+        const treasureCardIds = this.treasureCardIds ?? []
+        if (new Set(treasureCardIds).size !== treasureCardIds.length) return false
+
+        const myCards = state.getPlayerState(this.playerId).politicsCards
+        for (const id of treasureCardIds) {
+            const card = myCards.find((c) => c.id === id)
             if (!card || card.type !== PoliticsCardType.Treasure) return false
         }
 

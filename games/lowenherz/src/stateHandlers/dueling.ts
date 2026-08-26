@@ -7,14 +7,20 @@ import { routeAfterSlotResolved } from '../util/resolutionHelpers.js'
 
 type DuelingAction = HydratedSubmitDuelBid
 
-// A bid's actual strength includes any Treasure card added on top of the ducat
+// A bid's actual strength includes any Treasure cards added on top of the ducat
 // amount - "it can be used during a duel together with other money cards, or on its
-// own." Looked up fresh each time rather than stored, since the card is still
-// sitting untouched in the bidder's hand until (and unless) this bid wins.
+// own," and nothing in the rulebook caps it at one. Looked up fresh each time rather
+// than stored, since the cards are still sitting untouched in the bidder's hand until
+// (and unless) this bid wins.
 function effectiveBidAmount(state: HydratedLowenherzGameState, bid: Duel['bids'][number]): number {
-    if (!bid.treasureCardId) return bid.amount
-    const card = state.getPlayerState(bid.playerId).politicsCards.find((c) => c.id === bid.treasureCardId)
-    return bid.amount + (card?.value ?? 0)
+    const treasureIds = bid.treasureCardIds ?? []
+    if (treasureIds.length === 0) return bid.amount
+    const myCards = state.getPlayerState(bid.playerId).politicsCards
+    const treasureValue = treasureIds.reduce((sum, id) => {
+        const card = myCards.find((c) => c.id === id)
+        return sum + (card?.value ?? 0)
+    }, 0)
+    return bid.amount + treasureValue
 }
 
 export class DuelingStateHandler
@@ -80,13 +86,12 @@ export class DuelingStateHandler
             const winnerId = topBidders[0]
             const winningBid = duel.bids.find((b) => b.playerId === winnerId)!
             const winnerState = gameState.getPlayerState(winnerId)
-            // Only the ducat portion comes out of money - the Treasure card (if any)
-            // is paid to the bank as itself, discarded rather than converted to cash.
+            // Only the ducat portion comes out of money - any Treasure cards are paid
+            // to the bank as themselves, discarded rather than converted to cash.
             winnerState.money -= winningBid.amount
-            if (winningBid.treasureCardId) {
-                winnerState.politicsCards = winnerState.politicsCards.filter(
-                    (c) => c.id !== winningBid.treasureCardId
-                )
+            if (winningBid.treasureCardIds && winningBid.treasureCardIds.length > 0) {
+                const spentIds = new Set(winningBid.treasureCardIds)
+                winnerState.politicsCards = winnerState.politicsCards.filter((c) => !spentIds.has(c.id))
             }
             action.metadata = { ...action.metadata, duelResult: 'win', winnerId }
             gameState.resolvedSlots.push({ slot: duel.slot, winnerPlayerId: winnerId })
