@@ -1311,18 +1311,24 @@ export class LowenherzGameSession extends GameSession<
     // The region being expanded. Stored only when the player actually picks one.
     private chosenExpandRegion: string | undefined = $state(undefined)
 
-    // Reads as nothing at all once the expanding stage closes - the expansion finished, a knight
-    // went down instead, or the action ended - so a stale pick cannot outlive its usefulness and
-    // nothing has to notice the stage closing in order to drop it.
+    // Validated against expandableRegions rather than trusted outright: cancelExpansion() only
+    // runs on a voluntary pass, a plan switch, or the toolbar's decline - not on an expansion
+    // completing normally - so a pick from an earlier knight action can still be sitting here the
+    // next time this stage opens. Without checking it's still actually on offer, that stale id
+    // would be handed straight to the engine the moment any of the CURRENT candidate regions' own
+    // squares were clicked, rejected as "that region cannot expand" for a region the player never
+    // chose and may not even see on screen.
     //
     // One region means there is nothing to pick, so it counts as picked. That also covers
     // re-entering an expansion the engine still has open, where expandableRegions is exactly that
     // region, so a second space cannot be misdirected at another one.
     get selectedExpandRegionId(): string | undefined {
         if (!this.expandStageActive) return undefined
-        if (this.chosenExpandRegion) return this.chosenExpandRegion
-
         const regions = this.expandableRegions
+        if (this.chosenExpandRegion && regions.some((r) => r.id === this.chosenExpandRegion)) {
+            return this.chosenExpandRegion
+        }
+
         return regions.length === 1 ? regions[0].id : undefined
     }
 
