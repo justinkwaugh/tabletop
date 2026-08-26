@@ -825,7 +825,7 @@
             {#if gameSession.gameState.machineState === MachineState.Negotiating}
                 <div class="flex flex-wrap items-center justify-center gap-2 pb-4 text-[16px]">
                     {#if gameSession.isMyNegotiationTurn && gameSession.isNegotiator}
-                        <span>Modify the above or</span>
+                        <span>Modify the proposal&nbsp; or</span>
                         <button
                             type="button"
                             class="px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 text-[14px] font-semibold"
