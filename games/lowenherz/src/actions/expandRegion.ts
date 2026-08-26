@@ -8,6 +8,7 @@ import {
     isOnBoard,
     isWalledBetween,
     neighbors,
+    regionCentroidSquareKey,
     separatesSamePrincePieces,
     squareKey,
     SquareType,
@@ -302,7 +303,7 @@ export class HydratedExpandRegion
                 spaceCount: newRegion.squareKeys.length,
                 townCount: countTowns(newRegion, state.board),
                 points,
-                anchorSquareKey: newRegion.castleSquareKey ?? newRegion.squareKeys[0]
+                anchorSquareKey: regionCentroidSquareKey(newRegion.squareKeys)
             })
             state.regions.push(newRegion)
             removeInteriorWalls(state.board, newRegion)
