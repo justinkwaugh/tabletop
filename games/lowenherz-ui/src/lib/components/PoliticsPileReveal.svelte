@@ -6,6 +6,13 @@
 
     const gameSession = getGameSession()
 
+    // Comparing two mount points for this same component (see GameTable's own
+    // SHOW_POLITICS_ABOVE_BOARD) - 'sidebar' is the normal spot, in the space History/the tabs
+    // slide down to make for; 'board' sits in the game column instead, splayed across the top
+    // with the board pushed down beneath it. Every animation/interaction below is identical
+    // either way - this only changes the outer wrapper's own layout classes.
+    let { placement = 'sidebar' }: { placement?: 'sidebar' | 'board' } = $props()
+
     // Real server state (LookAtPoliticsPile), not local UI state - survives reload/undo. See
     // GameSession.selectedPoliticsPile's own comment for why that matters. Rendered only once
     // this is set (see GameTable.svelte), in the space HistoryControls/the side tabs just
@@ -178,8 +185,14 @@
 </script>
 
 {#if pile}
-    <div class="px-3 py-2 flex flex-col gap-2 border-b-2 border-black/20">
-        <div class="text-black text-base font-semibold">Click a card to take it.</div>
+    <div
+        class="px-3 py-2 flex flex-col gap-2 {placement === 'sidebar'
+            ? 'border-b-2 border-black/20'
+            : 'items-center'}"
+    >
+        <div class="text-black text-base font-semibold {placement === 'board' ? 'text-center' : ''}">
+            Click a card to take it.
+        </div>
         {#if gameSession.errorMessage}
             <div
                 class="max-w-full rounded-md bg-red-900/90 border border-red-300/50 px-3 py-2 text-center text-white text-sm"

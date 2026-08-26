@@ -35,6 +35,13 @@
     const lowenherzSession = gameSession as LowenherzGameSession
     setGameSession(lowenherzSession)
 
+    // Comparing two mount points for PoliticsPileReveal: normally (false) it renders in the
+    // sidebar, in the space History/the tabs slide down to make for. Flipped true, it instead
+    // renders splayed across the top of the board, pushing the board down to make room - same
+    // component, same deal-in/take-a-card animations either way (see its own placement prop),
+    // just a different spot in the layout. Flip by hand to compare.
+    const SHOW_POLITICS_ABOVE_BOARD = true
+
     // Exposes the session for console debugging (Svelte context isn't reachable from
     // devtools otherwise) - e.g. `__gameSession.myRegions`.
     if (typeof window !== 'undefined') {
@@ -90,14 +97,16 @@
                      guess would. Nothing collapses to make room for this growth: the tabs and
                      HistoryControls both stay fully present throughout (see the scrollable column
                      above), just pushed down. -->
-                <div
-                    class="grid transition-[grid-template-rows] duration-500 ease-in-out"
-                    style="grid-template-rows: {lowenherzSession.selectedPoliticsPile ? '1fr' : '0fr'};"
-                >
-                    <div class="overflow-hidden">
-                        <PoliticsPileReveal />
+                {#if !SHOW_POLITICS_ABOVE_BOARD}
+                    <div
+                        class="grid transition-[grid-template-rows] duration-500 ease-in-out"
+                        style="grid-template-rows: {lowenherzSession.selectedPoliticsPile ? '1fr' : '0fr'};"
+                    >
+                        <div class="overflow-hidden">
+                            <PoliticsPileReveal />
+                        </div>
                     </div>
-                </div>
+                {/if}
                 <!-- pt-2: SummaryStrip's own bottom border sits directly above this (through
                      PoliticsPileReveal, which takes up no space when empty) with no gap of its
                      own, and the tab buttons were crowding that line. -->
@@ -133,6 +142,13 @@
                 <!-- Below the toolbar so Undo stays at the very top, and outside ScalingWrapper
                      below so none of this text scales with the board. -->
                 <StatusMessages />
+                {#if SHOW_POLITICS_ABOVE_BOARD}
+                    <!-- Real layout, not an overlay - takes up no space at all until a pile is
+                         chosen (see PoliticsPileReveal's own pile check), same as the sidebar
+                         mount point it's being compared against. Sitting here, above the board's
+                         own flex:1 area below, is what pushes the board down to make room. -->
+                    <PoliticsPileReveal placement="board" />
+                {/if}
             </div>
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
