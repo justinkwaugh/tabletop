@@ -56,7 +56,7 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         currentActionCard: card,
         decisions: [],
         resolvedSlots: [],
-        negotiation: { slot: 1, playerIds: ['p1', 'p2'], offer: undefined, signedPlayerIds: [] },
+        negotiation: { slot: 1, playerIds: ['p1', 'p2'], offer: undefined, lastProposedBy: undefined },
         politicsCardPileA: [],
         politicsCardPileB: [],
         ...overrides
@@ -70,7 +70,7 @@ function enter(state: HydratedLowenherzGameState) {
 }
 
 describe('NegotiatingStateHandler active players', () => {
-    it('waits on both negotiators while no offer has been signed', () => {
+    it('waits on both negotiators while nobody has proposed yet', () => {
         const state = buildState()
 
         enter(state)
@@ -78,37 +78,38 @@ describe('NegotiatingStateHandler active players', () => {
         expect(state.activePlayerIds).toEqual(['p1', 'p2'])
     })
 
-    it('stops waiting on a player once they have signed the standing offer', () => {
+    it('stops waiting on a player once they have proposed the standing offer', () => {
         const state = buildState({
             negotiation: {
                 slot: 1,
                 playerIds: ['p1', 'p2'],
                 offer: { fromPlayerId: 'p1', amount: 3 },
-                signedPlayerIds: ['p1']
+                lastProposedBy: 'p1'
             }
         })
 
         enter(state)
 
         // The move is p2's: p1 has said what they will do and cannot act again without
-        // undoing it first.
+        // undoing it first (except to Decline - see isActivePlayer).
         expect(state.activePlayerIds).toEqual(['p2'])
     })
 
-    it('waits on both again once a counter-proposal has cleared the signatures', () => {
-        // What NegotiationMove.apply leaves behind for a Propose: a new offer, no signatures.
+    it('flips to waiting on the other player once a counter-proposal lands', () => {
+        // What NegotiationMove.apply leaves behind for a non-matching Propose: a new
+        // offer, and lastProposedBy pointing at whoever just moved.
         const state = buildState({
             negotiation: {
                 slot: 1,
                 playerIds: ['p1', 'p2'],
                 offer: { fromPlayerId: 'p2', amount: 4 },
-                signedPlayerIds: []
+                lastProposedBy: 'p2'
             }
         })
 
         enter(state)
 
-        expect(state.activePlayerIds).toEqual(['p1', 'p2'])
+        expect(state.activePlayerIds).toEqual(['p1'])
     })
 
     it('waits on nobody when there is no negotiation', () => {
@@ -117,5 +118,36 @@ describe('NegotiatingStateHandler active players', () => {
         enter(state)
 
         expect(state.activePlayerIds).toEqual([])
+    })
+})
+
+describe('HydratedLowenherzGameState.isActivePlayer during a negotiation', () => {
+    it('still counts the non-active negotiator as an active player, for Decline', () => {
+        const state = buildState({
+            activePlayerIds: ['p2'],
+            negotiation: {
+                slot: 1,
+                playerIds: ['p1', 'p2'],
+                offer: { fromPlayerId: 'p1', amount: 3 },
+                lastProposedBy: 'p1'
+            }
+        })
+
+        expect(state.isActivePlayer('p1')).toBe(true)
+        expect(state.isActivePlayer('p2')).toBe(true)
+    })
+
+    it('does not extend that to a player outside the negotiation', () => {
+        const state = buildState({
+            activePlayerIds: ['p2'],
+            negotiation: {
+                slot: 1,
+                playerIds: ['p1', 'p2'],
+                offer: { fromPlayerId: 'p1', amount: 3 },
+                lastProposedBy: 'p1'
+            }
+        })
+
+        expect(state.isActivePlayer('p3')).toBe(false)
     })
 })

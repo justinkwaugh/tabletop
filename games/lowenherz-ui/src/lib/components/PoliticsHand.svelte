@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte'
+    import { gsap } from 'gsap'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PoliticsCardType, type PoliticsCard as PoliticsCardData } from '@tabletop/lowenherz'
     import PoliticsCard from './PoliticsCard.svelte'
@@ -102,6 +103,13 @@
     //
     // The stagger index comes from the card's position in the hand, which is what the loop was
     // using anyway.
+    //
+    // A GSAP timeline rather than a raw CSS transition + settle timeout: the timeout only ever
+    // GUESSED when the transition had finished (delay + duration + a fudge factor), which can
+    // diverge from the actual visual completion if the tween is interrupted, throttled, or its
+    // element removed mid-flight. GSAP's own onComplete fires exactly when the tween actually
+    // finishes, and clearProps hands the element straight back to Tailwind afterward, same as the
+    // old settle timeout did.
     function dealIn(index: number) {
         return (el: HTMLElement) => {
             if (SHOW_SPLAYED) return
@@ -111,58 +119,33 @@
             const rect = el.getBoundingClientRect()
             const dx = origin.x - (rect.left + rect.width / 2)
             const dy = origin.y - (rect.top + rect.height / 2)
-            const delay = index * DEAL_STAGGER
 
-            el.style.transition = 'none'
-            el.style.opacity = '0'
-            el.style.transform = `translate(${dx}px, ${dy}px) scale(0.35) rotate(${index % 2 === 0 ? -6 : 6}deg)`
+            gsap.set(el, {
+                x: dx,
+                y: dy,
+                scale: 0.35,
+                opacity: 0,
+                rotate: index % 2 === 0 ? -6 : 6
+            })
 
-            // Force a reflow so the "from" state above is actually painted before the "to" state
-            // below kicks off the transition.
-            void el.offsetHeight
+            const tl = gsap.timeline({
+                delay: (index * DEAL_STAGGER) / 1000,
+                onComplete: () => {
+                    // 'all' clears the WHOLE inline style attribute, not just the properties
+                    // this tween touched - that included the width Svelte's style={cardWidthStyle}
+                    // had set, collapsing every card down to its unstyled intrinsic size right as
+                    // the deal finished. Naming only the tweened properties leaves that alone.
+                    gsap.set(el, { clearProps: 'x,y,scale,rotate,opacity' })
+                }
+            })
+            // Opacity finishes well before the flight does, same split the old CSS transition
+            // had (200ms fade against a 380ms move) - a snappy fade-in reads better than one
+            // that's still creeping up as the card settles into place.
+            tl.to(el, { opacity: 1, duration: 0.2, ease: 'power1.out' }, 0)
+            tl.to(el, { x: 0, y: 0, scale: 1, rotate: 0, duration: DEAL_DURATION / 1000, ease: 'power3.out' }, 0)
 
-            el.style.transition = `transform ${DEAL_DURATION}ms cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms, opacity 200ms ease-out ${delay}ms`
-            el.style.opacity = '1'
-            el.style.transform = 'translate(0px, 0px) scale(1) rotate(0deg)'
-
-            // Once landed, drop back to plain Tailwind-controlled styling so the normal
-            // hover-opacity behaviour still works afterward.
-            const settle = setTimeout(() => {
-                el.style.transition = ''
-                el.style.opacity = ''
-                el.style.transform = ''
-            }, delay + DEAL_DURATION + 50)
-
-            return () => clearTimeout(settle)
+            return () => tl.kill()
         }
-    }
-
-    // Animates one card's element from wherever it currently sits to a target
-    // viewport point, shrinking and fading out as it flies - the reverse of the
-    // deal-in effect above. Resolves once the transition (including its stagger
-    // delay) has finished, so callers can sequence multiple flights one after another.
-    function flyTo(
-        el: HTMLElement | undefined,
-        target: { x: number; y: number },
-        delay: number,
-        duration: number
-    ): Promise<void> {
-        return new Promise((resolve) => {
-            if (!el) {
-                resolve()
-                return
-            }
-
-            const rect = el.getBoundingClientRect()
-            const dx = target.x - (rect.left + rect.width / 2)
-            const dy = target.y - (rect.top + rect.height / 2)
-
-            el.style.transition = `transform ${duration}ms cubic-bezier(0.4, 0, 0.7, 1) ${delay}ms, opacity ${Math.min(duration, 250)}ms ease-in ${delay}ms`
-            el.style.transform = `translate(${dx}px, ${dy}px) scale(0.3)`
-            el.style.opacity = '0'
-
-            setTimeout(resolve, delay + duration + 20)
-        })
     }
 
     // Set for the whole choreographed sequence below, once a card has been clicked -
@@ -173,12 +156,36 @@
     const RETURN_STAGGER = 35 // ms between each returning card starting its flight
     const DELIVER_DURATION = 420 // ms - the taken card flying to the player's own pile
 
+    // Appends one card's fly-to-point-and-fade tween onto a shared timeline at an explicit
+    // position, computed from the element's CURRENT rect (so a card already mid-animation, or
+    // one whose layout shifted when others left, still flies from where it actually is).
+    function addFlight(
+        tl: gsap.core.Timeline,
+        el: HTMLElement | undefined,
+        target: { x: number; y: number },
+        duration: number,
+        position: number
+    ) {
+        if (!el) return
+        const rect = el.getBoundingClientRect()
+        const dx = target.x - (rect.left + rect.width / 2)
+        const dy = target.y - (rect.top + rect.height / 2)
+        tl.to(el, { x: dx, y: dy, scale: 0.3, opacity: 0, duration, ease: 'power2.in' }, position)
+    }
+
     // Only ever called from the draw-pile flow (see the template - viewingMyHand
     // cards aren't clickable). Rather than taking the card immediately, plays it out
     // visually first: every OTHER card flies back to the pile it came from, then the
     // chosen card flies on to the player's own politics pile (see PlayerState.svelte)
     // - only once that's finished do we actually dispatch TakePoliticsCard, which is
     // also what closes this overlay.
+    //
+    // One GSAP timeline for the whole return-then-deliver choreography, rather than a
+    // Promise.all of independently-timed flights each resolved by a setTimeout guessing at its
+    // own duration: real per-tween completion (an interrupted or throttled flight still reports
+    // accurately) and an explicit stagger/position for every leg, per ANIMATION_PATTERN.md. Kept
+    // local rather than registered on the shared AnimationContext - it intentionally plays BEFORE
+    // TakePoliticsCard is dispatched, not in reaction to a state change.
     async function chooseCard(card: PoliticsCardData) {
         if (viewingMyHand || takingCardId) return
         const pile = gameSession.selectedPoliticsPile
@@ -186,17 +193,25 @@
 
         takingCardId = card.id
 
+        const tl = gsap.timeline()
+
         const pileOrigin = gameSession.politicsPileOrigin
         if (pileOrigin) {
             const others = cards.filter((c) => c.id !== card.id)
-            await Promise.all(
-                others.map((c, i) => flyTo(cardEls[c.id], pileOrigin, i * RETURN_STAGGER, RETURN_DURATION))
-            )
+            others.forEach((c, i) => {
+                addFlight(tl, cardEls[c.id], pileOrigin, RETURN_DURATION / 1000, (i * RETURN_STAGGER) / 1000)
+            })
         }
 
         const myPileOrigin = gameSession.myPoliticsPileOrigin
         if (myPileOrigin) {
-            await flyTo(cardEls[card.id], myPileOrigin, 0, DELIVER_DURATION)
+            addFlight(tl, cardEls[card.id], myPileOrigin, DELIVER_DURATION / 1000, tl.duration())
+        }
+
+        // Guarded rather than always awaiting the callback: an empty timeline (both origins
+        // missing, or every element gone) never has anything to complete.
+        if (tl.duration() > 0) {
+            await new Promise<void>((resolve) => tl.eventCallback('onComplete', resolve))
         }
 
         await gameSession.takePoliticsCard(pile, card.id)

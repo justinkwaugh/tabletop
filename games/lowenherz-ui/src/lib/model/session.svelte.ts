@@ -1,10 +1,8 @@
-import { ActionSource, createAction, type Color } from '@tabletop/common'
+import { type Color } from '@tabletop/common'
 import { allianceWalls } from '$lib/model/allianceGeometry.js'
 import { GameSession } from '@tabletop/frontend-components'
-import { nanoid } from 'nanoid'
 import {
     ActionCardType,
-    ActionType,
     ALLIANCE_CANCELLATION_COST,
     areRegionsAllied,
     BOARD_COLS,
@@ -108,8 +106,8 @@ export class LowenherzGameSession extends GameSession<
     // an owner and a session class is not one. What lives here is the value, not the syncing.
     frozenNegotiation: Negotiation | undefined = $state(undefined)
 
-    // What the negotiation panel shows: the live negotiation, or the fully-signed one being held
-    // on screen for a beat after it resolves.
+    // What the negotiation panel shows: the live negotiation, or the completed one being held on
+    // screen for a beat after it resolves.
     get displayNegotiation(): Negotiation | undefined {
         return this.gameState.negotiation ?? this.frozenNegotiation
     }
@@ -187,7 +185,6 @@ export class LowenherzGameSession extends GameSession<
     // change and zero the bids; keying them means a new duel reads as no bids at all.
     private duelBids: { signature: string; amounts: Record<string, number> } | undefined =
         $state(undefined)
-    private duelTestBidder: { signature: string; playerId: string } | undefined = $state(undefined)
 
     // The duel being bid in: its slot, its players, and how many ties it has been through. Any of
     // those changing is a different duel.
@@ -210,18 +207,6 @@ export class LowenherzGameSession extends GameSession<
             this.duelBids?.signature === signature ? { ...this.duelBids.amounts } : {}
         amounts[playerId] = amount
         this.duelBids = { signature, amounts }
-    }
-
-    get testBiddingForPlayerId(): string | undefined {
-        const signature = this.duelSignature
-        if (!signature || this.duelTestBidder?.signature !== signature) return undefined
-        return this.duelTestBidder.playerId
-    }
-
-    setTestBiddingForPlayerId(playerId: string | undefined) {
-        const signature = this.duelSignature
-        if (!signature) return
-        this.duelTestBidder = playerId === undefined ? undefined : { signature, playerId }
     }
 
     // While the history controls have the board rewound, nothing on screen is an offer. Every
@@ -822,30 +807,29 @@ export class LowenherzGameSession extends GameSession<
         }
     }
 
-    // Both negotiators are active at once - either can propose/sign/decline at any
-    // time, not just "on their turn".
+    // Either negotiator can decline at any stage, turn or no turn - see
+    // HydratedLowenherzGameState.isActivePlayer for why that's allowed engine-side even for
+    // whoever's not currently active.
     get isNegotiator(): boolean {
         if (!this.myPlayer) return false
         return this.gameState.negotiation?.playerIds.includes(this.myPlayer.id) ?? false
     }
 
-    get hasSignedNegotiationOffer(): boolean {
-        if (!this.myPlayer) return false
-        return this.gameState.negotiation?.signedPlayerIds.includes(this.myPlayer.id) ?? false
-    }
-
-    hasPlayerSignedNegotiationOffer(playerId: string): boolean {
-        return this.gameState.negotiation?.signedPlayerIds.includes(playerId) ?? false
-    }
-
-    // A proposal names either negotiator as the payer ("I'll pay you" or "you pay
-    // me") - it's a suggested deal shape, not necessarily an offer of your own money.
-    // Returns whether the offer actually became the standing one. Callers keep local draft
-    // state (who pays, how much) that has to be rolled back when it didn't - otherwise the
-    // panel goes on displaying an offer nobody submitted, and Signed then signs whatever the
-    // real standing offer is, which can be the opposite payment direction.
-    async proposeNegotiationOffer(fromPlayerId: string, amount: number): Promise<boolean> {
+    // Turn-based: nobody has proposed yet (lastProposedBy undefined) leaves it open to either
+    // side, otherwise it's whoever DIDN'T make the standing offer - the other side either
+    // proposes it back unchanged (accepting) or names different terms (countering).
+    get isMyNegotiationTurn(): boolean {
+        if (!this.canActNow) return false
         if (!this.myPlayer || !this.isNegotiator) return false
+        return this.gameState.negotiation?.lastProposedBy !== this.myPlayer.id
+    }
+
+    // A proposal names either negotiator as the payer ("I'll pay you" or "you pay me") - it's a
+    // suggested deal shape, not necessarily an offer of your own money. Proposing back the exact
+    // terms already standing is how a player accepts: there is no separate signing action, the
+    // engine executes the deal immediately when that happens (see NegotiationMove.apply).
+    async proposeNegotiationOffer(fromPlayerId: string, amount: number): Promise<boolean> {
+        if (!this.myPlayer || !this.isMyNegotiationTurn) return false
 
         if (!negotiationProposalIsValid(this.gameState, this.myPlayer.id, fromPlayerId, amount)) {
             this.errorMessage =
@@ -869,35 +853,6 @@ export class LowenherzGameSession extends GameSession<
         }
     }
 
-    get canSignNegotiationOffer(): boolean {
-        if (!this.canActNow) return false
-        if (!this.isNegotiator) return false
-        // A Sign with no standing offer is rejected by the engine
-        // (NegotiationMove.invalidNegotiationMoveReason), so signing has to be paired with a
-        // proposal that actually succeeded - see RealBoard's signNegotiation, which stops if
-        // its proposal is refused rather than dispatching a Sign that can't land.
-        // Doesn't require an offer to already exist - see RealBoard.svelte's Signed
-        // button, which proposes the current draft first if nothing's been proposed
-        // yet, then signs it, so the button is usable immediately without a
-        // separate action having to be auto-submitted the moment negotiation starts
-        // (that used to block Undo - the auto-proposal itself was always the
-        // nearest undoable action, hiding whatever came before the negotiation).
-        return !this.hasSignedNegotiationOffer
-    }
-
-    async signNegotiationOffer() {
-        if (!this.canSignNegotiationOffer) return
-
-        const action = this.createPlayerAction(NegotiationMove, { kind: NegotiationMoveKind.Sign })
-        this.errorMessage = undefined
-        try {
-            await this.applyAction(action)
-        } catch (e) {
-            console.warn('Failed to sign negotiation offer:', e)
-            this.errorMessage = 'That signature was rejected.'
-        }
-    }
-
     async declineNegotiation() {
         if (!this.isNegotiator) return
 
@@ -908,33 +863,6 @@ export class LowenherzGameSession extends GameSession<
         } catch (e) {
             console.warn('Failed to decline negotiation:', e)
             this.errorMessage = 'That move was rejected.'
-        }
-    }
-
-    // TEMPORARY - a stand-in for real two-session testing, remove once that exists.
-    // Both negotiators stay simultaneously active for the whole negotiation, but
-    // hotseat's myPlayer only ever resolves to one of them (activePlayers.at(0)), so
-    // there's normally no way for a single solo tester to supply the OTHER
-    // negotiator's signature. This signs on their behalf directly, bypassing the
-    // myPlayer check that signNegotiationOffer() enforces.
-    async debugSignNegotiationOfferAs(playerId: string) {
-        const negotiation = this.gameState.negotiation
-        if (!negotiation?.offer || negotiation.signedPlayerIds.includes(playerId)) return
-
-        const action = createAction(NegotiationMove, {
-            id: nanoid(),
-            gameId: this.gameState.gameId,
-            source: ActionSource.User,
-            type: ActionType.NegotiationMove,
-            playerId,
-            kind: NegotiationMoveKind.Sign
-        })
-        this.errorMessage = undefined
-        try {
-            await this.applyAction(action)
-        } catch (e) {
-            console.warn('Failed to sign negotiation offer (debug):', e)
-            this.errorMessage = 'That signature was rejected.'
         }
     }
 
@@ -978,35 +906,6 @@ export class LowenherzGameSession extends GameSession<
             await this.applyAction(action)
         } catch (e) {
             console.warn('Failed to submit duel bid:', e)
-            this.errorMessage = 'That bid was rejected.'
-        }
-    }
-
-    // TEMPORARY - a stand-in for real two-session testing, remove once that exists.
-    // Every duelist stays simultaneously active for the whole duel, but hotseat's
-    // myPlayer only ever resolves to one of them (activePlayers.at(0)), so there's
-    // normally no way for a solo tester to submit a bid for anyone else. This submits
-    // one directly for a specific player, bypassing the myPlayer check that
-    // submitDuelBid() enforces - unlike negotiation's Propose, a duel bid really is
-    // tied to one specific bidder, so this stays debug-only rather than becoming a
-    // real mechanic.
-    async debugSubmitDuelBidAs(playerId: string, amount: number) {
-        const duel = this.gameState.duel
-        if (!duel || !duel.playerIds.includes(playerId) || this.hasPlayerBidInDuel(playerId)) return
-
-        const action = createAction(SubmitDuelBid, {
-            id: nanoid(),
-            gameId: this.gameState.gameId,
-            source: ActionSource.User,
-            type: ActionType.SubmitDuelBid,
-            playerId,
-            amount
-        })
-        this.errorMessage = undefined
-        try {
-            await this.applyAction(action)
-        } catch (e) {
-            console.warn('Failed to submit duel bid (debug):', e)
             this.errorMessage = 'That bid was rejected.'
         }
     }
@@ -2141,21 +2040,20 @@ export class LowenherzGameSession extends GameSession<
             }
 
             if (this.isNegotiator && this.myPlayer) {
-                // Both negotiators are active for the whole negotiation, but hotseat's
-                // myPlayer only ever resolves to one of them (activePlayers.at(0)) - so
-                // from here we can propose and sign for ourselves, but can never supply
-                // the OTHER negotiator's signature. Stop rather than spin forever;
-                // completing a negotiation end-to-end needs a second session/tab (or an
-                // engine-level test) acting as the other player. Checked in this order
-                // (propose before sign) since canSignNegotiationOffer no longer requires
-                // an offer to already exist - see its own comment.
-                if (!this.gameState.negotiation?.offer) {
+                // Turn-based now: activePlayerIds narrows to whoever's turn it is to
+                // propose, so hotseat's myPlayer correctly flips sides each move and this
+                // can run a negotiation to completion by itself, unlike when both stayed
+                // simultaneously active. Nobody has proposed yet - open with a token
+                // amount; otherwise accept whatever's standing (propose it back
+                // unchanged) rather than countering forever.
+                const negotiation = this.gameState.negotiation
+                if (!negotiation?.offer) {
                     const myMoney = this.gameState.getPlayerState(this.myPlayer.id).money
                     await this.proposeNegotiationOffer(this.myPlayer.id, Math.min(1, myMoney))
-                } else if (this.canSignNegotiationOffer) {
-                    await this.signNegotiationOffer()
+                } else {
+                    await this.proposeNegotiationOffer(negotiation.offer.fromPlayerId, negotiation.offer.amount)
                 }
-                break
+                continue
             }
 
             if (this.canSubmitDuelBid && this.myPlayer) {

@@ -39,12 +39,18 @@ export class DuelingStateHandler
 
     enter(context: MachineContext<HydratedLowenherzGameState>) {
         const duel = context.gameState.duel
-        // Every duelist stays listed as active for the whole duel, in any order -
-        // unlike negotiation's fixed 2, a duel can have 3+ participants, and this
-        // keeps the full set visible/actionable throughout rather than shrinking as
-        // bids land (validActionsForPlayer already excludes anyone who's already
-        // bid from actually being able to bid again).
-        context.gameState.activePlayerIds = duel ? [...duel.playerIds] : []
+        // Drops a bidder from active the moment their bid lands, same as
+        // NegotiatingStateHandler drops a signer - see that handler's enter() for why this is
+        // safe (the engine calls enter() after EVERY action, so this recomputes live as bids
+        // come in) and how it gates real actions, not just display (GameEngine.isPlayerAllowed).
+        //
+        // No empty-list fallback is needed here the way negotiation needs one: the bid that
+        // completes a duel always either clears gameState.duel entirely (routing to a different
+        // handler, so this enter() doesn't run again for it) or replaces it with a fresh re-duel
+        // object whose bids start empty - so this is never asked to filter down to nothing.
+        context.gameState.activePlayerIds = duel
+            ? duel.playerIds.filter((playerId) => !duel.bids.some((bid) => bid.playerId === playerId))
+            : []
     }
 
     onAction(
