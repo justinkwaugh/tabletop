@@ -150,6 +150,20 @@ export class LowenherzGameSession extends GameSession<
         return this.displayNegotiation?.offer?.amount ?? 1
     }
 
+    // True exactly when committing the picker/stepper's current values would accept the
+    // standing offer rather than replace it - the same condition NegotiationMove.apply()
+    // checks to decide whether a Propose executes the deal immediately or becomes the new
+    // standing offer. Lets the panel's button read "Accept" instead of "Propose" whenever
+    // it would.
+    get isAcceptingNegotiationOffer(): boolean {
+        const offer = this.displayNegotiation?.offer
+        if (!offer) return false
+        return (
+            this.negotiationProposerId === offer.fromPlayerId &&
+            this.negotiationAmount === offer.amount
+        )
+    }
+
     setNegotiationProposer(proposerId: string) {
         const key = this.negotiationKey
         if (!key) return

@@ -48,11 +48,11 @@
     const expansionBlockedReasons = $derived(
         expansionDeadEnd ? gameSession.expansionBlockedReasons : []
     )
-    // "Sign" is what the button says, but there is no separate signing action any more -
-    // clicking it just proposes whatever is on screen. If that happens to match the standing
-    // offer exactly, the engine treats it as acceptance and executes the deal immediately
-    // (see NegotiationMove.apply); otherwise it becomes the new standing offer and the turn
-    // passes to the other side.
+    // There is no separate signing action - clicking the button just proposes whatever is
+    // on screen. If that happens to match the standing offer exactly, the engine treats it
+    // as acceptance and executes the deal immediately (see NegotiationMove.apply); otherwise
+    // it becomes the new standing offer and the turn passes to the other side. The button's
+    // own label (see the template) reflects which of those this click would do.
     async function commitNegotiationOffer() {
         if (!gameSession.negotiationProposerId) return
         await gameSession.proposeNegotiationOffer(
@@ -748,20 +748,17 @@
                      got for free: a column of two names reads as a choice, a row of two names reads
                      as a score, so with them side by side the box has to say what it is. -->
                 <div class="relative flex flex-col items-center leading-tight">
-                    <div class="flex flex-row items-center border border-black/30 rounded px-2 py-1">
-                        {#each negotiation.playerIds as playerId, i (playerId)}
-                            {#if i > 0}
-                                <span class="mx-2 text-black/25" aria-hidden="true">|</span>
-                            {/if}
+                    <div class="flex flex-row items-center gap-2 border border-black/30 rounded px-2 py-1">
+                        {#each negotiation.playerIds as playerId (playerId)}
                             <button
                                 type="button"
                                 disabled={!gameSession.isMyNegotiationTurn}
                                 class={gameSession.negotiationProposerId === playerId
-                                    ? 'font-semibold text-black'
-                                    : 'text-black/40 hover:text-black/60'}
+                                    ? ''
+                                    : 'opacity-40 hover:opacity-70'}
                                 onclick={() => gameSession.setNegotiationProposer(playerId)}
                             >
-                                {playerName(gameSession, playerId)}
+                                {@render playerPill(playerId)}
                             </button>
                         {/each}
                     </div>
@@ -799,10 +796,11 @@
                 >
                     +
                 </button>
-                <span>
-                    ducat{gameSession.negotiationAmount === 1 ? '' : 's'} to {negotiationOtherPlayerId
-                        ? playerName(gameSession, negotiationOtherPlayerId)
-                        : ''}
+                <span class="flex items-center gap-1">
+                    ducat{gameSession.negotiationAmount === 1 ? '' : 's'} to
+                    {#if negotiationOtherPlayerId}
+                        {@render playerPill(negotiationOtherPlayerId)}
+                    {/if}
                 </span>
             </div>
 
@@ -810,26 +808,27 @@
                 {@const turnPlayerId = negotiation.lastProposedBy
                     ? negotiation.playerIds.find((id) => id !== negotiation.lastProposedBy)
                     : undefined}
-                <!-- Whoever's turn it is named explicitly, always - not just when you're the one
-                     waiting. In hotseat, proposing hands activePlayerIds (and so myPlayer) to the
-                     other side immediately, and the picker/amount reset to mirror the new standing
-                     offer - so without a name that visibly changes here, a solo hotseat tester who
-                     had just set those same terms up as the FIRST player can click Sign and see an
-                     identical-looking screen a beat later, now the second player's turn to act on
-                     it, and have no way to tell their click actually landed. -->
+                <!-- Whoever's turn it is named explicitly, once there is one - not just when
+                     you're the one waiting. In hotseat, proposing hands activePlayerIds (and so
+                     myPlayer) to the other side immediately, and the picker/amount reset to mirror
+                     the new standing offer - so without a name that visibly changes here, a solo
+                     hotseat tester who had just set those same terms up as the FIRST player can
+                     click the button and see an identical-looking screen a beat later, now the
+                     second player's turn to act on it, and have no way to tell their click
+                     actually landed. Before anyone has proposed, either negotiator may - the
+                     button's own "Propose" label already says that, so there's nothing to name
+                     here yet. -->
                 <div class="flex flex-wrap items-center justify-center gap-2 pb-4 text-[16px]">
-                    <span class="text-black/70">
-                        {turnPlayerId
-                            ? `${playerName(gameSession, turnPlayerId)}'s turn.`
-                            : 'Either player may open.'}
-                    </span>
+                    {#if turnPlayerId}
+                        <span class="text-black/70">{playerName(gameSession, turnPlayerId)}'s turn.</span>
+                    {/if}
                     {#if gameSession.isMyNegotiationTurn && gameSession.isNegotiator}
                         <button
                             type="button"
                             class="px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 text-[14px] font-semibold"
                             onclick={() => commitNegotiationOffer()}
                         >
-                            Sign
+                            {gameSession.isAcceptingNegotiationOffer ? 'Accept' : 'Propose'}
                         </button>
                         <span>or</span>
                     {/if}
