@@ -2033,6 +2033,25 @@ export class LowenherzGameSession extends GameSession<
         }
     }
 
+    // Whether a card that was just applied is still doing something right now, rather than a
+    // fresh APPLY being on offer - a Treasure stays armed (for a knight placement or a duel bid)
+    // with nothing else to click, so nothing on screen said applying it had actually landed.
+    // Renegade/Alliance immediately show their next step on the board itself (a highlighted
+    // region to click), so they don't need this - but are included for completeness, since a
+    // card mid-targeting-flow is exactly as "active" as an armed Treasure.
+    isPoliticsCardActive(card: PoliticsCard): boolean {
+        switch (card.type) {
+            case PoliticsCardType.Renegade:
+                return this.renegadeCardId === card.id
+            case PoliticsCardType.Alliance:
+                return this.allianceCardId === card.id
+            case PoliticsCardType.Treasure:
+                return this.selectedTreasureCard?.id === card.id || this.armedDuelTreasureIds.includes(card.id)
+            default:
+                return false
+        }
+    }
+
     // Every existing alliance the current player is a participant in and could afford to
     // cancel right now. "Any time" per the rulebook, which here means any time it's this
     // player's turn to act - laying a decision card, or spending an action they've won

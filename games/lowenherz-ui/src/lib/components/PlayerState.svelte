@@ -299,18 +299,30 @@
                 <!-- Never overlapped, never jittered/rotated - a card the player can actually
                      act on right now sits flush, with its own APPLY button
                      (GameSession.applyPoliticsCard) right on it. The card art itself isn't
-                     otherwise clickable, same as the overlapped group. -->
+                     otherwise clickable, same as the overlapped group. Once applying it has
+                     actually landed (see isPoliticsCardActive - an armed Treasure has nothing
+                     else on screen to confirm that), APPLY is replaced with an ACTIVE stripe
+                     instead of sitting there looking unclicked. -->
                 <div class="flex items-start gap-1.5 h-[103px] shrink-0">
                     {#each applicableCards as card (card.id)}
+                        {@const active = gameSession.isPoliticsCardActive(card)}
                         <div class="relative rounded-md" style="width: {CARD_W}px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);">
                             <PoliticsCardView {card} />
-                            <button
-                                type="button"
-                                class="absolute top-[15%] left-1/2 -translate-x-1/2 cursor-pointer rounded-lg bg-black/80 text-white text-xs tracking-widest px-3 py-1 border-2 border-transparent hover:border-white"
-                                onclick={() => gameSession.applyPoliticsCard(card)}
-                            >
-                                APPLY
-                            </button>
+                            {#if active}
+                                <div
+                                    class="absolute top-[15%] left-0 right-0 bg-red-700 text-white text-xs font-bold tracking-widest text-center py-1 pointer-events-none shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+                                >
+                                    ACTIVE
+                                </div>
+                            {:else}
+                                <button
+                                    type="button"
+                                    class="absolute top-[15%] left-1/2 -translate-x-1/2 cursor-pointer rounded-lg bg-black/80 text-white text-xs tracking-widest px-3 py-1 border-2 border-transparent hover:border-white"
+                                    onclick={() => gameSession.applyPoliticsCard(card)}
+                                >
+                                    APPLY
+                                </button>
+                            {/if}
                         </div>
                     {/each}
                 </div>
