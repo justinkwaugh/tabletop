@@ -128,11 +128,9 @@
     {#if action.kind === NegotiationMoveKind.Propose}
         {@const executedOffer = action.metadata?.executedOffer}
         {#if executedOffer}
-            proposed <PlayerName playerId={executedOffer.fromPlayerId} /> pay {executedOffer.amount} ducat{executedOffer.amount ===
-            1
-                ? ''
-                : 's'} — matching the standing offer, so it executed: they paid and performed the
-            action
+            accepted the proposal: <PlayerName playerId={executedOffer.fromPlayerId} /> pays <PlayerName
+                playerId={executedOffer.toPlayerId}
+            /> {executedOffer.amount} ducat{executedOffer.amount === 1 ? '' : 's'}
         {:else}
             proposed <PlayerName playerId={action.fromPlayerId ?? ''} /> pay {action.amount} ducat{action.amount ===
             1
