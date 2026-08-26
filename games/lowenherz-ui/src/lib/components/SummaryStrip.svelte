@@ -59,6 +59,38 @@
      their numbers so the numbers align on one line and the eye reads the figures first. -->
 <div class="px-3 pt-2 pb-1 flex items-start justify-center gap-12 border-b-2 border-black/20 text-black">
     <div class="flex flex-col items-center gap-0.5">
+        <div class="flex items-start gap-1.5">
+            {#each gameSession.gameState.players as ps (ps.playerId)}
+                {@const mineGain = minePointsByPlayerId.get(ps.playerId) ?? 0}
+                <span class="w-9 shrink-0 flex flex-col items-center gap-[3px]">
+                    <span
+                        class="w-full block text-center px-1 py-0.5 rounded-md font-bold text-white tabular-nums"
+                        style="background-color: {gameSession.colors.getPlayerUiColor(ps.playerId)}"
+                    >
+                        <Numeral value={ps.powerPoints} />
+                    </span>
+                    {#if mineGain > 0}
+                        <span
+                            class="w-full text-center px-1 py-0.5 rounded-md text-[13px] font-bold leading-none text-white shadow-sm"
+                            style="background-color: {gameSession.colors.getPlayerUiColor(ps.playerId)}"
+                            title="Silver Mine: power points for enclosed hills"
+                        >
+                            +<Numeral value={mineGain} />
+                        </span>
+                    {/if}
+                </span>
+            {/each}
+        </div>
+        <span
+            class="{anyMineGain
+                ? 'mt-2'
+                : ''} text-[13px] font-semibold uppercase tracking-wide text-black/60"
+        >
+            Points
+        </span>
+    </div>
+
+    <div class="flex flex-col items-center gap-0.5">
         <!-- The rectangle wraps only the pills themselves, not the caption below it (see the
              template's own placement, sibling to this) - highlighted (and the pills made
              clickable) only while choosing a pile is a live decision; the same pills read as a
@@ -98,38 +130,6 @@
         </div>
         <span class="text-[13px] font-semibold uppercase tracking-wide {choosingPolitics ? 'text-red-700' : 'text-black/60'}">
             {choosingPolitics ? 'Choose a deck' : 'Politics'}
-        </span>
-    </div>
-
-    <div class="flex flex-col items-center gap-0.5">
-        <div class="flex items-start gap-1.5">
-            {#each gameSession.gameState.players as ps (ps.playerId)}
-                {@const mineGain = minePointsByPlayerId.get(ps.playerId) ?? 0}
-                <span class="w-9 shrink-0 flex flex-col items-center gap-[3px]">
-                    <span
-                        class="w-full block text-center px-1 py-0.5 rounded-md font-bold text-white tabular-nums"
-                        style="background-color: {gameSession.colors.getPlayerUiColor(ps.playerId)}"
-                    >
-                        <Numeral value={ps.powerPoints} />
-                    </span>
-                    {#if mineGain > 0}
-                        <span
-                            class="w-full text-center px-1 py-0.5 rounded-md text-[13px] font-bold leading-none text-white shadow-sm"
-                            style="background-color: {gameSession.colors.getPlayerUiColor(ps.playerId)}"
-                            title="Silver Mine: power points for enclosed hills"
-                        >
-                            +<Numeral value={mineGain} />
-                        </span>
-                    {/if}
-                </span>
-            {/each}
-        </div>
-        <span
-            class="{anyMineGain
-                ? 'mt-2'
-                : ''} text-[13px] font-semibold uppercase tracking-wide text-black/60"
-        >
-            Points
         </span>
     </div>
 </div>
