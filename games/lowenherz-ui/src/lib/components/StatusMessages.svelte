@@ -750,7 +750,7 @@
              The rows now centre on each other, and the column centres on the game column, which is
              the same column ScalingWrapper centres the board in. -->
         <div class="flex flex-col items-center text-black text-sm">
-            <div class="flex flex-wrap items-center justify-center gap-2 pb-3 text-[16px]">
+            <div class="flex flex-wrap items-center justify-center gap-2 pb-5 text-[16px]">
                 <!-- Side by side rather than stacked. Two names in a column made this box two lines
                      tall on its own, which set the height of the whole row and so of the space the
                      panel takes above the board. The caption underneath is what the stacked layout
@@ -775,11 +775,14 @@
                          centres on the row exactly as the sentence text does. In flow the column
                          was box-plus-caption tall, and items-center centred THAT - which lifted the
                          names about half a caption above the line they are meant to sit on. The
-                         row's pb-3 is where this now sits, and leading-none is what lets that
-                         padding be 12px: without it the span inherits the column's text-sm
-                         line-height (20px), so a 22px caption sat under a 16px pad and all but
-                         touched the row below - the two rows could not close up until the
-                         caption stopped being taller than the space reserved for it. -->
+                         row's bottom padding is where this now sits, and leading-none is what lets
+                         a 12px pad hold a 10px caption at all: without it the span inherits the
+                         column's text-sm line-height (20px), so a 22px caption sat under a 16px pad
+                         and all but touched the row below - the two rows could not close up until
+                         the caption stopped being taller than the space reserved for it. The pad is
+                         pb-5 now, not the 12px minimum that math needs - Justin wanted more air
+                         between this row and the next, and the caption just rides in the extra
+                         space above the row boundary rather than needing it. -->
                     <span
                         class="absolute top-full mt-0.5 text-[10px] leading-none text-black/50 whitespace-nowrap"
                     >
@@ -787,24 +790,30 @@
                     </span>
                 </div>
                 <span>{gameSession.negotiationProposerId === gameSession.myPlayer?.id ? 'offer' : 'offers'}</span>
-                <button
-                    type="button"
-                    class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
-                    disabled={!gameSession.isMyNegotiationTurn || gameSession.negotiationAmount <= 1}
-                    onclick={() => gameSession.setNegotiationAmount(Math.max(1, gameSession.negotiationAmount - 1))}
-                >
-                    −
-                </button>
-                <span class="w-6 text-center font-semibold">{gameSession.negotiationAmount}</span>
-                <button
-                    type="button"
-                    class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
-                    disabled={!gameSession.isMyNegotiationTurn ||
-                        gameSession.negotiationAmount >= negotiationProposerMoney}
-                    onclick={() => gameSession.setNegotiationAmount(gameSession.negotiationAmount + 1)}
-                >
-                    +
-                </button>
+                <!-- Its own tight-gap group, separate from the row's gap-2: that gap reads fine
+                     between unrelated segments (the picker, "offer(s)", this trio, "ducats to"),
+                     but stacked with the -/+ buttons' own px-2 it left the number floating rather
+                     than looking bound to the controls that change it. -->
+                <span class="flex items-center gap-0.5">
+                    <button
+                        type="button"
+                        class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
+                        disabled={!gameSession.isMyNegotiationTurn || gameSession.negotiationAmount <= 1}
+                        onclick={() => gameSession.setNegotiationAmount(Math.max(1, gameSession.negotiationAmount - 1))}
+                    >
+                        −
+                    </button>
+                    <span class="w-6 text-center font-semibold">{gameSession.negotiationAmount}</span>
+                    <button
+                        type="button"
+                        class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
+                        disabled={!gameSession.isMyNegotiationTurn ||
+                            gameSession.negotiationAmount >= negotiationProposerMoney}
+                        onclick={() => gameSession.setNegotiationAmount(gameSession.negotiationAmount + 1)}
+                    >
+                        +
+                    </button>
+                </span>
                 <span class="flex items-center gap-1">
                     ducat{gameSession.negotiationAmount === 1 ? '' : 's'} to
                     {#if negotiationOtherPlayerId}
@@ -816,6 +825,7 @@
             {#if gameSession.gameState.machineState === MachineState.Negotiating}
                 <div class="flex flex-wrap items-center justify-center gap-2 pb-4 text-[16px]">
                     {#if gameSession.isMyNegotiationTurn && gameSession.isNegotiator}
+                        <span>Modify the above,</span>
                         <button
                             type="button"
                             class="px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 text-[14px] font-semibold"
