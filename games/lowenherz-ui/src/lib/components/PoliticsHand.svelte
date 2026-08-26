@@ -233,9 +233,9 @@
     // turn) via the existing multi-step targeting flow (this is just a second entry
     // point into the same session methods, alongside the glowing card in the player
     // panel splay - see PlayerState.svelte). Treasure has no dedicated "play" action
-    // of its own - applying it here just arms it (the same
-    // selectTreasureCard() mechanism RealBoard's wooded-square picker and the duel-bid
-    // form already use), for the next knight placement or duel bid to pick up.
+    // of its own - applying it here just arms it, for the next knight placement
+    // (selectTreasureCard - one card at a time) or duel bid (armDuelTreasure - any
+    // number, since nothing in the rulebook caps a bid at one) to pick up.
     function canApplyCard(card: PoliticsCardData): boolean {
         if (!viewingMyHand) return false
         switch (card.type) {
@@ -259,7 +259,11 @@
                 gameSession.startPlayingAllianceCard(card.id)
                 break
             case PoliticsCardType.Treasure:
-                gameSession.selectTreasureCard(card.id)
+                if (gameSession.canSubmitDuelBid) {
+                    gameSession.armDuelTreasure(card.id)
+                } else {
+                    gameSession.selectTreasureCard(card.id)
+                }
                 break
         }
         // The remaining steps (picking regions/squares, or entering a bid) happen on

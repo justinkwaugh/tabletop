@@ -149,11 +149,17 @@
         took an unrecognized negotiation action
     {/if}
 {:else if isSubmitDuelBid(action)}
-    bid {action.amount} ducat{action.amount === 1 ? '' : 's'}{#if action.metadata?.treasureCardUsed}
-        {' '}+ a {politicsCardLabel(
-            action.metadata.treasureCardUsed.type,
-            action.metadata.treasureCardUsed.value
-        )} card
+    {@const treasuresUsed = action.metadata?.treasureCardsUsed ?? []}
+    bid {action.amount} ducat{action.amount === 1 ? '' : 's'}{#if treasuresUsed.length > 0}
+        {' '}+ {treasuresUsed.length === 1 ? 'a ' : ''}{#each treasuresUsed as treasureCard, i (i)}{i >
+                0
+                    ? i === treasuresUsed.length - 1
+                        ? ' and '
+                        : ', '
+                    : ''}{politicsCardLabel(treasureCard.type, treasureCard.value)}{/each} card{treasuresUsed.length ===
+        1
+            ? ''
+            : 's'}
     {/if} in the duel{#if action.metadata?.duelResult};{/if}
     {#if action.metadata?.duelResult === 'win' && action.metadata.winnerId}
         <br /><PlayerName playerId={action.metadata.winnerId} /> won the duel
