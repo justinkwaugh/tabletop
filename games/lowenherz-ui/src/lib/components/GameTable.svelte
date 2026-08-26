@@ -102,6 +102,11 @@
                 <!-- Below the toolbar so Undo stays at the very top, and outside ScalingWrapper
                      below so none of this text scales with the board. -->
                 <StatusMessages />
+                <!-- Also outside ScalingWrapper, and part of this shrink-0 column rather than a
+                     floating overlay: it reserves real height here, pushing the board down (via
+                     the ScalingWrapper below shrinking into whatever's left) while a pile is
+                     being chosen/dealt from, instead of floating over whatever's on screen. -->
+                <PoliticsPileChooser />
             </div>
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
@@ -118,8 +123,3 @@
      `position: fixed` is genuinely relative to the browser viewport, not scaled or
      clipped by the board's own responsive scaling. -->
 <PoliticsHand />
-
-<!-- Also outside ScalingWrapper, for the same reason as PoliticsHand: it measures and
-     positions itself against the real board frame, so it must not sit inside the
-     board's own CSS transform. -->
-<PoliticsPileChooser />

@@ -28,33 +28,15 @@
 
     const showing = $derived(gameSession.canTakePoliticsCard)
 
-    // Desktop width. On a phone, min() takes over - see the old overlay's own note on this,
-    // which this component replaces.
-    const CARD_WIDTH = 150
-    const CARD_WIDTH_CSS = `min(${CARD_WIDTH}px, 38vw)`
-    const PILE_GAP_CSS = 'clamp(0.75rem, 4vw, 2.5rem)'
-
-    // Positioned against the real board frame - measured live, not a static layout slot, so this
-    // tracks the board at any zoom/scroll. Unlike the overlay it replaces, there is no backdrop
-    // and nothing else on screen is blocked: this sits visually above the board rather than
-    // covering it. One fixed spot for the whole component (both phases share it): the slide below
-    // is a pure horizontal move within this same band, not a move to some other part of the
-    // screen, so nothing needs to jump vertically between phases.
-    let boardRect: { left: number; bottom: number; width: number } | undefined = $state(undefined)
-
-    function measure() {
-        const rect = document.getElementById('lowenherz-board-frame')?.getBoundingClientRect()
-        boardRect = rect ? { left: rect.left, bottom: rect.top - 16, width: rect.width } : undefined
-    }
-
-    function trackBoardRect() {
-        measure()
-        window.addEventListener('resize', measure)
-        return () => {
-            window.removeEventListener('resize', measure)
-            boardRect = undefined
-        }
-    }
+    // Same fixed size PlayerState uses for the cards in a player's own hand - smaller than this
+    // component used to render its piles/cards at, and, being real layout (see the wrapping
+    // <div> below, and GameTable.svelte's placement of this component), a known fixed size here
+    // is what lets the row above the board reserve a known, stable height for itself rather than
+    // resizing as vw-relative cards would.
+    const CARD_W = 66
+    const CARD_H = 103
+    const CARD_WIDTH_CSS = `${CARD_W}px`
+    const PILE_GAP = 12 // px, between the two piles in the choosing step
 
     function canSelectPile(pile: 'A' | 'B'): boolean {
         if (!showing || slidingPile || chosenPile) return false
@@ -64,6 +46,7 @@
     const SLIDE_DURATION = 450 // ms
     const FADE_DURATION = 200 // ms - the unchosen pile going away
 
+    let rootEl: HTMLElement | undefined = $state()
     let pileElA: HTMLElement | undefined = $state()
     let pileElB: HTMLElement | undefined = $state()
 
@@ -77,7 +60,7 @@
         if (!canSelectPile(pile)) return
         const chosenEl = pile === 'A' ? pileElA : pileElB
         const otherEl = pile === 'A' ? pileElB : pileElA
-        if (!chosenEl) return
+        if (!chosenEl || !rootEl) return
 
         gameSession.errorMessage = undefined
         // Erases the instructions and the unchosen pile (see the template's {#if !slidingPile}
@@ -86,10 +69,11 @@
 
         if (otherEl) gsap.to(otherEl, { opacity: 0, duration: FADE_DURATION / 1000, ease: 'power1.out' })
 
-        // Purely horizontal: the pile is already sitting at the right height (above the board),
-        // it only needs to move to this same band's left edge - not up, down, or diagonally.
+        // Purely horizontal: the pile is already sitting at the right height (this component's
+        // own row, above the board), it only needs to move to that row's own left edge.
+        const rootRect = rootEl.getBoundingClientRect()
         const startRect = chosenEl.getBoundingClientRect()
-        const dx = (boardRect?.left ?? 12) - startRect.left
+        const dx = rootRect.left - startRect.left
 
         await new Promise<void>((resolve) => {
             gsap.to(chosenEl, {
@@ -213,7 +197,7 @@
         <PoliticsCard card={pileCards[0]} faceDown />
     {:else}
         <div
-            class="aspect-[534/832] rounded-md border border-dashed border-white/40 bg-black/70 flex items-center justify-center text-white/60 text-sm"
+            class="aspect-[534/832] rounded-md border border-dashed border-black/30 flex items-center justify-center text-black/40 text-[10px]"
         >
             empty
         </div>
@@ -221,7 +205,7 @@
     {#if showCount && pileCards.length > 0}
         <span
             class="absolute inset-0 flex items-center justify-center text-white font-bold pointer-events-none"
-            style="font-size: 84px; line-height: 1; text-shadow: 0 0 8px rgba(0, 0, 0, 0.85), 0 0 16px rgba(0, 0, 0, 0.6);"
+            style="font-size: 36px; line-height: 1; text-shadow: 0 0 6px rgba(0, 0, 0, 0.85), 0 0 10px rgba(0, 0, 0, 0.6);"
         >
             {pileCards.length}
         </span>
@@ -229,43 +213,33 @@
 {/snippet}
 
 {#if showing}
-    <!-- Fixed, not inside ScalingWrapper's transformed subtree, same as the overlay this replaces
-         - but measured against the board frame's live rect and anchored by its BOTTOM edge (see
-         boardRect.bottom) so this sits just above the board's top edge at any zoom/scroll, growing
-         upward as its content changes height, rather than the frame's top edge growing downward
-         into the board. No backdrop: nothing else on screen dims or gets blocked. -->
-    <div
-        {@attach trackBoardRect}
-        class="fixed z-40 pointer-events-none flex flex-col items-start"
-        style="left: {boardRect?.left ?? 12}px; bottom: calc(100vh - {boardRect?.bottom ??
-            120}px); width: {boardRect?.width ?? 340}px;"
-    >
+    <!-- Real layout, not a floating overlay: this sits above ScalingWrapper's board in
+         GameTable.svelte's own shrink-0 column, so it reserves actual height and pushes the
+         board down while it's up, rather than floating over whatever's there. No backdrop
+         either way: nothing else on screen dims or gets blocked. -->
+    <div bind:this={rootEl} class="flex flex-col items-center py-2" style="min-height: {CARD_H + 40}px;">
         {#if !revealed}
             <!-- Choosing step: both piles stay mounted throughout the slide (see choosePile) - the
                  unchosen one fades via GSAP rather than being removed, so the DOM node the chosen
                  one is mid-animation on never gets torn down out from under it. -->
             {#if !slidingPile}
-                <div
-                    class="pointer-events-auto self-center mb-2 rounded-full bg-black/70 px-3 py-1 text-white text-lg font-semibold drop-shadow"
-                >
-                    Choose a politics pile:
-                </div>
+                <div class="mb-2 text-black text-lg font-semibold">Choose a politics pile:</div>
             {/if}
             {#if gameSession.errorMessage}
                 <div
-                    class="pointer-events-auto self-center mb-2 max-w-[420px] rounded-md bg-red-900/90 border border-red-300/50 px-3 py-2 text-center text-white text-base"
+                    class="mb-2 max-w-[420px] rounded-md bg-red-900/90 border border-red-300/50 px-3 py-2 text-center text-white text-sm"
                 >
                     {gameSession.errorMessage}
                 </div>
             {/if}
-            <div class="pointer-events-auto self-center flex items-start" style="gap: {PILE_GAP_CSS};">
+            <div class="flex items-start" style="gap: {PILE_GAP}px;">
                 <button
                     type="button"
                     disabled={!canSelectPile('A')}
                     bind:this={pileElA}
                     onclick={() => choosePile('A')}
                     style="width: {CARD_WIDTH_CSS};"
-                    class="relative rounded-md shadow-[0_10px_28px_rgba(0,0,0,0.5)] transition-transform {canSelectPile(
+                    class="relative rounded-md shadow-[0_6px_16px_rgba(0,0,0,0.4)] transition-transform {canSelectPile(
                         'A'
                     )
                         ? 'cursor-pointer hover:-translate-y-1'
@@ -279,7 +253,7 @@
                     bind:this={pileElB}
                     onclick={() => choosePile('B')}
                     style="width: {CARD_WIDTH_CSS};"
-                    class="relative rounded-md shadow-[0_10px_28px_rgba(0,0,0,0.5)] transition-transform {canSelectPile(
+                    class="relative rounded-md shadow-[0_6px_16px_rgba(0,0,0,0.4)] transition-transform {canSelectPile(
                         'B'
                     )
                         ? 'cursor-pointer hover:-translate-y-1'
@@ -290,35 +264,33 @@
             </div>
         {:else}
             <!-- Revealed step: a fresh pile element (not the button that just slid - see the
-                 note below), inert, sitting at the same left edge it landed on, with its cards
-                 fanned out to the right. Its count badge drops off here: unlike the choosing
-                 step, where it told you what you couldn't see yet, the count is just as visible
-                 in the row itself now. -->
-            <div class="pointer-events-auto flex flex-col gap-2">
-                <div class="rounded-full bg-black/70 px-3 py-1 text-white text-lg font-semibold drop-shadow w-fit">
-                    Click a card to take it.
-                </div>
+                 note below), inert, sitting at this row's own left edge, with its cards fanned
+                 out to the right. Its count badge drops off here: unlike the choosing step,
+                 where it told you what you couldn't see yet, the count is just as visible in
+                 the row itself now. -->
+            <div class="w-full flex flex-col gap-2">
+                <div class="text-black text-lg font-semibold w-fit">Click a card to take it.</div>
                 {#if gameSession.errorMessage}
                     <div
-                        class="max-w-[420px] rounded-md bg-red-900/90 border border-red-300/50 px-3 py-2 text-center text-white text-base"
+                        class="max-w-[420px] rounded-md bg-red-900/90 border border-red-300/50 px-3 py-2 text-center text-white text-sm"
                     >
                         {gameSession.errorMessage}
                     </div>
                 {/if}
-                <div class="flex flex-wrap items-start gap-3">
+                <div class="flex flex-wrap items-start gap-2">
                     <!-- A fresh element, not the pile button that just slid in (the {#if}/{:else}
                          above tore that one down) - it lands in the same visual spot regardless,
-                         both being "the leftmost item in a row anchored to the board's left edge",
-                         so there's nothing to keep continuous here. Its own attachment captures
-                         dealOrigin from wherever it actually renders, which is what the cards
-                         below (and a declined card's return flight) fly from/to. -->
+                         both being "the leftmost item in this row", so there's nothing to keep
+                         continuous here. Its own attachment captures dealOrigin from wherever it
+                         actually renders, which is what the cards below (and a declined card's
+                         return flight) fly from/to. -->
                     <div
                         {@attach (el) => {
                             const rect = el.getBoundingClientRect()
                             dealOrigin = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
                         }}
                         style="width: {CARD_WIDTH_CSS};"
-                        class="relative opacity-80 pointer-events-none"
+                        class="relative opacity-80"
                     >
                         {@render pileFace(cards, false)}
                     </div>
