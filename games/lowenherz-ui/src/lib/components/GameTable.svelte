@@ -98,22 +98,27 @@
                         <PoliticsPileReveal />
                     </div>
                 </div>
-                <!-- The default active pill is bg-gray-300, which reads as a stray UI chip on
-                     the parchment. bg-black/15 introduces no new hue at all - it just darkens
-                     whatever the parchment already is, so the selected tab reads as a pressed
-                     area of the same surface rather than a separate object sitting on it. -->
-                <DefaultTabs
-                    activeTabClass="py-1 px-3 bg-black/15 border-2 border-black/25 rounded-lg text-black font-semibold"
-                    inactiveTabClass="text-black py-1 px-3 rounded-lg border-2 border-transparent hover:border-black/40"
-                >
-                    {#snippet playersPanel()}
-                        <PlayersPanel />
-                        <TestingControls />
-                    {/snippet}
-                    {#snippet history()}
-                       <History />
-                    {/snippet}
-                </DefaultTabs>
+                <!-- pt-2: SummaryStrip's own bottom border sits directly above this (through
+                     PoliticsPileReveal, which takes up no space when empty) with no gap of its
+                     own, and the tab buttons were crowding that line. -->
+                <div class="pt-2">
+                    <!-- The default active pill is bg-gray-300, which reads as a stray UI chip on
+                         the parchment. bg-black/15 introduces no new hue at all - it just darkens
+                         whatever the parchment already is, so the selected tab reads as a pressed
+                         area of the same surface rather than a separate object sitting on it. -->
+                    <DefaultTabs
+                        activeTabClass="py-1 px-3 bg-black/15 border-2 border-black/25 rounded-lg text-black font-semibold"
+                        inactiveTabClass="text-black py-1 px-3 rounded-lg border-2 border-transparent hover:border-black/40"
+                    >
+                        {#snippet playersPanel()}
+                            <PlayersPanel />
+                            <TestingControls />
+                        {/snippet}
+                        {#snippet history()}
+                           <History />
+                        {/snippet}
+                    </DefaultTabs>
+                </div>
             </div>
         {/snippet}
         {#snippet gameContent()}
