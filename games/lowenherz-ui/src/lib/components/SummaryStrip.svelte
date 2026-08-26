@@ -67,7 +67,7 @@
         <div class="relative">
             {#if choosingPolitics}
                 <div
-                    class="absolute -inset-1.5 rounded-md border-2 border-red-600 pointer-events-none"
+                    class="absolute -top-1 -bottom-1 -left-[5px] -right-[5px] rounded-md border-2 border-red-600 pointer-events-none"
                     style="box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.25);"
                 ></div>
             {/if}
@@ -97,7 +97,7 @@
             </div>
         </div>
         <span class="text-[13px] font-semibold uppercase tracking-wide {choosingPolitics ? 'text-red-700' : 'text-black/60'}">
-            {choosingPolitics ? 'Choose a deck.' : 'Politics'}
+            {choosingPolitics ? 'Choose a deck' : 'Politics'}
         </span>
     </div>
 
