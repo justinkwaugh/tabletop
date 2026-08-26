@@ -315,9 +315,13 @@
                                     ACTIVE
                                 </div>
                             {:else}
+                                <!-- left-0/right-0 rather than centered-on-content (as the
+                                     peek overlay's own larger APPLY button still is): sized to
+                                     its text/padding instead of the card, it ran wider than
+                                     this card's 66px. Stretched to match, it can't. -->
                                 <button
                                     type="button"
-                                    class="absolute top-[15%] left-1/2 -translate-x-1/2 cursor-pointer rounded-lg bg-black/80 text-white text-xs tracking-widest px-3 py-1 border-2 border-transparent hover:border-white"
+                                    class="absolute top-[15%] left-0 right-0 cursor-pointer bg-black/80 text-white text-[10px] font-bold tracking-wide text-center py-1 border-2 border-transparent hover:border-white"
                                     onclick={() => gameSession.applyPoliticsCard(card)}
                                 >
                                     APPLY
