@@ -764,7 +764,7 @@
                                 disabled={!gameSession.isMyNegotiationTurn}
                                 class={gameSession.negotiationProposerId === playerId
                                     ? ''
-                                    : 'opacity-40 hover:opacity-70'}
+                                    : 'opacity-30 hover:opacity-70'}
                                 onclick={() => gameSession.setNegotiationProposer(playerId)}
                             >
                                 {@render playerPill(playerId)}
