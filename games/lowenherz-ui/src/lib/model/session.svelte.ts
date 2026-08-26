@@ -200,12 +200,19 @@ export class LowenherzGameSession extends GameSession<
     private duelBids: { signature: string; amounts: Record<string, number> } | undefined =
         $state(undefined)
 
-    // The duel being bid in: its slot, its players, and how many ties it has been through. Any of
-    // those changing is a different duel.
+    // The duel being bid in: its slot, its players, how many ties it has been through, and how
+    // many slots have resolved so far. That last part is load-bearing, not decoration: slot is
+    // always just 1/2/3 (recycled every round), and in a 2-player game the duelists are always
+    // the same two people - so a LATER duel over the same-numbered slot, between the same
+    // players, with no ties yet, would otherwise produce the exact same signature as an earlier,
+    // already-resolved one, and read that duel's stale bid/Treasure draft as still current.
+    // resolvedSlots.length only advances once a duel (this one included) actually finishes, so it
+    // stays constant for the live duel's whole bidding phase - including across a re-duel, which
+    // bumps tieCount instead - and is different for every duel that isn't that same live instance.
     private get duelSignature(): string | undefined {
         const duel = this.gameState.duel
         if (!duel) return undefined
-        return `${duel.slot}:${duel.playerIds.join(',')}:${duel.tieCount}`
+        return `${duel.slot}:${duel.playerIds.join(',')}:${duel.tieCount}:${this.gameState.resolvedSlots.length}`
     }
 
     get duelBidAmounts(): Record<string, number> {
