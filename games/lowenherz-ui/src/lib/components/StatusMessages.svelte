@@ -805,23 +805,7 @@
             </div>
 
             {#if gameSession.gameState.machineState === MachineState.Negotiating}
-                {@const turnPlayerId = negotiation.lastProposedBy
-                    ? negotiation.playerIds.find((id) => id !== negotiation.lastProposedBy)
-                    : undefined}
-                <!-- Whoever's turn it is named explicitly, once there is one - not just when
-                     you're the one waiting. In hotseat, proposing hands activePlayerIds (and so
-                     myPlayer) to the other side immediately, and the picker/amount reset to mirror
-                     the new standing offer - so without a name that visibly changes here, a solo
-                     hotseat tester who had just set those same terms up as the FIRST player can
-                     click the button and see an identical-looking screen a beat later, now the
-                     second player's turn to act on it, and have no way to tell their click
-                     actually landed. Before anyone has proposed, either negotiator may - the
-                     button's own "Propose" label already says that, so there's nothing to name
-                     here yet. -->
                 <div class="flex flex-wrap items-center justify-center gap-2 pb-4 text-[16px]">
-                    {#if turnPlayerId}
-                        <span class="text-black/70">{playerName(gameSession, turnPlayerId)}'s turn.</span>
-                    {/if}
                     {#if gameSession.isMyNegotiationTurn && gameSession.isNegotiator}
                         <button
                             type="button"
