@@ -6,12 +6,14 @@
 
     const gameSession = getGameSession()
 
-    // A read-only peek at cards you already hold, triggered by hovering/clicking your own pile in
-    // the player panel (see PlayerState.svelte). The pile-choosing/draw flow used to share this
-    // same floating-overlay chrome and deal-in animation, but has its own presentation now
-    // (SummaryStrip's highlighted count pills to choose, PoliticsPileReveal to deal the cards in
-    // the space that opens up beside them) - this dismissible, full-screen overlay is purely for
-    // the peek.
+    // A read-only peek at cards you already hold. PlayerState's own splay is legible on its own
+    // now (an applicable card carries its own APPLY button directly), so this is only reachable
+    // one way: StatusMessages' duel panel, when a duelist holds more than one Treasure card and
+    // needs to pick which one to arm (see its "+ Treasure?" button, showMyPoliticsCards). The
+    // pile-choosing/draw flow used to share this same floating-overlay chrome and deal-in
+    // animation, but has its own presentation now (SummaryStrip's highlighted count pills to
+    // choose, PoliticsPileReveal to deal the cards in the space that opens up beside them) - this
+    // dismissible, full-screen overlay is purely for the peek.
     const isOpen = $derived(gameSession.viewingMyPoliticsCards)
     const cards = $derived(gameSession.myPoliticsCards)
 
