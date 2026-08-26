@@ -777,7 +777,7 @@
                         Choose a player
                     </span>
                 </div>
-                <span>offers</span>
+                <span>{gameSession.negotiationProposerId === gameSession.myPlayer?.id ? 'offer' : 'offers'}</span>
                 <button
                     type="button"
                     class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
@@ -861,7 +861,7 @@
     {#if gameSession.gameState.machineState === MachineState.Dueling && gameSession.gameState.duel}
         {@const duel = gameSession.gameState.duel}
         {@const myId = gameSession.myPlayer?.id}
-        <div class="flex flex-col gap-1 text-black text-[18px]">
+        <div class="flex flex-col gap-1 text-black text-[16px]">
             <!-- Your own bid form, and nothing else - the duelists are named in the status bar
                  rather than getting a row each, and a sealed bid means an opponent's row would
                  have had nothing actionable on it anyway.
