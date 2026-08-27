@@ -24,12 +24,17 @@
 
     // How many cards have actually finished dealing out - drives the leftover "deck" placeholder
     // (see the slotRows/template below): it fades away once dealtCount reaches every card in the
-    // pile, the last card's own arrival being what "empties" it. Reset whenever a NEW pile is
-    // chosen - not on every render while the same one is still dealing - since this only reads
-    // `pile`, which only changes value on an actual new selection.
+    // pile, the last card's own arrival being what "empties" it, and gives way to a dashed empty
+    // outline (see deckEmptied). Reset whenever a NEW pile is chosen - not on every render while
+    // the same one is still dealing - since this only reads `pile`, which only changes value on
+    // an actual new selection.
     let dealtCount = $state(0)
+    let deckEmptied = $state(false)
     $effect(() => {
-        if (pile) dealtCount = 0
+        if (pile) {
+            dealtCount = 0
+            deckEmptied = false
+        }
     })
 
     // measuredWidth is this component's OWN fallback measurement, for the one case
@@ -152,17 +157,36 @@
     // for it, occupying slot 0 of the row (see slotRows above) rather than being positioned
     // separately, so it picks up exactly where PoliticsDeckChooser's own exit animation left the
     // chosen deck sitting without either component having to calculate that position by hand.
-    // Stays in the flex flow even once faded (see the effect below), rather than being removed -
-    // that's what keeps every card after it from shifting once the deck disappears. Faded away
-    // once dealtCount reaches every card in the pile - the last card's own arrival is what
-    // "empties" it, same idea as PoliticsDeckChooser fading the OTHER deck, so a plain GSAP tween
-    // rather than a Svelte transition keeps that consistent.
+    // Faded away once dealtCount reaches every card in the pile - the last card's own arrival is
+    // what "empties" it, same idea as PoliticsDeckChooser fading the OTHER deck, so a plain GSAP
+    // tween rather than a Svelte transition keeps that consistent - and once that fade actually
+    // finishes, deckEmptied swaps it for a dashed outline (see the template), the same "nothing's
+    // here" look PoliticsDeckChooser itself uses for a genuinely empty pile. Both stay in the flex
+    // flow the whole time (the outline takes over the same slot, not a new one), so nothing after
+    // it ever shifts.
     let deckEl: HTMLElement | undefined = $state()
     $effect(() => {
-        if (cards.length > 0 && dealtCount >= cards.length && deckEl) {
-            gsap.to(deckEl, { opacity: 0, scale: 0.8, duration: 0.25, ease: 'power1.in' })
+        if (cards.length > 0 && dealtCount >= cards.length && deckEl && !deckEmptied) {
+            gsap.to(deckEl, {
+                opacity: 0,
+                scale: 0.8,
+                duration: 0.25,
+                ease: 'power1.in',
+                onComplete: () => {
+                    deckEmptied = true
+                }
+            })
         }
     })
+
+    // The dashed outline's own entrance, once it takes over from the emptied deck - a plain fade
+    // in, matching how every other appearance in this file is animated with GSAP rather than a
+    // Svelte transition.
+    function fadeIn(el: HTMLElement) {
+        gsap.set(el, { opacity: 0 })
+        const tl = gsap.to(el, { opacity: 1, duration: 0.2, ease: 'power1.out' })
+        return () => tl.kill()
+    }
 
     // Set for the whole choreographed sequence below, once a card has been clicked - disables
     // further clicks until it finishes.
@@ -292,9 +316,17 @@
                     <div class="flex items-start justify-center gap-2">
                         {#each row as slot (slot.kind === 'deck' ? 'deck' : slot.card.id)}
                             {#if slot.kind === 'deck'}
-                                <div style="width: {cardWidthCss};" bind:this={deckEl}>
-                                    <PoliticsCard card={cards[0]} faceDown />
-                                </div>
+                                {#if !deckEmptied}
+                                    <div style="width: {cardWidthCss};" bind:this={deckEl}>
+                                        <PoliticsCard card={cards[0]} faceDown />
+                                    </div>
+                                {:else}
+                                    <div
+                                        {@attach fadeIn}
+                                        class="aspect-[534/832] rounded-md border border-dashed border-black/25"
+                                        style="width: {cardWidthCss};"
+                                    ></div>
+                                {/if}
                             {:else}
                                 <button
                                     type="button"
