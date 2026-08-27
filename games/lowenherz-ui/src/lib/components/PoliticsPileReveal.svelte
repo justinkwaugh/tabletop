@@ -110,7 +110,7 @@
     const FOCUS_MOVE_DURATION = 350 // ms - flying to center and enlarging
     const FOCUS_HOLD_DURATION = 500 // ms - the pause once it's there
     const FOCUS_FADE_DURATION = 300 // ms - scaling/fading out in place, after the hold
-    const FOCUS_SCALE = 1.3
+    const FOCUS_SCALE = 1.17
 
     function addFlight(
         tl: gsap.core.Timeline,
