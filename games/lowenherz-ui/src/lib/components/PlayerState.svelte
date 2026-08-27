@@ -120,13 +120,42 @@
         return !!isTurn
     }
 
+    // Applicable cards that are visually identical - same type, and same printed value for
+    // Parchment/Treasure (Alliance/Renegade have no value at all, so any two of one type are
+    // already identical) - get stacked together (see DUPLICATE_STEP) rather than each claiming
+    // a full card's width, so a hand with several copies of the same applicable card doesn't run
+    // the applicable row out of room. Grouping, not deduplicating: every card in a group still
+    // gets its own APPLY/ACTIVE button underneath, since a Treasure card's arming in particular
+    // is genuinely per-card (see GameSession.armDuelTreasure's own comment - a bid can be backed
+    // by more than one Treasure card at once, each independently armed).
+    type ApplicableGroup = { key: string; cards: PoliticsCard[] }
+    const applicableGroups = $derived.by(() => {
+        const groups = new Map<string, PoliticsCard[]>()
+        for (const card of applicableCards) {
+            const key = `${card.type}:${card.value ?? ''}`
+            const existing = groups.get(key)
+            if (existing) existing.push(card)
+            else groups.set(key, [card])
+        }
+        return Array.from(groups, ([key, cards]): ApplicableGroup => ({ key, cards }))
+    })
+
+    // How far a stacked duplicate peeks out from the one in front of it - enough to still show
+    // there's more than one underneath (and to keep each one's own APPLY/ACTIVE band, which spans
+    // the card's full width, clickable in that sliver), but well short of a whole card's width.
+    const DUPLICATE_STEP = 18
+    function groupWidth(count: number): number {
+        return CARD_W + (count - 1) * DUPLICATE_STEP
+    }
+
     // Room the always-flat applicable row needs, plus the gap between it and the
     // overlapped stack - subtracted from the overlapped stack's own available width below,
     // so the two groups never fight each other for space.
     const GROUP_GAP = 10
     const applicableWidth = $derived(
-        applicableCards.length > 0
-            ? applicableCards.length * CARD_W + (applicableCards.length - 1) * CARD_GAP
+        applicableGroups.length > 0
+            ? applicableGroups.reduce((sum, group) => sum + groupWidth(group.cards.length), 0) +
+                  (applicableGroups.length - 1) * CARD_GAP
             : 0
     )
 
@@ -314,41 +343,62 @@
                     {/each}
                 </div>
             {/if}
-            {#if applicableCards.length > 0}
-                <!-- Never overlapped, never jittered/rotated - a card the player can actually
-                     act on right now sits flush, with its own APPLY button
+            {#if applicableGroups.length > 0}
+                <!-- Never jittered/rotated like the overlapped group below, and never compressed
+                     smaller than DUPLICATE_STEP apart - a card the player can actually act on
+                     right now sits close to flush, with its own APPLY button
                      (GameSession.applyPoliticsCard) right on it. The card art itself isn't
                      otherwise clickable, same as the overlapped group. Once applying it has
                      actually landed (see isPoliticsCardActive - an armed Treasure has nothing
                      else on screen to confirm that), APPLY is replaced with an ACTIVE stripe
                      instead of sitting there looking unclicked. -->
                 <div class="flex items-start gap-1.5 h-[103px] shrink-0">
-                    {#each applicableCards as card (card.id)}
-                        {@const active = gameSession.isPoliticsCardActive(card)}
-                        <div class="relative rounded-md" style="width: {CARD_W}px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);">
-                            <PoliticsCardView {card} />
-                            {#if active}
+                    {#each applicableGroups as group (group.key)}
+                        <!-- Duplicates of the same applicable card (see applicableGroups) stack
+                             within their own group instead of each claiming a full card's width -
+                             mostly overlapping, but each still peeking out enough (DUPLICATE_STEP)
+                             to show there's more than one AND to keep its own APPLY/ACTIVE band
+                             (which spans its card's full width) clickable in that sliver. A
+                             group of one behaves exactly as a lone applicable card always did. -->
+                        <div class="relative h-full shrink-0" style="width: {groupWidth(group.cards.length)}px;">
+                            {#each group.cards as card, i (card.id)}
+                                {@const active = gameSession.isPoliticsCardActive(card)}
                                 <div
-                                    class="absolute top-[15%] left-0 right-0 bg-red-700 text-white text-xs font-bold tracking-widest text-center py-1 pointer-events-none shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+                                    class="absolute top-0 rounded-md"
+                                    style="
+                                        left: {i * DUPLICATE_STEP}px;
+                                        width: {CARD_W}px;
+                                        z-index: {i};
+                                        box-shadow: {i > 0
+                                        ? '2px 0 3px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.4)'
+                                        : '0 2px 4px rgba(0, 0, 0, 0.4)'};
+                                    "
                                 >
-                                    ACTIVE
+                                    <PoliticsCardView {card} />
+                                    {#if active}
+                                        <div
+                                            class="absolute top-[15%] left-0 right-0 bg-red-700 text-white text-xs font-bold tracking-widest text-center py-1 pointer-events-none shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+                                        >
+                                            ACTIVE
+                                        </div>
+                                    {:else}
+                                        <!-- inset-x-1 rather than flush left-0/right-0: a pill this
+                                             narrow reads better with a sliver of card showing on either
+                                             side than stretched edge-to-edge. Border/background/text
+                                             match the board's own village-name pill (see RealBoard.svelte)
+                                             rather than a plain UI button, for the same "labeled thing
+                                             sitting on parchment" look. -->
+                                        <button
+                                            type="button"
+                                            {@attach bounceIn}
+                                            class="absolute top-[15%] inset-x-1 cursor-pointer rounded-full text-[#f6e8c8] text-[10px] font-bold tracking-wide text-center py-1 border border-[rgba(217,180,74,0.75)] bg-[rgba(43,26,10,0.92)] shadow-[0_2px_5px_rgba(0,0,0,0.45)] hover:border-[rgba(217,180,74,1)]"
+                                            onclick={() => gameSession.applyPoliticsCard(card)}
+                                        >
+                                            APPLY
+                                        </button>
+                                    {/if}
                                 </div>
-                            {:else}
-                                <!-- inset-x-1 rather than flush left-0/right-0: a pill this
-                                     narrow reads better with a sliver of card showing on either
-                                     side than stretched edge-to-edge. Border/background/text
-                                     match the board's own village-name pill (see RealBoard.svelte)
-                                     rather than a plain UI button, for the same "labeled thing
-                                     sitting on parchment" look. -->
-                                <button
-                                    type="button"
-                                    {@attach bounceIn}
-                                    class="absolute top-[15%] inset-x-1 cursor-pointer rounded-full text-[#f6e8c8] text-[10px] font-bold tracking-wide text-center py-1 border border-[rgba(217,180,74,0.75)] bg-[rgba(43,26,10,0.92)] shadow-[0_2px_5px_rgba(0,0,0,0.45)] hover:border-[rgba(217,180,74,1)]"
-                                    onclick={() => gameSession.applyPoliticsCard(card)}
-                                >
-                                    APPLY
-                                </button>
-                            {/if}
+                            {/each}
                         </div>
                     {/each}
                 </div>
