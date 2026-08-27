@@ -133,7 +133,25 @@
         // here is just for a fresh, guaranteed-current rect rather than relying on the one from
         // before the fade/slide ran.
         gameSession.politicsRowWidth = rowEl?.getBoundingClientRect().width
-        gameSession.selectPoliticsPile(pile)
+        await gameSession.selectPoliticsPile(pile)
+
+        // selectPoliticsPile can come back without ever setting selectedPoliticsPile - it
+        // returns early (no error) if canTakePoliticsCard/the pile turned out already spoken for
+        // by the time this landed, and sets errorMessage rather than throwing if the server
+        // itself rejected it. None of that tells this function it didn't land other than
+        // selectedPoliticsPile simply not being `pile` afterward - without checking, takingPile
+        // stayed set forever (choosingPolitics never having changed value, the OTHER effect that
+        // resets it never re-fires), leaving both decks disabled with no way to retry a choice
+        // the player still has to make. Putting both decks back as they were, rather than
+        // leaving one faded out and the other stranded mid-slide, is what actually makes that
+        // retry possible.
+        if (gameSession.selectedPoliticsPile !== pile) {
+            takingPile = undefined
+            if (otherEl) {
+                gsap.to(otherEl, { opacity: 1, scale: 1, duration: FADE_OUT_DURATION / 1000, ease: 'power1.out' })
+            }
+            gsap.to(clickedEl, { x: 0, duration: SLIDE_DURATION / 1000, ease: 'power2.inOut' })
+        }
     }
 </script>
 
