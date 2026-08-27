@@ -3,6 +3,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { PoliticsCard as PoliticsCardData } from '@tabletop/lowenherz'
     import PoliticsCard from './PoliticsCard.svelte'
+    import Numeral from './Numeral.svelte'
     import { preloadPoliticsCardFace } from '$lib/model/politicsCardImages'
 
     const gameSession = getGameSession()
@@ -24,7 +25,19 @@
     // Same fixed size PlayerState uses for the cards in a player's own hand.
     const CARD_W = 66
     const CARD_WIDTH_CSS = `${CARD_W}px`
+    const CARD_H = Math.round((CARD_W * 832) / 534)
     const CARD_GAP = 8 // px, matches gap-2
+
+    // How many cards have actually finished dealing out - drives the leftover "deck" placeholder
+    // below (see deckEl): it sits at politicsPileOrigin, right where PoliticsDeckChooser's own
+    // exit animation left the chosen deck, so the handoff between that component and this one is
+    // seamless, and fades away exactly once the last card has finished leaving it. Reset whenever
+    // a NEW pile is chosen - not on every render while the same one is still dealing - since this
+    // only reads `pile`, which only changes value on an actual new selection.
+    let dealtCount = $state(0)
+    $effect(() => {
+        if (pile) dealtCount = 0
+    })
 
     // How many cards actually fit across one row at the row's real measured width - a
     // plain flex-wrap left it up to the browser, which packs each row as full as it can
@@ -101,6 +114,10 @@
                         // would also wipe the Svelte-set width, collapsing the card (see
                         // PoliticsHand's own note on this exact bug).
                         gsap.set(el, { clearProps: 'x,y,scale,opacity' })
+                        // The last card's own arrival is what empties the deck (see deckEl) -
+                        // this counts every card's landing, in whatever order their staggered
+                        // flights actually finish in.
+                        dealtCount++
                     }
                 })
                 tl.to(el, { opacity: 1, duration: 0.2, ease: 'power1.out' }, 0)
@@ -116,6 +133,20 @@
             }
         }
     }
+
+    // The leftover "deck" the cards above are dealt out of - a plain face-down card standing in
+    // for it, pinned to politicsPileOrigin (fixed positioning, not part of the row's own flex
+    // flow) so it picks up exactly where PoliticsDeckChooser's own exit animation left the chosen
+    // deck sitting. Visible from the moment this component takes over, and faded away by the
+    // effect below once dealtCount reaches every card in the pile - the last card's own arrival
+    // is what "empties" it, same idea as PoliticsDeckChooser fading the OTHER deck, so a plain
+    // GSAP tween rather than a Svelte transition keeps that consistent.
+    let deckEl: HTMLElement | undefined = $state()
+    $effect(() => {
+        if (cards.length > 0 && dealtCount >= cards.length && deckEl) {
+            gsap.to(deckEl, { opacity: 0, scale: 0.8, duration: 0.25, ease: 'power1.in' })
+        }
+    })
 
     // Set for the whole choreographed sequence below, once a card has been clicked - disables
     // further clicks until it finishes.
@@ -205,6 +236,26 @@
 </script>
 
 {#if pile}
+    {#if gameSession.politicsPileOrigin}
+        {@const origin = gameSession.politicsPileOrigin}
+        <!-- position: fixed rather than a flex child: this isn't part of the row's own layout,
+             it's a leftover deck sitting wherever PoliticsDeckChooser's exit animation left it
+             (see that component's own choosePile) - which is off to the left of where the row
+             itself ends up, not inside it. -->
+        <div
+            class="fixed z-10 pointer-events-none"
+            style="left: {origin.x - CARD_W / 2}px; top: {origin.y - CARD_H / 2}px; width: {CARD_WIDTH_CSS};"
+            bind:this={deckEl}
+        >
+            <PoliticsCard card={cards[0]} faceDown />
+            <span
+                class="absolute inset-0 flex items-center justify-center text-white font-bold"
+                style="font-size: 37px; line-height: 1; text-shadow: 0 0 4px rgba(0, 0, 0, 0.85), 0 0 7px rgba(0, 0, 0, 0.6);"
+            >
+                <Numeral value={Math.max(0, cards.length - dealtCount)} />
+            </span>
+        </div>
+    {/if}
     <div class="px-3 py-2 flex flex-col items-center gap-2">
         <div class="text-black text-base font-semibold text-center">Choose a card to take it.</div>
         {#if gameSession.errorMessage}
