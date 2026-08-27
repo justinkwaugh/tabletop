@@ -32,11 +32,13 @@
 </script>
 
 {#snippet countBadge(count: number)}
-    <!-- The pile's own remaining-card count, same job SummaryStrip's plain readout pill does,
-         just printed on the deck itself now that this is what a player actually looks at when
-         choosing. -->
+    <!-- The pile's own remaining-card count, big and white across the whole face - same
+         treatment PoliticsPileOverlay used to give it before that component went away, just
+         scaled down to this smaller card (84px was sized for a 150px-wide card; 66/150 of that
+         is ~37px). -->
     <span
-        class="absolute bottom-1 inset-x-1 text-center rounded-full bg-black/80 text-white text-[11px] font-bold tabular-nums py-0.5"
+        class="absolute inset-0 flex items-center justify-center text-white font-bold pointer-events-none"
+        style="font-size: 37px; line-height: 1; text-shadow: 0 0 4px rgba(0, 0, 0, 0.85), 0 0 7px rgba(0, 0, 0, 0.6);"
     >
         <Numeral value={count} />
     </span>
@@ -57,8 +59,11 @@
                 {@render countBadge(pileACards.length)}
             </button>
         {:else}
-            <div class="relative aspect-[534/832] rounded-md border border-dashed border-black/25" style="width: {CARD_WIDTH_CSS};">
-                {@render countBadge(0)}
+            <div
+                class="aspect-[534/832] rounded-md border border-dashed border-black/25 flex items-center justify-center text-black/40 text-xs"
+                style="width: {CARD_WIDTH_CSS};"
+            >
+                empty
             </div>
         {/if}
         {#if pileBCards.length > 0}
@@ -72,8 +77,11 @@
                 {@render countBadge(pileBCards.length)}
             </button>
         {:else}
-            <div class="relative aspect-[534/832] rounded-md border border-dashed border-black/25" style="width: {CARD_WIDTH_CSS};">
-                {@render countBadge(0)}
+            <div
+                class="aspect-[534/832] rounded-md border border-dashed border-black/25 flex items-center justify-center text-black/40 text-xs"
+                style="width: {CARD_WIDTH_CSS};"
+            >
+                empty
             </div>
         {/if}
     </div>
