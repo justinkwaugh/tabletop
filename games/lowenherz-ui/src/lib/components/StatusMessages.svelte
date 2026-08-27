@@ -460,30 +460,30 @@
                  legalAllianceOwnRegionIds), so reaching the second step guarantees there's
                  something to click. -->
             {#if !gameSession.allianceOwnRegionId}
-                Playing Alliance — click one of your regions.
+                Playing Alliance — choose one of your regions.
             {:else}
-                Click a bordering enemy region.
+                Choose a bordering enemy region.
             {/if}
         {:else if gameSession.isPlayingRenegadeCard}
             {#if !gameSession.renegadeOwnRegionId}
                 {#if legalRenegadeOwnRegionIdSet.size === 0}
                     None of your regions can play Renegade right now — they either have no
                     room for the replacement knight (no open space, or they can't afford a
-                    wooded one) or nothing bordering them to take a knight from. Click Undo.
+                    wooded one) or nothing bordering them to take a knight from. Choose Undo.
                 {:else}
-                    Playing Renegade — click one of your regions.
+                    Playing Renegade — choose one of your regions.
                 {/if}
             {:else if !gameSession.renegadeEnemyRegionId}
-                Now click a bordering enemy region.
+                Now choose a bordering enemy region.
             {:else if !gameSession.renegadeRemovedSquare}
                 {#if gameSession.legalRenegadeRemovableSquares.length === 0}
                     Every knight in that region is protecting another from being cut off from
-                    its castle — none can safely be removed. Click Undo to try again.
+                    its castle — none can safely be removed. Choose Undo to try again.
                 {:else}
-                    Click the enemy knight to remove.
+                    Choose the enemy knight to remove.
                 {/if}
             {:else}
-                Now click a square in your region to place your knight in exchange.
+                Now choose a square in your region to place your knight in exchange.
             {/if}
         {:else if gameSession.canPlaceCastle}
             {#if gameSession.selectedCastleSquare}
@@ -534,7 +534,7 @@
                  ActionToolbar) is the way back. Pass stays, since declining the rest of
                  an action is a real rulebook option, not a cancel. -->
             {#if expandStageActive && !gameSession.selectedExpandRegionId}
-                Click one of your regions to expand it.
+                Choose one of your regions to expand it.
             {:else if expansionDeadEnd}
                 <!-- Names the rule that's actually in the way (see
                      expansionBlockedReasons) rather than leaving the player to guess -
@@ -542,8 +542,8 @@
                      surprised by, and which now comes with the real counts attached. -->
                 This region has nowhere legal to expand into right now{#if expansionBlockedReasons.length > 0}
                     — {expansionBlockedReasons.join('; ')}{/if}.{#if knightStageActive}
-                    Click a square to place a knight instead.{:else if gameSession.expandableRegions.length > 1}
-                    Click Undo to pick a different region.{/if}
+                    Choose a square to place a knight instead.{:else if gameSession.expandableRegions.length > 1}
+                    Choose Undo to pick a different region.{/if}
             {:else if gameSession.canContinueExpansion}
                 <!-- The one moment with its own stop button. Knight squares are not offered while
                      an expansion is open, so the click that used to end it - placing the knight -
@@ -553,7 +553,7 @@
                      expansion and moves on to the knight, with none there is nothing to move on to
                      and it ends the action. Either way the player is stopping, which is why both
                      read as "pass". -->
-                Click to expand a second time, or
+                Choose to expand a second time, or
                 <button
                     type="button"
                     class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
@@ -568,7 +568,7 @@
                 <!-- "a first time" rather than a 0/2 count, matching the second-time wording. The
                      count came off engine state so an Undo could not leave it claiming a space that
                      had been taken back; with no number there is nothing to go stale. -->
-                Click to expand a first time, or
+                Choose to expand a first time, or
                 <button
                     type="button"
                     class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
@@ -580,7 +580,7 @@
                 <!-- No count here any more. A step is one knight, so "2 to place" would be
                      describing a second sword the player has not chosen how to spend yet - they
                      are asked again once this one is down. -->
-                Click a square to place your knight.
+                Choose a square to place your knight.
             {/if}
             <!-- Suppressed for the two click-to-expand branches, which end in their own "or pass"
                  - and only those two. The region-pick and dead-end branches also have
@@ -670,7 +670,7 @@
                 No hills were enclosed, so no points were awarded.
             {/if}
             {#if gameSession.canDrawActionCard}
-                Click the action card draw pile to start the next round.
+                Choose the action card draw pile to start the next round.
             {:else}
                 Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
                 next action card...
@@ -678,13 +678,13 @@
         {:else if lastRoundEndedInDuelGiveUp}
             The duel was tied a second time, so no one performs the action.
             {#if gameSession.canDrawActionCard}
-                Click the action card draw pile to start the next round.
+                Choose the action card draw pile to start the next round.
             {:else}
                 Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
                 next action card...
             {/if}
         {:else if gameSession.canDrawActionCard}
-            Click the action card draw pile to start the next round.
+            Choose the action card draw pile to start the next round.
         {:else if gameSession.gameState.machineState === MachineState.StartOfTurn}
             Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
             next action card...
@@ -695,10 +695,10 @@
                  over, and it says it exactly when it matters. -->
             {@const decisions = gameSession.myDecisionsThisRound}
             {#if decisions.laid > 0}
-                Click a {decisions.laid === 1 ? 'second' : 'third'} region of the card for
+                Choose a {decisions.laid === 1 ? 'second' : 'third'} region of the card for
                 your next action.
             {:else}
-                Click a region of the card to pick an action.
+                Choose a region of the card to pick an action.
             {/if}
         {:else if gameSession.gameState.machineState === MachineState.ChoosingActions}
             Waiting for the next player to choose...
@@ -731,7 +731,7 @@
             {:else}
                 {@render myPill()} won Crown and Scepter.
             {/if}
-            Click one of the politics decks.
+            Choose one of the politics decks.
         {:else if !gameSession.setupComplete}
             Waiting for the other player(s) to place a castle...
         {/if}
@@ -903,7 +903,7 @@
                             <button
                                 type="button"
                                 class="px-1.5 py-[3px] rounded font-semibold bg-green-700/15 hover:bg-red-700/20"
-                                title="Click to take this Treasure back out of your bid"
+                                title="Choose to take this Treasure back out of your bid"
                                 onclick={() => gameSession.unarmDuelTreasure(treasureCard.id)}
                             >
                                 + Treasure ({treasureCard.value})

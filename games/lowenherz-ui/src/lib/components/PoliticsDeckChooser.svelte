@@ -45,7 +45,7 @@
 {/snippet}
 
 {#if choosingPolitics}
-    <!-- No separate instructions here - StatusMessages already says "Click one of the politics
+    <!-- No separate instructions here - StatusMessages already says "Choose one of the politics
          decks." right above this. -->
     <div class="px-3 py-2 flex items-center justify-center gap-3">
         {#if pileACards.length > 0}

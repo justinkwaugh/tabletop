@@ -179,7 +179,7 @@
 
 <style>
     /* A gentle "your move" pulse on the draw pile whenever it's actually drawable
-       (the same moment the status text reads "Click the action card draw pile...").
+       (the same moment the status text reads "Choose the action card draw pile...").
        Deliberately soft/slow so it reads as an invitation, not an alarm. */
     @keyframes pink-glow-pulse {
         0%,

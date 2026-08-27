@@ -183,7 +183,7 @@
 
 {#if pile}
     <div class="px-3 py-2 flex flex-col items-center gap-2">
-        <div class="text-black text-base font-semibold text-center">Click a card to take it.</div>
+        <div class="text-black text-base font-semibold text-center">Choose a card to take it.</div>
         {#if gameSession.errorMessage}
             <div
                 class="max-w-full rounded-md bg-red-900/90 border border-red-300/50 px-3 py-2 text-center text-white text-sm"
