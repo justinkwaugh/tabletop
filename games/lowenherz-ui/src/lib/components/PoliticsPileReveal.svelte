@@ -23,11 +23,10 @@
     )
 
     // How many cards have actually finished dealing out - drives the leftover "deck" placeholder
-    // below (see deckEl): it sits at politicsPileOrigin, right where PoliticsDeckChooser's own
-    // exit animation left the chosen deck, so the handoff between that component and this one is
-    // seamless, and fades away exactly once the last card has finished leaving it. Reset whenever
-    // a NEW pile is chosen - not on every render while the same one is still dealing - since this
-    // only reads `pile`, which only changes value on an actual new selection.
+    // (see the slotRows/template below): it fades away once dealtCount reaches every card in the
+    // pile, the last card's own arrival being what "empties" it. Reset whenever a NEW pile is
+    // chosen - not on every render while the same one is still dealing - since this only reads
+    // `pile`, which only changes value on an actual new selection.
     let dealtCount = $state(0)
     $effect(() => {
         if (pile) dealtCount = 0
@@ -52,25 +51,38 @@
     // size and just piling up into more, smaller-feeling rows. PoliticsDeckChooser computes this
     // exact same way, off the exact same measured width, so the two stay in visual agreement.
     const cardWidth = $derived(responsiveCardWidth(rowWidth))
-    const cardHeight = $derived(Math.round((cardWidth * 832) / 534))
     const cardWidthCss = $derived(`${cardWidth}px`)
 
-    // Splits the pile into as many rows as it actually needs, sized as evenly as possible rather
-    // than greedily - see politicsCardLayout's own rowSizes for the split itself (shared with
-    // PoliticsDeckChooser, which needs the same split to know where the leftmost dealt card will
-    // land). Each entry keeps the card's index in the full pile, not its row, since that's what
-    // dealIn's stagger and the deal-order more generally are keyed to.
-    const cardRows = $derived.by(() => {
-        const rows: { card: PoliticsCardData; index: number }[][] = []
-        let index = 0
-        for (const size of rowSizes(cards.length, rowWidth, cardWidth)) {
-            rows.push(
-                Array.from({ length: size }, () => {
-                    const entry = { card: cards[index], index }
-                    index++
-                    return entry
-                })
-            )
+    // The leftover deck is slot 0 of this same row/wrap split, not a separately-positioned
+    // element - PoliticsDeckChooser's own slide target (see that component) is computed the exact
+    // same way, treating the deck as the first of cards.length + 1 slots, so the wrapping
+    // function places both in agreement automatically, at any card count or row width, instead of
+    // PoliticsDeckChooser having to separately calculate "just to the left of the leftmost card"
+    // and hope it matches what actually renders here. That hand-rolled version drifted off at
+    // higher card counts - a first row sized to fit the CARDS alone centers differently than one
+    // that already accounts for the deck sharing it.
+    type Slot = { kind: 'deck' } | { kind: 'card'; card: PoliticsCardData; index: number }
+
+    // Splits (cards.length + 1) slots into as many rows as they actually need, sized as evenly as
+    // possible rather than greedily - see politicsCardLayout's own rowSizes for the split itself.
+    // Each card slot keeps its index in the full pile, not its row, since that's what dealIn's
+    // stagger and the deal-order more generally are keyed to.
+    const slotRows = $derived.by(() => {
+        const rows: Slot[][] = []
+        let cardIndex = 0
+        let slotsPlaced = 0
+        for (const size of rowSizes(cards.length + 1, rowWidth, cardWidth)) {
+            const row: Slot[] = []
+            for (let i = 0; i < size; i++) {
+                if (slotsPlaced === 0) {
+                    row.push({ kind: 'deck' })
+                } else {
+                    row.push({ kind: 'card', card: cards[cardIndex], index: cardIndex })
+                    cardIndex++
+                }
+                slotsPlaced++
+            }
+            rows.push(row)
         }
         return rows
     })
@@ -137,12 +149,14 @@
     }
 
     // The leftover "deck" the cards above are dealt out of - a plain face-down card standing in
-    // for it, pinned to politicsPileOrigin (fixed positioning, not part of the row's own flex
-    // flow) so it picks up exactly where PoliticsDeckChooser's own exit animation left the chosen
-    // deck sitting. Visible from the moment this component takes over, and faded away by the
-    // effect below once dealtCount reaches every card in the pile - the last card's own arrival
-    // is what "empties" it, same idea as PoliticsDeckChooser fading the OTHER deck, so a plain
-    // GSAP tween rather than a Svelte transition keeps that consistent.
+    // for it, occupying slot 0 of the row (see slotRows above) rather than being positioned
+    // separately, so it picks up exactly where PoliticsDeckChooser's own exit animation left the
+    // chosen deck sitting without either component having to calculate that position by hand.
+    // Stays in the flex flow even once faded (see the effect below), rather than being removed -
+    // that's what keeps every card after it from shifting once the deck disappears. Faded away
+    // once dealtCount reaches every card in the pile - the last card's own arrival is what
+    // "empties" it, same idea as PoliticsDeckChooser fading the OTHER deck, so a plain GSAP tween
+    // rather than a Svelte transition keeps that consistent.
     let deckEl: HTMLElement | undefined = $state()
     $effect(() => {
         if (cards.length > 0 && dealtCount >= cards.length && deckEl) {
@@ -247,23 +261,6 @@
 </script>
 
 {#if pile}
-    {#if gameSession.politicsPileOrigin}
-        {@const origin = gameSession.politicsPileOrigin}
-        <!-- position: fixed rather than a flex child: this isn't part of the row's own layout,
-             it's a leftover deck sitting wherever PoliticsDeckChooser's exit animation left it
-             (see that component's own choosePile) - which is off to the left of where the row
-             itself ends up, not inside it. -->
-        <div
-            class="fixed z-10 pointer-events-none"
-            style="left: {origin.x - cardWidth / 2}px; top: {origin.y - cardHeight / 2}px; width: {cardWidthCss};"
-            bind:this={deckEl}
-        >
-            <!-- No count printed here - dealtCount ticks up once per card, one riffle-deal
-                 stagger apart, so a live countdown just blurred past too fast to read. Still
-                 tracked (see the fade effect below) for knowing when the deck's actually empty. -->
-            <PoliticsCard card={cards[0]} faceDown />
-        </div>
-    {/if}
     <div class="px-3 py-2 flex flex-col items-center gap-2">
         <div class="text-black text-base font-semibold text-center">Choose a card to take it.</div>
         {#if gameSession.errorMessage}
@@ -283,28 +280,34 @@
             {#if rowWidth > 0}
                 <!-- Gated on having a real measurement rather than rendering immediately with
                      the "everything fits on one row" fallback rowSizes uses before rowWidth is
-                     known: cards are keyed by id within their OWN row's {#each}, so correcting
-                     the split after the fact (once the real width comes in) can move a card into
-                     a different row's block - a different keyed {#each} entirely, which Svelte
-                     can't just reposition, so it tears the button down and remounts a fresh one
-                     in the new spot. That remount is a fresh dealIn from scratch: the card's own
+                     known: slots are keyed within their OWN row's {#each}, so correcting the
+                     split after the fact (once the real width comes in) can move one into a
+                     different row's block - a different keyed {#each} entirely, which Svelte
+                     can't just reposition, so it tears the element down and remounts a fresh one
+                     in the new spot. That remount is a fresh dealIn from scratch: a card's own
                      white background painted at its final resting spot for a frame before the
                      new attachment ran and hid it again. Waiting the one tick for a real width
-                     means cards are only ever created once, already in their final row. -->
-                {#each cardRows as row, rowIndex (rowIndex)}
+                     means every slot is only ever created once, already in its final row. -->
+                {#each slotRows as row, rowIndex (rowIndex)}
                     <div class="flex items-start justify-center gap-2">
-                        {#each row as { card, index } (card.id)}
-                            <button
-                                type="button"
-                                bind:this={cardEls[card.id]}
-                                {@attach dealIn(card, index)}
-                                disabled={takingCardId !== undefined}
-                                class="cursor-pointer opacity-90 hover:opacity-100"
-                                style="width: {cardWidthCss};"
-                                onclick={() => chooseCard(card)}
-                            >
-                                <PoliticsCard {card} />
-                            </button>
+                        {#each row as slot (slot.kind === 'deck' ? 'deck' : slot.card.id)}
+                            {#if slot.kind === 'deck'}
+                                <div style="width: {cardWidthCss};" bind:this={deckEl}>
+                                    <PoliticsCard card={cards[0]} faceDown />
+                                </div>
+                            {:else}
+                                <button
+                                    type="button"
+                                    bind:this={cardEls[slot.card.id]}
+                                    {@attach dealIn(slot.card, slot.index)}
+                                    disabled={takingCardId !== undefined}
+                                    class="cursor-pointer opacity-90 hover:opacity-100"
+                                    style="width: {cardWidthCss};"
+                                    onclick={() => chooseCard(slot.card)}
+                                >
+                                    <PoliticsCard card={slot.card} />
+                                </button>
+                            {/if}
                         {/each}
                     </div>
                 {/each}

@@ -4,7 +4,7 @@
     import PoliticsCard from './PoliticsCard.svelte'
     import Numeral from './Numeral.svelte'
     import { preloadPoliticsCardFace, preloadPoliticsCardBack } from '$lib/model/politicsCardImages'
-    import { CARD_GAP, rowSizes, rowContentWidth, responsiveCardWidth } from '$lib/model/politicsCardLayout'
+    import { rowSizes, rowContentWidth, responsiveCardWidth } from '$lib/model/politicsCardLayout'
 
     const gameSession = getGameSession()
 
@@ -81,15 +81,17 @@
     const SLIDE_DURATION = 380 // ms - the clicked deck sliding beside the dealt row
 
     // Plays the deck-choosing exit before actually committing to a pile: the OTHER deck fades
-    // away first, then the clicked one slides to just left of wherever the leftmost dealt card is
-    // actually going to land - not just the row's own left edge, which (with a row centered via
-    // justify-center) could leave a gap between the deck and the row it's supposedly dealing
-    // into. rowSizes/rowContentWidth are the exact same split PoliticsPileReveal's own cardRows
-    // will use for this same pile once it takes over, so the two agree on where that card ends
-    // up. Only once the slide lands does the deck's own final position become the deal-in origin
-    // (PoliticsPileReveal keeps its own placeholder there - see that component's deckEl - so the
-    // handoff is seamless), and the pick is actually dispatched. Mirrors PoliticsPileReveal's own
-    // chooseCard, which plays its exit before dispatching too, for the same reason.
+    // away first, then the clicked one slides to wherever PoliticsPileReveal's own row is going
+    // to seat it - slot 0, the deck's own permanent spot in that row (see that component's
+    // slotRows) - by running the exact same rowSizes split over the exact same (totalCount + 1)
+    // slot count, rather than separately sizing a row of just the cards and then trying to back
+    // out from its edge how much room the deck itself needs beside it. That separate calculation
+    // used to drift at higher card counts: a row centered around the cards alone sits at a
+    // different center than one that already has the deck sharing it. Only once the slide lands
+    // does the deck's own final position become the deal-in origin (PoliticsPileReveal keeps its
+    // own placeholder there - so the handoff is seamless), and the pick is actually dispatched.
+    // Mirrors PoliticsPileReveal's own chooseCard, which plays its exit before dispatching too,
+    // for the same reason.
     async function choosePile(pile: 'A' | 'B', event: MouseEvent) {
         if (takingPile) return
         const clickedEl = event.currentTarget as HTMLElement
@@ -107,10 +109,9 @@
 
         const areaRect = rowEl?.getBoundingClientRect()
         if (areaRect) {
-            const firstRowSize = rowSizes(totalCount, areaRect.width, cardWidth)[0] ?? 0
-            const leftmostCardLeft =
-                areaRect.left + (areaRect.width - rowContentWidth(firstRowSize, cardWidth)) / 2
-            const targetCenterX = leftmostCardLeft - CARD_GAP - cardWidth / 2
+            const firstRowSize = rowSizes(totalCount + 1, areaRect.width, cardWidth)[0] ?? 1
+            const firstRowLeft = areaRect.left + (areaRect.width - rowContentWidth(firstRowSize, cardWidth)) / 2
+            const targetCenterX = firstRowLeft + cardWidth / 2
 
             const clickedRect = clickedEl.getBoundingClientRect()
             const dx = targetCenterX - (clickedRect.left + clickedRect.width / 2)
