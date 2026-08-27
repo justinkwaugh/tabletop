@@ -144,38 +144,51 @@
 
     // The leftover "deck" the cards above are dealt out of - a plain face-down card standing in
     // for it, occupying slot 0 of the row (see slotRows above) rather than being positioned
-    // separately, so it picks up exactly where PoliticsDeckChooser's own exit animation left the
-    // chosen deck sitting without either component having to calculate that position by hand.
-    // Fades the moment dealing starts (rather than waiting until it's done) over DEAL_TOTAL_
-    // DURATION, so the fade and the last card's own landing finish together - same idea as
-    // PoliticsDeckChooser fading the OTHER deck, so a plain GSAP tween rather than a Svelte
-    // transition keeps that consistent. Once the fade actually finishes, deckEmptied swaps it for
-    // a dashed outline (see the template), the same "nothing's here" look PoliticsDeckChooser
-    // itself uses for a genuinely empty pile. Both stay in the flex flow the whole time (the
-    // outline takes over the same slot, not a new one), so nothing after it ever shifts.
-    let deckEl: HTMLElement | undefined = $state()
+    // separately. PoliticsDeckChooser's own exit animation only slides horizontally, toward an
+    // estimate of where this slot will land - it has no heading text of its own the way this
+    // component's "Choose a card to take it." does, so its row sits at a different height than
+    // this one actually renders at, and on a narrow row that needs its own extra wrapping the
+    // horizontal estimate can be off too. Rather than trying to have that component predict this
+    // one's exact layout, deckDealIn below plays the same trick dealIn does for every dealt card:
+    // start at politicsPileOrigin (wherever the chooser's slide actually left off) and slide from
+    // there to wherever this slot really is, once it's actually known - so any gap between the
+    // two components' estimates and reality just becomes part of the same slide, not a jump.
     let deckEmptied = $state(false)
-    let deckFadeStarted = false
     $effect(() => {
-        if (pile) {
-            deckEmptied = false
-            deckFadeStarted = false
-        }
+        if (pile) deckEmptied = false
     })
-    $effect(() => {
-        if (deckEl && !deckFadeStarted && DEAL_TOTAL_DURATION > 0) {
-            deckFadeStarted = true
-            gsap.to(deckEl, {
-                opacity: 0,
-                scale: 0.8,
-                duration: DEAL_TOTAL_DURATION,
-                ease: 'power1.in',
-                onComplete: () => {
-                    deckEmptied = true
-                }
-            })
+
+    const DECK_SLIDE_DURATION = 300 // ms
+
+    function deckDealIn(el: HTMLElement) {
+        const origin = gameSession.politicsPileOrigin
+        if (origin) {
+            const rect = el.getBoundingClientRect()
+            const dx = origin.x - (rect.left + rect.width / 2)
+            const dy = origin.y - (rect.top + rect.height / 2)
+            gsap.set(el, { x: dx, y: dy })
+            gsap.to(el, { x: 0, y: 0, duration: DECK_SLIDE_DURATION / 1000, ease: 'power2.out' })
         }
-    })
+
+        // Fades the moment dealing starts (rather than waiting until it's done) over
+        // DEAL_TOTAL_DURATION, so the fade and the last card's own landing finish together - same
+        // idea as PoliticsDeckChooser fading the OTHER deck, so a plain GSAP tween rather than a
+        // Svelte transition keeps that consistent. Once it actually finishes, deckEmptied swaps
+        // this for a dashed outline (see the template), the same "nothing's here" look
+        // PoliticsDeckChooser itself uses for a genuinely empty pile - taking over the same slot,
+        // not a new one, so nothing after it ever shifts.
+        const fadeTl = gsap.to(el, {
+            opacity: 0,
+            scale: 0.8,
+            duration: DEAL_TOTAL_DURATION,
+            ease: 'power1.in',
+            onComplete: () => {
+                deckEmptied = true
+            }
+        })
+
+        return () => fadeTl.kill()
+    }
 
     // The dashed outline's own entrance, once it takes over from the emptied deck - a plain fade
     // in, matching how every other appearance in this file is animated with GSAP rather than a
@@ -315,7 +328,7 @@
                         {#each row as slot (slot.kind === 'deck' ? 'deck' : slot.card.id)}
                             {#if slot.kind === 'deck'}
                                 {#if !deckEmptied}
-                                    <div style="width: {cardWidthCss};" bind:this={deckEl}>
+                                    <div style="width: {cardWidthCss};" {@attach deckDealIn}>
                                         <PoliticsCard card={cards[0]} faceDown />
                                     </div>
                                 {:else}
