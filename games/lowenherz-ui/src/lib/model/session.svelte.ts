@@ -11,7 +11,6 @@ import {
     CardBack,
     buildDecisionPlan,
     ChooseAction,
-    countKnights,
     currentPlacementColor,
     detectNewRegions,
     DrawActionCard,
@@ -441,19 +440,6 @@ export class LowenherzGameSession extends GameSession<
         if (this.canContinueExpansion) return true
 
         return this.knightPlan === 'expand' && this.canExpandRegion
-    }
-
-    // The region being expanded turned out to have nowhere legal to grow into. Its sword is better
-    // spent on a knight than forfeited, so this hands the knight half the board even under an
-    // expansion-first choice - and there is no overlap to disambiguate, since there are no legal
-    // expansion squares left to compete with.
-    get expansionDeadEnd(): boolean {
-        return (
-            this.expandStageActive &&
-            this.selectedExpandRegionId !== undefined &&
-            this.expansionSquares.length === 0 &&
-            this.legalNextExpansionSquares.length === 0
-        )
     }
 
     get knightStageActive(): boolean {
@@ -1426,72 +1412,6 @@ export class LowenherzGameSession extends GameSession<
         if (!regionId || this.expansionSquares.length >= 2) return []
 
         return legalExpansionSquares(this.gameState, this.myPlayer!.id, regionId)
-    }
-
-    // Why a region picked to expand has no legal target square - the distinct reasons
-    // ExpandRegion itself gave for every square on that region's frontier (the
-    // off-region squares orthogonally touching it, which is exactly the set adjacency
-    // allows), so the UI can say WHICH rule is in the way instead of a bare "nowhere
-    // legal". The invasion rule in particular is easy to be surprised by, so its
-    // reason gets the actual knight counts attached.
-    get expansionBlockedReasons(): string[] {
-        const regionId = this.selectedExpandRegionId
-        if (!regionId || !this.myPlayer) return []
-
-        const matches = this.gameState.regions.filter((r) => r.id === regionId)
-        if (matches.length === 0) return ['that region no longer exists']
-        if (matches.length > 1) {
-            // Two live regions sharing an id is broken state, not a rules situation,
-            // and it silently breaks every find-by-id in the engine - including the one
-            // that decides whether this is even your region (see detectNewRegions'
-            // mintId, which stops NEW ids from colliding but can't repair older state).
-            return [`two different regions share the id "${regionId}" - that's a bug, not a rule`]
-        }
-        const region = matches[0]
-        const regionKeys = new Set(region.squareKeys)
-
-        const frontier = new Set<string>()
-        for (const key of region.squareKeys) {
-            const [col, row] = key.split(',').map(Number)
-            for (const n of neighbors(col, row)) {
-                if (!isOnBoard(n.col, n.row)) continue
-                const nKey = squareKey(n.col, n.row)
-                if (regionKeys.has(nKey)) continue
-                frontier.add(nKey)
-            }
-        }
-
-        const reasons = new Set<string>()
-        for (const key of frontier) {
-            const [col, row] = key.split(',').map(Number)
-            const reason = this.expansionAttemptReason(regionId, { col, row })
-            if (reason) reasons.add(reason)
-        }
-
-        // Spell the knight comparison out with real numbers - "must outnumber" alone
-        // doesn't say by how much you're short, and the counts are what a player would
-        // otherwise be squinting at the board to tally.
-        const outnumberedReason = [...reasons].find((r) => r.includes('outnumber'))
-        if (outnumberedReason) {
-            const myKnights = countKnights(region, this.gameState.board)
-            // Only the neighbors whose knights actually hold this region off - a weaker
-            // one next door (blocked for some other reason, e.g. every square of it that
-            // touches this region is occupied) would make the comparison read as a lie.
-            const blockingCounts = [...frontier]
-                .map((key) => this.gameState.regions.find((r) => r.id !== region.id && r.squareKeys.includes(key)))
-                .filter((r): r is Region => r !== undefined && r.ownerColor !== undefined)
-                .map((r) => countKnights(r, this.gameState.board))
-                .filter((count) => count >= myKnights)
-            const weakestDefender = blockingCounts.length > 0 ? Math.min(...blockingCounts) : undefined
-            reasons.delete(outnumberedReason)
-            reasons.add(
-                weakestDefender === undefined
-                    ? outnumberedReason
-                    : `your ${myKnights} knight${myKnights === 1 ? '' : 's'} here must outnumber the ${weakestDefender} in the neighboring region to invade it`
-            )
-        }
-
-        return [...reasons].map((reason) => reason.charAt(0).toLowerCase() + reason.slice(1).replace(/\.$/, ''))
     }
 
     // Each space is its own ExpandRegion action (see expandRegion.ts) rather than a

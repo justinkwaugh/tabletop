@@ -39,15 +39,9 @@
     const regions = $derived(gameSession.gameState.regions)
     const knightSwordsLeft = $derived(gameSession.gameState.knightsRemaining ?? 0)
     const displayNegotiation = $derived(gameSession.displayNegotiation)
-    const legalRenegadeOwnRegionIdSet = $derived(gameSession.legalRenegadeOwnRegionIds)
     const allianceMarkers = $derived(gameSession.allianceMarkers)
     const availableKnightPlans = $derived(gameSession.availableKnightPlans)
     const expandStageActive = $derived(gameSession.expandStageActive)
-    const knightStageActive = $derived(gameSession.knightStageActive)
-    const expansionDeadEnd = $derived(gameSession.expansionDeadEnd)
-    const expansionBlockedReasons = $derived(
-        expansionDeadEnd ? gameSession.expansionBlockedReasons : []
-    )
     // There is no separate signing action - clicking the button just proposes whatever is
     // on screen. If that happens to match the standing offer exactly, the engine treats it
     // as acceptance and executes the deal immediately (see NegotiationMove.apply); otherwise
@@ -465,23 +459,19 @@
                 Choose a bordering enemy region.
             {/if}
         {:else if gameSession.isPlayingRenegadeCard}
+            <!-- No "that region has nothing to play Renegade with" or "nothing can safely be
+                 removed" case to report, same reasoning as Alliance above: a region with no
+                 candidate square, or an enemy region with nothing safe to take, isn't offered as
+                 a choice in the first place (see legalRenegadeOwnRegionIds/
+                 legalRenegadeEnemyRegions, which canPlayRenegadeCard already checked before this
+                 flow could even start), so reaching any of these steps guarantees there's
+                 something to click. -->
             {#if !gameSession.renegadeOwnRegionId}
-                {#if legalRenegadeOwnRegionIdSet.size === 0}
-                    None of your regions can play Renegade right now — they either have no
-                    room for the replacement knight (no open space, or they can't afford a
-                    wooded one) or nothing bordering them to take a knight from. Choose Undo.
-                {:else}
-                    Playing Renegade — choose one of your regions.
-                {/if}
+                Playing Renegade — choose one of your regions.
             {:else if !gameSession.renegadeEnemyRegionId}
                 Now choose a bordering enemy region.
             {:else if !gameSession.renegadeRemovedSquare}
-                {#if gameSession.legalRenegadeRemovableSquares.length === 0}
-                    Every knight in that region is protecting another from being cut off from
-                    its castle — none can safely be removed. Choose Undo to try again.
-                {:else}
-                    Choose an enemy knight to remove.
-                {/if}
+                Choose an enemy knight to remove.
             {:else}
                 Now choose a square in your region to place your knight in exchange.
             {/if}
@@ -533,17 +523,12 @@
                  backs out of the plan itself while nothing's landed yet - see
                  ActionToolbar) is the way back. Pass stays, since declining the rest of
                  an action is a real rulebook option, not a cancel. -->
+            <!-- No "this region has nowhere legal to expand into" case to report: a region
+                 with no legal target isn't offered as a choice in the first place (see
+                 GameSession.expandableRegions' own comment on this), so picking one
+                 guarantees there's somewhere to click. -->
             {#if expandStageActive && !gameSession.selectedExpandRegionId}
                 Choose one of your regions to expand it.
-            {:else if expansionDeadEnd}
-                <!-- Names the rule that's actually in the way (see
-                     expansionBlockedReasons) rather than leaving the player to guess -
-                     usually the invasion knight-count rule, which is easy to be
-                     surprised by, and which now comes with the real counts attached. -->
-                This region has nowhere legal to expand into right now{#if expansionBlockedReasons.length > 0}
-                    — {expansionBlockedReasons.join('; ')}{/if}.{#if knightStageActive}
-                    Choose a square to place a knight instead.{:else if gameSession.expandableRegions.length > 1}
-                    Choose Undo to pick a different region.{/if}
             {:else if gameSession.canContinueExpansion}
                 <!-- The one moment with its own stop button. Knight squares are not offered while
                      an expansion is open, so the click that used to end it - placing the knight -
@@ -583,10 +568,10 @@
                 Choose a square to place your knight.
             {/if}
             <!-- Suppressed for the two click-to-expand branches, which end in their own "or pass"
-                 - and only those two. The region-pick and dead-end branches also have
-                 expandStageActive set, and they still want this. -->
+                 - and only those two. The region-pick branch also has expandStageActive set,
+                 and it still wants this. -->
             {#if !gameSession.canContinueExpansion &&
-                !(expandStageActive && gameSession.selectedExpandRegionId && !expansionDeadEnd)}
+                !(expandStageActive && gameSession.selectedExpandRegionId)}
                 Or
                 <button
                     type="button"

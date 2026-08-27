@@ -278,14 +278,9 @@
     const availableKnightPlans = $derived(gameSession.availableKnightPlans)
 
 
-    // All four now live on the session, which the board's click handling and the status panel's
+    // Both now live on the session, which the board's click handling and the status panel's
     // wording both read. Kept under their old names here so the call sites below are unchanged.
     const expandStageActive = $derived(gameSession.expandStageActive)
-    const expansionDeadEnd = $derived(gameSession.expansionDeadEnd)
-    const expansionBlockedReasons = $derived(
-        expansionDeadEnd ? gameSession.expansionBlockedReasons : []
-    )
-
     const knightStageActive = $derived(gameSession.knightStageActive)
 
     // Drop a plan belonging to an earlier knight action, so a previous player's plan (or
