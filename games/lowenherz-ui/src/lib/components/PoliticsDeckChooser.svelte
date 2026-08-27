@@ -2,7 +2,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import PoliticsCard from './PoliticsCard.svelte'
     import Numeral from './Numeral.svelte'
-    import { politicsCardFaceImage } from '$lib/model/politicsCardImages'
+    import { preloadPoliticsCardFace } from '$lib/model/politicsCardImages'
 
     const gameSession = getGameSession()
 
@@ -24,15 +24,15 @@
     const choosingPolitics = $derived(gameSession.canTakePoliticsCard && !gameSession.selectedPoliticsPile)
 
     // Warms the browser's image cache for every card in both piles as soon as there's a real
-    // choice to make - well before PoliticsPileReveal deals any of them in. Without this, a card
-    // the browser has never decoded shows blank/white for the first stretch of its deal-in tween
-    // (the tween gives it a fraction of a second, decoding can easily take longer) - here it has
-    // as long as the player takes to look at the decks and click one, which in practice is enough.
+    // choice to make - well before PoliticsPileReveal deals any of them in. This is the best
+    // case for that component's own preloadPoliticsCardFace wait (see its dealIn): by the time a
+    // card is actually dealt, its face art has usually had as long as the player took to look at
+    // the decks and click one to finish decoding, so that wait resolves immediately and the deal
+    // plays at full speed with nothing to show white for.
     $effect(() => {
         if (!choosingPolitics) return
         for (const card of [...pileACards, ...pileBCards]) {
-            const src = politicsCardFaceImage(card)
-            if (src) new Image().src = src
+            preloadPoliticsCardFace(card)
         }
     })
 

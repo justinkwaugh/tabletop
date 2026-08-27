@@ -3,6 +3,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { PoliticsCard as PoliticsCardData } from '@tabletop/lowenherz'
     import PoliticsCard from './PoliticsCard.svelte'
+    import { preloadPoliticsCardFace } from '$lib/model/politicsCardImages'
 
     const gameSession = getGameSession()
 
@@ -69,7 +70,7 @@
     const DEAL_DURATION = 380 // ms
     const DEAL_STAGGER = 45 // ms between each successive card starting its flight
 
-    function dealIn(index: number) {
+    function dealIn(card: PoliticsCardData, index: number) {
         return (el: HTMLElement) => {
             const origin = gameSession.politicsPileOrigin
             if (!origin) return
@@ -77,21 +78,42 @@
             const dx = origin.x - (rect.left + rect.width / 2)
             const dy = origin.y - (rect.top + rect.height / 2)
 
-            gsap.set(el, { x: dx, y: dy, scale: 0.3, opacity: 0 })
+            // Hidden immediately, before anything below - PoliticsDeckChooser already warms
+            // every card's face art while the player is still choosing a deck (see its own
+            // comment), but that's a best effort, not a guarantee. Without waiting on the real
+            // decode here too, a card whose specific value/type had never been shown face-up
+            // yet (network hiccup, or dealt fast enough after choosing that the warm-up hadn't
+            // finished) painted its own white background for whatever was left of the tween
+            // once the image finally did decode - "resizing" into a blank card instead of
+            // itself.
+            gsap.set(el, { opacity: 0 })
+            let cancelled = false
+            let tl: gsap.core.Timeline | undefined
 
-            const tl = gsap.timeline({
-                delay: (index * DEAL_STAGGER) / 1000,
-                onComplete: () => {
-                    // Named properties only, not 'all' - clearing the whole inline style would
-                    // also wipe the Svelte-set width, collapsing the card (see PoliticsHand's own
-                    // note on this exact bug).
-                    gsap.set(el, { clearProps: 'x,y,scale,opacity' })
-                }
+            preloadPoliticsCardFace(card).then(() => {
+                if (cancelled) return
+                gsap.set(el, { x: dx, y: dy, scale: 0.3, opacity: 0 })
+
+                tl = gsap.timeline({
+                    delay: (index * DEAL_STAGGER) / 1000,
+                    onComplete: () => {
+                        // Named properties only, not 'all' - clearing the whole inline style
+                        // would also wipe the Svelte-set width, collapsing the card (see
+                        // PoliticsHand's own note on this exact bug).
+                        gsap.set(el, { clearProps: 'x,y,scale,opacity' })
+                    }
+                })
+                tl.to(el, { opacity: 1, duration: 0.2, ease: 'power1.out' }, 0)
+                tl.to(el, { x: 0, y: 0, scale: 1, duration: DEAL_DURATION / 1000, ease: 'power2.out' }, 0)
             })
-            tl.to(el, { opacity: 1, duration: 0.2, ease: 'power1.out' }, 0)
-            tl.to(el, { x: 0, y: 0, scale: 1, duration: DEAL_DURATION / 1000, ease: 'power2.out' }, 0)
 
-            return () => tl.kill()
+            // cancelled guards the case where decode is still pending when this card is torn
+            // down (nothing to kill yet - the .then() above simply no-ops when it does resolve);
+            // tl?.kill() covers the case where it's already animating.
+            return () => {
+                cancelled = true
+                tl?.kill()
+            }
         }
     }
 
@@ -198,7 +220,7 @@
                         <button
                             type="button"
                             bind:this={cardEls[card.id]}
-                            {@attach dealIn(index)}
+                            {@attach dealIn(card, index)}
                             disabled={takingCardId !== undefined}
                             class="cursor-pointer opacity-90 hover:opacity-100 transition-opacity duration-150"
                             style="width: {CARD_WIDTH_CSS};"

@@ -44,3 +44,22 @@ export function politicsCardFaceImage(card: PoliticsCard): string | undefined {
             return undefined
     }
 }
+
+// Resolves once the browser has actually finished decoding this card's face art - not just
+// fetched it. img.decode() is what guarantees that (the 'load' event can fire before decode
+// work off the main thread is done); falls back to load/error for the rare browser without
+// decode(). Never rejects - a failed decode should let a caller proceed anyway rather than hang
+// waiting on an image that will never come. Resolves immediately for a card with no face image.
+export function preloadPoliticsCardFace(card: PoliticsCard): Promise<void> {
+    const src = politicsCardFaceImage(card)
+    if (!src) return Promise.resolve()
+    const img = new Image()
+    img.src = src
+    if (typeof img.decode === 'function') {
+        return img.decode().catch(() => undefined)
+    }
+    return new Promise((resolve) => {
+        img.onload = () => resolve()
+        img.onerror = () => resolve()
+    })
+}
