@@ -124,7 +124,6 @@
     let rowsEl: HTMLElement | undefined = $state()
 
     const RETURN_DURATION = 300 // ms - the other cards flying back to the pile
-    const RETURN_STAGGER = 35 // ms between each returning card starting its flight
 
     // Justin's idea: while the rest fly back to the pile, the chosen card gets its own moment -
     // flies to the center of the cards area and enlarges a bit, holds there, then scales down
@@ -188,8 +187,10 @@
         const origin = gameSession.politicsPileOrigin
         if (origin) {
             const others = cards.filter((c) => c.id !== card.id)
-            others.forEach((c, i) => {
-                addFlight(tl, cardEls[c.id], origin, RETURN_DURATION / 1000, (i * RETURN_STAGGER) / 1000)
+            // All at once, not staggered like the deal-in was: collapsing toward the center
+            // reads best as one simultaneous move, not a trailing riffle.
+            others.forEach((c) => {
+                addFlight(tl, cardEls[c.id], origin, RETURN_DURATION / 1000, 0)
             })
         }
         addChosenCardFocus(tl, cardEls[card.id], 0)
