@@ -30,14 +30,22 @@
     // seamless, and fades away exactly once the last card has finished leaving it. Reset whenever
     // a NEW pile is chosen - not on every render while the same one is still dealing - since this
     // only reads `pile`, which only changes value on an actual new selection.
+    //
+    // rowWidth resets here too, back to 0, for the same reason it starts there: {#if rowWidth >
+    // 0} below only guards against rendering cards before a width is known at all. Without this
+    // reset, the SECOND time this component reveals a pile in a session, rowWidth is still
+    // whatever the FIRST reveal last measured - already > 0 - so that gate passes immediately,
+    // cards render against that stale number before this reveal's own rowsEl has been measured
+    // even once, and if the real width comes back even slightly different, correcting it is the
+    // same row-restructuring remount that gate exists to prevent in the first place.
     let dealtCount = $state(0)
-    $effect(() => {
-        if (pile) dealtCount = 0
-    })
-
-    // rowWidth starts at 0, before the real measurement below comes in - see rowSizes' own
-    // fallback for what that means for the split.
     let rowWidth: number = $state(0)
+    $effect(() => {
+        if (pile) {
+            dealtCount = 0
+            rowWidth = 0
+        }
+    })
 
     // Splits the pile into as many rows as it actually needs, sized as evenly as possible rather
     // than greedily - see politicsCardLayout's own rowSizes for the split itself (shared with
