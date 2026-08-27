@@ -42,6 +42,17 @@
     // choosingPolitics stays true, which it does until selectPoliticsPile below actually lands.
     let takingPile: 'A' | 'B' | undefined = $state(undefined)
 
+    // Undoing the pick brings choosingPolitics back to true without this component ever having
+    // unmounted (only its {#if choosingPolitics} content did) - takingPile is declared up here at
+    // the component level, so it survived that round trip untouched, still pointing at the pile
+    // that got undone. Every click then hit choosePile's own `if (takingPile) return` guard and
+    // did nothing at all. Resetting whenever choosing becomes possible again (not on every
+    // render - this only reads choosingPolitics, so it only reruns when that value flips) covers
+    // both a fresh choice and a return to one via Undo.
+    $effect(() => {
+        if (choosingPolitics) takingPile = undefined
+    })
+
     // Whichever element is actually occupying each slot right now - the deck button, or the
     // empty/dashed placeholder if that pile's already spent. Bound from both branches of each
     // {#if} below, so the fade-the-loser step (see choosePile) has something to fade regardless
