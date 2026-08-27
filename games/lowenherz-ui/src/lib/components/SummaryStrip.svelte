@@ -4,33 +4,12 @@
 
     const gameSession = getGameSession()
 
-    // How many cards are left in each politics pile. This is the ONLY thing about those
-    // piles that matters turn to turn (their contents are hidden until you win politics
-    // and look through one) - these counts are also the only on-screen presence the piles
-    // have even while choosing: rather than drawing new pile art elsewhere, the taking
-    // player is pointed at these existing pills (see the highlight below), and the actual
-    // cards deal into the space PoliticsPileReveal opens up once one is clicked.
+    // How many cards are left in each politics pile - the only thing about those piles that
+    // matters turn to turn (their contents are hidden until you win politics and look through
+    // one). Just a plain readout here; choosing between them lives in PoliticsDeckChooser, above
+    // the board, once there's an actual choice to make.
     const pileACount = $derived(gameSession.gameState.politicsCardPileA.length)
     const pileBCount = $derived(gameSession.gameState.politicsCardPileB.length)
-
-    // Whether the pills below are a live choice right now, rather than just a readout -
-    // gates both the highlight/caption and the pills' own clickability.
-    function canSelectPile(pile: 'A' | 'B'): boolean {
-        if (!gameSession.canTakePoliticsCard || gameSession.selectedPoliticsPile) return false
-        const count = pile === 'A' ? pileACount : pileBCount
-        return count > 0
-    }
-
-    const choosingPolitics = $derived(gameSession.canTakePoliticsCard && !gameSession.selectedPoliticsPile)
-
-    // Feeds PoliticsPileReveal's deal-in animation - the cards fly out from wherever this
-    // pill actually is on screen, so it needs the real viewport position at click time.
-    function choosePile(pile: 'A' | 'B', event: MouseEvent) {
-        if (!canSelectPile(pile)) return
-        const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-        gameSession.politicsPileOrigin = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
-        gameSession.selectPoliticsPile(pile)
-    }
 
     // Per-player Silver Mine payout, while a revealed mine is still sitting on the
     // discard pile (see GameSession.lastMineHillScoring) - keyed for the lookup below.
@@ -91,45 +70,14 @@
     </div>
 
     <div class="flex flex-col items-center gap-0.5">
-        <!-- The rectangle wraps only the pills themselves, not the caption below it (see the
-             template's own placement, sibling to this) - highlighted (and the pills made
-             clickable) only while choosing a pile is a live decision; the same pills read as a
-             plain, inert count the rest of the time. Out of flow so it doesn't nudge the pills'
-             own spacing. -->
-        <div class="relative">
-            {#if choosingPolitics}
-                <div
-                    class="absolute -top-1 -bottom-1 -left-[5px] -right-[5px] rounded-md border-2 border-red-600 pointer-events-none"
-                    style="box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.25);"
-                ></div>
-            {/if}
-            <div class="flex items-center gap-1.5">
-                <button
-                    type="button"
-                    disabled={!canSelectPile('A')}
-                    onclick={(e) => choosePile('A', e)}
-                    class="px-2 py-0.5 rounded-md bg-black/10 font-bold tabular-nums {canSelectPile('A')
-                        ? 'cursor-pointer hover:bg-black/20'
-                        : ''}"
-                    title="Cards left in politics pile A"
-                >
-                    <Numeral value={pileACount} />
-                </button>
-                <button
-                    type="button"
-                    disabled={!canSelectPile('B')}
-                    onclick={(e) => choosePile('B', e)}
-                    class="px-2 py-0.5 rounded-md bg-black/10 font-bold tabular-nums {canSelectPile('B')
-                        ? 'cursor-pointer hover:bg-black/20'
-                        : ''}"
-                    title="Cards left in politics pile B"
-                >
-                    <Numeral value={pileBCount} />
-                </button>
-            </div>
+        <div class="flex items-center gap-1.5">
+            <span class="px-2 py-0.5 rounded-md bg-black/10 font-bold tabular-nums" title="Cards left in politics pile A">
+                <Numeral value={pileACount} />
+            </span>
+            <span class="px-2 py-0.5 rounded-md bg-black/10 font-bold tabular-nums" title="Cards left in politics pile B">
+                <Numeral value={pileBCount} />
+            </span>
         </div>
-        <span class="text-[13px] font-semibold uppercase tracking-wide {choosingPolitics ? 'text-red-700' : 'text-black/60'}">
-            {choosingPolitics ? 'Choose a deck' : 'Politics'}
-        </span>
+        <span class="text-[13px] font-semibold uppercase tracking-wide text-black/60">Politics</span>
     </div>
 </div>

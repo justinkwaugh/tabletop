@@ -15,6 +15,7 @@
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import TestingControls from '$lib/components/TestingControls.svelte'
     import PoliticsHand from '$lib/components/PoliticsHand.svelte'
+    import PoliticsDeckChooser from '$lib/components/PoliticsDeckChooser.svelte'
     import PoliticsPileReveal from '$lib/components/PoliticsPileReveal.svelte'
     import SummaryStrip from '$lib/components/SummaryStrip.svelte'
     import StatusMessages from '$lib/components/StatusMessages.svelte'
@@ -34,13 +35,6 @@
     }: { gameSession: GameSession<LowenherzGameState, HydratedLowenherzGameState> } = $props()
     const lowenherzSession = gameSession as LowenherzGameSession
     setGameSession(lowenherzSession)
-
-    // Comparing two mount points for PoliticsPileReveal: normally (false) it renders in the
-    // sidebar, in the space History/the tabs slide down to make for. Flipped true, it instead
-    // renders splayed across the top of the board, pushing the board down to make room - same
-    // component, same deal-in/take-a-card animations either way (see its own placement prop),
-    // just a different spot in the layout. Flip by hand to compare.
-    const SHOW_POLITICS_ABOVE_BOARD = true
 
     // Exposes the session for console debugging (Svelte context isn't reachable from
     // devtools otherwise) - e.g. `__gameSession.myRegions`.
@@ -72,14 +66,7 @@
 >
     <DefaultTableLayout>
         {#snippet sideContent()}
-            <!-- DefaultTableLayout gives this column a fixed height but no overflow handling of
-                 its own (unlike gameContent's column, which gets both) - harmless normally, since
-                 HistoryControls/SummaryStrip/the tabs are sized to fit it, but PoliticsPileReveal
-                 inserted below pushes everything after it (the tabs) further down, past that fixed
-                 height, without this. Nothing here collapses or hides to make room - the tabs and
-                 HistoryControls both stay fully present, just pushed down (and, past the fixed
-                 height, scrolled to) rather than shrunk away. -->
-            <div class="h-full flex flex-col overflow-y-auto">
+            <div class="h-full flex flex-col">
                 <div class="max-sm:hidden">
                     <HistoryControls
                         borderClass="border-b-2 border-black/20"
@@ -89,27 +76,8 @@
                     />
                 </div>
                 <SummaryStrip />
-                <!-- Real layout, not an overlay: PoliticsPileReveal only renders content once a
-                     pile is chosen, so it takes up no space at all until then. Grown in rather
-                     than just appearing, so the tabs below visibly slide down out of the way
-                     instead of snapping - transition-[grid-template-rows] on a 0fr/1fr grid track
-                     animates to/from a height nothing here has to measure, unlike a max-height
-                     guess would. Nothing collapses to make room for this growth: the tabs and
-                     HistoryControls both stay fully present throughout (see the scrollable column
-                     above), just pushed down. -->
-                {#if !SHOW_POLITICS_ABOVE_BOARD}
-                    <div
-                        class="grid transition-[grid-template-rows] duration-500 ease-in-out"
-                        style="grid-template-rows: {lowenherzSession.selectedPoliticsPile ? '1fr' : '0fr'};"
-                    >
-                        <div class="overflow-hidden">
-                            <PoliticsPileReveal />
-                        </div>
-                    </div>
-                {/if}
-                <!-- pt-2: SummaryStrip's own bottom border sits directly above this (through
-                     PoliticsPileReveal, which takes up no space when empty) with no gap of its
-                     own, and the tab buttons were crowding that line. -->
+                <!-- pt-2: SummaryStrip's own bottom border sits directly above this with no gap
+                     of its own, and the tab buttons were crowding that line. -->
                 <div class="pt-2">
                     <!-- The default active pill is bg-gray-300, which reads as a stray UI chip on
                          the parchment. bg-black/15 introduces no new hue at all - it just darkens
@@ -142,13 +110,13 @@
                 <!-- Below the toolbar so Undo stays at the very top, and outside ScalingWrapper
                      below so none of this text scales with the board. -->
                 <StatusMessages />
-                {#if SHOW_POLITICS_ABOVE_BOARD}
-                    <!-- Real layout, not an overlay - takes up no space at all until a pile is
-                         chosen (see PoliticsPileReveal's own pile check), same as the sidebar
-                         mount point it's being compared against. Sitting here, above the board's
-                         own flex:1 area below, is what pushes the board down to make room. -->
-                    <PoliticsPileReveal placement="board" />
-                {/if}
+                <!-- Real layout, not an overlay: each of these renders nothing at all until it
+                     has something to show (see their own guards - PoliticsDeckChooser while
+                     choosing, PoliticsPileReveal once a pile's picked), and sitting here, above
+                     the board's own flex:1 area below, is what pushes the board down to make
+                     room whenever either one does. -->
+                <PoliticsDeckChooser />
+                <PoliticsPileReveal />
             </div>
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
