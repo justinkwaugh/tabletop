@@ -30,22 +30,24 @@
     // seamless, and fades away exactly once the last card has finished leaving it. Reset whenever
     // a NEW pile is chosen - not on every render while the same one is still dealing - since this
     // only reads `pile`, which only changes value on an actual new selection.
-    //
-    // rowWidth resets here too, back to 0, for the same reason it starts there: {#if rowWidth >
-    // 0} below only guards against rendering cards before a width is known at all. Without this
-    // reset, the SECOND time this component reveals a pile in a session, rowWidth is still
-    // whatever the FIRST reveal last measured - already > 0 - so that gate passes immediately,
-    // cards render against that stale number before this reveal's own rowsEl has been measured
-    // even once, and if the real width comes back even slightly different, correcting it is the
-    // same row-restructuring remount that gate exists to prevent in the first place.
     let dealtCount = $state(0)
-    let rowWidth: number = $state(0)
     $effect(() => {
-        if (pile) {
-            dealtCount = 0
-            rowWidth = 0
-        }
+        if (pile) dealtCount = 0
     })
+
+    // measuredWidth is this component's OWN fallback measurement, for the one case
+    // politicsRowWidth can't cover: a page reload (or similar) landing mid-reveal, with no
+    // PoliticsDeckChooser having run yet this session to have set it. Normally, though,
+    // politicsRowWidth wins outright - see its own comment on GameSession for why relying on
+    // bind:clientWidth here caused a real bug: it's ResizeObserver-backed, so its first callback
+    // only fires a frame or more after mount, by which point cards had already rendered against
+    // whatever guess rowSizes uses before a width is known at all - and correcting that guess
+    // once the real number arrived could move a card into a different row's own {#each} block,
+    // which Svelte can't just reposition, so it tore the button down and remounted a fresh one -
+    // the white flash at the cards' own final resting spots. politicsRowWidth is already measured
+    // and handed off before this component even mounts, so there's no guess to correct.
+    let measuredWidth: number = $state(0)
+    const rowWidth = $derived(gameSession.politicsRowWidth ?? measuredWidth)
 
     // Splits the pile into as many rows as it actually needs, sized as evenly as possible rather
     // than greedily - see politicsCardLayout's own rowSizes for the split itself (shared with
@@ -271,7 +273,7 @@
              whatever the wrong first guess (see rowSizes) had just rendered, rather than the
              real available width, and every subsequent card - correct row split or not - was
              laid out against that self-fulfilling number. -->
-        <div class="w-full flex flex-col gap-2" bind:this={rowsEl} bind:clientWidth={rowWidth}>
+        <div class="w-full flex flex-col gap-2" bind:this={rowsEl} bind:clientWidth={measuredWidth}>
             {#if rowWidth > 0}
                 <!-- Gated on having a real measurement rather than rendering immediately with
                      the "everything fits on one row" fallback rowSizes uses before rowWidth is

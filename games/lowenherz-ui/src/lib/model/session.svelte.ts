@@ -1462,10 +1462,22 @@ export class LowenherzGameSession extends GameSession<
 
     // Viewport-space center point of wherever the player last clicked - either to peek at their
     // own politics cards (see showMyPoliticsCards, used by PoliticsHand) or to look through a
-    // won pile (see SummaryStrip's choosePile, used by PoliticsPileReveal) - purely a visual cue
-    // so those components can animate their cards as if being dealt out from that spot. Has no
-    // bearing on game state.
+    // won pile (see PoliticsDeckChooser's own choosePile, used by PoliticsPileReveal) - purely a
+    // visual cue so those components can animate their cards as if being dealt out from that
+    // spot. Has no bearing on game state.
     politicsPileOrigin: { x: number; y: number } | undefined = $state(undefined)
+
+    // The real, already-measured width of the row PoliticsDeckChooser's own decks sit in - set
+    // alongside politicsPileOrigin, right before selectPoliticsPile below hands off to
+    // PoliticsPileReveal. That component uses this as its row width straight away instead of
+    // waiting on its own bind:clientWidth, which only fires (ResizeObserver-backed, so
+    // inherently a frame or more after mount) once it already has cards rendered against
+    // whatever guess it started with - correcting that guess once the real number arrives can
+    // move a card to a different row's own {#each} block, which Svelte can't just reposition, so
+    // it destroys and remounts it. Undefined whenever no chooser has run yet this session (a page
+    // reload landing mid-reveal, say), which is the one case PoliticsPileReveal still falls back
+    // to measuring for itself.
+    politicsRowWidth: number | undefined = $state(undefined)
 
     async selectPoliticsPile(pile: 'A' | 'B') {
         if (!this.canTakePoliticsCard || this.selectedPoliticsPile) return

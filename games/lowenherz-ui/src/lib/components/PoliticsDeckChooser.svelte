@@ -109,6 +109,12 @@
             x: finalRect.left + finalRect.width / 2,
             y: finalRect.top + finalRect.height / 2
         }
+        // Handed off so PoliticsPileReveal can use it immediately instead of waiting on its own
+        // bind:clientWidth - see that field's own comment on why. The row itself doesn't resize
+        // during the animation above (only the deck buttons inside it moved), so measuring again
+        // here is just for a fresh, guaranteed-current rect rather than relying on the one from
+        // before the fade/slide ran.
+        gameSession.politicsRowWidth = rowEl?.getBoundingClientRect().width
         gameSession.selectPoliticsPile(pile)
     }
 </script>
