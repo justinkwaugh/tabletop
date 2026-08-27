@@ -148,15 +148,24 @@
     let cardEls: Record<string, HTMLElement> = {}
     let rowsEl: HTMLElement | undefined = $state()
 
-    const RETURN_DURATION = 300 // ms - the other cards flying back to the pile
+    const RETURN_DURATION = 300 // ms - the other cards collapsing under the chosen one
 
-    // Justin's idea: while the rest fly back to the pile, the chosen card gets its own moment -
-    // flies to the center of the cards area and enlarges a bit, holds there, then scales down
-    // and fades out without moving any further.
+    // Justin's idea: while the rest collapse away, the chosen card gets its own moment - flies
+    // to the center of the cards area and enlarges a bit, holds there, then scales down and
+    // fades out without moving any further.
     const FOCUS_MOVE_DURATION = 350 // ms - flying to center and enlarging
     const FOCUS_HOLD_DURATION = 500 // ms - the pause once it's there
     const FOCUS_FADE_DURATION = 300 // ms - scaling/fading out in place, after the hold
     const FOCUS_SCALE = 1.17
+
+    // Where the chosen card ends up, and now also where the others collapse to (see chooseCard) -
+    // the middle of the cards area itself, not any one card's own rect, so both moves agree on
+    // the same point regardless of which row or column either card started in.
+    function getAreaCenter(): { x: number; y: number } | undefined {
+        const areaRect = rowsEl?.getBoundingClientRect()
+        if (!areaRect) return undefined
+        return { x: areaRect.left + areaRect.width / 2, y: areaRect.top + areaRect.height / 2 }
+    }
 
     function addFlight(
         tl: gsap.core.Timeline,
@@ -170,8 +179,8 @@
         const dx = target.x - (rect.left + rect.width / 2)
         const dy = target.y - (rect.top + rect.height / 2)
         // Same fade curve as the chosen card's own fade-out (addChosenCardFocus) - scaling all
-        // the way to 0 with a power1.in ease, rather than the old power2.in-to-0.3 shrink -
-        // while still moving toward the target, so these read as collapsing into the middle
+        // the way to 0 with a power1.in ease, rather than the old power2.in-to-0.3 shrink - while
+        // still moving toward the target, so these read as collapsing under the chosen card
         // rather than just sliding off.
         tl.to(el, { x: dx, y: dy, scale: 0, opacity: 0, duration, ease: 'power1.in' }, position)
     }
@@ -179,14 +188,12 @@
     function addChosenCardFocus(tl: gsap.core.Timeline, el: HTMLElement | undefined, position: number) {
         if (!el) return
         const rect = el.getBoundingClientRect()
-        const areaRect = rowsEl?.getBoundingClientRect()
-        const centerX = areaRect ? areaRect.left + areaRect.width / 2 : rect.left + rect.width / 2
-        const centerY = areaRect ? areaRect.top + areaRect.height / 2 : rect.top + rect.height / 2
-        const dx = centerX - (rect.left + rect.width / 2)
-        const dy = centerY - (rect.top + rect.height / 2)
+        const center = getAreaCenter() ?? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+        const dx = center.x - (rect.left + rect.width / 2)
+        const dy = center.y - (rect.top + rect.height / 2)
 
         // Above the other (departing) cards for the whole sequence, since it travels over
-        // them on its way to the center.
+        // (and the others end up sliding under) it on the way to the center.
         gsap.set(el, { zIndex: 10 })
         tl.to(el, { x: dx, y: dy, scale: FOCUS_SCALE, duration: FOCUS_MOVE_DURATION / 1000, ease: 'power2.out' }, position)
         // The hold is just empty timeline space - nothing to tween, so nothing is added for it;
@@ -209,13 +216,15 @@
         takingCardId = card.id
 
         const tl = gsap.timeline()
-        const origin = gameSession.politicsPileOrigin
-        if (origin) {
+        const center = getAreaCenter()
+        if (center) {
             const others = cards.filter((c) => c.id !== card.id)
-            // All at once, not staggered like the deal-in was: collapsing toward the center
-            // reads best as one simultaneous move, not a trailing riffle.
+            // All at once, not staggered like the deal-in was: collapsing under the chosen card
+            // reads best as one simultaneous move, not a trailing riffle. Same target point
+            // addChosenCardFocus sends the chosen card to, so the others end up sliding under it
+            // rather than off toward the leftover deck to the side.
             others.forEach((c) => {
-                addFlight(tl, cardEls[c.id], origin, RETURN_DURATION / 1000, 0)
+                addFlight(tl, cardEls[c.id], center, RETURN_DURATION / 1000, 0)
             })
         }
         addChosenCardFocus(tl, cardEls[card.id], 0)
