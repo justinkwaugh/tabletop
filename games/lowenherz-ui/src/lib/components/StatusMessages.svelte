@@ -480,7 +480,7 @@
                     Every knight in that region is protecting another from being cut off from
                     its castle — none can safely be removed. Choose Undo to try again.
                 {:else}
-                    Choose the enemy knight to remove.
+                    Choose an enemy knight to remove.
                 {/if}
             {:else}
                 Now choose a square in your region to place your knight in exchange.
