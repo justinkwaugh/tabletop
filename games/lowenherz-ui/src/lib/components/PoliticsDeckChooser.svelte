@@ -1,6 +1,7 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import PoliticsCard from './PoliticsCard.svelte'
+    import Numeral from './Numeral.svelte'
 
     const gameSession = getGameSession()
 
@@ -30,40 +31,50 @@
     }
 </script>
 
+{#snippet countBadge(count: number)}
+    <!-- The pile's own remaining-card count, same job SummaryStrip's plain readout pill does,
+         just printed on the deck itself now that this is what a player actually looks at when
+         choosing. -->
+    <span
+        class="absolute bottom-1 inset-x-1 text-center rounded-full bg-black/80 text-white text-[11px] font-bold tabular-nums py-0.5"
+    >
+        <Numeral value={count} />
+    </span>
+{/snippet}
+
 {#if choosingPolitics}
-    <div class="px-3 py-2 flex items-center justify-center gap-4">
-        <span class="text-black text-base font-semibold">Choose a politics deck:</span>
-        <div class="flex items-center gap-3">
-            {#if pileACards.length > 0}
-                <button
-                    type="button"
-                    onclick={(e) => choosePile('A', e)}
-                    class="cursor-pointer opacity-90 hover:opacity-100 transition-opacity duration-150"
-                    style="width: {CARD_WIDTH_CSS};"
-                >
-                    <PoliticsCard card={pileACards[0]} faceDown />
-                </button>
-            {:else}
-                <div
-                    class="aspect-[534/832] rounded-md border border-dashed border-black/25"
-                    style="width: {CARD_WIDTH_CSS};"
-                ></div>
-            {/if}
-            {#if pileBCards.length > 0}
-                <button
-                    type="button"
-                    onclick={(e) => choosePile('B', e)}
-                    class="cursor-pointer opacity-90 hover:opacity-100 transition-opacity duration-150"
-                    style="width: {CARD_WIDTH_CSS};"
-                >
-                    <PoliticsCard card={pileBCards[0]} faceDown />
-                </button>
-            {:else}
-                <div
-                    class="aspect-[534/832] rounded-md border border-dashed border-black/25"
-                    style="width: {CARD_WIDTH_CSS};"
-                ></div>
-            {/if}
-        </div>
+    <!-- No separate instructions here - StatusMessages already says "Click one of the politics
+         decks." right above this. -->
+    <div class="px-3 py-2 flex items-center justify-center gap-3">
+        {#if pileACards.length > 0}
+            <button
+                type="button"
+                onclick={(e) => choosePile('A', e)}
+                class="relative cursor-pointer opacity-90 hover:opacity-100 transition-opacity duration-150"
+                style="width: {CARD_WIDTH_CSS};"
+            >
+                <PoliticsCard card={pileACards[0]} faceDown />
+                {@render countBadge(pileACards.length)}
+            </button>
+        {:else}
+            <div class="relative aspect-[534/832] rounded-md border border-dashed border-black/25" style="width: {CARD_WIDTH_CSS};">
+                {@render countBadge(0)}
+            </div>
+        {/if}
+        {#if pileBCards.length > 0}
+            <button
+                type="button"
+                onclick={(e) => choosePile('B', e)}
+                class="relative cursor-pointer opacity-90 hover:opacity-100 transition-opacity duration-150"
+                style="width: {CARD_WIDTH_CSS};"
+            >
+                <PoliticsCard card={pileBCards[0]} faceDown />
+                {@render countBadge(pileBCards.length)}
+            </button>
+        {:else}
+            <div class="relative aspect-[534/832] rounded-md border border-dashed border-black/25" style="width: {CARD_WIDTH_CSS};">
+                {@render countBadge(0)}
+            </div>
+        {/if}
     </div>
 {/if}
