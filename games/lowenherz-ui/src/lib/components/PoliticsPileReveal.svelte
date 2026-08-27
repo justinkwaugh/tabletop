@@ -4,6 +4,7 @@
     import type { PoliticsCard as PoliticsCardData } from '@tabletop/lowenherz'
     import PoliticsCard from './PoliticsCard.svelte'
     import { preloadPoliticsCardFace } from '$lib/model/politicsCardImages'
+    import { CARD_W, CARD_H, rowSizes } from '$lib/model/politicsCardLayout'
 
     const gameSession = getGameSession()
 
@@ -21,11 +22,7 @@
               : []
     )
 
-    // Same fixed size PlayerState uses for the cards in a player's own hand.
-    const CARD_W = 66
     const CARD_WIDTH_CSS = `${CARD_W}px`
-    const CARD_H = Math.round((CARD_W * 832) / 534)
-    const CARD_GAP = 8 // px, matches gap-2
 
     // How many cards have actually finished dealing out - drives the leftover "deck" placeholder
     // below (see deckEl): it sits at politicsPileOrigin, right where PoliticsDeckChooser's own
@@ -38,29 +35,19 @@
         if (pile) dealtCount = 0
     })
 
-    // How many cards actually fit across one row at the row's real measured width - a
-    // plain flex-wrap left it up to the browser, which packs each row as full as it can
-    // before wrapping (5 cards at 4-per-row read as 4 then 1, not 3 and 2). Falls back to
-    // "everything fits" before the real width is known, on the first render.
+    // rowWidth starts at 0, before the real measurement below comes in - see rowSizes' own
+    // fallback for what that means for the split.
     let rowWidth: number = $state(0)
-    const perRow = $derived(
-        rowWidth > 0 ? Math.max(1, Math.floor((rowWidth + CARD_GAP) / (CARD_W + CARD_GAP))) : cards.length
-    )
 
-    // Splits the hand into as many rows as it actually needs (per perRow above), sized as
-    // evenly as possible rather than greedily - 5 cards needing 2 rows come out 3/2, not
-    // 4/1. Each entry keeps the card's index in the full pile, not its row, since that's
-    // what dealIn's stagger and the deal-order more generally are keyed to.
+    // Splits the pile into as many rows as it actually needs, sized as evenly as possible rather
+    // than greedily - see politicsCardLayout's own rowSizes for the split itself (shared with
+    // PoliticsDeckChooser, which needs the same split to know where the leftmost dealt card will
+    // land). Each entry keeps the card's index in the full pile, not its row, since that's what
+    // dealIn's stagger and the deal-order more generally are keyed to.
     const cardRows = $derived.by(() => {
-        const count = cards.length
-        if (count === 0) return []
-        const rowCount = Math.max(1, Math.ceil(count / perRow))
-        const base = Math.floor(count / rowCount)
-        const remainder = count % rowCount
         const rows: { card: PoliticsCardData; index: number }[][] = []
         let index = 0
-        for (let r = 0; r < rowCount; r++) {
-            const size = base + (r < remainder ? 1 : 0)
+        for (const size of rowSizes(cards.length, rowWidth)) {
             rows.push(
                 Array.from({ length: size }, () => {
                     const entry = { card: cards[index], index }
@@ -264,16 +251,16 @@
         <!-- w-full: without it, this being a flex item of an items-center parent means it
              shrinks to fit ITS OWN children on the cross axis instead of filling the space
              actually available - so its very first measurement (below) came out sized to
-             whatever the wrong first guess (see perRow) had just rendered, rather than the
+             whatever the wrong first guess (see rowSizes) had just rendered, rather than the
              real available width, and every subsequent card - correct row split or not - was
              laid out against that self-fulfilling number. -->
         <div class="w-full flex flex-col gap-2" bind:this={rowsEl} bind:clientWidth={rowWidth}>
             {#if rowWidth > 0}
                 <!-- Gated on having a real measurement rather than rendering immediately with
-                     the "everything fits on one row" fallback perRow uses before rowWidth is
+                     the "everything fits on one row" fallback rowSizes uses before rowWidth is
                      known: cards are keyed by id within their OWN row's {#each}, so correcting
-                     perRow after the fact (once the real width comes in) can move a card into a
-                     different row's block - a different keyed {#each} entirely, which Svelte
+                     the split after the fact (once the real width comes in) can move a card into
+                     a different row's block - a different keyed {#each} entirely, which Svelte
                      can't just reposition, so it tears the button down and remounts a fresh one
                      in the new spot. That remount is a fresh dealIn from scratch: the card's own
                      white background painted at its final resting spot for a frame before the

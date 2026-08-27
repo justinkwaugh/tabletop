@@ -4,12 +4,12 @@
     import PoliticsCard from './PoliticsCard.svelte'
     import Numeral from './Numeral.svelte'
     import { preloadPoliticsCardFace } from '$lib/model/politicsCardImages'
+    import { CARD_W, CARD_GAP, rowSizes, rowContentWidth } from '$lib/model/politicsCardLayout'
 
     const gameSession = getGameSession()
 
     // Same fixed card size PoliticsPileReveal deals out, so the deck you're choosing between
     // visually matches what it turns into once you pick one.
-    const CARD_W = 66
     const CARD_WIDTH_CSS = `${CARD_W}px`
 
     // The actual pile contents - already on the client (see PoliticsPileReveal's own comment on
@@ -62,13 +62,15 @@
     let rowEl: HTMLElement | undefined = $state()
 
     const FADE_OUT_DURATION = 220 // ms - the unclicked deck fading away
-    const SLIDE_DURATION = 380 // ms - the clicked deck sliding to the left edge
+    const SLIDE_DURATION = 380 // ms - the clicked deck sliding beside the dealt row
 
     // Plays the deck-choosing exit before actually committing to a pile: the OTHER deck fades
-    // away first, then the clicked one slides to the left edge of this same row - the same
-    // horizontal space PoliticsPileReveal deals its cards into once this component hands off -
-    // so it reads as one continuous deck, not two different pieces of art swapped mid-animation.
-    // Only once that's landed does the deck's own final position become the deal-in origin
+    // away first, then the clicked one slides to just left of wherever the leftmost dealt card is
+    // actually going to land - not just the row's own left edge, which (with a row centered via
+    // justify-center) could leave a gap between the deck and the row it's supposedly dealing
+    // into. rowSizes/rowContentWidth are the exact same split PoliticsPileReveal's own cardRows
+    // will use for this same pile once it takes over, so the two agree on where that card ends
+    // up. Only once the slide lands does the deck's own final position become the deal-in origin
     // (PoliticsPileReveal keeps its own placeholder there - see that component's deckEl - so the
     // handoff is seamless), and the pick is actually dispatched. Mirrors PoliticsPileReveal's own
     // chooseCard, which plays its exit before dispatching too, for the same reason.
@@ -76,6 +78,7 @@
         if (takingPile) return
         const clickedEl = event.currentTarget as HTMLElement
         const otherEl = pile === 'A' ? pileBEl : pileAEl
+        const totalCount = (pile === 'A' ? pileACards : pileBCards).length
         takingPile = pile
 
         const tl = gsap.timeline()
@@ -88,9 +91,12 @@
 
         const areaRect = rowEl?.getBoundingClientRect()
         if (areaRect) {
+            const firstRowSize = rowSizes(totalCount, areaRect.width)[0] ?? 0
+            const leftmostCardLeft = areaRect.left + (areaRect.width - rowContentWidth(firstRowSize)) / 2
+            const targetCenterX = leftmostCardLeft - CARD_GAP - CARD_W / 2
+
             const clickedRect = clickedEl.getBoundingClientRect()
-            const targetX = areaRect.left + clickedRect.width / 2
-            const dx = targetX - (clickedRect.left + clickedRect.width / 2)
+            const dx = targetCenterX - (clickedRect.left + clickedRect.width / 2)
             tl.to(clickedEl, { x: dx, duration: SLIDE_DURATION / 1000, ease: 'power2.inOut' })
         }
 
@@ -126,8 +132,9 @@
     <div class="px-3 py-2">
         <!-- The inner, unpadded row is what's measured (see rowEl below) - matching
              PoliticsPileReveal's own two-level structure (padded outer wrapper, unpadded inner
-             row) exactly, so "the left edge of the area" here is the same viewport coordinate as
-             that component's own row start, not offset from it by this wrapper's own padding. -->
+             row) exactly, so choosePile's own slide-target math lands in the same viewport
+             coordinate space that component's row will actually use, not offset from it by this
+             wrapper's own padding. -->
         <div class="flex items-center justify-center gap-3" bind:this={rowEl}>
             {#if pileACards.length > 0}
                 <button
