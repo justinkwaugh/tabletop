@@ -3,7 +3,6 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { PoliticsCard as PoliticsCardData } from '@tabletop/lowenherz'
     import PoliticsCard from './PoliticsCard.svelte'
-    import Numeral from './Numeral.svelte'
     import { preloadPoliticsCardFace } from '$lib/model/politicsCardImages'
 
     const gameSession = getGameSession()
@@ -247,13 +246,10 @@
             style="left: {origin.x - CARD_W / 2}px; top: {origin.y - CARD_H / 2}px; width: {CARD_WIDTH_CSS};"
             bind:this={deckEl}
         >
+            <!-- No count printed here - dealtCount ticks up once per card, one riffle-deal
+                 stagger apart, so a live countdown just blurred past too fast to read. Still
+                 tracked (see the fade effect below) for knowing when the deck's actually empty. -->
             <PoliticsCard card={cards[0]} faceDown />
-            <span
-                class="absolute inset-0 flex items-center justify-center text-white font-bold"
-                style="font-size: 37px; line-height: 1; text-shadow: 0 0 4px rgba(0, 0, 0, 0.85), 0 0 7px rgba(0, 0, 0, 0.6);"
-            >
-                <Numeral value={Math.max(0, cards.length - dealtCount)} />
-            </span>
         </div>
     {/if}
     <div class="px-3 py-2 flex flex-col items-center gap-2">
