@@ -22,19 +22,48 @@
               : []
     )
 
-    // measuredWidth is this component's OWN fallback measurement, for the one case
-    // politicsRowWidth can't cover: a page reload (or similar) landing mid-reveal, with no
-    // PoliticsDeckChooser having run yet this session to have set it. Normally, though,
-    // politicsRowWidth wins outright - see its own comment on GameSession for why relying on
-    // bind:clientWidth here caused a real bug: it's ResizeObserver-backed, so its first callback
-    // only fires a frame or more after mount, by which point cards had already rendered against
-    // whatever guess rowSizes uses before a width is known at all - and correcting that guess
-    // once the real number arrived could move a card into a different row's own {#each} block,
-    // which Svelte can't just reposition, so it tore the button down and remounted a fresh one -
-    // the white flash at the cards' own final resting spots. politicsRowWidth is already measured
-    // and handed off before this component even mounts, so there's no guess to correct.
+    // measuredWidth is this component's OWN live measurement - the authority once it has one FOR
+    // THIS reveal, so a real resize while cards are already dealt (a phone rotating, say) still
+    // reflows them, which politicsRowWidth's one-time handoff value on its own never would.
+    // measuredWidthOrigin is what makes "for THIS reveal" checkable at all: this component never
+    // unmounts (only the {#if pile} content below does), so measuredWidth simply keeps whatever
+    // it was last set to across a `pile` transition - and since `pile` is only ever 'A' or
+    // 'undefined' or 'B', a stale measurement from a PREVIOUS 'A' reveal would satisfy an
+    // `=== pile` check just as well as a fresh one for a new 'A' reveal, without actually being
+    // one. politicsPileOrigin is a fresh object every single time PoliticsDeckChooser hands off a
+    // new choice (see that component's own choosePile), so comparing THAT by reference is what
+    // actually tells two reveals of the same letter apart.
+    //
+    // Measured with a plain ResizeObserver in an attachment rather than bind:clientWidth for the
+    // same reason: bind:clientWidth's first callback only fires a frame or more after mount, by
+    // which point cards had already rendered against whatever guess rowSizes uses before a width
+    // is known at all - and correcting that guess once the real number arrived could move a card
+    // into a different row's own {#each} block, which Svelte can't just reposition, so it tore
+    // the button down and remounted a fresh one - the white flash at the cards' own final resting
+    // spots. politicsRowWidth is already measured and handed off before this component even
+    // mounts, so there's no guess to correct on the very first render; measuredWidth only needs
+    // to take over once it's confirmed fresh, which the origin check above establishes without an
+    // effect or any other reset-by-hand.
     let measuredWidth: number = $state(0)
-    const rowWidth = $derived(gameSession.politicsRowWidth ?? measuredWidth)
+    let measuredWidthOrigin: { x: number; y: number } | undefined = $state(undefined)
+
+    function measureWidth(el: HTMLElement) {
+        const origin = gameSession.politicsPileOrigin
+        const observer = new ResizeObserver((entries) => {
+            const entry = entries[0]
+            if (!entry) return
+            measuredWidth = entry.contentRect.width
+            measuredWidthOrigin = origin
+        })
+        observer.observe(el)
+        return () => observer.disconnect()
+    }
+
+    const rowWidth = $derived(
+        measuredWidthOrigin === gameSession.politicsPileOrigin && measuredWidth > 0
+            ? measuredWidth
+            : (gameSession.politicsRowWidth ?? 0)
+    )
 
     // Shrinks below CARD_W only once the row is too narrow for a few cards at that size - a
     // phone screen, mainly (see responsiveCardWidth's own comment) - rather than staying a fixed
@@ -153,10 +182,20 @@
     // start at politicsPileOrigin (wherever the chooser's slide actually left off) and slide from
     // there to wherever this slot really is, once it's actually known - so any gap between the
     // two components' estimates and reality just becomes part of the same slide, not a jump.
-    let deckEmptied = $state(false)
-    $effect(() => {
-        if (pile) deckEmptied = false
-    })
+    // Tagged the same way rowWidth's own measurement is above, and for the same reason: this
+    // component never unmounts, so a plain `let deckEmptied = $state(false)` reset by watching
+    // `pile` (an $effect whose only job is clearing local state back to a default - exactly what
+    // this codebase's Svelte rule says to express as derived state instead) would leave a stale
+    // `true` sitting there from a previous reveal of the same letter the instant the new one's
+    // `{#if pile}` content re-mounted, showing the dashed "empty" outline immediately for a deck
+    // that hasn't dealt a single card yet. deckEmptiedOrigin is only ever set (in deckDealIn's own
+    // fade, below) to whichever politicsPileOrigin was current for THAT fade - so deckEmptied
+    // reads true only while that still matches the CURRENT reveal's origin, and simply stops
+    // matching (with nothing to reset by hand) the moment a new one begins.
+    let deckEmptiedOrigin: { x: number; y: number } | undefined = $state(undefined)
+    const deckEmptied = $derived(
+        deckEmptiedOrigin !== undefined && deckEmptiedOrigin === gameSession.politicsPileOrigin
+    )
 
     const DECK_SLIDE_DURATION = 300 // ms
 
@@ -183,7 +222,7 @@
             duration: DEAL_TOTAL_DURATION,
             ease: 'power1.in',
             onComplete: () => {
-                deckEmptied = true
+                deckEmptiedOrigin = origin
             }
         })
 
@@ -311,7 +350,7 @@
              whatever the wrong first guess (see rowSizes) had just rendered, rather than the
              real available width, and every subsequent card - correct row split or not - was
              laid out against that self-fulfilling number. -->
-        <div class="w-full flex flex-col gap-2" bind:this={rowsEl} bind:clientWidth={measuredWidth}>
+        <div class="w-full flex flex-col gap-2" bind:this={rowsEl} {@attach measureWidth}>
             {#if rowWidth > 0}
                 <!-- Gated on having a real measurement rather than rendering immediately with
                      the "everything fits on one row" fallback rowSizes uses before rowWidth is

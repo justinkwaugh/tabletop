@@ -46,6 +46,12 @@
     // card is actually dealt, its face art has usually had as long as the player took to look at
     // the decks and click one to finish decoding, so that wait resolves immediately and the deal
     // plays at full speed with nothing to show white for.
+    //
+    // A genuine $effect, not derived state, because this isn't clearing local UI state back to
+    // some default (the pattern this codebase's Svelte rule reserves $effect against) - it's a
+    // real external side effect (kicking off browser image decoding) with no value to compute and
+    // no single element's mount to attach it to; it just needs to re-run whenever the pile
+    // contents this player could look through change while there's an actual choice on the table.
     $effect(() => {
         if (!choosingPolitics) return
         for (const card of [...pileACards, ...pileBCards]) {
@@ -53,21 +59,18 @@
         }
     })
 
-    // Set the moment a deck is clicked - disables both decks against further clicks, and keeps
-    // this component rendering (and playing its own exit animation) for as long as
-    // choosingPolitics stays true, which it does until selectPoliticsPile below actually lands.
-    let takingPile: 'A' | 'B' | undefined = $state(undefined)
-
-    // Undoing the pick brings choosingPolitics back to true without this component ever having
-    // unmounted (only its {#if choosingPolitics} content did) - takingPile is declared up here at
-    // the component level, so it survived that round trip untouched, still pointing at the pile
-    // that got undone. Every click then hit choosePile's own `if (takingPile) return` guard and
-    // did nothing at all. Resetting whenever choosing becomes possible again (not on every
-    // render - this only reads choosingPolitics, so it only reruns when that value flips) covers
-    // both a fresh choice and a return to one via Undo.
-    $effect(() => {
-        if (choosingPolitics) takingPile = undefined
-    })
+    // Which pile is currently being taken, tagged rather than a plain value - this component
+    // never unmounts (only its {#if choosingPolitics} content does), so a plain `let takingPile =
+    // $state()` reset by watching choosingPolitics (an $effect whose only job is clearing local
+    // state back to a default - exactly what this codebase's Svelte rule says to express as
+    // derived state instead) left a stale pick sitting there the moment choosing became possible
+    // again without a fresh click - most visibly after Undo brought choosingPolitics back to true
+    // while takingPileTag still pointed at the pile that got undone, disabling both decks with no
+    // way to retry the choice the player still had to make. Tagging it and deriving the value
+    // everything else reads means there's nothing to reset by hand: takingPile just stops being
+    // true the moment choosingPolitics does, on its own.
+    let takingPileTag: 'A' | 'B' | undefined = $state(undefined)
+    const takingPile = $derived(choosingPolitics ? takingPileTag : undefined)
 
     // Whichever element is actually occupying each slot right now - the deck button, or the
     // empty/dashed placeholder if that pile's already spent. Bound from both branches of each
@@ -97,7 +100,7 @@
         const clickedEl = event.currentTarget as HTMLElement
         const otherEl = pile === 'A' ? pileBEl : pileAEl
         const totalCount = (pile === 'A' ? pileACards : pileBCards).length
-        takingPile = pile
+        takingPileTag = pile
 
         const tl = gsap.timeline()
         if (otherEl) {
@@ -139,14 +142,13 @@
         // returns early (no error) if canTakePoliticsCard/the pile turned out already spoken for
         // by the time this landed, and sets errorMessage rather than throwing if the server
         // itself rejected it. None of that tells this function it didn't land other than
-        // selectedPoliticsPile simply not being `pile` afterward - without checking, takingPile
-        // stayed set forever (choosingPolitics never having changed value, the OTHER effect that
-        // resets it never re-fires), leaving both decks disabled with no way to retry a choice
-        // the player still has to make. Putting both decks back as they were, rather than
-        // leaving one faded out and the other stranded mid-slide, is what actually makes that
-        // retry possible.
+        // selectedPoliticsPile simply not being `pile` afterward - without checking, takingPileTag
+        // stayed set forever and choosingPolitics stayed true throughout (never having a reason to
+        // change), leaving both decks disabled with no way to retry a choice the player still has
+        // to make. Putting both decks back as they were, rather than leaving one faded out and the
+        // other stranded mid-slide, is what actually makes that retry possible.
         if (gameSession.selectedPoliticsPile !== pile) {
-            takingPile = undefined
+            takingPileTag = undefined
             if (otherEl) {
                 gsap.to(otherEl, { opacity: 1, scale: 1, duration: FADE_OUT_DURATION / 1000, ease: 'power1.out' })
             }
