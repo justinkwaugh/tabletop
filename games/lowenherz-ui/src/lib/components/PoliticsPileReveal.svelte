@@ -213,24 +213,42 @@
                 {gameSession.errorMessage}
             </div>
         {/if}
-        <div class="flex flex-col gap-2" bind:this={rowsEl} bind:clientWidth={rowWidth}>
-            {#each cardRows as row, rowIndex (rowIndex)}
-                <div class="flex items-start justify-center gap-2">
-                    {#each row as { card, index } (card.id)}
-                        <button
-                            type="button"
-                            bind:this={cardEls[card.id]}
-                            {@attach dealIn(card, index)}
-                            disabled={takingCardId !== undefined}
-                            class="cursor-pointer opacity-90 hover:opacity-100 transition-opacity duration-150"
-                            style="width: {CARD_WIDTH_CSS};"
-                            onclick={() => chooseCard(card)}
-                        >
-                            <PoliticsCard {card} />
-                        </button>
-                    {/each}
-                </div>
-            {/each}
+        <!-- w-full: without it, this being a flex item of an items-center parent means it
+             shrinks to fit ITS OWN children on the cross axis instead of filling the space
+             actually available - so its very first measurement (below) came out sized to
+             whatever the wrong first guess (see perRow) had just rendered, rather than the
+             real available width, and every subsequent card - correct row split or not - was
+             laid out against that self-fulfilling number. -->
+        <div class="w-full flex flex-col gap-2" bind:this={rowsEl} bind:clientWidth={rowWidth}>
+            {#if rowWidth > 0}
+                <!-- Gated on having a real measurement rather than rendering immediately with
+                     the "everything fits on one row" fallback perRow uses before rowWidth is
+                     known: cards are keyed by id within their OWN row's {#each}, so correcting
+                     perRow after the fact (once the real width comes in) can move a card into a
+                     different row's block - a different keyed {#each} entirely, which Svelte
+                     can't just reposition, so it tears the button down and remounts a fresh one
+                     in the new spot. That remount is a fresh dealIn from scratch: the card's own
+                     white background painted at its final resting spot for a frame before the
+                     new attachment ran and hid it again. Waiting the one tick for a real width
+                     means cards are only ever created once, already in their final row. -->
+                {#each cardRows as row, rowIndex (rowIndex)}
+                    <div class="flex items-start justify-center gap-2">
+                        {#each row as { card, index } (card.id)}
+                            <button
+                                type="button"
+                                bind:this={cardEls[card.id]}
+                                {@attach dealIn(card, index)}
+                                disabled={takingCardId !== undefined}
+                                class="cursor-pointer opacity-90 hover:opacity-100 transition-opacity duration-150"
+                                style="width: {CARD_WIDTH_CSS};"
+                                onclick={() => chooseCard(card)}
+                            >
+                                <PoliticsCard {card} />
+                            </button>
+                        {/each}
+                    </div>
+                {/each}
+            {/if}
         </div>
     </div>
 {/if}
