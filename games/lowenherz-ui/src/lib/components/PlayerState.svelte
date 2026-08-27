@@ -386,8 +386,12 @@
                                 >
                                     <PoliticsCardView {card} />
                                     {#if active}
+                                        <!-- border border-transparent: same 1px the APPLY pill's own
+                                             border adds, purely so the two are the same height -
+                                             ACTIVE's own background already reads solid without a
+                                             visible border of its own. -->
                                         <div
-                                            class="absolute top-[15%] left-0 right-0 bg-red-700 text-white text-xs font-bold tracking-widest text-center py-1 pointer-events-none shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+                                            class="absolute top-[15%] left-0 right-0 bg-red-700 text-white text-[10px] font-bold tracking-widest text-center py-1 border border-transparent pointer-events-none shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
                                         >
                                             ACTIVE
                                         </div>
