@@ -123,7 +123,11 @@
         const rect = el.getBoundingClientRect()
         const dx = target.x - (rect.left + rect.width / 2)
         const dy = target.y - (rect.top + rect.height / 2)
-        tl.to(el, { x: dx, y: dy, scale: 0.3, opacity: 0, duration, ease: 'power2.in' }, position)
+        // Same fade curve as the chosen card's own fade-out (addChosenCardFocus) - scaling all
+        // the way to 0 with a power1.in ease, rather than the old power2.in-to-0.3 shrink -
+        // while still moving toward the target, so these read as collapsing into the middle
+        // rather than just sliding off.
+        tl.to(el, { x: dx, y: dy, scale: 0, opacity: 0, duration, ease: 'power1.in' }, position)
     }
 
     function addChosenCardFocus(tl: gsap.core.Timeline, el: HTMLElement | undefined, position: number) {
