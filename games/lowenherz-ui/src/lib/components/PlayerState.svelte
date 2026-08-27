@@ -82,14 +82,24 @@
 
     // Cards worth surfacing fully, with their own APPLY button - Renegade/Alliance while
     // they're playable, or a Treasure card while it could actually be spent (a wooded knight
-    // placement, or backing a duel bid). These never overlap and never jitter/rotate - a card
-    // the player actually needs to reach right now sits flush, on its own, rather than being
-    // buried in (or tilted like) the rest of the hand. Everything else still overlaps as it
-    // did before, just among a possibly smaller group now that this splits off.
+    // placement, or backing a duel bid) - OR a card that's currently active (isPoliticsCardActive),
+    // even once canApplyPoliticsCard has stopped saying yes to it. That "even once" matters for
+    // Renegade/Alliance specifically: canApplyPoliticsCard for those is a GLOBAL check ("is any
+    // Renegade play in progress"), not a per-card one, so the instant a Renegade card is clicked
+    // and becomes active, canApplyPoliticsCard goes false for THAT card too (you can't start a
+    // second Renegade play while one's already under way) - without this OR, the card the player
+    // just clicked would immediately fall out of this set and never get to show its own ACTIVE
+    // stripe at all, sliding back into the overlapped stack as if nothing had been clicked. These
+    // never overlap and never jitter/rotate - a card the player actually needs to reach (or has
+    // just reached) sits flush, on its own, rather than being buried in (or tilted like) the rest
+    // of the hand. Everything else still overlaps as it did before, just among a possibly smaller
+    // group now that this splits off.
     const applicableCardIds = $derived(
         isMe
             ? new Set(
-                  playerState.politicsCards.filter((c) => gameSession.canApplyPoliticsCard(c)).map((c) => c.id)
+                  playerState.politicsCards
+                      .filter((c) => gameSession.canApplyPoliticsCard(c) || gameSession.isPoliticsCardActive(c))
+                      .map((c) => c.id)
               )
             : new Set<string>()
     )
