@@ -1,7 +1,6 @@
 <script lang="ts">
     import { type PoliticsCard, PoliticsCardType } from '@tabletop/lowenherz'
-    import cardBackImg from '$lib/images/politics-cards/card-back.jpg'
-    import { politicsCardFaceImage } from '$lib/model/politicsCardImages'
+    import { politicsCardFaceImage, cardBackImg } from '$lib/model/politicsCardImages'
 
     // faceDown shows the shared card back instead of this specific card's face - used
     // for the pile you didn't look through, and other players' hands, which are kept

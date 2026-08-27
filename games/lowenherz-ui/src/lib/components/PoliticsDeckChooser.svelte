@@ -3,7 +3,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import PoliticsCard from './PoliticsCard.svelte'
     import Numeral from './Numeral.svelte'
-    import { preloadPoliticsCardFace } from '$lib/model/politicsCardImages'
+    import { preloadPoliticsCardFace, preloadPoliticsCardBack } from '$lib/model/politicsCardImages'
     import { CARD_W, CARD_GAP, rowSizes, rowContentWidth } from '$lib/model/politicsCardLayout'
 
     const gameSession = getGameSession()
@@ -11,6 +11,18 @@
     // Same fixed card size PoliticsPileReveal deals out, so the deck you're choosing between
     // visually matches what it turns into once you pick one.
     const CARD_WIDTH_CSS = `${CARD_W}px`
+
+    // Gates the deck rendering below (see the template) on the shared face-down art actually
+    // being decoded - the same white-flash bug PoliticsPileReveal's own dealIn works around for
+    // dealt cards (see its wait on preloadPoliticsCardFace) can happen here too, for the deck
+    // backs themselves, the very first time a politics phase comes up in a session and this
+    // image hasn't been decoded yet. Kicked off once, unconditionally, rather than inside an
+    // effect keyed to choosingPolitics - it's one shared static image, not per-pile data, so
+    // there's nothing to react to: it only ever needs to happen once, period.
+    let backReady = $state(false)
+    preloadPoliticsCardBack().then(() => {
+        backReady = true
+    })
 
     // The actual pile contents - already on the client (see PoliticsPileReveal's own comment on
     // this), just never shown face-up until a pile is taken. Only the first card of each pile is
@@ -132,7 +144,7 @@
     </span>
 {/snippet}
 
-{#if choosingPolitics}
+{#if choosingPolitics && backReady}
     <!-- No separate instructions here - StatusMessages already says "Choose one of the politics
          decks." right above this. -->
     <div class="px-3 py-2">
