@@ -2,6 +2,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import PoliticsCard from './PoliticsCard.svelte'
     import Numeral from './Numeral.svelte'
+    import { politicsCardFaceImage } from '$lib/model/politicsCardImages'
 
     const gameSession = getGameSession()
 
@@ -21,6 +22,19 @@
     // right now, or a pile has already been picked and PoliticsPileReveal has taken over the same
     // spot above the board.
     const choosingPolitics = $derived(gameSession.canTakePoliticsCard && !gameSession.selectedPoliticsPile)
+
+    // Warms the browser's image cache for every card in both piles as soon as there's a real
+    // choice to make - well before PoliticsPileReveal deals any of them in. Without this, a card
+    // the browser has never decoded shows blank/white for the first stretch of its deal-in tween
+    // (the tween gives it a fraction of a second, decoding can easily take longer) - here it has
+    // as long as the player takes to look at the decks and click one, which in practice is enough.
+    $effect(() => {
+        if (!choosingPolitics) return
+        for (const card of [...pileACards, ...pileBCards]) {
+            const src = politicsCardFaceImage(card)
+            if (src) new Image().src = src
+        }
+    })
 
     // Feeds PoliticsPileReveal's deal-in animation - the cards fly out from wherever this deck
     // actually is on screen, so it needs the real viewport position at click time.
