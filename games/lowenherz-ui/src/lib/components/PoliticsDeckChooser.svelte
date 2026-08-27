@@ -4,13 +4,17 @@
     import PoliticsCard from './PoliticsCard.svelte'
     import Numeral from './Numeral.svelte'
     import { preloadPoliticsCardFace, preloadPoliticsCardBack } from '$lib/model/politicsCardImages'
-    import { CARD_W, CARD_GAP, rowSizes, rowContentWidth } from '$lib/model/politicsCardLayout'
+    import { CARD_GAP, rowSizes, rowContentWidth, responsiveCardWidth } from '$lib/model/politicsCardLayout'
 
     const gameSession = getGameSession()
 
-    // Same fixed card size PoliticsPileReveal deals out, so the deck you're choosing between
-    // visually matches what it turns into once you pick one.
-    const CARD_WIDTH_CSS = `${CARD_W}px`
+    // Same card size PoliticsPileReveal deals out, so the deck you're choosing between visually
+    // matches what it turns into once you pick one - responsiveCardWidth is what lets both
+    // shrink together on a narrow (phone) row instead of staying a fixed size regardless of how
+    // little room is actually available; see that function's own comment.
+    let rowWidth: number = $state(0)
+    const cardWidth = $derived(responsiveCardWidth(rowWidth))
+    const cardWidthCss = $derived(`${cardWidth}px`)
 
     // Gates the deck rendering below (see the template) on the shared face-down art actually
     // being decoded - the same white-flash bug PoliticsPileReveal's own dealIn works around for
@@ -103,9 +107,10 @@
 
         const areaRect = rowEl?.getBoundingClientRect()
         if (areaRect) {
-            const firstRowSize = rowSizes(totalCount, areaRect.width)[0] ?? 0
-            const leftmostCardLeft = areaRect.left + (areaRect.width - rowContentWidth(firstRowSize)) / 2
-            const targetCenterX = leftmostCardLeft - CARD_GAP - CARD_W / 2
+            const firstRowSize = rowSizes(totalCount, areaRect.width, cardWidth)[0] ?? 0
+            const leftmostCardLeft =
+                areaRect.left + (areaRect.width - rowContentWidth(firstRowSize, cardWidth)) / 2
+            const targetCenterX = leftmostCardLeft - CARD_GAP - cardWidth / 2
 
             const clickedRect = clickedEl.getBoundingClientRect()
             const dx = targetCenterX - (clickedRect.left + clickedRect.width / 2)
@@ -153,7 +158,7 @@
              row) exactly, so choosePile's own slide-target math lands in the same viewport
              coordinate space that component's row will actually use, not offset from it by this
              wrapper's own padding. -->
-        <div class="flex items-center justify-center gap-3" bind:this={rowEl}>
+        <div class="flex items-center justify-center gap-3" bind:this={rowEl} bind:clientWidth={rowWidth}>
             {#if pileACards.length > 0}
                 <button
                     type="button"
@@ -163,7 +168,7 @@
                     class="relative cursor-pointer opacity-90 hover:opacity-100 {takingPile
                         ? ''
                         : 'transition-opacity duration-150'}"
-                    style="width: {CARD_WIDTH_CSS};"
+                    style="width: {cardWidthCss};"
                 >
                     <PoliticsCard card={pileACards[0]} faceDown />
                     {@render countBadge(pileACards.length)}
@@ -172,7 +177,7 @@
                 <div
                     bind:this={pileAEl}
                     class="aspect-[534/832] rounded-md border border-dashed border-black/25 flex items-center justify-center text-black/40 text-xs"
-                    style="width: {CARD_WIDTH_CSS};"
+                    style="width: {cardWidthCss};"
                 >
                     empty
                 </div>
@@ -186,7 +191,7 @@
                     class="relative cursor-pointer opacity-90 hover:opacity-100 {takingPile
                         ? ''
                         : 'transition-opacity duration-150'}"
-                    style="width: {CARD_WIDTH_CSS};"
+                    style="width: {cardWidthCss};"
                 >
                     <PoliticsCard card={pileBCards[0]} faceDown />
                     {@render countBadge(pileBCards.length)}
@@ -195,7 +200,7 @@
                 <div
                     bind:this={pileBEl}
                     class="aspect-[534/832] rounded-md border border-dashed border-black/25 flex items-center justify-center text-black/40 text-xs"
-                    style="width: {CARD_WIDTH_CSS};"
+                    style="width: {cardWidthCss};"
                 >
                     empty
                 </div>

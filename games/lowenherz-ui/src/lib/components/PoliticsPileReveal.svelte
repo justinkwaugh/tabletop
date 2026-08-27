@@ -4,7 +4,7 @@
     import type { PoliticsCard as PoliticsCardData } from '@tabletop/lowenherz'
     import PoliticsCard from './PoliticsCard.svelte'
     import { preloadPoliticsCardFace } from '$lib/model/politicsCardImages'
-    import { CARD_W, CARD_H, rowSizes } from '$lib/model/politicsCardLayout'
+    import { rowSizes, responsiveCardWidth } from '$lib/model/politicsCardLayout'
 
     const gameSession = getGameSession()
 
@@ -21,8 +21,6 @@
               ? gameSession.gameState.politicsCardPileB
               : []
     )
-
-    const CARD_WIDTH_CSS = `${CARD_W}px`
 
     // How many cards have actually finished dealing out - drives the leftover "deck" placeholder
     // below (see deckEl): it sits at politicsPileOrigin, right where PoliticsDeckChooser's own
@@ -49,6 +47,14 @@
     let measuredWidth: number = $state(0)
     const rowWidth = $derived(gameSession.politicsRowWidth ?? measuredWidth)
 
+    // Shrinks below CARD_W only once the row is too narrow for a few cards at that size - a
+    // phone screen, mainly (see responsiveCardWidth's own comment) - rather than staying a fixed
+    // size and just piling up into more, smaller-feeling rows. PoliticsDeckChooser computes this
+    // exact same way, off the exact same measured width, so the two stay in visual agreement.
+    const cardWidth = $derived(responsiveCardWidth(rowWidth))
+    const cardHeight = $derived(Math.round((cardWidth * 832) / 534))
+    const cardWidthCss = $derived(`${cardWidth}px`)
+
     // Splits the pile into as many rows as it actually needs, sized as evenly as possible rather
     // than greedily - see politicsCardLayout's own rowSizes for the split itself (shared with
     // PoliticsDeckChooser, which needs the same split to know where the leftmost dealt card will
@@ -57,7 +63,7 @@
     const cardRows = $derived.by(() => {
         const rows: { card: PoliticsCardData; index: number }[][] = []
         let index = 0
-        for (const size of rowSizes(cards.length, rowWidth)) {
+        for (const size of rowSizes(cards.length, rowWidth, cardWidth)) {
             rows.push(
                 Array.from({ length: size }, () => {
                     const entry = { card: cards[index], index }
@@ -249,7 +255,7 @@
              itself ends up, not inside it. -->
         <div
             class="fixed z-10 pointer-events-none"
-            style="left: {origin.x - CARD_W / 2}px; top: {origin.y - CARD_H / 2}px; width: {CARD_WIDTH_CSS};"
+            style="left: {origin.x - cardWidth / 2}px; top: {origin.y - cardHeight / 2}px; width: {cardWidthCss};"
             bind:this={deckEl}
         >
             <!-- No count printed here - dealtCount ticks up once per card, one riffle-deal
@@ -294,7 +300,7 @@
                                 {@attach dealIn(card, index)}
                                 disabled={takingCardId !== undefined}
                                 class="cursor-pointer opacity-90 hover:opacity-100"
-                                style="width: {CARD_WIDTH_CSS};"
+                                style="width: {cardWidthCss};"
                                 onclick={() => chooseCard(card)}
                             >
                                 <PoliticsCard {card} />
