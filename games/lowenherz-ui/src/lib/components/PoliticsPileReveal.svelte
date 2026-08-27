@@ -293,9 +293,7 @@
                                 bind:this={cardEls[card.id]}
                                 {@attach dealIn(card, index)}
                                 disabled={takingCardId !== undefined}
-                                class="cursor-pointer opacity-90 hover:opacity-100 {takingCardId
-                                    ? ''
-                                    : 'transition-opacity duration-150'}"
+                                class="cursor-pointer opacity-90 hover:opacity-100"
                                 style="width: {CARD_WIDTH_CSS};"
                                 onclick={() => chooseCard(card)}
                             >
