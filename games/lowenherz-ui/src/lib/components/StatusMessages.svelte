@@ -469,7 +469,7 @@
             {#if !gameSession.renegadeOwnRegionId}
                 Playing Renegade — choose one of your regions.
             {:else if !gameSession.renegadeEnemyRegionId}
-                Now choose a bordering enemy region.
+                Choose a bordering enemy region.
             {:else if !gameSession.renegadeRemovedSquare}
                 Choose an enemy knight to remove.
             {:else}
