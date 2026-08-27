@@ -22,21 +22,6 @@
               : []
     )
 
-    // How many cards have actually finished dealing out - drives the leftover "deck" placeholder
-    // (see the slotRows/template below): it fades away once dealtCount reaches every card in the
-    // pile, the last card's own arrival being what "empties" it, and gives way to a dashed empty
-    // outline (see deckEmptied). Reset whenever a NEW pile is chosen - not on every render while
-    // the same one is still dealing - since this only reads `pile`, which only changes value on
-    // an actual new selection.
-    let dealtCount = $state(0)
-    let deckEmptied = $state(false)
-    $effect(() => {
-        if (pile) {
-            dealtCount = 0
-            deckEmptied = false
-        }
-    })
-
     // measuredWidth is this component's OWN fallback measurement, for the one case
     // politicsRowWidth can't cover: a page reload (or similar) landing mid-reveal, with no
     // PoliticsDeckChooser having run yet this session to have set it. Normally, though,
@@ -102,6 +87,14 @@
     const DEAL_DURATION = 380 // ms
     const DEAL_STAGGER = 45 // ms between each successive card starting its flight
 
+    // How long the whole staggered deal takes, start to finish - the last card (index
+    // cards.length - 1) is the one still flying when every other one has landed, so its own
+    // finish is the deal's finish. Drives the leftover deck's own fade below, so the two end
+    // together instead of the deck's fade only starting once dealing is already done.
+    const DEAL_TOTAL_DURATION = $derived(
+        cards.length > 0 ? ((cards.length - 1) * DEAL_STAGGER + DEAL_DURATION) / 1000 : 0
+    )
+
     function dealIn(card: PoliticsCardData, index: number) {
         return (el: HTMLElement) => {
             const origin = gameSession.politicsPileOrigin
@@ -133,10 +126,6 @@
                         // would also wipe the Svelte-set width, collapsing the card (see
                         // PoliticsHand's own note on this exact bug).
                         gsap.set(el, { clearProps: 'x,y,scale,opacity' })
-                        // The last card's own arrival is what empties the deck (see deckEl) -
-                        // this counts every card's landing, in whatever order their staggered
-                        // flights actually finish in.
-                        dealtCount++
                     }
                 })
                 tl.to(el, { opacity: 1, duration: 0.2, ease: 'power1.out' }, 0)
@@ -157,20 +146,29 @@
     // for it, occupying slot 0 of the row (see slotRows above) rather than being positioned
     // separately, so it picks up exactly where PoliticsDeckChooser's own exit animation left the
     // chosen deck sitting without either component having to calculate that position by hand.
-    // Faded away once dealtCount reaches every card in the pile - the last card's own arrival is
-    // what "empties" it, same idea as PoliticsDeckChooser fading the OTHER deck, so a plain GSAP
-    // tween rather than a Svelte transition keeps that consistent - and once that fade actually
-    // finishes, deckEmptied swaps it for a dashed outline (see the template), the same "nothing's
-    // here" look PoliticsDeckChooser itself uses for a genuinely empty pile. Both stay in the flex
-    // flow the whole time (the outline takes over the same slot, not a new one), so nothing after
-    // it ever shifts.
+    // Fades the moment dealing starts (rather than waiting until it's done) over DEAL_TOTAL_
+    // DURATION, so the fade and the last card's own landing finish together - same idea as
+    // PoliticsDeckChooser fading the OTHER deck, so a plain GSAP tween rather than a Svelte
+    // transition keeps that consistent. Once the fade actually finishes, deckEmptied swaps it for
+    // a dashed outline (see the template), the same "nothing's here" look PoliticsDeckChooser
+    // itself uses for a genuinely empty pile. Both stay in the flex flow the whole time (the
+    // outline takes over the same slot, not a new one), so nothing after it ever shifts.
     let deckEl: HTMLElement | undefined = $state()
+    let deckEmptied = $state(false)
+    let deckFadeStarted = false
     $effect(() => {
-        if (cards.length > 0 && dealtCount >= cards.length && deckEl && !deckEmptied) {
+        if (pile) {
+            deckEmptied = false
+            deckFadeStarted = false
+        }
+    })
+    $effect(() => {
+        if (deckEl && !deckFadeStarted && DEAL_TOTAL_DURATION > 0) {
+            deckFadeStarted = true
             gsap.to(deckEl, {
                 opacity: 0,
                 scale: 0.8,
-                duration: 0.25,
+                duration: DEAL_TOTAL_DURATION,
                 ease: 'power1.in',
                 onComplete: () => {
                     deckEmptied = true
