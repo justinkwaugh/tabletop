@@ -1,0 +1,3 @@
+interface:
+  display_name: "Game UI Animation"
+  short_description: "Build deterministic game UI animation"

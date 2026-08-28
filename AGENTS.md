@@ -16,6 +16,10 @@ Use the default five-role triage label vocabulary. See `docs/agents/triage-label
 
 Use the multi-context domain-doc layout. See `docs/agents/domain.md`.
 
+### Animation
+
+For game UI animation design, implementation, debugging, or review, use `.agents/skills/game-ui-animation/SKILL.md`.
+
 ## General Debugging Policy
 
 - Treat bugs as deterministic unless proven otherwise. If behavior is wrong, there is a causal chain to identify.
