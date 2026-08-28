@@ -167,7 +167,7 @@ describe('HydratedExpandRegion', () => {
             townsTaken: 0,
             pointsGained: 1,
             completedRegions: [
-                { ownerColor: Color.Yellow, spaceCount: 2, townCount: 0, points: 3, anchorSquareKey: '2,0' }
+                { ownerColor: Color.Yellow, spaceCount: 2, townCount: 0, points: 3, anchorSquareKey: '2,0.5' }
             ]
         })
     })

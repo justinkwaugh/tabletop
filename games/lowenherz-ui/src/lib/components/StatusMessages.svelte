@@ -39,15 +39,9 @@
     const regions = $derived(gameSession.gameState.regions)
     const knightSwordsLeft = $derived(gameSession.gameState.knightsRemaining ?? 0)
     const displayNegotiation = $derived(gameSession.displayNegotiation)
-    const legalRenegadeOwnRegionIdSet = $derived(gameSession.legalRenegadeOwnRegionIds)
     const allianceMarkers = $derived(gameSession.allianceMarkers)
     const availableKnightPlans = $derived(gameSession.availableKnightPlans)
     const expandStageActive = $derived(gameSession.expandStageActive)
-    const knightStageActive = $derived(gameSession.knightStageActive)
-    const expansionDeadEnd = $derived(gameSession.expansionDeadEnd)
-    const expansionBlockedReasons = $derived(
-        expansionDeadEnd ? gameSession.expansionBlockedReasons : []
-    )
     // There is no separate signing action - clicking the button just proposes whatever is
     // on screen. If that happens to match the standing offer exactly, the engine treats it
     // as acceptance and executes the deal immediately (see NegotiationMove.apply); otherwise
@@ -460,30 +454,26 @@
                  legalAllianceOwnRegionIds), so reaching the second step guarantees there's
                  something to click. -->
             {#if !gameSession.allianceOwnRegionId}
-                Playing Alliance — click one of your regions.
+                Playing Alliance — choose one of your regions.
             {:else}
-                Click a bordering enemy region.
+                Choose a bordering enemy region.
             {/if}
         {:else if gameSession.isPlayingRenegadeCard}
+            <!-- No "that region has nothing to play Renegade with" or "nothing can safely be
+                 removed" case to report, same reasoning as Alliance above: a region with no
+                 candidate square, or an enemy region with nothing safe to take, isn't offered as
+                 a choice in the first place (see legalRenegadeOwnRegionIds/
+                 legalRenegadeEnemyRegions, which canPlayRenegadeCard already checked before this
+                 flow could even start), so reaching any of these steps guarantees there's
+                 something to click. -->
             {#if !gameSession.renegadeOwnRegionId}
-                {#if legalRenegadeOwnRegionIdSet.size === 0}
-                    None of your regions can play Renegade right now — they either have no
-                    room for the replacement knight (no open space, or they can't afford a
-                    wooded one) or nothing bordering them to take a knight from. Click Undo.
-                {:else}
-                    Playing Renegade — click one of your regions.
-                {/if}
+                Playing Renegade — choose one of your regions.
             {:else if !gameSession.renegadeEnemyRegionId}
-                Now click a bordering enemy region.
+                Choose a bordering enemy region.
             {:else if !gameSession.renegadeRemovedSquare}
-                {#if gameSession.legalRenegadeRemovableSquares.length === 0}
-                    Every knight in that region is protecting another from being cut off from
-                    its castle — none can safely be removed. Click Undo to try again.
-                {:else}
-                    Click the enemy knight to remove.
-                {/if}
+                Choose an enemy knight to remove.
             {:else}
-                Now click a square in your region to place your knight in exchange.
+                Now choose a square in your region to place your knight in exchange.
             {/if}
         {:else if gameSession.canPlaceCastle}
             {#if gameSession.selectedCastleSquare}
@@ -533,17 +523,12 @@
                  backs out of the plan itself while nothing's landed yet - see
                  ActionToolbar) is the way back. Pass stays, since declining the rest of
                  an action is a real rulebook option, not a cancel. -->
+            <!-- No "this region has nowhere legal to expand into" case to report: a region
+                 with no legal target isn't offered as a choice in the first place (see
+                 GameSession.expandableRegions' own comment on this), so picking one
+                 guarantees there's somewhere to click. -->
             {#if expandStageActive && !gameSession.selectedExpandRegionId}
-                Click one of your regions to expand it.
-            {:else if expansionDeadEnd}
-                <!-- Names the rule that's actually in the way (see
-                     expansionBlockedReasons) rather than leaving the player to guess -
-                     usually the invasion knight-count rule, which is easy to be
-                     surprised by, and which now comes with the real counts attached. -->
-                This region has nowhere legal to expand into right now{#if expansionBlockedReasons.length > 0}
-                    — {expansionBlockedReasons.join('; ')}{/if}.{#if knightStageActive}
-                    Click a square to place a knight instead.{:else if gameSession.expandableRegions.length > 1}
-                    Click Undo to pick a different region.{/if}
+                Choose one of your regions to expand it.
             {:else if gameSession.canContinueExpansion}
                 <!-- The one moment with its own stop button. Knight squares are not offered while
                      an expansion is open, so the click that used to end it - placing the knight -
@@ -553,7 +538,7 @@
                      expansion and moves on to the knight, with none there is nothing to move on to
                      and it ends the action. Either way the player is stopping, which is why both
                      read as "pass". -->
-                Click to expand a second time, or
+                Choose to expand a second time, or
                 <button
                     type="button"
                     class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
@@ -568,7 +553,7 @@
                 <!-- "a first time" rather than a 0/2 count, matching the second-time wording. The
                      count came off engine state so an Undo could not leave it claiming a space that
                      had been taken back; with no number there is nothing to go stale. -->
-                Click to expand a first time, or
+                Choose to expand a first time, or
                 <button
                     type="button"
                     class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 text-black hover:bg-black/20"
@@ -580,13 +565,13 @@
                 <!-- No count here any more. A step is one knight, so "2 to place" would be
                      describing a second sword the player has not chosen how to spend yet - they
                      are asked again once this one is down. -->
-                Click a square to place your knight.
+                Choose a square to place your knight.
             {/if}
             <!-- Suppressed for the two click-to-expand branches, which end in their own "or pass"
-                 - and only those two. The region-pick and dead-end branches also have
-                 expandStageActive set, and they still want this. -->
+                 - and only those two. The region-pick branch also has expandStageActive set,
+                 and it still wants this. -->
             {#if !gameSession.canContinueExpansion &&
-                !(expandStageActive && gameSession.selectedExpandRegionId && !expansionDeadEnd)}
+                !(expandStageActive && gameSession.selectedExpandRegionId)}
                 Or
                 <button
                     type="button"
@@ -670,7 +655,7 @@
                 No hills were enclosed, so no points were awarded.
             {/if}
             {#if gameSession.canDrawActionCard}
-                Click the action card draw pile to start the next round.
+                Choose the action card draw pile to start the next round.
             {:else}
                 Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
                 next action card...
@@ -678,13 +663,13 @@
         {:else if lastRoundEndedInDuelGiveUp}
             The duel was tied a second time, so no one performs the action.
             {#if gameSession.canDrawActionCard}
-                Click the action card draw pile to start the next round.
+                Choose the action card draw pile to start the next round.
             {:else}
                 Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
                 next action card...
             {/if}
         {:else if gameSession.canDrawActionCard}
-            Click the action card draw pile to start the next round.
+            Choose the action card draw pile to start the next round.
         {:else if gameSession.gameState.machineState === MachineState.StartOfTurn}
             Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
             next action card...
@@ -695,10 +680,10 @@
                  over, and it says it exactly when it matters. -->
             {@const decisions = gameSession.myDecisionsThisRound}
             {#if decisions.laid > 0}
-                Click a {decisions.laid === 1 ? 'second' : 'third'} region of the card for
+                Choose a {decisions.laid === 1 ? 'second' : 'third'} region of the card for
                 your next action.
             {:else}
-                Click a region of the card to pick an action.
+                Choose a region of the card to pick an action.
             {/if}
         {:else if gameSession.gameState.machineState === MachineState.ChoosingActions}
             Waiting for the next player to choose...
@@ -731,7 +716,7 @@
             {:else}
                 {@render myPill()} won Crown and Scepter.
             {/if}
-            Click one of the politics piles to look through it.
+            Choose one of the politics decks.
         {:else if !gameSession.setupComplete}
             Waiting for the other player(s) to place a castle...
         {/if}
@@ -750,7 +735,7 @@
              The rows now centre on each other, and the column centres on the game column, which is
              the same column ScalingWrapper centres the board in. -->
         <div class="flex flex-col items-center text-black text-sm">
-            <div class="flex flex-wrap items-center justify-center gap-2 pb-3 text-[16px]">
+            <div class="flex flex-wrap items-center justify-center gap-2 pb-5 text-[16px]">
                 <!-- Side by side rather than stacked. Two names in a column made this box two lines
                      tall on its own, which set the height of the whole row and so of the space the
                      panel takes above the board. The caption underneath is what the stacked layout
@@ -764,7 +749,7 @@
                                 disabled={!gameSession.isMyNegotiationTurn}
                                 class={gameSession.negotiationProposerId === playerId
                                     ? ''
-                                    : 'opacity-40 hover:opacity-70'}
+                                    : 'opacity-30 hover:opacity-70'}
                                 onclick={() => gameSession.setNegotiationProposer(playerId)}
                             >
                                 {@render playerPill(playerId)}
@@ -775,11 +760,14 @@
                          centres on the row exactly as the sentence text does. In flow the column
                          was box-plus-caption tall, and items-center centred THAT - which lifted the
                          names about half a caption above the line they are meant to sit on. The
-                         row's pb-3 is where this now sits, and leading-none is what lets that
-                         padding be 12px: without it the span inherits the column's text-sm
-                         line-height (20px), so a 22px caption sat under a 16px pad and all but
-                         touched the row below - the two rows could not close up until the
-                         caption stopped being taller than the space reserved for it. -->
+                         row's bottom padding is where this now sits, and leading-none is what lets
+                         a 12px pad hold a 10px caption at all: without it the span inherits the
+                         column's text-sm line-height (20px), so a 22px caption sat under a 16px pad
+                         and all but touched the row below - the two rows could not close up until
+                         the caption stopped being taller than the space reserved for it. The pad is
+                         pb-5 now, not the 12px minimum that math needs - Justin wanted more air
+                         between this row and the next, and the caption just rides in the extra
+                         space above the row boundary rather than needing it. -->
                     <span
                         class="absolute top-full mt-0.5 text-[10px] leading-none text-black/50 whitespace-nowrap"
                     >
@@ -787,24 +775,30 @@
                     </span>
                 </div>
                 <span>{gameSession.negotiationProposerId === gameSession.myPlayer?.id ? 'offer' : 'offers'}</span>
-                <button
-                    type="button"
-                    class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
-                    disabled={!gameSession.isMyNegotiationTurn || gameSession.negotiationAmount <= 1}
-                    onclick={() => gameSession.setNegotiationAmount(Math.max(1, gameSession.negotiationAmount - 1))}
-                >
-                    −
-                </button>
-                <span class="w-6 text-center font-semibold">{gameSession.negotiationAmount}</span>
-                <button
-                    type="button"
-                    class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
-                    disabled={!gameSession.isMyNegotiationTurn ||
-                        gameSession.negotiationAmount >= negotiationProposerMoney}
-                    onclick={() => gameSession.setNegotiationAmount(gameSession.negotiationAmount + 1)}
-                >
-                    +
-                </button>
+                <!-- Its own tight-gap group, separate from the row's gap-2: that gap reads fine
+                     between unrelated segments (the picker, "offer(s)", this trio, "ducats to"),
+                     but stacked with the -/+ buttons' own px-2 it left the number floating rather
+                     than looking bound to the controls that change it. -->
+                <span class="flex items-center gap-0.5">
+                    <button
+                        type="button"
+                        class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
+                        disabled={!gameSession.isMyNegotiationTurn || gameSession.negotiationAmount <= 1}
+                        onclick={() => gameSession.setNegotiationAmount(Math.max(1, gameSession.negotiationAmount - 1))}
+                    >
+                        −
+                    </button>
+                    <span class="w-6 text-center font-semibold">{gameSession.negotiationAmount}</span>
+                    <button
+                        type="button"
+                        class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
+                        disabled={!gameSession.isMyNegotiationTurn ||
+                            gameSession.negotiationAmount >= negotiationProposerMoney}
+                        onclick={() => gameSession.setNegotiationAmount(gameSession.negotiationAmount + 1)}
+                    >
+                        +
+                    </button>
+                </span>
                 <span class="flex items-center gap-1">
                     ducat{gameSession.negotiationAmount === 1 ? '' : 's'} to
                     {#if negotiationOtherPlayerId}
@@ -816,12 +810,19 @@
             {#if gameSession.gameState.machineState === MachineState.Negotiating}
                 <div class="flex flex-wrap items-center justify-center gap-2 pb-4 text-[16px]">
                     {#if gameSession.isMyNegotiationTurn && gameSession.isNegotiator}
+                        {#if gameSession.isAcceptingNegotiationOffer}
+                            <span>Modify the proposal&nbsp; or</span>
+                        {/if}
                         <button
                             type="button"
                             class="px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 text-[14px] font-semibold"
                             onclick={() => commitNegotiationOffer()}
                         >
-                            {gameSession.isAcceptingNegotiationOffer ? 'Accept' : 'Propose'}
+                            {gameSession.isAcceptingNegotiationOffer
+                                ? 'Accept'
+                                : negotiation.offer
+                                  ? 'Counterpropose'
+                                  : 'Propose'}
                         </button>
                         <span>or</span>
                     {/if}
@@ -887,7 +888,7 @@
                             <button
                                 type="button"
                                 class="px-1.5 py-[3px] rounded font-semibold bg-green-700/15 hover:bg-red-700/20"
-                                title="Click to take this Treasure back out of your bid"
+                                title="Choose to take this Treasure back out of your bid"
                                 onclick={() => gameSession.unarmDuelTreasure(treasureCard.id)}
                             >
                                 + Treasure ({treasureCard.value})

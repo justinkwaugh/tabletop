@@ -82,6 +82,17 @@ export function squareKey(col: number, row: number): string {
     return `${col},${row}`
 }
 
+// The plain average of a region's own squares - not its castle, and not clamped to an
+// actual square, since the only consumer (ScorePopupAnimator's floating "+N"/"-N") just
+// wants a point to float the popup over, and an irregular region's castle can sit at one
+// edge of it rather than where the region actually reads as "the middle".
+export function regionCentroidSquareKey(squareKeys: string[]): string {
+    const points = squareKeys.map((key) => key.split(',').map(Number) as [number, number])
+    const col = points.reduce((sum, [c]) => sum + c, 0) / points.length
+    const row = points.reduce((sum, [, r]) => sum + r, 0) / points.length
+    return squareKey(col, row)
+}
+
 export function isOnBoard(col: number, row: number): boolean {
     return col >= 0 && col < BOARD_COLS && row >= 0 && row < BOARD_ROWS
 }

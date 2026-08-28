@@ -103,7 +103,7 @@
      area's width and hands the difference straight to the board. The politics piles
      left entirely - only their counts matter turn to turn, so those moved to the side
      panel, and the piles themselves now appear over the board when someone actually
-     wins politics (see PoliticsPileOverlay). -->
+     wins politics (see SummaryStrip's highlighted count pills and PoliticsPileReveal). -->
 <div class="flex flex-col gap-2" style="width: fit-content;">
     <button
         type="button"
@@ -179,7 +179,7 @@
 
 <style>
     /* A gentle "your move" pulse on the draw pile whenever it's actually drawable
-       (the same moment the status text reads "Click the action card draw pile...").
+       (the same moment the status text reads "Choose the action card draw pile...").
        Deliberately soft/slow so it reads as an invitation, not an alarm. */
     @keyframes pink-glow-pulse {
         0%,

@@ -1,15 +1,6 @@
 <script lang="ts">
     import { type PoliticsCard, PoliticsCardType } from '@tabletop/lowenherz'
-    import allianceImg from '$lib/images/politics-cards/alliance.jpg'
-    import renegadeImg from '$lib/images/politics-cards/renegade.jpg'
-    import parchment3 from '$lib/images/politics-cards/parchment-3.jpg'
-    import parchment4 from '$lib/images/politics-cards/parchment-4.jpg'
-    import parchment5 from '$lib/images/politics-cards/parchment-5.jpg'
-    import treasure8 from '$lib/images/politics-cards/treasure-8.jpg'
-    import treasure10 from '$lib/images/politics-cards/treasure-10.jpg'
-    import treasure12 from '$lib/images/politics-cards/treasure-12.jpg'
-    import treasure15 from '$lib/images/politics-cards/treasure-15.jpg'
-    import cardBackImg from '$lib/images/politics-cards/card-back.jpg'
+    import { politicsCardFaceImage, cardBackImg } from '$lib/model/politicsCardImages'
 
     // faceDown shows the shared card back instead of this specific card's face - used
     // for the pile you didn't look through, and other players' hands, which are kept
@@ -17,22 +8,21 @@
     // this isn't enforced server-side).
     let { card, faceDown = false }: { card: PoliticsCard; faceDown?: boolean } = $props()
 
-    // One image per value, since every card's number is printed on its own art. Keyed by the value
-    // the engine deals - politicsCards.ts types them 3 | 4 | 5 and 8 | 10 | 12 | 15 - so a value
-    // with no art draws nothing rather than the wrong card. Louder than a silent fallback, and
-    // unreachable unless a deck gains a new value.
-    const parchmentImages: Record<number, string> = {
-        3: parchment3,
-        4: parchment4,
-        5: parchment5
-    }
-
-    const treasureImages: Record<number, string> = {
-        8: treasure8,
-        10: treasure10,
-        12: treasure12,
-        15: treasure15
-    }
+    const faceImage = $derived(politicsCardFaceImage(card))
+    const faceAlt = $derived.by(() => {
+        switch (card.type) {
+            case PoliticsCardType.Alliance:
+                return 'Alliance'
+            case PoliticsCardType.Renegade:
+                return 'Renegade'
+            case PoliticsCardType.Parchment:
+                return `Parchment worth ${card.value} power points`
+            case PoliticsCardType.Treasure:
+                return `Treasure worth ${card.value} ducats`
+            default:
+                return ''
+        }
+    })
 </script>
 
 <div
@@ -40,29 +30,10 @@
 >
     {#if faceDown}
         <img src={cardBackImg} alt="Politics card" class="w-full h-full object-cover" />
-    {:else if card.type === PoliticsCardType.Alliance}
-        <img src={allianceImg} alt="Alliance" class="w-full h-full object-cover" />
-    {:else if card.type === PoliticsCardType.Renegade}
-        <img src={renegadeImg} alt="Renegade" class="w-full h-full object-cover" />
-    {:else if card.type === PoliticsCardType.Parchment}
-        <!-- As with Treasure: the value is printed on the art, one image per card, so nothing is
-             drawn over it. -->
-        {#if card.value !== undefined && parchmentImages[card.value]}
-            <img
-                src={parchmentImages[card.value]}
-                alt="Parchment worth {card.value} power points"
-                class="w-full h-full object-cover"
-            />
-        {/if}
-    {:else if card.type === PoliticsCardType.Treasure}
-        <!-- No value drawn over this one: it is printed on the art, one image per card. The CSS
-             pill that used to carry the number and its unit label went with it. -->
-        {#if card.value !== undefined && treasureImages[card.value]}
-            <img
-                src={treasureImages[card.value]}
-                alt="Treasure worth {card.value} ducats"
-                class="w-full h-full object-cover"
-            />
-        {/if}
+    {:else if faceImage}
+        <!-- Parchment/Treasure draw nothing over the art itself - the value is printed on the
+             card, one image per value, so a value with no art (see politicsCardFaceImage) shows
+             blank rather than the wrong card. -->
+        <img src={faceImage} alt={faceAlt} class="w-full h-full object-cover" />
     {/if}
 </div>

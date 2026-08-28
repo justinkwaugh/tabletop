@@ -7,6 +7,7 @@ import {
     getSquare,
     isOnBoard,
     isWalledBetween,
+    regionCentroidSquareKey,
     separatesSamePrincePieces,
     squareKey,
     wallBetween
@@ -103,7 +104,7 @@ export class HydratedPlaceWall extends HydratableAction<typeof PlaceWall> implem
                 spaceCount: region.squareKeys.length,
                 townCount: countTowns(region, state.board),
                 points,
-                anchorSquareKey: region.castleSquareKey ?? region.squareKeys[0]
+                anchorSquareKey: regionCentroidSquareKey(region.squareKeys)
             })
             state.regions.push(region)
             removeInteriorWalls(state.board, region)

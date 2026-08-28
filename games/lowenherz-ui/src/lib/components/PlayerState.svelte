@@ -1,6 +1,7 @@
 <script lang="ts">
+    import { gsap } from 'gsap'
     import { type Player, type Color } from '@tabletop/common'
-    import { LowenherzPlayerState, PoliticsCardType, type PoliticsCard } from '@tabletop/lowenherz'
+    import { LowenherzPlayerState, type PoliticsCard } from '@tabletop/lowenherz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import iconMoneybagFill from '$lib/images/action-cards/icons/icon-moneybag-transparent.png'
     import iconMoneybagLines from '$lib/images/action-cards/icons/icon-moneybag-lines.png'
@@ -22,8 +23,8 @@
 
     let isTurn = $derived(gameSession.gameState.activePlayerIds.includes(player.id))
     let headerColor = $derived(gameSession.colors.getPlayerUiColor(player.id))
-    // Kept face-down per the rulebook - only the owning player can peek at their own
-    // actual cards (see peek() below); everyone else just sees a face-down card and a
+    // Kept face-down per the rulebook - only the owning player ever sees their own cards
+    // face-up (see shouldRevealFace below); everyone else just sees a face-down card and a
     // count, same convention as the politics-card piles themselves (a client-side
     // convention, not server-enforced - see LowenherzPlayerState.politicsCards).
     let isMe = $derived(gameSession.myPlayer?.id === player.id)
@@ -79,44 +80,31 @@
         return jitter
     }
 
-    // Hovering OR clicking opens the same read-only overlay PoliticsHand shows for a
-    // draw pile. It's only ever wired up for isMe (see the template). Deliberately
-    // doesn't close on mouseleave - the overlay covers this button as soon as it
-    // opens, which triggers a spurious mouseleave under a stationary cursor in most
-    // browsers (hit-testing sees a new top element, not actual pointer movement) -
-    // dismissing is instead handled the same way as the draw-pile overlay (click the
-    // backdrop, Escape, or click this trigger again).
-    function peek(event: MouseEvent | KeyboardEvent) {
-        const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-        gameSession.showMyPoliticsCards({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 })
-    }
-
-    // Cards worth surfacing to the front of the splay right now - Renegade/Alliance
-    // while they're playable (alongside laying a decision card), or a Treasure card
-    // while it could actually be spent (a wooded knight placement, or backing a duel
-    // bid), so a player doesn't have to dig through the sidebar or the peek overlay
-    // to find the one that matters this moment.
+    // Cards worth surfacing fully, with their own APPLY button - Renegade/Alliance while
+    // they're playable, or a Treasure card while it could actually be spent (a wooded knight
+    // placement, or backing a duel bid) - OR a card that's currently active (isPoliticsCardActive),
+    // even once canApplyPoliticsCard has stopped saying yes to it. That "even once" matters for
+    // Renegade/Alliance specifically: canApplyPoliticsCard for those is a GLOBAL check ("is any
+    // Renegade play in progress"), not a per-card one, so the instant a Renegade card is clicked
+    // and becomes active, canApplyPoliticsCard goes false for THAT card too (you can't start a
+    // second Renegade play while one's already under way) - without this OR, the card the player
+    // just clicked would immediately fall out of this set and never get to show its own ACTIVE
+    // stripe at all, sliding back into the overlapped stack as if nothing had been clicked. These
+    // never overlap and never jitter/rotate - a card the player actually needs to reach (or has
+    // just reached) sits flush, on its own, rather than being buried in (or tilted like) the rest
+    // of the hand. Everything else still overlaps as it did before, just among a possibly smaller
+    // group now that this splits off.
     const applicableCardIds = $derived(
         isMe
-            ? playerState.politicsCards
-                  .filter(
-                      (c) =>
-                          (c.type === PoliticsCardType.Renegade && gameSession.canPlayRenegadeCard) ||
-                          (c.type === PoliticsCardType.Alliance && gameSession.canPlayAllianceCard) ||
-                          (c.type === PoliticsCardType.Treasure &&
-                              (gameSession.canPlaceKnight || gameSession.canSubmitDuelBid))
-                  )
-                  .map((c) => c.id)
-            : []
+            ? new Set(
+                  playerState.politicsCards
+                      .filter((c) => gameSession.canApplyPoliticsCard(c) || gameSession.isPoliticsCardActive(c))
+                      .map((c) => c.id)
+              )
+            : new Set<string>()
     )
-
-    // Politics cards in display order - just the hand's natural (acquisition) order.
-    // Applicable cards used to get pulled to the front here so they'd surface out
-    // from under a heavily overlapped stack, but now that cards mostly lay out flat
-    // instead (see step below), the applicable-card ring is enough to draw
-    // the eye - shuffling a card's position the moment it becomes playable is more
-    // distracting than helpful.
-    const displayCards = $derived(playerState.politicsCards)
+    const applicableCards = $derived(playerState.politicsCards.filter((c) => applicableCardIds.has(c.id)))
+    const overlappedCards = $derived(playerState.politicsCards.filter((c) => !applicableCardIds.has(c.id)))
 
     // An empty hand still gets a slot (so cards don't pop the panel taller the moment
     // someone picks one up), but it doesn't need to reserve a full card's height to say
@@ -133,39 +121,91 @@
     // A card's face only ever shows for your own hand (never an opponent's - that's
     // still purely a client-side convention, not server-enforced, same as before).
     // Every card shows face-up on your own turn (so you can see your whole hand
-    // while deciding what to do), and an applicable card (playable Renegade/
-    // Alliance, or a spendable Treasure) shows face-up even outside your turn too,
-    // so its ring is actually attached to real card art.
+    // while deciding what to do), and an applicable card shows face-up even outside
+    // your turn too, so its APPLY button is actually attached to real card art.
     // Everything else stays face-down.
     function shouldRevealFace(card: PoliticsCard): boolean {
         if (!isMe) return false
-        if (applicableCardIds.includes(card.id)) return true
+        if (applicableCardIds.has(card.id)) return true
         return !!isTurn
     }
 
-    // The horizontal step between successive cards - CARD_W + CARD_GAP (no overlap
-    // at all) as long as the hand actually fits laid out flat at that spacing, only
-    // compressing below CARD_W (cards starting to overlap) once it wouldn't
-    // otherwise fit, down to MIN_SLIVER at worst.
+    // Applicable cards that are visually identical - same type, and same printed value for
+    // Parchment/Treasure (Alliance/Renegade have no value at all, so any two of one type are
+    // already identical) - get stacked together (see DUPLICATE_STEP) rather than each claiming
+    // a full card's width, so a hand with several copies of the same applicable card doesn't run
+    // the applicable row out of room. Grouping, not deduplicating: every card in a group still
+    // gets its own APPLY/ACTIVE button underneath, since a Treasure card's arming in particular
+    // is genuinely per-card (see GameSession.armDuelTreasure's own comment - a bid can be backed
+    // by more than one Treasure card at once, each independently armed).
+    type ApplicableGroup = { key: string; cards: PoliticsCard[] }
+    const applicableGroups = $derived.by(() => {
+        const groups = new Map<string, PoliticsCard[]>()
+        for (const card of applicableCards) {
+            const key = `${card.type}:${card.value ?? ''}`
+            const existing = groups.get(key)
+            if (existing) existing.push(card)
+            else groups.set(key, [card])
+        }
+        return Array.from(groups, ([key, cards]): ApplicableGroup => ({ key, cards }))
+    })
+
+    // How far a stacked duplicate peeks out from the one in front of it - enough to still show
+    // there's more than one underneath (and to keep each one's own APPLY/ACTIVE band, which spans
+    // the card's full width, clickable in that sliver), but well short of a whole card's width.
+    const DUPLICATE_STEP = 18
+    function groupWidth(count: number): number {
+        return CARD_W + (count - 1) * DUPLICATE_STEP
+    }
+
+    // Room the always-flat applicable row needs, plus the gap between it and the
+    // overlapped stack - subtracted from the overlapped stack's own available width below,
+    // so the two groups never fight each other for space.
+    const GROUP_GAP = 10
+    const applicableWidth = $derived(
+        applicableGroups.length > 0
+            ? applicableGroups.reduce((sum, group) => sum + groupWidth(group.cards.length), 0) +
+                  (applicableGroups.length - 1) * CARD_GAP
+            : 0
+    )
+
+    // The horizontal step between successive OVERLAPPED cards - CARD_W + CARD_GAP (no
+    // overlap at all) as long as that group actually fits laid out flat at that spacing
+    // alongside the applicable row, only compressing below CARD_W (cards starting to
+    // overlap) once it wouldn't otherwise fit, down to MIN_SLIVER at worst.
     const step = $derived.by(() => {
-        const count = displayCards.length
+        const count = overlappedCards.length
         const preferred = CARD_W + CARD_GAP
         if (count <= 1) return preferred
+        const reserved = applicableWidth + (applicableCards.length > 0 ? GROUP_GAP : 0)
         // 2x the buffer, matching the width the layout below actually asks for - counting
         // it once here let a full hand come out a buffer wider than the space measured for
         // it, which is what the compression is meant to prevent.
-        const maxThatFits = (politicsAreaWidth - 2 * CARD_EDGE_BUFFER - CARD_W) / (count - 1)
+        const maxThatFits = (politicsAreaWidth - 2 * CARD_EDGE_BUFFER - reserved - CARD_W) / (count - 1)
         return Math.max(MIN_SLIVER, Math.min(preferred, maxThatFits))
     })
-    // Once cards are actually overlapping, only the frontmost one is fully visible/
-    // hit-testable, so it alone stays interactive (peek/click) and carries the
-    // stacking shadow - laid out flat, every card is fully visible on its own and
-    // gets the same treatment. An applicable card is the exception (see isInteractive
-    // below): a narrower panel - the sidebar's own width doesn't change, but max-w-90vw
-    // can shrink it below that on a phone - overlaps a hand that would lie flat on a
-    // wider one, and a card the player actually needs to reach right now shouldn't
-    // become unclickable just because it isn't the one most recently drawn.
+    // Whether the overlapped group is actually overlapping right now - only the frontmost
+    // card gets the stacking shadow once it is; laid out flat, every card in it is fully
+    // visible on its own and gets the same (non-stacked) treatment.
     const isOverlapping = $derived(step < CARD_W + CARD_GAP)
+
+    // APPLY bounces in rather than just appearing - the same pop-in shape ScorePopupAnimator/
+    // AllianceFormAnimator use elsewhere (two tweens past rest and back, not one implicit
+    // overshoot), same constants and easing, but as a plain mount attachment rather than a
+    // StateAnimator: the button's own appearance already IS the moment to key off, so there's
+    // no game-state transition to watch for separately.
+    const BOUNCE_INITIAL_SCALE = 0.2
+    const BOUNCE_OVERSHOOT_SCALE = 1.16
+    const BOUNCE_POP = 0.18
+    const BOUNCE_SETTLE = 0.16
+
+    function bounceIn(el: HTMLElement) {
+        gsap.set(el, { scale: BOUNCE_INITIAL_SCALE, opacity: 0 })
+        const tl = gsap.timeline()
+        tl.to(el, { scale: BOUNCE_OVERSHOOT_SCALE, opacity: 1, duration: BOUNCE_POP, ease: 'back.out(2.2)' }, 0)
+        tl.to(el, { scale: 1, duration: BOUNCE_SETTLE, ease: 'power2.out', clearProps: 'scale' }, BOUNCE_POP)
+        return () => tl.kill()
+    }
 </script>
 
 {#snippet tintedIcon(fillSrc: string, linesSrc: string, color: Color, dx = 0, dy = 0)}
@@ -255,107 +295,131 @@
          player holds none, so the slot is always there rather than popping in once
          they pick up their first card. -->
     <div
-        class="px-2 flex items-center {hasPoliticsCards ? 'py-2' : 'py-1'}"
+        class="px-2 flex items-center justify-center gap-2.5 {hasPoliticsCards ? 'py-2' : 'py-1'}"
         bind:clientWidth={politicsAreaWidth}
     >
         {#if hasPoliticsCards}
-            {@const count = displayCards.length}
-            <!-- Laid out flat (full CARD_W + CARD_GAP spacing) as long as the hand
-                 fits that way - only once it wouldn't does step compress below
-                 CARD_W, tucking each card under its neighbor. Every card flips face
-                 up (see shouldRevealFace) on your own turn, or at any time if it's
-                 currently applicable (ringed in the owner's colour); otherwise it
-                 stays face-down. -->
-            <!-- CARD_EDGE_BUFFER on BOTH sides, not just the right: the cards are laid out
-                 from the right edge inward (see the `right` offsets below), so a buffer
-                 counted into the width once left the group flush against this box's left
-                 edge and 6px short of its right - putting the hand half a buffer left of
-                 the center that mx-auto was carefully finding. -->
-            <div
-                class="relative h-[103px] mx-auto"
-                style="width: {CARD_W + (count - 1) * step + 2 * CARD_EDGE_BUFFER}px;"
-            >
-                {#each displayCards as card, i (card.id)}
-                    {@const isTop = i === count - 1}
-                    {@const isInteractive = isOverlapping
-                        ? isTop || applicableCardIds.includes(card.id)
-                        : true}
-                    {@const revealFace = shouldRevealFace(card)}
-                    {@const jitter = jitterFor(card.id)}
-                    <!-- Every card gets a resting drop shadow, so it sits ON the panel
-                         rather than looking printed onto it. PoliticsCard's own shadow-md
-                         is far too faint to read at this size against the parchment, and
-                         only the overlap shadow below was ever visible - which made the
-                         cards look like they gained a shadow at 4-5 cards. Overlapped
-                         cards keep the extra leftward shadow on top of it, since that's
-                         what separates each card from the one it's tucked under.
-                         An applicable card prepends a 2px ring in the owner's colour to
-                         that same box-shadow, rather than the pulsing yellow glow this used
-                         to carry: a card you could play is the player's own, so their colour
-                         says it. A playable card is no longer marked at all - a ring, then a
-                         pulse, then travelling dashes were each tried and each read as the board
-                         nagging. Knowing which cards are playable is the player's job. -->
-                    <div
-                        class="absolute top-0 h-full rounded-md {isInteractive
-                            ? ''
-                            : 'pointer-events-none'}"
-                        style="
-                            right: {CARD_EDGE_BUFFER + (count - 1 - i) * step}px;
-                            width: {CARD_W}px;
-                            z-index: {i};
-                            box-shadow: {isOverlapping && i > 0
-                            ? '-2px 0 3px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.4)'
-                            : '0 2px 4px rgba(0, 0, 0, 0.4)'};
-                            transform: translate({jitter.dx}px, {jitter.dy}px) rotate({jitter.rotate}deg);
-                            transition: right {cardSlideMs}ms ease-out, transform {cardSlideMs}ms ease-out;
-                        "
-                    >
-                        {#if isInteractive && revealFace}
-                            <div
-                                class="relative w-full h-full cursor-pointer"
-                                role="button"
-                                tabindex="0"
-                                aria-label="View your politics cards"
-                                onmouseenter={peek}
-                                onclick={peek}
-                                onkeydown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') peek(e)
-                                }}
-                            >
+            {@const overlapCount = overlappedCards.length}
+            {#if overlapCount > 0}
+                <!-- Laid out flat (full CARD_W + CARD_GAP spacing) as long as this group
+                     fits that way alongside the applicable row - only once it wouldn't does
+                     step compress below CARD_W, tucking each card under its neighbor. Every
+                     card flips face up (see shouldRevealFace) on your own turn; otherwise it
+                     stays face-down. -->
+                <div class="relative h-[103px] shrink-0" style="width: {CARD_W + (overlapCount - 1) * step}px;">
+                    {#each overlappedCards as card, i (card.id)}
+                        {@const isTop = i === overlapCount - 1}
+                        {@const revealFace = shouldRevealFace(card)}
+                        {@const jitter = jitterFor(card.id)}
+                        <!-- Every card gets a resting drop shadow, so it sits ON the panel
+                             rather than looking printed onto it. PoliticsCard's own shadow-md
+                             is far too faint to read at this size against the parchment, and
+                             only the overlap shadow below was ever visible - which made the
+                             cards look like they gained a shadow at 4-5 cards. Overlapped
+                             cards keep the extra shadow on top of it, since that's what
+                             separates each card from the one it's tucked under. Plain divs
+                             throughout - nothing here is clickable; the cards are legible at
+                             this size without needing to open a bigger view first. -->
+                        <div
+                            class="absolute top-0 h-full rounded-md"
+                            style="
+                                left: {i * step}px;
+                                width: {CARD_W}px;
+                                z-index: {i};
+                                box-shadow: {isOverlapping && i > 0
+                                ? '2px 0 3px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.4)'
+                                : '0 2px 4px rgba(0, 0, 0, 0.4)'};
+                                transform: translate({jitter.dx}px, {jitter.dy}px) rotate({jitter.rotate}deg);
+                                transition: left {cardSlideMs}ms ease-out, transform {cardSlideMs}ms ease-out;
+                            "
+                        >
+                            {#if !isMe && isOverlapping && isTop}
+                                <!-- The one visible face of an opponent's overlapped stack -
+                                     the count tooltip stands in for the cards hidden behind
+                                     it. Laid out flat, every one of their cards is already
+                                     its own fully visible slot, so this doesn't apply. -->
+                                <div
+                                    class="relative w-full h-full"
+                                    title="{overlapCount} politics card{overlapCount === 1 ? '' : 's'}"
+                                >
+                                    <PoliticsCardView {card} faceDown />
+                                </div>
+                            {:else if revealFace}
                                 <PoliticsCardView {card} />
-                            </div>
-                        {:else if isInteractive && isMe}
-                            <button
-                                type="button"
-                                class="relative w-full h-full cursor-pointer"
-                                aria-label="View your politics cards"
-                                onmouseenter={peek}
-                                onclick={peek}
-                            >
+                            {:else}
                                 <PoliticsCardView {card} faceDown />
-                            </button>
-                        {:else if !isMe && isOverlapping && isTop}
-                            <!-- The one visible face of an opponent's overlapped stack -
-                                 the count tooltip stands in for the cards hidden behind
-                                 it. Laid out flat, every one of their cards is already
-                                 its own fully visible slot, so this doesn't apply. -->
-                            <div
-                                class="relative w-full h-full"
-                                title="{count} politics card{count === 1 ? '' : 's'}"
-                            >
-                                <PoliticsCardView {card} faceDown />
-                            </div>
-                        {:else if revealFace}
-                            <PoliticsCardView {card} />
-                        {:else}
-                            <PoliticsCardView {card} faceDown />
-                        {/if}
-                    </div>
-                {/each}
-            </div>
+                            {/if}
+                        </div>
+                    {/each}
+                </div>
+            {/if}
+            {#if applicableGroups.length > 0}
+                <!-- Never jittered/rotated like the overlapped group below, and never compressed
+                     smaller than DUPLICATE_STEP apart - a card the player can actually act on
+                     right now sits close to flush, with its own APPLY button
+                     (GameSession.applyPoliticsCard) right on it. The card art itself isn't
+                     otherwise clickable, same as the overlapped group. Once applying it has
+                     actually landed (see isPoliticsCardActive - an armed Treasure has nothing
+                     else on screen to confirm that), APPLY is replaced with an ACTIVE stripe
+                     instead of sitting there looking unclicked. -->
+                <div class="flex items-start gap-1.5 h-[103px] shrink-0">
+                    {#each applicableGroups as group (group.key)}
+                        <!-- Duplicates of the same applicable card (see applicableGroups) stack
+                             within their own group instead of each claiming a full card's width -
+                             mostly overlapping, but each still peeking out enough (DUPLICATE_STEP)
+                             to show there's more than one AND to keep its own APPLY/ACTIVE band
+                             (which spans its card's full width) clickable in that sliver. A
+                             group of one behaves exactly as a lone applicable card always did. -->
+                        <div class="relative h-full shrink-0" style="width: {groupWidth(group.cards.length)}px;">
+                            {#each group.cards as card, i (card.id)}
+                                {@const active = gameSession.isPoliticsCardActive(card)}
+                                <div
+                                    class="absolute top-0 rounded-md"
+                                    style="
+                                        left: {i * DUPLICATE_STEP}px;
+                                        width: {CARD_W}px;
+                                        z-index: {i};
+                                        box-shadow: {i > 0
+                                        ? '2px 0 3px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.4)'
+                                        : '0 2px 4px rgba(0, 0, 0, 0.4)'};
+                                    "
+                                >
+                                    <PoliticsCardView {card} />
+                                    {#if active}
+                                        <!-- border border-transparent: same 1px the APPLY pill's own
+                                             border adds, purely so the two are the same height -
+                                             ACTIVE's own background already reads solid without a
+                                             visible border of its own. -->
+                                        <div
+                                            class="absolute top-[15%] left-0 right-0 bg-red-700 text-white text-[10px] font-bold tracking-widest text-center py-1 border border-transparent pointer-events-none shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+                                        >
+                                            ACTIVE
+                                        </div>
+                                    {:else}
+                                        <!-- inset-x-1 rather than flush left-0/right-0: a pill this
+                                             narrow reads better with a sliver of card showing on either
+                                             side than stretched edge-to-edge. Border/background/text
+                                             match the board's own village-name pill (see RealBoard.svelte)
+                                             rather than a plain UI button, for the same "labeled thing
+                                             sitting on parchment" look. -->
+                                        <button
+                                            type="button"
+                                            {@attach bounceIn}
+                                            class="absolute top-[15%] inset-x-1 cursor-pointer rounded-full text-[#f6e8c8] text-[10px] font-bold tracking-wide text-center py-1 border border-[rgba(217,180,74,0.75)] bg-[rgba(43,26,10,0.92)] shadow-[0_2px_5px_rgba(0,0,0,0.45)] hover:border-[rgba(217,180,74,1)]"
+                                            onclick={() => gameSession.applyPoliticsCard(card)}
+                                        >
+                                            APPLY
+                                        </button>
+                                    {/if}
+                                </div>
+                            {/each}
+                        </div>
+                    {/each}
+                </div>
+            {/if}
         {:else}
             <div
-                class="aspect-[534/832] rounded-md border border-dashed border-white/25 mx-auto"
+                class="aspect-[534/832] rounded-md border border-dashed border-white/25"
                 style="height: {EMPTY_SLOT_H}px;"
             ></div>
         {/if}

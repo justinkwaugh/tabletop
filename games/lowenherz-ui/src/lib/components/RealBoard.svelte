@@ -3,6 +3,7 @@
         AllianceBurstAnimator,
         BURST_SHARD_ANGLES
     } from '$lib/animators/allianceBurstAnimator.svelte.js'
+    import { AllianceFormAnimator } from '$lib/animators/allianceFormAnimator.svelte.js'
     import { ScorePopupAnimator } from '$lib/animators/scorePopupAnimator.svelte.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import { heartPosition } from '$lib/model/allianceGeometry.js'
@@ -168,6 +169,7 @@
     // The burst no longer keeps a map of remembered wall positions either: a listener is handed
     // `from`, the state before the action, and a cancelled alliance is still in it.
     const allianceBurst = new AllianceBurstAnimator(gameSession)
+    const allianceForm = new AllianceFormAnimator(gameSession)
     const scorePopups = new ScorePopupAnimator(gameSession)
 
     // Hearts are drawn from the live state, and during a burst that state still holds the alliance
@@ -276,14 +278,9 @@
     const availableKnightPlans = $derived(gameSession.availableKnightPlans)
 
 
-    // All four now live on the session, which the board's click handling and the status panel's
+    // Both now live on the session, which the board's click handling and the status panel's
     // wording both read. Kept under their old names here so the call sites below are unchanged.
     const expandStageActive = $derived(gameSession.expandStageActive)
-    const expansionDeadEnd = $derived(gameSession.expansionDeadEnd)
-    const expansionBlockedReasons = $derived(
-        expansionDeadEnd ? gameSession.expansionBlockedReasons : []
-    )
-
     const knightStageActive = $derived(gameSession.knightStageActive)
 
     // Drop a plan belonging to an earlier knight action, so a previous player's plan (or
@@ -936,6 +933,7 @@
     <!-- Registration hosts: each animator subscribes for as long as its host is mounted (see
          attachAnimator), the way bus-ui binds its animators to a <g> in the board. -->
     <div class="hidden" {@attach attachAnimator(allianceBurst)}></div>
+    <div class="hidden" {@attach attachAnimator(allianceForm)}></div>
     <div class="hidden" {@attach attachAnimator(scorePopups)}></div>
 
     <!-- A hand-hewn castle-wall frame (see RampartBorder/RampartCorner) around the
@@ -1218,6 +1216,7 @@
                  preview is now the hearts themselves. -->
             {#each marker.walls as wall (wall.col + ',' + wall.row + ',' + wall.edge + '-heart')}
                 {@const { left, top } = heartPosition(wall)}
+                {@const heartId = `${wall.col},${wall.row},${wall.edge}`}
                 {#if marker.cancellable}
                     <!-- A heart's own idle animation is a heartbeat, which is exactly the
                          "alive, touchable" cue this needs - it beats only while cancelling
@@ -1231,6 +1230,10 @@
                             ? ''
                             : 'alliance-heartbeat'}"
                         style="left: {left}px; top: {top}px; width: {GLYPH_BOX}; height: {GLYPH_BOX}; font-size: {GLYPH_FONT};"
+                        {@attach (el) => {
+                            allianceForm.setNode(heartId, el)
+                            return () => allianceForm.setNode(heartId, undefined)
+                        }}
                         onmouseenter={() => (hoveredAllianceId = marker.id)}
                         onmouseleave={() => (hoveredAllianceId = undefined)}
                         onfocus={() => (hoveredAllianceId = marker.id)}
@@ -1259,6 +1262,10 @@
                     <div
                         class="absolute pointer-events-none flex items-center justify-center z-40"
                         style="left: {left}px; top: {top}px; width: {GLYPH_BOX}; height: {GLYPH_BOX}; font-size: {GLYPH_FONT};"
+                        {@attach (el) => {
+                            allianceForm.setNode(heartId, el)
+                            return () => allianceForm.setNode(heartId, undefined)
+                        }}
                     >
                         🩷
                     </div>

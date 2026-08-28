@@ -128,16 +128,16 @@
     {#if action.kind === NegotiationMoveKind.Propose}
         {@const executedOffer = action.metadata?.executedOffer}
         {#if executedOffer}
-            proposed <PlayerName playerId={executedOffer.fromPlayerId} /> pay {executedOffer.amount} ducat{executedOffer.amount ===
-            1
-                ? ''
-                : 's'} — matching the standing offer, so it executed: they paid and performed the
-            action
+            {@const fromIsMe = gameSession.myPlayer?.id === executedOffer.fromPlayerId}
+            accepted the proposal: <PlayerName playerId={executedOffer.fromPlayerId} />
+            {fromIsMe ? 'pay' : 'pays'}
+            <PlayerName playerId={executedOffer.toPlayerId} />
+            {executedOffer.amount} ducat{executedOffer.amount === 1 ? '' : 's'}
         {:else}
-            proposed <PlayerName playerId={action.fromPlayerId ?? ''} /> pay {action.amount} ducat{action.amount ===
-            1
-                ? ''
-                : 's'} for the contested action
+            {@const fromIsMe = gameSession.myPlayer?.id === action.fromPlayerId}
+            proposed <PlayerName playerId={action.fromPlayerId ?? ''} />
+            {fromIsMe ? 'pay' : 'pays'}
+            {action.amount} ducat{action.amount === 1 ? '' : 's'} for the contested action
         {/if}
     {:else if action.kind === NegotiationMoveKind.Decline}
         declined to negotiate further — forcing a duel

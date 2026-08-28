@@ -4,10 +4,10 @@
 
     const gameSession = getGameSession()
 
-    // How many cards are left in each politics pile. This is the ONLY thing about those
-    // piles that matters turn to turn (their contents are hidden until you win politics
-    // and look through one), so the piles themselves no longer sit on the table - they
-    // come up over the board at the moment of choosing, via PoliticsPileOverlay.
+    // How many cards are left in each politics pile - the only thing about those piles that
+    // matters turn to turn (their contents are hidden until you win politics and look through
+    // one). Just a plain readout here; choosing between them lives in PoliticsDeckChooser, above
+    // the board, once there's an actual choice to make.
     const pileACount = $derived(gameSession.gameState.politicsCardPileA.length)
     const pileBCount = $derived(gameSession.gameState.politicsCardPileB.length)
 
@@ -38,26 +38,6 @@
      their numbers so the numbers align on one line and the eye reads the figures first. -->
 <div class="px-3 pt-2 pb-1 flex items-start justify-center gap-12 border-b-2 border-black/20 text-black">
     <div class="flex flex-col items-center gap-0.5">
-        <div class="flex items-center gap-1.5">
-            <span
-                class="px-2 py-0.5 rounded-md bg-black/10 font-bold tabular-nums"
-                title="Cards left in politics pile A"
-            >
-                <Numeral value={pileACount} />
-            </span>
-            <span
-                class="px-2 py-0.5 rounded-md bg-black/10 font-bold tabular-nums"
-                title="Cards left in politics pile B"
-            >
-                <Numeral value={pileBCount} />
-            </span>
-        </div>
-        <span class="text-[13px] font-semibold uppercase tracking-wide text-black/60">
-            Politics
-        </span>
-    </div>
-
-    <div class="flex flex-col items-center gap-0.5">
         <div class="flex items-start gap-1.5">
             {#each gameSession.gameState.players as ps (ps.playerId)}
                 {@const mineGain = minePointsByPlayerId.get(ps.playerId) ?? 0}
@@ -87,5 +67,17 @@
         >
             Points
         </span>
+    </div>
+
+    <div class="flex flex-col items-center gap-0.5">
+        <div class="flex items-center gap-1.5">
+            <span class="px-2 py-0.5 rounded-md bg-black/10 font-bold tabular-nums" title="Cards left in politics pile A">
+                <Numeral value={pileACount} />
+            </span>
+            <span class="px-2 py-0.5 rounded-md bg-black/10 font-bold tabular-nums" title="Cards left in politics pile B">
+                <Numeral value={pileBCount} />
+            </span>
+        </div>
+        <span class="text-[13px] font-semibold uppercase tracking-wide text-black/60">Politics</span>
     </div>
 </div>

@@ -11,7 +11,6 @@ import {
     CardBack,
     buildDecisionPlan,
     ChooseAction,
-    countKnights,
     currentPlacementColor,
     detectNewRegions,
     DrawActionCard,
@@ -200,12 +199,19 @@ export class LowenherzGameSession extends GameSession<
     private duelBids: { signature: string; amounts: Record<string, number> } | undefined =
         $state(undefined)
 
-    // The duel being bid in: its slot, its players, and how many ties it has been through. Any of
-    // those changing is a different duel.
+    // The duel being bid in: its slot, its players, how many ties it has been through, and how
+    // many slots have resolved so far. That last part is load-bearing, not decoration: slot is
+    // always just 1/2/3 (recycled every round), and in a 2-player game the duelists are always
+    // the same two people - so a LATER duel over the same-numbered slot, between the same
+    // players, with no ties yet, would otherwise produce the exact same signature as an earlier,
+    // already-resolved one, and read that duel's stale bid/Treasure draft as still current.
+    // resolvedSlots.length only advances once a duel (this one included) actually finishes, so it
+    // stays constant for the live duel's whole bidding phase - including across a re-duel, which
+    // bumps tieCount instead - and is different for every duel that isn't that same live instance.
     private get duelSignature(): string | undefined {
         const duel = this.gameState.duel
         if (!duel) return undefined
-        return `${duel.slot}:${duel.playerIds.join(',')}:${duel.tieCount}`
+        return `${duel.slot}:${duel.playerIds.join(',')}:${duel.tieCount}:${this.gameState.resolvedSlots.length}`
     }
 
     get duelBidAmounts(): Record<string, number> {
@@ -434,19 +440,6 @@ export class LowenherzGameSession extends GameSession<
         if (this.canContinueExpansion) return true
 
         return this.knightPlan === 'expand' && this.canExpandRegion
-    }
-
-    // The region being expanded turned out to have nowhere legal to grow into. Its sword is better
-    // spent on a knight than forfeited, so this hands the knight half the board even under an
-    // expansion-first choice - and there is no overlap to disambiguate, since there are no legal
-    // expansion squares left to compete with.
-    get expansionDeadEnd(): boolean {
-        return (
-            this.expandStageActive &&
-            this.selectedExpandRegionId !== undefined &&
-            this.expansionSquares.length === 0 &&
-            this.legalNextExpansionSquares.length === 0
-        )
     }
 
     get knightStageActive(): boolean {
@@ -1421,72 +1414,6 @@ export class LowenherzGameSession extends GameSession<
         return legalExpansionSquares(this.gameState, this.myPlayer!.id, regionId)
     }
 
-    // Why a region picked to expand has no legal target square - the distinct reasons
-    // ExpandRegion itself gave for every square on that region's frontier (the
-    // off-region squares orthogonally touching it, which is exactly the set adjacency
-    // allows), so the UI can say WHICH rule is in the way instead of a bare "nowhere
-    // legal". The invasion rule in particular is easy to be surprised by, so its
-    // reason gets the actual knight counts attached.
-    get expansionBlockedReasons(): string[] {
-        const regionId = this.selectedExpandRegionId
-        if (!regionId || !this.myPlayer) return []
-
-        const matches = this.gameState.regions.filter((r) => r.id === regionId)
-        if (matches.length === 0) return ['that region no longer exists']
-        if (matches.length > 1) {
-            // Two live regions sharing an id is broken state, not a rules situation,
-            // and it silently breaks every find-by-id in the engine - including the one
-            // that decides whether this is even your region (see detectNewRegions'
-            // mintId, which stops NEW ids from colliding but can't repair older state).
-            return [`two different regions share the id "${regionId}" - that's a bug, not a rule`]
-        }
-        const region = matches[0]
-        const regionKeys = new Set(region.squareKeys)
-
-        const frontier = new Set<string>()
-        for (const key of region.squareKeys) {
-            const [col, row] = key.split(',').map(Number)
-            for (const n of neighbors(col, row)) {
-                if (!isOnBoard(n.col, n.row)) continue
-                const nKey = squareKey(n.col, n.row)
-                if (regionKeys.has(nKey)) continue
-                frontier.add(nKey)
-            }
-        }
-
-        const reasons = new Set<string>()
-        for (const key of frontier) {
-            const [col, row] = key.split(',').map(Number)
-            const reason = this.expansionAttemptReason(regionId, { col, row })
-            if (reason) reasons.add(reason)
-        }
-
-        // Spell the knight comparison out with real numbers - "must outnumber" alone
-        // doesn't say by how much you're short, and the counts are what a player would
-        // otherwise be squinting at the board to tally.
-        const outnumberedReason = [...reasons].find((r) => r.includes('outnumber'))
-        if (outnumberedReason) {
-            const myKnights = countKnights(region, this.gameState.board)
-            // Only the neighbors whose knights actually hold this region off - a weaker
-            // one next door (blocked for some other reason, e.g. every square of it that
-            // touches this region is occupied) would make the comparison read as a lie.
-            const blockingCounts = [...frontier]
-                .map((key) => this.gameState.regions.find((r) => r.id !== region.id && r.squareKeys.includes(key)))
-                .filter((r): r is Region => r !== undefined && r.ownerColor !== undefined)
-                .map((r) => countKnights(r, this.gameState.board))
-                .filter((count) => count >= myKnights)
-            const weakestDefender = blockingCounts.length > 0 ? Math.min(...blockingCounts) : undefined
-            reasons.delete(outnumberedReason)
-            reasons.add(
-                weakestDefender === undefined
-                    ? outnumberedReason
-                    : `your ${myKnights} knight${myKnights === 1 ? '' : 's'} here must outnumber the ${weakestDefender} in the neighboring region to invade it`
-            )
-        }
-
-        return [...reasons].map((reason) => reason.charAt(0).toLowerCase() + reason.slice(1).replace(/\.$/, ''))
-    }
-
     // Each space is its own ExpandRegion action (see expandRegion.ts) rather than a
     // batch of 1-2 submitted together, so Undo can step back one space at a time
     // instead of reverting a whole 2-space expansion in one go. A 1-space expansion
@@ -1533,14 +1460,27 @@ export class LowenherzGameSession extends GameSession<
         return this.gameState.openedPoliticsPile
     }
 
-    // Viewport-space center point of whichever pile button the player last clicked -
-    // purely a visual cue so PoliticsHand can animate its cards as if being dealt out
-    // from that spot. Has no bearing on game state.
+    // Viewport-space center point of wherever the player last clicked - either to peek at their
+    // own politics cards (see showMyPoliticsCards, used by PoliticsHand) or to look through a
+    // won pile (see PoliticsDeckChooser's own choosePile, used by PoliticsPileReveal) - purely a
+    // visual cue so those components can animate their cards as if being dealt out from that
+    // spot. Has no bearing on game state.
     politicsPileOrigin: { x: number; y: number } | undefined = $state(undefined)
 
-    async selectPoliticsPile(pile: 'A' | 'B', origin?: { x: number; y: number }) {
+    // The real, already-measured width of the row PoliticsDeckChooser's own decks sit in - set
+    // alongside politicsPileOrigin, right before selectPoliticsPile below hands off to
+    // PoliticsPileReveal. That component uses this as its row width straight away instead of
+    // waiting on its own bind:clientWidth, which only fires (ResizeObserver-backed, so
+    // inherently a frame or more after mount) once it already has cards rendered against
+    // whatever guess it started with - correcting that guess once the real number arrives can
+    // move a card to a different row's own {#each} block, which Svelte can't just reposition, so
+    // it destroys and remounts it. Undefined whenever no chooser has run yet this session (a page
+    // reload landing mid-reveal, say), which is the one case PoliticsPileReveal still falls back
+    // to measuring for itself.
+    politicsRowWidth: number | undefined = $state(undefined)
+
+    async selectPoliticsPile(pile: 'A' | 'B') {
         if (!this.canTakePoliticsCard || this.selectedPoliticsPile) return
-        if (origin) this.politicsPileOrigin = origin
         this.viewingMyPoliticsCards = false
 
         const action = this.createPlayerAction(LookAtPoliticsPile, { pile, revealsInfo: true })
@@ -1643,6 +1583,14 @@ export class LowenherzGameSession extends GameSession<
         this.renegadeOwnRegionId = undefined
         this.renegadeEnemyRegionId = undefined
         this.renegadeRemovedSquare = undefined
+
+        // Skip the click when there is nothing to choose - same "one option counts as
+        // picked" pattern startPlayingAllianceCard uses. legalRenegadeOwnRegionIds reads
+        // isPlayingRenegadeCard, which is already true now that renegadeCardId is set above.
+        const ownRegionIds = this.legalRenegadeOwnRegionIds
+        if (ownRegionIds.size === 1) {
+            this.selectRenegadeOwnRegion([...ownRegionIds][0])
+        }
     }
 
     cancelPlayingRenegadeCard() {
@@ -1874,6 +1822,14 @@ export class LowenherzGameSession extends GameSession<
         this.cancelPlayingRenegadeCard()
         this.allianceCardId = cardId
         this.allianceOwnRegionId = undefined
+
+        // Skip the click when there is nothing to choose - same "one option counts as
+        // picked" pattern selectedExpandRegionId and knightPlan use. legalAllianceOwnRegionIds
+        // reads allianceCardId, which is already set above, so this sees the real choices.
+        const ownRegionIds = this.legalAllianceOwnRegionIds
+        if (ownRegionIds.size === 1) {
+            this.selectAllianceOwnRegion([...ownRegionIds][0])
+        }
     }
 
     cancelPlayingAllianceCard() {
@@ -1884,6 +1840,15 @@ export class LowenherzGameSession extends GameSession<
     selectAllianceOwnRegion(regionId: string) {
         if (!this.allianceCardId) return
         this.allianceOwnRegionId = regionId
+
+        // Same skip-the-click logic for the enemy side: picking the enemy region normally
+        // confirms the play immediately (see selectAllianceEnemyRegion below) - with only
+        // one legal target there is nothing left to choose, so fire it now rather than
+        // waiting on a click that could not go anywhere else.
+        const enemyRegions = this.legalAllianceEnemyRegions
+        if (enemyRegions.length === 1) {
+            this.selectAllianceEnemyRegion(enemyRegions[0].id)
+        }
     }
 
     // Whether `candidate` is a legal Alliance target for `ownRegion` - another
@@ -1955,6 +1920,67 @@ export class LowenherzGameSession extends GameSession<
         } catch (e) {
             console.warn('Failed to play Alliance card:', e)
             this.errorMessage = 'That play was rejected.'
+        }
+    }
+
+    // Whether a card already in hand can be applied right now - its type's specific play window
+    // is currently open. Renegade/Alliance share the same window (your decision-laying turn);
+    // Treasure has no dedicated "play" action of its own, so this asks whether there's a live
+    // window (a wooded knight placement, or a duel bid) to arm it for instead. Shared by
+    // PlayerState's own splay (an always-visible APPLY button on an applicable card) and
+    // PoliticsHand's peek overlay - the same two entry points into the same handful of session
+    // methods, so this is the one place that actually decides "applicable".
+    canApplyPoliticsCard(card: PoliticsCard): boolean {
+        switch (card.type) {
+            case PoliticsCardType.Renegade:
+                return this.canPlayRenegadeCard && !this.isPlayingRenegadeCard
+            case PoliticsCardType.Alliance:
+                return this.canPlayAllianceCard && !this.isPlayingAllianceCard
+            case PoliticsCardType.Treasure:
+                return this.canPlaceKnight || this.canSubmitDuelBid
+            default:
+                return false
+        }
+    }
+
+    // Applying a Renegade/Alliance card starts its multi-step targeting flow (picking
+    // regions/squares happens on the board/sidebar afterward); a Treasure card just arms itself,
+    // for the next knight placement (selectTreasureCard - one card at a time) or duel bid
+    // (armDuelTreasure - any number, since nothing in the rulebook caps a bid at one) to pick up.
+    applyPoliticsCard(card: PoliticsCard) {
+        switch (card.type) {
+            case PoliticsCardType.Renegade:
+                this.startPlayingRenegadeCard(card.id)
+                break
+            case PoliticsCardType.Alliance:
+                this.startPlayingAllianceCard(card.id)
+                break
+            case PoliticsCardType.Treasure:
+                if (this.canSubmitDuelBid) {
+                    this.armDuelTreasure(card.id)
+                } else {
+                    this.selectTreasureCard(card.id)
+                }
+                break
+        }
+    }
+
+    // Whether a card that was just applied is still doing something right now, rather than a
+    // fresh APPLY being on offer - a Treasure stays armed (for a knight placement or a duel bid)
+    // with nothing else to click, so nothing on screen said applying it had actually landed.
+    // Renegade/Alliance immediately show their next step on the board itself (a highlighted
+    // region to click), so they don't need this - but are included for completeness, since a
+    // card mid-targeting-flow is exactly as "active" as an armed Treasure.
+    isPoliticsCardActive(card: PoliticsCard): boolean {
+        switch (card.type) {
+            case PoliticsCardType.Renegade:
+                return this.renegadeCardId === card.id
+            case PoliticsCardType.Alliance:
+                return this.allianceCardId === card.id
+            case PoliticsCardType.Treasure:
+                return this.selectedTreasureCard?.id === card.id || this.armedDuelTreasureIds.includes(card.id)
+            default:
+                return false
         }
     }
 
