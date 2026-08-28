@@ -1,186 +1,89 @@
-# UI Interaction Visual Contract
+# UI Interaction Visual Contracts
 
-Use this document as a required starting point for any new game UI that has board highlights, dimming, overlays, hover previews, selection styling, or piece emphasis.
+Use this guide to create or update a game UI’s visual contract. The contract records product-visible interaction behavior and the non-obvious boundaries needed to preserve it; current code remains the source of truth for filenames, symbols, and render structure.
 
-Purpose:
-- separate visual intent from implementation details
-- keep layer responsibilities narrow
-- prevent one highlight/dimming change from breaking another interaction
-- give future work a regression checklist before editing shared visual state
+## When a contract is required
 
-This file is a template. Copy its structure into the new game's docs and fill it in before adding complex interactive board visuals.
+Create `games/<slug>-ui/docs/ui-interaction-visual-contract.md` before or alongside the first interaction that:
 
-## 1. Visual Intents
+- coordinates a visual effect across render layers;
+- needs precedence or composition rules with another interaction; or
+- exposes transient visual state to more than one consumer.
 
-List each user-visible interaction mode as a distinct intent. Do not define these in terms of component names or booleans.
+An isolated hover, focus, pressed, or disabled style owned entirely by one component does not require a contract. Do not create an empty placeholder contract.
 
-Example table:
+Update the contract in the same change whenever visible intent, precedence, shared-state semantics, lifecycle, or render ownership changes.
 
-| Intent | Trigger | What should be emphasized | What should be dimmed | What must remain unaffected |
-| --- | --- | --- | --- | --- |
-| company_spotlight | hover company card | owned regions, company pieces | rest of board | hovered card itself |
-| shipping_expand_selection | choose sea expansion area | valid sea areas, operating ships | invalid or non-relevant board areas | non-operating ships style rules |
-| deed_region_preview | hover deed | deed region | rest of board | hovered deed card |
-| city_card_preview | hover future city card | valid future city regions | rest of board | hovered future city card |
+## Read first
 
-Rules:
-- each intent should describe product behavior, not implementation
-- if two intents differ in visible result, they must be separate rows
-- if one intent has different land vs sea behavior, write that explicitly
+- Follow the [repository coding policy](agent-coding-policy.md).
+- Use the terminology and history model in the [Game Client context](../libs/frontend-components/CONTEXT.md).
+- For staged selections, `Back`, or `Undo`, follow [user interaction patterns](user-interactions.md).
+- For motion, replay, or silent restoration, follow the [game UI animation skill](../.agents/skills/game-ui-animation/SKILL.md).
 
-## 2. Visual Primitives
+## Build the contract from the game
 
-Define the primitive effects that can be combined to create the interaction modes.
+Inspect the game’s current interaction state, session derivations, and rendering before writing. Describe only behavior the product requires and boundaries that are not obvious from local code. Derive implementation details from the repository rather than copying another game’s contract.
 
-Suggested primitives:
-- board spotlight mask
-- invalid-area dimming
-- land overlay fill
-- sea overlay fill
-- dual outline
-- piece emphasis
-- card exemption cutout
-- card selected chrome
-- disabled/muted state
+Keep issue work in GitHub Issues. Keep current file inventories, exhaustive symbol lists, status dates, implementation plans, and refactor backlogs out of the contract.
 
-For each primitive, answer:
-- what it is visually
-- which layer owns it
-- which inputs it reads
-- which things it must never decide
+## Required sections
 
-Example:
+### Visual intents
 
-### Primitive: piece emphasis
-- Owner: piece-specific layer such as `BoardShipsLayer`
-- Reads: `highlightedShipCompanyIds`
-- Must not decide: board dimming, area overlays, card exemption
+Account for every user-visible interaction mode covered by the contract. For each intent, record:
 
-## 3. Layer Responsibilities
+- its domain-level name and trigger;
+- what becomes emphasized, de-emphasized, or interactive;
+- what remains visually unaffected; and
+- any equivalent pointer, keyboard, focus, or touch path the UI supports.
 
-Every interactive render layer should have a narrow contract.
+Name intents by product behavior, not component names, implementation booleans, or styling mechanisms. Two modes with different visible results are two intents.
 
-Recommended table:
+### Coexistence and precedence
 
-| Layer | Owns | Allowed Inputs | Must Not Own |
-| --- | --- | --- | --- |
-| `BoardActionAreasLayer` | board masks, area overlays, area outlines | spotlight area ids, valid area ids, exempt card rects | ship emphasis, marker styling |
-| `BoardShipsLayer` | ship marker rendering, ship emphasis | highlighted ship company ids, route-specific ship filters | board masks, area dimming |
-| `BoardDeedsLayer` | deed card visuals | hovered deed id, selected deed id | board area overlays |
+Account for every pair of intents that can overlap in a reachable UI state. State whether they coexist and give the observable composition or winner. If an overlap is impossible because of a game-state invariant, record that invariant instead of inventing a precedence rule.
 
-Rules:
-- if a layer “must not own” something, do not infer it indirectly through shared state
-- if two layers need the same input, define a dedicated shared semantic input for it
+Precedence belongs in one semantic derivation. Render layers consume its result rather than reconstructing it from lower-level hover, selection, or game-state signals.
 
-## 4. Shared State Contracts
+### Shared visual state
 
-List every shared derived state used by more than one visual layer.
+For every transient visual value consumed across layers or used to decide precedence, record:
 
-For each shared state, document:
-- semantic meaning
-- producer
-- consumers
-- permitted uses
-- forbidden uses
+- semantic meaning;
+- producer and affected consumers;
+- visible effects it is allowed to drive;
+- lifetime boundary: when it is cleared;
+- validity boundary: when its current value stops applying; and
+- behavior in Live View, History View, backward/forward navigation, replay, and silent restoration where relevant.
 
-Example:
+Use dedicated semantic values for distinct effects. A board-wide spotlight, piece emphasis, selection chrome, and mask exemption may coexist, but one does not imply another unless the product contract explicitly joins them.
 
-### `boardSpotlightAreaIds`
-- Meaning: areas exempted from board-level dimming
-- Producer: interaction view-model / session derivation
-- Consumers: `BoardActionAreasLayer`
-- Permitted uses: spotlight mask, exempted outline rendering
-- Forbidden uses: ship emphasis, card hover chrome, marker sizing
+### Render ownership
 
-### `highlightedShipCompanyIds`
-- Meaning: ship companies whose pieces should render emphasized
-- Producer: interaction view-model / session derivation
-- Consumers: `BoardShipsLayer`
-- Permitted uses: ship emphasis only
-- Forbidden uses: board mask, deed dimming, area overlays
+Record only cross-layer or otherwise non-obvious rendering boundaries. For each such effect, identify:
 
-Rule:
-- if a shared state name sounds too broad, rename it until misuse is obvious
+- its visible result and semantic input;
+- its single render owner;
+- other layers affected by the result; and
+- any required z-order, mask, transform, or hit-target relationship.
 
-## 5. Forbidden Couplings
+Document the complete layer stack only when its order is itself a maintained invariant. Otherwise inspect the current render tree when implementing a change.
 
-Write the bad shortcuts explicitly so future changes do not repeat them.
+### Verification scenarios
 
-Default list:
-- Do not reuse board spotlight state to drive piece emphasis.
-- Do not reuse piece emphasis state to drive board dimming.
-- Do not let one layer infer another layer's visual responsibilities.
-- Do not couple mask exemption and visible overlay styling unless the contract says they are the same feature.
-- Do not let a generic “hovered thing” state drive unrelated interaction systems.
-- Do not add fallback highlighting behavior “just in case” without a product requirement.
+Define an observable scenario for every intent and every affected coexistence rule. Each scenario states:
 
-Add game-specific forbidden couplings here as they are discovered.
+- the starting UI/game state;
+- the input or state change;
+- the expected visible result;
+- the expected result after cancellation, exit, or replacement by a higher-priority intent; and
+- whether verification is automated or manual.
 
-## 6. Interaction Matrix
+Include history navigation and rapid interruption when the interaction depends on committed state or motion. Verification is complete only after every scenario affected by the change has been exercised; reasoning through a checklist is not verification.
 
-Document which intents may coexist and which one wins if there is a conflict.
+## Completion criterion
 
-Recommended table:
+The contract is complete when every in-scope intent and reachable overlap is accounted for, every cross-layer visual state has explicit lifecycle and history semantics, every non-obvious render boundary has one owner, and every affected behavior has an exercised verification scenario.
 
-| Intent A | Intent B | Can coexist? | Winner / combination rule |
-| --- | --- | --- | --- |
-| company_spotlight | shipping_expand_selection | no | shipping_expand_selection |
-| city_card_preview | shipping_expand_selection | no | shipping_expand_selection |
-| deed_region_preview | start_company_selection | yes | selected deed takes precedence over non-selected preview |
-
-Rule:
-- do not leave coexistence implicit
-- if one interaction suppresses another, write it down
-
-## 7. Regression Checklist
-
-Before finalizing any change that touches shared highlight/dimming state, verify every relevant row below.
-
-Baseline checklist:
-- company hover still dims the board correctly
-- hovered card/piece that should stay undimmed still stays undimmed
-- shipping deed hover still shows sea overlay fill correctly
-- shipping expansion still shows valid sea areas correctly
-- shipping expansion still emphasizes operating ships correctly
-- production expansion still uses land-style highlighting only
-- deed hover does not remove active selection spotlight
-- city-card preview does not suppress live action overlays
-- muted/unavailable pieces are still only muted where intended
-- board spotlight and piece emphasis are still independently controlled
-
-Add game-specific rows whenever a regression is found.
-
-## 8. Change Rules
-
-When touching interactive visuals:
-1. identify which intent row is being changed
-2. identify which primitives are involved
-3. verify whether any shared state contract is being widened
-4. update this document if a new interaction or coupling is introduced
-5. run the regression checklist mentally or in tests before claiming the change is isolated
-
-## 9. Minimal Naming Guidance
-
-Prefer names that encode scope and responsibility.
-
-Good:
-- `boardSpotlightAreaIds`
-- `highlightedShipCompanyIds`
-- `cityPreviewCardMaskRect`
-- `shippingExpansionValidSeaAreaIds`
-
-Bad:
-- `activeHighlightIds`
-- `hoveredThing`
-- `spotlightCompanyIds`
-- `selectedState`
-
-## 10. Completion Requirement
-
-For a new game UI, this document is not complete until:
-- all intended interaction modes are listed
-- each interactive layer has explicit ownership boundaries
-- all shared visual state has a contract
-- at least one regression checklist exists
-
-If the game does not yet have interactive visual states, keep the file with a short note saying that no such states exist yet. Do not omit the file.
+Maintain one statement of each behavior. When code makes a documented lookup obvious or a contract entry no longer changes agent behavior, remove it.

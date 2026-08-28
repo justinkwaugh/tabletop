@@ -103,7 +103,7 @@ Before implementing a game-model mechanism, search `libs/common/src/game/compone
 
 The game session owns action construction and application. Svelte components render state, collect input, and call session methods. For multi-step local selection, follow [the staged interaction, Back, and Undo semantics](user-interactions.md).
 
-Complex game UIs should maintain a visual contract based on [the UI interaction visual-contract template](ui-interaction-visual-contract.md). Animation must follow the [game UI animation skill](../.agents/skills/game-ui-animation/SKILL.md), including its rules for coordinated timelines, history navigation, and the narrow `animate:flip` exception.
+A game UI with cross-layer visual effects, interaction precedence, or shared transient visual state must maintain a contract using the [UI interaction visual-contract guide](ui-interaction-visual-contract.md). Animation must follow the [game UI animation skill](../.agents/skills/game-ui-animation/SKILL.md), including its rules for coordinated timelines, history navigation, and the narrow `animate:flip` exception.
 
 UI code may stage, preview, or preselect a choice. Only explicit user input or a runtime System Action commits gameplay.
 
@@ -142,7 +142,7 @@ A new game is structurally complete when:
 - Both definitions provide every required runtime dependency.
 - All states and serialized actions are registered.
 - Rule ambiguities are tracked and resolved behavior is covered by tests.
-- Complex UI has a maintained visual contract.
+- UI behavior that meets the visual-contract trigger has a maintained contract.
 - Relevant package verification passes.
 
 ## Maintaining this document

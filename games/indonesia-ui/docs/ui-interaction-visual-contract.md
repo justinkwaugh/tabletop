@@ -1,445 +1,108 @@
 # Indonesia UI Interaction Visual Contract
 
-This document records the current highlight, dimming, overlay, and emphasis system for the Indonesia UI.
+This contract records Indonesia’s cross-layer interaction behavior, precedence, transient-state lifecycle, and non-obvious rendering boundaries. Use the repository [visual-contract authoring guide](../../../docs/ui-interaction-visual-contract.md) when changing it.
 
-Purpose:
-- make the current behavior explicit before refactoring it
-- separate visual intent from the components that currently implement it
-- identify the couplings that have been causing regressions
-- give future work a regression checklist before touching shared visual state
+## Visual intents
 
-Status:
-- Interactive visual system status: `Established`
-- Refactor status: `Document-first; current implementation still has known shared-state coupling`
-- Last updated for interaction change: `2026-03-11`
-
-## 1. Visual Intents
-
-| Intent | Trigger | What should be emphasized | What should be dimmed | What must remain unaffected |
-| --- | --- | --- | --- | --- |
-| `company_card_hover_spotlight` | hover a company card in player state | owned production areas or shipping seas, ships, production zone markers, demand/city context as applicable | most non-relevant board visuals | the hovered card itself |
-| `shipping_deed_hover_preview` | hover an available shipping deed | seas in that deed's region, hovered deed card | rest of board via spotlight mask | the hovered deed card |
-| `production_deed_hover_preview` | hover an available production deed | valid cultivatable land in that deed's region, hovered deed card | rest of board via spotlight mask | the hovered deed card |
-| `start_company_selection` | click a deed in acquisitions, then choose an area | selected deed region, valid start areas, selected deed card | board via spotlight-style treatment, but not generic invalid-area masking for shipping | the selected deed card |
-| `shipping_expand_selection` | operate shipping company and choose expansion sea | valid sea areas, operating company ships | board via expansion spotlight mask | non-operating ships should not become spotlight drivers |
-| `production_expand_selection` | operate production company and choose expansion land | valid land areas | invalid land areas and/or board via expansion spotlight | seas and unrelated ship styling |
-| `place_city_selection` | place a new city in new era | valid coastal empty land areas | rest of board via city placement spotlight | unrelated hover previews when they are suppressed by rule |
-| `grow_city_selection` | grow a city in city growth | valid cities | invalid land areas | unrelated seas |
-| `delivery_zone_selection` | choose a cultivated source zone during delivery | valid source zones and matching marker hit targets | invalid land areas, non-selectable zone tags | unrelated ships unless route preview is active |
-| `delivery_city_selection` | choose a destination city during delivery | valid city beads and hovered city bead | generally no full-board dim; city-specific emphasis only | unrelated deed/card spotlight state |
-| `delivery_route_preview` | hover a delivery route or shipping choice | route path, route ships, source area, destination city bead/tag | unrelated ships, unrelated land areas, unrelated zone tags | full-board spotlight mask must not be introduced by route preview alone |
-| `city_reference_card_preview` | hover on-board city reference card (opening `A` card during initial `NewEra`, otherwise future `B`/`C` card) | valid regions for that card, hovered city reference card | rest of board via spotlight mask | the hovered city reference card; competing hover spotlights should yield |
-| `operated_company_unavailable` | company has already operated during operations phase | muted company card, masked production zone marker | only that company's card/marker representation | hover spotlight capability, ships |
-
-Notes:
-- shipping interactions and production interactions are visually different on purpose
-- sea highlighting uses a blue overlay fill; land highlighting usually uses dual outline
-- route preview is intentionally narrower than company/deed spotlight
-
-## 2. Visual Primitives
-
-### Primitive: board spotlight mask
-- Visual: full-board darkening with carve-outs for exempt areas and exempt card rectangles
-- Current owner: `BoardActionAreasLayer.svelte`
-- Reads: spotlight exempt area ids, deed-card mask rect, city-reference-card mask rect
-- Must not decide: ship emphasis, marker masking, card hover state
-- Contract note: exemption from the mask is separate from visible highlight styling
-
-### Primitive: expansion spotlight mask
-- Visual: dark board with valid expansion areas punched out
-- Current owner: `BoardActionAreasLayer.svelte`
-- Reads: `interactiveValidAreaIds` during expand interactions
-- Must not decide: ship emphasis or deed/card chrome
-
-### Primitive: invalid-area dimming
-- Visual: fill-based darkening of invalid land areas
-- Current owner: `BoardActionAreasLayer.svelte`
-- Reads: `maskedAreaIds` from `activeAreaInteraction`
-- Must not decide: sea overlays, ship emphasis, company spotlight
-
-### Primitive: sea overlay fill
-- Visual: translucent blue fill on active sea regions
-- Current owner: shared sea-visual derivation in `boardActionAreas/seaHighlight.ts`, rendered by `BoardActionAreasLayer.svelte` for explicit sea highlight and consumed by `BoardDeedsLayer.svelte` for the deed-driven sea overlay slice
-- Reads: explicit interaction sea-highlight area ids and shared shipping-deed sea visibility state
-- Must not decide: which ships are emphasized
-- Contract note: sea areas may be exempt from dimming without being visually highlighted; the blue overlay fill is a separate explicit decision
-
-### Primitive: dual outline
-- Visual: pale outer stroke plus dark inner stroke
-- Current owner: `BoardActionAreasLayer.svelte`, `BoardCitiesLayer.svelte`
-- Reads: highlighted land area ids, selectable/hovered city beads
-- Must not decide: board dimming or ship emphasis
-
-### Primitive: piece emphasis
-- Visual: larger outlined ship markers, highlighted production zone markers, hovered city bead ring
-- Current owner: piece-specific layers
-- Reads: dedicated spotlight inputs for ships/markers/cities
-- Must not decide: board masks
-
-### Primitive: marker masking
-- Visual: dark translucent mask over production zone marker tag
-- Current owner: `BoardProductionZoneMarkersLayer.svelte`
-- Reads: company hover state, route preview state, delivery selection state, operated company ids
-- Must not decide: cultivated area fills, deed spotlight
-
-### Primitive: card exemption cutout
-- Visual: card stays bright while board spotlight dims around it
-- Current owner: `BoardActionAreasLayer.svelte`
-- Reads: deed card rect or city reference card rect
-- Must not decide: whether the card is selected
-
-### Primitive: card unavailable muting
-- Visual: reduced saturation/brightness on compact company card
-- Current owner: `PlayerCompanyCompactCard.svelte`
-- Reads: `unavailable`
-- Must not decide: board spotlight or hover ownership
-
-### Primitive: route-local dimming
-- Visual: dim unrelated land/cities/ships during route preview without enabling full-board spotlight
-- Current owner: shared route-preview visual state in `IndonesiaGameSession`, consumed by `BoardCitiesLayer.svelte`, `BoardShipsLayer.svelte`, `BoardProductionZoneMarkersLayer.svelte`, and `BoardActionAreasLayer.svelte`
-- Reads: `activeRoutePreviewVisualState`
-- Must not decide: company spotlight
-
-### Primitive: city-layer mirror dimming
-- Visual: dim city beads and demand markers in spotlight modes that darken the rest of the board, because `BoardCitiesLayer` renders above the board spotlight mask
-- Current owner: `BoardCitiesLayer.svelte`
-- Reads: city-card-preview precedence and other city-layer highlight states
-- Must not decide: which board areas are spotlighted
-
-## 3. Layer Responsibilities
-
-Current board layer stack from `Board.svelte`:
-1. `BoardCityReferenceCardLayer`
-2. `BoardDeedsLayer`
-3. `BoardShippingRouteOverlayLayer`
-4. `BoardCultivatedAreasLayer`
-5. `BoardShipsLayer`
-6. `BoardProductionZoneMarkersLayer`
-7. `BoardActionAreasLayer`
-8. `BoardCitiesLayer`
-9. `BoardTurnOrderLayer`
-10. `BoardResearchLayer`
-
-| Layer | Owns | Allowed Inputs | Must Not Own |
+| Intent | Trigger | Observable result | Remains unaffected |
 | --- | --- | --- | --- |
-| `BoardActionAreasLayer` | board masks, area overlays, area outlines, area hit targets, deed/city-card cutout masks, normalized local `activeBoardSpotlightVisualState` derivation/rendering | active area interaction, `activeBoardPreviewIntent`, route preview area ids, `activeBoardSpotlightProductionCompanyIds`, `activeBoardSpotlightShippingCompanyIds` | ship emphasis logic, marker muting logic, card component styling |
-| `BoardShipsLayer` | ship rendering and ship emphasis | `activeShipVisualState` | board masks, sea overlay ownership |
-| `BoardProductionZoneMarkersLayer` | production zone marker rendering, marker highlight, marker masking | `activeBoardSpotlightProductionCompanyIds`, route preview source areas, delivery selection state, operated company ids | board masks, deed overlays, ship emphasis |
-| `BoardDeedsLayer` | deed cards and deed-region preview overlays | available deeds, hovered available deed id, `activeCompanyPiecePreviewCompanyIds` for deed dimming | board-wide spotlight ownership |
-| `BoardCultivatedAreasLayer` | cultivated area fill and hatch rendering | board company occupancy, render style, hatch assignment | any hover/selection dimming policy |
-| `BoardCitiesLayer` | city beads, city demand tags, city-specific highlight/darken rules, mirror dimming for spotlight modes above the board mask | delivery city selection, route preview city, `activeCompanyPiecePreviewCompanyIds`, city-card-preview precedence | board spotlight mask ownership, route path rendering |
-| `BoardCityReferenceCardLayer` | on-board city reference card rendering and hover target | player city cards, current era, machine state, hovered board city card setter | board dimming, area outlines |
-| `PlayerState` | player-panel company hover targets | owned companies, operated company ids | board spotlight rendering |
-| `PlayerCompanyCompactCard` | compact card visuals and unavailable mute | card data, `unavailable` | hover ownership, hatch-on-card policy |
+| `company_card_preview` | Hover an owned company card | Production areas and zone markers, or shipping seas and ships, are emphasized while unrelated board content dims | The hovered card remains bright |
+| `shipping_deed_preview` | Hover an available shipping deed | The deed’s seas receive blue overlay fill and the rest of the board dims | The hovered deed remains bright |
+| `production_deed_preview` | Hover an available production deed | Valid land receives the land-outline treatment and the rest of the board dims | The hovered deed remains bright |
+| `start_company_selection` | Select a deed during acquisitions | The selected deed and its legal starting areas remain emphasized while the staged selection is active | Hovering another deed does not clear the selection |
+| `shipping_expansion_selection` | Expand the operating shipping company | Legal seas receive blue overlay fill and the operating ships are emphasized | Other ships do not become spotlight drivers |
+| `production_expansion_selection` | Expand the operating production company | Legal land receives the land-selection treatment | Seas and ship styling remain unchanged |
+| `city_placement_selection` | Place a city in a new era | Legal coastal empty land is emphasized and the rest of the board dims | Unrelated hover state does not change legality |
+| `city_growth_selection` | Grow a city | Legal city beads are emphasized and invalid land is de-emphasized | Unrelated seas remain unchanged |
+| `delivery_source_selection` | Choose a cultivated source zone | Legal source zones and their marker hit targets are emphasized | Ships remain unchanged until route preview is active |
+| `delivery_city_selection` | Choose a delivery destination | Legal city beads and the hovered city are emphasized without a full-board spotlight | Deed and company preview state remains independent |
+| `delivery_route_preview` | Hover a route or shipping choice | Route path, route ships, source, and destination are emphasized; unrelated route-local pieces dim | Route preview alone does not enable full-board spotlight |
+| `city_reference_card_preview` | Hover the currently relevant city reference card | Legal future-city regions are emphasized, the board dims, and the card remains bright | Competing previews remain staged but do not render over it |
+| `operated_company_unavailable` | A company has operated this phase | Its compact card and production-zone marker are muted | Hover preview remains available; ships are not muted by operated status |
+| `research_player_preview` | Hover a turn-order player outside active research selection | That player’s current research cells are emphasized | No research choice is staged |
+| `research_player_selection` | Select the research recipient during Research and Development | That player’s legal next research cells are emphasized | The selection changes only the staged research choice |
 
-## 4. Shared State Contracts
+Hover previews are transient enhancements. Start-company, delivery, research, expansion, and city choices use explicit selection hit targets and remain usable without a hover preview.
 
-### `activeCompanyPiecePreviewCompanyIds`
-- Meaning: companies being previewed because of actual company hover/spotlight intent, not because of delivery-stage board spotlight
-- Producer: `IndonesiaGameSession`
-- Consumers: `BoardCitiesLayer`, `BoardDeedsLayer`
-- Permitted uses:
-  - deed dimming during real company hover
-  - demand-tag darkening during real company hover
-- Forbidden uses:
-  - delivery-stage cultivated spotlight
-  - board-wide spotlight masking
-  - ship emphasis
+## Coexistence and precedence
 
-### `deliveryCultivatedBoardPreviewCompanyIds`
-- Meaning: operating company ids that should drive the board spotlight during cultivated-source delivery selection
-- Producer: `IndonesiaGameSession`
-- Consumers: composed into `activeBoardSpotlightCompanyIds`
-- Permitted uses:
-  - delivery-stage board spotlight sourcing
-- Forbidden uses:
-  - deed dimming
-  - city demand-tag hover dimming
-  - ship emphasis
+| Intents | Contract |
+| --- | --- |
+| City-reference-card preview with any company, deed, route, or area-selection visual | The city-reference-card preview wins visually while hovered; staged selections remain intact and resume afterward |
+| Delivery-route preview with company preview | Route-local emphasis wins and suppresses company spotlight until hover ends; route preview does not create a full-board spotlight |
+| Delivery-route preview with delivery-city selection | Both coexist; the route destination receives route emphasis while city selection remains active |
+| Hovered deed with selected start-company deed | The hovered deed previews temporarily; when hover ends, the selected deed resumes without changing staged selection |
+| Company preview with shipping or production expansion | The explicit expansion visual wins and company hover must not change legal targets |
+| Operated-company unavailable with company preview | Both coexist; unavailable chrome remains while hover preview still works |
+| Research-player preview with research-player selection | They are mutually exclusive by phase behavior; active research selection uses next-cell highlights instead of hover preview |
 
-### `activeBoardSpotlightCompanyIds`
-- Meaning: companies that should currently drive board-wide company spotlight behavior after precedence rules are applied
-- Producer: `IndonesiaGameSession`
-- Consumers: composed into `activeBoardSpotlightProductionCompanyIds`, `activeBoardSpotlightShippingCompanyIds`
-- Permitted uses:
-  - board-level spotlight sourcing
-- Forbidden uses:
-  - local-only ship emphasis
-  - generic "anything highlighted" behavior
-  - hover-only card/city dimming decisions
+Acquisitions, shipping operations, production operations, city placement/growth, and research selections are mutually exclusive by machine state. Deed previews can overlap only with the acquisitions selection they accompany.
 
-### `activeBoardSpotlightProductionCompanyIds`
-- Meaning: production-company subset of the current board spotlight driver
-- Producer: `IndonesiaGameSession`
-- Consumers: `BoardActionAreasLayer`, `BoardProductionZoneMarkersLayer`
-- Permitted uses:
-  - cultivated-area spotlight exemptions
-  - production marker filtering/masking
-- Forbidden uses:
-  - ship emphasis
-  - deed/card hover dimming
+The session owns precedence and exposes normalized semantic results. Render layers consume those results rather than resolving conflicts from raw hover and selection values.
 
-### `activeBoardSpotlightShippingCompanyIds`
-- Meaning: shipping-company subset of the current board spotlight driver
-- Producer: `IndonesiaGameSession`
-- Consumers: `BoardActionAreasLayer`
-- Permitted uses:
-  - sea spotlight exemptions and overlays tied to board spotlight
-- Forbidden uses:
-  - ship emphasis
-  - marker masking
+## Shared visual state
 
-### `activeShipVisualState`
-- Meaning: normalized ship-emphasis state after precedence rules are applied
-- Producer: `IndonesiaGameSession`
-- Consumers: `BoardShipsLayer`
-- Permitted uses:
-  - route-preview ship filtering
-  - shipping company hover ship emphasis
-  - operating shipping company emphasis during sea expansion
-- Forbidden uses:
-  - board masks
-  - sea overlay ownership
-  - board spotlight sourcing
+### Board preview intent
 
-### `hoveredAvailableDeedId`
-- Meaning: currently hovered available deed card
-- Producer: `IndonesiaGameSession`
-- Consumers: `BoardDeedsLayer`
-- Permitted uses:
-  - deed card hover ordering/chrome
-  - hover-only deed card interactions
-- Forbidden uses:
-  - start-company staged selection ownership
-  - board spotlight sourcing when a staged deed selection is active
-  - unrelated company hover behavior
+`activeBoardPreviewIntent` is the single board-preview precedence result. City-reference-card preview precedes deed preview, which precedes company preview. History View suppresses every source. Delivery-route preview suppresses company-derived board spotlight and is itself suppressed by city-reference-card preview; its route-local precedence remains a separate semantic result.
 
-### `selectedStartCompanyDeedId`
-- Meaning: available deed selected for staged start-company interaction
-- Producer: `IndonesiaGameSession`
-- Consumers: `BoardActionAreasLayer`
-- Permitted uses:
-  - start-company staged selection ownership
-  - selected deed card chrome
-  - `Back`/`Undo` local interaction clearing before action-history undo
-- Forbidden uses:
-  - generic deed hover behavior
-  - non-start-company preview ownership
+It is derived by the session, remains valid only while its referenced card, deed, or company exists in the visible state, and returns to `none` when its source becomes invalid or the interaction is cleared.
 
-### `activeDeedPreviewId`
-- Meaning: deed id that should currently drive deed-region preview and board deed spotlight precedence after session-level hover/selection rules are applied
-- Producer: `IndonesiaGameSession`
-- Consumers: `BoardDeedsLayer`, `BoardActionAreasLayer`
-- Permitted uses:
-  - deed-region preview overlays
-  - deed card cutout mask
-  - start-company selected deed spotlight source
-- Forbidden uses:
-  - unrelated company hover behavior
+### Deed preview and start-company selection
 
-### `hoveredPlayerCityReferenceCard`
-- Meaning: currently hovered on-board city reference card
-- Producer: `IndonesiaGameSession`
-- Consumers: `BoardCityReferenceCardLayer`, `BoardActionAreasLayer`
-- Permitted uses:
-  - city-reference-card spotlight areas
-  - city-reference-card cutout mask
-- Forbidden uses:
-  - suppression of live action interactions except where explicitly documented in coexistence rules
+Hover and staged selection remain distinct. `activeDeedPreviewId` chooses the hovered available deed first and otherwise the selected start-company deed. The selected deed persists until `Back`, action completion, or state reset; hover exit only removes the temporary override. Selection is valid only during the acquisitions flow while the deed remains available.
 
-### `cityReferenceCardPreviewWins`
-- Meaning: semantic precedence flag for whether city-card preview should suppress competing highlight systems
-- Producer: `IndonesiaGameSession`
-- Consumers: `BoardActionAreasLayer`, `BoardShipsLayer`, `BoardProductionZoneMarkersLayer`, `BoardCitiesLayer`, `BoardDeedsLayer`
-- Permitted uses:
-  - disabling competing hover spotlight systems while city-card preview is active
-  - documenting interaction precedence in code with one named contract
-- Forbidden uses:
-  - deciding the city-card preview regions themselves
-  - replacing the hovered-card payload
+### Ship visual state
 
-### `activeBoardPreviewIntent`
-- Meaning: semantic answer to “what currently wins board-preview precedence?” after session-level hover/selection rules are applied, but before layer-local geometry/visibility checks
-- Producer: `IndonesiaGameSession`
-- Consumers: `BoardActionAreasLayer`
-- Permitted uses:
-  - deciding whether company preview, deed preview, city-card preview, or none should drive board spotlight rendering
-  - exposing a shared precedence contract outside `BoardActionAreasLayer`
-- Forbidden uses:
-  - replacing local area geometry checks
-  - deciding which exact areas or masks render without layer-local validation
+`activeShipVisualState` is the only source of ship emphasis precedence. It represents route-local emphasis, company emphasis, or none. Shipping expansion may emphasize the operating company without turning that company into a board-wide spotlight source.
 
-### `activeAreaInteraction`
-- Meaning: current explicit board-area action mode
-- Producer: `BoardActionAreasLayer`
-- Consumers: `BoardActionAreasLayer`
-- Permitted uses:
-  - valid area hit targets
-  - invalid-area masking
-  - expansion and city placement masks
-- Forbidden uses:
-  - ship emphasis in other layers
-  - marker/card styling decisions outside action layer
-- Risk note: local ownership is good, but the downstream visual consequences still interact with global spotlight state
+### Route preview state
 
-### `hoveredRoutePreview`
-- Meaning: currently hovered delivery route preview context
-- Producer: `IndonesiaGameSession`
-- Consumers: `BoardShipsLayer`, `BoardCitiesLayer`, `BoardProductionZoneMarkersLayer`, `BoardActionAreasLayer`, route layer
-- Permitted uses:
-  - route-local ship filtering
-  - destination city emphasis
-  - source area / destination area exemptions
-  - route-local dimming
-- Forbidden uses:
-  - turning on full-board spotlight by itself
+`activeRoutePreviewVisualState` normalizes the route, shipping company, sea areas, source areas, destination, exemptions, and route-local dimming sets once in the session. The route layers and piece layers consume the relevant slices without rebuilding route precedence.
 
-### `activeRoutePreview`
-- Meaning: route preview that is currently allowed to affect visuals after higher-precedence interaction rules are applied
-- Producer: `IndonesiaGameSession`
-- Consumers: composed into `activeRoutePreviewVisualState`
-- Permitted uses:
-  - route preview sourcing after precedence rules
-- Forbidden uses:
-  - bypassing precedence rules by reading lower-level hover route state directly
-  - forcing each layer to rebuild its own route-preview sets
+Route preview lasts only while the route or shipping choice remains hovered and valid for the current delivery state. City-reference-card preview and History View suppress it.
 
-### `activeRoutePreviewVisualState`
-- Meaning: route preview state normalized for visual consumers, including shared `seaAreaIdSet`, `sourceAreaIdSet`, `exemptAreaIdSet`, and `dimmedLandAreaIdSet`
-- Producer: `IndonesiaGameSession`
-- Consumers: `BoardShipsLayer`, `BoardCitiesLayer`, `BoardProductionZoneMarkersLayer`, `BoardActionAreasLayer`, `BoardShippingRouteOverlayLayer`
-- Permitted uses:
-  - route ship filtering
-  - route city/source emphasis
-  - route overlay rendering
-  - route-local dimming
-- Forbidden uses:
-  - replacing broader route-preview precedence logic
-  - reintroducing per-layer ad hoc set derivation from `activeRoutePreview`
+### Staged selections
 
-### `operatedCompanyIds`
-- Meaning: companies already operated in the current operations phase
-- Producer: game state
-- Consumers: `PlayerState`, `PlayerCompanyCompactCard`, `BoardProductionZoneMarkersLayer`
-- Permitted uses:
-  - compact card mute
-  - production zone marker unavailable mask
-- Forbidden uses:
-  - ship masking
-  - disabling hover spotlight
+Start-company deed, delivery, and research selections are Action Draft state. `Back` removes the latest manual selection; `Undo` reaches committed action history once no manual draft entry remains. Auto delivery selections do not consume Undo. State publication resets action-local visual overrides through the session lifecycle.
 
-### `productionZoneRenderStyle`
-- Meaning: whether cultivated areas are colored by goods or by player
-- Producer: `IndonesiaGameSession`
-- Consumers: `BoardCultivatedAreasLayer`
-- Permitted uses:
-  - cultivated area fill and base-pattern styling
-- Forbidden uses:
-  - hatch conflict assignment ownership
-  - company card styling
+### History behavior
 
-## 5. Forbidden Couplings
+History View is read-only and suppresses board previews, selection affordances, route previews, and research highlights through `suppressBoardEffectsForHistory`. Backward/forward navigation and silent restoration render the displayed historical state without carrying live hover or draft visuals across the state boundary.
 
-- Do not reuse `activeBoardSpotlightCompanyIds` to drive local ship emphasis for shipping expansion.
-- Do not reuse ship emphasis state to turn on board dimming.
-- Do not let `BoardShipsLayer` become a producer of board spotlight state.
-- Do not let `BoardShipsLayer` recompute route-preview-vs-company-spotlight precedence from lower-level signals when `activeShipVisualState` already encodes it.
-- Do not let city-reference-card preview suppress a real in-progress action interaction unless the conflict rule explicitly says it wins.
-- Do not treat sea overlay visibility as interchangeable with sea exemption from the mask.
-- Do not treat "selected deed" as merely "hovered deed that persists"; selected-state visuals and hover preview are separate concepts.
-- Do not let operated/unavailable state disable hover spotlight unless product behavior explicitly requires it.
-- Do not use goods/player cultivated render style to decide per-player conflict hatch assignment.
-- Do not add a second dimming system on top of an existing spotlight unless the visual contract explicitly calls for stacked dimming.
+## Render ownership
 
-## 6. Interaction Matrix
+| Effect | Owner and boundary |
+| --- | --- |
+| Board masks, area outlines, area hit targets, and card cutouts | `BoardActionAreasLayer`; it consumes normalized preview and action-area inputs and does not own ship, marker, or card styling |
+| Shipping-expansion sea fill | `BoardShippingExpansionSeaHighlightLayer`; it renders legal expansion seas without becoming a general sea-preview owner |
+| Deed cards and deed-region visuals | `BoardDeedsLayer`; board-wide mask response and cutouts remain with `BoardActionAreasLayer` |
+| Ship emphasis | `BoardShipsLayer`; it consumes `activeShipVisualState` and does not produce board spotlight state |
+| Production-zone marker emphasis and muting | `BoardProductionZoneMarkersLayer`; marker styling remains independent from board masks and ship emphasis |
+| Delivery route path | `BoardShippingRouteOverlayLayer`; route-local piece and area responses remain with their owning layers |
+| City beads and demand markers | `BoardCitiesLayer`; it mirrors required dimming because it renders above the board mask, but it does not choose board-preview precedence |
+| Research cross-highlight | `BoardTurnOrderLayer` supplies the hovered/selected player interaction and `BoardResearchLayer` owns research-cell rendering |
 
-| Intent A | Intent B | Can coexist? | Winner / combination rule |
-| --- | --- | --- | --- |
-| `company_card_hover_spotlight` | `shipping_expand_selection` | no | shipping expansion keeps ship emphasis local; company spotlight must not suppress sea expansion overlays |
-| `company_card_hover_spotlight` | `production_expand_selection` | no | explicit expansion selection wins |
-| `shipping_deed_hover_preview` | `start_company_selection` | yes | hovered deed preview may temporarily win while hovered; when hover ends, preview returns to the selected staged deed without clearing selection |
-| `city_reference_card_preview` | `shipping_expand_selection` | yes | city-card preview wins visually while hovered |
-| `city_reference_card_preview` | `start_company_selection` | yes | city-card preview wins visually while hovered |
-| `city_reference_card_preview` | `company_card_hover_spotlight` | no | city-card preview wins |
-| `city_reference_card_preview` | `shipping_deed_hover_preview` | no | city-card preview wins |
-| `city_reference_card_preview` | `production_deed_hover_preview` | no | city-card preview wins |
-| `city_reference_card_preview` | `delivery_route_preview` | yes | city-card preview wins visually while hovered |
-| `delivery_route_preview` | `company_card_hover_spotlight` | yes | route preview narrows local emphasis; it must not create or remove full-board spotlight on its own |
-| `delivery_route_preview` | `delivery_city_selection` | yes | route preview may emphasize the destination city while city selection remains active |
-| `operated_company_unavailable` | `company_card_hover_spotlight` | yes | unavailable visuals stay, but hover spotlight still works |
-| `operated_company_unavailable` | `shipping_expand_selection` | yes | operated state affects cards/production markers only; ships remain visible and unmasked |
+Mask exemption and visible highlighting are separate decisions. Sea exemption does not imply blue fill, and piece emphasis does not imply board dimming.
 
-## 7. Regression Checklist
+## Verification scenarios
 
-Before finalizing any highlight/dimming change, verify:
-- hovering a production company card still spotlights cultivated areas and production zone markers
-- hovering a shipping company card still spotlights ships and shipping seas
-- the hovered company card itself stays undimmed
-- hovering a production deed still uses dual outline on valid land areas and dims the board
-- hovering a shipping deed still uses blue sea overlay fill and dims the board
-- clicking a deed for start-company keeps the selected deed region spotlight active while choosing an area
-- hovering another deed while a start-company deed is selected does not clear the selected deed spotlight
-- shipping expansion still shows blue sea overlays, not land-style outlines
-- shipping expansion still highlights the operating company's ships without turning on company spotlight dimming
-- production expansion still uses land-style highlighting only
-- city placement spotlight still works independently of city reference card preview
-- hovering a city reference card still dims the board, highlights valid future city regions, and leaves the hovered card bright
-- while a city reference card is hovered, competing company/deed/route/selection highlights do not visually override it
-- while a city reference card is hovered, city demand markers and beads dim through `BoardCitiesLayer` instead of staying full-bright above the board mask
-- route preview still highlights route ships/source/destination without turning on full-board spotlight
-- operated company cards remain muted during operations
-- operated production zone markers remain masked during operations
-- ship markers are never masked just because a company already operated
-- hover on muted company cards still works
+The current verification method is manual visual exercise unless a focused automated test is added. For a change, exercise every affected row and its relevant precedence rows.
 
-## 8. Change Rules
+| Scenario | Expected while active | Expected on exit or replacement |
+| --- | --- | --- |
+| Hover production and shipping company cards | Each company type emphasizes only its corresponding board areas and pieces; the card stays bright | Board and pieces return to their prior action-selection state |
+| Hover production and shipping deeds | Land uses outlines; sea uses blue fill; hovered deed stays bright | A selected start-company deed resumes, otherwise preview clears |
+| Select a start-company deed, then hover another deed | Hover temporarily previews the other deed without changing the selection | Selected deed preview returns when hover ends; `Back` clears it |
+| Enter shipping expansion | Legal seas and operating ships are emphasized without company-hover dimming | Overlay clears when the action stage exits or another higher-priority preview applies |
+| Enter production expansion, city placement, and city growth | Each mode shows only its legal target treatment | Targets clear when the mode exits or visible state changes |
+| Select delivery source and destination | Source zones, marker targets, and eligible cities follow the current stage | `Back` removes the latest manual stage; auto-only stages do not intercept Undo |
+| Hover a delivery route | Route path, ships, source, and destination emphasize without full-board spotlight | Route-local dimming and emphasis clear on hover exit |
+| Hover the city reference card during another interaction | City-card regions and card win visually; city beads and demand markers dim consistently above the mask | The underlying staged interaction resumes unchanged |
+| Inspect an operated company | Card and production marker remain muted; hover preview still works; ships remain unmuted | Unavailable styling follows operated state, not hover lifetime |
+| Hover and select a research player | Hover shows current cells outside selection; selection shows legal next cells during research | Hover clears on exit; `Back` clears a manual recipient selection |
+| Enter History View and navigate backward/forward | Live previews, hit targets, and draft visuals are suppressed; displayed historical state remains stable | Returning to Live View exposes only visual state valid for the live context |
 
-When touching Indonesia UI interactive visuals:
-1. identify the intent row being changed in this document
-2. identify the primitive or primitives involved
-3. check whether the change widens `activeCompanyPiecePreviewCompanyIds`, `activeBoardSpotlightCompanyIds`, `activeBoardPreviewIntent`, `activeShipVisualState`, `cityReferenceCardPreviewWins`, `hoveredAvailableDeedId`, `selectedStartCompanyDeedId`, `activeDeedPreviewId`, `hoveredRoutePreview`, or `activeRoutePreview`
-4. decide whether the change belongs in `BoardActionAreasLayer` or a narrower piece-specific layer
-5. update this document in the same change if the interaction behavior or precedence changes
+## Maintenance
 
-## 9. Minimal Naming Guidance
-
-Prefer:
-- `boardSpotlightAreaIds`
-- `shippingExpansionHighlightedShipCompanyIds`
-- `hoveredShippingDeedSeaAreaIds`
-- `selectedStartCompanyDeedId`
-- `hoveredCityReferenceCardMaskRect`
-
-Avoid:
-- `activeHighlightIds`
-- `spotlightCompanyIds` for local-only behavior
-- `hoveredThing`
-- `temporarySelection`
-
-Naming note:
-- if a piece-specific behavior does not intend to drive board dimming, its name should not include `spotlight`
-
-## 10. Known Refactor Targets
-
-These are the highest-risk couplings to separate in later work:
-
-1. Narrow ship route-preview filtering separately from company spotlight.
-   Current smell: ship emphasis is now split, but route-preview ship filtering still lives partly in `BoardShipsLayer`.
-
-2. Split sea overlay visibility from mask exemption.
-   Current smell: reduced; shipping-deed sea visibility now derives through shared sea-visual state, but mask exemption and sea-render assignment still need to remain conceptually separate in future changes.
-
-3. Split route-preview-local dimming from board spotlight assumptions.
-   Current smell: reduced; route-preview dim/exempt area policy now derives centrally in `activeRoutePreviewVisualState`, but ship/marker/city rendering still consumes different slices of that shared contract.
-
-4. Narrow start-company selected deed state.
-   Current smell: partially reduced; `hoveredAvailableDeedId`, `selectedStartCompanyDeedId`, and `activeDeedPreviewId` are now separate, but some deed-layer render naming still reflects the older combined hover path.
-
-5. Normalize ship visual intent.
-   Current smell: reduced; ship emphasis precedence now derives centrally in `activeShipVisualState`, with `BoardShipsLayer` acting as a pure consumer.
-
-6. Move toward explicit interaction-mode naming.
-   Current smell: broad shared state names hide whether the effect is board-wide or piece-local.
-
-7. Normalize board spotlight visual state.
-   Current smell: reduced; `BoardActionAreasLayer` now renders a normalized `activeBoardSpotlightVisualState`, but the geometry inputs that feed it still originate in that layer rather than a broader shared contract.
+Update this contract when an intent, precedence rule, shared-state lifecycle, history behavior, or ownership boundary changes. Read current code for the layer stack and symbol inventory. Remove obsolete behavior rather than preserving dated status notes, and track future refactors in issues rather than here.
