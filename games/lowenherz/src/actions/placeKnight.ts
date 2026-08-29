@@ -8,6 +8,12 @@ import { PoliticsCard, PoliticsCardType } from '../definition/politicsCards.js'
 
 export const WOODED_KNIGHT_COST = 5
 
+// Shared with PlayRenegadeCard, which places a knight under the same adjacency rule - the client
+// compares against this rather than showing it, since the legal-square dots already cover it (see
+// GameSession.placeKnight's own comment on why this specific reason stays silent).
+export const KNIGHT_NOT_ADJACENT_REASON =
+    'A knight must be placed next to one of your own knights or castles.'
+
 export type PlaceKnightMetadata = Type.Static<typeof PlaceKnightMetadata>
 export const PlaceKnightMetadata = Type.Object({
     woodedCostPaid: Type.Optional(Type.Number()),
@@ -155,7 +161,7 @@ export class HydratedPlaceKnight
             )
         })
         if (!isAdjacentToOwnPiece) {
-            return "A knight must be placed next to one of your own knights or castles."
+            return KNIGHT_NOT_ADJACENT_REASON
         }
 
         return undefined

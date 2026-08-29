@@ -8,7 +8,7 @@ import { getSquare, isOnBoard, isWalledBetween, neighbors, squareKey, SquareType
 import { regionsAreNeighboring } from '../util/regionScoring.js'
 import { isKnightSafeToRemove } from '../util/knightConnectivity.js'
 import { currentChoosingPlayerId } from '../util/decisionPlan.js'
-import { WOODED_KNIGHT_COST } from './placeKnight.js'
+import { KNIGHT_NOT_ADJACENT_REASON, WOODED_KNIGHT_COST } from './placeKnight.js'
 
 export type PlayRenegadeCardMetadata = Type.Static<typeof PlayRenegadeCardMetadata>
 export const PlayRenegadeCardMetadata = Type.Object({
@@ -190,7 +190,7 @@ export class HydratedPlayRenegadeCard
             )
         })
         if (!isAdjacentToOwnPiece) {
-            return "A knight must be placed next to one of your own knights or castles."
+            return KNIGHT_NOT_ADJACENT_REASON
         }
 
         // Both a wooded removal and a wooded placement can apply to the same play (the
