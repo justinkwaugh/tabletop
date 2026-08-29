@@ -1216,7 +1216,6 @@
                  preview is now the hearts themselves. -->
             {#each marker.walls as wall (wall.col + ',' + wall.row + ',' + wall.edge + '-heart')}
                 {@const { left, top } = heartPosition(wall)}
-                {@const heartId = `${wall.col},${wall.row},${wall.edge}`}
                 {#if marker.cancellable}
                     <!-- A heart's own idle animation is a heartbeat, which is exactly the
                          "alive, touchable" cue this needs - it beats only while cancelling
@@ -1230,10 +1229,6 @@
                             ? ''
                             : 'alliance-heartbeat'}"
                         style="left: {left}px; top: {top}px; width: {GLYPH_BOX}; height: {GLYPH_BOX}; font-size: {GLYPH_FONT};"
-                        {@attach (el) => {
-                            allianceForm.setNode(heartId, el)
-                            return () => allianceForm.setNode(heartId, undefined)
-                        }}
                         onmouseenter={() => (hoveredAllianceId = marker.id)}
                         onmouseleave={() => (hoveredAllianceId = undefined)}
                         onfocus={() => (hoveredAllianceId = marker.id)}
@@ -1262,10 +1257,6 @@
                     <div
                         class="absolute pointer-events-none flex items-center justify-center z-40"
                         style="left: {left}px; top: {top}px; width: {GLYPH_BOX}; height: {GLYPH_BOX}; font-size: {GLYPH_FONT};"
-                        {@attach (el) => {
-                            allianceForm.setNode(heartId, el)
-                            return () => allianceForm.setNode(heartId, undefined)
-                        }}
                     >
                         🩷
                     </div>
@@ -1347,6 +1338,21 @@
                         🩷
                     </span>
                 {/each}
+            </div>
+        {/each}
+
+        <!-- The alliance forming: one heart per wall that will carry it, bouncing in ahead of
+             the real markers above (which don't exist until the state actually updates). -->
+        {#each allianceForm.hearts as heart (heart.id)}
+            <div
+                class="absolute pointer-events-none z-40 flex items-center justify-center"
+                style="left: {heart.left}px; top: {heart.top}px; width: {GLYPH_BOX}; height: {GLYPH_BOX}; font-size: {GLYPH_FONT};"
+                {@attach (el) => {
+                    allianceForm.setNode(heart.id, el)
+                    return () => allianceForm.setNode(heart.id, undefined)
+                }}
+            >
+                🩷
             </div>
         {/each}
 

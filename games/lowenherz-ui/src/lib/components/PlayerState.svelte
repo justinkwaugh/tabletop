@@ -1,7 +1,7 @@
 <script lang="ts">
     import { gsap } from 'gsap'
     import { type Player, type Color } from '@tabletop/common'
-    import { LowenherzPlayerState, type PoliticsCard } from '@tabletop/lowenherz'
+    import { LowenherzPlayerState, MachineState, type PoliticsCard } from '@tabletop/lowenherz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import iconMoneybagFill from '$lib/images/action-cards/icons/icon-moneybag-transparent.png'
     import iconMoneybagLines from '$lib/images/action-cards/icons/icon-moneybag-lines.png'
@@ -119,12 +119,15 @@
 
 
     // A card's face only ever shows for your own hand (never an opponent's - that's
-    // still purely a client-side convention, not server-enforced, same as before).
+    // still purely a client-side convention, not server-enforced, same as before) -
+    // except once the game is actually over, when there's no more hidden information
+    // left to protect and every hand turns face up for the final tally.
     // Every card shows face-up on your own turn (so you can see your whole hand
     // while deciding what to do), and an applicable card shows face-up even outside
     // your turn too, so its APPLY button is actually attached to real card art.
     // Everything else stays face-down.
     function shouldRevealFace(card: PoliticsCard): boolean {
+        if (gameSession.gameState.machineState === MachineState.EndOfGame) return true
         if (!isMe) return false
         if (applicableCardIds.has(card.id)) return true
         return !!isTurn
@@ -177,6 +180,10 @@
         const count = overlappedCards.length
         const preferred = CARD_W + CARD_GAP
         if (count <= 1) return preferred
+        // Stacking exists to fit a big hand into a fixed-width panel - a hand this small has
+        // never actually needed it, so it lays out flat even if politicsAreaWidth is narrower
+        // than that would ideally want (a phone-width panel, say).
+        if (playerState.politicsCards.length <= 4) return preferred
         const reserved = applicableWidth + (applicableCards.length > 0 ? GROUP_GAP : 0)
         // 2x the buffer, matching the width the layout below actually asks for - counting
         // it once here let a full hand come out a buffer wider than the space measured for

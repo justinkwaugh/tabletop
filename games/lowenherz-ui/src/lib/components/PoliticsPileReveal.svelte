@@ -1,12 +1,23 @@
 <script lang="ts">
-    import { gsap } from 'gsap'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { PoliticsCard as PoliticsCardData } from '@tabletop/lowenherz'
     import PoliticsCard from './PoliticsCard.svelte'
-    import { preloadPoliticsCardFace } from '$lib/model/politicsCardImages'
-    import { rowSizes, responsiveCardWidth } from '$lib/model/politicsCardLayout'
+    import { buildSlotRows, responsiveCardWidth } from '$lib/model/politicsCardLayout'
+    import { PoliticsPileDealAnimator } from '$lib/animators/politicsPileDealAnimator.svelte.js'
+    import { PoliticsPileTakeAnimator } from '$lib/animators/politicsPileTakeAnimator.svelte.js'
+    import { attachAnimator } from '$lib/animators/stateAnimator.js'
 
     const gameSession = getGameSession()
+
+    // The cards flying in when a pile first opens, and the leftover deck sliding in alongside
+    // them, are a state-change animator now (see politicsPileDealAnimator.svelte.ts) rather than
+    // mount-triggered local tweens - so they get a real actionless fallback and don't play at all
+    // during silent restoration, the same as every other cinematic in this codebase. Taking a
+    // card is the same: dispatched immediately on click, with the collapse-and-focus choreography
+    // driven off the committed TakePoliticsCard action (see politicsPileTakeAnimator.svelte.ts)
+    // rather than played locally beforehand.
+    const dealAnimator = new PoliticsPileDealAnimator(gameSession)
+    const takeAnimator = new PoliticsPileTakeAnimator(gameSession)
 
     // Real server state (LookAtPoliticsPile), not local UI state - survives reload/undo. See
     // GameSession.selectedPoliticsPile's own comment for why that matters. Rendered above the
@@ -79,264 +90,35 @@
     // PoliticsDeckChooser having to separately calculate "just to the left of the leftmost card"
     // and hope it matches what actually renders here. That hand-rolled version drifted off at
     // higher card counts - a first row sized to fit the CARDS alone centers differently than one
-    // that already accounts for the deck sharing it.
-    type Slot = { kind: 'deck' } | { kind: 'card'; card: PoliticsCardData; index: number }
+    // that already accounts for the deck sharing it. Shared with the deal animator's own transient
+    // layout (buildSlotRows) so both land on the exact same positions.
+    const slotRows = $derived(buildSlotRows(cards, rowWidth, cardWidth))
 
-    // Splits (cards.length + 1) slots into as many rows as they actually need, sized as evenly as
-    // possible rather than greedily - see politicsCardLayout's own rowSizes for the split itself.
-    // Each card slot keeps its index in the full pile, not its row, since that's what dealIn's
-    // stagger and the deal-order more generally are keyed to.
-    const slotRows = $derived.by(() => {
-        const rows: Slot[][] = []
-        let cardIndex = 0
-        let slotsPlaced = 0
-        for (const size of rowSizes(cards.length + 1, rowWidth, cardWidth)) {
-            const row: Slot[] = []
-            for (let i = 0; i < size; i++) {
-                if (slotsPlaced === 0) {
-                    row.push({ kind: 'deck' })
-                } else {
-                    row.push({ kind: 'card', card: cards[cardIndex], index: cardIndex })
-                    cardIndex++
-                }
-                slotsPlaced++
-            }
-            rows.push(row)
-        }
-        return rows
-    })
-
-    // Tiled "deal" animation: each card slides in from the pile's origin (the count pill that
-    // was clicked - see SummaryStrip.choosePile), staggered like a quick riffle deal - the same
-    // shape Sol uses when you inspect its card deck (a plain slide, no spin). Plain GSAP tweens
-    // against a measured rect rather than porting GSAP's Flip plugin, to stay consistent with how
-    // every other animation in this codebase is built. An attachment rather than an effect, so it
-    // plays exactly once per card, right as it mounts (see ANIMATION_PATTERN.md and PoliticsHand's
-    // own dealIn, which this mirrors).
-    const DEAL_DURATION = 380 // ms
-    const DEAL_STAGGER = 45 // ms between each successive card starting its flight
-
-    // How long the whole staggered deal takes, start to finish - the last card (index
-    // cards.length - 1) is the one still flying when every other one has landed, so its own
-    // finish is the deal's finish. Drives the leftover deck's own fade below, so the two end
-    // together instead of the deck's fade only starting once dealing is already done.
-    const DEAL_TOTAL_DURATION = $derived(
-        cards.length > 0 ? ((cards.length - 1) * DEAL_STAGGER + DEAL_DURATION) / 1000 : 0
-    )
-
-    function dealIn(card: PoliticsCardData, index: number) {
-        return (el: HTMLElement) => {
-            const origin = gameSession.politicsPileOrigin
-            if (!origin) return
-            const rect = el.getBoundingClientRect()
-            const dx = origin.x - (rect.left + rect.width / 2)
-            const dy = origin.y - (rect.top + rect.height / 2)
-
-            // Hidden immediately, before anything below - PoliticsDeckChooser already warms
-            // every card's face art while the player is still choosing a deck (see its own
-            // comment), but that's a best effort, not a guarantee. Without waiting on the real
-            // decode here too, a card whose specific value/type had never been shown face-up
-            // yet (network hiccup, or dealt fast enough after choosing that the warm-up hadn't
-            // finished) painted its own white background for whatever was left of the tween
-            // once the image finally did decode - "resizing" into a blank card instead of
-            // itself.
-            gsap.set(el, { opacity: 0 })
-            let cancelled = false
-            let tl: gsap.core.Timeline | undefined
-
-            preloadPoliticsCardFace(card).then(() => {
-                if (cancelled) return
-                gsap.set(el, { x: dx, y: dy, scale: 0.3, opacity: 0 })
-
-                tl = gsap.timeline({
-                    delay: (index * DEAL_STAGGER) / 1000,
-                    onComplete: () => {
-                        // Named properties only, not 'all' - clearing the whole inline style
-                        // would also wipe the Svelte-set width, collapsing the card (see
-                        // PoliticsHand's own note on this exact bug).
-                        gsap.set(el, { clearProps: 'x,y,scale,opacity' })
-                    }
-                })
-                tl.to(el, { opacity: 1, duration: 0.2, ease: 'power1.out' }, 0)
-                tl.to(el, { x: 0, y: 0, scale: 1, duration: DEAL_DURATION / 1000, ease: 'power2.out' }, 0)
-            })
-
-            // cancelled guards the case where decode is still pending when this card is torn
-            // down (nothing to kill yet - the .then() above simply no-ops when it does resolve);
-            // tl?.kill() covers the case where it's already animating.
-            return () => {
-                cancelled = true
-                tl?.kill()
-            }
-        }
-    }
-
-    // The leftover "deck" the cards above are dealt out of - a plain face-down card standing in
-    // for it, occupying slot 0 of the row (see slotRows above) rather than being positioned
-    // separately. PoliticsDeckChooser's own exit animation only slides horizontally, toward an
-    // estimate of where this slot will land - it has no heading text of its own the way this
-    // component's "Choose a card to take it." does, so its row sits at a different height than
-    // this one actually renders at, and on a narrow row that needs its own extra wrapping the
-    // horizontal estimate can be off too. Rather than trying to have that component predict this
-    // one's exact layout, deckDealIn below plays the same trick dealIn does for every dealt card:
-    // start at politicsPileOrigin (wherever the chooser's slide actually left off) and slide from
-    // there to wherever this slot really is, once it's actually known - so any gap between the
-    // two components' estimates and reality just becomes part of the same slide, not a jump.
-    // Tagged the same way rowWidth's own measurement is above, and for the same reason: this
-    // component never unmounts, so a plain `let deckEmptied = $state(false)` reset by watching
-    // `pile` (an $effect whose only job is clearing local state back to a default - exactly what
-    // this codebase's Svelte rule says to express as derived state instead) would leave a stale
-    // `true` sitting there from a previous reveal of the same letter the instant the new one's
-    // `{#if pile}` content re-mounted, showing the dashed "empty" outline immediately for a deck
-    // that hasn't dealt a single card yet. deckEmptiedOrigin is only ever set (in deckDealIn's own
-    // fade, below) to whichever politicsPileOrigin was current for THAT fade - so deckEmptied
-    // reads true only while that still matches the CURRENT reveal's origin, and simply stops
-    // matching (with nothing to reset by hand) the moment a new one begins.
-    let deckEmptiedOrigin: { x: number; y: number } | undefined = $state(undefined)
-    const deckEmptied = $derived(
-        deckEmptiedOrigin !== undefined && deckEmptiedOrigin === gameSession.politicsPileOrigin
-    )
-
-    const DECK_SLIDE_DURATION = 300 // ms
-
-    function deckDealIn(el: HTMLElement) {
-        const origin = gameSession.politicsPileOrigin
-        if (origin) {
-            const rect = el.getBoundingClientRect()
-            const dx = origin.x - (rect.left + rect.width / 2)
-            const dy = origin.y - (rect.top + rect.height / 2)
-            gsap.set(el, { x: dx, y: dy })
-            gsap.to(el, { x: 0, y: 0, duration: DECK_SLIDE_DURATION / 1000, ease: 'power2.out' })
-        }
-
-        // Fades the moment dealing starts (rather than waiting until it's done) over
-        // DEAL_TOTAL_DURATION, so the fade and the last card's own landing finish together - same
-        // idea as PoliticsDeckChooser fading the OTHER deck, so a plain GSAP tween rather than a
-        // Svelte transition keeps that consistent. Once it actually finishes, deckEmptied swaps
-        // this for a dashed outline (see the template), the same "nothing's here" look
-        // PoliticsDeckChooser itself uses for a genuinely empty pile - taking over the same slot,
-        // not a new one, so nothing after it ever shifts.
-        const fadeTl = gsap.to(el, {
-            opacity: 0,
-            scale: 0.8,
-            duration: DEAL_TOTAL_DURATION,
-            ease: 'power1.in',
-            onComplete: () => {
-                deckEmptiedOrigin = origin
-            }
-        })
-
-        return () => fadeTl.kill()
-    }
-
-    // The dashed outline's own entrance, once it takes over from the emptied deck - a plain fade
-    // in, matching how every other appearance in this file is animated with GSAP rather than a
-    // Svelte transition.
-    function fadeIn(el: HTMLElement) {
-        gsap.set(el, { opacity: 0 })
-        const tl = gsap.to(el, { opacity: 1, duration: 0.2, ease: 'power1.out' })
-        return () => tl.kill()
-    }
-
-    // Set for the whole choreographed sequence below, once a card has been clicked - disables
-    // further clicks until it finishes.
+    // Set the moment a card is clicked - disables further clicks until the action resolves.
     let takingCardId: string | undefined = $state(undefined)
-    let cardEls: Record<string, HTMLElement> = {}
-    let rowsEl: HTMLElement | undefined = $state()
 
-    const RETURN_DURATION = 300 // ms - the other cards collapsing under the chosen one
-
-    // Justin's idea: while the rest collapse away, the chosen card gets its own moment - flies
-    // to the center of the cards area and enlarges a bit, holds there, then scales down and
-    // fades out without moving any further.
-    const FOCUS_MOVE_DURATION = 350 // ms - flying to center and enlarging
-    const FOCUS_HOLD_DURATION = 500 // ms - the pause once it's there
-    const FOCUS_FADE_DURATION = 300 // ms - scaling/fading out in place, after the hold
-    const FOCUS_SCALE = 1.17
-
-    // Where the chosen card ends up, and now also where the others collapse to (see chooseCard) -
-    // the middle of the cards area itself, not any one card's own rect, so both moves agree on
-    // the same point regardless of which row or column either card started in.
-    function getAreaCenter(): { x: number; y: number } | undefined {
-        const areaRect = rowsEl?.getBoundingClientRect()
-        if (!areaRect) return undefined
-        return { x: areaRect.left + areaRect.width / 2, y: areaRect.top + areaRect.height / 2 }
-    }
-
-    function addFlight(
-        tl: gsap.core.Timeline,
-        el: HTMLElement | undefined,
-        target: { x: number; y: number },
-        duration: number,
-        position: number
-    ) {
-        if (!el) return
-        const rect = el.getBoundingClientRect()
-        const dx = target.x - (rect.left + rect.width / 2)
-        const dy = target.y - (rect.top + rect.height / 2)
-        // Same fade curve as the chosen card's own fade-out (addChosenCardFocus) - scaling all
-        // the way to 0 with a power1.in ease, rather than the old power2.in-to-0.3 shrink - while
-        // still moving toward the target, so these read as collapsing under the chosen card
-        // rather than just sliding off.
-        tl.to(el, { x: dx, y: dy, scale: 0, opacity: 0, duration, ease: 'power1.in' }, position)
-    }
-
-    function addChosenCardFocus(tl: gsap.core.Timeline, el: HTMLElement | undefined, position: number) {
-        if (!el) return
-        const rect = el.getBoundingClientRect()
-        const center = getAreaCenter() ?? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
-        const dx = center.x - (rect.left + rect.width / 2)
-        const dy = center.y - (rect.top + rect.height / 2)
-
-        // Above the other (departing) cards for the whole sequence, since it travels over
-        // (and the others end up sliding under) it on the way to the center.
-        gsap.set(el, { zIndex: 10 })
-        tl.to(el, { x: dx, y: dy, scale: FOCUS_SCALE, duration: FOCUS_MOVE_DURATION / 1000, ease: 'power2.out' }, position)
-        // The hold is just empty timeline space - nothing to tween, so nothing is added for it;
-        // the fade-out below simply starts later.
-        tl.to(
-            el,
-            { scale: 0, opacity: 0, duration: FOCUS_FADE_DURATION / 1000, ease: 'power1.in' },
-            position + (FOCUS_MOVE_DURATION + FOCUS_HOLD_DURATION) / 1000
-        )
-    }
-
-    // Rather than taking the card immediately, plays it out visually first: every OTHER card
-    // flies back to the pile while the chosen one gets its own center-stage moment (see
-    // addChosenCardFocus) - only once that's finished do we actually dispatch TakePoliticsCard.
-    // See PoliticsHand's own chooseCard, which this mirrors, for why this is one shared GSAP
-    // timeline kept local rather than registered on the AnimationContext.
+    // Dispatches immediately; the collapse-and-focus choreography plays off the committed
+    // action via takeAnimator, not beforehand (see politicsPileTakeAnimator.svelte.ts).
     async function chooseCard(card: PoliticsCardData) {
         const takingPile = pile
         if (takingCardId || !takingPile) return
         takingCardId = card.id
-
-        const tl = gsap.timeline()
-        const center = getAreaCenter()
-        if (center) {
-            const others = cards.filter((c) => c.id !== card.id)
-            // All at once, not staggered like the deal-in was: collapsing under the chosen card
-            // reads best as one simultaneous move, not a trailing riffle. Same target point
-            // addChosenCardFocus sends the chosen card to, so the others end up sliding under it
-            // rather than off toward the leftover deck to the side.
-            others.forEach((c) => {
-                addFlight(tl, cardEls[c.id], center, RETURN_DURATION / 1000, 0)
-            })
-        }
-        addChosenCardFocus(tl, cardEls[card.id], 0)
-
-        if (tl.duration() > 0) {
-            await new Promise<void>((resolve) => tl.eventCallback('onComplete', resolve))
-        }
-
         await gameSession.takePoliticsCard(takingPile, card.id)
         takingCardId = undefined
     }
 </script>
 
-{#if pile}
+<!-- Registered unconditionally (not inside {#if pile} below) so the animator sees every game
+     state change regardless of whether this reveal currently has anything to show. -->
+<div class="hidden" {@attach attachAnimator(dealAnimator)}></div>
+<div class="hidden" {@attach attachAnimator(takeAnimator)}></div>
+
+{#if pile || dealAnimator.dealing}
+    <!-- No heading of our own here - StatusMessages says "Choose a card to take it." right
+         above this once a pile is opened, the same way it handles PoliticsDeckChooser's own
+         instruction. Keeping it there means this row's own height never has to agree with
+         that component's, which local, per-component headings kept drifting out of sync on. -->
     <div class="px-3 py-2 flex flex-col items-center gap-2">
-        <div class="text-black text-base font-semibold text-center">Choose a card to take it.</div>
         {#if gameSession.errorMessage}
             <div
                 class="max-w-full rounded-md bg-red-900/90 border border-red-300/50 px-3 py-2 text-center text-white text-sm"
@@ -350,42 +132,78 @@
              whatever the wrong first guess (see rowSizes) had just rendered, rather than the
              real available width, and every subsequent card - correct row split or not - was
              laid out against that self-fulfilling number. -->
-        <div class="w-full flex flex-col gap-2" bind:this={rowsEl} {@attach measureWidth}>
-            {#if rowWidth > 0}
+        <div
+            class="w-full flex flex-col gap-2"
+            {@attach measureWidth}
+            {@attach (el) => {
+                takeAnimator.setRowsEl(el)
+                return () => takeAnimator.setRowsEl(undefined)
+            }}
+        >
+            {#if dealAnimator.dealing}
+                <!-- The transient deal: same slot layout the real row below will use, so the
+                     handoff at afterAnimations (when `dealing` clears and gameState has just
+                     been assigned) lands in the exact same positions with nothing to jump. -->
+                {#each dealAnimator.slotRows as row, rowIndex (rowIndex)}
+                    <div class="flex items-start justify-center gap-2">
+                        {#each row as slot (slot.kind === 'deck' ? 'deck' : slot.card.id)}
+                            {#if slot.kind === 'deck'}
+                                <div
+                                    style="width: {cardWidthCss};"
+                                    {@attach (el) => {
+                                        dealAnimator.setNode('deck', el)
+                                        return () => dealAnimator.setNode('deck', undefined)
+                                    }}
+                                >
+                                    <PoliticsCard card={slot.card} faceDown />
+                                </div>
+                            {:else}
+                                <div
+                                    style="width: {cardWidthCss};"
+                                    {@attach (el) => {
+                                        dealAnimator.setNode(slot.card.id, el)
+                                        return () => dealAnimator.setNode(slot.card.id, undefined)
+                                    }}
+                                >
+                                    <PoliticsCard card={slot.card} />
+                                </div>
+                            {/if}
+                        {/each}
+                    </div>
+                {/each}
+            {:else if rowWidth > 0}
                 <!-- Gated on having a real measurement rather than rendering immediately with
                      the "everything fits on one row" fallback rowSizes uses before rowWidth is
                      known: slots are keyed within their OWN row's {#each}, so correcting the
                      split after the fact (once the real width comes in) can move one into a
                      different row's block - a different keyed {#each} entirely, which Svelte
                      can't just reposition, so it tears the element down and remounts a fresh one
-                     in the new spot. That remount is a fresh dealIn from scratch: a card's own
-                     white background painted at its final resting spot for a frame before the
-                     new attachment ran and hid it again. Waiting the one tick for a real width
-                     means every slot is only ever created once, already in its final row. -->
+                     in the new spot. Waiting for a real width means every slot is only ever
+                     created once, already in its final row. -->
                 {#each slotRows as row, rowIndex (rowIndex)}
                     <div class="flex items-start justify-center gap-2">
                         {#each row as slot (slot.kind === 'deck' ? 'deck' : slot.card.id)}
                             {#if slot.kind === 'deck'}
-                                {#if !deckEmptied}
-                                    <div style="width: {cardWidthCss};" {@attach deckDealIn}>
-                                        <PoliticsCard card={cards[0]} faceDown />
-                                    </div>
-                                {:else}
-                                    <div
-                                        {@attach fadeIn}
-                                        class="aspect-[534/832] rounded-md border border-dashed border-black/25"
-                                        style="width: {cardWidthCss};"
-                                    ></div>
-                                {/if}
+                                <!-- Always the dashed placeholder once the deal has landed - the
+                                     deck's own face-down stand-in only exists during the transient
+                                     phase above; per the rulebook exactly one card ever gets taken
+                                     from an opened pile, so there's no separate "still has cards
+                                     left" state for this slot to distinguish. -->
+                                <div
+                                    class="aspect-[534/832] rounded-md border border-dashed border-black/25"
+                                    style="width: {cardWidthCss};"
+                                ></div>
                             {:else}
                                 <button
                                     type="button"
-                                    bind:this={cardEls[slot.card.id]}
-                                    {@attach dealIn(slot.card, slot.index)}
                                     disabled={takingCardId !== undefined}
                                     class="cursor-pointer opacity-90 hover:opacity-100"
                                     style="width: {cardWidthCss};"
                                     onclick={() => chooseCard(slot.card)}
+                                    {@attach (el) => {
+                                        takeAnimator.setNode(slot.card.id, el)
+                                        return () => takeAnimator.setNode(slot.card.id, undefined)
+                                    }}
                                 >
                                     <PoliticsCard card={slot.card} />
                                 </button>

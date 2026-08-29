@@ -21,6 +21,7 @@ import {
     playRenegadeCardReason,
     playAllianceCardReason,
     placeKnightReason,
+    KNIGHT_NOT_ADJACENT_REASON,
     placeCastleIsValid,
     negotiationProposalIsValid,
     lookAtPoliticsPileReason,
@@ -1081,7 +1082,11 @@ export class LowenherzGameSession extends GameSession<
             treasureCardId
         )
         if (invalidReason) {
-            this.errorMessage = invalidReason
+            // The legal-square dots (legalKnightSquares) already cover adjacency - clicking
+            // somewhere else is an expected miss, not something that needs explaining.
+            if (invalidReason !== KNIGHT_NOT_ADJACENT_REASON) {
+                this.errorMessage = invalidReason
+            }
             return
         }
 
@@ -1456,7 +1461,18 @@ export class LowenherzGameSession extends GameSession<
     // a different card from the SAME pile. Per the rulebook ("look through one of the
     // two piles... and select one card"), opening a pile is a one-way commitment -
     // there's no way to switch to the other pile once this is set.
+    //
+    // Gated on politicsTakingPlayerId, not just openedPoliticsPile: the latter is shared
+    // server state, so every connected client (and, while scrubbing back through history,
+    // every OTHER player's own client) would otherwise see the exact same pile - meaning
+    // PoliticsPileReveal would render the real, opened cards face-up to players who never
+    // opened them. Real concealment still needs server-side redaction (see
+    // LowenherzPlayerState.politicsCards' own comment); this at least keeps the client from
+    // actively rendering what it already has on hand for someone it doesn't belong to.
     get selectedPoliticsPile(): 'A' | 'B' | undefined {
+        if (!this.myPlayer || this.gameState.politicsTakingPlayerId !== this.myPlayer.id) {
+            return undefined
+        }
         return this.gameState.openedPoliticsPile
     }
 
@@ -1768,7 +1784,9 @@ export class LowenherzGameSession extends GameSession<
         })
 
         if (!this.isValidRenegadeAttempt(placedCol, placedRow)) {
-            this.errorMessage = playRenegadeCardReason(this.gameState, myPlayer.id, {
+            // Same reasoning as placeKnight's own comment: legalRenegadePlacementSquares (the
+            // dots) already covers adjacency, so that one reason stays silent.
+            const reason = playRenegadeCardReason(this.gameState, myPlayer.id, {
                 cardId: renegadeCardId,
                 ownRegionId: renegadeOwnRegionId,
                 enemyRegionId: renegadeEnemyRegionId,
@@ -1777,6 +1795,9 @@ export class LowenherzGameSession extends GameSession<
                 placedCol,
                 placedRow
             })
+            if (reason !== KNIGHT_NOT_ADJACENT_REASON) {
+                this.errorMessage = reason
+            }
             this.cancelPlayingRenegadeCard()
             return
         }
