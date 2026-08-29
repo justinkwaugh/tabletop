@@ -717,6 +717,11 @@
                 {@render myPill()} won Crown and Scepter.
             {/if}
             Choose one of the politics decks.
+        {:else if gameSession.canTakePoliticsCard && gameSession.selectedPoliticsPile}
+            <!-- PoliticsPileReveal's own row deals its cards below this - kept here rather than
+                 as a heading local to that component so it never has to agree on layout height
+                 with PoliticsDeckChooser's row above it. -->
+            Choose a card to take it.
         {:else if !gameSession.setupComplete}
             Waiting for the other player(s) to place a castle...
         {/if}

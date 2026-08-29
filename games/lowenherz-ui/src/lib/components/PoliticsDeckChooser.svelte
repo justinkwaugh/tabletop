@@ -1,5 +1,6 @@
 <script lang="ts">
     import { gsap } from 'gsap'
+    import { onDestroy } from 'svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import PoliticsCard from './PoliticsCard.svelte'
     import Numeral from './Numeral.svelte'
@@ -7,6 +8,19 @@
     import { rowSizes, rowContentWidth, responsiveCardWidth } from '$lib/model/politicsCardLayout'
 
     const gameSession = getGameSession()
+
+    // choosePile's own timeline owns cancellation: if this component goes away mid-flight (its
+    // {#if choosingPolitics} host in PoliticsSection unmounted, say, because a concurrent server
+    // update changed whose turn it is), kill the tween and resolve its awaiter rather than leaving
+    // it to finish - or hang - against elements and a session that are no longer there.
+    let destroyed = false
+    let activeTimeline: gsap.core.Timeline | undefined
+    let activeResolve: (() => void) | undefined
+    onDestroy(() => {
+        destroyed = true
+        activeTimeline?.kill()
+        activeResolve?.()
+    })
 
     // Same card size PoliticsPileReveal deals out, so the deck you're choosing between visually
     // matches what it turns into once you pick one - responsiveCardWidth is what lets both
@@ -59,18 +73,33 @@
         }
     })
 
-    // Which pile is currently being taken, tagged rather than a plain value - this component
-    // never unmounts (only its {#if choosingPolitics} content does), so a plain `let takingPile =
-    // $state()` reset by watching choosingPolitics (an $effect whose only job is clearing local
-    // state back to a default - exactly what this codebase's Svelte rule says to express as
-    // derived state instead) left a stale pick sitting there the moment choosing became possible
-    // again without a fresh click - most visibly after Undo brought choosingPolitics back to true
-    // while takingPileTag still pointed at the pile that got undone, disabling both decks with no
-    // way to retry the choice the player still had to make. Tagging it and deriving the value
-    // everything else reads means there's nothing to reset by hand: takingPile just stops being
-    // true the moment choosingPolitics does, on its own.
+    // Which pile is currently being taken, and whether choosePile's own exit animation has
+    // finished and handed off to PoliticsPileReveal - both tagged against the gameState object
+    // they were set under, rather than plain values, because `choosingPolitics` alone can't tell
+    // a fresh choosing opportunity from a stale one: this component never unmounts (only its {#if
+    // choosingPolitics} content does), and choosingPolitics reads true again for BOTH a later
+    // round of politics-taking later in the same game AND for Undo landing back on this same
+    // step - in either case with nothing to reset takingPileTag/committed by hand, since
+    // gameState only changes AFTER the shared timeline finishes (see waitForVisibleTransitionSettled
+    // below), well past where an $effect watching choosingPolitics could safely clear anything.
+    // Compared by object identity, not actionCount: undoing exactly the pick this attempt was
+    // for brings actionCount back to the very value it was captured at, so a count comparison
+    // reads that as "still this attempt" and leaves the chooser hidden - gameState itself is a
+    // freshly hydrated object on every transition, forward or back, so identity can't collide
+    // that way (same trick as politicsPileOrigin's own reveal-to-reveal comparison, below).
     let takingPileTag: 'A' | 'B' | undefined = $state(undefined)
-    const takingPile = $derived(choosingPolitics ? takingPileTag : undefined)
+    let attemptGameState: unknown = $state(undefined)
+    const attemptIsCurrent = $derived(attemptGameState === gameSession.gameState)
+    const takingPile = $derived(choosingPolitics && attemptIsCurrent ? takingPileTag : undefined)
+
+    // Set the moment choosePile's own exit animation finishes, so this component hides itself
+    // right as PoliticsPileReveal's own deal-in takes over - rather than staying visible (the
+    // clicked deck sitting there, already slid into place) for the whole deal, which only ends
+    // once LookAtPoliticsPile actually commits and choosingPolitics turns false on its own.
+    // Reset on the retry path below, the same way takingPileTag is; see attemptIsCurrent above
+    // for why a plain boolean isn't enough on its own.
+    let committedTag = $state(false)
+    const committed = $derived(attemptIsCurrent && committedTag)
 
     // Whichever element is actually occupying each slot right now - the deck button, or the
     // empty/dashed placeholder if that pile's already spent. Bound from both branches of each
@@ -101,8 +130,19 @@
         const otherEl = pile === 'A' ? pileBEl : pileAEl
         const totalCount = (pile === 'A' ? pileACards : pileBCards).length
         takingPileTag = pile
+        // Cleared here, not left to attemptIsCurrent's own staleness check alone: a round that
+        // finished normally left this stuck at true (nothing else ever resets it after a
+        // successful pick - only the retry branch below does). The instant attemptGameState is
+        // reassigned just below, attemptIsCurrent flips true again for THIS attempt - which would
+        // unmask that stale true and read committed as true before this function has done
+        // anything, tearing the block down (rowEl/clickedEl disconnected) out from under the
+        // animation and measurements below. Both writes are synchronous and unawaited, so Svelte
+        // never observes committed as true in between.
+        committedTag = false
+        attemptGameState = gameSession.gameState
 
         const tl = gsap.timeline()
+        activeTimeline = tl
         if (otherEl) {
             // No explicit position argument - GSAP timelines append sequentially by default,
             // which is exactly "once it's gone" ordering: the slide below only starts once this
@@ -122,21 +162,46 @@
         }
 
         if (tl.duration() > 0) {
-            await new Promise<void>((resolve) => tl.eventCallback('onComplete', resolve))
+            await new Promise<void>((resolve) => {
+                activeResolve = resolve
+                tl.eventCallback('onComplete', resolve)
+            })
         }
+        activeTimeline = undefined
+        activeResolve = undefined
+        if (destroyed) return
 
+        // Measured before committedTag flips below, not after: this resumes from a Promise
+        // GSAP's own onComplete resolved (a different scheduling context than a plain
+        // synchronous continuation), and setting committedTag - which hides this block - could
+        // apparently, in that context, tear the DOM down before the very next line ran, leaving
+        // clickedEl/rowEl disconnected and every rect that came out of them zeroed, which is
+        // where the deal's "flies in from (0,0)" bug traced back to. Reading the DOM first, then
+        // writing the state that removes it, doesn't depend on which of those Svelte happens to
+        // schedule first.
         const finalRect = clickedEl.getBoundingClientRect()
-        gameSession.politicsPileOrigin = {
-            x: finalRect.left + finalRect.width / 2,
-            y: finalRect.top + finalRect.height / 2
-        }
         // Handed off so PoliticsPileReveal can use it immediately instead of waiting on its own
         // bind:clientWidth - see that field's own comment on why. The row itself doesn't resize
         // during the animation above (only the deck buttons inside it moved), so measuring again
         // here is just for a fresh, guaranteed-current rect rather than relying on the one from
         // before the fade/slide ran.
-        gameSession.politicsRowWidth = rowEl?.getBoundingClientRect().width
+        const rowWidth = rowEl?.getBoundingClientRect().width
+
+        committedTag = true
+        gameSession.politicsPileOrigin = {
+            x: finalRect.left + finalRect.width / 2,
+            y: finalRect.top + finalRect.height / 2
+        }
+        gameSession.politicsRowWidth = rowWidth
         await gameSession.selectPoliticsPile(pile)
+
+        // selectPoliticsPile's own await settles once the action is applied/sent, but
+        // selectedPoliticsPile (real gameState) only updates once the resulting state-change
+        // animation cycle finishes - now a real ~380ms+ deal, not the instant no-op it was before
+        // PoliticsPileReveal's dealIn became a state-change animator. Checking right away read
+        // that legitimate delay as failure essentially every time. waitForVisibleTransitionSettled
+        // is the same primitive history navigation uses to wait out exactly this.
+        await gameSession.waitForVisibleTransitionSettled()
 
         // selectPoliticsPile can come back without ever setting selectedPoliticsPile - it
         // returns early (no error) if canTakePoliticsCard/the pile turned out already spoken for
@@ -145,14 +210,13 @@
         // selectedPoliticsPile simply not being `pile` afterward - without checking, takingPileTag
         // stayed set forever and choosingPolitics stayed true throughout (never having a reason to
         // change), leaving both decks disabled with no way to retry a choice the player still has
-        // to make. Putting both decks back as they were, rather than leaving one faded out and the
-        // other stranded mid-slide, is what actually makes that retry possible.
+        // to make. Resetting committed remounts the row fresh (otherEl/clickedEl are already gone,
+        // torn down the moment committed hid this block above), which is also why there's nothing
+        // left to animate back here - a fresh mount already renders both decks in their resting
+        // state.
         if (gameSession.selectedPoliticsPile !== pile) {
             takingPileTag = undefined
-            if (otherEl) {
-                gsap.to(otherEl, { opacity: 1, scale: 1, duration: FADE_OUT_DURATION / 1000, ease: 'power1.out' })
-            }
-            gsap.to(clickedEl, { x: 0, duration: SLIDE_DURATION / 1000, ease: 'power2.inOut' })
+            committedTag = false
         }
     }
 </script>
@@ -170,15 +234,11 @@
     </span>
 {/snippet}
 
-{#if choosingPolitics && backReady}
-    <!-- No separate instructions here - StatusMessages already says "Choose one of the politics
-         decks." right above this. -->
+{#if choosingPolitics && backReady && !committed}
+    <!-- No heading here either - StatusMessages carries both this phase's instruction and
+         PoliticsPileReveal's, so neither component needs to reserve space to agree with the
+         other's layout. -->
     <div class="px-3 py-2">
-        <!-- The inner, unpadded row is what's measured (see rowEl below) - matching
-             PoliticsPileReveal's own two-level structure (padded outer wrapper, unpadded inner
-             row) exactly, so choosePile's own slide-target math lands in the same viewport
-             coordinate space that component's row will actually use, not offset from it by this
-             wrapper's own padding. -->
         <div class="flex items-center justify-center gap-3" bind:this={rowEl} bind:clientWidth={rowWidth}>
             {#if pileACards.length > 0}
                 <button

@@ -43,6 +43,14 @@
     input[type='search']::-webkit-search-cancel-button {
         display: none;
     }
+
+    /* Every interactive surface in this game (board squares, deck/card buttons, APPLY
+       pills, alliance hearts...) is a plain <button>, which browsers give their own default
+       focus ring on click - a stray blue outline left sitting on whatever was last clicked,
+       not something this mouse/touch-driven board ever needed. */
+    button:focus {
+        outline: none;
+    }
 }
 
 /* The pack letter in "N until C" on the draw pile. Small/simple enough that a flash of

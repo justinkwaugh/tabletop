@@ -59,3 +59,37 @@ export function rowSizes(totalCount: number, availableWidth: number, cardWidth: 
 export function rowContentWidth(count: number, cardWidth: number = CARD_W): number {
     return count > 0 ? count * cardWidth + (count - 1) * CARD_GAP : 0
 }
+
+export type PileSlot<TCard> =
+    | { kind: 'deck'; card: TCard }
+    | { kind: 'card'; card: TCard; index: number }
+
+// One shared pile layout for PoliticsPileReveal's real (post-deal) row and its deal animator's
+// transient one - both need the exact same slot positions, or the handoff between them jumps.
+// The deck occupies slot 0, carrying a representative card (any of them - only used face-down)
+// so both callers can render it without a separate lookup.
+export function buildSlotRows<TCard>(
+    cards: TCard[],
+    rowWidth: number,
+    cardWidth: number
+): PileSlot<TCard>[][] {
+    if (cards.length === 0) return []
+
+    const rows: PileSlot<TCard>[][] = []
+    let cardIndex = 0
+    let slotsPlaced = 0
+    for (const size of rowSizes(cards.length + 1, rowWidth, cardWidth)) {
+        const row: PileSlot<TCard>[] = []
+        for (let i = 0; i < size; i++) {
+            if (slotsPlaced === 0) {
+                row.push({ kind: 'deck', card: cards[0] })
+            } else {
+                row.push({ kind: 'card', card: cards[cardIndex], index: cardIndex })
+                cardIndex++
+            }
+            slotsPlaced++
+        }
+        rows.push(row)
+    }
+    return rows
+}

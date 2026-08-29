@@ -131,4 +131,9 @@ export class AllianceBurstAnimator extends StateAnimator {
             this.burstingAllianceId = undefined
         })
     }
+
+    override onDetach() {
+        this.hearts = []
+        this.burstingAllianceId = undefined
+    }
 }
