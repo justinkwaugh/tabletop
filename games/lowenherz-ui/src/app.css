@@ -46,9 +46,11 @@
 
     /* Every interactive surface in this game (board squares, deck/card buttons, APPLY
        pills, alliance hearts...) is a plain <button>, which browsers give their own default
-       focus ring on click - a stray blue outline left sitting on whatever was last clicked,
-       not something this mouse/touch-driven board ever needed. */
-    button:focus {
+       focus ring on click - a stray blue outline left sitting on whatever was last clicked.
+       :focus-visible (not :focus) removes it only for that mouse-click case - keyboard
+       navigation still gets a visible ring, since :focus-visible fires for Tab focus but not
+       a pointer click in every modern browser. */
+    button:focus:not(:focus-visible) {
         outline: none;
     }
 }
