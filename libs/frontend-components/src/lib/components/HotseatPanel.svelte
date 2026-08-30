@@ -13,6 +13,11 @@
         style:background-color={hotseatPlayerBgColor}
         style:color={hotseatPlayerTextColor}
     >
-        <span class="font-bold">{$myPlayer?.name}</span>&nbsp;- It's your turn
+        {#if gameSession.isViewingAsNonActivePlayer}
+            Viewing as&nbsp;<span class="font-bold">{$myPlayer.name}</span>&nbsp;- Waiting for
+            active player
+        {:else}
+            <span class="font-bold">{$myPlayer.name}</span>&nbsp;- It's your turn
+        {/if}
     </div>
 {/if}

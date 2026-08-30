@@ -106,6 +106,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     explorationContext?: GameContext<T, U> = $state()
 
     private suppressStateChangeActions = false
+    private nonActivePlayerViewEnabled = $state(false)
 
     history: GameHistory<T, U>
     explorations: GameExplorations<T, U>
@@ -180,7 +181,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     undoableAction: GameAction | undefined = $derived.by(() => {
-        const superUserAccess = this.actAsAdminStore.current || this.isExploring
+        const superUserAccess =
+            (this.actAsAdminStore.current || this.isExploring) && !this.isViewingAsNonActivePlayer
 
         // No spectators, must have actions, not viewing history
         if (
@@ -206,7 +208,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 continue
             }
 
-            if (superUserAccess || this.game.hotseat) {
+            if (superUserAccess || (this.game.hotseat && !this.isViewingAsNonActivePlayer)) {
                 undoableUserAction = action
                 break
             }
@@ -269,6 +271,18 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         )
     })
 
+    private nonActivePlayer: Player | undefined = $derived.by(() =>
+        this.findNonActivePlayer(this.gameState)
+    )
+
+    canViewAsNonActivePlayer: boolean = $derived(
+        this.game.hotseat && this.nonActivePlayer !== undefined
+    )
+
+    isViewingAsNonActivePlayer: boolean = $derived(
+        this.nonActivePlayerViewEnabled && this.canViewAsNonActivePlayer
+    )
+
     myPrimaryPlayer: Player | undefined = $derived.by(() => {
         const sessionUser = this.sessionUserStore.current
         if (!sessionUser) {
@@ -280,7 +294,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     numPlayers: number = $derived.by(() => this.gameState.numPlayers)
 
     myPlayer: Player | undefined = $derived.by(() => {
-        // In hotseat games, we are just always the first active player
+        if (this.isViewingAsNonActivePlayer) {
+            return this.nonActivePlayer
+        }
+
         if (this.isExploring || this.gameContext.game.hotseat) {
             return this.activePlayers.at(0)
         }
@@ -310,6 +327,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     isMyTurn: boolean = $derived.by(() => {
+        if (this.isViewingAsNonActivePlayer) {
+            return false
+        }
+
         if (this.isExploring || this.gameContext.game.hotseat || this.actAsAdminStore.current) {
             return true
         }
@@ -325,7 +346,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     validActionTypes: string[] = $derived.by(() => {
-        if (!this.myPlayer) {
+        if (this.isViewingAsNonActivePlayer || !this.myPlayer) {
             return []
         }
 
@@ -335,6 +356,20 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             this.myPlayer.id
         )
     })
+
+    setViewingAsNonActivePlayer(enabled: boolean) {
+        this.nonActivePlayerViewEnabled = enabled && this.canViewAsNonActivePlayer
+    }
+
+    private findNonActivePlayer(state: U): Player | undefined {
+        return this.game.players.find((player) => !state.activePlayerIds.includes(player.id))
+    }
+
+    private reconcilePlayerPerspective(state: U) {
+        if (!this.findNonActivePlayer(state)) {
+            this.nonActivePlayerViewEnabled = false
+        }
+    }
 
     // For admin users
     showDebug: boolean = $derived.by(() => {
@@ -577,6 +612,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         this.beforeNewState()
+        this.reconcilePlayerPerspective(newState)
         this.gameState = newState
     }
 

@@ -65,6 +65,28 @@
         gameToDelete = gameId
     }
 
+    function setNonActivePlayerView(event: Event) {
+        if (!(event.currentTarget instanceof HTMLInputElement) || !gameSession) {
+            return
+        }
+
+        if (event.currentTarget.checked) {
+            authorizationService.adminCapabilitiesEnabled = false
+        }
+        gameSession.setViewingAsNonActivePlayer(event.currentTarget.checked)
+    }
+
+    function setAdminCapabilities(event: Event) {
+        if (!(event.currentTarget instanceof HTMLInputElement)) {
+            return
+        }
+
+        authorizationService.adminCapabilitiesEnabled = event.currentTarget.checked
+        if (event.currentTarget.checked) {
+            gameSession?.setViewingAsNonActivePlayer(false)
+        }
+    }
+
     async function loadGame(gameId: string) {
         if (!definition) {
             return
@@ -148,12 +170,20 @@
                     <div class="text-2xl text-white">{gameSession?.game.name}</div>
                 </div>
                 <div class="flex flex-row justify-center items-center">
+                    <Toggle
+                        checked={gameSession?.isViewingAsNonActivePlayer ?? false}
+                        disabled={!gameSession?.canViewAsNonActivePlayer}
+                        onchange={setNonActivePlayerView}
+                        class="rounded p-2">Non-active view</Toggle
+                    >
+
                     <Toggle bind:checked={authorizationService.debugViewEnabled} class="rounded p-2"
                         >Debug</Toggle
                     >
 
                     <Toggle
-                        bind:checked={authorizationService.adminCapabilitiesEnabled}
+                        checked={authorizationService.adminCapabilitiesEnabled}
+                        onchange={setAdminCapabilities}
                         class="rounded p-2">Admin</Toggle
                     >
 

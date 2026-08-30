@@ -49,6 +49,10 @@ Play in which one Game Client permits a person to act for multiple Players. Hots
 **Networked Play**:
 Play in which participating Users act through separate Game Clients for their associated Players. Networked Play is currently supported for Hosted Games.
 
+**Player Perspective**:
+The Player identity whose player-relative information and presentation the Game Client displays. It normally matches the Acting Player in Hotseat Play, but inspection tools may present a non-acting Player.
+_Avoid_: Viewed Player, My Player
+
 **Acting Player**:
 The Player whose identity the Game Client uses when constructing the next User Action. When multiple Players are active in Hotseat Play or Exploration, the person using the client chooses the Acting Player.
 _Avoid_: My Player
