@@ -11,7 +11,10 @@ export const PlaceBid = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.PlaceBid),
             amount: Type.Number({ minimum: 0 }),
-            simultaneousGroupId: Type.Optional(Type.String())
+            simultaneousGroupId: Type.Optional(Type.String()),
+            // Set only on the round's last bid, once bids resolve and the new canal
+            // overseer is known — used purely for history description, not gameplay.
+            metadata: Type.Optional(Type.Object({ overseerId: Type.String() }))
         })
     ])
 )
@@ -26,6 +29,7 @@ export class HydratedPlaceBid extends HydratableAction<typeof PlaceBid> implemen
     declare type: ActionType.PlaceBid
     declare amount: number
     declare simultaneousGroupId?: string
+    declare metadata?: { overseerId: string }
 
     constructor(data: PlaceBid) {
         super(data, PlaceBidValidator)
