@@ -483,6 +483,16 @@ export class LowenherzGameSession extends GameSession<
         return this.gameState.players.find((p) => p.color === color)?.playerId
     }
 
+    // Board state (squares, regions) records a piece's actual engine-assigned color, not a
+    // playerId - but the color a viewer should SEE can differ from that when they have a
+    // preferred color set (see GameColors.getPlayerColor's swap). Routing every board-derived
+    // color through here, rather than gameSession.colors.getUiColor(rawColor) directly, is what
+    // keeps a player's own pieces matching their own name pill/panel color. Colors with no
+    // owning player (the neutral prince's Gray) fall through to the plain, unswapped lookup.
+    uiColorForBoardColor(color: Color): string {
+        const playerId = this.playerIdForColor(color)
+        return playerId ? this.colors.getPlayerUiColor(playerId) : this.colors.getUiColor(color)
+    }
 
     get lastMineHillScoring(): { playerId: string; points: number }[] | undefined {
         const discarded = this.gameState.discardedActionCard

@@ -762,12 +762,12 @@
         // the same way too (see expansionPreviewWalls).
         if (expandStageActive && gameSession.expansionSquares.some((s) => s.col === col && s.row === row)) {
             const region = regions.find((r) => r.id === gameSession.selectedExpandRegionId)
-            if (region?.ownerColor) return gameSession.colors.getUiColor(region.ownerColor)
+            if (region?.ownerColor) return gameSession.uiColorForBoardColor(region.ownerColor)
         }
 
         const region = regionBySquareKey.get(key)
         if (!region?.ownerColor) return undefined
-        return gameSession.colors.getUiColor(region.ownerColor)
+        return gameSession.uiColorForBoardColor(region.ownerColor)
     }
 
     async function onSquareClick(col: number, row: number) {
@@ -893,7 +893,7 @@
         <div
             class="absolute inset-0"
             style="
-                background-color:{gameSession.colors.getUiColor(color)};
+                background-color:{gameSession.uiColorForBoardColor(color)};
                 mask-image:url({fillSrc}); mask-size:contain; mask-repeat:no-repeat; mask-position:center;
                 -webkit-mask-image:url({fillSrc}); -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat; -webkit-mask-position:center;
                 filter: saturate(1.5) brightness(1.15);
@@ -919,7 +919,7 @@
         <div
             class="absolute inset-0"
             style="
-                background-color:{myColor ? gameSession.colors.getUiColor(myColor) : '#d4af37'};
+                background-color:{myColor ? gameSession.uiColorForBoardColor(myColor) : '#d4af37'};
                 mask-image:url({iconMoneybagFill}); mask-size:contain; mask-repeat:no-repeat; mask-position:center;
                 -webkit-mask-image:url({iconMoneybagFill}); -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat; -webkit-mask-position:center;
                 filter: saturate(1.7) brightness(1.18);
@@ -1049,7 +1049,7 @@
                              already says the square will take one, and a dot beside it is the same
                              claim twice. -->
                         {#if showsLegalHighlight(col, row) && !isCastlePreviewSquare(col, row) && !isKnightPreviewSquare(col, row) && legalHintColor}
-                            {@const hintColor = gameSession.colors.getUiColor(legalHintColor)}
+                            {@const hintColor = gameSession.uiColorForBoardColor(legalHintColor)}
                             <!-- A filled disc, about a third of the square. r 1.85 of the
                                  ten-unit viewBox is a 3.7-unit diameter - the same outer edge the
                                  stroked ring had, so "filled in" means exactly that rather than
@@ -1392,7 +1392,7 @@
                     : arrow.wall.row * CELL_SIZE) - scaled(12)}px;
                     width: {GLYPH_BOX};
                     height: {GLYPH_BOX};
-                    color: {myColor ? gameSession.colors.getUiColor(myColor) : '#ffffff'};
+                    color: {myColor ? gameSession.uiColorForBoardColor(myColor) : '#ffffff'};
                     transform: rotate({ARROW_ROTATION[arrow.direction]}deg);
                 "
             >

@@ -85,7 +85,7 @@ export class ScorePopupAnimator extends StateAnimator {
             // Slate rather than the gray prince's #888888 - an unowned region's popup shouldn't
             // read as that player's (see NEUTRAL_ZONE_PAINT).
             const color = region.ownerColor
-                ? this.gameSession.colors.getUiColor(region.ownerColor)
+                ? this.gameSession.uiColorForBoardColor(region.ownerColor)
                 : '#3f3f46'
             entries.push({ anchorKey: region.anchorSquareKey, amount: region.points, color })
         }
@@ -135,7 +135,7 @@ export class ScorePopupAnimator extends StateAnimator {
 
         // Left in place (see the field's own comment) rather than cleared here - only an
         // unrelated fresh start, or a full actionless reset below, clears it.
-        const color = this.gameSession.colors.getUiColor(to.getPlayerState(action.playerId).color)
+        const color = this.gameSession.colors.getPlayerUiColor(action.playerId)
         return { anchorKey: squareKey(action.space.col, action.space.row), amount, color }
     }
 
