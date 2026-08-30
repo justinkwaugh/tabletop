@@ -31,6 +31,7 @@ const GCLOUD_PROJECT = process.env['GCLOUD_PROJECT'] ?? ''
 const STATIC_ROOT = process.env['STATIC_ROOT'] ?? path.join(__dirname, '../../../../.local-static')
 const FRONTEND_VERSION_OVERRIDE = process.env['FRONTEND_VERSION'] ?? null
 const MIN_RESTART_INTERVAL_MS = 30_000
+const SESSION_EXPIRY_SECONDS = 30 * 24 * 60 * 60
 let firebaseAppIndex = 0
 
 const SESSION_SECRET = process.env['SESSION_SECRET']
@@ -126,13 +127,13 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         cookieName: '__session',
         secret: SESSION_SECRET,
         salt: SESSION_SALT,
-        expiry: 24 * 60 * 60 * 7,
+        expiry: SESSION_EXPIRY_SECONDS,
         cookie: {
             path: '/',
             httpOnly: true,
             secure: service === 'local' ? false : true,
             sameSite: service === 'local' ? false : true,
-            maxAge: 24 * 60 * 60 * 7
+            maxAge: SESSION_EXPIRY_SECONDS
         }
     })
 
