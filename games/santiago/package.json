@@ -26,7 +26,7 @@
         "@tabletop/eslint-config": "workspace:*",
         "@tabletop/rollup-config": "workspace:*",
         "@tabletop/vitest-config": "workspace:*",
-        "@typescript/native-preview": "*",
+        "@typescript/native-preview": "7.0.0-dev.20260707.2",
         "@types/uuid": "^10.0.0",
         "rimraf": "^6.1.0",
         "rollup": "4.55.2",

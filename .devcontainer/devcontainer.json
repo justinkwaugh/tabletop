@@ -1,9 +1,11 @@
 {
+    "name": "tabletop",
     "dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
     "service": "tabletop",
     "workspaceFolder": "/workspace",
     "shutdownAction": "stopCompose",
-    "postCreateCommand": "sudo chown -R node:node /workspace/node_modules; npm install; turbo init-project",
+    "postCreateCommand": "bash .devcontainer/post-create.sh",
+    "postStartCommand": "bash .devcontainer/post-start.sh",
     // Declared explicitly so VS Code establishes these tunnels when the container starts,
     // rather than sniffing them out of terminal output later. The auto-detected kind can
     // go stale - a Code Helper process keeps holding the port on the host and silently
@@ -25,11 +27,13 @@
         }
     },
     "features": {
-        "ghcr.io/stuartleeks/dev-container-features/shell-history:0": {}
+        "ghcr.io/stuartleeks/dev-container-features/shell-history:0": {},
+        "ghcr.io/devcontainers/features/sshd:1": {}
     },
     "customizations": {
         "vscode": {
             "extensions": ["1YiB.svelte-bundle", "esbenp.prettier-vscode"]
         }
-    }
+    },
+    "remoteUser": "node"
 }

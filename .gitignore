@@ -2,6 +2,7 @@
 
 # dependencies
 node_modules
+.pnpm-store/
 .pnp
 .pnp.js
 
@@ -31,6 +32,7 @@ out
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+.devcontainer/ssh/authorized_keys.local
 
 # env
 .env
