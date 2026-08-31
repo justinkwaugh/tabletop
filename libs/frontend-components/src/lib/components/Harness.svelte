@@ -18,7 +18,7 @@
         Navbar,
         Toggle
     } from 'flowbite-svelte'
-    import { BarsOutline, ChevronDownOutline, TrashBinSolid } from 'flowbite-svelte-icons'
+    import { ChevronDownOutline, TrashBinSolid } from 'flowbite-svelte-icons'
     import HarnessGame from './HarnessGame.svelte'
     import type { GameSession } from '$lib/model/gameSession.svelte.js'
     import GameEditForm from './GameEditForm.svelte'
@@ -41,6 +41,8 @@
     let deleteModalOpen = $derived(gameToDelete !== undefined)
     let gameSession: GameSession<GameState, HydratedGameState> | undefined = $state(undefined)
     let availableGames = $derived([...gameService.activeGames, ...gameService.finishedGames])
+    let preferredColorsEnabled = $state(false)
+    let colorBlindPalette = $state(false)
 
     onMount(() => {
         gameService.loadGames().catch(console.error)
@@ -99,6 +101,31 @@
         }
     }
 
+    function updateColorPreferencePreview() {
+        gameSession?.colors.setPreferencePreview({
+            preferredColorsEnabled,
+            colorBlindPalette
+        })
+    }
+
+    function setPreferredColors(event: Event) {
+        if (!(event.currentTarget instanceof HTMLInputElement)) {
+            return
+        }
+
+        preferredColorsEnabled = event.currentTarget.checked
+        updateColorPreferencePreview()
+    }
+
+    function setColorBlindPalette(event: Event) {
+        if (!(event.currentTarget instanceof HTMLInputElement)) {
+            return
+        }
+
+        colorBlindPalette = event.currentTarget.checked
+        updateColorPreferencePreview()
+    }
+
     async function loadGame(gameId: string) {
         if (!definition) {
             return
@@ -133,6 +160,7 @@
             state: game.state,
             actions
         })
+        updateColorPreferencePreview()
     }
 </script>
 
@@ -168,6 +196,24 @@
         checked={authorizationService.adminCapabilitiesEnabled}
         onchange={setAdminCapabilities}
         class={className}>Admin</Toggle
+    >
+{/snippet}
+
+{#snippet preferredColorsToggle(className: string)}
+    <Toggle
+        checked={preferredColorsEnabled}
+        disabled={!gameSession}
+        onchange={setPreferredColors}
+        class={className}>Preferred colors</Toggle
+    >
+{/snippet}
+
+{#snippet colorBlindPaletteToggle(className: string)}
+    <Toggle
+        checked={colorBlindPalette}
+        disabled={!gameSession}
+        onchange={setColorBlindPalette}
+        class={className}>Colorblind palette</Toggle
     >
 {/snippet}
 
@@ -208,20 +254,16 @@
                 <div class="min-w-0 px-2">
                     <div class="truncate text-2xl text-white">{gameSession?.game.name}</div>
                 </div>
-                <div class="max-md:hidden flex flex-row justify-center items-center">
-                    {@render nonActivePlayerToggle('rounded p-2')}
-                    {@render debugToggle('rounded p-2')}
-                    {@render adminToggle('rounded p-2')}
-                </div>
-                <div class="md:hidden shrink-0">
-                    <Button
-                        id="harness-controls"
-                        size="xs"
-                        aria-label="Developer controls"
-                        class="ms-2"
+                <div class="flex flex-row justify-center items-center shrink-0">
+                    <div class="max-md:hidden flex flex-row justify-center items-center">
+                        {@render debugToggle('rounded p-2')}
+                        {@render adminToggle('rounded p-2')}
+                    </div>
+                    <Button id="harness-options" size="xs" class="ms-2"
+                        >Options<ChevronDownOutline
+                            class="ms-2 text-white dark:text-white"
+                        /></Button
                     >
-                        <BarsOutline class="h-5 w-5" />
-                    </Button>
                     <Dropdown placement="bottom-end">
                         <DropdownGroup class="py-1 min-w-[190px]">
                             <li>
@@ -230,11 +272,21 @@
                                 )}
                             </li>
                             <li>
-                                {@render debugToggle(
+                                {@render preferredColorsToggle(
                                     'w-full rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600'
                                 )}
                             </li>
                             <li>
+                                {@render colorBlindPaletteToggle(
+                                    'w-full rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600'
+                                )}
+                            </li>
+                            <li class="md:hidden">
+                                {@render debugToggle(
+                                    'w-full rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600'
+                                )}
+                            </li>
+                            <li class="md:hidden">
                                 {@render adminToggle(
                                     'w-full rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600'
                                 )}

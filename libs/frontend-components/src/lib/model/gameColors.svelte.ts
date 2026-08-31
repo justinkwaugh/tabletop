@@ -1,14 +1,29 @@
 import type { GameColorizer } from '$lib/definition/gameColorizer.js'
-import type {
-    PlayerColorPalette,
-    PlayerColorValueSet
-} from '$lib/definition/gameUiDefinition.js'
-import type { AuthorizationBridge } from '$lib/services/bridges/authorizationBridge.svelte.js'
-import { Color, GameState, User, type HydratedGameState } from '@tabletop/common'
-import type { GameContext } from './gameContext.svelte.js'
+import type { PlayerColorPalette, PlayerColorValueSet } from '$lib/definition/gameUiDefinition.js'
+import { Color, GameState, User, type Game } from '@tabletop/common'
 import { ColorblindColorizer } from '$lib/utils/colorblindPalette.js'
 import { untrack } from 'svelte'
-import { fromStore } from 'svelte/store'
+import { fromStore, type Readable } from 'svelte/store'
+
+export type GameColorPreferencePreview = {
+    preferredColorsEnabled: boolean
+    colorBlindPalette: boolean
+}
+
+type GameColorsAuthorization = {
+    user: Readable<User | undefined>
+    actAsAdmin: Readable<boolean>
+}
+
+type GameColorsContext<T extends GameState> = {
+    runtime: {
+        colorizer: GameColorizer
+        playerColors: Color[]
+        playerColorPalette?: PlayerColorPalette
+    }
+    game: Pick<Game, 'hotseat' | 'players'>
+    state: Pick<T, 'players'>
+}
 
 const defaultPlayerColorPalette: PlayerColorPalette = {
     [Color.Red]: {
@@ -126,10 +141,10 @@ const colorblindPlayerColorPalette: PlayerColorPalette = {
     }
 }
 
-export class GameColors<T extends GameState, U extends HydratedGameState<T> & T> {
+export class GameColors<T extends GameState> {
     constructor(
-        private authorizationBridge: AuthorizationBridge,
-        private gameContext: GameContext<T, U>
+        private authorizationBridge: GameColorsAuthorization,
+        private gameContext: GameColorsContext<T>
     ) {
         this.sessionUserStore = fromStore(this.authorizationBridge.user)
         this.actAsAdminStore = fromStore(this.authorizationBridge.actAsAdmin)
@@ -137,6 +152,7 @@ export class GameColors<T extends GameState, U extends HydratedGameState<T> & T>
 
     private sessionUserStore: { current: User | undefined }
     private actAsAdminStore: { current: boolean }
+    private preferencePreview: GameColorPreferencePreview | undefined = $state(undefined)
 
     private colorizer: GameColorizer = $derived.by(() => {
         return this.colorBlind &&
@@ -152,21 +168,19 @@ export class GameColors<T extends GameState, U extends HydratedGameState<T> & T>
         const state = untrack(() => this.gameContext.state)
 
         const sessionUser = this.sessionUserStore.current
-        const preferredColor = this.getPreferredColor(sessionUser)
-
         const gamePlayer = sessionUser?.id
             ? this.gameContext.game.players.find((player) => player.userId === sessionUser?.id)
             : undefined
 
         const playerCopies = structuredClone(state.players)
+        const myPlayer = playerCopies.find((player) => player.playerId === gamePlayer?.id)
+        const preferredColor = this.getPreferredColor(sessionUser, myPlayer?.color)
         const conflictingPlayer = playerCopies.find(
             (player) =>
                 preferredColor &&
                 player.color === preferredColor &&
                 player.playerId !== gamePlayer?.id
         )
-
-        const myPlayer = playerCopies.find((player) => player.playerId === gamePlayer?.id)
 
         if (preferredColor && myPlayer && myPlayer.color !== preferredColor) {
             const myOriginalColor = myPlayer.color
@@ -182,19 +196,25 @@ export class GameColors<T extends GameState, U extends HydratedGameState<T> & T>
         )
     })
 
-    private getPreferredColor(user?: User): Color | undefined {
+    private getPreferredColor(
+        user: User | undefined,
+        assignedColor: Color | undefined
+    ): Color | undefined {
+        const preview = this.preferencePreview
+        const preferences = preview ?? user?.preferences
         if (
             !this.gameContext.runtime.colorizer.allowPreferredPlayerColors() ||
-            this.gameContext.game.hotseat ||
+            (this.gameContext.game.hotseat && !preview) ||
             !user ||
-            !user.preferences ||
-            !user.preferences.preferredColorsEnabled ||
+            !preferences?.preferredColorsEnabled ||
             this.actAsAdminStore.current
         ) {
             return undefined
         }
 
-        const preferredColors = user.preferences.preferredColors
+        const preferredColors = preview
+            ? this.getPreviewPreferredColors(assignedColor)
+            : (user.preferences?.preferredColors ?? [])
         let preferredColor: Color | undefined
         let bestRank = 999
         for (const color of this.gameContext.runtime.playerColors) {
@@ -207,14 +227,24 @@ export class GameColors<T extends GameState, U extends HydratedGameState<T> & T>
         return preferredColor
     }
 
-    colorBlind: boolean = $derived.by(() => {
-        const sessionUser = this.sessionUserStore.current
-        if (!sessionUser || !sessionUser.preferences) {
-            return false
-        }
+    private getPreviewPreferredColors(assignedColor: Color | undefined): Color[] {
+        const assignedColors = this.gameContext.runtime.playerColors.filter(
+            (color) => color === assignedColor
+        )
+        const otherColors = this.gameContext.runtime.playerColors.filter(
+            (color) => color !== assignedColor
+        )
+        return [...otherColors, ...assignedColors]
+    }
 
-        return sessionUser.preferences.colorBlindPalette === true
+    colorBlind: boolean = $derived.by(() => {
+        const preferences = this.preferencePreview ?? this.sessionUserStore.current?.preferences
+        return preferences?.colorBlindPalette === true
     })
+
+    setPreferencePreview(preview: GameColorPreferencePreview | undefined): void {
+        this.preferencePreview = preview
+    }
 
     getPlayerColor(playerId?: string): Color {
         return this.playerColorsById.get(playerId ?? 'unknown') ?? Color.Gray
@@ -296,7 +326,10 @@ export class GameColors<T extends GameState, U extends HydratedGameState<T> & T>
     private getColorValueSet(color: Color): PlayerColorValueSet {
         const resolvedColor = color ?? Color.Gray
         if (this.colorizer instanceof ColorblindColorizer) {
-            return colorblindPlayerColorPalette[resolvedColor] ?? colorblindPlayerColorPalette[Color.Gray]!
+            return (
+                colorblindPlayerColorPalette[resolvedColor] ??
+                colorblindPlayerColorPalette[Color.Gray]!
+            )
         }
 
         const runtimePalette = this.gameContext.runtime.playerColorPalette

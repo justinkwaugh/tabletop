@@ -111,7 +111,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     history: GameHistory<T, U>
     explorations: GameExplorations<T, U>
-    colors: GameColors<T, U>
+    colors: GameColors<T>
     bridge: GameSessionBridge<T, U>
 
     chatService: ChatService
