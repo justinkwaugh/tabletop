@@ -52,7 +52,7 @@ function buildState(actionDeck: ActionCard[]): HydratedLowenherzGameState {
         winningPlayerIds: [],
         board: blankBoard(),
         // p1's region owns the one hill square on the board.
-        regions: [{ id: 'r1', ownerColor: Color.Pink, squareKeys: [squareKey(0, 0)] }],
+        regions: [{ id: 'r1', owner: 'p1', squareKeys: [squareKey(0, 0)] }],
         alliances: [],
         turnOrder: playerIds,
         firstPlayerId: 'p1',

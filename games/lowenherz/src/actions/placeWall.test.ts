@@ -84,8 +84,8 @@ describe('HydratedPlaceWall', () => {
         // single-castle-or-fewer region - which would trigger this brand new wall's
         // own interior-wall cleanup, stripping it right back out.
         const board = blankBoard()
-        board.squares[5][10] = { type: SquareType.Blank, castleColor: Color.Pink }
-        board.squares[5][12] = { type: SquareType.Blank, castleColor: Color.Yellow }
+        board.squares[5][10] = { type: SquareType.Blank, castleOwner: 'p1' }
+        board.squares[5][12] = { type: SquareType.Blank, castleOwner: 'p2' }
         const state = buildState({ board })
         const action = makePlaceWall('p1', 0, 0, 1, 0)
 
@@ -118,8 +118,8 @@ describe('HydratedPlaceWall', () => {
 
     it('rejects a wall between two knights of the same color', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, knightColor: Color.Pink }
-        board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, knightOwner: 'p1' }
+        board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p1' }
         const state = buildState({ board })
 
         expect(makePlaceWall('p1', 0, 0, 1, 0).isValidPlaceWall(state)).toBe(false)
@@ -127,8 +127,8 @@ describe('HydratedPlaceWall', () => {
 
     it('allows a wall between two knights of different colors', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, knightColor: Color.Pink }
-        board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Yellow }
+        board.squares[0][0] = { type: SquareType.Blank, knightOwner: 'p1' }
+        board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p2' }
         const state = buildState({ board })
 
         expect(makePlaceWall('p1', 0, 0, 1, 0).isValidPlaceWall(state)).toBe(true)
@@ -136,8 +136,8 @@ describe('HydratedPlaceWall', () => {
 
     it('rejects a wall between a knight and a castle of the same color', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
-        board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
+        board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p1' }
         const state = buildState({ board })
 
         expect(makePlaceWall('p1', 0, 0, 1, 0).isValidPlaceWall(state)).toBe(false)
@@ -145,8 +145,8 @@ describe('HydratedPlaceWall', () => {
 
     it('allows a wall between a knight and a castle of a different color', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
-        board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Yellow }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
+        board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p2' }
         const state = buildState({ board })
 
         expect(makePlaceWall('p1', 0, 0, 1, 0).isValidPlaceWall(state)).toBe(true)
@@ -154,21 +154,21 @@ describe('HydratedPlaceWall', () => {
 
     it('rejects a wall entirely inside an already-existing region', () => {
         const state = buildState({
-            regions: [{ id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0', '1,0'], castleSquareKey: '0,0' }]
+            regions: [{ id: 'r1', owner: 'p1', squareKeys: ['0,0', '1,0'], castleSquareKey: '0,0' }]
         })
         expect(makePlaceWall('p1', 0, 0, 1, 0).isValidPlaceWall(state)).toBe(false)
     })
 
     it('allows a wall between a square in an existing region and one outside it', () => {
         const state = buildState({
-            regions: [{ id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' }]
+            regions: [{ id: 'r1', owner: 'p1', squareKeys: ['0,0'], castleSquareKey: '0,0' }]
         })
         expect(makePlaceWall('p1', 0, 0, 1, 0).isValidPlaceWall(state)).toBe(true)
     })
 
     it('scores a new region and cleans up its interior walls when a placement seals it', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
         // Only the south wall of (0,0) exists so far - the action itself places the
         // east wall, which is the last piece needed to seal it off.
         board.walls = [{ col: 0, row: 1, edge: WallEdge.North }]
@@ -178,11 +178,11 @@ describe('HydratedPlaceWall', () => {
         expect(action.isValidPlaceWall(state)).toBe(true)
         action.apply(state)
 
-        const pinkRegion = state.regions.find((r) => r.ownerColor === Color.Pink)
-        expect(pinkRegion?.squareKeys).toEqual(['0,0'])
+        const p1Region = state.regions.find((r) => r.owner === 'p1')
+        expect(p1Region?.squareKeys).toEqual(['0,0'])
         expect(state.getPlayerState('p1').powerPoints).toBe(3) // 1-space region -> 3 points
         expect(action.metadata?.completedRegions).toContainEqual({
-            ownerColor: Color.Pink,
+            owner: 'p1',
             spaceCount: 1,
             townCount: 0,
             points: 3,
@@ -194,8 +194,8 @@ describe('HydratedPlaceWall', () => {
         // Castles elsewhere so the wide-open remainder has 2+ castles and isn't itself
         // misidentified as a single-castle region (see the first test in this file).
         const board = blankBoard()
-        board.squares[5][10] = { type: SquareType.Blank, castleColor: Color.Pink }
-        board.squares[5][12] = { type: SquareType.Blank, castleColor: Color.Yellow }
+        board.squares[5][10] = { type: SquareType.Blank, castleOwner: 'p1' }
+        board.squares[5][12] = { type: SquareType.Blank, castleOwner: 'p2' }
         const state = buildState({ board })
         const action = makePlaceWall('p1', 0, 0, 1, 0)
         action.apply(state)

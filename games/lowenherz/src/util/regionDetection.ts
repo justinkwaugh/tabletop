@@ -1,4 +1,3 @@
-import { Color } from '@tabletop/common'
 import {
     BOARD_COLS,
     BOARD_ROWS,
@@ -10,12 +9,13 @@ import {
     squareKey
 } from '../model/board.js'
 import { Region } from '../model/region.js'
+import { PieceOwner } from '../model/owner.js'
 
 // Finds every maximal wall-enclosed connected component of squares that isn't already
 // exactly one of the existing tracked regions. A component only becomes a new Region if
-// it contains exactly 0 castles (a neutral zone) or exactly 1 castle color (that
-// color's new region) - per the rulebook, a component enclosing 2+ different castle
-// colors isn't controlled by anyone and is skipped, same as the wide-open, mostly
+// it contains exactly 0 castles (a neutral zone) or castles of exactly 1 owner (that
+// owner's new region) - per the rulebook, a component enclosing castles of 2+ different
+// owners isn't controlled by anyone and is skipped, same as the wide-open, mostly
 // unwalled rest of the board early in the game.
 // Hands out `region-N` ids that don't collide with any id already in use. Ids have to be
 // unique across the whole game, not just within one detection call: a region id is how
@@ -98,25 +98,25 @@ export function detectNewRegions(board: LowenherzBoard, existingRegions: Region[
             )
             if (alreadyTracked) continue
 
-            const castleColors = new Set<Color>()
+            const castleOwners = new Set<PieceOwner>()
             let castleSquareKey: string | undefined
             for (const sq of component) {
                 const square = getSquare(board, sq.col, sq.row)
-                if (square?.castleColor) {
-                    castleColors.add(square.castleColor)
+                if (square?.castleOwner) {
+                    castleOwners.add(square.castleOwner)
                     castleSquareKey = squareKey(sq.col, sq.row)
                 }
             }
 
             // Enclosed by 2+ different castles - not a region at all (neither prince
             // controls it), so nothing is created here.
-            if (castleColors.size > 1) continue
+            if (castleOwners.size > 1) continue
 
             newRegions.push({
                 id: mintId(),
-                ownerColor: castleColors.size === 1 ? [...castleColors][0] : undefined,
+                owner: castleOwners.size === 1 ? [...castleOwners][0] : undefined,
                 squareKeys: componentKeys,
-                castleSquareKey: castleColors.size === 1 ? castleSquareKey : undefined
+                castleSquareKey: castleOwners.size === 1 ? castleSquareKey : undefined
             })
         }
     }

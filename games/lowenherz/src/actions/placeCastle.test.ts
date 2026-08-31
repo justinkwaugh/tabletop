@@ -4,7 +4,8 @@ import { HydratedLowenherzGameState, LowenherzGameState } from '../model/gameSta
 import { BOARD_COLS, BOARD_ROWS, BoardSquare, SquareType } from '../model/board.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
-import { currentPlacementColor, HydratedPlaceCastle, PlaceCastle } from './placeCastle.js'
+import { currentPlacementOwner, HydratedPlaceCastle, PlaceCastle } from './placeCastle.js'
+import { NEUTRAL_OWNER } from '../model/owner.js'
 import { neighbors } from '../model/board.js'
 
 function blankBoard(): { squares: BoardSquare[][]; walls: [] } {
@@ -139,13 +140,13 @@ describe('HydratedPlaceCastle', () => {
         expect(tooFar.isValidPlaceCastle(state)).toBe(false)
     })
 
-    it('enforces the 6-space gap rule against the same color only', () => {
+    it('enforces the 6-space gap rule against the same owner only', () => {
         // Single-player turn order so it's always p1's turn regardless of how many
         // castles have already been placed - isolates the gap check from turn order.
         const state = buildState(['p1'])
-        // p1 (Pink) already has a castle at (2,2)
-        state.board.squares[2][2].castleColor = Color.Pink
-        state.board.squares[2][1].knightColor = Color.Pink
+        // p1 already has a castle at (2,2)
+        state.board.squares[2][2].castleOwner = 'p1'
+        state.board.squares[2][1].knightOwner = 'p1'
 
         // Too close for p1's own next castle (distance 5 < 6)
         const tooClose = makePlaceCastle({
@@ -162,7 +163,7 @@ describe('HydratedPlaceCastle', () => {
         expect(exactlySix.isValidPlaceCastle(state)).toBe(true)
     })
 
-    it('applying the action places the castle+knight and decrements the stock for own-color placements', () => {
+    it('applying the action places the castle+knight and decrements the stock for own placements', () => {
         const state = buildState(['p1', 'p2', 'p3', 'p4'])
         const action = makePlaceCastle({
             playerId: 'p1',
@@ -171,8 +172,8 @@ describe('HydratedPlaceCastle', () => {
 
         action.apply(state)
 
-        expect(state.board.squares[5][5].castleColor).toBe(Color.Pink)
-        expect(state.board.squares[4][5].knightColor).toBe(Color.Pink)
+        expect(state.board.squares[5][5].castleOwner).toBe('p1')
+        expect(state.board.squares[4][5].knightOwner).toBe('p1')
         expect(state.getPlayerState('p1').knightsInStock).toBe(11)
     })
 
@@ -186,9 +187,9 @@ describe('HydratedPlaceCastle', () => {
         // turn-order check, the same way the gap-rule test above does.
         const state = buildState(['p1'])
         state.board.squares[3][3].type = SquareType.Hill
-        state.board.squares[4][4].castleColor = Color.Yellow
-        // p1 (Pink) already has a castle at (2,2)
-        state.board.squares[2][2].castleColor = Color.Pink
+        state.board.squares[4][4].castleOwner = 'p2'
+        // p1 already has a castle at (2,2)
+        state.board.squares[2][2].castleOwner = 'p1'
 
         expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 3, 3)).toBe('wrongTerrain')
         expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 4, 4)).toBe('occupied')
@@ -228,17 +229,17 @@ describe('HydratedPlaceCastle', () => {
     it('does not decrement any player stock for a neutral-color placement', () => {
         const state = buildState(['p1', 'p2', 'p3'], {
             // Fast-forward: p1, p2, p3 have already placed all 3 of their own castles,
-            // so the next placement (index 9) is p1's neutral-color one.
+            // so the next placement (index 9) is p1's neutral one.
             board: (() => {
                 const b = blankBoard()
                 // 3 laps x 3 players x (castle+knight) = 9 pairs; 6 columns per lap
                 // easily fits in a 15-column row, one lap per row.
                 for (let lap = 0; lap < 3; lap++) {
                     let col = 0
-                    for (const color of [Color.Pink, Color.Yellow, Color.Purple]) {
-                        b.squares[lap][col] = { type: SquareType.Blank, castleColor: color }
+                    for (const owner of ['p1', 'p2', 'p3']) {
+                        b.squares[lap][col] = { type: SquareType.Blank, castleOwner: owner }
                         col += 1
-                        b.squares[lap][col] = { type: SquareType.Blank, knightColor: color }
+                        b.squares[lap][col] = { type: SquareType.Blank, knightOwner: owner }
                         col += 1
                     }
                 }
@@ -254,7 +255,7 @@ describe('HydratedPlaceCastle', () => {
         expect(action.isValidPlaceCastle(state)).toBe(true)
         action.apply(state)
 
-        expect(state.board.squares[8][8].castleColor).toBe(Color.Gray) // neutral color
+        expect(state.board.squares[8][8].castleOwner).toBe(NEUTRAL_OWNER)
         expect(state.getPlayerState('p1').knightsInStock).toBe(12) // unchanged
     })
 })
@@ -262,9 +263,9 @@ describe('HydratedPlaceCastle', () => {
 describe('HydratedPlaceCastle.requiredCastleGap', () => {
     it('keeps the rulebook 6-space gap while any legal square can clear it', () => {
         const state = buildState(['p1', 'p2', 'p3', 'p4'])
-        state.board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        state.board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
 
-        expect(HydratedPlaceCastle.requiredCastleGap(state, Color.Pink)).toBe(6)
+        expect(HydratedPlaceCastle.requiredCastleGap(state, 'p1')).toBe(6)
     })
 
     it('relaxes to the best the board offers when nothing can clear 6', () => {
@@ -275,76 +276,76 @@ describe('HydratedPlaceCastle.requiredCastleGap', () => {
         // available, which keeps castles as spread out as the board permits.
         const state = buildState(['p1', 'p2'])
         // Hills can't take a castle, so fencing the board off with them leaves only a small
-        // blank pocket beside Pink's existing castle - every candidate is 1-2 away.
+        // blank pocket beside p1's existing castle - every candidate is 1-2 away.
         for (let row = 0; row < state.board.squares.length; row++) {
             for (let col = 0; col < state.board.squares[row].length; col++) {
                 state.board.squares[row][col] = { type: SquareType.Hill }
             }
         }
-        state.board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        state.board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
         state.board.squares[0][1] = { type: SquareType.Blank } // (1,0) - gap 1
         state.board.squares[0][2] = { type: SquareType.Blank } // (2,0) - gap 2, needs a knight square
         state.board.squares[1][2] = { type: SquareType.Blank } // (2,1) - knight square for (2,0)
-        // Two castles on the board puts the placement plan back on p1 (Pink) - one apiece,
-        // and the 2-player plan alternates - so the relaxation is exercised for a colour
-        // that already HAS a castle. Yellow's sits far away and blocks nothing.
-        state.board.squares[9][14] = { type: SquareType.Blank, castleColor: Color.Yellow }
+        // Two castles on the board puts the placement plan back on p1 - one apiece, and the
+        // 2-player plan alternates - so the relaxation is exercised for an owner that
+        // already HAS a castle. p2's sits far away and blocks nothing.
+        state.board.squares[9][14] = { type: SquareType.Blank, castleOwner: 'p2' }
 
         // Widest available is (2,1) at manhattan distance 3 - it's a candidate in its own
         // right, with (2,0) serving as its knight square - so 3 becomes the requirement...
-        expect(HydratedPlaceCastle.requiredCastleGap(state, Color.Pink)).toBe(3)
+        expect(HydratedPlaceCastle.requiredCastleGap(state, 'p1')).toBe(3)
         // ...which means the game can still proceed: there IS a legal square.
         expect(HydratedPlaceCastle.legalCastleSquares(state, 'p1').length).toBeGreaterThan(0)
     })
 })
 
-describe('currentPlacementColor', () => {
+describe('currentPlacementOwner', () => {
     // What the client previews as the piece about to be placed. It has to follow the
-    // PLAN's color, not the placing player's own, or the ghost castles change color from
+    // PLAN's owner, not the placing player's own, or the ghost castles change color from
     // seat to seat during the neutral laps when every one of them will be neutral.
-    it('runs own-color laps then neutral laps, for 2 players', () => {
+    it('runs own laps then neutral laps, for 2 players', () => {
         const state = buildState(['p1', 'p2'])
         const board = state.board
 
-        // 2p plan: 4 own-color laps (p1, p2 each lap), then 2 neutral laps.
+        // 2p plan: 4 own laps (p1, p2 each lap), then 2 neutral laps.
         const expected = [
-            Color.Pink, Color.Yellow,
-            Color.Pink, Color.Yellow,
-            Color.Pink, Color.Yellow,
-            Color.Pink, Color.Yellow,
-            Color.Gray, Color.Gray,
-            Color.Gray, Color.Gray
+            'p1', 'p2',
+            'p1', 'p2',
+            'p1', 'p2',
+            'p1', 'p2',
+            NEUTRAL_OWNER, NEUTRAL_OWNER,
+            NEUTRAL_OWNER, NEUTRAL_OWNER
         ]
 
-        for (const [index, color] of expected.entries()) {
-            expect(currentPlacementColor(state)).toBe(color)
+        for (const [index, owner] of expected.entries()) {
+            expect(currentPlacementOwner(state)).toBe(owner)
             // Stand in for a completed placement - the plan is driven purely by how many
             // castles are on the board.
             board.squares[Math.floor(index / BOARD_COLS)][index % BOARD_COLS] = {
                 type: SquareType.Blank,
-                castleColor: color
+                castleOwner: owner
             }
         }
 
         // 12 placements is the whole plan - nothing left to preview.
-        expect(currentPlacementColor(state)).toBeUndefined()
+        expect(currentPlacementOwner(state)).toBeUndefined()
     })
 
-    it('is the neutral color for the single closing lap, for 3 players', () => {
+    it('is the neutral prince for the single closing lap, for 3 players', () => {
         const state = buildState(['p1', 'p2', 'p3'])
         const board = state.board
         for (let index = 0; index < 9; index++) {
             board.squares[Math.floor(index / BOARD_COLS)][index % BOARD_COLS] = {
                 type: SquareType.Blank,
-                castleColor: Color.Pink
+                castleOwner: 'p1'
             }
         }
-        // 9 own-color placements done, so the 3 neutral ones are next.
-        expect(currentPlacementColor(state)).toBe(Color.Gray)
+        // 9 own placements done, so the 3 neutral ones are next.
+        expect(currentPlacementOwner(state)).toBe(NEUTRAL_OWNER)
     })
 
-    it('is always the placing player\'s own color at 4 players, which has no neutral lap', () => {
+    it('is always the placing player themselves at 4 players, which has no neutral lap', () => {
         const state = buildState(['p1', 'p2', 'p3', 'p4'])
-        expect(currentPlacementColor(state)).toBe(Color.Pink)
+        expect(currentPlacementOwner(state)).toBe('p1')
     })
 })

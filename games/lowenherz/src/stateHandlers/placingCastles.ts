@@ -11,18 +11,14 @@ function totalCastlesPlaced(state: HydratedLowenherzGameState): number {
     let count = 0
     for (const row of state.board.squares) {
         for (const square of row) {
-            if (square.castleColor) count++
+            if (square.castleOwner) count++
         }
     }
     return count
 }
 
 function planFor(state: HydratedLowenherzGameState) {
-    return buildPlacementPlan(
-        state.turnOrder,
-        (playerId) => state.getPlayerState(playerId).color,
-        state.neutralColor
-    )
+    return buildPlacementPlan(state.turnOrder, state.neutralColor !== undefined)
 }
 
 export class PlacingCastlesStateHandler

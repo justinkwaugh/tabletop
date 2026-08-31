@@ -84,8 +84,8 @@ export class ScorePopupAnimator extends StateAnimator {
             if (region.points === 0) continue
             // Slate rather than the gray prince's #888888 - an unowned region's popup shouldn't
             // read as that player's (see NEUTRAL_ZONE_PAINT).
-            const color = region.ownerColor
-                ? this.gameSession.uiColorForBoardColor(region.ownerColor)
+            const color = region.owner
+                ? this.gameSession.uiColorForOwner(region.owner)
                 : '#3f3f46'
             entries.push({ anchorKey: region.anchorSquareKey, amount: region.points, color })
         }

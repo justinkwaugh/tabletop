@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ActionSource, Color } from '@tabletop/common'
 import { HydratedLowenherzGameState, LowenherzGameState } from '../model/gameState.js'
+import { NEUTRAL_OWNER } from '../model/owner.js'
 import { BOARD_COLS, BOARD_ROWS, BoardSquare, SquareType, WallEdge } from '../model/board.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
@@ -18,11 +19,11 @@ function blankBoard(): { squares: BoardSquare[][]; walls: { col: number; row: nu
 }
 
 function ownRegion(): Region {
-    return { id: 'own', ownerColor: Color.Pink, squareKeys: ['0,0', '1,0', '2,0'], castleSquareKey: '0,0' }
+    return { id: 'own', owner: 'p1', squareKeys: ['0,0', '1,0', '2,0'], castleSquareKey: '0,0' }
 }
 
 function enemyRegion(): Region {
-    return { id: 'enemy', ownerColor: Color.Yellow, squareKeys: ['0,1', '1,1'], castleSquareKey: '0,1' }
+    return { id: 'enemy', owner: 'p2', squareKeys: ['0,1', '1,1'], castleSquareKey: '0,1' }
 }
 
 function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenherzGameState {
@@ -37,11 +38,11 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
     }))
 
     const board = blankBoard()
-    board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
-    board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Pink }
+    board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
+    board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p1' }
     board.squares[0][2] = { type: SquareType.Blank }
-    board.squares[1][0] = { type: SquareType.Blank, castleColor: Color.Yellow }
-    board.squares[1][1] = { type: SquareType.Blank, knightColor: Color.Yellow }
+    board.squares[1][0] = { type: SquareType.Blank, castleOwner: 'p2' }
+    board.squares[1][1] = { type: SquareType.Blank, knightOwner: 'p2' }
 
     const data: LowenherzGameState = {
         id: 'game-1',
@@ -109,32 +110,31 @@ describe('HydratedPlayRenegadeCard', () => {
         expect(action.isValidPlayRenegadeCard(state)).toBe(true)
         action.apply(state)
 
-        expect(state.board.squares[1][1].knightColor).toBeUndefined()
+        expect(state.board.squares[1][1].knightOwner).toBeUndefined()
         expect(state.getPlayerState('p2').knightsInStock).toBe(6)
 
-        expect(state.board.squares[0][2].knightColor).toBe(Color.Pink)
+        expect(state.board.squares[0][2].knightOwner).toBe('p1')
         expect(state.getPlayerState('p1').knightsInStock).toBe(4)
 
         expect(state.getPlayerState('p1').politicsCards).toEqual([])
         expect(action.metadata).toEqual({
-            victimColor: Color.Yellow,
+            victimOwner: 'p2',
             removedSquareKey: '1,1',
             placedSquareKey: '2,0'
         })
     })
 
     it("removes a NEUTRAL prince's knight without crediting anyone's stock", () => {
-        // A neutral prince owns regions under a real colour (see neutralColor, used in 2-
-        // and 3-player games) that no player holds. That passes the legality check - which
-        // only refuses a region with NO owner colour - so this is an ordinary, legal play,
-        // and it used to throw on `victimPlayer.knightsInStock` because the lookup by
-        // colour found nobody.
+        // The neutral prince owns regions (see neutralColor, used in 2- and 3-player
+        // games) but is no player. That passes the legality check - which only refuses a
+        // region with NO owner - so this is an ordinary, legal play, and it used to throw
+        // on `victimPlayer.knightsInStock` because the lookup found nobody.
         const state = buildState({
             neutralColor: Color.Green,
-            regions: [ownRegion(), { ...enemyRegion(), ownerColor: Color.Green }]
+            regions: [ownRegion(), { ...enemyRegion(), owner: NEUTRAL_OWNER }]
         })
-        state.board.squares[1][0] = { type: SquareType.Blank, castleColor: Color.Green }
-        state.board.squares[1][1] = { type: SquareType.Blank, knightColor: Color.Green }
+        state.board.squares[1][0] = { type: SquareType.Blank, castleOwner: NEUTRAL_OWNER }
+        state.board.squares[1][1] = { type: SquareType.Blank, knightOwner: NEUTRAL_OWNER }
 
         const action = makePlayRenegadeCard('p1')
         expect(action.isValidPlayRenegadeCard(state)).toBe(true)
@@ -142,11 +142,11 @@ describe('HydratedPlayRenegadeCard', () => {
 
         // The knight leaves the board and simply ceases to exist - a neutral prince has no
         // stock for it to return to - while the player's own half resolves as normal.
-        expect(state.board.squares[1][1].knightColor).toBeUndefined()
-        expect(state.board.squares[0][2].knightColor).toBe(Color.Pink)
+        expect(state.board.squares[1][1].knightOwner).toBeUndefined()
+        expect(state.board.squares[0][2].knightOwner).toBe('p1')
         expect(state.getPlayerState('p1').knightsInStock).toBe(4)
         expect(state.getPlayerState('p2').knightsInStock).toBe(5)
-        expect(action.metadata?.victimColor).toBe(Color.Green)
+        expect(action.metadata?.victimOwner).toBe(NEUTRAL_OWNER)
     })
 
     it('does not consume any ducats when neither square is wooded', () => {
@@ -159,7 +159,7 @@ describe('HydratedPlayRenegadeCard', () => {
 
     it('charges the wooded cost when removing a knight from a forest square', () => {
         const state = buildState()
-        state.board.squares[1][1] = { type: SquareType.Forest, knightColor: Color.Yellow }
+        state.board.squares[1][1] = { type: SquareType.Forest, knightOwner: 'p2' }
         const action = makePlayRenegadeCard('p1')
 
         expect(action.isValidPlayRenegadeCard(state)).toBe(true)
@@ -183,14 +183,14 @@ describe('HydratedPlayRenegadeCard', () => {
 
     it('charges both wooded costs when applicable, additively', () => {
         const state = buildState()
-        state.board.squares[1][1] = { type: SquareType.Forest, knightColor: Color.Yellow }
+        state.board.squares[1][1] = { type: SquareType.Forest, knightOwner: 'p2' }
         state.board.squares[0][2] = { type: SquareType.Forest }
         const action = makePlayRenegadeCard('p1')
         action.apply(state)
 
         expect(state.getPlayerState('p1').money).toBe(12 - 10)
         expect(action.metadata).toEqual({
-            victimColor: Color.Yellow,
+            victimOwner: 'p2',
             removedSquareKey: '1,1',
             placedSquareKey: '2,0',
             removalWoodedCostPaid: 5,
@@ -225,17 +225,17 @@ describe('HydratedPlayRenegadeCard', () => {
     })
 
     it("rejects when the chosen 'enemy' region is neutral or the player's own", () => {
-        const state = buildState({ regions: [ownRegion(), { ...enemyRegion(), ownerColor: undefined }] })
+        const state = buildState({ regions: [ownRegion(), { ...enemyRegion(), owner: undefined }] })
         expect(makePlayRenegadeCard('p1').isValidPlayRenegadeCard(state)).toBe(false)
     })
 
     it("rejects when the two regions don't border each other", () => {
-        const farEnemy: Region = { id: 'enemy', ownerColor: Color.Yellow, squareKeys: ['9,9'], castleSquareKey: '9,9' }
+        const farEnemy: Region = { id: 'enemy', owner: 'p2', squareKeys: ['9,9'], castleSquareKey: '9,9' }
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
-        board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
+        board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p1' }
         board.squares[0][2] = { type: SquareType.Blank }
-        board.squares[9][9] = { type: SquareType.Blank, castleColor: Color.Yellow, knightColor: undefined }
+        board.squares[9][9] = { type: SquareType.Blank, castleOwner: 'p2', knightOwner: undefined }
         const state = buildState({ regions: [ownRegion(), farEnemy], board })
 
         expect(
@@ -255,10 +255,10 @@ describe('HydratedPlayRenegadeCard', () => {
         const state = buildState({
             regions: [
                 ownRegion(),
-                { id: 'enemy', ownerColor: Color.Yellow, squareKeys: ['0,1', '1,1', '2,1'], castleSquareKey: '0,1' }
+                { id: 'enemy', owner: 'p2', squareKeys: ['0,1', '1,1', '2,1'], castleSquareKey: '0,1' }
             ]
         })
-        state.board.squares[1][2] = { type: SquareType.Blank, knightColor: Color.Yellow } // (2,1) - only reachable via (1,1)
+        state.board.squares[1][2] = { type: SquareType.Blank, knightOwner: 'p2' } // (2,1) - only reachable via (1,1)
 
         expect(
             makePlayRenegadeCard('p1', { removedCol: 1, removedRow: 1 }).isValidPlayRenegadeCard(state)
@@ -293,7 +293,7 @@ describe('HydratedPlayRenegadeCard', () => {
 
     it("rejects when the player can't afford the combined wooded cost of removing and placing", () => {
         const state = buildState()
-        state.board.squares[1][1] = { type: SquareType.Forest, knightColor: Color.Yellow }
+        state.board.squares[1][1] = { type: SquareType.Forest, knightOwner: 'p2' }
         state.board.squares[0][2] = { type: SquareType.Forest }
         state.getPlayerState('p1').money = 9 // enough for either cost alone (5), not both (10)
 
@@ -302,7 +302,7 @@ describe('HydratedPlayRenegadeCard', () => {
 
     it('allows the combined wooded cost when the player can just afford it', () => {
         const state = buildState()
-        state.board.squares[1][1] = { type: SquareType.Forest, knightColor: Color.Yellow }
+        state.board.squares[1][1] = { type: SquareType.Forest, knightOwner: 'p2' }
         state.board.squares[0][2] = { type: SquareType.Forest }
         state.getPlayerState('p1').money = 10
 
@@ -311,14 +311,14 @@ describe('HydratedPlayRenegadeCard', () => {
 
     it('rejects placement not adjacent to any of the own knights/castles', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
         board.squares[0][2] = { type: SquareType.Blank } // not adjacent to (0,0) or any Pink piece
-        board.squares[1][0] = { type: SquareType.Blank, castleColor: Color.Yellow }
-        board.squares[1][1] = { type: SquareType.Blank, knightColor: Color.Yellow }
+        board.squares[1][0] = { type: SquareType.Blank, castleOwner: 'p2' }
+        board.squares[1][1] = { type: SquareType.Blank, knightOwner: 'p2' }
         const state = buildState({
             board,
             regions: [
-                { id: 'own', ownerColor: Color.Pink, squareKeys: ['0,0', '2,0'], castleSquareKey: '0,0' },
+                { id: 'own', owner: 'p1', squareKeys: ['0,0', '2,0'], castleSquareKey: '0,0' },
                 enemyRegion()
             ]
         })

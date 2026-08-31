@@ -210,8 +210,8 @@ describe('ChoosingActionsStateHandler', () => {
     it('offers CancelAlliance to either participant when they can afford it', () => {
         const state = buildState(['p1', 'p2'])
         state.regions = [
-            { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] },
-            { id: 'r2', ownerColor: Color.Yellow, squareKeys: ['1,0'] }
+            { id: 'r1', owner: 'p1', squareKeys: ['0,0'] },
+            { id: 'r2', owner: 'p2', squareKeys: ['1,0'] }
         ]
         state.alliances = [{ id: 'alliance-1', regionAId: 'r1', regionBId: 'r2' }]
         const handler = new ChoosingActionsStateHandler()
@@ -226,8 +226,8 @@ describe('ChoosingActionsStateHandler', () => {
     it('does not offer CancelAlliance when the player cannot afford the 10-ducat cost', () => {
         const state = buildState(['p1', 'p2'])
         state.regions = [
-            { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] },
-            { id: 'r2', ownerColor: Color.Yellow, squareKeys: ['1,0'] }
+            { id: 'r1', owner: 'p1', squareKeys: ['0,0'] },
+            { id: 'r2', owner: 'p2', squareKeys: ['1,0'] }
         ]
         state.alliances = [{ id: 'alliance-1', regionAId: 'r1', regionBId: 'r2' }]
         state.getPlayerState('p1').money = 0

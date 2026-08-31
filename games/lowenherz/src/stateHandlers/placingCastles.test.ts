@@ -6,7 +6,7 @@ import {
     BOARD_ROWS,
     BoardSquare,
     SquareType,
-    castleSquaresForColor,
+    castleSquaresForOwner,
     isOnBoard,
     manhattanDistance,
     neighbors
@@ -16,6 +16,7 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedPlaceCastle } from '../actions/placeCastle.js'
 import { PlacingCastlesStateHandler } from './placingCastles.js'
 import { buildPlacementPlan, currentPlacementSlot } from '../util/placementPlan.js'
+import { NEUTRAL_OWNER, PieceOwner } from '../model/owner.js'
 
 function blankBoard(): { squares: BoardSquare[][]; walls: [] } {
     return {
@@ -65,31 +66,31 @@ function buildState(playerIds: string[]): HydratedLowenherzGameState {
     return new HydratedLowenherzGameState(data)
 }
 
-// Brute-force scan for any legal castle+knight spot for the given color - mirrors what
+// Brute-force scan for any legal castle+knight spot for the given owner - mirrors what
 // a real player/UI would need to find, so driving the full setup sequence with this
 // exercises the same rules an actual game would.
-function findLegalPlacement(state: HydratedLowenherzGameState, color: Color) {
-    const existing = castleSquaresForColor(state.board, color)
+function findLegalPlacement(state: HydratedLowenherzGameState, owner: PieceOwner) {
+    const existing = castleSquaresForOwner(state.board, owner)
     for (let row = 0; row < BOARD_ROWS; row++) {
         for (let col = 0; col < BOARD_COLS; col++) {
             const square = state.board.squares[row][col]
-            if (square.type !== SquareType.Blank || square.castleColor || square.knightColor) continue
-            if (existing.some((e) => manhattanDistance(e.col, e.row, col, row) < 6)) continue
+            if (square.type !== SquareType.Blank || square.castleOwner || square.knightOwner) continue
+            if (existing.some((e: { col: number; row: number }) => manhattanDistance(e.col, e.row, col, row) < 6)) continue
 
             for (const n of neighbors(col, row)) {
                 if (!isOnBoard(n.col, n.row)) continue
                 const knightSquare = state.board.squares[n.row][n.col]
                 if (
                     knightSquare.type === SquareType.Blank &&
-                    !knightSquare.castleColor &&
-                    !knightSquare.knightColor
+                    !knightSquare.castleOwner &&
+                    !knightSquare.knightOwner
                 ) {
                     return { castleCol: col, castleRow: row, knightCol: n.col, knightRow: n.row }
                 }
             }
         }
     }
-    throw new Error(`no legal placement found for ${color}`)
+    throw new Error(`no legal placement found for ${owner}`)
 }
 
 // Drives the setup state machine to completion, letting the handler itself determine
@@ -99,11 +100,7 @@ function runFullSetup(state: HydratedLowenherzGameState, totalPlacements: number
     const handler = new PlacingCastlesStateHandler()
     const context = new MachineContext({ gameConfig: {}, gameState: state })
 
-    const plan = buildPlacementPlan(
-        state.turnOrder,
-        (playerId) => state.getPlayerState(playerId).color,
-        state.neutralColor
-    )
+    const plan = buildPlacementPlan(state.turnOrder, state.neutralColor !== undefined)
 
     // Mirrors gameEngine.ts calling the initial state's enter() once at game creation -
     // this is what actually keeps activePlayerIds (and hotseat's myPlayer) in sync, so
@@ -121,7 +118,7 @@ function runFullSetup(state: HydratedLowenherzGameState, totalPlacements: number
 
         const slot = currentPlacementSlot(plan, i)!
         expect(slot.playerId).toBe(currentPlayerId)
-        const placement = findLegalPlacement(state, slot.color)
+        const placement = findLegalPlacement(state, slot.owner)
 
         const action = new HydratedPlaceCastle({
             id: `action-${i}`,
@@ -150,13 +147,12 @@ function runFullSetup(state: HydratedLowenherzGameState, totalPlacements: number
 }
 
 describe('PlacingCastlesStateHandler', () => {
-    it('drives a full 4-player setup through to completion (no neutral color)', () => {
+    it('drives a full 4-player setup through to completion (no neutral prince)', () => {
         const state = buildState(['p1', 'p2', 'p3', 'p4'])
         runFullSetup(state, 12)
 
         for (const playerId of state.turnOrder) {
-            const color = state.getPlayerState(playerId).color
-            expect(castleSquaresForColor(state.board, color).length).toBe(3)
+            expect(castleSquaresForOwner(state.board, playerId).length).toBe(3)
             expect(state.getPlayerState(playerId).knightsInStock).toBe(9)
         }
     })
@@ -166,11 +162,10 @@ describe('PlacingCastlesStateHandler', () => {
         runFullSetup(state, 12)
 
         for (const playerId of state.turnOrder) {
-            const color = state.getPlayerState(playerId).color
-            expect(castleSquaresForColor(state.board, color).length).toBe(3)
+            expect(castleSquaresForOwner(state.board, playerId).length).toBe(3)
             // Each player also placed 1 neutral castle, but it shouldn't cost them a knight.
             expect(state.getPlayerState(playerId).knightsInStock).toBe(9)
         }
-        expect(castleSquaresForColor(state.board, state.neutralColor!).length).toBe(3)
+        expect(castleSquaresForOwner(state.board, NEUTRAL_OWNER).length).toBe(3)
     })
 })

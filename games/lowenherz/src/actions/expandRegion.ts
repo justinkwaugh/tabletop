@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { Color, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import {
@@ -15,6 +15,7 @@ import {
     wallBetween
 } from '../model/board.js'
 import { Region } from '../model/region.js'
+import { PieceOwner } from '../model/owner.js'
 import { detectNewRegions } from '../util/regionDetection.js'
 import { areRegionsAllied } from '../util/allianceHelpers.js'
 import {
@@ -31,7 +32,7 @@ export const ExpandRegionSpace = Type.Object({ col: Type.Number(), row: Type.Num
 
 export type ExpandRegionInvasionMetadata = Type.Static<typeof ExpandRegionInvasionMetadata>
 export const ExpandRegionInvasionMetadata = Type.Object({
-    victimColor: Type.Enum(Color),
+    victimOwner: PieceOwner,
     directSpacesLost: Type.Number(),
     directPointsLost: Type.Number(),
     // Where to anchor a "-N" board popup for the direct loss - one of the squares
@@ -58,7 +59,7 @@ export const ExpandRegionMetadata = Type.Object({
     completedRegions: Type.Optional(
         Type.Array(
             Type.Object({
-                ownerColor: Type.Optional(Type.Enum(Color)),
+                owner: Type.Optional(PieceOwner),
                 spaceCount: Type.Number(),
                 townCount: Type.Number(),
                 points: Type.Number(),
@@ -145,7 +146,7 @@ export class HydratedExpandRegion
         if (owningRegion) {
             owningRegion.squareKeys = owningRegion.squareKeys.filter((k) => k !== key)
 
-            if (owningRegion.ownerColor) {
+            if (owningRegion.owner) {
                 invasions.set(owningRegion.id, { victimRegion: owningRegion, spacesLost: [], townsLost: 0 })
                 const invasion = invasions.get(owningRegion.id)!
                 invasion.spacesLost.push(key)
@@ -207,7 +208,7 @@ export class HydratedExpandRegion
         const invasionMetadata: NonNullable<ExpandRegionMetadata['invasions']> = []
         for (const { victimRegion, spacesLost, townsLost } of invasions.values()) {
             const directPointsLost = spacesLost.length + townsLost * 5
-            const victimPlayer = state.players.find((p) => p.color === victimRegion.ownerColor)
+            const victimPlayer = state.players.find((p) => p.playerId === victimRegion.owner)
             if (victimPlayer) {
                 victimPlayer.powerPoints -= directPointsLost
             }
@@ -232,9 +233,9 @@ export class HydratedExpandRegion
                 // rulebook charges a single lookup on 2 combined spaces (3). This charges
                 // the DIFFERENCE between the combined total and what's already been taken
                 // from this victim during this expansion.
-                const victimColor = victimRegion.ownerColor!
+                const victimOwner = victimRegion.owner!
                 const strandings = state.expansionStrandings ?? []
-                const previous = strandings.find((entry) => entry.color === victimColor)
+                const previous = strandings.find((entry) => entry.owner === victimOwner)
                 const combinedSpaces = (previous?.spaces ?? 0) + strandedKeys.length
                 const combinedTowns =
                     (previous?.towns ?? 0) +
@@ -248,7 +249,7 @@ export class HydratedExpandRegion
                     previous.pointsCharged = combinedPoints
                 } else {
                     strandings.push({
-                        color: victimColor,
+                        owner: victimOwner,
                         spaces: combinedSpaces,
                         towns: combinedTowns,
                         pointsCharged: combinedPoints
@@ -262,14 +263,14 @@ export class HydratedExpandRegion
                 for (const component of strandedComponents) {
                     state.regions.push({
                         id: `${this.id}-neutral-${state.regions.length}`,
-                        ownerColor: undefined,
+                        owner: undefined,
                         squareKeys: component
                     })
                 }
             }
 
             invasionMetadata.push({
-                victimColor: victimRegion.ownerColor!,
+                victimOwner: victimRegion.owner!,
                 directSpacesLost: spacesLost.length,
                 directPointsLost,
                 directAnchorSquareKey: spacesLost[0],
@@ -288,18 +289,18 @@ export class HydratedExpandRegion
         // of who caused it - so it's detected and scored the same way here.
         const newRegions = detectNewRegions(state.board, state.regions)
         const completedRegions: NonNullable<ExpandRegionMetadata['completedRegions']> = []
-        // Same rule as PlaceWall: a region owned by a colour no player holds scores for
-        // nobody. See the note there for why that's deliberate.
+        // Same rule as PlaceWall: a region owned by the neutral prince scores for nobody.
+        // See the note there for why that's deliberate.
         for (const newRegion of newRegions) {
-            const points = newRegion.ownerColor ? scoreRegion(newRegion, state.board) : 0
-            if (newRegion.ownerColor) {
-                const owner = state.players.find((p) => p.color === newRegion.ownerColor)
-                if (owner) {
-                    owner.powerPoints += points
+            const points = newRegion.owner ? scoreRegion(newRegion, state.board) : 0
+            if (newRegion.owner) {
+                const player = state.players.find((p) => p.playerId === newRegion.owner)
+                if (player) {
+                    player.powerPoints += points
                 }
             }
             completedRegions.push({
-                ownerColor: newRegion.ownerColor,
+                owner: newRegion.owner,
                 spaceCount: newRegion.squareKeys.length,
                 townCount: countTowns(newRegion, state.board),
                 points,
@@ -360,8 +361,7 @@ export class HydratedExpandRegion
         }
 
         const region = state.regions.find((r) => r.id === this.regionId)
-        const playerState = state.getPlayerState(this.playerId)
-        if (!region || region.ownerColor !== playerState.color) {
+        if (!region || region.owner !== this.playerId) {
             return "That isn't one of your regions."
         }
 
@@ -380,15 +380,15 @@ export class HydratedExpandRegion
             return 'That square is off the board.'
         }
         if (
-            (square.knightColor && square.knightColor !== playerState.color) ||
-            (square.castleColor && square.castleColor !== playerState.color)
+            (square.knightOwner && square.knightOwner !== this.playerId) ||
+            (square.castleOwner && square.castleOwner !== this.playerId)
         ) {
             return "You can't expand into a space with another prince's knight or castle."
         }
 
         const owningRegion = state.regions.find((r) => r.squareKeys.includes(key))
-        if (owningRegion && owningRegion.ownerColor) {
-            if (owningRegion.ownerColor === playerState.color) {
+        if (owningRegion && owningRegion.owner) {
+            if (owningRegion.owner === this.playerId) {
                 return "You can't merge one of your own regions into another."
             }
             if (areRegionsAllied(state.alliances, region.id, owningRegion.id)) {

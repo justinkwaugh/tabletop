@@ -14,7 +14,7 @@ export function awardHillPowerPoints(state: HydratedLowenherzGameState): HillSco
     for (const playerState of state.players) {
         let hillCount = 0
         for (const region of state.regions) {
-            if (region.ownerColor !== playerState.color) continue
+            if (region.owner !== playerState.playerId) continue
             for (const key of region.squareKeys) {
                 const [col, row] = key.split(',').map(Number)
                 if (getSquare(state.board, col, row)?.type === SquareType.Hill) hillCount++

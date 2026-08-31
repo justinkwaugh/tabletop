@@ -18,6 +18,7 @@
         isCancelAlliance,
         isDrawActionCard,
         isNegotiationMove,
+        isNeutralOwner,
         isPlaceWall,
         isSubmitDuelBid,
         isTakePoliticsCard,
@@ -35,7 +36,7 @@
     // Session reads the board declares too. One-liners, so each half asking for itself is
     // clearer than threading them through props.
     const board = $derived(gameSession.gameState.board)
-    const placementColor = $derived(gameSession.placementColor)
+    const placementOwner = $derived(gameSession.placementOwner)
     const regions = $derived(gameSession.gameState.regions)
     const knightSwordsLeft = $derived(gameSession.gameState.knightsRemaining ?? 0)
     const displayNegotiation = $derived(gameSession.displayNegotiation)
@@ -333,12 +334,10 @@
     // from the next.
 
     // Whether the castle about to be placed belongs to the neutral prince rather than to the
-    // player placing it. Asked of the colour rather than of the player count: the closing laps
+    // player placing it. Asked of the owner rather than of the player count: the closing laps
     // place neutral castles at two players AND at three, so counting seats would get three-player
     // games wrong.
-    const placingNeutral = $derived(
-        placementColor !== undefined && placementColor === gameSession.gameState.neutralColor
-    )
+    const placingNeutral = $derived(placementOwner !== undefined && isNeutralOwner(placementOwner))
 
     // The action currently being looked at while rewound through the history controls -
     // the one whose result is what's drawn on the board. Already undefined during live play

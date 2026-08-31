@@ -14,7 +14,7 @@ function blankBoard(): { squares: BoardSquare[][]; walls: [] } {
     const squares = Array.from({ length: BOARD_ROWS }, () =>
         Array.from({ length: BOARD_COLS }, () => ({ type: SquareType.Blank }) as BoardSquare)
     )
-    squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+    squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
     return { squares, walls: [] }
 }
 
@@ -123,7 +123,7 @@ describe('PlacingKnightsStateHandler', () => {
         const state = buildState({
             knightsRemaining: 1,
             knightPlacingPlayerId: 'p1',
-            regions: [{ id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] }]
+            regions: [{ id: 'r1', owner: 'p1', squareKeys: ['0,0'] }]
         })
         const context = new MachineContext({ gameConfig: {}, gameState: state })
         const handler = new PlacingKnightsStateHandler()
@@ -139,7 +139,7 @@ describe('PlacingKnightsStateHandler', () => {
         const state = buildState({
             knightsRemaining: 1,
             knightPlacingPlayerId: 'p1',
-            regions: [{ id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] }]
+            regions: [{ id: 'r1', owner: 'p1', squareKeys: ['0,0'] }]
         })
         state.getPlayerState('p1').knightsInStock = 0
         const context = new MachineContext({ gameConfig: {}, gameState: state })
@@ -199,7 +199,7 @@ describe('PlacingKnightsStateHandler', () => {
     it('keeps the phase open after an expansion for both its 2nd space and the leftover sword', () => {
         const state = buildState({
             knightsRemaining: 2,
-            regions: [{ id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] }]
+            regions: [{ id: 'r1', owner: 'p1', squareKeys: ['0,0'] }]
         })
         const context = new MachineContext({ gameConfig: {}, gameState: state })
         const handler = new PlacingKnightsStateHandler()
@@ -244,7 +244,7 @@ describe('PlacingKnightsStateHandler', () => {
     it('lets a two-sword action expand a region and then still place its knight', () => {
         const state = buildState({
             knightsRemaining: 2,
-            regions: [{ id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] }]
+            regions: [{ id: 'r1', owner: 'p1', squareKeys: ['0,0'] }]
         })
         const context = new MachineContext({ gameConfig: {}, gameState: state })
         const handler = new PlacingKnightsStateHandler()
@@ -276,7 +276,7 @@ describe('PlacingKnightsStateHandler', () => {
     it('lets a two-sword action place its knight first and then expand', () => {
         const state = buildState({
             knightsRemaining: 2,
-            regions: [{ id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] }]
+            regions: [{ id: 'r1', owner: 'p1', squareKeys: ['0,0'] }]
         })
         const context = new MachineContext({ gameConfig: {}, gameState: state })
         const handler = new PlacingKnightsStateHandler()
@@ -315,7 +315,7 @@ describe('PlacingKnightsStateHandler', () => {
         const state = buildState({
             knightsRemaining: 2,
             expandingRegionId: 'r1',
-            regions: [{ id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0', '1,0'] }]
+            regions: [{ id: 'r1', owner: 'p1', squareKeys: ['0,0', '1,0'] }]
         })
         state.knightsRemaining = 0
         const context = new MachineContext({ gameConfig: {}, gameState: state })
@@ -343,8 +343,8 @@ describe('PlacingKnightsStateHandler', () => {
         // possible in the same action you'd then expand with.
         const state = buildState({
             regions: [
-                { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' },
-                { id: 'r2', ownerColor: Color.Yellow, squareKeys: ['0,1'], castleSquareKey: '0,1' }
+                { id: 'r1', owner: 'p1', squareKeys: ['0,0'], castleSquareKey: '0,0' },
+                { id: 'r2', owner: 'p2', squareKeys: ['0,1'], castleSquareKey: '0,1' }
             ],
             alliances: [{ id: 'alliance-1', regionAId: 'r1', regionBId: 'r2' }],
             activePlayerIds: ['p1']
@@ -381,8 +381,8 @@ describe('PlacingKnightsStateHandler', () => {
 
         const brokeState = buildState({
             regions: [
-                { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' },
-                { id: 'r2', ownerColor: Color.Yellow, squareKeys: ['0,1'], castleSquareKey: '0,1' }
+                { id: 'r1', owner: 'p1', squareKeys: ['0,0'], castleSquareKey: '0,0' },
+                { id: 'r2', owner: 'p2', squareKeys: ['0,1'], castleSquareKey: '0,1' }
             ],
             alliances: [{ id: 'alliance-1', regionAId: 'r1', regionBId: 'r2' }],
             activePlayerIds: ['p1']

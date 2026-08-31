@@ -1,4 +1,4 @@
-import { type Color } from '@tabletop/common'
+import { Color } from '@tabletop/common'
 import { allianceWalls } from '$lib/model/allianceGeometry.js'
 import { GameSession } from '@tabletop/frontend-components'
 import {
@@ -11,7 +11,9 @@ import {
     CardBack,
     buildDecisionPlan,
     ChooseAction,
-    currentPlacementColor,
+    currentPlacementOwner,
+    isNeutralOwner,
+    type PieceOwner,
     detectNewRegions,
     DrawActionCard,
     expandRegionReason,
@@ -252,13 +254,13 @@ export class LowenherzGameSession extends GameSession<
         return this.gameState.machineState !== MachineState.PlacingCastles
     }
 
-    // The color the next setup placement will actually be - the placing player's own for
-    // the opening laps, the shared neutral color for the closing ones (2 castles each at 2
-    // players, 1 each at 3). Every setup preview uses this rather than the player's own
-    // color, so the ghost castle/knight matches the piece that's really about to land.
-    get placementColor(): Color | undefined {
+    // Who the next setup placement belongs to - the placing player themselves for the
+    // opening laps, the neutral prince for the closing ones (2 castles each at 2 players,
+    // 1 each at 3). Every setup preview uses this rather than the player's own color, so
+    // the ghost castle/knight matches the piece that's really about to land.
+    get placementOwner(): PieceOwner | undefined {
         if (this.setupComplete) return undefined
-        return currentPlacementColor(this.gameState)
+        return currentPlacementOwner(this.gameState)
     }
 
     // All castle squares the current player could legally pick right now - used to
@@ -354,13 +356,13 @@ export class LowenherzGameSession extends GameSession<
         id: string
         walls: { col: number; row: number; edge: string }[]
         cancellable: boolean
-        otherColor: Color | undefined
+        otherOwner: PieceOwner | undefined
     }[] {
         const alliances = this.gameState.alliances
         if (alliances.length === 0) return []
 
         const regions = this.gameState.regions
-        const cancellable = new Map(this.myCancellableAlliances.map((a) => [a.id, a.otherColor]))
+        const cancellable = new Map(this.myCancellableAlliances.map((a) => [a.id, a.otherOwner]))
 
         return alliances
             .map((alliance) => {
@@ -377,7 +379,7 @@ export class LowenherzGameSession extends GameSession<
                     // pays ten ducats" is genuinely open to ME right now - myCancellableAlliances
                     // already checks both the participation and the 10 ducats.
                     cancellable: cancellable.has(alliance.id),
-                    otherColor: cancellable.get(alliance.id)
+                    otherOwner: cancellable.get(alliance.id)
                 }
             })
             .filter((marker) => marker.walls.length > 0)
@@ -479,19 +481,35 @@ export class LowenherzGameSession extends GameSession<
         return ''
     }
 
-    playerIdForColor(color: Color): string | undefined {
-        return this.gameState.players.find((p) => p.color === color)?.playerId
+    // The color the neutral prince's pieces are drawn in.
+    //
+    // A viewer with a preferred color has their own pieces re-drawn in it (see
+    // GameColors.getPlayerColor), and that swap only ever trades colors between PLAYERS -
+    // it cannot see the prince. So a viewer preferring exactly the prince's color would
+    // take it and leave two owners sharing one color on the board. The prince takes that
+    // viewer's own engine color in exchange, which by then nothing else is drawn in.
+    get neutralUiColor(): string {
+        // No prince at 4 players, where every color is dealt out - nothing on the board is
+        // neutral-owned, so this is only ever a fallback for a caller asking anyway.
+        const neutralColor = this.gameState.neutralColor
+        if (!neutralColor) return this.colors.getUiColor(Color.Gray)
+
+        const myPlayerId = this.myPlayer?.id
+        if (myPlayerId && this.colors.getPlayerColor(myPlayerId) === neutralColor) {
+            const myEngineColor = this.gameState.players.find(
+                (p) => p.playerId === myPlayerId
+            )?.color
+            if (myEngineColor) return this.colors.getUiColor(myEngineColor)
+        }
+        return this.colors.getUiColor(neutralColor)
     }
 
-    // Board state (squares, regions) records a piece's actual engine-assigned color, not a
-    // playerId - but the color a viewer should SEE can differ from that when they have a
-    // preferred color set (see GameColors.getPlayerColor's swap). Routing every board-derived
-    // color through here, rather than gameSession.colors.getUiColor(rawColor) directly, is what
-    // keeps a player's own pieces matching their own name pill/panel color. Colors with no
-    // owning player (the neutral prince's Gray) fall through to the plain, unswapped lookup.
-    uiColorForBoardColor(color: Color): string {
-        const playerId = this.playerIdForColor(color)
-        return playerId ? this.colors.getPlayerUiColor(playerId) : this.colors.getUiColor(color)
+    // Every board-derived color goes through here rather than colors.getUiColor, so a
+    // player's pieces always match their own name pill and panel - both sides resolve the
+    // color from the owner, and only the player-keyed lookup applies the preferred-color
+    // swap.
+    uiColorForOwner(owner: PieceOwner): string {
+        return isNeutralOwner(owner) ? this.neutralUiColor : this.colors.getPlayerUiColor(owner)
     }
 
     get lastMineHillScoring(): { playerId: string; points: number }[] | undefined {
@@ -545,14 +563,14 @@ export class LowenherzGameSession extends GameSession<
         }
     }
 
-    // All castle squares currently on the board, any color - used both to spread out
+    // All castle squares currently on the board, any owner - used both to spread out
     // auto-placed castles and to find seed-able castle+knight pairs for
     // seedTestRegions().
     private allCastleSquares(): { col: number; row: number }[] {
         const result: { col: number; row: number }[] = []
         for (let row = 0; row < this.gameState.board.squares.length; row++) {
             for (let col = 0; col < this.gameState.board.squares[row].length; col++) {
-                if (this.gameState.board.squares[row][col].castleColor) result.push({ col, row })
+                if (this.gameState.board.squares[row][col].castleOwner) result.push({ col, row })
             }
         }
         return result
@@ -609,25 +627,25 @@ export class LowenherzGameSession extends GameSession<
         // Stop at 2 regions per color (not every castle) - leaves each player under
         // the rulebook's "3 regions" cap, so a seeded test game can still exercise
         // PlacingWalls/border actions instead of every player already being maxed out.
-        const MAX_SEEDED_REGIONS_PER_COLOR = 2
+        const MAX_SEEDED_REGIONS_PER_OWNER = 2
         const board = this.gameState.board
         const claimedKeys = new Set(this.gameState.regions.flatMap((r) => r.squareKeys))
 
-        const regionCountByColor = new Map<Color, number>()
+        const regionCountByOwner = new Map<PieceOwner, number>()
         for (const region of this.gameState.regions) {
-            if (!region.ownerColor) continue
-            regionCountByColor.set(region.ownerColor, (regionCountByColor.get(region.ownerColor) ?? 0) + 1)
+            if (!region.owner) continue
+            regionCountByOwner.set(region.owner, (regionCountByOwner.get(region.owner) ?? 0) + 1)
         }
 
         const blobs: { col: number; row: number }[][] = []
         for (const castle of this.allCastleSquares()) {
             if (claimedKeys.has(squareKey(castle.col, castle.row))) continue
-            const color = getSquare(board, castle.col, castle.row)?.castleColor
-            if (!color) continue
-            if ((regionCountByColor.get(color) ?? 0) >= MAX_SEEDED_REGIONS_PER_COLOR) continue
+            const owner = getSquare(board, castle.col, castle.row)?.castleOwner
+            if (!owner) continue
+            if ((regionCountByOwner.get(owner) ?? 0) >= MAX_SEEDED_REGIONS_PER_OWNER) continue
 
             const knight = neighbors(castle.col, castle.row).find(
-                (n) => isOnBoard(n.col, n.row) && getSquare(board, n.col, n.row)?.knightColor === color
+                (n) => isOnBoard(n.col, n.row) && getSquare(board, n.col, n.row)?.knightOwner === owner
             )
             if (!knight) continue
 
@@ -640,8 +658,8 @@ export class LowenherzGameSession extends GameSession<
                         const nKey = squareKey(n.col, n.row)
                         if (cellKeys.has(nKey) || claimedKeys.has(nKey)) return false
                         const sq = getSquare(board, n.col, n.row)
-                        if (sq?.castleColor) return false // never absorb another castle
-                        if (sq?.knightColor && sq.knightColor !== color) return false // foreign knight
+                        if (sq?.castleOwner) return false // never absorb another castle
+                        if (sq?.knightOwner && sq.knightOwner !== owner) return false // foreign knight
                         return true
                     })
                 )
@@ -652,8 +670,8 @@ export class LowenherzGameSession extends GameSession<
                     const nKey = squareKey(n.col, n.row)
                     if (cellKeys.has(nKey) || claimedKeys.has(nKey)) return false
                     const sq = getSquare(board, n.col, n.row)
-                    if (sq?.castleColor) return false
-                    if (sq?.knightColor && sq.knightColor !== color) return false
+                    if (sq?.castleOwner) return false
+                    if (sq?.knightOwner && sq.knightOwner !== owner) return false
                     return true
                 })!
                 cells.push(candidate)
@@ -662,7 +680,7 @@ export class LowenherzGameSession extends GameSession<
 
             cells.forEach((c) => claimedKeys.add(squareKey(c.col, c.row)))
             blobs.push(cells)
-            regionCountByColor.set(color, (regionCountByColor.get(color) ?? 0) + 1)
+            regionCountByOwner.set(owner, (regionCountByOwner.get(owner) ?? 0) + 1)
         }
 
         if (blobs.length === 0) return
@@ -683,10 +701,10 @@ export class LowenherzGameSession extends GameSession<
 
         const newRegions = detectNewRegions(board, this.gameState.regions)
         for (const region of newRegions) {
-            const points = region.ownerColor ? scoreRegion(region, board) : 0
-            if (region.ownerColor) {
-                const owner = this.gameState.players.find((p) => p.color === region.ownerColor)
-                if (owner) owner.powerPoints += points
+            const points = region.owner ? scoreRegion(region, board) : 0
+            if (region.owner) {
+                const player = this.gameState.players.find((p) => p.playerId === region.owner)
+                if (player) player.powerPoints += points
             }
             this.gameState.regions.push(region)
             removeInteriorWalls(board, region)
@@ -1133,8 +1151,8 @@ export class LowenherzGameSession extends GameSession<
 
     get myRegions(): Region[] {
         if (!this.myPlayer) return []
-        const myColor = this.gameState.getPlayerState(this.myPlayer.id).color
-        return this.gameState.regions.filter((r) => r.ownerColor === myColor)
+        const myPlayerId = this.myPlayer.id
+        return this.gameState.regions.filter((r) => r.owner === myPlayerId)
     }
 
     // The regions a board click could legitimately pick to expand right now. Normally
@@ -1647,13 +1665,13 @@ export class LowenherzGameSession extends GameSession<
             const square = getSquare(board, col, row)
             if (!square) return false
             if (square.type !== SquareType.Blank && square.type !== SquareType.Forest) return false
-            if (square.knightColor || square.castleColor) return false
+            if (square.knightOwner || square.castleOwner) return false
             if (square.type === SquareType.Forest && playerState.money < WOODED_KNIGHT_COST) return false
             return neighbors(col, row).some((n) => {
                 if (!isOnBoard(n.col, n.row)) return false
                 if (isWalledBetween(board, col, row, n.col, n.row)) return false
                 const ns = getSquare(board, n.col, n.row)
-                return ns?.knightColor === playerState.color || ns?.castleColor === playerState.color
+                return ns?.knightOwner === playerState.playerId || ns?.castleOwner === playerState.playerId
             })
         })
     }
@@ -1684,15 +1702,15 @@ export class LowenherzGameSession extends GameSession<
     // region pair, to know up front whether the card has any legal play at all).
     private isEligibleRenegadeEnemyRegion(ownRegion: Region, candidate: Region): boolean {
         return (
-            !!candidate.ownerColor &&
-            candidate.ownerColor !== ownRegion.ownerColor &&
+            !!candidate.owner &&
+            candidate.owner !== ownRegion.owner &&
             regionsAreNeighboring(ownRegion, candidate) &&
             candidate.squareKeys.some((key) => {
                 const [col, row] = key.split(',').map(Number)
                 const square = getSquare(this.gameState.board, col, row)
                 return (
-                    square?.knightColor === candidate.ownerColor &&
-                    isKnightSafeToRemove(this.gameState, candidate.ownerColor!, col, row)
+                    square?.knightOwner === candidate.owner &&
+                    isKnightSafeToRemove(this.gameState, candidate.owner!, col, row)
                 )
             })
         )
@@ -1714,19 +1732,19 @@ export class LowenherzGameSession extends GameSession<
     }
 
     // Enemy knights in the chosen region that are actually safe to remove - excludes
-    // any knight that would strand another one of that color from every castle of
-    // that color (removing the last knight of a color is always safe).
+    // any knight that would strand another one of that owner's from every castle of
+    // theirs (removing an owner's last knight is always safe).
     get legalRenegadeRemovableSquares(): { col: number; row: number }[] {
         const enemyRegion = this.gameState.regions.find((r) => r.id === this.renegadeEnemyRegionId)
-        if (!enemyRegion?.ownerColor) return []
+        if (!enemyRegion?.owner) return []
 
         const result: { col: number; row: number }[] = []
         for (const key of enemyRegion.squareKeys) {
             const [col, row] = key.split(',').map(Number)
             const square = getSquare(this.gameState.board, col, row)
             if (
-                square?.knightColor === enemyRegion.ownerColor &&
-                isKnightSafeToRemove(this.gameState, enemyRegion.ownerColor, col, row)
+                square?.knightOwner === enemyRegion.owner &&
+                isKnightSafeToRemove(this.gameState, enemyRegion.owner, col, row)
             ) {
                 result.push({ col, row })
             }
@@ -1889,8 +1907,8 @@ export class LowenherzGameSession extends GameSession<
     // whether the card has any legal play at all).
     private isEligibleAllianceEnemyRegion(ownRegion: Region, candidate: Region): boolean {
         return (
-            !!candidate.ownerColor &&
-            candidate.ownerColor !== ownRegion.ownerColor &&
+            !!candidate.owner &&
+            candidate.owner !== ownRegion.owner &&
             regionsAreNeighboring(ownRegion, candidate) &&
             !areRegionsAllied(this.gameState.alliances, ownRegion.id, candidate.id)
         )
@@ -2035,22 +2053,22 @@ export class LowenherzGameSession extends GameSession<
         MachineState.TakingPoliticsCard
     ]
 
-    get myCancellableAlliances(): { id: string; otherColor: Color }[] {
+    get myCancellableAlliances(): { id: string; otherOwner: PieceOwner }[] {
         if (!this.myPlayer || !this.gameState.activePlayerIds.includes(this.myPlayer.id)) return []
         if (!LowenherzGameSession.ALLIANCE_CANCELLATION_STATES.includes(this.gameState.machineState)) {
             return []
         }
-        const myColor = this.gameState.getPlayerState(this.myPlayer.id).color
-        if (this.gameState.getPlayerState(this.myPlayer.id).money < ALLIANCE_CANCELLATION_COST) return []
+        const myPlayerId = this.myPlayer.id
+        if (this.gameState.getPlayerState(myPlayerId).money < ALLIANCE_CANCELLATION_COST) return []
 
-        const result: { id: string; otherColor: Color }[] = []
+        const result: { id: string; otherOwner: PieceOwner }[] = []
         for (const alliance of this.gameState.alliances) {
             const regionA = this.gameState.regions.find((r) => r.id === alliance.regionAId)
             const regionB = this.gameState.regions.find((r) => r.id === alliance.regionBId)
-            if (regionA?.ownerColor === myColor && regionB?.ownerColor) {
-                result.push({ id: alliance.id, otherColor: regionB.ownerColor })
-            } else if (regionB?.ownerColor === myColor && regionA?.ownerColor) {
-                result.push({ id: alliance.id, otherColor: regionA.ownerColor })
+            if (regionA?.owner === myPlayerId && regionB?.owner) {
+                result.push({ id: alliance.id, otherOwner: regionB.owner })
+            } else if (regionB?.owner === myPlayerId && regionA?.owner) {
+                result.push({ id: alliance.id, otherOwner: regionA.owner })
             }
         }
         return result

@@ -452,7 +452,7 @@ describe('resolution cascade (via the real GameEngine)', () => {
         const playerIds = ['p1', 'p2', 'p3', 'p4']
         const game = buildGame(playerIds)
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink } // p1's castle
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' } // p1's castle
         const card: ActionCard = {
             id: 'card-1',
             back: CardBack.B,
@@ -491,7 +491,7 @@ describe('resolution cascade (via the real GameEngine)', () => {
 
         state = engine.run(placeKnight('p1', 1, 0), state, game).updatedState
 
-        expect(state.board.squares[0][1].knightColor).toBe(Color.Pink)
+        expect(state.board.squares[0][1].knightOwner).toBe('p1')
         expect(state.players.find((p) => p.playerId === 'p1')!.knightsInStock).toBe(11)
         // Slot 3 had no choosers, so the round completes immediately after the knight
         // is placed.
@@ -503,15 +503,15 @@ describe('resolution cascade (via the real GameEngine)', () => {
         const playerIds = ['p1', 'p2', 'p3', 'p4']
         const game = buildGame(playerIds)
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink } // p1's castle
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' } // p1's castle
         // Castles far from the action so the wide-open remainder has 2+ distinct
         // castle colors in it (as any real game would) and isn't itself misidentified
         // by expandRegion's detectNewRegions call as p1's own region - p1's tracked
         // region here isn't actually walled in on the board, so without this it would
         // leak into, and be conflated with, the rest of the open board.
-        board.squares[8][12] = { type: SquareType.Blank, castleColor: Color.Yellow }
-        board.squares[8][13] = { type: SquareType.Blank, castleColor: Color.Purple }
-        const existingRegions = [{ id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] }]
+        board.squares[8][12] = { type: SquareType.Blank, castleOwner: 'p2' }
+        board.squares[8][13] = { type: SquareType.Blank, castleOwner: 'p3' }
+        const existingRegions = [{ id: 'r1', owner: 'p1', squareKeys: ['0,0'] }]
         const card: ActionCard = {
             id: 'card-1',
             back: CardBack.B,
