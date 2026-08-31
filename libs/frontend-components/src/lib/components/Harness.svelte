@@ -9,8 +9,16 @@
     import 'es-iterator-helpers/auto'
     import { onMount } from 'svelte'
     import type { Game } from '@tabletop/common'
-    import { Button, Dropdown, DropdownItem, Modal, Navbar, Toggle } from 'flowbite-svelte'
-    import { ChevronDownOutline, TrashBinSolid } from 'flowbite-svelte-icons'
+    import {
+        Button,
+        Dropdown,
+        DropdownGroup,
+        DropdownItem,
+        Modal,
+        Navbar,
+        Toggle
+    } from 'flowbite-svelte'
+    import { BarsOutline, ChevronDownOutline, TrashBinSolid } from 'flowbite-svelte-icons'
     import HarnessGame from './HarnessGame.svelte'
     import type { GameSession } from '$lib/model/gameSession.svelte.js'
     import GameEditForm from './GameEditForm.svelte'
@@ -32,6 +40,7 @@
     let gameToDelete: string | undefined = $state(undefined)
     let deleteModalOpen = $derived(gameToDelete !== undefined)
     let gameSession: GameSession<GameState, HydratedGameState> | undefined = $state(undefined)
+    let availableGames = $derived([...gameService.activeGames, ...gameService.finishedGames])
 
     onMount(() => {
         gameService.loadGames().catch(console.error)
@@ -140,6 +149,27 @@
     >
 {/snippet}
 
+{#snippet nonActivePlayerToggle(className: string)}
+    <Toggle
+        checked={gameSession?.isViewingAsNonActivePlayer ?? false}
+        disabled={!gameSession?.canViewAsNonActivePlayer}
+        onchange={setNonActivePlayerView}
+        class={className}>Non-active view</Toggle
+    >
+{/snippet}
+
+{#snippet debugToggle(className: string)}
+    <Toggle bind:checked={authorizationService.debugViewEnabled} class={className}>Debug</Toggle>
+{/snippet}
+
+{#snippet adminToggle(className: string)}
+    <Toggle
+        checked={authorizationService.adminCapabilitiesEnabled}
+        onchange={setAdminCapabilities}
+        class={className}>Admin</Toggle
+    >
+{/snippet}
+
 <div
     {@attach attachGlobalCssVarFromRect('--app-navbar-height')}
     style="padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);"
@@ -147,52 +177,69 @@
     <Navbar fluid={true} class="dark:bg-gray-800">
         <div class="flex flex-col w-full">
             <div class="flex flex-row justify-between items-center w-full">
-                <div class="flex justify-center items-center space-x-4">
+                <div class="flex justify-center items-center gap-1">
                     <Button size="xs"
-                        >Active<ChevronDownOutline
+                        >Games<ChevronDownOutline
                             class="
                             ms-2 text-white dark:text-white"
                         /></Button
                     ><Dropdown simple={true} class="min-w-[100px]">
-                        {#each gameService.activeGames as game}
+                        {#each availableGames as game}
                             {@render gameDropdownItem(game)}
                         {/each}
                     </Dropdown>
-
-                    <Button size="xs"
-                        >Finished<ChevronDownOutline
-                            class="ms-2 text-white dark:text-white"
-                        /></Button
-                    ><Dropdown simple={true} class="min-w-[100px]">
-                        {#each gameService.finishedGames as game}
-                            {@render gameDropdownItem(game)}
-                        {/each}
+                    <Button
+                        size="xs"
+                        color="green"
+                        class="shrink-0"
+                        style="width: 2.25rem; height: 2.25rem; padding: 0;"
+                        aria-label="New game"
+                        title="New game"
+                        onclick={() => (showCreateModal = true)}
+                    >
+                        <span
+                            aria-hidden="true"
+                            class="text-lg leading-none"
+                            style="transform: translateY(-2px) scale(1.5);">+</span
+                        >
+                    </Button>
+                </div>
+                <div class="min-w-0 px-2">
+                    <div class="truncate text-2xl text-white">{gameSession?.game.name}</div>
+                </div>
+                <div class="max-md:hidden flex flex-row justify-center items-center">
+                    {@render nonActivePlayerToggle('rounded p-2')}
+                    {@render debugToggle('rounded p-2')}
+                    {@render adminToggle('rounded p-2')}
+                </div>
+                <div class="md:hidden shrink-0">
+                    <Button
+                        id="harness-controls"
+                        size="xs"
+                        aria-label="Developer controls"
+                        class="ms-2"
+                    >
+                        <BarsOutline class="h-5 w-5" />
+                    </Button>
+                    <Dropdown placement="bottom-end">
+                        <DropdownGroup class="py-1 min-w-[190px]">
+                            <li>
+                                {@render nonActivePlayerToggle(
+                                    'w-full rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600'
+                                )}
+                            </li>
+                            <li>
+                                {@render debugToggle(
+                                    'w-full rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600'
+                                )}
+                            </li>
+                            <li>
+                                {@render adminToggle(
+                                    'w-full rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600'
+                                )}
+                            </li>
+                        </DropdownGroup>
                     </Dropdown>
-                </div>
-                <div>
-                    <div class="text-2xl text-white">{gameSession?.game.name}</div>
-                </div>
-                <div class="flex flex-row justify-center items-center">
-                    <Toggle
-                        checked={gameSession?.isViewingAsNonActivePlayer ?? false}
-                        disabled={!gameSession?.canViewAsNonActivePlayer}
-                        onchange={setNonActivePlayerView}
-                        class="rounded p-2">Non-active view</Toggle
-                    >
-
-                    <Toggle bind:checked={authorizationService.debugViewEnabled} class="rounded p-2"
-                        >Debug</Toggle
-                    >
-
-                    <Toggle
-                        checked={authorizationService.adminCapabilitiesEnabled}
-                        onchange={setAdminCapabilities}
-                        class="rounded p-2">Admin</Toggle
-                    >
-
-                    <Button class="ms-2" size="xs" onclick={() => (showCreateModal = true)}
-                        >New Game</Button
-                    >
                 </div>
             </div>
         </div>
