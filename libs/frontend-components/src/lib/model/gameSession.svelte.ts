@@ -330,6 +330,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return this.gameContext.game.players.find((player) => player.userId === sessionUser.id)
     })
 
+    chatMessagePlayer: Player | undefined = $derived.by(() =>
+        this.primaryGame.hotseat && this.chatAvailable ? this.myPlayer : this.myPrimaryPlayer
+    )
+
     myPlayerState: PlayerStateOf<U> | undefined = $derived.by(() =>
         this.gameState.findPlayerState(this.myPlayer?.id)
     )
@@ -431,6 +435,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return this.hasUnreadMessagesStore.current
     })
 
+    readonly chatAvailable: boolean
+
     private effectDisposer: () => void
 
     constructor({
@@ -474,6 +480,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.engine = new GameEngine(runtime)
 
         this.debug = debug
+        this.chatAvailable = chatService.isAvailable?.(game) ?? !game.hotseat
 
         delete game.state
         this.gameContext = new GameContext<T, U>({

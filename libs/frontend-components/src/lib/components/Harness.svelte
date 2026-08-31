@@ -115,6 +115,7 @@
 
         const runtime = await definition.runtime()
         const sessionClass = runtime.sessionClass
+        chatService.setGame(game)
         const bridgedContext = new BridgedContext({
             authorizationService,
             gameService,
