@@ -516,7 +516,7 @@
             Waiting for {@render playerPill(gameSession.gameState.wallPlacingPlayerId)} to place
             {gameSession.gameState.wallsRemaining} wall{gameSession.gameState.wallsRemaining === 1
                 ? ''
-                : 's'}...
+                : 's'}.
         {:else if gameSession.canPlaceKnight && (gameSession.knightPlan || gameSession.canContinueExpansion)}
             <!-- Either a step is under way, or an expansion is open between steps - the second is
                  why canContinueExpansion is here too: no step is chosen at that moment, and
@@ -652,7 +652,7 @@
         {:else if gameSession.gameState.machineState === MachineState.PlacingKnights &&
             gameSession.gameState.knightPlacingPlayerId}
             Waiting for {@render playerPill(gameSession.gameState.knightPlacingPlayerId)} to perform
-            a {knightActionName}...
+            a {knightActionName}.
         {:else if lastMineReveal}
             {@const mineScorers = lastMineReveal.filter((entry) => entry.points > 0)}
             <!-- Who earned what is shown as a "+N" hanging under each player's points box
@@ -667,7 +667,7 @@
                 Choose the action card draw pile to start the next round.
             {:else}
                 Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
-                next action card...
+                next action card.
             {/if}
         {:else if lastRoundEndedInDuelGiveUp}
             The duel was tied a second time, so no one performs the action.
@@ -675,13 +675,13 @@
                 Choose the action card draw pile to start the next round.
             {:else}
                 Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
-                next action card...
+                next action card.
             {/if}
         {:else if gameSession.canDrawActionCard}
             Choose the action card draw pile to start the next round.
         {:else if gameSession.gameState.machineState === MachineState.StartOfTurn}
             Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
-            next action card...
+            next action card.
         {:else if gameSession.canChooseAction}
             <!-- Below 4 players the first player lays 2 decision cards (see
                  buildDecisionPlan). No need to announce the count: the ordinal on the
@@ -696,9 +696,9 @@
             {/if}
         {:else if gameSession.gameState.machineState === MachineState.ChoosingActions &&
             gameSession.gameState.activePlayerIds[0]}
-            Waiting for {@render playerPill(gameSession.gameState.activePlayerIds[0])} to choose...
+            Waiting for {@render playerPill(gameSession.gameState.activePlayerIds[0])} to choose.
         {:else if gameSession.gameState.machineState === MachineState.ChoosingActions}
-            Waiting for the next player to choose...
+            Waiting for the next player to choose.
         {:else if gameSession.gameState.machineState === MachineState.Dueling && gameSession.gameState.duel}
             <!-- The duelists are named right here rather than getting a row each below,
                  so the whole duel fits in two lines: who's in it, then your own bid. -->
@@ -737,9 +737,9 @@
         {:else if gameSession.gameState.machineState === MachineState.TakingPoliticsCard &&
             gameSession.gameState.politicsTakingPlayerId}
             Waiting for {@render playerPill(gameSession.gameState.politicsTakingPlayerId)} to take a
-            politics card...
+            politics card.
         {:else if !gameSession.setupComplete}
-            Waiting for the other player(s) to place a castle...
+            Waiting for the other player(s) to place a castle.
         {/if}
     </div>
 
