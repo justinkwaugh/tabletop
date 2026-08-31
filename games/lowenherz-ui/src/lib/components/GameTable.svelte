@@ -5,6 +5,7 @@
         DefaultTabs,
         DefaultTableLayout,
         CustomFont,
+        GameChat,
         GameSession
     } from '@tabletop/frontend-components'
 
@@ -92,7 +93,18 @@
                             <TestingControls />
                         {/snippet}
                         {#snippet history()}
-                           <History />
+                            <History />
+                        {/snippet}
+                        {#snippet chat()}
+                            <GameChat
+                                messageTextColor="text-black"
+                                composerTextColor="text-black"
+                                timeColor="text-black/60"
+                                messageHoverColor="hover:bg-black/10"
+                                inputBgColor="bg-black/10"
+                                inputBorderColor="border-black/25"
+                                borderColor="border-black/20"
+                            />
                         {/snippet}
                     </DefaultTabs>
                 </div>
