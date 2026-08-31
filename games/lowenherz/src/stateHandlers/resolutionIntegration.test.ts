@@ -590,11 +590,13 @@ describe('resolution cascade (via the real GameEngine)', () => {
 
         expect(advances[0].metadata).toEqual({
             slot: 1,
+            slotKind: 'income',
             moneyBagRecipientIds: ['p1', 'p2'],
             moneyBagAmountEach: 3 // floor(6/2)
         })
         expect(advances[1].metadata).toEqual({
             slot: 2,
+            slotKind: 'knight',
             slotResolved: true,
             slotWinnerPlayerId: 'p1',
             bandKind: 'knight',
@@ -605,6 +607,7 @@ describe('resolution cascade (via the real GameEngine)', () => {
         // going unclaimed is now an ordinary outcome, and it resolves with no winner.
         expect(advances[2].metadata).toEqual({
             slot: 3,
+            slotKind: 'knight',
             slotResolved: true
         })
         expect(advances[3].metadata).toEqual({ roundAdvanced: true, newFirstPlayerId: 'p2' })
@@ -636,6 +639,7 @@ describe('resolution cascade (via the real GameEngine)', () => {
         const negotiationAdvance = result4.processedActions.find(isAdvanceResolution)
         expect(negotiationAdvance?.metadata).toEqual({
             slot: 1,
+            slotKind: 'politics',
             tiedPlayerIds: ['p1', 'p2'],
             tieWentToDuel: false
         })
@@ -667,6 +671,7 @@ describe('resolution cascade (via the real GameEngine)', () => {
         const duelAdvances = result4.processedActions.filter(isAdvanceResolution)
         expect(duelAdvances.at(-1)?.metadata).toEqual({
             slot: 2,
+            slotKind: 'border',
             tiedPlayerIds: ['p2', 'p3', 'p4'],
             tieWentToDuel: true
         })

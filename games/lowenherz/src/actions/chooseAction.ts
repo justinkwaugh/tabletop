@@ -1,13 +1,18 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { assert, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { ActionCardType } from '../definition/actionCards.js'
+import { ActionCardType, SlotKind, slotKindForCard } from '../definition/actionCards.js'
 import { buildDecisionPlan, currentDecisionPlayer, rotateToStart } from '../util/decisionPlan.js'
 
 export type ChooseActionMetadata = Type.Static<typeof ChooseActionMetadata>
-export const ChooseActionMetadata = Type.Object({})
+export const ChooseActionMetadata = Type.Object({
+    // Which kind of action the chosen slot held. Recorded at apply time because a fresh
+    // action card is drawn every round, so by the time history is read there is nothing
+    // left in state to say what slot 1/2/3 meant when the choice was made.
+    slotKind: Type.Optional(SlotKind)
+})
 
 export type ChooseAction = Type.Static<typeof ChooseAction>
 export const ChooseAction = Type.Evaluate(
@@ -53,7 +58,13 @@ export class HydratedChooseAction
         }
 
         state.decisions.push({ playerId: this.playerId, slot: this.slot })
-        this.metadata = {}
+
+        const card = state.currentActionCard
+        assert(
+            card?.type === ActionCardType.Standard,
+            'ChooseAction requires a standard action card'
+        )
+        this.metadata = { slotKind: slotKindForCard(card, this.slot) }
     }
 
     isValidChooseAction(state: HydratedLowenherzGameState): boolean {

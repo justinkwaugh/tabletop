@@ -22,7 +22,8 @@
         isTakePoliticsCard,
         NegotiationMoveKind,
         PoliticsCardType,
-        type PieceOwner
+        type PieceOwner,
+        type SlotKind
     } from '@tabletop/lowenherz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -61,7 +62,18 @@
         return undefined
     })
 
+    const slotKindLabels: Record<SlotKind, string> = {
+        income: 'income',
+        politics: 'politics',
+        border: 'walls',
+        knight: 'knights'
+    }
+    // Actions recorded before slotKind was captured have no kind to name, so they keep
+    // describing the slot by its position on the card.
     const slotLabels: Record<1 | 2 | 3, string> = { 1: 'top', 2: 'middle', 3: 'bottom' }
+    function slotLabel(slot: 1 | 2 | 3, kind?: SlotKind): string {
+        return kind ? slotKindLabels[kind] : slotLabels[slot]
+    }
     // Pile A always renders on the left, pile B on the right (see DeckPiles.svelte) -
     // history should describe piles the way a player actually sees them on screen.
     const pileLabels: Record<'A' | 'B', string> = { A: 'left', B: 'right' }
@@ -126,7 +138,7 @@
         drew the next action card
     {/if}{#if packRolledTo}, and the deck moved from pack {packRolledTo.from} to pack {packRolledTo.to}{/if}
 {:else if isChooseAction(action)}
-    chose the {slotLabels[action.slot]} action
+    chose the {slotLabel(action.slot, action.metadata?.slotKind)} action
 {:else if isNegotiationMove(action)}
     {#if action.kind === NegotiationMoveKind.Propose}
         {@const executedOffer = action.metadata?.executedOffer}
@@ -345,19 +357,23 @@
                     >
                 {/if}
             {:else if meta.placementSkippedReason === 'noPoliticsCardsLeft'}
-                won the {slotLabels[meta.slot!]} action
+                won the {slotLabel(meta.slot!, meta.slotKind)} action
                 <span class="text-gray-500">— but both politics piles are empty, so there's nothing to take</span>
             {:else}
-                won the {slotLabels[meta.slot!]} action outright
+                won the {slotLabel(meta.slot!, meta.slotKind)} action outright
             {/if}
         {:else}
-            <span class="text-gray-500">no one chose the {slotLabels[meta.slot!]} action</span>
+            <span class="text-gray-500"
+                >no one chose the {slotLabel(meta.slot!, meta.slotKind)} action</span
+            >
         {/if}
     {:else if meta?.tiedPlayerIds}
         {#each meta.tiedPlayerIds as playerId, i (playerId)}
             {i > 0 ? (i === meta.tiedPlayerIds.length - 1 ? ' and ' : ', ') : ''}<PlayerName {playerId} />
         {/each}
-        tied for the {slotLabels[meta.slot!]} action and {meta.tieWentToDuel ? 'duel for it' : 'enter negotiations'}
+        tied for the {slotLabel(meta.slot!, meta.slotKind)} action and {meta.tieWentToDuel
+            ? 'duel for it'
+            : 'enter negotiations'}
     {:else if meta?.roundAdvanced}
         {@const newFirstIsMe = gameSession.myPlayer?.id === meta.newFirstPlayerId}
         <span class="text-gray-500">

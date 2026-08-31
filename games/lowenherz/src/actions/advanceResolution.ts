@@ -3,6 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
+import { SlotKind } from '../definition/actionCards.js'
 
 // Always empty right after apply() - ResolvingActionsStateHandler.onAction fills this
 // in afterward (once it knows what actually happened this step), the same
@@ -12,6 +13,9 @@ import { ActionType } from '../definition/actions.js'
 export type AdvanceResolutionMetadata = Type.Static<typeof AdvanceResolutionMetadata>
 export const AdvanceResolutionMetadata = Type.Object({
     slot: Type.Optional(Type.Union([Type.Literal(1), Type.Literal(2), Type.Literal(3)])),
+    // What that slot held on the card in play, for every slot - bandKind below only
+    // covers the border/knight bands of a slot that was actually won.
+    slotKind: Type.Optional(SlotKind),
     // Money Bag split among every chooser (or a no-op note if no one chose it).
     moneyBagRecipientIds: Type.Optional(Type.Array(Type.String())),
     moneyBagAmountEach: Type.Optional(Type.Number()),

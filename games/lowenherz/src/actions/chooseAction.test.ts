@@ -91,6 +91,22 @@ describe('HydratedChooseAction', () => {
         expect(state.decisions).toEqual([{ playerId: 'p1', slot: 1 }])
     })
 
+    it('records the kind of action the chosen slot held, so history can name it later', () => {
+        const state = buildState(['p1', 'p2'], { decisions: [] })
+
+        const top = makeChooseAction('p1', 1)
+        top.apply(state)
+        expect(top.metadata?.slotKind).toBe('income')
+
+        const middle = makeChooseAction('p1', 2)
+        middle.apply(state)
+        expect(middle.metadata?.slotKind).toBe('border')
+
+        const bottom = makeChooseAction('p2', 3)
+        bottom.apply(state)
+        expect(bottom.metadata?.slotKind).toBe('knight')
+    })
+
     it('rejects a player picking out of turn', () => {
         const state = buildState(['p1', 'p2', 'p3', 'p4'])
         expect(makeChooseAction('p2', 1).isValidChooseAction(state)).toBe(false)
