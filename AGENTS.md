@@ -27,3 +27,7 @@ For staged selection, auto-selection, `Back`, or `Undo` behavior, read `docs/use
 ### Animation
 
 For game UI animation design, implementation, debugging, or review, use `.agents/skills/game-ui-animation/SKILL.md`.
+
+### Dev harness
+
+To run, launch, or test a game UI, or when source changes do not appear in a running harness, use `.agents/skills/game-ui-harness/SKILL.md`.
