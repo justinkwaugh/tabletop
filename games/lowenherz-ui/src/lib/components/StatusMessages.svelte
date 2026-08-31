@@ -804,8 +804,15 @@
                     <button
                         type="button"
                         class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
-                        disabled={!gameSession.isMyNegotiationTurn || gameSession.negotiationAmount <= 1}
-                        onclick={() => gameSession.setNegotiationAmount(Math.max(1, gameSession.negotiationAmount - 1))}
+                        disabled={!gameSession.isMyNegotiationTurn ||
+                            gameSession.negotiationAmount <= gameSession.minimumNegotiationOffer}
+                        onclick={() =>
+                            gameSession.setNegotiationAmount(
+                                Math.max(
+                                    gameSession.minimumNegotiationOffer,
+                                    gameSession.negotiationAmount - 1
+                                )
+                            )}
                     >
                         −
                     </button>

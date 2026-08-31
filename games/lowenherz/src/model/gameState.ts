@@ -105,6 +105,14 @@ export const LowenherzGameState = Type.Evaluate(
             // Pieces record NEUTRAL_OWNER, not this color - see PieceOwner.
             neutralColor: Type.Optional(Type.Enum(Color)),
 
+            // Whether a negotiation offer has to move at least one ducat (the
+            // minimumOneDucat config option, resolved once at initialization). Held on
+            // state rather than read from config at validation time so the rule replays
+            // with the game and NegotiationMove can stay a function of state alone.
+            // Read as `!== false`, like the config option it comes from: absent means
+            // the rule is on, so a state built without it gets the stricter reading.
+            minimumOneDucat: Type.Optional(Type.Boolean()),
+
             // Remaining undrawn action cards, in draw order (index 0 draws next).
             actionDeck: Type.Array(ActionCard),
             // The currently face-up standard card players are choosing actions from -
@@ -215,6 +223,7 @@ export class HydratedLowenherzGameState
     declare turnOrder: string[]
     declare firstPlayerId: string
     declare neutralColor?: Color
+    declare minimumOneDucat?: boolean
 
     declare actionDeck: ActionCard[]
     declare currentActionCard?: ActionCard

@@ -145,11 +145,18 @@ export class LowenherzGameSession extends GameSession<
         return myId && negotiation.playerIds.includes(myId) ? myId : negotiation.playerIds[0]
     }
 
+    // The smallest offer the engine will accept, which is also where the stepper stops
+    // and what it opens on before anyone has proposed. Read off state rather than the
+    // config so it matches exactly what NegotiationMove validates against.
+    get minimumNegotiationOffer(): number {
+        return this.gameState.minimumOneDucat !== false ? 1 : 0
+    }
+
     get negotiationAmount(): number {
         const key = this.negotiationKey
         if (!key) return 0
         if (this.negotiationDraft?.key === key) return this.negotiationDraft.amount
-        return this.displayNegotiation?.offer?.amount ?? 1
+        return this.displayNegotiation?.offer?.amount ?? this.minimumNegotiationOffer
     }
 
     // True exactly when committing the picker/stepper's current values would accept the
