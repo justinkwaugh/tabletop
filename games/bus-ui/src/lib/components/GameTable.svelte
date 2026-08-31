@@ -25,7 +25,7 @@
 </script>
 
 <!-- Full Height and Width with 8px padding-->
-<div class="bg-[#f0f1ec]" style="--chat-height-offset: 0px;">
+<div class="bg-[#f0f1ec]">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls
