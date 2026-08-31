@@ -694,6 +694,9 @@
             {:else}
                 Choose a region of the card to pick an action.
             {/if}
+        {:else if gameSession.gameState.machineState === MachineState.ChoosingActions &&
+            gameSession.gameState.activePlayerIds[0]}
+            Waiting for {@render playerPill(gameSession.gameState.activePlayerIds[0])} to choose...
         {:else if gameSession.gameState.machineState === MachineState.ChoosingActions}
             Waiting for the next player to choose...
         {:else if gameSession.gameState.machineState === MachineState.Dueling && gameSession.gameState.duel}
