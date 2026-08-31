@@ -651,8 +651,8 @@
             {/if}
         {:else if gameSession.gameState.machineState === MachineState.PlacingKnights &&
             gameSession.gameState.knightPlacingPlayerId}
-            Waiting for {@render playerPill(gameSession.gameState.knightPlacingPlayerId)} to place a
-            knight...
+            Waiting for {@render playerPill(gameSession.gameState.knightPlacingPlayerId)} to perform
+            a {knightActionName}...
         {:else if lastMineReveal}
             {@const mineScorers = lastMineReveal.filter((entry) => entry.points > 0)}
             <!-- Who earned what is shown as a "+N" hanging under each player's points box
