@@ -43,6 +43,7 @@
     let availableGames = $derived([...gameService.activeGames, ...gameService.finishedGames])
     let preferredColorsEnabled = $state(false)
     let colorBlindPalette = $state(false)
+    let optionsOpen = $state(false)
 
     onMount(() => {
         gameService.loadGames().catch(console.error)
@@ -126,6 +127,14 @@
         updateColorPreferencePreview()
     }
 
+    function closeOptionsOnWindowBlur() {
+        optionsOpen = false
+        const optionsButton = document.getElementById('harness-options')
+        if (optionsButton instanceof HTMLButtonElement) {
+            optionsButton.blur()
+        }
+    }
+
     async function loadGame(gameId: string) {
         if (!definition) {
             return
@@ -163,6 +172,8 @@
         updateColorPreferencePreview()
     }
 </script>
+
+<svelte:window onblur={closeOptionsOnWindowBlur} />
 
 {#snippet gameDropdownItem(game: Game)}
     <DropdownItem class="w-full px-2" onclick={() => loadGame(game.id)}
@@ -264,7 +275,7 @@
                             class="ms-2 text-white dark:text-white"
                         /></Button
                     >
-                    <Dropdown placement="bottom-end">
+                    <Dropdown placement="bottom-end" bind:isOpen={optionsOpen}>
                         <DropdownGroup class="py-1 min-w-[190px]">
                             <li>
                                 {@render nonActivePlayerToggle(
