@@ -62,9 +62,7 @@
 <CustomFont fontFamily="UnifrakturMaguntia" url={UnifrakturMaguntiaFont} format="woff2" />
 
 <!-- Full Height and Width with 8px padding-->
-<div
-    style="--chat-height-offset: 0px; background-image: url({parchmentTexture}); background-repeat: repeat;"
->
+<div style="background-image: url({parchmentTexture}); background-repeat: repeat;">
     <DefaultTableLayout>
         {#snippet sideContent()}
             <div class="max-sm:hidden">
