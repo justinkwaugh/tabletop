@@ -10,6 +10,8 @@ Create `games/<slug>-ui/docs/ui-interaction-visual-contract.md` before or alongs
 - needs precedence or composition rules with another interaction; or
 - exposes transient visual state to more than one consumer.
 
+When the interaction is owned by the shared Game Client and has the same contract across Game Titles, maintain it under `libs/frontend-components/docs/` instead of duplicating it in every Game UI Artifact.
+
 An isolated hover, focus, pressed, or disabled style owned entirely by one component does not require a contract. Do not create an empty placeholder contract.
 
 Update the contract in the same change whenever visible intent, precedence, shared-state semantics, lifecycle, or render ownership changes.

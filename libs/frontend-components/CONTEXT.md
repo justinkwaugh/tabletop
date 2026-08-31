@@ -57,6 +57,13 @@ _Avoid_: Viewed Player, My Player
 The Player whose identity the Game Client uses when constructing the next User Action. When multiple Players are active in Hotseat Play or Exploration, the person using the client chooses the Acting Player.
 _Avoid_: My Player
 
+Entering Admin Mode does not itself change the Acting Player or Player Perspective when multiple
+Players are active. An explicit administrator choice temporarily sets both to a currently active
+Player. With exactly one active Player, that Player is selected automatically. If a selected Player
+becomes inactive or Admin Mode ends, the choice is cleared and the Game Client returns to its
+ordinary perspective rules. Exploration ignores the Admin choice and uses its ordinary Hotseat Play
+perspective while active.
+
 ## Client action handling
 
 **Optimistic Application**:

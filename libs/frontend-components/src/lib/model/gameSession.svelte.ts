@@ -50,6 +50,7 @@ import { AnimationContext } from '$lib/utils/animations.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
 import type { Static, TSchema } from 'typebox'
 import { VersionChange } from '$lib/network/versionChecker.js'
+import { shouldInvalidateAdminActingPlayerChoice } from './adminActingPlayer.js'
 
 export enum GameSessionMode {
     Play = 'play',
@@ -249,10 +250,21 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return undoableUserAction
     })
 
-    chosenAdminPlayerId: string | undefined = $state()
+    private chosenAdminPlayerId: string | undefined = $derived.by(() => {
+        // A writable derived keeps an explicit choice only for the current Admin activation.
+        this.isActingAdmin
+        return undefined
+    })
     adminPlayerId: string | undefined = $derived.by(() => {
-        if (this.chosenAdminPlayerId) {
-            return this.chosenAdminPlayerId
+        if (!this.isActingAdmin) {
+            return undefined
+        }
+
+        const chosenPlayer = this.activePlayers.find(
+            (player) => player.id === this.chosenAdminPlayerId
+        )
+        if (chosenPlayer) {
+            return chosenPlayer.id
         }
 
         if (this.activePlayers.length === 1) {
@@ -298,17 +310,21 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             return this.nonActivePlayer
         }
 
-        if (this.isExploring || this.gameContext.game.hotseat) {
+        if (this.isExploring) {
+            return this.activePlayers.at(0)
+        }
+
+        if (this.actAsAdminStore.current && this.adminPlayerId) {
+            return this.gameContext.game.players.find((player) => player.id === this.adminPlayerId)
+        }
+
+        if (this.gameContext.game.hotseat) {
             return this.activePlayers.at(0)
         }
 
         const sessionUser = this.sessionUserStore.current
         if (!sessionUser) {
             return undefined
-        }
-
-        if (this.actAsAdminStore.current && this.adminPlayerId) {
-            return this.gameContext.game.players.find((player) => player.id === this.adminPlayerId)
         }
 
         return this.gameContext.game.players.find((player) => player.userId === sessionUser.id)
@@ -361,6 +377,16 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.nonActivePlayerViewEnabled = enabled && this.canViewAsNonActivePlayer
     }
 
+    setActingPlayer(playerId: string) {
+        const actingPlayer = this.activePlayers.find((player) => player.id === playerId)
+        assertExists(actingPlayer, `Active player ${playerId} not found`)
+        this.chosenAdminPlayerId = actingPlayer.id
+    }
+
+    clearActingPlayer() {
+        this.chosenAdminPlayerId = undefined
+    }
+
     private findNonActivePlayer(state: U): Player | undefined {
         return this.game.players.find((player) => !state.activePlayerIds.includes(player.id))
     }
@@ -368,6 +394,16 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private reconcilePlayerPerspective(state: U) {
         if (!this.findNonActivePlayer(state)) {
             this.nonActivePlayerViewEnabled = false
+        }
+
+        if (
+            shouldInvalidateAdminActingPlayerChoice({
+                isExploring: this.isExploring,
+                chosenPlayerId: this.chosenAdminPlayerId,
+                activePlayerIds: state.activePlayerIds
+            })
+        ) {
+            this.chosenAdminPlayerId = undefined
         }
     }
 
