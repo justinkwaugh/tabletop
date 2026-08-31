@@ -511,6 +511,12 @@
             >
                 pass
             </button>.
+        {:else if gameSession.gameState.machineState === MachineState.PlacingWalls &&
+            gameSession.gameState.wallPlacingPlayerId}
+            Waiting for {@render playerPill(gameSession.gameState.wallPlacingPlayerId)} to place
+            {gameSession.gameState.wallsRemaining} wall{gameSession.gameState.wallsRemaining === 1
+                ? ''
+                : 's'}...
         {:else if gameSession.canPlaceKnight && (gameSession.knightPlan || gameSession.canContinueExpansion)}
             <!-- Either a step is under way, or an expansion is open between steps - the second is
                  why canContinueExpansion is here too: no step is chosen at that moment, and
@@ -643,6 +649,10 @@
                 </button>.
 
             {/if}
+        {:else if gameSession.gameState.machineState === MachineState.PlacingKnights &&
+            gameSession.gameState.knightPlacingPlayerId}
+            Waiting for {@render playerPill(gameSession.gameState.knightPlacingPlayerId)} to place a
+            knight...
         {:else if lastMineReveal}
             {@const mineScorers = lastMineReveal.filter((entry) => entry.points > 0)}
             <!-- Who earned what is shown as a "+N" hanging under each player's points box
@@ -721,6 +731,10 @@
                  as a heading local to that component so it never has to agree on layout height
                  with PoliticsDeckChooser's row above it. -->
             Choose a card to take it.
+        {:else if gameSession.gameState.machineState === MachineState.TakingPoliticsCard &&
+            gameSession.gameState.politicsTakingPlayerId}
+            Waiting for {@render playerPill(gameSession.gameState.politicsTakingPlayerId)} to take a
+            politics card...
         {:else if !gameSession.setupComplete}
             Waiting for the other player(s) to place a castle...
         {/if}
