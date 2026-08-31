@@ -54,8 +54,14 @@ export class GameSessionBridge<T extends GameState, U extends HydratedGameState<
         this.colors.connect()
     }
 
+    // The frontend shell and game UI artifacts deploy independently, so this remains the
+    // compatibility entry point for acting-player selection across artifact versions.
     setChosenAdminPlayerId(value: string | undefined) {
-        this.session.chosenAdminPlayerId = value
+        if (value === undefined) {
+            this.session.clearActingPlayer()
+        } else {
+            this.session.setActingPlayer(value)
+        }
     }
 
     private buildColorsSnapshot(): GameSessionBridgeColors {

@@ -1,6 +1,6 @@
 import { HarnessAuthorizationService } from './harnessAuthorizationService.svelte.js'
 import { DummyNotificationService } from './dummyNotificationService.js'
-import { DummyChatService } from './dummyChatService.js'
+import { HarnessChatService } from './harnessChatService.svelte.js'
 import { HarnessGameService } from './harnessGameService.svelte.js'
 import { HarnessLibraryService } from './harnessLibraryService.js'
 import { HarnessManifestService } from './harnessManifestService.js'
@@ -14,12 +14,14 @@ const authorizationService = new HarnessAuthorizationService()
 const notificationService = new DummyNotificationService()
 
 const visibilityService = new VisibilityService() // No reason not to use the real one
-const chatService = new DummyChatService()
+const chatService = new HarnessChatService()
 const api = new DummyRemoteApiService()
+
+export type HarnessAppContext = AppContext & { chatService: HarnessChatService }
 
 export function createHarnessAppContext(
     definition: GameUiDefinition<GameState, HydratedGameState>
-): AppContext {
+): HarnessAppContext {
     const manifestService = new HarnessManifestService(definition)
     const libraryService = new HarnessLibraryService(definition)
     const gameService = new HarnessGameService(libraryService, authorizationService)

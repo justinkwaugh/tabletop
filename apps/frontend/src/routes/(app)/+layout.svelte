@@ -128,6 +128,15 @@
         await goto('/about')
     }
 
+    function setAdminCapabilities(event: Event) {
+        if (!(event.currentTarget instanceof HTMLInputElement)) {
+            return
+        }
+
+        gameService.currentGameSession?.bridge.setChosenAdminPlayerId(undefined)
+        authorizationService.adminCapabilitiesEnabled = event.currentTarget.checked
+    }
+
     function createGame() {
         if (loading) {
             toast.info('Loading game library...')
@@ -348,9 +357,8 @@
                                     </li>
                                     <li>
                                         <Toggle
-                                            bind:checked={
-                                                authorizationService.adminCapabilitiesEnabled
-                                            }
+                                            checked={authorizationService.adminCapabilitiesEnabled}
+                                            onchange={setAdminCapabilities}
                                             class="rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600"
                                             >Admin</Toggle
                                         >

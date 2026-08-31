@@ -30,6 +30,10 @@ _Avoid_: Rules release, backend game
 An immutable, versioned client module containing a Game Title’s UI and an embedded Game Runtime.
 _Avoid_: Frontend release, presentation artifact
 
+**Site Frontend Artifact**:
+The independently deployed client host that discovers and loads UI Artifacts and provides shared platform presentation and capabilities. It does not own Game Title-specific presentation.
+_Avoid_: Game UI, UI Artifact
+
 **Publication**:
 The site’s current selection of one Logic Artifact and one compatible UI Artifact for a Game Title. A Hosted Game uses its Game Title’s current Publication.
 _Avoid_: Game Title Release, deployment
@@ -61,6 +65,10 @@ _Avoid_: Deterministic replay compatibility
 
 **Loaded Client Compatibility**:
 The guarantee that an already-loaded client containing an older minor or patch Logic version can continue against a newer server in the same major line. A major mismatch requires the client to reload.
+
+**Game UI Host Bridge Contract**:
+The version-tolerant bidirectional client interface between the Site Frontend Artifact and an independently versioned UI Artifact. It carries host capabilities into the UI Artifact and Game Session presentation state and commands back to host-owned UI.
+_Avoid_: Shared frontend API, internal bridge
 
 **Logic Rollback**:
 Selection of an earlier Logic Artifact after a newer one was published. Once newer logic has processed canonical State, rollback requires explicit reverse State compatibility; otherwise recovery proceeds through a forward-fix Publication.

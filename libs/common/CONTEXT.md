@@ -36,6 +36,9 @@ Creation of the initial Game State followed by entry into the Game State Machine
 **Player State**:
 The portion of Game State associated with a Player.
 
+**Player Identity**:
+The stable identity of one Player within a Game Instance. A relationship to that Player remains the same when the Player's attributes or presentation change.
+
 **Active Player**:
 A Player to whom an Action may currently be attributed under the Game State Machine. Multiple Players may be active simultaneously.
 

@@ -1,23 +1,39 @@
 services:
+    cache:
+        ports: !reset []
+
     tabletop:
         build:
             context: .
             dockerfile: ./.devcontainer/Dockerfile
 
+        ports:
+            - '127.0.0.1:2224:2222'
+
         volumes:
             # Mounts the project folder to '/workspace'. While this file is in .devcontainer,
             # mounts are relative to the first file in the list, which is a level up.
             - .:/workspace:cached
-            - node_modules_volume:/workspace/node_modules
+            - codex-home:/home/node/.codex
+            - pnpm-store:/workspace/.pnpm-store
+            - sshd-state:/var/lib/tabletop-sshd
+            - type: volume
+              source: node-modules
+              target: /workspace/node_modules
+              volume:
+                  nocopy: true
 
         # Overrides default command so things don't shut down after the process ends.
-        command: /bin/sh -c "while sleep 1000; do :; done"
+        command: sleep infinity
 
         networks:
             - backend
 
 volumes:
-    node_modules_volume:
+    codex-home:
+    node-modules:
+    pnpm-store:
+    sshd-state:
 
 networks:
     backend:

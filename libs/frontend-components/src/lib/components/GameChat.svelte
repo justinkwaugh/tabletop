@@ -75,7 +75,8 @@
     }
 
     function sendMessage() {
-        if (!gameSession.myPrimaryPlayer) {
+        const player = gameSession.chatMessagePlayer
+        if (!player) {
             return
         }
 
@@ -87,7 +88,7 @@
 
         const message: GameChatMessage = {
             id: nanoid(),
-            playerId: gameSession.myPrimaryPlayer?.id,
+            playerId: player.id,
             timestamp: new Date(),
             text
         }

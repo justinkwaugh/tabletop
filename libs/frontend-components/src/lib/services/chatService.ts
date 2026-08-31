@@ -1,4 +1,4 @@
-import type { GameChat, GameChatMessage } from '@tabletop/common'
+import type { Game, GameChat, GameChatMessage } from '@tabletop/common'
 
 export enum ChatEventType {
     NewGameChatMessage = 'newGameChatMessage'
@@ -20,6 +20,7 @@ export type ChatListener = (event: ChatEvent) => Promise<void>
 export type ChatService = {
     currentGameChat: GameChat | undefined
     hasUnreadMessages: boolean
+    isAvailable?(game: Pick<Game, 'hotseat'>): boolean
     setGameId(gameId: string): void
     sendGameChatMessage(gameChatMessage: GameChatMessage, gameId: string): Promise<void>
     setGameChatBookmark(lastReadTimestamp: Date): Promise<void>

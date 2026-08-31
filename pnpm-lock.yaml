@@ -379,7 +379,7 @@ importers:
         specifier: workspace:*
         version: link:../../config/config-vitest
       '@typescript/native-preview':
-        specifier: '*'
+        specifier: 7.0.0-dev.20260707.2
         version: 7.0.0-dev.20260707.2
       rimraf:
         specifier: ^6.1.0
@@ -543,7 +543,7 @@ importers:
         specifier: workspace:*
         version: link:../../config/config-vitest
       '@typescript/native-preview':
-        specifier: '*'
+        specifier: 7.0.0-dev.20260707.2
         version: 7.0.0-dev.20260707.2
       rimraf:
         specifier: ^6.1.0
@@ -710,7 +710,7 @@ importers:
         specifier: workspace:*
         version: link:../../config/config-vitest
       '@typescript/native-preview':
-        specifier: '*'
+        specifier: 7.0.0-dev.20260707.2
         version: 7.0.0-dev.20260707.2
       rimraf:
         specifier: ^6.1.0
@@ -877,7 +877,7 @@ importers:
         specifier: workspace:*
         version: link:../../config/config-vitest
       '@typescript/native-preview':
-        specifier: '*'
+        specifier: 7.0.0-dev.20260707.2
         version: 7.0.0-dev.20260707.2
       rimraf:
         specifier: ^6.1.0
@@ -1077,7 +1077,7 @@ importers:
         specifier: ^10.0.0
         version: 10.0.0
       '@typescript/native-preview':
-        specifier: '*'
+        specifier: 7.0.0-dev.20260707.2
         version: 7.0.0-dev.20260707.2
       rimraf:
         specifier: ^6.1.0
@@ -1238,7 +1238,7 @@ importers:
         specifier: workspace:*
         version: link:../../config/config-vitest
       '@typescript/native-preview':
-        specifier: '*'
+        specifier: 7.0.0-dev.20260707.2
         version: 7.0.0-dev.20260707.2
       rimraf:
         specifier: ^6.1.0
@@ -1405,7 +1405,7 @@ importers:
         specifier: workspace:*
         version: link:../../config/config-vitest
       '@typescript/native-preview':
-        specifier: '*'
+        specifier: 7.0.0-dev.20260707.2
         version: 7.0.0-dev.20260707.2
       rimraf:
         specifier: ^6.1.0
@@ -1572,7 +1572,7 @@ importers:
         specifier: workspace:*
         version: link:../../config/config-vitest
       '@typescript/native-preview':
-        specifier: '*'
+        specifier: 7.0.0-dev.20260707.2
         version: 7.0.0-dev.20260707.2
       rimraf:
         specifier: ^6.1.0
@@ -1739,7 +1739,7 @@ importers:
         specifier: workspace:*
         version: link:../../config/config-vitest
       '@typescript/native-preview':
-        specifier: '*'
+        specifier: 7.0.0-dev.20260707.2
         version: 7.0.0-dev.20260707.2
       rimraf:
         specifier: ^6.1.0
@@ -1785,7 +1785,7 @@ importers:
         specifier: ^10.0.0
         version: 10.0.0
       '@typescript/native-preview':
-        specifier: '*'
+        specifier: 7.0.0-dev.20260707.2
         version: 7.0.0-dev.20260707.2
       rimraf:
         specifier: ^6.1.0
@@ -1949,7 +1949,7 @@ importers:
         specifier: workspace:*
         version: link:../../config/config-vitest
       '@typescript/native-preview':
-        specifier: '*'
+        specifier: 7.0.0-dev.20260707.2
         version: 7.0.0-dev.20260707.2
       rimraf:
         specifier: ^6.1.0
@@ -2116,7 +2116,7 @@ importers:
         specifier: workspace:*
         version: link:../../config/config-vitest
       '@typescript/native-preview':
-        specifier: '*'
+        specifier: 7.0.0-dev.20260707.2
         version: 7.0.0-dev.20260707.2
       rimraf:
         specifier: ^6.1.0
@@ -2547,6 +2547,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.2
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2567,7 +2570,7 @@ importers:
         specifier: ^24.3.1
         version: 24.10.9
       '@typescript/native-preview':
-        specifier: '*'
+        specifier: 7.0.0-dev.20260707.2
         version: 7.0.0-dev.20260707.2
       typescript:
         specifier: 5.9.3

@@ -50,6 +50,7 @@ import { AnimationContext } from '$lib/utils/animations.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
 import type { Static, TSchema } from 'typebox'
 import { VersionChange } from '$lib/network/versionChecker.js'
+import { shouldInvalidateAdminActingPlayerChoice } from './adminActingPlayer.js'
 
 export enum GameSessionMode {
     Play = 'play',
@@ -106,10 +107,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     explorationContext?: GameContext<T, U> = $state()
 
     private suppressStateChangeActions = false
+    private nonActivePlayerViewEnabled = $state(false)
 
     history: GameHistory<T, U>
     explorations: GameExplorations<T, U>
-    colors: GameColors<T, U>
+    colors: GameColors<T>
     bridge: GameSessionBridge<T, U>
 
     chatService: ChatService
@@ -180,7 +182,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     undoableAction: GameAction | undefined = $derived.by(() => {
-        const superUserAccess = this.actAsAdminStore.current || this.isExploring
+        const superUserAccess =
+            (this.actAsAdminStore.current || this.isExploring) && !this.isViewingAsNonActivePlayer
 
         // No spectators, must have actions, not viewing history
         if (
@@ -206,7 +209,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 continue
             }
 
-            if (superUserAccess || this.game.hotseat) {
+            if (superUserAccess || (this.game.hotseat && !this.isViewingAsNonActivePlayer)) {
                 undoableUserAction = action
                 break
             }
@@ -247,10 +250,21 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return undoableUserAction
     })
 
-    chosenAdminPlayerId: string | undefined = $state()
+    private chosenAdminPlayerId: string | undefined = $derived.by(() => {
+        // A writable derived keeps an explicit choice only for the current Admin activation.
+        this.isActingAdmin
+        return undefined
+    })
     adminPlayerId: string | undefined = $derived.by(() => {
-        if (this.chosenAdminPlayerId) {
-            return this.chosenAdminPlayerId
+        if (!this.isActingAdmin) {
+            return undefined
+        }
+
+        const chosenPlayer = this.activePlayers.find(
+            (player) => player.id === this.chosenAdminPlayerId
+        )
+        if (chosenPlayer) {
+            return chosenPlayer.id
         }
 
         if (this.activePlayers.length === 1) {
@@ -269,6 +283,18 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         )
     })
 
+    private nonActivePlayer: Player | undefined = $derived.by(() =>
+        this.findNonActivePlayer(this.gameState)
+    )
+
+    canViewAsNonActivePlayer: boolean = $derived(
+        this.game.hotseat && this.nonActivePlayer !== undefined
+    )
+
+    isViewingAsNonActivePlayer: boolean = $derived(
+        this.nonActivePlayerViewEnabled && this.canViewAsNonActivePlayer
+    )
+
     myPrimaryPlayer: Player | undefined = $derived.by(() => {
         const sessionUser = this.sessionUserStore.current
         if (!sessionUser) {
@@ -280,8 +306,19 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     numPlayers: number = $derived.by(() => this.gameState.numPlayers)
 
     myPlayer: Player | undefined = $derived.by(() => {
-        // In hotseat games, we are just always the first active player
-        if (this.isExploring || this.gameContext.game.hotseat) {
+        if (this.isViewingAsNonActivePlayer) {
+            return this.nonActivePlayer
+        }
+
+        if (this.isExploring) {
+            return this.activePlayers.at(0)
+        }
+
+        if (this.actAsAdminStore.current && this.adminPlayerId) {
+            return this.gameContext.game.players.find((player) => player.id === this.adminPlayerId)
+        }
+
+        if (this.gameContext.game.hotseat) {
             return this.activePlayers.at(0)
         }
 
@@ -290,12 +327,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             return undefined
         }
 
-        if (this.actAsAdminStore.current && this.adminPlayerId) {
-            return this.gameContext.game.players.find((player) => player.id === this.adminPlayerId)
-        }
-
         return this.gameContext.game.players.find((player) => player.userId === sessionUser.id)
     })
+
+    chatMessagePlayer: Player | undefined = $derived.by(() =>
+        this.primaryGame.hotseat && this.chatAvailable ? this.myPlayer : this.myPrimaryPlayer
+    )
 
     myPlayerState: PlayerStateOf<U> | undefined = $derived.by(() =>
         this.gameState.findPlayerState(this.myPlayer?.id)
@@ -310,6 +347,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     isMyTurn: boolean = $derived.by(() => {
+        if (this.isViewingAsNonActivePlayer) {
+            return false
+        }
+
         if (this.isExploring || this.gameContext.game.hotseat || this.actAsAdminStore.current) {
             return true
         }
@@ -325,7 +366,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     validActionTypes: string[] = $derived.by(() => {
-        if (!this.myPlayer) {
+        if (this.isViewingAsNonActivePlayer || !this.myPlayer) {
             return []
         }
 
@@ -335,6 +376,40 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             this.myPlayer.id
         )
     })
+
+    setViewingAsNonActivePlayer(enabled: boolean) {
+        this.nonActivePlayerViewEnabled = enabled && this.canViewAsNonActivePlayer
+    }
+
+    setActingPlayer(playerId: string) {
+        const actingPlayer = this.activePlayers.find((player) => player.id === playerId)
+        assertExists(actingPlayer, `Active player ${playerId} not found`)
+        this.chosenAdminPlayerId = actingPlayer.id
+    }
+
+    clearActingPlayer() {
+        this.chosenAdminPlayerId = undefined
+    }
+
+    private findNonActivePlayer(state: U): Player | undefined {
+        return this.game.players.find((player) => !state.activePlayerIds.includes(player.id))
+    }
+
+    private reconcilePlayerPerspective(state: U) {
+        if (!this.findNonActivePlayer(state)) {
+            this.nonActivePlayerViewEnabled = false
+        }
+
+        if (
+            shouldInvalidateAdminActingPlayerChoice({
+                isExploring: this.isExploring,
+                chosenPlayerId: this.chosenAdminPlayerId,
+                activePlayerIds: state.activePlayerIds
+            })
+        ) {
+            this.chosenAdminPlayerId = undefined
+        }
+    }
 
     // For admin users
     showDebug: boolean = $derived.by(() => {
@@ -359,6 +434,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     hasUnreadMessages = $derived.by(() => {
         return this.hasUnreadMessagesStore.current
     })
+
+    readonly chatAvailable: boolean
 
     private effectDisposer: () => void
 
@@ -403,6 +480,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.engine = new GameEngine(runtime)
 
         this.debug = debug
+        this.chatAvailable = chatService.isAvailable?.(game) ?? !game.hotseat
 
         delete game.state
         this.gameContext = new GameContext<T, U>({
@@ -577,6 +655,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         this.beforeNewState()
+        this.reconcilePlayerPerspective(newState)
         this.gameState = newState
     }
 

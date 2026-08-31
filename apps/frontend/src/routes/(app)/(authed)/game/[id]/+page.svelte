@@ -46,14 +46,13 @@
 <HistoryKeyControls />
 
 <div class="flex flex-col w-screen overflow-auto">
-    {#if authorizationService.actAsAdmin}
-        <AdminPanel />
-    {/if}
     <div {@attach attachGlobalCssVarFromRect('--app-banner-height')}>
         {#if $isExploring}
             <ExplorationPanel />
         {:else if $gameHotseat}
             <HotseatPanel />
+        {:else if authorizationService.actAsAdmin}
+            <AdminPanel />
         {/if}
     </div>
     <GameUI gameSession={data.gameSession} />

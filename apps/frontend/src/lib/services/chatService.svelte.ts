@@ -12,6 +12,7 @@ import {
 import {
     Notification,
     NotificationCategory,
+    type Game,
     GameChat,
     GameChatMessage,
     addToChecksum,
@@ -51,6 +52,10 @@ export class ChatService {
         private readonly api: TabletopApi
     ) {
         notificationService.addListener(this.NotificationListener)
+    }
+
+    isAvailable(game: Pick<Game, 'hotseat'>): boolean {
+        return !game.hotseat
     }
 
     isLoading(): boolean {

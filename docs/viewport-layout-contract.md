@@ -134,7 +134,7 @@ So the contract is shared, but the shell measurement source is environment-speci
 - [apps/frontend/src/routes/(app)/+layout.svelte](/Users/justin.w/dev/tabletop/apps/frontend/src/routes/(app)/+layout.svelte)
   - renders the real site navbar and app chrome
 - [apps/frontend/src/routes/(app)/(authed)/game/[id]/+page.svelte](/Users/justin.w/dev/tabletop/apps/frontend/src/routes/(app)/(authed)/game/[id]/+page.svelte)
-  - optionally renders `ExplorationPanel` / `HotseatPanel`
+  - optionally renders `AdminPanel` / `ExplorationPanel` / `HotseatPanel`
   - renders `GameUI`
 - [GameUI.svelte](/Users/justin.w/dev/tabletop/libs/frontend-components/src/lib/components/GameUI.svelte)
   - attaches the game UI component
@@ -145,7 +145,7 @@ So the contract is shared, but the shell measurement source is environment-speci
 
 - In harness mode, top safe area is now allocated in `Harness`, not in the table content area.
 - `DefaultTableLayout` now subtracts `var(--safe-area-top)` from available height instead of padding its own top.
-- `HotseatPanel` and `ExplorationPanel` really are `44px` tall in the current implementation.
+- `AdminPanel`, `HotseatPanel`, and `ExplorationPanel` are `44px` tall in the current implementation.
 - Contracted game view uses `ScalingWrapper` inside a bounded column instead of raw page-height scaling.
 
 ### What Currently Does Not Match the Contract

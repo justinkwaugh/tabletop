@@ -95,6 +95,12 @@ Terminal states expose no further actions. Handlers orchestrate the state machin
 
 `GameState` contains the complete replay-relevant model. `PlayerState` contains player-specific game facts. Initialization, dehydration, and hydration must round-trip without losing behavior or changing serialized meaning.
 
+### Player relationships
+
+Every Game State or Action relationship to a Player must use that Player's stable ID. Name the field for the relationship it represents, such as `playerId`, `actingPlayerId`, or `winnerPlayerId`. Do not identify or resolve a Player through color, display name, seat, turn-order position, array index, or another Player attribute.
+
+A game may store color when color is itself a rule-relevant fact, but color is not Player Identity. Changing preferred colors, color-blind presentation, or another visual treatment must not change player attribution, game rules, scoring, action availability, replay, or undo.
+
 Before implementing a game-model mechanism, search `libs/common/src/game/components` and existing games for the same concept. Prefer extending an established mechanism when the semantics match. Keep game-specific rule differences local when they do not justify changing a shared contract.
 
 “Game-model component” in this document means a reusable logic mechanism, not a Svelte component.
@@ -128,6 +134,7 @@ Verify the parts affected by the change:
 - Every machine state is mapped to a handler.
 - Every serialized action is present in the API schema and hydrator.
 - Initialization, dehydration, and hydration preserve the game model.
+- Player relationships remain correct when player attributes or presentation colors change.
 - Actions validate, apply, and emit metadata correctly.
 - State entry, transitions, and system-action cascades follow the rules.
 - Seeded behavior is deterministic.

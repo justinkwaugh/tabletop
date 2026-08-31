@@ -123,7 +123,7 @@
             {/if}
         </TabItem>
     {/if}
-    {#if !gameSession.primaryGame.hotseat}
+    {#if gameSession.chatAvailable}
         <TabItem
             onclick={onChatClick}
             activeClass={activeTabClasses}
