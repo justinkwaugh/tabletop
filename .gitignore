@@ -38,6 +38,7 @@ out
 .env
 .env*
 !.env.example
+!.env.devcontainer.example
 
 dist
 build
