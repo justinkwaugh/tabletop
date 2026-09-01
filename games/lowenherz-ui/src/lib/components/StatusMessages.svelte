@@ -432,7 +432,6 @@
          live one. Same idea as Sol's LastActionDescription, just scoped to history. -->
     {#if historyAction}
         <div class="text-black text-[18px] text-center border-b-2 border-black/15 pb-1">
-            <span class="italic text-black/60 text-[16px]">Rewound to:</span>
             {#if historyAction.playerId}
                 {@render playerPill(historyAction.playerId)}
             {/if}
