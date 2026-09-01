@@ -654,8 +654,12 @@ export class FirestoreGameStore implements GameStore {
         }
     }
 
+    private chunkIdForChunkNumber(chunkNumber: number, gameId: string): string {
+        return `chunk-${gameId}-${chunkNumber}`
+    }
+
     private chunkIdForActionIndex(index: number, gameId: string, chunkSize: number): string {
-        return `chunk-${gameId}-${Math.floor(index / chunkSize)}`
+        return this.chunkIdForChunkNumber(Math.floor(index / chunkSize), gameId)
     }
 
     private getChunkIdsForRange(
@@ -672,7 +676,7 @@ export class FirestoreGameStore implements GameStore {
         const lastChunkNumber = Math.floor((endIndex - 1) / chunkSize)
         const chunkIds: string[] = []
         for (let chunkNumber = firstChunkNumber; chunkNumber <= lastChunkNumber; chunkNumber++) {
-            chunkIds.push(`chunk-${gameId}-${chunkNumber}`)
+            chunkIds.push(this.chunkIdForChunkNumber(chunkNumber, gameId))
         }
         return chunkIds
     }
