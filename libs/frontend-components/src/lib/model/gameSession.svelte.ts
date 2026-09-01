@@ -898,7 +898,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         try {
             // Block server actions while we are processing primary actions
             if (this.mode === GameSessionMode.Play) {
-                // console.log('Undo setting processingActions to true')
                 this.processingActions = true
             }
 
@@ -909,9 +908,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             let stateSnapshot = structuredClone(relevantContext.state) as T
 
             const priorContext = relevantContext.clone()
-
-            const localUndoneActions = []
-            const localRedoneActions = []
 
             try {
                 // Undo locally
@@ -930,24 +926,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                         redoAction.undoPatch = undefined
                         redoActions.push(redoAction)
                     }
-                    localUndoneActions.push(actionToUndo)
                     stateSnapshot = this.engine.undoAction(stateSnapshot, actionToUndo)
                 } while (actionToUndo.id !== targetActionId)
 
-                // console.log('Undo updating game state')
                 relevantContext.updateGameState(stateSnapshot)
-                const preRedoContext = relevantContext.clone()
-
                 for (const action of redoActions) {
                     const results = this.applyActionToGame(action, gameSnapshot, stateSnapshot)
-                    localRedoneActions.push(...results.processedActions)
                     stateSnapshot = results.updatedState
-                    // console.log('Undo updating game state from redo actions')
                     relevantContext.applyActionResults(results)
                 }
-
-                // console.log('Undo updating game state again')
-                // relevantContext.updateGameState(stateSnapshot)
 
                 if (relevantContext.game.storage === GameStorage.Local) {
                     await this.gameService.saveGameLocally({
@@ -957,25 +944,41 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     })
                 } else if (relevantContext.game.storage === GameStorage.Remote) {
                     // Undo on the server
-                    const { redoneActions, checksum } = await this.api.undoAction(
+                    const { undoneActions, redoneActions, checksum } = await this.api.undoAction(
                         relevantContext.game,
                         targetActionId
                     )
+                    const canonicalTargetAction = undoneActions.find(
+                        (action) => action.id === targetActionId
+                    )
+                    assertExists(
+                        canonicalTargetAction,
+                        `Canonical undo target ${targetActionId} was not returned`
+                    )
+                    assertExists(
+                        canonicalTargetAction.index,
+                        `Canonical undo target ${targetActionId} has no index`
+                    )
 
-                    if (checksum !== relevantContext.state?.actionChecksum) {
-                        // We must not have known about something, but we did succeed so let's see if we can align
-                        // by removing our redos and adding the backend's instead
-                        localRedoneActions.splice(0, localRedoneActions.length)
-                        relevantContext.restoreFrom(preRedoContext)
+                    if (
+                        canonicalTargetAction.index !== targetAction.index ||
+                        checksum !== relevantContext.state.actionChecksum
+                    ) {
+                        relevantContext.restoreFrom(priorContext)
+                        stateSnapshot = structuredClone(relevantContext.state)
+                        stateSnapshot = this.undoToIndex(
+                            stateSnapshot,
+                            canonicalTargetAction.index - 1,
+                            relevantContext
+                        )
+                        relevantContext.updateGameState(stateSnapshot)
                         for (const action of redoneActions) {
                             const results = this.applyActionToGame(
                                 action,
                                 gameSnapshot,
                                 stateSnapshot
                             )
-                            localRedoneActions.push(...results.processedActions)
                             stateSnapshot = results.updatedState
-                            // console.log('Undo updating game state from remote')
                             relevantContext.applyActionResults(results)
                         }
                     }
@@ -984,6 +987,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     redoneActions.forEach((action) => {
                         relevantContext.upsertAction(action)
                     })
+
+                    if (checksum !== relevantContext.state.actionChecksum) {
+                        throw new Error(
+                            `Undo reconciliation checksum mismatch, got ${relevantContext.state.actionChecksum} expected ${checksum}`
+                        )
+                    }
                 }
 
                 relevantContext.verifyFullChecksum()
@@ -997,7 +1006,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             }
         } finally {
             if (this.mode === GameSessionMode.Play) {
-                // console.log('Undo setting processingActions to false')
                 this.processingActions = false
             }
         }
@@ -1220,7 +1228,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         if (resyncNeeded) {
-            if (!this.tryToResync(actions, checksum)) {
+            if (!(await this.tryToResync(actions, checksum))) {
                 await this.doFullResync()
             }
         }
