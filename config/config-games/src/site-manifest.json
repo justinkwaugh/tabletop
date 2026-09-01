@@ -1,12 +1,12 @@
 {
   "frontend": {
-    "version": "16.1.0",
+    "version": "16.1.1",
     "priorVersions": [
+      "16.1.0",
       "16.0.2",
       "16.0.1",
       "16.0.0",
-      "15.0.2",
-      "15.0.1"
+      "15.0.2"
     ]
   },
   "games": [
@@ -187,21 +187,21 @@
     {
       "gameId": "lowenherz",
       "packageId": "lowenherz",
-      "logicVersion": "1.0.0",
-      "uiVersion": "1.0.0",
+      "logicVersion": "1.1.0",
+      "uiVersion": "1.1.1",
       "priorLogicVersions": [
+        "1.0.0",
         "0.8.0",
         "0.7.0",
         "0.6.0",
-        "0.5.0",
-        "0.4.0"
+        "0.5.0"
       ],
       "priorUiVersions": [
+        "1.1.0",
+        "1.0.0",
         "0.7.0",
         "0.6.0",
-        "0.5.0",
-        "0.4.0",
-        "0.3.0"
+        "0.5.0"
       ]
     }
   ]
