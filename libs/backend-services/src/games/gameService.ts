@@ -937,10 +937,17 @@ export class GameService {
             throw new DisallowedUndoError({ gameId, actionId, reason: `Game state not found` })
         }
 
-        const actionToUndo = await this.gameStore.findActionById(game, actionId)
-        if (!actionToUndo || actionToUndo.index === undefined) {
+        const priorActionCount = gameState.actionCount
+        const priorChecksum = gameState.actionChecksum
+        const undoWindow = await this.gameStore.findUndoActionWindow({
+            game,
+            actionId,
+            endIndex: priorActionCount
+        })
+        if (!undoWindow || undoWindow.targetAction.index === undefined) {
             throw new DisallowedUndoError({ gameId, actionId, reason: `Action not found` })
         }
+        const actionToUndo = undoWindow.targetAction
 
         if (!user.roles.includes(Role.Admin) && actionToUndo.playerId !== userPlayer?.id) {
             throw new DisallowedUndoError({
@@ -958,24 +965,12 @@ export class GameService {
             })
         }
 
-        const startActionIndex = actionToUndo.index
-        const actions = await this.gameStore.findActionRangeForGame({
-            game,
-            startIndex: startActionIndex,
-            endIndex: gameState.actionCount
-        })
-
-        if (actions.length === 0) {
+        const targetPosition = undoWindow.actions.findIndex((action) => action.id === actionId)
+        if (targetPosition < 0) {
             throw new DisallowedUndoError({ gameId, actionId, reason: `No actions to undo` })
         }
-
-        if (actions[0].id !== actionToUndo.id) {
-            throw new DisallowedUndoError({
-                gameId,
-                actionId,
-                reason: `Action to undo is not the first action in the range`
-            })
-        }
+        const retainedActions = undoWindow.actions.slice(0, targetPosition)
+        const actions = undoWindow.actions.slice(targetPosition)
 
         const redoActions = []
         if (!user.roles.includes(Role.Admin)) {
@@ -1015,9 +1010,7 @@ export class GameService {
         }
 
         const gameEngine = new GameEngine(definition.runtime)
-        actions.reverse()
-
-        for (const action of actions) {
+        for (const action of actions.toReversed()) {
             gameState = gameEngine.undoAction(gameState, action)
         }
 
@@ -1039,7 +1032,7 @@ export class GameService {
             gameId,
             actions,
             redoneActions,
-            state: updatedState!,
+            state: updatedState,
             validator: async (
                 existingGame,
                 existingState,
@@ -1047,6 +1040,13 @@ export class GameService {
                 newState,
                 gameUpdates
             ) => {
+                if (
+                    existingState.actionCount !== priorActionCount ||
+                    existingState.actionChecksum !== priorChecksum
+                ) {
+                    throw new GameUpdateCollisionError({ id: gameId })
+                }
+
                 // We just need to validate transactional consistency here, so we reverse the checksum.
                 // Because our hash merge is XOR based, we can just run the exact same function but with the reversed actions
                 existingActions.sort((a, b) => (b.index ?? 0) - (a.index ?? 0))
@@ -1074,14 +1074,27 @@ export class GameService {
                 return UpdateValidationResult.Proceed
             }
         })
-        const checksum = gameState?.actionChecksum ?? 0
+        const checksum = updatedState.actionChecksum
         delete updatedGame.state
+
+        const canonicalReplay = {
+            startIndex: undoWindow.startIndex,
+            userActions: [...retainedActions, ...processedRedoneActions]
+                .filter((action) => action.source === ActionSource.User)
+                .map((action) => this.prepareCanonicalReplayAction(action))
+        }
 
         // send out notifications
         await this.notifyGameInstance(GameNotificationAction.UndoAction, {
             game: updatedGame,
             action: actionToUndo,
-            redoneActions: processedRedoneActions
+            redoneActions: processedRedoneActions,
+            undoneActionId: actionToUndo.id,
+            canonicalReplay: {
+                startIndex: canonicalReplay.startIndex,
+                userActionIds: canonicalReplay.userActions.map((action) => action.id)
+            },
+            checksum
         })
         await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
 
@@ -1089,6 +1102,7 @@ export class GameService {
             undoneActions,
             updatedGame,
             redoneActions: processedRedoneActions,
+            canonicalReplay,
             checksum
         }
     }
@@ -1105,6 +1119,12 @@ export class GameService {
             other.simultaneousGroupId !== undefined &&
             action.simultaneousGroupId === other.simultaneousGroupId
         )
+    }
+
+    private prepareCanonicalReplayAction(action: GameAction): GameAction {
+        const replayAction = structuredClone(action)
+        delete replayAction.undoPatch
+        return replayAction
     }
 
     private verifyUserIsActionPlayer(action: GameAction, game: Game, user: User) {

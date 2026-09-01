@@ -2,20 +2,25 @@ import {
     ActionSource,
     AuctionType,
     GameEngine,
+    GameNotificationAction,
     GameStorage,
     GameSyncStatus,
     HydratedSimultaneousAuction,
+    NotificationCategory,
     PlayerStatus,
     TieResolutionStrategy,
     assertExists,
     createAction,
     type Game,
     type GameAction,
+    type GameUndoActionNotification,
     type GameState,
     type HydratedGameState
 } from '@tabletop/common'
 import {
     BridgedContext,
+    NotificationChannel,
+    NotificationEventType,
     createHarnessAppContext,
     type GameUiDefinition
 } from '@tabletop/frontend-components'
@@ -82,6 +87,24 @@ class CanonicalHost {
         const actionsToUndo = this.actions.slice(targetPosition)
         const targetAction = actionsToUndo[0]
         assertExists(targetAction, `Canonical action ${actionId} was not found`)
+        assertExists(targetAction.index, `Canonical action ${actionId} has no index`)
+
+        let replayStartIndex = targetAction.index
+        if (targetAction.simultaneousGroupId !== undefined) {
+            for (const precedingAction of this.actions.slice(0, targetPosition).toReversed()) {
+                if (precedingAction.source !== ActionSource.User) {
+                    continue
+                }
+                if (precedingAction.simultaneousGroupId !== targetAction.simultaneousGroupId) {
+                    break
+                }
+                assertExists(
+                    precedingAction.index,
+                    `Canonical action ${precedingAction.id} has no index`
+                )
+                replayStartIndex = precedingAction.index
+            }
+        }
 
         const actionsToReplay = actionsToUndo
             .slice(1)
@@ -110,10 +133,27 @@ class CanonicalHost {
             redoneActions.push(...results.processedActions)
         }
 
+        const replayUserActions = this.actions
+            .filter(
+                (action) =>
+                    action.source === ActionSource.User &&
+                    action.index !== undefined &&
+                    action.index >= replayStartIndex
+            )
+            .map((action) => {
+                const replayAction = structuredClone(action)
+                delete replayAction.undoPatch
+                return replayAction
+            })
+
         return {
             undoneActions: actionsToUndo.toReversed().map((action) => structuredClone(action)),
             game: this.gameWithoutState(),
             redoneActions: redoneActions.map((action) => structuredClone(action)),
+            canonicalReplay: {
+                startIndex: replayStartIndex,
+                userActions: replayUserActions
+            },
             checksum: this.state.actionChecksum
         }
     }
@@ -255,6 +295,7 @@ function createClient(host: CanonicalHost, state: FreshFishGameState, actions: G
 
     return {
         session,
+        notificationService: appContext.notificationService,
         undoSpy,
         checkSyncSpy,
         getGameSpy,
@@ -274,6 +315,31 @@ function expectClientToMatchHost(session: FreshFishGameSession, host: CanonicalH
         host.actions.map((action) => action.index)
     )
     expect(context.state.actionChecksum).toBe(host.state.actionChecksum)
+}
+
+function createUndoNotification(
+    undoResult: ReturnType<CanonicalHost['undo']>,
+    undoneActionId: string
+): GameUndoActionNotification {
+    const undoneAction = undoResult.undoneActions.find((action) => action.id === undoneActionId)
+    assertExists(undoneAction, `Undone action ${undoneActionId} was not returned`)
+
+    return {
+        id: `undo-${undoneActionId}-notification`,
+        type: NotificationCategory.Game,
+        action: GameNotificationAction.UndoAction,
+        data: {
+            game: undoResult.game,
+            action: undoneAction,
+            redoneActions: undoResult.redoneActions,
+            undoneActionId,
+            canonicalReplay: {
+                startIndex: undoResult.canonicalReplay.startIndex,
+                userActionIds: undoResult.canonicalReplay.userActions.map((action) => action.id)
+            },
+            checksum: undoResult.checksum
+        }
+    }
 }
 
 beforeEach(() => {
@@ -332,9 +398,94 @@ describe('simultaneous auction undo reconciliation', () => {
 
             expectClientToMatchHost(client.session, host)
             expect(client.undoSpy).toHaveBeenCalledOnce()
+            expect(client.checkSyncSpy).not.toHaveBeenCalled()
+            expect(client.getGameSpy).not.toHaveBeenCalled()
+        } finally {
+            client.dispose()
+        }
+    })
+
+    test('reconciles an empty canonical replay when the only bid is undone', async () => {
+        const host = createAuctionHost()
+        const bBid = host.apply(createBid('bid-b-01', PLAYER_B_ID, 1))
+        const clientState = structuredClone(host.state)
+        const clientActions = host.actionsSnapshot()
+
+        const client = createClient(host, clientState, clientActions)
+        try {
+            await client.session.waitForVisibleTransitionSettled()
+            expect(client.session.undoableAction?.id).toBe(bBid.id)
+
+            await client.session.undo()
+            await client.session.waitForVisibleTransitionSettled()
+
+            expectClientToMatchHost(client.session, host)
+            expect(client.undoSpy).toHaveBeenCalledOnce()
+            expect(client.checkSyncSpy).not.toHaveBeenCalled()
+            expect(client.getGameSpy).not.toHaveBeenCalled()
+        } finally {
+            client.dispose()
+        }
+    })
+
+    test('reconciles a realtime undo from its compact canonical action manifest', async () => {
+        const host = createAuctionHost()
+        const aBid = host.apply(createBid('bid-a-01', PLAYER_A_ID, 1))
+        host.apply(createBid('bid-d-02', PLAYER_D_ID, 2))
+        host.apply(createBid('bid-b-03', PLAYER_B_ID, 3))
+        const clientState = structuredClone(host.state)
+        const clientActions = host.actionsSnapshot()
+
+        const client = createClient(host, clientState, clientActions)
+        client.session.listenToGame()
+        try {
+            await client.session.waitForVisibleTransitionSettled()
+            const undoResult = host.undo(aBid.id)
+
+            await client.notificationService.emit({
+                eventType: NotificationEventType.Data,
+                channel: NotificationChannel.GameInstance,
+                notification: createUndoNotification(undoResult, aBid.id)
+            })
+            await client.session.waitForVisibleTransitionSettled()
+
+            expectClientToMatchHost(client.session, host)
+            expect(client.undoSpy).not.toHaveBeenCalled()
+            expect(client.checkSyncSpy).not.toHaveBeenCalled()
+            expect(client.getGameSpy).not.toHaveBeenCalled()
+        } finally {
+            client.session.stopListeningToGame()
+            client.dispose()
+        }
+    })
+
+    test('falls back to synchronization when a realtime manifest references an unknown action', async () => {
+        const host = createAuctionHost()
+        const aBid = host.apply(createBid('bid-a-01', PLAYER_A_ID, 1))
+        const clientState = structuredClone(host.state)
+        const clientActions = host.actionsSnapshot()
+        host.apply(createBid('bid-d-02', PLAYER_D_ID, 2))
+        host.apply(createBid('bid-b-03', PLAYER_B_ID, 3))
+
+        const client = createClient(host, clientState, clientActions)
+        client.session.listenToGame()
+        try {
+            await client.session.waitForVisibleTransitionSettled()
+            const undoResult = host.undo(aBid.id)
+
+            await client.notificationService.emit({
+                eventType: NotificationEventType.Data,
+                channel: NotificationChannel.GameInstance,
+                notification: createUndoNotification(undoResult, aBid.id)
+            })
+            await client.session.waitForVisibleTransitionSettled()
+
+            expectClientToMatchHost(client.session, host)
+            expect(client.undoSpy).not.toHaveBeenCalled()
             expect(client.checkSyncSpy).toHaveBeenCalledOnce()
             expect(client.getGameSpy).toHaveBeenCalledOnce()
         } finally {
+            client.session.stopListeningToGame()
             client.dispose()
         }
     })
