@@ -1,18 +1,23 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { Color, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import {
-    castleSquaresForColor,
+    castleSquaresForOwner,
     getSquare,
     manhattanDistance,
     neighbors,
     SquareType
 } from '../model/board.js'
 import { buildPlacementPlan, currentPlacementSlot } from '../util/placementPlan.js'
+import { PieceOwner } from '../model/owner.js'
 
-const SAME_COLOR_CASTLE_MIN_GAP = 6
+const SAME_OWNER_CASTLE_MIN_GAP = 6
+
+function placementPlanFor(state: HydratedLowenherzGameState) {
+    return buildPlacementPlan(state.turnOrder, state.neutralColor !== undefined)
+}
 
 // Specific reasons a candidate castle square can be rejected - see
 // describeCastleSquareProblem(). Not "wrong-terrain"/"occupied" combined into one
@@ -49,29 +54,24 @@ export function isPlaceCastle(action?: GameAction): action is PlaceCastle {
     return action?.type === ActionType.PlaceCastle
 }
 
-// The color the NEXT setup placement will actually be - the acting player's own for the
-// first laps, then the shared neutral color for the final ones (3 players place 1 neutral
-// castle each, 2 players place 2 - see buildPlacementPlan). Undefined once setup is done.
+// Who the NEXT setup placement will belong to - the acting player for the first laps,
+// then the neutral prince for the final ones (3 players place 1 neutral castle each,
+// 2 players place 2 - see buildPlacementPlan). Undefined once setup is done.
 // Exported because the client needs it to preview the piece it's about to place: showing
 // the player's own color through the neutral laps means the ghost castles/knights change
 // color from seat to seat when every one of them is going to be neutral.
-export function currentPlacementColor(state: HydratedLowenherzGameState): Color | undefined {
-    const plan = buildPlacementPlan(
-        state.turnOrder,
-        (playerId) => state.getPlayerState(playerId).color,
-        state.neutralColor
-    )
-    return currentPlacementSlot(plan, totalCastlesPlaced(state))?.color
+export function currentPlacementOwner(state: HydratedLowenherzGameState): PieceOwner | undefined {
+    return currentPlacementSlot(placementPlanFor(state), totalCastlesPlaced(state))?.owner
 }
 
-// The total number of castles (any color) currently on the board - this always equals
+// The total number of castles (any owner) currently on the board - this always equals
 // how many setup placements have happened so far, since placement is the only way a
 // castle ever appears on the board.
 function totalCastlesPlaced(state: HydratedLowenherzGameState): number {
     let count = 0
     for (const row of state.board.squares) {
         for (const square of row) {
-            if (square.castleColor) count++
+            if (square.castleOwner) count++
         }
     }
     return count
@@ -95,32 +95,23 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
             throw Error('Invalid PlaceCastle action')
         }
 
-        const slot = currentPlacementSlot(this.buildPlan(state), totalCastlesPlaced(state))!
+        const slot = currentPlacementSlot(placementPlanFor(state), totalCastlesPlaced(state))!
 
         state.board.squares[this.castleRow][this.castleCol] = {
             ...state.board.squares[this.castleRow][this.castleCol],
-            castleColor: slot.color
+            castleOwner: slot.owner
         }
         state.board.squares[this.knightRow][this.knightCol] = {
             ...state.board.squares[this.knightRow][this.knightCol],
-            knightColor: slot.color
+            knightOwner: slot.owner
         }
 
-        const playerState = state.getPlayerState(this.playerId)
-        // Neutral-color placements aren't drawn from any player's own knight stock.
-        if (slot.color === playerState.color) {
-            playerState.knightsInStock -= 1
+        // The neutral prince's placements aren't drawn from any player's own knight stock.
+        if (slot.owner === this.playerId) {
+            state.getPlayerState(this.playerId).knightsInStock -= 1
         }
 
         this.metadata = {}
-    }
-
-    private buildPlan(state: HydratedLowenherzGameState) {
-        return buildPlacementPlan(
-            state.turnOrder,
-            (playerId) => state.getPlayerState(playerId).color,
-            state.neutralColor
-        )
     }
 
     isValidPlaceCastle(state: HydratedLowenherzGameState): boolean {
@@ -137,12 +128,7 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
     }
 
     static canPlaceCastle(state: HydratedLowenherzGameState, playerId: string): boolean {
-        const plan = buildPlacementPlan(
-            state.turnOrder,
-            (id) => state.getPlayerState(id).color,
-            state.neutralColor
-        )
-        const slot = currentPlacementSlot(plan, totalCastlesPlaced(state))
+        const slot = currentPlacementSlot(placementPlanFor(state), totalCastlesPlaced(state))
         return slot?.playerId === playerId
     }
 
@@ -172,17 +158,12 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
         castleCol: number,
         castleRow: number
     ): CastleSquareProblem | undefined {
-        const plan = buildPlacementPlan(
-            state.turnOrder,
-            (id) => state.getPlayerState(id).color,
-            state.neutralColor
-        )
-        const slot = currentPlacementSlot(plan, totalCastlesPlaced(state))
+        const slot = currentPlacementSlot(placementPlanFor(state), totalCastlesPlaced(state))
         if (!slot || slot.playerId !== playerId) return 'notYourTurn'
 
         const castleSquare = getSquare(state.board, castleCol, castleRow)
         if (!castleSquare || castleSquare.type !== SquareType.Blank) return 'wrongTerrain'
-        if (castleSquare.castleColor || castleSquare.knightColor) return 'occupied'
+        if (castleSquare.castleOwner || castleSquare.knightOwner) return 'occupied'
 
         // A castle arrives with a knight beside it, so a square with nowhere legal to put that
         // knight is not a placement that can be completed - it is a dead end that only reveals
@@ -199,44 +180,44 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
             return 'noKnightSquare'
         }
 
-        const existingSameColorCastles = castleSquaresForColor(state.board, slot.color)
-        const requiredGap = HydratedPlaceCastle.requiredCastleGap(state, slot.color)
-        const tooClose = existingSameColorCastles.some(
+        const existingSameOwnerCastles = castleSquaresForOwner(state.board, slot.owner)
+        const requiredGap = HydratedPlaceCastle.requiredCastleGap(state, slot.owner)
+        const tooClose = existingSameOwnerCastles.some(
             (existing) =>
                 manhattanDistance(existing.col, existing.row, castleCol, castleRow) < requiredGap
         )
         return tooClose ? 'tooClose' : undefined
     }
 
-    // The same-colour spacing this placement actually has to clear. Normally the rulebook's
+    // The same-owner spacing this placement actually has to clear. Normally the rulebook's
     // "at least 6 spaces between them", but relaxed to the best the board still offers when
     // NOTHING clears 6.
     //
     // Setup places 12 castles under a hard spacing rule with no Pass and no take-backs, so a
     // sequence of individually legal placements can leave the next one with nowhere to go -
     // the game then hangs before turn 1. Random legal play reached that state in roughly
-    // 1 in 500 two-player games (the variant places four own-colour castles each, so its
+    // 1 in 500 two-player games (the variant places four castles of their own each, so its
     // spacing is by far the tightest). Rather than let a game die at setup, the requirement
     // degrades to the largest gap any legal square can offer, which still spreads castles as
     // far apart as the board permits. It only ever engages when the strict rule is
     // unsatisfiable, so ordinary games are unaffected.
-    static requiredCastleGap(state: HydratedLowenherzGameState, color: Color): number {
-        const existing = castleSquaresForColor(state.board, color)
-        if (existing.length === 0) return SAME_COLOR_CASTLE_MIN_GAP
+    static requiredCastleGap(state: HydratedLowenherzGameState, owner: PieceOwner): number {
+        const existing = castleSquaresForOwner(state.board, owner)
+        if (existing.length === 0) return SAME_OWNER_CASTLE_MIN_GAP
 
         let bestAchievableGap = 0
         for (let row = 0; row < state.board.squares.length; row++) {
             for (let col = 0; col < state.board.squares[row].length; col++) {
                 const square = getSquare(state.board, col, row)
                 if (!square || square.type !== SquareType.Blank) continue
-                if (square.castleColor || square.knightColor) continue
+                if (square.castleOwner || square.knightOwner) continue
                 if (!HydratedPlaceCastle.hasLegalKnightSquare(state, col, row)) continue
 
                 let nearest = Number.POSITIVE_INFINITY
                 for (const castle of existing) {
                     nearest = Math.min(nearest, manhattanDistance(castle.col, castle.row, col, row))
                 }
-                if (nearest >= SAME_COLOR_CASTLE_MIN_GAP) return SAME_COLOR_CASTLE_MIN_GAP
+                if (nearest >= SAME_OWNER_CASTLE_MIN_GAP) return SAME_OWNER_CASTLE_MIN_GAP
                 bestAchievableGap = Math.max(bestAchievableGap, nearest)
             }
         }
@@ -260,7 +241,7 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
         // Knights may never be placed on wooded spaces during setup (only during
         // regular in-game play, where they're allowed for a ducat cost).
         if (knightSquare.type !== SquareType.Blank) return false
-        if (knightSquare.castleColor || knightSquare.knightColor) return false
+        if (knightSquare.castleOwner || knightSquare.knightOwner) return false
 
         return true
     }

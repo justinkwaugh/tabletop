@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
+import { NEUTRAL_OWNER, PieceOwner } from '../model/owner.js'
 import { HydratedLowenherzGameState, LowenherzGameState } from '../model/gameState.js'
 import { MachineState } from '../definition/states.js'
 import { assembleStandardBoard, applyStandardSetup } from './standardSetup.js'
@@ -43,14 +44,14 @@ function buildState(playerColors: Color[]): HydratedLowenherzGameState {
     return new HydratedLowenherzGameState(data)
 }
 
-function castleAndKnightSquares(state: HydratedLowenherzGameState, color: Color) {
+function castleAndKnightSquares(state: HydratedLowenherzGameState, owner: PieceOwner) {
     const castles: string[] = []
     const knights: string[] = []
     for (let row = 0; row < state.board.squares.length; row++) {
         for (let col = 0; col < state.board.squares[row].length; col++) {
             const square = state.board.squares[row][col]
-            if (square.castleColor === color) castles.push(`${col},${row}`)
-            if (square.knightColor === color) knights.push(`${col},${row}`)
+            if (square.castleOwner === owner) castles.push(`${col},${row}`)
+            if (square.knightOwner === owner) knights.push(`${col},${row}`)
         }
     }
     return { castles, knights }
@@ -78,12 +79,12 @@ describe('assembleStandardBoard', () => {
 })
 
 describe('applyStandardSetup', () => {
-    it('gives every color exactly 3 castles and 3 knights, all on Blank terrain', () => {
+    it('gives every owner exactly 3 castles and 3 knights, all on Blank terrain', () => {
         const state = buildState([Color.Pink, Color.Yellow, Color.Purple, Color.Gray])
         applyStandardSetup(state)
 
-        for (const color of [Color.Pink, Color.Yellow, Color.Purple, Color.Gray]) {
-            const { castles, knights } = castleAndKnightSquares(state, color)
+        for (const owner of ['p1', 'p2', 'p3', 'p4']) {
+            const { castles, knights } = castleAndKnightSquares(state, owner)
             expect(castles.length).toBe(3)
             expect(knights.length).toBe(3)
         }
@@ -92,7 +93,7 @@ describe('applyStandardSetup', () => {
         for (let row = 0; row < state.board.squares.length; row++) {
             for (let col = 0; col < state.board.squares[row].length; col++) {
                 const square = state.board.squares[row][col]
-                if (square.castleColor || square.knightColor) {
+                if (square.castleOwner || square.knightOwner) {
                     expect(square.type).toBe('blank')
                 }
             }
@@ -108,33 +109,33 @@ describe('applyStandardSetup', () => {
         }
     })
 
-    it('detects exactly 4 starting regions, one per color, each scoring power points for its real owner', () => {
+    it('detects exactly 4 starting regions, one per owner, each scoring power points for its real owner', () => {
         const state = buildState([Color.Pink, Color.Yellow, Color.Purple, Color.Gray])
         applyStandardSetup(state)
 
         expect(state.regions.length).toBe(4)
-        const ownerColors = state.regions.map((r) => r.ownerColor).sort()
-        expect(ownerColors).toEqual([Color.Gray, Color.Pink, Color.Purple, Color.Yellow].sort())
+        const owners = state.regions.map((r) => r.owner).sort()
+        expect(owners).toEqual(['p1', 'p2', 'p3', 'p4'].sort())
 
         for (const player of state.players) {
             expect(player.powerPoints).toBeGreaterThan(0)
         }
     })
 
-    it('still places the 4th color as an unowned obstacle in a 3-player game, crediting no one', () => {
+    it("still places the 4th color as the neutral prince's obstacle in a 3-player game, crediting no one", () => {
         const state = buildState([Color.Pink, Color.Yellow, Color.Purple])
         applyStandardSetup(state)
 
-        const { castles, knights } = castleAndKnightSquares(state, Color.Gray)
+        const { castles, knights } = castleAndKnightSquares(state, NEUTRAL_OWNER)
         expect(castles.length).toBe(3)
         expect(knights.length).toBe(3)
 
         expect(state.regions.length).toBe(4)
-        const grayRegion = state.regions.find((r) => r.ownerColor === Color.Gray)
-        expect(grayRegion).toBeDefined()
+        const neutralRegion = state.regions.find((r) => r.owner === NEUTRAL_OWNER)
+        expect(neutralRegion).toBeDefined()
 
-        // No player has Gray, so only the 3 real players' own regions contribute
-        // power points - Gray's region exists (as an obstacle) but credits no one.
+        // No player holds Gray, so only the 3 real players' own regions contribute power
+        // points - the prince's region exists (as an obstacle) but credits no one.
         expect(state.players.length).toBe(3)
         for (const player of state.players) {
             expect(player.powerPoints).toBeGreaterThan(0)

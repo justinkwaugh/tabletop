@@ -29,6 +29,7 @@ export * from './definition/states.js'
 
 export * from './model/board.js'
 export * from './model/gameState.js'
+export * from './model/owner.js'
 export * from './model/playerState.js'
 export * from './model/region.js'
 

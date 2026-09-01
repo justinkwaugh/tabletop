@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { Color, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import {
@@ -14,6 +14,7 @@ import {
 } from '../model/board.js'
 import { detectNewRegions } from '../util/regionDetection.js'
 import { countTowns, removeInteriorWalls, scoreRegion } from '../util/regionScoring.js'
+import { PieceOwner } from '../model/owner.js'
 
 export type PlaceWallMetadata = Type.Static<typeof PlaceWallMetadata>
 export const PlaceWallMetadata = Type.Object({
@@ -23,7 +24,7 @@ export const PlaceWallMetadata = Type.Object({
     completedRegions: Type.Optional(
         Type.Array(
             Type.Object({
-                ownerColor: Type.Optional(Type.Enum(Color)),
+                owner: Type.Optional(PieceOwner),
                 spaceCount: Type.Number(),
                 townCount: Type.Number(),
                 points: Type.Number(),
@@ -83,8 +84,8 @@ export class HydratedPlaceWall extends HydratableAction<typeof PlaceWall> implem
         const completedRegions: NonNullable<PlaceWallMetadata['completedRegions']> = []
         // A region belonging to a colour no player holds - the neutral prince in the
         // 2-player variant, or an unchosen colour's castles at 3 players - scores for
-        // NOBODY. That's deliberate, not an oversight the `if (owner)` guard is hiding:
-        // points exist only to decide who succeeds the King, and a non-player colour can't
+        // NOBODY. That's deliberate, not an oversight the `if (player)` guard is hiding:
+        // points exist only to decide who succeeds the King, and the neutral prince can't
         // win, so there is nobody to award them to. It also gives walling in neutral
         // territory a purpose of its own - denial, locking its spaces, hills and towns away
         // from your opponent - rather than the gift that enclosing a real prince's region
@@ -92,15 +93,15 @@ export class HydratedPlaceWall extends HydratableAction<typeof PlaceWall> implem
         // someone else's play created it). Awarding them to the enclosing player instead
         // would be a house rule, and a significant change to 2-player balance.
         for (const region of newRegions) {
-            const points = region.ownerColor ? scoreRegion(region, state.board) : 0
-            if (region.ownerColor) {
-                const owner = state.players.find((p) => p.color === region.ownerColor)
-                if (owner) {
-                    owner.powerPoints += points
+            const points = region.owner ? scoreRegion(region, state.board) : 0
+            if (region.owner) {
+                const player = state.players.find((p) => p.playerId === region.owner)
+                if (player) {
+                    player.powerPoints += points
                 }
             }
             completedRegions.push({
-                ownerColor: region.ownerColor,
+                owner: region.owner,
                 spaceCount: region.squareKeys.length,
                 townCount: countTowns(region, state.board),
                 points,
@@ -150,8 +151,8 @@ export class HydratedPlaceWall extends HydratableAction<typeof PlaceWall> implem
         // prince's castle (see separatesSamePrincePieces - ExpandRegion's wall ring honours
         // the same rule, so it lives next to the board model rather than in here).
         if (separatesSamePrincePieces(square1, square2)) {
-            if (square1.knightColor && square1.knightColor === square2.knightColor) {
-                return "A wall can't separate two knights of the same color."
+            if (square1.knightOwner && square1.knightOwner === square2.knightOwner) {
+                return "A wall can't separate two knights of the same prince."
             }
             return "A wall can't separate a knight from its own castle."
         }

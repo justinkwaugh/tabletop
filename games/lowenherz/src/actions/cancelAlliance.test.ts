@@ -17,11 +17,11 @@ function blankBoard(): { squares: BoardSquare[][]; walls: [] } {
 }
 
 function ownRegion(): Region {
-    return { id: 'own', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' }
+    return { id: 'own', owner: 'p1', squareKeys: ['0,0'], castleSquareKey: '0,0' }
 }
 
 function enemyRegion(): Region {
-    return { id: 'enemy', ownerColor: Color.Yellow, squareKeys: ['0,1'], castleSquareKey: '0,1' }
+    return { id: 'enemy', owner: 'p2', squareKeys: ['0,1'], castleSquareKey: '0,1' }
 }
 
 function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenherzGameState {
@@ -85,7 +85,7 @@ describe('HydratedCancelAlliance', () => {
 
         expect(state.alliances).toEqual([])
         expect(state.getPlayerState('p1').money).toBe(2)
-        expect(action.metadata).toEqual({ otherColor: Color.Yellow })
+        expect(action.metadata).toEqual({ otherOwner: 'p2' })
     })
 
     it('can be cancelled by the OTHER participant instead, at their own turn', () => {
@@ -100,7 +100,7 @@ describe('HydratedCancelAlliance', () => {
 
         expect(state.alliances).toEqual([])
         expect(state.getPlayerState('p2').money).toBe(2)
-        expect(action.metadata).toEqual({ otherColor: Color.Pink })
+        expect(action.metadata).toEqual({ otherOwner: 'p1' })
     })
 
     it("rejects cancellation while it isn't the player's turn to act at all", () => {

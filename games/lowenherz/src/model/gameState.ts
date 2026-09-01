@@ -9,6 +9,7 @@ import {
 import { LowenherzPlayerState, HydratedLowenherzPlayerState } from './playerState.js'
 import { LowenherzBoard } from './board.js'
 import { Region } from './region.js'
+import { PieceOwner } from './owner.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
@@ -98,9 +99,19 @@ export const LowenherzGameState = Type.Evaluate(
             turnOrder: Type.Array(Type.String()),
             firstPlayerId: Type.String(),
 
-            // Set only in a 3-player game: the unused 4th color, placed as neutral
-            // obstacles during setup. Undefined in 2- and 4-player games.
+            // The color the neutral prince's pieces are drawn in: whichever of the four
+            // colors no player was dealt. Set in 2- and 3-player games (see
+            // LowenherzInitializer); undefined at 4 players, where there is no prince.
+            // Pieces record NEUTRAL_OWNER, not this color - see PieceOwner.
             neutralColor: Type.Optional(Type.Enum(Color)),
+
+            // Whether a negotiation offer has to move at least one ducat (the
+            // minimumOneDucat config option, resolved once at initialization). Held on
+            // state rather than read from config at validation time so the rule replays
+            // with the game and NegotiationMove can stay a function of state alone.
+            // Read as `!== false`, like the config option it comes from: absent means
+            // the rule is on, so a state built without it gets the stricter reading.
+            minimumOneDucat: Type.Optional(Type.Boolean()),
 
             // Remaining undrawn action cards, in draw order (index 0 draws next).
             actionDeck: Type.Array(ActionCard),
@@ -152,7 +163,7 @@ export const LowenherzGameState = Type.Evaluate(
             // expansion is refused even when a sword is still unspent. Cleared when a
             // new knight action starts (see resolveBandForWinner).
             expansionUsed: Type.Optional(Type.Boolean()),
-            // Neutral zones this expansion has already stranded, per victim colour, with
+            // Neutral zones this expansion has already stranded, per victim owner, with
             // the points already charged for them. A 1-2 space expansion is submitted as up
             // to two separate ExpandRegion actions, but the rulebook scores the loss as one
             // event - "if a player loses spaces in two or more neutral zones, the spaces are
@@ -162,7 +173,7 @@ export const LowenherzGameState = Type.Evaluate(
             expansionStrandings: Type.Optional(
                 Type.Array(
                     Type.Object({
-                        color: Type.Enum(Color),
+                        owner: PieceOwner,
                         spaces: Type.Number(),
                         towns: Type.Number(),
                         pointsCharged: Type.Number()
@@ -212,6 +223,7 @@ export class HydratedLowenherzGameState
     declare turnOrder: string[]
     declare firstPlayerId: string
     declare neutralColor?: Color
+    declare minimumOneDucat?: boolean
 
     declare actionDeck: ActionCard[]
     declare currentActionCard?: ActionCard
@@ -228,7 +240,7 @@ export class HydratedLowenherzGameState
     declare expandingRegionId?: string
     declare expansionUsed?: boolean
     declare expansionStrandings?: {
-        color: Color
+        owner: PieceOwner
         spaces: number
         towns: number
         pointsCharged: number

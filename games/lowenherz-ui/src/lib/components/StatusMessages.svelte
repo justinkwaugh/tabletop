@@ -18,6 +18,7 @@
         isCancelAlliance,
         isDrawActionCard,
         isNegotiationMove,
+        isNeutralOwner,
         isPlaceWall,
         isSubmitDuelBid,
         isTakePoliticsCard,
@@ -35,7 +36,7 @@
     // Session reads the board declares too. One-liners, so each half asking for itself is
     // clearer than threading them through props.
     const board = $derived(gameSession.gameState.board)
-    const placementColor = $derived(gameSession.placementColor)
+    const placementOwner = $derived(gameSession.placementOwner)
     const regions = $derived(gameSession.gameState.regions)
     const knightSwordsLeft = $derived(gameSession.gameState.knightsRemaining ?? 0)
     const displayNegotiation = $derived(gameSession.displayNegotiation)
@@ -333,12 +334,10 @@
     // from the next.
 
     // Whether the castle about to be placed belongs to the neutral prince rather than to the
-    // player placing it. Asked of the colour rather than of the player count: the closing laps
+    // player placing it. Asked of the owner rather than of the player count: the closing laps
     // place neutral castles at two players AND at three, so counting seats would get three-player
     // games wrong.
-    const placingNeutral = $derived(
-        placementColor !== undefined && placementColor === gameSession.gameState.neutralColor
-    )
+    const placingNeutral = $derived(placementOwner !== undefined && isNeutralOwner(placementOwner))
 
     // The action currently being looked at while rewound through the history controls -
     // the one whose result is what's drawn on the board. Already undefined during live play
@@ -512,6 +511,12 @@
             >
                 pass
             </button>.
+        {:else if gameSession.gameState.machineState === MachineState.PlacingWalls &&
+            gameSession.gameState.wallPlacingPlayerId}
+            Waiting for {@render playerPill(gameSession.gameState.wallPlacingPlayerId)} to place
+            {gameSession.gameState.wallsRemaining} wall{gameSession.gameState.wallsRemaining === 1
+                ? ''
+                : 's'}.
         {:else if gameSession.canPlaceKnight && (gameSession.knightPlan || gameSession.canContinueExpansion)}
             <!-- Either a step is under way, or an expansion is open between steps - the second is
                  why canContinueExpansion is here too: no step is chosen at that moment, and
@@ -644,6 +649,10 @@
                 </button>.
 
             {/if}
+        {:else if gameSession.gameState.machineState === MachineState.PlacingKnights &&
+            gameSession.gameState.knightPlacingPlayerId}
+            Waiting for {@render playerPill(gameSession.gameState.knightPlacingPlayerId)} to perform
+            a {knightActionName}.
         {:else if lastMineReveal}
             {@const mineScorers = lastMineReveal.filter((entry) => entry.points > 0)}
             <!-- Who earned what is shown as a "+N" hanging under each player's points box
@@ -658,7 +667,7 @@
                 Choose the action card draw pile to start the next round.
             {:else}
                 Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
-                next action card...
+                next action card.
             {/if}
         {:else if lastRoundEndedInDuelGiveUp}
             The duel was tied a second time, so no one performs the action.
@@ -666,13 +675,13 @@
                 Choose the action card draw pile to start the next round.
             {:else}
                 Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
-                next action card...
+                next action card.
             {/if}
         {:else if gameSession.canDrawActionCard}
             Choose the action card draw pile to start the next round.
         {:else if gameSession.gameState.machineState === MachineState.StartOfTurn}
             Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
-            next action card...
+            next action card.
         {:else if gameSession.canChooseAction}
             <!-- Below 4 players the first player lays 2 decision cards (see
                  buildDecisionPlan). No need to announce the count: the ordinal on the
@@ -685,8 +694,11 @@
             {:else}
                 Choose a region of the card to pick an action.
             {/if}
+        {:else if gameSession.gameState.machineState === MachineState.ChoosingActions &&
+            gameSession.gameState.activePlayerIds[0]}
+            Waiting for {@render playerPill(gameSession.gameState.activePlayerIds[0])} to choose.
         {:else if gameSession.gameState.machineState === MachineState.ChoosingActions}
-            Waiting for the next player to choose...
+            Waiting for the next player to choose.
         {:else if gameSession.gameState.machineState === MachineState.Dueling && gameSession.gameState.duel}
             <!-- The duelists are named right here rather than getting a row each below,
                  so the whole duel fits in two lines: who's in it, then your own bid. -->
@@ -722,8 +734,12 @@
                  as a heading local to that component so it never has to agree on layout height
                  with PoliticsDeckChooser's row above it. -->
             Choose a card to take it.
+        {:else if gameSession.gameState.machineState === MachineState.TakingPoliticsCard &&
+            gameSession.gameState.politicsTakingPlayerId}
+            Waiting for {@render playerPill(gameSession.gameState.politicsTakingPlayerId)} to take a
+            politics card.
         {:else if !gameSession.setupComplete}
-            Waiting for the other player(s) to place a castle...
+            Waiting for the other player(s) to place a castle.
         {/if}
     </div>
 
@@ -788,8 +804,15 @@
                     <button
                         type="button"
                         class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
-                        disabled={!gameSession.isMyNegotiationTurn || gameSession.negotiationAmount <= 1}
-                        onclick={() => gameSession.setNegotiationAmount(Math.max(1, gameSession.negotiationAmount - 1))}
+                        disabled={!gameSession.isMyNegotiationTurn ||
+                            gameSession.negotiationAmount <= gameSession.minimumNegotiationOffer}
+                        onclick={() =>
+                            gameSession.setNegotiationAmount(
+                                Math.max(
+                                    gameSession.minimumNegotiationOffer,
+                                    gameSession.negotiationAmount - 1
+                                )
+                            )}
                     >
                         −
                     </button>

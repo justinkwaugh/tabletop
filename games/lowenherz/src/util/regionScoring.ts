@@ -15,7 +15,7 @@ export function countTowns(region: Region, board: LowenherzBoard): number {
 export function countKnights(region: Region, board: LowenherzBoard): number {
     return region.squareKeys.filter((key) => {
         const [col, row] = key.split(',').map(Number)
-        return getSquare(board, col, row)?.knightColor === region.ownerColor
+        return getSquare(board, col, row)?.knightOwner === region.owner
     }).length
 }
 

@@ -1,5 +1,5 @@
 import * as Type from 'typebox'
-import { Color } from '@tabletop/common'
+import { PieceOwner } from './owner.js'
 
 export enum SquareType {
     Blank = 'blank',
@@ -8,14 +8,14 @@ export enum SquareType {
     Village = 'village'
 }
 
-// A single square on the board. knightColor/castleColor are set if a knight or castle
-// (of any player color, or the neutral 4th color in a 3-player game) occupies it.
+// A single square on the board. knightOwner/castleOwner are set if a knight or castle
+// (belonging to a player, or to the neutral prince) occupies it.
 // regionId points at whichever Region (owned or neutral) currently contains this square.
 export type BoardSquare = Type.Static<typeof BoardSquare>
 export const BoardSquare = Type.Object({
     type: Type.Enum(SquareType),
-    knightColor: Type.Optional(Type.Enum(Color)),
-    castleColor: Type.Optional(Type.Enum(Color)),
+    knightOwner: Type.Optional(PieceOwner),
+    castleOwner: Type.Optional(PieceOwner),
     regionId: Type.Optional(Type.String())
 })
 
@@ -158,16 +158,16 @@ export function manhattanDistance(colA: number, rowA: number, colB: number, rowB
     return Math.abs(colA - colB) + Math.abs(rowA - rowB)
 }
 
-// All (col, row) coordinates on the board that currently hold a castle of the given
-// color (real or neutral).
-export function castleSquaresForColor(
+// All (col, row) coordinates on the board that currently hold a castle belonging to the
+// given owner (a player or the neutral prince).
+export function castleSquaresForOwner(
     board: LowenherzBoard,
-    color: Color
+    owner: PieceOwner
 ): { col: number; row: number }[] {
     const result: { col: number; row: number }[] = []
     for (let row = 0; row < board.squares.length; row++) {
         for (let col = 0; col < board.squares[row].length; col++) {
-            if (board.squares[row][col].castleColor === color) {
+            if (board.squares[row][col].castleOwner === owner) {
                 result.push({ col, row })
             }
         }
@@ -185,8 +185,8 @@ export function separatesSamePrincePieces(
     square2: BoardSquare | undefined
 ): boolean {
     if (!square1 || !square2) return false
-    if (square1.knightColor && square1.knightColor === square2.knightColor) return true
-    if (square1.knightColor && square1.knightColor === square2.castleColor) return true
-    if (square2.knightColor && square2.knightColor === square1.castleColor) return true
+    if (square1.knightOwner && square1.knightOwner === square2.knightOwner) return true
+    if (square1.knightOwner && square1.knightOwner === square2.castleOwner) return true
+    if (square2.knightOwner && square2.knightOwner === square1.castleOwner) return true
     return false
 }

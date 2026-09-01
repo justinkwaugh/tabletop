@@ -1,7 +1,7 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
-import { ActionCardType } from '../definition/actionCards.js'
+import { ActionCardType, slotKindForCard } from '../definition/actionCards.js'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { AdvanceResolution, HydratedAdvanceResolution } from '../actions/advanceResolution.js'
 import { advanceRound, distributeMoneyBag, routeAfterSlotResolved } from '../util/resolutionHelpers.js'
@@ -60,6 +60,7 @@ export class ResolvingActionsStateHandler
             gameState.resolvedSlots.push({ slot, winnerPlayerId: undefined })
             action.metadata = {
                 slot,
+                slotKind: slotKindForCard(card, slot),
                 moneyBagRecipientIds: choosers,
                 moneyBagAmountEach: choosers.length > 0 ? Math.floor(card.top.value / choosers.length) : 0
             }
@@ -71,6 +72,7 @@ export class ResolvingActionsStateHandler
             const routing = routeAfterSlotResolved(gameState)
             action.metadata = {
                 slot,
+                slotKind: slotKindForCard(card, slot),
                 slotResolved: true,
                 ...(choosers[0] ? { slotWinnerPlayerId: choosers[0] } : {}),
                 ...(routing.bandKind ? { bandKind: routing.bandKind, bandCount: routing.bandCount } : {}),
@@ -88,12 +90,22 @@ export class ResolvingActionsStateHandler
                 offer: undefined,
                 lastProposedBy: undefined
             }
-            action.metadata = { slot, tiedPlayerIds: choosers, tieWentToDuel: false }
+            action.metadata = {
+                slot,
+                slotKind: slotKindForCard(card, slot),
+                tiedPlayerIds: choosers,
+                tieWentToDuel: false
+            }
             return MachineState.Negotiating
         }
 
         gameState.duel = { slot, playerIds: choosers, bids: [], tieCount: 0 }
-        action.metadata = { slot, tiedPlayerIds: choosers, tieWentToDuel: true }
+        action.metadata = {
+            slot,
+            slotKind: slotKindForCard(card, slot),
+            tiedPlayerIds: choosers,
+            tieWentToDuel: true
+        }
         return MachineState.Dueling
     }
 }

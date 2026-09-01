@@ -1,9 +1,10 @@
-import { ActionSource, Color } from '@tabletop/common'
+import { ActionSource } from '@tabletop/common'
 import type { HydratedLowenherzGameState } from '../model/gameState.js'
+import { PieceOwner } from '../model/owner.js'
 import { ActionCardType } from '../definition/actionCards.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
-import { BOARD_COLS, BOARD_ROWS, castleSquaresForColor } from '../model/board.js'
+import { BOARD_COLS, BOARD_ROWS, castleSquaresForOwner } from '../model/board.js'
 import { HydratedPlaceWall } from '../actions/placeWall.js'
 
 // Money Bag never negotiates or duels - the rulebook's one exception to "an action can
@@ -37,16 +38,16 @@ export function advanceRound(state: HydratedLowenherzGameState) {
 // prince with a region per castle has nothing left to enclose. Three is simply how many
 // castles a prince has in the standard game; the 2-player variant gives each of them four
 // (see buildPlacementPlan), which a hardcoded 3 would lock out one castle early.
-// Neutral-colour castles belong to no player and are counted for nobody.
-export function hasEveryCastleEnclosed(state: HydratedLowenherzGameState, color: Color): boolean {
-    const castleCount = castleSquaresForColor(state.board, color).length
+// The neutral prince's castles belong to no player and are counted for nobody.
+export function hasEveryCastleEnclosed(state: HydratedLowenherzGameState, owner: PieceOwner): boolean {
+    const castleCount = castleSquaresForOwner(state.board, owner).length
     // No castles on the board at all: vacuously "all enclosed", but read as UNcapped
     // rather than capped. The cap exists to stop wall placement that can't accomplish
-    // anything, and silently locking a colour out of walls on a count of zero is the worse
+    // anything, and silently locking an owner out of walls on a count of zero is the worse
     // failure. Real games always place castles during setup, so this only comes up in
     // synthetic states.
     if (castleCount === 0) return false
-    const regionCount = state.regions.filter((r) => r.ownerColor === color).length
+    const regionCount = state.regions.filter((r) => r.owner === owner).length
     return regionCount >= castleCount
 }
 
@@ -145,7 +146,6 @@ export function routeAfterSlotResolved(state: HydratedLowenherzGameState): SlotR
     if (!band) return { nextState: MachineState.ResolvingActions }
 
     if (band.kind === 'border') {
-        const winnerColor = state.getPlayerState(winnerId).color
         // "When a prince has three regions, he can place no more boundary walls" - they
         // still won the action, they just can't do anything with it.
         //
@@ -155,7 +155,7 @@ export function routeAfterSlotResolved(state: HydratedLowenherzGameState): SlotR
         // 2-player variant work: there each prince places FOUR castles of their own, and a
         // hardcoded 3 locked them out of wall placement with a castle still unenclosed -
         // permanently, since that castle could then never be sealed or scored.
-        if (hasEveryCastleEnclosed(state, winnerColor)) {
+        if (hasEveryCastleEnclosed(state, winnerId)) {
             return {
                 nextState: MachineState.ResolvingActions,
                 bandKind: 'border',
@@ -187,7 +187,7 @@ export function routeAfterSlotResolved(state: HydratedLowenherzGameState): SlotR
         // half of this action - the other half ("or extend one of his regions by two
         // spaces") needs no knights from stock at all, so an empty stock only wastes the
         // whole action when there's also no region of their own to extend.
-        const canExpand = state.regions.some((r) => r.ownerColor === winnerState.color)
+        const canExpand = state.regions.some((r) => r.owner === winnerId)
         if (winnerState.knightsInStock <= 0 && !canExpand) {
             return {
                 nextState: MachineState.ResolvingActions,

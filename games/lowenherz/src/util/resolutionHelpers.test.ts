@@ -96,13 +96,13 @@ describe('routeAfterSlotResolved', () => {
         // region holds exactly one - so the cap is really "nothing left to enclose", and
         // the castles have to be on the board for it to mean anything.
         const existingRegions: Region[] = [
-            { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' },
-            { id: 'r2', ownerColor: Color.Pink, squareKeys: ['1,0'], castleSquareKey: '1,0' },
-            { id: 'r3', ownerColor: Color.Pink, squareKeys: ['2,0'], castleSquareKey: '2,0' }
+            { id: 'r1', owner: 'p1', squareKeys: ['0,0'], castleSquareKey: '0,0' },
+            { id: 'r2', owner: 'p1', squareKeys: ['1,0'], castleSquareKey: '1,0' },
+            { id: 'r3', owner: 'p1', squareKeys: ['2,0'], castleSquareKey: '2,0' }
         ]
         const state = buildState([{ slot: 2, winnerPlayerId: 'p1' }], cardWithBorderMiddle, existingRegions)
         for (const [col, row] of [[0, 0], [1, 0], [2, 0]]) {
-            state.board.squares[row][col] = { type: SquareType.Blank, castleColor: Color.Pink }
+            state.board.squares[row][col] = { type: SquareType.Blank, castleOwner: 'p1' }
         }
 
         const routing = routeAfterSlotResolved(state)
@@ -118,13 +118,13 @@ describe('routeAfterSlotResolved', () => {
         // 3-region cap locked them out of wall placement here - permanently, since their
         // 4th castle could then never be enclosed or scored.
         const existingRegions: Region[] = [
-            { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' },
-            { id: 'r2', ownerColor: Color.Pink, squareKeys: ['1,0'], castleSquareKey: '1,0' },
-            { id: 'r3', ownerColor: Color.Pink, squareKeys: ['2,0'], castleSquareKey: '2,0' }
+            { id: 'r1', owner: 'p1', squareKeys: ['0,0'], castleSquareKey: '0,0' },
+            { id: 'r2', owner: 'p1', squareKeys: ['1,0'], castleSquareKey: '1,0' },
+            { id: 'r3', owner: 'p1', squareKeys: ['2,0'], castleSquareKey: '2,0' }
         ]
         const state = buildState([{ slot: 2, winnerPlayerId: 'p1' }], cardWithBorderMiddle, existingRegions)
         for (const [col, row] of [[0, 0], [1, 0], [2, 0], [8, 5]]) {
-            state.board.squares[row][col] = { type: SquareType.Blank, castleColor: Color.Pink }
+            state.board.squares[row][col] = { type: SquareType.Blank, castleOwner: 'p1' }
         }
 
         const routing = routeAfterSlotResolved(state)
@@ -205,7 +205,7 @@ describe('routeAfterSlotResolved', () => {
         state.regions = [
             {
                 id: 'r1',
-                ownerColor: state.getPlayerState('p1').color,
+                owner: 'p1',
                 squareKeys: ['0,0'],
                 castleSquareKey: '0,0'
             }

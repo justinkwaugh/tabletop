@@ -18,11 +18,11 @@ function blankBoard(): { squares: BoardSquare[][]; walls: [] } {
 }
 
 function ownRegion(): Region {
-    return { id: 'own', ownerColor: Color.Pink, squareKeys: ['0,0', '1,0'], castleSquareKey: '0,0' }
+    return { id: 'own', owner: 'p1', squareKeys: ['0,0', '1,0'], castleSquareKey: '0,0' }
 }
 
 function enemyRegion(): Region {
-    return { id: 'enemy', ownerColor: Color.Yellow, squareKeys: ['0,1', '1,1'], castleSquareKey: '0,1' }
+    return { id: 'enemy', owner: 'p2', squareKeys: ['0,1', '1,1'], castleSquareKey: '0,1' }
 }
 
 function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenherzGameState {
@@ -92,7 +92,7 @@ describe('HydratedPlayAllianceCard', () => {
 
         expect(state.alliances).toEqual([{ id: 'alliance-1', regionAId: 'own', regionBId: 'enemy' }])
         expect(state.getPlayerState('p1').politicsCards).toEqual([])
-        expect(action.metadata).toEqual({ allianceId: 'alliance-1', enemyColor: Color.Yellow })
+        expect(action.metadata).toEqual({ allianceId: 'alliance-1', enemyOwner: 'p2' })
     })
 
     it("rejects play when it isn't the player's turn to lay a decision card", () => {
@@ -114,12 +114,12 @@ describe('HydratedPlayAllianceCard', () => {
     })
 
     it("rejects when the chosen 'enemy' region is neutral or the player's own", () => {
-        const state = buildState({ regions: [ownRegion(), { ...enemyRegion(), ownerColor: undefined }] })
+        const state = buildState({ regions: [ownRegion(), { ...enemyRegion(), owner: undefined }] })
         expect(makePlayAllianceCard('p1').isValidPlayAllianceCard(state)).toBe(false)
     })
 
     it("rejects when the two regions don't border each other", () => {
-        const farEnemy: Region = { id: 'enemy', ownerColor: Color.Yellow, squareKeys: ['9,9'], castleSquareKey: '9,9' }
+        const farEnemy: Region = { id: 'enemy', owner: 'p2', squareKeys: ['9,9'], castleSquareKey: '9,9' }
         const state = buildState({ regions: [ownRegion(), farEnemy] })
 
         expect(makePlayAllianceCard('p1').isValidPlayAllianceCard(state)).toBe(false)
@@ -131,7 +131,7 @@ describe('HydratedPlayAllianceCard', () => {
     })
 
     it('does not block a second alliance between different regions', () => {
-        const otherEnemy: Region = { id: 'other-enemy', ownerColor: Color.Yellow, squareKeys: ['1,1'] }
+        const otherEnemy: Region = { id: 'other-enemy', owner: 'p2', squareKeys: ['1,1'] }
         const state = buildState({
             regions: [ownRegion(), { ...enemyRegion(), squareKeys: ['0,1'] }, otherEnemy],
             alliances: [{ id: 'existing', regionAId: 'own', regionBId: 'enemy' }]

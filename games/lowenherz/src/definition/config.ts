@@ -33,10 +33,28 @@ const playerPlacedCastlesOption: BooleanConfigOption = {
     default: true
 }
 
+// The rulebook settles a tie by having the two princes bargain, and a bargain in which
+// nothing changes hands is not much of one - so an offer has to move at least a single
+// ducat. Turning this off allows a zero-ducat offer, which is really a way of saying
+// "you take it, I want nothing", reached through the same propose/accept exchange
+// rather than by declining into a duel.
+const minimumOneDucatOption: BooleanConfigOption = {
+    id: 'minimumOneDucat',
+    type: ConfigOptionType.Boolean,
+    name: 'One or more ducats during negotiation',
+    description: 'Turn off to allow offers of zero ducats during negotiations.',
+    default: true
+}
+
 export type LowenherzGameConfig = Type.Static<typeof LowenherzGameConfig>
 export const LowenherzGameConfig = Type.Object({
     publicMoney: Type.Optional(Type.Boolean({ default: true })),
-    playerPlacedCastles: Type.Optional(Type.Boolean({ default: true }))
+    playerPlacedCastles: Type.Optional(Type.Boolean({ default: true })),
+    minimumOneDucat: Type.Optional(Type.Boolean({ default: true }))
 })
 
-export const LowenherzGameConfigOptions: GameConfigOptions = [publicMoneyOption, playerPlacedCastlesOption]
+export const LowenherzGameConfigOptions: GameConfigOptions = [
+    publicMoneyOption,
+    playerPlacedCastlesOption,
+    minimumOneDucatOption
+]

@@ -5,6 +5,7 @@
         DefaultTabs,
         DefaultTableLayout,
         CustomFont,
+        GameChat,
         GameSession
     } from '@tabletop/frontend-components'
 
@@ -61,42 +62,45 @@
 <CustomFont fontFamily="UnifrakturMaguntia" url={UnifrakturMaguntiaFont} format="woff2" />
 
 <!-- Full Height and Width with 8px padding-->
-<div
-    style="--chat-height-offset: 0px; background-image: url({parchmentTexture}); background-repeat: repeat;"
->
+<div style="background-image: url({parchmentTexture}); background-repeat: repeat;">
     <DefaultTableLayout>
         {#snippet sideContent()}
-            <div class="h-full flex flex-col">
-                <div class="max-sm:hidden">
-                    <HistoryControls
-                        borderClass="border-b-2 border-black/20"
-                        bgClass="bg-transparent"
-                        enabledColor="text-black"
-                        disabledColor="text-black/30"
-                    />
-                </div>
-                <SummaryStrip />
-                <!-- pt-2: SummaryStrip's own bottom border sits directly above this with no gap
-                     of its own, and the tab buttons were crowding that line. -->
-                <div class="pt-2">
-                    <!-- The default active pill is bg-gray-300, which reads as a stray UI chip on
-                         the parchment. bg-black/15 introduces no new hue at all - it just darkens
-                         whatever the parchment already is, so the selected tab reads as a pressed
-                         area of the same surface rather than a separate object sitting on it. -->
-                    <DefaultTabs
-                        activeTabClass="py-1 px-3 bg-black/15 border-2 border-black/25 rounded-lg text-black font-semibold"
-                        inactiveTabClass="text-black py-1 px-3 rounded-lg border-2 border-transparent hover:border-black/40"
-                    >
-                        {#snippet playersPanel()}
-                            <PlayersPanel />
-                            <TestingControls />
-                        {/snippet}
-                        {#snippet history()}
-                           <History />
-                        {/snippet}
-                    </DefaultTabs>
-                </div>
+            <div class="max-sm:hidden">
+                <HistoryControls
+                    borderClass="border-b-2 border-black/20"
+                    bgClass="bg-transparent"
+                    enabledColor="text-black"
+                    disabledColor="text-black/30"
+                />
             </div>
+            <SummaryStrip />
+            <!-- The default active pill is bg-gray-300, which reads as a stray UI chip on
+                 the parchment. bg-black/15 introduces no new hue at all - it just darkens
+                 whatever the parchment already is, so the selected tab reads as a pressed
+                 area of the same surface rather than a separate object sitting on it. -->
+            <DefaultTabs
+                activeTabClass="py-1 px-3 bg-black/15 border-2 border-black/25 rounded-lg text-black font-semibold"
+                inactiveTabClass="text-black py-1 px-3 rounded-lg border-2 border-transparent hover:border-black/40"
+            >
+                {#snippet playersPanel()}
+                    <PlayersPanel />
+                    <TestingControls />
+                {/snippet}
+                {#snippet history()}
+                    <History />
+                {/snippet}
+                {#snippet chat()}
+                    <GameChat
+                        messageTextColor="text-black"
+                        composerTextColor="text-black"
+                        timeColor="text-black/60"
+                        messageHoverColor="hover:bg-black/10"
+                        inputBgColor="bg-black/10"
+                        inputBorderColor="border-black/25"
+                        borderColor="border-black/20"
+                    />
+                {/snippet}
+            </DefaultTabs>
         {/snippet}
         {#snippet gameContent()}
             <!--  Top part is not allowed to shrink -->

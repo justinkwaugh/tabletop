@@ -8,6 +8,7 @@
         isChooseAction,
         isDrawActionCard,
         isNegotiationMove,
+        isNeutralOwner,
         isExpandRegion,
         isPass,
         isPlaceCastle,
@@ -20,7 +21,9 @@
         isLookAtPoliticsPile,
         isTakePoliticsCard,
         NegotiationMoveKind,
-        PoliticsCardType
+        PoliticsCardType,
+        type PieceOwner,
+        type SlotKind
     } from '@tabletop/lowenherz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -32,9 +35,10 @@
 
     const gameSession = getGameSession()
 
-    function playerIdForColor(color?: string): string | undefined {
-        if (!color) return undefined
-        return gameSession.gameState.players.find((p) => p.color === color)?.playerId
+    // The neutral prince has no player to name, so it reads as "a neutral prince" in the
+    // feed rather than as a PlayerName.
+    function playerIdForOwner(owner?: PieceOwner): string | undefined {
+        return owner && !isNeutralOwner(owner) ? owner : undefined
     }
 
     // The pack this draw rolled the deck into, or undefined if it stayed in the same one.
@@ -58,7 +62,18 @@
         return undefined
     })
 
+    const slotKindLabels: Record<SlotKind, string> = {
+        income: 'income',
+        politics: 'politics',
+        border: 'walls',
+        knight: 'knights'
+    }
+    // Actions recorded before slotKind was captured have no kind to name, so they keep
+    // describing the slot by its position on the card.
     const slotLabels: Record<1 | 2 | 3, string> = { 1: 'top', 2: 'middle', 3: 'bottom' }
+    function slotLabel(slot: 1 | 2 | 3, kind?: SlotKind): string {
+        return kind ? slotKindLabels[kind] : slotLabels[slot]
+    }
     // Pile A always renders on the left, pile B on the right (see DeckPiles.svelte) -
     // history should describe piles the way a player actually sees them on screen.
     const pileLabels: Record<'A' | 'B', string> = { A: 'left', B: 'right' }
@@ -88,13 +103,13 @@
 {#if isPlaceCastle(action)}
     <!-- Below 4 players the setup ends with castles of the shared NEUTRAL color (2 each at
          2 players, 1 each at 3 - see buildPlacementPlan), and "placed a castle" reads as
-         the player's own either way. The color isn't in the action, so it's read off the
-         square: a castle never moves or changes color once placed, so this stays right for
-         every past action in the feed too. Its knight is the same color, hence "and
+         the player's own either way. The owner isn't in the action, so it's read off the
+         square: a castle never moves or changes hands once placed, so this stays right for
+         every past action in the feed too. Its knight has the same owner, hence "and
          knight" rather than repeating the word. -->
-    {@const placedColor = getSquare(gameSession.gameState.board, action.castleCol, action.castleRow)
-        ?.castleColor}
-    {#if placedColor !== undefined && placedColor === gameSession.gameState.neutralColor}
+    {@const placedOwner = getSquare(gameSession.gameState.board, action.castleCol, action.castleRow)
+        ?.castleOwner}
+    {#if placedOwner !== undefined && isNeutralOwner(placedOwner)}
         placed a neutral castle and knight
     {:else}
         placed a castle with a knight
@@ -123,7 +138,7 @@
         drew the next action card
     {/if}{#if packRolledTo}, and the deck moved from pack {packRolledTo.from} to pack {packRolledTo.to}{/if}
 {:else if isChooseAction(action)}
-    chose the {slotLabels[action.slot]} action
+    chose the {slotLabel(action.slot, action.metadata?.slotKind)} action
 {:else if isNegotiationMove(action)}
     {#if action.kind === NegotiationMoveKind.Propose}
         {@const executedOffer = action.metadata?.executedOffer}
@@ -181,8 +196,8 @@
             <!-- A semicolon rather than a line break: this is a consequence of the expansion just
                  described, so it reads as the same sentence continuing. -->
             {'; '}
-            {#if region.ownerColor}
-                {@const ownerId = playerIdForColor(region.ownerColor)}
+            {#if region.owner}
+                {@const ownerId = playerIdForOwner(region.owner)}
                 {#if ownerId}
                     <PlayerName playerId={ownerId} possessive />
                 {:else}
@@ -213,7 +228,7 @@
     {#if action.metadata?.invasions && action.metadata.invasions.length > 0}
         {#each action.metadata.invasions as invasion, i (i)}
             <br />
-            {@const victimId = playerIdForColor(invasion.victimColor)}
+            {@const victimId = playerIdForOwner(invasion.victimOwner)}
             {#if victimId}
                 <PlayerName playerId={victimId} />
             {:else}
@@ -233,8 +248,8 @@
     {#if action.metadata?.completedRegions && action.metadata.completedRegions.length > 0}
         {#each action.metadata.completedRegions as region, i (i)}
             <br />
-            {#if region.ownerColor}
-                {@const ownerId = playerIdForColor(region.ownerColor)}
+            {#if region.owner}
+                {@const ownerId = playerIdForOwner(region.owner)}
                 {#if ownerId}
                     <PlayerName playerId={ownerId} possessive />
                 {:else}
@@ -263,7 +278,7 @@
     took a politics card from the {pileLabels[action.pile]} pile{#if isMe && takenCard}
         {' '}({politicsCardLabel(takenCard.type, takenCard.value)}){/if}
 {:else if isPlayRenegadeCard(action)}
-    {@const victimId = playerIdForColor(action.metadata?.victimColor)}
+    {@const victimId = playerIdForOwner(action.metadata?.victimOwner)}
     played a Renegade card — removed a knight from
     {#if victimId}
         <PlayerName playerId={victimId} />'s
@@ -272,7 +287,7 @@
     {/if}
     region and placed one of their own in exchange{#if action.metadata?.removalWoodedCostPaid}, paying {action.metadata.removalWoodedCostPaid} ducats to remove it from the woods{/if}{#if action.metadata?.placementWoodedCostPaid}, paying {action.metadata.placementWoodedCostPaid} ducats to place into the woods{/if}
 {:else if isPlayAllianceCard(action)}
-    {@const enemyId = playerIdForColor(action.metadata?.enemyColor)}
+    {@const enemyId = playerIdForOwner(action.metadata?.enemyOwner)}
     played an Alliance card — allied one of their regions with
     {#if enemyId}
         <PlayerName playerId={enemyId} />'s
@@ -281,7 +296,7 @@
     {/if}
     neighboring region; neither can be expanded into the other while it lasts
 {:else if isCancelAlliance(action)}
-    {@const otherId = playerIdForColor(action.metadata?.otherColor)}
+    {@const otherId = playerIdForOwner(action.metadata?.otherOwner)}
     paid 10 ducats to end an alliance with
     {#if otherId}
         <PlayerName playerId={otherId} />
@@ -342,19 +357,23 @@
                     >
                 {/if}
             {:else if meta.placementSkippedReason === 'noPoliticsCardsLeft'}
-                won the {slotLabels[meta.slot!]} action
+                won the {slotLabel(meta.slot!, meta.slotKind)} action
                 <span class="text-gray-500">— but both politics piles are empty, so there's nothing to take</span>
             {:else}
-                won the {slotLabels[meta.slot!]} action outright
+                won the {slotLabel(meta.slot!, meta.slotKind)} action outright
             {/if}
         {:else}
-            <span class="text-gray-500">no one chose the {slotLabels[meta.slot!]} action</span>
+            <span class="text-gray-500"
+                >no one chose the {slotLabel(meta.slot!, meta.slotKind)} action</span
+            >
         {/if}
     {:else if meta?.tiedPlayerIds}
         {#each meta.tiedPlayerIds as playerId, i (playerId)}
             {i > 0 ? (i === meta.tiedPlayerIds.length - 1 ? ' and ' : ', ') : ''}<PlayerName {playerId} />
         {/each}
-        tied for the {slotLabels[meta.slot!]} action and {meta.tieWentToDuel ? 'duel for it' : 'enter negotiations'}
+        tied for the {slotLabel(meta.slot!, meta.slotKind)} action and {meta.tieWentToDuel
+            ? 'duel for it'
+            : 'enter negotiations'}
     {:else if meta?.roundAdvanced}
         {@const newFirstIsMe = gameSession.myPlayer?.id === meta.newFirstPlayerId}
         <span class="text-gray-500">

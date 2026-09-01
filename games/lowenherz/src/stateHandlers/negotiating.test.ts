@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { Color, MachineContext } from '@tabletop/common'
+import { ActionSource, Color, MachineContext } from '@tabletop/common'
 import { HydratedLowenherzGameState, LowenherzGameState } from '../model/gameState.js'
 import { BOARD_COLS, BOARD_ROWS, BoardSquare, SquareType } from '../model/board.js'
 import { MachineState } from '../definition/states.js'
 import { ActionCard, ActionCardType, CardBack } from '../definition/actionCards.js'
 import { NegotiatingStateHandler } from './negotiating.js'
+import { ActionType } from '../definition/actions.js'
+import { HydratedNegotiationMove, NegotiationMoveKind } from '../actions/negotiationMove.js'
 
 function blankBoard(): { squares: BoardSquare[][]; walls: [] } {
     return {
@@ -149,5 +151,43 @@ describe('HydratedLowenherzGameState.isActivePlayer during a negotiation', () =>
         })
 
         expect(state.isActivePlayer('p3')).toBe(false)
+    })
+})
+
+function propose(playerId: string, amount: number): HydratedNegotiationMove {
+    return new HydratedNegotiationMove({
+        id: `action-${playerId}-${amount}`,
+        gameId: 'game-1',
+        source: ActionSource.User,
+        type: ActionType.NegotiationMove,
+        playerId,
+        kind: NegotiationMoveKind.Propose,
+        fromPlayerId: playerId,
+        amount
+    })
+}
+
+describe('the minimumOneDucat option', () => {
+    it('rejects a zero-ducat offer while the rule is on', () => {
+        const state = buildState({ minimumOneDucat: true })
+        expect(propose('p1', 0).isValidNegotiationMove(state)).toBe(false)
+        expect(propose('p1', 1).isValidNegotiationMove(state)).toBe(true)
+    })
+
+    it('treats an absent setting as the rule being on', () => {
+        const state = buildState()
+        expect(state.minimumOneDucat).toBeUndefined()
+        expect(propose('p1', 0).isValidNegotiationMove(state)).toBe(false)
+    })
+
+    it('allows a zero-ducat offer once the rule is off', () => {
+        const state = buildState({ minimumOneDucat: false })
+        expect(propose('p1', 0).isValidNegotiationMove(state)).toBe(true)
+    })
+
+    it('still rejects a negative offer, or one larger than the proposer has', () => {
+        const state = buildState({ minimumOneDucat: false })
+        expect(propose('p1', -1).isValidNegotiationMove(state)).toBe(false)
+        expect(propose('p1', 13).isValidNegotiationMove(state)).toBe(false)
     })
 })
