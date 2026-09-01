@@ -57,7 +57,7 @@ function buildState(playerIds: string[], overrides: Partial<LowenherzGameState> 
 }
 
 function makePlaceCastle(
-    overrides: Partial<PlaceCastle> & Pick<PlaceCastle, 'playerId' | 'castleCol' | 'castleRow' | 'knightCol' | 'knightRow'>
+    overrides: Partial<PlaceCastle> & Pick<PlaceCastle, 'playerId' | 'castleCol' | 'castleRow'>
 ): HydratedPlaceCastle {
     return new HydratedPlaceCastle({
         id: 'a1',
@@ -74,9 +74,7 @@ describe('HydratedPlaceCastle', () => {
         const action = makePlaceCastle({
             playerId: 'p1',
             castleCol: 5,
-            castleRow: 5,
-            knightCol: 5,
-            knightRow: 4
+            castleRow: 5
         })
 
         expect(action.isValidPlaceCastle(state)).toBe(true)
@@ -87,9 +85,7 @@ describe('HydratedPlaceCastle', () => {
         const action = makePlaceCastle({
             playerId: 'p2', // it's p1's turn first
             castleCol: 5,
-            castleRow: 5,
-            knightCol: 5,
-            knightRow: 4
+            castleRow: 5
         })
 
         expect(action.isValidPlaceCastle(state)).toBe(false)
@@ -102,42 +98,15 @@ describe('HydratedPlaceCastle', () => {
 
         const onHill = makePlaceCastle({
             playerId: 'p1',
-            castleCol: 5, castleRow: 5, knightCol: 5, knightRow: 4
+            castleCol: 5, castleRow: 5
         })
         const onVillage = makePlaceCastle({
             playerId: 'p1',
-            castleCol: 6, castleRow: 5, knightCol: 6, knightRow: 4
+            castleCol: 6, castleRow: 5
         })
 
         expect(onHill.isValidPlaceCastle(state)).toBe(false)
         expect(onVillage.isValidPlaceCastle(state)).toBe(false)
-    })
-
-    it('rejects a setup knight placed on a wooded square (only allowed in regular play)', () => {
-        const state = buildState(['p1', 'p2', 'p3', 'p4'])
-        state.board.squares[4][5].type = SquareType.Forest
-
-        const action = makePlaceCastle({
-            playerId: 'p1',
-            castleCol: 5, castleRow: 5, knightCol: 5, knightRow: 4
-        })
-
-        expect(action.isValidPlaceCastle(state)).toBe(false)
-    })
-
-    it('rejects a knight that is not orthogonally adjacent to the new castle', () => {
-        const state = buildState(['p1', 'p2', 'p3', 'p4'])
-        const diagonal = makePlaceCastle({
-            playerId: 'p1',
-            castleCol: 5, castleRow: 5, knightCol: 6, knightRow: 4 // diagonal, not orthogonal
-        })
-        const tooFar = makePlaceCastle({
-            playerId: 'p1',
-            castleCol: 5, castleRow: 5, knightCol: 5, knightRow: 3 // 2 away
-        })
-
-        expect(diagonal.isValidPlaceCastle(state)).toBe(false)
-        expect(tooFar.isValidPlaceCastle(state)).toBe(false)
     })
 
     it('enforces the 6-space gap rule against the same owner only', () => {
@@ -151,30 +120,31 @@ describe('HydratedPlaceCastle', () => {
         // Too close for p1's own next castle (distance 5 < 6)
         const tooClose = makePlaceCastle({
             playerId: 'p1',
-            castleCol: 2, castleRow: 7, knightCol: 2, knightRow: 6 // distance = 5
+            castleCol: 2, castleRow: 7 // distance = 5
         })
         expect(tooClose.isValidPlaceCastle(state)).toBe(false)
 
         // Exactly 6 away is legal
         const exactlySix = makePlaceCastle({
             playerId: 'p1',
-            castleCol: 2, castleRow: 8, knightCol: 2, knightRow: 7 // distance = 6
+            castleCol: 2, castleRow: 8 // distance = 6
         })
         expect(exactlySix.isValidPlaceCastle(state)).toBe(true)
     })
 
-    it('applying the action places the castle+knight and decrements the stock for own placements', () => {
+    it('applying the action places the castle and leaves its knight pending', () => {
         const state = buildState(['p1', 'p2', 'p3', 'p4'])
         const action = makePlaceCastle({
             playerId: 'p1',
-            castleCol: 5, castleRow: 5, knightCol: 5, knightRow: 4
+            castleCol: 5, castleRow: 5
         })
 
         action.apply(state)
 
         expect(state.board.squares[5][5].castleOwner).toBe('p1')
-        expect(state.board.squares[4][5].knightOwner).toBe('p1')
-        expect(state.getPlayerState('p1').knightsInStock).toBe(11)
+        expect(state.pendingSetupCastle).toEqual({ col: 5, row: 5, playerId: 'p1' })
+        // The stock is debited by the knight half, not here.
+        expect(state.getPlayerState('p1').knightsInStock).toBe(12)
     })
 
     it('describeCastleSquareProblem reports the specific rejection reason', () => {
@@ -249,7 +219,7 @@ describe('HydratedPlaceCastle', () => {
 
         const action = makePlaceCastle({
             playerId: 'p1',
-            castleCol: 8, castleRow: 8, knightCol: 8, knightRow: 7
+            castleCol: 8, castleRow: 8
         })
 
         expect(action.isValidPlaceCastle(state)).toBe(true)

@@ -113,6 +113,19 @@ export const LowenherzGameState = Type.Evaluate(
             // the rule is on, so a state built without it gets the stricter reading.
             minimumOneDucat: Type.Optional(Type.Boolean()),
 
+            // The setup castle whose knight has not been placed yet, and who is placing
+            // it. Set by PlaceCastle and cleared by PlaceSetupKnight, so it is defined
+            // exactly while machineState is PlacingSetupKnight. Recorded rather than
+            // derived from the board because a castle with no adjacent knight is not
+            // otherwise distinguishable from one whose knight was placed further along.
+            pendingSetupCastle: Type.Optional(
+                Type.Object({
+                    col: Type.Number(),
+                    row: Type.Number(),
+                    playerId: Type.String()
+                })
+            ),
+
             // Remaining undrawn action cards, in draw order (index 0 draws next).
             actionDeck: Type.Array(ActionCard),
             // The currently face-up standard card players are choosing actions from -
@@ -224,6 +237,7 @@ export class HydratedLowenherzGameState
     declare firstPlayerId: string
     declare neutralColor?: Color
     declare minimumOneDucat?: boolean
+    declare pendingSetupCastle?: { col: number; row: number; playerId: string }
 
     declare actionDeck: ActionCard[]
     declare currentActionCard?: ActionCard

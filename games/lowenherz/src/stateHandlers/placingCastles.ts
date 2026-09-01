@@ -2,20 +2,11 @@ import { type HydratedAction, type MachineStateHandler, MachineContext } from '@
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
+import { totalCastlesPlaced } from '../model/board.js'
 import { HydratedPlaceCastle } from '../actions/placeCastle.js'
 import { buildPlacementPlan, currentPlacementSlot, isSetupComplete } from '../util/placementPlan.js'
 
 type PlacingCastlesAction = HydratedPlaceCastle
-
-function totalCastlesPlaced(state: HydratedLowenherzGameState): number {
-    let count = 0
-    for (const row of state.board.squares) {
-        for (const square of row) {
-            if (square.castleOwner) count++
-        }
-    }
-    return count
-}
 
 function planFor(state: HydratedLowenherzGameState) {
     return buildPlacementPlan(state.turnOrder, state.neutralColor !== undefined)
@@ -40,7 +31,7 @@ export class PlacingCastlesStateHandler
         const validActions: ActionType[] = []
 
         const plan = planFor(gameState)
-        const slot = currentPlacementSlot(plan, totalCastlesPlaced(gameState))
+        const slot = currentPlacementSlot(plan, totalCastlesPlaced(gameState.board))
         if (slot?.playerId === playerId) {
             validActions.push(ActionType.PlaceCastle)
         }
@@ -51,7 +42,7 @@ export class PlacingCastlesStateHandler
     enter(context: MachineContext<HydratedLowenherzGameState>) {
         const gameState = context.gameState
         const plan = planFor(gameState)
-        const slot = currentPlacementSlot(plan, totalCastlesPlaced(gameState))
+        const slot = currentPlacementSlot(plan, totalCastlesPlaced(gameState.board))
         // slot should always be defined here - if setup were complete, onAction would
         // have already transitioned away from PlacingCastles before this state's
         // enter() runs again.
@@ -64,13 +55,10 @@ export class PlacingCastlesStateHandler
     ): MachineState {
         switch (true) {
             case action instanceof HydratedPlaceCastle: {
-                const gameState = context.gameState
-                const plan = planFor(gameState)
-                // The action already applied the placement before onAction runs, so
-                // totalCastlesPlaced now reflects the placement this action just made.
-                return isSetupComplete(plan, totalCastlesPlaced(gameState))
-                    ? MachineState.StartOfTurn
-                    : MachineState.PlacingCastles
+                // Always the knight half next, including after the last castle: setup is
+                // not complete until that castle has its knight, so the check that ends
+                // setup lives in PlacingSetupKnight rather than here.
+                return MachineState.PlacingSetupKnight
             }
             default: {
                 throw Error('Invalid action type')
