@@ -6,9 +6,11 @@ import { Role, UserStatus, type User } from '@tabletop/common'
 
 export class HarnessAuthorizationService implements AuthorizationService {
     public isAdmin: boolean = true
+    public isDeveloper: boolean = true
+    public canUseDeveloperTools: boolean = true
     public debugViewEnabled: boolean = $state(false)
     public adminCapabilitiesEnabled: boolean = $state(false)
-    public showDebug: boolean = $derived(this.isAdmin && this.debugViewEnabled)
+    public showDebug: boolean = $derived(this.canUseDeveloperTools && this.debugViewEnabled)
     public actAsAdmin: boolean = $derived(this.isAdmin && this.adminCapabilitiesEnabled)
 
     async initialize() {}
@@ -27,7 +29,7 @@ export class HarnessAuthorizationService implements AuthorizationService {
         return {
             id: 'harness-user',
             username: 'Developer',
-            roles: [Role.User, Role.Admin],
+            roles: [Role.User, Role.Developer, Role.Admin],
             status: UserStatus.Active,
             externalIds: []
         }
