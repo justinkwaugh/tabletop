@@ -40,6 +40,10 @@ export const SantiagoGameState = Type.Evaluate(
             // Also set at game start to the randomly chosen initial overseer,
             // which determines round 1 bidding order.
             canalOverseerId: Type.Optional(Type.String()),
+            // Holdover from the previous round, shown as a placeholder Overseer tag while
+            // this round's bidding is in progress and canalOverseerId is genuinely
+            // undetermined (see BiddingStateHandler.enter).
+            previousOverseerId: Type.Optional(Type.String()),
             // Player IDs who have acted during extra irrigation (amount=0 counts as passing)
             extraIrrigationPassed: Type.Array(Type.String()),
             // Sequential order of players for Phase 5 (left of new overseer → overseer last)
@@ -88,6 +92,7 @@ export class HydratedSantiagoGameState
     declare plantersOrder: string[]
     declare planterIndex: number
     declare canalOverseerId?: string
+    declare previousOverseerId?: string
     declare extraIrrigationPassed: string[]
     declare extraIrrigationOrder: string[]
     declare extraIrrigationIndex: number

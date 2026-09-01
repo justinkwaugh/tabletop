@@ -1,6 +1,4 @@
 <script lang="ts">
-    import { flip } from 'svelte/animate'
-    import { cubicOut } from 'svelte/easing'
     import { MachineState, calculateScores, calculateLiveScores } from '@tabletop/santiago'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import MoneyBadge from './MoneyBadge.svelte'
@@ -21,86 +19,16 @@
         session.game?.players.find((p) => p.id === id)?.name ?? id
 
     const projectedOverseerId = $derived(session.projectedOverseerId)
+    const previousOverseerId = $derived(session.previousOverseerHoldoverId)
 
-    // Once bidding resolves, plantersOrder is set for the rest of the round — show the
-    // planting phase's panels in that fixed order (no reshuffling to the current
-    // planter), since it's more informative than turn-chasing once bids are no longer
-    // in play. Canal building and personal canal placement have their own dedicated
-    // orders below; only SpringPlacement falls through to the active-player rotation
-    // further down.
-    const sortedPlayers = $derived.by(() => {
-        const inOrder = state.seatOrder
+    // Panels always sit in fixed seat order — no phase reshuffles them, including
+    // planting's bid-based plantersOrder. Whose turn it is is conveyed by the active-player
+    // highlight, not by moving rows around.
+    const sortedPlayers = $derived(
+        state.seatOrder
             .map(id => state.players.find(p => p.playerId === id))
             .filter(p => p !== undefined)
-
-        const usesPlantersOrder =
-            state.machineState !== MachineState.SpringPlacement &&
-            state.machineState !== MachineState.Bidding &&
-            state.machineState !== MachineState.ExtraIrrigation &&
-            state.machineState !== MachineState.CanalBuilding &&
-            state.plantersOrder.length > 0
-        if (usesPlantersOrder) {
-            return state.plantersOrder
-                .map(id => state.players.find(p => p.playerId === id))
-                .filter(p => p !== undefined)
-        }
-
-        // Canal building: canalProposalOrder as-is (clockwise from the overseer's
-        // neighbor, overseer already excluded by the engine), with the overseer pinned
-        // to the very bottom. Per Justin, this doesn't reshuffle to bring the current
-        // briber to the top — it just walks down the list in that fixed order.
-        if (state.machineState === MachineState.CanalBuilding && state.canalProposalOrder.length > 0) {
-            const mapped = state.canalProposalOrder
-                .map(id => state.players.find(p => p.playerId === id))
-                .filter(p => p !== undefined)
-            const overseerId = state.canalOverseerId
-            const overseer = overseerId ? state.players.find(p => p.playerId === overseerId) : undefined
-            return overseer ? [...mapped, overseer] : mapped
-        }
-
-        // Personal canal placement (Phase 5) has its own turn order — clockwise starting
-        // with the player to the right of the overseer, tracked separately in
-        // extraIrrigationOrder rather than plantersOrder. Shown as-is (no reshuffling to
-        // the current player), per Justin.
-        if (state.machineState === MachineState.ExtraIrrigation && state.extraIrrigationOrder.length > 0) {
-            return state.extraIrrigationOrder
-                .map(id => state.players.find(p => p.playerId === id))
-                .filter(p => p !== undefined)
-        }
-
-        // While bidding, show players in the order they're going to bid — biddingOrder runs
-        // clockwise from the player left of the previous overseer, so that overseer lands at
-        // the bottom and seat order follows on from them. Still no reshuffling to bring the
-        // active bidder to the top, per Justin: the list is a fixed running order you read
-        // top to bottom.
-        //
-        // This also retires the tie-break shuffle that used to sit here. Ties are only
-        // possible at 0 (non-zero bids must be unique) and go to the earliest bidder in
-        // biddingOrder, so ordering by biddingOrder already puts the winner of a tie above
-        // the players tied with them.
-        if (state.machineState === MachineState.Bidding && state.biddingOrder.length > 0) {
-            return state.biddingOrder
-                .map(id => state.players.find(p => p.playerId === id))
-                .filter(p => p !== undefined)
-        }
-
-        // Only SpringPlacement reaches here now (Bidding, PlantingPhase, CanalBuilding,
-        // and ExtraIrrigation are all handled above). Rotates the list so the active
-        // player is always shown first — except in hotseat, where everyone shares one screen and panels
-        // reordering every turn is disorienting rather than helpful, so seat order stays
-        // fixed there. The one exception: the (projected) overseer goes to the bottom
-        // rather than the top, so the game doesn't open with the overseer sitting first.
-        if (session.game?.hotseat) {
-            const overseerId = session.projectedOverseerId
-            const overseer = overseerId ? inOrder.find(p => p.playerId === overseerId) : undefined
-            if (!overseer) return inOrder
-            return [...inOrder.filter(p => p.playerId !== overseerId), overseer]
-        }
-        const activeId = state.activePlayerIds[0]
-        const idx = activeId ? inOrder.findIndex(p => p.playerId === activeId) : -1
-        if (idx <= 0) return inOrder
-        return [...inOrder.slice(idx), ...inOrder.slice(0, idx)]
-    })
+    )
 </script>
 
 <div class="flex flex-col gap-2.5 py-2.5">
@@ -108,26 +36,26 @@
         {@const isActive = state.activePlayerIds.includes(p.playerId)}
         {@const isMe = p.playerId === myId}
         {@const isOverseer = projectedOverseerId === p.playerId}
+        {@const isPreviousOverseer = previousOverseerId === p.playerId}
         {@const color = session.colors.getPlayerUiColor(p.playerId)}
         {@const textColor = session.colors.getPlayerTextColor(p.playerId)}
         {@const passedPersonalCanal = state.machineState === MachineState.ExtraIrrigation &&
             p.hasPersonalCanal && state.extraIrrigationPassed.includes(p.playerId)}
-        {@const seatNumber = state.seatOrder.indexOf(p.playerId) + 1}
+        {@const nameShadow = textColor === 'text-black'
+            ? '0 1px 0 rgba(255,255,255,0.5)'
+            : '0 1px 2px rgba(0,0,0,0.6)'}
         <div
             class="paper-texture rounded-lg overflow-hidden {isActive ? 'border-[5px] pulse-border' : 'border-[5px]'}"
             style={isActive ? '' : `border-color: ${color}`}
-            animate:flip={{ duration: 320, easing: cubicOut }}
         >
             <!-- Colored name bar -->
             <div class="font-heading px-[10px] py-[7px] flex items-center gap-[7px] font-bold uppercase tracking-widest {textColor} text-[15px]"
                  style="background-color: {color}">
-                <div class="w-[34px] h-[34px] flex flex-col items-center justify-center gap-[2px] rounded bg-black/30 text-white normal-case shrink-0">
-                    <span class="font-ui text-[8px] uppercase tracking-wide opacity-70 leading-none">Seat</span>
-                    <span class="text-[14px] font-bold leading-none tracking-normal">{seatNumber}</span>
-                </div>
-                <span class="truncate min-w-0 flex-1 text-[18px]">{playerName(p.playerId)}</span>
+                <span class="truncate min-w-0 flex-1 text-[18px]" style="text-shadow: {nameShadow}">{playerName(p.playerId)}</span>
                 {#if isOverseer}
                     <span class="text-[13px] bg-black/30 text-white px-1.5 py-[3px] rounded font-normal shrink-0 normal-case tracking-normal">Overseer</span>
+                {:else if isPreviousOverseer}
+                    <span class="text-[13px] bg-black/30 text-white px-1.5 py-[3px] rounded font-normal shrink-0 normal-case tracking-normal opacity-70">Previous Overseer</span>
                 {/if}
                 {#if isPlanting && p.bid !== undefined}
                     <span class="ml-auto shrink-0 flex items-center gap-1">

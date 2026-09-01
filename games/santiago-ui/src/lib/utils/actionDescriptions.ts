@@ -31,25 +31,18 @@ export type DescriptionPart = string | { playerId: string }
 export function getDescriptionSegments(action: GameAction, ctx?: ActionDescriptionContext): DescriptionPart[][] {
     if (isPlaceBid(action)) {
         const amount = (action as any).amount ?? 0
-        if (amount === 0) {
-            if (ctx?.allActions) {
-                const actionTime = (action as any).createdAt?.getTime() ?? 0
-                const lastRoundEndTime = ctx.allActions
-                    .filter(a => isEndRoundEvent(a))
-                    .map(a => a.createdAt?.getTime() ?? 0)
-                    .filter(t => t < actionTime)
-                    .reduce((max, t) => Math.max(max, t), 0)
-                const isFirst = !ctx.allActions.some(a =>
-                    isPlaceBid(a) &&
-                    (a as any).amount === 0 &&
-                    (a as any).createdAt?.getTime() > lastRoundEndTime &&
-                    (a as any).createdAt?.getTime() < actionTime
-                )
-                return [[isFirst ? 'bid 0 and becomes overseer' : 'bid 0 escudos']]
-            }
-            return [['bid 0 and becomes overseer']]
+        const bidText = `bid ${amount} escudo${amount !== 1 ? 's' : ''}`
+        // metadata.overseerId is only set on the round's last bid, once resolveBids() has
+        // determined who won the canal overseer role — the winner may be an earlier bidder
+        // than this one, so it's reported as a distinct segment rather than assumed.
+        const overseerId = (action as any).metadata?.overseerId
+        if (!overseerId) {
+            return [[bidText]]
         }
-        return [[`bid ${amount} escudo${amount !== 1 ? 's' : ''}`]]
+        if (overseerId === action.playerId) {
+            return [[`${bidText} and becomes overseer`]]
+        }
+        return [[bidText], [{ playerId: overseerId }, ' becomes overseer']]
     }
     if (isPlaceField(action)) {
         if (ctx?.allActions && action.playerId) {
