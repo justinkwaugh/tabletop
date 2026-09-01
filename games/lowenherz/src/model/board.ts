@@ -160,6 +160,18 @@ export function manhattanDistance(colA: number, rowA: number, colB: number, rowB
 
 // All (col, row) coordinates on the board that currently hold a castle belonging to the
 // given owner (a player or the neutral prince).
+// How many castles (any owner) are on the board, which is also how many setup
+// placements have happened: placement is the only way a castle ever appears.
+export function totalCastlesPlaced(board: LowenherzBoard): number {
+    let count = 0
+    for (const row of board.squares) {
+        for (const square of row) {
+            if (square.castleOwner) count++
+        }
+    }
+    return count
+}
+
 export function castleSquaresForOwner(
     board: LowenherzBoard,
     owner: PieceOwner

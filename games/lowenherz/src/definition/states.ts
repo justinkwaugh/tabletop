@@ -2,6 +2,9 @@
 
 export enum MachineState {
     PlacingCastles = 'PlacingCastles',
+    // The castle just placed is on the board and its knight is not - the same player
+    // picks an adjacent square (state.pendingSetupCastle says which castle).
+    PlacingSetupKnight = 'PlacingSetupKnight',
     // Ready to flip the next action card (or the very start of a round).
     StartOfTurn = 'StartOfTurn',
     // A standard 3-action card is face up; players are placing decision cards.

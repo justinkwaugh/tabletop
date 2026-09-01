@@ -25,6 +25,7 @@ import {
     placeKnightReason,
     KNIGHT_NOT_ADJACENT_REASON,
     placeCastleIsValid,
+    placeSetupKnightIsValid,
     negotiationProposalIsValid,
     lookAtPoliticsPileReason,
     duelBidIsValid,
@@ -39,6 +40,7 @@ import {
     HydratedLowenherzGameState,
     HydratedLowenherzPlayerState,
     HydratedPlaceCastle,
+    HydratedPlaceSetupKnight,
     isAdvanceResolution,
     isDrawActionCard,
     isKnightSafeToRemove,
@@ -54,6 +56,7 @@ import {
     neighbors,
     Pass,
     PlaceCastle,
+    PlaceSetupKnight,
     PlaceKnight,
     PlaceWall,
     placeWallReason,
@@ -89,7 +92,6 @@ export class LowenherzGameSession extends GameSession<
 > {
     // The castle square tentatively picked, while waiting for the player to pick the
     // adjacent knight square that completes a PlaceCastle action.
-    selectedCastleSquare: { col: number; row: number } | undefined = $state(undefined)
 
     // A friendly message describing why the last placement attempt was rejected, shown
     // in the UI instead of letting the engine's validation error surface as a raw crash.
@@ -258,7 +260,27 @@ export class LowenherzGameSession extends GameSession<
     }
 
     get setupComplete(): boolean {
-        return this.gameState.machineState !== MachineState.PlacingCastles
+        return (
+            this.gameState.machineState !== MachineState.PlacingCastles &&
+            this.gameState.machineState !== MachineState.PlacingSetupKnight
+        )
+    }
+
+    get canPlaceSetupKnight(): boolean {
+        if (!this.canActNow) return false
+        if (!this.myPlayer) return false
+        return HydratedPlaceSetupKnight.canPlaceSetupKnight(this.gameState, this.myPlayer.id)
+    }
+
+    // The castle already on the board whose knight is still owed. Server state now, not a
+    // local selection: the castle is committed the moment it is clicked.
+    get pendingSetupCastle(): { col: number; row: number; playerId: string } | undefined {
+        return this.gameState.pendingSetupCastle
+    }
+
+    get legalSetupKnightSquares(): { col: number; row: number }[] {
+        if (!this.myPlayer || !this.canPlaceSetupKnight) return []
+        return HydratedPlaceSetupKnight.legalKnightSquares(this.gameState, this.myPlayer.id)
     }
 
     // Who the next setup placement belongs to - the placing player themselves for the
@@ -267,6 +289,15 @@ export class LowenherzGameSession extends GameSession<
     // the ghost castle/knight matches the piece that's really about to land.
     get placementOwner(): PieceOwner | undefined {
         if (this.setupComplete) return undefined
+
+        // During the knight half the castle is already on the board, so the placement plan
+        // has moved on to the next slot - the knight belongs to the castle that is waiting
+        // for it, not to whoever places next.
+        const pending = this.gameState.pendingSetupCastle
+        if (pending) {
+            return getSquare(this.gameState.board, pending.col, pending.row)?.castleOwner
+        }
+
         return currentPlacementOwner(this.gameState)
     }
 
@@ -277,10 +308,10 @@ export class LowenherzGameSession extends GameSession<
         return HydratedPlaceCastle.legalCastleSquares(this.gameState, this.myPlayer.id)
     }
 
-    // Validates the castle square the moment it's picked, rather than waiting until the
-    // knight square is also chosen - so the gap/terrain/occupancy rules are enforced
-    // immediately instead of only surfacing after a second click.
-    selectCastleSquare(col: number, row: number) {
+    // The castle is its own action now, so a legal click commits it and the game moves to
+    // PlacingSetupKnight. describeCastleSquareProblem still runs first so a rejected square
+    // gets a reason rather than the engine's throw.
+    async placeCastle(col: number, row: number) {
         if (!this.myPlayer) return
 
         const problem = HydratedPlaceCastle.describeCastleSquareProblem(this.gameState, this.myPlayer.id, col, row)
@@ -297,51 +328,41 @@ export class LowenherzGameSession extends GameSession<
             return
         }
 
+        const action = this.createPlayerAction(PlaceCastle, { castleCol: col, castleRow: row })
+        if (!placeCastleIsValid(this.gameState, action.playerId, col, row)) {
+            this.errorMessage = "That spot isn't allowed for a castle. Pick a different one."
+            return
+        }
+
         this.errorMessage = undefined
-        this.selectedCastleSquare = { col, row }
+        try {
+            await this.applyAction(action)
+        } catch (e) {
+            console.warn('Failed to place castle:', e)
+            this.errorMessage = 'That placement was rejected. Please try a different spot.'
+        }
     }
 
-    clearCastleSelection() {
-        this.selectedCastleSquare = undefined
-    }
+    async placeSetupKnight(knightCol: number, knightRow: number) {
+        if (!this.pendingSetupCastle) return
 
-    async placeCastleWithKnight(knightCol: number, knightRow: number) {
-        const castleSquare = this.selectedCastleSquare
-        if (!castleSquare) return
-
-        const action = this.createPlayerAction(PlaceCastle, {
-            castleCol: castleSquare.col,
-            castleRow: castleSquare.row,
-            knightCol,
-            knightRow
-        })
+        const action = this.createPlayerAction(PlaceSetupKnight, { knightCol, knightRow })
 
         // Check legality client-side first, using the same rule the engine enforces, so
         // an illegal attempt gets a friendly message instead of the engine's assert()
         // throwing (that throw is meant to catch programming bugs, not expected
         // rule-violation attempts from a player experimenting with the board).
-        if (
-            !placeCastleIsValid(
-                this.gameState,
-                action.playerId,
-                castleSquare.col,
-                castleSquare.row,
-                knightCol,
-                knightRow
-            )
-        ) {
+        if (!placeSetupKnightIsValid(this.gameState, action.playerId, knightCol, knightRow)) {
             this.errorMessage =
                 "That knight square isn't allowed — it must be directly adjacent to the castle, empty, and not a hill or village. Pick a different spot."
-            this.clearCastleSelection()
             return
         }
 
         this.errorMessage = undefined
-        this.clearCastleSelection()
         try {
             await this.applyAction(action)
         } catch (e) {
-            console.warn('Failed to place castle/knight:', e)
+            console.warn('Failed to place setup knight:', e)
             this.errorMessage = 'That placement was rejected. Please try a different spot.'
         }
     }
@@ -544,19 +565,11 @@ export class LowenherzGameSession extends GameSession<
             if (candidates.length === 0) break
             const castleSquare = this.pickSpreadOutCastleSquare(candidates)
 
-            const knightSquare = neighbors(castleSquare.col, castleSquare.row).find((n) =>
-                HydratedPlaceCastle.isValidKnightSquare(
-                    this.gameState,
-                    castleSquare.col,
-                    castleSquare.row,
-                    n.col,
-                    n.row
-                )
-            )
-            if (!knightSquare) break
+            await this.placeCastle(castleSquare.col, castleSquare.row)
 
-            this.selectCastleSquare(castleSquare.col, castleSquare.row)
-            await this.placeCastleWithKnight(knightSquare.col, knightSquare.row)
+            const knightSquare = this.legalSetupKnightSquares[0]
+            if (!knightSquare) break
+            await this.placeSetupKnight(knightSquare.col, knightSquare.row)
         }
 
         // Auto-placing is a testing shortcut past the deliberate variable-construction
