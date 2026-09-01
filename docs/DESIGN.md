@@ -8,6 +8,7 @@ This document is the architectural map for implementing a new game title or maki
 - Read the [game-runtime domain context](../libs/common/CONTEXT.md) and [game-client domain context](../libs/frontend-components/CONTEXT.md), including any ADRs they route to.
 - For a structural change to an existing game, inspect the current canonical interfaces and trace the affected behavior through that game. The new-game completion checklist is not relevant unless the change alters game registration or package boundaries.
 - For a new game, use a maintained sibling game for package configuration and integration conventions, while treating the canonical interfaces as authoritative.
+- For a Hosted Game that must conceal game information from clients, read the current [hidden-information model and scenario catalog](hidden-information.md). It is a design exploration, not an implemented capability.
 - For UI-only work, also read [user interaction semantics](user-interactions.md), the game’s visual contract when present, and the [game UI animation skill](../.agents/skills/game-ui-animation/SKILL.md) when animation is involved.
 
 ## Canonical interfaces
