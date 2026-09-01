@@ -5,6 +5,14 @@ export type UndoActionPrefixScan = {
     boundaryFound: boolean
 }
 
+export function assertUndoActionStorageSupported(
+    actionChunkSize: unknown
+): asserts actionChunkSize is number {
+    if (typeof actionChunkSize !== 'number' || actionChunkSize <= 0) {
+        throw new Error('Undo is not supported for games using legacy action storage')
+    }
+}
+
 export function scanUndoActionPrefix({
     targetAction,
     precedingActions,

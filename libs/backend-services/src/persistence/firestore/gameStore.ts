@@ -43,10 +43,12 @@ import { RedisCacheService } from '../../cache/cacheService.js'
 import { nanoid } from 'nanoid'
 import { ActionChunk, StoredActionChunk } from '../model/storedActionChunk.js'
 import * as Value from 'typebox/value'
-import { scanUndoActionPrefix } from '../stores/undoActionWindow.js'
+import {
+    assertUndoActionStorageSupported,
+    scanUndoActionPrefix
+} from '../stores/undoActionWindow.js'
 
 const ACTION_CHUNK_SIZE = 200
-const LEGACY_UNDO_WINDOW_PAGE_SIZE = 20
 
 export class FirestoreGameStore implements GameStore {
     readonly games: CollectionReference
@@ -806,7 +808,6 @@ export class FirestoreGameStore implements GameStore {
             structuredClone(action)
         ) as StoredAction[]
 
-        const actionCollection = this.getActionCollection(gameId)
         const actionChunkCollection = this.getActionChunkCollection(gameId)
         const stateCollection = this.getStateCollection(gameId)
 
@@ -825,6 +826,7 @@ export class FirestoreGameStore implements GameStore {
             if (!existingGame) {
                 throw new NotFoundError({ type: 'Game', id: gameId })
             }
+            assertUndoActionStorageSupported(existingGame.actionChunkSize)
 
             const existingState = (
                 await transaction.get(stateCollection.doc(gameId))
@@ -834,30 +836,19 @@ export class FirestoreGameStore implements GameStore {
                 throw new NotFoundError({ type: 'GameState', id: gameId })
             }
 
-            let existingChunks = undefined
-            let existingActions = undefined
-            if (existingGame.actionChunkSize) {
-                // Get the chunks which contain the actions
-                existingChunks = await this.getChunksForActions(
-                    storedActions,
-                    actionChunkCollection,
-                    transaction,
-                    existingGame.actionChunkSize
-                )
-                existingActions = this.removeActionsFromChunks(
-                    storedActions,
-                    existingChunks,
-                    existingGame.actionChunkSize
-                )
-            } else {
-                const actionRefs = storedActions.map((action) => actionCollection.doc(action.id))
-                existingActions = (await transaction.getAll(...actionRefs))
-                    .map((doc) => doc.data())
-                    .filter((data) => data !== undefined) as StoredAction[]
-                this.recordRead('action', actionRefs.length)
-            }
+            const existingChunks = await this.getChunksForActions(
+                storedActions,
+                actionChunkCollection,
+                transaction,
+                existingGame.actionChunkSize
+            )
+            const existingActions = this.removeActionsFromChunks(
+                storedActions,
+                existingChunks,
+                existingGame.actionChunkSize
+            )
 
-            if (!existingActions || existingActions.length !== storedActions.length) {
+            if (existingActions.length !== storedActions.length) {
                 console.log('Some actions were not found when trying to undo')
                 throw new NotFoundError({ type: 'GameAction', id: gameId })
             }
@@ -897,32 +888,21 @@ export class FirestoreGameStore implements GameStore {
             Object.assign(updatedGame, gameUpdates)
             updatedGame.state = state
 
-            if (existingChunks) {
-                this.addActionsToChunks(
-                    storedRedoneActions,
-                    existingChunks,
-                    existingGame.actionChunkSize
-                )
-                // Update chunks
-                const updateDate = new Date()
-                for (const chunk of existingChunks) {
-                    chunk.updatedAt = updateDate
-                    if (!chunk.createdAt) {
-                        chunk.createdAt = updateDate
-                        transaction.create(actionChunkCollection.doc(chunk.id), chunk)
-                    } else {
-                        transaction.set(actionChunkCollection.doc(chunk.id), chunk)
-                    }
+            this.addActionsToChunks(
+                storedRedoneActions,
+                existingChunks,
+                existingGame.actionChunkSize
+            )
+            // Update chunks
+            const updateDate = new Date()
+            for (const chunk of existingChunks) {
+                chunk.updatedAt = updateDate
+                if (!chunk.createdAt) {
+                    chunk.createdAt = updateDate
+                    transaction.create(actionChunkCollection.doc(chunk.id), chunk)
+                } else {
+                    transaction.set(actionChunkCollection.doc(chunk.id), chunk)
                 }
-            } else {
-                existingActions.forEach((action) => {
-                    transaction.delete(actionCollection.doc(action.id))
-                })
-
-                redoneActions.forEach((action) => {
-                    // We keep the create/ update as the original
-                    transaction.create(actionCollection.doc(action.id), action)
-                })
             }
 
             transaction.update(this.games.doc(gameId), this.createUpdateDocument(gameUpdates))
@@ -997,20 +977,15 @@ export class FirestoreGameStore implements GameStore {
         endIndex: number
     }): Promise<UndoActionWindow | undefined> {
         const actionChunkSize = Reflect.get(game, 'actionChunkSize')
-        if (typeof actionChunkSize !== 'number') {
-            throw new Error('Game does not have action chunks')
-        }
+        assertUndoActionStorageSupported(actionChunkSize)
 
         try {
-            if (actionChunkSize > 0) {
-                return await this.findChunkedUndoActionWindow({
-                    game,
-                    actionId,
-                    endIndex,
-                    actionChunkSize
-                })
-            }
-            return await this.findLegacyUndoActionWindow({ game, actionId, endIndex })
+            return await this.findChunkedUndoActionWindow({
+                game,
+                actionId,
+                endIndex,
+                actionChunkSize
+            })
         } catch (error) {
             this.handleError(error, game.id)
             throw Error('unreachable')
@@ -1125,76 +1100,6 @@ export class FirestoreGameStore implements GameStore {
             )
             .toSorted((left, right) => (left.index ?? 0) - (right.index ?? 0))
 
-        this.validateUndoActionWindow(actions, startIndex, endIndex)
-        const canonicalTargetAction = actions.find((action) => action.id === actionId)
-        if (!canonicalTargetAction) {
-            return undefined
-        }
-
-        return { targetAction: canonicalTargetAction, startIndex, actions }
-    }
-
-    private async findLegacyUndoActionWindow({
-        game,
-        actionId,
-        endIndex
-    }: {
-        game: Game
-        actionId: string
-        endIndex: number
-    }): Promise<UndoActionWindow | undefined> {
-        const actionCollection = this.getActionCollection(game.id)
-        const targetSnapshot = await actionCollection.doc(actionId).get()
-        this.recordRead('action')
-        const targetData = targetSnapshot.data()
-        if (!targetData) {
-            return undefined
-        }
-
-        const targetAction = this.convertGameAction(targetData)
-        if (targetAction.index === undefined) {
-            return undefined
-        }
-
-        let startIndex = targetAction.index
-        if (targetAction.simultaneousGroupId !== undefined) {
-            let upperIndex = targetAction.index
-            let foundBoundary = false
-
-            while (!foundBoundary && upperIndex > 0) {
-                const querySnapshot = await actionCollection
-                    .where('index', '<', upperIndex)
-                    .orderBy('index', 'desc')
-                    .limit(LEGACY_UNDO_WINDOW_PAGE_SIZE)
-                    .get()
-                this.recordRead('action', querySnapshot.size)
-
-                const precedingActions = querySnapshot.docs.map((doc) =>
-                    this.convertGameAction(doc.data())
-                )
-                const scan = scanUndoActionPrefix({
-                    targetAction,
-                    precedingActions,
-                    startIndex
-                })
-                startIndex = scan.startIndex
-                foundBoundary = scan.boundaryFound
-
-                const earliestAction = precedingActions.at(-1)
-                if (
-                    foundBoundary ||
-                    precedingActions.length < LEGACY_UNDO_WINDOW_PAGE_SIZE ||
-                    earliestAction?.index === undefined
-                ) {
-                    break
-                }
-                upperIndex = earliestAction.index
-            }
-        }
-
-        const actions = (
-            await this.findActionRangeForGame({ game, startIndex, endIndex })
-        ).toSorted((left, right) => (left.index ?? 0) - (right.index ?? 0))
         this.validateUndoActionWindow(actions, startIndex, endIndex)
         const canonicalTargetAction = actions.find((action) => action.id === actionId)
         if (!canonicalTargetAction) {

@@ -1,6 +1,6 @@
 import { ActionSource, createAction, GameAction } from '@tabletop/common'
 import { describe, expect, test } from 'vitest'
-import { scanUndoActionPrefix } from './undoActionWindow.js'
+import { assertUndoActionStorageSupported, scanUndoActionPrefix } from './undoActionWindow.js'
 
 function action({
     id,
@@ -55,5 +55,17 @@ describe('scanUndoActionPrefix', () => {
                 ]
             })
         ).toEqual({ startIndex: 202, boundaryFound: true })
+    })
+})
+
+describe('assertUndoActionStorageSupported', () => {
+    test('allows chunked action storage', () => {
+        expect(() => assertUndoActionStorageSupported(200)).not.toThrow()
+    })
+
+    test.each([0, undefined])('rejects legacy action storage size %s', (actionChunkSize) => {
+        expect(() => assertUndoActionStorageSupported(actionChunkSize)).toThrow(
+            'Undo is not supported for games using legacy action storage'
+        )
     })
 })
