@@ -115,6 +115,7 @@ Notes:
 - Backend/frontend build logs write to `/tmp/backend-build.log` and `/tmp/frontend-build.log`.
 - Backend image logs write to `/tmp/backend-image-*.log`.
 - Deploy logs write to `/tmp/*-deploy.log`.
+- A frontend deploy publishes only the Site Frontend Artifact. Each game needs a separate UI-only Publication to adopt shared Game Client changes bundled into its UI Artifact; see the [Game UI Host Bridge Contract](../../docs/adr/0004-game-ui-host-bridge-contract.md).
 - Package versions are the source of truth; the manifest is synced from package.json on refresh/deploy.
 - GCS deploys create explicit placeholder objects for each destination directory path, including nested subdirectories under rsync sources (for non-HNS buckets / explicit-directory gcsfuse mounts).
 - Placeholder creation uses a direct Cloud Storage API call and defaults to `gcloud auth print-access-token` if `TABLETOP_GCS_ACCESS_TOKEN` is not provided.
