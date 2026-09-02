@@ -4,6 +4,7 @@ import {
     HydratableGameState,
     HydratedTurnManager,
     HydratedSimultaneousAuction,
+    SimultaneousAuction,
     PrngState,
     Visibility
 } from '@tabletop/common'
@@ -18,7 +19,6 @@ import { GoodsType } from '../definition/goodsType.js'
 import { Expropriator } from '../util/expropriation.js'
 import { CellType, RoadCell } from '../components/cells.js'
 import { Scorer } from '../util/scoring.js'
-import { FreshFishSimultaneousAuction } from '../components/auction.js'
 
 export type FreshFishGameState = Type.Static<typeof FreshFishGameState>
 export const FreshFishGameState = Type.Evaluate(
@@ -31,7 +31,7 @@ export const FreshFishGameState = Type.Evaluate(
             board: GameBoard,
             finalStalls: Type.Array(StallTile),
             chosenTile: Type.Optional(Tile),
-            currentAuction: Type.Optional(FreshFishSimultaneousAuction),
+            currentAuction: Type.Optional(SimultaneousAuction),
             boardSeed: Type.Optional(Type.Number())
         })
     ])

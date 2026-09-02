@@ -1,13 +1,18 @@
 import * as Type from 'typebox'
 import { Compile, type Validator } from 'typebox/compile'
 import * as Value from 'typebox/value'
+import { SimultaneousAuctionVisibility } from '../components/auctions/simultaneous.js'
+import { canViewSimultaneousAuctionBid } from '../components/auctions/simultaneousVisibility.js'
 import {
     createProjectionSchema,
     EmptyArrayAdapter,
+    getScopeName,
     getVisibilityMetadata,
     Policy,
+    ScopeKey,
     type Metadata,
     type ProjectedSchema,
+    type ScopeMetadata,
     visitVisibilityMetadata
 } from './visibilitySchema.js'
 
@@ -21,6 +26,9 @@ export interface PolicyContext<Root> {
     readonly value: unknown
     readonly parent: unknown
     readonly path: readonly (string | number)[]
+    requireScope<Schema extends Type.TSchema & ScopeMetadata>(
+        schema: Schema
+    ): Readonly<Type.Static<Schema>>
 }
 
 export type PolicyResolver<Root> = (context: PolicyContext<Root>) => boolean
@@ -38,6 +46,12 @@ interface TraversalContext<Root> {
     perspective: Perspective
     recursiveSchema?: Type.TSchema
     root: Root
+    scopes: readonly ScopeFrame[]
+}
+
+interface ScopeFrame {
+    readonly name: string
+    readonly value: unknown
 }
 
 export interface Projector<Schema extends Type.TSchema> {
@@ -60,7 +74,11 @@ function findPolicy<Root>(
 }
 
 function isBuiltInPolicy(name: string): boolean {
-    return name === Policy.Actor || name === Policy.HostOnly
+    return (
+        name === Policy.Actor ||
+        name === Policy.HostOnly ||
+        name === SimultaneousAuctionVisibility.Policy.Bid
+    )
 }
 
 function assertSupportedDeclarations<Root>(schema: Type.TSchema, policies: PolicyRegistry<Root>) {
@@ -94,6 +112,58 @@ function childContext<Root>(
     }
 }
 
+function enterScope<Root>(
+    schema: Type.TSchema,
+    value: unknown,
+    context: TraversalContext<Root>
+): TraversalContext<Root> {
+    const name = getScopeName(schema)
+    if (name === undefined) {
+        return context
+    }
+    return {
+        ...context,
+        scopes: [...context.scopes, { name, value }]
+    }
+}
+
+function requireScope<Schema extends Type.TSchema & ScopeMetadata>(
+    schema: Schema,
+    scopes: readonly ScopeFrame[]
+): Readonly<Type.Static<Schema>> {
+    const name = getScopeName(schema)
+    if (name === undefined) {
+        throw Error(`Visibility scope schema does not declare ${ScopeKey}`)
+    }
+    for (let index = scopes.length - 1; index >= 0; index -= 1) {
+        const frame = scopes[index]
+        if (frame.name !== name) {
+            continue
+        }
+        const value = frame.value
+        if (!Value.Check(schema, value)) {
+            throw Error(`Value in visibility scope "${name}" does not match its schema`)
+        }
+        return value
+    }
+    throw Error(`No enclosing visibility scope found for "${name}"`)
+}
+
+function createPolicyContext<Root>(
+    value: unknown,
+    context: TraversalContext<Root>
+): PolicyContext<Root> {
+    return {
+        perspective: context.perspective,
+        root: context.root,
+        value,
+        parent: context.parent,
+        path: context.path,
+        requireScope: <Schema extends Type.TSchema & ScopeMetadata>(schema: Schema) =>
+            requireScope(schema, context.scopes)
+    }
+}
+
 function canViewCanonicalValue<Root>(
     metadata: Metadata,
     value: unknown,
@@ -113,17 +183,14 @@ function canViewCanonicalValue<Root>(
             context.perspective.playerId === context.root.playerId
         )
     }
+    if (metadata.policy === SimultaneousAuctionVisibility.Policy.Bid) {
+        return canViewSimultaneousAuctionBid(createPolicyContext(value, context))
+    }
     const policy = findPolicy(context.policies, metadata.policy)
     if (policy === undefined) {
         throw Error(`No visibility policy registered for "${metadata.policy}"`)
     }
-    return policy({
-        perspective: context.perspective,
-        root: context.root,
-        value,
-        parent: context.parent,
-        path: context.path
-    })
+    return policy(createPolicyContext(value, context))
 }
 
 function redactValue(metadata: Metadata): unknown {
@@ -333,11 +400,12 @@ function projectValue<Root>(
     value: unknown,
     context: TraversalContext<Root>
 ): unknown {
+    const scopedContext = enterScope(schema, value, context)
     const metadata = getVisibilityMetadata(schema)
-    if (metadata !== undefined && !canViewCanonicalValue(metadata, value, context)) {
+    if (metadata !== undefined && !canViewCanonicalValue(metadata, value, scopedContext)) {
         return redactValue(metadata)
     }
-    return projectVisibleValue(schema, value, context)
+    return projectVisibleValue(schema, value, scopedContext)
 }
 
 class BuiltInProjector<Schema extends Type.TSchema> implements Projector<Schema> {
@@ -368,7 +436,8 @@ class BuiltInProjector<Schema extends Type.TSchema> implements Projector<Schema>
             path: [],
             policies: this.policies,
             perspective,
-            root: value
+            root: value,
+            scopes: []
         })
         const projected = result === omitted ? undefined : result
         if (!this.projectionValidator.Check(projected)) {

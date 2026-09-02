@@ -3,7 +3,9 @@ export {
     MetadataKey,
     Policy,
     protect,
-    redaction
+    redaction,
+    scope,
+    ScopeKey
 } from './visibilitySchema.js'
 export { createProjector } from './valueProjector.js'
 
@@ -14,7 +16,9 @@ export type {
     ProtectedSchema,
     ProtectionOptions,
     Redaction,
-    ReplacementRedaction
+    ReplacementRedaction,
+    ScopedSchema,
+    ScopeMetadata
 } from './visibilitySchema.js'
 export type {
     Perspective,

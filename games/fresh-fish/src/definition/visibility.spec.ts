@@ -2,35 +2,31 @@ import {
     ActionSource,
     AuctionType,
     HydratedSimultaneousAuction,
-    type SimultaneousAuction,
+    SimultaneousAuction,
+    SimultaneousAuctionVisibility,
     TieResolutionStrategy,
     Visibility
 } from '@tabletop/common'
 import { Compile } from 'typebox/compile'
 import { describe, expect, expectTypeOf, it } from 'vitest'
-import {
-    FreshFishAuctionParticipant,
-    type FreshFishSimultaneousAuction,
-    FreshFishSimultaneousAuctionProjection
-} from '../components/auction.js'
 import { TileBag, TileBagProjection } from '../components/tileBag.js'
 import { FreshFishGameState, FreshFishGameStateProjection } from '../model/gameState.js'
 import { PlaceBid, PlaceBidProjection } from '../actions/placeBid.js'
 import { ActionType } from './actions.js'
-import { FreshFishVisibilityPolicies, FreshFishVisibilityPolicy } from './visibility.js'
 import { TileType } from '../components/tiles.js'
 import { MachineState } from './states.js'
 import { generateTestState } from '../util/testHelper.js'
 
 function createCanonicalAuctionState(): FreshFishGameState {
-    const state = generateTestState({ numPlayers: 2 })
+    const state = generateTestState({ numPlayers: 3 })
     state.machineState = MachineState.AuctioningTile
     state.currentAuction = new HydratedSimultaneousAuction({
         id: 'auction-1',
         type: AuctionType.Simultaneous,
         participants: [
             { playerId: 'p1', bid: 3, passed: false },
-            { playerId: 'p2', bid: 5, passed: false }
+            { playerId: 'p2', bid: 5, passed: false },
+            { playerId: 'p3', passed: false }
         ],
         auctioneerId: 'p1',
         tie: false,
@@ -79,12 +75,21 @@ describe('Fresh Fish visibility', () => {
         expect(Compile(projector.schema).Check(spectatorProjection)).toBe(true)
     })
 
-    it('keeps the canonical auction shape while declaring sealed bids', () => {
-        expect(FreshFishAuctionParticipant.properties.bid[Visibility.MetadataKey]).toEqual({
-            policy: FreshFishVisibilityPolicy.CurrentAuctionBid,
+    it('inherits scoped sealed-bid visibility from the shared simultaneous auction', () => {
+        const SimultaneousAuctionProjection = Visibility.createProjectionSchema(SimultaneousAuction)
+
+        expect(
+            SimultaneousAuction.properties.participants.items.properties.bid[Visibility.MetadataKey]
+        ).toEqual({
+            policy: SimultaneousAuctionVisibility.Policy.Bid,
             redaction: { kind: 'omit' }
         })
-        expectTypeOf<FreshFishSimultaneousAuction>().toEqualTypeOf<SimultaneousAuction>()
+        expect(Reflect.get(FreshFishGameState.properties.currentAuction, Visibility.ScopeKey)).toBe(
+            SimultaneousAuctionVisibility.Scope
+        )
+        expectTypeOf<FreshFishGameState['currentAuction']>().toEqualTypeOf<
+            SimultaneousAuction | undefined
+        >()
 
         const auction = {
             id: 'auction-1',
@@ -97,13 +102,13 @@ describe('Fresh Fish visibility', () => {
             tieResolution: TieResolutionStrategy.FirstInOrder
         }
 
-        expect(Compile(FreshFishSimultaneousAuctionProjection).Check(auction)).toBe(true)
+        expect(Compile(SimultaneousAuctionProjection).Check(auction)).toBe(true)
         expect(
-            FreshFishSimultaneousAuctionProjection.properties.participants.items.properties.bid[
+            SimultaneousAuctionProjection.properties.participants.items.properties.bid[
                 Visibility.MetadataKey
             ]
         ).toEqual({
-            policy: FreshFishVisibilityPolicy.CurrentAuctionBid,
+            policy: SimultaneousAuctionVisibility.Policy.Bid,
             redaction: { kind: 'omit' }
         })
     })
@@ -173,13 +178,14 @@ describe('Fresh Fish visibility', () => {
                 Visibility.MetadataKey
             )
         ).toBeDefined()
+        expect(
+            Reflect.get(FreshFishGameStateProjection.properties.currentAuction, Visibility.ScopeKey)
+        ).toBe(SimultaneousAuctionVisibility.Scope)
     })
 
-    it('projects current auction bids for players and spectators before and after reveal', () => {
+    it('projects current auction bids before and after the auction resolves', () => {
         const canonical = createCanonicalAuctionState()
-        const projector = Visibility.createProjector(FreshFishGameState, {
-            policies: FreshFishVisibilityPolicies
-        })
+        const projector = Visibility.createProjector(FreshFishGameState)
 
         const playerOneProjection = projector.project(canonical, {
             kind: 'player',
@@ -193,21 +199,30 @@ describe('Fresh Fish visibility', () => {
 
         expect(playerOneProjection.currentAuction?.participants).toEqual([
             { playerId: 'p1', bid: 3, passed: false },
-            { playerId: 'p2', passed: false }
+            { playerId: 'p2', passed: false },
+            { playerId: 'p3', passed: false }
         ])
         expect(playerTwoProjection.currentAuction?.participants).toEqual([
             { playerId: 'p1', passed: false },
-            { playerId: 'p2', bid: 5, passed: false }
+            { playerId: 'p2', bid: 5, passed: false },
+            { playerId: 'p3', passed: false }
         ])
         expect(spectatorProjection.currentAuction?.participants).toEqual([
             { playerId: 'p1', passed: false },
-            { playerId: 'p2', passed: false }
+            { playerId: 'p2', passed: false },
+            { playerId: 'p3', passed: false }
         ])
         expect(playerOneProjection.tileBag.items).toEqual([])
         expect(playerTwoProjection.tileBag.items).toEqual([])
         expect(spectatorProjection.tileBag.items).toEqual([])
 
-        canonical.machineState = MachineState.AuctionEnded
+        const auction = canonical.currentAuction
+        if (auction === undefined) {
+            throw Error('Expected a current auction')
+        }
+        auction.participants[2].bid = 4
+        auction.highBid = 5
+        auction.winnerId = 'p2'
         const revealedPerspectives: Visibility.Perspective[] = [
             { kind: 'player', playerId: 'p1' },
             { kind: 'player', playerId: 'p2' },
@@ -217,7 +232,8 @@ describe('Fresh Fish visibility', () => {
             const projection = projector.project(canonical, perspective)
             expect(projection.currentAuction?.participants).toEqual([
                 { playerId: 'p1', bid: 3, passed: false },
-                { playerId: 'p2', bid: 5, passed: false }
+                { playerId: 'p2', bid: 5, passed: false },
+                { playerId: 'p3', bid: 4, passed: false }
             ])
             expect(projection.tileBag.items).toEqual([])
             expect(Compile(projector.schema).Check(projection)).toBe(true)
@@ -225,7 +241,8 @@ describe('Fresh Fish visibility', () => {
 
         expect(canonical.currentAuction?.participants).toEqual([
             { playerId: 'p1', bid: 3, passed: false },
-            { playerId: 'p2', bid: 5, passed: false }
+            { playerId: 'p2', bid: 5, passed: false },
+            { playerId: 'p3', bid: 4, passed: false }
         ])
     })
 })

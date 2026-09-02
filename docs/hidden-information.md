@@ -4,7 +4,7 @@
 
 ## Status and purpose
 
-This document records the current theoretical model and scenario catalog for preventing a Hosted Game Client from receiving information its Player Perspective is not allowed to know. The end-to-end capability is not implemented. Initial authoring and value-projection slices now exist for declaring protected TypeBox fields, deriving canonical and projection schemas, executing the built-in host-only projection used by Fresh Fish's tile bag, applying the built-in actor policy to `PlaceBid.amount`, and evaluating Fresh Fish's game-specific current-auction bid policy for state snapshots. Fresh Fish money intentionally remains unannotated because hidden money is not currently a game variant. The implementation does not yet project Action transitions, alter transport, persist visible variants, or enforce confidentiality. Resolved-sounding statements are still parts of the working proposal, while explicitly open questions identify areas where even the proposal has not yet converged.
+This document records the current theoretical model and scenario catalog for preventing a Hosted Game Client from receiving information its Player Perspective is not allowed to know. The end-to-end capability is not implemented. Initial authoring and value-projection slices now exist for declaring protected TypeBox fields and named schema scopes, deriving canonical and projection schemas, executing the built-in host-only projection used by Fresh Fish's tile bag, applying the built-in actor policy to `PlaceBid.amount`, and applying the shared simultaneous-auction bid policy to Fresh Fish state snapshots. Fresh Fish money intentionally remains unannotated because hidden money is not currently a game variant. The implementation does not yet project Action transitions, alter transport, persist visible variants, or enforce confidentiality. Resolved-sounding statements are still parts of the working proposal, while explicitly open questions identify areas where even the proposal has not yet converged.
 
 The catalog is intended to evaluate proposed designs and later serve as an acceptance-test matrix. A design is incomplete if it protects ordinary state delivery but leaks information through Actions, undo patches, System Action cascades, synchronization, persistence, or another Hosted Game flow.
 
@@ -236,11 +236,12 @@ The initial implementation uses TypeBox's support for unknown schema options to 
 ```ts
 import { Visibility } from '@tabletop/common'
 
-const CurrentAuctionBid = 'fresh-fish.current-auction-bid'
-
-const Bid = Visibility.protect(Type.Optional(Type.Number()), {
-    policy: CurrentAuctionBid
-})
+const PlanningRound = Visibility.scope(
+    Type.Object({
+        // protected descendants
+    }),
+    'example.planning-round'
+)
 
 const SubmittedAmount = Visibility.protect(Type.Number(), {
     policy: Visibility.Policy.Actor
@@ -253,6 +254,8 @@ const Projection = Visibility.createProjectionSchema(Canonical)
 
 The visibility helpers and types are exposed as the single `Visibility` namespace from `@tabletop/common`. `Visibility.protect(schema, { policy })` keeps the TypeBox schema as the primary operand and defaults to omission for an unauthorized perspective. The optional named `redaction` property additionally supplies a serializable Adapter declaration and the TypeBox schema for both possible projected representations. `Visibility.redaction.emptyArray()` is the first built-in replacement declaration. Schema generation records the Adapter identifier without executing it.
 
+`Visibility.scope(schema, name)` marks the canonical value described by a schema as named context for its protected descendants without changing the value or its direct `Type.Static` type. During projection, a resolver can call `context.requireScope(scopedSchema)` to obtain the nearest active canonical value carrying that schema's scope name. Lookup fails when the scope is absent or its value does not validate against the scoped schema. This permits a reusable nested Module to inspect its own enclosing state without knowing an absolute root path or adding a visibility discriminator to stored state.
+
 `DrawBag` owns the visibility declaration for its `items`: exact item identities and order are host-only, and an unauthorized projection receives an empty `items` array. Its `remaining` count stays public. Games inherit that behavior simply by declaring, for example, `DrawBag(Tile)`; they do not repeat or configure the protection at each use site.
 
 An unannotated field is public. There is deliberately no `publicField()` wrapper, required object-level default, or strict classification mode in this first design. This keeps existing schemas unchanged and asks a game developer to mark only the protected exceptions. A missed annotation is treated as a correctable game implementation error rather than something this system can automatically recognize.
@@ -261,13 +264,13 @@ The visibility metadata belongs to the schema, not to each serialized state obje
 
 `Visibility.createProjectionSchema` recursively derives a separate schema without mutating the canonical schema. An omitted protected property becomes optional. A replacement property accepts either its recursively projected canonical representation or the declared safe replacement representation. Unannotated parents are still traversed so protected descendants are found. The current traversal covers the ordinary JSON Schema composition keywords used by this repository, including objects, arrays, tuples, unions, intersections, records, conditionals, and definitions.
 
-`Visibility.createProjector(schema, { policies })` is the first pure runtime projection Module. It compiles canonical and projected validators once, returns the derived schema as `projector.schema`, and projects a canonical value through `projector.project(value, perspective)`. A policy registry is an explicit creation dependency rather than global mutable registration. Each named resolver receives the Perspective, canonical root, protected value, parent object, and value path, then decides whether that Perspective may receive the canonical value. An authorized value is still recursively projected so a visible outer object cannot bypass a protected descendant.
+`Visibility.createProjector(schema, { policies })` is the first pure runtime projection Module. It compiles canonical and projected validators once, returns the derived schema as `projector.schema`, and projects a canonical value through `projector.project(value, perspective)`. A game-specific policy registry is an explicit creation dependency rather than global mutable registration. Each named resolver receives the Perspective, canonical root, protected value, parent object, value path, and typed access to required schema scopes, then decides whether that Perspective may receive the canonical value. An authorized value is still recursively projected so a visible outer object cannot bypass a protected descendant.
 
-The current implementation handles `hostOnly` as unauthorized for both client-facing perspective kinds, handles `actor` by matching a Player Perspective to the projected root value's required `playerId`, executes omission and the built-in empty-array Adapter, evaluates registered named audience policies, recursively projects schema-declared values, and does not mutate its input. It copies object fields from the schema as an allowlist rather than copying undeclared runtime properties. An actor-protected projection fails if its root has no Player attribution. Creation fails closed when a declaration names an audience policy or Adapter that has no implementation, and every result is checked against the derived projection schema. Custom Adapter registration and transition-aware policy context remain future work.
+The current implementation handles `hostOnly` as unauthorized for both client-facing perspective kinds, handles `actor` by matching a Player Perspective to the projected root value's required `playerId`, resolves simultaneous-auction bids through their enclosing schema scope, executes omission and the built-in empty-array Adapter, evaluates registered named audience policies, recursively projects schema-declared values, and does not mutate its input. It copies object fields from the schema as an allowlist rather than copying undeclared runtime properties. An actor-protected projection fails if its root has no Player attribution. A required scope fails if it is absent or contains the wrong canonical shape. Creation fails closed when a declaration names an audience policy or Adapter that has no implementation, and every result is checked against the derived projection schema. Custom Adapter registration and transition-aware policy context remain future work.
 
 Runtime metadata survives the Fresh Fish composition paths exercised so far. TypeBox's own type-level transforms do not preserve arbitrary custom option types through every nested composition, even when the runtime schema retains the metadata. Direct declarations and derived schemas have precise static types; a deeply composed derived schema may currently have a conservative static type that does not express every redacted representation accepted by its runtime schema. This is a known boundary of the experiment rather than a reason to put visibility discriminators into stored state.
 
-Schema metadata contains structured policy and Adapter identifiers, not executable functions. Named functions live in a game-owned registry supplied when a projector is created. This keeps published schemas serializable, inspectable, and potentially versionable while avoiding process-global registration order.
+Schema metadata contains structured policy, scope, and Adapter identifiers, not executable functions. Game-specific functions live in a game-owned registry supplied when a projector is created, while policies owned by reusable common Modules are supplied by the common projector. This keeps published schemas serializable, inspectable, and potentially versionable while avoiding process-global registration order.
 
 ### Reusable projection Modules and Adapters
 
@@ -282,6 +285,8 @@ Annotations alone cannot safely invent a visible representation for an arbitrary
 
 `DrawBag` is the first implemented example of a common Module owning its visibility invariant rather than requiring every game to repeat it. A game that needs a public source of items should use a differently named Module whose semantics are public, rather than weakening `DrawBag` at each call site.
 
+`SimultaneousAuction` is the first implemented scoped Module. Its schema marks the auction as `tabletop.auction.simultaneous`, and its participant schema protects every submitted bid with a common policy. Before the auction resolves, a submitted bid is visible only to its Player; after the auction records a winner, every Player Perspective and spectator may see every bid. A game inherits the scope, declaration, and policy by using `SimultaneousAuction`; it does not register a game-specific resolver or couple visibility to its Machine State.
+
 For example, a hidden-card collection could own the proposed fixed shape of complete `cards` plus `unknownCount`, along with safe visible add, remove, transfer, and reveal operations. Canonical state uses the same fixed shape with every Card present and `unknownCount = 0`; projected state can contain the permitted Cards and a nonzero count. This gives the engine and game logic a representation that remains structurally valid without unknown-card placeholder objects or a visibility discriminator.
 
 A pure custom Adapter is the escape hatch for cross-field or game-specific transformations that the standard Modules cannot express. The declaration stores its name, and the host resolves that name through the registered implementation. Standard Modules should cover common cases so custom Adapters do not become perspective checks scattered through Actions.
@@ -290,20 +295,19 @@ The initial implementation chooses separately derived schemas: canonical hydrato
 
 ### Dynamic visibility policies
 
-Some visibility depends on the current rules state rather than permanent ownership: bids reveal after every Player submits, a passed Card remains known to its former owner, teammates share information only during a phase, or hands reveal at scoring. A game can supply a small number of named policies:
+Some visibility depends on the current rules state rather than permanent ownership: a passed Card remains known to its former owner, teammates share information only during a phase, or hands reveal at scoring. A game can supply a small number of named policies:
 
 ```ts
 const policies = {
-    'current-auction-bid': canViewCurrentAuctionBid,
     'remember-passed-card': canViewRememberedCard
 }
 ```
 
-Fresh Fish separates three bid representations according to their lifetimes. `currentAuction.participants[].bid` declares `fresh-fish.current-auction-bid`; its state resolver permits a Player to see their own bid while `MachineState.AuctioningTile`, omits other Players' bids, omits every bid for a spectator, and permits every Perspective after `MachineState.AuctionEnded`. `PlaceBid.amount` uses the common `actor` policy and remains omitted from every other Player's and spectator's copy of that Action record. `EndAuction.metadata.participants` is the public disclosure record containing every bid.
+Fresh Fish separates three bid representations according to their lifetimes. `currentAuction.participants[].bid` inherits `tabletop.auction.simultaneous.bid`; the shared resolver permits a Player to see their own bid before the scoped auction resolves, omits other Players' bids, omits every bid for a spectator, and permits every Perspective after the auction records its winner. This decision depends on the auction's own state rather than Fresh Fish's transient Machine State. `PlaceBid.amount` uses the common `actor` policy and remains omitted from every other Player's and spectator's copy of that Action record. `EndAuction.metadata.participants` is the public disclosure record containing every bid.
 
 After play leaves `MachineState.AuctionEnded`, Fresh Fish removes `currentAuction` from current Game State. Previously disclosed bids do not become secret again: the public `EndAuction` record remains in visible Action history, while a later auction receives a new independently protected `currentAuction`. This treats revelation as a monotonic knowledge event rather than continually recalculating historical Action visibility from the current Machine State. If a future game must enrich an earlier private Action record instead of publishing a later disclosure record, it will require persisted knowledge or an explicit update keyed to the reveal event.
 
-The initial value-policy context contains the Perspective, canonical root and protected values, parent object, and annotated path. This is sufficient for snapshot-relative ownership and reveal rules, as well as an actor-relative Action value whose root carries `playerId`. Classifying a cascade or changing historical knowledge at a later reveal will require a transition context containing canonical before- and after-state plus the Processed Action. That extension is intentionally not simulated with optional snapshot fields in the current Interface. Policy resolvers must remain pure and deterministic. Common policies such as owner-until-phase or reveal-after-all-submit should be engine-provided declarations; a custom callback should remain a centralized exception rather than ordinary Action logic.
+The initial value-policy context contains the Perspective, canonical root and protected values, parent object, annotated path, and `requireScope` lookup. The projector maintains active canonical scopes along the current schema traversal path, so sibling or successive scoped values do not affect one another and a nested repeated scope name resolves nearest-first. This is sufficient for snapshot-relative ownership and reveal rules, as well as an actor-relative Action value whose root carries `playerId`. Classifying a cascade or changing historical knowledge at a later reveal will require a transition context containing canonical before- and after-state plus the Processed Action. That extension is intentionally not simulated with optional snapshot fields in the current Interface. Policy resolvers must remain pure and deterministic. Common policies such as owner-until-phase or reveal-after-all-submit should be engine-provided declarations; a custom callback should remain a centralized exception rather than ordinary Action logic.
 
 ### Action declarations
 
@@ -374,9 +378,9 @@ The initial implementation establishes that:
 - a typed helper can attach serializable metadata without changing a directly declared canonical `Type.Static` type;
 - canonical and projection schemas can be generated from one annotated definition without TypeScript assertions;
 - omission and replacement produce independently compilable projection schemas;
-- metadata survives the Fresh Fish runtime schema composition exercised by the bag, auction, game state, and `PlaceBid`;
-- the pure runtime projector requires an explicit Player or spectator Perspective, executes the built-in host-only and actor policies plus registered audience policies, recursively protects authorized values, validates its result, and rejects unresolved declarations before projecting a value;
-- the Fresh Fish state policy produces distinct owner, opponent, spectator, and revealed current-bid projections while continuing to redact its Draw Bag;
+- visibility and scope metadata survive the Fresh Fish runtime schema composition exercised by the bag, auction, game state, and `PlaceBid`;
+- the pure runtime projector requires an explicit Player or spectator Perspective, executes the built-in host-only, actor, and simultaneous-auction bid policies plus registered audience policies, makes the nearest named schema scope available to a resolver, recursively protects authorized values, validates its result, and rejects unresolved declarations before projecting a value;
+- the shared simultaneous-auction policy produces distinct owner, opponent, spectator, and resolved-bid projections for Fresh Fish while the Draw Bag remains redacted;
 - Fresh Fish projects `PlaceBid.amount` with the common actor policy and publishes lasting bid knowledge through the public `EndAuction` record; and
 - TypeBox type-level composition may erase custom option types even where the runtime metadata survives.
 

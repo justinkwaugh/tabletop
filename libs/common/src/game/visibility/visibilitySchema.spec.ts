@@ -5,6 +5,36 @@ import { DrawBag } from '../components/drawBag.js'
 import * as Visibility from './index.js'
 
 describe('visibility schemas', () => {
+    it('adds a named scope without changing the canonical or projected value type', () => {
+        const Auction = Visibility.scope(
+            Type.Object({
+                id: Type.String(),
+                participants: Type.Array(Type.String())
+            }),
+            'example.auction'
+        )
+        const Canonical = Type.Object({
+            currentAuction: Type.Optional(Auction)
+        })
+        const Projection = Visibility.createProjectionSchema(Canonical)
+
+        expect(Auction[Visibility.ScopeKey]).toBe('example.auction')
+        expect(Canonical.properties.currentAuction[Visibility.ScopeKey]).toBe('example.auction')
+        expect(Projection.properties.currentAuction[Visibility.ScopeKey]).toBe('example.auction')
+        expectTypeOf<Type.Static<typeof Canonical>>().toEqualTypeOf<{
+            currentAuction?: {
+                id: string
+                participants: string[]
+            }
+        }>()
+        expectTypeOf<Type.Static<typeof Projection>>().toEqualTypeOf<{
+            currentAuction?: {
+                id: string
+                participants: string[]
+            }
+        }>()
+    })
+
     it('adds serializable visibility metadata without changing the canonical schema', () => {
         const Secret = Visibility.protect(Type.Number(), { policy: 'example.secret' })
         const Canonical = Type.Object({

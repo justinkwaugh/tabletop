@@ -187,6 +187,75 @@ describe('visibility value projection', () => {
         expect(Compile(projector.schema).Check(spectatorProjection)).toBe(true)
     })
 
+    it('resolves the nearest schema-declared scope for a named policy', () => {
+        const ScopedSecretPolicy = 'example.scoped-secret'
+        const Container = Visibility.scope(
+            Type.Object({
+                ownerId: Type.String(),
+                entries: Type.Array(
+                    Type.Object({
+                        secret: Visibility.protect(Type.Number(), {
+                            policy: ScopedSecretPolicy
+                        })
+                    })
+                )
+            }),
+            'example.container'
+        )
+        const Canonical = Type.Object({
+            containers: Type.Array(Container)
+        })
+        const canonical = {
+            containers: [
+                { ownerId: 'player-1', entries: [{ secret: 11 }] },
+                { ownerId: 'player-2', entries: [{ secret: 22 }] }
+            ]
+        }
+        const resolvedOwnerIds: string[] = []
+        const policies: Visibility.PolicyRegistry<typeof canonical> = {
+            [ScopedSecretPolicy]: (context) => {
+                const container = context.requireScope(Container)
+                resolvedOwnerIds.push(container.ownerId)
+                return (
+                    context.perspective.kind === 'player' &&
+                    context.perspective.playerId === container.ownerId
+                )
+            }
+        }
+        const projector = Visibility.createProjector(Canonical, { policies })
+
+        expect(projector.project(canonical, playerPerspective)).toEqual({
+            containers: [
+                { ownerId: 'player-1', entries: [{ secret: 11 }] },
+                { ownerId: 'player-2', entries: [{}] }
+            ]
+        })
+        expect(resolvedOwnerIds).toEqual(['player-1', 'player-2'])
+    })
+
+    it('fails closed when a policy requires a scope that does not enclose its value', () => {
+        const ScopedSecretPolicy = 'example.missing-scope'
+        const ExpectedScope = Visibility.scope(
+            Type.Object({ id: Type.String() }),
+            'example.expected-scope'
+        )
+        const Canonical = Type.Object({
+            secret: Visibility.protect(Type.Number(), { policy: ScopedSecretPolicy })
+        })
+        const projector = Visibility.createProjector(Canonical, {
+            policies: {
+                [ScopedSecretPolicy]: (context) => {
+                    context.requireScope(ExpectedScope)
+                    return true
+                }
+            }
+        })
+
+        expect(() => projector.project({ secret: 42 }, playerPerspective)).toThrow(
+            'No enclosing visibility scope found for "example.expected-scope"'
+        )
+    })
+
     it('projects through intersections and the matching branch of a union', () => {
         const Entry = Type.Union([
             Type.Object({ kind: Type.Literal('public'), label: Type.String() }),

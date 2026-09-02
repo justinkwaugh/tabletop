@@ -2,25 +2,45 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Auction, AuctionParticipant, AuctionType, HydratedAuction } from './auction.js'
 import { findLast } from '../../../util/findLast.js'
+import { protect, scope } from '../../visibility/visibilitySchema.js'
 
 export enum TieResolutionStrategy {
     FirstInOrder,
     LastInOrder
 }
 
+export const SimultaneousAuctionVisibility = {
+    Scope: 'tabletop.auction.simultaneous',
+    Policy: {
+        Bid: 'tabletop.auction.simultaneous.bid'
+    }
+} as const
+
+export type SimultaneousAuctionParticipant = Type.Static<typeof SimultaneousAuctionParticipant>
+export const SimultaneousAuctionParticipant = Type.Object({
+    ...AuctionParticipant.properties,
+    bid: protect(AuctionParticipant.properties.bid, {
+        policy: SimultaneousAuctionVisibility.Policy.Bid
+    })
+})
+
 export type SimultaneousAuction = Type.Static<typeof SimultaneousAuction>
-export const SimultaneousAuction = Type.Evaluate(
-    Type.Intersect([
-        Auction,
-        Type.Object({
-            type: Type.Literal(AuctionType.Simultaneous),
-            tie: Type.Boolean(),
-            tieResolution: Type.Enum(TieResolutionStrategy)
-        })
-    ])
+export const SimultaneousAuction = scope(
+    Type.Object({
+        ...Auction.properties,
+        type: Type.Literal(AuctionType.Simultaneous),
+        participants: Type.Array(SimultaneousAuctionParticipant),
+        tie: Type.Boolean(),
+        tieResolution: Type.Enum(TieResolutionStrategy)
+    }),
+    SimultaneousAuctionVisibility.Scope
 )
 
 export const SimultaneousAuctionValidator = Compile(SimultaneousAuction)
+
+export function isSimultaneousAuctionResolved(auction: SimultaneousAuction): boolean {
+    return auction.winnerId !== undefined
+}
 
 export class HydratedSimultaneousAuction
     extends HydratedAuction<typeof SimultaneousAuction>

@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import { Memory } from 'typebox/system'
 
 export const MetadataKey = 'x-tabletop-visibility' as const
+export const ScopeKey = 'x-tabletop-visibility-scope' as const
 
 export const Policy = {
     Actor: 'tabletop.actor',
@@ -37,11 +38,20 @@ type VisibilityOptions<PolicyName extends string, RedactionType extends Redactio
     [MetadataKey]: Metadata<PolicyName, RedactionType>
 }
 
+export interface ScopeMetadata<Name extends string = string> {
+    [ScopeKey]: Name
+}
+
 export type ProtectedSchema<
     Schema extends Type.TSchema,
     PolicyName extends string = string,
     RedactionType extends Redaction = OmitRedaction
 > = Type.TOptions<Schema, VisibilityOptions<PolicyName, RedactionType>>
+
+export type ScopedSchema<Schema extends Type.TSchema, Name extends string = string> = Type.TOptions<
+    Schema,
+    ScopeMetadata<Name>
+>
 
 export interface ProtectionOptions<PolicyName extends string = string> {
     policy: PolicyName
@@ -62,6 +72,15 @@ export const redaction = {
     omit: omitRedaction,
     replaceWith: replacementRedaction,
     emptyArray: () => replacementRedaction(EmptyArrayAdapter, Type.Tuple([]))
+}
+
+export function scope<Schema extends Type.TSchema, const Name extends string>(
+    schema: Schema,
+    name: Name
+): ScopedSchema<Schema, Name>
+export function scope(schema: Type.TSchema, name: string): Type.TSchema
+export function scope(schema: Type.TSchema, name: string): Type.TSchema {
+    return Type.Options(schema, { [ScopeKey]: name })
 }
 
 export function protect<
@@ -114,9 +133,14 @@ type ApplyOptional<
     Projected extends Type.TSchema
 > = Schema extends Type.TOptional ? Type.TOptional<Projected> : Projected
 
+type ApplyScope<Schema extends Type.TSchema, Projected extends Type.TSchema> =
+    Schema extends ScopeMetadata<infer Name extends string>
+        ? Type.TOptions<Projected, ScopeMetadata<Name>>
+        : Projected
+
 type ApplyModifiers<Schema extends Type.TSchema, Projected extends Type.TSchema> = ApplyOptional<
     Schema,
-    ApplyReadonly<Schema, ApplyImmutable<Schema, Projected>>
+    ApplyReadonly<Schema, ApplyImmutable<Schema, ApplyScope<Schema, Projected>>>
 >
 
 type ProjectedStructure<Schema extends Type.TSchema> =
@@ -263,6 +287,17 @@ function isVisibilityRedaction(value: unknown): value is Redaction {
         typeof Reflect.get(value, 'adapter') === 'string' &&
         Type.IsSchema(Reflect.get(value, 'schema'))
     )
+}
+
+export function getScopeName(schema: Type.TSchema): string | undefined {
+    if (!Reflect.has(schema, ScopeKey)) {
+        return undefined
+    }
+    const name: unknown = Reflect.get(schema, ScopeKey)
+    if (typeof name !== 'string') {
+        throw Error(`Invalid ${ScopeKey} declaration`)
+    }
+    return name
 }
 
 export function getVisibilityMetadata(schema: Type.TSchema): Metadata | undefined {
