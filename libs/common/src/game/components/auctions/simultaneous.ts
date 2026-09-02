@@ -17,22 +17,30 @@ export const SimultaneousAuctionVisibility = {
 } as const
 
 export type SimultaneousAuctionParticipant = Type.Static<typeof SimultaneousAuctionParticipant>
-export const SimultaneousAuctionParticipant = Type.Object({
-    ...AuctionParticipant.properties,
-    bid: protect(AuctionParticipant.properties.bid, {
-        policy: SimultaneousAuctionVisibility.Policy.Bid
-    })
-})
+export const SimultaneousAuctionParticipant = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(AuctionParticipant, ['bid']),
+        Type.Object({
+            bid: protect(AuctionParticipant.properties.bid, {
+                policy: SimultaneousAuctionVisibility.Policy.Bid
+            })
+        })
+    ])
+)
 
 export type SimultaneousAuction = Type.Static<typeof SimultaneousAuction>
 export const SimultaneousAuction = scope(
-    Type.Object({
-        ...Auction.properties,
-        type: Type.Literal(AuctionType.Simultaneous),
-        participants: Type.Array(SimultaneousAuctionParticipant),
-        tie: Type.Boolean(),
-        tieResolution: Type.Enum(TieResolutionStrategy)
-    }),
+    Type.Evaluate(
+        Type.Intersect([
+            Type.Omit(Auction, ['participants']),
+            Type.Object({
+                type: Type.Literal(AuctionType.Simultaneous),
+                participants: Type.Array(SimultaneousAuctionParticipant),
+                tie: Type.Boolean(),
+                tieResolution: Type.Enum(TieResolutionStrategy)
+            })
+        ])
+    ),
     SimultaneousAuctionVisibility.Scope
 )
 
