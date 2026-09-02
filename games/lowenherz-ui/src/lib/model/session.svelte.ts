@@ -1,4 +1,4 @@
-import { Color } from '@tabletop/common'
+import { Color, type GameAction } from '@tabletop/common'
 import { allianceWalls } from '$lib/model/allianceGeometry.js'
 import { GameSession } from '@tabletop/frontend-components'
 import {
@@ -516,6 +516,16 @@ export class LowenherzGameSession extends GameSession<
     // swap.
     uiColorForOwner(owner: PieceOwner): string {
         return isNeutralOwner(owner) ? this.neutralUiColor : this.colors.getPlayerUiColor(owner)
+    }
+
+    // System actions normally fold into the next player action when stepping through history.
+    // A money bag payout is the exception: the log lists it as its own event, so stepping
+    // stops on it rather than showing the ducats arrive alongside whatever happened next.
+    override shouldAutoStepAction(action: GameAction, next?: GameAction): boolean {
+        if (isAdvanceResolution(action) && (action.metadata?.moneyBagRecipientIds?.length ?? 0) > 0) {
+            return false
+        }
+        return super.shouldAutoStepAction(action, next)
     }
 
     get lastMineHillScoring(): { playerId: string; points: number }[] | undefined {
