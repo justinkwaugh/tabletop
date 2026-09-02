@@ -3,6 +3,7 @@
     import { MachineState } from '@tabletop/lowenherz'
     import PlayerPill from './PlayerPill.svelte'
     import RegionScoringCard from './RegionScoringCard.svelte'
+    import RulesReminderCard from './RulesReminderCard.svelte'
 
     const gameSession = getGameSession()
 
@@ -166,11 +167,11 @@
     >
         Undo
     </button>
-    <!-- Region-scoring player aid: click to lay the reference card over the middle of the
-         board, click anywhere outside (or Escape) to dismiss. -->
+    <!-- Player aids: click to lay the reminders and region-scoring cards over the middle of
+         the board, click anywhere outside (or Escape) to dismiss. -->
     <button
         type="button"
-        aria-label="Region scoring reference"
+        aria-label="Rules and scoring reference"
         aria-expanded={showRegionAid}
         class="leading-none rounded-full bg-black/10 hover:bg-black/20 h-6 w-6 flex items-center justify-center text-lg font-bold text-black"
         onclick={toggleRegionAid}
@@ -195,13 +196,16 @@
         }}
     >
         <div
-            class={boardCenter ? 'absolute' : ''}
+            class="flex max-h-[90vh] flex-col items-start justify-center gap-4 overflow-auto md:flex-row {boardCenter
+                ? 'absolute'
+                : ''}"
             style={boardCenter
                 ? `left: ${boardCenter.x}px; top: ${boardCenter.y}px; transform: translate(-50%, -50%);`
                 : ''}
             role="presentation"
             onclick={(e) => e.stopPropagation()}
         >
+            <RulesReminderCard />
             <RegionScoringCard />
         </div>
     </div>
