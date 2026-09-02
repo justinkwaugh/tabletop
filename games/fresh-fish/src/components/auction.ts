@@ -6,7 +6,7 @@ export type FreshFishAuctionParticipant = Type.Static<typeof FreshFishAuctionPar
 export const FreshFishAuctionParticipant = Type.Object({
     ...AuctionParticipant.properties,
     bid: Visibility.protect(AuctionParticipant.properties.bid, {
-        policy: FreshFishVisibilityPolicy.SealedBid
+        policy: FreshFishVisibilityPolicy.CurrentAuctionBid
     })
 })
 

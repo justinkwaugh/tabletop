@@ -16,4 +16,11 @@ export type {
     Redaction,
     ReplacementRedaction
 } from './visibilitySchema.js'
-export type { Perspective, Projector } from './valueProjector.js'
+export type {
+    Perspective,
+    PolicyContext,
+    PolicyRegistry,
+    PolicyResolver,
+    Projector,
+    ProjectorOptions
+} from './valueProjector.js'

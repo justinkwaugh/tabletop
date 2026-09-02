@@ -4,6 +4,7 @@ import { Memory } from 'typebox/system'
 export const MetadataKey = 'x-tabletop-visibility' as const
 
 export const Policy = {
+    Actor: 'tabletop.actor',
     HostOnly: 'tabletop.host-only'
 } as const
 

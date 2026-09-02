@@ -15,10 +15,29 @@ const omitted = Symbol('omitted visibility value')
 
 export type Perspective = { kind: 'player'; playerId: string } | { kind: 'spectator' }
 
-interface TraversalContext {
+export interface PolicyContext<Root> {
+    readonly perspective: Perspective
+    readonly root: Readonly<Root>
+    readonly value: unknown
+    readonly parent: unknown
+    readonly path: readonly (string | number)[]
+}
+
+export type PolicyResolver<Root> = (context: PolicyContext<Root>) => boolean
+export type PolicyRegistry<Root> = Readonly<Record<string, PolicyResolver<Root>>>
+
+export interface ProjectorOptions<Root> {
+    readonly policies?: PolicyRegistry<Root>
+}
+
+interface TraversalContext<Root> {
     definitions: Type.TProperties
+    parent?: unknown
+    path: readonly (string | number)[]
+    policies: PolicyRegistry<Root>
     perspective: Perspective
     recursiveSchema?: Type.TSchema
+    root: Root
 }
 
 export interface Projector<Schema extends Type.TSchema> {
@@ -33,9 +52,23 @@ function isObjectValue(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function assertSupportedDeclarations(schema: Type.TSchema) {
+function findPolicy<Root>(
+    policies: PolicyRegistry<Root>,
+    name: string
+): PolicyResolver<Root> | undefined {
+    return Object.hasOwn(policies, name) ? policies[name] : undefined
+}
+
+function isBuiltInPolicy(name: string): boolean {
+    return name === Policy.Actor || name === Policy.HostOnly
+}
+
+function assertSupportedDeclarations<Root>(schema: Type.TSchema, policies: PolicyRegistry<Root>) {
     visitVisibilityMetadata(schema, (metadata) => {
-        if (metadata.policy !== Policy.HostOnly) {
+        if (
+            !isBuiltInPolicy(metadata.policy) &&
+            findPolicy(policies, metadata.policy) === undefined
+        ) {
             throw Error(`No visibility policy registered for "${metadata.policy}"`)
         }
         if (
@@ -49,6 +82,50 @@ function assertSupportedDeclarations(schema: Type.TSchema) {
     })
 }
 
+function childContext<Root>(
+    context: TraversalContext<Root>,
+    parent: unknown,
+    segment: string | number
+): TraversalContext<Root> {
+    return {
+        ...context,
+        parent,
+        path: [...context.path, segment]
+    }
+}
+
+function canViewCanonicalValue<Root>(
+    metadata: Metadata,
+    value: unknown,
+    context: TraversalContext<Root>
+): boolean {
+    if (metadata.policy === Policy.HostOnly) {
+        return false
+    }
+    if (metadata.policy === Policy.Actor) {
+        if (!isObjectValue(context.root) || typeof context.root.playerId !== 'string') {
+            throw Error(
+                `The "${Policy.Actor}" visibility policy requires the projected root value to have a playerId`
+            )
+        }
+        return (
+            context.perspective.kind === 'player' &&
+            context.perspective.playerId === context.root.playerId
+        )
+    }
+    const policy = findPolicy(context.policies, metadata.policy)
+    if (policy === undefined) {
+        throw Error(`No visibility policy registered for "${metadata.policy}"`)
+    }
+    return policy({
+        perspective: context.perspective,
+        root: context.root,
+        value,
+        parent: context.parent,
+        path: context.path
+    })
+}
+
 function redactValue(metadata: Metadata): unknown {
     if (metadata.redaction.kind === 'omit') {
         return omitted
@@ -59,10 +136,10 @@ function redactValue(metadata: Metadata): unknown {
     throw Error(`No visibility redaction Adapter registered for "${metadata.redaction.adapter}"`)
 }
 
-function projectObject(
+function projectObject<Root>(
     schema: Type.TObject,
     value: unknown,
-    context: TraversalContext
+    context: TraversalContext<Root>
 ): Record<string, unknown> {
     if (!isObjectValue(value)) {
         throw Error('Cannot project a non-object value with an object schema')
@@ -74,7 +151,11 @@ function projectObject(
         if (!Object.hasOwn(value, key)) {
             continue
         }
-        const projected = projectValue(propertySchema, value[key], context)
+        const projected = projectValue(
+            propertySchema,
+            value[key],
+            childContext(context, value, key)
+        )
         if (projected !== omitted) {
             projectedEntries.push([key, projected])
         }
@@ -88,7 +169,11 @@ function projectObject(
         if (additionalProperties === true) {
             projectedEntries.push([key, Value.Clone(propertyValue)])
         } else if (Type.IsSchema(additionalProperties)) {
-            const projected = projectValue(additionalProperties, propertyValue, context)
+            const projected = projectValue(
+                additionalProperties,
+                propertyValue,
+                childContext(context, value, key)
+            )
             if (projected !== omitted) {
                 projectedEntries.push([key, projected])
             }
@@ -98,14 +183,18 @@ function projectObject(
     return Object.fromEntries(projectedEntries)
 }
 
-function projectArray(schema: Type.TArray, value: unknown, context: TraversalContext): unknown[] {
+function projectArray<Root>(
+    schema: Type.TArray,
+    value: unknown,
+    context: TraversalContext<Root>
+): unknown[] {
     if (!Array.isArray(value)) {
         throw Error('Cannot project a non-array value with an array schema')
     }
 
     const projectedItems: unknown[] = []
-    for (const item of value) {
-        const projected = projectValue(schema.items, item, context)
+    for (const [index, item] of value.entries()) {
+        const projected = projectValue(schema.items, item, childContext(context, value, index))
         if (projected !== omitted) {
             projectedItems.push(projected)
         }
@@ -113,7 +202,11 @@ function projectArray(schema: Type.TArray, value: unknown, context: TraversalCon
     return projectedItems
 }
 
-function projectTuple(schema: Type.TTuple, value: unknown, context: TraversalContext): unknown[] {
+function projectTuple<Root>(
+    schema: Type.TTuple,
+    value: unknown,
+    context: TraversalContext<Root>
+): unknown[] {
     if (!Array.isArray(value)) {
         throw Error('Cannot project a non-array value with a tuple schema')
     }
@@ -124,7 +217,7 @@ function projectTuple(schema: Type.TTuple, value: unknown, context: TraversalCon
         if (!Type.IsSchema(itemSchema)) {
             throw Error(`Cannot find tuple schema for item ${index}`)
         }
-        const projected = projectValue(itemSchema, item, context)
+        const projected = projectValue(itemSchema, item, childContext(context, value, index))
         if (projected === omitted) {
             throw Error(`Cannot omit tuple item ${index}`)
         }
@@ -133,10 +226,10 @@ function projectTuple(schema: Type.TTuple, value: unknown, context: TraversalCon
     return projectedItems
 }
 
-function projectRecord(
+function projectRecord<Root>(
     schema: Type.TRecord,
     value: unknown,
-    context: TraversalContext
+    context: TraversalContext<Root>
 ): Record<string, unknown> {
     if (!isObjectValue(value)) {
         throw Error('Cannot project a non-object value with a record schema')
@@ -145,7 +238,7 @@ function projectRecord(
     const valueSchema = Type.RecordValue(schema)
     const projectedEntries: [string, unknown][] = []
     for (const [key, item] of Object.entries(value)) {
-        const projected = projectValue(valueSchema, item, context)
+        const projected = projectValue(valueSchema, item, childContext(context, value, key))
         if (projected !== omitted) {
             projectedEntries.push([key, projected])
         }
@@ -160,7 +253,11 @@ function projectionsEqual(left: unknown, right: unknown): boolean {
     return Value.Equal(left, right)
 }
 
-function projectUnion(schema: Type.TUnion, value: unknown, context: TraversalContext): unknown {
+function projectUnion<Root>(
+    schema: Type.TUnion,
+    value: unknown,
+    context: TraversalContext<Root>
+): unknown {
     const matchingSchemas = schema.anyOf.filter((candidate) =>
         Value.Check(context.definitions, candidate, value)
     )
@@ -184,11 +281,11 @@ function resolveReference(definitions: Type.TProperties, reference: string): Typ
     return schema
 }
 
-function projectValue(schema: Type.TSchema, value: unknown, context: TraversalContext): unknown {
-    const metadata = getVisibilityMetadata(schema)
-    if (metadata !== undefined) {
-        return redactValue(metadata)
-    }
+function projectVisibleValue<Root>(
+    schema: Type.TSchema,
+    value: unknown,
+    context: TraversalContext<Root>
+): unknown {
     if (Type.IsObject(schema)) {
         return projectObject(schema, value, context)
     }
@@ -214,8 +311,8 @@ function projectValue(schema: Type.TSchema, value: unknown, context: TraversalCo
     if (Type.IsCyclic(schema)) {
         const recursiveSchema = resolveReference(schema.$defs, schema.$ref)
         return projectValue(recursiveSchema, value, {
+            ...context,
             definitions: schema.$defs,
-            perspective: context.perspective,
             recursiveSchema
         })
     }
@@ -231,13 +328,28 @@ function projectValue(schema: Type.TSchema, value: unknown, context: TraversalCo
     return Value.Clone(value)
 }
 
+function projectValue<Root>(
+    schema: Type.TSchema,
+    value: unknown,
+    context: TraversalContext<Root>
+): unknown {
+    const metadata = getVisibilityMetadata(schema)
+    if (metadata !== undefined && !canViewCanonicalValue(metadata, value, context)) {
+        return redactValue(metadata)
+    }
+    return projectVisibleValue(schema, value, context)
+}
+
 class BuiltInProjector<Schema extends Type.TSchema> implements Projector<Schema> {
     readonly schema: ProjectedSchema<Schema>
     private readonly canonicalValidator: Validator<Type.TProperties, Schema>
     private readonly projectionValidator: Validator<Type.TProperties, ProjectedSchema<Schema>>
 
-    constructor(private readonly canonicalSchema: Schema) {
-        assertSupportedDeclarations(canonicalSchema)
+    constructor(
+        private readonly canonicalSchema: Schema,
+        private readonly policies: PolicyRegistry<Type.Static<Schema>>
+    ) {
+        assertSupportedDeclarations(canonicalSchema, policies)
         this.schema = createProjectionSchema(canonicalSchema)
         this.canonicalValidator = Compile(canonicalSchema)
         this.projectionValidator = Compile(this.schema)
@@ -251,7 +363,13 @@ class BuiltInProjector<Schema extends Type.TSchema> implements Projector<Schema>
             throw Error('Cannot project a value that does not match its canonical schema')
         }
 
-        const result = projectValue(this.canonicalSchema, value, { definitions: {}, perspective })
+        const result = projectValue(this.canonicalSchema, value, {
+            definitions: {},
+            path: [],
+            policies: this.policies,
+            perspective,
+            root: value
+        })
         const projected = result === omitted ? undefined : result
         if (!this.projectionValidator.Check(projected)) {
             throw Error('Visibility projection does not match its projection schema')
@@ -260,6 +378,9 @@ class BuiltInProjector<Schema extends Type.TSchema> implements Projector<Schema>
     }
 }
 
-export function createProjector<Schema extends Type.TSchema>(schema: Schema): Projector<Schema> {
-    return new BuiltInProjector(schema)
+export function createProjector<Schema extends Type.TSchema>(
+    schema: Schema,
+    options: ProjectorOptions<Type.Static<Schema>> = {}
+): Projector<Schema> {
+    return new BuiltInProjector(schema, options.policies ?? {})
 }

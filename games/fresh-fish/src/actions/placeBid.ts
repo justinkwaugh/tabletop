@@ -3,7 +3,6 @@ import { GameAction, HydratableAction, Visibility } from '@tabletop/common'
 import { HydratedFreshFishGameState } from '../model/gameState.js'
 import { Compile } from 'typebox/compile'
 import { ActionType } from '../definition/actions.js'
-import { FreshFishVisibilityPolicy } from '../definition/visibility.js'
 
 export type PlaceBid = Type.Static<typeof PlaceBid>
 export const PlaceBid = Type.Evaluate(
@@ -13,7 +12,7 @@ export const PlaceBid = Type.Evaluate(
             type: Type.Literal(ActionType.PlaceBid),
             playerId: Type.String(),
             amount: Visibility.protect(Type.Number(), {
-                policy: FreshFishVisibilityPolicy.SealedBid
+                policy: Visibility.Policy.Actor
             })
         })
     ])
