@@ -849,12 +849,17 @@ export class LowenherzGameSession extends GameSession<
         }
     }
 
-    // Either negotiator can decline at any stage, turn or no turn - see
-    // HydratedLowenherzGameState.isActivePlayer for why that's allowed engine-side even for
-    // whoever's not currently active.
     get isNegotiator(): boolean {
         if (!this.myPlayer) return false
         return this.gameState.negotiation?.playerIds.includes(this.myPlayer.id) ?? false
+    }
+
+    // Either negotiator can decline at any stage, turn or no turn - see
+    // HydratedLowenherzGameState.isActivePlayer for why that's allowed engine-side even for
+    // whoever's not currently active.
+    get canDeclineNegotiation(): boolean {
+        if (!this.canActNow) return false
+        return this.isNegotiator
     }
 
     // Turn-based: nobody has proposed yet (lastProposedBy undefined) leaves it open to either
@@ -896,7 +901,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     async declineNegotiation() {
-        if (!this.isNegotiator) return
+        if (!this.canDeclineNegotiation) return
 
         const action = this.createPlayerAction(NegotiationMove, { kind: NegotiationMoveKind.Decline })
         this.errorMessage = undefined

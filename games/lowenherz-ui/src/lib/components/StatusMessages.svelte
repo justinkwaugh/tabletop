@@ -856,7 +856,7 @@
                     <button
                         type="button"
                         class="px-2 py-[3px] rounded bg-red-700/10 hover:bg-red-700/20 text-[14px] font-semibold disabled:opacity-40"
-                        disabled={!gameSession.isNegotiator}
+                        disabled={!gameSession.canDeclineNegotiation}
                         onclick={() => gameSession.declineNegotiation()}
                     >
                         Force a duel
