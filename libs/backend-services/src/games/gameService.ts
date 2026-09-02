@@ -385,7 +385,7 @@ export class GameService {
             const extraActions = await this.gameStore.findActionRangeForGame({
                 game,
                 startIndex,
-                endIndex: index + 1
+                endIndex: Math.min(index + 1, state.actionCount)
             })
             actions.unshift(...extraActions)
         }
