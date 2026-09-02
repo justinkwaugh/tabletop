@@ -3,6 +3,7 @@ import { Compile, type Validator } from 'typebox/compile'
 import * as Value from 'typebox/value'
 import { SimultaneousAuctionVisibility } from '../components/auctions/simultaneous.js'
 import { canViewSimultaneousAuctionBid } from '../components/auctions/simultaneousVisibility.js'
+import type { GameState } from '../model/gameState.js'
 import {
     createProjectionSchema,
     EmptyArrayAdapter,
@@ -38,6 +39,15 @@ export interface ProjectorOptions<Root> {
     readonly policies?: PolicyRegistry<Root>
 }
 
+export interface ValueProjector<Canonical, Projected = unknown> {
+    readonly schema: Type.TSchema
+    project(value: Canonical, perspective: Perspective): Projected
+}
+
+export interface GameVisibility<State extends GameState = GameState> {
+    readonly state: ValueProjector<State, GameState>
+}
+
 interface TraversalContext<Root> {
     definitions: Type.TProperties
     parent?: unknown
@@ -54,12 +64,11 @@ interface ScopeFrame {
     readonly value: unknown
 }
 
-export interface Projector<Schema extends Type.TSchema> {
+export interface Projector<Schema extends Type.TSchema> extends ValueProjector<
+    Type.Static<Schema>,
+    Type.Static<ProjectedSchema<Schema>>
+> {
     readonly schema: ProjectedSchema<Schema>
-    project(
-        value: Type.Static<Schema>,
-        perspective: Perspective
-    ): Type.Static<ProjectedSchema<Schema>>
 }
 
 function isObjectValue(value: unknown): value is Record<string, unknown> {

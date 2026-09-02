@@ -16,6 +16,7 @@ import { ActionType } from './actions.js'
 import { TileType } from '../components/tiles.js'
 import { MachineState } from './states.js'
 import { generateTestState } from '../util/testHelper.js'
+import { FreshFishRuntime } from './runtime.js'
 
 function createCanonicalAuctionState(): FreshFishGameState {
     const state = generateTestState({ numPlayers: 3 })
@@ -181,11 +182,15 @@ describe('Fresh Fish visibility', () => {
         expect(
             Reflect.get(FreshFishGameStateProjection.properties.currentAuction, Visibility.ScopeKey)
         ).toBe(SimultaneousAuctionVisibility.Scope)
+        expect(FreshFishRuntime.visibility.state.schema).toEqual(FreshFishGameStateProjection)
+        expectTypeOf<typeof FreshFishRuntime.visibility.state.schema>().toEqualTypeOf<
+            typeof FreshFishGameStateProjection
+        >()
     })
 
-    it('projects current auction bids before and after the auction resolves', () => {
+    it('projects current auction bids through the registered Game Runtime visibility', () => {
         const canonical = createCanonicalAuctionState()
-        const projector = Visibility.createProjector(FreshFishGameState)
+        const projector = FreshFishRuntime.visibility.state
 
         const playerOneProjection = projector.project(canonical, {
             kind: 'player',

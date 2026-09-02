@@ -21,10 +21,12 @@ export type {
     ScopeMetadata
 } from './visibilitySchema.js'
 export type {
+    GameVisibility,
     Perspective,
     PolicyContext,
     PolicyRegistry,
     PolicyResolver,
     Projector,
-    ProjectorOptions
+    ProjectorOptions,
+    ValueProjector
 } from './valueProjector.js'
