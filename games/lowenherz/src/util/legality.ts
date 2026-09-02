@@ -6,6 +6,7 @@ import { HydratedExpandRegion, type ExpandRegionSpace } from '../actions/expandR
 import { HydratedPlaceKnight } from '../actions/placeKnight.js'
 import { HydratedPlaceWall } from '../actions/placeWall.js'
 import { HydratedPlaceCastle } from '../actions/placeCastle.js'
+import { HydratedPlaceSetupKnight } from '../actions/placeSetupKnight.js'
 import { HydratedNegotiationMove, NegotiationMoveKind } from '../actions/negotiationMove.js'
 import { HydratedSubmitDuelBid } from '../actions/submitDuelBid.js'
 import { HydratedLookAtPoliticsPile } from '../actions/lookAtPoliticsPile.js'
@@ -189,9 +190,7 @@ export function placeCastleIsValid(
     state: HydratedLowenherzGameState,
     playerId: string,
     castleCol: number,
-    castleRow: number,
-    knightCol: number,
-    knightRow: number
+    castleRow: number
 ): boolean {
     return new HydratedPlaceCastle({
         id: 'candidate',
@@ -200,10 +199,25 @@ export function placeCastleIsValid(
         type: ActionType.PlaceCastle,
         playerId,
         castleCol,
-        castleRow,
+        castleRow
+    }).isValidPlaceCastle(state)
+}
+
+export function placeSetupKnightIsValid(
+    state: HydratedLowenherzGameState,
+    playerId: string,
+    knightCol: number,
+    knightRow: number
+): boolean {
+    return new HydratedPlaceSetupKnight({
+        id: 'candidate',
+        gameId: state.gameId,
+        source: ActionSource.User,
+        type: ActionType.PlaceSetupKnight,
+        playerId,
         knightCol,
         knightRow
-    }).isValidPlaceCastle(state)
+    }).isValidPlaceSetupKnight(state)
 }
 
 export function negotiationProposalIsValid(

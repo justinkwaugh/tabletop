@@ -56,45 +56,45 @@ function buildState(board: ReturnType<typeof blankBoard>): HydratedLowenherzGame
 describe('isKnightSafeToRemove', () => {
     it('allows removing a "leaf" knight that nothing else depends on', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
-        board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Pink }
-        board.squares[0][2] = { type: SquareType.Blank, knightColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
+        board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p1' }
+        board.squares[0][2] = { type: SquareType.Blank, knightOwner: 'p1' }
         const state = buildState(board)
 
-        expect(isKnightSafeToRemove(state, Color.Pink, 2, 0)).toBe(true)
+        expect(isKnightSafeToRemove(state, 'p1', 2, 0)).toBe(true)
     })
 
     it('rejects removing a knight that is the sole connector to the castle', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
-        board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Pink }
-        board.squares[0][2] = { type: SquareType.Blank, knightColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
+        board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p1' }
+        board.squares[0][2] = { type: SquareType.Blank, knightOwner: 'p1' }
         const state = buildState(board)
 
         // Removing (1,0) would strand (2,0) - it has no other path to the castle.
-        expect(isKnightSafeToRemove(state, Color.Pink, 1, 0)).toBe(false)
+        expect(isKnightSafeToRemove(state, 'p1', 1, 0)).toBe(false)
     })
 
-    it('allows removing the only knight a color has, leaving just the castle', () => {
+    it('allows removing the only knight an owner has, leaving just the castle', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
-        board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
+        board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p1' }
         const state = buildState(board)
 
-        expect(isKnightSafeToRemove(state, Color.Pink, 1, 0)).toBe(true)
+        expect(isKnightSafeToRemove(state, 'p1', 1, 0)).toBe(true)
     })
 
     it('allows removing a knight when an alternate path to the castle still exists', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
-        board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Pink }
-        board.squares[1][0] = { type: SquareType.Blank, knightColor: Color.Pink } // (0,1)
-        board.squares[1][1] = { type: SquareType.Blank, knightColor: Color.Pink } // (1,1) - reachable via (0,1) too
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
+        board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p1' }
+        board.squares[1][0] = { type: SquareType.Blank, knightOwner: 'p1' } // (0,1)
+        board.squares[1][1] = { type: SquareType.Blank, knightOwner: 'p1' } // (1,1) - reachable via (0,1) too
         const state = buildState(board)
 
         // (1,0) and (0,1) both connect (1,1) back to the castle - removing (1,0)
         // still leaves the (0,1) -> (1,1) path.
-        expect(isKnightSafeToRemove(state, Color.Pink, 1, 0)).toBe(true)
+        expect(isKnightSafeToRemove(state, 'p1', 1, 0)).toBe(true)
     })
 
     it('treats a wall between two knights as breaking the connection', () => {
@@ -105,16 +105,16 @@ describe('isKnightSafeToRemove', () => {
         // of that colour unsafe for the rest of the game, silently disabling Renegade
         // against them.
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
-        board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Pink }
-        board.squares[0][2] = { type: SquareType.Blank, knightColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
+        board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p1' }
+        board.squares[0][2] = { type: SquareType.Blank, knightOwner: 'p1' }
         board.walls = [{ col: 2, row: 0, edge: WallEdge.West }] // between (1,0) and (2,0)
         const state = buildState(board)
 
-        expect(isKnightSafeToRemove(state, Color.Pink, 1, 0)).toBe(true)
+        expect(isKnightSafeToRemove(state, 'p1', 1, 0)).toBe(true)
         // ...and the already-stranded knight itself is still removable - nothing depends
         // on it either.
-        expect(isKnightSafeToRemove(state, Color.Pink, 2, 0)).toBe(true)
+        expect(isKnightSafeToRemove(state, 'p1', 2, 0)).toBe(true)
     })
 
     it('still refuses a knight that is the sole link even when another is already stranded', () => {
@@ -122,23 +122,23 @@ describe('isKnightSafeToRemove', () => {
         // between (2,0) and the castle, so removing it is still refused, while the
         // separately walled-off knight at (5,5) is irrelevant to that judgement.
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
-        board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Pink }
-        board.squares[0][2] = { type: SquareType.Blank, knightColor: Color.Pink }
-        board.squares[5][5] = { type: SquareType.Blank, knightColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
+        board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p1' }
+        board.squares[0][2] = { type: SquareType.Blank, knightOwner: 'p1' }
+        board.squares[5][5] = { type: SquareType.Blank, knightOwner: 'p1' }
         const state = buildState(board)
 
-        expect(isKnightSafeToRemove(state, Color.Pink, 1, 0)).toBe(false)
+        expect(isKnightSafeToRemove(state, 'p1', 1, 0)).toBe(false)
     })
 
-    it('is unaffected by a different color\'s knights', () => {
+    it('is unaffected by a different owner\'s knights', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
-        board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Pink }
-        board.squares[5][5] = { type: SquareType.Blank, castleColor: Color.Yellow }
-        board.squares[5][6] = { type: SquareType.Blank, knightColor: Color.Yellow }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
+        board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p1' }
+        board.squares[5][5] = { type: SquareType.Blank, castleOwner: 'p2' }
+        board.squares[5][6] = { type: SquareType.Blank, knightOwner: 'p2' }
         const state = buildState(board)
 
-        expect(isKnightSafeToRemove(state, Color.Pink, 1, 0)).toBe(true)
+        expect(isKnightSafeToRemove(state, 'p1', 1, 0)).toBe(true)
     })
 })

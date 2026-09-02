@@ -73,7 +73,7 @@ export class HydratedPlaceKnight
         const square = getSquare(state.board, this.col, this.row)!
         const playerState = state.getPlayerState(this.playerId)
 
-        state.board.squares[this.row][this.col] = { ...square, knightColor: playerState.color }
+        state.board.squares[this.row][this.col] = { ...square, knightOwner: this.playerId }
         state.knightsRemaining = (state.knightsRemaining ?? 1) - 1
         playerState.knightsInStock -= 1
 
@@ -127,7 +127,7 @@ export class HydratedPlaceKnight
             return "Knights can't be placed on a hill or town space."
         }
 
-        if (square.knightColor || square.castleColor) {
+        if (square.knightOwner || square.castleOwner) {
             return "That square is already occupied."
         }
 
@@ -156,8 +156,8 @@ export class HydratedPlaceKnight
             if (isWalledBetween(state.board, this.col, this.row, n.col, n.row)) return false
             const neighborSquare = getSquare(state.board, n.col, n.row)
             return (
-                neighborSquare?.knightColor === playerState.color ||
-                neighborSquare?.castleColor === playerState.color
+                neighborSquare?.knightOwner === this.playerId ||
+                neighborSquare?.castleOwner === this.playerId
             )
         })
         if (!isAdjacentToOwnPiece) {

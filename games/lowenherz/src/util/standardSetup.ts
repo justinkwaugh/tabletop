@@ -1,4 +1,5 @@
 import { Color } from '@tabletop/common'
+import { NEUTRAL_OWNER, PieceOwner } from '../model/owner.js'
 import { BoardTiles } from '../definition/boardTiles.js'
 import {
     BOARD_COLS,
@@ -145,32 +146,40 @@ export function assembleStandardBoard(): LowenherzBoard {
 }
 
 // Places every color's fixed castles/knights/walls (all four corners, regardless of
-// how many are real players - an unclaimed color's pieces just sit there as neutral
-// obstacles, same as the variable-construction setup's handling of a 3-player game's
-// unused 4th color), then detects and scores the resulting starting regions exactly as
-// PlaceWall would mid-game. Called once, right after the board itself is assembled.
+// how many are real players - an unclaimed color's pieces belong to the neutral prince
+// and just sit there as obstacles), then detects and scores the resulting starting
+// regions exactly as PlaceWall would mid-game. Called once, right after the board
+// itself is assembled.
+//
+// At most one color is ever unclaimed here: this layout is only used at 3-4 players
+// (2-player games are always built by manual placement - see LowenherzInitializer), so
+// the single neutral prince never has to stand in for two different corners at once.
 export function applyStandardSetup(state: HydratedLowenherzGameState) {
+    const ownerForColor = (color: Color): PieceOwner =>
+        state.players.find((p) => p.color === color)?.playerId ?? NEUTRAL_OWNER
+
     for (const corner of CORNER_SETUPS) {
         state.board.walls.push(...rectangleWalls(corner.ownerRect))
 
         const castles = [corner.ownerCastle, ...corner.extraCastles]
         const knights = [corner.ownerKnight, ...corner.extraKnights]
+        const owner = ownerForColor(corner.color)
         for (const { col, row } of castles) {
-            state.board.squares[row][col] = { ...state.board.squares[row][col], castleColor: corner.color }
+            state.board.squares[row][col] = { ...state.board.squares[row][col], castleOwner: owner }
         }
         for (const { col, row } of knights) {
-            state.board.squares[row][col] = { ...state.board.squares[row][col], knightColor: corner.color }
+            state.board.squares[row][col] = { ...state.board.squares[row][col], knightOwner: owner }
         }
 
-        const owner = state.players.find((p) => p.color === corner.color)
-        if (owner) owner.knightsInStock -= castles.length
+        const player = state.players.find((p) => p.color === corner.color)
+        if (player) player.knightsInStock -= castles.length
     }
 
     const newRegions = detectNewRegions(state.board, state.regions)
     for (const region of newRegions) {
-        if (region.ownerColor) {
-            const owner = state.players.find((p) => p.color === region.ownerColor)
-            if (owner) owner.powerPoints += scoreRegion(region, state.board)
+        if (region.owner) {
+            const player = state.players.find((p) => p.playerId === region.owner)
+            if (player) player.powerPoints += scoreRegion(region, state.board)
         }
         state.regions.push(region)
         removeInteriorWalls(state.board, region)

@@ -9,18 +9,19 @@
     import { heartPosition } from '$lib/model/allianceGeometry.js'
     import { CELL_SIZE, RAMPART_THICKNESS, scaled } from '$lib/model/boardMetrics.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import type { Color } from '@tabletop/common'
     import {
         ALLIANCE_CANCELLATION_COST,
         BOARD_COLS,
         BOARD_ROWS,
-        HydratedPlaceCastle,
+        isValidSetupKnightSquare,
+        isNeutralOwner,
         isOnBoard,
         neighbors,
         squareKey,
         SquareType,
         wallBetween,
         type BoardTileId,
+        type PieceOwner,
         type Wall
     } from '@tabletop/lowenherz'
     import boardTileA from '$lib/images/board/board-a.jpg'
@@ -156,7 +157,7 @@
     // control for cancelling one, which is an alliance-wide interaction: hovering any of
     // its hearts previews the whole alliance ending.
     const myCancellableAllianceIds = $derived(
-        new Map(gameSession.myCancellableAlliances.map((a) => [a.id, a.otherColor]))
+        new Map(gameSession.myCancellableAlliances.map((a) => [a.id, a.otherOwner]))
     )
 
     const allianceMarkers = $derived(gameSession.allianceMarkers)
@@ -186,9 +187,11 @@
     // genuine misclick.
     let hoveredAllianceId: string | undefined = $state(undefined)
 
-    function allianceCancelLabel(marker: { otherColor?: Color }): string {
-        const otherPlayerId = marker.otherColor ? gameSession.playerIdForColor(marker.otherColor) : undefined
-        const other = otherPlayerId ? playerName(gameSession, otherPlayerId) : 'a neutral prince'
+    function allianceCancelLabel(marker: { otherOwner?: PieceOwner }): string {
+        const other =
+            marker.otherOwner && !isNeutralOwner(marker.otherOwner)
+                ? playerName(gameSession, marker.otherOwner)
+                : 'a neutral prince'
         return `Cancel your alliance with ${other} for ${ALLIANCE_CANCELLATION_COST} ducats`
     }
 
@@ -216,13 +219,11 @@
     )
     // For the fading "ghost knight" preview on legal placement squares - the piece
     // it would actually place, so it's shown in the player's own color.
-    const myColor = $derived(
-        gameSession.myPlayer ? gameSession.gameState.getPlayerState(gameSession.myPlayer.id).color : undefined
-    )
-    // What the next setup placement will really be: your own color at first, the neutral
-    // prince's for the closing laps (see GameSession.placementColor). Distinct from
-    // myColor, which is right for every mid-game preview but wrong during those laps.
-    const placementColor = $derived(gameSession.placementColor)
+    const myOwner = $derived(gameSession.myPlayer?.id)
+    // Who the next setup placement really belongs to: yourself at first, the neutral
+    // prince for the closing laps (see GameSession.placementOwner). Distinct from myOwner,
+    // which is right for every mid-game preview but wrong during those laps.
+    const placementOwner = $derived(gameSession.placementOwner)
 
 
     const legalExpansionSquareSet = $derived(
@@ -551,17 +552,19 @@
         [SquareType.Village]: '#a63b3b'
     }
 
-    function isSelected(col: number, row: number): boolean {
-        const sel = gameSession.selectedCastleSquare
-        return sel !== undefined && sel.col === col && sel.row === row
+    // The castle that is on the board but still owed its knight - ringed so the second
+    // half of the placement has an obvious anchor.
+    function isPendingCastleSquare(col: number, row: number): boolean {
+        const pending = gameSession.pendingSetupCastle
+        return pending !== undefined && pending.col === col && pending.row === row
     }
 
-    // Only the knight squares that would actually be legal for the selected castle -
+    // Only the knight squares that would actually be legal for the castle awaiting one -
     // not just any adjacent square - so the highlight matches what's clickable.
     function isLegalKnightSquare(col: number, row: number): boolean {
-        const sel = gameSession.selectedCastleSquare
-        if (!sel) return false
-        return HydratedPlaceCastle.isValidKnightSquare(gameSession.gameState, sel.col, sel.row, col, row)
+        const pending = gameSession.pendingSetupCastle
+        if (!pending) return false
+        return isValidSetupKnightSquare(gameSession.gameState, pending.col, pending.row, col, row)
     }
 
     // Opening placement says what CANNOT be used rather than animating what can: a scrim over
@@ -569,8 +572,8 @@
     // two-click flow are covered - castle squares first, then the knight squares around the one
     // just picked.
     //
-    // canPlaceCastle stays true across both halves because picking a castle square is local UI
-    // state, not a game action, so the selection is what tells the two apart.
+    // The two halves are separate machine states now (PlacingCastles, then
+    // PlacingSetupKnight), so canPlaceCastle/canPlaceSetupKnight tell them apart.
     // Which square the mouse is over, for the opening castle preview. Tracked on the square
     // buttons rather than the grid container: a div with a mouse handler wants an ARIA role, and
     // giving the board a half-built grid role would be worse for a screen reader than leaving the
@@ -581,7 +584,7 @@
     // only before a castle square is picked - once one is, the question has moved on to its
     // knight.
     function isCastlePreviewSquare(col: number, row: number): boolean {
-        if (!gameSession.canPlaceCastle || gameSession.selectedCastleSquare) return false
+        if (!gameSession.canPlaceCastle) return false
         if (hoveredSquare?.col !== col || hoveredSquare?.row !== row) return false
         return isLegalCastleSquare(col, row)
     }
@@ -616,12 +619,12 @@
     // AND its knight, so a forest, hill or village was never in the running and saying so is
     // noise.
     function isIllegalPlacementSpot(col: number, row: number): boolean {
-        if (!gameSession.canPlaceCastle) return false
+        if (!gameSession.canPlaceCastle && !gameSession.canPlaceSetupKnight) return false
 
         const square = board.squares[row]?.[col]
         if (square?.type !== SquareType.Blank) return false
 
-        return gameSession.selectedCastleSquare
+        return gameSession.canPlaceSetupKnight
             ? !isLegalKnightSquare(col, row)
             : !isLegalCastleSquare(col, row)
     }
@@ -641,21 +644,18 @@
     function showsLegalHighlight(col: number, row: number): boolean {
         if (PLACEMENT_HINT !== 'legal') return false
 
-        // Setup: the castle squares, then the knight squares around the one just picked.
-        if (gameSession.canPlaceCastle) {
-            return gameSession.selectedCastleSquare
-                ? isLegalKnightSquare(col, row)
-                : isLegalCastleSquare(col, row)
-        }
+        // Setup: the castle squares, then the knight squares around the one just placed.
+        if (gameSession.canPlaceSetupKnight) return isLegalKnightSquare(col, row)
+        if (gameSession.canPlaceCastle) return isLegalCastleSquare(col, row)
 
         if (knightStageActive && isLegalKnightPlacement(col, row)) return true
         return isLegalRenegadePlacementSquare(col, row)
     }
 
-    // Whose colour the dot is drawn in. placementColor covers setup, where a closing lap places the
+    // Whose colour the dot is drawn in. placementOwner covers setup, where a closing lap places the
     // neutral prince's castle rather than the player's own; outside setup it is undefined and the
     // piece being placed is simply mine.
-    const legalHintColor = $derived(placementColor ?? myColor)
+    const legalHintOwner = $derived(placementOwner ?? myOwner)
 
     // The X cannot go everywhere the scrim can, which is a property of the mark rather than of the
     // rule:
@@ -666,10 +666,10 @@
     //     under it or deface it - where a scrim simply dims both together.
     function showsIllegalX(col: number, row: number): boolean {
         if (PLACEMENT_HINT !== 'x') return false
-        if (gameSession.selectedCastleSquare) return false
+        if (gameSession.canPlaceSetupKnight) return false
 
         const square = board.squares[row]?.[col]
-        if (square?.castleColor || square?.knightColor) return false
+        if (square?.castleOwner || square?.knightOwner) return false
 
         return isIllegalPlacementSpot(col, row)
     }
@@ -762,12 +762,12 @@
         // the same way too (see expansionPreviewWalls).
         if (expandStageActive && gameSession.expansionSquares.some((s) => s.col === col && s.row === row)) {
             const region = regions.find((r) => r.id === gameSession.selectedExpandRegionId)
-            if (region?.ownerColor) return gameSession.colors.getUiColor(region.ownerColor)
+            if (region?.owner) return gameSession.uiColorForOwner(region.owner)
         }
 
         const region = regionBySquareKey.get(key)
-        if (!region?.ownerColor) return undefined
-        return gameSession.colors.getUiColor(region.ownerColor)
+        if (!region?.owner) return undefined
+        return gameSession.uiColorForOwner(region.owner)
     }
 
     async function onSquareClick(col: number, row: number) {
@@ -813,12 +813,11 @@
             return
         }
 
-        if (gameSession.selectedCastleSquare) {
-            // Ignored too, for consistency within one flow - and because reporting it used to
-            // clear the selection, so a stray click took the castle back off the board. The ring
-            // marks the squares that will work, and Undo releases the castle.
+        if (gameSession.canPlaceSetupKnight) {
+            // Ignored too, for consistency within one flow. The ring marks the squares that
+            // will work, and Undo takes the castle back off the board.
             if (isLegalKnightSquare(col, row)) {
-                await gameSession.placeCastleWithKnight(col, row)
+                await gameSession.placeSetupKnight(col, row)
             }
             return
         }
@@ -827,7 +826,7 @@
             // Ignored rather than explained: the X on the square has already said why, and an
             // error dialog for a click the board visibly refused is nagging.
             if (isLegalCastleSquare(col, row)) {
-                gameSession.selectCastleSquare(col, row)
+                await gameSession.placeCastle(col, row)
             }
             return
         }
@@ -873,7 +872,7 @@
     // scale-correction and a prop all disappear with it.
 </script>
 
-{#snippet pieceIcon(fillSrc: string, linesSrc: string, color: Color, offsetY: number = 0)}
+{#snippet pieceIcon(fillSrc: string, linesSrc: string, owner: PieceOwner, offsetY: number = 0)}
     <!-- fillSrc is a black silhouette used as a mask so background-color (the exact
          player color, boosted a bit via filter below) shows through only inside the
          shape; linesSrc is the same artwork's outline/detail work (transparent
@@ -893,7 +892,7 @@
         <div
             class="absolute inset-0"
             style="
-                background-color:{gameSession.colors.getUiColor(color)};
+                background-color:{gameSession.uiColorForOwner(owner)};
                 mask-image:url({fillSrc}); mask-size:contain; mask-repeat:no-repeat; mask-position:center;
                 -webkit-mask-image:url({fillSrc}); -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat; -webkit-mask-position:center;
                 filter: saturate(1.5) brightness(1.15);
@@ -919,7 +918,7 @@
         <div
             class="absolute inset-0"
             style="
-                background-color:{myColor ? gameSession.colors.getUiColor(myColor) : '#d4af37'};
+                background-color:{myOwner ? gameSession.uiColorForOwner(myOwner) : '#d4af37'};
                 mask-image:url({iconMoneybagFill}); mask-size:contain; mask-repeat:no-repeat; mask-position:center;
                 -webkit-mask-image:url({iconMoneybagFill}); -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat; -webkit-mask-position:center;
                 filter: saturate(1.7) brightness(1.18);
@@ -1009,7 +1008,7 @@
                                 hoveredSquare = undefined
                             }
                         }}
-                        class="relative flex items-center justify-center border border-black/20 {isSelected(col, row) ? 'ring-4 ring-yellow-300 z-10' : ''} {isLegalKnightSquare(col, row) && PLACEMENT_HINT !== 'legal' ? 'ring-2 ring-yellow-100' : ''}"
+                        class="relative flex items-center justify-center border border-black/20 {isPendingCastleSquare(col, row) ? 'ring-4 ring-yellow-300 z-10' : ''} {isLegalKnightSquare(col, row) && PLACEMENT_HINT !== 'legal' ? 'ring-2 ring-yellow-100' : ''}"
                         style="width:{CELL_SIZE}px; height:{CELL_SIZE}px; {tileLayout.length > 0 ? '' : `background-color:${terrainBg[square.type]};`}"
                     >
                         {#if tint}
@@ -1029,27 +1028,27 @@
                                 style="background-color:{tint}; {pulsing ? '' : 'opacity:0.385;'}"
                             ></span>
                         {/if}
-                        {#if isCastlePreviewSquare(col, row) && placementColor}
+                        {#if isCastlePreviewSquare(col, row) && placementOwner}
                             <!-- The castle that would go here, under the cursor. Static rather
                                  than pulsing: it is answering "this one?", and one square at a
                                  time needs no animation to be noticed. Own colour for the opening
                                  laps and the NEUTRAL colour for the closing ones, since those
                                  castles belong to the third prince. -->
                             <div class="absolute inset-0 pointer-events-none opacity-60">
-                                {@render pieceIcon(castleFill, castleLines, placementColor)}
+                                {@render pieceIcon(castleFill, castleLines, placementOwner)}
                             </div>
                         {/if}
-                        {#if isKnightPreviewSquare(col, row) && legalHintColor}
+                        {#if isKnightPreviewSquare(col, row) && legalHintOwner}
                             <!-- The knight that would land here, same treatment as the castle. -->
                             <div class="absolute inset-0 pointer-events-none opacity-60">
-                                {@render pieceIcon(knightFill, knightLines, legalHintColor, -1)}
+                                {@render pieceIcon(knightFill, knightLines, legalHintOwner, -1)}
                             </div>
                         {/if}
                         <!-- The dot is suppressed under either preview: the piece drawn there
                              already says the square will take one, and a dot beside it is the same
                              claim twice. -->
-                        {#if showsLegalHighlight(col, row) && !isCastlePreviewSquare(col, row) && !isKnightPreviewSquare(col, row) && legalHintColor}
-                            {@const hintColor = gameSession.colors.getUiColor(legalHintColor)}
+                        {#if showsLegalHighlight(col, row) && !isCastlePreviewSquare(col, row) && !isKnightPreviewSquare(col, row) && legalHintOwner}
+                            {@const hintColor = gameSession.uiColorForOwner(legalHintOwner)}
                             <!-- A filled disc, about a third of the square. r 1.85 of the
                                  ten-unit viewBox is a 3.7-unit diameter - the same outer edge the
                                  stroked ring had, so "filled in" means exactly that rather than
@@ -1131,19 +1130,9 @@
                                 </svg>
                             </span>
                         {/if}
-                        {#if square.castleColor}
-                            {@render pieceIcon(castleFill, castleLines, square.castleColor)}
-                        {:else if isSelected(col, row) && placementColor}
-                            <!-- The castle isn't actually placed yet (still needs its adjacent
-                                 knight square picked), but it reads as solid and settled here.
-                                 Same own-then-neutral colour as the hover preview.
-                                 
-                                 Deliberately not animated. A hop on landing was tried and read as
-                                 forced: the hover preview already shows the castle on the square
-                                 before the click, so the click has nothing left to announce - it
-                                 only has to stop looking like a preview. -->
-                            {@render pieceIcon(castleFill, castleLines, placementColor)}
-                        {:else if square.knightColor}
+                        {#if square.castleOwner}
+                            {@render pieceIcon(castleFill, castleLines, square.castleOwner)}
+                        {:else if square.knightOwner}
                             {#if isRenegadeRemovedSquare(col, row)}
                                 <!-- The knight the player just clicked to remove - simply
                                      vanishes from view, same as it always has, rather than
@@ -1155,10 +1144,10 @@
                                 <!-- The real knight already there, pulsing in place - rather than
                                      a ring around it - to show it's a legal removal target. -->
                                 <div class="absolute inset-0 ghost-knight-pulse pointer-events-none">
-                                    {@render pieceIcon(knightFill, knightLines, square.knightColor, -1)}
+                                    {@render pieceIcon(knightFill, knightLines, square.knightOwner, -1)}
                                 </div>
                             {:else}
-                                {@render pieceIcon(knightFill, knightLines, square.knightColor, -1)}
+                                {@render pieceIcon(knightFill, knightLines, square.knightOwner, -1)}
                             {/if}
                         {/if}
                     </button>
@@ -1392,7 +1381,7 @@
                     : arrow.wall.row * CELL_SIZE) - scaled(12)}px;
                     width: {GLYPH_BOX};
                     height: {GLYPH_BOX};
-                    color: {myColor ? gameSession.colors.getUiColor(myColor) : '#ffffff'};
+                    color: {myOwner ? gameSession.uiColorForOwner(myOwner) : '#ffffff'};
                     transform: rotate({ARROW_ROTATION[arrow.direction]}deg);
                 "
             >

@@ -96,7 +96,7 @@ describe('LowenherzGameInitializer', () => {
         expect(state.machineState).toBe(MachineState.PlacingCastles)
         expect(state.actionDeck.length).toBe(31)
         expect(state.actionDeck.slice(0, 6).every((c) => c.back === CardBack.A)).toBe(true)
-        expect(state.board.squares.every((row) => row.every((sq) => !sq.castleColor && !sq.knightColor))).toBe(
+        expect(state.board.squares.every((row) => row.every((sq) => !sq.castleOwner && !sq.knightOwner))).toBe(
             true
         )
         expect(state.regions).toEqual([])
@@ -149,7 +149,7 @@ describe('LowenherzGameInitializer', () => {
         // wholesale. Placement happens regardless of the config option.
         expect(state.machineState).toBe(MachineState.PlacingCastles)
         expect(state.regions).toEqual([])
-        expect(state.board.squares.every((row) => row.every((sq) => !sq.castleColor && !sq.knightColor))).toBe(
+        expect(state.board.squares.every((row) => row.every((sq) => !sq.castleOwner && !sq.knightOwner))).toBe(
             true
         )
         // ...and a neutral color exists for the 2 castles each player places in it.

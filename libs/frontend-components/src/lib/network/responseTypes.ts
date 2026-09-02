@@ -1,6 +1,7 @@
 import { Type, type Static } from 'typebox'
 import {
     Bookmark,
+    CanonicalActionReplay,
     Game,
     GameAction,
     GameChat,
@@ -179,9 +180,11 @@ export const UndoActionResponse = Type.Evaluate(
         Type.Omit(ApiResponse, ['payload']),
         Type.Object({
             payload: Type.Object({
-                undoneActions: Type.Array(GameAction),
+                // Optional until the post-rollout backend cleanup removes these legacy fields.
+                undoneActions: Type.Optional(Type.Array(GameAction)),
                 game: Game,
-                redoneActions: Type.Array(GameAction),
+                redoneActions: Type.Optional(Type.Array(GameAction)),
+                canonicalReplay: CanonicalActionReplay,
                 checksum: Type.Number()
             })
         })

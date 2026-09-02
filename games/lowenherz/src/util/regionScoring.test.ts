@@ -9,7 +9,6 @@ import {
 } from './regionScoring.js'
 import { BOARD_COLS, BOARD_ROWS, BoardSquare, LowenherzBoard, SquareType, WallEdge } from '../model/board.js'
 import { Region } from '../model/region.js'
-import { Color } from '@tabletop/common'
 
 function blankBoard(): LowenherzBoard {
     return {
@@ -20,8 +19,8 @@ function blankBoard(): LowenherzBoard {
     }
 }
 
-function region(squareKeys: string[], id = 'r1', ownerColor = Color.Pink): Region {
-    return { id, ownerColor, squareKeys, castleSquareKey: squareKeys[0] }
+function region(squareKeys: string[], id = 'r1', owner = 'p1'): Region {
+    return { id, owner, squareKeys, castleSquareKey: squareKeys[0] }
 }
 
 describe('scoreRegion', () => {
@@ -95,11 +94,11 @@ describe('removeInteriorWalls', () => {
 })
 
 describe('countKnights', () => {
-    it('counts only squares with a knight belonging to the region\'s own color', () => {
+    it('counts only squares with a knight belonging to the region\'s own owner', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, knightColor: Color.Pink }
-        board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Yellow } // wrong color, not counted
-        board.squares[1][0] = { type: SquareType.Blank, castleColor: Color.Pink } // castle, not a knight
+        board.squares[0][0] = { type: SquareType.Blank, knightOwner: 'p1' }
+        board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p2' } // wrong owner, not counted
+        board.squares[1][0] = { type: SquareType.Blank, castleOwner: 'p1' } // castle, not a knight
 
         expect(countKnights(region(['0,0', '1,0', '0,1']), board)).toBe(1)
     })
@@ -107,30 +106,30 @@ describe('countKnights', () => {
 
 describe('regionsAreNeighboring', () => {
     it('is true when a square in one region is orthogonally adjacent to a square in the other', () => {
-        const a = region(['0,0', '1,0'], 'a', Color.Pink)
-        const b = region(['2,0', '2,1'], 'b', Color.Yellow) // (2,0) is adjacent to (1,0)
+        const a = region(['0,0', '1,0'], 'a', 'p1')
+        const b = region(['2,0', '2,1'], 'b', 'p2') // (2,0) is adjacent to (1,0)
 
         expect(regionsAreNeighboring(a, b)).toBe(true)
         expect(regionsAreNeighboring(b, a)).toBe(true)
     })
 
     it('is false when no squares are orthogonally adjacent, even diagonally close ones', () => {
-        const a = region(['0,0'], 'a', Color.Pink)
-        const b = region(['1,1'], 'b', Color.Yellow) // only a diagonal neighbor, not orthogonal
+        const a = region(['0,0'], 'a', 'p1')
+        const b = region(['1,1'], 'b', 'p2') // only a diagonal neighbor, not orthogonal
 
         expect(regionsAreNeighboring(a, b)).toBe(false)
     })
 
     it('ignores walls between the regions - adjacency alone is enough', () => {
-        const a = region(['0,0'], 'a', Color.Pink)
-        const b = region(['1,0'], 'b', Color.Yellow)
+        const a = region(['0,0'], 'a', 'p1')
+        const b = region(['1,0'], 'b', 'p2')
 
         expect(regionsAreNeighboring(a, b)).toBe(true)
     })
 
     it('is false for regions that are far apart', () => {
-        const a = region(['0,0'], 'a', Color.Pink)
-        const b = region(['9,9'], 'b', Color.Yellow)
+        const a = region(['0,0'], 'a', 'p1')
+        const b = region(['9,9'], 'b', 'p2')
 
         expect(regionsAreNeighboring(a, b)).toBe(false)
     })

@@ -79,14 +79,14 @@ function makePlaceKnight(
 describe('HydratedPlaceKnight', () => {
     it('places a knight adjacent to an own castle on a blank square', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
         const state = buildState({ board })
 
         const action = makePlaceKnight('p1', 1, 0)
         expect(action.isValidPlaceKnight(state)).toBe(true)
         action.apply(state)
 
-        expect(state.board.squares[0][1].knightColor).toBe(Color.Pink)
+        expect(state.board.squares[0][1].knightOwner).toBe('p1')
         expect(state.knightsRemaining).toBe(1)
         expect(state.getPlayerState('p1').knightsInStock).toBe(11)
         expect(action.metadata).toEqual({})
@@ -94,7 +94,7 @@ describe('HydratedPlaceKnight', () => {
 
     it('places a knight adjacent to an own existing knight', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, knightColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, knightOwner: 'p1' }
         const state = buildState({ board })
 
         expect(makePlaceKnight('p1', 1, 0).isValidPlaceKnight(state)).toBe(true)
@@ -102,7 +102,7 @@ describe('HydratedPlaceKnight', () => {
 
     it('charges 5 ducats and records it in metadata when placed in the woods', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
         board.squares[0][1] = { type: SquareType.Forest }
         const state = buildState({ board })
 
@@ -116,7 +116,7 @@ describe('HydratedPlaceKnight', () => {
 
     it('rejects a wooded placement the player cannot afford', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
         board.squares[0][1] = { type: SquareType.Forest }
         const state = buildState({ board })
         state.getPlayerState('p1').money = 4
@@ -126,7 +126,7 @@ describe('HydratedPlaceKnight', () => {
 
     it('pays the wooded cost with a Treasure card instead of ducats, losing the excess value', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
         board.squares[0][1] = { type: SquareType.Forest }
         const state = buildState({ board })
         state.getPlayerState('p1').money = 0 // can't afford it in ducats at all
@@ -148,7 +148,7 @@ describe('HydratedPlaceKnight', () => {
 
     it('rejects a Treasure card that is not actually in the player\'s hand', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
         board.squares[0][1] = { type: SquareType.Forest }
         const state = buildState({ board })
 
@@ -157,7 +157,7 @@ describe('HydratedPlaceKnight', () => {
 
     it('rejects using a Treasure card on a non-wooded square', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
         const state = buildState({ board })
         state.getPlayerState('p1').politicsCards = [
             { id: 'treasure-8', type: PoliticsCardType.Treasure, value: 8 }
@@ -168,7 +168,7 @@ describe('HydratedPlaceKnight', () => {
 
     it('rejects a placement from anyone other than the designated knight-placing player', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
         const state = buildState({ board })
 
         expect(makePlaceKnight('p2', 1, 0).isValidPlaceKnight(state)).toBe(false)
@@ -176,7 +176,7 @@ describe('HydratedPlaceKnight', () => {
 
     it('rejects placement once knightsRemaining is exhausted', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
         const state = buildState({ board, knightsRemaining: 0 })
 
         expect(makePlaceKnight('p1', 1, 0).isValidPlaceKnight(state)).toBe(false)
@@ -184,7 +184,7 @@ describe('HydratedPlaceKnight', () => {
 
     it('rejects placement when the knight stock is empty, even with a sword left', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
         // knightsRemaining counts the action's swords and isn't capped by stock (the
         // spare one is spendable on a region expansion instead - see
         // resolveBandForWinner), so PlaceKnight is where "if he has no more knights, he
@@ -199,7 +199,7 @@ describe('HydratedPlaceKnight', () => {
 
     it('rejects a hill space', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
         board.squares[0][1] = { type: SquareType.Hill }
         const state = buildState({ board })
 
@@ -208,7 +208,7 @@ describe('HydratedPlaceKnight', () => {
 
     it('rejects a village space', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
         board.squares[0][1] = { type: SquareType.Village }
         const state = buildState({ board })
 
@@ -217,8 +217,8 @@ describe('HydratedPlaceKnight', () => {
 
     it('rejects an already-occupied square', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
-        board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Yellow }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
+        board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p2' }
         const state = buildState({ board })
 
         expect(makePlaceKnight('p1', 1, 0).isValidPlaceKnight(state)).toBe(false)
@@ -226,7 +226,7 @@ describe('HydratedPlaceKnight', () => {
 
     it('rejects a square only adjacent to an opposing knight/castle', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Yellow }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p2' }
         const state = buildState({ board })
 
         expect(makePlaceKnight('p1', 1, 0).isValidPlaceKnight(state)).toBe(false)
@@ -239,7 +239,7 @@ describe('HydratedPlaceKnight', () => {
 
     it('rejects when the only adjacency is blocked by a wall', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
         board.walls = [{ col: 1, row: 0, edge: WallEdge.West }] // between (0,0) and (1,0)
         const state = buildState({ board })
 

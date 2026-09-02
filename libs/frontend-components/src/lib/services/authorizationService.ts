@@ -8,6 +8,8 @@ export enum AuthorizationCategory {
 
 export type AuthorizationService = {
     isAdmin: boolean
+    isDeveloper: boolean
+    canUseDeveloperTools: boolean
     showDebug: boolean
     actAsAdmin: boolean
     debugViewEnabled: boolean

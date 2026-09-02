@@ -63,6 +63,7 @@ export class BiddingStateHandler
 
         state.round++
         state.planterIndex = 0
+        state.previousOverseerId = prevOverseer
         state.canalOverseerId = undefined
         state.extraIrrigationPassed = []
         state.extraIrrigationOrder = []
@@ -120,6 +121,9 @@ export class BiddingStateHandler
 
         // All players have bid — resolve and move on.
         this.resolveBids(state)
+        // Attach the resolved overseer for history description; the winner may be an
+        // earlier bidder than this last one, so it can't be inferred from this action alone.
+        action.metadata = { overseerId: state.canalOverseerId! }
         return MachineState.PlantingPhase
     }
 

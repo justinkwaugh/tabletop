@@ -2,6 +2,7 @@
 
 export enum ActionType {
     PlaceCastle = 'placeCastle',
+    PlaceSetupKnight = 'placeSetupKnight',
     DrawActionCard = 'drawActionCard',
     ChooseAction = 'chooseAction',
     AdvanceResolution = 'advanceResolution',

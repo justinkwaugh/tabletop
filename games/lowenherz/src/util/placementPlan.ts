@@ -1,26 +1,25 @@
-import { Color } from '@tabletop/common'
+import { NEUTRAL_OWNER, PieceOwner } from '../model/owner.js'
 
 // One slot in the castle/knight setup-placement sequence: which player places, and
-// which color they place it in (their own, or the shared neutral color).
+// who the placed piece belongs to (themselves, or the neutral prince).
 export type PlacementSlot = {
     playerId: string
-    color: Color
+    owner: PieceOwner
 }
 
 // Builds the full, ordered sequence of castle+knight placements for setup, following
 // the rulebook's per-player-count variable construction rules:
-//   - 4 players: each places 3 castles in their own color, round-robin (3 laps). No
-//     neutral color is used at all.
-//   - 3 players: each places 3 castles in their own color (3 laps), then each places
-//     1 more castle in the shared neutral (4th) color (1 lap).
-//   - 2 players: each places 4 castles in their own color (4 laps), then each places
-//     2 castles in a third, neutral color (2 laps).
+//   - 4 players: each places 3 of their own castles, round-robin (3 laps). There is no
+//     neutral prince at all.
+//   - 3 players: each places 3 of their own castles (3 laps), then each places
+//     1 more castle for the neutral prince (1 lap).
+//   - 2 players: each places 4 of their own castles (4 laps), then each places
+//     2 castles for the neutral prince (2 laps).
 // Every player count places exactly 12 castles total, matching the physical
 // component count (4 castles x 4 colors = 16, with 4 held back for a 2-player-only rule).
 export function buildPlacementPlan(
     turnOrder: string[],
-    colorForPlayer: (playerId: string) => Color,
-    neutralColor: Color | undefined
+    hasNeutralOwner: boolean
 ): PlacementSlot[] {
     const plan: PlacementSlot[] = []
     const playerCount = turnOrder.length
@@ -28,18 +27,18 @@ export function buildPlacementPlan(
     const ownLaps = playerCount === 2 ? 4 : 3
     for (let lap = 0; lap < ownLaps; lap++) {
         for (const playerId of turnOrder) {
-            plan.push({ playerId, color: colorForPlayer(playerId) })
+            plan.push({ playerId, owner: playerId })
         }
     }
 
     if (playerCount === 3 || playerCount === 2) {
-        if (!neutralColor) {
-            throw new Error(`neutralColor is required for a ${playerCount}-player game`)
+        if (!hasNeutralOwner) {
+            throw new Error(`a neutral prince is required for a ${playerCount}-player game`)
         }
         const neutralLaps = playerCount === 2 ? 2 : 1
         for (let lap = 0; lap < neutralLaps; lap++) {
             for (const playerId of turnOrder) {
-                plan.push({ playerId, color: neutralColor })
+                plan.push({ playerId, owner: NEUTRAL_OWNER })
             }
         }
     }

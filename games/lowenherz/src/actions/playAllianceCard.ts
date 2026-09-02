@@ -1,17 +1,18 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { Color, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { PoliticsCardType } from '../definition/politicsCards.js'
 import { regionsAreNeighboring } from '../util/regionScoring.js'
 import { areRegionsAllied } from '../util/allianceHelpers.js'
 import { currentChoosingPlayerId } from '../util/decisionPlan.js'
+import { PieceOwner } from '../model/owner.js'
 
 export type PlayAllianceCardMetadata = Type.Static<typeof PlayAllianceCardMetadata>
 export const PlayAllianceCardMetadata = Type.Object({
     allianceId: Type.String(),
-    enemyColor: Type.Enum(Color)
+    enemyOwner: PieceOwner
 })
 
 export type PlayAllianceCard = Type.Static<typeof PlayAllianceCard>
@@ -76,7 +77,7 @@ export class HydratedPlayAllianceCard
 
         this.metadata = {
             allianceId: this.id,
-            enemyColor: enemyRegion.ownerColor!
+            enemyOwner: enemyRegion.owner!
         }
     }
 
@@ -98,12 +99,12 @@ export class HydratedPlayAllianceCard
         }
 
         const ownRegion = state.regions.find((r) => r.id === this.ownRegionId)
-        if (!ownRegion || ownRegion.ownerColor !== playerState.color) {
+        if (!ownRegion || ownRegion.owner !== this.playerId) {
             return "That isn't one of your regions."
         }
 
         const enemyRegion = state.regions.find((r) => r.id === this.enemyRegionId)
-        if (!enemyRegion || !enemyRegion.ownerColor || enemyRegion.ownerColor === playerState.color) {
+        if (!enemyRegion || !enemyRegion.owner || enemyRegion.owner === this.playerId) {
             return "That isn't another prince's region."
         }
 

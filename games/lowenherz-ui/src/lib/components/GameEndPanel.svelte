@@ -1,7 +1,7 @@
 <script lang="ts">
     import { fade } from 'svelte/transition'
-    import { GameResult, type Color } from '@tabletop/common'
-    import { PoliticsCardType } from '@tabletop/lowenherz'
+    import { GameResult } from '@tabletop/common'
+    import { PoliticsCardType, type LowenherzPlayerState } from '@tabletop/lowenherz'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import Numeral from './Numeral.svelte'
@@ -13,10 +13,8 @@
     // Parchment cards were folded into powerPoints already (see EndOfGameStateHandler)
     // - this just re-derives the per-player breakdown from what's still in each hand,
     // so the final score doesn't look like it came from nowhere.
-    function parchmentBonus(color: Color): number {
-        const player = gameSession.gameState.players.find((p) => p.color === color)
-        if (!player) return 0
-        return player.politicsCards
+    function parchmentBonus(playerState: LowenherzPlayerState): number {
+        return playerState.politicsCards
             .filter((c) => c.type === PoliticsCardType.Parchment)
             .reduce((sum, c) => sum + (c.value ?? 0), 0)
     }
@@ -30,7 +28,7 @@
     // matches how the game itself treats a tie: the crown is shared, not broken.
     const standings = $derived.by(() => {
         const rows = gameSession.gameState.players.map((playerState) => {
-            const parchment = parchmentBonus(playerState.color)
+            const parchment = parchmentBonus(playerState)
             return {
                 playerId: playerState.playerId,
                 parchment,

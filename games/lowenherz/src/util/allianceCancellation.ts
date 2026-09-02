@@ -13,6 +13,6 @@ export function canCancelAnAlliance(state: HydratedLowenherzGameState, playerId:
     return state.alliances.some((alliance) => {
         const regionA = state.regions.find((r) => r.id === alliance.regionAId)
         const regionB = state.regions.find((r) => r.id === alliance.regionBId)
-        return regionA?.ownerColor === playerState.color || regionB?.ownerColor === playerState.color
+        return regionA?.owner === playerState.playerId || regionB?.owner === playerState.playerId
     })
 }

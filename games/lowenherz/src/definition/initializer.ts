@@ -116,6 +116,7 @@ export class LowenherzGameInitializer
             turnOrder: [...turnManager.turnOrder],
             firstPlayerId: turnManager.turnOrder[0],
             neutralColor,
+            minimumOneDucat: config.minimumOneDucat !== false,
 
             actionDeck: playerPlacedCastles
                 ? assembleActionDeckWithConstruction(prng)

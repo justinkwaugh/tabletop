@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { Color, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { PoliticsCardType } from '../definition/politicsCards.js'
@@ -9,10 +9,11 @@ import { regionsAreNeighboring } from '../util/regionScoring.js'
 import { isKnightSafeToRemove } from '../util/knightConnectivity.js'
 import { currentChoosingPlayerId } from '../util/decisionPlan.js'
 import { KNIGHT_NOT_ADJACENT_REASON, WOODED_KNIGHT_COST } from './placeKnight.js'
+import { PieceOwner } from '../model/owner.js'
 
 export type PlayRenegadeCardMetadata = Type.Static<typeof PlayRenegadeCardMetadata>
 export const PlayRenegadeCardMetadata = Type.Object({
-    victimColor: Type.Enum(Color),
+    victimOwner: PieceOwner,
     removedSquareKey: Type.String(),
     placedSquareKey: Type.String(),
     removalWoodedCostPaid: Type.Optional(Type.Number()),
@@ -78,20 +79,19 @@ export class HydratedPlayRenegadeCard
 
         const playerState = state.getPlayerState(this.playerId)
         const enemyRegion = state.regions.find((r) => r.id === this.enemyRegionId)!
-        const victimColor = enemyRegion.ownerColor!
-        // No "!" here: a region can belong to a NEUTRAL prince, which is a colour no player
-        // holds, so this is legitimately undefined and the knight has no stock to go back
-        // to. Asserting it non-null crashed the whole action the moment anyone played
-        // Renegade against a neutral region. Same guarded lookup expandRegion uses when an
-        // invasion takes spaces off a neutral owner.
-        const victimPlayer = state.players.find((p) => p.color === victimColor)
+        // No "!" here: a region can belong to the NEUTRAL prince, which is no player, so
+        // this is legitimately undefined and the knight has no stock to go back to.
+        // Asserting it non-null crashed the whole action the moment anyone played Renegade
+        // against a neutral region. Same guarded lookup expandRegion uses when an invasion
+        // takes spaces off a neutral owner.
+        const victimPlayer = state.players.find((p) => p.playerId === enemyRegion.owner)
 
         const removedSquare = getSquare(state.board, this.removedCol, this.removedRow)!
         const removalWoodedCostPaid = removedSquare.type === SquareType.Forest ? WOODED_KNIGHT_COST : undefined
         if (removalWoodedCostPaid) {
             playerState.money -= removalWoodedCostPaid
         }
-        const { knightColor: _removedKnightColor, ...clearedSquare } = removedSquare
+        const { knightOwner: _removedKnightOwner, ...clearedSquare } = removedSquare
         state.board.squares[this.removedRow][this.removedCol] = clearedSquare
         // A neutral prince keeps no stock, so its removed knight simply leaves the board.
         if (victimPlayer) {
@@ -99,7 +99,7 @@ export class HydratedPlayRenegadeCard
         }
 
         const placedSquare = getSquare(state.board, this.placedCol, this.placedRow)!
-        state.board.squares[this.placedRow][this.placedCol] = { ...placedSquare, knightColor: playerState.color }
+        state.board.squares[this.placedRow][this.placedCol] = { ...placedSquare, knightOwner: this.playerId }
         playerState.knightsInStock -= 1
         const placementWoodedCostPaid = placedSquare.type === SquareType.Forest ? WOODED_KNIGHT_COST : undefined
         if (placementWoodedCostPaid) {
@@ -109,7 +109,7 @@ export class HydratedPlayRenegadeCard
         playerState.politicsCards = playerState.politicsCards.filter((c) => c.id !== this.cardId)
 
         this.metadata = {
-            victimColor,
+            victimOwner: enemyRegion.owner!,
             removedSquareKey: squareKey(this.removedCol, this.removedRow),
             placedSquareKey: squareKey(this.placedCol, this.placedRow),
             ...(removalWoodedCostPaid ? { removalWoodedCostPaid } : {}),
@@ -138,12 +138,12 @@ export class HydratedPlayRenegadeCard
         }
 
         const ownRegion = state.regions.find((r) => r.id === this.ownRegionId)
-        if (!ownRegion || ownRegion.ownerColor !== playerState.color) {
+        if (!ownRegion || ownRegion.owner !== this.playerId) {
             return "That isn't one of your regions."
         }
 
         const enemyRegion = state.regions.find((r) => r.id === this.enemyRegionId)
-        if (!enemyRegion || !enemyRegion.ownerColor || enemyRegion.ownerColor === playerState.color) {
+        if (!enemyRegion || !enemyRegion.owner || enemyRegion.owner === this.playerId) {
             return "That isn't another prince's region."
         }
 
@@ -156,10 +156,10 @@ export class HydratedPlayRenegadeCard
             return "That square isn't part of the target region."
         }
         const removedSquare = getSquare(state.board, this.removedCol, this.removedRow)
-        if (!removedSquare || removedSquare.knightColor !== enemyRegion.ownerColor) {
+        if (!removedSquare || removedSquare.knightOwner !== enemyRegion.owner) {
             return "There's no enemy knight on that square."
         }
-        if (!isKnightSafeToRemove(state, enemyRegion.ownerColor, this.removedCol, this.removedRow)) {
+        if (!isKnightSafeToRemove(state, enemyRegion.owner, this.removedCol, this.removedRow)) {
             return "Removing that knight would cut off another one of their knights from their castle."
         }
 
@@ -177,7 +177,7 @@ export class HydratedPlayRenegadeCard
         if (placedSquare.type !== SquareType.Blank && placedSquare.type !== SquareType.Forest) {
             return "Knights can't be placed on a hill or town space."
         }
-        if (placedSquare.knightColor || placedSquare.castleColor) {
+        if (placedSquare.knightOwner || placedSquare.castleOwner) {
             return 'That square is already occupied.'
         }
         const isAdjacentToOwnPiece = neighbors(this.placedCol, this.placedRow).some((n) => {
@@ -185,8 +185,8 @@ export class HydratedPlayRenegadeCard
             if (isWalledBetween(state.board, this.placedCol, this.placedRow, n.col, n.row)) return false
             const neighborSquare = getSquare(state.board, n.col, n.row)
             return (
-                neighborSquare?.knightColor === playerState.color ||
-                neighborSquare?.castleColor === playerState.color
+                neighborSquare?.knightOwner === this.playerId ||
+                neighborSquare?.castleOwner === this.playerId
             )
         })
         if (!isAdjacentToOwnPiece) {

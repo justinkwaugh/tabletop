@@ -29,7 +29,7 @@ export function knightActionOptions(
         canStartExpansion:
             swordsLeft > 0 &&
             !state.expansionUsed &&
-            state.regions.some((r) => r.ownerColor === playerState.color),
+            state.regions.some((r) => r.owner === playerState.playerId),
         // The optional 2nd space of an expansion already under way - part of the sword
         // already spent on it, so it costs nothing further and ignores expansionUsed.
         canContinueExpansion: state.expandingRegionId !== undefined

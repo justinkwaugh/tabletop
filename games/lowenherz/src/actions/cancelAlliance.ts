@@ -1,14 +1,15 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { Color, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
+import { PieceOwner } from '../model/owner.js'
 
 export const ALLIANCE_CANCELLATION_COST = 10
 
 export type CancelAllianceMetadata = Type.Static<typeof CancelAllianceMetadata>
 export const CancelAllianceMetadata = Type.Object({
-    otherColor: Type.Enum(Color)
+    otherOwner: PieceOwner
 })
 
 export type CancelAlliance = Type.Static<typeof CancelAlliance>
@@ -64,12 +65,12 @@ export class HydratedCancelAlliance extends HydratableAction<typeof CancelAllian
         const alliance = state.alliances.find((a) => a.id === this.allianceId)!
         const regionA = state.regions.find((r) => r.id === alliance.regionAId)!
         const regionB = state.regions.find((r) => r.id === alliance.regionBId)!
-        const otherColor = regionA.ownerColor === playerState.color ? regionB.ownerColor! : regionA.ownerColor!
+        const otherOwner = regionA.owner === this.playerId ? regionB.owner! : regionA.owner!
 
         playerState.money -= ALLIANCE_CANCELLATION_COST
         state.alliances = state.alliances.filter((a) => a.id !== this.allianceId)
 
-        this.metadata = { otherColor }
+        this.metadata = { otherOwner }
     }
 
     isValidCancelAlliance(state: HydratedLowenherzGameState): boolean {
@@ -92,8 +93,7 @@ export class HydratedCancelAlliance extends HydratableAction<typeof CancelAllian
         const playerState = state.getPlayerState(this.playerId)
         const regionA = state.regions.find((r) => r.id === alliance.regionAId)
         const regionB = state.regions.find((r) => r.id === alliance.regionBId)
-        const isParticipant =
-            regionA?.ownerColor === playerState.color || regionB?.ownerColor === playerState.color
+        const isParticipant = regionA?.owner === this.playerId || regionB?.owner === this.playerId
         if (!isParticipant) {
             return "You're not one of the two princes in that alliance."
         }

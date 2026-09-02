@@ -1,14 +1,13 @@
 <script lang="ts">
-    import { type Color } from '@tabletop/common'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import flagsLines from '$lib/images/borders/flags-lines.png'
     import flagsBodyMask from '$lib/images/borders/flags-body-mask.png'
     import flagsBandMask from '$lib/images/borders/flags-band-mask.png'
 
     const gameSession = getGameSession()
-    let { color }: { color: Color } = $props()
+    let { playerId }: { playerId: string } = $props()
 
-    let baseColor = $derived(gameSession.colors.getUiColor(color))
+    let baseColor = $derived(gameSession.colors.getPlayerUiColor(playerId))
 </script>
 
 <!-- Same fill-mask + line-art compositing as PlayerState's tintedIcon, but with two

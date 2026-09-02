@@ -31,7 +31,7 @@
 <CustomFont fontFamily="metropolis" url={SolFont} format="woff" />
 
 <!-- Full Height and Width with 8px padding-->
-<div class="bg-repeat" style="background-image: url('{starsBg}'); --chat-height-offset: 51px;">
+<div class="bg-repeat" style="background-image: url('{starsBg}');">
     <DefaultTableLayout>
         {#snippet sideContent()}
             <div class="max-sm:hidden">

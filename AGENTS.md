@@ -16,6 +16,10 @@ Use the default five-role triage label vocabulary. See `docs/agents/triage-label
 
 Use the multi-context domain-doc layout. See `docs/agents/domain.md`.
 
+### Game UI host contract
+
+Before changing Site Frontend ↔ Game UI communication or shared Game Client behavior bundled into a UI Artifact—including `GameSession`, its host dependencies, `TabletopApi` results consumed by a Game Session, `BridgedContext`, or `GameSessionBridge`—read `docs/adr/0004-game-ui-host-bridge-contract.md` and `docs/contexts/game-distribution/CONTEXT.md`. Verify mixed-artifact compatibility and identify which UI Artifacts must be republished to adopt the change.
+
 ### Game implementation
 
 For new games or structural changes to game actions, state handlers, game state, or game components, read `docs/DESIGN.md`.

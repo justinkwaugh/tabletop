@@ -1,5 +1,6 @@
 import { ActionType } from './actions.js'
 import { PlaceCastle } from '../actions/placeCastle.js'
+import { PlaceSetupKnight } from '../actions/placeSetupKnight.js'
 import { DrawActionCard } from '../actions/drawActionCard.js'
 import { ChooseAction } from '../actions/chooseAction.js'
 import { NegotiationMove } from '../actions/negotiationMove.js'
@@ -20,6 +21,7 @@ import { CancelAlliance } from '../actions/cancelAlliance.js'
 // submitted by a real client (see ResolvingActionsStateHandler).
 export const LowenherzApiActions = {
     [ActionType.PlaceCastle]: PlaceCastle,
+    [ActionType.PlaceSetupKnight]: PlaceSetupKnight,
     [ActionType.DrawActionCard]: DrawActionCard,
     [ActionType.ChooseAction]: ChooseAction,
     [ActionType.NegotiationMove]: NegotiationMove,

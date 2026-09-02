@@ -23,7 +23,7 @@ import Header from '$lib/components/Header.svelte'
     setGameSession(gameSession as UrbinoGameSession)
 </script>
 
-<div class="bg-[#b0a090]" style="--chat-height-offset: 52px;">
+<div class="bg-[#b0a090]">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls

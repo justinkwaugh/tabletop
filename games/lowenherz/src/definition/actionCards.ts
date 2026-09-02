@@ -34,6 +34,14 @@ export const MidBottomBand = Type.Object({
     count: Type.Union([Type.Literal(1), Type.Literal(2), Type.Literal(3)])
 })
 
+export type SlotKind = Type.Static<typeof SlotKind>
+export const SlotKind = Type.Union([
+    Type.Literal('income'),
+    Type.Literal('politics'),
+    Type.Literal('border'),
+    Type.Literal('knight')
+])
+
 export type StandardActionCard = Type.Static<typeof StandardActionCard>
 export const StandardActionCard = Type.Object({
     id: Type.String(),
@@ -60,6 +68,10 @@ export const KingIsDeadActionCard = Type.Object({
 
 export type ActionCard = Type.Static<typeof ActionCard>
 export const ActionCard = Type.Union([StandardActionCard, MiningActionCard, KingIsDeadActionCard])
+
+export function slotKindForCard(card: StandardActionCard, slot: 1 | 2 | 3): SlotKind {
+    return slot === 1 ? card.top.kind : slot === 2 ? card.middle.kind : card.bottom.kind
+}
 
 const income = (value: 4 | 6 | 8): TopBand => ({ kind: 'income', value })
 const politics: TopBand = { kind: 'politics' }

@@ -3,6 +3,7 @@ import * as Value from 'typebox/value'
 import {
     assertExists,
     Bookmark,
+    CanonicalActionReplay,
     Game,
     GameAction,
     GameChat,
@@ -298,9 +299,7 @@ export class TabletopApi {
             .json<GameWithActionsResponse>()
 
         const game = this.validateGame(response.payload.game)
-        const actions = response.payload.actions.map((action) =>
-            Value.Convert(GameAction, action)
-        ) as GameAction[]
+        const actions = this.convertGameActions(response.payload.actions)
 
         return { game: game, actions }
     }
@@ -431,12 +430,10 @@ export class TabletopApi {
             .json<ApplyActionResponse>()
 
         const responseGame = this.validateGame(response.payload.game)
-        const actions = response.payload.actions.map((action) =>
-            Value.Convert(GameAction, action)
-        ) as GameAction[]
-        const missingActions = response.payload.missingActions?.map((action) =>
-            Value.Convert(GameAction, action)
-        ) as GameAction[]
+        const actions = this.convertGameActions(response.payload.actions)
+        const missingActions = response.payload.missingActions
+            ? this.convertGameActions(response.payload.missingActions)
+            : undefined
 
         return {
             actions,
@@ -449,10 +446,11 @@ export class TabletopApi {
         game: Game,
         actionId: string
     ): Promise<{
-        undoneActions: GameAction[]
+        canonicalReplay: CanonicalActionReplay
         game: Game
-        redoneActions: GameAction[]
         checksum: number
+        undoneActions?: GameAction[]
+        redoneActions?: GameAction[]
     }> {
         const logicVersion = this.getGameLogicVersion(game.typeId!)
         const uiVersion = this.getGameUiVersion(game.typeId!)
@@ -467,18 +465,25 @@ export class TabletopApi {
             .json<UndoActionResponse>()
 
         const responseGame = this.validateGame(response.payload.game)
-        const redoneActions = response.payload.redoneActions.map((action) =>
-            Value.Convert(GameAction, action)
-        ) as GameAction[]
-        const undoneActions = response.payload.undoneActions?.map((action) =>
-            Value.Convert(GameAction, action)
-        ) as GameAction[]
+        const canonicalReplay = Value.Convert(
+            CanonicalActionReplay,
+            response.payload.canonicalReplay
+        )
+        Value.Assert(CanonicalActionReplay, canonicalReplay)
+        // Game UI bundles are deployed separately and may still use the legacy undo contract.
+        const undoneActions = response.payload.undoneActions
+            ? this.convertGameActions(response.payload.undoneActions)
+            : undefined
+        const redoneActions = response.payload.redoneActions
+            ? this.convertGameActions(response.payload.redoneActions)
+            : undefined
 
         return {
-            undoneActions,
+            canonicalReplay,
             game: responseGame,
-            redoneActions,
-            checksum: response.payload.checksum
+            checksum: response.payload.checksum,
+            undoneActions,
+            redoneActions
         }
     }
 
@@ -495,9 +500,7 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<CheckSyncResponse>()
 
-        const actions = response.payload.actions.map((action) =>
-            Value.Convert(GameAction, action)
-        ) as GameAction[]
+        const actions = this.convertGameActions(response.payload.actions)
 
         return { status: response.payload.status, actions, checksum: response.payload.checksum }
     }
@@ -690,6 +693,14 @@ export class TabletopApi {
             })
         }
         return validGame
+    }
+
+    private convertGameActions(actions: GameAction[]): GameAction[] {
+        return actions.map((action) => {
+            const convertedAction = Value.Convert(GameAction, action)
+            Value.Assert(GameAction, convertedAction)
+            return convertedAction
+        })
     }
 }
 

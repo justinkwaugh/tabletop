@@ -57,7 +57,7 @@
 
         const game = gameService.currentGameSession.primaryGame
 
-        if (!authorizationService.isAdmin) {
+        if (!authorizationService.canUseDeveloperTools) {
             return undefined
         }
 
@@ -347,7 +347,7 @@
                                 >
 
                                 <DropdownDivider class="md:hidden" />
-                                {#if authorizationService.isAdmin}
+                                {#if authorizationService.canUseDeveloperTools}
                                     <li>
                                         <Toggle
                                             bind:checked={authorizationService.debugViewEnabled}
@@ -355,6 +355,8 @@
                                             >Debug</Toggle
                                         >
                                     </li>
+                                {/if}
+                                {#if authorizationService.isAdmin}
                                     <li>
                                         <Toggle
                                             checked={authorizationService.adminCapabilitiesEnabled}
@@ -367,7 +369,7 @@
                                 <DropdownItem class="w-full text-left" onclick={logout}
                                     >Sign out</DropdownItem
                                 >
-                                {#if authorizationService.isAdmin}
+                                {#if authorizationService.canUseDeveloperTools}
                                     <DropdownDivider />
                                     <DropdownItem
                                         class="w-full text-left dark:text-gray-400 font-mono text-xs py-1"

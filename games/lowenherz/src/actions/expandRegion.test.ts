@@ -20,8 +20,8 @@ function blankBoard(): { squares: BoardSquare[][]; walls: { col: number; row: nu
     // squares with real walls (they only track them via the regions array), so
     // without this, the wide-open "rest of the board" would have zero real castles
     // and get flagged as a bogus giant neutral zone. Same trick as placeWall.test.ts.
-    squares[8][12] = { type: SquareType.Blank, castleColor: Color.Pink }
-    squares[8][13] = { type: SquareType.Blank, castleColor: Color.Yellow }
+    squares[8][12] = { type: SquareType.Blank, castleOwner: 'p1' }
+    squares[8][13] = { type: SquareType.Blank, castleOwner: 'p2' }
     return { squares, walls: [] }
 }
 
@@ -48,7 +48,7 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         turnManager: { series: [], turnOrder: playerIds, turnCounts: {} },
         winningPlayerIds: [],
         board: blankBoard(),
-        regions: [{ id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' }],
+        regions: [{ id: 'r1', owner: 'p1', squareKeys: ['0,0'], castleSquareKey: '0,0' }],
         alliances: [],
         turnOrder: playerIds,
         firstPlayerId: 'p1',
@@ -92,14 +92,14 @@ describe('HydratedExpandRegion', () => {
         // used a region with no actual wall around it, which is why they didn't catch
         // this - a live playtest did.
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
         board.walls = [
             { col: 0, row: 1, edge: WallEdge.North }, // south of (0,0)
             { col: 1, row: 0, edge: WallEdge.West } // east of (0,0) - the wall being crossed
         ]
         const state = buildState({
             board,
-            regions: [{ id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' }]
+            regions: [{ id: 'r1', owner: 'p1', squareKeys: ['0,0'], castleSquareKey: '0,0' }]
         })
 
         const action = makeExpandRegion('p1', 'r1', { col: 1, row: 0 })
@@ -130,9 +130,9 @@ describe('HydratedExpandRegion', () => {
         // expandRegion.ts silently missed this and left the newly-boxed-in prince
         // untracked and unscored.
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink }
-        board.squares[0][2] = { type: SquareType.Blank, castleColor: Color.Yellow }
-        board.squares[1][2] = { type: SquareType.Blank, knightColor: Color.Yellow }
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
+        board.squares[0][2] = { type: SquareType.Blank, castleOwner: 'p2' }
+        board.squares[1][2] = { type: SquareType.Blank, knightOwner: 'p2' }
         // Yellow's pair is already walled on 3 of its 4 exterior edges - only the
         // edge facing pink's about-to-be-claimed territory is still open.
         board.walls = [
@@ -142,7 +142,7 @@ describe('HydratedExpandRegion', () => {
         ]
         const state = buildState({
             board,
-            regions: [{ id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' }]
+            regions: [{ id: 'r1', owner: 'p1', squareKeys: ['0,0'], castleSquareKey: '0,0' }]
         })
 
         // Expand pink by 2 chained spaces: (1,0) then (1,1), as two separate actions
@@ -158,16 +158,16 @@ describe('HydratedExpandRegion', () => {
         second.apply(state)
         expect(state.expandingRegionId).toBeUndefined()
 
-        const yellowRegion = state.regions.find((r) => r.ownerColor === Color.Yellow)
-        expect(yellowRegion).toBeDefined()
-        expect(yellowRegion!.squareKeys.slice().sort()).toEqual(['2,0', '2,1'])
+        const p2Region = state.regions.find((r) => r.owner === 'p2')
+        expect(p2Region).toBeDefined()
+        expect(p2Region!.squareKeys.slice().sort()).toEqual(['2,0', '2,1'])
         expect(state.getPlayerState('p1').powerPoints).toBe(2)
         expect(state.getPlayerState('p2').powerPoints).toBe(3) // region-creation table: 2 spaces
         expect(second.metadata).toEqual({
             townsTaken: 0,
             pointsGained: 1,
             completedRegions: [
-                { ownerColor: Color.Yellow, spaceCount: 2, townCount: 0, points: 3, anchorSquareKey: '2,0.5' }
+                { owner: 'p2', spaceCount: 2, townCount: 0, points: 3, anchorSquareKey: '2,0.5' }
             ]
         })
     })
@@ -241,8 +241,8 @@ describe('HydratedExpandRegion', () => {
     it('rejects starting a 2nd, different region while one expansion is already in progress', () => {
         const state = buildState({
             regions: [
-                { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' },
-                { id: 'r2', ownerColor: Color.Pink, squareKeys: ['5,5'], castleSquareKey: '5,5' }
+                { id: 'r1', owner: 'p1', squareKeys: ['0,0'], castleSquareKey: '0,0' },
+                { id: 'r2', owner: 'p1', squareKeys: ['5,5'], castleSquareKey: '5,5' }
             ]
         })
         const first = makeExpandRegion('p1', 'r1', { col: 1, row: 0 })
@@ -271,8 +271,8 @@ describe('HydratedExpandRegion', () => {
         const state = buildState({
             knightsRemaining: 2,
             regions: [
-                { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' },
-                { id: 'r2', ownerColor: Color.Pink, squareKeys: ['5,5'], castleSquareKey: '5,5' }
+                { id: 'r1', owner: 'p1', squareKeys: ['0,0'], castleSquareKey: '0,0' },
+                { id: 'r2', owner: 'p1', squareKeys: ['5,5'], castleSquareKey: '5,5' }
             ]
         })
         // A complete 1-space expansion of r1: expand, then stop short of the optional
@@ -314,8 +314,8 @@ describe('HydratedExpandRegion', () => {
     it('rejects a regionId the player does not own', () => {
         const state = buildState({
             regions: [
-                { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] },
-                { id: 'r2', ownerColor: Color.Yellow, squareKeys: ['5,5'] }
+                { id: 'r1', owner: 'p1', squareKeys: ['0,0'] },
+                { id: 'r2', owner: 'p2', squareKeys: ['5,5'] }
             ]
         })
         expect(makeExpandRegion('p1', 'r2', { col: 5, row: 4 }).isValidExpandRegion(state)).toBe(false)
@@ -328,14 +328,14 @@ describe('HydratedExpandRegion', () => {
 
     it('rejects a space with an opposing knight or castle', () => {
         const board = blankBoard()
-        board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Yellow }
+        board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p2' }
         const state = buildState({ board })
         expect(makeExpandRegion('p1', 'r1', { col: 1, row: 0 }).isValidExpandRegion(state)).toBe(false)
     })
 
     it('allows a space with the player\'s own knight already on it', () => {
         const board = blankBoard()
-        board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Pink }
+        board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p1' }
         const state = buildState({ board })
         expect(makeExpandRegion('p1', 'r1', { col: 1, row: 0 }).isValidExpandRegion(state)).toBe(true)
     })
@@ -343,8 +343,8 @@ describe('HydratedExpandRegion', () => {
     it('rejects merging one of the player\'s own other regions', () => {
         const state = buildState({
             regions: [
-                { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] },
-                { id: 'r2', ownerColor: Color.Pink, squareKeys: ['1,0'] }
+                { id: 'r1', owner: 'p1', squareKeys: ['0,0'] },
+                { id: 'r2', owner: 'p1', squareKeys: ['1,0'] }
             ]
         })
         expect(makeExpandRegion('p1', 'r1', { col: 1, row: 0 }).isValidExpandRegion(state)).toBe(false)
@@ -352,14 +352,14 @@ describe('HydratedExpandRegion', () => {
 
     it('rejects invading another region when the invader\'s knights do not outnumber the defender\'s', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink } // (0,0) - invader has 0 knights
-        board.squares[0][2] = { type: SquareType.Blank, castleColor: Color.Yellow } // (2,0)
-        board.squares[0][3] = { type: SquareType.Blank, knightColor: Color.Yellow } // (3,0) - defender has 1 knight
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' } // (0,0) - invader has 0 knights
+        board.squares[0][2] = { type: SquareType.Blank, castleOwner: 'p2' } // (2,0)
+        board.squares[0][3] = { type: SquareType.Blank, knightOwner: 'p2' } // (3,0) - defender has 1 knight
         const state = buildState({
             board,
             regions: [
-                { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'], castleSquareKey: '0,0' },
-                { id: 'r2', ownerColor: Color.Yellow, squareKeys: ['1,0', '2,0', '3,0'], castleSquareKey: '2,0' }
+                { id: 'r1', owner: 'p1', squareKeys: ['0,0'], castleSquareKey: '0,0' },
+                { id: 'r2', owner: 'p2', squareKeys: ['1,0', '2,0', '3,0'], castleSquareKey: '2,0' }
             ]
         })
 
@@ -372,16 +372,16 @@ describe('HydratedExpandRegion', () => {
 
     it('rejects invading a region that is allied with the invader, even when knights outnumber it', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink } // (0,0)
-        board.squares[1][0] = { type: SquareType.Blank, knightColor: Color.Pink } // (0,1)
-        board.squares[2][0] = { type: SquareType.Blank, knightColor: Color.Pink } // (0,2) - invader has 2 knights
-        board.squares[1][2] = { type: SquareType.Blank, castleColor: Color.Yellow } // (2,1)
-        board.squares[1][3] = { type: SquareType.Blank, knightColor: Color.Yellow } // (3,1) - defender has 1 knight
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' } // (0,0)
+        board.squares[1][0] = { type: SquareType.Blank, knightOwner: 'p1' } // (0,1)
+        board.squares[2][0] = { type: SquareType.Blank, knightOwner: 'p1' } // (0,2) - invader has 2 knights
+        board.squares[1][2] = { type: SquareType.Blank, castleOwner: 'p2' } // (2,1)
+        board.squares[1][3] = { type: SquareType.Blank, knightOwner: 'p2' } // (3,1) - defender has 1 knight
         const state = buildState({
             board,
             regions: [
-                { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0', '0,1', '0,2'], castleSquareKey: '0,0' },
-                { id: 'r2', ownerColor: Color.Yellow, squareKeys: ['1,1', '2,1', '3,1'], castleSquareKey: '2,1' }
+                { id: 'r1', owner: 'p1', squareKeys: ['0,0', '0,1', '0,2'], castleSquareKey: '0,0' },
+                { id: 'r2', owner: 'p2', squareKeys: ['1,1', '2,1', '3,1'], castleSquareKey: '2,1' }
             ],
             alliances: [{ id: 'alliance-1', regionAId: 'r1', regionBId: 'r2' }]
         })
@@ -395,16 +395,16 @@ describe('HydratedExpandRegion', () => {
 
     it('invades another region when the invader\'s knights outnumber the defender\'s, with direct loss/gain', () => {
         const board = blankBoard()
-        board.squares[0][0] = { type: SquareType.Blank, castleColor: Color.Pink } // (0,0)
-        board.squares[1][0] = { type: SquareType.Blank, knightColor: Color.Pink } // (0,1)
-        board.squares[2][0] = { type: SquareType.Blank, knightColor: Color.Pink } // (0,2) - invader has 2 knights
-        board.squares[1][2] = { type: SquareType.Blank, castleColor: Color.Yellow } // (2,1)
-        board.squares[1][3] = { type: SquareType.Blank, knightColor: Color.Yellow } // (3,1) - defender has 1 knight
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' } // (0,0)
+        board.squares[1][0] = { type: SquareType.Blank, knightOwner: 'p1' } // (0,1)
+        board.squares[2][0] = { type: SquareType.Blank, knightOwner: 'p1' } // (0,2) - invader has 2 knights
+        board.squares[1][2] = { type: SquareType.Blank, castleOwner: 'p2' } // (2,1)
+        board.squares[1][3] = { type: SquareType.Blank, knightOwner: 'p2' } // (3,1) - defender has 1 knight
         const state = buildState({
             board,
             regions: [
-                { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0', '0,1', '0,2'], castleSquareKey: '0,0' },
-                { id: 'r2', ownerColor: Color.Yellow, squareKeys: ['1,1', '2,1', '3,1'], castleSquareKey: '2,1' }
+                { id: 'r1', owner: 'p1', squareKeys: ['0,0', '0,1', '0,2'], castleSquareKey: '0,0' },
+                { id: 'r2', owner: 'p2', squareKeys: ['1,1', '2,1', '3,1'], castleSquareKey: '2,1' }
             ]
         })
 
@@ -421,7 +421,7 @@ describe('HydratedExpandRegion', () => {
             pointsGained: 1,
             invasions: [
                 {
-                    victimColor: Color.Yellow,
+                    victimOwner: 'p2',
                     directSpacesLost: 1,
                     directPointsLost: 1,
                     directAnchorSquareKey: '1,1',
@@ -435,21 +435,21 @@ describe('HydratedExpandRegion', () => {
     it('splits off a disconnected piece of the defender\'s region as a new neutral zone, scored via the region-creation table', () => {
         const board = blankBoard()
         // Invader (Pink): castle at (2,0), knights at (1,0) and (3,0) - 2 knights.
-        board.squares[0][1] = { type: SquareType.Blank, knightColor: Color.Pink }
-        board.squares[0][2] = { type: SquareType.Blank, castleColor: Color.Pink }
-        board.squares[0][3] = { type: SquareType.Blank, knightColor: Color.Pink }
+        board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p1' }
+        board.squares[0][2] = { type: SquareType.Blank, castleOwner: 'p1' }
+        board.squares[0][3] = { type: SquareType.Blank, knightOwner: 'p1' }
         // Defender (Yellow): a 4-square line - knight(0,1), castle(1,1), connector(2,1),
         // stranded-with-town(3,1) - 1 knight, weaker than the invader.
-        board.squares[1][0] = { type: SquareType.Blank, knightColor: Color.Yellow }
-        board.squares[1][1] = { type: SquareType.Blank, castleColor: Color.Yellow }
+        board.squares[1][0] = { type: SquareType.Blank, knightOwner: 'p2' }
+        board.squares[1][1] = { type: SquareType.Blank, castleOwner: 'p2' }
         board.squares[1][3] = { type: SquareType.Village }
         const state = buildState({
             board,
             regions: [
-                { id: 'r1', ownerColor: Color.Pink, squareKeys: ['1,0', '2,0', '3,0'], castleSquareKey: '2,0' },
+                { id: 'r1', owner: 'p1', squareKeys: ['1,0', '2,0', '3,0'], castleSquareKey: '2,0' },
                 {
                     id: 'r2',
-                    ownerColor: Color.Yellow,
+                    owner: 'p2',
                     squareKeys: ['0,1', '1,1', '2,1', '3,1'],
                     castleSquareKey: '1,1'
                 }
@@ -470,7 +470,7 @@ describe('HydratedExpandRegion', () => {
         ])
         expect(state.regions.find((r) => r.id === 'r2')!.squareKeys).toEqual(['0,1', '1,1'])
         const neutralZone = state.regions.find(
-            (r) => !r.ownerColor && r.squareKeys.length === 1 && r.squareKeys[0] === '3,1'
+            (r) => !r.owner && r.squareKeys.length === 1 && r.squareKeys[0] === '3,1'
         )
         expect(neutralZone).toBeDefined()
 
@@ -485,7 +485,7 @@ describe('HydratedExpandRegion', () => {
             pointsGained: 1,
             invasions: [
                 {
-                    victimColor: Color.Yellow,
+                    victimOwner: 'p2',
                     directSpacesLost: 1,
                     directPointsLost: 1,
                     directAnchorSquareKey: '2,1',
@@ -505,26 +505,26 @@ describe('HydratedExpandRegion', () => {
         // wall placement could produce - and that in turn disabled Renegade against this
         // colour entirely (see isKnightSafeToRemove).
         const board = blankBoard()
-        board.squares[0][2] = { type: SquareType.Blank, castleColor: Color.Pink } // (2,0)
+        board.squares[0][2] = { type: SquareType.Blank, castleOwner: 'p1' } // (2,0)
         board.squares[1][2] = { type: SquareType.Blank } // (2,1), in the region
-        board.squares[1][3] = { type: SquareType.Blank, knightColor: Color.Pink } // (3,1) expanded onto
-        board.squares[1][4] = { type: SquareType.Blank, knightColor: Color.Pink } // (4,1) mustn't be cut off
+        board.squares[1][3] = { type: SquareType.Blank, knightOwner: 'p1' } // (3,1) expanded onto
+        board.squares[1][4] = { type: SquareType.Blank, knightOwner: 'p1' } // (4,1) mustn't be cut off
         const state = buildState({
             board,
             regions: [
-                { id: 'r1', ownerColor: Color.Pink, squareKeys: ['2,0', '2,1'], castleSquareKey: '2,0' }
+                { id: 'r1', owner: 'p1', squareKeys: ['2,0', '2,1'], castleSquareKey: '2,0' }
             ]
         })
-        expect(isKnightSafeToRemove(state, Color.Pink, 4, 1)).toBe(true)
+        expect(isKnightSafeToRemove(state, 'p1', 4, 1)).toBe(true)
 
         const action = makeExpandRegion('p1', 'r1', { col: 3, row: 1 })
         expect(action.isValidExpandRegion(state)).toBe(true)
         action.apply(state)
 
-        // No wall between the two Pink knights at (3,1) and (4,1)...
+        // No wall between p1's two knights at (3,1) and (4,1)...
         expect(isWalledBetween(state.board, 3, 1, 4, 1)).toBe(false)
-        // ...so (4,1) is still connected to Pink's castle, and Renegade still works.
-        expect(isKnightSafeToRemove(state, Color.Pink, 4, 1)).toBe(true)
+        // ...so (4,1) is still connected to p1's castle, and Renegade still works.
+        expect(isKnightSafeToRemove(state, 'p1', 4, 1)).toBe(true)
         // The ring is still drawn everywhere it's allowed - e.g. below the claimed square.
         expect(isWalledBetween(state.board, 3, 1, 3, 2)).toBe(true)
     })
@@ -538,27 +538,27 @@ describe('HydratedExpandRegion', () => {
         // Invader (Pink): row 0, cols 5-9. Castle (7,0), knights (6,0) and (8,0) - 2 knights,
         // outnumbering Yellow's 1. Sitting directly above the victim's row means BOTH taken
         // squares are adjacent to Pink's region, which expansion requires.
-        board.squares[0][6] = { type: SquareType.Blank, knightColor: Color.Pink }
-        board.squares[0][7] = { type: SquareType.Blank, castleColor: Color.Pink }
-        board.squares[0][8] = { type: SquareType.Blank, knightColor: Color.Pink }
+        board.squares[0][6] = { type: SquareType.Blank, knightOwner: 'p1' }
+        board.squares[0][7] = { type: SquareType.Blank, castleOwner: 'p1' }
+        board.squares[0][8] = { type: SquareType.Blank, knightOwner: 'p1' }
         // Victim (Yellow): row 1, cols 5-9, castle in the middle at (7,1). Taking (6,1)
         // strands (5,1); taking (8,1) strands (9,1). Yellow's single knight is on (5,1) - it
         // must not be on either square Pink takes, since another prince's knight blocks
         // expansion outright.
-        board.squares[1][5] = { type: SquareType.Blank, knightColor: Color.Yellow }
-        board.squares[1][7] = { type: SquareType.Blank, castleColor: Color.Yellow }
+        board.squares[1][5] = { type: SquareType.Blank, knightOwner: 'p2' }
+        board.squares[1][7] = { type: SquareType.Blank, castleOwner: 'p2' }
         const state = buildState({
             board,
             regions: [
                 {
                     id: 'r1',
-                    ownerColor: Color.Pink,
+                    owner: 'p1',
                     squareKeys: ['5,0', '6,0', '7,0', '8,0', '9,0'],
                     castleSquareKey: '7,0'
                 },
                 {
                     id: 'r2',
-                    ownerColor: Color.Yellow,
+                    owner: 'p2',
                     squareKeys: ['5,1', '6,1', '7,1', '8,1', '9,1'],
                     castleSquareKey: '7,1'
                 }
@@ -587,8 +587,8 @@ describe('HydratedExpandRegion', () => {
     it('absorbs a neutral zone space, shrinking it', () => {
         const state = buildState({
             regions: [
-                { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] },
-                { id: 'neutral', ownerColor: undefined, squareKeys: ['1,0', '2,0'] }
+                { id: 'r1', owner: 'p1', squareKeys: ['0,0'] },
+                { id: 'neutral', owner: undefined, squareKeys: ['1,0', '2,0'] }
             ]
         })
         const action = makeExpandRegion('p1', 'r1', { col: 1, row: 0 })
@@ -608,8 +608,8 @@ describe('HydratedExpandRegion', () => {
     it('deletes a neutral zone entirely once fully absorbed', () => {
         const state = buildState({
             regions: [
-                { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] },
-                { id: 'neutral', ownerColor: undefined, squareKeys: ['1,0'] }
+                { id: 'r1', owner: 'p1', squareKeys: ['0,0'] },
+                { id: 'neutral', owner: undefined, squareKeys: ['1,0'] }
             ]
         })
         const action = makeExpandRegion('p1', 'r1', { col: 1, row: 0 })

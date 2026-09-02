@@ -1,6 +1,6 @@
 <script lang="ts">
     import { gsap } from 'gsap'
-    import { type Player, type Color } from '@tabletop/common'
+    import { type Player } from '@tabletop/common'
     import { LowenherzPlayerState, MachineState, type PoliticsCard } from '@tabletop/lowenherz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import iconMoneybagFill from '$lib/images/action-cards/icons/icon-moneybag-transparent.png'
@@ -215,7 +215,7 @@
     }
 </script>
 
-{#snippet tintedIcon(fillSrc: string, linesSrc: string, color: Color, dx = 0, dy = 0)}
+{#snippet tintedIcon(fillSrc: string, linesSrc: string, playerId: string, dx = 0, dy = 0)}
     <!-- An embossed parchment "medallion" disc sits behind the icon so the little
          ducat/knight marks read as minted tokens and lift off the busy flag art
          instead of looking plain. The disc fills the box; the icon itself is inset a
@@ -245,7 +245,7 @@
         <div
             class="absolute inset-0"
             style="
-                background-color:{gameSession.colors.getUiColor(color)};
+                background-color:{gameSession.colors.getPlayerUiColor(playerId)};
                 mask-image:url({fillSrc}); mask-size:contain; mask-repeat:no-repeat; mask-position:center;
                 -webkit-mask-image:url({fillSrc}); -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat; -webkit-mask-position:center;
                 filter: saturate(1.7) brightness(1.18);
@@ -277,7 +277,7 @@
         >
             {#if showMoney}<Numeral value={playerState.money} />{:else}?{/if}
             <span class="relative w-[28px] h-[28px] shrink-0">
-                {@render tintedIcon(iconMoneybagFill, iconMoneybagLines, playerState.color, 2, 0)}
+                {@render tintedIcon(iconMoneybagFill, iconMoneybagLines, player.id, 2, 0)}
             </span>
         </span>
         <span
@@ -292,12 +292,12 @@
             title="Knights in stock"
         >
             <span class="relative w-[28px] h-[28px] shrink-0">
-                {@render tintedIcon(knightFill, knightLines, playerState.color, 0, -2)}
+                {@render tintedIcon(knightFill, knightLines, player.id, 0, -2)}
             </span>
             <Numeral value={playerState.knightsInStock} />
         </span>
     </div>
-    <FlagBorder color={playerState.color} />
+    <FlagBorder playerId={player.id} />
     <!-- The permanent politics-card spot - empty (just a card-shaped outline) when the
          player holds none, so the slot is always there rather than popping in once
          they pick up their first card. -->

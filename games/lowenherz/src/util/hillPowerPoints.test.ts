@@ -65,7 +65,7 @@ describe('awardHillPowerPoints', () => {
         board.squares[0][1] = { type: SquareType.Hill }
         board.squares[0][2] = { type: SquareType.Blank } // not a hill - no point
         const state = buildState(board, [
-            { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0', '1,0', '2,0'] }
+            { id: 'r1', owner: 'p1', squareKeys: ['0,0', '1,0', '2,0'] }
         ])
 
         const scored = awardHillPowerPoints(state)
@@ -95,7 +95,7 @@ describe('awardHillPowerPoints', () => {
         const board = blankBoard()
         board.squares[5][5] = { type: SquareType.Hill } // (5,5), in no region
         const state = buildState(board, [
-            { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] }
+            { id: 'r1', owner: 'p1', squareKeys: ['0,0'] }
         ])
 
         expect(awardHillPowerPoints(state)).toEqual([
@@ -108,7 +108,7 @@ describe('awardHillPowerPoints', () => {
         const board = blankBoard()
         board.squares[0][0] = { type: SquareType.Hill }
         const state = buildState(board, [
-            { id: 'neutral-1', ownerColor: undefined, squareKeys: ['0,0'] }
+            { id: 'neutral-1', owner: undefined, squareKeys: ['0,0'] }
         ])
 
         expect(awardHillPowerPoints(state)).toEqual([
@@ -126,9 +126,9 @@ describe('awardHillPowerPoints', () => {
         const state = buildState(
             board,
             [
-                { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] },
-                { id: 'r2', ownerColor: Color.Pink, squareKeys: ['3,2', '4,2'] },
-                { id: 'r3', ownerColor: Color.Yellow, squareKeys: ['6,4'] }
+                { id: 'r1', owner: 'p1', squareKeys: ['0,0'] },
+                { id: 'r2', owner: 'p1', squareKeys: ['3,2', '4,2'] },
+                { id: 'r3', owner: 'p2', squareKeys: ['6,4'] }
             ],
             3
         )
@@ -149,7 +149,7 @@ describe('awardHillPowerPoints', () => {
         const board = blankBoard()
         board.squares[0][0] = { type: SquareType.Hill }
         const state = buildState(board, [
-            { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] }
+            { id: 'r1', owner: 'p1', squareKeys: ['0,0'] }
         ])
         state.getPlayerState('p1').powerPoints = 17
 
@@ -165,7 +165,7 @@ describe('awardHillPowerPoints', () => {
         const board = blankBoard()
         board.squares[0][0] = { type: SquareType.Hill }
         const state = buildState(board, [
-            { id: 'r1', ownerColor: Color.Pink, squareKeys: ['0,0'] }
+            { id: 'r1', owner: 'p1', squareKeys: ['0,0'] }
         ])
 
         awardHillPowerPoints(state)
