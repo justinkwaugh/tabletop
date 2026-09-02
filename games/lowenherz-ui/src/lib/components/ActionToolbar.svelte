@@ -196,7 +196,7 @@
         }}
     >
         <div
-            class="flex max-h-[90vh] flex-col items-start justify-center gap-4 overflow-auto md:flex-row {boardCenter
+            class="flex max-h-[90vh] flex-col items-start gap-4 overflow-auto md:flex-row {boardCenter
                 ? 'absolute'
                 : ''}"
             style={boardCenter
