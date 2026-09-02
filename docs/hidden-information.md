@@ -4,7 +4,7 @@
 
 ## Status and purpose
 
-This document records the current theoretical model and scenario catalog for preventing a Hosted Game Client from receiving information its Player Perspective is not allowed to know. The end-to-end capability is not implemented. Initial authoring and value-projection slices now exist for declaring protected TypeBox fields and named schema scopes, deriving canonical and projection schemas, registering an optional state projector with a participating Game Runtime, executing the built-in host-only projection used by Fresh Fish's tile bag, applying the built-in actor policy to `PlaceBid.amount`, and applying the shared simultaneous-auction bid policy to Fresh Fish state snapshots. Fresh Fish money intentionally remains unannotated because hidden money is not currently a game variant. The implementation does not yet project Action transitions, alter transport, persist visible variants, or enforce confidentiality. Resolved-sounding statements are still parts of the working proposal, while explicitly open questions identify areas where even the proposal has not yet converged.
+This document records the current theoretical model and scenario catalog for preventing a Hosted Game Client from receiving information its Player Perspective is not allowed to know. The end-to-end capability is not implemented. Initial authoring and projection slices now exist for declaring protected TypeBox fields and named schema scopes, deriving canonical and projection schemas, registering state and Action projectors with a participating Game Runtime, executing the built-in host-only projection used by Fresh Fish's tile bag, applying the built-in actor policy to `PlaceBid.amount`, applying the shared simultaneous-auction bid policy to Fresh Fish state snapshots, and materializing a supplied canonical Action cascade into projected Action records plus visible forward and undo patches. Fresh Fish money intentionally remains unannotated because hidden money is not currently a game variant. The implementation does not yet capture cascade state boundaries from Game Engine results, classify cascade mode, alter transport, persist visible variants, or enforce confidentiality. Resolved-sounding statements are still parts of the working proposal, while explicitly open questions identify areas where even the proposal has not yet converged.
 
 The catalog is intended to evaluate proposed designs and later serve as an acceptance-test matrix. A design is incomplete if it protects ordinary state delivery but leaks information through Actions, undo patches, System Action cascades, synchronization, persistence, or another Hosted Game flow.
 
@@ -266,7 +266,9 @@ The visibility metadata belongs to the schema, not to each serialized state obje
 
 `Visibility.createProjector(schema, { policies })` is the first pure runtime projection Module. It compiles canonical and projected validators once, returns the derived schema as `projector.schema`, and projects a canonical value through `projector.project(value, perspective)`. A game-specific policy registry is an explicit creation dependency rather than global mutable registration. Each named resolver receives the Perspective, canonical root, protected value, parent object, value path, and typed access to required schema scopes, then decides whether that Perspective may receive the canonical value. An authorized value is still recursively projected so a visible outer object cannot bypass a protected descendant.
 
-A participating Game Runtime can expose its compiled state projector as the optional `runtime.visibility.state` member. Fresh Fish is the first registration. This gives generic host code one game-independent discovery seam while leaving existing Game Runtimes unchanged. The registered projector accepts the Game Runtime's canonical state type, and its result must retain the shared `GameState` contract even when protected game-specific fields have a different projected shape. The registration itself does not alter state delivery: transport still returns canonical state and Actions until later slices can project a complete response without leaving another canonical-data path open.
+A participating Game Runtime can expose compiled state and Action projectors through the optional `runtime.visibility` member. Fresh Fish is the first registration. This gives generic host code one game-independent discovery seam while leaving non-participating Game Runtimes unchanged. `runtime.visibility.state` accepts the Game Runtime's canonical state type, and its result must retain the shared `GameState` contract even when protected game-specific fields have a different projected shape. `runtime.visibility.actions` selects a precompiled projector by canonical Action type and fails when no schema is registered. Its optional policy registry is typed against the union of its registered Action schemas, allowing a game-owned resolver to narrow by Action type when necessary. Fresh Fish supplies a complete title-owned schema registry containing both its User and System Actions; its existing API Action registry remains the smaller User Action subset.
+
+The common `Visibility.projectActionCascade` experiment accepts a canonical starting state followed by an ordered sequence of Processed Actions and their canonical after-states, together with a Perspective and the runtime registration. It projects each state boundary once and returns an ordered sequence of projected Action records with forward and undo patches calculated by comparing only adjacent projected states. A one-Action sequence represents the smallest Action cascade. The engine-owned `GameAction.undoPatch` declaration is host-only for every Action schema that inherits it, and the Action projector removes the canonical patch before invoking the schema projector. The materializer currently returns both patch directions for every Action so tests and later cascade classification can choose between replay and patching without regenerating either patch from canonical operations. It does not choose a cascade mode or change delivery by itself: transport still returns canonical state and Actions until later slices can project a complete response without leaving another canonical-data path open.
 
 The current implementation handles `hostOnly` as unauthorized for both client-facing perspective kinds, handles `actor` by matching a Player Perspective to the projected root value's required `playerId`, resolves simultaneous-auction bids through their enclosing schema scope, executes omission and the built-in empty-array Adapter, evaluates registered named audience policies, recursively projects schema-declared values, and does not mutate its input. It copies object fields from the schema as an allowlist rather than copying undeclared runtime properties. An actor-protected projection fails if its root has no Player attribution. A required scope fails if it is absent or contains the wrong canonical shape. Creation fails closed when a declaration names an audience policy or Adapter that has no implementation, and every result is checked against the derived projection schema. Custom Adapter registration and transition-aware policy context remain future work.
 
@@ -313,13 +315,13 @@ The initial value-policy context contains the Perspective, canonical root and pr
 
 ### Action declarations
 
-The same declaration vocabulary would apply to User Action payloads, System Action payloads, processed results, and other Processed Action metadata. A visible record would be constructed from an allowlist-producing projection plan, not by cloning a canonical Action and deleting known secrets afterward.
+The same declaration vocabulary now applies to registered User Action and System Action schemas, including their payloads, processed results, and other Processed Action metadata. The schema projector constructs a visible record from declared fields as an allowlist. Canonical undo data is removed at the Action-projection seam before that traversal because it is platform-owned rather than game-visible Action content.
 
 The built-in `actor` audience policy permits a protected value only when a Player Perspective matches the root Action's `playerId`. It does not require game-specific registration. A root without Player attribution fails projection rather than guessing an actor; unattributed System Actions must use another policy.
 
 An Action type can be treated as another classified field. If a perspective is not entitled to it, the engine emits the reserved redaction sentinel, prevents game hydration or execution of that record, and selects a forward-patched cascade. This preserves one canonical game-semantic Action type rather than introducing a second type for another perspective.
 
-For this to be exhaustive, the engine must be able to enumerate the schemas for every User and System Action that a game can produce. Whether the current game runtime already exposes enough System Action schema information remains to be investigated.
+For this to be exhaustive, the engine must be able to enumerate the schemas for every User and System Action that a game can produce. Fresh Fish now does so in a title-owned registry used by its Action projector. The generic runtime does not yet derive or verify that registry against every Action its hydrator and Machine State Handlers can produce, so completeness remains a participating-game responsibility in this experiment.
 
 ### Compiled projection plan and engine Interface
 
@@ -327,10 +329,12 @@ At publication or runtime startup, a hidden-information compiler could turn the 
 
 ```text
 projectSnapshot(canonicalState, perspective)
-projectCascade(canonicalBefore, canonicalResult, perspective)
+projectActionCascade(canonicalBefore, canonicalResult, perspective)
 ```
 
 Behind that Interface, the Module would own recursive traversal, visible Action records, Visibility Equivalence Classes, forward and undo patch derivation, cascade mode, checksum-preserving records, and persistence output. That keeps the projection Seam out of individual game Actions and transport handlers.
+
+The current narrower implementation exposes `runtime.visibility.state`, `runtime.visibility.actions`, and the pure `Visibility.projectActionCascade` operation. This establishes the snapshot, Action-selection, ordered-cascade, and patch-derivation parts of that Seam without prematurely choosing the persisted visible-record schema or cascade-mode protocol. A completed Action cascade is already the outer materialization unit and remains the intended unit for later classification and delivery; callers must not independently mix replayed and patched Action entries merely because its result contains per-Action transitions.
 
 Compilation could fail a participating game before publication when:
 
@@ -383,8 +387,10 @@ The initial implementation establishes that:
 - visibility and scope metadata survive the Fresh Fish runtime schema composition exercised by the bag, auction, game state, and `PlaceBid`;
 - the pure runtime projector requires an explicit Player or spectator Perspective, executes the built-in host-only, actor, and simultaneous-auction bid policies plus registered audience policies, makes the nearest named schema scope available to a resolver, recursively protects authorized values, validates its result, and rejects unresolved declarations before projecting a value;
 - a participating Game Runtime can register that state projector through its optional visibility configuration without changing existing Game Titles or transport;
+- the same runtime registration can enumerate and project all title-owned User and System Action schemas, rejects unregistered Action types, and removes the canonical undo patch before Action projection;
+- a pure cascade materializer preserves public User and System Action identity fields while deriving visible forward and undo patches solely from adjacent projected states;
 - the shared simultaneous-auction policy produces distinct owner, opponent, spectator, and resolved-bid projections for Fresh Fish while the Draw Bag remains redacted;
-- Fresh Fish projects `PlaceBid.amount` with the common actor policy and publishes lasting bid knowledge through the public `EndAuction` record; and
+- Fresh Fish projects `PlaceBid.amount` with the common actor policy, produces different actor and non-actor transition records and patches, and publishes lasting bid knowledge through the public `EndAuction` record; and
 - TypeBox type-level composition may erase custom option types even where the runtime metadata survives.
 
 The broader proposal still needs answers to the following:
@@ -587,7 +593,7 @@ Under the current proposal, every participating Action fixture would be evaluate
 - How are secret game randomness, public replayable randomness, and System Action identity generation separated?
 - Does a later reveal leave earlier stored visible Action records unchanged, enrich them, or maintain both event-time and current-knowledge representations?
 - Is durable Player knowledge stored in canonical state, in a separate knowledge model, or in persisted player-relative projections?
-- What exact interface does a participating Game Runtime expose for state and Action projection?
+- How should the initial `runtime.visibility.state` and `runtime.visibility.actions` Interface evolve when transition-aware policies, cascade classification, and opaque Action types are implemented?
 - Are visible variants stored with canonical Actions or in separately protected persistence records?
 - Are visible forward and undo patches stored for only patched cascades or for replayed cascades as well?
 - How are public spectators, administrators, Player reassignment, and post-game visibility represented?

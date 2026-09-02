@@ -4,6 +4,7 @@ import { GameState } from '../model/gameState.js'
 import { Hydratable } from '../../util/hydration.js'
 import { MachineContext } from './machineContext.js'
 import * as Value from 'typebox/value'
+import { Policy, protect } from '../visibility/visibilitySchema.js'
 
 export enum ActionSource {
     User = 'user',
@@ -28,7 +29,7 @@ export const GameAction = Type.Object({
     source: Type.Enum(ActionSource),
     type: Type.String(),
     playerId: Type.Optional(Type.String()),
-    undoPatch: Type.Optional(Patch),
+    undoPatch: protect(Type.Optional(Patch), { policy: Policy.HostOnly }),
     index: Type.Optional(Type.Number()),
     simultaneousGroupId: Type.Optional(Type.String()),
     revealsInfo: Type.Optional(Type.Boolean()),
@@ -81,7 +82,10 @@ export abstract class HydratableAction<T extends Type.TSchema>
     abstract apply(state: GameState, context?: MachineContext): void
 }
 
-export function createAction<T extends Type.TSchema>(schema: T, data?: Partial<Type.Static<T>>): Type.Static<T> {
+export function createAction<T extends Type.TSchema>(
+    schema: T,
+    data?: Partial<Type.Static<T>>
+): Type.Static<T> {
     // Create a new action with dummy values/defaults
     const newAction = Value.Create(schema)
 

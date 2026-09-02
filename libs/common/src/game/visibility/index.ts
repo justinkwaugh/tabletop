@@ -8,6 +8,8 @@ export {
     ScopeKey
 } from './visibilitySchema.js'
 export { createProjector } from './valueProjector.js'
+export { createActionProjector } from './actionProjector.js'
+export { projectActionCascade } from './gameVisibility.js'
 
 export type {
     Metadata,
@@ -21,7 +23,6 @@ export type {
     ScopeMetadata
 } from './visibilitySchema.js'
 export type {
-    GameVisibility,
     Perspective,
     PolicyContext,
     PolicyRegistry,
@@ -30,3 +31,16 @@ export type {
     ProjectorOptions,
     ValueProjector
 } from './valueProjector.js'
+export type {
+    ActionProjector,
+    ActionProjectorOptions,
+    ActionSchemaRegistry
+} from './actionProjector.js'
+export type {
+    CanonicalActionCascade,
+    CanonicalCascadeTransition,
+    CascadeProjectionOptions,
+    GameVisibility,
+    VisibleActionCascade,
+    VisibleActionTransition
+} from './gameVisibility.js'

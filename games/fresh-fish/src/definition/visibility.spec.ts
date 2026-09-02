@@ -135,6 +135,10 @@ describe('Fresh Fish visibility', () => {
             policy: Visibility.Policy.Actor,
             redaction: { kind: 'omit' }
         })
+        expect(Reflect.get(PlaceBid.properties.undoPatch, Visibility.MetadataKey)).toEqual({
+            policy: Visibility.Policy.HostOnly,
+            redaction: { kind: 'omit' }
+        })
         expect(Compile(PlaceBid).Check(canonicalAction)).toBe(true)
         expect(Compile(PlaceBid).Check(redactedAction)).toBe(false)
         expect(Compile(PlaceBidProjection).Check(canonicalAction)).toBe(true)
@@ -156,6 +160,105 @@ describe('Fresh Fish visibility', () => {
             })
         ).toEqual(redactedAction)
         expect(projector.project(canonicalAction, { kind: 'spectator' })).toEqual(redactedAction)
+    })
+
+    it('materializes Player-relative PlaceBid transitions with safe patches', () => {
+        const before = createCanonicalAuctionState()
+        const after = structuredClone(before)
+        const auction = after.currentAuction
+        if (auction === undefined) {
+            throw Error('Expected a current auction')
+        }
+        auction.participants[2].bid = 7
+
+        const action: PlaceBid = {
+            id: 'action-1',
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: ActionType.PlaceBid,
+            playerId: 'p3',
+            amount: 7,
+            index: 12,
+            undoPatch: [
+                {
+                    op: 'replace',
+                    path: '/currentAuction/participants/2/bid',
+                    value: 7654321
+                }
+            ]
+        }
+        const actorCascade = Visibility.projectActionCascade(
+            { before, transitions: [{ action, after }] },
+            {
+                visibility: FreshFishRuntime.visibility,
+                perspective: { kind: 'player', playerId: 'p3' }
+            }
+        )
+        const opponentCascade = Visibility.projectActionCascade(
+            { before, transitions: [{ action, after }] },
+            {
+                visibility: FreshFishRuntime.visibility,
+                perspective: { kind: 'player', playerId: 'p1' }
+            }
+        )
+        const spectatorCascade = Visibility.projectActionCascade(
+            { before, transitions: [{ action, after }] },
+            {
+                visibility: FreshFishRuntime.visibility,
+                perspective: { kind: 'spectator' }
+            }
+        )
+        const actorTransition = actorCascade.transitions[0]
+        const opponentTransition = opponentCascade.transitions[0]
+        const spectatorTransition = spectatorCascade.transitions[0]
+        if (
+            actorTransition === undefined ||
+            opponentTransition === undefined ||
+            spectatorTransition === undefined
+        ) {
+            throw Error('Expected one projected transition per Action cascade')
+        }
+
+        expect(actorTransition.action).toEqual({
+            id: 'action-1',
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: ActionType.PlaceBid,
+            playerId: 'p3',
+            amount: 7,
+            index: 12
+        })
+        expect(actorTransition.forwardPatch).toEqual([
+            {
+                op: 'add',
+                path: '/currentAuction/participants/2/bid',
+                value: 7
+            }
+        ])
+        expect(actorTransition.undoPatch).toEqual([
+            {
+                op: 'remove',
+                path: '/currentAuction/participants/2/bid'
+            }
+        ])
+
+        const redactedAction = {
+            id: 'action-1',
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: ActionType.PlaceBid,
+            playerId: 'p3',
+            index: 12
+        }
+        expect(opponentTransition.action).toEqual(redactedAction)
+        expect(spectatorTransition.action).toEqual(redactedAction)
+        expect(opponentTransition.forwardPatch).toEqual([])
+        expect(opponentTransition.undoPatch).toEqual([])
+        expect(spectatorTransition.forwardPatch).toEqual([])
+        expect(spectatorTransition.undoPatch).toEqual([])
+        expect(JSON.stringify(opponentTransition)).not.toContain('7654321')
+        expect(JSON.stringify(spectatorTransition)).not.toContain('7654321')
+        expect(action.undoPatch?.[0].value).toBe(7654321)
     })
 
     it('carries the bag and bid declarations into the full state projection', () => {

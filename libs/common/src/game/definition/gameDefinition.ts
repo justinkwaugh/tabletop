@@ -8,7 +8,7 @@ import type { GameStateLogger } from './gameStateLogger.js'
 import type { GameConfigurator } from './gameConfigurator.js'
 import type { Color } from '../model/colors.js'
 import type { GameState, HydratedGameState } from '../model/gameState.js'
-import type { GameVisibility } from '../visibility/valueProjector.js'
+import type { GameVisibility } from '../visibility/gameVisibility.js'
 
 export interface GameInfo {
     id: string

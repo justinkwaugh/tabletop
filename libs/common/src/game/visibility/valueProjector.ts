@@ -3,7 +3,6 @@ import { Compile, type Validator } from 'typebox/compile'
 import * as Value from 'typebox/value'
 import { SimultaneousAuctionVisibility } from '../components/auctions/simultaneous.js'
 import { canViewSimultaneousAuctionBid } from '../components/auctions/simultaneousVisibility.js'
-import type { GameState } from '../model/gameState.js'
 import {
     createProjectionSchema,
     EmptyArrayAdapter,
@@ -42,10 +41,6 @@ export interface ProjectorOptions<Root> {
 export interface ValueProjector<Canonical, Projected = unknown> {
     readonly schema: Type.TSchema
     project(value: Canonical, perspective: Perspective): Projected
-}
-
-export interface GameVisibility<State extends GameState = GameState> {
-    readonly state: ValueProjector<State, GameState>
 }
 
 interface TraversalContext<Root> {

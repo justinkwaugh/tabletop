@@ -3,6 +3,7 @@ import { FreshFishGameState, type HydratedFreshFishGameState } from '../model/ga
 import { FreshFishHydrator } from './hydrator.js'
 import { FreshFishGameInitializer } from './gameInitializer.js'
 import { FreshFishStateLogger } from '../util/stateLogger.js'
+import { FreshFishActionSchemas } from './actionSchemas.js'
 import { FreshFishApiActions } from './apiActions.js'
 import { FreshFishStateHandlers } from './stateHandlers.js'
 import { FreshFishColors } from './colors.js'
@@ -15,6 +16,7 @@ export const FreshFishRuntime = {
     playerColors: FreshFishColors,
     stateLogger: new FreshFishStateLogger(),
     visibility: {
-        state: Visibility.createProjector(FreshFishGameState)
+        state: Visibility.createProjector(FreshFishGameState),
+        actions: Visibility.createActionProjector(FreshFishActionSchemas)
     }
 } satisfies GameRuntime<FreshFishGameState, HydratedFreshFishGameState>
