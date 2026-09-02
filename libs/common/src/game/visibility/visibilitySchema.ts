@@ -7,6 +7,8 @@ export const Policy = {
     HostOnly: 'tabletop.host-only'
 } as const
 
+export const EmptyArrayAdapter = 'tabletop.empty-array' as const
+
 export interface OmitRedaction {
     kind: 'omit'
 }
@@ -58,7 +60,7 @@ const replacementRedaction = <const Adapter extends string, Schema extends Type.
 export const redaction = {
     omit: omitRedaction,
     replaceWith: replacementRedaction,
-    emptyArray: () => replacementRedaction('tabletop.empty-array', Type.Tuple([]))
+    emptyArray: () => replacementRedaction(EmptyArrayAdapter, Type.Tuple([]))
 }
 
 export function protect<
@@ -262,7 +264,7 @@ function isVisibilityRedaction(value: unknown): value is Redaction {
     )
 }
 
-function getVisibilityMetadata(schema: Type.TSchema): Metadata | undefined {
+export function getVisibilityMetadata(schema: Type.TSchema): Metadata | undefined {
     if (!Reflect.has(schema, MetadataKey)) {
         return undefined
     }
@@ -279,6 +281,60 @@ function getVisibilityMetadata(schema: Type.TSchema): Metadata | undefined {
         policy,
         redaction
     }
+}
+
+export function visitVisibilityMetadata(
+    schema: Type.TSchema,
+    visitor: (metadata: Metadata) => void
+) {
+    const visited = new Set<Type.TSchema>()
+
+    function visit(current: Type.TSchema) {
+        if (visited.has(current)) {
+            return
+        }
+        visited.add(current)
+
+        const metadata = getVisibilityMetadata(current)
+        if (metadata !== undefined) {
+            visitor(metadata)
+            if (metadata.redaction.kind === 'replace') {
+                visit(metadata.redaction.schema)
+            }
+        }
+
+        for (const keyword of singleSchemaKeywords) {
+            const child: unknown = Reflect.get(current, keyword)
+            if (Type.IsSchema(child)) {
+                visit(child)
+            }
+        }
+        for (const keyword of schemaArrayKeywords) {
+            const children: unknown = Reflect.get(current, keyword)
+            if (!Array.isArray(children)) {
+                continue
+            }
+            for (const child of children) {
+                if (Type.IsSchema(child)) {
+                    visit(child)
+                }
+            }
+        }
+        for (const keyword of schemaRecordKeywords) {
+            const children: unknown = Reflect.get(current, keyword)
+            if (!isObject(children)) {
+                continue
+            }
+            for (const key of Reflect.ownKeys(children)) {
+                const child: unknown = Reflect.get(children, key)
+                if (Type.IsSchema(child)) {
+                    visit(child)
+                }
+            }
+        }
+    }
+
+    visit(schema)
 }
 
 function applySchemaModifiers(source: Type.TSchema, target: Type.TSchema): Type.TSchema {

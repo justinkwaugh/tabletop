@@ -17,8 +17,9 @@ import { FreshFishGameState, FreshFishGameStateProjection } from '../model/gameS
 import { PlaceBid, PlaceBidProjection } from '../actions/placeBid.js'
 import { ActionType } from './actions.js'
 import { FreshFishVisibilityPolicy } from './visibility.js'
+import { TileType } from '../components/tiles.js'
 
-describe('Fresh Fish visibility schemas', () => {
+describe('Fresh Fish visibility', () => {
     it('protects tile identities while retaining the public bag count', () => {
         expect(TileBag.properties.items[Visibility.MetadataKey]).toMatchObject({
             policy: Visibility.Policy.HostOnly,
@@ -33,6 +34,29 @@ describe('Fresh Fish visibility schemas', () => {
         expectTypeOf<typeof TileBagProjection>().toEqualTypeOf<
             Visibility.ProjectedSchema<typeof TileBag>
         >()
+    })
+
+    it('projects a tile bag to its public count without exposing tile identities or order', () => {
+        const canonical: TileBag = {
+            items: [
+                { type: TileType.Market, test: 'first-hidden-tile' },
+                { type: TileType.Market, test: 'second-hidden-tile' }
+            ],
+            remaining: 2
+        }
+
+        const projector = Visibility.createProjector(TileBag)
+        const playerProjection = projector.project(canonical, {
+            kind: 'player',
+            playerId: 'player-1'
+        })
+        const spectatorProjection = projector.project(canonical, { kind: 'spectator' })
+
+        expect(playerProjection).toEqual({ items: [], remaining: 2 })
+        expect(spectatorProjection).toEqual(playerProjection)
+        expect(canonical.items).toHaveLength(2)
+        expect(Compile(projector.schema).Check(playerProjection)).toBe(true)
+        expect(Compile(projector.schema).Check(spectatorProjection)).toBe(true)
     })
 
     it('keeps the canonical auction shape while declaring sealed bids', () => {
@@ -114,5 +138,8 @@ describe('Fresh Fish visibility schemas', () => {
                 Visibility.MetadataKey
             )
         ).toBeDefined()
+        expect(() => Visibility.createProjector(FreshFishGameState)).toThrow(
+            `No visibility policy registered for "${FreshFishVisibilityPolicy.SealedBid}"`
+        )
     })
 })
