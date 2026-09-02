@@ -1,18 +1,15 @@
 import {
-    AuctionType,
-    Color,
     GameResult,
     GameState,
     HydratableGameState,
     HydratedTurnManager,
     HydratedSimultaneousAuction,
     PrngState,
-    SimultaneousAuction,
-    TieResolutionStrategy
+    Visibility
 } from '@tabletop/common'
 import { FreshFishPlayerState, HydratedFreshFishPlayerState } from './playerState.js'
 import { HydratedTileBag, TileBag } from '../components/tileBag.js'
-import { isStallTile, StallTile, Tile, TileType } from '../components/tiles.js'
+import { isStallTile, StallTile, Tile } from '../components/tiles.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameBoard, HydratedGameBoard } from '../components/gameBoard.js'
@@ -21,6 +18,7 @@ import { GoodsType } from '../definition/goodsType.js'
 import { Expropriator } from '../util/expropriation.js'
 import { CellType, RoadCell } from '../components/cells.js'
 import { Scorer } from '../util/scoring.js'
+import { FreshFishSimultaneousAuction } from '../components/auction.js'
 
 export type FreshFishGameState = Type.Static<typeof FreshFishGameState>
 export const FreshFishGameState = Type.Evaluate(
@@ -33,11 +31,14 @@ export const FreshFishGameState = Type.Evaluate(
             board: GameBoard,
             finalStalls: Type.Array(StallTile),
             chosenTile: Type.Optional(Tile),
-            currentAuction: Type.Optional(SimultaneousAuction),
+            currentAuction: Type.Optional(FreshFishSimultaneousAuction),
             boardSeed: Type.Optional(Type.Number())
         })
     ])
 )
+
+export type FreshFishGameStateProjection = Type.Static<typeof FreshFishGameStateProjection>
+export const FreshFishGameStateProjection = Visibility.createProjectionSchema(FreshFishGameState)
 
 const FreshFishGameStateValidator = Compile(FreshFishGameState)
 

@@ -4,7 +4,7 @@
 
 ## Status and purpose
 
-This document records the current theoretical model and scenario catalog for preventing a Hosted Game Client from receiving information its Player Perspective is not allowed to know. The capability is not implemented. Resolved-sounding statements are still parts of the working proposal, while explicitly open questions identify areas where even the proposal has not yet converged.
+This document records the current theoretical model and scenario catalog for preventing a Hosted Game Client from receiving information its Player Perspective is not allowed to know. The end-to-end capability is not implemented. A first authoring slice now exists for declaring protected TypeBox fields and deriving canonical and projection schemas, with Fresh Fish's tile bag and sealed bids as its initial target. Fresh Fish money intentionally remains unannotated because hidden money is not currently a game variant. The slice does not yet project values, evaluate audiences, alter transport, or enforce confidentiality. Resolved-sounding statements are still parts of the working proposal, while explicitly open questions identify areas where even the proposal has not yet converged.
 
 The catalog is intended to evaluate proposed designs and later serve as an acceptance-test matrix. A design is incomplete if it protects ordinary state delivery but leaks information through Actions, undo patches, System Action cascades, synchronization, persistence, or another Hosted Game flow.
 
@@ -184,7 +184,7 @@ This assessment records the leading proposal at this point in exploration; it is
 
 ## Candidate declarative visibility model
 
-> **Exploration status:** This is a promising authoring proposal, not an accepted direction. It has not yet been understood or prototyped deeply enough to support a firm preference. In particular, the TypeBox composition, static typing, projected-shape, hydration, and runtime-replay questions below remain open.
+> **Implementation experiment status:** This remains a working proposal, not an accepted direction. The schema declaration and derivation portion now has an initial implementation, but value projection, policy evaluation, hydration, runtime replay, persistence, and transport remain design work.
 
 The goal is for game logic to remain canonical and perspective-free. An Action or state handler should not normally contain branches such as `viewer === owner`. Instead, a participating game would declare visibility near its existing TypeBox state and Action schemas, and the platform would compile those declarations into the projection and transition behavior described elsewhere in this document.
 
@@ -223,17 +223,33 @@ The names and exact set are placeholders. For example, `owner` still needs an un
 
 ### TypeBox annotations and authoring helpers
 
-TypeBox accepts unknown schema options, so one possible representation is a data-only custom keyword such as `x-tabletop-visibility`. Developers would preferably use typed helpers instead of writing raw metadata strings:
+The initial implementation uses TypeBox's support for unknown schema options to attach a data-only `x-tabletop-visibility` keyword. Developers use typed helpers rather than writing raw metadata:
 
 ```ts
-visibility.owner(hiddenCollection(Card))
+import { Visibility } from '@tabletop/common'
 
-visibility.policy(Type.Optional(Type.Number()), 'sealed-bid', redaction.presence())
+const SealedBidVisibility = 'fresh-fish.sealed-bid'
+
+const Bid = Visibility.protect(Type.Optional(Type.Number()), {
+    policy: SealedBidVisibility
+})
+
+const TileBag = DrawBag(Tile)
+
+const Projection = Visibility.createProjectionSchema(Canonical)
 ```
 
-This syntax is conceptual. It does not select names, argument order, or whether annotations ultimately live directly on TypeBox schemas or in a parallel registry keyed to them.
+The visibility helpers and types are exposed as the single `Visibility` namespace from `@tabletop/common`. `Visibility.protect(schema, { policy })` keeps the TypeBox schema as the primary operand and defaults to omission for an unauthorized perspective. The optional named `redaction` property additionally supplies a serializable Adapter declaration and the TypeBox schema for both possible projected representations. `Visibility.redaction.emptyArray()` is the first built-in replacement declaration. The Adapter identifiers describe how a later value projector will obtain the replacement; schema generation does not execute an Adapter.
 
-The visibility metadata belongs to the schema, not to each serialized state object. It therefore does not by itself introduce a `Visible | Hidden` discriminated union into stored state. The canonical value retains its ordinary domain shape. A small initial experiment found that a custom keyword survives direct TypeBox construction and `Type.Evaluate(Type.Intersect(...))`, and that TypeBox compilation ignores the unknown keyword while continuing to validate the underlying schema. That result is encouraging but much narrower than the behavior the design would depend on.
+`DrawBag` owns the visibility declaration for its `items`: exact item identities and order are host-only, and an unauthorized projection receives an empty `items` array. Its `remaining` count stays public. Games inherit that behavior simply by declaring, for example, `DrawBag(Tile)`; they do not repeat or configure the protection at each use site.
+
+An unannotated field is public. There is deliberately no `publicField()` wrapper, required object-level default, or strict classification mode in this first design. This keeps existing schemas unchanged and asks a game developer to mark only the protected exceptions. A missed annotation is treated as a correctable game implementation error rather than something this system can automatically recognize.
+
+The visibility metadata belongs to the schema, not to each serialized state object. It therefore does not by itself introduce a `Visible | Hidden` discriminated union into stored state. The canonical value retains its ordinary domain shape and exact direct `Type.Static` inference. TypeBox compilation ignores the custom keyword while continuing to validate the canonical schema.
+
+`Visibility.createProjectionSchema` recursively derives a separate schema without mutating the canonical schema. An omitted protected property becomes optional. A replacement property accepts either its recursively projected canonical representation or the declared safe replacement representation. Unannotated parents are still traversed so protected descendants are found. The current traversal covers the ordinary JSON Schema composition keywords used by this repository, including objects, arrays, tuples, unions, intersections, records, conditionals, and definitions.
+
+Runtime metadata survives the Fresh Fish composition paths exercised so far. TypeBox's own type-level transforms do not preserve arbitrary custom option types through every nested composition, even when the runtime schema retains the metadata. Direct declarations and derived schemas have precise static types; a deeply composed derived schema may currently have a conservative static type that does not express every redacted representation accepted by its runtime schema. This is a known boundary of the experiment rather than a reason to put visibility discriminators into stored state.
 
 Schema metadata should contain structured policy and Adapter identifiers, not executable functions. Named functions would live in a game runtime registry. This keeps published schemas serializable, inspectable, and potentially versionable.
 
@@ -248,11 +264,13 @@ Annotations alone cannot safely invent a visible representation for an arbitrary
 - team-private state; and
 - public aggregates.
 
+`DrawBag` is the first implemented example of a common Module owning its visibility invariant rather than requiring every game to repeat it. A game that needs a public source of items should use a differently named Module whose semantics are public, rather than weakening `DrawBag` at each call site.
+
 For example, a hidden-card collection could own the proposed fixed shape of complete `cards` plus `unknownCount`, along with safe visible add, remove, transfer, and reveal operations. Canonical state uses the same fixed shape with every Card present and `unknownCount = 0`; projected state can contain the permitted Cards and a nonzero count. This gives the engine and game logic a representation that remains structurally valid without unknown-card placeholder objects or a visibility discriminator.
 
 A pure custom Adapter is the escape hatch for cross-field or game-specific transformations that the standard Modules cannot express. The declaration stores its name, and the host resolves that name through the registered implementation. Standard Modules should cover common cases so custom Adapters do not become perspective checks scattered through Actions.
 
-There is an irreducible shape issue to resolve: an arbitrary required canonical field cannot be generically omitted or replaced while simultaneously retaining its exact canonical TypeBox schema, its static TypeScript type, and its existing hydrator. The design must choose conventions such as optional projected fields, fixed-shape projection-capable Modules, or separately derived projected schemas. TypeBox annotations do not make that problem disappear.
+The initial implementation chooses separately derived schemas: canonical hydrators and validators continue to use the unchanged canonical schema, while visible records are validated against the projection schema. Omission makes the field optional only in the projection schema. Replacement creates a projection-only union. This resolves the immediate shape conflict without changing stored canonical objects, but projected hydration and execution remain intentionally out of scope.
 
 ### Dynamic visibility policies
 
@@ -264,6 +282,8 @@ visibilityPolicies: {
   "remember-passed-card": rememberedCardVisibility,
 }
 ```
+
+The Fresh Fish experiment declares the identifier `fresh-fish.sealed-bid` on both the stored participant bid and the `PlaceBid.amount` Action field. Its eventual resolver should permit the submitting Player to see the bid and permit every perspective after the auction reveal. That resolver and its registry do not exist in the current schema-only slice.
 
 A standard policy context might include the Player Perspective, canonical before- and after-state, the Processed Action, and the annotated path or parent object. The exact context needs to be constrained so projection stays deterministic and testable. Common policies such as owner-until-phase or reveal-after-all-submit should be engine-provided declarations; a custom callback should remain a centralized exception rather than ordinary Action logic.
 
@@ -288,7 +308,6 @@ Behind that Interface, the Module would own recursive traversal, visible Action 
 
 Compilation could fail a participating game before publication when:
 
-- a state or Action subtree has no visibility classification after inheritance and platform defaults;
 - a named policy or Adapter is missing;
 - a projected representation does not validate against its projected schema;
 - the redaction sentinel collides with a game Action type;
@@ -296,7 +315,7 @@ Compilation could fail a participating game before publication when:
 - a System Action schema cannot be discovered; or
 - client-visible state contains a host-only PRNG or another explicitly forbidden field.
 
-Existing nonparticipating games would retain their current all-public behavior. Once a game opts in, a fail-closed classification mode appears safer than treating an unclassified field as public. To reduce burden, classifications could inherit over schema subtrees, the platform could preclassify standard `GameState` fields, and helpers such as public-object or owner-object could classify a structure at once. The ergonomics and migration cost of that strictness still need evaluation.
+Existing games and unannotated fields retain their current all-public behavior. A participating game opts individual protected fields into projection. The engine can still reject unresolved policy or Adapter identifiers and invalid projected values, but it does not require exhaustive public classifications.
 
 ### Automatic whole-cascade replay selection
 
@@ -320,21 +339,29 @@ Optimistic execution is a separate concern because a client must decide whether 
 
 If the proposal works, a game developer would normally:
 
-1. Opt the game into strict hidden-information handling.
-2. Classify a small number of state and Action schema subtrees.
+1. Annotate the small number of protected state and Action schema fields.
+2. Reuse built-in audience and redaction declarations where their semantics fit.
 3. Use standard fixed-shape Modules for hands, decks, sealed values, and aggregates.
 4. Register a named policy or custom Adapter only for unusual reveal or retained-knowledge rules.
 5. Explicitly approve the Actions that may execute optimistically.
 
 The engine would then handle snapshot and Action projection, opaque sentinels, forward and undo patches, System Action cascades, equivalence grouping, persistence, synchronization, and most validation of the confidentiality contract.
 
-### Questions requiring a TypeBox prototype
+### Initial TypeBox findings and remaining questions
 
-Before preferring this declaration model, a focused prototype should answer at least:
+The initial implementation establishes that:
 
-- Do custom annotations survive every TypeBox builder and transform the repository uses, including references, `Omit`, `Pick`, `Partial`, intersections, and evaluation?
-- Can visibility helpers preserve precise `Type.Static` inference without TypeScript assertions forbidden by repository policy?
-- Can the engine derive and validate projected schemas, or must projection-capable Modules declare both canonical and visible schemas explicitly?
+- a typed helper can attach serializable metadata without changing a directly declared canonical `Type.Static` type;
+- canonical and projection schemas can be generated from one annotated definition without TypeScript assertions;
+- omission and replacement produce independently compilable projection schemas;
+- metadata survives the Fresh Fish runtime schema composition exercised by the bag, auction, game state, and `PlaceBid`; and
+- TypeBox type-level composition may erase custom option types even where the runtime metadata survives.
+
+The broader proposal still needs answers to the following:
+
+- Do custom annotations survive every TypeBox builder and transform the repository may use, including references, `Pick`, and `Partial`?
+- How should projected static types remain precise after a TypeBox transform erases custom option types?
+- Which projection-capable Modules should declare a richer fixed visible shape instead of using generic omission or replacement?
 - Can existing hydrators and state classes accept omitted, aggregated, or fixed-shape projected values without receiving canonical-only fields?
 - Is using one fixed shape for canonical and projected state viable for common cases, and which standard Modules are actually acceptable to game authors?
 - Would a parallel visibility registry compose more reliably than schema metadata while retaining locality at the declaration site?
@@ -526,7 +553,7 @@ Under the current proposal, every participating Action fixture would be evaluate
 - What is the exact visible Action-record schema, including the redacted-type sentinel and the location of forward and undo patches?
 - Besides identity and index, which Action fields are necessarily public: type, source, Player attribution, timestamps, simultaneous group, and information-reveal metadata?
 - What exact fixed-shape state representations should reusable hidden-zone modules provide without using perspective-dependent discriminated unions?
-- Does the candidate declarative TypeBox model survive repository schema composition and preserve useful static types, and what does a focused prototype show?
+- Which remaining TypeBox composition paths lose runtime metadata, and how should deeply composed projection schemas preserve precise static types?
 - How are secret game randomness, public replayable randomness, and System Action identity generation separated?
 - Does a later reveal leave earlier stored visible Action records unchanged, enrich them, or maintain both event-time and current-knowledge representations?
 - Is durable Player knowledge stored in canonical state, in a separate knowledge model, or in persisted player-relative projections?

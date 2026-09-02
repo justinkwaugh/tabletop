@@ -13,6 +13,7 @@ export * from './game/components/turnManager.js'
 export * from './game/components/roundManager.js'
 export * from './game/components/phaseManager.js'
 export * from './game/components/prng.js'
+export * as Visibility from './game/visibility/index.js'
 
 export * from './game/definition/gameDefinition.js'
 export * from './game/model/gameConfig.js'
