@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { ActionSource, Color } from '@tabletop/common'
-import { HydratedLowenherzGameState, LowenherzGameState } from '../model/gameState.js'
+import {
+    HydratedLowenherzGameState,
+    LEGACY_CASTLE_MIN_DISTANCE,
+    LowenherzGameState,
+    RULEBOOK_CASTLE_MIN_DISTANCE
+} from '../model/gameState.js'
 import { BOARD_COLS, BOARD_ROWS, BoardSquare, SquareType } from '../model/board.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
@@ -50,6 +55,7 @@ function buildState(playerIds: string[], overrides: Partial<LowenherzGameState> 
         resolvedSlots: [],
         politicsCardPileA: [],
         politicsCardPileB: [],
+        minimumCastleDistance: RULEBOOK_CASTLE_MIN_DISTANCE,
         ...overrides
     }
 
@@ -140,7 +146,7 @@ describe('HydratedPlaceCastle', () => {
         expect(tooFar.isValidPlaceCastle(state)).toBe(false)
     })
 
-    it('enforces the 6-space gap rule against the same owner only', () => {
+    it('requires six empty spaces between castles of the same owner', () => {
         // Single-player turn order so it's always p1's turn regardless of how many
         // castles have already been placed - isolates the gap check from turn order.
         const state = buildState(['p1'])
@@ -148,19 +154,42 @@ describe('HydratedPlaceCastle', () => {
         state.board.squares[2][2].castleOwner = 'p1'
         state.board.squares[2][1].knightOwner = 'p1'
 
-        // Too close for p1's own next castle (distance 5 < 6)
-        const tooClose = makePlaceCastle({
+        // Four empty squares between (distance 5)
+        const fourBetween = makePlaceCastle({
             playerId: 'p1',
-            castleCol: 2, castleRow: 7, knightCol: 2, knightRow: 6 // distance = 5
+            castleCol: 2, castleRow: 7, knightCol: 2, knightRow: 6
         })
-        expect(tooClose.isValidPlaceCastle(state)).toBe(false)
+        expect(fourBetween.isValidPlaceCastle(state)).toBe(false)
 
-        // Exactly 6 away is legal
-        const exactlySix = makePlaceCastle({
+        // Five empty squares between (distance 6) - the pre-correction reading of the rule
+        const fiveBetween = makePlaceCastle({
             playerId: 'p1',
-            castleCol: 2, castleRow: 8, knightCol: 2, knightRow: 7 // distance = 6
+            castleCol: 2, castleRow: 8, knightCol: 2, knightRow: 7
         })
-        expect(exactlySix.isValidPlaceCastle(state)).toBe(true)
+        expect(fiveBetween.isValidPlaceCastle(state)).toBe(false)
+
+        // Six empty squares between (distance 7) is legal
+        const sixBetween = makePlaceCastle({
+            playerId: 'p1',
+            castleCol: 2, castleRow: 9, knightCol: 2, knightRow: 8
+        })
+        expect(sixBetween.isValidPlaceCastle(state)).toBe(true)
+    })
+
+    it('keeps the legacy distance for games recorded before the rule was corrected', () => {
+        // A state without minimumCastleDistance predates the correction: its castles were
+        // placed at distance 6, and replaying those actions must still succeed.
+        const state = buildState(['p1'], { minimumCastleDistance: undefined })
+        state.board.squares[2][2].castleOwner = 'p1'
+        state.board.squares[2][1].knightOwner = 'p1'
+
+        expect(state.requiredCastleDistance).toBe(LEGACY_CASTLE_MIN_DISTANCE)
+
+        const fiveBetween = makePlaceCastle({
+            playerId: 'p1',
+            castleCol: 2, castleRow: 8, knightCol: 2, knightRow: 7
+        })
+        expect(fiveBetween.isValidPlaceCastle(state)).toBe(true)
     })
 
     it('applying the action places the castle+knight and decrements the stock for own placements', () => {
@@ -194,7 +223,9 @@ describe('HydratedPlaceCastle', () => {
         expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 3, 3)).toBe('wrongTerrain')
         expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 4, 4)).toBe('occupied')
         expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 2, 7)).toBe('tooClose') // distance 5
-        expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 5, 5)).toBeUndefined()
+        expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 2, 8)).toBe('tooClose') // distance 6
+        expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 2, 9)).toBeUndefined() // distance 7
+        expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 6, 6)).toBeUndefined() // distance 8
     })
 
     it('rejects a castle square with nowhere legal to put its knight', () => {
@@ -261,14 +292,14 @@ describe('HydratedPlaceCastle', () => {
 })
 
 describe('HydratedPlaceCastle.requiredCastleGap', () => {
-    it('keeps the rulebook 6-space gap while any legal square can clear it', () => {
+    it('keeps the rulebook distance while any legal square can clear it', () => {
         const state = buildState(['p1', 'p2', 'p3', 'p4'])
         state.board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
 
-        expect(HydratedPlaceCastle.requiredCastleGap(state, 'p1')).toBe(6)
+        expect(HydratedPlaceCastle.requiredCastleGap(state, 'p1')).toBe(RULEBOOK_CASTLE_MIN_DISTANCE)
     })
 
-    it('relaxes to the best the board offers when nothing can clear 6', () => {
+    it('relaxes to the best the board offers when nothing can clear the rulebook distance', () => {
         // Setup has no Pass and no take-backs, so a placement with zero legal squares hangs
         // the game before turn 1 - reachable because 12 castles go down under a hard spacing
         // rule (tightest in the 2-player variant, which places four of each colour). When

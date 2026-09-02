@@ -291,8 +291,7 @@ export class LowenherzGameSession extends GameSession<
                 occupied: "That spot isn't allowed for a castle — it's already occupied.",
                 noKnightSquare:
                     "That spot isn't allowed for a castle — there's nowhere beside it to put its knight.",
-                tooClose:
-                    "That spot isn't allowed for a castle — it needs to be at least 6 spaces from your other same-color castles."
+                tooClose: `That spot isn't allowed for a castle — there must be at least ${this.gameState.requiredCastleDistance - 1} empty spaces between it and your other castles.`
             }[problem]
             return
         }

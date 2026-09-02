@@ -17,6 +17,13 @@ import { ActionCard } from '../definition/actionCards.js'
 import { PoliticsCard } from '../definition/politicsCards.js'
 import { repairDuplicateRegionIds } from '../util/regionDetection.js'
 
+// Rulebook: "Castles of the same prince must have 6 spaces between them (exclusive) on an
+// orthogonal path" - six empty squares, so a Manhattan distance of 7. Games created before
+// this was read correctly recorded castles at distance 6 (five empty squares) and carry no
+// minimumCastleDistance; they keep the legacy value so their actions still replay.
+export const RULEBOOK_CASTLE_MIN_DISTANCE = 7
+export const LEGACY_CASTLE_MIN_DISTANCE = 6
+
 // One committed decision-card placement: which player placed it, and which slot
 // (1 = top action, 2 = middle, 3 = bottom) they chose.
 export type Decision = Type.Static<typeof Decision>
@@ -112,6 +119,11 @@ export const LowenherzGameState = Type.Evaluate(
             // Read as `!== false`, like the config option it comes from: absent means
             // the rule is on, so a state built without it gets the stricter reading.
             minimumOneDucat: Type.Optional(Type.Boolean()),
+
+            // Minimum orthogonal distance between two castles of the same owner, resolved
+            // once at initialization (see RULEBOOK_CASTLE_MIN_DISTANCE). Absent on games
+            // created before the rule was corrected, which read as LEGACY_CASTLE_MIN_DISTANCE.
+            minimumCastleDistance: Type.Optional(Type.Number()),
 
             // Remaining undrawn action cards, in draw order (index 0 draws next).
             actionDeck: Type.Array(ActionCard),
@@ -224,6 +236,7 @@ export class HydratedLowenherzGameState
     declare firstPlayerId: string
     declare neutralColor?: Color
     declare minimumOneDucat?: boolean
+    declare minimumCastleDistance?: number
 
     declare actionDeck: ActionCard[]
     declare currentActionCard?: ActionCard
@@ -281,5 +294,9 @@ export class HydratedLowenherzGameState
     override isActivePlayer(playerId: string): boolean {
         if (super.isActivePlayer(playerId)) return true
         return this.negotiation?.playerIds.includes(playerId) ?? false
+    }
+
+    get requiredCastleDistance(): number {
+        return this.minimumCastleDistance ?? LEGACY_CASTLE_MIN_DISTANCE
     }
 }
