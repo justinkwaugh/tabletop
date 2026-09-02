@@ -34,6 +34,10 @@ _Avoid_: Frontend release, presentation artifact
 The independently deployed client host that discovers and loads UI Artifacts and provides shared platform presentation and capabilities. It does not own Game Title-specific presentation.
 _Avoid_: Game UI, UI Artifact
 
+**Game UI Artifact Isolation**:
+Containment of a UI Artifact's title-specific implementation so one Game Title cannot interfere with another or with the Site Frontend Artifact. It does not restrict the UI Artifact from using capabilities intentionally supplied by the Site Frontend Artifact.
+_Avoid_: Capability isolation, Game sandbox
+
 **Publication**:
 The site’s current selection of one Logic Artifact and one compatible UI Artifact for a Game Title. A Hosted Game uses its Game Title’s current Publication.
 _Avoid_: Game Title Release, deployment
