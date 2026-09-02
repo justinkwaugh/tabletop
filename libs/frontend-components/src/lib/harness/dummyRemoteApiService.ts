@@ -1,6 +1,7 @@
 import type Ably from 'ably'
 import type {
     Bookmark,
+    CanonicalActionReplay,
     Game,
     GameAction,
     GameChat,
@@ -174,9 +175,8 @@ export class DummyRemoteApiService implements RemoteApiService {
         _game: Game,
         _actionId: string
     ): Promise<{
-        undoneActions: GameAction[]
+        canonicalReplay: CanonicalActionReplay
         game: Game
-        redoneActions: GameAction[]
         checksum: number
     }> {
         return this.fail('undoAction')

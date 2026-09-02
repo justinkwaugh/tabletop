@@ -3,6 +3,7 @@ import * as Value from 'typebox/value'
 import {
     assertExists,
     Bookmark,
+    CanonicalActionReplay,
     Game,
     GameAction,
     GameChat,
@@ -449,9 +450,8 @@ export class TabletopApi {
         game: Game,
         actionId: string
     ): Promise<{
-        undoneActions: GameAction[]
+        canonicalReplay: CanonicalActionReplay
         game: Game
-        redoneActions: GameAction[]
         checksum: number
     }> {
         const logicVersion = this.getGameLogicVersion(game.typeId!)
@@ -467,17 +467,15 @@ export class TabletopApi {
             .json<UndoActionResponse>()
 
         const responseGame = this.validateGame(response.payload.game)
-        const redoneActions = response.payload.redoneActions.map((action) =>
-            Value.Convert(GameAction, action)
-        ) as GameAction[]
-        const undoneActions = response.payload.undoneActions?.map((action) =>
-            Value.Convert(GameAction, action)
-        ) as GameAction[]
+        const canonicalReplay = Value.Convert(
+            CanonicalActionReplay,
+            response.payload.canonicalReplay
+        )
+        Value.Assert(CanonicalActionReplay, canonicalReplay)
 
         return {
-            undoneActions,
+            canonicalReplay,
             game: responseGame,
-            redoneActions,
             checksum: response.payload.checksum
         }
     }

@@ -33,11 +33,20 @@ import { StoredGame } from '../model/storedGame.js'
 import { StoredState } from '../model/storedState.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
-import { ActionUndoValidator, ActionUpdateValidator, GameStore } from '../stores/gameStore.js'
+import {
+    ActionUndoValidator,
+    ActionUpdateValidator,
+    GameStore,
+    UndoActionWindow
+} from '../stores/gameStore.js'
 import { RedisCacheService } from '../../cache/cacheService.js'
 import { nanoid } from 'nanoid'
 import { ActionChunk, StoredActionChunk } from '../model/storedActionChunk.js'
 import * as Value from 'typebox/value'
+import {
+    assertUndoActionStorageSupported,
+    scanUndoActionPrefix
+} from '../stores/undoActionWindow.js'
 
 const ACTION_CHUNK_SIZE = 200
 
@@ -647,8 +656,12 @@ export class FirestoreGameStore implements GameStore {
         }
     }
 
+    private chunkIdForChunkNumber(chunkNumber: number, gameId: string): string {
+        return `chunk-${gameId}-${chunkNumber}`
+    }
+
     private chunkIdForActionIndex(index: number, gameId: string, chunkSize: number): string {
-        return `chunk-${gameId}-${Math.floor(index / chunkSize)}`
+        return this.chunkIdForChunkNumber(Math.floor(index / chunkSize), gameId)
     }
 
     private getChunkIdsForRange(
@@ -657,15 +670,16 @@ export class FirestoreGameStore implements GameStore {
         gameId: string,
         chunkSize: number
     ): string[] {
-        const startChunkId = this.chunkIdForActionIndex(startIndex, gameId, chunkSize)
-
-        const chunkIds = [startChunkId]
-        let index = startIndex
-        while (index < endIndex) {
-            index += chunkSize
-            chunkIds.push(this.chunkIdForActionIndex(index, gameId, chunkSize))
+        if (startIndex >= endIndex) {
+            return []
         }
 
+        const firstChunkNumber = Math.floor(startIndex / chunkSize)
+        const lastChunkNumber = Math.floor((endIndex - 1) / chunkSize)
+        const chunkIds: string[] = []
+        for (let chunkNumber = firstChunkNumber; chunkNumber <= lastChunkNumber; chunkNumber++) {
+            chunkIds.push(this.chunkIdForChunkNumber(chunkNumber, gameId))
+        }
         return chunkIds
     }
 
@@ -794,7 +808,6 @@ export class FirestoreGameStore implements GameStore {
             structuredClone(action)
         ) as StoredAction[]
 
-        const actionCollection = this.getActionCollection(gameId)
         const actionChunkCollection = this.getActionChunkCollection(gameId)
         const stateCollection = this.getStateCollection(gameId)
 
@@ -813,6 +826,7 @@ export class FirestoreGameStore implements GameStore {
             if (!existingGame) {
                 throw new NotFoundError({ type: 'Game', id: gameId })
             }
+            assertUndoActionStorageSupported(existingGame.actionChunkSize)
 
             const existingState = (
                 await transaction.get(stateCollection.doc(gameId))
@@ -822,30 +836,19 @@ export class FirestoreGameStore implements GameStore {
                 throw new NotFoundError({ type: 'GameState', id: gameId })
             }
 
-            let existingChunks = undefined
-            let existingActions = undefined
-            if (existingGame.actionChunkSize) {
-                // Get the chunks which contain the actions
-                existingChunks = await this.getChunksForActions(
-                    storedActions,
-                    actionChunkCollection,
-                    transaction,
-                    existingGame.actionChunkSize
-                )
-                existingActions = this.removeActionsFromChunks(
-                    storedActions,
-                    existingChunks,
-                    existingGame.actionChunkSize
-                )
-            } else {
-                const actionRefs = storedActions.map((action) => actionCollection.doc(action.id))
-                existingActions = (await transaction.getAll(...actionRefs))
-                    .map((doc) => doc.data())
-                    .filter((data) => data !== undefined) as StoredAction[]
-                this.recordRead('action', actionRefs.length)
-            }
+            const existingChunks = await this.getChunksForActions(
+                storedActions,
+                actionChunkCollection,
+                transaction,
+                existingGame.actionChunkSize
+            )
+            const existingActions = this.removeActionsFromChunks(
+                storedActions,
+                existingChunks,
+                existingGame.actionChunkSize
+            )
 
-            if (!existingActions || existingActions.length !== storedActions.length) {
+            if (existingActions.length !== storedActions.length) {
                 console.log('Some actions were not found when trying to undo')
                 throw new NotFoundError({ type: 'GameAction', id: gameId })
             }
@@ -885,32 +888,21 @@ export class FirestoreGameStore implements GameStore {
             Object.assign(updatedGame, gameUpdates)
             updatedGame.state = state
 
-            if (existingChunks) {
-                this.addActionsToChunks(
-                    storedRedoneActions,
-                    existingChunks,
-                    existingGame.actionChunkSize
-                )
-                // Update chunks
-                const updateDate = new Date()
-                for (const chunk of existingChunks) {
-                    chunk.updatedAt = updateDate
-                    if (!chunk.createdAt) {
-                        chunk.createdAt = updateDate
-                        transaction.create(actionChunkCollection.doc(chunk.id), chunk)
-                    } else {
-                        transaction.set(actionChunkCollection.doc(chunk.id), chunk)
-                    }
+            this.addActionsToChunks(
+                storedRedoneActions,
+                existingChunks,
+                existingGame.actionChunkSize
+            )
+            // Update chunks
+            const updateDate = new Date()
+            for (const chunk of existingChunks) {
+                chunk.updatedAt = updateDate
+                if (!chunk.createdAt) {
+                    chunk.createdAt = updateDate
+                    transaction.create(actionChunkCollection.doc(chunk.id), chunk)
+                } else {
+                    transaction.set(actionChunkCollection.doc(chunk.id), chunk)
                 }
-            } else {
-                existingActions.forEach((action) => {
-                    transaction.delete(actionCollection.doc(action.id))
-                })
-
-                redoneActions.forEach((action) => {
-                    // We keep the create/ update as the original
-                    transaction.create(actionCollection.doc(action.id), action)
-                })
             }
 
             transaction.update(this.games.doc(gameId), this.createUpdateDocument(gameUpdates))
@@ -975,47 +967,189 @@ export class FirestoreGameStore implements GameStore {
         }
     }
 
-    async findActionById(game: Game, actionId: string): Promise<GameAction | undefined> {
-        const storedGame = game as StoredGame
-        if (storedGame.actionChunkSize === undefined) {
-            throw new Error('Game does not have action chunks')
-        }
-        if (storedGame.actionChunkSize) {
-            const actionChunkCollection = this.getActionChunkCollection(game.id)
+    async findUndoActionWindow({
+        game,
+        actionId,
+        endIndex
+    }: {
+        game: Game
+        actionId: string
+        endIndex: number
+    }): Promise<UndoActionWindow | undefined> {
+        const actionChunkSize = Reflect.get(game, 'actionChunkSize')
+        assertUndoActionStorageSupported(actionChunkSize)
 
-            try {
-                const querySnapshot = await actionChunkCollection
-                    .where('actionIds', 'array-contains', actionId)
-                    .get()
-                this.recordRead('actionChunk', querySnapshot.size)
-                const results = querySnapshot.docs.map((doc) => doc.data()) as ActionChunk[]
-                if (results.length > 1) {
-                    throw Error('Invalid state')
+        try {
+            return await this.findChunkedUndoActionWindow({
+                game,
+                actionId,
+                endIndex,
+                actionChunkSize
+            })
+        } catch (error) {
+            this.handleError(error, game.id)
+            throw Error('unreachable')
+        }
+    }
+
+    private async findChunkedUndoActionWindow({
+        game,
+        actionId,
+        endIndex,
+        actionChunkSize
+    }: {
+        game: Game
+        actionId: string
+        endIndex: number
+        actionChunkSize: number
+    }): Promise<UndoActionWindow | undefined> {
+        const actionChunkCollection = this.getActionChunkCollection(game.id)
+        const querySnapshot = await actionChunkCollection
+            .where('actionIds', 'array-contains', actionId)
+            .get()
+        this.recordRead('actionChunk', querySnapshot.size)
+
+        const targetChunks = querySnapshot.docs.map((doc) => this.convertActionChunk(doc.data()))
+        if (targetChunks.length > 1) {
+            throw Error('Action was found in multiple chunks')
+        }
+
+        const targetChunk = targetChunks[0]
+        if (!targetChunk) {
+            return undefined
+        }
+
+        const targetAction = targetChunk.actions
+            .map((action) => this.convertGameAction(action))
+            .find((action) => action.id === actionId)
+        if (!targetAction || targetAction.index === undefined) {
+            return undefined
+        }
+
+        const loadedChunks = new Map<string, ActionChunk>([[targetChunk.id, targetChunk]])
+        let startIndex = targetAction.index
+        if (targetAction.simultaneousGroupId !== undefined) {
+            let scanChunk = targetChunk
+            let upperIndex = targetAction.index
+            let foundBoundary = false
+
+            while (!foundBoundary) {
+                const precedingActions = scanChunk.actions
+                    .map((action) => this.convertGameAction(action))
+                    .filter((action) => action.index !== undefined && action.index < upperIndex)
+                    .toSorted((left, right) => (right.index ?? 0) - (left.index ?? 0))
+
+                const scan = scanUndoActionPrefix({
+                    targetAction,
+                    precedingActions,
+                    startIndex
+                })
+                startIndex = scan.startIndex
+                foundBoundary = scan.boundaryFound
+
+                if (foundBoundary || scanChunk.startIndex <= 0) {
+                    break
                 }
 
-                let action = undefined
-                if (results.length === 1) {
-                    action = results[0].actions.find((action) => action.id === actionId)
-                    if (action) {
-                        action = Value.Convert(GameAction, action) as GameAction
-                    }
+                const precedingChunkId = this.chunkIdForActionIndex(
+                    scanChunk.startIndex - 1,
+                    game.id,
+                    actionChunkSize
+                )
+                const precedingChunks = await this.getActionChunksById({
+                    actionChunkCollection,
+                    chunkIds: [precedingChunkId]
+                })
+                const precedingChunk = precedingChunks[0]
+                if (!precedingChunk) {
+                    throw new NotFoundError({ type: 'ActionChunk', id: precedingChunkId })
                 }
-                return action?.id === actionId ? action : undefined
-            } catch (error) {
-                this.handleError(error, game.id)
-                throw Error('unreachable')
-            }
-        } else {
-            const actionCollection = this.getActionCollection(game.id)
-            const doc = actionCollection.doc(actionId)
-            try {
-                this.recordRead('action')
-                return (await doc.get()).data() as GameAction
-            } catch (error) {
-                this.handleError(error, game.id)
-                throw Error('unreachable')
+                loadedChunks.set(precedingChunk.id, precedingChunk)
+                scanChunk = precedingChunk
+                upperIndex = precedingChunk.endIndex
             }
         }
+
+        const suffixChunkIds = this.getChunkIdsForRange(
+            startIndex,
+            endIndex,
+            game.id,
+            actionChunkSize
+        )
+        const missingChunkIds = suffixChunkIds.filter((chunkId) => !loadedChunks.has(chunkId))
+        const missingChunks = await this.getActionChunksById({
+            actionChunkCollection,
+            chunkIds: missingChunkIds
+        })
+        missingChunks.forEach((chunk) => loadedChunks.set(chunk.id, chunk))
+
+        const actions = suffixChunkIds
+            .flatMap((chunkId) => {
+                const chunk = loadedChunks.get(chunkId)
+                if (!chunk) {
+                    throw new NotFoundError({ type: 'ActionChunk', id: chunkId })
+                }
+                return chunk.actions
+            })
+            .map((action) => this.convertGameAction(action))
+            .filter(
+                (action) =>
+                    action.index !== undefined &&
+                    action.index >= startIndex &&
+                    action.index < endIndex
+            )
+            .toSorted((left, right) => (left.index ?? 0) - (right.index ?? 0))
+
+        this.validateUndoActionWindow(actions, startIndex, endIndex)
+        const canonicalTargetAction = actions.find((action) => action.id === actionId)
+        if (!canonicalTargetAction) {
+            return undefined
+        }
+
+        return { targetAction: canonicalTargetAction, startIndex, actions }
+    }
+
+    private async getActionChunksById({
+        actionChunkCollection,
+        chunkIds
+    }: {
+        actionChunkCollection: CollectionReference
+        chunkIds: string[]
+    }): Promise<ActionChunk[]> {
+        if (chunkIds.length === 0) {
+            return []
+        }
+
+        const chunkRefs = chunkIds.map((chunkId) => actionChunkCollection.doc(chunkId))
+        const snapshots = await this.firestore.getAll(...chunkRefs)
+        this.recordRead('actionChunk', snapshots.length)
+        return snapshots.flatMap((snapshot) => {
+            const data = snapshot.data()
+            return data ? [this.convertActionChunk(data)] : []
+        })
+    }
+
+    private validateUndoActionWindow(actions: GameAction[], startIndex: number, endIndex: number) {
+        if (actions.length !== endIndex - startIndex) {
+            throw Error('Undo action window is not contiguous')
+        }
+        actions.forEach((action, offset) => {
+            if (action.index !== startIndex + offset) {
+                throw Error('Undo action window has invalid indices')
+            }
+        })
+    }
+
+    private convertActionChunk(value: unknown): ActionChunk {
+        const converted = Value.Convert(ActionChunk, value)
+        Value.Assert(ActionChunk, converted)
+        return converted
+    }
+
+    private convertGameAction(value: unknown): GameAction {
+        const converted = Value.Convert(GameAction, value)
+        Value.Assert(GameAction, converted)
+        return converted
     }
 
     async findActionRangeForGame({
