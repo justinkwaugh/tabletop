@@ -1174,6 +1174,9 @@ export class FirestoreGameStore implements GameStore {
                 storedGame.id,
                 storedGame.actionChunkSize
             )
+            if (chunkIds.length === 0) {
+                return []
+            }
             const chunkRefs = chunkIds.map((chunkId) => actionChunkCollection.doc(chunkId))
             try {
                 const chunks = (await this.firestore.getAll(...chunkRefs))
