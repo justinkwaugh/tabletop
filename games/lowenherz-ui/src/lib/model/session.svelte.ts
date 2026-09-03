@@ -88,8 +88,14 @@ export class LowenherzGameSession extends GameSession<
     HydratedLowenherzGameState
 > {
     // The castle square tentatively picked, while waiting for the player to pick the
-    // adjacent knight square that completes a PlaceCastle action.
-    selectedCastleSquare: { col: number; row: number } | undefined = $state(undefined)
+    // adjacent knight square that completes a PlaceCastle action. A writable derived: it holds
+    // the pick only while this viewer can place a castle, and drops it whenever that stops being
+    // true (rewound board, non-active view, or the placement slot moving on), so the selection
+    // ring, the knight-square clicks, and Undo's local step all go quiet together.
+    selectedCastleSquare: { col: number; row: number } | undefined = $derived.by(() => {
+        this.canPlaceCastle
+        return undefined
+    })
 
     // A friendly message describing why the last placement attempt was rejected, shown
     // in the UI instead of letting the engine's validation error surface as a raw crash.
@@ -247,8 +253,11 @@ export class LowenherzGameSession extends GameSession<
     //
     // Guarded here rather than in each component: these getters are what the components ask, and
     // there are a dozen of them against three that were remembering to check.
+    //
+    // The hotseat non-active view is the platform's read-only perspective (isMyTurn is false and
+    // validActionTypes is empty there), so nothing is offered from it either.
     private get canActNow(): boolean {
-        return !this.isViewingHistory
+        return !this.isViewingHistory && !this.isViewingAsNonActivePlayer
     }
 
     get canPlaceCastle(): boolean {
@@ -281,7 +290,7 @@ export class LowenherzGameSession extends GameSession<
     // knight square is also chosen - so the gap/terrain/occupancy rules are enforced
     // immediately instead of only surfacing after a second click.
     selectCastleSquare(col: number, row: number) {
-        if (!this.myPlayer) return
+        if (!this.myPlayer || !this.canPlaceCastle) return
 
         const problem = HydratedPlaceCastle.describeCastleSquareProblem(this.gameState, this.myPlayer.id, col, row)
         if (problem) {
@@ -306,7 +315,7 @@ export class LowenherzGameSession extends GameSession<
 
     async placeCastleWithKnight(knightCol: number, knightRow: number) {
         const castleSquare = this.selectedCastleSquare
-        if (!castleSquare) return
+        if (!castleSquare || !this.canPlaceCastle) return
 
         const action = this.createPlayerAction(PlaceCastle, {
             castleCol: castleSquare.col,
