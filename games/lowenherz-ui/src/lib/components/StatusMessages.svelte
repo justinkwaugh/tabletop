@@ -711,7 +711,7 @@
             <!-- PoliticsPileReveal's own row deals its cards below this - kept here rather than
                  as a heading local to that component so it never has to agree on layout height
                  with PoliticsDeckChooser's row above it. -->
-            Choose a card to take it.
+            Choose a politics card.
         {:else if gameSession.gameState.machineState === MachineState.TakingPoliticsCard &&
             gameSession.gameState.politicsTakingPlayerId}
             Waiting for {@render playerPill(gameSession.gameState.politicsTakingPlayerId)} to take a

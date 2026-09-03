@@ -115,7 +115,7 @@
 <div class="hidden" {@attach attachAnimator(takeAnimator)}></div>
 
 {#if pile || dealAnimator.dealing}
-    <!-- No heading of our own here - StatusMessages says "Choose a card to take it." right
+    <!-- No heading of our own here - StatusMessages says "Choose a politics card." right
          above this once a pile is opened, the same way it handles PoliticsDeckChooser's own
          instruction. Keeping it there means this row's own height never has to agree with
          that component's, which local, per-component headings kept drifting out of sync on. -->
