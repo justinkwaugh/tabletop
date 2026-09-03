@@ -2059,6 +2059,26 @@ export class LowenherzGameSession extends GameSession<
         }
     }
 
+    // Takes back whatever applying the card started, while it is still only a local selection:
+    // a Treasure armed for a wooded knight placement or a duel bid goes back to being paid in
+    // ducats, and a Renegade/Alliance mid-targeting flow is abandoned. The duel bid already had
+    // a chip for this; the knight placement had no way back at all, so an armed card was spent
+    // on the next wooded square whatever the player's ducats.
+    deactivatePoliticsCard(card: PoliticsCard) {
+        switch (card.type) {
+            case PoliticsCardType.Renegade:
+                this.cancelPlayingRenegadeCard()
+                break
+            case PoliticsCardType.Alliance:
+                this.cancelPlayingAllianceCard()
+                break
+            case PoliticsCardType.Treasure:
+                if (this.selectedTreasureCard?.id === card.id) this.selectTreasureCard(undefined)
+                if (this.armedDuelTreasureIds.includes(card.id)) this.unarmDuelTreasure(card.id)
+                break
+        }
+    }
+
     // Whether a card that was just applied is still doing something right now, rather than a
     // fresh APPLY being on offer - a Treasure stays armed (for a knight placement or a duel bid)
     // with nothing else to click, so nothing on screen said applying it had actually landed.
