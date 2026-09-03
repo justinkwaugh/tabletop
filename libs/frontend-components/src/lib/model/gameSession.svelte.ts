@@ -748,6 +748,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         const relevantContext = this.currentModifiableContext
+        const requiresAuthoritativeApplication =
+            relevantContext.game.storage === GameStorage.Remote &&
+            !relevantContext.game.hotseat &&
+            this.runtime.visibility !== undefined
 
         // Clone to avoid mutation issues
         action = structuredClone($state.snapshot(action))
@@ -766,6 +770,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
             if (this.debug) {
                 console.log(`Applying ${action.type} ${action.id} from UI: `, action)
+            }
+
+            if (requiresAuthoritativeApplication) {
+                await this.applyServerAuthoritativeAction(action, relevantContext)
+                return
             }
 
             // Optimistically apply the action locally (this will assign indices to the actions and store them)
@@ -871,7 +880,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             relevantContext.restoreFrom(priorContext)
             if (!this.isMajorChange()) {
                 toast.error('An error occurred processing your action, resyncing')
-                await this.checkSync()
+                if (requiresAuthoritativeApplication) {
+                    await this.doFullResync()
+                } else {
+                    await this.checkSync()
+                }
             }
         } finally {
             if (this.mode === GameSessionMode.Play) {
@@ -879,6 +892,37 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 this.processingActions = false
             }
         }
+    }
+
+    private async applyServerAuthoritativeAction(
+        action: GameAction,
+        context: GameContext<T, U>
+    ): Promise<void> {
+        action.index = context.state.actionCount
+
+        if (this.debug) {
+            console.log(`Sending ${action.type} ${action.id} to server: `, action)
+        }
+
+        const response = await this.api.applyAction(context.game, action)
+        assertExists(
+            response.actions.find((processedAction) => processedAction.id === action.id),
+            `Processed action not found for ${action.id}`
+        )
+
+        const actions = [...(response.missingActions ?? []), ...response.actions].toSorted(
+            (left, right) => (left.index ?? 0) - (right.index ?? 0)
+        )
+        const game = structuredClone(context.game)
+        let state = structuredClone(context.state)
+        for (const processedAction of actions) {
+            const result = this.applyProcessedActionToGame(processedAction, game, state)
+            state = result.updatedState
+            context.applyActionResults(result)
+        }
+
+        context.updateGame(response.game)
+        context.verifyFullChecksum()
     }
 
     // This will only be triggered by the UI and as such we can use the current context

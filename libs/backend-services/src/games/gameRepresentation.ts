@@ -1,6 +1,8 @@
 import {
     assert,
+    assertExists,
     findPlayerForUserId,
+    type ActionCascadeResult,
     type Game,
     type GameAction,
     type GameState,
@@ -12,6 +14,13 @@ import { createHash } from 'node:crypto'
 export interface GameRepresentation {
     readonly game: Game
     readonly actions: GameAction[]
+    readonly perspective: Visibility.Perspective | undefined
+}
+
+export interface ActionResultsRepresentation {
+    readonly game: Game
+    readonly actions: GameAction[]
+    readonly missingActions: GameAction[] | undefined
     readonly perspective: Visibility.Perspective | undefined
 }
 
@@ -28,7 +37,7 @@ export function createGameRepresentationEtag({
     visibility?: Visibility.GameVisibility<GameState>
     user: User
 }): string {
-    if (hostView || visibility === undefined) {
+    if (hostView || game.hotseat || visibility === undefined) {
         return canonicalEtag
     }
 
@@ -55,7 +64,7 @@ export function createGameRepresentation({
     visibility?: Visibility.GameVisibility<GameState>
     user: User
 }): GameRepresentation {
-    if (hostView || visibility === undefined) {
+    if (hostView || game.hotseat || visibility === undefined) {
         return { game, actions, perspective: undefined }
     }
 
@@ -80,6 +89,91 @@ export function createGameRepresentation({
     return {
         game: projectedGame,
         actions: [...history.actions],
+        perspective
+    }
+}
+
+export function createActionResultsRepresentation({
+    game,
+    result,
+    storedActions,
+    missingActions,
+    priorState,
+    visibility,
+    user
+}: {
+    game: Game
+    result: ActionCascadeResult
+    storedActions: GameAction[]
+    missingActions: GameAction[]
+    priorState: GameState
+    visibility?: Visibility.GameVisibility<GameState>
+    user: User
+}): ActionResultsRepresentation {
+    const representedGame = structuredClone(game)
+    delete representedGame.state
+
+    const orderedMissingActions = missingActions.toSorted(
+        (left, right) => (left.index ?? 0) - (right.index ?? 0)
+    )
+    if (game.hotseat || visibility === undefined) {
+        return {
+            game: representedGame,
+            actions: storedActions,
+            missingActions: orderedMissingActions.length > 0 ? orderedMissingActions : undefined,
+            perspective: undefined
+        }
+    }
+
+    assert(
+        result.actionCascade.before.actionCount === priorState.actionCount &&
+            result.actionCascade.before.actionChecksum === priorState.actionChecksum,
+        'Canonical Action cascade does not begin at the persisted prior state'
+    )
+
+    const storedActionsById = new Map(storedActions.map((action) => [action.id, action]))
+    assert(
+        storedActions.length === result.actionCascade.transitions.length &&
+            storedActionsById.size === result.actionCascade.transitions.length,
+        'Stored Actions do not match the canonical Action cascade'
+    )
+    const storedTransitions = result.actionCascade.transitions.map((transition) => {
+        const storedAction = storedActionsById.get(transition.action.id)
+        assertExists(storedAction, `Canonical Action ${transition.action.id} was not stored`)
+        return { action: storedAction, after: transition.after }
+    })
+    const storedResult: ActionCascadeResult = {
+        processedActions: storedTransitions.map((transition) => transition.action),
+        updatedState: result.updatedState,
+        indexOffset: result.indexOffset,
+        actionCascade: {
+            before: result.actionCascade.before,
+            transitions: storedTransitions
+        }
+    }
+    const perspective = derivePerspective({ game, user })
+    const projectedResult = Visibility.projectActionResult({
+        result: storedResult,
+        visibility,
+        perspective
+    })
+
+    let projectedMissingActions: GameAction[] | undefined
+    if (orderedMissingActions.length > 0) {
+        const history = Visibility.projectActionHistory({
+            currentState: priorState,
+            actions: orderedMissingActions,
+            startIndex: priorState.actionCount - orderedMissingActions.length,
+            visibility,
+            perspective
+        })
+        projectedMissingActions = [...history.actions]
+    }
+
+    return {
+        game: representedGame,
+        actions: projectedResult.processedActions,
+        missingActions: projectedMissingActions,
         perspective
     }
 }

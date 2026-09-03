@@ -66,8 +66,10 @@ import { Retryable } from 'typescript-retry-decorator'
 import { RedisCacheService } from '../cache/cacheService.js'
 import { EnvService } from '../env/envService.js'
 import {
+    createActionResultsRepresentation,
     createGameRepresentation,
     createGameRepresentationEtag,
+    type ActionResultsRepresentation,
     type GameRepresentation
 } from './gameRepresentation.js'
 
@@ -830,11 +832,7 @@ export class GameService {
         definition: GameDefinition
         action: GameAction
         user: User
-    }): Promise<{
-        processedActions: GameAction[]
-        updatedGame: Game
-        missingActions?: GameAction[]
-    }> {
+    }): Promise<ActionResultsRepresentation> {
         const gameId = action.gameId
         const game = await this.getGame({ gameId, withState: true })
         if (!game || !game.state) {
@@ -862,11 +860,12 @@ export class GameService {
         const initialIndex = action.index
 
         const gameEngine = new GameEngine(definition.runtime)
-        const { processedActions, updatedState, indexOffset } = gameEngine.executeAction({
+        const actionResult = gameEngine.executeAction({
             action,
             state: game.state,
             game
         })
+        const { processedActions, updatedState, indexOffset } = actionResult
 
         // write the action and the updated state
         const { storedActions, updatedGame, relatedActions, priorState } =
@@ -890,6 +889,14 @@ export class GameService {
                         throw new GameNotInProgressError({ id: gameId })
                     }
 
+                    const executedState = actionResult.actionCascade.before
+                    if (
+                        executedState.actionCount !== existingState.actionCount ||
+                        executedState.actionChecksum !== existingState.actionChecksum
+                    ) {
+                        throw new GameUpdateCollisionError({ id: gameId })
+                    }
+
                     let newActionIndex = existingState.actionCount
                     actions.forEach((action) => {
                         action.index = newActionIndex
@@ -905,7 +912,7 @@ export class GameService {
 
                     // Lookup and verify the missing actions
                     let missingActions: GameAction[] = []
-                    if (indexOffset > 0 && initialIndex) {
+                    if (indexOffset > 0 && initialIndex !== undefined) {
                         const startIndex = initialIndex
                         const endIndex = initialIndex + indexOffset
                         missingActions = await this.gameStore.findActionRangeForGame({
@@ -941,22 +948,27 @@ export class GameService {
                 }
             })
 
-        delete updatedGame.state
+        const representation = createActionResultsRepresentation({
+            game: updatedGame,
+            result: actionResult,
+            storedActions,
+            missingActions: relatedActions,
+            priorState,
+            visibility: definition.runtime.visibility,
+            user
+        })
 
         // Only user actions need to be broadcast
         const userActions = storedActions.filter((a) => a.source === ActionSource.User)
         await this.notifyGameInstance(GameNotificationAction.AddActions, {
-            game: updatedGame,
+            game: representation.game,
             actions: userActions
         })
-        await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
-
-        // Currently we know the related actions are the missing ones, but maybe not always
-        relatedActions.sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+        await this.notifyGamePlayers(GameNotificationAction.Update, { game: representation.game })
 
         for (const activePlayerId of updatedState.activePlayerIds) {
             if (!priorState.activePlayerIds.includes(activePlayerId)) {
-                const activePlayer = this.findPlayerByPlayerId(updatedGame, activePlayerId)
+                const activePlayer = this.findPlayerByPlayerId(representation.game, activePlayerId)
                 if (!activePlayer || !activePlayer.userId) {
                     continue
                 }
@@ -965,19 +977,15 @@ export class GameService {
                     continue
                 }
 
-                await this.scheduleTurnNotification(activeUser.id, updatedGame.id)
+                await this.scheduleTurnNotification(activeUser.id, representation.game.id)
             }
         }
 
-        if (!game.result && updatedGame.result) {
-            await this.sendGameEndEmail(updatedGame)
+        if (!game.result && representation.game.result) {
+            await this.sendGameEndEmail(representation.game)
         }
 
-        return {
-            processedActions: storedActions,
-            updatedGame,
-            missingActions: relatedActions.length > 0 ? relatedActions : undefined
-        }
+        return representation
     }
 
     async undoAction({

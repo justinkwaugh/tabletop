@@ -8,6 +8,7 @@ import {
     PlayerStatus,
     Role,
     TieResolutionStrategy,
+    type Game,
     type User,
     UserStatus
 } from '@tabletop/common'
@@ -19,7 +20,11 @@ import {
     type PlaceBid
 } from '@tabletop/fresh-fish'
 import { describe, expect, it, vi } from 'vitest'
-import { createGameRepresentation, createGameRepresentationEtag } from './gameRepresentation.js'
+import {
+    createActionResultsRepresentation,
+    createGameRepresentation,
+    createGameRepresentationEtag
+} from './gameRepresentation.js'
 
 function createUser(id: string): User {
     return {
@@ -28,6 +33,12 @@ function createUser(id: string): User {
         roles: [Role.User],
         externalIds: []
     }
+}
+
+function withoutGameState(game: Game): Game {
+    const gameWithoutState = structuredClone(game)
+    delete gameWithoutState.state
+    return gameWithoutState
 }
 
 function createFreshFishHistory() {
@@ -171,6 +182,20 @@ describe('createGameRepresentationEtag', () => {
             })
         ).toBe('canonical-revision')
     })
+
+    it('uses the canonical ETag for a hotseat Game', () => {
+        const game = structuredClone(freshFishHistory.game)
+        game.hotseat = true
+
+        expect(
+            createGameRepresentationEtag({
+                canonicalEtag: 'canonical-revision',
+                game,
+                visibility: FreshFishRuntime.visibility,
+                user: createUser('user-1')
+            })
+        ).toBe('canonical-revision')
+    })
 })
 
 describe('createGameRepresentation', () => {
@@ -306,6 +331,23 @@ describe('createGameRepresentation', () => {
         expect(representation.actions[0]?.undoPatch).toBe(action.undoPatch)
     })
 
+    it('preserves canonical state and Action History for a hotseat Game', () => {
+        const game = structuredClone(freshFishHistory.game)
+        game.hotseat = true
+        const actions = [freshFishHistory.action]
+        const representation = createGameRepresentation({
+            game,
+            actions,
+            visibility: FreshFishRuntime.visibility,
+            user: createUser('spectator-user')
+        })
+
+        expect(representation).toEqual({ game, actions, perspective: undefined })
+        expect(representation.game).toBe(game)
+        expect(representation.actions).toBe(actions)
+        expect(representation.actions[0]).toHaveProperty('amount', 7)
+    })
+
     it('keeps a participating Game without state private and fails closed on orphaned Actions', () => {
         const game = structuredClone(freshFishHistory.game)
         Reflect.deleteProperty(game, 'state')
@@ -332,5 +374,182 @@ describe('createGameRepresentation', () => {
                 user
             })
         ).toThrow('Cannot project Game game-1 Action History without its current state')
+    })
+})
+
+describe('createActionResultsRepresentation', () => {
+    it('projects persisted Action records and safe patches for the authenticated Player', () => {
+        const { game, before, after, action } = freshFishHistory
+        const storedAction = {
+            ...structuredClone(action),
+            createdAt: new Date('2026-09-03T12:00:00.000Z'),
+            updatedAt: new Date('2026-09-03T12:00:00.000Z')
+        }
+        const representation = createActionResultsRepresentation({
+            game,
+            result: {
+                processedActions: [action],
+                updatedState: after,
+                indexOffset: 0,
+                actionCascade: {
+                    before,
+                    transitions: [{ action, after }]
+                }
+            },
+            storedActions: [storedAction],
+            missingActions: [],
+            priorState: before,
+            visibility: FreshFishRuntime.visibility,
+            user: createUser('user-1')
+        })
+
+        expect(representation.game).toEqual(withoutGameState(game))
+        expect(representation.game).not.toBe(game)
+        expect(representation.perspective).toEqual({ kind: 'player', playerId: 'p1' })
+        expect(representation.missingActions).toBeUndefined()
+        expect(representation.actions).toHaveLength(1)
+
+        const representedAction = representation.actions[0]
+        if (representedAction === undefined) {
+            throw Error('Expected one represented Action')
+        }
+        expect(representedAction.createdAt).toEqual(storedAction.createdAt)
+        expect(representedAction.updatedAt).toEqual(storedAction.updatedAt)
+        expect(representedAction).not.toHaveProperty('amount')
+
+        const perspective = { kind: 'player', playerId: 'p1' } as const
+        const expectedBefore = FreshFishRuntime.visibility.state.project(before, perspective)
+        const expectedAfter = FreshFishRuntime.visibility.state.project(after, perspective)
+        const engine = new GameEngine(FreshFishRuntime)
+        expect(
+            engine.applyProcessedAction({
+                action: representedAction,
+                state: expectedBefore,
+                game
+            })
+        ).toEqual(expectedAfter)
+        expect(
+            engine.undoProcessedAction({
+                action: representedAction,
+                state: expectedAfter
+            })
+        ).toEqual(expectedBefore)
+        expect(JSON.stringify(representation)).not.toContain('canonical-hidden-tile')
+    })
+
+    it('retains the submitting Player Action payload', () => {
+        const { game, before, after, action } = freshFishHistory
+        const representation = createActionResultsRepresentation({
+            game,
+            result: {
+                processedActions: [action],
+                updatedState: after,
+                indexOffset: 0,
+                actionCascade: {
+                    before,
+                    transitions: [{ action, after }]
+                }
+            },
+            storedActions: [structuredClone(action)],
+            missingActions: [],
+            priorState: before,
+            visibility: FreshFishRuntime.visibility,
+            user: createUser('user-3')
+        })
+
+        expect(representation.perspective).toEqual({ kind: 'player', playerId: 'p3' })
+        expect(representation.actions[0]).toHaveProperty('amount', 7)
+    })
+
+    it('projects a missing persisted suffix ending at the prior state', () => {
+        const { game, after, action } = freshFishHistory
+        const representation = createActionResultsRepresentation({
+            game,
+            result: {
+                processedActions: [],
+                updatedState: after,
+                indexOffset: 0,
+                actionCascade: {
+                    before: after,
+                    transitions: []
+                }
+            },
+            storedActions: [],
+            missingActions: [action],
+            priorState: after,
+            visibility: FreshFishRuntime.visibility,
+            user: createUser('user-1')
+        })
+
+        expect(representation.actions).toEqual([])
+        expect(representation.missingActions).toHaveLength(1)
+        expect(representation.missingActions?.[0]).not.toHaveProperty('amount')
+        expect(representation.missingActions?.[0]?.forwardPatch).toBeDefined()
+        expect(representation.missingActions?.[0]?.undoPatch).toBeDefined()
+    })
+
+    it('preserves canonical persisted Actions for a Game Title without visibility', () => {
+        const { game, before, after, action } = freshFishHistory
+        const storedActions = [structuredClone(action)]
+        const missingActions = [structuredClone(action)]
+        const representation = createActionResultsRepresentation({
+            game,
+            result: {
+                processedActions: [action],
+                updatedState: after,
+                indexOffset: 0,
+                actionCascade: {
+                    before,
+                    transitions: [{ action, after }]
+                }
+            },
+            storedActions,
+            missingActions,
+            priorState: before,
+            user: createUser('user-1')
+        })
+
+        expect(representation).toEqual({
+            game: withoutGameState(game),
+            actions: storedActions,
+            missingActions,
+            perspective: undefined
+        })
+        expect(representation.actions).toBe(storedActions)
+        expect(representation.actions[0]).toHaveProperty('amount', 7)
+        expect(representation.actions[0]?.undoPatch).toEqual(action.undoPatch)
+    })
+
+    it('preserves canonical persisted Actions for a hotseat Game', () => {
+        const { before, after, action } = freshFishHistory
+        const game = structuredClone(freshFishHistory.game)
+        game.hotseat = true
+        const storedActions = [structuredClone(action)]
+        const representation = createActionResultsRepresentation({
+            game,
+            result: {
+                processedActions: [action],
+                updatedState: after,
+                indexOffset: 0,
+                actionCascade: {
+                    before,
+                    transitions: [{ action, after }]
+                }
+            },
+            storedActions,
+            missingActions: [],
+            priorState: before,
+            visibility: FreshFishRuntime.visibility,
+            user: createUser('spectator-user')
+        })
+
+        expect(representation).toEqual({
+            game: withoutGameState(game),
+            actions: storedActions,
+            missingActions: undefined,
+            perspective: undefined
+        })
+        expect(representation.actions).toBe(storedActions)
+        expect(representation.actions[0]).toHaveProperty('amount', 7)
     })
 })
