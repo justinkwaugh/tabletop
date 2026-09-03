@@ -1,0 +1,4 @@
+interface:
+    display_name: 'Local Hosted Game'
+    short_description: 'Run a game through the full local site'
+    default_prompt: 'Use $local-hosted-game to run Fresh Fish through the full local hosted site.'

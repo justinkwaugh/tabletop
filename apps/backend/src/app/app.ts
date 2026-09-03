@@ -261,15 +261,24 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             frontendStaticReady = true
         }
 
+        const gameAssetsAreImmutable = service !== 'local'
+
         // Serve assets from GCS as static files
         await fastify.register(fastifyStatic, {
             root: path.join(STATIC_ROOT, 'games'),
             prefix: '/games/',
             decorateReply: false, // avoid reply.sendFile collisions
             preCompressed: true,
-            immutable: true,
-            maxAge: '365d',
+            cacheControl: gameAssetsAreImmutable,
+            immutable: gameAssetsAreImmutable,
+            maxAge: gameAssetsAreImmutable ? '365d' : 0,
             setHeaders: (res, pathName) => {
+                if (!gameAssetsAreImmutable) {
+                    res.setHeader('Cache-Control', 'no-store, max-age=0')
+                    res.setHeader('Pragma', 'no-cache')
+                    res.setHeader('Expires', '0')
+                }
+
                 if (pathName.endsWith('.br')) {
                     res.setHeader('Content-Encoding', 'br')
                     if (pathName.endsWith('.js.br')) {
