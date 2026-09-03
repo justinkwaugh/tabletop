@@ -141,13 +141,11 @@ class CanonicalHost {
             redoneActions.push(...results.processedActions)
         }
 
-        const replayUserActions = this.actions
-            .filter(
-                (action) =>
-                    action.source === ActionSource.User &&
-                    action.index !== undefined &&
-                    action.index >= replayStartIndex
-            )
+        const replayActions = this.actions
+            .filter((action) => action.index !== undefined && action.index >= replayStartIndex)
+            .map((action) => structuredClone(action))
+        const replayUserActions = replayActions
+            .filter((action) => action.source === ActionSource.User)
             .map((action) => {
                 const replayAction = structuredClone(action)
                 delete replayAction.undoPatch
@@ -160,6 +158,7 @@ class CanonicalHost {
             redoneActions: redoneActions.map((action) => structuredClone(action)),
             canonicalReplay: {
                 startIndex: replayStartIndex,
+                actions: replayActions,
                 userActions: replayUserActions
             },
             checksum: this.state.actionChecksum
@@ -343,6 +342,7 @@ function createUndoNotification(
             undoneActionId,
             canonicalReplay: {
                 startIndex: undoResult.canonicalReplay.startIndex,
+                actionIds: undoResult.canonicalReplay.actions.map((action) => action.id),
                 userActionIds: undoResult.canonicalReplay.userActions.map((action) => action.id)
             },
             checksum: undoResult.checksum
@@ -467,7 +467,58 @@ describe('simultaneous auction undo reconciliation', () => {
         }
     })
 
-    test('falls back to synchronization when a realtime manifest references an unknown action', async () => {
+    test('reconciles a realtime replacement suffix containing System Actions', async () => {
+        const host = createAuctionHost()
+        const aBid = host.apply(createBid('bid-a-01', PLAYER_A_ID, 1))
+        host.apply(createBid('bid-d-02', PLAYER_D_ID, 2))
+        host.apply(createBid('bid-b-03', PLAYER_B_ID, 3))
+        host.apply(createBid('bid-c-04', PLAYER_C_ID, 4))
+        const clientState = structuredClone(host.state)
+        const clientActions = host.actionsSnapshot()
+        const actionIds = clientActions.map((action) => action.id)
+
+        const client = createClient(host, clientState, clientActions)
+        client.session.listenToGame()
+        try {
+            await client.session.waitForVisibleTransitionSettled()
+
+            expect(clientActions.some((action) => action.source === ActionSource.System)).toBe(true)
+
+            await client.notificationService.emit({
+                eventType: NotificationEventType.Data,
+                channel: NotificationChannel.GameInstance,
+                notification: {
+                    id: 'replay-system-actions-notification',
+                    type: NotificationCategory.Game,
+                    action: GameNotificationAction.UndoAction,
+                    data: {
+                        game: structuredClone(host.game),
+                        action: structuredClone(aBid),
+                        redoneActions: clientActions,
+                        undoneActionId: aBid.id,
+                        canonicalReplay: {
+                            startIndex: 0,
+                            actionIds,
+                            userActionIds: clientActions
+                                .filter((action) => action.source === ActionSource.User)
+                                .map((action) => action.id)
+                        },
+                        checksum: host.state.actionChecksum
+                    }
+                }
+            })
+            await client.session.waitForVisibleTransitionSettled()
+
+            expectClientToMatchHost(client.session, host)
+            expect(client.checkSyncSpy).not.toHaveBeenCalled()
+            expect(client.getGameSpy).not.toHaveBeenCalled()
+        } finally {
+            client.session.stopListeningToGame()
+            client.dispose()
+        }
+    })
+
+    test('uses returned redone Actions when a realtime manifest references non-local Actions', async () => {
         const host = createAuctionHost()
         const aBid = host.apply(createBid('bid-a-01', PLAYER_A_ID, 1))
         const clientState = structuredClone(host.state)
@@ -490,8 +541,39 @@ describe('simultaneous auction undo reconciliation', () => {
 
             expectClientToMatchHost(client.session, host)
             expect(client.undoSpy).not.toHaveBeenCalled()
+            expect(client.checkSyncSpy).not.toHaveBeenCalled()
+            expect(client.getGameSpy).not.toHaveBeenCalled()
+        } finally {
+            client.session.stopListeningToGame()
+            client.dispose()
+        }
+    })
+
+    test('falls back to synchronization when a retained replay Action is not local', async () => {
+        const host = createAuctionHost()
+        host.apply(createBid('bid-a-01', PLAYER_A_ID, 1))
+        const clientState = structuredClone(host.state)
+        const clientActions = host.actionsSnapshot()
+        host.apply(createBid('bid-d-02', PLAYER_D_ID, 2))
+        const bBid = host.apply(createBid('bid-b-03', PLAYER_B_ID, 3))
+
+        const client = createClient(host, clientState, clientActions)
+        client.session.listenToGame()
+        try {
+            await client.session.waitForVisibleTransitionSettled()
+            const undoResult = host.undo(bBid.id)
+
+            await client.notificationService.emit({
+                eventType: NotificationEventType.Data,
+                channel: NotificationChannel.GameInstance,
+                notification: createUndoNotification(undoResult, bBid.id)
+            })
+            await client.session.waitForVisibleTransitionSettled()
+
+            expectClientToMatchHost(client.session, host)
+            expect(client.undoSpy).not.toHaveBeenCalled()
             expect(client.checkSyncSpy).toHaveBeenCalledOnce()
-            expect(client.getGameSpy).toHaveBeenCalledOnce()
+            expect(client.getGameSpy).not.toHaveBeenCalled()
         } finally {
             client.session.stopListeningToGame()
             client.dispose()

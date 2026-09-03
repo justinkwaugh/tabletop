@@ -8,7 +8,7 @@ describe('TabletopApi undo compatibility', () => {
         vi.unstubAllGlobals()
     })
 
-    test('preserves legacy undo actions for game UI bundles from the previous deployment', async () => {
+    test('preserves complete and legacy undo replay fields across UI Artifact versions', async () => {
         const game = Value.Create(Game)
         game.id = 'game-id'
         game.typeId = 'freshfish'
@@ -24,6 +24,16 @@ describe('TabletopApi undo compatibility', () => {
         redoneAction.gameId = game.id
         redoneAction.source = ActionSource.User
         redoneAction.type = 'bid'
+        redoneAction.index = 0
+        redoneAction.undoPatch = []
+
+        const systemAction = Value.Create(GameAction)
+        systemAction.id = 'system-action'
+        systemAction.gameId = game.id
+        systemAction.source = ActionSource.System
+        systemAction.type = 'resolveBid'
+        systemAction.index = 1
+        systemAction.undoPatch = []
 
         vi.stubGlobal(
             'fetch',
@@ -38,6 +48,7 @@ describe('TabletopApi undo compatibility', () => {
                                 redoneActions: [redoneAction],
                                 canonicalReplay: {
                                     startIndex: 0,
+                                    actions: [redoneAction, systemAction],
                                     userActions: [redoneAction]
                                 },
                                 checksum: 123
@@ -61,6 +72,11 @@ describe('TabletopApi undo compatibility', () => {
 
         expect(result.undoneActions?.map((action) => action.id)).toEqual([undoneAction.id])
         expect(result.redoneActions?.map((action) => action.id)).toEqual([redoneAction.id])
+        expect(result.canonicalReplay.actions.map((action) => action.id)).toEqual([
+            redoneAction.id,
+            systemAction.id
+        ])
+        expect(result.canonicalReplay.actions[1]?.undoPatch).toEqual([])
         expect(result.canonicalReplay.userActions.map((action) => action.id)).toEqual([
             redoneAction.id
         ])

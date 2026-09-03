@@ -38,12 +38,12 @@ export const GameNotificationAddActionsData = Type.Object({
 export type GameNotificationUndoActionData = Type.Static<typeof GameNotificationUndoActionData>
 export const GameNotificationUndoActionData = Type.Object({
     game: Game,
+    redoneActions: Type.Array(GameAction),
+    canonicalReplay: CanonicalActionReplayManifest,
+    checksum: Type.Number(),
     // Compatibility for clients deployed before the compact replay manifest.
     action: GameAction,
-    redoneActions: Type.Array(GameAction),
-    undoneActionId: Type.String(),
-    canonicalReplay: CanonicalActionReplayManifest,
-    checksum: Type.Number()
+    undoneActionId: Type.String()
 })
 
 export type GameNotificationChatData = Type.Static<typeof GameNotificationChatData>

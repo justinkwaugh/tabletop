@@ -1079,11 +1079,13 @@ export class GameService {
         const checksum = updatedState.actionChecksum
         delete updatedGame.state
 
+        const replayActions = [...retainedActions, ...processedRedoneActions]
         const canonicalReplay = {
             startIndex: undoWindow.startIndex,
-            userActions: [...retainedActions, ...processedRedoneActions]
+            actions: replayActions.map((action) => structuredClone(action)),
+            userActions: replayActions
                 .filter((action) => action.source === ActionSource.User)
-                .map((action) => this.prepareCanonicalReplayAction(action))
+                .map((action) => this.prepareLegacyReplayAction(action))
         }
 
         // send out notifications
@@ -1094,6 +1096,7 @@ export class GameService {
             undoneActionId: actionToUndo.id,
             canonicalReplay: {
                 startIndex: canonicalReplay.startIndex,
+                actionIds: canonicalReplay.actions.map((action) => action.id),
                 userActionIds: canonicalReplay.userActions.map((action) => action.id)
             },
             checksum
@@ -1123,7 +1126,7 @@ export class GameService {
         )
     }
 
-    private prepareCanonicalReplayAction(action: GameAction): GameAction {
+    private prepareLegacyReplayAction(action: GameAction): GameAction {
         const replayAction = structuredClone(action)
         delete replayAction.undoPatch
         return replayAction

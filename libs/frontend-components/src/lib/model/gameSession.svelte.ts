@@ -950,7 +950,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                         targetActionId
                     )
                     relevantContext.restoreFrom(priorContext)
-                    this.reconcileCanonicalReplay(relevantContext, canonicalReplay, checksum)
+                    this.reconcileProcessedActionReplay(relevantContext, canonicalReplay, checksum)
                     relevantContext.updateGame(game)
                 }
 
@@ -1006,10 +1006,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     willUndo(_action: GameAction) {}
 
-    onHistoryAction(
-        _action?: GameAction,
-        animationIntent: HistoryAnimationIntent = 'state-only'
-    ) {
+    onHistoryAction(_action?: GameAction, animationIntent: HistoryAnimationIntent = 'state-only') {
         this.pendingHistoryAnimationIntent = animationIntent
 
         if (animationIntent !== 'full-action') {
@@ -1059,41 +1056,44 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return stateSnapshot
     }
 
-    private reconcileCanonicalReplay(
+    private reconcileProcessedActionReplay(
         context: GameContext<T, U>,
-        canonicalReplay: CanonicalActionReplay,
+        replay: Pick<CanonicalActionReplay, 'startIndex' | 'actions'>,
         checksum: number
     ): void {
-        if (canonicalReplay.startIndex > context.actions.length) {
-            throw new Error('Canonical replay starts beyond local action history')
+        if (replay.startIndex > context.actions.length) {
+            throw new Error('Processed Action replay starts beyond local Action History')
         }
 
         const gameSnapshot = structuredClone(context.game)
         let stateSnapshot = structuredClone(context.state)
-        stateSnapshot = this.undoToIndex(stateSnapshot, canonicalReplay.startIndex - 1, context)
+        stateSnapshot = this.undoToIndex(stateSnapshot, replay.startIndex - 1, context)
         if (
-            context.actions.length !== canonicalReplay.startIndex ||
-            stateSnapshot.actionCount !== canonicalReplay.startIndex
+            context.actions.length !== replay.startIndex ||
+            stateSnapshot.actionCount !== replay.startIndex
         ) {
-            throw new Error('Canonical replay did not reach its starting state')
+            throw new Error('Processed Action replay did not reach its starting state')
         }
         context.updateGameState(stateSnapshot)
 
-        for (const action of canonicalReplay.userActions) {
-            if (action.source !== ActionSource.User) {
-                throw new Error('Canonical replay contains a non-user action')
+        for (const action of replay.actions) {
+            if (action.index !== context.actions.length) {
+                throw new Error(
+                    `Processed Action replay has Action ${action.id} at index ${action.index}, expected ${context.actions.length}`
+                )
             }
-            const replayAction = structuredClone(action)
-            replayAction.index = undefined
-            replayAction.undoPatch = undefined
-            const results = this.executeActionInGame(replayAction, gameSnapshot, stateSnapshot)
+            const results = this.applyProcessedActionToGame(
+                structuredClone(action),
+                gameSnapshot,
+                stateSnapshot
+            )
             stateSnapshot = results.updatedState
             context.applyActionResults(results)
         }
 
         if (context.state.actionChecksum !== checksum) {
             throw new Error(
-                `Canonical replay checksum mismatch, got ${context.state.actionChecksum} expected ${checksum}`
+                `Processed Action replay checksum mismatch, got ${context.state.actionChecksum} expected ${checksum}`
             )
         }
         context.verifyFullChecksum()
@@ -1203,19 +1203,23 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 notification.data.canonicalReplay
             )
             Value.Assert(CanonicalActionReplayManifest, manifest)
-            const userActions = manifest.userActionIds.map((actionId) => {
-                const action = this.gameContext.findAction(actionId)
-                assertExists(action, `Canonical replay action ${actionId} is not local`)
-                if (action.source !== ActionSource.User) {
-                    throw new Error(`Canonical replay action ${actionId} is not a user action`)
-                }
+            const redoneActions = notification.data.redoneActions.map((action) => {
+                const convertedAction = Value.Convert(GameAction, action)
+                Value.Assert(GameAction, convertedAction)
+                return convertedAction
+            })
+            const redoneActionsById = new Map(redoneActions.map((action) => [action.id, action]))
+            const actions = manifest.actionIds.map((actionId) => {
+                const action =
+                    redoneActionsById.get(actionId) ?? this.gameContext.findAction(actionId)
+                assertExists(action, `Processed Action replay Action ${actionId} is unavailable`)
                 return structuredClone(action)
             })
-            this.reconcileCanonicalReplay(
+            this.reconcileProcessedActionReplay(
                 this.gameContext,
                 {
                     startIndex: manifest.startIndex,
-                    userActions
+                    actions
                 },
                 notification.data.checksum
             )
