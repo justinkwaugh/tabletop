@@ -413,6 +413,19 @@ describe('Fresh Fish visibility', () => {
         )
         expect(visibleResult).not.toHaveProperty('actionCascade')
 
+        expect(
+            Visibility.projectActionHistory({
+                currentState: result.updatedState,
+                actions: result.processedActions,
+                visibility: FreshFishRuntime.visibility,
+                perspective
+            })
+        ).toEqual({
+            startIndex: 0,
+            currentState: visibleResult.updatedState,
+            actions: visibleResult.processedActions
+        })
+
         const visibleBefore = FreshFishRuntime.visibility.state.project(before, perspective)
         const firstVisibleAction = visibleResult.processedActions[0]
         if (firstVisibleAction === undefined) {

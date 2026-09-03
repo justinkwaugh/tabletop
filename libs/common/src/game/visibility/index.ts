@@ -9,7 +9,11 @@ export {
 } from './visibilitySchema.js'
 export { createProjector } from './valueProjector.js'
 export { createActionProjector } from './actionProjector.js'
-export { projectActionCascade, projectActionResult } from './gameVisibility.js'
+export {
+    projectActionCascade,
+    projectActionHistory,
+    projectActionResult
+} from './gameVisibility.js'
 
 export type {
     Metadata,
@@ -38,8 +42,10 @@ export type {
 } from './actionProjector.js'
 export type {
     ActionCascadeProjectionOptions,
+    ActionHistoryProjectionOptions,
     ActionResultProjectionOptions,
     GameVisibility,
-    VisibleActionCascade
+    VisibleActionCascade,
+    VisibleActionHistory
 } from './gameVisibility.js'
 export type { CanonicalActionCascade, CanonicalActionTransition } from '../engine/gameEngine.js'

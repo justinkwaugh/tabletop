@@ -3,9 +3,11 @@ import type { GameAction } from '../engine/gameAction.js'
 import type {
     ActionCascadeResult,
     ActionResult,
-    CanonicalActionCascade
+    CanonicalActionCascade,
+    CanonicalActionTransition
 } from '../engine/gameEngine.js'
 import type { GameState } from '../model/gameState.js'
+import { assert, assertExists } from '../../util/assertions.js'
 import type { ActionProjector } from './actionProjector.js'
 import type { Perspective, ValueProjector } from './valueProjector.js'
 
@@ -18,6 +20,12 @@ export interface GameVisibility<
 }
 
 export interface VisibleActionCascade {
+    readonly actions: readonly GameAction[]
+}
+
+export interface VisibleActionHistory<ProjectedState extends GameState = GameState> {
+    readonly startIndex: number
+    readonly currentState: ProjectedState
     readonly actions: readonly GameAction[]
 }
 
@@ -38,6 +46,15 @@ export interface ActionResultProjectionOptions<
     readonly perspective: Perspective
 }
 
+export interface ActionHistoryProjectionOptions<
+    State extends GameState = GameState,
+    ProjectedState extends GameState = GameState
+> extends ActionCascadeProjectionOptions<State, ProjectedState> {
+    readonly startIndex?: number
+    readonly currentState: State
+    readonly actions: readonly GameAction[]
+}
+
 export function projectActionCascade<State extends GameState, ProjectedState extends GameState>(
     actionCascade: CanonicalActionCascade<State>,
     options: ActionCascadeProjectionOptions<State, ProjectedState>
@@ -53,6 +70,63 @@ export function projectActionCascade<State extends GameState, ProjectedState ext
     })
 
     return { actions }
+}
+
+export function projectActionHistory<State extends GameState, ProjectedState extends GameState>(
+    options: ActionHistoryProjectionOptions<State, ProjectedState>
+): VisibleActionHistory<ProjectedState> {
+    const startIndex = options.startIndex ?? 0
+    assert(
+        Number.isInteger(startIndex) && startIndex >= 0,
+        `Canonical Action History start index must be a non-negative integer, received ${startIndex}`
+    )
+    assert(
+        options.currentState.actionCount === startIndex + options.actions.length,
+        `Canonical Action History segment starts at ${startIndex} with ${options.actions.length} Actions but current state has Action count ${options.currentState.actionCount}`
+    )
+
+    const indexedActions = options.actions.map((action) => {
+        const index = action.index
+        assertExists(index, `Canonical Action ${action.id} has no index`)
+        return { action, index }
+    })
+    const orderedActions = indexedActions.toSorted((left, right) => left.index - right.index)
+    let expectedIndex = startIndex
+    for (const indexedAction of orderedActions) {
+        assert(
+            indexedAction.index === expectedIndex,
+            `Canonical Action ${indexedAction.action.id} has index ${indexedAction.index}, expected ${expectedIndex}`
+        )
+        expectedIndex += 1
+    }
+
+    let before = structuredClone(options.currentState)
+    const reversedTransitions: CanonicalActionTransition<State>[] = []
+
+    for (const { action } of orderedActions.toReversed()) {
+        reversedTransitions.push({ action, after: before })
+
+        const undoPatch = action.undoPatch
+        assertExists(undoPatch, `Canonical Action ${action.id} has no undo patch`)
+        before = jsonpatch.applyPatch(structuredClone(before), undoPatch).newDocument
+    }
+
+    const visibleActionCascade = projectActionCascade(
+        {
+            before,
+            transitions: reversedTransitions.toReversed()
+        },
+        {
+            visibility: options.visibility,
+            perspective: options.perspective
+        }
+    )
+
+    return {
+        startIndex,
+        currentState: options.visibility.state.project(options.currentState, options.perspective),
+        actions: visibleActionCascade.actions
+    }
 }
 
 export function projectActionResult<State extends GameState>(

@@ -4,7 +4,7 @@
 
 ## Status and purpose
 
-This document records the current theoretical model and scenario catalog for preventing a Hosted Game Client from receiving information its Player Perspective is not allowed to know. The end-to-end capability is not implemented. Initial authoring and projection slices now exist for declaring protected TypeBox fields and named schema scopes, deriving canonical and projection schemas, registering state and Action projectors with a participating Game Runtime, executing the built-in host-only projection used by Fresh Fish's tile bag, applying the built-in actor policy to `PlaceBid.amount`, applying the shared simultaneous-auction bid policy to Fresh Fish state snapshots, capturing canonical Action cascades from Game Engine execution, materializing a supplied canonical Action cascade into projected Action records with safe patches, projecting a complete host Action result without exposing its canonical transition capture, and applying Processed Actions through either rules replay or an Action-carried forward patch. Fresh Fish money intentionally remains unannotated because hidden money is not currently a game variant. The implementation does not yet classify cascade mode, alter transport, persist visible variants, or enforce confidentiality. Resolved-sounding statements are still parts of the working proposal, while explicitly open questions identify areas where even the proposal has not yet converged.
+This document records the current theoretical model and scenario catalog for preventing a Hosted Game Client from receiving information its Player Perspective is not allowed to know. The end-to-end capability is not implemented. Initial authoring and projection slices now exist for declaring protected TypeBox fields and named schema scopes, deriving canonical and projection schemas, registering state and Action projectors with a participating Game Runtime, executing the built-in host-only projection used by Fresh Fish's tile bag, applying the built-in actor policy to `PlaceBid.amount`, applying the shared simultaneous-auction bid policy to Fresh Fish state snapshots, capturing canonical Action cascades from Game Engine execution, materializing a supplied canonical Action cascade into projected Action records with safe patches, programmatically reconstructing and projecting either a complete Canonical Action History or a contiguous suffix from canonical current state and undo patches, projecting a complete Action-execution result without exposing its canonical transition capture, and applying Processed Actions through either rules replay or an Action-carried forward patch. Fresh Fish money intentionally remains unannotated because hidden money is not currently a game variant. The implementation does not yet classify cascade mode, alter transport, invoke history reprojection from backend persistence, provide the required canonical Developer/Admin client context, or enforce confidentiality. Resolved-sounding statements are still parts of the working proposal, while explicitly open questions identify areas where even the proposal has not yet converged.
 
 The catalog is intended to evaluate proposed designs and later serve as an acceptance-test matrix. A design is incomplete if it protects ordinary state delivery but leaks information through Actions, undo patches, System Action cascades, synchronization, persistence, or another Hosted Game flow.
 
@@ -25,7 +25,7 @@ The catalog is intended to evaluate proposed designs and later serve as an accep
 
 The backend stores one complete canonical Game State and one Canonical Action History. Each canonical Processed Action contains everything needed for authoritative validation, execution, replay, and Action Reversal, including its canonical undo patch.
 
-Canonical undo patches are backend-only. A client never receives or has a code path to access one, even when a permitted patch would happen to contain identical operations.
+Canonical undo patches are unavailable to ordinary Player and spectator clients. Their visible patches are independently derived from projected states even when they happen to contain identical operations. An explicitly authorized Host View used by Developer and Admin tooling receives canonical patches as part of its Canonical Action History.
 
 ### Player-relative projection
 
@@ -40,13 +40,15 @@ visibleActionRecord = projectActionRecord(canonicalAction, perspective)
 
 A public or spectator view can be represented as another perspective. Different Players may receive different projections of the same canonical transition.
 
-The initial runtime model has exactly two client-facing perspectives:
+The initial runtime model has exactly two ordinary projected perspectives:
 
 ```ts
 type Perspective = { kind: 'player'; playerId: string } | { kind: 'spectator' }
 ```
 
-Team membership, ownership, Action authorship, retained knowledge, and reveal state are relationships that policies derive from a Player Perspective and canonical information; they are not additional perspective kinds. Host and administrator access do not enter the ordinary projection path. They use an explicit canonical-access path so `hostOnly` cannot become client-visible through a privileged projector argument. The host must derive a Perspective from authenticated Game membership rather than accept one asserted by a client.
+Team membership, ownership, Action authorship, retained knowledge, and reveal state are relationships that policies derive from a Player Perspective and canonical information; they are not additional projected perspective kinds. Information delivery additionally supports an explicitly authorized **Host View**. Enabling Developer Debug Mode or Admin Mode selects this same Host View, which may receive all canonical game information, including canonical state, Action records, metadata, and patches. Host View does not enter the ordinary projection path or masquerade as a privileged projector argument; the host selects its canonical-access path only after authorization. For ordinary delivery, the host must derive a Perspective from authenticated Game membership rather than accept one asserted by a client.
+
+Information View and Player Perspective are separate concerns. Debug Mode changes the Information View without changing the Player Perspective or Acting Player. Admin Mode changes to Host View and may separately choose an Acting Player and Player Perspective for presentation and Action construction. Choosing that Player does not reduce the administrator's canonical visibility to that Player's projection.
 
 Visibility belongs to the relationship between canonical information and a Player Perspective. It is not an intrinsic subtype stored on a domain object. A hand, deck, bid, or plan therefore does not change between `Visible`, `PartiallyVisible`, and `Hidden` discriminated-union branches according to its recipient.
 
@@ -71,7 +73,7 @@ Av(P) = projectActionRecord(A, P)
 Uv(P) = diff(V1(P), V0(P))
 ```
 
-`Av(P)` is the permitted visible record of the canonical Processed Action. It is not a second canonical Action. `Uv(P)` is stored as `Av(P).undoPatch`. The visible undo patch is calculated from two already-safe projected states; it is not produced by filtering operations out of the canonical undo patch. Filtering a canonical patch could produce incorrect array indices, invalid structural changes, or secret replacement values.
+`Av(P)` is the permitted visible record of the canonical Processed Action. It is not a second canonical Action. `Uv(P)` is attached as `Av(P).undoPatch` when the record is materialized. The visible undo patch is calculated from two already-safe projected states; it is not produced by filtering operations out of the canonical undo patch. Filtering a canonical patch could produce incorrect array indices, invalid structural changes, or secret replacement values.
 
 A replayable record retains the canonical game-semantic Action type and enough permitted payload to satisfy:
 
@@ -92,39 +94,29 @@ The patch must be generated solely from the two safe projected states. A determi
 
 A patched record need not be executable and may redact the canonical Action type itself. Because `GameAction.type` is currently required, a reserved platform sentinel such as `__redacted__` may be needed. The sentinel is not an alternative game-semantic Action type: it means the canonical type is unavailable to this perspective. Such a record must never enter a game Action hydrator or Action handler, and it must carry a visible forward patch. The exact sentinel and visible-record schema remain unresolved.
 
-### Action identity and visible variants
+### Action identity and visible results
 
 Every visible Action record preserves the canonical Action identity and index required by the Action History Checksum. Other Action fields are projected. Its type is either the canonical Action type or, for a patched opaque record, the reserved redaction sentinel. It never masquerades as another domain Action.
 
-Variants are organized by distinct visible result rather than a fixed actor-versus-opponents rule. Players whose visible Action contents and patches are identical belong to the same tentative **Visibility Equivalence Class**, allowing one stored variant to serve several perspectives.
+Visible results vary by their actual projected contents rather than a fixed actor-versus-opponents rule. Players may receive identical results, but the baseline does not need to group or persist those results. A tentative **Visibility Equivalence Class** remains a possible future optimization only if measurement justifies it.
 
-Common public Actions normally have one shared variant. A private draw may have an owner variant and a public variant. A single deal to four Players may require four Player variants plus a public variant because each Player sees a different hand.
+Common public Actions normally project identically. A private draw may produce an owner result and a public result. A single deal to four Players may produce four Player results plus a public result because each Player sees a different hand.
 
-### Persistence shape
+### Persistence and on-demand projection
 
-The working persistence model stores one canonical current state and augments each canonical Processed Action with its distinct visible variants:
+The working baseline persists one canonical current state and one Canonical Action History, including canonical undo patches. It does not persist projected Action History, projected state, or Action variants for any perspective.
 
-```text
-Canonical current state
+A live Action response can materialize the requesting perspective's visible state, Action records, and safe patches from the canonical cascade already captured during execution. Initial load and full synchronization can reconstruct the required canonical transition boundaries from the canonical current state and Action History, then project the requested current state and history. Incremental synchronization needs to materialize only the missing canonical suffix.
 
-Canonical Processed Action
-├── full canonical contents
-├── canonical undo patch
-└── visible variants
-    ├── audience
-    ├── permitted Action record or opaque record
-    │   ├── visible undoPatch
-    │   └── visible forwardPatch when required
-    └── cascade transition mode
-```
+`Visibility.projectActionHistory` now implements the full-history and replacement-suffix paths as one pure operation. It accepts canonical current state, a contiguous Canonical Action History segment ending at that state, an optional `startIndex` that defaults to zero, a Perspective, and the runtime visibility registration. It requires `currentState.actionCount === startIndex + actions.length` and Action indexes that exactly fill that range. It orders the Actions, walks backward by applying each canonical undo patch to reconstruct every supplied state boundary, and then reuses the ordinary cascade materializer to derive projected Action records and safe patches. The result repeats `startIndex`, including for an empty segment, so an undo response can unambiguously replace or delete a local suffix. It fails when the segment is incomplete or an Action lacks an index or undo patch, and it does not mutate its canonical inputs. Backend load, synchronization, and undo do not call it yet.
 
-This does not require a complete current-state copy for every Player. Initial load and full synchronization can project the one canonical current state for the requesting Player Perspective. Visible variants and their patches should be committed atomically with the canonical transition so projection failure cannot leave a partially updated Game Instance.
+This baseline intentionally requires no perspective cache, projection checkpoint, background synchronization of alternate contexts, persisted Visibility Equivalence Classes, or chunk-specific projection protocol. Those would be optional optimizations supported only by a demonstrated performance need; they are not prerequisites for the hidden-information design.
 
 Persisted player-relative state or a smaller knowledge overlay may still be required when knowledge cannot be derived from current canonical state. For example, a Player may remain entitled to remember a card after the card moves elsewhere. The representation of durable Player knowledge is unresolved.
 
 ### Game Client and History View
 
-A Hosted Game Client receives only its visible Game State, permitted Action records, and visible patches. History View is derived locally from those inputs and therefore needs no separate confidentiality mechanism.
+An ordinary Hosted Game Client receives only its visible Game State, permitted Action records, and visible patches. History View is derived locally from those inputs and therefore needs no separate confidentiality mechanism.
 
 The History invariant is:
 
@@ -133,7 +125,15 @@ visible state + visible Action records + visible patches
     -> only visible historical states
 ```
 
-Local backward navigation uses visible undo patches. Local forward navigation replays the same visible Action records originally delivered or applies their visible forward patches. It never accesses canonical undo patches.
+Local backward navigation in a projected context uses visible undo patches. Local forward navigation replays the same visible Action records originally delivered or applies their visible forward patches. A projected context never accesses canonical undo patches.
+
+### Developer and administrator Host View
+
+Canonical Developer/Admin delivery is a required part of the end-to-end design, although it may be implemented in a later slice. Enabling Developer Debug Mode or Admin Mode requests a fresh authorized canonical load and constructs a separate Host Game Context containing canonical current state and Canonical Action History. While either mode remains enabled, the Game Client temporarily uses that context for displayed state, Action history, History View, and authoritative updates.
+
+Once neither mode remains enabled, the client discards the Host Game Context and performs a full load of the caller's ordinary Player or spectator projection. The client must not merge canonical information into the projected context or try to derive one Player's projection from another Player's local data.
+
+No optimized context transition is required. A complete canonical load on entry and a complete projected load on exit are acceptable. The existing ability of Game Session to hold different Game Contexts provides the intended client-side shape; keeping both contexts synchronized, caching canonical responses, or incrementally transforming between views is explicitly unnecessary for the initial implementation.
 
 ### System Action cascades
 
@@ -190,11 +190,11 @@ This assessment records the leading proposal at this point in exploration; it is
 
 ## Candidate declarative visibility model
 
-> **Implementation experiment status:** This remains a working proposal, not an accepted direction. Schema declaration and derivation, pure state and Action projection, optional Game Runtime projector registration, canonical Action-cascade capture, and visible patch materialization now have initial implementations. Projected hydration, replay classification, persistence, and transport remain design work.
+> **Implementation experiment status:** This remains a working proposal, not an accepted direction. Schema declaration and derivation, pure state and Action projection, optional Game Runtime projector registration, canonical Action-cascade capture, and visible patch materialization now have initial implementations. Projected hydration, replay classification, on-demand materialization from persistence, transport, and the Developer/Admin Host Game Context remain design work.
 
 The goal is for game logic to remain canonical and perspective-free. An Action or state handler should not normally contain branches such as `viewer === owner`. Instead, a participating game would declare visibility near its existing TypeBox state and Action schemas, and the platform would compile those declarations into the projection and transition behavior described elsewhere in this document.
 
-The engine cannot infer that a field named `money`, `cards`, or `plan` is secret. The developer must supply the game-rule meaning somewhere. The proposed leverage is that the developer declares that meaning once while the engine owns traversal, recipient selection, visible variants, safe patches, persistence, synchronization, and conformance checks.
+The engine cannot infer that a field named `money`, `cards`, or `plan` is secret. The developer must supply the game-rule meaning somewhere. The proposed leverage is that the developer declares that meaning once while the engine owns traversal, recipient selection, visible results, safe patches, canonical reconstruction, synchronization, and conformance checks.
 
 ### Two independent declaration axes
 
@@ -270,6 +270,8 @@ The common `Visibility.projectActionCascade` experiment accepts a canonical star
 
 `Visibility.projectActionResult` is the host-facing result seam around that lower-level materializer. It accepts the canonical `ActionCascadeResult`, a Perspective, and the optional `runtime.visibility` registration. A participating runtime receives a result containing the projected final state, projected Processed Actions, and unchanged index offset. When the registration is absent, it receives those same three canonical result fields without projection, preserving the existing all-public behavior for a non-participating Game Title. Both branches construct the return value explicitly, so the host-only `actionCascade` capture cannot be included through object spreading or incidental serialization. The operation does not mutate the canonical result. Backend persistence and transport do not call this seam yet.
 
+`Visibility.projectActionHistory` is the corresponding history-segment seam for a participating runtime. With the default `startIndex` of zero it projects a full history; with a later `startIndex` it projects the contiguous replacement suffix needed by synchronization or undo. It reconstructs the supplied canonical transition boundaries backward from canonical current state using the Action-carried canonical undo patches, then delegates visible Action and patch production to `projectActionCascade`. Returning the start index makes an empty replacement suffix meaningful. This keeps live, cold, and partial projection on the same materialization path instead of implementing separate history-redaction logic.
+
 `GameEngine.executeAction` accepts an Unprocessed Action, sanitizes its submitted `undoPatch`, `forwardPatch`, and result `metadata`, and executes the complete canonical cascade. Its result exposes `actionCascade`, containing a clone of the canonical input state and one ordered `{ action, after }` transition for every processed User and System Action. Each resulting Action carries its freshly generated canonical undo patch aligned with its recorded after-state. Sanitization applies only to the initiating Action; System Actions created inside `MachineContext` are already authoritative and retain their generated data.
 
 `GameEngine.applyProcessedAction` accepts one authoritative Processed Action. When `forwardPatch` is present, including an empty array, it applies that patch to a cloned state without hydrating the Action, invoking game logic, consuming PRNG state, or generating System Actions. Otherwise it replays exactly that one record through game rules and does not recursively process scheduled children. `GameEngine.undoProcessedAction` applies the Action-carried undo patch without game execution. This lifecycle interface replaces the former public `run` mode flag, so backend execution, Hotseat Play, Processed Action delivery, and History Navigation select an operation by what kind of Action they hold rather than by where the engine instance runs. Fork reconstruction has a narrowly named `rebuildProcessedAction` operation because it recreates one historical canonical record with a new identity and undo patch rather than applying an existing record. The engine capture and Processed Action application paths are not yet connected to projected backend persistence or transport.
@@ -338,9 +340,9 @@ projectSnapshot(canonicalState, perspective)
 projectActionResult(canonicalResult, perspective)
 ```
 
-Behind that Interface, the Module would own recursive traversal, visible Action records, Visibility Equivalence Classes, forward and undo patch derivation, cascade mode, checksum-preserving records, and persistence output. That keeps the projection Seam out of individual game Actions and transport handlers.
+Behind that Interface, the Module would own recursive traversal, visible Action records, forward and undo patch derivation, cascade mode, and checksum-preserving results. That keeps the projection Seam out of individual game Actions and transport handlers. Grouping results into Visibility Equivalence Classes remains an optional internal optimization rather than part of the Interface.
 
-The current narrower implementation exposes `runtime.visibility.state`, `runtime.visibility.actions`, the lower-level `Visibility.projectActionCascade` operation, and the host-facing `Visibility.projectActionResult` operation. This establishes the opt-in result, snapshot, Action-selection, ordered-cascade, Action-carried-patch, and patch-application parts of that Seam without prematurely choosing the persisted visible-variant schema or cascade-classification protocol. A completed Action cascade is already the outer materialization unit and remains the intended unit for later classification and delivery; callers must not independently remove forward patches from individual Action entries because replay versus patching is one decision for the complete perspective-specific cascade.
+The current narrower implementation exposes `runtime.visibility.state`, `runtime.visibility.actions`, the lower-level `Visibility.projectActionCascade` operation, and the host-facing `Visibility.projectActionResult` operation. This establishes the opt-in result, snapshot, Action-selection, ordered-cascade, Action-carried-patch, and patch-application parts of that Seam without prematurely choosing the canonical-history reconstruction or cascade-classification protocol. A completed Action cascade is already the outer materialization unit and remains the intended unit for later classification and delivery; callers must not independently remove forward patches from individual Action entries because replay versus patching is one decision for the complete perspective-specific cascade.
 
 Compilation could fail a participating game before publication when:
 
@@ -381,7 +383,7 @@ If the proposal works, a game developer would normally:
 4. Register a named policy or custom Adapter only for unusual reveal or retained-knowledge rules.
 5. Explicitly approve the Actions that may execute optimistically.
 
-The engine would then handle snapshot and Action projection, opaque sentinels, forward and undo patches, System Action cascades, equivalence grouping, persistence, synchronization, and most validation of the confidentiality contract.
+The engine would then handle snapshot and Action projection, opaque sentinels, forward and undo patches, System Action cascades, on-demand materialization, synchronization, and most validation of the confidentiality contract.
 
 ### Initial TypeBox findings and remaining questions
 
@@ -399,6 +401,7 @@ The initial implementation establishes that:
 - `GameEngine.undoProcessedAction` uses the undo patch carried by either a canonical or safely projected Processed Action;
 - a pure cascade materializer preserves public User and System Action identity fields while deriving visible forward and undo patches solely from adjacent projected states and attaching them directly to the projected Actions;
 - the host-facing result projector returns projected state and Processed Actions for a participating runtime, preserves the canonical result for an absent visibility registration, and excludes the host-only canonical transition capture from both results;
+- the pure history-segment projector validates and orders either a complete Canonical Action History or a contiguous suffix ending at current state, reconstructs every supplied canonical state boundary from canonical undo patches, produces the same visible state and Actions as live cascade projection, preserves an explicit start index for empty replacements, and does not mutate its input;
 - the shared simultaneous-auction policy produces distinct owner, opponent, spectator, and resolved-bid projections for Fresh Fish while the Draw Bag remains redacted;
 - Fresh Fish projects `PlaceBid.amount` with the common actor policy, produces different actor and non-actor transition records and patches, and publishes lasting bid knowledge through the public `EndAuction` record; and
 - TypeBox type-level composition may erase custom option types even where the runtime metadata survives.
@@ -490,7 +493,7 @@ Within the current proposal, these examples suggest that reusable fixed-shape hi
 | --- | ------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------ |
 | I1  | Hidden scalar, such as money          | Owner sees the value; others see nothing or an allowed indicator               | Owner and public patches differ            |
 | I2  | Private hand mutation                 | Owner sees card identities; others see backs or a count                        | Arrays and placeholder handling            |
-| I3  | One Action deals to several Players   | Each Player sees their own cards; public sees none                             | Potentially one variant per Player         |
+| I3  | One Action deals to several Players   | Each Player sees their own cards; public sees none                             | Potentially one result per Player          |
 | I4  | Team or shared secret                 | A subset of Players shares exact information                                   | Audiences beyond owner and public          |
 | I5  | Hidden pieces with a public aggregate | Exact contents are hidden; a count or capacity is public                       | Projection transforms structure            |
 | I6  | Hidden deck order                     | Order and identities are hidden; size is public                                | Secret randomness and replay feasibility   |
@@ -503,18 +506,18 @@ Within the current proposal, these examples suggest that reusable fixed-shape hi
 
 ### Action and execution patterns
 
-| ID  | Scenario                                              | Question exercised                                                                           |
-| --- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| A1  | Public Action with a private consequence              | Can the Action replay against every visible state?                                           |
-| A2  | Public Action type with a secret payload              | Can the payload be projected while preserving correct visible execution?                     |
-| A3  | Secret-dependent public consequence                   | Can a client reach the public result without knowing the secret input?                       |
-| A4  | Hidden Action type                                    | Can an opaque Action envelope advance state, or is a forward patch required?                 |
-| A5  | Action changes another Player's secret                | Are all asymmetric variants produced rather than assuming actor and public variants suffice? |
-| A6  | Processed-result metadata contains secrets            | Are history descriptions, animation metadata, and result metadata projected?                 |
-| A7  | Canonical undo contains secrets                       | Is each visible undo patch independently derived from projected states?                      |
-| A8  | Canonical and visible undo operations happen to match | Do client interfaces still exclude the canonical patch conceptually and operationally?       |
-| A9  | Legal choices depend on private state                 | Are valid Action types and concrete choices returned only to entitled Players?               |
-| A10 | Validation or rejection explains a secret             | Does an error reveal only the permitted reason rather than a hidden rule fact?               |
+| ID  | Scenario                                              | Question exercised                                                                         |
+| --- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| A1  | Public Action with a private consequence              | Can the Action replay against every visible state?                                         |
+| A2  | Public Action type with a secret payload              | Can the payload be projected while preserving correct visible execution?                   |
+| A3  | Secret-dependent public consequence                   | Can a client reach the public result without knowing the secret input?                     |
+| A4  | Hidden Action type                                    | Can an opaque Action envelope advance state, or is a forward patch required?               |
+| A5  | Action changes another Player's secret                | Are all asymmetric results produced rather than assuming actor and public results suffice? |
+| A6  | Processed-result metadata contains secrets            | Are history descriptions, animation metadata, and result metadata projected?               |
+| A7  | Canonical undo contains secrets                       | Is each visible undo patch independently derived from projected states?                    |
+| A8  | Canonical and visible undo operations happen to match | Do client interfaces still exclude the canonical patch conceptually and operationally?     |
+| A9  | Legal choices depend on private state                 | Are valid Action types and concrete choices returned only to entitled Players?             |
+| A10 | Validation or rejection explains a secret             | Does an error reveal only the permitted reason rather than a hidden rule fact?             |
 
 ### System Action patterns
 
@@ -536,15 +539,17 @@ Within the current proposal, these examples suggest that reusable fixed-shape hi
 | ID  | Scenario                                              | Expected behavior                                                                        |
 | --- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | H1  | Initial load                                          | The server returns the requesting perspective's current state and visible Action records |
-| H2  | Acting Player submits an ordinary Action              | Optimistic replay works when the visible variant is replayable                           |
+| H2  | Acting Player submits an ordinary Action              | Optimistic replay works when the visible result is replayable                            |
 | H3  | Acting Player submits an Information-Revealing Action | The client waits for authoritative acceptance as it does today                           |
-| H4  | Another Player receives a Realtime Update             | Only that Player's variant and visible undo patch arrive                                 |
+| H4  | Another Player receives a Realtime Update             | Only that Player's result and visible undo patch arrive                                  |
 | H5  | Realtime discontinuity                                | Reconciliation returns only permitted visible Action records                             |
 | H6  | Simultaneous stale submission                         | Missing Actions are projected for the requester                                          |
 | H7  | Full synchronization                                  | Current visible state and visible Action history agree                                   |
 | H8  | Reconnect after a reveal                              | The client receives everything currently permitted without canonical remnants            |
 | H9  | Server rejects an optimistic Action                   | The client restores its prior visible state without canonical data                       |
 | H10 | Cache or ETag reuse                                   | One Player's projected response is never served to another Player                        |
+| H11 | Developer Debug or Admin Mode is enabled              | A fresh Host Game Context supplies canonical state, history, patches, and updates        |
+| H12 | Developer/Admin Host View is exited                   | The Host Game Context is discarded and a fresh ordinary projection replaces it           |
 
 ### Undo and local History View
 
@@ -560,17 +565,17 @@ Within the current proposal, these examples suggest that reusable fixed-shape hi
 
 ### Knowledge and lifecycle
 
-| ID  | Scenario                            | Question exercised                                                                        |
-| --- | ----------------------------------- | ----------------------------------------------------------------------------------------- |
-| K1  | Player sees a card that later moves | Where is the Player's retained knowledge recorded?                                        |
-| K2  | Player forgets information by rule  | Can knowledge entitlement be explicitly removed?                                          |
-| K3  | Player Perspective changes          | Is the client replaced or synchronized without retaining the prior perspective's secrets? |
-| K4  | Spectator observes                  | Does the public perspective have a complete safe projection?                              |
-| K5  | Administrator inspects              | Is canonical access explicit and isolated from ordinary Player delivery?                  |
-| K6  | Game Instance finishes              | Which secrets reveal, and which remain hidden permanently?                                |
-| K7  | Exploration begins                  | Can it reveal hidden deck order or another unknown future?                                |
-| K8  | Hosted Fork is created              | What knowledge and hidden state may the derived Game Instance retain?                     |
-| K9  | Game Title publication changes      | Do stored visible Action records and current projection rules remain compatible?          |
+| ID  | Scenario                            | Question exercised                                                                   |
+| --- | ----------------------------------- | ------------------------------------------------------------------------------------ |
+| K1  | Player sees a card that later moves | Where is the Player's retained knowledge recorded?                                   |
+| K2  | Player forgets information by rule  | Can knowledge entitlement be explicitly removed?                                     |
+| K3  | Player Perspective changes          | Is the projected context replaced without retaining the prior perspective's secrets? |
+| K4  | Spectator observes                  | Does the public perspective have a complete safe projection?                         |
+| K5  | Developer or administrator inspects | Is explicit Host View canonical access isolated from ordinary Player delivery?       |
+| K6  | Game Instance finishes              | Which secrets reveal, and which remain hidden permanently?                           |
+| K7  | Exploration begins                  | Can it reveal hidden deck order or another unknown future?                           |
+| K8  | Hosted Fork is created              | What knowledge and hidden state may the derived Game Instance retain?                |
+| K9  | Game Title publication changes      | Do delivered visible Action records and current projection rules remain compatible?  |
 
 ## Candidate conformance checks
 
@@ -583,14 +588,16 @@ Under the current proposal, every participating Action fixture would be evaluate
 5. Applying `Uv` to `V1` restores `V0`, and reapplying the visible transition restores `V1`.
 6. A disclosed Action record retains the canonical game-semantic type; an undisclosed type uses only the reserved redaction sentinel and a forward patch.
 7. A sentinel Action record is never hydrated or executed by the game runtime.
-8. Every variant retains the same canonical Action identity and index.
+8. Every visible result retains the same canonical Action identity and index.
 9. One perspective uses one classified transition mode for the complete initiating User Action and System Action cascade.
 10. A patched cascade includes every Action identity and index required by the Action History Checksum, including entries with no visible state effect.
-11. Grouping identical variants does not change any recipient's result.
-12. Persistence, synchronization, Realtime Updates, and Action responses select the same variant and cascade mode for a perspective.
-13. Legal choices, validation failures, history descriptions, and animation metadata reveal no additional canonical information.
-14. No client interface or fallback can expose a canonical undo patch.
-15. Repeated backward and forward History Navigation remains stable.
+11. Initial load, synchronization, Realtime Updates, and Action responses materialize compatible projected results and cascade modes for a perspective.
+12. Legal choices, validation failures, history descriptions, and animation metadata reveal no additional canonical information.
+13. No ordinary Player or spectator interface or fallback can expose a canonical undo patch.
+14. Repeated backward and forward History Navigation remains stable.
+15. Enabling Developer Debug Mode or Admin Mode replaces the active client data with a separately authorized Host Game Context containing canonical state, Action history, patches, and updates.
+16. Once neither Developer Debug Mode nor Admin Mode remains enabled, the client discards the Host Game Context and fully reloads the ordinary projected context without retaining canonical records.
+17. Host View remains independent from the administrator's selected Acting Player and Player Perspective.
 
 ## Open questions within the proposal
 
@@ -600,10 +607,9 @@ Under the current proposal, every participating Action fixture would be evaluate
 - What exact fixed-shape state representations should reusable hidden-zone modules provide without using perspective-dependent discriminated unions?
 - Which remaining TypeBox composition paths lose runtime metadata, and how should deeply composed projection schemas preserve precise static types?
 - How are secret game randomness, public replayable randomness, and System Action identity generation separated?
-- Does a later reveal leave earlier stored visible Action records unchanged, enrich them, or maintain both event-time and current-knowledge representations?
+- Does a later reveal leave earlier delivered visible Action records unchanged, enrich later full-load results, or maintain both event-time and current-knowledge representations?
 - Is durable Player knowledge stored in canonical state, in a separate knowledge model, or in persisted player-relative projections?
 - How should the initial `runtime.visibility.state` and `runtime.visibility.actions` Interface evolve when transition-aware policies, cascade classification, and opaque Action types are implemented?
-- Are visible variants stored with canonical Actions or in separately protected persistence records?
-- How are Action-carried visible patches grouped into persisted Visibility Equivalence Classes without duplicating identical records unnecessarily?
-- How are public spectators, administrators, Player reassignment, and post-game visibility represented?
+- How should backend delivery choose among legacy canonical, ordinary projected, and authorized Host View loads before invoking history-segment reprojection?
+- How are public spectators, Player reassignment, and post-game visibility represented?
 - How are projection changes handled when a Hosted Game follows a newer Game Title publication?

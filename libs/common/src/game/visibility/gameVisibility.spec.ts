@@ -214,6 +214,220 @@ describe('game visibility', () => {
         expect(result.processedActions).toEqual([action, systemAction])
     })
 
+    it('reprojects complete Action History from canonical current state and undo patches', () => {
+        const before = createState('before', 'canonical-before-secret')
+        const middle = createState('middle', 'canonical-middle-secret')
+        const after = createState('after', 'canonical-after-secret')
+        before.actionCount = 0
+        middle.actionCount = 1
+        after.actionCount = 2
+        const action: Type.Static<typeof ChangeValue> = {
+            id: 'action-1',
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: ActionType,
+            index: 0,
+            publicValue: 'middle',
+            secretValue: 'canonical-user-action-secret',
+            undoPatch: jsonpatch.compare(middle, before)
+        }
+        const systemAction: Type.Static<typeof ChangeValue> = {
+            id: 'action-2',
+            gameId: 'game-1',
+            source: ActionSource.System,
+            type: ActionType,
+            index: 1,
+            publicValue: 'after',
+            secretValue: 'canonical-system-action-secret',
+            undoPatch: jsonpatch.compare(after, middle)
+        }
+        const actions = [systemAction, action]
+        const canonicalInput = structuredClone({ currentState: after, actions })
+        const visibility = {
+            state: Visibility.createProjector(CanonicalState),
+            actions: Visibility.createActionProjector({ [ActionType]: ChangeValue })
+        }
+        const perspective: Visibility.Perspective = { kind: 'spectator' }
+
+        const projected = Visibility.projectActionHistory({
+            currentState: after,
+            actions,
+            visibility,
+            perspective
+        })
+        const expectedActions = Visibility.projectActionCascade(
+            {
+                before,
+                transitions: [
+                    { action, after: middle },
+                    { action: systemAction, after }
+                ]
+            },
+            { visibility, perspective }
+        ).actions
+
+        expect(projected).toEqual({
+            startIndex: 0,
+            currentState: visibility.state.project(after, perspective),
+            actions: expectedActions
+        })
+        expect(JSON.stringify(projected)).not.toContain('canonical-before-secret')
+        expect(JSON.stringify(projected)).not.toContain('canonical-middle-secret')
+        expect(JSON.stringify(projected)).not.toContain('canonical-after-secret')
+        expect(JSON.stringify(projected)).not.toContain('canonical-user-action-secret')
+        expect(JSON.stringify(projected)).not.toContain('canonical-system-action-secret')
+        expect({ currentState: after, actions }).toEqual(canonicalInput)
+    })
+
+    it('projects an empty Action History without requiring an undo patch', () => {
+        const currentState = createState('current', 'canonical-current-secret')
+        currentState.actionCount = 0
+        const visibility = {
+            state: Visibility.createProjector(CanonicalState),
+            actions: Visibility.createActionProjector({ [ActionType]: ChangeValue })
+        }
+        const perspective: Visibility.Perspective = { kind: 'spectator' }
+
+        expect(
+            Visibility.projectActionHistory({
+                currentState,
+                actions: [],
+                visibility,
+                perspective
+            })
+        ).toEqual({
+            startIndex: 0,
+            currentState: visibility.state.project(currentState, perspective),
+            actions: []
+        })
+    })
+
+    it('reprojects a contiguous Action History suffix for undo replacement', () => {
+        const before = createState('before', 'canonical-before-secret')
+        const after = createState('after', 'canonical-after-secret')
+        before.actionCount = 1
+        after.actionCount = 2
+        const action: Type.Static<typeof ChangeValue> = {
+            id: 'replacement-action',
+            gameId: 'game-1',
+            source: ActionSource.System,
+            type: ActionType,
+            index: 1,
+            publicValue: 'after',
+            secretValue: 'canonical-action-secret',
+            undoPatch: jsonpatch.compare(after, before)
+        }
+        const visibility = {
+            state: Visibility.createProjector(CanonicalState),
+            actions: Visibility.createActionProjector({ [ActionType]: ChangeValue })
+        }
+        const perspective: Visibility.Perspective = { kind: 'spectator' }
+
+        const projected = Visibility.projectActionHistory({
+            startIndex: 1,
+            currentState: after,
+            actions: [action],
+            visibility,
+            perspective
+        })
+        const expectedActions = Visibility.projectActionCascade(
+            {
+                before,
+                transitions: [{ action, after }]
+            },
+            { visibility, perspective }
+        ).actions
+
+        expect(projected).toEqual({
+            startIndex: 1,
+            currentState: visibility.state.project(after, perspective),
+            actions: expectedActions
+        })
+        expect(JSON.stringify(projected)).not.toContain('canonical-before-secret')
+        expect(JSON.stringify(projected)).not.toContain('canonical-after-secret')
+        expect(JSON.stringify(projected)).not.toContain('canonical-action-secret')
+    })
+
+    it('projects an empty replacement suffix with an explicit start index', () => {
+        const currentState = createState('current', 'canonical-current-secret')
+        currentState.actionCount = 2
+        const visibility = {
+            state: Visibility.createProjector(CanonicalState),
+            actions: Visibility.createActionProjector({ [ActionType]: ChangeValue })
+        }
+        const perspective: Visibility.Perspective = { kind: 'spectator' }
+
+        expect(
+            Visibility.projectActionHistory({
+                startIndex: 2,
+                currentState,
+                actions: [],
+                visibility,
+                perspective
+            })
+        ).toEqual({
+            startIndex: 2,
+            currentState: visibility.state.project(currentState, perspective),
+            actions: []
+        })
+    })
+
+    it('fails closed when canonical history contains an Action without an undo patch', () => {
+        const currentState = createState('current', 'canonical-current-secret')
+        const action: Type.Static<typeof ChangeValue> = {
+            id: 'action-without-undo',
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: ActionType,
+            index: 0,
+            publicValue: 'current',
+            secretValue: 'canonical-action-secret'
+        }
+        const visibility = {
+            state: Visibility.createProjector(CanonicalState),
+            actions: Visibility.createActionProjector({ [ActionType]: ChangeValue })
+        }
+
+        expect(() =>
+            Visibility.projectActionHistory({
+                currentState,
+                actions: [action],
+                visibility,
+                perspective: { kind: 'spectator' }
+            })
+        ).toThrow('Canonical Action action-without-undo has no undo patch')
+    })
+
+    it('fails closed when canonical current state and Action History are incomplete', () => {
+        const currentState = createState('current', 'canonical-current-secret')
+        currentState.actionCount = 2
+        const action: Type.Static<typeof ChangeValue> = {
+            id: 'only-action',
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: ActionType,
+            index: 0,
+            publicValue: 'current',
+            secretValue: 'canonical-action-secret',
+            undoPatch: []
+        }
+        const visibility = {
+            state: Visibility.createProjector(CanonicalState),
+            actions: Visibility.createActionProjector({ [ActionType]: ChangeValue })
+        }
+
+        expect(() =>
+            Visibility.projectActionHistory({
+                currentState,
+                actions: [action],
+                visibility,
+                perspective: { kind: 'spectator' }
+            })
+        ).toThrow(
+            'Canonical Action History segment starts at 0 with 1 Actions but current state has Action count 2'
+        )
+    })
+
     it('preserves the canonical result when visibility is not registered', () => {
         const before = createState('before', 'canonical-before-secret')
         const after = createState('after', 'canonical-after-secret')
