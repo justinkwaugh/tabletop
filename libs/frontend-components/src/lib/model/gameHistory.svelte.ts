@@ -1,4 +1,4 @@
-import { GameState, RunMode, type GameAction, type HydratedGameState } from '@tabletop/common'
+import { GameState, type GameAction, type HydratedGameState } from '@tabletop/common'
 import type { GameContext } from './gameContext.svelte.js'
 
 export type StepDirection = 'forward' | 'backward'
@@ -311,7 +311,10 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         let lastAction: GameAction | undefined
         do {
             lastAction = this.historyContext.actions[this.actionIndex]
-            const updatedState = this.historyContext.engine.undoAction(stateSnapshot, lastAction)
+            const updatedState = this.historyContext.engine.undoProcessedAction({
+                action: lastAction,
+                state: stateSnapshot
+            })
             this.actionIndex -= 1
             stateSnapshot = updatedState
         } while (
@@ -371,13 +374,11 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         do {
             const nextActionIndex = this.actionIndex + 1
             nextAction = this.historyContext.actions[nextActionIndex] as GameAction
-            const { updatedState } = this.historyContext.engine.run(
-                nextAction,
-                stateSnapshot,
-                gameSnapshot,
-                RunMode.Single
-            )
-            stateSnapshot = updatedState
+            stateSnapshot = this.historyContext.engine.applyProcessedAction({
+                action: nextAction,
+                state: stateSnapshot,
+                game: gameSnapshot
+            })
             this.actionIndex = nextActionIndex
         } while (
             (this.actionIndex < this.historyContext.actions.length - 1 &&

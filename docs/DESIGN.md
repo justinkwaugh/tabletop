@@ -59,6 +59,8 @@ For each processed action, the engine:
 
 Automatic rule consequences are first-class System Actions created or scheduled through `MachineContext`. A Svelte effect or other reactive UI loop must never commit gameplay. Gameplay-relevant mutation belongs inside runtime processing so history, undo, replay, and remote clients observe the same sequence.
 
+The Game Engine interface distinguishes Action lifecycle rather than host and client roles. `executeAction` sanitizes and processes one Unprocessed Action together with its complete generated System Action cascade. `applyProcessedAction` advances through exactly one authoritative Processed Action: it applies an Action-carried `forwardPatch` when present and otherwise replays that record without recursively processing generated children. `undoProcessedAction` performs Action Reversal from the record's `undoPatch`. Hotseat Play and explicitly safe Optimistic Application use the same Unprocessed Action operation as the backend; authoritative delivery and History Navigation use the Processed Action operations.
+
 ## Schemas and hydration
 
 TypeBox schemas define the serialized contract. Keep them JSON-compatible, derive TypeScript types with `Type.Static`, and compile validators where runtime validation is required.
@@ -75,7 +77,7 @@ An action type defines:
 - Hydrated behavior for validation and application.
 - A type guard for narrowing when the runtime or UI needs one.
 - Immutable input describing the player or system decision.
-- Optional metadata describing the result for history, logging, or UI without reconstructing prior state.
+- Optional engine-produced metadata describing the result for history, logging, or UI without reconstructing prior state. `metadata` is reserved for Processed Action output; player-supplied input uses domain-specific fields.
 
 Validation protects the action invariant. The current machine-state handler and shared rule helpers determine when the action is available. User versus System identifies the action’s origin; player attribution is independent of that origin. Set information-reveal and simultaneous-group semantics when the rules require them.
 

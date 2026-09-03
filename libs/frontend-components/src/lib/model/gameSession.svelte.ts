@@ -18,7 +18,6 @@ import {
     type HydratedGameState,
     PlayerAction,
     GameStorage,
-    RunMode,
     assertExists,
     createAction,
     type User,
@@ -639,12 +638,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
             for (const action of actions) {
                 // console.log('Processing action for state change listeners: ', action)
-                const { updatedState } = this.engine.run(
-                    $state.snapshot(action),
-                    priorState,
-                    this.game,
-                    RunMode.Single
-                )
+                const updatedState = this.engine.applyProcessedAction({
+                    action: $state.snapshot(action),
+                    state: priorState,
+                    game: this.game
+                })
                 await this.gatherAndPlayAnimations(
                     this.runtime.hydrator.hydrateState(updatedState),
                     this.runtime.hydrator.hydrateState(priorState),
@@ -771,7 +769,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             }
 
             // Optimistically apply the action locally (this will assign indices to the actions and store them)
-            const actionResults = this.applyActionToGame(action, gameSnapshot, stateSnapshot)
+            const actionResults = this.executeActionInGame(action, gameSnapshot, stateSnapshot)
 
             // Don't update the local state if the action reveals info, instead wait for the server to validate.
             // This is because the server may reject the action due to undo or any other reason and we
@@ -851,15 +849,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 // Apply the server provided actions
                 if (applyServerActions) {
                     for (const action of serverActions) {
-                        if (action.source === ActionSource.User) {
-                            const actionResults = this.applyActionToGame(
-                                action,
-                                gameSnapshot,
-                                stateSnapshot
-                            )
-                            stateSnapshot = actionResults.updatedState
-                            relevantContext.applyActionResults(actionResults)
-                        }
+                        const actionResults = this.applyProcessedActionToGame(
+                            action,
+                            gameSnapshot,
+                            stateSnapshot
+                        )
+                        stateSnapshot = actionResults.updatedState
+                        relevantContext.applyActionResults(actionResults)
                     }
                 }
 
@@ -928,12 +924,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                         redoAction.undoPatch = undefined
                         redoActions.push(redoAction)
                     }
-                    stateSnapshot = this.engine.undoAction(stateSnapshot, actionToUndo)
+                    stateSnapshot = this.engine.undoProcessedAction({
+                        action: actionToUndo,
+                        state: stateSnapshot
+                    })
                 } while (actionToUndo.id !== targetActionId)
 
                 relevantContext.updateGameState(stateSnapshot)
                 for (const action of redoActions) {
-                    const results = this.applyActionToGame(action, gameSnapshot, stateSnapshot)
+                    const results = this.executeActionInGame(action, gameSnapshot, stateSnapshot)
                     stateSnapshot = results.updatedState
                     relevantContext.applyActionResults(results)
                 }
@@ -1025,9 +1024,22 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.gameContext.updateGameState(state)
     }
 
-    private applyActionToGame(action: GameAction, game: Game, state: T): GameActionResults<T> {
-        const { processedActions, updatedState } = this.engine.run(action, state, game)
+    private executeActionInGame(action: GameAction, game: Game, state: T): GameActionResults<T> {
+        const { processedActions, updatedState } = this.engine.executeAction({
+            action,
+            state,
+            game
+        })
         return new GameActionResults(processedActions, updatedState)
+    }
+
+    private applyProcessedActionToGame(
+        action: GameAction,
+        game: Game,
+        state: T
+    ): GameActionResults<T> {
+        const updatedState = this.engine.applyProcessedAction({ action, state, game })
+        return new GameActionResults([action], updatedState)
     }
 
     private undoToIndex(stateSnapshot: T, index: number, context: GameContext<T, U>): T {
@@ -1037,7 +1049,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             const actionToUndo = context.popAction() as GameAction
             undoneActions.push(actionToUndo)
 
-            const updatedState = this.engine.undoAction(stateSnapshot, actionToUndo)
+            const updatedState = this.engine.undoProcessedAction({
+                action: actionToUndo,
+                state: stateSnapshot
+            })
             stateSnapshot = updatedState
         }
 
@@ -1071,7 +1086,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             const replayAction = structuredClone(action)
             replayAction.index = undefined
             replayAction.undoPatch = undefined
-            const results = this.applyActionToGame(replayAction, gameSnapshot, stateSnapshot)
+            const results = this.executeActionInGame(replayAction, gameSnapshot, stateSnapshot)
             stateSnapshot = results.updatedState
             context.applyActionResults(results)
         }
@@ -1114,7 +1129,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         if (matchedActionIndex < serverActions.length - 1) {
             const actionsToApply = serverActions.slice(matchedActionIndex + 1)
             for (const action of actionsToApply) {
-                const actionResults = this.applyActionToGame(action, gameSnapshot, stateSnapshot)
+                const actionResults = this.applyProcessedActionToGame(
+                    action,
+                    gameSnapshot,
+                    stateSnapshot
+                )
                 stateSnapshot = actionResults.updatedState
                 this.gameContext.applyActionResults(actionResults)
             }
@@ -1296,15 +1315,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 continue
             }
 
-            // Only process User actions, system ones get generated / processed automatically
-            if (action.source !== ActionSource.User) {
-                continue
-            }
-
             if (this.debug) {
                 // console.log(`Applying ${action.type} ${action.id} from server`, action)
             }
-            const actionResults = this.applyActionToGame(action, gameSnapshot, stateSnapshot)
+            const actionResults = this.applyProcessedActionToGame(
+                action,
+                gameSnapshot,
+                stateSnapshot
+            )
             allActionResults.add(actionResults)
 
             stateSnapshot = allActionResults.updatedState

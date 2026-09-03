@@ -12,12 +12,42 @@ export enum ActionSource {
 }
 
 export type PatchOperation = Type.Static<typeof PatchOperation>
-export const PatchOperation = Type.Object({
-    op: Type.String(),
-    path: Type.String(),
-    from: Type.Optional(Type.String()),
-    value: Type.Optional(Type.Any())
-})
+export const PatchOperation = Type.Union([
+    Type.Object({
+        op: Type.Literal('add'),
+        path: Type.String(),
+        value: Type.Any()
+    }),
+    Type.Object({
+        op: Type.Literal('remove'),
+        path: Type.String()
+    }),
+    Type.Object({
+        op: Type.Literal('replace'),
+        path: Type.String(),
+        value: Type.Any()
+    }),
+    Type.Object({
+        op: Type.Literal('move'),
+        path: Type.String(),
+        from: Type.String()
+    }),
+    Type.Object({
+        op: Type.Literal('copy'),
+        path: Type.String(),
+        from: Type.String()
+    }),
+    Type.Object({
+        op: Type.Literal('test'),
+        path: Type.String(),
+        value: Type.Any()
+    }),
+    Type.Object({
+        op: Type.Literal('_get'),
+        path: Type.String(),
+        value: Type.Any()
+    })
+])
 
 export type Patch = Type.Static<typeof Patch>
 export const Patch = Type.Array(PatchOperation)
@@ -30,6 +60,7 @@ export const GameAction = Type.Object({
     type: Type.String(),
     playerId: Type.Optional(Type.String()),
     undoPatch: protect(Type.Optional(Patch), { policy: Policy.HostOnly }),
+    forwardPatch: protect(Type.Optional(Patch), { policy: Policy.HostOnly }),
     index: Type.Optional(Type.Number()),
     simultaneousGroupId: Type.Optional(Type.String()),
     revealsInfo: Type.Optional(Type.Boolean()),
@@ -74,6 +105,7 @@ export abstract class HydratableAction<T extends Type.TSchema>
     declare type: string
     declare playerId?: string
     declare undoPatch?: Patch
+    declare forwardPatch?: Patch
     declare simultaneousGroupId?: string
     declare revealsInfo?: boolean
     declare createdAt?: Date

@@ -219,7 +219,10 @@ function projectObject<Root>(
     const projectedEntries: [string, unknown][] = []
     const declaredKeys = new Set(Object.keys(schema.properties))
     for (const [key, propertySchema] of Object.entries(schema.properties)) {
-        if (!Object.hasOwn(value, key)) {
+        if (
+            !Object.hasOwn(value, key) ||
+            (value[key] === undefined && Type.IsOptional(propertySchema))
+        ) {
             continue
         }
         const projected = projectValue(

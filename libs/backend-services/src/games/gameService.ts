@@ -1,6 +1,5 @@
 import {
     ActionSource,
-    assertExists,
     calculateActionChecksum,
     findLast,
     Game,
@@ -23,7 +22,6 @@ import {
     PlayerJoinedNotification,
     PlayerStatus,
     Role,
-    RunMode,
     User,
     UserNotification,
     UserNotificationAction,
@@ -237,7 +235,7 @@ export class GameService {
             console.log('Rewinding game to get initial state...')
             actions.reverse()
             for (const action of actions) {
-                storedState = engine.undoAction(storedState, action)
+                storedState = engine.undoProcessedAction({ action, state: storedState })
             }
             if (storedState.actionChecksum !== 0 || storedState.actionCount !== 0) {
                 throw new Error('Could not rewind game to initial state')
@@ -260,12 +258,11 @@ export class GameService {
             action.undoPatch = undefined
 
             // Apply each action to the forked game state
-            const { processedActions, updatedState } = engine.run(
+            const { processedActions, updatedState } = engine.rebuildProcessedAction({
                 action,
-                newState,
-                startedGame,
-                RunMode.Single
-            )
+                state: newState,
+                game: startedGame
+            })
             newState = updatedState
             appliedActions.push(...processedActions)
         }
@@ -793,11 +790,11 @@ export class GameService {
         const initialIndex = action.index
 
         const gameEngine = new GameEngine(definition.runtime)
-        const { processedActions, updatedState, indexOffset } = gameEngine.run(
+        const { processedActions, updatedState, indexOffset } = gameEngine.executeAction({
             action,
-            game.state,
+            state: game.state,
             game
-        )
+        })
 
         // write the action and the updated state
         const { storedActions, updatedGame, relatedActions, priorState } =
@@ -932,10 +929,11 @@ export class GameService {
             userPlayer = this.findValidPlayerForUser({ user, game })
         }
 
-        let gameState = game.state
-        if (!gameState) {
+        const storedGameState = game.state
+        if (!storedGameState) {
             throw new DisallowedUndoError({ gameId, actionId, reason: `Game state not found` })
         }
+        let gameState = storedGameState
 
         const priorActionCount = gameState.actionCount
         const priorChecksum = gameState.actionChecksum
@@ -1011,12 +1009,16 @@ export class GameService {
 
         const gameEngine = new GameEngine(definition.runtime)
         for (const action of actions.toReversed()) {
-            gameState = gameEngine.undoAction(gameState, action)
+            gameState = gameEngine.undoProcessedAction({ action, state: gameState })
         }
 
         const redoneActions: GameAction[] = []
         for (const redoAction of redoActions) {
-            const { processedActions, updatedState } = gameEngine.run(redoAction, gameState, game)
+            const { processedActions, updatedState } = gameEngine.executeAction({
+                action: redoAction,
+                state: gameState,
+                game
+            })
             redoneActions.push(...processedActions)
             gameState = updatedState
         }

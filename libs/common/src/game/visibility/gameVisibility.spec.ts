@@ -80,6 +80,13 @@ describe('game visibility', () => {
                     path: '/secretValue',
                     value: 'canonical-before-secret'
                 }
+            ],
+            forwardPatch: [
+                {
+                    op: 'replace',
+                    path: '/secretValue',
+                    value: 'canonical-middle-secret'
+                }
             ]
         }
         const systemAction: Type.Static<typeof ChangeValue> = {
@@ -114,59 +121,60 @@ describe('game visibility', () => {
             },
             { visibility, perspective }
         )
-        const userTransition = visibleActionCascade.transitions[0]
-        const systemTransition = visibleActionCascade.transitions[1]
-        if (userTransition === undefined || systemTransition === undefined) {
-            throw Error('Expected two projected transitions')
+        const userAction = visibleActionCascade.actions[0]
+        const visibleSystemAction = visibleActionCascade.actions[1]
+        if (userAction === undefined || visibleSystemAction === undefined) {
+            throw Error('Expected two projected Actions')
         }
         const visibleBefore = visibility.state.project(before, perspective)
         const visibleMiddle = visibility.state.project(middle, perspective)
         const visibleAfter = visibility.state.project(after, perspective)
 
-        expect(userTransition.action).toEqual({
+        expect(userAction).toEqual({
             id: 'action-1',
             gameId: 'game-1',
             source: ActionSource.User,
             type: ActionType,
             index: 0,
-            publicValue: 'middle'
+            publicValue: 'middle',
+            forwardPatch: [{ op: 'replace', path: '/publicValue', value: 'middle' }],
+            undoPatch: [{ op: 'replace', path: '/publicValue', value: 'before' }]
         })
-        expect(systemTransition.action).toEqual({
+        expect(visibleSystemAction).toEqual({
             id: 'action-2',
             gameId: 'game-1',
             source: ActionSource.System,
             type: ActionType,
             index: 1,
-            publicValue: 'after'
+            publicValue: 'after',
+            forwardPatch: [{ op: 'replace', path: '/publicValue', value: 'after' }],
+            undoPatch: [{ op: 'replace', path: '/publicValue', value: 'middle' }]
         })
-        expect(userTransition.forwardPatch).toEqual([
-            { op: 'replace', path: '/publicValue', value: 'middle' }
-        ])
-        expect(userTransition.undoPatch).toEqual([
-            { op: 'replace', path: '/publicValue', value: 'before' }
-        ])
-        expect(systemTransition.forwardPatch).toEqual([
-            { op: 'replace', path: '/publicValue', value: 'after' }
-        ])
-        expect(systemTransition.undoPatch).toEqual([
-            { op: 'replace', path: '/publicValue', value: 'middle' }
-        ])
+
+        if (
+            userAction.forwardPatch === undefined ||
+            userAction.undoPatch === undefined ||
+            visibleSystemAction.forwardPatch === undefined ||
+            visibleSystemAction.undoPatch === undefined
+        ) {
+            throw Error('Expected projected Actions to carry forward and undo patches')
+        }
 
         const advancedToMiddle = jsonpatch.applyPatch(
             structuredClone(visibleBefore),
-            userTransition.forwardPatch
+            userAction.forwardPatch
         ).newDocument
         const advancedToAfter = jsonpatch.applyPatch(
             structuredClone(advancedToMiddle),
-            systemTransition.forwardPatch
+            visibleSystemAction.forwardPatch
         ).newDocument
         const restoredToMiddle = jsonpatch.applyPatch(
             structuredClone(visibleAfter),
-            systemTransition.undoPatch
+            visibleSystemAction.undoPatch
         ).newDocument
         const restoredToBefore = jsonpatch.applyPatch(
             structuredClone(restoredToMiddle),
-            userTransition.undoPatch
+            userAction.undoPatch
         ).newDocument
 
         expect(advancedToMiddle).toEqual(visibleMiddle)
@@ -183,6 +191,13 @@ describe('game visibility', () => {
                 op: 'replace',
                 path: '/secretValue',
                 value: 'canonical-before-secret'
+            }
+        ])
+        expect(action.forwardPatch).toEqual([
+            {
+                op: 'replace',
+                path: '/secretValue',
+                value: 'canonical-middle-secret'
             }
         ])
     })
@@ -232,8 +247,12 @@ describe('game visibility', () => {
         })
     })
 
-    it('declares canonical undo patches as host-only engine data', () => {
+    it('declares canonical Action patches as host-only engine data', () => {
         expect(GameAction.properties.undoPatch[Visibility.MetadataKey]).toEqual({
+            policy: Visibility.Policy.HostOnly,
+            redaction: { kind: 'omit' }
+        })
+        expect(GameAction.properties.forwardPatch[Visibility.MetadataKey]).toEqual({
             policy: Visibility.Policy.HostOnly,
             redaction: { kind: 'omit' }
         })

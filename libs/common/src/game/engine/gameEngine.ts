@@ -1,4 +1,4 @@
-import jsonpatch, { type Operation } from 'fast-json-patch'
+import jsonpatch from 'fast-json-patch'
 import { GameAction, type HydratedAction, Patch } from './gameAction.js'
 import { Game, GameStatus } from '../model/game.js'
 import {
@@ -20,9 +20,23 @@ export type ActionResult<T extends GameState = GameState> = {
     indexOffset: number
 }
 
-export enum RunMode {
-    Single = 'single',
-    Multiple = 'multiple'
+export interface CanonicalActionTransition<T extends GameState = GameState> {
+    readonly action: GameAction
+    readonly after: T
+}
+
+export interface CanonicalActionCascade<T extends GameState = GameState> {
+    readonly before: T
+    readonly transitions: readonly CanonicalActionTransition<T>[]
+}
+
+export type ActionCascadeResult<T extends GameState = GameState> = ActionResult<T> & {
+    actionCascade: CanonicalActionCascade<T>
+}
+
+interface RulesExecution<T extends GameState> extends ActionResult<T> {
+    readonly before: T
+    readonly transitions: readonly CanonicalActionTransition<T>[]
 }
 
 export class GameEngine<
@@ -57,10 +71,7 @@ export class GameEngine<
         startedGame.status = GameStatus.Started
 
         const uninitializedState = this.generateUninitializedState(game)
-        const initialState = this.runtime.initializer.initializeGameState(
-            game,
-            uninitializedState
-        )
+        const initialState = this.runtime.initializer.initializeGameState(game, uninitializedState)
 
         const machineContext = new MachineContext({
             gameConfig: game.config,
@@ -88,14 +99,100 @@ export class GameEngine<
         return stateHandler.validActionsForPlayer(playerId, machineContext)
     }
 
-    run(
-        action: GameAction,
-        state: T,
-        game: Game,
-        mode: RunMode = RunMode.Multiple
-    ): ActionResult<T> {
+    executeAction({
+        action,
+        state,
+        game
+    }: {
+        action: GameAction
+        state: T
+        game: Game
+    }): ActionCascadeResult<T> {
+        const execution = this.executeByRules({
+            action: this.sanitizeUnprocessedAction(action),
+            state,
+            game,
+            processGeneratedActions: true
+        })
+
+        return {
+            processedActions: execution.processedActions,
+            updatedState: execution.updatedState,
+            indexOffset: execution.indexOffset,
+            actionCascade: {
+                before: execution.before,
+                transitions: execution.transitions
+            }
+        }
+    }
+
+    applyProcessedAction({ action, state, game }: { action: GameAction; state: T; game: Game }): T {
+        if (action.forwardPatch !== undefined) {
+            return this.applyStatePatch(state, action.forwardPatch)
+        }
+
+        return this.executeByRules({
+            action,
+            state,
+            game,
+            processGeneratedActions: false
+        }).updatedState
+    }
+
+    rebuildProcessedAction({
+        action,
+        state,
+        game
+    }: {
+        action: GameAction
+        state: T
+        game: Game
+    }): ActionResult<T> {
+        const execution = this.executeByRules({
+            action: this.cloneWithoutActionPatches(action),
+            state,
+            game,
+            processGeneratedActions: false
+        })
+
+        return {
+            processedActions: execution.processedActions,
+            updatedState: execution.updatedState,
+            indexOffset: execution.indexOffset
+        }
+    }
+
+    undoProcessedAction({ action, state }: { action: GameAction; state: T }): T {
+        const initialChecksum = state.actionChecksum
+        const undoPatch = action.undoPatch
+        assertExists(undoPatch, 'Action has no undo patch')
+
+        const updatedState = this.applyStatePatch(state, undoPatch)
+        if (updatedState.actionChecksum === initialChecksum) {
+            console.log('Undoing an old action, calculating checksum manually')
+            // This is only for games created when undo was not a thing
+            updatedState.actionChecksum = calculateActionChecksum(updatedState.actionChecksum, [
+                action
+            ])
+        }
+        return updatedState
+    }
+
+    private executeByRules({
+        action,
+        state,
+        game,
+        processGeneratedActions
+    }: {
+        action: GameAction
+        state: T
+        game: Game
+        processGeneratedActions: boolean
+    }): RulesExecution<T> {
         const processedActions: GameAction[] = []
+        const transitions: CanonicalActionTransition<T>[] = []
         let updatedState = structuredClone(state)
+        const before = updatedState
 
         const hydratedState = this.runtime.hydrator.hydrateState(updatedState)
         const machineContext = new MachineContext({
@@ -118,7 +215,7 @@ export class GameEngine<
 
         while (
             machineContext.getPendingActions().length > 0 &&
-            (mode === RunMode.Multiple || processedActions.length === 0)
+            (processGeneratedActions || processedActions.length === 0)
         ) {
             const currentAction = machineContext.nextPendingAction()
             assertExists(currentAction, 'Action to process was unexpectedly null')
@@ -161,30 +258,39 @@ export class GameEngine<
                 updatedState.prng.invocations = updatedState.explorationState.invocations
             }
 
-            const undoPatch = jsonpatch.compare(updatedState, stateBeforeAction)
+            const undoPatch: Patch = jsonpatch.compare(updatedState, stateBeforeAction)
 
             const dehydratedAction = hydratedAction.dehydrate()
-            dehydratedAction.undoPatch = undoPatch as Patch
+            dehydratedAction.undoPatch = undoPatch
 
             processedActions.push(dehydratedAction)
+            transitions.push({ action: dehydratedAction, after: updatedState })
         }
 
-        return { processedActions, updatedState, indexOffset }
+        return {
+            processedActions,
+            updatedState,
+            indexOffset,
+            before,
+            transitions
+        }
     }
 
-    undoAction(state: T, action: GameAction): T {
-        const stateCopy = structuredClone(state)
-        const initialChecksum = state.actionChecksum
-        const undoPatch = action.undoPatch
-        assertExists(undoPatch, 'Action has no undo patch')
+    private sanitizeUnprocessedAction(action: GameAction): GameAction {
+        const sanitizedAction = this.cloneWithoutActionPatches(action)
+        Reflect.deleteProperty(sanitizedAction, 'metadata')
+        return sanitizedAction
+    }
 
-        jsonpatch.applyPatch(stateCopy, undoPatch as Operation[])
-        if (stateCopy.actionChecksum === initialChecksum) {
-            console.log('Undoing an old action, calculating checksum manually')
-            // This is only for games created when undo was not a thing
-            stateCopy.actionChecksum = calculateActionChecksum(stateCopy.actionChecksum, [action])
-        }
-        return stateCopy
+    private cloneWithoutActionPatches(action: GameAction): GameAction {
+        const actionWithoutPatches = structuredClone(action)
+        delete actionWithoutPatches.undoPatch
+        delete actionWithoutPatches.forwardPatch
+        return actionWithoutPatches
+    }
+
+    private applyStatePatch(state: T, patch: Patch): T {
+        return jsonpatch.applyPatch(structuredClone(state), patch).newDocument
     }
 
     private isPlayerAllowed(action: GameAction, state: HydratedGameState): boolean {

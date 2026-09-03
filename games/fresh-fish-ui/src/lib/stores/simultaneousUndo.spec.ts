@@ -67,7 +67,11 @@ class CanonicalHost {
     }
 
     apply(action: PlaceBid): GameAction {
-        const results = this.engine.run(action, this.state, this.game)
+        const results = this.engine.executeAction({
+            action,
+            state: this.state,
+            game: this.game
+        })
         this.state = results.updatedState
         this.actions.push(...results.processedActions)
 
@@ -121,13 +125,17 @@ class CanonicalHost {
             })
 
         for (const action of actionsToUndo.toReversed()) {
-            this.state = this.engine.undoAction(this.state, action)
+            this.state = this.engine.undoProcessedAction({ action, state: this.state })
         }
         this.actions.splice(targetPosition)
 
         const redoneActions: GameAction[] = []
         for (const action of actionsToReplay) {
-            const results = this.engine.run(action, this.state, this.game)
+            const results = this.engine.executeAction({
+                action,
+                state: this.state,
+                game: this.game
+            })
             this.state = results.updatedState
             this.actions.push(...results.processedActions)
             redoneActions.push(...results.processedActions)

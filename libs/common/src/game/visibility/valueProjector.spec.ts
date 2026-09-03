@@ -63,6 +63,19 @@ describe('visibility value projection', () => {
         expect(Compile(projector.schema).Check(spectatorProjection)).toBe(true)
     })
 
+    it('omits optional structured properties whose canonical value is explicitly undefined', () => {
+        const Canonical = Type.Object({
+            coordinates: Type.Optional(Type.Tuple([Type.Number(), Type.Number()]))
+        })
+        const canonical: Type.Static<typeof Canonical> = { coordinates: undefined }
+
+        const projector = Visibility.createProjector(Canonical)
+        const projected = projector.project(canonical, spectatorPerspective)
+
+        expect(projected).toEqual({})
+        expect(Compile(projector.schema).Check(projected)).toBe(true)
+    })
+
     it('shows actor-protected fields only to the Player attributed by the root value', () => {
         const Action = Type.Object({
             playerId: Type.String(),

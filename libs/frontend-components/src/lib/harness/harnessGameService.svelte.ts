@@ -6,9 +6,7 @@ import {
     type HydratedGameState,
     GameEngine,
     GameStorage,
-    GameCategory,
-    RunMode,
-    assertExists
+    GameCategory
 } from '@tabletop/common'
 import { SvelteMap } from 'svelte/reactivity'
 import { nanoid } from 'nanoid'
@@ -193,12 +191,11 @@ export class HarnessGameService implements GameService {
             action.undoPatch = undefined
 
             // Apply each action to the forked game state
-            const { processedActions, updatedState } = engine.run(
+            const { processedActions, updatedState } = engine.rebuildProcessedAction({
                 action,
                 state,
-                startedGame,
-                RunMode.Single
-            )
+                game: startedGame
+            })
             state = updatedState
             updatedActions.push(...processedActions)
         }

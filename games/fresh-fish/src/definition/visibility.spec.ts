@@ -1,7 +1,11 @@
 import {
     ActionSource,
     AuctionType,
+    type Game,
+    GameEngine,
+    GameStatus,
     HydratedSimultaneousAuction,
+    PlayerStatus,
     SimultaneousAuction,
     SimultaneousAuctionVisibility,
     TieResolutionStrategy,
@@ -17,6 +21,7 @@ import { TileType } from '../components/tiles.js'
 import { MachineState } from './states.js'
 import { generateTestState } from '../util/testHelper.js'
 import { FreshFishRuntime } from './runtime.js'
+import { GoodsType } from './goodsType.js'
 
 function createCanonicalAuctionState(): FreshFishGameState {
     const state = generateTestState({ numPlayers: 3 })
@@ -34,6 +39,28 @@ function createCanonicalAuctionState(): FreshFishGameState {
         tieResolution: TieResolutionStrategy.FirstInOrder
     })
     return state.dehydrate()
+}
+
+function createGame(state: FreshFishGameState): Game {
+    return {
+        id: state.gameId,
+        typeId: 'freshfish',
+        status: GameStatus.Started,
+        isPublic: false,
+        deleted: false,
+        ownerId: 'owner-1',
+        name: 'Visibility Test',
+        players: state.players.map((player, index) => ({
+            id: player.playerId,
+            name: `Player ${index + 1}`,
+            isHuman: false,
+            status: PlayerStatus.Joined
+        })),
+        config: {},
+        hotseat: false,
+        winningPlayerIds: [],
+        createdAt: new Date(0)
+    }
 }
 
 describe('Fresh Fish visibility', () => {
@@ -208,39 +235,39 @@ describe('Fresh Fish visibility', () => {
                 perspective: { kind: 'spectator' }
             }
         )
-        const actorTransition = actorCascade.transitions[0]
-        const opponentTransition = opponentCascade.transitions[0]
-        const spectatorTransition = spectatorCascade.transitions[0]
+        const actorAction = actorCascade.actions[0]
+        const opponentAction = opponentCascade.actions[0]
+        const spectatorAction = spectatorCascade.actions[0]
         if (
-            actorTransition === undefined ||
-            opponentTransition === undefined ||
-            spectatorTransition === undefined
+            actorAction === undefined ||
+            opponentAction === undefined ||
+            spectatorAction === undefined
         ) {
-            throw Error('Expected one projected transition per Action cascade')
+            throw Error('Expected one projected Action per Action cascade')
         }
 
-        expect(actorTransition.action).toEqual({
+        expect(actorAction).toEqual({
             id: 'action-1',
             gameId: 'game-1',
             source: ActionSource.User,
             type: ActionType.PlaceBid,
             playerId: 'p3',
             amount: 7,
-            index: 12
+            index: 12,
+            forwardPatch: [
+                {
+                    op: 'add',
+                    path: '/currentAuction/participants/2/bid',
+                    value: 7
+                }
+            ],
+            undoPatch: [
+                {
+                    op: 'remove',
+                    path: '/currentAuction/participants/2/bid'
+                }
+            ]
         })
-        expect(actorTransition.forwardPatch).toEqual([
-            {
-                op: 'add',
-                path: '/currentAuction/participants/2/bid',
-                value: 7
-            }
-        ])
-        expect(actorTransition.undoPatch).toEqual([
-            {
-                op: 'remove',
-                path: '/currentAuction/participants/2/bid'
-            }
-        ])
 
         const redactedAction = {
             id: 'action-1',
@@ -248,17 +275,148 @@ describe('Fresh Fish visibility', () => {
             source: ActionSource.User,
             type: ActionType.PlaceBid,
             playerId: 'p3',
-            index: 12
+            index: 12,
+            forwardPatch: [],
+            undoPatch: []
         }
-        expect(opponentTransition.action).toEqual(redactedAction)
-        expect(spectatorTransition.action).toEqual(redactedAction)
-        expect(opponentTransition.forwardPatch).toEqual([])
-        expect(opponentTransition.undoPatch).toEqual([])
-        expect(spectatorTransition.forwardPatch).toEqual([])
-        expect(spectatorTransition.undoPatch).toEqual([])
-        expect(JSON.stringify(opponentTransition)).not.toContain('7654321')
-        expect(JSON.stringify(spectatorTransition)).not.toContain('7654321')
-        expect(action.undoPatch?.[0].value).toBe(7654321)
+        expect(opponentAction).toEqual(redactedAction)
+        expect(spectatorAction).toEqual(redactedAction)
+        expect(JSON.stringify(opponentAction)).not.toContain('7654321')
+        expect(JSON.stringify(spectatorAction)).not.toContain('7654321')
+        expect(action.undoPatch).toEqual([
+            {
+                op: 'replace',
+                path: '/currentAuction/participants/2/bid',
+                value: 7654321
+            }
+        ])
+    })
+
+    it('captures a complete canonical Action cascade from Game Engine execution', () => {
+        const before = createCanonicalAuctionState()
+        before.activePlayerIds = ['p3']
+        before.chosenTile = { type: TileType.Stall, goodsType: GoodsType.Fish }
+
+        const action: PlaceBid = {
+            id: 'action-1',
+            gameId: before.gameId,
+            source: ActionSource.User,
+            type: ActionType.PlaceBid,
+            playerId: 'p3',
+            amount: 7,
+            undoPatch: [{ op: 'replace', path: '/actionCount', value: 999 }],
+            forwardPatch: [{ op: 'replace', path: '/actionCount', value: 999 }]
+        }
+        Reflect.set(action, 'metadata', { submitted: 'not-authoritative' })
+        const engine = new GameEngine(FreshFishRuntime)
+        const game = createGame(before)
+        const result = engine.executeAction({ action, state: before, game })
+
+        expect(result.actionCascade.before).toEqual(before)
+        expect(result.actionCascade.before).not.toBe(before)
+        expect(
+            result.actionCascade.transitions.map((transition) => transition.action.type)
+        ).toEqual([ActionType.PlaceBid, ActionType.EndAuction, ActionType.PlaceStall])
+        expect(
+            result.actionCascade.transitions.map((transition) => transition.action.source)
+        ).toEqual([ActionSource.User, ActionSource.System, ActionSource.System])
+        expect(
+            result.actionCascade.transitions.map((transition) => transition.after.machineState)
+        ).toEqual([
+            MachineState.AuctioningTile,
+            MachineState.AuctionEnded,
+            MachineState.StartOfTurn
+        ])
+        expect(
+            result.actionCascade.transitions.map((transition) => transition.after.actionCount)
+        ).toEqual([1, 2, 3])
+        expect(result.processedActions).toEqual(
+            result.actionCascade.transitions.map((transition) => transition.action)
+        )
+
+        let previousState = result.actionCascade.before
+        for (const transition of result.actionCascade.transitions) {
+            expect(
+                engine.undoProcessedAction({
+                    action: transition.action,
+                    state: transition.after
+                })
+            ).toEqual(previousState)
+            previousState = transition.after
+        }
+        expect(result.updatedState).toEqual(previousState)
+        expect(before.currentAuction?.participants[2].bid).toBeUndefined()
+        expect(result.processedActions[0]?.forwardPatch).toBeUndefined()
+        expect(result.processedActions[0]?.undoPatch).not.toEqual(action.undoPatch)
+        expect(Reflect.get(result.processedActions[0] ?? {}, 'metadata')).toBeUndefined()
+        expect(Reflect.get(result.processedActions[1] ?? {}, 'metadata')).toBeDefined()
+        expect(action.forwardPatch).toBeDefined()
+        expect(Reflect.get(action, 'metadata')).toEqual({ submitted: 'not-authoritative' })
+
+        const firstTransition = result.actionCascade.transitions[0]
+        if (firstTransition === undefined) {
+            throw Error('Expected the initiating Action transition')
+        }
+        expect(
+            engine.applyProcessedAction({
+                action: firstTransition.action,
+                state: result.actionCascade.before,
+                game
+            })
+        ).toEqual(firstTransition.after)
+
+        const visibleActionCascade = Visibility.projectActionCascade(result.actionCascade, {
+            visibility: FreshFishRuntime.visibility,
+            perspective: { kind: 'player', playerId: 'p3' }
+        })
+        expect(visibleActionCascade.actions.map((visibleAction) => visibleAction.type)).toEqual([
+            ActionType.PlaceBid,
+            ActionType.EndAuction,
+            ActionType.PlaceStall
+        ])
+        expect(visibleActionCascade.actions.every((visibleAction) => visibleAction.undoPatch)).toBe(
+            true
+        )
+        expect(
+            visibleActionCascade.actions.every(
+                (visibleAction) => visibleAction.forwardPatch !== undefined
+            )
+        ).toBe(true)
+
+        const visibleBefore = FreshFishRuntime.visibility.state.project(before, {
+            kind: 'player',
+            playerId: 'p3'
+        })
+        const firstVisibleAction = visibleActionCascade.actions[0]
+        if (firstVisibleAction === undefined) {
+            throw Error('Expected the initiating visible Action')
+        }
+        expect(
+            engine.applyProcessedAction({
+                action: firstVisibleAction,
+                state: visibleBefore,
+                game
+            })
+        ).toEqual(
+            FreshFishRuntime.visibility.state.project(firstTransition.after, {
+                kind: 'player',
+                playerId: 'p3'
+            })
+        )
+
+        const opaqueAction = {
+            id: 'opaque-action',
+            gameId: before.gameId,
+            source: ActionSource.System,
+            type: '__redacted__',
+            forwardPatch: []
+        }
+        expect(engine.applyProcessedAction({ action: opaqueAction, state: before, game })).toEqual(
+            before
+        )
+
+        const rebuiltAction = engine.rebuildProcessedAction({ action, state: before, game })
+        expect(rebuiltAction.processedActions).toHaveLength(1)
     })
 
     it('carries the bag and bid declarations into the full state projection', () => {

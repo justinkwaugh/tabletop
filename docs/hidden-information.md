@@ -4,7 +4,7 @@
 
 ## Status and purpose
 
-This document records the current theoretical model and scenario catalog for preventing a Hosted Game Client from receiving information its Player Perspective is not allowed to know. The end-to-end capability is not implemented. Initial authoring and projection slices now exist for declaring protected TypeBox fields and named schema scopes, deriving canonical and projection schemas, registering state and Action projectors with a participating Game Runtime, executing the built-in host-only projection used by Fresh Fish's tile bag, applying the built-in actor policy to `PlaceBid.amount`, applying the shared simultaneous-auction bid policy to Fresh Fish state snapshots, and materializing a supplied canonical Action cascade into projected Action records plus visible forward and undo patches. Fresh Fish money intentionally remains unannotated because hidden money is not currently a game variant. The implementation does not yet capture cascade state boundaries from Game Engine results, classify cascade mode, alter transport, persist visible variants, or enforce confidentiality. Resolved-sounding statements are still parts of the working proposal, while explicitly open questions identify areas where even the proposal has not yet converged.
+This document records the current theoretical model and scenario catalog for preventing a Hosted Game Client from receiving information its Player Perspective is not allowed to know. The end-to-end capability is not implemented. Initial authoring and projection slices now exist for declaring protected TypeBox fields and named schema scopes, deriving canonical and projection schemas, registering state and Action projectors with a participating Game Runtime, executing the built-in host-only projection used by Fresh Fish's tile bag, applying the built-in actor policy to `PlaceBid.amount`, applying the shared simultaneous-auction bid policy to Fresh Fish state snapshots, capturing canonical Action cascades from Game Engine execution, materializing a supplied canonical Action cascade into projected Action records with safe patches, and applying Processed Actions through either rules replay or an Action-carried forward patch. Fresh Fish money intentionally remains unannotated because hidden money is not currently a game variant. The implementation does not yet classify cascade mode, alter transport, persist visible variants, or enforce confidentiality. Resolved-sounding statements are still parts of the working proposal, while explicitly open questions identify areas where even the proposal has not yet converged.
 
 The catalog is intended to evaluate proposed designs and later serve as an acceptance-test matrix. A design is incomplete if it protects ordinary state delivery but leaks information through Actions, undo patches, System Action cascades, synchronization, persistence, or another Hosted Game flow.
 
@@ -15,7 +15,7 @@ The catalog is intended to evaluate proposed designs and later serve as an accep
 - The host retains the complete canonical Game State and Canonical Action History.
 - The UI presents information but is not a confidentiality control. Unauthorized canonical data must never reach the client.
 - The existence and ordering of Processed Actions are currently assumed to be public because the Action History Checksum depends on Action identity and index. Whether Action type, source, or Player attribution is always public remains open.
-- Deterministic client replay remains the normal forward-transition mechanism for ordinary Actions. The working direction adds player-relative forward patches as a fallback for cascades that a perspective cannot safely replay.
+- Deterministic Processed Action replay remains the normal forward-transition mechanism for ordinary Actions. The host supplies the authoritative Action trace, and the Game Client applies each record exactly once. The working direction adds player-relative forward patches as a fallback for cascades that a perspective cannot safely replay.
 - Transition mode is classified for an initiating User Action together with its complete triggered System Action cascade, not independently for arbitrary Actions within that cascade.
 - Stored Game State objects must not use perspective-dependent discriminated unions to represent whether their contents are visible.
 
@@ -71,7 +71,7 @@ Av(P) = projectActionRecord(A, P)
 Uv(P) = diff(V1(P), V0(P))
 ```
 
-`Av(P)` is the permitted visible record of the canonical Processed Action. It is not a second canonical Action. `Uv(P)` is its visible undo patch. The visible undo patch is calculated from two already-safe projected states; it is not produced by filtering operations out of the canonical undo patch. Filtering a canonical patch could produce incorrect array indices, invalid structural changes, or secret replacement values.
+`Av(P)` is the permitted visible record of the canonical Processed Action. It is not a second canonical Action. `Uv(P)` is stored as `Av(P).undoPatch`. The visible undo patch is calculated from two already-safe projected states; it is not produced by filtering operations out of the canonical undo patch. Filtering a canonical patch could produce incorrect array indices, invalid structural changes, or secret replacement values.
 
 A replayable record retains the canonical game-semantic Action type and enough permitted payload to satisfy:
 
@@ -81,7 +81,7 @@ apply(V0(P), Av(P)) = V1(P)
 
 A participating Game Title may need to record processed-result metadata in an Action so each permitted record has enough information to reproduce its visible consequence. Projection must not translate one game-semantic Action type into another; for example, a `SubmitPass` Action does not become a synthetic `PassSubmitted` Action. Its permitted contents may differ, and the UI may render a generic description from those contents, but it remains `SubmitPass` whenever its canonical type is disclosed.
 
-If replay cannot be satisfied without revealing a secret, the visible record carries an explicit forward patch:
+If replay cannot be satisfied without revealing a secret, the visible record carries an explicit `forwardPatch`:
 
 ```text
 Fv(P) = diff(V0(P), V1(P))
@@ -113,9 +113,9 @@ Canonical Processed Action
 └── visible variants
     ├── audience
     ├── permitted Action record or opaque record
-    ├── cascade transition mode
-    ├── visible undo patch
-    └── visible forward patch when required
+    │   ├── visible undoPatch
+    │   └── visible forwardPatch when required
+    └── cascade transition mode
 ```
 
 This does not require a complete current-state copy for every Player. Initial load and full synchronization can project the one canonical current state for the requesting Player Perspective. Visible variants and their patches should be committed atomically with the canonical transition so projection failure cannot leave a partially updated Game Instance.
@@ -137,14 +137,12 @@ Local backward navigation uses visible undo patches. Local forward navigation re
 
 ### System Action cascades
 
-The current Game Client ordinarily receives a User Action and deterministically regenerates its System Action cascade, including deterministic System Action identities. Hidden information can prevent that replay when a System Action depends on secret state or server-only randomness.
+Optimistic Application currently executes a new User Action and deterministically generates its System Action cascade. Authoritative delivery is different: the host supplies the complete ordered Processed Action trace, and the Game Client applies each supplied record exactly once. Hidden information can prevent rules replay when an Action depends on secret state or server-only randomness.
 
 The working direction classifies the initiating User Action and its entire triggered System Action cascade together for each perspective or Visibility Equivalence Class. At minimum, the platform needs two modes:
 
-1. **Deterministically replayed cascade**: the client executes the visible User Action and generates the same complete System Action cascade.
-2. **Forward-patched cascade**: the host executes the complete canonical cascade, then sends the perspective's visible Action records and visible transitions as one authoritative batch. The client executes none of the cascade and does not ask redacted System Actions to generate children.
-
-A possible intermediate mode is a **host-resolved projected cascade**, in which the host supplies the complete permitted System Action trace and the client applies executable result-bearing Action records without generating additional children. Whether that mode earns its complexity or whether forward patches should cover the same cases remains open.
+1. **Processed-Action replay cascade**: the host supplies the complete permitted User and System Action trace. The client applies each Processed Action through game rules exactly once. System Actions scheduled while replaying one record are not recursively processed because their authoritative records occur later in the supplied trace.
+2. **Forward-patched cascade**: the host supplies the same complete permitted Action trace, but every record carries a `forwardPatch`, including an empty patch when that Action has no visible state effect. The client applies only those patches and never hydrates, validates, or executes the Actions.
 
 Cascade mode may differ by perspective. An acting Player may be able to replay a private Action that opponents receive as a patched cascade. The mode is not mixed arbitrarily inside one perspective's cascade because doing so risks locally generated children competing with authoritative children.
 
@@ -180,19 +178,19 @@ State and Processed Action delivery are not the only possible information channe
 
 This assessment records the leading proposal at this point in exploration; it is not an architectural selection.
 
-| Candidate strategy                                                  | Current working assessment                                                                                                                                                                                                                                                                                                |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Explicit state and Action projection with deterministic replay only | Fits ordinary private state and preserves the current runtime, but cannot cover every secret-dependent cascade or a redacted Action type without requiring visible Actions to reproduce hidden scheduling decisions.                                                                                                      |
-| Visibility wrappers or schema annotations                           | Potentially useful authoring and validation helpers for common fields, but not a complete confidentiality, transition, persistence, or synchronization design.                                                                                                                                                            |
-| Separate canonical and visible rules runtimes                       | Can theoretically cover every scenario, but duplicates rule behavior and creates a large drift and testing burden.                                                                                                                                                                                                        |
-| Reusable hidden-information modules                                 | Promising for recurring hands, decks, sealed submissions, and aggregates, but must sit on a platform transition and projection mechanism with a game-specific escape hatch.                                                                                                                                               |
-| Forward patches for every transition                                | Uniform and complete, especially for opaque Actions and hidden System Action cascades, but may unnecessarily replace deterministic replay for the majority of existing public Actions.                                                                                                                                    |
-| Deterministic replay with cascade-level forward-patch fallback      | Current leading proposal. It preserves ordinary replay while materializing an entire perspective-specific cascade when redacted state, payload, type, validation, randomness, or child scheduling prevents safe replay. It adds two transition paths that should be hidden behind one client-facing transition interface. |
-| Host-resolved projected cascade between replay and patching         | Potentially allows permitted result-bearing Actions to remain executable without locally generating children. It may reduce patch use for card games, but its added mode and runtime semantics have not yet been justified.                                                                                               |
+| Candidate strategy                                                  | Current working assessment                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Explicit state and Action projection with deterministic replay only | Fits ordinary private state and preserves the current runtime, but cannot cover every secret-dependent cascade or a redacted Action type without requiring visible Actions to reproduce hidden scheduling decisions.                                                                                                                                    |
+| Visibility wrappers or schema annotations                           | Potentially useful authoring and validation helpers for common fields, but not a complete confidentiality, transition, persistence, or synchronization design.                                                                                                                                                                                          |
+| Separate canonical and visible rules runtimes                       | Can theoretically cover every scenario, but duplicates rule behavior and creates a large drift and testing burden.                                                                                                                                                                                                                                      |
+| Reusable hidden-information modules                                 | Promising for recurring hands, decks, sealed submissions, and aggregates, but must sit on a platform transition and projection mechanism with a game-specific escape hatch.                                                                                                                                                                             |
+| Forward patches for every transition                                | Uniform and complete, especially for opaque Actions and hidden System Action cascades, but may unnecessarily replace deterministic replay for the majority of existing public Actions.                                                                                                                                                                  |
+| Processed-Action replay with cascade-level forward-patch fallback   | Current leading proposal. The host supplies the complete authoritative Action trace in both cases. Each perspective either replays every supplied record exactly once or applies every supplied forward patch. This preserves ordinary rules execution without asking a replayed Action to process generated children that also arrive authoritatively. |
+| User-Action replay that regenerates the System Action cascade       | Remains useful for explicitly safe Optimistic Application before a host result exists. It is no longer the proposed authoritative-delivery mechanism because generated children can compete with the complete host-supplied trace.                                                                                                                      |
 
 ## Candidate declarative visibility model
 
-> **Implementation experiment status:** This remains a working proposal, not an accepted direction. Schema declaration, schema derivation, pure state-value projection through built-in and game-specific audience policies, and optional Game Runtime registration of a state projector now have initial implementations. Action and cascade projection, projected hydration, runtime replay, persistence, and transport remain design work.
+> **Implementation experiment status:** This remains a working proposal, not an accepted direction. Schema declaration and derivation, pure state and Action projection, optional Game Runtime projector registration, canonical Action-cascade capture, and visible patch materialization now have initial implementations. Projected hydration, replay classification, persistence, and transport remain design work.
 
 The goal is for game logic to remain canonical and perspective-free. An Action or state handler should not normally contain branches such as `viewer === owner`. Instead, a participating game would declare visibility near its existing TypeBox state and Action schemas, and the platform would compile those declarations into the projection and transition behavior described elsewhere in this document.
 
@@ -268,7 +266,13 @@ The visibility metadata belongs to the schema, not to each serialized state obje
 
 A participating Game Runtime can expose compiled state and Action projectors through the optional `runtime.visibility` member. Fresh Fish is the first registration. This gives generic host code one game-independent discovery seam while leaving non-participating Game Runtimes unchanged. `runtime.visibility.state` accepts the Game Runtime's canonical state type, and its result must retain the shared `GameState` contract even when protected game-specific fields have a different projected shape. `runtime.visibility.actions` selects a precompiled projector by canonical Action type and fails when no schema is registered. Its optional policy registry is typed against the union of its registered Action schemas, allowing a game-owned resolver to narrow by Action type when necessary. Fresh Fish supplies a complete title-owned schema registry containing both its User and System Actions; its existing API Action registry remains the smaller User Action subset.
 
-The common `Visibility.projectActionCascade` experiment accepts a canonical starting state followed by an ordered sequence of Processed Actions and their canonical after-states, together with a Perspective and the runtime registration. It projects each state boundary once and returns an ordered sequence of projected Action records with forward and undo patches calculated by comparing only adjacent projected states. A one-Action sequence represents the smallest Action cascade. The engine-owned `GameAction.undoPatch` declaration is host-only for every Action schema that inherits it, and the Action projector removes the canonical patch before invoking the schema projector. The materializer currently returns both patch directions for every Action so tests and later cascade classification can choose between replay and patching without regenerating either patch from canonical operations. It does not choose a cascade mode or change delivery by itself: transport still returns canonical state and Actions until later slices can project a complete response without leaving another canonical-data path open.
+The common `Visibility.projectActionCascade` experiment accepts a canonical starting state followed by an ordered sequence of Processed Actions and their canonical after-states, together with a Perspective and the runtime registration. It projects each state boundary once and returns an ordered sequence of projected Action records. A one-Action sequence represents the smallest Action cascade. The engine-owned `GameAction.undoPatch` and `GameAction.forwardPatch` declarations are host-only for every Action schema that inherits them, and the Action projector removes both canonical patch fields before invoking the schema projector. The materializer calculates both safe patch directions by comparing only adjacent projected states and writes them directly onto each projected Action record. It currently retains a `forwardPatch` on every projected Action, conservatively making its result a forward-patched cascade. A later classifier can prove an entire perspective-specific cascade replayable and omit `forwardPatch` from every record in that cascade. Transport still returns canonical state and Actions until later slices can project a complete response without leaving another canonical-data path open.
+
+`GameEngine.executeAction` accepts an Unprocessed Action, sanitizes its submitted `undoPatch`, `forwardPatch`, and result `metadata`, and executes the complete canonical cascade. Its result exposes `actionCascade`, containing a clone of the canonical input state and one ordered `{ action, after }` transition for every processed User and System Action. Each resulting Action carries its freshly generated canonical undo patch aligned with its recorded after-state. Sanitization applies only to the initiating Action; System Actions created inside `MachineContext` are already authoritative and retain their generated data.
+
+`GameEngine.applyProcessedAction` accepts one authoritative Processed Action. When `forwardPatch` is present, including an empty array, it applies that patch to a cloned state without hydrating the Action, invoking game logic, consuming PRNG state, or generating System Actions. Otherwise it replays exactly that one record through game rules and does not recursively process scheduled children. `GameEngine.undoProcessedAction` applies the Action-carried undo patch without game execution. This lifecycle interface replaces the former public `run` mode flag, so backend execution, Hotseat Play, Processed Action delivery, and History Navigation select an operation by what kind of Action they hold rather than by where the engine instance runs. Fork reconstruction has a narrowly named `rebuildProcessedAction` operation because it recreates one historical canonical record with a new identity and undo patch rather than applying an existing record. The engine capture and Processed Action application paths are not yet connected to projected backend persistence or transport.
+
+The `metadata` property is consequently reserved for Processed Action results. An Unprocessed Action that needs similar player-supplied data uses a domain-specific field name. Authentication and Player attribution remain outside the Game Engine: the host derives those facts from its authenticated request before calling `executeAction`.
 
 The current implementation handles `hostOnly` as unauthorized for both client-facing perspective kinds, handles `actor` by matching a Player Perspective to the projected root value's required `playerId`, resolves simultaneous-auction bids through their enclosing schema scope, executes omission and the built-in empty-array Adapter, evaluates registered named audience policies, recursively projects schema-declared values, and does not mutate its input. It copies object fields from the schema as an allowlist rather than copying undeclared runtime properties. An actor-protected projection fails if its root has no Player attribution. A required scope fails if it is absent or contains the wrong canonical shape. Creation fails closed when a declaration names an audience policy or Adapter that has no implementation, and every result is checked against the derived projection schema. Custom Adapter registration and transition-aware policy context remain future work.
 
@@ -334,7 +338,7 @@ projectActionCascade(canonicalBefore, canonicalResult, perspective)
 
 Behind that Interface, the Module would own recursive traversal, visible Action records, Visibility Equivalence Classes, forward and undo patch derivation, cascade mode, checksum-preserving records, and persistence output. That keeps the projection Seam out of individual game Actions and transport handlers.
 
-The current narrower implementation exposes `runtime.visibility.state`, `runtime.visibility.actions`, and the pure `Visibility.projectActionCascade` operation. This establishes the snapshot, Action-selection, ordered-cascade, and patch-derivation parts of that Seam without prematurely choosing the persisted visible-record schema or cascade-mode protocol. A completed Action cascade is already the outer materialization unit and remains the intended unit for later classification and delivery; callers must not independently mix replayed and patched Action entries merely because its result contains per-Action transitions.
+The current narrower implementation exposes `runtime.visibility.state`, `runtime.visibility.actions`, and the pure `Visibility.projectActionCascade` operation. This establishes the snapshot, Action-selection, ordered-cascade, Action-carried-patch, and patch-application parts of that Seam without prematurely choosing the persisted visible-variant schema or cascade-classification protocol. A completed Action cascade is already the outer materialization unit and remains the intended unit for later classification and delivery; callers must not independently remove forward patches from individual Action entries because replay versus patching is one decision for the complete perspective-specific cascade.
 
 Compilation could fail a participating game before publication when:
 
@@ -354,10 +358,10 @@ The developer should not have to predict manually which of mostly public Actions
 1. Execute the initiating Action and its complete System Action cascade canonically on the host.
 2. Project the canonical before- and after-state for one Visibility Equivalence Class.
 3. Project the complete visible Action trace for that class.
-4. Replay that trace in an isolated visible runtime.
+4. Remove the candidate forward patches and replay that trace one Processed Action at a time in an isolated visible runtime.
 5. Compare its final visible state and generated Action identities and trace with the authoritative projection.
 6. Use deterministic replay only on an exact match.
-7. Otherwise store and deliver a forward patch for the complete cascade.
+7. On an exact match, omit `forwardPatch` from every record in the visible cascade; otherwise retain it on every record.
 
 A sentinel Action makes the record non-executable and therefore selects patching without a probe. Replay would be chosen because the engine demonstrated visible equivalence for this particular cascade and perspective, not because a developer guessed that an Action type was always safe. Dynamic rules state means the result generally cannot be cached solely by Action type.
 
@@ -387,8 +391,11 @@ The initial implementation establishes that:
 - visibility and scope metadata survive the Fresh Fish runtime schema composition exercised by the bag, auction, game state, and `PlaceBid`;
 - the pure runtime projector requires an explicit Player or spectator Perspective, executes the built-in host-only, actor, and simultaneous-auction bid policies plus registered audience policies, makes the nearest named schema scope available to a resolver, recursively protects authorized values, validates its result, and rejects unresolved declarations before projecting a value;
 - a participating Game Runtime can register that state projector through its optional visibility configuration without changing existing Game Titles or transport;
-- the same runtime registration can enumerate and project all title-owned User and System Action schemas, rejects unregistered Action types, and removes the canonical undo patch before Action projection;
-- a pure cascade materializer preserves public User and System Action identity fields while deriving visible forward and undo patches solely from adjacent projected states;
+- the same runtime registration can enumerate and project all title-owned User and System Action schemas, rejects unregistered Action types, and removes canonical patch fields before Action projection;
+- `GameEngine.executeAction` sanitizes engine-owned submitted results, captures the canonical before-state and every ordered User/System Action after-state, and does not sanitize internally generated System Actions;
+- `GameEngine.applyProcessedAction` selects Action-carried forward patching by field presence, including an empty patch, before any attempt to hydrate or execute the Action, while its replay path applies exactly one supplied Processed Action;
+- `GameEngine.undoProcessedAction` uses the undo patch carried by either a canonical or safely projected Processed Action;
+- a pure cascade materializer preserves public User and System Action identity fields while deriving visible forward and undo patches solely from adjacent projected states and attaching them directly to the projected Actions;
 - the shared simultaneous-auction policy produces distinct owner, opponent, spectator, and resolved-bid projections for Fresh Fish while the Draw Bag remains redacted;
 - Fresh Fish projects `PlaceBid.amount` with the common actor policy, produces different actor and non-actor transition records and patches, and publishes lasting bid knowledge through the public `EndAuction` record; and
 - TypeBox type-level composition may erase custom option types even where the runtime metadata survives.
@@ -584,9 +591,8 @@ Under the current proposal, every participating Action fixture would be evaluate
 
 ## Open questions within the proposal
 
-- Will the platform adopt the proposed replayed-cascade and forward-patched-cascade modes, and is a host-resolved projected-cascade mode also worthwhile?
-- How does a Game Title declare or calculate cascade mode for each perspective, and how is replayability verified rather than merely trusted?
-- What is the exact visible Action-record schema, including the redacted-type sentinel and the location of forward and undo patches?
+- How does the platform classify each perspective's complete authoritative Action trace as Processed-Action replay or forward-patched, and how is replayability verified rather than merely trusted?
+- What is the exact redacted-type sentinel and cascade-envelope schema around the current Action-carried patch fields?
 - Besides identity and index, which Action fields are necessarily public: type, source, Player attribution, timestamps, simultaneous group, and information-reveal metadata?
 - What exact fixed-shape state representations should reusable hidden-zone modules provide without using perspective-dependent discriminated unions?
 - Which remaining TypeBox composition paths lose runtime metadata, and how should deeply composed projection schemas preserve precise static types?
@@ -595,6 +601,6 @@ Under the current proposal, every participating Action fixture would be evaluate
 - Is durable Player knowledge stored in canonical state, in a separate knowledge model, or in persisted player-relative projections?
 - How should the initial `runtime.visibility.state` and `runtime.visibility.actions` Interface evolve when transition-aware policies, cascade classification, and opaque Action types are implemented?
 - Are visible variants stored with canonical Actions or in separately protected persistence records?
-- Are visible forward and undo patches stored for only patched cascades or for replayed cascades as well?
+- How are Action-carried visible patches grouped into persisted Visibility Equivalence Classes without duplicating identical records unnecessarily?
 - How are public spectators, administrators, Player reassignment, and post-game visibility represented?
 - How are projection changes handled when a Hosted Game follows a newer Game Title publication?

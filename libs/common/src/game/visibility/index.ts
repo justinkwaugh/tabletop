@@ -37,10 +37,8 @@ export type {
     ActionSchemaRegistry
 } from './actionProjector.js'
 export type {
-    CanonicalActionCascade,
-    CanonicalCascadeTransition,
-    CascadeProjectionOptions,
+    ActionCascadeProjectionOptions,
     GameVisibility,
-    VisibleActionCascade,
-    VisibleActionTransition
+    VisibleActionCascade
 } from './gameVisibility.js'
+export type { CanonicalActionCascade, CanonicalActionTransition } from '../engine/gameEngine.js'

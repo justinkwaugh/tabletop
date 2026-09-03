@@ -23,9 +23,7 @@ import {
     GameEngine,
     GameStorage,
     GameCategory,
-    RunMode,
-    PlayerStatus,
-    assertExists
+    PlayerStatus
 } from '@tabletop/common'
 import * as Value from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
@@ -278,12 +276,11 @@ export class GameService implements GameServiceInterface {
                 action.undoPatch = undefined
 
                 // Apply each action to the forked game state
-                const { processedActions, updatedState } = engine.run(
+                const { processedActions, updatedState } = engine.rebuildProcessedAction({
                     action,
                     state,
-                    startedGame,
-                    RunMode.Single
-                )
+                    game: startedGame
+                })
                 state = updatedState
                 updatedActions.push(...processedActions)
             }

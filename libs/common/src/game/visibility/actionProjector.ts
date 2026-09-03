@@ -37,10 +37,11 @@ class SchemaActionProjector<Schemas extends ActionSchemaRegistry> implements Act
             throw Error(`No visibility schema registered for Action type "${action.type}"`)
         }
 
-        const actionWithoutCanonicalUndo = structuredClone(action)
-        delete actionWithoutCanonicalUndo.undoPatch
+        const actionWithoutCanonicalPatches = structuredClone(action)
+        delete actionWithoutCanonicalPatches.undoPatch
+        delete actionWithoutCanonicalPatches.forwardPatch
 
-        const projected: unknown = projector.project(actionWithoutCanonicalUndo, perspective)
+        const projected: unknown = projector.project(actionWithoutCanonicalPatches, perspective)
         if (!this.actionValidator.Check(projected)) {
             throw Error('Action visibility projection does not retain the GameAction contract')
         }

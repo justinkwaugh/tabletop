@@ -1,5 +1,6 @@
-import jsonpatch, { type Operation } from 'fast-json-patch'
+import jsonpatch from 'fast-json-patch'
 import type { GameAction } from '../engine/gameAction.js'
+import type { CanonicalActionCascade } from '../engine/gameEngine.js'
 import type { GameState } from '../model/gameState.js'
 import type { ActionProjector } from './actionProjector.js'
 import type { Perspective, ValueProjector } from './valueProjector.js'
@@ -12,27 +13,11 @@ export interface GameVisibility<
     readonly actions: ActionProjector
 }
 
-export interface CanonicalCascadeTransition<State extends GameState = GameState> {
-    readonly action: GameAction
-    readonly after: State
-}
-
-export interface CanonicalActionCascade<State extends GameState = GameState> {
-    readonly before: State
-    readonly transitions: readonly CanonicalCascadeTransition<State>[]
-}
-
-export interface VisibleActionTransition {
-    readonly action: GameAction
-    readonly forwardPatch: Operation[]
-    readonly undoPatch: Operation[]
-}
-
 export interface VisibleActionCascade {
-    readonly transitions: VisibleActionTransition[]
+    readonly actions: readonly GameAction[]
 }
 
-export interface CascadeProjectionOptions<
+export interface ActionCascadeProjectionOptions<
     State extends GameState = GameState,
     ProjectedState extends GameState = GameState
 > {
@@ -42,21 +27,17 @@ export interface CascadeProjectionOptions<
 
 export function projectActionCascade<State extends GameState, ProjectedState extends GameState>(
     actionCascade: CanonicalActionCascade<State>,
-    options: CascadeProjectionOptions<State, ProjectedState>
+    options: ActionCascadeProjectionOptions<State, ProjectedState>
 ): VisibleActionCascade {
     let before = options.visibility.state.project(actionCascade.before, options.perspective)
-    const transitions = actionCascade.transitions.map((transition) => {
+    const actions = actionCascade.transitions.map((transition) => {
         const after = options.visibility.state.project(transition.after, options.perspective)
-        const visibleTransition: VisibleActionTransition = {
-            action: options.visibility.actions.project(transition.action, options.perspective),
-            forwardPatch: jsonpatch.compare(before, after),
-            undoPatch: jsonpatch.compare(after, before)
-        }
+        const action = options.visibility.actions.project(transition.action, options.perspective)
+        action.forwardPatch = jsonpatch.compare(before, after)
+        action.undoPatch = jsonpatch.compare(after, before)
         before = after
-        return visibleTransition
+        return action
     })
 
-    return {
-        transitions
-    }
+    return { actions }
 }
