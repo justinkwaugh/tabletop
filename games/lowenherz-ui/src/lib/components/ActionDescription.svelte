@@ -181,38 +181,28 @@
         placed a bid in the duel
     {:else}
         {@const roundBids = duelRoundEndingWith(gameSession.actions, action)}
-        {@const anyTreasure = roundBids.some((bid) => (bid.metadata?.treasureCardsUsed ?? []).length > 0)}
         placed the last bid in the duel:
-        <!-- Spans, not table/div elements: the history renders each entry inside a <p>, where
-             only phrasing content is valid. A grid of spans reads as a table while staying
-             valid there. Colours come from the surrounding text, since the same description is
-             shown on the dark history panel and on the parchment status banner. -->
-        <span
-            role="table"
-            class="my-1 grid w-fit gap-x-4 gap-y-0.5 text-[13px] leading-snug {anyTreasure
-                ? 'grid-cols-[auto_auto_auto_auto]'
-                : 'grid-cols-[auto_auto]'}"
-        >
-            <span role="row" class="contents">
-                <span role="columnheader" class="border-b border-current/30 pb-0.5 text-[10px] uppercase tracking-wider opacity-60">Player</span>
-                <span role="columnheader" class="border-b border-current/30 pb-0.5 text-right text-[10px] uppercase tracking-wider opacity-60">Ducats</span>
-                {#if anyTreasure}
-                    <span role="columnheader" class="border-b border-current/30 pb-0.5 text-right text-[10px] uppercase tracking-wider opacity-60">Treasure</span>
-                    <span role="columnheader" class="border-b border-current/30 pb-0.5 text-right text-[10px] uppercase tracking-wider opacity-60">Total</span>
-                {/if}
-            </span>
+        <!-- Spans, not a list element: the history renders each entry inside a <p>, where only
+             phrasing content is valid. Colours come from the surrounding text, since the same
+             description is shown on the dark history panel and on the parchment status banner. -->
+        <span class="my-1 block text-[13px] leading-snug">
             {#each roundBids as bid (bid.id)}
                 {@const treasures = bid.metadata?.treasureCardsUsed ?? []}
                 {@const treasureTotal = treasures.reduce((sum, card) => sum + (card.value ?? 0), 0)}
                 {@const isWinner = action.metadata.winnerId === bid.playerId}
-                <span role="row" class="contents {isWinner ? 'font-semibold' : ''}">
-                    <span role="cell"><PlayerName playerId={bid.playerId} /></span>
-                    <span role="cell" class="text-right tabular-nums">{bid.amount}</span>
-                    {#if anyTreasure}
-                        <span role="cell" class="text-right tabular-nums"
-                            >{treasures.length > 0 ? treasures.map((card) => card.value).join(' + ') : '—'}</span
-                        >
-                        <span role="cell" class="text-right tabular-nums">{bid.amount + treasureTotal}</span>
+                <span class="block pl-3 -indent-3 {isWinner ? 'font-semibold' : ''}">
+                    • <PlayerName playerId={bid.playerId} /> bid {bid.amount} ducat{bid.amount === 1
+                        ? ''
+                        : 's'}{#if treasures.length > 0}
+                        {' '}+ {treasures.length === 1 ? 'a ' : ''}{#each treasures as treasureCard, j (j)}{j >
+                            0
+                                ? j === treasures.length - 1
+                                    ? ' and '
+                                    : ', '
+                                : ''}{politicsCardLabel(treasureCard.type, treasureCard.value)}{/each} card{treasures.length ===
+                        1
+                            ? ''
+                            : 's'} ({bid.amount + treasureTotal} in all)
                     {/if}
                 </span>
             {/each}
