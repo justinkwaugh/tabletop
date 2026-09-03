@@ -203,7 +203,7 @@ function findProjectedReplacementNotification(
 }
 
 describe('game notifications', () => {
-    it('preserves the existing Game notification payload contract', () => {
+    it('emits state-free payloads while accepting legacy state-bearing payloads', () => {
         const game = createGame()
         const notification = Value.Parse(
             GameUpdateNotification,
@@ -211,7 +211,12 @@ describe('game notifications', () => {
         )
 
         expect(notification.type).toBe(NotificationCategory.Game)
-        expect(notification.data.game.state).toEqual(game.state)
+        expect(notification.data.game).not.toHaveProperty('state')
+        expect(game).toHaveProperty('state')
+
+        const legacyNotification = structuredClone(notification)
+        legacyNotification.data.game.state = game.state
+        expect(Value.Check(GameUpdateNotification, legacyNotification)).toBe(true)
     })
 
     it('publishes complete projected cascades for each Player and the spectator', async () => {

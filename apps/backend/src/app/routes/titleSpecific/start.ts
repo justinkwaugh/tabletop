@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
-import { GameDefinition } from '@tabletop/common'
+import { GameDefinition, omitGameState } from '@tabletop/common'
 
 type StartGameRequest = Static<typeof StartGameRequest>
 const StartGameRequest = Type.Object({
@@ -28,7 +28,7 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
                 user: request.user
             })
 
-            return { status: 'ok', payload: { game: startedGame } }
+            return { status: 'ok', payload: { game: omitGameState(startedGame) } }
         }
     )
 }

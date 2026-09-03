@@ -12,6 +12,7 @@ import {
     type GameNotificationData,
     type GameState,
     type Notification,
+    omitGameState,
     type ProcessedActionReplay
 } from '@tabletop/common'
 import { nanoid } from 'nanoid'
@@ -22,8 +23,7 @@ import {
 } from '../notifications/notificationService.js'
 import {
     createActionResultsRepresentationForPerspective,
-    createUndoResultsRepresentationForPerspective,
-    omitGameState
+    createUndoResultsRepresentationForPerspective
 } from './gameRepresentation.js'
 
 type NotificationSender = Pick<NotificationService, 'sendNotification'>
@@ -36,7 +36,7 @@ export function createGameNotification(
         id: nanoid(),
         type: NotificationCategory.Game,
         action,
-        data
+        data: { ...data, game: omitGameState(data.game) }
     }
 }
 

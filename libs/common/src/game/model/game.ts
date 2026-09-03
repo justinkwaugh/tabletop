@@ -79,6 +79,15 @@ export const Game = Type.Object({
     category: Type.Optional(Type.String({ default: GameCategory.Standard }))
 })
 
+export type GameWithoutState = Type.Static<typeof GameWithoutState>
+export const GameWithoutState = Type.Omit(Game, ['state'], { additionalProperties: false })
+
+export function omitGameState(game: Game): GameWithoutState {
+    const gameWithoutState = structuredClone(game)
+    delete gameWithoutState.state
+    return gameWithoutState
+}
+
 export function findPlayerForUserId(
     game: Pick<Game, 'players'>,
     userId: string

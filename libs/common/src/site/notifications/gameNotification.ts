@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { Notification, NotificationCategory } from './notification.js'
-import { Game } from '../../game/model/game.js'
+import { Game, GameWithoutState } from '../../game/model/game.js'
 import { GameAction } from '../../game/engine/gameAction.js'
 import {
     CanonicalActionReplayManifest,
@@ -8,8 +8,6 @@ import {
 } from '../../game/engine/canonicalActionReplay.js'
 import { GameChatMessage } from '../chat/gameChatMessage.js'
 import { Perspective } from '../../game/visibility/valueProjector.js'
-
-const GameWithoutState = Type.Omit(Game, ['state'], { additionalProperties: false })
 
 export enum GameNotificationAction {
     Create = 'create',

@@ -8,7 +8,9 @@ import {
     type Game,
     type GameAction,
     type GameState,
+    type GameWithoutState,
     GameSyncStatus,
+    omitGameState,
     type ProcessedActionReplay,
     type User,
     Visibility
@@ -22,7 +24,7 @@ export interface GameRepresentation {
 }
 
 export interface ActionResultsRepresentation {
-    readonly game: Game
+    readonly game: GameWithoutState
     readonly actions: GameAction[]
     readonly missingActions: GameAction[] | undefined
     readonly perspective: Visibility.Perspective | undefined
@@ -35,7 +37,7 @@ export interface GameSyncRepresentation {
 }
 
 export interface UndoResultsRepresentation {
-    readonly game: Game
+    readonly game: GameWithoutState
     readonly actionReplay: ProcessedActionReplay
     readonly canonicalReplay: CanonicalActionReplay
     readonly checksum: number
@@ -335,12 +337,6 @@ export function createActionResultsRepresentationForPerspective({
         missingActions: projectedMissingActions,
         perspective
     }
-}
-
-export function omitGameState(game: Game): Game {
-    const gameWithoutState = structuredClone(game)
-    delete gameWithoutState.state
-    return gameWithoutState
 }
 
 function requireGameState(game: Game): GameState {
