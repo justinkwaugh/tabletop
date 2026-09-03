@@ -68,8 +68,10 @@ import {
     createActionResultsRepresentation,
     createGameRepresentation,
     createGameRepresentationEtag,
+    createGameSyncRepresentation,
     type ActionResultsRepresentation,
-    type GameRepresentation
+    type GameRepresentation,
+    type GameSyncRepresentation
 } from './gameRepresentation.js'
 import { createGameNotification, publishActionResults } from './gameNotifications.js'
 
@@ -417,12 +419,14 @@ export class GameService {
     async checkSync({
         gameId,
         checksum,
-        index
+        index,
+        user
     }: {
         gameId: string
         checksum: number
         index: number
-    }): Promise<{ status: GameSyncStatus; actions: GameAction[]; checksum: number }> {
+        user: User
+    }): Promise<GameSyncRepresentation> {
         // Try a potentially cached check
         const currentChecksum = await this.gameStore.getActionChecksum(gameId)
         if (checksum === currentChecksum) {
@@ -460,7 +464,14 @@ export class GameService {
             })
             actions.unshift(...extraActions)
         }
-        return { status: syncStatus, actions, checksum: state.actionChecksum }
+        const definition = this.getRequiredTitle(game)
+        return createGameSyncRepresentation({
+            game,
+            status: syncStatus,
+            actions,
+            visibility: definition.runtime.visibility,
+            user
+        })
     }
 
     async checkInvitation({ user, gameId }: { user: User; gameId: string }): Promise<Game> {

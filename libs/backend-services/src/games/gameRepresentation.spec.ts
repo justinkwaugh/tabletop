@@ -4,6 +4,7 @@ import {
     calculateActionChecksum,
     GameEngine,
     GameStatus,
+    GameSyncStatus,
     HydratedSimultaneousAuction,
     PlayerStatus,
     Role,
@@ -23,7 +24,8 @@ import { describe, expect, it, vi } from 'vitest'
 import {
     createActionResultsRepresentation,
     createGameRepresentation,
-    createGameRepresentationEtag
+    createGameRepresentationEtag,
+    createGameSyncRepresentation
 } from './gameRepresentation.js'
 
 function createUser(id: string): User {
@@ -374,6 +376,92 @@ describe('createGameRepresentation', () => {
                 user
             })
         ).toThrow('Cannot project Game game-1 Action History without its current state')
+    })
+})
+
+describe('createGameSyncRepresentation', () => {
+    it('projects a synchronization suffix with safe patches for the authenticated Player', () => {
+        const { game, before, after, action } = freshFishHistory
+        const representation = createGameSyncRepresentation({
+            game,
+            status: GameSyncStatus.InSync,
+            actions: [action],
+            visibility: FreshFishRuntime.visibility,
+            user: createUser('user-1')
+        })
+
+        expect(representation.status).toBe(GameSyncStatus.InSync)
+        expect(representation.checksum).toBe(after.actionChecksum)
+        expect(representation.actions).toHaveLength(1)
+
+        const representedAction = representation.actions[0]
+        if (representedAction === undefined) {
+            throw Error('Expected one represented synchronization Action')
+        }
+        expect(representedAction).not.toHaveProperty('amount')
+        expect(representedAction.forwardPatch).toBeDefined()
+        expect(representedAction.undoPatch).toBeDefined()
+
+        const perspective = { kind: 'player', playerId: 'p1' } as const
+        const engine = new GameEngine(FreshFishRuntime)
+        expect(
+            engine.applyProcessedAction({
+                action: representedAction,
+                state: FreshFishRuntime.visibility.state.project(before, perspective),
+                game
+            })
+        ).toEqual(FreshFishRuntime.visibility.state.project(after, perspective))
+        expect(JSON.stringify(representation)).not.toContain('canonical-hidden-tile')
+    })
+
+    it('retains a private Action payload for its authenticated Player', () => {
+        const { game, action } = freshFishHistory
+        const representation = createGameSyncRepresentation({
+            game,
+            status: GameSyncStatus.OutOfSync,
+            actions: [action],
+            visibility: FreshFishRuntime.visibility,
+            user: createUser('user-3')
+        })
+
+        expect(representation.actions[0]).toHaveProperty('amount', 7)
+    })
+
+    it('preserves the existing canonical synchronization result without visibility', () => {
+        const { game, after, action } = freshFishHistory
+        const actions = [action]
+        const representation = createGameSyncRepresentation({
+            game,
+            status: GameSyncStatus.OutOfSync,
+            actions,
+            user: createUser('user-1')
+        })
+
+        expect(representation).toEqual({
+            status: GameSyncStatus.OutOfSync,
+            actions,
+            checksum: after.actionChecksum
+        })
+        expect(representation.actions).toBe(actions)
+        expect(representation.actions[0]).toHaveProperty('amount', 7)
+    })
+
+    it('represents an empty projected suffix without canonical history data', () => {
+        const { game, after } = freshFishHistory
+        const representation = createGameSyncRepresentation({
+            game,
+            status: GameSyncStatus.OutOfSync,
+            actions: [],
+            visibility: FreshFishRuntime.visibility,
+            user: createUser('user-1')
+        })
+
+        expect(representation).toEqual({
+            status: GameSyncStatus.OutOfSync,
+            actions: [],
+            checksum: after.actionChecksum
+        })
+        expect(JSON.stringify(representation)).not.toContain('canonical-hidden-tile')
     })
 })
 

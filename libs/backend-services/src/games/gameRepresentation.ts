@@ -6,6 +6,7 @@ import {
     type Game,
     type GameAction,
     type GameState,
+    GameSyncStatus,
     type User,
     Visibility
 } from '@tabletop/common'
@@ -22,6 +23,12 @@ export interface ActionResultsRepresentation {
     readonly actions: GameAction[]
     readonly missingActions: GameAction[] | undefined
     readonly perspective: Visibility.Perspective | undefined
+}
+
+export interface GameSyncRepresentation {
+    readonly status: GameSyncStatus
+    readonly actions: GameAction[]
+    readonly checksum: number
 }
 
 export function createGameRepresentationEtag({
@@ -90,6 +97,41 @@ export function createGameRepresentation({
         game: projectedGame,
         actions: [...history.actions],
         perspective
+    }
+}
+
+export function createGameSyncRepresentation({
+    game,
+    status,
+    actions,
+    visibility,
+    user
+}: {
+    game: Game
+    status: GameSyncStatus
+    actions: GameAction[]
+    visibility?: Visibility.GameVisibility<GameState>
+    user: User
+}): GameSyncRepresentation {
+    const currentState = game.state
+    assertExists(currentState, `Cannot represent synchronization for Game ${game.id} without state`)
+
+    if (game.hotseat || visibility === undefined) {
+        return { status, actions, checksum: currentState.actionChecksum }
+    }
+
+    const history = Visibility.projectActionHistory({
+        currentState,
+        actions,
+        startIndex: currentState.actionCount - actions.length,
+        visibility,
+        perspective: derivePerspective({ game, user })
+    })
+
+    return {
+        status,
+        actions: [...history.actions],
+        checksum: currentState.actionChecksum
     }
 }
 
