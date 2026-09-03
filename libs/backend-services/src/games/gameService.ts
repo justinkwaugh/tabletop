@@ -69,11 +69,17 @@ import {
     createGameRepresentation,
     createGameRepresentationEtag,
     createGameSyncRepresentation,
+    createUndoResultsRepresentation,
     type ActionResultsRepresentation,
     type GameRepresentation,
-    type GameSyncRepresentation
+    type GameSyncRepresentation,
+    type UndoResultsRepresentation
 } from './gameRepresentation.js'
-import { createGameNotification, publishActionResults } from './gameNotifications.js'
+import {
+    createGameNotification,
+    publishActionResults,
+    publishUndoResults
+} from './gameNotifications.js'
 
 export class GameService {
     constructor(
@@ -1011,7 +1017,7 @@ export class GameService {
         definition: GameDefinition
         gameId: string
         actionId: string
-    }) {
+    }): Promise<UndoResultsRepresentation> {
         const game = await this.getGame({ gameId, withState: true })
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
@@ -1169,40 +1175,33 @@ export class GameService {
                 return UpdateValidationResult.Proceed
             }
         })
-        const checksum = updatedState.actionChecksum
-        delete updatedGame.state
-
         const replayActions = [...retainedActions, ...processedRedoneActions]
-        const canonicalReplay = {
+        const actionReplay = {
             startIndex: undoWindow.startIndex,
-            actions: replayActions.map((action) => structuredClone(action)),
-            userActions: replayActions
-                .filter((action) => action.source === ActionSource.User)
-                .map((action) => this.prepareLegacyReplayAction(action))
+            actions: replayActions.map((action) => structuredClone(action))
         }
-
-        // send out notifications
-        await this.notifyGameInstance(GameNotificationAction.UndoAction, {
+        const representation = createUndoResultsRepresentation({
             game: updatedGame,
-            action: actionToUndo,
-            redoneActions: processedRedoneActions,
-            undoneActionId: actionToUndo.id,
-            canonicalReplay: {
-                startIndex: canonicalReplay.startIndex,
-                actionIds: canonicalReplay.actions.map((action) => action.id),
-                userActionIds: canonicalReplay.userActions.map((action) => action.id)
-            },
-            checksum
-        })
-        await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
-
-        return {
+            actionReplay,
             undoneActions,
-            updatedGame,
             redoneActions: processedRedoneActions,
-            canonicalReplay,
-            checksum
-        }
+            visibility: definition.runtime.visibility,
+            user
+        })
+
+        await publishUndoResults({
+            game: updatedGame,
+            actionReplay,
+            actionToUndo,
+            redoneActions: processedRedoneActions,
+            visibility: definition.runtime.visibility,
+            notificationService: this.notificationService
+        })
+        await this.notifyGamePlayers(GameNotificationAction.Update, {
+            game: representation.game
+        })
+
+        return representation
     }
 
     async backfillChecksum(state: GameState, actions: GameAction[]): Promise<number> {
@@ -1217,12 +1216,6 @@ export class GameService {
             other.simultaneousGroupId !== undefined &&
             action.simultaneousGroupId === other.simultaneousGroupId
         )
-    }
-
-    private prepareLegacyReplayAction(action: GameAction): GameAction {
-        const replayAction = structuredClone(action)
-        delete replayAction.undoPatch
-        return replayAction
     }
 
     private verifyUserIsActionPlayer(action: GameAction, game: Game, user: User) {

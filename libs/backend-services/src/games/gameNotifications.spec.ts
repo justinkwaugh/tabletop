@@ -1,5 +1,6 @@
 import {
     ActionSource,
+    assertExists,
     calculateActionChecksum,
     GameNotificationAction,
     GameStatus,
@@ -7,6 +8,8 @@ import {
     GameUpdateNotification,
     GameAddActionsNotification,
     GameAddProjectedActionsNotification,
+    GameReplaceProjectedActionsNotification,
+    GameUndoActionNotification,
     NotificationCategory,
     PlayerStatus,
     Visibility,
@@ -19,7 +22,11 @@ import {
     NotificationDistributionMethod,
     type NotificationService
 } from '../notifications/notificationService.js'
-import { createGameNotification, publishActionResults } from './gameNotifications.js'
+import {
+    createGameNotification,
+    publishActionResults,
+    publishUndoResults
+} from './gameNotifications.js'
 
 const GAME_ID = 'notification-game'
 
@@ -90,7 +97,11 @@ function createActionCascade() {
         type: 'placeBid',
         playerId: 'player-1',
         amount: 7,
-        index: 0
+        index: 0,
+        undoPatch: [
+            { op: 'replace' as const, path: '/actionChecksum', value: before.actionChecksum },
+            { op: 'replace' as const, path: '/actionCount', value: before.actionCount }
+        ]
     }
     const afterUserAction = createState(1, calculateActionChecksum(0, [userAction]))
     const systemAction = {
@@ -98,7 +109,19 @@ function createActionCascade() {
         gameId: GAME_ID,
         source: ActionSource.System,
         type: 'recordBid',
-        index: 1
+        index: 1,
+        undoPatch: [
+            {
+                op: 'replace' as const,
+                path: '/actionChecksum',
+                value: afterUserAction.actionChecksum
+            },
+            {
+                op: 'replace' as const,
+                path: '/actionCount',
+                value: afterUserAction.actionCount
+            }
+        ]
     }
     const afterSystemAction = createState(
         2,
@@ -166,6 +189,17 @@ function findProjectedActionsNotification(publications: NotificationPublication[
         throw new Error(`No notification was published to ${topic}`)
     }
     return Value.Parse(GameAddProjectedActionsNotification, publication.notification)
+}
+
+function findProjectedReplacementNotification(
+    publications: NotificationPublication[],
+    topic: string
+) {
+    const publication = publications.find((candidate) => candidate.topics.includes(topic))
+    if (publication === undefined) {
+        throw new Error(`No notification was published to ${topic}`)
+    }
+    return Value.Parse(GameReplaceProjectedActionsNotification, publication.notification)
 }
 
 describe('game notifications', () => {
@@ -263,6 +297,100 @@ describe('game notifications', () => {
         expect(notification.action).toBe(GameNotificationAction.AddActions)
         expect(Object.keys(notification.data).toSorted()).toEqual(['actions', 'game'])
         expect(notification.data.actions.map((action) => action.id)).toEqual(['action-1'])
+        expect(notification.data.game).not.toHaveProperty('state')
+    })
+
+    it('publishes a complete projected undo replacement for every perspective', async () => {
+        const game = createGame()
+        const { result, storedActions } = createActionCascade()
+        game.state = result.updatedState
+        const { notificationService, publications } = createNotificationRecorder()
+        const actionToUndo = storedActions[0]
+        assertExists(actionToUndo, 'Expected an Action to undo')
+
+        await publishUndoResults({
+            game,
+            actionReplay: { startIndex: 0, actions: storedActions },
+            actionToUndo,
+            redoneActions: storedActions,
+            visibility: createVisibility(),
+            notificationService
+        })
+
+        expect(publications).toHaveLength(3)
+        expect(publications.map((publication) => publication.notification.action)).toEqual([
+            GameNotificationAction.ReplaceProjectedActions,
+            GameNotificationAction.ReplaceProjectedActions,
+            GameNotificationAction.ReplaceProjectedActions
+        ])
+
+        const spectator = findProjectedReplacementNotification(publications, `game-${GAME_ID}`)
+        const playerOne = findProjectedReplacementNotification(publications, 'user-user-1')
+        const playerTwo = findProjectedReplacementNotification(publications, 'user-user-2')
+        const unsafeNotification = structuredClone(spectator)
+        Reflect.set(unsafeNotification.data.game, 'state', createState())
+
+        expect(spectator.data.perspective).toEqual({ kind: 'spectator' })
+        expect(Value.Check(GameReplaceProjectedActionsNotification, unsafeNotification)).toBe(false)
+        expect(playerOne.data.perspective).toEqual({
+            kind: 'player',
+            playerId: 'player-1'
+        })
+        expect(playerTwo.data.perspective).toEqual({
+            kind: 'player',
+            playerId: 'player-2'
+        })
+        expect(playerOne.data.actionReplay.actions[0]).toHaveProperty('amount', 7)
+        expect(playerTwo.data.actionReplay.actions[0]).not.toHaveProperty('amount')
+        expect(spectator.data.actionReplay.actions[0]).not.toHaveProperty('amount')
+
+        for (const notification of [spectator, playerOne, playerTwo]) {
+            expect(notification.data.game).not.toHaveProperty('state')
+            expect(notification.data.actionReplay.actions.map((action) => action.id)).toEqual([
+                'action-1',
+                'action-2'
+            ])
+            expect(
+                notification.data.actionReplay.actions.every(
+                    (action) => action.forwardPatch !== undefined && action.undoPatch !== undefined
+                )
+            ).toBe(true)
+        }
+        expect(game.state).toBeDefined()
+    })
+
+    it('preserves the existing shared undo notification for a legacy Game Title', async () => {
+        const game = createGame()
+        const { result, storedActions } = createActionCascade()
+        game.state = result.updatedState
+        const { notificationService, publications } = createNotificationRecorder()
+        const actionToUndo = storedActions[0]
+        assertExists(actionToUndo, 'Expected an Action to undo')
+
+        await publishUndoResults({
+            game,
+            actionReplay: { startIndex: 0, actions: storedActions },
+            actionToUndo,
+            redoneActions: storedActions,
+            notificationService
+        })
+
+        expect(publications).toHaveLength(1)
+        const publication = publications[0]
+        const notification = Value.Parse(GameUndoActionNotification, publication.notification)
+        expect(publication.topics).toEqual([`game-${GAME_ID}`])
+        expect(notification.action).toBe(GameNotificationAction.UndoAction)
+        expect(notification.data.action.id).toBe('action-1')
+        expect(notification.data.undoneActionId).toBe('action-1')
+        expect(notification.data.redoneActions.map((action) => action.id)).toEqual([
+            'action-1',
+            'action-2'
+        ])
+        expect(notification.data.canonicalReplay).toEqual({
+            startIndex: 0,
+            actionIds: ['action-1', 'action-2'],
+            userActionIds: ['action-1']
+        })
         expect(notification.data.game).not.toHaveProperty('state')
     })
 })

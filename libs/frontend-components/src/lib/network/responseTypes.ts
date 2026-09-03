@@ -2,12 +2,14 @@ import { Type, type Static } from 'typebox'
 import {
     Bookmark,
     CanonicalActionReplay,
+    ProcessedActionReplay,
     Game,
     GameAction,
     GameChat,
     GameChatMessage,
     GameSyncStatus,
-    User
+    User,
+    Visibility
 } from '@tabletop/common'
 
 export type ApiResponse = Static<typeof ApiResponse>
@@ -184,8 +186,10 @@ export const UndoActionResponse = Type.Evaluate(
                 undoneActions: Type.Optional(Type.Array(GameAction)),
                 game: Game,
                 redoneActions: Type.Optional(Type.Array(GameAction)),
+                actionReplay: Type.Optional(ProcessedActionReplay),
                 canonicalReplay: CanonicalActionReplay,
-                checksum: Type.Number()
+                checksum: Type.Number(),
+                perspective: Type.Optional(Visibility.Perspective)
             })
         })
     ])

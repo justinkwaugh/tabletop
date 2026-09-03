@@ -4,6 +4,7 @@ import {
     assertExists,
     Bookmark,
     CanonicalActionReplay,
+    ProcessedActionReplay,
     Game,
     GameAction,
     GameChat,
@@ -12,7 +13,8 @@ import {
     GameSyncStatus,
     GameValidator,
     User,
-    UserPreferences
+    UserPreferences,
+    Visibility
 } from '@tabletop/common'
 import type {
     AblyTokenResponse,
@@ -454,11 +456,13 @@ export class TabletopApi {
         game: Game,
         actionId: string
     ): Promise<{
+        actionReplay?: ProcessedActionReplay
         canonicalReplay: CanonicalActionReplay
         game: Game
         checksum: number
         undoneActions?: GameAction[]
         redoneActions?: GameAction[]
+        perspective?: Visibility.Perspective
     }> {
         const logicVersion = this.getGameLogicVersion(game.typeId!)
         const uiVersion = this.getGameUiVersion(game.typeId!)
@@ -478,6 +482,13 @@ export class TabletopApi {
             response.payload.canonicalReplay
         )
         Value.Assert(CanonicalActionReplay, canonicalReplay)
+        const actionReplay = response.payload.actionReplay
+            ? Value.Convert(ProcessedActionReplay, response.payload.actionReplay)
+            : {
+                  startIndex: canonicalReplay.startIndex,
+                  actions: canonicalReplay.actions
+              }
+        Value.Assert(ProcessedActionReplay, actionReplay)
         // Game UI bundles are deployed separately and may still use the legacy undo contract.
         const undoneActions = response.payload.undoneActions
             ? this.convertGameActions(response.payload.undoneActions)
@@ -485,13 +496,18 @@ export class TabletopApi {
         const redoneActions = response.payload.redoneActions
             ? this.convertGameActions(response.payload.redoneActions)
             : undefined
+        const perspective = response.payload.perspective
+            ? Value.Parse(Visibility.Perspective, response.payload.perspective)
+            : undefined
 
         return {
+            actionReplay,
             canonicalReplay,
             game: responseGame,
             checksum: response.payload.checksum,
             undoneActions,
-            redoneActions
+            redoneActions,
+            perspective
         }
     }
 

@@ -3,12 +3,14 @@ import {
     AuctionType,
     GameEngine,
     GameNotificationAction,
+    type GameReplaceProjectedActionsNotification,
     GameStorage,
     GameSyncStatus,
     HydratedSimultaneousAuction,
     NotificationCategory,
     PlayerStatus,
     TieResolutionStrategy,
+    Visibility,
     assertExists,
     createAction,
     type Game,
@@ -46,6 +48,7 @@ const PLAYER_B_ID = 'player-b'
 const PLAYER_C_ID = 'player-c'
 const PLAYER_D_ID = 'player-d'
 const HARNESS_USER_ID = 'harness-user'
+const PLAYER_B_PERSPECTIVE = { kind: 'player', playerId: PLAYER_B_ID } as const
 
 const HARNESS_DEFINITION: GameUiDefinition<GameState, HydratedGameState> = {
     info: UiDefinition.info,
@@ -152,13 +155,18 @@ class CanonicalHost {
                 return replayAction
             })
 
+        const actionReplay = {
+            startIndex: replayStartIndex,
+            actions: replayActions
+        }
+
         return {
             undoneActions: actionsToUndo.toReversed().map((action) => structuredClone(action)),
             game: this.gameWithoutState(),
             redoneActions: redoneActions.map((action) => structuredClone(action)),
+            actionReplay,
             canonicalReplay: {
-                startIndex: replayStartIndex,
-                actions: replayActions,
+                ...actionReplay,
                 userActions: replayUserActions
             },
             checksum: this.state.actionChecksum
@@ -266,7 +274,12 @@ function createBid(id: string, playerId: string, amount: number): PlaceBid {
     })
 }
 
-function createClient(host: CanonicalHost, state: FreshFishGameState, actions: GameAction[]) {
+function createClient(
+    host: CanonicalHost,
+    state: FreshFishGameState,
+    actions: GameAction[],
+    perspective?: Visibility.Perspective
+) {
     const appContext = createHarnessAppContext(HARNESS_DEFINITION)
     const bridgedContext = new BridgedContext({
         authorizationService: appContext.authorizationService,
@@ -277,16 +290,24 @@ function createClient(host: CanonicalHost, state: FreshFishGameState, actions: G
 
     const undoSpy = vi
         .spyOn(appContext.api, 'undoAction')
-        .mockImplementation(async (_game, actionId) => host.undo(actionId))
-    const checkSyncSpy = vi.spyOn(appContext.api, 'checkSync').mockImplementation(async () => ({
-        status: GameSyncStatus.OutOfSync,
-        actions: host.actionsSnapshot(),
-        checksum: host.state.actionChecksum
-    }))
-    const getGameSpy = vi.spyOn(appContext.api, 'getGame').mockImplementation(async () => ({
-        game: host.gameWithState(),
-        actions: host.actionsSnapshot()
-    }))
+        .mockImplementation(async (_game, actionId) => {
+            const result = host.undo(actionId)
+            return perspective === undefined ? result : projectUndoResult(host, result, perspective)
+        })
+    const checkSyncSpy = vi.spyOn(appContext.api, 'checkSync').mockImplementation(async () => {
+        const history = projectHostHistory(host, perspective)
+        return {
+            status: GameSyncStatus.OutOfSync,
+            actions: [...history.actions],
+            checksum: host.state.actionChecksum
+        }
+    })
+    const getGameSpy = vi.spyOn(appContext.api, 'getGame').mockImplementation(async () => {
+        const history = projectHostHistory(host, perspective)
+        const game = host.gameWithState()
+        game.state = history.currentState
+        return { game, actions: [...history.actions] }
+    })
 
     const session = new FreshFishGameSession({
         gameService: appContext.gameService,
@@ -310,6 +331,62 @@ function createClient(host: CanonicalHost, state: FreshFishGameState, actions: G
             session.dispose()
             bridgedContext.dispose()
         }
+    }
+}
+
+function projectHostHistory(host: CanonicalHost, perspective?: Visibility.Perspective) {
+    if (perspective === undefined) {
+        return {
+            startIndex: 0,
+            currentState: structuredClone(host.state),
+            actions: host.actionsSnapshot()
+        }
+    }
+    return Visibility.projectActionHistory({
+        currentState: host.state,
+        actions: host.actionsSnapshot(),
+        visibility: FreshFishRuntime.visibility,
+        perspective
+    })
+}
+
+function projectUndoResult(
+    host: CanonicalHost,
+    undoResult: ReturnType<CanonicalHost['undo']>,
+    perspective: Visibility.Perspective
+) {
+    const history = Visibility.projectActionHistory({
+        currentState: host.state,
+        actions: undoResult.actionReplay.actions,
+        startIndex: undoResult.actionReplay.startIndex,
+        visibility: FreshFishRuntime.visibility,
+        perspective
+    })
+    const actions = [...history.actions]
+    const actionsById = new Map(actions.map((action) => [action.id, action]))
+    const redoneActions = undoResult.redoneActions.map((action) => {
+        const projectedAction = actionsById.get(action.id)
+        assertExists(projectedAction, `Redone Action ${action.id} is absent from the replay`)
+        return projectedAction
+    })
+    const actionReplay = { startIndex: history.startIndex, actions }
+
+    return {
+        game: undoResult.game,
+        redoneActions,
+        actionReplay,
+        canonicalReplay: {
+            ...actionReplay,
+            userActions: actions
+                .filter((action) => action.source === ActionSource.User)
+                .map((action) => {
+                    const legacyAction = structuredClone(action)
+                    delete legacyAction.undoPatch
+                    return legacyAction
+                })
+        },
+        checksum: undoResult.checksum,
+        perspective
     }
 }
 
@@ -350,6 +427,23 @@ function createUndoNotification(
     }
 }
 
+function createProjectedUndoNotification(
+    undoResult: ReturnType<typeof projectUndoResult>,
+    perspective: Visibility.Perspective
+): GameReplaceProjectedActionsNotification {
+    return {
+        id: 'projected-undo-notification',
+        type: NotificationCategory.Game,
+        action: GameNotificationAction.ReplaceProjectedActions,
+        data: {
+            game: undoResult.game,
+            actionReplay: undoResult.actionReplay,
+            checksum: undoResult.checksum,
+            perspective
+        }
+    }
+}
+
 beforeEach(() => {
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
 })
@@ -359,6 +453,102 @@ afterEach(() => {
 })
 
 describe('simultaneous auction undo reconciliation', () => {
+    test('applies a perspective-safe direct undo without executing hidden game logic', async () => {
+        const host = createAuctionHost()
+        host.apply(createBid('bid-a-01', PLAYER_A_ID, 1))
+        host.apply(createBid('bid-d-02', PLAYER_D_ID, 2))
+        const bBid = host.apply(createBid('bid-b-03', PLAYER_B_ID, 3))
+        const hiddenTile = host.state.tileBag.items[0]
+        assertExists(hiddenTile, 'Expected a hidden Tile in the canonical bag')
+        Reflect.set(hiddenTile, 'testMarker', 'canonical-hidden-tile')
+        const initialHistory = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
+
+        const client = createClient(
+            host,
+            initialHistory.currentState,
+            [...initialHistory.actions],
+            PLAYER_B_PERSPECTIVE
+        )
+        try {
+            await client.session.waitForVisibleTransitionSettled()
+            expect(client.session.undoableAction?.id).toBe(bBid.id)
+
+            await client.session.undo()
+            await client.session.waitForVisibleTransitionSettled()
+
+            const expectedHistory = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
+            const context = client.session.history.visibleContext
+            expectClientToMatchHost(client.session, host)
+            expect(context.state).toEqual(expectedHistory.currentState)
+            expect(context.actions.every((action) => !Reflect.has(action, 'amount'))).toBe(true)
+            expect(JSON.stringify(context.state)).not.toContain('canonical-hidden-tile')
+            expect(JSON.stringify(host.state)).toContain('canonical-hidden-tile')
+            expect(client.undoSpy).toHaveBeenCalledOnce()
+            expect(client.checkSyncSpy).not.toHaveBeenCalled()
+            expect(client.getGameSpy).not.toHaveBeenCalled()
+        } finally {
+            client.dispose()
+        }
+    })
+
+    test('applies only the realtime undo replacement matching the client perspective', async () => {
+        const host = createAuctionHost()
+        const aBid = host.apply(createBid('bid-a-01', PLAYER_A_ID, 1))
+        host.apply(createBid('bid-d-02', PLAYER_D_ID, 2))
+        host.apply(createBid('bid-b-03', PLAYER_B_ID, 3))
+        const initialHistory = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
+
+        const client = createClient(
+            host,
+            initialHistory.currentState,
+            [...initialHistory.actions],
+            PLAYER_B_PERSPECTIVE
+        )
+        client.session.listenToGame()
+        try {
+            await client.session.waitForVisibleTransitionSettled()
+            const checksumBeforeUndo = client.session.gameState.actionChecksum
+            const undoResult = host.undo(aBid.id)
+            const spectatorResult = projectUndoResult(host, undoResult, {
+                kind: 'spectator'
+            })
+
+            await client.notificationService.emit({
+                eventType: NotificationEventType.Data,
+                channel: NotificationChannel.GameInstance,
+                notification: createProjectedUndoNotification(spectatorResult, {
+                    kind: 'spectator'
+                })
+            })
+            expect(client.session.gameState.actionChecksum).toBe(checksumBeforeUndo)
+
+            const playerResult = projectUndoResult(host, undoResult, PLAYER_B_PERSPECTIVE)
+            await client.notificationService.emit({
+                eventType: NotificationEventType.Data,
+                channel: NotificationChannel.User,
+                notification: createProjectedUndoNotification(playerResult, PLAYER_B_PERSPECTIVE)
+            })
+            await client.session.waitForVisibleTransitionSettled()
+
+            const expectedHistory = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
+            const context = client.session.history.visibleContext
+            expectClientToMatchHost(client.session, host)
+            expect(context.state).toEqual(expectedHistory.currentState)
+            expect(
+                context.actions.find((action) => action.playerId === PLAYER_D_ID)
+            ).not.toHaveProperty('amount')
+            expect(
+                context.actions.find((action) => action.playerId === PLAYER_B_ID)
+            ).toHaveProperty('amount', 3)
+            expect(client.undoSpy).not.toHaveBeenCalled()
+            expect(client.checkSyncSpy).not.toHaveBeenCalled()
+            expect(client.getGameSpy).not.toHaveBeenCalled()
+        } finally {
+            client.session.stopListeningToGame()
+            client.dispose()
+        }
+    })
+
     test('uses the host target index when A undo and C bid were missed before B undo', async () => {
         const host = createAuctionHost()
         const aBid = host.apply(createBid('bid-a-01', PLAYER_A_ID, 1))

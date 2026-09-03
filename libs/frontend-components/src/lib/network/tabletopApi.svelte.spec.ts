@@ -8,7 +8,7 @@ afterEach(() => {
 })
 
 describe('TabletopApi undo compatibility', () => {
-    test('preserves complete and legacy undo replay fields across UI Artifact versions', async () => {
+    test('derives the processed replay when an older host omits it', async () => {
         const game = Value.Create(Game)
         game.id = 'game-id'
         game.typeId = 'freshfish'
@@ -80,6 +80,77 @@ describe('TabletopApi undo compatibility', () => {
         expect(result.canonicalReplay.userActions.map((action) => action.id)).toEqual([
             redoneAction.id
         ])
+        expect(result.actionReplay?.actions.map((action) => action.id)).toEqual([
+            redoneAction.id,
+            systemAction.id
+        ])
+    })
+
+    test('uses the explicit processed replay returned by a visibility-aware host', async () => {
+        const game = Value.Create(Game)
+        game.id = 'game-id'
+        game.typeId = 'freshfish'
+
+        const legacyAction = Value.Create(GameAction)
+        legacyAction.id = 'legacy-action'
+        legacyAction.gameId = game.id
+        legacyAction.source = ActionSource.User
+        legacyAction.type = 'bid'
+        legacyAction.index = 0
+
+        const projectedAction = Value.Create(GameAction)
+        projectedAction.id = 'projected-action'
+        projectedAction.gameId = game.id
+        projectedAction.source = ActionSource.System
+        projectedAction.type = 'protectedAction'
+        projectedAction.index = 0
+        projectedAction.forwardPatch = []
+        projectedAction.undoPatch = []
+
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(
+                async () =>
+                    new Response(
+                        JSON.stringify({
+                            status: 'ok',
+                            payload: {
+                                game,
+                                actionReplay: {
+                                    startIndex: 0,
+                                    actions: [projectedAction]
+                                },
+                                canonicalReplay: {
+                                    startIndex: 0,
+                                    actions: [legacyAction],
+                                    userActions: [legacyAction]
+                                },
+                                checksum: 456,
+                                perspective: { kind: 'player', playerId: 'player-1' }
+                            }
+                        }),
+                        {
+                            status: 200,
+                            headers: { 'Content-Type': 'application/json' }
+                        }
+                    )
+            )
+        )
+
+        const api = new TabletopApi()
+        api.setGameVersionProvider({
+            getLogicVersion: () => '3.0.0',
+            getUiVersion: () => '5.0.1'
+        })
+
+        const result = await api.undoAction(game, projectedAction.id)
+
+        expect(result.actionReplay?.actions.map((action) => action.id)).toEqual([
+            projectedAction.id
+        ])
+        expect(result.actionReplay?.actions[0]?.forwardPatch).toEqual([])
+        expect(result.canonicalReplay.actions.map((action) => action.id)).toEqual([legacyAction.id])
+        expect(result.perspective).toEqual({ kind: 'player', playerId: 'player-1' })
     })
 })
 
@@ -110,8 +181,6 @@ describe('TabletopApi Game views', () => {
         const api = new TabletopApi()
         await api.getGame(game.id, { hostView: true })
 
-        expect(requestedUrls).toEqual([
-            'http://localhost:3000/api/v1/game/get/game-id?view=host'
-        ])
+        expect(requestedUrls).toEqual(['http://localhost:3000/api/v1/game/get/game-id?view=host'])
     })
 })

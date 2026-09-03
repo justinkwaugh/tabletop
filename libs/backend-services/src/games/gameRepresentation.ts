@@ -1,12 +1,15 @@
 import {
+    ActionSource,
     assert,
     assertExists,
     findPlayerForUserId,
     type ActionCascadeResult,
+    type CanonicalActionReplay,
     type Game,
     type GameAction,
     type GameState,
     GameSyncStatus,
+    type ProcessedActionReplay,
     type User,
     Visibility
 } from '@tabletop/common'
@@ -29,6 +32,16 @@ export interface GameSyncRepresentation {
     readonly status: GameSyncStatus
     readonly actions: GameAction[]
     readonly checksum: number
+}
+
+export interface UndoResultsRepresentation {
+    readonly game: Game
+    readonly actionReplay: ProcessedActionReplay
+    readonly canonicalReplay: CanonicalActionReplay
+    readonly checksum: number
+    readonly undoneActions?: GameAction[]
+    readonly redoneActions?: GameAction[]
+    readonly perspective: Visibility.Perspective | undefined
 }
 
 export function createGameRepresentationEtag({
@@ -135,6 +148,86 @@ export function createGameSyncRepresentation({
     }
 }
 
+export function createUndoResultsRepresentation({
+    game,
+    actionReplay,
+    undoneActions,
+    redoneActions,
+    visibility,
+    user
+}: {
+    game: Game
+    actionReplay: ProcessedActionReplay
+    undoneActions: GameAction[]
+    redoneActions: GameAction[]
+    visibility?: Visibility.GameVisibility<GameState>
+    user: User
+}): UndoResultsRepresentation {
+    if (game.hotseat || visibility === undefined) {
+        return {
+            game: omitGameState(game),
+            actionReplay,
+            canonicalReplay: createLegacyCompatibleReplay(actionReplay),
+            checksum: requireGameState(game).actionChecksum,
+            undoneActions,
+            redoneActions,
+            perspective: undefined
+        }
+    }
+
+    return createUndoResultsRepresentationForPerspective({
+        game,
+        actionReplay,
+        redoneActions,
+        visibility,
+        perspective: derivePerspective({ game, user })
+    })
+}
+
+export function createUndoResultsRepresentationForPerspective({
+    game,
+    actionReplay,
+    redoneActions,
+    visibility,
+    perspective
+}: {
+    game: Game
+    actionReplay: ProcessedActionReplay
+    redoneActions: GameAction[]
+    visibility: Visibility.GameVisibility<GameState>
+    perspective: Visibility.Perspective
+}): UndoResultsRepresentation {
+    const currentState = requireGameState(game)
+    const projectedHistory = Visibility.projectActionHistory({
+        currentState,
+        actions: actionReplay.actions,
+        startIndex: actionReplay.startIndex,
+        visibility,
+        perspective
+    })
+    const projectedReplay: ProcessedActionReplay = {
+        startIndex: projectedHistory.startIndex,
+        actions: [...projectedHistory.actions]
+    }
+    const projectedActionsById = new Map(
+        projectedReplay.actions.map((action) => [action.id, action])
+    )
+    const projectedRedoneActions = redoneActions.map((action) => {
+        const projectedAction = projectedActionsById.get(action.id)
+        assertExists(projectedAction, `Redone Action ${action.id} is absent from the replay suffix`)
+        return projectedAction
+    })
+
+    return {
+        game: omitGameState(game),
+        actionReplay: projectedReplay,
+        canonicalReplay: createLegacyCompatibleReplay(projectedReplay),
+        checksum: currentState.actionChecksum,
+        redoneActions: projectedRedoneActions,
+        perspective
+    }
+}
+
 export function createActionResultsRepresentation({
     game,
     result,
@@ -153,11 +246,9 @@ export function createActionResultsRepresentation({
     user: User
 }): ActionResultsRepresentation {
     if (game.hotseat || visibility === undefined) {
-        const representedGame = structuredClone(game)
-        delete representedGame.state
         const orderedMissingActions = orderActions(missingActions)
         return {
-            game: representedGame,
+            game: omitGameState(game),
             actions: storedActions,
             missingActions: orderedMissingActions.length > 0 ? orderedMissingActions : undefined,
             perspective: undefined
@@ -192,8 +283,6 @@ export function createActionResultsRepresentationForPerspective({
     visibility: Visibility.GameVisibility<GameState>
     perspective: Visibility.Perspective
 }): ActionResultsRepresentation {
-    const representedGame = structuredClone(game)
-    delete representedGame.state
     const orderedMissingActions = orderActions(missingActions)
 
     assert(
@@ -241,10 +330,36 @@ export function createActionResultsRepresentationForPerspective({
     }
 
     return {
-        game: representedGame,
+        game: omitGameState(game),
         actions: projectedResult.processedActions,
         missingActions: projectedMissingActions,
         perspective
+    }
+}
+
+export function omitGameState(game: Game): Game {
+    const gameWithoutState = structuredClone(game)
+    delete gameWithoutState.state
+    return gameWithoutState
+}
+
+function requireGameState(game: Game): GameState {
+    const state = game.state
+    assertExists(state, `Cannot represent Game ${game.id} without current state`)
+    return state
+}
+
+function createLegacyCompatibleReplay(actionReplay: ProcessedActionReplay): CanonicalActionReplay {
+    return {
+        startIndex: actionReplay.startIndex,
+        actions: actionReplay.actions,
+        userActions: actionReplay.actions
+            .filter((action) => action.source === ActionSource.User)
+            .map((action) => {
+                const legacyAction = structuredClone(action)
+                delete legacyAction.undoPatch
+                return legacyAction
+            })
     }
 }
 

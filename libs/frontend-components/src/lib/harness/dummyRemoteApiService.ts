@@ -8,8 +8,10 @@ import type {
     GameChatMessage,
     GameState,
     GameSyncStatus,
+    ProcessedActionReplay,
     User,
-    UserPreferences
+    UserPreferences,
+    Visibility
 } from '@tabletop/common'
 import type { GameVersionProvider, GetGameOptions } from '$lib/network/tabletopApi.svelte.js'
 import type { Credentials } from '$lib/network/requestTypes.js'
@@ -178,9 +180,11 @@ export class DummyRemoteApiService implements RemoteApiService {
         _game: Game,
         _actionId: string
     ): Promise<{
+        actionReplay?: ProcessedActionReplay
         canonicalReplay: CanonicalActionReplay
         game: Game
         checksum: number
+        perspective?: Visibility.Perspective
     }> {
         return this.fail('undoAction')
     }

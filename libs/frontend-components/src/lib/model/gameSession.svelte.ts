@@ -1,11 +1,11 @@
 import {
     ActionSource,
-    type CanonicalActionReplay,
     CanonicalActionReplayManifest,
     Game,
     GameAction,
     GameAddActionsNotification,
     GameAddProjectedActionsNotification,
+    GameReplaceProjectedActionsNotification,
     GameEngine,
     GameNotificationAction,
     NotificationCategory,
@@ -18,6 +18,7 @@ import {
     GameDeleteNotification,
     type HydratedGameState,
     PlayerAction,
+    ProcessedActionReplay,
     GameStorage,
     assertExists,
     createAction,
@@ -761,9 +762,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
         const relevantContext = this.currentModifiableContext
         const requiresAuthoritativeApplication =
-            relevantContext.game.storage === GameStorage.Remote &&
-            !relevantContext.game.hotseat &&
-            this.runtime.visibility !== undefined
+            this.requiresServerAuthoritativeProcessing(relevantContext)
 
         // Clone to avoid mutation issues
         action = structuredClone($state.snapshot(action))
@@ -937,6 +936,19 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         context.verifyFullChecksum()
     }
 
+    private async applyServerAuthoritativeUndo(
+        actionId: string,
+        context: GameContext<T, U>
+    ): Promise<void> {
+        const { actionReplay, canonicalReplay, checksum, game } = await this.api.undoAction(
+            context.game,
+            actionId
+        )
+        this.reconcileProcessedActionReplay(context, actionReplay ?? canonicalReplay, checksum)
+        context.updateGame(game)
+        context.verifyFullChecksum()
+    }
+
     // This will only be triggered by the UI and as such we can use the current context
     // internally, rather than having to pass it in.  No server generated actions go through
     // here.
@@ -964,6 +976,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             const priorContext = relevantContext.clone()
 
             try {
+                if (this.requiresServerAuthoritativeProcessing(relevantContext)) {
+                    await this.applyServerAuthoritativeUndo(targetActionId, relevantContext)
+                    return
+                }
+
                 // Undo locally
                 const redoActions: GameAction[] = []
                 let actionToUndo
@@ -1114,7 +1131,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     private reconcileProcessedActionReplay(
         context: GameContext<T, U>,
-        replay: Pick<CanonicalActionReplay, 'startIndex' | 'actions'>,
+        replay: ProcessedActionReplay,
         checksum: number
     ): void {
         if (replay.startIndex > context.actions.length) {
@@ -1211,6 +1228,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     await this.handleAddActionsNotification(notification)
                 } else if (this.isGameAddProjectedActionsNotification(notification)) {
                     await this.handleAddProjectedActionsNotification(notification)
+                } else if (this.isGameReplaceProjectedActionsNotification(notification)) {
+                    this.handleReplaceProjectedActionsNotification(notification)
                 } else if (this.isGameUndoActionNotification(notification)) {
                     await this.handleUndoNotification(notification)
                 } else if (this.isGameDeleteNotification(notification)) {
@@ -1308,6 +1327,41 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     startIndex: manifest.startIndex,
                     actions
                 },
+                notification.data.checksum
+            )
+
+            const game = Value.Convert(Game, notification.data.game)
+            Value.Assert(Game, game)
+            this.gameContext.updateGame(game)
+        } catch (error) {
+            this.gameContext.restoreFrom(priorContext)
+            throw error
+        }
+    }
+
+    private handleReplaceProjectedActionsNotification(
+        notification: GameReplaceProjectedActionsNotification
+    ): void {
+        if (notification.data.game.id !== this.gameContext.game.id) {
+            return
+        }
+        if (!this.matchesPrimaryPerspective(notification.data.perspective)) {
+            return
+        }
+        if (this.gameContext === this.currentVisibleContext && this.busy) {
+            return
+        }
+
+        const priorContext = this.gameContext.clone()
+        try {
+            const actionReplay = Value.Convert(
+                ProcessedActionReplay,
+                notification.data.actionReplay
+            )
+            Value.Assert(ProcessedActionReplay, actionReplay)
+            this.reconcileProcessedActionReplay(
+                this.gameContext,
+                actionReplay,
                 notification.data.checksum
             )
 
@@ -1454,6 +1508,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return perspective.playerId === player?.id
     }
 
+    private requiresServerAuthoritativeProcessing(context: GameContext<T, U>): boolean {
+        return (
+            context.game.storage === GameStorage.Remote &&
+            !context.game.hotseat &&
+            this.runtime.visibility !== undefined
+        )
+    }
+
     private isGameAddActionsNotification(
         notification: Notification
     ): notification is GameAddActionsNotification {
@@ -1469,6 +1531,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return (
             notification.type === NotificationCategory.Game &&
             notification.action === GameNotificationAction.AddProjectedActions
+        )
+    }
+
+    private isGameReplaceProjectedActionsNotification(
+        notification: Notification
+    ): notification is GameReplaceProjectedActionsNotification {
+        return (
+            notification.type === NotificationCategory.Game &&
+            notification.action === GameNotificationAction.ReplaceProjectedActions
         )
     }
 

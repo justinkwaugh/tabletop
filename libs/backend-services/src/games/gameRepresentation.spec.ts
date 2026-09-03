@@ -25,7 +25,8 @@ import {
     createActionResultsRepresentation,
     createGameRepresentation,
     createGameRepresentationEtag,
-    createGameSyncRepresentation
+    createGameSyncRepresentation,
+    createUndoResultsRepresentation
 } from './gameRepresentation.js'
 
 function createUser(id: string): User {
@@ -639,5 +640,87 @@ describe('createActionResultsRepresentation', () => {
         })
         expect(representation.actions).toBe(storedActions)
         expect(representation.actions[0]).toHaveProperty('amount', 7)
+    })
+})
+
+describe('createUndoResultsRepresentation', () => {
+    it('projects the complete replacement suffix and omits canonical undo data', () => {
+        const { game, before, after, action } = freshFishHistory
+        const representation = createUndoResultsRepresentation({
+            game,
+            actionReplay: { startIndex: 0, actions: [action] },
+            undoneActions: [action],
+            redoneActions: [action],
+            visibility: FreshFishRuntime.visibility,
+            user: createUser('user-1')
+        })
+
+        expect(representation.game).toEqual(withoutGameState(game))
+        expect(representation.perspective).toEqual({ kind: 'player', playerId: 'p1' })
+        expect(representation.checksum).toBe(after.actionChecksum)
+        expect(representation.undoneActions).toBeUndefined()
+        expect(representation.actionReplay.actions).toHaveLength(1)
+        expect(representation.actionReplay.actions[0]).not.toHaveProperty('amount')
+        expect(representation.actionReplay.actions[0]?.forwardPatch).toBeDefined()
+        expect(representation.actionReplay.actions[0]?.undoPatch).toBeDefined()
+        expect(representation.redoneActions?.[0]).not.toHaveProperty('amount')
+        expect(representation.canonicalReplay.actions).toEqual(representation.actionReplay.actions)
+        expect(representation.canonicalReplay.userActions[0]).not.toHaveProperty('undoPatch')
+
+        const perspective = { kind: 'player', playerId: 'p1' } as const
+        const representedAction = representation.actionReplay.actions[0]
+        if (representedAction === undefined) {
+            throw Error('Expected one represented replacement Action')
+        }
+        const engine = new GameEngine(FreshFishRuntime)
+        expect(
+            engine.applyProcessedAction({
+                action: representedAction,
+                state: FreshFishRuntime.visibility.state.project(before, perspective),
+                game
+            })
+        ).toEqual(FreshFishRuntime.visibility.state.project(after, perspective))
+        expect(JSON.stringify(representation)).not.toContain('canonical-hidden-tile')
+    })
+
+    it('retains a private replacement Action payload for its authenticated Player', () => {
+        const { game, action } = freshFishHistory
+        const representation = createUndoResultsRepresentation({
+            game,
+            actionReplay: { startIndex: 0, actions: [action] },
+            undoneActions: [action],
+            redoneActions: [action],
+            visibility: FreshFishRuntime.visibility,
+            user: createUser('user-3')
+        })
+
+        expect(representation.perspective).toEqual({ kind: 'player', playerId: 'p3' })
+        expect(representation.actionReplay.actions[0]).toHaveProperty('amount', 7)
+        expect(representation.redoneActions?.[0]).toHaveProperty('amount', 7)
+    })
+
+    it('preserves the legacy undo result for a Game Title without visibility', () => {
+        const { game, after, action } = freshFishHistory
+        const actionReplay = { startIndex: 0, actions: [action] }
+        const undoneActions = [action]
+        const redoneActions = [action]
+        const representation = createUndoResultsRepresentation({
+            game,
+            actionReplay,
+            undoneActions,
+            redoneActions,
+            user: createUser('user-1')
+        })
+
+        expect(representation.game).toEqual(withoutGameState(game))
+        expect(representation.canonicalReplay.startIndex).toBe(0)
+        expect(representation.canonicalReplay.actions).toEqual([action])
+        expect(representation.canonicalReplay.userActions).toHaveLength(1)
+        expect(representation.canonicalReplay.userActions[0]).not.toHaveProperty('undoPatch')
+        expect(representation.checksum).toBe(after.actionChecksum)
+        expect(representation.perspective).toBeUndefined()
+        expect(representation.actionReplay).toBe(actionReplay)
+        expect(representation.undoneActions).toBe(undoneActions)
+        expect(representation.redoneActions).toBe(redoneActions)
     })
 })

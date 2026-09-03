@@ -2,7 +2,10 @@ import * as Type from 'typebox'
 import { Notification, NotificationCategory } from './notification.js'
 import { Game } from '../../game/model/game.js'
 import { GameAction } from '../../game/engine/gameAction.js'
-import { CanonicalActionReplayManifest } from '../../game/engine/canonicalActionReplay.js'
+import {
+    CanonicalActionReplayManifest,
+    ProcessedActionReplay
+} from '../../game/engine/canonicalActionReplay.js'
 import { GameChatMessage } from '../chat/gameChatMessage.js'
 import { Perspective } from '../../game/visibility/valueProjector.js'
 
@@ -14,6 +17,7 @@ export enum GameNotificationAction {
     Delete = 'delete',
     AddActions = 'addActions',
     AddProjectedActions = 'addProjectedActions',
+    ReplaceProjectedActions = 'replaceProjectedActions',
     UndoAction = 'undoAction',
     Chat = 'chat'
 }
@@ -45,6 +49,16 @@ export type GameNotificationAddProjectedActionsData = Type.Static<
 export const GameNotificationAddProjectedActionsData = Type.Object({
     game: GameWithoutState,
     actions: Type.Array(GameAction),
+    perspective: Perspective
+})
+
+export type GameNotificationReplaceProjectedActionsData = Type.Static<
+    typeof GameNotificationReplaceProjectedActionsData
+>
+export const GameNotificationReplaceProjectedActionsData = Type.Object({
+    game: GameWithoutState,
+    actionReplay: ProcessedActionReplay,
+    checksum: Type.Number(),
     perspective: Perspective
 })
 
@@ -128,6 +142,20 @@ export const GameAddProjectedActionsNotification = Type.Evaluate(
     ])
 )
 
+export type GameReplaceProjectedActionsNotification = Type.Static<
+    typeof GameReplaceProjectedActionsNotification
+>
+export const GameReplaceProjectedActionsNotification = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(Notification, ['type', 'action', 'data']),
+        Type.Object({
+            type: Type.Literal(NotificationCategory.Game),
+            action: Type.Literal(GameNotificationAction.ReplaceProjectedActions),
+            data: GameNotificationReplaceProjectedActionsData
+        })
+    ])
+)
+
 export type GameUndoActionNotification = Type.Static<typeof GameUndoActionNotification>
 export const GameUndoActionNotification = Type.Evaluate(
     Type.Intersect([
@@ -158,6 +186,7 @@ export type GameNotificationData =
     | GameNotificationDeleteData
     | GameNotificationAddActionsData
     | GameNotificationAddProjectedActionsData
+    | GameNotificationReplaceProjectedActionsData
     | GameNotificationUndoActionData
     | GameNotificationChatData
 
@@ -167,5 +196,6 @@ export type GameNotification =
     | GameDeleteNotification
     | GameAddActionsNotification
     | GameAddProjectedActionsNotification
+    | GameReplaceProjectedActionsNotification
     | GameUndoActionNotification
     | GameChatNotification
