@@ -2,6 +2,7 @@ import {
     ActionSource,
     calculateActionChecksum,
     findLast,
+    findPlayerForUserId,
     Game,
     GameAction,
     GameDefinition,
@@ -26,7 +27,8 @@ import {
     UserNotification,
     UserNotificationAction,
     UserStatus,
-    WasInvitedNotification
+    WasInvitedNotification,
+    assertExists
 } from '@tabletop/common'
 import { TaskService } from '../tasks/taskService.js'
 import { TokenService, TokenType } from '../tokens/tokenService.js'
@@ -63,6 +65,11 @@ import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import { Retryable } from 'typescript-retry-decorator'
 import { RedisCacheService } from '../cache/cacheService.js'
 import { EnvService } from '../env/envService.js'
+import {
+    createGameRepresentation,
+    createGameRepresentationEtag,
+    type GameRepresentation
+} from './gameRepresentation.js'
 
 export class GameService {
     constructor(
@@ -291,8 +298,40 @@ export class GameService {
         return storedGame
     }
 
-    async getGameEtag(gameId: string): Promise<string | undefined> {
-        return await this.gameStore.getGameEtag(gameId)
+    canAccessHostView(user: User): boolean {
+        return user.roles.includes(Role.Admin) || user.roles.includes(Role.Developer)
+    }
+
+    async getGameEtag(gameId: string): Promise<string> {
+        const etag = await this.gameStore.getGameEtag(gameId)
+        assertExists(etag, `Game ${gameId} ETag is unavailable`)
+        return etag
+    }
+
+    async getGameEtagForUser({
+        gameId,
+        hostView = false,
+        user
+    }: {
+        gameId: string
+        hostView?: boolean
+        user: User
+    }): Promise<string | undefined> {
+        this.assertHostViewAccess({ gameId, hostView, user })
+
+        const game = await this.getGame({ gameId })
+        if (game === undefined) {
+            return undefined
+        }
+
+        const definition = this.getRequiredTitle(game)
+        return createGameRepresentationEtag({
+            canonicalEtag: await this.getGameEtag(gameId),
+            game,
+            hostView,
+            visibility: definition.runtime.visibility,
+            user
+        })
     }
 
     async getGame({
@@ -307,6 +346,39 @@ export class GameService {
 
     async getGameActions(game: Game): Promise<GameAction[]> {
         return await this.gameStore.findActionsForGame(game)
+    }
+
+    async getGameForUser({
+        gameId,
+        hostView = false,
+        user
+    }: {
+        gameId: string
+        hostView?: boolean
+        user: User
+    }): Promise<GameRepresentation | undefined> {
+        this.assertHostViewAccess({ gameId, hostView, user })
+
+        const game = await this.getGame({ gameId, withState: true })
+        if (game === undefined) {
+            return undefined
+        }
+
+        const definition = this.getRequiredTitle(game)
+
+        const actions = await this.getGameActions(game)
+        if (game.state && game.state.actionChecksum === undefined) {
+            const checksum = await this.backfillChecksum(game.state, actions)
+            game.state.actionChecksum = checksum
+        }
+
+        return createGameRepresentation({
+            game,
+            actions,
+            hostView,
+            visibility: definition.runtime.visibility,
+            user
+        })
     }
 
     async userHasCachedActiveGames(user: User): Promise<boolean> {
@@ -566,7 +638,7 @@ export class GameService {
             player.status = PlayerStatus.Joined
         } else {
             // For public games, we have to add the player
-            const existingPlayer = game.players.find((p) => p.userId === user.id)
+            const existingPlayer = findPlayerForUserId(game, user.id)
             if (existingPlayer) {
                 if (existingPlayer.status === PlayerStatus.Joined) {
                     return game
@@ -597,7 +669,7 @@ export class GameService {
                 if (!existingGame.isPublic) {
                     existingPlayer = this.findValidPlayerForUser({ user, game: existingGame })
                 } else {
-                    existingPlayer = existingGame.players.find((p) => p.userId === user.id)
+                    existingPlayer = findPlayerForUserId(existingGame, user.id)
                 }
 
                 if (existingPlayer && existingPlayer.status === PlayerStatus.Joined) {
@@ -1156,6 +1228,27 @@ export class GameService {
             return player.id === playerId
         })
     }
+
+    private assertHostViewAccess({
+        gameId,
+        hostView,
+        user
+    }: {
+        gameId: string
+        hostView: boolean
+        user: User
+    }): void {
+        if (hostView && !this.canAccessHostView(user)) {
+            throw new UnauthorizedAccessError({ user, gameId })
+        }
+    }
+
+    private getRequiredTitle(game: Game): GameDefinition {
+        const definition = this.getTitle(game.typeId)
+        assertExists(definition, `Game definition ${game.typeId} is unavailable`)
+        return definition
+    }
+
     private checkForDuplicatePlayers(players: Player[]): void {
         const userIds = new Set<string>()
         for (const player of players) {
@@ -1170,7 +1263,7 @@ export class GameService {
     }
 
     findValidPlayerForUser({ user, game }: { user: User; game: Game }): Player {
-        const player = game.players.find((p) => p.userId === user.id)
+        const player = findPlayerForUserId(game, user.id)
         if (!player) {
             throw new UserIsNotAllowedPlayerError({ user, gameId: game.id })
         }

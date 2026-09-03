@@ -2,6 +2,7 @@ import {
     GameSession,
     type GameService as GameServiceInterface,
     TabletopApi,
+    type GetGameOptions,
     type AuthorizationService,
     type GameStore,
     type NotificationEvent,
@@ -158,7 +159,10 @@ export class GameService implements GameServiceInterface {
         this.openGamesByTitleId.set(titleId, response)
     }
 
-    async loadGame(id: string): Promise<{ game?: Game; actions: GameAction[] }> {
+    async loadGame(
+        id: string,
+        options: GetGameOptions = {}
+    ): Promise<{ game?: Game; actions: GameAction[] }> {
         await this.libraryService.whenReady()
         // First check local hotseat games
         if (!this.localGamesById.has(id)) {
@@ -174,7 +178,7 @@ export class GameService implements GameServiceInterface {
         }
 
         // Check remote games
-        const { game, actions } = await this.api.getGame(id)
+        const { game, actions } = await this.api.getGame(id, options)
         if (game) {
             this.gamesById.set(game.id, game)
         }

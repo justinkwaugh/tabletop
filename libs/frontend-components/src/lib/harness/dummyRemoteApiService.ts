@@ -11,7 +11,7 @@ import type {
     User,
     UserPreferences
 } from '@tabletop/common'
-import type { GameVersionProvider } from '$lib/network/tabletopApi.svelte.js'
+import type { GameVersionProvider, GetGameOptions } from '$lib/network/tabletopApi.svelte.js'
 import type { Credentials } from '$lib/network/requestTypes.js'
 import type { GameChatMessageResponsePayload } from '$lib/network/responseTypes.js'
 import type { VersionChange } from '$lib/network/versionChecker.js'
@@ -128,7 +128,10 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('getOpenGames')
     }
 
-    async getGame(_gameId: string): Promise<{ game: Game; actions: GameAction[] }> {
+    async getGame(
+        _gameId: string,
+        _options?: GetGameOptions
+    ): Promise<{ game: Game; actions: GameAction[] }> {
         return this.fail('getGame')
     }
 

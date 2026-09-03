@@ -3,11 +3,11 @@ import * as Value from 'typebox/value'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { TabletopApi } from './tabletopApi.svelte.js'
 
-describe('TabletopApi undo compatibility', () => {
-    afterEach(() => {
-        vi.unstubAllGlobals()
-    })
+afterEach(() => {
+    vi.unstubAllGlobals()
+})
 
+describe('TabletopApi undo compatibility', () => {
     test('preserves complete and legacy undo replay fields across UI Artifact versions', async () => {
         const game = Value.Create(Game)
         game.id = 'game-id'
@@ -79,6 +79,39 @@ describe('TabletopApi undo compatibility', () => {
         expect(result.canonicalReplay.actions[1]?.undoPatch).toEqual([])
         expect(result.canonicalReplay.userActions.map((action) => action.id)).toEqual([
             redoneAction.id
+        ])
+    })
+})
+
+describe('TabletopApi Game views', () => {
+    test('requests Host View explicitly', async () => {
+        const game = Value.Create(Game)
+        game.id = 'game-id'
+        game.typeId = 'freshfish'
+        const requestedUrls: string[] = []
+
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (input: string | URL | Request) => {
+                requestedUrls.push(input instanceof Request ? input.url : String(input))
+                return new Response(
+                    JSON.stringify({
+                        status: 'ok',
+                        payload: { game, actions: [] }
+                    }),
+                    {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' }
+                    }
+                )
+            })
+        )
+
+        const api = new TabletopApi()
+        await api.getGame(game.id, { hostView: true })
+
+        expect(requestedUrls).toEqual([
+            'http://localhost:3000/api/v1/game/get/game-id?view=host'
         ])
     })
 })

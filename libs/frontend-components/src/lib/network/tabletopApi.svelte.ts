@@ -40,6 +40,10 @@ import { toast } from 'svelte-sonner'
 
 const DEFAULT_HOST = 'http://localhost:3000'
 
+export type GetGameOptions = {
+    hostView?: boolean
+}
+
 export class TabletopApi {
     private static readonly API_PREFIX = '/api/v1'
     private readonly host: string
@@ -291,9 +295,13 @@ export class TabletopApi {
         return response.payload.games.map((game) => this.validateGame(game))
     }
 
-    async getGame(gameId: string): Promise<{ game: Game; actions: GameAction[] }> {
+    async getGame(
+        gameId: string,
+        options: GetGameOptions = {}
+    ): Promise<{ game: Game; actions: GameAction[] }> {
+        const path = `/game/get/${gameId}${options.hostView ? '?view=host' : ''}`
         const response = await this.wretch
-            .get(`/game/get/${gameId}`)
+            .get(path)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GameWithActionsResponse>()

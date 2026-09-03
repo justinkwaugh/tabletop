@@ -79,4 +79,11 @@ export const Game = Type.Object({
     category: Type.Optional(Type.String({ default: GameCategory.Standard }))
 })
 
+export function findPlayerForUserId(
+    game: Pick<Game, 'players'>,
+    userId: string
+): Player | undefined {
+    return game.players.find((player) => player.userId === userId)
+}
+
 export const GameValidator = Compile(Game)

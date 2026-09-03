@@ -2309,6 +2309,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/fresh-fish':
+        specifier: workspace:*
+        version: link:../../games/fresh-fish
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
