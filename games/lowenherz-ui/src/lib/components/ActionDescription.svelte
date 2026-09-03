@@ -181,34 +181,54 @@
         placed a bid in the duel
     {:else}
         {@const roundBids = duelRoundEndingWith(gameSession.actions, action)}
-        placed the last bid in the duel. The bids:
-        {#each roundBids as bid, i (bid.id)}
-            {@const treasuresUsed = bid.metadata?.treasureCardsUsed ?? []}
-            {i > 0 ? (i === roundBids.length - 1 ? ' and ' : ', ') : ''}<PlayerName playerId={bid.playerId} />
-            {bid.amount} ducat{bid.amount === 1 ? '' : 's'}{#if treasuresUsed.length > 0}
-                {' '}+ {treasuresUsed.length === 1 ? 'a ' : ''}{#each treasuresUsed as treasureCard, j (j)}{j >
-                    0
-                        ? j === treasuresUsed.length - 1
-                            ? ' and '
-                            : ', '
-                        : ''}{politicsCardLabel(treasureCard.type, treasureCard.value)}{/each} card{treasuresUsed.length ===
-                1
-                    ? ''
-                    : 's'}
-            {/if}{i === roundBids.length - 1 ? '.' : ''}
-        {/each}
+        {@const anyTreasure = roundBids.some((bid) => (bid.metadata?.treasureCardsUsed ?? []).length > 0)}
+        placed the last bid in the duel:
+        <!-- Spans, not table/div elements: the history renders each entry inside a <p>, where
+             only phrasing content is valid. A grid of spans reads as a table while staying
+             valid there. Colours come from the surrounding text, since the same description is
+             shown on the dark history panel and on the parchment status banner. -->
+        <span
+            role="table"
+            class="my-1 grid w-fit gap-x-4 gap-y-0.5 text-[13px] leading-snug {anyTreasure
+                ? 'grid-cols-[auto_auto_auto_auto]'
+                : 'grid-cols-[auto_auto]'}"
+        >
+            <span role="row" class="contents">
+                <span role="columnheader" class="border-b border-current/30 pb-0.5 text-[10px] uppercase tracking-wider opacity-60">Player</span>
+                <span role="columnheader" class="border-b border-current/30 pb-0.5 text-right text-[10px] uppercase tracking-wider opacity-60">Ducats</span>
+                {#if anyTreasure}
+                    <span role="columnheader" class="border-b border-current/30 pb-0.5 text-right text-[10px] uppercase tracking-wider opacity-60">Treasure</span>
+                    <span role="columnheader" class="border-b border-current/30 pb-0.5 text-right text-[10px] uppercase tracking-wider opacity-60">Total</span>
+                {/if}
+            </span>
+            {#each roundBids as bid (bid.id)}
+                {@const treasures = bid.metadata?.treasureCardsUsed ?? []}
+                {@const treasureTotal = treasures.reduce((sum, card) => sum + (card.value ?? 0), 0)}
+                {@const isWinner = action.metadata.winnerId === bid.playerId}
+                <span role="row" class="contents {isWinner ? 'font-semibold' : ''}">
+                    <span role="cell"><PlayerName playerId={bid.playerId} /></span>
+                    <span role="cell" class="text-right tabular-nums">{bid.amount}</span>
+                    {#if anyTreasure}
+                        <span role="cell" class="text-right tabular-nums"
+                            >{treasures.length > 0 ? treasures.map((card) => card.value).join(' + ') : '—'}</span
+                        >
+                        <span role="cell" class="text-right tabular-nums">{bid.amount + treasureTotal}</span>
+                    {/if}
+                </span>
+            {/each}
+        </span>
         {#if action.metadata.duelResult === 'win' && action.metadata.winnerId}
-            <br /><PlayerName playerId={action.metadata.winnerId} /> won the duel
+            <PlayerName playerId={action.metadata.winnerId} /> won the duel
         {:else if action.metadata.duelResult === 'reduel'}
             {@const tied = action.metadata.reduelPlayerIds ?? []}
-            <br />the duel was tied{#if tied.length > 0}{' '}between{' '}{#each tied as playerId, i (playerId)}{i >
+            the duel was tied{#if tied.length > 0}{' '}between{' '}{#each tied as playerId, i (playerId)}{i >
                     0
                         ? i === tied.length - 1
                             ? ' and '
                             : ', '
                         : ''}<PlayerName {playerId} />{/each}{/if} — they duel again
         {:else if action.metadata.duelResult === 'giveUp'}
-            <br />the second duel was tied too, so no one performs the action
+            the second duel was tied too, so no one performs the action
         {/if}
     {/if}
 {:else if isPlaceWall(action)}
