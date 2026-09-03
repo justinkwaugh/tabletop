@@ -68,8 +68,15 @@
         }
     }
 
-    function onPointerEnter(event: PointerEvent) {
-        if (event.pointerType === 'mouse') beginHold(false)
+    // Hover means the pointer moving over the card, so the hold starts on pointer movement, not
+    // on pointerenter. Enter also fires when the DOM changes under a stationary pointer - for
+    // example when a clicked ACTIVE strip is replaced by an APPLY pill that bounces in from
+    // nothing - which briefly exposed the card beneath and grew a copy the player never asked
+    // for, only to shrink it again as the pill grew back under the pointer.
+    function onPointerMove(event: PointerEvent) {
+        if (event.pointerType !== 'mouse') return
+        if (holdTimer !== undefined || enlarged) return
+        beginHold(false)
     }
 
     function onPointerDown(event: PointerEvent) {
@@ -104,7 +111,7 @@
     {@attach clearOnUnmount}
     role="presentation"
     class="block w-full select-none [-webkit-touch-callout:none]"
-    onpointerenter={onPointerEnter}
+    onpointermove={onPointerMove}
     onpointerleave={release}
     onpointerdown={onPointerDown}
     onpointerup={onPointerUp}
