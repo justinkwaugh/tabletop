@@ -2,6 +2,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { PoliticsCard as PoliticsCardData } from '@tabletop/lowenherz'
     import PoliticsCard from './PoliticsCard.svelte'
+    import CardMagnifier from './CardMagnifier.svelte'
     import { buildSlotRows, responsiveCardWidth } from '$lib/model/politicsCardLayout'
     import { PoliticsPileDealAnimator } from '$lib/animators/politicsPileDealAnimator.svelte.js'
     import { PoliticsPileTakeAnimator } from '$lib/animators/politicsPileTakeAnimator.svelte.js'
@@ -114,7 +115,7 @@
 <div class="hidden" {@attach attachAnimator(takeAnimator)}></div>
 
 {#if pile || dealAnimator.dealing}
-    <!-- No heading of our own here - StatusMessages says "Choose a card to take it." right
+    <!-- No heading of our own here - StatusMessages says "Choose a politics card." right
          above this once a pile is opened, the same way it handles PoliticsDeckChooser's own
          instruction. Keeping it there means this row's own height never has to agree with
          that component's, which local, per-component headings kept drifting out of sync on. -->
@@ -205,7 +206,7 @@
                                         return () => takeAnimator.setNode(slot.card.id, undefined)
                                     }}
                                 >
-                                    <PoliticsCard card={slot.card} />
+                                    <CardMagnifier card={slot.card} />
                                 </button>
                             {/if}
                         {/each}

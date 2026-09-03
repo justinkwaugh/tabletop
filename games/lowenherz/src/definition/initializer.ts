@@ -5,7 +5,11 @@ import {
     type UninitializedGameState
 } from '@tabletop/common'
 import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
-import { HydratedLowenherzGameState, LowenherzGameState } from '../model/gameState.js'
+import {
+    HydratedLowenherzGameState,
+    LowenherzGameState,
+    RULEBOOK_CASTLE_MIN_DISTANCE
+} from '../model/gameState.js'
 import { HydratedLowenherzPlayerState, LowenherzPlayerState } from '../model/playerState.js'
 
 import { MachineState } from './states.js'
@@ -117,6 +121,7 @@ export class LowenherzGameInitializer
             firstPlayerId: turnManager.turnOrder[0],
             neutralColor,
             minimumOneDucat: config.minimumOneDucat !== false,
+            minimumCastleDistance: RULEBOOK_CASTLE_MIN_DISTANCE,
 
             actionDeck: playerPlacedCastles
                 ? assembleActionDeckWithConstruction(prng)

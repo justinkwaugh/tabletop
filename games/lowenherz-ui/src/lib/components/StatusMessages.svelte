@@ -12,6 +12,7 @@
     // moved rather than being copied. The values both halves need went onto the session in an
     // earlier pass, which is why this file reads them off gameSession instead of receiving props.
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { splitDuelBidsIntoRounds } from '$lib/model/duelRounds.js'
     import { ActionSource, type Color, type GameAction } from '@tabletop/common'
     import {
         isAdvanceResolution,
@@ -137,28 +138,6 @@
             0
         )
         return bid.amount + treasureValue
-    }
-
-    // Splits a flat run of consecutive SubmitDuelBid actions into per-round groups.
-    // Each round starts fresh (duel.bids resets to [] on both a re-duel and a brand
-    // new duel), so a player bidding again before every OTHER round-mate has bid
-    // again can only mean a new round just started - that repeat is the only signal
-    // needed to find round boundaries, no other bookkeeping required.
-    function splitDuelBidsIntoRounds(bids: SubmitDuelBid[]): SubmitDuelBid[][] {
-        const rounds: SubmitDuelBid[][] = []
-        let current: SubmitDuelBid[] = []
-        let seen = new Set<string>()
-        for (const bid of bids) {
-            if (seen.has(bid.playerId)) {
-                rounds.push(current)
-                current = []
-                seen = new Set()
-            }
-            current.push(bid)
-            seen.add(bid.playerId)
-        }
-        if (current.length > 0) rounds.push(current)
-        return rounds
     }
 
     // This round's SubmitDuelBid actions (if any), plus the slot they were fought
@@ -732,7 +711,7 @@
             <!-- PoliticsPileReveal's own row deals its cards below this - kept here rather than
                  as a heading local to that component so it never has to agree on layout height
                  with PoliticsDeckChooser's row above it. -->
-            Choose a card to take it.
+            Choose a politics card.
         {:else if gameSession.gameState.machineState === MachineState.TakingPoliticsCard &&
             gameSession.gameState.politicsTakingPlayerId}
             Waiting for {@render playerPill(gameSession.gameState.politicsTakingPlayerId)} to take a
@@ -758,41 +737,20 @@
             <div class="flex flex-wrap items-center justify-center gap-2 pb-5 text-[16px]">
                 <!-- Side by side rather than stacked. Two names in a column made this box two lines
                      tall on its own, which set the height of the whole row and so of the space the
-                     panel takes above the board. The caption underneath is what the stacked layout
-                     got for free: a column of two names reads as a choice, a row of two names reads
-                     as a score, so with them side by side the box has to say what it is. -->
-                <div class="relative flex flex-col items-center leading-tight">
-                    <div class="flex flex-row items-center gap-2 border border-black/30 rounded px-2 py-1">
-                        {#each negotiation.playerIds as playerId (playerId)}
-                            <button
-                                type="button"
-                                disabled={!gameSession.isMyNegotiationTurn}
-                                class={gameSession.negotiationProposerId === playerId
-                                    ? ''
-                                    : 'opacity-30 hover:opacity-70'}
-                                onclick={() => gameSession.setNegotiationProposer(playerId)}
-                            >
-                                {@render playerPill(playerId)}
-                            </button>
-                        {/each}
-                    </div>
-                    <!-- Out of flow, so the column's height is the box's height and the box
-                         centres on the row exactly as the sentence text does. In flow the column
-                         was box-plus-caption tall, and items-center centred THAT - which lifted the
-                         names about half a caption above the line they are meant to sit on. The
-                         row's bottom padding is where this now sits, and leading-none is what lets
-                         a 12px pad hold a 10px caption at all: without it the span inherits the
-                         column's text-sm line-height (20px), so a 22px caption sat under a 16px pad
-                         and all but touched the row below - the two rows could not close up until
-                         the caption stopped being taller than the space reserved for it. The pad is
-                         pb-5 now, not the 12px minimum that math needs - Justin wanted more air
-                         between this row and the next, and the caption just rides in the extra
-                         space above the row boundary rather than needing it. -->
-                    <span
-                        class="absolute top-full mt-0.5 text-[10px] leading-none text-black/50 whitespace-nowrap"
-                    >
-                        Choose a player
-                    </span>
+                     panel takes above the board. -->
+                <div class="flex flex-row items-center gap-2 border border-black/30 rounded px-2 py-1">
+                    {#each negotiation.playerIds as playerId (playerId)}
+                        <button
+                            type="button"
+                            disabled={!gameSession.isMyNegotiationTurn}
+                            class={gameSession.negotiationProposerId === playerId
+                                ? ''
+                                : 'opacity-30 hover:opacity-70'}
+                            onclick={() => gameSession.setNegotiationProposer(playerId)}
+                        >
+                            {@render playerPill(playerId)}
+                        </button>
+                    {/each}
                 </div>
                 <span>{gameSession.negotiationProposerId === gameSession.myPlayer?.id ? 'offer' : 'offers'}</span>
                 <!-- Its own tight-gap group, separate from the row's gap-2: that gap reads fine
@@ -856,7 +814,7 @@
                     <button
                         type="button"
                         class="px-2 py-[3px] rounded bg-red-700/10 hover:bg-red-700/20 text-[14px] font-semibold disabled:opacity-40"
-                        disabled={!gameSession.isNegotiator}
+                        disabled={!gameSession.canDeclineNegotiation}
                         onclick={() => gameSession.declineNegotiation()}
                     >
                         Force a duel

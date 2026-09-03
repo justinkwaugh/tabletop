@@ -1,4 +1,4 @@
-import { Color } from '@tabletop/common'
+import { Color, type GameAction } from '@tabletop/common'
 import { allianceWalls } from '$lib/model/allianceGeometry.js'
 import { GameSession } from '@tabletop/frontend-components'
 import {
@@ -42,6 +42,7 @@ import {
     HydratedPlaceCastle,
     HydratedPlaceSetupKnight,
     isAdvanceResolution,
+    isSubmitDuelBid,
     isDrawActionCard,
     isKnightSafeToRemove,
     isOnBoard,
@@ -90,9 +91,6 @@ export class LowenherzGameSession extends GameSession<
     LowenherzGameState,
     HydratedLowenherzGameState
 > {
-    // The castle square tentatively picked, while waiting for the player to pick the
-    // adjacent knight square that completes a PlaceCastle action.
-
     // A friendly message describing why the last placement attempt was rejected, shown
     // in the UI instead of letting the engine's validation error surface as a raw crash.
     errorMessage: string | undefined = $state(undefined)
@@ -109,6 +107,11 @@ export class LowenherzGameSession extends GameSession<
     // The EFFECTS that maintain these stay in whichever component renders the panel: $effect needs
     // an owner and a session class is not one. What lives here is the value, not the syncing.
     frozenNegotiation: Negotiation | undefined = $state(undefined)
+
+    // The politics card currently shown enlarged by a CardMagnifier, and by how much. Shared
+    // so the pile's take animator can start the chosen card at that size and shrink it on the
+    // way to the centre, taking over from the magnifier's copy rather than playing beside it.
+    magnifiedPoliticsCard: { cardId: string; scale: number } | undefined = $state(undefined)
 
     // What the negotiation panel shows: the live negotiation, or the completed one being held on
     // screen for a beat after it resolves.
@@ -249,8 +252,11 @@ export class LowenherzGameSession extends GameSession<
     //
     // Guarded here rather than in each component: these getters are what the components ask, and
     // there are a dozen of them against three that were remembering to check.
+    //
+    // The hotseat non-active view is the platform's read-only perspective (isMyTurn is false and
+    // validActionTypes is empty there), so nothing is offered from it either.
     private get canActNow(): boolean {
-        return !this.isViewingHistory
+        return !this.isViewingHistory && !this.isViewingAsNonActivePlayer
     }
 
     get canPlaceCastle(): boolean {
@@ -312,7 +318,7 @@ export class LowenherzGameSession extends GameSession<
     // PlacingSetupKnight. describeCastleSquareProblem still runs first so a rejected square
     // gets a reason rather than the engine's throw.
     async placeCastle(col: number, row: number) {
-        if (!this.myPlayer) return
+        if (!this.myPlayer || !this.canPlaceCastle) return
 
         const problem = HydratedPlaceCastle.describeCastleSquareProblem(this.gameState, this.myPlayer.id, col, row)
         if (problem) {
@@ -322,8 +328,7 @@ export class LowenherzGameSession extends GameSession<
                 occupied: "That spot isn't allowed for a castle — it's already occupied.",
                 noKnightSquare:
                     "That spot isn't allowed for a castle — there's nowhere beside it to put its knight.",
-                tooClose:
-                    "That spot isn't allowed for a castle — it needs to be at least 6 spaces from your other same-color castles."
+                tooClose: `That spot isn't allowed for a castle — there must be at least ${this.gameState.requiredCastleDistance - 1} empty spaces between it and your other castles.`
             }[problem]
             return
         }
@@ -344,7 +349,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     async placeSetupKnight(knightCol: number, knightRow: number) {
-        if (!this.pendingSetupCastle) return
+        if (!this.pendingSetupCastle || !this.canPlaceSetupKnight) return
 
         const action = this.createPlayerAction(PlaceSetupKnight, { knightCol, knightRow })
 
@@ -538,6 +543,21 @@ export class LowenherzGameSession extends GameSession<
     // swap.
     uiColorForOwner(owner: PieceOwner): string {
         return isNeutralOwner(owner) ? this.neutralUiColor : this.colors.getPlayerUiColor(owner)
+    }
+
+    // System actions normally fold into the next player action when stepping through history.
+    // A money bag payout is the exception: the log lists it as its own event, so stepping
+    // stops on it rather than showing the ducats arrive alongside whatever happened next.
+    override shouldAutoStepAction(action: GameAction, next?: GameAction): boolean {
+        if (isAdvanceResolution(action) && (action.metadata?.moneyBagRecipientIds?.length ?? 0) > 0) {
+            return false
+        }
+        // A sealed bid is nothing to look at on its own; stepping lands on the bid that ends
+        // the round, where every bid of the round is revealed together.
+        if (isSubmitDuelBid(action) && !action.metadata?.duelResult) {
+            return true
+        }
+        return super.shouldAutoStepAction(action, next)
     }
 
     get lastMineHillScoring(): { playerId: string; points: number }[] | undefined {
@@ -863,12 +883,17 @@ export class LowenherzGameSession extends GameSession<
         }
     }
 
-    // Either negotiator can decline at any stage, turn or no turn - see
-    // HydratedLowenherzGameState.isActivePlayer for why that's allowed engine-side even for
-    // whoever's not currently active.
     get isNegotiator(): boolean {
         if (!this.myPlayer) return false
         return this.gameState.negotiation?.playerIds.includes(this.myPlayer.id) ?? false
+    }
+
+    // Either negotiator can decline at any stage, turn or no turn - see
+    // HydratedLowenherzGameState.isActivePlayer for why that's allowed engine-side even for
+    // whoever's not currently active.
+    get canDeclineNegotiation(): boolean {
+        if (!this.canActNow) return false
+        return this.isNegotiator
     }
 
     // Turn-based: nobody has proposed yet (lastProposedBy undefined) leaves it open to either
@@ -910,7 +935,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     async declineNegotiation() {
-        if (!this.isNegotiator) return
+        if (!this.canDeclineNegotiation) return
 
         const action = this.createPlayerAction(NegotiationMove, { kind: NegotiationMoveKind.Decline })
         this.errorMessage = undefined

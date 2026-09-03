@@ -3,6 +3,7 @@ import { Game, GameConfig, GameStatus, GameStorage, PlayerStatus } from '@tablet
 import { LowenherzGameInitializer } from './initializer.js'
 import { MachineState } from './states.js'
 import { CardBack } from './actionCards.js'
+import { RULEBOOK_CASTLE_MIN_DISTANCE } from '../model/gameState.js'
 
 function buildGame(playerCount: number, config: GameConfig = {}): Game {
     return {
@@ -53,6 +54,24 @@ describe('LowenherzGameInitializer', () => {
 
         expect(state.turnOrder).toEqual(originalTurnOrder)
         expect(state.turnManager.turnOrder).not.toEqual(originalTurnOrder)
+    })
+
+    it('records the rulebook castle distance so the game keeps it even if the rule is read differently later', () => {
+        const initializer = new LowenherzGameInitializer()
+        const game = buildGame(4)
+
+        const state = initializer.initializeGameState(game, {
+            id: 'game-1',
+            gameId: 'game-1',
+            activePlayerIds: [],
+            actionCount: 0,
+            actionChecksum: 0,
+            prng: { seed: 1, invocations: 0 },
+            winningPlayerIds: []
+        })
+
+        expect(state.minimumCastleDistance).toBe(RULEBOOK_CASTLE_MIN_DISTANCE)
+        expect(state.requiredCastleDistance).toBe(7)
     })
 
     it('deals all 13 politics cards across the two piles with no duplicates, and gives every player an empty hand', () => {
