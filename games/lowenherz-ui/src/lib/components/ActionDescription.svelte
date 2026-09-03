@@ -195,7 +195,7 @@
                 1
                     ? ''
                     : 's'}
-            {/if}
+            {/if}{i === roundBids.length - 1 ? '.' : ''}
         {/each}
         {#if action.metadata.duelResult === 'win' && action.metadata.winnerId}
             <br /><PlayerName playerId={action.metadata.winnerId} /> won the duel
