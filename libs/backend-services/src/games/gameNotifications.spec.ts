@@ -221,6 +221,7 @@ describe('game notifications', () => {
 
     it('publishes complete projected cascades for each Player and the spectator', async () => {
         const game = createGame()
+        Reflect.set(game, 'actionChunkSize', 200)
         const { before, result, storedActions } = createActionCascade()
         const { notificationService, publications } = createNotificationRecorder()
 
@@ -269,6 +270,7 @@ describe('game notifications', () => {
 
         for (const notification of [spectator, playerOne, playerTwo]) {
             expect(notification.data.game).not.toHaveProperty('state')
+            expect(notification.data.game).not.toHaveProperty('actionChunkSize')
             expect(notification.data.actions.map((action) => action.id)).toEqual([
                 'action-1',
                 'action-2'

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { findPlayerForUserId, type Game } from './game.js'
+import * as Value from 'typebox/value'
+import { findPlayerForUserId, Game, GameWithoutState, omitGameState } from './game.js'
 import { PlayerStatus } from './player.js'
 
 function createGame(): Pick<Game, 'players'> {
@@ -30,5 +31,17 @@ describe('findPlayerForUserId', () => {
 
     test('returns undefined when the user is not a player', () => {
         expect(findPlayerForUserId(createGame(), 'spectator')).toBeUndefined()
+    })
+})
+
+describe('omitGameState', () => {
+    test('removes storage-only properties from a Game representation', () => {
+        const game = Value.Create(Game)
+        Reflect.set(game, 'actionChunkSize', 200)
+
+        const gameWithoutState = omitGameState(game)
+
+        expect(gameWithoutState).not.toHaveProperty('actionChunkSize')
+        expect(Value.Check(GameWithoutState, gameWithoutState)).toBe(true)
     })
 })

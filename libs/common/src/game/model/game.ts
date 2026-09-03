@@ -4,6 +4,7 @@ import { Player } from './player.js'
 import { GameResult, GameState } from './gameState.js'
 import { GameConfig } from './gameConfig.js'
 import { Compile } from 'typebox/compile'
+import * as Value from 'typebox/value'
 
 export enum GameStatus {
     WaitingForPlayers = 'waitingForPlayers',
@@ -85,7 +86,9 @@ export const GameWithoutState = Type.Omit(Game, ['state'], { additionalPropertie
 export function omitGameState(game: Game): GameWithoutState {
     const gameWithoutState = structuredClone(game)
     delete gameWithoutState.state
-    return gameWithoutState
+    const cleanedGame = Value.Clean(GameWithoutState, gameWithoutState)
+    Value.Assert(GameWithoutState, cleanedGame)
+    return cleanedGame
 }
 
 export function findPlayerForUserId(
