@@ -5,6 +5,7 @@ import {
 } from '@tabletop/common'
 import { HydratedLowenherzGameState, LowenherzGameState } from '../model/gameState.js'
 import { HydratedPlaceCastle, isPlaceCastle } from '../actions/placeCastle.js'
+import { HydratedPlaceSetupKnight, isPlaceSetupKnight } from '../actions/placeSetupKnight.js'
 import { HydratedDrawActionCard, isDrawActionCard } from '../actions/drawActionCard.js'
 import { HydratedChooseAction, isChooseAction } from '../actions/chooseAction.js'
 import { HydratedAdvanceResolution, isAdvanceResolution } from '../actions/advanceResolution.js'
@@ -29,6 +30,9 @@ export class LowenherzHydrator
         switch (true) {
             case isPlaceCastle(data): {
                 return new HydratedPlaceCastle(data)
+            }
+            case isPlaceSetupKnight(data): {
+                return new HydratedPlaceSetupKnight(data)
             }
             case isDrawActionCard(data): {
                 return new HydratedDrawActionCard(data)

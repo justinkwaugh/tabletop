@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import { Notification, NotificationCategory } from './notification.js'
 import { Game } from '../../game/model/game.js'
 import { GameAction } from '../../game/engine/gameAction.js'
+import { CanonicalActionReplayManifest } from '../../game/engine/canonicalActionReplay.js'
 import { GameChatMessage } from '../chat/gameChatMessage.js'
 
 export enum GameNotificationAction {
@@ -37,8 +38,12 @@ export const GameNotificationAddActionsData = Type.Object({
 export type GameNotificationUndoActionData = Type.Static<typeof GameNotificationUndoActionData>
 export const GameNotificationUndoActionData = Type.Object({
     game: Game,
+    // Compatibility for clients deployed before the compact replay manifest.
     action: GameAction,
-    redoneActions: Type.Array(GameAction)
+    redoneActions: Type.Array(GameAction),
+    undoneActionId: Type.String(),
+    canonicalReplay: CanonicalActionReplayManifest,
+    checksum: Type.Number()
 })
 
 export type GameNotificationChatData = Type.Static<typeof GameNotificationChatData>

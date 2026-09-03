@@ -13,7 +13,7 @@
         ALLIANCE_CANCELLATION_COST,
         BOARD_COLS,
         BOARD_ROWS,
-        HydratedPlaceCastle,
+        isValidSetupKnightSquare,
         isNeutralOwner,
         isOnBoard,
         neighbors,
@@ -552,17 +552,19 @@
         [SquareType.Village]: '#a63b3b'
     }
 
-    function isSelected(col: number, row: number): boolean {
-        const sel = gameSession.selectedCastleSquare
-        return sel !== undefined && sel.col === col && sel.row === row
+    // The castle that is on the board but still owed its knight - ringed so the second
+    // half of the placement has an obvious anchor.
+    function isPendingCastleSquare(col: number, row: number): boolean {
+        const pending = gameSession.pendingSetupCastle
+        return pending !== undefined && pending.col === col && pending.row === row
     }
 
-    // Only the knight squares that would actually be legal for the selected castle -
+    // Only the knight squares that would actually be legal for the castle awaiting one -
     // not just any adjacent square - so the highlight matches what's clickable.
     function isLegalKnightSquare(col: number, row: number): boolean {
-        const sel = gameSession.selectedCastleSquare
-        if (!sel) return false
-        return HydratedPlaceCastle.isValidKnightSquare(gameSession.gameState, sel.col, sel.row, col, row)
+        const pending = gameSession.pendingSetupCastle
+        if (!pending) return false
+        return isValidSetupKnightSquare(gameSession.gameState, pending.col, pending.row, col, row)
     }
 
     // Opening placement says what CANNOT be used rather than animating what can: a scrim over
@@ -570,8 +572,8 @@
     // two-click flow are covered - castle squares first, then the knight squares around the one
     // just picked.
     //
-    // canPlaceCastle stays true across both halves because picking a castle square is local UI
-    // state, not a game action, so the selection is what tells the two apart.
+    // The two halves are separate machine states now (PlacingCastles, then
+    // PlacingSetupKnight), so canPlaceCastle/canPlaceSetupKnight tell them apart.
     // Which square the mouse is over, for the opening castle preview. Tracked on the square
     // buttons rather than the grid container: a div with a mouse handler wants an ARIA role, and
     // giving the board a half-built grid role would be worse for a screen reader than leaving the
@@ -582,7 +584,7 @@
     // only before a castle square is picked - once one is, the question has moved on to its
     // knight.
     function isCastlePreviewSquare(col: number, row: number): boolean {
-        if (!gameSession.canPlaceCastle || gameSession.selectedCastleSquare) return false
+        if (!gameSession.canPlaceCastle) return false
         if (hoveredSquare?.col !== col || hoveredSquare?.row !== row) return false
         return isLegalCastleSquare(col, row)
     }
@@ -617,12 +619,12 @@
     // AND its knight, so a forest, hill or village was never in the running and saying so is
     // noise.
     function isIllegalPlacementSpot(col: number, row: number): boolean {
-        if (!gameSession.canPlaceCastle) return false
+        if (!gameSession.canPlaceCastle && !gameSession.canPlaceSetupKnight) return false
 
         const square = board.squares[row]?.[col]
         if (square?.type !== SquareType.Blank) return false
 
-        return gameSession.selectedCastleSquare
+        return gameSession.canPlaceSetupKnight
             ? !isLegalKnightSquare(col, row)
             : !isLegalCastleSquare(col, row)
     }
@@ -642,12 +644,9 @@
     function showsLegalHighlight(col: number, row: number): boolean {
         if (PLACEMENT_HINT !== 'legal') return false
 
-        // Setup: the castle squares, then the knight squares around the one just picked.
-        if (gameSession.canPlaceCastle) {
-            return gameSession.selectedCastleSquare
-                ? isLegalKnightSquare(col, row)
-                : isLegalCastleSquare(col, row)
-        }
+        // Setup: the castle squares, then the knight squares around the one just placed.
+        if (gameSession.canPlaceSetupKnight) return isLegalKnightSquare(col, row)
+        if (gameSession.canPlaceCastle) return isLegalCastleSquare(col, row)
 
         if (knightStageActive && isLegalKnightPlacement(col, row)) return true
         return isLegalRenegadePlacementSquare(col, row)
@@ -667,7 +666,7 @@
     //     under it or deface it - where a scrim simply dims both together.
     function showsIllegalX(col: number, row: number): boolean {
         if (PLACEMENT_HINT !== 'x') return false
-        if (gameSession.selectedCastleSquare) return false
+        if (gameSession.canPlaceSetupKnight) return false
 
         const square = board.squares[row]?.[col]
         if (square?.castleOwner || square?.knightOwner) return false
@@ -814,12 +813,11 @@
             return
         }
 
-        if (gameSession.selectedCastleSquare) {
-            // Ignored too, for consistency within one flow - and because reporting it used to
-            // clear the selection, so a stray click took the castle back off the board. The ring
-            // marks the squares that will work, and Undo releases the castle.
+        if (gameSession.canPlaceSetupKnight) {
+            // Ignored too, for consistency within one flow. The ring marks the squares that
+            // will work, and Undo takes the castle back off the board.
             if (isLegalKnightSquare(col, row)) {
-                await gameSession.placeCastleWithKnight(col, row)
+                await gameSession.placeSetupKnight(col, row)
             }
             return
         }
@@ -828,7 +826,7 @@
             // Ignored rather than explained: the X on the square has already said why, and an
             // error dialog for a click the board visibly refused is nagging.
             if (isLegalCastleSquare(col, row)) {
-                gameSession.selectCastleSquare(col, row)
+                await gameSession.placeCastle(col, row)
             }
             return
         }
@@ -1010,7 +1008,7 @@
                                 hoveredSquare = undefined
                             }
                         }}
-                        class="relative flex items-center justify-center border border-black/20 {isSelected(col, row) ? 'ring-4 ring-yellow-300 z-10' : ''} {isLegalKnightSquare(col, row) && PLACEMENT_HINT !== 'legal' ? 'ring-2 ring-yellow-100' : ''}"
+                        class="relative flex items-center justify-center border border-black/20 {isPendingCastleSquare(col, row) ? 'ring-4 ring-yellow-300 z-10' : ''} {isLegalKnightSquare(col, row) && PLACEMENT_HINT !== 'legal' ? 'ring-2 ring-yellow-100' : ''}"
                         style="width:{CELL_SIZE}px; height:{CELL_SIZE}px; {tileLayout.length > 0 ? '' : `background-color:${terrainBg[square.type]};`}"
                     >
                         {#if tint}
@@ -1134,16 +1132,6 @@
                         {/if}
                         {#if square.castleOwner}
                             {@render pieceIcon(castleFill, castleLines, square.castleOwner)}
-                        {:else if isSelected(col, row) && placementOwner}
-                            <!-- The castle isn't actually placed yet (still needs its adjacent
-                                 knight square picked), but it reads as solid and settled here.
-                                 Same own-then-neutral colour as the hover preview.
-                                 
-                                 Deliberately not animated. A hop on landing was tried and read as
-                                 forced: the hover preview already shows the castle on the square
-                                 before the click, so the click has nothing left to announce - it
-                                 only has to stop looking like a preview. -->
-                            {@render pieceIcon(castleFill, castleLines, placementOwner)}
                         {:else if square.knightOwner}
                             {#if isRenegadeRemovedSquare(col, row)}
                                 <!-- The knight the player just clicked to remove - simply

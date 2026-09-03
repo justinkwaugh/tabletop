@@ -96,7 +96,7 @@
 <CustomFont fontFamily="Bitter" url={BitterFont} format="woff2" />
 <CustomFont fontFamily="Lora" url={LoraFont} format="woff2" />
 
-<div class="santiago-root earth-texture bg-[#1c1410]" style="--chat-height-offset: 0px">
+<div class="santiago-root earth-texture bg-[#1c1410]">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls

@@ -21,7 +21,7 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
             }
 
             const { gameId, actionId } = request.body
-            const { undoneActions, updatedGame, redoneActions, checksum } =
+            const { undoneActions, updatedGame, redoneActions, canonicalReplay, checksum } =
                 await fastify.gameService.undoAction({
                     user: request.user,
                     definition,
@@ -32,9 +32,11 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
             return {
                 status: 'ok',
                 payload: {
+                    // Compatibility for clients deployed before canonical replay.
                     undoneActions,
                     game: updatedGame,
                     redoneActions,
+                    canonicalReplay,
                     checksum
                 }
             }

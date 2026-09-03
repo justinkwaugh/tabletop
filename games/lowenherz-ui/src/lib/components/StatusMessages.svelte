@@ -473,14 +473,14 @@
             {:else}
                 Now choose a square in your region to place your knight in exchange.
             {/if}
+        {:else if gameSession.canPlaceSetupKnight}
+            {#if placingNeutral}
+                Place a neutral knight adjacent to the castle.
+            {:else}
+                Place a knight adjacent to the castle.
+            {/if}
         {:else if gameSession.canPlaceCastle}
-            {#if gameSession.selectedCastleSquare}
-                {#if placingNeutral}
-                    Place a neutral knight adjacent to the castle.
-                {:else}
-                    Place a knight adjacent to the castle.
-                {/if}
-            {:else if placingNeutral}
+            {#if placingNeutral}
                 Place a neutral castle on the board.
             {:else}
                 Place a castle on the board.

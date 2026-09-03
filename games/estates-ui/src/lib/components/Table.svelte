@@ -26,7 +26,7 @@
     <PlayersPanel />
 {/snippet}
 
-<div style="--chat-height-offset: 0px;">
+<div>
     <DefaultTableLayout>
         {#snippet sideContent()}
             <DefaultSideContent playersPanel={estatesSession.mobileView ? playersPanel : undefined}>

@@ -12,6 +12,7 @@
         isExpandRegion,
         isPass,
         isPlaceCastle,
+        isPlaceSetupKnight,
         isPlaceKnight,
         isPlaceWall,
         isPlayAllianceCard,
@@ -105,14 +106,23 @@
          2 players, 1 each at 3 - see buildPlacementPlan), and "placed a castle" reads as
          the player's own either way. The owner isn't in the action, so it's read off the
          square: a castle never moves or changes hands once placed, so this stays right for
-         every past action in the feed too. Its knight has the same owner, hence "and
-         knight" rather than repeating the word. -->
+         every past action in the feed too. -->
     {@const placedOwner = getSquare(gameSession.gameState.board, action.castleCol, action.castleRow)
         ?.castleOwner}
     {#if placedOwner !== undefined && isNeutralOwner(placedOwner)}
-        placed a neutral castle and knight
+        placed a neutral castle
     {:else}
-        placed a castle with a knight
+        placed a castle
+    {/if}
+{:else if isPlaceSetupKnight(action)}
+    <!-- Same reading-off-the-square trick as the castle above, and for the same reason: the
+         owner is not on the action, and a setup knight never changes hands. -->
+    {@const knightOwner = getSquare(gameSession.gameState.board, action.knightCol, action.knightRow)
+        ?.knightOwner}
+    {#if knightOwner !== undefined && isNeutralOwner(knightOwner)}
+        placed the neutral castle's knight
+    {:else}
+        placed its knight
     {/if}
 {:else if isDrawActionCard(action)}
     {#if action.metadata?.cardType === ActionCardType.Mining}

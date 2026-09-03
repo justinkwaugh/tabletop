@@ -92,7 +92,8 @@ export class SantiagoGameSession extends GameSession<
     // moved from player to player as the round went on. The one bid that CAN'T be beaten is
     // 0 — it can only be tied, and ties at 0 go to the earliest bidder in this round's
     // bidding order (see BiddingStateHandler.resolveBids). So the first player to bid 0 is
-    // already certain to be the overseer and gets the tag; until then nobody does.
+    // already certain to be the overseer and gets the tag; until then nobody does (see
+    // previousOverseerHoldoverId below for what shows instead).
     get projectedOverseerId(): string | undefined {
         const state = this.gameState
         if (state.machineState !== MachineState.Bidding) return state.canalOverseerId
@@ -100,6 +101,17 @@ export class SantiagoGameSession extends GameSession<
             .filter((p) => p.bid === 0)
             .sort((a, b) => state.biddingOrder.indexOf(a.playerId) - state.biddingOrder.indexOf(b.playerId))
         return zeroBidders[0]?.playerId
+    }
+
+    // Last round's overseer, shown as a "Previous Overseer" tag while this round's bidding
+    // is still undetermined (see projectedOverseerId above). They no longer hold the role,
+    // but they're why this round's bidding order starts where it does — biddingOrder runs
+    // clockwise from the player to their left (see BiddingStateHandler.enter).
+    get previousOverseerHoldoverId(): string | undefined {
+        const state = this.gameState
+        if (state.machineState !== MachineState.Bidding) return undefined
+        if (this.projectedOverseerId) return undefined
+        return state.previousOverseerId
     }
 
     // True when the local player is the first player and must place the spring

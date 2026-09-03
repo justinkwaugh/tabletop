@@ -42,7 +42,7 @@
 <CustomFont fontFamily="scriptina-pro" url={ScriptinaProFont} format="woff2" />
 
 <!-- Full Height and Width with 8px padding-->
-<div class="bg-[#ede2dc]" style="--chat-height-offset: 52px;">
+<div class="bg-[#ede2dc]">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls

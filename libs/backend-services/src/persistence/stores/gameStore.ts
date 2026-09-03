@@ -19,6 +19,12 @@ export type ActionUndoValidator = (
     gameUpdates: Partial<Game>
 ) => Promise<UpdateValidationResult>
 
+export type UndoActionWindow = {
+    targetAction: GameAction
+    startIndex: number
+    actions: GameAction[]
+}
+
 export interface GameStore {
     createGame(game: Game): Promise<Game>
     writeFullGameData(
@@ -35,7 +41,15 @@ export interface GameStore {
     findGamesForUser(user: User, category: GameStatusCategory): Promise<Game[]>
     findOpenGamesForTitle(titleId: string): Promise<Game[]>
     findGameById(gameId: string, includeState: boolean): Promise<Game | undefined>
-    findActionById(game: Game, actionId: string): Promise<GameAction | undefined>
+    findUndoActionWindow({
+        game,
+        actionId,
+        endIndex
+    }: {
+        game: Game
+        actionId: string
+        endIndex: number
+    }): Promise<UndoActionWindow | undefined>
     findActionsForGame(game: Game): Promise<GameAction[]>
     findActionRangeForGame({
         game,

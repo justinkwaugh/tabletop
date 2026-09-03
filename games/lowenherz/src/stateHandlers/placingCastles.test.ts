@@ -14,7 +14,9 @@ import {
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedPlaceCastle } from '../actions/placeCastle.js'
+import { HydratedPlaceSetupKnight } from '../actions/placeSetupKnight.js'
 import { PlacingCastlesStateHandler } from './placingCastles.js'
+import { PlacingSetupKnightStateHandler } from './placingSetupKnight.js'
 import { buildPlacementPlan, currentPlacementSlot } from '../util/placementPlan.js'
 import { NEUTRAL_OWNER, PieceOwner } from '../model/owner.js'
 
@@ -98,6 +100,7 @@ function findLegalPlacement(state: HydratedLowenherzGameState, owner: PieceOwner
 // so this works unmodified for any player count.
 function runFullSetup(state: HydratedLowenherzGameState, totalPlacements: number) {
     const handler = new PlacingCastlesStateHandler()
+    const knightHandler = new PlacingSetupKnightStateHandler()
     const context = new MachineContext({ gameConfig: {}, gameState: state })
 
     const plan = buildPlacementPlan(state.turnOrder, state.neutralColor !== undefined)
@@ -120,19 +123,41 @@ function runFullSetup(state: HydratedLowenherzGameState, totalPlacements: number
         expect(slot.playerId).toBe(currentPlayerId)
         const placement = findLegalPlacement(state, slot.owner)
 
-        const action = new HydratedPlaceCastle({
+        const castleAction = new HydratedPlaceCastle({
             id: `action-${i}`,
             gameId: 'game-1',
             source: ActionSource.User,
             type: ActionType.PlaceCastle,
             playerId: currentPlayerId,
-            ...placement
+            castleCol: placement.castleCol,
+            castleRow: placement.castleRow
         })
 
-        expect(handler.isValidAction(action, context)).toBe(true)
+        expect(handler.isValidAction(castleAction, context)).toBe(true)
 
-        action.apply(state)
-        const machineState = handler.onAction(action, context)
+        castleAction.apply(state)
+        // A castle always hands off to its knight, including the last one of setup.
+        expect(handler.onAction(castleAction, context)).toBe(MachineState.PlacingSetupKnight)
+
+        // The knight half is owed by the player who just placed, not the next one in
+        // the plan - which the castle has already advanced past.
+        knightHandler.enter(context)
+        expect(state.activePlayerIds).toEqual([currentPlayerId])
+
+        const knightAction = new HydratedPlaceSetupKnight({
+            id: `action-${i}-knight`,
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: ActionType.PlaceSetupKnight,
+            playerId: currentPlayerId,
+            knightCol: placement.knightCol,
+            knightRow: placement.knightRow
+        })
+
+        expect(knightHandler.isValidAction(knightAction, context)).toBe(true)
+
+        knightAction.apply(state)
+        const machineState = knightHandler.onAction(knightAction, context)
 
         const expectedDone = i === totalPlacements - 1
         expect(machineState).toBe(expectedDone ? MachineState.StartOfTurn : MachineState.PlacingCastles)

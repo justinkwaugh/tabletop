@@ -8,9 +8,11 @@ import {
     getSquare,
     manhattanDistance,
     neighbors,
-    SquareType
+    SquareType,
+    totalCastlesPlaced
 } from '../model/board.js'
 import { buildPlacementPlan, currentPlacementSlot } from '../util/placementPlan.js'
+import { hasLegalSetupKnightSquare } from '../util/setupKnightSquares.js'
 import { PieceOwner } from '../model/owner.js'
 
 function placementPlanFor(state: HydratedLowenherzGameState) {
@@ -39,8 +41,6 @@ export const PlaceCastle = Type.Evaluate(
             playerId: Type.String(), // Required now
             castleCol: Type.Number(),
             castleRow: Type.Number(),
-            knightCol: Type.Number(),
-            knightRow: Type.Number(),
             metadata: Type.Optional(PlaceCastleMetadata) // Always optional, because it is an output
         })
     ])
@@ -59,20 +59,7 @@ export function isPlaceCastle(action?: GameAction): action is PlaceCastle {
 // the player's own color through the neutral laps means the ghost castles/knights change
 // color from seat to seat when every one of them is going to be neutral.
 export function currentPlacementOwner(state: HydratedLowenherzGameState): PieceOwner | undefined {
-    return currentPlacementSlot(placementPlanFor(state), totalCastlesPlaced(state))?.owner
-}
-
-// The total number of castles (any owner) currently on the board - this always equals
-// how many setup placements have happened so far, since placement is the only way a
-// castle ever appears on the board.
-function totalCastlesPlaced(state: HydratedLowenherzGameState): number {
-    let count = 0
-    for (const row of state.board.squares) {
-        for (const square of row) {
-            if (square.castleOwner) count++
-        }
-    }
-    return count
+    return currentPlacementSlot(placementPlanFor(state), totalCastlesPlaced(state.board))?.owner
 }
 
 export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> implements PlaceCastle {
@@ -80,8 +67,6 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
     declare playerId: string
     declare castleCol: number
     declare castleRow: number
-    declare knightCol: number
-    declare knightRow: number
     declare metadata?: PlaceCastleMetadata
 
     constructor(data: PlaceCastle) {
@@ -93,40 +78,35 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
             throw Error('Invalid PlaceCastle action')
         }
 
-        const slot = currentPlacementSlot(placementPlanFor(state), totalCastlesPlaced(state))!
+        const slot = currentPlacementSlot(placementPlanFor(state), totalCastlesPlaced(state.board))!
 
         state.board.squares[this.castleRow][this.castleCol] = {
             ...state.board.squares[this.castleRow][this.castleCol],
             castleOwner: slot.owner
         }
-        state.board.squares[this.knightRow][this.knightCol] = {
-            ...state.board.squares[this.knightRow][this.knightCol],
-            knightOwner: slot.owner
-        }
 
-        // The neutral prince's placements aren't drawn from any player's own knight stock.
-        if (slot.owner === this.playerId) {
-            state.getPlayerState(this.playerId).knightsInStock -= 1
+        // The knight is placed by PlaceSetupKnight, which reads this to know which castle
+        // it is answering and therefore whose knight it is. Its stock is debited there too.
+        state.pendingSetupCastle = {
+            col: this.castleCol,
+            row: this.castleRow,
+            playerId: this.playerId
         }
 
         this.metadata = {}
     }
 
     isValidPlaceCastle(state: HydratedLowenherzGameState): boolean {
-        if (!HydratedPlaceCastle.isValidCastleSquare(state, this.playerId, this.castleCol, this.castleRow)) {
-            return false
-        }
-        return HydratedPlaceCastle.isValidKnightSquare(
+        return HydratedPlaceCastle.isValidCastleSquare(
             state,
+            this.playerId,
             this.castleCol,
-            this.castleRow,
-            this.knightCol,
-            this.knightRow
+            this.castleRow
         )
     }
 
     static canPlaceCastle(state: HydratedLowenherzGameState, playerId: string): boolean {
-        const slot = currentPlacementSlot(placementPlanFor(state), totalCastlesPlaced(state))
+        const slot = currentPlacementSlot(placementPlanFor(state), totalCastlesPlaced(state.board))
         return slot?.playerId === playerId
     }
 
@@ -156,7 +136,7 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
         castleCol: number,
         castleRow: number
     ): CastleSquareProblem | undefined {
-        const slot = currentPlacementSlot(placementPlanFor(state), totalCastlesPlaced(state))
+        const slot = currentPlacementSlot(placementPlanFor(state), totalCastlesPlaced(state.board))
         if (!slot || slot.playerId !== playerId) return 'notYourTurn'
 
         const castleSquare = getSquare(state.board, castleCol, castleRow)
@@ -174,7 +154,7 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
         // Asked before the spacing rule on purpose: requiredCastleGap measures the best gap
         // available among squares that DO have a knight square, so reporting 'tooClose' for a
         // square that was never viable would name the wrong reason.
-        if (!HydratedPlaceCastle.hasLegalKnightSquare(state, castleCol, castleRow)) {
+        if (!hasLegalSetupKnightSquare(state, castleCol, castleRow)) {
             return 'noKnightSquare'
         }
 
@@ -211,7 +191,7 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
                 const square = getSquare(state.board, col, row)
                 if (!square || square.type !== SquareType.Blank) continue
                 if (square.castleOwner || square.knightOwner) continue
-                if (!HydratedPlaceCastle.hasLegalKnightSquare(state, col, row)) continue
+                if (!hasLegalSetupKnightSquare(state, col, row)) continue
 
                 let nearest = Number.POSITIVE_INFINITY
                 for (const castle of existing) {
@@ -222,38 +202,6 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
             }
         }
         return bestAchievableGap
-    }
-
-    static isValidKnightSquare(
-        state: HydratedLowenherzGameState,
-        castleCol: number,
-        castleRow: number,
-        knightCol: number,
-        knightRow: number
-    ): boolean {
-        const isAdjacentToCastle = neighbors(castleCol, castleRow).some(
-            (n) => n.col === knightCol && n.row === knightRow
-        )
-        if (!isAdjacentToCastle) return false
-
-        const knightSquare = getSquare(state.board, knightCol, knightRow)
-        if (!knightSquare) return false
-        // Knights may never be placed on wooded spaces during setup (only during
-        // regular in-game play, where they're allowed for a ducat cost).
-        if (knightSquare.type !== SquareType.Blank) return false
-        if (knightSquare.castleOwner || knightSquare.knightOwner) return false
-
-        return true
-    }
-
-    static hasLegalKnightSquare(
-        state: HydratedLowenherzGameState,
-        castleCol: number,
-        castleRow: number
-    ): boolean {
-        return neighbors(castleCol, castleRow).some((n) =>
-            HydratedPlaceCastle.isValidKnightSquare(state, castleCol, castleRow, n.col, n.row)
-        )
     }
 
     // All castle squares currently legal for this player - a square only counts if it

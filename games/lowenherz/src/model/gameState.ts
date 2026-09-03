@@ -124,6 +124,18 @@ export const LowenherzGameState = Type.Evaluate(
             // once at initialization (see RULEBOOK_CASTLE_MIN_DISTANCE). Absent on games
             // created before the rule was corrected, which read as LEGACY_CASTLE_MIN_DISTANCE.
             minimumCastleDistance: Type.Optional(Type.Number()),
+            // The setup castle whose knight has not been placed yet, and who is placing
+            // it. Set by PlaceCastle and cleared by PlaceSetupKnight, so it is defined
+            // exactly while machineState is PlacingSetupKnight. Recorded rather than
+            // derived from the board because a castle with no adjacent knight is not
+            // otherwise distinguishable from one whose knight was placed further along.
+            pendingSetupCastle: Type.Optional(
+                Type.Object({
+                    col: Type.Number(),
+                    row: Type.Number(),
+                    playerId: Type.String()
+                })
+            ),
 
             // Remaining undrawn action cards, in draw order (index 0 draws next).
             actionDeck: Type.Array(ActionCard),
@@ -237,6 +249,7 @@ export class HydratedLowenherzGameState
     declare neutralColor?: Color
     declare minimumOneDucat?: boolean
     declare minimumCastleDistance?: number
+    declare pendingSetupCastle?: { col: number; row: number; playerId: string }
 
     declare actionDeck: ActionCard[]
     declare currentActionCard?: ActionCard

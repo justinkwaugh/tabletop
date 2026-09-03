@@ -2,6 +2,7 @@
 // It doesn't have to be everything, just whatever is needed externally
 
 export * from './actions/placeCastle.js'
+export * from './actions/placeSetupKnight.js'
 export * from './actions/drawActionCard.js'
 export * from './actions/chooseAction.js'
 export * from './actions/advanceResolution.js'
@@ -40,6 +41,7 @@ export * from './util/decisionPlan.js'
 export * from './util/knightConnectivity.js'
 export * from './util/legality.js'
 export * from './util/placementPlan.js'
+export * from './util/setupKnightSquares.js'
 export * from './util/politicsCardAssembly.js'
 export * from './util/regionDetection.js'
 export * from './util/regionScoring.js'
