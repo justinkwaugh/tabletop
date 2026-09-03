@@ -389,7 +389,7 @@
                     >
                 {/if}
             {:else if meta.bandKind === 'knight'}
-                won the right to place {meta.bandCount} knight{meta.bandCount === 1 ? '' : 's'}
+                won the right to place {meta.bandCount === 1 ? 'a knight' : `${meta.bandCount} knights`} or expand
                 {#if meta.placementSkippedReason === 'noKnightsInStock'}
                     <!-- An empty stock alone no longer wastes the action - it can still
                          be spent expanding a region, so this only fires when there's no
