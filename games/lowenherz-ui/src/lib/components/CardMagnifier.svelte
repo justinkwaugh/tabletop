@@ -1,5 +1,5 @@
 <script lang="ts">
-    // A politics card that grows to double size, centred where it sits, after the pointer has
+    // A politics card that grows to four times its size, centred where it sits, after the pointer has
     // rested on it for a moment (mouse) or the finger has held it (touch). Hover feedback only,
     // so it stays local to this component and outside the shared animation timeline.
     //
@@ -21,7 +21,7 @@
     const gameSession = getGameSession()
 
     const HOLD_MS = 200
-    const GROWTH = 2
+    const GROWTH = 4
     const CARD_ASPECT = 534 / 832
     const VIEWPORT_MARGIN = 16
 
@@ -34,11 +34,19 @@
         enlarged !== undefined && gameSession.magnifiedPoliticsCard?.cardId === card.id
     )
 
+    // Centred on the card, then nudged only as far as needed to keep the whole copy inside the
+    // viewport - at this growth a card near an edge would otherwise hang off the screen.
     function enlargedGeometry(rect: DOMRect) {
-        const maxWidth = window.innerWidth - VIEWPORT_MARGIN
-        const maxHeight = window.innerHeight - VIEWPORT_MARGIN
+        const maxWidth = window.innerWidth - 2 * VIEWPORT_MARGIN
+        const maxHeight = window.innerHeight - 2 * VIEWPORT_MARGIN
         const width = Math.min(rect.width * GROWTH, maxWidth, maxHeight * CARD_ASPECT)
-        return { centerX: rect.left + rect.width / 2, centerY: rect.top + rect.height / 2, width }
+        const height = width / CARD_ASPECT
+        const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max)
+        return {
+            centerX: clamp(rect.left + rect.width / 2, VIEWPORT_MARGIN + width / 2, window.innerWidth - VIEWPORT_MARGIN - width / 2),
+            centerY: clamp(rect.top + rect.height / 2, VIEWPORT_MARGIN + height / 2, window.innerHeight - VIEWPORT_MARGIN - height / 2),
+            width
+        }
     }
 
     function beginHold(fromTouch: boolean) {
