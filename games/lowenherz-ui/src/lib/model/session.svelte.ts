@@ -108,6 +108,11 @@ export class LowenherzGameSession extends GameSession<
     // an owner and a session class is not one. What lives here is the value, not the syncing.
     frozenNegotiation: Negotiation | undefined = $state(undefined)
 
+    // The politics card currently shown enlarged by a CardMagnifier, and by how much. Shared
+    // so the pile's take animator can start the chosen card at that size and shrink it on the
+    // way to the centre, taking over from the magnifier's copy rather than playing beside it.
+    magnifiedPoliticsCard: { cardId: string; scale: number } | undefined = $state(undefined)
+
     // What the negotiation panel shows: the live negotiation, or the completed one being held on
     // screen for a beat after it resolves.
     get displayNegotiation(): Negotiation | undefined {

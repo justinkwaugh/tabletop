@@ -77,9 +77,16 @@ export class PoliticsPileTakeAnimator extends StateAnimator {
         const dx = target.x - (rect.left + rect.width / 2)
         const dy = target.y - (rect.top + rect.height / 2)
 
+        // If the player chose the card while a CardMagnifier had it enlarged, start the real card
+        // at that size and let the flight shrink it, and take the magnifier's copy down at the
+        // same instant - one card in motion rather than a copy shrinking beside it.
+        const magnified = this.gameSession.magnifiedPoliticsCard
+        const startScale = magnified?.cardId === chosenId ? magnified.scale : 1
+        if (magnified?.cardId === chosenId) this.gameSession.magnifiedPoliticsCard = undefined
+
         // Above the other (departing) cards for the whole sequence, since it travels over (and
         // the others end up sliding under) it on the way to the center.
-        gsap.set(chosenEl, { zIndex: 10 })
+        gsap.set(chosenEl, { zIndex: 10, scale: startScale })
         timeline.to(chosenEl, { x: dx, y: dy, scale: FOCUS_SCALE, duration: FOCUS_MOVE_DURATION, ease: 'power2.out' }, 0)
         // The hold is just empty timeline space - nothing to tween, so nothing is added for it.
         timeline.to(
