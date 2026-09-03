@@ -2,7 +2,7 @@
     import { gsap } from 'gsap'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { PoliticsCard as PoliticsCardData } from '@tabletop/lowenherz'
-    import PoliticsCard from './PoliticsCard.svelte'
+    import CardMagnifier from './CardMagnifier.svelte'
 
     const gameSession = getGameSession()
 
@@ -144,7 +144,7 @@
                     class="relative opacity-90"
                     style={cardWidthStyle}
                 >
-                    <PoliticsCard {card} />
+                    <CardMagnifier {card} />
                     {#if gameSession.canApplyPoliticsCard(card)}
                         <!-- Border/background/text match the board's own village-name pill (see
                              RealBoard.svelte) rather than a plain UI button - same "labeled thing

@@ -2,6 +2,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { PoliticsCard as PoliticsCardData } from '@tabletop/lowenherz'
     import PoliticsCard from './PoliticsCard.svelte'
+    import CardMagnifier from './CardMagnifier.svelte'
     import { buildSlotRows, responsiveCardWidth } from '$lib/model/politicsCardLayout'
     import { PoliticsPileDealAnimator } from '$lib/animators/politicsPileDealAnimator.svelte.js'
     import { PoliticsPileTakeAnimator } from '$lib/animators/politicsPileTakeAnimator.svelte.js'
@@ -205,7 +206,7 @@
                                         return () => takeAnimator.setNode(slot.card.id, undefined)
                                     }}
                                 >
-                                    <PoliticsCard card={slot.card} />
+                                    <CardMagnifier card={slot.card} />
                                 </button>
                             {/if}
                         {/each}
