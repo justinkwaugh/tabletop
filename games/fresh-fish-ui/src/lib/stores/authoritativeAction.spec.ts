@@ -1,17 +1,22 @@
 import {
     ActionSource,
     GameEngine,
+    GameNotificationAction,
     GameStorage,
+    NotificationCategory,
     PlayerStatus,
     Visibility,
     assertExists,
     type Game,
     type GameAction,
+    type GameAddProjectedActionsNotification,
     type GameState,
     type HydratedGameState
 } from '@tabletop/common'
 import {
     BridgedContext,
+    NotificationChannel,
+    NotificationEventType,
     createHarnessAppContext,
     type GameUiDefinition
 } from '@tabletop/frontend-components'
@@ -172,6 +177,102 @@ describe('server-authoritative Actions', () => {
             expect(checkSync).not.toHaveBeenCalled()
             expect(getGame).not.toHaveBeenCalled()
         } finally {
+            session.dispose()
+            bridgedContext.dispose()
+        }
+    })
+
+    test('applies only the realtime Action cascade projected for its Player', async () => {
+        const started = createStartedGame()
+        const playerPerspective = { kind: 'player', playerId: started.playerId } as const
+        const spectatorPerspective = { kind: 'spectator' } as const
+        const projectedState = FreshFishRuntime.visibility.state.project(
+            started.state,
+            playerPerspective
+        )
+        const appContext = createHarnessAppContext(HARNESS_DEFINITION)
+        const bridgedContext = new BridgedContext({
+            authorizationService: appContext.authorizationService,
+            gameService: appContext.gameService,
+            chatService: appContext.chatService,
+            gameId: GAME_ID
+        })
+        const session = new FreshFishGameSession({
+            gameService: appContext.gameService,
+            bridgedContext,
+            notificationService: appContext.notificationService,
+            chatService: appContext.chatService,
+            api: appContext.api,
+            runtime: FreshFishUiRuntime,
+            game: structuredClone(started.game),
+            state: projectedState,
+            actions: []
+        })
+
+        try {
+            session.listenToGame()
+            expect(session.myPrimaryPlayer?.id).toBe(started.playerId)
+            const action = session.createDrawTileAction()
+            const result = new GameEngine(FreshFishRuntime).executeAction({
+                action,
+                state: started.state,
+                game: started.game
+            })
+            const responseGame = gameWithoutState(started.game, result.updatedState)
+            const spectatorResult = Visibility.projectActionResult({
+                result,
+                visibility: FreshFishRuntime.visibility,
+                perspective: spectatorPerspective
+            })
+            const playerResult = Visibility.projectActionResult({
+                result,
+                visibility: FreshFishRuntime.visibility,
+                perspective: playerPerspective
+            })
+            const spectatorNotification: GameAddProjectedActionsNotification = {
+                id: 'spectator-notification',
+                type: NotificationCategory.Game,
+                action: GameNotificationAction.AddProjectedActions,
+                data: {
+                    game: responseGame,
+                    actions: spectatorResult.processedActions,
+                    perspective: spectatorPerspective
+                }
+            }
+            const playerNotification: GameAddProjectedActionsNotification = {
+                id: 'player-notification',
+                type: NotificationCategory.Game,
+                action: GameNotificationAction.AddProjectedActions,
+                data: {
+                    game: responseGame,
+                    actions: playerResult.processedActions,
+                    perspective: playerPerspective
+                }
+            }
+
+            await appContext.notificationService.emit({
+                eventType: NotificationEventType.Data,
+                channel: NotificationChannel.GameInstance,
+                notification: spectatorNotification
+            })
+            expect(session.history.visibleContext.actions).toEqual([])
+
+            await appContext.notificationService.emit({
+                eventType: NotificationEventType.Data,
+                channel: NotificationChannel.User,
+                notification: playerNotification
+            })
+            await session.waitForVisibleTransitionSettled()
+
+            expect(session.history.visibleContext.state).toEqual(
+                FreshFishRuntime.visibility.state.project(result.updatedState, playerPerspective)
+            )
+            expect(session.history.visibleContext.actions.map((item) => item.id)).toEqual(
+                result.processedActions.map((item) => item.id)
+            )
+            expect(JSON.stringify(session.history.visibleContext)).not.toContain(HIDDEN_TILE_MARKER)
+        } finally {
+            session.stopListeningToGame()
             session.dispose()
             bridgedContext.dispose()
         }

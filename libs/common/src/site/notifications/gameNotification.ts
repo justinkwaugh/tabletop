@@ -4,12 +4,16 @@ import { Game } from '../../game/model/game.js'
 import { GameAction } from '../../game/engine/gameAction.js'
 import { CanonicalActionReplayManifest } from '../../game/engine/canonicalActionReplay.js'
 import { GameChatMessage } from '../chat/gameChatMessage.js'
+import { Perspective } from '../../game/visibility/valueProjector.js'
+
+const GameWithoutState = Type.Omit(Game, ['state'], { additionalProperties: false })
 
 export enum GameNotificationAction {
     Create = 'create',
     Update = 'update',
     Delete = 'delete',
     AddActions = 'addActions',
+    AddProjectedActions = 'addProjectedActions',
     UndoAction = 'undoAction',
     Chat = 'chat'
 }
@@ -33,6 +37,15 @@ export type GameNotificationAddActionsData = Type.Static<typeof GameNotification
 export const GameNotificationAddActionsData = Type.Object({
     game: Game,
     actions: Type.Array(GameAction)
+})
+
+export type GameNotificationAddProjectedActionsData = Type.Static<
+    typeof GameNotificationAddProjectedActionsData
+>
+export const GameNotificationAddProjectedActionsData = Type.Object({
+    game: GameWithoutState,
+    actions: Type.Array(GameAction),
+    perspective: Perspective
 })
 
 export type GameNotificationUndoActionData = Type.Static<typeof GameNotificationUndoActionData>
@@ -101,6 +114,20 @@ export const GameAddActionsNotification = Type.Evaluate(
     ])
 )
 
+export type GameAddProjectedActionsNotification = Type.Static<
+    typeof GameAddProjectedActionsNotification
+>
+export const GameAddProjectedActionsNotification = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(Notification, ['type', 'action', 'data']),
+        Type.Object({
+            type: Type.Literal(NotificationCategory.Game),
+            action: Type.Literal(GameNotificationAction.AddProjectedActions),
+            data: GameNotificationAddProjectedActionsData
+        })
+    ])
+)
+
 export type GameUndoActionNotification = Type.Static<typeof GameUndoActionNotification>
 export const GameUndoActionNotification = Type.Evaluate(
     Type.Intersect([
@@ -130,6 +157,7 @@ export type GameNotificationData =
     | GameNotificationUpdateData
     | GameNotificationDeleteData
     | GameNotificationAddActionsData
+    | GameNotificationAddProjectedActionsData
     | GameNotificationUndoActionData
     | GameNotificationChatData
 
@@ -138,5 +166,6 @@ export type GameNotification =
     | GameUpdateNotification
     | GameDeleteNotification
     | GameAddActionsNotification
+    | GameAddProjectedActionsNotification
     | GameUndoActionNotification
     | GameChatNotification

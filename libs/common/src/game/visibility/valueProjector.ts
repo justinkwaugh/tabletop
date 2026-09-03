@@ -18,7 +18,11 @@ import {
 
 const omitted = Symbol('omitted visibility value')
 
-export type Perspective = { kind: 'player'; playerId: string } | { kind: 'spectator' }
+export type Perspective = Type.Static<typeof Perspective>
+export const Perspective = Type.Union([
+    Type.Object({ kind: Type.Literal('player'), playerId: Type.String() }),
+    Type.Object({ kind: Type.Literal('spectator') })
+])
 
 export interface PolicyContext<Root> {
     readonly perspective: Perspective

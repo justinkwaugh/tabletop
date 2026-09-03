@@ -7,7 +7,6 @@ import {
     GameAction,
     GameDefinition,
     GameEngine,
-    GameNotification,
     GameNotificationAction,
     GameNotificationData,
     GameStartedNotification,
@@ -72,6 +71,7 @@ import {
     type ActionResultsRepresentation,
     type GameRepresentation
 } from './gameRepresentation.js'
+import { createGameNotification, publishActionResults } from './gameNotifications.js'
 
 export class GameService {
     constructor(
@@ -958,11 +958,13 @@ export class GameService {
             user
         })
 
-        // Only user actions need to be broadcast
-        const userActions = storedActions.filter((a) => a.source === ActionSource.User)
-        await this.notifyGameInstance(GameNotificationAction.AddActions, {
-            game: representation.game,
-            actions: userActions
+        await publishActionResults({
+            game: updatedGame,
+            result: actionResult,
+            storedActions,
+            priorState,
+            visibility: definition.runtime.visibility,
+            notificationService: this.notificationService
         })
         await this.notifyGamePlayers(GameNotificationAction.Update, { game: representation.game })
 
@@ -1325,12 +1327,7 @@ export class GameService {
         action: GameNotificationAction,
         data: GameNotificationData
     ): Promise<void> {
-        const notification = <GameNotification>{
-            id: nanoid(),
-            type: NotificationCategory.Game,
-            action: action,
-            data
-        }
+        const notification = createGameNotification(action, data)
         const gameTopic = `game-${data.game.id}`
         await this.notificationService.sendNotification({
             notification,
@@ -1343,13 +1340,10 @@ export class GameService {
         action: GameNotificationAction,
         data: GameNotificationData
     ): Promise<void> {
-        const notification = <GameNotification>{
-            id: nanoid(),
-            type: NotificationCategory.Game,
-            action: action,
-            data
-        }
-        const userTopics = data.game.players.map((p) => `user-${p.userId}`)
+        const notification = createGameNotification(action, data)
+        const userTopics = data.game.players.flatMap((player) =>
+            player.userId === undefined ? [] : [`user-${player.userId}`]
+        )
         await this.notificationService.sendNotification({
             notification,
             topics: [...userTopics],
@@ -1378,12 +1372,7 @@ export class GameService {
         action: GameNotificationAction,
         data: GameNotificationData
     ): Promise<void> {
-        const notification = <GameNotification>{
-            id: nanoid(),
-            type: NotificationCategory.Game,
-            action: action,
-            data
-        }
+        const notification = createGameNotification(action, data)
         await this.notificationService.sendNotification({
             notification,
             topics: ['global'],

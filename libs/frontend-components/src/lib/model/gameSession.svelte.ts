@@ -5,6 +5,7 @@ import {
     Game,
     GameAction,
     GameAddActionsNotification,
+    GameAddProjectedActionsNotification,
     GameEngine,
     GameNotificationAction,
     NotificationCategory,
@@ -21,7 +22,8 @@ import {
     assertExists,
     createAction,
     type User,
-    type GameChat
+    type GameChat,
+    Visibility
 } from '@tabletop/common'
 import { watch } from 'runed'
 import * as Value from 'typebox/value'
@@ -57,6 +59,16 @@ export enum GameSessionMode {
     Play = 'play',
     Explore = 'explore',
     History = 'history'
+}
+
+enum ServerActionHandling {
+    Execute = 'execute',
+    ApplyProcessed = 'applyProcessed'
+}
+
+type PendingServerAction = {
+    action: GameAction
+    handling: ServerActionHandling
 }
 
 export type GameStateChangeListener<U extends HydratedGameState> = ({
@@ -98,7 +110,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private engine: GameEngine<T, U>
     private api: RemoteApiService
 
-    private actionsToProcess: GameAction[] = []
+    private actionsToProcess: PendingServerAction[] = []
 
     private gameStateChangeListeners: Set<GameStateChangeListener<U>> = new Set()
     private visibleTransitionWaiters: Array<() => void> = []
@@ -1041,7 +1053,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         const queuedActions = this.actionsToProcess
         this.actionsToProcess = []
         // console.log('Applying queued actions')
-        await this.applyServerActions(queuedActions)
+        await this.applyServerActionsWithHandling(queuedActions)
     }
 
     public shouldAutoStepAction(action: GameAction, next?: GameAction) {
@@ -1197,6 +1209,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             try {
                 if (this.isGameAddActionsNotification(notification)) {
                     await this.handleAddActionsNotification(notification)
+                } else if (this.isGameAddProjectedActionsNotification(notification)) {
+                    await this.handleAddProjectedActionsNotification(notification)
                 } else if (this.isGameUndoActionNotification(notification)) {
                     await this.handleUndoNotification(notification)
                 } else if (this.isGameDeleteNotification(notification)) {
@@ -1220,13 +1234,42 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             return
         }
 
-        const actions = notification.data.actions.map((action) =>
+        await this.applyNotifiedActions(
+            notification.data.game,
+            notification.data.actions,
+            ServerActionHandling.Execute
+        )
+    }
+
+    private async handleAddProjectedActionsNotification(
+        notification: GameAddProjectedActionsNotification
+    ) {
+        if (notification.data.game.id !== this.gameContext.game.id) {
+            return
+        }
+        if (!this.matchesPrimaryPerspective(notification.data.perspective)) {
+            return
+        }
+
+        await this.applyNotifiedActions(
+            notification.data.game,
+            notification.data.actions,
+            ServerActionHandling.ApplyProcessed
+        )
+    }
+
+    private async applyNotifiedActions(
+        gameData: Game,
+        actionData: GameAction[],
+        handling: ServerActionHandling
+    ) {
+        const actions = actionData.map((action) =>
             Value.Convert(GameAction, action)
         ) as GameAction[]
 
-        await this.applyServerActions(actions)
+        await this.applyServerActions(actions, handling)
 
-        const game = Value.Convert(Game, notification.data.game) as Game
+        const game = Value.Convert(Game, gameData) as Game
         this.gameContext.updateGame(game)
     }
 
@@ -1299,7 +1342,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         let resyncNeeded = false
         if (status === GameSyncStatus.InSync) {
             if (actions.length > 0) {
-                await this.applyServerActions(actions)
+                const handling =
+                    this.runtime.visibility === undefined
+                        ? ServerActionHandling.Execute
+                        : ServerActionHandling.ApplyProcessed
+                await this.applyServerActions(actions, handling)
                 if (this.gameContext.state?.actionChecksum !== checksum) {
                     // console.log('Checksums do not match after applying actions from sync')
                     resyncNeeded = true
@@ -1338,7 +1385,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     // For primary game context only
-    private async applyServerActions(actions: GameAction[]) {
+    private async applyServerActions(
+        actions: GameAction[],
+        handling: ServerActionHandling
+    ): Promise<void> {
+        await this.applyServerActionsWithHandling(actions.map((action) => ({ action, handling })))
+    }
+
+    private async applyServerActionsWithHandling(actions: PendingServerAction[]) {
         if (actions.length === 0) {
             return
         }
@@ -1356,7 +1410,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         const allActionResults = new GameActionResults<T>([], stateSnapshot)
 
         let stateUpdateNeeded = false
-        for (const action of actions) {
+        for (const { action, handling } of actions) {
             // Make sure we have not already processed this action
             if (this.gameContext.hasAction(action.id)) {
                 // console.log(`Skipping already processed action ${action.id}`)
@@ -1366,11 +1420,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             if (this.debug) {
                 // console.log(`Applying ${action.type} ${action.id} from server`, action)
             }
-            const actionResults = this.applyProcessedActionToGame(
-                action,
-                gameSnapshot,
-                stateSnapshot
-            )
+            let actionResults: GameActionResults<T>
+            if (handling === ServerActionHandling.Execute) {
+                if (action.source !== ActionSource.User) {
+                    continue
+                }
+                actionResults = this.executeActionInGame(action, gameSnapshot, stateSnapshot)
+            } else {
+                actionResults = this.applyProcessedActionToGame(action, gameSnapshot, stateSnapshot)
+            }
             allActionResults.add(actionResults)
 
             stateSnapshot = allActionResults.updatedState
@@ -1384,12 +1442,33 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
     }
 
+    private matchesPrimaryPerspective(perspective: Visibility.Perspective): boolean {
+        if (this.runtime.visibility === undefined) {
+            return false
+        }
+
+        const player = this.myPrimaryPlayer
+        if (perspective.kind === 'spectator') {
+            return player === undefined
+        }
+        return perspective.playerId === player?.id
+    }
+
     private isGameAddActionsNotification(
         notification: Notification
     ): notification is GameAddActionsNotification {
         return (
             notification.type === NotificationCategory.Game &&
             notification.action === GameNotificationAction.AddActions
+        )
+    }
+
+    private isGameAddProjectedActionsNotification(
+        notification: Notification
+    ): notification is GameAddProjectedActionsNotification {
+        return (
+            notification.type === NotificationCategory.Game &&
+            notification.action === GameNotificationAction.AddProjectedActions
         )
     }
 

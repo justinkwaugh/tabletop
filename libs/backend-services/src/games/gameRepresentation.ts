@@ -110,13 +110,10 @@ export function createActionResultsRepresentation({
     visibility?: Visibility.GameVisibility<GameState>
     user: User
 }): ActionResultsRepresentation {
-    const representedGame = structuredClone(game)
-    delete representedGame.state
-
-    const orderedMissingActions = missingActions.toSorted(
-        (left, right) => (left.index ?? 0) - (right.index ?? 0)
-    )
     if (game.hotseat || visibility === undefined) {
+        const representedGame = structuredClone(game)
+        delete representedGame.state
+        const orderedMissingActions = orderActions(missingActions)
         return {
             game: representedGame,
             actions: storedActions,
@@ -124,6 +121,38 @@ export function createActionResultsRepresentation({
             perspective: undefined
         }
     }
+
+    return createActionResultsRepresentationForPerspective({
+        game,
+        result,
+        storedActions,
+        missingActions,
+        priorState,
+        visibility,
+        perspective: derivePerspective({ game, user })
+    })
+}
+
+export function createActionResultsRepresentationForPerspective({
+    game,
+    result,
+    storedActions,
+    missingActions,
+    priorState,
+    visibility,
+    perspective
+}: {
+    game: Game
+    result: ActionCascadeResult
+    storedActions: GameAction[]
+    missingActions: GameAction[]
+    priorState: GameState
+    visibility: Visibility.GameVisibility<GameState>
+    perspective: Visibility.Perspective
+}): ActionResultsRepresentation {
+    const representedGame = structuredClone(game)
+    delete representedGame.state
+    const orderedMissingActions = orderActions(missingActions)
 
     assert(
         result.actionCascade.before.actionCount === priorState.actionCount &&
@@ -151,7 +180,6 @@ export function createActionResultsRepresentation({
             transitions: storedTransitions
         }
     }
-    const perspective = derivePerspective({ game, user })
     const projectedResult = Visibility.projectActionResult({
         result: storedResult,
         visibility,
@@ -176,6 +204,10 @@ export function createActionResultsRepresentation({
         missingActions: projectedMissingActions,
         perspective
     }
+}
+
+function orderActions(actions: GameAction[]): GameAction[] {
+    return actions.toSorted((left, right) => (left.index ?? 0) - (right.index ?? 0))
 }
 
 function derivePerspective({ game, user }: { game: Game; user: User }): Visibility.Perspective {

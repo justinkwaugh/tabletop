@@ -7,7 +7,7 @@ export {
     scope,
     ScopeKey
 } from './visibilitySchema.js'
-export { createProjector } from './valueProjector.js'
+export { createProjector, Perspective } from './valueProjector.js'
 export { createActionProjector } from './actionProjector.js'
 export {
     projectActionCascade,
@@ -27,7 +27,6 @@ export type {
     ScopeMetadata
 } from './visibilitySchema.js'
 export type {
-    Perspective,
     PolicyContext,
     PolicyRegistry,
     PolicyResolver,
