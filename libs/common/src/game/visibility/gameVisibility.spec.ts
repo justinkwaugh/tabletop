@@ -111,18 +111,25 @@ describe('game visibility', () => {
         }
         const perspective: Visibility.Perspective = { kind: 'spectator' }
 
-        const visibleActionCascade = Visibility.projectActionCascade(
-            {
+        const result = {
+            processedActions: [action, systemAction],
+            updatedState: after,
+            indexOffset: 2,
+            actionCascade: {
                 before,
                 transitions: [
                     { action, after: middle },
                     { action: systemAction, after }
                 ]
-            },
-            { visibility, perspective }
-        )
-        const userAction = visibleActionCascade.actions[0]
-        const visibleSystemAction = visibleActionCascade.actions[1]
+            }
+        }
+        const visibleResult = Visibility.projectActionResult({
+            result,
+            visibility,
+            perspective
+        })
+        const userAction = visibleResult.processedActions[0]
+        const visibleSystemAction = visibleResult.processedActions[1]
         if (userAction === undefined || visibleSystemAction === undefined) {
             throw Error('Expected two projected Actions')
         }
@@ -181,11 +188,14 @@ describe('game visibility', () => {
         expect(advancedToAfter).toEqual(visibleAfter)
         expect(restoredToMiddle).toEqual(visibleMiddle)
         expect(restoredToBefore).toEqual(visibleBefore)
-        expect(JSON.stringify(visibleActionCascade)).not.toContain('canonical-user-action-secret')
-        expect(JSON.stringify(visibleActionCascade)).not.toContain('canonical-system-action-secret')
-        expect(JSON.stringify(visibleActionCascade)).not.toContain('canonical-before-secret')
-        expect(JSON.stringify(visibleActionCascade)).not.toContain('canonical-middle-secret')
-        expect(JSON.stringify(visibleActionCascade)).not.toContain('canonical-after-secret')
+        expect(visibleResult.updatedState).toEqual(visibleAfter)
+        expect(visibleResult.indexOffset).toBe(2)
+        expect(visibleResult).not.toHaveProperty('actionCascade')
+        expect(JSON.stringify(visibleResult)).not.toContain('canonical-user-action-secret')
+        expect(JSON.stringify(visibleResult)).not.toContain('canonical-system-action-secret')
+        expect(JSON.stringify(visibleResult)).not.toContain('canonical-before-secret')
+        expect(JSON.stringify(visibleResult)).not.toContain('canonical-middle-secret')
+        expect(JSON.stringify(visibleResult)).not.toContain('canonical-after-secret')
         expect(action.undoPatch).toEqual([
             {
                 op: 'replace',
@@ -200,6 +210,48 @@ describe('game visibility', () => {
                 value: 'canonical-middle-secret'
             }
         ])
+        expect(result.actionCascade.before).toBe(before)
+        expect(result.processedActions).toEqual([action, systemAction])
+    })
+
+    it('preserves the canonical result when visibility is not registered', () => {
+        const before = createState('before', 'canonical-before-secret')
+        const after = createState('after', 'canonical-after-secret')
+        const action: Type.Static<typeof ChangeValue> = {
+            id: 'action-1',
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: ActionType,
+            publicValue: 'after',
+            secretValue: 'canonical-action-secret'
+        }
+        const result = {
+            processedActions: [action],
+            updatedState: after,
+            indexOffset: 0,
+            actionCascade: {
+                before,
+                transitions: [{ action, after }]
+            }
+        }
+
+        const legacyResult = Visibility.projectActionResult({
+            result,
+            perspective: { kind: 'spectator' }
+        })
+
+        expect(legacyResult).toEqual({
+            processedActions: [action],
+            updatedState: after,
+            indexOffset: 0
+        })
+        expect(legacyResult.processedActions).toBe(result.processedActions)
+        expect(legacyResult.updatedState).toBe(result.updatedState)
+        expect(legacyResult).not.toHaveProperty('actionCascade')
+        expect(result.actionCascade).toEqual({
+            before,
+            transitions: [{ action, after }]
+        })
     })
 
     it('fails closed when an Action schema has not been registered', () => {

@@ -214,30 +214,33 @@ describe('Fresh Fish visibility', () => {
                 }
             ]
         }
-        const actorCascade = Visibility.projectActionCascade(
-            { before, transitions: [{ action, after }] },
-            {
-                visibility: FreshFishRuntime.visibility,
-                perspective: { kind: 'player', playerId: 'p3' }
-            }
-        )
-        const opponentCascade = Visibility.projectActionCascade(
-            { before, transitions: [{ action, after }] },
-            {
-                visibility: FreshFishRuntime.visibility,
-                perspective: { kind: 'player', playerId: 'p1' }
-            }
-        )
-        const spectatorCascade = Visibility.projectActionCascade(
-            { before, transitions: [{ action, after }] },
-            {
-                visibility: FreshFishRuntime.visibility,
-                perspective: { kind: 'spectator' }
-            }
-        )
-        const actorAction = actorCascade.actions[0]
-        const opponentAction = opponentCascade.actions[0]
-        const spectatorAction = spectatorCascade.actions[0]
+        const result = {
+            processedActions: [action],
+            updatedState: after,
+            indexOffset: 0,
+            actionCascade: { before, transitions: [{ action, after }] }
+        }
+        const actorPerspective: Visibility.Perspective = { kind: 'player', playerId: 'p3' }
+        const opponentPerspective: Visibility.Perspective = { kind: 'player', playerId: 'p1' }
+        const spectatorPerspective: Visibility.Perspective = { kind: 'spectator' }
+        const actorResult = Visibility.projectActionResult({
+            result,
+            visibility: FreshFishRuntime.visibility,
+            perspective: actorPerspective
+        })
+        const opponentResult = Visibility.projectActionResult({
+            result,
+            visibility: FreshFishRuntime.visibility,
+            perspective: opponentPerspective
+        })
+        const spectatorResult = Visibility.projectActionResult({
+            result,
+            visibility: FreshFishRuntime.visibility,
+            perspective: spectatorPerspective
+        })
+        const actorAction = actorResult.processedActions[0]
+        const opponentAction = opponentResult.processedActions[0]
+        const spectatorAction = spectatorResult.processedActions[0]
         if (
             actorAction === undefined ||
             opponentAction === undefined ||
@@ -281,8 +284,29 @@ describe('Fresh Fish visibility', () => {
         }
         expect(opponentAction).toEqual(redactedAction)
         expect(spectatorAction).toEqual(redactedAction)
-        expect(JSON.stringify(opponentAction)).not.toContain('7654321')
-        expect(JSON.stringify(spectatorAction)).not.toContain('7654321')
+        expect(actorResult.updatedState).toEqual(
+            FreshFishRuntime.visibility.state.project(after, actorPerspective)
+        )
+        expect(opponentResult.updatedState).toEqual(
+            FreshFishRuntime.visibility.state.project(after, opponentPerspective)
+        )
+        expect(spectatorResult.updatedState).toEqual(
+            FreshFishRuntime.visibility.state.project(after, spectatorPerspective)
+        )
+        expect(actorResult.updatedState.currentAuction?.participants[2].bid).toBe(7)
+        expect(opponentResult.updatedState.currentAuction?.participants[2].bid).toBeUndefined()
+        expect(spectatorResult.updatedState.currentAuction?.participants[2].bid).toBeUndefined()
+        expect(actorResult.updatedState.tileBag.items).toEqual([])
+        expect(opponentResult.updatedState.tileBag.items).toEqual([])
+        expect(spectatorResult.updatedState.tileBag.items).toEqual([])
+        expect(actorResult.indexOffset).toBe(0)
+        expect(opponentResult.indexOffset).toBe(0)
+        expect(spectatorResult.indexOffset).toBe(0)
+        expect(actorResult).not.toHaveProperty('actionCascade')
+        expect(opponentResult).not.toHaveProperty('actionCascade')
+        expect(spectatorResult).not.toHaveProperty('actionCascade')
+        expect(JSON.stringify(opponentResult)).not.toContain('7654321')
+        expect(JSON.stringify(spectatorResult)).not.toContain('7654321')
         expect(action.undoPatch).toEqual([
             {
                 op: 'replace',
@@ -365,29 +389,32 @@ describe('Fresh Fish visibility', () => {
             })
         ).toEqual(firstTransition.after)
 
-        const visibleActionCascade = Visibility.projectActionCascade(result.actionCascade, {
+        const perspective: Visibility.Perspective = { kind: 'player', playerId: 'p3' }
+        const visibleResult = Visibility.projectActionResult({
+            result,
             visibility: FreshFishRuntime.visibility,
-            perspective: { kind: 'player', playerId: 'p3' }
+            perspective
         })
-        expect(visibleActionCascade.actions.map((visibleAction) => visibleAction.type)).toEqual([
+        expect(visibleResult.processedActions.map((visibleAction) => visibleAction.type)).toEqual([
             ActionType.PlaceBid,
             ActionType.EndAuction,
             ActionType.PlaceStall
         ])
-        expect(visibleActionCascade.actions.every((visibleAction) => visibleAction.undoPatch)).toBe(
-            true
-        )
         expect(
-            visibleActionCascade.actions.every(
+            visibleResult.processedActions.every((visibleAction) => visibleAction.undoPatch)
+        ).toBe(true)
+        expect(
+            visibleResult.processedActions.every(
                 (visibleAction) => visibleAction.forwardPatch !== undefined
             )
         ).toBe(true)
+        expect(visibleResult.updatedState).toEqual(
+            FreshFishRuntime.visibility.state.project(result.updatedState, perspective)
+        )
+        expect(visibleResult).not.toHaveProperty('actionCascade')
 
-        const visibleBefore = FreshFishRuntime.visibility.state.project(before, {
-            kind: 'player',
-            playerId: 'p3'
-        })
-        const firstVisibleAction = visibleActionCascade.actions[0]
+        const visibleBefore = FreshFishRuntime.visibility.state.project(before, perspective)
+        const firstVisibleAction = visibleResult.processedActions[0]
         if (firstVisibleAction === undefined) {
             throw Error('Expected the initiating visible Action')
         }
