@@ -1,7 +1,7 @@
 <script lang="ts">
     import { gsap } from 'gsap'
     import { type Player } from '@tabletop/common'
-    import { LowenherzPlayerState, MachineState, type PoliticsCard } from '@tabletop/lowenherz'
+    import { LowenherzPlayerState, MachineState, PoliticsCardType, type PoliticsCard } from '@tabletop/lowenherz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import iconMoneybagFill from '$lib/images/action-cards/icons/icon-moneybag-transparent.png'
     import iconMoneybagLines from '$lib/images/action-cards/icons/icon-moneybag-lines.png'
@@ -369,7 +369,9 @@
                      otherwise clickable, same as the overlapped group. Once applying it has
                      actually landed (see isPoliticsCardActive - an armed Treasure has nothing
                      else on screen to confirm that), APPLY is replaced with an ACTIVE stripe
-                     instead of sitting there looking unclicked. -->
+                     instead of sitting there looking unclicked. The stripe is itself the way
+                     back: clicking it takes the card out again (GameSession.deactivatePoliticsCard),
+                     so an armed Treasure is not forced onto the next wooded square. -->
                 <div class="flex items-start gap-1.5 h-[103px] shrink-0">
                     {#each applicableGroups as group (group.key)}
                         <!-- Duplicates of the same applicable card (see applicableGroups) stack
@@ -398,11 +400,16 @@
                                              border adds, purely so the two are the same height -
                                              ACTIVE's own background already reads solid without a
                                              visible border of its own. -->
-                                        <div
-                                            class="absolute top-[15%] left-0 right-0 bg-red-700 text-white text-[10px] font-bold tracking-widest text-center py-1 border border-transparent pointer-events-none shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+                                        <button
+                                            type="button"
+                                            title={card.type === PoliticsCardType.Treasure
+                                                ? 'Click to take this Treasure back and pay with ducats instead'
+                                                : 'Click to put this card back'}
+                                            class="absolute top-[15%] left-0 right-0 cursor-pointer bg-red-700 hover:bg-red-800 text-white text-[10px] font-bold tracking-widest text-center py-1 border border-transparent shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+                                            onclick={() => gameSession.deactivatePoliticsCard(card)}
                                         >
                                             ACTIVE
-                                        </div>
+                                        </button>
                                     {:else}
                                         <!-- inset-x-1 rather than flush left-0/right-0: a pill this
                                              narrow reads better with a sliver of card showing on either
