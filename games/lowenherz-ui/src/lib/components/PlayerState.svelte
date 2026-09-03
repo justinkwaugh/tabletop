@@ -9,6 +9,7 @@
     import knightFill from '$lib/images/pieces/knight-fill.png'
     import knightLines from '$lib/images/pieces/knight-lines.png'
     import PoliticsCardView from './PoliticsCard.svelte'
+    import CardMagnifier from './CardMagnifier.svelte'
     import FlagBorder from './FlagBorder.svelte'
 
     let gameSession = getGameSession()
@@ -352,7 +353,7 @@
                                     <PoliticsCardView {card} faceDown />
                                 </div>
                             {:else if revealFace}
-                                <PoliticsCardView {card} />
+                                <CardMagnifier {card} />
                             {:else}
                                 <PoliticsCardView {card} faceDown />
                             {/if}
@@ -391,7 +392,7 @@
                                         : '0 2px 4px rgba(0, 0, 0, 0.4)'};
                                     "
                                 >
-                                    <PoliticsCardView {card} />
+                                    <CardMagnifier {card} />
                                     {#if active}
                                         <!-- border border-transparent: same 1px the APPLY pill's own
                                              border adds, purely so the two are the same height -
