@@ -12,6 +12,7 @@
     // moved rather than being copied. The values both halves need went onto the session in an
     // earlier pass, which is why this file reads them off gameSession instead of receiving props.
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { splitDuelBidsIntoRounds } from '$lib/model/duelRounds.js'
     import { ActionSource, type Color, type GameAction } from '@tabletop/common'
     import {
         isAdvanceResolution,
@@ -137,28 +138,6 @@
             0
         )
         return bid.amount + treasureValue
-    }
-
-    // Splits a flat run of consecutive SubmitDuelBid actions into per-round groups.
-    // Each round starts fresh (duel.bids resets to [] on both a re-duel and a brand
-    // new duel), so a player bidding again before every OTHER round-mate has bid
-    // again can only mean a new round just started - that repeat is the only signal
-    // needed to find round boundaries, no other bookkeeping required.
-    function splitDuelBidsIntoRounds(bids: SubmitDuelBid[]): SubmitDuelBid[][] {
-        const rounds: SubmitDuelBid[][] = []
-        let current: SubmitDuelBid[] = []
-        let seen = new Set<string>()
-        for (const bid of bids) {
-            if (seen.has(bid.playerId)) {
-                rounds.push(current)
-                current = []
-                seen = new Set()
-            }
-            current.push(bid)
-            seen.add(bid.playerId)
-        }
-        if (current.length > 0) rounds.push(current)
-        return rounds
     }
 
     // This round's SubmitDuelBid actions (if any), plus the slot they were fought

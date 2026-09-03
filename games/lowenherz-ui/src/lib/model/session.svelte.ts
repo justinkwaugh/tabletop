@@ -42,6 +42,7 @@ import {
     HydratedPlaceCastle,
     HydratedPlaceSetupKnight,
     isAdvanceResolution,
+    isSubmitDuelBid,
     isDrawActionCard,
     isKnightSafeToRemove,
     isOnBoard,
@@ -545,6 +546,11 @@ export class LowenherzGameSession extends GameSession<
     override shouldAutoStepAction(action: GameAction, next?: GameAction): boolean {
         if (isAdvanceResolution(action) && (action.metadata?.moneyBagRecipientIds?.length ?? 0) > 0) {
             return false
+        }
+        // A sealed bid is nothing to look at on its own; stepping lands on the bid that ends
+        // the round, where every bid of the round is revealed together.
+        if (isSubmitDuelBid(action) && !action.metadata?.duelResult) {
+            return true
         }
         return super.shouldAutoStepAction(action, next)
     }

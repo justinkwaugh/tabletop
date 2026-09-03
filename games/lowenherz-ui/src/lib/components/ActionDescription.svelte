@@ -27,6 +27,7 @@
         type SlotKind
     } from '@tabletop/lowenherz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { duelRoundEndingWith } from '$lib/model/duelRounds.js'
 
     let {
         action,
@@ -174,30 +175,41 @@
         took an unrecognized negotiation action
     {/if}
 {:else if isSubmitDuelBid(action)}
-    {@const treasuresUsed = action.metadata?.treasureCardsUsed ?? []}
-    bid {action.amount} ducat{action.amount === 1 ? '' : 's'}{#if treasuresUsed.length > 0}
-        {' '}+ {treasuresUsed.length === 1 ? 'a ' : ''}{#each treasuresUsed as treasureCard, i (i)}{i >
-                0
-                    ? i === treasuresUsed.length - 1
-                        ? ' and '
-                        : ', '
-                    : ''}{politicsCardLabel(treasureCard.type, treasureCard.value)}{/each} card{treasuresUsed.length ===
-        1
-            ? ''
-            : 's'}
-    {/if} in the duel{#if action.metadata?.duelResult};{/if}
-    {#if action.metadata?.duelResult === 'win' && action.metadata.winnerId}
-        <br /><PlayerName playerId={action.metadata.winnerId} /> won the duel
-    {:else if action.metadata?.duelResult === 'reduel'}
-        {@const tied = action.metadata.reduelPlayerIds ?? []}
-        <br />the duel was tied{#if tied.length > 0}{' '}between{' '}{#each tied as playerId, i (playerId)}{i >
-                0
-                    ? i === tied.length - 1
-                        ? ' and '
-                        : ', '
-                    : ''}<PlayerName {playerId} />{/each}{/if} — they duel again
-    {:else if action.metadata?.duelResult === 'giveUp'}
-        <br />the second duel was tied too, so no one performs the action
+    {#if !action.metadata?.duelResult}
+        <!-- Sealed: the amount stays hidden until the bid that ends the round reveals every
+             bid of that round together, so the log never tips off a player still to bid. -->
+        placed a bid in the duel
+    {:else}
+        {@const roundBids = duelRoundEndingWith(gameSession.actions, action)}
+        placed the last bid in the duel. The bids:
+        {#each roundBids as bid, i (bid.id)}
+            {@const treasuresUsed = bid.metadata?.treasureCardsUsed ?? []}
+            {i > 0 ? (i === roundBids.length - 1 ? ' and ' : ', ') : ''}<PlayerName playerId={bid.playerId} />
+            {bid.amount} ducat{bid.amount === 1 ? '' : 's'}{#if treasuresUsed.length > 0}
+                {' '}+ {treasuresUsed.length === 1 ? 'a ' : ''}{#each treasuresUsed as treasureCard, j (j)}{j >
+                    0
+                        ? j === treasuresUsed.length - 1
+                            ? ' and '
+                            : ', '
+                        : ''}{politicsCardLabel(treasureCard.type, treasureCard.value)}{/each} card{treasuresUsed.length ===
+                1
+                    ? ''
+                    : 's'}
+            {/if}
+        {/each}
+        {#if action.metadata.duelResult === 'win' && action.metadata.winnerId}
+            <br /><PlayerName playerId={action.metadata.winnerId} /> won the duel
+        {:else if action.metadata.duelResult === 'reduel'}
+            {@const tied = action.metadata.reduelPlayerIds ?? []}
+            <br />the duel was tied{#if tied.length > 0}{' '}between{' '}{#each tied as playerId, i (playerId)}{i >
+                    0
+                        ? i === tied.length - 1
+                            ? ' and '
+                            : ', '
+                        : ''}<PlayerName {playerId} />{/each}{/if} — they duel again
+        {:else if action.metadata.duelResult === 'giveUp'}
+            <br />the second duel was tied too, so no one performs the action
+        {/if}
     {/if}
 {:else if isPlaceWall(action)}
     placed a wall
