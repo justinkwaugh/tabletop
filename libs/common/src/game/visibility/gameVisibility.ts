@@ -1,11 +1,15 @@
 import jsonpatch from 'fast-json-patch'
-import type { GameAction } from '../engine/gameAction.js'
+import * as Value from 'typebox/value'
+import { ActionSource, type GameAction } from '../engine/gameAction.js'
 import type {
     ActionCascadeResult,
     ActionResult,
     CanonicalActionCascade,
     CanonicalActionTransition
 } from '../engine/gameEngine.js'
+import { GameEngine } from '../engine/gameEngine.js'
+import type { GameRuntime } from '../definition/gameDefinition.js'
+import type { Game } from '../model/game.js'
 import type { GameState } from '../model/gameState.js'
 import { assert, assertExists } from '../../util/assertions.js'
 import type { ActionProjector } from './actionProjector.js'
@@ -17,6 +21,7 @@ export interface GameVisibility<
 > {
     readonly state: ValueProjector<State, ProjectedState>
     readonly actions: ActionProjector
+    readonly optimisticActionTypes?: readonly string[]
 }
 
 export interface VisibleActionCascade {
@@ -35,6 +40,12 @@ export interface ActionCascadeProjectionOptions<
 > {
     readonly visibility: GameVisibility<State, ProjectedState>
     readonly perspective: Perspective
+    readonly replay?: ActionReplayContext
+}
+
+export interface ActionReplayContext {
+    readonly game: Game
+    readonly runtime: GameRuntime
 }
 
 export interface ActionResultProjectionOptions<
@@ -44,6 +55,7 @@ export interface ActionResultProjectionOptions<
     readonly result: ActionCascadeResult<State>
     readonly visibility?: GameVisibility<State, ProjectedState>
     readonly perspective: Perspective
+    readonly replay?: ActionReplayContext
 }
 
 export interface ActionHistoryProjectionOptions<
@@ -59,17 +71,24 @@ export function projectActionCascade<State extends GameState, ProjectedState ext
     actionCascade: CanonicalActionCascade<State>,
     options: ActionCascadeProjectionOptions<State, ProjectedState>
 ): VisibleActionCascade {
-    let before = options.visibility.state.project(actionCascade.before, options.perspective)
-    const actions = actionCascade.transitions.map((transition) => {
+    const before = options.visibility.state.project(actionCascade.before, options.perspective)
+    const transitions: CanonicalActionTransition<ProjectedState>[] = []
+    let previous = before
+    for (const transition of actionCascade.transitions) {
         const after = options.visibility.state.project(transition.after, options.perspective)
         const action = options.visibility.actions.project(transition.action, options.perspective)
-        action.forwardPatch = jsonpatch.compare(before, after)
-        action.undoPatch = jsonpatch.compare(after, before)
-        before = after
-        return action
-    })
+        action.forwardPatch = jsonpatch.compare(previous, after)
+        action.undoPatch = jsonpatch.compare(after, previous)
+        transitions.push({ action, after })
+        previous = after
+    }
 
-    return { actions }
+    const projectedCascade = { before, transitions }
+    if (options.replay !== undefined && canReplayCascade(projectedCascade, options.replay)) {
+        return { actions: transitions.map(({ action }) => withoutForwardPatch(action)) }
+    }
+
+    return { actions: transitions.map(({ action }) => action) }
 }
 
 export function projectActionHistory<State extends GameState, ProjectedState extends GameState>(
@@ -111,21 +130,19 @@ export function projectActionHistory<State extends GameState, ProjectedState ext
         before = jsonpatch.applyPatch(structuredClone(before), undoPatch).newDocument
     }
 
-    const visibleActionCascade = projectActionCascade(
-        {
-            before,
-            transitions: reversedTransitions.toReversed()
-        },
-        {
-            visibility: options.visibility,
-            perspective: options.perspective
-        }
+    const actions = partitionActionCascades(before, reversedTransitions.toReversed()).flatMap(
+        (actionCascade) =>
+            projectActionCascade(actionCascade, {
+                visibility: options.visibility,
+                perspective: options.perspective,
+                replay: options.replay
+            }).actions
     )
 
     return {
         startIndex,
         currentState: options.visibility.state.project(options.currentState, options.perspective),
-        actions: visibleActionCascade.actions
+        actions
     }
 }
 
@@ -155,7 +172,8 @@ export function projectActionResult<State extends GameState, ProjectedState exte
 
     const visibleActionCascade = projectActionCascade(result.actionCascade, {
         visibility,
-        perspective
+        perspective,
+        replay: options.replay
     })
 
     return {
@@ -163,4 +181,92 @@ export function projectActionResult<State extends GameState, ProjectedState exte
         updatedState: visibility.state.project(result.updatedState, perspective),
         indexOffset: result.indexOffset
     }
+}
+
+function partitionActionCascades<State extends GameState>(
+    before: State,
+    transitions: readonly CanonicalActionTransition<State>[]
+): CanonicalActionCascade<State>[] {
+    const actionCascades: CanonicalActionCascade<State>[] = []
+    let cascadeBefore = before
+    let previousAfter = before
+    let cascadeTransitions: CanonicalActionTransition<State>[] = []
+
+    for (const transition of transitions) {
+        if (transition.action.source === ActionSource.User && cascadeTransitions.length > 0) {
+            actionCascades.push({ before: cascadeBefore, transitions: cascadeTransitions })
+            cascadeBefore = previousAfter
+            cascadeTransitions = []
+        }
+        cascadeTransitions.push(transition)
+        previousAfter = transition.after
+    }
+
+    if (cascadeTransitions.length > 0) {
+        actionCascades.push({ before: cascadeBefore, transitions: cascadeTransitions })
+    }
+    return actionCascades
+}
+
+function canReplayCascade(
+    actionCascade: CanonicalActionCascade<GameState>,
+    replay: ActionReplayContext
+): boolean {
+    const firstTransition = actionCascade.transitions[0]
+    if (firstTransition?.action.source !== ActionSource.User) {
+        return false
+    }
+
+    const engine = new GameEngine(replay.runtime)
+    try {
+        const executed = engine.executeAction({
+            action: firstTransition.action,
+            state: actionCascade.before,
+            game: replay.game
+        })
+        if (executed.actionCascade.transitions.length !== actionCascade.transitions.length) {
+            return false
+        }
+
+        for (const [index, expected] of actionCascade.transitions.entries()) {
+            const actual = executed.actionCascade.transitions[index]
+            if (
+                actual === undefined ||
+                !Value.Equal(comparableAction(actual.action), comparableAction(expected.action)) ||
+                !Value.Equal(actual.after, expected.after)
+            ) {
+                return false
+            }
+        }
+
+        let replayedState = structuredClone(actionCascade.before)
+        for (const transition of actionCascade.transitions) {
+            replayedState = engine.applyProcessedAction({
+                action: withoutForwardPatch(transition.action),
+                state: replayedState,
+                game: replay.game
+            })
+            if (!Value.Equal(replayedState, transition.after)) {
+                return false
+            }
+        }
+        return true
+    } catch {
+        return false
+    }
+}
+
+function comparableAction(action: GameAction): GameAction {
+    const comparable = structuredClone(action)
+    delete comparable.undoPatch
+    delete comparable.forwardPatch
+    delete comparable.createdAt
+    delete comparable.updatedAt
+    return comparable
+}
+
+function withoutForwardPatch(action: GameAction): GameAction {
+    const replayable = structuredClone(action)
+    delete replayable.forwardPatch
+    return replayable
 }

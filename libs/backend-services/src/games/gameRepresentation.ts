@@ -7,6 +7,7 @@ import {
     type CanonicalActionReplay,
     type Game,
     type GameAction,
+    type GameRuntime,
     type GameState,
     type GameWithoutState,
     GameSyncStatus,
@@ -77,12 +78,14 @@ export function createGameRepresentation({
     game,
     actions,
     hostView = false,
+    runtime,
     visibility,
     user
 }: {
     game: Game
     actions: GameAction[]
     hostView?: boolean
+    runtime?: GameRuntime
     visibility?: Visibility.GameVisibility<GameState>
     user: User
 }): GameRepresentation {
@@ -103,7 +106,8 @@ export function createGameRepresentation({
         currentState: game.state,
         actions,
         visibility,
-        perspective
+        perspective,
+        replay: createActionReplayContext(game, runtime)
     })
     const projectedGame = structuredClone(game)
     projectedGame.state = history.currentState
@@ -119,12 +123,14 @@ export function createGameSyncRepresentation({
     game,
     status,
     actions,
+    runtime,
     visibility,
     user
 }: {
     game: Game
     status: GameSyncStatus
     actions: GameAction[]
+    runtime?: GameRuntime
     visibility?: Visibility.GameVisibility<GameState>
     user: User
 }): GameSyncRepresentation {
@@ -140,7 +146,8 @@ export function createGameSyncRepresentation({
         actions,
         startIndex: currentState.actionCount - actions.length,
         visibility,
-        perspective: derivePerspective({ game, user })
+        perspective: derivePerspective({ game, user }),
+        replay: createActionReplayContext(game, runtime)
     })
 
     return {
@@ -155,6 +162,7 @@ export function createUndoResultsRepresentation({
     actionReplay,
     undoneActions,
     redoneActions,
+    runtime,
     visibility,
     user
 }: {
@@ -162,6 +170,7 @@ export function createUndoResultsRepresentation({
     actionReplay: ProcessedActionReplay
     undoneActions: GameAction[]
     redoneActions: GameAction[]
+    runtime?: GameRuntime
     visibility?: Visibility.GameVisibility<GameState>
     user: User
 }): UndoResultsRepresentation {
@@ -181,6 +190,7 @@ export function createUndoResultsRepresentation({
         game,
         actionReplay,
         redoneActions,
+        runtime,
         visibility,
         perspective: derivePerspective({ game, user })
     })
@@ -190,12 +200,14 @@ export function createUndoResultsRepresentationForPerspective({
     game,
     actionReplay,
     redoneActions,
+    runtime,
     visibility,
     perspective
 }: {
     game: Game
     actionReplay: ProcessedActionReplay
     redoneActions: GameAction[]
+    runtime?: GameRuntime
     visibility: Visibility.GameVisibility<GameState>
     perspective: Visibility.Perspective
 }): UndoResultsRepresentation {
@@ -205,7 +217,8 @@ export function createUndoResultsRepresentationForPerspective({
         actions: actionReplay.actions,
         startIndex: actionReplay.startIndex,
         visibility,
-        perspective
+        perspective,
+        replay: createActionReplayContext(game, runtime)
     })
     const projectedReplay: ProcessedActionReplay = {
         startIndex: projectedHistory.startIndex,
@@ -236,6 +249,7 @@ export function createActionResultsRepresentation({
     storedActions,
     missingActions,
     priorState,
+    runtime,
     visibility,
     user
 }: {
@@ -244,6 +258,7 @@ export function createActionResultsRepresentation({
     storedActions: GameAction[]
     missingActions: GameAction[]
     priorState: GameState
+    runtime?: GameRuntime
     visibility?: Visibility.GameVisibility<GameState>
     user: User
 }): ActionResultsRepresentation {
@@ -263,6 +278,7 @@ export function createActionResultsRepresentation({
         storedActions,
         missingActions,
         priorState,
+        runtime,
         visibility,
         perspective: derivePerspective({ game, user })
     })
@@ -274,6 +290,7 @@ export function createActionResultsRepresentationForPerspective({
     storedActions,
     missingActions,
     priorState,
+    runtime,
     visibility,
     perspective
 }: {
@@ -282,6 +299,7 @@ export function createActionResultsRepresentationForPerspective({
     storedActions: GameAction[]
     missingActions: GameAction[]
     priorState: GameState
+    runtime?: GameRuntime
     visibility: Visibility.GameVisibility<GameState>
     perspective: Visibility.Perspective
 }): ActionResultsRepresentation {
@@ -316,7 +334,8 @@ export function createActionResultsRepresentationForPerspective({
     const projectedResult = Visibility.projectActionResult({
         result: storedResult,
         visibility,
-        perspective
+        perspective,
+        replay: createActionReplayContext(game, runtime)
     })
 
     let projectedMissingActions: GameAction[] | undefined
@@ -326,7 +345,8 @@ export function createActionResultsRepresentationForPerspective({
             actions: orderedMissingActions,
             startIndex: priorState.actionCount - orderedMissingActions.length,
             visibility,
-            perspective
+            perspective,
+            replay: createActionReplayContext(game, runtime)
         })
         projectedMissingActions = [...history.actions]
     }
@@ -361,6 +381,13 @@ function createLegacyCompatibleReplay(actionReplay: ProcessedActionReplay): Cano
 
 function orderActions(actions: GameAction[]): GameAction[] {
     return actions.toSorted((left, right) => (left.index ?? 0) - (right.index ?? 0))
+}
+
+function createActionReplayContext(
+    game: Game,
+    runtime?: GameRuntime
+): Visibility.ActionReplayContext | undefined {
+    return runtime === undefined ? undefined : { game, runtime }
 }
 
 function derivePerspective({ game, user }: { game: Game; user: User }): Visibility.Perspective {

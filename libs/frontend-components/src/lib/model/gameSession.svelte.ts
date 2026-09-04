@@ -761,8 +761,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         const relevantContext = this.currentModifiableContext
-        const requiresAuthoritativeApplication =
-            this.requiresServerAuthoritativeProcessing(relevantContext)
+        const requiresAuthoritativeApplication = this.requiresServerAuthoritativeProcessing(
+            relevantContext,
+            action
+        )
 
         // Clone to avoid mutation issues
         action = structuredClone($state.snapshot(action))
@@ -825,6 +827,19 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 )
 
                 let applyServerActions = actionResults.revealing
+                if (
+                    !actionResults.revealing &&
+                    (serverActions.some(
+                        (serverAction) => serverAction.forwardPatch !== undefined
+                    ) ||
+                        !this.matchesProcessedActionTrace(
+                            actionResults.processedActions,
+                            serverActions
+                        ))
+                ) {
+                    relevantContext.restoreFrom(priorContext)
+                    applyServerActions = true
+                }
 
                 // Check to see if our server assigned index is less than what we calculated
                 // If so, then that means our action was accepted but something was undone that we did
@@ -1508,11 +1523,37 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return perspective.playerId === player?.id
     }
 
-    private requiresServerAuthoritativeProcessing(context: GameContext<T, U>): boolean {
+    private requiresServerAuthoritativeProcessing(
+        context: GameContext<T, U>,
+        action?: GameAction
+    ): boolean {
+        const visibility = this.runtime.visibility
+        if (
+            context.game.storage !== GameStorage.Remote ||
+            context.game.hotseat ||
+            visibility === undefined
+        ) {
+            return false
+        }
+        return action === undefined || !visibility.optimisticActionTypes?.includes(action.type)
+    }
+
+    private matchesProcessedActionTrace(
+        localActions: readonly GameAction[],
+        serverActions: readonly GameAction[]
+    ): boolean {
         return (
-            context.game.storage === GameStorage.Remote &&
-            !context.game.hotseat &&
-            this.runtime.visibility !== undefined
+            localActions.length === serverActions.length &&
+            localActions.every((localAction, index) => {
+                const serverAction = serverActions[index]
+                return (
+                    serverAction !== undefined &&
+                    localAction.id === serverAction.id &&
+                    localAction.index === serverAction.index &&
+                    localAction.source === serverAction.source &&
+                    localAction.type === serverAction.type
+                )
+            })
         )
     }
 

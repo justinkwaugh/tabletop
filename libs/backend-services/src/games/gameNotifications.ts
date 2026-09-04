@@ -10,6 +10,7 @@ import {
     type Game,
     type GameAction,
     type GameNotificationData,
+    type GameRuntime,
     type GameState,
     type Notification,
     omitGameState,
@@ -45,6 +46,7 @@ export async function publishActionResults({
     result,
     storedActions,
     priorState,
+    runtime,
     visibility,
     notificationService
 }: {
@@ -52,6 +54,7 @@ export async function publishActionResults({
     result: ActionCascadeResult
     storedActions: GameAction[]
     priorState: GameState
+    runtime?: GameRuntime
     visibility?: Visibility.GameVisibility<GameState>
     notificationService: NotificationSender
 }): Promise<void> {
@@ -78,6 +81,7 @@ export async function publishActionResults({
             storedActions,
             missingActions: [],
             priorState,
+            runtime,
             visibility,
             perspective
         })
@@ -101,6 +105,7 @@ export async function publishUndoResults({
     actionReplay,
     actionToUndo,
     redoneActions,
+    runtime,
     visibility,
     notificationService
 }: {
@@ -108,6 +113,7 @@ export async function publishUndoResults({
     actionReplay: ProcessedActionReplay
     actionToUndo: GameAction
     redoneActions: GameAction[]
+    runtime?: GameRuntime
     visibility?: Visibility.GameVisibility<GameState>
     notificationService: NotificationSender
 }): Promise<void> {
@@ -145,6 +151,7 @@ export async function publishUndoResults({
             game,
             actionReplay,
             redoneActions,
+            runtime,
             visibility,
             perspective
         })

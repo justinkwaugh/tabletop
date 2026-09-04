@@ -42,6 +42,7 @@ export type {
 export type {
     ActionCascadeProjectionOptions,
     ActionHistoryProjectionOptions,
+    ActionReplayContext,
     ActionResultProjectionOptions,
     GameVisibility,
     VisibleActionCascade,

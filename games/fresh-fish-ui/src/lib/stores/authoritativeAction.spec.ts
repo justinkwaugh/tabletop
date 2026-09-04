@@ -12,7 +12,8 @@ import {
     type GameAction,
     type GameAddProjectedActionsNotification,
     type GameState,
-    type HydratedGameState
+    type HydratedGameState,
+    type OffsetTupleCoordinates
 } from '@tabletop/common'
 import {
     BridgedContext,
@@ -23,6 +24,7 @@ import {
 } from '@tabletop/frontend-components'
 import {
     Definition,
+    CellType,
     FreshFishRuntime,
     TileType,
     type FreshFishGameState
@@ -99,6 +101,17 @@ function gameWithoutState(game: Game, state: FreshFishGameState): Game {
     return responseGame
 }
 
+function findEmptyCoords(state: FreshFishGameState): OffsetTupleCoordinates {
+    for (const [row, cells] of state.board.cells.entries()) {
+        for (const [column, cell] of cells.entries()) {
+            if (cell.type === CellType.Empty) {
+                return [column, row]
+            }
+        }
+    }
+    throw Error('Expected an empty board cell')
+}
+
 beforeEach(() => {
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
 })
@@ -107,7 +120,107 @@ afterEach(() => {
     vi.restoreAllMocks()
 })
 
-describe('server-authoritative Actions', () => {
+describe('projected hosted Actions', () => {
+    test.each([
+        { responseMode: 'replayable', classifyReplay: true },
+        { responseMode: 'forward-patched', classifyReplay: false }
+    ])(
+        'applies an approved public Action before a $responseMode server response',
+        async ({ classifyReplay }) => {
+            const started = createStartedGame()
+            const perspective = { kind: 'player', playerId: started.playerId } as const
+            let hostState = structuredClone(started.state)
+            const projectedState = FreshFishRuntime.visibility.state.project(hostState, perspective)
+            const appContext = createHarnessAppContext(HARNESS_DEFINITION)
+            const bridgedContext = new BridgedContext({
+                authorizationService: appContext.authorizationService,
+                gameService: appContext.gameService,
+                chatService: appContext.chatService,
+                gameId: GAME_ID
+            })
+            const hostEngine = new GameEngine(FreshFishRuntime)
+            let releaseServer: (() => void) | undefined
+            const serverGate = new Promise<void>((resolve) => {
+                releaseServer = resolve
+            })
+            let representedActions: GameAction[] = []
+            const applyAction = vi
+                .spyOn(appContext.api, 'applyAction')
+                .mockImplementation(async (_game, action) => {
+                    const result = hostEngine.executeAction({
+                        action,
+                        state: hostState,
+                        game: started.game
+                    })
+                    hostState = result.updatedState
+                    const representation = classifyReplay
+                        ? Visibility.projectActionResult({
+                              result,
+                              visibility: FreshFishRuntime.visibility,
+                              perspective,
+                              replay: { game: started.game, runtime: FreshFishRuntime }
+                          })
+                        : Visibility.projectActionResult({
+                              result,
+                              visibility: FreshFishRuntime.visibility,
+                              perspective
+                          })
+                    representedActions = representation.processedActions
+                    await serverGate
+                    return {
+                        actions: representation.processedActions,
+                        game: gameWithoutState(started.game, hostState)
+                    }
+                })
+            const checkSync = vi.spyOn(appContext.api, 'checkSync')
+            const session = new FreshFishGameSession({
+                gameService: appContext.gameService,
+                bridgedContext,
+                notificationService: appContext.notificationService,
+                chatService: appContext.chatService,
+                api: appContext.api,
+                runtime: FreshFishUiRuntime,
+                game: structuredClone(started.game),
+                state: projectedState,
+                actions: []
+            })
+
+            try {
+                const action = session.createPlaceDiskAction(findEmptyCoords(projectedState))
+                const pendingApplication = session.applyAction(action)
+
+                expect(applyAction).toHaveBeenCalledOnce()
+                expect(session.history.visibleContext.state.actionCount).toBe(
+                    projectedState.actionCount + 1
+                )
+                expect(session.history.visibleContext.actions.map(({ id }) => id)).toContain(
+                    action.id
+                )
+                expect(representedActions).not.toEqual([])
+                expect(
+                    representedActions.every(
+                        (representedAction) => representedAction.forwardPatch === undefined
+                    )
+                ).toBe(classifyReplay)
+
+                if (releaseServer === undefined) {
+                    throw Error('The server response gate was not initialized')
+                }
+                releaseServer()
+                await pendingApplication
+                await session.waitForVisibleTransitionSettled()
+
+                expect(session.history.visibleContext.state).toEqual(
+                    FreshFishRuntime.visibility.state.project(hostState, perspective)
+                )
+                expect(checkSync).not.toHaveBeenCalled()
+            } finally {
+                session.dispose()
+                bridgedContext.dispose()
+            }
+        }
+    )
+
     test('applies a projected DrawTile result without executing against the redacted bag', async () => {
         const started = createStartedGame()
         const perspective = { kind: 'player', playerId: started.playerId } as const
@@ -123,6 +236,10 @@ describe('server-authoritative Actions', () => {
             gameId: GAME_ID
         })
         const hostEngine = new GameEngine(FreshFishRuntime)
+        let releaseServer: (() => void) | undefined
+        const serverGate = new Promise<void>((resolve) => {
+            releaseServer = resolve
+        })
         const applyAction = vi
             .spyOn(appContext.api, 'applyAction')
             .mockImplementation(async (_game, action) => {
@@ -135,8 +252,10 @@ describe('server-authoritative Actions', () => {
                 const representation = Visibility.projectActionResult({
                     result,
                     visibility: FreshFishRuntime.visibility,
-                    perspective
+                    perspective,
+                    replay: { game: started.game, runtime: FreshFishRuntime }
                 })
+                await serverGate
                 return {
                     actions: representation.processedActions,
                     game: gameWithoutState(started.game, hostState)
@@ -161,7 +280,16 @@ describe('server-authoritative Actions', () => {
             const action = session.createDrawTileAction()
             expect(action.source).toBe(ActionSource.User)
 
-            await session.applyAction(action)
+            const pendingApplication = session.applyAction(action)
+            expect(applyAction).toHaveBeenCalledOnce()
+            expect(session.history.visibleContext.state).toEqual(projectedState)
+            expect(session.history.visibleContext.actions).toEqual([])
+
+            if (releaseServer === undefined) {
+                throw Error('The server response gate was not initialized')
+            }
+            releaseServer()
+            await pendingApplication
             await session.waitForVisibleTransitionSettled()
 
             const expectedState = FreshFishRuntime.visibility.state.project(hostState, perspective)
@@ -223,12 +351,14 @@ describe('server-authoritative Actions', () => {
             const spectatorResult = Visibility.projectActionResult({
                 result,
                 visibility: FreshFishRuntime.visibility,
-                perspective: spectatorPerspective
+                perspective: spectatorPerspective,
+                replay: { game: started.game, runtime: FreshFishRuntime }
             })
             const playerResult = Visibility.projectActionResult({
                 result,
                 visibility: FreshFishRuntime.visibility,
-                perspective: playerPerspective
+                perspective: playerPerspective,
+                replay: { game: started.game, runtime: FreshFishRuntime }
             })
             const spectatorNotification: GameAddProjectedActionsNotification = {
                 id: 'spectator-notification',
@@ -314,7 +444,8 @@ describe('server-authoritative Actions', () => {
                 currentState: result.updatedState,
                 actions: result.processedActions,
                 visibility: FreshFishRuntime.visibility,
-                perspective
+                perspective,
+                replay: { game: started.game, runtime: FreshFishRuntime }
             })
             const checkSync = vi.spyOn(appContext.api, 'checkSync').mockResolvedValue({
                 status: GameSyncStatus.InSync,

@@ -386,6 +386,7 @@ export class GameService {
             game,
             actions,
             hostView,
+            runtime: definition.runtime,
             visibility: definition.runtime.visibility,
             user
         })
@@ -475,6 +476,7 @@ export class GameService {
             game,
             status: syncStatus,
             actions,
+            runtime: definition.runtime,
             visibility: definition.runtime.visibility,
             user
         })
@@ -971,6 +973,7 @@ export class GameService {
             storedActions,
             missingActions: relatedActions,
             priorState,
+            runtime: definition.runtime,
             visibility: definition.runtime.visibility,
             user
         })
@@ -980,6 +983,7 @@ export class GameService {
             result: actionResult,
             storedActions,
             priorState,
+            runtime: definition.runtime,
             visibility: definition.runtime.visibility,
             notificationService: this.notificationService
         })
@@ -1185,6 +1189,7 @@ export class GameService {
             actionReplay,
             undoneActions,
             redoneActions: processedRedoneActions,
+            runtime: definition.runtime,
             visibility: definition.runtime.visibility,
             user
         })
@@ -1194,6 +1199,7 @@ export class GameService {
             actionReplay,
             actionToUndo,
             redoneActions: processedRedoneActions,
+            runtime: definition.runtime,
             visibility: definition.runtime.visibility,
             notificationService: this.notificationService
         })

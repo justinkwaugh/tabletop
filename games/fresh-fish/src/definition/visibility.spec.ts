@@ -16,8 +16,10 @@ import { describe, expect, expectTypeOf, it } from 'vitest'
 import { TileBag, TileBagProjection } from '../components/tileBag.js'
 import { FreshFishGameState, FreshFishGameStateProjection } from '../model/gameState.js'
 import { PlaceBid, PlaceBidProjection } from '../actions/placeBid.js'
+import type { PlaceDisk } from '../actions/placeDisk.js'
 import { ActionType } from './actions.js'
 import { TileType } from '../components/tiles.js'
+import { CellType } from '../components/cells.js'
 import { MachineState } from './states.js'
 import { generateTestState } from '../util/testHelper.js'
 import { FreshFishRuntime } from './runtime.js'
@@ -61,6 +63,15 @@ function createGame(state: FreshFishGameState): Game {
         winningPlayerIds: [],
         createdAt: new Date(0)
     }
+}
+
+function findEmptyCoords(state: ReturnType<typeof generateTestState>): PlaceDisk['coords'] {
+    for (const candidate of state.board) {
+        if (candidate.cell.type === CellType.Empty) {
+            return candidate.coords
+        }
+    }
+    throw Error('Expected an empty board cell')
 }
 
 describe('Fresh Fish visibility', () => {
@@ -393,7 +404,8 @@ describe('Fresh Fish visibility', () => {
         const visibleResult = Visibility.projectActionResult({
             result,
             visibility: FreshFishRuntime.visibility,
-            perspective
+            perspective,
+            replay: { game, runtime: FreshFishRuntime }
         })
         expect(visibleResult.processedActions.map((visibleAction) => visibleAction.type)).toEqual([
             ActionType.PlaceBid,
@@ -418,13 +430,28 @@ describe('Fresh Fish visibility', () => {
                 currentState: result.updatedState,
                 actions: result.processedActions,
                 visibility: FreshFishRuntime.visibility,
-                perspective
+                perspective,
+                replay: { game, runtime: FreshFishRuntime }
             })
         ).toEqual({
             startIndex: 0,
             currentState: visibleResult.updatedState,
             actions: visibleResult.processedActions
         })
+
+        const projectedSystemSuffix = Visibility.projectActionHistory({
+            currentState: result.updatedState,
+            actions: result.processedActions.slice(1),
+            startIndex: 1,
+            visibility: FreshFishRuntime.visibility,
+            perspective,
+            replay: { game, runtime: FreshFishRuntime }
+        })
+        expect(
+            projectedSystemSuffix.actions.every(
+                (visibleAction) => visibleAction.forwardPatch !== undefined
+            )
+        ).toBe(true)
 
         const visibleBefore = FreshFishRuntime.visibility.state.project(before, perspective)
         const firstVisibleAction = visibleResult.processedActions[0]
@@ -457,6 +484,81 @@ describe('Fresh Fish visibility', () => {
 
         const rebuiltAction = engine.rebuildProcessedAction({ action, state: before, game })
         expect(rebuiltAction.processedActions).toHaveLength(1)
+    })
+
+    it('omits forward patches after proving a public cascade replayable', () => {
+        const state = generateTestState({ numPlayers: 3 })
+        const playerId = state.turnManager.startNextTurn(state.actionCount)
+        state.activePlayerIds = [playerId]
+
+        const before = state.dehydrate()
+        const game = createGame(before)
+        const action: PlaceDisk = {
+            id: 'place-disk-1',
+            gameId: before.gameId,
+            source: ActionSource.User,
+            type: ActionType.PlaceDisk,
+            playerId,
+            coords: findEmptyCoords(state)
+        }
+        const engine = new GameEngine(FreshFishRuntime)
+        const result = engine.executeAction({ action, state: before, game })
+        const perspective: Visibility.Perspective = { kind: 'player', playerId }
+
+        const visibleResult = Visibility.projectActionResult({
+            result,
+            visibility: FreshFishRuntime.visibility,
+            perspective,
+            replay: { game, runtime: FreshFishRuntime }
+        })
+        const visibleAction = visibleResult.processedActions[0]
+        if (visibleAction === undefined) {
+            throw Error('Expected a projected PlaceDisk Action')
+        }
+
+        expect(visibleResult.processedActions).toHaveLength(1)
+        expect(visibleAction.forwardPatch).toBeUndefined()
+        expect(visibleAction.undoPatch).toBeDefined()
+        expect(
+            engine.applyProcessedAction({
+                action: visibleAction,
+                state: FreshFishRuntime.visibility.state.project(before, perspective),
+                game
+            })
+        ).toEqual(FreshFishRuntime.visibility.state.project(result.updatedState, perspective))
+
+        const secondState = FreshFishRuntime.hydrator.hydrateState(result.updatedState)
+        const secondPlayerId = secondState.activePlayerIds[0]
+        if (secondPlayerId === undefined) {
+            throw Error('Expected a second active Player')
+        }
+        const secondAction: PlaceDisk = {
+            id: 'place-disk-2',
+            gameId: before.gameId,
+            source: ActionSource.User,
+            type: ActionType.PlaceDisk,
+            playerId: secondPlayerId,
+            coords: findEmptyCoords(secondState)
+        }
+        const secondResult = engine.executeAction({
+            action: secondAction,
+            state: result.updatedState,
+            game
+        })
+        const projectedHistory = Visibility.projectActionHistory({
+            currentState: secondResult.updatedState,
+            actions: [...result.processedActions, ...secondResult.processedActions],
+            visibility: FreshFishRuntime.visibility,
+            perspective,
+            replay: { game, runtime: FreshFishRuntime }
+        })
+
+        expect(projectedHistory.actions).toHaveLength(2)
+        expect(
+            projectedHistory.actions.every(
+                (historyAction) => historyAction.forwardPatch === undefined
+            )
+        ).toBe(true)
     })
 
     it('carries the bag and bid declarations into the full state projection', () => {

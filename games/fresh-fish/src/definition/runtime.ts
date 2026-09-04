@@ -7,6 +7,7 @@ import { FreshFishActionSchemas } from './actionSchemas.js'
 import { FreshFishApiActions } from './apiActions.js'
 import { FreshFishStateHandlers } from './stateHandlers.js'
 import { FreshFishColors } from './colors.js'
+import { ActionType } from './actions.js'
 
 export const FreshFishRuntime = {
     initializer: new FreshFishGameInitializer(),
@@ -17,6 +18,12 @@ export const FreshFishRuntime = {
     stateLogger: new FreshFishStateLogger(),
     visibility: {
         state: Visibility.createProjector(FreshFishGameState),
-        actions: Visibility.createActionProjector(FreshFishActionSchemas)
+        actions: Visibility.createActionProjector(FreshFishActionSchemas),
+        optimisticActionTypes: [
+            ActionType.PlaceDisk,
+            ActionType.PlaceMarket,
+            ActionType.PlaceStall,
+            ActionType.Pass
+        ]
     }
 } satisfies GameRuntime<FreshFishGameState, HydratedFreshFishGameState>
