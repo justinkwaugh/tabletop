@@ -878,3 +878,107 @@ describe('A6: Processed Action metadata contains secrets', () => {
         }
     })
 })
+
+describe('A7 / A8 / U6: visible undo patches never expose canonical undo', () => {
+    it('derives secret-sensitive undo per perspective even when another visible undo matches canonically', () => {
+        const privateScenario = createPrivateTransferScenario()
+        const privateEngine = new GameEngine(privateScenario.runtime)
+        const privateResult = privateEngine.executeAction({
+            action: privateScenario.stealTopCard,
+            state: privateScenario.before,
+            game: privateScenario.game
+        })
+        const canonicalPrivateAction = privateResult.processedActions[0]
+        const canonicalPrivateUndo = canonicalPrivateAction?.undoPatch
+        if (canonicalPrivateAction === undefined || canonicalPrivateUndo === undefined) {
+            throw Error('Expected the canonical private-transfer undo patch')
+        }
+        expect(JSON.stringify(canonicalPrivateUndo)).toContain('transferred-card')
+        expect(JSON.stringify(canonicalPrivateUndo)).toContain('target-card')
+
+        const permittedUndoCards: Readonly<Record<string, readonly string[]>> = {
+            [PlayerIds[0]]: ['actor-card', 'transferred-card'],
+            [PlayerIds[1]]: ['target-card', 'transferred-card'],
+            [PlayerIds[2]]: ['observer-card'],
+            [PlayerIds[3]]: ['fourth-player-card']
+        }
+        for (const perspective of perspectives) {
+            const visibleBefore = privateScenario.runtime.visibility.state.project(
+                privateScenario.before,
+                perspective
+            )
+            const visibleResult = Visibility.projectActionResult({
+                result: privateResult,
+                visibility: privateScenario.runtime.visibility,
+                perspective,
+                replay: { game: privateScenario.game, runtime: privateScenario.runtime }
+            })
+            const visibleAction = visibleResult.processedActions[0]
+            const visibleUndo = visibleAction?.undoPatch
+            if (visibleAction === undefined || visibleUndo === undefined) {
+                throw Error('Expected the projected private-transfer undo patch')
+            }
+
+            expect(visibleUndo).not.toBe(canonicalPrivateUndo)
+            const permittedCards = new Set(
+                perspective.kind === 'player' ? permittedUndoCards[perspective.playerId] : []
+            )
+            const serializedUndo = JSON.stringify(visibleUndo)
+            for (const card of [
+                'actor-card',
+                'transferred-card',
+                'target-card',
+                'observer-card',
+                'fourth-player-card',
+                'stock-card'
+            ]) {
+                if (!permittedCards.has(card)) {
+                    expect(serializedUndo).not.toContain(card)
+                }
+            }
+            expect(
+                privateEngine.undoProcessedAction({
+                    action: visibleAction,
+                    state: visibleResult.updatedState
+                })
+            ).toEqual(visibleBefore)
+        }
+
+        const publicScenario = createSelectiveRevealScenario()
+        const publicEngine = new GameEngine(publicScenario.runtime)
+        const revealResult = publicEngine.executeAction({
+            action: publicScenario.revealCard,
+            state: publicScenario.before,
+            game: publicScenario.game
+        })
+        const completeResult = publicEngine.executeAction({
+            action: publicScenario.completeGame,
+            state: revealResult.updatedState,
+            game: publicScenario.game
+        })
+        const canonicalCompleteAction = completeResult.processedActions[0]
+        const canonicalCompleteUndo = canonicalCompleteAction?.undoPatch
+        if (canonicalCompleteAction === undefined || canonicalCompleteUndo === undefined) {
+            throw Error('Expected the canonical completion undo patch')
+        }
+
+        for (const perspective of perspectives) {
+            const visibleCompleteResult = Visibility.projectActionResult({
+                result: completeResult,
+                visibility: publicScenario.runtime.visibility,
+                perspective,
+                replay: { game: publicScenario.game, runtime: publicScenario.runtime }
+            })
+            const visibleCompleteAction = visibleCompleteResult.processedActions[0]
+            const visibleCompleteUndo = visibleCompleteAction?.undoPatch
+            if (visibleCompleteAction === undefined || visibleCompleteUndo === undefined) {
+                throw Error('Expected the projected completion undo patch')
+            }
+
+            expect(visibleCompleteAction).not.toBe(canonicalCompleteAction)
+            expect(visibleCompleteUndo).toHaveLength(canonicalCompleteUndo.length)
+            expect(visibleCompleteUndo).toEqual(expect.arrayContaining(canonicalCompleteUndo))
+            expect(visibleCompleteUndo).not.toBe(canonicalCompleteUndo)
+        }
+    })
+})
