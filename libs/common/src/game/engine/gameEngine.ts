@@ -14,6 +14,7 @@ import { nanoid } from 'nanoid'
 import { generateSeed } from '../../util/prng.js'
 import { assert, assertExists } from '../../util/assertions.js'
 import type { Perspective } from '../visibility/valueProjector.js'
+import { isRedactedAction, UnavailableProjectedActionError } from '../visibility/actionProjector.js'
 
 export type ActionResult<T extends GameState = GameState> = {
     processedActions: GameAction[]
@@ -149,6 +150,10 @@ export class GameEngine<
     }
 
     applyProcessedAction({ action, state, game }: { action: GameAction; state: T; game: Game }): T {
+        if (isRedactedAction(action)) {
+            assertExists(action.forwardPatch, 'Redacted Action record requires a forward patch')
+            return this.applyStatePatch(state, action.forwardPatch)
+        }
         if (action.forwardPatch !== undefined) {
             return this.applyStatePatch(state, action.forwardPatch)
         }
@@ -213,6 +218,10 @@ export class GameEngine<
         processGeneratedActions: boolean
         perspective?: Perspective
     }): RuntimeExecution<T> {
+        if (isRedactedAction(action)) {
+            throw Error('Redacted Action records cannot be executed by game rules')
+        }
+
         const processedActions: GameAction[] = []
         const transitions: CanonicalActionTransition<T>[] = []
         let updatedState = structuredClone(state)
@@ -249,6 +258,7 @@ export class GameEngine<
                 this.isPlayerAllowed(currentAction, hydratedState),
                 `Player ${currentAction.playerId} is not an active player`
             )
+            this.assertActionAvailableToPerspective(currentAction, perspective)
 
             const hydratedAction = this.runtime.hydrator.hydrateAction(
                 structuredClone(currentAction)
@@ -305,6 +315,20 @@ export class GameEngine<
         return perspective !== undefined && this.runtime.visibility !== undefined
             ? this.runtime.visibility.state.guardForExecution(state, perspective)
             : state
+    }
+
+    private assertActionAvailableToPerspective(
+        action: GameAction,
+        perspective?: Perspective
+    ): void {
+        if (perspective === undefined || this.runtime.visibility === undefined) {
+            return
+        }
+
+        const projected = this.runtime.visibility.actions.project(action, perspective)
+        if (isRedactedAction(projected)) {
+            throw new UnavailableProjectedActionError(action.type)
+        }
     }
 
     private sanitizeUnprocessedAction(action: GameAction): GameAction {

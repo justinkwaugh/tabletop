@@ -513,6 +513,50 @@ describe('game visibility', () => {
         })
     })
 
+    it('protects a complete Action while preserving its canonical schema for its actor', () => {
+        const projector = Visibility.createActionProjector({
+            [ActionType]: Visibility.protectAction(ChangeValue, {
+                policy: Visibility.Policy.Actor
+            })
+        })
+        const action: Type.Static<typeof ChangeValue> = {
+            id: 'action-4',
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: ActionType,
+            playerId: 'player-1',
+            index: 3,
+            simultaneousGroupId: 'group-1',
+            revealsInfo: true,
+            skipOptimisticExecution: true,
+            publicValue: 'semantic-payload',
+            secretValue: 'host-only-payload'
+        }
+
+        expect(projector.project(action, { kind: 'player', playerId: 'player-1' })).toEqual({
+            id: 'action-4',
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: ActionType,
+            playerId: 'player-1',
+            index: 3,
+            simultaneousGroupId: 'group-1',
+            revealsInfo: true,
+            skipOptimisticExecution: true,
+            publicValue: 'semantic-payload'
+        })
+        expect(projector.project(action, { kind: 'player', playerId: 'player-2' })).toEqual({
+            id: 'action-4',
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: Visibility.RedactedActionType,
+            playerId: 'player-1',
+            index: 3,
+            simultaneousGroupId: 'group-1',
+            revealsInfo: true
+        })
+    })
+
     it('declares canonical Action patches as host-only engine data', () => {
         expect(GameAction.properties.undoPatch[Visibility.MetadataKey]).toEqual({
             policy: Visibility.Policy.HostOnly,

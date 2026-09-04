@@ -13,7 +13,14 @@ export {
     Perspective,
     UnavailableProjectedValueError
 } from './valueProjector.js'
-export { createActionProjector } from './actionProjector.js'
+export {
+    createActionProjector,
+    isRedactedAction,
+    isUnavailableProjectedActionError,
+    protectAction,
+    RedactedActionType,
+    UnavailableProjectedActionError
+} from './actionProjector.js'
 export {
     projectActionCascade,
     projectActionHistory,

@@ -654,23 +654,22 @@ const policies = {
     [TeamSecretPolicy]: canViewTeamSecret
 }
 
+const actionSchemas = {
+    [ActionType.StartRound]: StartRound,
+    [ActionType.DealCards]: DealCards,
+    [ActionType.PeekTopCard]: PeekTopCard,
+    [ActionType.DrawTopCard]: DrawTopCard,
+    [ActionType.EndRound]: EndRound,
+    [ActionType.ForgetKnownCards]: ForgetKnownCards,
+    [ActionType.StealTopCard]: StealTopCard,
+    [ActionType.AdvanceSecretAudience]: AdvanceSecretAudience,
+    [ActionType.RevealCard]: RevealCard,
+    [ActionType.CompleteGame]: CompleteGame
+}
+
 const visibility = {
     state: Visibility.createProjector(HiddenCardState, { policies }),
-    actions: Visibility.createActionProjector(
-        {
-            [ActionType.StartRound]: StartRound,
-            [ActionType.DealCards]: DealCards,
-            [ActionType.PeekTopCard]: PeekTopCard,
-            [ActionType.DrawTopCard]: DrawTopCard,
-            [ActionType.EndRound]: EndRound,
-            [ActionType.ForgetKnownCards]: ForgetKnownCards,
-            [ActionType.StealTopCard]: StealTopCard,
-            [ActionType.AdvanceSecretAudience]: AdvanceSecretAudience,
-            [ActionType.RevealCard]: RevealCard,
-            [ActionType.CompleteGame]: CompleteGame
-        },
-        { policies }
-    )
+    actions: Visibility.createActionProjector(actionSchemas, { policies })
 }
 
 const runtime = {
@@ -846,6 +845,27 @@ export function createPrivateDealScenario() {
         playerId: PlayerIds[0]
     }
     return { before, game: createGame(), runtime, startRound }
+}
+
+export function createOpaqueDealScenario() {
+    const scenario = createPrivateDealScenario()
+    const opaqueDealRuntime = {
+        ...runtime,
+        visibility: {
+            ...visibility,
+            actions: Visibility.createActionProjector(
+                {
+                    ...actionSchemas,
+                    [ActionType.DealCards]: Visibility.protectAction(DealCards, {
+                        policy: Visibility.Policy.HostOnly
+                    })
+                },
+                { policies }
+            )
+        }
+    } satisfies GameRuntime<HiddenCardState, HydratedHiddenCardState>
+
+    return { ...scenario, runtime: opaqueDealRuntime }
 }
 
 export function createPrivateObservationScenario() {

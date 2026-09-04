@@ -12,7 +12,7 @@ import type { GameRuntime } from '../definition/gameDefinition.js'
 import type { Game } from '../model/game.js'
 import type { GameState } from '../model/gameState.js'
 import { assert, assertExists } from '../../util/assertions.js'
-import type { ActionProjector } from './actionProjector.js'
+import { isRedactedAction, type ActionProjector } from './actionProjector.js'
 import type { Perspective, ValueProjector } from './valueProjector.js'
 
 export interface GameVisibility<
@@ -83,7 +83,12 @@ export function projectActionCascade<State extends GameState, ProjectedState ext
     }
 
     const projectedCascade = { before, transitions }
-    if (options.replay !== undefined && canReplayCascade(projectedCascade, options.replay)) {
+    const containsRedactedAction = transitions.some(({ action }) => isRedactedAction(action))
+    if (
+        !containsRedactedAction &&
+        options.replay !== undefined &&
+        canReplayCascade(projectedCascade, options.replay)
+    ) {
         return { actions: transitions.map(({ action }) => withoutForwardPatch(action)) }
     }
 

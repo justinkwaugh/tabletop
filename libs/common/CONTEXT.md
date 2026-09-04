@@ -53,6 +53,10 @@ An Action that has not yet been accepted and applied. It may still be rejected.
 **Processed Action**:
 An Action that has been accepted, applied to Game State, triggered its Machine State Transition, and been recorded in history.
 
+**Redacted Action Record**:
+A perspective-specific Processed Action representation whose canonical game-semantic type and title-owned payload are unavailable. It uses the reserved platform sentinel type, preserves the public Action envelope and identity, and advances projected state only through its forward patch. It is never hydrated or executed as a game Action.
+_Avoid_: Synthetic Action, replacement Action type
+
 **User Action**:
 An Action initiated directly through user input. User describes its origin, not whether it is attributed to a Player.
 

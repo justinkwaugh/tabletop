@@ -45,6 +45,9 @@ export interface ProjectorOptions<Root> {
     readonly policies?: PolicyRegistry<Root>
 }
 
+type RedactionAdapter<Root> = (context: PolicyContext<Root>) => unknown
+type RedactionAdapterRegistry<Root> = Readonly<Record<string, RedactionAdapter<Root>>>
+
 export interface ValueProjector<Canonical, Projected = unknown> {
     readonly schema: Type.TSchema
     project(value: Canonical, perspective: Perspective): Projected
@@ -68,6 +71,7 @@ export function isUnavailableProjectedValueError(
 }
 
 interface TraversalContext<Root> {
+    adapters: RedactionAdapterRegistry<Root>
     definitions: Type.TProperties
     parent?: unknown
     path: readonly (string | number)[]
@@ -109,6 +113,13 @@ function findPolicy<Root>(
     return Object.hasOwn(policies, name) ? policies[name] : undefined
 }
 
+function findRedactionAdapter<Root>(
+    adapters: RedactionAdapterRegistry<Root>,
+    name: string
+): RedactionAdapter<Root> | undefined {
+    return Object.hasOwn(adapters, name) ? adapters[name] : undefined
+}
+
 function isBuiltInPolicy(name: string): boolean {
     return (
         name === Policy.Actor ||
@@ -117,7 +128,11 @@ function isBuiltInPolicy(name: string): boolean {
     )
 }
 
-function assertSupportedDeclarations<Root>(schema: Type.TSchema, policies: PolicyRegistry<Root>) {
+function assertSupportedDeclarations<Root>(
+    schema: Type.TSchema,
+    policies: PolicyRegistry<Root>,
+    adapters: RedactionAdapterRegistry<Root>
+) {
     visitVisibilityMetadata(schema, (metadata) => {
         if (
             !isBuiltInPolicy(metadata.policy) &&
@@ -127,7 +142,8 @@ function assertSupportedDeclarations<Root>(schema: Type.TSchema, policies: Polic
         }
         if (
             metadata.redaction.kind === 'replace' &&
-            metadata.redaction.adapter !== EmptyArrayAdapter
+            metadata.redaction.adapter !== EmptyArrayAdapter &&
+            findRedactionAdapter(adapters, metadata.redaction.adapter) === undefined
         ) {
             throw Error(
                 `No visibility redaction Adapter registered for "${metadata.redaction.adapter}"`
@@ -241,12 +257,20 @@ function canViewCanonicalValue<Root>(
     return policy(createPolicyContext(value, context))
 }
 
-function redactValue(metadata: Metadata): unknown {
+function redactValue<Root>(
+    metadata: Metadata,
+    value: unknown,
+    context: TraversalContext<Root>
+): unknown {
     if (metadata.redaction.kind === 'omit') {
         return omitted
     }
     if (metadata.redaction.adapter === EmptyArrayAdapter) {
         return []
+    }
+    const adapter = findRedactionAdapter(context.adapters, metadata.redaction.adapter)
+    if (adapter !== undefined) {
+        return adapter(createPolicyContext(value, context))
     }
     throw Error(`No visibility redaction Adapter registered for "${metadata.redaction.adapter}"`)
 }
@@ -454,7 +478,7 @@ function projectValue<Root>(
     const scopedContext = enterScope(schema, value, context)
     const metadata = getVisibilityMetadata(schema)
     if (metadata !== undefined && !canViewCanonicalValue(metadata, value, scopedContext)) {
-        return redactValue(metadata)
+        return redactValue(metadata, value, scopedContext)
     }
     return projectVisibleValue(schema, value, scopedContext)
 }
@@ -501,6 +525,7 @@ class ProjectedExecutionGuard {
 
     guard<Value extends object>(schema: Type.TSchema, value: Value): Value {
         const frame = this.prepareFrame(schema, value, {
+            adapters: {},
             definitions: {},
             path: [],
             policies: {},
@@ -727,9 +752,10 @@ class BuiltInProjector<Schema extends Type.TSchema> implements Projector<Schema>
 
     constructor(
         private readonly canonicalSchema: Schema,
-        private readonly policies: PolicyRegistry<Type.Static<Schema>>
+        private readonly policies: PolicyRegistry<Type.Static<Schema>>,
+        private readonly adapters: RedactionAdapterRegistry<Type.Static<Schema>>
     ) {
-        assertSupportedDeclarations(canonicalSchema, policies)
+        assertSupportedDeclarations(canonicalSchema, policies, adapters)
         this.schema = createProjectionSchema(canonicalSchema)
         this.canonicalValidator = Compile(canonicalSchema)
         this.projectionValidator = Compile(this.schema)
@@ -744,6 +770,7 @@ class BuiltInProjector<Schema extends Type.TSchema> implements Projector<Schema>
         }
 
         const result = projectValue(this.canonicalSchema, value, {
+            adapters: this.adapters,
             definitions: {},
             path: [],
             policies: this.policies,
@@ -767,5 +794,13 @@ export function createProjector<Schema extends Type.TSchema>(
     schema: Schema,
     options: ProjectorOptions<Type.Static<Schema>> = {}
 ): Projector<Schema> {
-    return new BuiltInProjector(schema, options.policies ?? {})
+    return createProjectorWithRedactionAdapters(schema, options, {})
+}
+
+export function createProjectorWithRedactionAdapters<Schema extends Type.TSchema>(
+    schema: Schema,
+    options: ProjectorOptions<Type.Static<Schema>>,
+    redactionAdapters: RedactionAdapterRegistry<Type.Static<Schema>>
+): Projector<Schema> {
+    return new BuiltInProjector(schema, options.policies ?? {}, redactionAdapters)
 }

@@ -1,10 +1,11 @@
-import { ActionSource } from '../../engine/gameAction.js'
+import { ActionSource, GameAction } from '../../engine/gameAction.js'
 import { GameEngine } from '../../engine/gameEngine.js'
 import * as Visibility from '../index.js'
 import {
     ActionType,
     createForgetKnowledgeScenario,
     createLegalChoiceScenario,
+    createOpaqueDealScenario,
     createPrivateDealScenario,
     createPrivateObservationScenario,
     createPrivateTransferScenario,
@@ -137,6 +138,187 @@ describe('I3 / S2: a public Action triggers a private multi-Player deal', () => 
             expect(serializedProjection).not.toContain('undealt-stock-card')
             expect(serializedProjection).not.toContain('host-only-deal-note')
         }
+    })
+})
+
+describe('A4 / S4: a System Action type is hidden from every ordinary perspective', () => {
+    it('replaces the complete Action with a sentinel and patches its mixed cascade', () => {
+        const scenario = createOpaqueDealScenario()
+        const engine = new GameEngine(scenario.runtime)
+        const canonicalResult = engine.executeAction({
+            action: scenario.startRound,
+            state: scenario.before,
+            game: scenario.game
+        })
+
+        expect(canonicalResult.processedActions.map(({ type }) => type)).toEqual([
+            ActionType.StartRound,
+            ActionType.DealCards
+        ])
+
+        for (const perspective of perspectives) {
+            const visibleBefore = scenario.runtime.visibility.state.project(
+                scenario.before,
+                perspective
+            )
+            const visibleResult = Visibility.projectActionResult({
+                result: canonicalResult,
+                visibility: scenario.runtime.visibility,
+                perspective,
+                replay: { game: scenario.game, runtime: scenario.runtime }
+            })
+
+            expect(visibleResult.processedActions).toHaveLength(2)
+            expect(visibleResult.processedActions[0]).toMatchObject({
+                id: canonicalResult.processedActions[0]?.id,
+                index: 0,
+                type: ActionType.StartRound,
+                forwardPatch: expect.any(Array),
+                undoPatch: expect.any(Array)
+            })
+            expect(visibleResult.processedActions[1]).toMatchObject({
+                id: canonicalResult.processedActions[1]?.id,
+                index: 1,
+                type: 'tabletop.redacted-action',
+                forwardPatch: expect.any(Array),
+                undoPatch: expect.any(Array)
+            })
+            expect(visibleResult.processedActions[1]).not.toHaveProperty('deals')
+            expect(visibleResult.processedActions[1]).not.toHaveProperty('hostNote')
+            expect(JSON.stringify(visibleResult.processedActions)).not.toContain(
+                ActionType.DealCards
+            )
+            expect(JSON.stringify(visibleResult.processedActions)).not.toContain(
+                'host-only-deal-note'
+            )
+            expect(visibleResult.processedActions.map(({ id, index }) => ({ id, index }))).toEqual(
+                canonicalResult.processedActions.map(({ id, index }) => ({ id, index }))
+            )
+
+            let visibleState = visibleBefore
+            for (const action of visibleResult.processedActions) {
+                visibleState = engine.applyProcessedAction({
+                    action,
+                    state: visibleState,
+                    game: scenario.game
+                })
+            }
+            expect(visibleState).toEqual(visibleResult.updatedState)
+
+            for (const action of visibleResult.processedActions.toReversed()) {
+                visibleState = engine.undoProcessedAction({ action, state: visibleState })
+            }
+            expect(visibleState).toEqual(visibleBefore)
+
+            for (const action of visibleResult.processedActions) {
+                visibleState = engine.applyProcessedAction({
+                    action,
+                    state: visibleState,
+                    game: scenario.game
+                })
+            }
+            expect(visibleState).toEqual(visibleResult.updatedState)
+
+            expect(
+                Visibility.projectActionHistory({
+                    currentState: canonicalResult.updatedState,
+                    actions: canonicalResult.processedActions,
+                    visibility: scenario.runtime.visibility,
+                    perspective,
+                    replay: { game: scenario.game, runtime: scenario.runtime }
+                })
+            ).toEqual({
+                startIndex: 0,
+                currentState: visibleResult.updatedState,
+                actions: visibleResult.processedActions
+            })
+        }
+    })
+
+    it('aborts projected optimistic execution before running the hidden System Action', () => {
+        const scenario = createOpaqueDealScenario()
+        const engine = new GameEngine(scenario.runtime)
+
+        expect(() =>
+            engine.executeAction({
+                action: scenario.startRound,
+                state: scenario.before,
+                game: scenario.game,
+                perspective: { kind: 'player', playerId: PlayerIds[0] }
+            })
+        ).toThrow(
+            `Projected execution cannot expose protected Action type "${ActionType.DealCards}"`
+        )
+    })
+
+    it('rejects a redacted Action record that has no forward patch', () => {
+        const scenario = createOpaqueDealScenario()
+        const engine = new GameEngine(scenario.runtime)
+        const canonicalResult = engine.executeAction({
+            action: scenario.startRound,
+            state: scenario.before,
+            game: scenario.game
+        })
+        const perspective = { kind: 'spectator' as const }
+        const visibleResult = Visibility.projectActionResult({
+            result: canonicalResult,
+            visibility: scenario.runtime.visibility,
+            perspective,
+            replay: { game: scenario.game, runtime: scenario.runtime }
+        })
+        const redactedAction = structuredClone(visibleResult.processedActions[1])
+        if (redactedAction === undefined) {
+            throw Error('Expected a redacted System Action')
+        }
+        delete redactedAction.forwardPatch
+        const visibleBefore = scenario.runtime.visibility.state.project(
+            scenario.before,
+            perspective
+        )
+        const visibleUserAction = visibleResult.processedActions[0]
+        if (visibleUserAction === undefined) {
+            throw Error('Expected a visible User Action')
+        }
+        const stateBeforeRedactedAction = engine.applyProcessedAction({
+            action: visibleUserAction,
+            state: visibleBefore,
+            game: scenario.game
+        })
+
+        expect(() =>
+            engine.applyProcessedAction({
+                action: redactedAction,
+                state: stateBeforeRedactedAction,
+                game: scenario.game
+            })
+        ).toThrow('Redacted Action record requires a forward patch')
+    })
+
+    it('reserves the sentinel from game Action registries', () => {
+        expect(() =>
+            Visibility.createActionProjector({
+                [Visibility.RedactedActionType]: GameAction
+            })
+        ).toThrow(
+            `Game Action registry cannot use reserved type "${Visibility.RedactedActionType}"`
+        )
+    })
+
+    it('rejects the sentinel as an Action submitted for rules execution', () => {
+        const scenario = createOpaqueDealScenario()
+        const engine = new GameEngine(scenario.runtime)
+        const submittedAction = {
+            ...scenario.startRound,
+            type: Visibility.RedactedActionType
+        }
+
+        expect(() =>
+            engine.executeAction({
+                action: submittedAction,
+                state: scenario.before,
+                game: scenario.game
+            })
+        ).toThrow('Redacted Action records cannot be executed by game rules')
     })
 })
 

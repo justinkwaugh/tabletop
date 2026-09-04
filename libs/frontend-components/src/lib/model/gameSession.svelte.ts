@@ -1122,7 +1122,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     this.projectedExecutionPerspective(relevantContext)
                 )
             } catch (error) {
-                if (!Visibility.isUnavailableProjectedValueError(error)) {
+                if (
+                    !Visibility.isUnavailableProjectedValueError(error) &&
+                    !Visibility.isUnavailableProjectedActionError(error)
+                ) {
                     throw error
                 }
                 await this.applyServerAuthoritativeAction(action, relevantContext)

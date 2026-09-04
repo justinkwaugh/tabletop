@@ -68,6 +68,12 @@ const SkipOptimisticPlaceDisk = Type.Evaluate(
     ])
 )
 
+const opaquePlaceDiskActionProjector = Visibility.createActionProjector({
+    [ActionType.PlaceDisk]: Visibility.protectAction(PlaceDisk, {
+        policy: Visibility.Policy.HostOnly
+    })
+})
+
 function createStartedGame(): { game: Game; state: FreshFishGameState; playerId: string } {
     const game = FreshFishRuntime.initializer.initializeGame(
         {
@@ -365,6 +371,107 @@ describe('projected hosted Actions', () => {
                 FreshFishRuntime.visibility.state.project(hostState, perspective)
             )
             expect(session.history.visibleContext.actions.map(({ id }) => id)).toContain(action.id)
+        } finally {
+            session.dispose()
+            bridgedContext.dispose()
+        }
+    })
+
+    test('falls back to authoritative submission before exposing a protected Action type', async () => {
+        const started = createStartedGame()
+        const perspective = { kind: 'player', playerId: started.playerId } as const
+        let hostState = structuredClone(started.state)
+        const projectedState = FreshFishRuntime.visibility.state.project(hostState, perspective)
+        const clientVisibility = FreshFishUiRuntime.visibility
+        assertExists(clientVisibility, 'Fresh Fish UI Runtime has no visibility registration')
+        const hostRuntime = {
+            ...FreshFishRuntime,
+            visibility: {
+                ...FreshFishRuntime.visibility,
+                actions: opaquePlaceDiskActionProjector
+            }
+        } satisfies typeof FreshFishRuntime
+        const clientRuntime = {
+            ...FreshFishUiRuntime,
+            visibility: {
+                ...clientVisibility,
+                actions: opaquePlaceDiskActionProjector
+            }
+        } satisfies typeof FreshFishUiRuntime
+        const appContext = createHarnessAppContext(HARNESS_DEFINITION)
+        const bridgedContext = new BridgedContext({
+            authorizationService: appContext.authorizationService,
+            gameService: appContext.gameService,
+            chatService: appContext.chatService,
+            gameId: GAME_ID
+        })
+        const hostEngine = new GameEngine(hostRuntime)
+        let releaseServer: (() => void) | undefined
+        const serverGate = new Promise<void>((resolve) => {
+            releaseServer = resolve
+        })
+        let representedActions: GameAction[] = []
+        const applyAction = vi
+            .spyOn(appContext.api, 'applyAction')
+            .mockImplementation(async (_game, action) => {
+                const result = hostEngine.executeAction({
+                    action,
+                    state: hostState,
+                    game: started.game
+                })
+                hostState = result.updatedState
+                const representation = Visibility.projectActionResult({
+                    result,
+                    visibility: hostRuntime.visibility,
+                    perspective,
+                    replay: { game: started.game, runtime: hostRuntime }
+                })
+                representedActions = representation.processedActions
+                await serverGate
+                return {
+                    actions: representation.processedActions,
+                    game: gameWithoutState(started.game, hostState)
+                }
+            })
+        const session = new FreshFishGameSession({
+            gameService: appContext.gameService,
+            bridgedContext,
+            notificationService: appContext.notificationService,
+            chatService: appContext.chatService,
+            api: appContext.api,
+            runtime: clientRuntime,
+            game: structuredClone(started.game),
+            state: projectedState,
+            actions: []
+        })
+
+        try {
+            const action = session.createPlaceDiskAction(findEmptyCoords(projectedState))
+            const pendingApplication = session.applyAction(action)
+
+            expect(applyAction).toHaveBeenCalledOnce()
+            expect(session.history.visibleContext.state).toEqual(projectedState)
+            expect(session.history.visibleContext.actions).toEqual([])
+            expect(representedActions).toHaveLength(1)
+            expect(representedActions[0]).toMatchObject({
+                id: action.id,
+                type: Visibility.RedactedActionType,
+                forwardPatch: expect.any(Array),
+                undoPatch: expect.any(Array)
+            })
+            expect(representedActions[0]).not.toHaveProperty('coords')
+
+            if (releaseServer === undefined) {
+                throw Error('The server response gate was not initialized')
+            }
+            releaseServer()
+            await pendingApplication
+            await session.waitForVisibleTransitionSettled()
+
+            expect(session.history.visibleContext.state).toEqual(
+                FreshFishRuntime.visibility.state.project(hostState, perspective)
+            )
+            expect(session.history.visibleContext.actions).toEqual(representedActions)
         } finally {
             session.dispose()
             bridgedContext.dispose()
