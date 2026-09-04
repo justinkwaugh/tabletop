@@ -4,6 +4,7 @@ import * as Visibility from '../index.js'
 import {
     ActionType,
     createForgetKnowledgeScenario,
+    createLegalChoiceScenario,
     createPrivateDealScenario,
     createPrivateObservationScenario,
     createPrivateTransferScenario,
@@ -980,5 +981,83 @@ describe('A7 / A8 / U6: visible undo patches never expose canonical undo', () =>
             expect(visibleCompleteUndo).toEqual(expect.arrayContaining(canonicalCompleteUndo))
             expect(visibleCompleteUndo).not.toBe(canonicalCompleteUndo)
         }
+    })
+})
+
+describe('A9: legal choices depend on private state', () => {
+    it('derives Action availability and concrete choices only for the entitled Player', () => {
+        const scenario = createLegalChoiceScenario()
+        const engine = new GameEngine(scenario.runtime)
+        const expectedChoices = {
+            [PlayerIds[0]]: ['player-1-playable-card', 'player-1-second-card'],
+            [PlayerIds[1]]: ['player-2-playable-card'],
+            [PlayerIds[2]]: [],
+            [PlayerIds[3]]: ['player-4-playable-card']
+        }
+
+        for (const playerId of PlayerIds) {
+            const perspective: Visibility.Perspective = { kind: 'player', playerId }
+            const projected = scenario.runtime.visibility.state.project(
+                scenario.before,
+                perspective
+            )
+            const hand = projected.hands.find((candidate) => candidate.playerId === playerId)
+            if (hand === undefined) {
+                throw Error(`Expected a projected hand for Player ${playerId}`)
+            }
+            const actionTypes = engine.getValidActionTypesForPlayer(
+                scenario.game,
+                projected,
+                playerId,
+                { perspective }
+            )
+
+            expect({ actionTypes, choices: hand.cards }).toEqual({
+                actionTypes: expectedChoices[playerId].length > 0 ? [ActionType.RevealCard] : [],
+                choices: expectedChoices[playerId]
+            })
+            const unauthorizedPlayerId = playerId === PlayerIds[0] ? PlayerIds[1] : PlayerIds[0]
+            expect(
+                engine.getValidActionTypesForPlayer(
+                    scenario.game,
+                    projected,
+                    unauthorizedPlayerId,
+                    { perspective }
+                )
+            ).toEqual([])
+        }
+
+        const spectatorPerspective: Visibility.Perspective = { kind: 'spectator' }
+        const spectatorState = scenario.runtime.visibility.state.project(
+            scenario.before,
+            spectatorPerspective
+        )
+        expect(spectatorState.hands.flatMap((hand) => hand.cards)).toEqual([])
+        expect(
+            engine.getValidActionTypesForPlayer(scenario.game, spectatorState, PlayerIds[0], {
+                perspective: spectatorPerspective
+            })
+        ).toEqual([])
+    })
+
+    it('refuses to infer Action availability from inaccessible protected state', () => {
+        const scenario = createLegalChoiceScenario()
+        const engine = new GameEngine(scenario.secretDependentRuntime)
+
+        expect(
+            engine.getValidActionTypesForPlayer(scenario.game, scenario.before, PlayerIds[0])
+        ).toEqual([ActionType.StealTopCard])
+
+        const perspective: Visibility.Perspective = {
+            kind: 'player',
+            playerId: PlayerIds[0]
+        }
+        const projected = scenario.runtime.visibility.state.project(scenario.before, perspective)
+
+        expect(() =>
+            engine.getValidActionTypesForPlayer(scenario.game, projected, PlayerIds[0], {
+                perspective
+            })
+        ).toThrow('Projected execution cannot access protected value at /hands/1/cards/0')
     })
 })

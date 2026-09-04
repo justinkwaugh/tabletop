@@ -35,6 +35,10 @@ export type ActionCascadeResult<T extends GameState = GameState> = ActionResult<
     actionCascade: CanonicalActionCascade<T>
 }
 
+export interface ActionAvailabilityOptions {
+    readonly perspective?: Perspective
+}
+
 interface RuntimeExecution<T extends GameState> extends ActionResult<T> {
     readonly before: T
     readonly transitions: readonly CanonicalActionTransition<T>[]
@@ -85,18 +89,32 @@ export class GameEngine<
         return { startedGame, initialState: initialState.dehydrate() }
     }
 
-    getValidActionTypesForPlayer(game: Game, state: T, playerId: string): string[] {
+    getValidActionTypesForPlayer(
+        game: Game,
+        state: T,
+        playerId: string,
+        options: ActionAvailabilityOptions = {}
+    ): string[] {
+        const perspective = options.perspective
+        if (
+            perspective !== undefined &&
+            (perspective.kind !== 'player' || perspective.playerId !== playerId)
+        ) {
+            return []
+        }
+
         const hydratedState = this.runtime.hydrator.hydrateState(state)
-        if (!hydratedState.isActivePlayer(playerId)) {
+        const runtimeState = this.guardStateForPerspective(hydratedState, perspective)
+        if (!runtimeState.isActivePlayer(playerId)) {
             return []
         }
 
         const machineContext = new MachineContext({
             gameConfig: game.config,
-            gameState: hydratedState
+            gameState: runtimeState
         })
 
-        const stateHandler = this.getStateHandler(hydratedState)
+        const stateHandler = this.getStateHandler(runtimeState)
         return stateHandler.validActionsForPlayer(playerId, machineContext)
     }
 
@@ -201,10 +219,7 @@ export class GameEngine<
         const before = updatedState
 
         const hydratedState = this.runtime.hydrator.hydrateState(updatedState)
-        const runtimeState =
-            perspective !== undefined && this.runtime.visibility !== undefined
-                ? this.runtime.visibility.state.guardForExecution(hydratedState, perspective)
-                : hydratedState
+        const runtimeState = this.guardStateForPerspective(hydratedState, perspective)
         const machineContext = new MachineContext({
             action: action,
             gameConfig: game.config,
@@ -284,6 +299,12 @@ export class GameEngine<
             before,
             transitions
         }
+    }
+
+    private guardStateForPerspective(state: U, perspective?: Perspective): U {
+        return perspective !== undefined && this.runtime.visibility !== undefined
+            ? this.runtime.visibility.state.guardForExecution(state, perspective)
+            : state
     }
 
     private sanitizeUnprocessedAction(action: GameAction): GameAction {

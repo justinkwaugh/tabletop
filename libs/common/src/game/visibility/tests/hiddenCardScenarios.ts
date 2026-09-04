@@ -1,8 +1,14 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { assert, assertExists } from '../../../util/assertions.js'
-import { ActionSource, GameAction, HydratableAction } from '../../engine/gameAction.js'
+import {
+    ActionSource,
+    GameAction,
+    type HydratedAction,
+    HydratableAction
+} from '../../engine/gameAction.js'
 import type { MachineContext } from '../../engine/machineContext.js'
+import type { MachineStateHandler } from '../../engine/machineStateHandler.js'
 import type { GameRuntime } from '../../definition/gameDefinition.js'
 import type { Game } from '../../model/game.js'
 import { GameStatus } from '../../model/game.js'
@@ -744,6 +750,24 @@ const runtime = {
     visibility
 } satisfies GameRuntime<HiddenCardState, HydratedHiddenCardState>
 
+function runtimeWithValidActionsForPlayer(
+    validActionsForPlayer: MachineStateHandler<
+        HydratedAction,
+        HydratedHiddenCardState
+    >['validActionsForPlayer']
+) {
+    return {
+        ...runtime,
+        stateHandlers: {
+            ...runtime.stateHandlers,
+            [MachineState]: {
+                ...runtime.stateHandlers[MachineState],
+                validActionsForPlayer
+            }
+        }
+    } satisfies GameRuntime<HiddenCardState, HydratedHiddenCardState>
+}
+
 function createCardState(
     deckItems: string[] = [
         'player-1-card-a',
@@ -890,6 +914,42 @@ export function createPrivateTransferScenario() {
         revealsInfo: true
     }
     return { before, game: createGame(), runtime, stealTopCard }
+}
+
+export function createLegalChoiceScenario() {
+    const before = createCardState(['unused-deck-card'])
+    before.phase = 'playing'
+    before.hands = [
+        {
+            playerId: PlayerIds[0],
+            cards: ['player-1-playable-card', 'player-1-second-card'],
+            cardCount: 2
+        },
+        { playerId: PlayerIds[1], cards: ['player-2-playable-card'], cardCount: 1 },
+        { playerId: PlayerIds[2], cards: [], cardCount: 0 },
+        { playerId: PlayerIds[3], cards: ['player-4-playable-card'], cardCount: 1 }
+    ]
+
+    const legalChoiceRuntime = runtimeWithValidActionsForPlayer((playerId, context) => {
+        const hand = context.gameState.hands.find((candidate) => candidate.playerId === playerId)
+        assertExists(hand, `Cannot find a hand for Player ${playerId}`)
+        return hand.cardCount > 0 ? [ActionType.RevealCard] : []
+    })
+
+    const secretDependentRuntime = runtimeWithValidActionsForPlayer((playerId, context) => {
+        const opponentHand = context.gameState.hands.find(
+            (candidate) => candidate.playerId !== playerId
+        )
+        assertExists(opponentHand, `Cannot find an opponent hand for Player ${playerId}`)
+        return opponentHand.cards[0] === 'player-2-playable-card' ? [ActionType.StealTopCard] : []
+    })
+
+    return {
+        before,
+        game: createGame(),
+        runtime: legalChoiceRuntime,
+        secretDependentRuntime
+    }
 }
 
 export function createProgressiveTeamRevealScenario() {

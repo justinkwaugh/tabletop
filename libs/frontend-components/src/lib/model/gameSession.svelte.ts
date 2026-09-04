@@ -384,11 +384,21 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             return []
         }
 
-        return this.engine.getValidActionTypesForPlayer(
-            this.primaryGame,
-            this.gameState,
-            this.myPlayer.id
-        )
+        try {
+            return this.engine.getValidActionTypesForPlayer(
+                this.primaryGame,
+                this.gameState,
+                this.myPlayer.id,
+                {
+                    perspective: this.projectedExecutionPerspective(this.currentVisibleContext)
+                }
+            )
+        } catch (error) {
+            if (!Visibility.isUnavailableProjectedValueError(error)) {
+                throw error
+            }
+            return []
+        }
     })
 
     setViewingAsNonActivePlayer(enabled: boolean) {

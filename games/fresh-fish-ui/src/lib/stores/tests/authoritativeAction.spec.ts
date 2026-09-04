@@ -23,6 +23,7 @@ import {
     type GameUiDefinition
 } from '@tabletop/frontend-components'
 import {
+    ActionType,
     Definition,
     CellType,
     FreshFishRuntime,
@@ -140,6 +141,55 @@ beforeEach(() => {
 
 afterEach(() => {
     vi.restoreAllMocks()
+})
+
+describe('projected Action availability', () => {
+    test('does not infer an Action from protected state redacted for the Player', () => {
+        const started = createStartedGame()
+        const perspective = { kind: 'player', playerId: started.playerId } as const
+        const projectedState = FreshFishRuntime.visibility.state.project(
+            started.state,
+            perspective
+        )
+        const stateHandler = FreshFishUiRuntime.stateHandlers[started.state.machineState]
+        assertExists(stateHandler, `Fresh Fish has no handler for ${started.state.machineState}`)
+        const runtime = {
+            ...FreshFishUiRuntime,
+            stateHandlers: {
+                ...FreshFishUiRuntime.stateHandlers,
+                [started.state.machineState]: {
+                    ...stateHandler,
+                    validActionsForPlayer: (_playerId, context) =>
+                        context.gameState.tileBag.items[0] === undefined ? [ActionType.Pass] : []
+                }
+            }
+        } satisfies typeof FreshFishUiRuntime
+        const appContext = createHarnessAppContext(HARNESS_DEFINITION)
+        const bridgedContext = new BridgedContext({
+            authorizationService: appContext.authorizationService,
+            gameService: appContext.gameService,
+            chatService: appContext.chatService,
+            gameId: started.game.id
+        })
+        const session = new FreshFishGameSession({
+            gameService: appContext.gameService,
+            bridgedContext,
+            notificationService: appContext.notificationService,
+            chatService: appContext.chatService,
+            api: appContext.api,
+            runtime,
+            game: structuredClone(started.game),
+            state: projectedState,
+            actions: []
+        })
+
+        try {
+            expect(session.validActionTypes).toEqual([])
+        } finally {
+            session.dispose()
+            bridgedContext.dispose()
+        }
+    })
 })
 
 describe('projected hosted Actions', () => {
