@@ -63,6 +63,35 @@ describe('visibility value projection', () => {
         expect(Compile(projector.schema).Check(spectatorProjection)).toBe(true)
     })
 
+    it('guards redacted contents while leaving public aggregates available to execution', () => {
+        const Canonical = DrawBag(Type.String())
+        const projector = Visibility.createProjector(Canonical)
+        const projected = projector.project(
+            { items: ['first', 'second'], remaining: 2 },
+            playerPerspective
+        )
+
+        const guarded = projector.guardForExecution(projected, playerPerspective)
+
+        expect(guarded.remaining).toBe(2)
+        let thrown: unknown
+        try {
+            Reflect.get(guarded, 'items')
+        } catch (error) {
+            thrown = error
+        }
+        expect(thrown).toHaveProperty(
+            'message',
+            'Projected execution cannot access protected value at /items'
+        )
+        expect(Visibility.isUnavailableProjectedValueError(thrown)).toBe(true)
+        expect(
+            Visibility.isUnavailableProjectedValueError(
+                new Error('Projected execution cannot access protected value at /items')
+            )
+        ).toBe(false)
+    })
+
     it('omits optional structured properties whose canonical value is explicitly undefined', () => {
         const Canonical = Type.Object({
             coordinates: Type.Optional(Type.Tuple([Type.Number(), Type.Number()]))

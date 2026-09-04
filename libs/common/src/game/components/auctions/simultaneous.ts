@@ -23,7 +23,8 @@ export const SimultaneousAuctionParticipant = Type.Evaluate(
         Type.Object({
             bid: protect(AuctionParticipant.properties.bid, {
                 policy: SimultaneousAuctionVisibility.Policy.Bid
-            })
+            }),
+            submitted: Type.Optional(Type.Boolean())
         })
     ])
 )
@@ -55,11 +56,16 @@ export class HydratedSimultaneousAuction
     implements SimultaneousAuction
 {
     declare type: AuctionType.Simultaneous
+    declare participants: SimultaneousAuctionParticipant[]
     declare tie: boolean
     declare tieResolution: TieResolutionStrategy
 
     constructor(data: SimultaneousAuction) {
         super(data, SimultaneousAuctionValidator)
+    }
+
+    override findParticipant(playerId: string): SimultaneousAuctionParticipant {
+        return super.findParticipant(playerId)
     }
 
     override validateBid(participant: AuctionParticipant, _amount: number) {
@@ -69,15 +75,19 @@ export class HydratedSimultaneousAuction
     }
 
     override placeBid(playerId: string, amount: number): void {
+        const participant = this.findParticipant(playerId)
         super.placeBid(playerId, amount)
+        participant.submitted = true
 
-        if (
-            this.participants.every((participant) => {
-                return participant.bid !== undefined
-            })
-        ) {
+        if (this.allBidsSubmitted()) {
             this.calculateWinner()
         }
+    }
+
+    allBidsSubmitted(): boolean {
+        return this.participants.every(
+            (participant) => participant.submitted ?? participant.bid !== undefined
+        )
     }
 
     override validatePass(_participant: AuctionParticipant) {

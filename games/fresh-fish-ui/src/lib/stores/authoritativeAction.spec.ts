@@ -26,13 +26,26 @@ import {
     Definition,
     CellType,
     FreshFishRuntime,
+    PlaceDisk,
     TileType,
     type FreshFishGameState
 } from '@tabletop/fresh-fish'
+import * as Type from 'typebox'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { FreshFishUiRuntime } from '../definition/gameUiRuntime.js'
 import { UiDefinition } from '../index.js'
 import { FreshFishGameSession } from './FreshFishGameSession.svelte.js'
+import {
+    PLAYER_A_ID,
+    PLAYER_B_ID,
+    PLAYER_B_PERSPECTIVE,
+    PLAYER_C_ID,
+    PLAYER_D_ID,
+    createAuctionHost,
+    createBid,
+    projectHostHistory,
+    projectHostHistorySuffix
+} from './simultaneousAuction.testSupport.js'
 
 const GAME_ID = 'authoritative-action-game'
 const HARNESS_USER_ID = 'harness-user'
@@ -44,6 +57,15 @@ const HARNESS_DEFINITION: GameUiDefinition<GameState, HydratedGameState> = {
         throw new Error('The metadata-only test definition has no runtime')
     }
 }
+
+const NonOptimisticPlaceDisk = Type.Evaluate(
+    Type.Intersect([
+        PlaceDisk,
+        Type.Object({
+            optimistic: Type.Literal(false)
+        })
+    ])
+)
 
 function createStartedGame(): { game: Game; state: FreshFishGameState; playerId: string } {
     const game = FreshFishRuntime.initializer.initializeGame(
@@ -221,7 +243,85 @@ describe('projected hosted Actions', () => {
         }
     )
 
-    test('applies a projected DrawTile result without executing against the redacted bag', async () => {
+    test('honors an explicit optimistic opt-out for an otherwise public Action', async () => {
+        const started = createStartedGame()
+        const perspective = { kind: 'player', playerId: started.playerId } as const
+        let hostState = structuredClone(started.state)
+        const projectedState = FreshFishRuntime.visibility.state.project(hostState, perspective)
+        const appContext = createHarnessAppContext(HARNESS_DEFINITION)
+        const bridgedContext = new BridgedContext({
+            authorizationService: appContext.authorizationService,
+            gameService: appContext.gameService,
+            chatService: appContext.chatService,
+            gameId: GAME_ID
+        })
+        const hostEngine = new GameEngine(FreshFishRuntime)
+        let releaseServer: (() => void) | undefined
+        const serverGate = new Promise<void>((resolve) => {
+            releaseServer = resolve
+        })
+        const applyAction = vi
+            .spyOn(appContext.api, 'applyAction')
+            .mockImplementation(async (_game, action) => {
+                const result = hostEngine.executeAction({
+                    action,
+                    state: hostState,
+                    game: started.game
+                })
+                hostState = result.updatedState
+                const representation = Visibility.projectActionResult({
+                    result,
+                    visibility: FreshFishRuntime.visibility,
+                    perspective,
+                    replay: { game: started.game, runtime: FreshFishRuntime }
+                })
+                await serverGate
+                return {
+                    actions: representation.processedActions,
+                    game: gameWithoutState(started.game, hostState)
+                }
+            })
+        const session = new FreshFishGameSession({
+            gameService: appContext.gameService,
+            bridgedContext,
+            notificationService: appContext.notificationService,
+            chatService: appContext.chatService,
+            api: appContext.api,
+            runtime: FreshFishUiRuntime,
+            game: structuredClone(started.game),
+            state: projectedState,
+            actions: []
+        })
+
+        try {
+            const action = session.createPlayerAction(NonOptimisticPlaceDisk, {
+                coords: findEmptyCoords(projectedState)
+            })
+            expect(action.optimistic).toBe(false)
+            const pendingApplication = session.applyAction(action)
+
+            expect(applyAction).toHaveBeenCalledOnce()
+            expect(session.history.visibleContext.state).toEqual(projectedState)
+            expect(session.history.visibleContext.actions).toEqual([])
+
+            if (releaseServer === undefined) {
+                throw Error('The server response gate was not initialized')
+            }
+            releaseServer()
+            await pendingApplication
+            await session.waitForVisibleTransitionSettled()
+
+            expect(session.history.visibleContext.state).toEqual(
+                FreshFishRuntime.visibility.state.project(hostState, perspective)
+            )
+            expect(session.history.visibleContext.actions.map(({ id }) => id)).toContain(action.id)
+        } finally {
+            session.dispose()
+            bridgedContext.dispose()
+        }
+    })
+
+    test('submits a revealing DrawTile without attempting projected execution', async () => {
         const started = createStartedGame()
         const perspective = { kind: 'player', playerId: started.playerId } as const
         let hostState = structuredClone(started.state)
@@ -236,6 +336,7 @@ describe('projected hosted Actions', () => {
             gameId: GAME_ID
         })
         const hostEngine = new GameEngine(FreshFishRuntime)
+        const executeAction = vi.spyOn(GameEngine.prototype, 'executeAction')
         let releaseServer: (() => void) | undefined
         const serverGate = new Promise<void>((resolve) => {
             releaseServer = resolve
@@ -279,9 +380,11 @@ describe('projected hosted Actions', () => {
         try {
             const action = session.createDrawTileAction()
             expect(action.source).toBe(ActionSource.User)
+            expect(action.revealsInfo).toBe(true)
 
             const pendingApplication = session.applyAction(action)
             expect(applyAction).toHaveBeenCalledOnce()
+            expect(executeAction).not.toHaveBeenCalledWith(expect.objectContaining({ perspective }))
             expect(session.history.visibleContext.state).toEqual(projectedState)
             expect(session.history.visibleContext.actions).toEqual([])
 
@@ -305,6 +408,155 @@ describe('projected hosted Actions', () => {
             expect(applyAction).toHaveBeenCalledOnce()
             expect(checkSync).not.toHaveBeenCalled()
             expect(getGame).not.toHaveBeenCalled()
+        } finally {
+            session.dispose()
+            bridgedContext.dispose()
+        }
+    })
+
+    test('optimistically applies an early sealed bid using public submission status', async () => {
+        const host = createAuctionHost()
+        const initialHistory = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
+        const initialActionCount = initialHistory.currentState.actionCount
+        const appContext = createHarnessAppContext(HARNESS_DEFINITION)
+        const bridgedContext = new BridgedContext({
+            authorizationService: appContext.authorizationService,
+            gameService: appContext.gameService,
+            chatService: appContext.chatService,
+            gameId: host.game.id
+        })
+        let releaseServer: (() => void) | undefined
+        const serverGate = new Promise<void>((resolve) => {
+            releaseServer = resolve
+        })
+        const applyAction = vi
+            .spyOn(appContext.api, 'applyAction')
+            .mockImplementation(async (_game, action) => {
+                const startIndex = host.state.actionCount
+                host.apply(action)
+                const representation = projectHostHistorySuffix(
+                    host,
+                    startIndex,
+                    PLAYER_B_PERSPECTIVE
+                )
+                await serverGate
+                return {
+                    actions: [...representation.actions],
+                    game: gameWithoutState(host.game, host.state)
+                }
+            })
+        const session = new FreshFishGameSession({
+            gameService: appContext.gameService,
+            bridgedContext,
+            notificationService: appContext.notificationService,
+            chatService: appContext.chatService,
+            api: appContext.api,
+            runtime: FreshFishUiRuntime,
+            game: structuredClone(host.game),
+            state: initialHistory.currentState,
+            actions: [...initialHistory.actions]
+        })
+
+        try {
+            const action = session.createPlaceBidAction(4)
+            const pendingApplication = session.applyAction(action)
+
+            expect(applyAction).toHaveBeenCalledOnce()
+            expect(session.history.visibleContext.state.actionCount).toBe(initialActionCount + 1)
+            expect(session.history.visibleContext.actions.at(-1)?.id).toBe(action.id)
+            const participant =
+                session.history.visibleContext.state.currentAuction?.participants.find(
+                    ({ playerId }) => playerId === PLAYER_B_ID
+                )
+            expect(participant).toMatchObject({ bid: 4, submitted: true })
+
+            if (releaseServer === undefined) {
+                throw Error('The server response gate was not initialized')
+            }
+            releaseServer()
+            await pendingApplication
+            await session.waitForVisibleTransitionSettled()
+
+            const expected = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
+            expect(session.history.visibleContext.state).toEqual(expected.currentState)
+            expect(session.history.visibleContext.actions).toEqual(expected.actions)
+        } finally {
+            session.dispose()
+            bridgedContext.dispose()
+        }
+    })
+
+    test('falls back to the host when a final sealed bid needs protected bids', async () => {
+        const host = createAuctionHost()
+        host.apply(createBid('bid-a', PLAYER_A_ID, 2))
+        host.apply(createBid('bid-d', PLAYER_D_ID, 3))
+        host.apply(createBid('bid-c', PLAYER_C_ID, 1))
+        const initialHistory = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
+        const initialState = structuredClone(initialHistory.currentState)
+        const initialActions = initialHistory.actions.map((action) => structuredClone(action))
+        const appContext = createHarnessAppContext(HARNESS_DEFINITION)
+        const bridgedContext = new BridgedContext({
+            authorizationService: appContext.authorizationService,
+            gameService: appContext.gameService,
+            chatService: appContext.chatService,
+            gameId: host.game.id
+        })
+        const executeAction = vi.spyOn(GameEngine.prototype, 'executeAction')
+        let releaseServer: (() => void) | undefined
+        const serverGate = new Promise<void>((resolve) => {
+            releaseServer = resolve
+        })
+        const applyAction = vi
+            .spyOn(appContext.api, 'applyAction')
+            .mockImplementation(async (_game, action) => {
+                const startIndex = host.state.actionCount
+                host.apply(action)
+                const representation = projectHostHistorySuffix(
+                    host,
+                    startIndex,
+                    PLAYER_B_PERSPECTIVE
+                )
+                await serverGate
+                return {
+                    actions: [...representation.actions],
+                    game: gameWithoutState(host.game, host.state)
+                }
+            })
+        const checkSync = vi.spyOn(appContext.api, 'checkSync')
+        const session = new FreshFishGameSession({
+            gameService: appContext.gameService,
+            bridgedContext,
+            notificationService: appContext.notificationService,
+            chatService: appContext.chatService,
+            api: appContext.api,
+            runtime: FreshFishUiRuntime,
+            game: structuredClone(host.game),
+            state: initialHistory.currentState,
+            actions: [...initialHistory.actions]
+        })
+
+        try {
+            const action = session.createPlaceBidAction(4)
+            const pendingApplication = session.applyAction(action)
+
+            expect(applyAction).toHaveBeenCalledOnce()
+            expect(executeAction).toHaveBeenCalledWith(
+                expect.objectContaining({ perspective: PLAYER_B_PERSPECTIVE })
+            )
+            expect(session.history.visibleContext.state).toEqual(initialState)
+            expect(session.history.visibleContext.actions).toEqual(initialActions)
+
+            if (releaseServer === undefined) {
+                throw Error('The server response gate was not initialized')
+            }
+            releaseServer()
+            await pendingApplication
+            await session.waitForVisibleTransitionSettled()
+
+            const expected = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
+            expect(session.history.visibleContext.state).toEqual(expected.currentState)
+            expect(session.history.visibleContext.actions).toEqual(expected.actions)
+            expect(checkSync).not.toHaveBeenCalled()
         } finally {
             session.dispose()
             bridgedContext.dispose()

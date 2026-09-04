@@ -13,6 +13,7 @@ import { calculateActionChecksum } from '../../util/checksum.js'
 import { nanoid } from 'nanoid'
 import { generateSeed } from '../../util/prng.js'
 import { assert, assertExists } from '../../util/assertions.js'
+import type { Perspective } from '../visibility/valueProjector.js'
 
 export type ActionResult<T extends GameState = GameState> = {
     processedActions: GameAction[]
@@ -102,17 +103,20 @@ export class GameEngine<
     executeAction({
         action,
         state,
-        game
+        game,
+        perspective
     }: {
         action: GameAction
         state: T
         game: Game
+        perspective?: Perspective
     }): ActionCascadeResult<T> {
         const execution = this.executeByRules({
             action: this.sanitizeUnprocessedAction(action),
             state,
             game,
-            processGeneratedActions: true
+            processGeneratedActions: true,
+            perspective
         })
 
         return {
@@ -182,12 +186,14 @@ export class GameEngine<
         action,
         state,
         game,
-        processGeneratedActions
+        processGeneratedActions,
+        perspective
     }: {
         action: GameAction
         state: T
         game: Game
         processGeneratedActions: boolean
+        perspective?: Perspective
     }): RulesExecution<T> {
         const processedActions: GameAction[] = []
         const transitions: CanonicalActionTransition<T>[] = []
@@ -195,10 +201,14 @@ export class GameEngine<
         const before = updatedState
 
         const hydratedState = this.runtime.hydrator.hydrateState(updatedState)
+        const rulesState =
+            perspective !== undefined && this.runtime.visibility !== undefined
+                ? this.runtime.visibility.state.guardForExecution(hydratedState, perspective)
+                : hydratedState
         const machineContext = new MachineContext({
             action: action,
             gameConfig: game.config,
-            gameState: hydratedState
+            gameState: rulesState
         })
 
         // Simultaneous actions can cause this, otherwise it's bad data
@@ -238,7 +248,7 @@ export class GameEngine<
                 `Action of type ${hydratedAction.type} is not valid in state ${hydratedState.machineState}`
             )
 
-            hydratedAction.apply(hydratedState, machineContext)
+            hydratedAction.apply(rulesState, machineContext)
 
             const nextMachineState = stateHandler.onAction(hydratedAction, machineContext)
 

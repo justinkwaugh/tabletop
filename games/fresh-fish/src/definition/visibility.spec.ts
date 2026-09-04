@@ -2,6 +2,7 @@ import {
     ActionSource,
     AuctionType,
     type Game,
+    type GameRuntime,
     GameEngine,
     GameStatus,
     HydratedSimultaneousAuction,
@@ -14,8 +15,13 @@ import {
 import { Compile } from 'typebox/compile'
 import { describe, expect, expectTypeOf, it } from 'vitest'
 import { TileBag, TileBagProjection } from '../components/tileBag.js'
-import { FreshFishGameState, FreshFishGameStateProjection } from '../model/gameState.js'
+import {
+    FreshFishGameState,
+    FreshFishGameStateProjection,
+    type HydratedFreshFishGameState
+} from '../model/gameState.js'
 import { PlaceBid, PlaceBidProjection } from '../actions/placeBid.js'
+import { DrawTile } from '../actions/drawTile.js'
 import type { PlaceDisk } from '../actions/placeDisk.js'
 import { ActionType } from './actions.js'
 import { TileType } from '../components/tiles.js'
@@ -32,9 +38,9 @@ function createCanonicalAuctionState(): FreshFishGameState {
         id: 'auction-1',
         type: AuctionType.Simultaneous,
         participants: [
-            { playerId: 'p1', bid: 3, passed: false },
-            { playerId: 'p2', bid: 5, passed: false },
-            { playerId: 'p3', passed: false }
+            { playerId: 'p1', bid: 3, passed: false, submitted: true },
+            { playerId: 'p2', bid: 5, passed: false, submitted: true },
+            { playerId: 'p3', passed: false, submitted: false }
         ],
         auctioneerId: 'p1',
         tie: false,
@@ -486,6 +492,85 @@ describe('Fresh Fish visibility', () => {
         expect(rebuiltAction.processedActions).toHaveLength(1)
     })
 
+    it('stops projected execution when auction resolution needs protected opponent bids', () => {
+        const canonical = createCanonicalAuctionState()
+        canonical.activePlayerIds = ['p3']
+        canonical.chosenTile = { type: TileType.Stall, goodsType: GoodsType.Fish }
+        const perspective: Visibility.Perspective = { kind: 'player', playerId: 'p3' }
+        const projected = FreshFishRuntime.visibility.state.project(canonical, perspective)
+        const guarded = FreshFishRuntime.visibility.state.guardForExecution(
+            FreshFishRuntime.hydrator.hydrateState(projected),
+            perspective
+        )
+        expect(() => guarded.currentAuction?.participants[0].bid).toThrow(
+            'Projected execution cannot access protected value at /currentAuction/participants/0/bid'
+        )
+        const action: PlaceBid = {
+            id: 'guarded-final-bid',
+            gameId: canonical.gameId,
+            source: ActionSource.User,
+            type: ActionType.PlaceBid,
+            playerId: 'p3',
+            amount: 7
+        }
+
+        expect(() =>
+            new GameEngine(FreshFishRuntime).executeAction({
+                action,
+                state: projected,
+                game: createGame(canonical),
+                perspective
+            })
+        ).toThrow(
+            'Projected execution cannot access protected value at /currentAuction/participants/0/bid'
+        )
+    })
+
+    it('guards generated System Actions in the same projected execution cascade', () => {
+        const state = generateTestState({ numPlayers: 3 })
+        const playerId = state.turnManager.startNextTurn(state.actionCount)
+        state.activePlayerIds = [playerId]
+        const before = state.dehydrate()
+        const perspective: Visibility.Perspective = { kind: 'player', playerId }
+        const projected = FreshFishRuntime.visibility.state.project(before, perspective)
+        const unchangedProjection = structuredClone(projected)
+        const runtime = {
+            ...FreshFishRuntime,
+            stateHandlers: {
+                ...FreshFishRuntime.stateHandlers,
+                [MachineState.StartOfTurn]: {
+                    isValidAction: () => true,
+                    validActionsForPlayer: () => [],
+                    enter: () => undefined,
+                    onAction: (action, context) => {
+                        if (action.type === ActionType.PlaceDisk) {
+                            context.addSystemAction(DrawTile, { playerId: action.playerId })
+                        }
+                        return MachineState.StartOfTurn
+                    }
+                }
+            }
+        } satisfies GameRuntime<FreshFishGameState, HydratedFreshFishGameState>
+        const action: PlaceDisk = {
+            id: 'public-action-before-hidden-system-action',
+            gameId: before.gameId,
+            source: ActionSource.User,
+            type: ActionType.PlaceDisk,
+            playerId,
+            coords: findEmptyCoords(state)
+        }
+
+        expect(() =>
+            new GameEngine(runtime).executeAction({
+                action,
+                state: projected,
+                game: createGame(before),
+                perspective
+            })
+        ).toThrow('Projected execution cannot access protected value at /tileBag/items')
+        expect(projected).toEqual(unchangedProjection)
+    })
+
     it('omits forward patches after proving a public cascade replayable', () => {
         const state = generateTestState({ numPlayers: 3 })
         const playerId = state.turnManager.startNextTurn(state.actionCount)
@@ -606,19 +691,19 @@ describe('Fresh Fish visibility', () => {
         const spectatorProjection = projector.project(canonical, { kind: 'spectator' })
 
         expect(playerOneProjection.currentAuction?.participants).toEqual([
-            { playerId: 'p1', bid: 3, passed: false },
-            { playerId: 'p2', passed: false },
-            { playerId: 'p3', passed: false }
+            { playerId: 'p1', bid: 3, passed: false, submitted: true },
+            { playerId: 'p2', passed: false, submitted: true },
+            { playerId: 'p3', passed: false, submitted: false }
         ])
         expect(playerTwoProjection.currentAuction?.participants).toEqual([
-            { playerId: 'p1', passed: false },
-            { playerId: 'p2', bid: 5, passed: false },
-            { playerId: 'p3', passed: false }
+            { playerId: 'p1', passed: false, submitted: true },
+            { playerId: 'p2', bid: 5, passed: false, submitted: true },
+            { playerId: 'p3', passed: false, submitted: false }
         ])
         expect(spectatorProjection.currentAuction?.participants).toEqual([
-            { playerId: 'p1', passed: false },
-            { playerId: 'p2', passed: false },
-            { playerId: 'p3', passed: false }
+            { playerId: 'p1', passed: false, submitted: true },
+            { playerId: 'p2', passed: false, submitted: true },
+            { playerId: 'p3', passed: false, submitted: false }
         ])
         expect(playerOneProjection.tileBag.items).toEqual([])
         expect(playerTwoProjection.tileBag.items).toEqual([])
@@ -629,6 +714,7 @@ describe('Fresh Fish visibility', () => {
             throw Error('Expected a current auction')
         }
         auction.participants[2].bid = 4
+        auction.participants[2].submitted = true
         auction.highBid = 5
         auction.winnerId = 'p2'
         const revealedPerspectives: Visibility.Perspective[] = [
@@ -639,18 +725,18 @@ describe('Fresh Fish visibility', () => {
         for (const perspective of revealedPerspectives) {
             const projection = projector.project(canonical, perspective)
             expect(projection.currentAuction?.participants).toEqual([
-                { playerId: 'p1', bid: 3, passed: false },
-                { playerId: 'p2', bid: 5, passed: false },
-                { playerId: 'p3', bid: 4, passed: false }
+                { playerId: 'p1', bid: 3, passed: false, submitted: true },
+                { playerId: 'p2', bid: 5, passed: false, submitted: true },
+                { playerId: 'p3', bid: 4, passed: false, submitted: true }
             ])
             expect(projection.tileBag.items).toEqual([])
             expect(Compile(projector.schema).Check(projection)).toBe(true)
         }
 
         expect(canonical.currentAuction?.participants).toEqual([
-            { playerId: 'p1', bid: 3, passed: false },
-            { playerId: 'p2', bid: 5, passed: false },
-            { playerId: 'p3', bid: 4, passed: false }
+            { playerId: 'p1', bid: 3, passed: false, submitted: true },
+            { playerId: 'p2', bid: 5, passed: false, submitted: true },
+            { playerId: 'p3', bid: 4, passed: false, submitted: true }
         ])
     })
 })

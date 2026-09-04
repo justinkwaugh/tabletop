@@ -44,7 +44,7 @@ export class CanonicalHost {
         this.state = structuredClone(state)
     }
 
-    apply(action: PlaceBid): GameAction {
+    apply(action: GameAction): GameAction {
         const results = this.engine.executeAction({
             action,
             state: this.state,
@@ -225,7 +225,8 @@ export function createAuctionHost(): CanonicalHost {
         type: AuctionType.Simultaneous,
         participants: [PLAYER_A_ID, PLAYER_D_ID, PLAYER_B_ID, PLAYER_C_ID].map((playerId) => ({
             playerId,
-            passed: false
+            passed: false,
+            submitted: false
         })),
         auctioneerId: PLAYER_A_ID,
         tie: false,

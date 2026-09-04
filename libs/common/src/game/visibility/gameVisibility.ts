@@ -21,7 +21,6 @@ export interface GameVisibility<
 > {
     readonly state: ValueProjector<State, ProjectedState>
     readonly actions: ActionProjector
-    readonly optimisticActionTypes?: readonly string[]
 }
 
 export interface VisibleActionCascade {

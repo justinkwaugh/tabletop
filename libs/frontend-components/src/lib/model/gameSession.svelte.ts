@@ -761,7 +761,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         const relevantContext = this.currentModifiableContext
-        const requiresAuthoritativeApplication = this.requiresServerAuthoritativeProcessing(
+        let requiresAuthoritativeApplication = this.requiresServerAuthoritativeProcessing(
             relevantContext,
             action
         )
@@ -791,7 +791,22 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             }
 
             // Optimistically apply the action locally (this will assign indices to the actions and store them)
-            const actionResults = this.executeActionInGame(action, gameSnapshot, stateSnapshot)
+            let actionResults: GameActionResults<T>
+            try {
+                actionResults = this.executeActionInGame(
+                    action,
+                    gameSnapshot,
+                    stateSnapshot,
+                    this.projectedExecutionPerspective(relevantContext)
+                )
+            } catch (error) {
+                if (!Visibility.isUnavailableProjectedValueError(error)) {
+                    throw error
+                }
+                requiresAuthoritativeApplication = true
+                await this.applyServerAuthoritativeAction(action, relevantContext)
+                return
+            }
 
             // Don't update the local state if the action reveals info, instead wait for the server to validate.
             // This is because the server may reject the action due to undo or any other reason and we
@@ -1109,11 +1124,17 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.gameContext.updateGameState(state)
     }
 
-    private executeActionInGame(action: GameAction, game: Game, state: T): GameActionResults<T> {
+    private executeActionInGame(
+        action: GameAction,
+        game: Game,
+        state: T,
+        perspective?: Visibility.Perspective
+    ): GameActionResults<T> {
         const { processedActions, updatedState } = this.engine.executeAction({
             action,
             state,
-            game
+            game,
+            perspective
         })
         return new GameActionResults(processedActions, updatedState)
     }
@@ -1528,14 +1549,32 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         action?: GameAction
     ): boolean {
         const visibility = this.runtime.visibility
+        if (context.game.storage !== GameStorage.Remote || context.game.hotseat) {
+            return false
+        }
+        if (action?.revealsInfo || action?.optimistic === false) {
+            return true
+        }
+        return visibility !== undefined && action === undefined
+    }
+
+    private projectedExecutionPerspective(
+        context: GameContext<T, U>
+    ): Visibility.Perspective | undefined {
         if (
             context.game.storage !== GameStorage.Remote ||
             context.game.hotseat ||
-            visibility === undefined
+            this.runtime.visibility === undefined ||
+            this.isExploring ||
+            this.actAsAdminStore.current
         ) {
-            return false
+            return undefined
         }
-        return action === undefined || !visibility.optimisticActionTypes?.includes(action.type)
+
+        const player = this.myPrimaryPlayer
+        return player === undefined
+            ? { kind: 'spectator' }
+            : { kind: 'player', playerId: player.id }
     }
 
     private matchesProcessedActionTrace(

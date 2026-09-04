@@ -7,7 +7,12 @@ export {
     scope,
     ScopeKey
 } from './visibilitySchema.js'
-export { createProjector, Perspective } from './valueProjector.js'
+export {
+    createProjector,
+    isUnavailableProjectedValueError,
+    Perspective,
+    UnavailableProjectedValueError
+} from './valueProjector.js'
 export { createActionProjector } from './actionProjector.js'
 export {
     projectActionCascade,

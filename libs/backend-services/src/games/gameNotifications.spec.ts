@@ -152,6 +152,9 @@ function createVisibility(): Visibility.GameVisibility<GameState> {
             schema: GameState,
             project(value) {
                 return structuredClone(value)
+            },
+            guardForExecution(value) {
+                return value
             }
         },
         actions: {

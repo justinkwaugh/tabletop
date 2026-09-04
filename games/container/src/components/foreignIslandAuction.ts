@@ -49,7 +49,11 @@ export class HydratedForeignIslandAuction
         return new HydratedSimultaneousAuction({
             id,
             type: AuctionType.Simultaneous,
-            participants: participantIds.map((playerId) => ({ playerId, passed: false })),
+            participants: participantIds.map((playerId) => ({
+                playerId,
+                passed: false,
+                submitted: false
+            })),
             auctioneerId,
             tie: false,
             tieResolution: TieResolutionStrategy.FirstInOrder
@@ -64,7 +68,7 @@ export class HydratedForeignIslandAuction
     }
 
     isRoundComplete(): boolean {
-        return this.round.participants.every((participant) => participant.bid !== undefined)
+        return this.round.allBidsSubmitted()
     }
 
     resolveRound(): 'tiebreak' | 'select_winner' | 'resolved' {
