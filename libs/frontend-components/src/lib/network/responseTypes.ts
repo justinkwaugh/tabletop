@@ -54,7 +54,11 @@ export const GameWithActionsResponse = Type.Evaluate(
     Type.Intersect([
         Type.Omit(ApiResponse, ['payload']),
         Type.Object({
-            payload: Type.Object({ game: Game, actions: Type.Array(GameAction) })
+            payload: Type.Object({
+                game: Game,
+                actions: Type.Array(GameAction),
+                perspective: Type.Optional(Visibility.Perspective)
+            })
         })
     ])
 )
@@ -97,7 +101,8 @@ export const ApplyActionResponse = Type.Evaluate(
             payload: Type.Object({
                 actions: Type.Array(GameAction),
                 game: Game,
-                missingActions: Type.Optional(Type.Array(GameAction))
+                missingActions: Type.Optional(Type.Array(GameAction)),
+                perspective: Type.Optional(Visibility.Perspective)
             })
         })
     ])

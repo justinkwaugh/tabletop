@@ -6,9 +6,9 @@ import {
 } from '@tabletop/frontend-components'
 import { FreshFishRuntime } from '@tabletop/fresh-fish'
 import { tick } from 'svelte'
-import { FreshFishUiRuntime } from '../definition/gameUiRuntime.js'
-import { UiDefinition } from '../index.js'
-import { FreshFishGameSession } from './FreshFishGameSession.svelte.js'
+import { FreshFishUiRuntime } from '../../definition/gameUiRuntime.js'
+import { UiDefinition } from '../../index.js'
+import { FreshFishGameSession } from '../FreshFishGameSession.svelte.js'
 import {
     GAME_ID,
     PLAYER_A_ID,
@@ -19,7 +19,7 @@ import {
     createAuctionHost,
     createBid,
     projectHostHistory
-} from './simultaneousAuction.testSupport.js'
+} from './simultaneousAuction.js'
 
 const HARNESS_DEFINITION: GameUiDefinition<GameState, HydratedGameState> = {
     info: UiDefinition.info,

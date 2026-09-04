@@ -72,7 +72,11 @@ describe('GET /get/:gameId', () => {
         expect(response.headers.etag).toBe('W/"player-1-revision-1"')
         expect(response.json()).toEqual({
             status: 'ok',
-            payload: { game: { id: 'game-1' }, actions: [] }
+            payload: {
+                game: { id: 'game-1' },
+                actions: [],
+                perspective: playerPerspective
+            }
         })
         expect(getGameForUser).toHaveBeenCalledWith({
             gameId: 'game-1',

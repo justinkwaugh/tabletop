@@ -5,7 +5,7 @@ test('projected History round-trips a completed simultaneous auction', async ({ 
 
     const result = await page.evaluate(async () => {
         const moduleUrl = new URL(
-            '/src/lib/stores/projectedHistory.test.fixture.ts',
+            '/src/lib/stores/tests/projectedHistory.fixture.ts',
             window.location.href
         ).href
         const scenario = await import(moduleUrl)

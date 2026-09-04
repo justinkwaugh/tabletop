@@ -5,8 +5,7 @@ import {
     HydratedTurnManager,
     HydratedSimultaneousAuction,
     SimultaneousAuction,
-    PrngState,
-    Visibility
+    PrngState
 } from '@tabletop/common'
 import { FreshFishPlayerState, HydratedFreshFishPlayerState } from './playerState.js'
 import { HydratedTileBag, TileBag } from '../components/tileBag.js'
@@ -36,9 +35,6 @@ export const FreshFishGameState = Type.Evaluate(
         })
     ])
 )
-
-export type FreshFishGameStateProjection = Type.Static<typeof FreshFishGameStateProjection>
-export const FreshFishGameStateProjection = Visibility.createProjectionSchema(FreshFishGameState)
 
 const FreshFishGameStateValidator = Compile(FreshFishGameState)
 

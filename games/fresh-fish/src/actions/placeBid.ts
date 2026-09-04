@@ -18,9 +18,6 @@ export const PlaceBid = Type.Evaluate(
     ])
 )
 
-export type PlaceBidProjection = Type.Static<typeof PlaceBidProjection>
-export const PlaceBidProjection = Visibility.createProjectionSchema(PlaceBid)
-
 export const PlaceBidValidator = Compile(PlaceBid)
 
 export function isPlaceBid(action: GameAction): action is PlaceBid {

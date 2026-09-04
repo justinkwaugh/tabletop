@@ -14,13 +14,9 @@ import {
 } from '@tabletop/common'
 import { Compile } from 'typebox/compile'
 import { describe, expect, expectTypeOf, it } from 'vitest'
-import { TileBag, TileBagProjection } from '../components/tileBag.js'
-import {
-    FreshFishGameState,
-    FreshFishGameStateProjection,
-    type HydratedFreshFishGameState
-} from '../model/gameState.js'
-import { PlaceBid, PlaceBidProjection } from '../actions/placeBid.js'
+import { TileBag } from '../components/tileBag.js'
+import { FreshFishGameState, type HydratedFreshFishGameState } from '../model/gameState.js'
+import { PlaceBid } from '../actions/placeBid.js'
 import { DrawTile } from '../actions/drawTile.js'
 import type { PlaceDisk } from '../actions/placeDisk.js'
 import { ActionType } from './actions.js'
@@ -82,6 +78,8 @@ function findEmptyCoords(state: ReturnType<typeof generateTestState>): PlaceDisk
 
 describe('Fresh Fish visibility', () => {
     it('protects tile identities while retaining the public bag count', () => {
+        const projector = Visibility.createProjector(TileBag)
+
         expect(TileBag.properties.items[Visibility.MetadataKey]).toMatchObject({
             policy: Visibility.Policy.HostOnly,
             redaction: {
@@ -90,9 +88,9 @@ describe('Fresh Fish visibility', () => {
             }
         })
         expect(TileBag.required).toEqual(['items', 'remaining'])
-        expect(TileBagProjection.required).toEqual(['items', 'remaining'])
-        expect(Compile(TileBagProjection).Check({ items: [], remaining: 20 })).toBe(true)
-        expectTypeOf<typeof TileBagProjection>().toEqualTypeOf<
+        expect(projector.schema.required).toEqual(['items', 'remaining'])
+        expect(Compile(projector.schema).Check({ items: [], remaining: 20 })).toBe(true)
+        expectTypeOf(projector.schema).toEqualTypeOf<
             Visibility.ProjectedSchema<typeof TileBag>
         >()
     })
@@ -159,6 +157,7 @@ describe('Fresh Fish visibility', () => {
     })
 
     it('projects a PlaceBid amount only to its attributed Player', () => {
+        const projector = Visibility.createProjector(PlaceBid)
         const canonicalAction: PlaceBid = {
             id: 'action-1',
             gameId: 'game-1',
@@ -167,7 +166,7 @@ describe('Fresh Fish visibility', () => {
             playerId: 'player-1',
             amount: 7
         }
-        const redactedAction: PlaceBidProjection = {
+        const redactedAction = {
             id: 'action-1',
             gameId: 'game-1',
             source: ActionSource.User,
@@ -185,12 +184,11 @@ describe('Fresh Fish visibility', () => {
         })
         expect(Compile(PlaceBid).Check(canonicalAction)).toBe(true)
         expect(Compile(PlaceBid).Check(redactedAction)).toBe(false)
-        expect(Compile(PlaceBidProjection).Check(canonicalAction)).toBe(true)
-        expect(Compile(PlaceBidProjection).Check(redactedAction)).toBe(true)
+        expect(Compile(projector.schema).Check(canonicalAction)).toBe(true)
+        expect(Compile(projector.schema).Check(redactedAction)).toBe(true)
         expect(PlaceBid.required).toContain('amount')
-        expect(PlaceBidProjection.required).not.toContain('amount')
+        expect(projector.schema.required).not.toContain('amount')
 
-        const projector = Visibility.createProjector(PlaceBid)
         expect(
             projector.project(canonicalAction, {
                 kind: 'player',
@@ -488,8 +486,8 @@ describe('Fresh Fish visibility', () => {
             before
         )
 
-        const rebuiltAction = engine.rebuildProcessedAction({ action, state: before, game })
-        expect(rebuiltAction.processedActions).toHaveLength(1)
+        const singleAction = engine.executeSingleAction({ action, state: before, game })
+        expect(singleAction.processedActions).toHaveLength(1)
     })
 
     it('stops projected execution when auction resolution needs protected opponent bids', () => {
@@ -647,6 +645,8 @@ describe('Fresh Fish visibility', () => {
     })
 
     it('carries the bag and bid declarations into the full state projection', () => {
+        const projection = FreshFishRuntime.visibility.state.schema
+
         expect(
             Reflect.get(
                 FreshFishGameState.properties.tileBag.properties.items,
@@ -662,17 +662,15 @@ describe('Fresh Fish visibility', () => {
         ).toBeDefined()
         expect(
             Reflect.get(
-                FreshFishGameStateProjection.properties.currentAuction.properties.participants.items
-                    .properties.bid,
+                projection.properties.currentAuction.properties.participants.items.properties.bid,
                 Visibility.MetadataKey
             )
         ).toBeDefined()
         expect(
-            Reflect.get(FreshFishGameStateProjection.properties.currentAuction, Visibility.ScopeKey)
+            Reflect.get(projection.properties.currentAuction, Visibility.ScopeKey)
         ).toBe(SimultaneousAuctionVisibility.Scope)
-        expect(FreshFishRuntime.visibility.state.schema).toEqual(FreshFishGameStateProjection)
-        expectTypeOf<typeof FreshFishRuntime.visibility.state.schema>().toEqualTypeOf<
-            typeof FreshFishGameStateProjection
+        expectTypeOf(projection).toEqualTypeOf<
+            Visibility.ProjectedSchema<typeof FreshFishGameState>
         >()
     })
 

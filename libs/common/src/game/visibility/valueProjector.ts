@@ -48,7 +48,7 @@ export interface ProjectorOptions<Root> {
 export interface ValueProjector<Canonical, Projected = unknown> {
     readonly schema: Type.TSchema
     project(value: Canonical, perspective: Perspective): Projected
-    /** Wraps a hydrated projection so rules cannot use values unavailable to its Perspective. */
+    /** Wraps hydrated state so game runtime code cannot use values unavailable to its Perspective. */
     guardForExecution<Value extends object>(value: Value, perspective: Perspective): Value
 }
 

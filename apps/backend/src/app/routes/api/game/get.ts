@@ -64,7 +64,7 @@ export default async function (fastify: FastifyInstance) {
 
             return {
                 status: 'ok',
-                payload: { game: representation.game, actions: representation.actions }
+                payload: representation
             }
         }
     )

@@ -191,7 +191,7 @@ export class HarnessGameService implements GameService {
             action.undoPatch = undefined
 
             // Apply each action to the forked game state
-            const { processedActions, updatedState } = engine.rebuildProcessedAction({
+            const { processedActions, updatedState } = engine.executeSingleAction({
                 action,
                 state,
                 game: startedGame

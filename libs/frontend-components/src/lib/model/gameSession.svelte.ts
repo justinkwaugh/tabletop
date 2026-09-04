@@ -761,7 +761,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         const relevantContext = this.currentModifiableContext
-        let requiresAuthoritativeApplication = this.requiresServerAuthoritativeProcessing(
+        const requiresAuthoritativeApplication = this.requiresServerAuthoritativeProcessing(
             relevantContext,
             action
         )
@@ -803,7 +803,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 if (!Visibility.isUnavailableProjectedValueError(error)) {
                     throw error
                 }
-                requiresAuthoritativeApplication = true
                 await this.applyServerAuthoritativeAction(action, relevantContext)
                 return
             }
@@ -844,13 +843,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 let applyServerActions = actionResults.revealing
                 if (
                     !actionResults.revealing &&
-                    (serverActions.some(
-                        (serverAction) => serverAction.forwardPatch !== undefined
-                    ) ||
-                        !this.matchesProcessedActionTrace(
-                            actionResults.processedActions,
-                            serverActions
-                        ))
+                    !this.canKeepOptimisticResult(
+                        actionResults.processedActions,
+                        serverActions
+                    )
                 ) {
                     relevantContext.restoreFrom(priorContext)
                     applyServerActions = true
@@ -921,11 +917,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             relevantContext.restoreFrom(priorContext)
             if (!this.isMajorChange()) {
                 toast.error('An error occurred processing your action, resyncing')
-                if (requiresAuthoritativeApplication) {
-                    await this.doFullResync()
-                } else {
-                    await this.checkSync()
-                }
+                await this.checkSync()
             }
         } finally {
             if (this.mode === GameSessionMode.Play) {
@@ -1423,34 +1415,40 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             return
         }
 
-        const { status, actions, checksum } = await this.api.checkSync(
-            this.gameContext.game.id,
-            this.gameContext.state?.actionChecksum ?? 0,
-            this.gameContext.actions.length - 1
-        )
+        const priorContext = this.gameContext.clone()
+        try {
+            const { status, actions, checksum } = await this.api.checkSync(
+                this.gameContext.game.id,
+                this.gameContext.state?.actionChecksum ?? 0,
+                this.gameContext.actions.length - 1
+            )
 
-        let resyncNeeded = false
-        if (status === GameSyncStatus.InSync) {
-            if (actions.length > 0) {
-                const handling =
-                    this.runtime.visibility === undefined
-                        ? ServerActionHandling.Execute
-                        : ServerActionHandling.ApplyProcessed
-                await this.applyServerActions(actions, handling)
-                if (this.gameContext.state?.actionChecksum !== checksum) {
-                    // console.log('Checksums do not match after applying actions from sync')
-                    resyncNeeded = true
+            let resyncNeeded = false
+            if (status === GameSyncStatus.InSync) {
+                if (actions.length > 0) {
+                    const handling =
+                        this.runtime.visibility === undefined
+                            ? ServerActionHandling.Execute
+                            : ServerActionHandling.ApplyProcessed
+                    await this.applyServerActions(actions, handling)
+                    if (this.gameContext.state?.actionChecksum !== checksum) {
+                        // console.log('Checksums do not match after applying actions from sync')
+                        resyncNeeded = true
+                    }
                 }
+            } else {
+                resyncNeeded = true
             }
-        } else {
-            resyncNeeded = true
+
+            if (!resyncNeeded || (await this.tryToResync(actions, checksum))) {
+                return
+            }
+        } catch (error) {
+            console.log('Incremental synchronization failed', error)
         }
 
-        if (resyncNeeded) {
-            if (!(await this.tryToResync(actions, checksum))) {
-                await this.doFullResync()
-            }
-        }
+        this.gameContext.restoreFrom(priorContext)
+        await this.doFullResync()
     }
 
     // For primary game context only... we can just drop out of the other modes if they get messed up
@@ -1552,7 +1550,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         if (context.game.storage !== GameStorage.Remote || context.game.hotseat) {
             return false
         }
-        if (action?.revealsInfo || action?.optimistic === false) {
+        if (action?.revealsInfo || action?.skipOptimisticExecution) {
             return true
         }
         return visibility !== undefined && action === undefined
@@ -1593,6 +1591,19 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     localAction.type === serverAction.type
                 )
             })
+        )
+    }
+
+    private canKeepOptimisticResult(
+        localActions: readonly GameAction[],
+        serverActions: readonly GameAction[]
+    ): boolean {
+        const serverActionsHaveForwardPatches = serverActions.some(
+            (action) => action.forwardPatch !== undefined
+        )
+        return (
+            !serverActionsHaveForwardPatches &&
+            this.matchesProcessedActionTrace(localActions, serverActions)
         )
     }
 

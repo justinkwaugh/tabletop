@@ -64,7 +64,7 @@ export const GameAction = Type.Object({
     index: Type.Optional(Type.Number()),
     simultaneousGroupId: Type.Optional(Type.String()),
     revealsInfo: Type.Optional(Type.Boolean()),
-    optimistic: Type.Optional(Type.Boolean()),
+    skipOptimisticExecution: Type.Optional(Type.Literal(true)),
     createdAt: Type.Optional(DateType()),
     updatedAt: Type.Optional(DateType())
 })
@@ -109,7 +109,7 @@ export abstract class HydratableAction<T extends Type.TSchema>
     declare forwardPatch?: Patch
     declare simultaneousGroupId?: string
     declare revealsInfo?: boolean
-    declare optimistic?: boolean
+    declare skipOptimisticExecution?: true
     declare createdAt?: Date
     declare updatedAt?: Date
 

@@ -49,11 +49,7 @@ export default async function (
 
             return {
                 status: 'ok',
-                payload: {
-                    actions: representation.actions,
-                    game: representation.game,
-                    missingActions: representation.missingActions
-                }
+                payload: representation
             }
         }
     )

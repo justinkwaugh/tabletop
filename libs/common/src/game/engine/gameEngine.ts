@@ -35,7 +35,7 @@ export type ActionCascadeResult<T extends GameState = GameState> = ActionResult<
     actionCascade: CanonicalActionCascade<T>
 }
 
-interface RulesExecution<T extends GameState> extends ActionResult<T> {
+interface RuntimeExecution<T extends GameState> extends ActionResult<T> {
     readonly before: T
     readonly transitions: readonly CanonicalActionTransition<T>[]
 }
@@ -111,7 +111,7 @@ export class GameEngine<
         game: Game
         perspective?: Perspective
     }): ActionCascadeResult<T> {
-        const execution = this.executeByRules({
+        const execution = this.executeThroughRuntime({
             action: this.sanitizeUnprocessedAction(action),
             state,
             game,
@@ -135,7 +135,7 @@ export class GameEngine<
             return this.applyStatePatch(state, action.forwardPatch)
         }
 
-        return this.executeByRules({
+        return this.executeThroughRuntime({
             action,
             state,
             game,
@@ -143,7 +143,7 @@ export class GameEngine<
         }).updatedState
     }
 
-    rebuildProcessedAction({
+    executeSingleAction({
         action,
         state,
         game
@@ -152,7 +152,7 @@ export class GameEngine<
         state: T
         game: Game
     }): ActionResult<T> {
-        const execution = this.executeByRules({
+        const execution = this.executeThroughRuntime({
             action: this.cloneWithoutActionPatches(action),
             state,
             game,
@@ -182,7 +182,7 @@ export class GameEngine<
         return updatedState
     }
 
-    private executeByRules({
+    private executeThroughRuntime({
         action,
         state,
         game,
@@ -194,21 +194,21 @@ export class GameEngine<
         game: Game
         processGeneratedActions: boolean
         perspective?: Perspective
-    }): RulesExecution<T> {
+    }): RuntimeExecution<T> {
         const processedActions: GameAction[] = []
         const transitions: CanonicalActionTransition<T>[] = []
         let updatedState = structuredClone(state)
         const before = updatedState
 
         const hydratedState = this.runtime.hydrator.hydrateState(updatedState)
-        const rulesState =
+        const runtimeState =
             perspective !== undefined && this.runtime.visibility !== undefined
                 ? this.runtime.visibility.state.guardForExecution(hydratedState, perspective)
                 : hydratedState
         const machineContext = new MachineContext({
             action: action,
             gameConfig: game.config,
-            gameState: rulesState
+            gameState: runtimeState
         })
 
         // Simultaneous actions can cause this, otherwise it's bad data
@@ -248,7 +248,7 @@ export class GameEngine<
                 `Action of type ${hydratedAction.type} is not valid in state ${hydratedState.machineState}`
             )
 
-            hydratedAction.apply(rulesState, machineContext)
+            hydratedAction.apply(runtimeState, machineContext)
 
             const nextMachineState = stateHandler.onAction(hydratedAction, machineContext)
 

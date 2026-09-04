@@ -1,16 +1,20 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { assertExists } from '../../util/assertions.js'
-import { ActionSource, GameAction, HydratableAction } from '../engine/gameAction.js'
-import type { MachineContext } from '../engine/machineContext.js'
-import type { GameRuntime } from '../definition/gameDefinition.js'
-import type { Game } from '../model/game.js'
-import { GameStatus } from '../model/game.js'
-import { GameState, HydratableGameState, type UninitializedGameState } from '../model/gameState.js'
-import { Color } from '../model/colors.js'
-import { PlayerStatus } from '../model/player.js'
-import type { PlayerState } from '../model/playerState.js'
-import * as Visibility from './index.js'
+import { assertExists } from '../../../util/assertions.js'
+import { ActionSource, GameAction, HydratableAction } from '../../engine/gameAction.js'
+import type { MachineContext } from '../../engine/machineContext.js'
+import type { GameRuntime } from '../../definition/gameDefinition.js'
+import type { Game } from '../../model/game.js'
+import { GameStatus } from '../../model/game.js'
+import {
+    GameState,
+    HydratableGameState,
+    type UninitializedGameState
+} from '../../model/gameState.js'
+import { Color } from '../../model/colors.js'
+import { PlayerStatus } from '../../model/player.js'
+import type { PlayerState } from '../../model/playerState.js'
+import * as Visibility from '../index.js'
 
 export const PlayerIds = ['player-1', 'player-2', 'player-3', 'player-4'] as const
 
@@ -18,7 +22,9 @@ export const ActionType = {
     StartRound: 'scenario.start-round',
     DealCards: 'scenario.deal-cards',
     PeekTopCard: 'scenario.peek-top-card',
-    DrawTopCard: 'scenario.draw-top-card'
+    DrawTopCard: 'scenario.draw-top-card',
+    EndRound: 'scenario.end-round',
+    ForgetKnownCards: 'scenario.forget-known-cards'
 } as const
 
 const MachineState = 'scenario.round'
@@ -128,11 +134,35 @@ const DrawTopCard = Type.Evaluate(
     ])
 )
 
+type EndRound = Type.Static<typeof EndRound>
+const EndRound = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['type']),
+        Type.Object({
+            type: Type.Literal(ActionType.EndRound),
+            targetPlayerId: Type.String()
+        })
+    ])
+)
+
+type ForgetKnownCards = Type.Static<typeof ForgetKnownCards>
+const ForgetKnownCards = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['type']),
+        Type.Object({
+            type: Type.Literal(ActionType.ForgetKnownCards),
+            targetPlayerId: Type.String()
+        })
+    ])
+)
+
 const HiddenCardStateValidator = Compile(HiddenCardState)
 const StartRoundValidator = Compile(StartRound)
 const DealCardsValidator = Compile(DealCards)
 const PeekTopCardValidator = Compile(PeekTopCard)
 const DrawTopCardValidator = Compile(DrawTopCard)
+const EndRoundValidator = Compile(EndRound)
+const ForgetKnownCardsValidator = Compile(ForgetKnownCards)
 
 class HydratedHiddenCardState
     extends HydratableGameState<typeof HiddenCardState, PlayerState>
@@ -236,6 +266,41 @@ class HydratedDrawTopCard extends HydratableAction<typeof DrawTopCard> implement
     }
 }
 
+class HydratedEndRound extends HydratableAction<typeof EndRound> implements EndRound {
+    declare type: typeof ActionType.EndRound
+    declare targetPlayerId: string
+
+    constructor(action: EndRound) {
+        super(action, EndRoundValidator)
+    }
+
+    apply(_state: HydratedHiddenCardState, context?: MachineContext): void {
+        assertExists(context, 'End Round requires a Machine Context')
+        context.addSystemAction(ForgetKnownCards, { targetPlayerId: this.targetPlayerId })
+    }
+}
+
+class HydratedForgetKnownCards
+    extends HydratableAction<typeof ForgetKnownCards>
+    implements ForgetKnownCards
+{
+    declare type: typeof ActionType.ForgetKnownCards
+    declare targetPlayerId: string
+
+    constructor(action: ForgetKnownCards) {
+        super(action, ForgetKnownCardsValidator)
+    }
+
+    apply(state: HydratedHiddenCardState): void {
+        const knowledgeIndex = state.knowledge.findIndex(
+            ({ playerId }) => playerId === this.targetPlayerId
+        )
+        if (knowledgeIndex >= 0) {
+            state.knowledge.splice(knowledgeIndex, 1)
+        }
+    }
+}
+
 function isStartRound(action: GameAction): action is StartRound {
     return action.type === ActionType.StartRound
 }
@@ -250,6 +315,14 @@ function isPeekTopCard(action: GameAction): action is PeekTopCard {
 
 function isDrawTopCard(action: GameAction): action is DrawTopCard {
     return action.type === ActionType.DrawTopCard
+}
+
+function isEndRound(action: GameAction): action is EndRound {
+    return action.type === ActionType.EndRound
+}
+
+function isForgetKnownCards(action: GameAction): action is ForgetKnownCards {
+    return action.type === ActionType.ForgetKnownCards
 }
 
 function playerIdOf(value: unknown): string | undefined {
@@ -297,7 +370,9 @@ const visibility = {
             [ActionType.StartRound]: StartRound,
             [ActionType.DealCards]: DealCards,
             [ActionType.PeekTopCard]: PeekTopCard,
-            [ActionType.DrawTopCard]: DrawTopCard
+            [ActionType.DrawTopCard]: DrawTopCard,
+            [ActionType.EndRound]: EndRound,
+            [ActionType.ForgetKnownCards]: ForgetKnownCards
         },
         { policies }
     )
@@ -327,6 +402,12 @@ const runtime = {
             if (isDrawTopCard(action)) {
                 return new HydratedDrawTopCard(action)
             }
+            if (isEndRound(action)) {
+                return new HydratedEndRound(action)
+            }
+            if (isForgetKnownCards(action)) {
+                return new HydratedForgetKnownCards(action)
+            }
             throw Error(`Unknown scenario Action ${action.type}`)
         },
         hydrateState: (state: HiddenCardState) => new HydratedHiddenCardState(state)
@@ -335,7 +416,8 @@ const runtime = {
     apiActions: {
         [ActionType.StartRound]: StartRound,
         [ActionType.PeekTopCard]: PeekTopCard,
-        [ActionType.DrawTopCard]: DrawTopCard
+        [ActionType.DrawTopCard]: DrawTopCard,
+        [ActionType.EndRound]: EndRound
     },
     stateHandlers: {
         [MachineState]: {
@@ -343,7 +425,8 @@ const runtime = {
             validActionsForPlayer: () => [
                 ActionType.StartRound,
                 ActionType.PeekTopCard,
-                ActionType.DrawTopCard
+                ActionType.DrawTopCard,
+                ActionType.EndRound
             ],
             enter: () => undefined,
             onAction: () => MachineState
@@ -451,4 +534,24 @@ export function createPrivateObservationScenario() {
         revealsInfo: true
     }
     return { before, drawTopCard, game: createGame(), peekTopCard, runtime }
+}
+
+export function createForgetKnowledgeScenario() {
+    const before = createCardState(['unknown-stock-card'])
+    before.phase = 'playing'
+    const cardOwnerHand = before.hands.find(({ playerId }) => playerId === PlayerIds[1])
+    assertExists(cardOwnerHand, `Cannot find a hand for Player ${PlayerIds[1]}`)
+    cardOwnerHand.cards.push('observed-card')
+    cardOwnerHand.cardCount = 1
+    before.knowledge.push({ playerId: PlayerIds[0], cardIds: ['observed-card'] })
+
+    const endRound: EndRound = {
+        id: 'end-round',
+        gameId: before.gameId,
+        source: ActionSource.User,
+        type: ActionType.EndRound,
+        playerId: PlayerIds[1],
+        targetPlayerId: PlayerIds[0]
+    }
+    return { before, endRound, game: createGame(), runtime }
 }

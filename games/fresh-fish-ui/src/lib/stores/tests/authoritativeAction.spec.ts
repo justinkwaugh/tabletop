@@ -32,9 +32,9 @@ import {
 } from '@tabletop/fresh-fish'
 import * as Type from 'typebox'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import { FreshFishUiRuntime } from '../definition/gameUiRuntime.js'
-import { UiDefinition } from '../index.js'
-import { FreshFishGameSession } from './FreshFishGameSession.svelte.js'
+import { FreshFishUiRuntime } from '../../definition/gameUiRuntime.js'
+import { UiDefinition } from '../../index.js'
+import { FreshFishGameSession } from '../FreshFishGameSession.svelte.js'
 import {
     PLAYER_A_ID,
     PLAYER_B_ID,
@@ -45,7 +45,7 @@ import {
     createBid,
     projectHostHistory,
     projectHostHistorySuffix
-} from './simultaneousAuction.testSupport.js'
+} from './simultaneousAuction.js'
 
 const GAME_ID = 'authoritative-action-game'
 const HARNESS_USER_ID = 'harness-user'
@@ -58,11 +58,11 @@ const HARNESS_DEFINITION: GameUiDefinition<GameState, HydratedGameState> = {
     }
 }
 
-const NonOptimisticPlaceDisk = Type.Evaluate(
+const SkipOptimisticPlaceDisk = Type.Evaluate(
     Type.Intersect([
         PlaceDisk,
         Type.Object({
-            optimistic: Type.Literal(false)
+            skipOptimisticExecution: Type.Literal(true)
         })
     ])
 )
@@ -294,10 +294,10 @@ describe('projected hosted Actions', () => {
         })
 
         try {
-            const action = session.createPlayerAction(NonOptimisticPlaceDisk, {
+            const action = session.createPlayerAction(SkipOptimisticPlaceDisk, {
                 coords: findEmptyCoords(projectedState)
             })
-            expect(action.optimistic).toBe(false)
+            expect(action.skipOptimisticExecution).toBe(true)
             const pendingApplication = session.applyAction(action)
 
             expect(applyAction).toHaveBeenCalledOnce()
@@ -315,6 +315,61 @@ describe('projected hosted Actions', () => {
                 FreshFishRuntime.visibility.state.project(hostState, perspective)
             )
             expect(session.history.visibleContext.actions.map(({ id }) => id)).toContain(action.id)
+        } finally {
+            session.dispose()
+            bridgedContext.dispose()
+        }
+    })
+
+    test('uses incremental synchronization after an authoritative submission fails', async () => {
+        const started = createStartedGame()
+        const perspective = { kind: 'player', playerId: started.playerId } as const
+        const projectedState = FreshFishRuntime.visibility.state.project(
+            started.state,
+            perspective
+        )
+        const appContext = createHarnessAppContext(HARNESS_DEFINITION)
+        const bridgedContext = new BridgedContext({
+            authorizationService: appContext.authorizationService,
+            gameService: appContext.gameService,
+            chatService: appContext.chatService,
+            gameId: GAME_ID
+        })
+        vi.spyOn(appContext.api, 'applyAction').mockRejectedValue(
+            new Error('Authoritative submission failed')
+        )
+        const checkSync = vi.spyOn(appContext.api, 'checkSync').mockResolvedValue({
+            status: GameSyncStatus.InSync,
+            actions: [],
+            checksum: projectedState.actionChecksum
+        })
+        const getGame = vi.spyOn(appContext.api, 'getGame')
+        const session = new FreshFishGameSession({
+            gameService: appContext.gameService,
+            bridgedContext,
+            notificationService: appContext.notificationService,
+            chatService: appContext.chatService,
+            api: appContext.api,
+            runtime: FreshFishUiRuntime,
+            game: structuredClone(started.game),
+            state: projectedState,
+            actions: []
+        })
+
+        try {
+            const action = session.createPlayerAction(SkipOptimisticPlaceDisk, {
+                coords: findEmptyCoords(projectedState)
+            })
+            await session.applyAction(action)
+
+            expect(checkSync).toHaveBeenCalledWith(
+                GAME_ID,
+                projectedState.actionChecksum,
+                -1
+            )
+            expect(getGame).not.toHaveBeenCalled()
+            expect(session.history.visibleContext.state).toEqual(projectedState)
+            expect(session.history.visibleContext.actions).toEqual([])
         } finally {
             session.dispose()
             bridgedContext.dispose()
@@ -459,6 +514,7 @@ describe('projected hosted Actions', () => {
 
         try {
             const action = session.createPlaceBidAction(4)
+            expect(action.skipOptimisticExecution).toBeUndefined()
             const pendingApplication = session.applyAction(action)
 
             expect(applyAction).toHaveBeenCalledOnce()
@@ -719,6 +775,69 @@ describe('projected hosted Actions', () => {
                 result.processedActions.map((item) => item.id)
             )
             expect(JSON.stringify(session.history.visibleContext)).not.toContain(HIDDEN_TILE_MARKER)
+        } finally {
+            session.stopListeningToGame()
+            session.dispose()
+            bridgedContext.dispose()
+        }
+    })
+
+    test('falls back to a full reload when an incremental Action cannot be applied', async () => {
+        const started = createStartedGame()
+        const perspective = { kind: 'player', playerId: started.playerId } as const
+        const projectedState = FreshFishRuntime.visibility.state.project(
+            started.state,
+            perspective
+        )
+        const appContext = createHarnessAppContext(HARNESS_DEFINITION)
+        const bridgedContext = new BridgedContext({
+            authorizationService: appContext.authorizationService,
+            gameService: appContext.gameService,
+            chatService: appContext.chatService,
+            gameId: GAME_ID
+        })
+        const session = new FreshFishGameSession({
+            gameService: appContext.gameService,
+            bridgedContext,
+            notificationService: appContext.notificationService,
+            chatService: appContext.chatService,
+            api: appContext.api,
+            runtime: FreshFishUiRuntime,
+            game: structuredClone(started.game),
+            state: projectedState,
+            actions: []
+        })
+        const unusableAction: GameAction = {
+            id: 'unusable-incremental-action',
+            gameId: GAME_ID,
+            source: ActionSource.System,
+            type: 'unknown-action-type',
+            index: 0
+        }
+        const checkSync = vi.spyOn(appContext.api, 'checkSync').mockResolvedValue({
+            status: GameSyncStatus.InSync,
+            actions: [unusableAction],
+            checksum: 1
+        })
+        const reloadedGame = structuredClone(started.game)
+        reloadedGame.state = structuredClone(projectedState)
+        const getGame = vi.spyOn(appContext.api, 'getGame').mockResolvedValue({
+            game: reloadedGame,
+            actions: []
+        })
+
+        try {
+            session.listenToGame()
+            await appContext.notificationService.emit({
+                eventType: NotificationEventType.Discontinuity,
+                channel: NotificationChannel.GameInstance
+            })
+            await session.waitForVisibleTransitionSettled()
+
+            expect(checkSync).toHaveBeenCalledOnce()
+            expect(getGame).toHaveBeenCalledWith(GAME_ID)
+            expect(session.history.visibleContext.state).toEqual(projectedState)
+            expect(session.history.visibleContext.actions).toEqual([])
         } finally {
             session.stopListeningToGame()
             session.dispose()

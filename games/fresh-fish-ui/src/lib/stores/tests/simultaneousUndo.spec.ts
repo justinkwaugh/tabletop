@@ -20,9 +20,9 @@ import {
 } from '@tabletop/frontend-components'
 import { ActionType, FreshFishRuntime, type FreshFishGameState } from '@tabletop/fresh-fish'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import { FreshFishUiRuntime } from '../definition/gameUiRuntime.js'
-import { UiDefinition } from '../index.js'
-import { FreshFishGameSession } from './FreshFishGameSession.svelte.js'
+import { FreshFishUiRuntime } from '../../definition/gameUiRuntime.js'
+import { UiDefinition } from '../../index.js'
+import { FreshFishGameSession } from '../FreshFishGameSession.svelte.js'
 import {
     GAME_ID,
     PLAYER_A_ID,
@@ -35,7 +35,7 @@ import {
     createBid,
     projectHostHistory,
     projectHostHistorySuffix
-} from './simultaneousAuction.testSupport.js'
+} from './simultaneousAuction.js'
 
 const HARNESS_DEFINITION: GameUiDefinition<GameState, HydratedGameState> = {
     info: UiDefinition.info,

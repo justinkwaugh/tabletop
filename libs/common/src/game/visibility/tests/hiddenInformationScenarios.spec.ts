@@ -1,12 +1,13 @@
-import { ActionSource } from '../engine/gameAction.js'
-import { GameEngine } from '../engine/gameEngine.js'
-import * as Visibility from './index.js'
+import { ActionSource } from '../../engine/gameAction.js'
+import { GameEngine } from '../../engine/gameEngine.js'
+import * as Visibility from '../index.js'
 import {
     ActionType,
+    createForgetKnowledgeScenario,
     createPrivateDealScenario,
     createPrivateObservationScenario,
     PlayerIds
-} from './hiddenCardScenarios.testSupport.js'
+} from './hiddenCardScenarios.js'
 import { describe, expect, it } from 'vitest'
 
 const expectedCardsByPlayer = {
@@ -289,6 +290,113 @@ describe('I8 / K1: observed Card knowledge survives a later move', () => {
             })
 
             expect(JSON.stringify([visiblePeek, visibleDraw])).not.toContain('unknown-stock-card')
+        }
+    })
+})
+
+describe('K2 / S9: a rule explicitly removes Card knowledge', () => {
+    it('hides the Card from the formerly informed Player using one perspective-specific cascade mode', () => {
+        const scenario = createForgetKnowledgeScenario()
+        const engine = new GameEngine(scenario.runtime)
+        const canonicalResult = engine.executeAction({
+            action: scenario.endRound,
+            state: scenario.before,
+            game: scenario.game
+        })
+
+        expect(
+            canonicalResult.processedActions.map(({ type, source, index }) => ({
+                type,
+                source,
+                index
+            }))
+        ).toEqual([
+            { type: ActionType.EndRound, source: ActionSource.User, index: 0 },
+            { type: ActionType.ForgetKnownCards, source: ActionSource.System, index: 1 }
+        ])
+
+        for (const perspective of perspectives) {
+            const visibleBefore = scenario.runtime.visibility.state.project(
+                scenario.before,
+                perspective
+            )
+            const visibleResult = Visibility.projectActionResult({
+                result: canonicalResult,
+                visibility: scenario.runtime.visibility,
+                perspective,
+                replay: { game: scenario.game, runtime: scenario.runtime }
+            })
+            const previouslyKnewCard =
+                perspective.kind === 'player' && perspective.playerId === PlayerIds[0]
+            const ownsCard = perspective.kind === 'player' && perspective.playerId === PlayerIds[1]
+            const expectedBeforeCards = previouslyKnewCard || ownsCard ? ['observed-card'] : []
+            const expectedAfterCards = ownsCard ? ['observed-card'] : []
+
+            expect(visibleBefore).toMatchObject({
+                hands: expect.arrayContaining([
+                    { playerId: PlayerIds[1], cards: expectedBeforeCards, cardCount: 1 }
+                ]),
+                knowledge: []
+            })
+            expect(visibleResult.updatedState).toMatchObject({
+                hands: expect.arrayContaining([
+                    { playerId: PlayerIds[1], cards: expectedAfterCards, cardCount: 1 }
+                ]),
+                knowledge: [],
+                actionCount: 2
+            })
+            expect(visibleResult.processedActions.map(({ id, index }) => ({ id, index }))).toEqual(
+                canonicalResult.processedActions.map(({ id, index }) => ({ id, index }))
+            )
+            expect(
+                visibleResult.processedActions.every((action) => action.undoPatch !== undefined)
+            ).toBe(true)
+            expect(
+                visibleResult.processedActions.map((action) => action.forwardPatch !== undefined)
+            ).toEqual(previouslyKnewCard ? [true, true] : [false, false])
+
+            let visibleState = visibleBefore
+            for (const action of visibleResult.processedActions) {
+                visibleState = engine.applyProcessedAction({
+                    action,
+                    state: visibleState,
+                    game: scenario.game
+                })
+            }
+            expect(visibleState).toEqual(visibleResult.updatedState)
+
+            for (const action of visibleResult.processedActions.toReversed()) {
+                visibleState = engine.undoProcessedAction({ action, state: visibleState })
+            }
+            expect(visibleState).toEqual(visibleBefore)
+
+            for (const action of visibleResult.processedActions) {
+                visibleState = engine.applyProcessedAction({
+                    action,
+                    state: visibleState,
+                    game: scenario.game
+                })
+            }
+            expect(visibleState).toEqual(visibleResult.updatedState)
+
+            expect(
+                Visibility.projectActionHistory({
+                    currentState: canonicalResult.updatedState,
+                    actions: canonicalResult.processedActions,
+                    visibility: scenario.runtime.visibility,
+                    perspective,
+                    replay: { game: scenario.game, runtime: scenario.runtime }
+                })
+            ).toEqual({
+                startIndex: 0,
+                currentState: visibleResult.updatedState,
+                actions: visibleResult.processedActions
+            })
+
+            if (!previouslyKnewCard && !ownsCard) {
+                expect(JSON.stringify(visibleResult)).not.toContain('observed-card')
+            }
+            expect(JSON.stringify(visibleResult)).not.toContain('unknown-stock-card')
         }
     })
 })
