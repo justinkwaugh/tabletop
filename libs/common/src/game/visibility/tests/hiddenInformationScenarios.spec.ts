@@ -6,6 +6,9 @@ import {
     createForgetKnowledgeScenario,
     createPrivateDealScenario,
     createPrivateObservationScenario,
+    createPrivateTransferScenario,
+    createProgressiveTeamRevealScenario,
+    createSelectiveRevealScenario,
     PlayerIds
 } from './hiddenCardScenarios.js'
 import { describe, expect, it } from 'vitest'
@@ -132,6 +135,266 @@ describe('I3 / S2: a public Action triggers a private multi-Player deal', () => 
             }
             expect(serializedProjection).not.toContain('undealt-stock-card')
             expect(serializedProjection).not.toContain('host-only-deal-note')
+        }
+    })
+})
+
+describe('I4 / I10: a secret progressively reveals from its owner to a team and then publicly', () => {
+    it('materializes each audience transition and reverses it for every perspective', () => {
+        const scenario = createProgressiveTeamRevealScenario()
+        const engine = new GameEngine(scenario.runtime)
+        const teamResult = engine.executeAction({
+            action: scenario.shareWithTeam,
+            state: scenario.before,
+            game: scenario.game
+        })
+        const publicResult = engine.executeAction({
+            action: scenario.revealPublicly,
+            state: teamResult.updatedState,
+            game: scenario.game
+        })
+        const canonicalActions = [...teamResult.processedActions, ...publicResult.processedActions]
+
+        expect(canonicalActions.map(({ type, index }) => ({ type, index }))).toEqual([
+            { type: ActionType.AdvanceSecretAudience, index: 0 },
+            { type: ActionType.AdvanceSecretAudience, index: 1 }
+        ])
+        expect(teamResult.updatedState).toHaveProperty('teamSecret.revealLevel', 'team')
+        expect(publicResult.updatedState).toHaveProperty('teamSecret.revealLevel', 'public')
+
+        for (const perspective of perspectives) {
+            const visibleBefore = scenario.runtime.visibility.state.project(
+                scenario.before,
+                perspective
+            )
+            const visibleTeamResult = Visibility.projectActionResult({
+                result: teamResult,
+                visibility: scenario.runtime.visibility,
+                perspective,
+                replay: { game: scenario.game, runtime: scenario.runtime }
+            })
+            const visiblePublicResult = Visibility.projectActionResult({
+                result: publicResult,
+                visibility: scenario.runtime.visibility,
+                perspective,
+                replay: { game: scenario.game, runtime: scenario.runtime }
+            })
+            const isOwner = perspective.kind === 'player' && perspective.playerId === PlayerIds[0]
+            const isTeammate =
+                perspective.kind === 'player' && perspective.playerId === PlayerIds[1]
+
+            expect(visibleBefore).toHaveProperty('teamSecret.revealLevel', 'owner')
+            expect(visibleTeamResult.updatedState).toHaveProperty('teamSecret.revealLevel', 'team')
+            expect(visiblePublicResult.updatedState).toHaveProperty(
+                'teamSecret.revealLevel',
+                'public'
+            )
+            if (isOwner) {
+                expect(visibleBefore).toHaveProperty('teamSecret.value', 'shared-plan')
+            } else {
+                expect(visibleBefore).not.toHaveProperty('teamSecret.value')
+                expect(JSON.stringify(visibleBefore)).not.toContain('shared-plan')
+            }
+            if (isOwner || isTeammate) {
+                expect(visibleTeamResult.updatedState).toHaveProperty(
+                    'teamSecret.value',
+                    'shared-plan'
+                )
+            } else {
+                expect(visibleTeamResult.updatedState).not.toHaveProperty('teamSecret.value')
+                expect(JSON.stringify(visibleTeamResult)).not.toContain('shared-plan')
+            }
+            expect(visiblePublicResult.updatedState).toHaveProperty(
+                'teamSecret.value',
+                'shared-plan'
+            )
+
+            const visibleActions = [
+                ...visibleTeamResult.processedActions,
+                ...visiblePublicResult.processedActions
+            ]
+            expect(visibleActions.map(({ id, index }) => ({ id, index }))).toEqual(
+                canonicalActions.map(({ id, index }) => ({ id, index }))
+            )
+            expect(visibleActions.every((action) => action.undoPatch !== undefined)).toBe(true)
+            if (isTeammate) {
+                expect(visibleActions[0]?.forwardPatch).toBeDefined()
+            }
+            if (!isOwner && !isTeammate) {
+                expect(visibleActions[1]?.forwardPatch).toBeDefined()
+            }
+
+            let visibleState = visibleBefore
+            visibleState = engine.applyProcessedAction({
+                action: visibleActions[0],
+                state: visibleState,
+                game: scenario.game
+            })
+            expect(visibleState).toEqual(visibleTeamResult.updatedState)
+            visibleState = engine.applyProcessedAction({
+                action: visibleActions[1],
+                state: visibleState,
+                game: scenario.game
+            })
+            expect(visibleState).toEqual(visiblePublicResult.updatedState)
+
+            visibleState = engine.undoProcessedAction({
+                action: visibleActions[1],
+                state: visibleState
+            })
+            expect(visibleState).toEqual(visibleTeamResult.updatedState)
+            visibleState = engine.undoProcessedAction({
+                action: visibleActions[0],
+                state: visibleState
+            })
+            expect(visibleState).toEqual(visibleBefore)
+
+            expect(
+                Visibility.projectActionHistory({
+                    currentState: publicResult.updatedState,
+                    actions: canonicalActions,
+                    visibility: scenario.runtime.visibility,
+                    perspective,
+                    replay: { game: scenario.game, runtime: scenario.runtime }
+                })
+            ).toEqual({
+                startIndex: 0,
+                currentState: visiblePublicResult.updatedState,
+                actions: visibleActions
+            })
+        }
+    })
+})
+
+describe('I11 / I12: selected information reveals while the remainder stays permanently hidden', () => {
+    it('reveals one Card and does not disclose the remaining hand or deck when the Game finishes', () => {
+        const scenario = createSelectiveRevealScenario()
+        const engine = new GameEngine(scenario.runtime)
+        const revealResult = engine.executeAction({
+            action: scenario.revealCard,
+            state: scenario.before,
+            game: scenario.game
+        })
+        const completeResult = engine.executeAction({
+            action: scenario.completeGame,
+            state: revealResult.updatedState,
+            game: scenario.game
+        })
+        const canonicalActions = [
+            ...revealResult.processedActions,
+            ...completeResult.processedActions
+        ]
+
+        expect(canonicalActions.map(({ type, index }) => ({ type, index }))).toEqual([
+            { type: ActionType.RevealCard, index: 0 },
+            { type: ActionType.CompleteGame, index: 1 }
+        ])
+        expect(completeResult.updatedState).toMatchObject({
+            phase: 'complete',
+            result: 'Win',
+            winningPlayerIds: [PlayerIds[0]]
+        })
+
+        for (const perspective of perspectives) {
+            const visibleBefore = scenario.runtime.visibility.state.project(
+                scenario.before,
+                perspective
+            )
+            const visibleRevealResult = Visibility.projectActionResult({
+                result: revealResult,
+                visibility: scenario.runtime.visibility,
+                perspective,
+                replay: { game: scenario.game, runtime: scenario.runtime }
+            })
+            const visibleCompleteResult = Visibility.projectActionResult({
+                result: completeResult,
+                visibility: scenario.runtime.visibility,
+                perspective,
+                replay: { game: scenario.game, runtime: scenario.runtime }
+            })
+            const isOwner = perspective.kind === 'player' && perspective.playerId === PlayerIds[0]
+            const expectedBeforeCards = isOwner ? ['revealed-card', 'permanently-hidden-card'] : []
+            const expectedAfterCards = isOwner
+                ? ['revealed-card', 'permanently-hidden-card']
+                : ['revealed-card']
+
+            expect(visibleBefore).toMatchObject({
+                phase: 'playing',
+                revealedCardIds: [],
+                deck: { items: [], remaining: 1 },
+                hands: expect.arrayContaining([
+                    { playerId: PlayerIds[0], cards: expectedBeforeCards, cardCount: 2 }
+                ])
+            })
+            expect(visibleRevealResult.updatedState).toMatchObject({
+                phase: 'playing',
+                revealedCardIds: ['revealed-card'],
+                hands: expect.arrayContaining([
+                    { playerId: PlayerIds[0], cards: expectedAfterCards, cardCount: 2 }
+                ])
+            })
+            expect(visibleCompleteResult.updatedState).toMatchObject({
+                phase: 'complete',
+                result: 'Win',
+                winningPlayerIds: [PlayerIds[0]],
+                revealedCardIds: ['revealed-card'],
+                deck: { items: [], remaining: 1 },
+                hands: expect.arrayContaining([
+                    { playerId: PlayerIds[0], cards: expectedAfterCards, cardCount: 2 }
+                ])
+            })
+
+            const visibleActions = [
+                ...visibleRevealResult.processedActions,
+                ...visibleCompleteResult.processedActions
+            ]
+            expect(visibleActions.map(({ id, index }) => ({ id, index }))).toEqual(
+                canonicalActions.map(({ id, index }) => ({ id, index }))
+            )
+            expect(visibleActions[0]).toMatchObject({
+                type: ActionType.RevealCard,
+                cardId: 'revealed-card',
+                revealsInfo: true
+            })
+            expect(visibleActions.every((action) => action.undoPatch !== undefined)).toBe(true)
+            if (!isOwner) {
+                expect(visibleActions[0]?.forwardPatch).toBeDefined()
+            }
+
+            let visibleState = visibleBefore
+            for (const action of visibleActions) {
+                visibleState = engine.applyProcessedAction({
+                    action,
+                    state: visibleState,
+                    game: scenario.game
+                })
+            }
+            expect(visibleState).toEqual(visibleCompleteResult.updatedState)
+            for (const action of visibleActions.toReversed()) {
+                visibleState = engine.undoProcessedAction({ action, state: visibleState })
+            }
+            expect(visibleState).toEqual(visibleBefore)
+
+            expect(
+                Visibility.projectActionHistory({
+                    currentState: completeResult.updatedState,
+                    actions: canonicalActions,
+                    visibility: scenario.runtime.visibility,
+                    perspective,
+                    replay: { game: scenario.game, runtime: scenario.runtime }
+                })
+            ).toEqual({
+                startIndex: 0,
+                currentState: visibleCompleteResult.updatedState,
+                actions: visibleActions
+            })
+
+            const serializedCompletion = JSON.stringify(visibleCompleteResult)
+            expect(serializedCompletion).not.toContain('unused-deck-card')
+            if (!isOwner) {
+                expect(JSON.stringify(visibleBefore)).not.toContain('revealed-card')
+                expect(serializedCompletion).not.toContain('permanently-hidden-card')
+            }
         }
     })
 })
@@ -397,6 +660,221 @@ describe('K2 / S9: a rule explicitly removes Card knowledge', () => {
                 expect(JSON.stringify(visibleResult)).not.toContain('observed-card')
             }
             expect(JSON.stringify(visibleResult)).not.toContain('unknown-stock-card')
+        }
+    })
+})
+
+describe("I7 / A5: an Action changes another Player's private state", () => {
+    it('projects the private transfer independently for both participants and every observer', () => {
+        const scenario = createPrivateTransferScenario()
+        const engine = new GameEngine(scenario.runtime)
+        const canonicalResult = engine.executeAction({
+            action: scenario.stealTopCard,
+            state: scenario.before,
+            game: scenario.game
+        })
+
+        expect(canonicalResult.processedActions).toHaveLength(1)
+        expect(canonicalResult.processedActions[0]).toMatchObject({
+            type: ActionType.StealTopCard,
+            source: ActionSource.User,
+            index: 0,
+            stolenCard: 'transferred-card'
+        })
+
+        const cardsBefore: Readonly<Record<string, readonly string[]>> = {
+            'player-1': ['actor-card'],
+            'player-2': ['transferred-card', 'target-card'],
+            'player-3': ['observer-card'],
+            'player-4': ['fourth-player-card']
+        }
+        const cardsAfter: Readonly<Record<string, readonly string[]>> = {
+            'player-1': ['actor-card', 'transferred-card'],
+            'player-2': ['target-card'],
+            'player-3': ['observer-card'],
+            'player-4': ['fourth-player-card']
+        }
+
+        for (const perspective of perspectives) {
+            const visibleBefore = scenario.runtime.visibility.state.project(
+                scenario.before,
+                perspective
+            )
+            const visibleResult = Visibility.projectActionResult({
+                result: canonicalResult,
+                visibility: scenario.runtime.visibility,
+                perspective,
+                replay: { game: scenario.game, runtime: scenario.runtime }
+            })
+            const expectedBeforeHands = PlayerIds.map((playerId) => ({
+                playerId,
+                cards:
+                    perspective.kind === 'player' && perspective.playerId === playerId
+                        ? cardsBefore[playerId]
+                        : [],
+                cardCount: cardsBefore[playerId].length
+            }))
+            const expectedAfterHands = PlayerIds.map((playerId) => ({
+                playerId,
+                cards:
+                    perspective.kind === 'player' && perspective.playerId === playerId
+                        ? cardsAfter[playerId]
+                        : perspective.kind === 'player' &&
+                            perspective.playerId === PlayerIds[1] &&
+                            playerId === PlayerIds[0]
+                          ? ['transferred-card']
+                          : [],
+                cardCount: cardsAfter[playerId].length
+            }))
+
+            expect(visibleBefore).toMatchObject({
+                hands: expectedBeforeHands,
+                actionCount: 0
+            })
+            expect(visibleResult.updatedState).toMatchObject({
+                hands: expectedAfterHands,
+                actionCount: 1
+            })
+
+            const visibleAction = visibleResult.processedActions[0]
+            if (visibleAction === undefined) {
+                throw Error('Expected the private-transfer Action')
+            }
+            const isParticipant =
+                perspective.kind === 'player' &&
+                (perspective.playerId === PlayerIds[0] || perspective.playerId === PlayerIds[1])
+            if (isParticipant) {
+                expect(visibleAction).toMatchObject({ stolenCard: 'transferred-card' })
+            } else {
+                expect(visibleAction).not.toHaveProperty('stolenCard')
+            }
+            expect(visibleAction).toMatchObject({
+                id: canonicalResult.processedActions[0]?.id,
+                index: canonicalResult.processedActions[0]?.index,
+                forwardPatch: expect.any(Array),
+                undoPatch: expect.any(Array)
+            })
+
+            const advancedState = engine.applyProcessedAction({
+                action: visibleAction,
+                state: visibleBefore,
+                game: scenario.game
+            })
+            expect(advancedState).toEqual(visibleResult.updatedState)
+            expect(
+                engine.undoProcessedAction({ action: visibleAction, state: advancedState })
+            ).toEqual(visibleBefore)
+
+            expect(
+                Visibility.projectActionHistory({
+                    currentState: canonicalResult.updatedState,
+                    actions: canonicalResult.processedActions,
+                    visibility: scenario.runtime.visibility,
+                    perspective,
+                    replay: { game: scenario.game, runtime: scenario.runtime }
+                })
+            ).toEqual({
+                startIndex: 0,
+                currentState: visibleResult.updatedState,
+                actions: visibleResult.processedActions
+            })
+
+            const allowedCards = new Set(
+                perspective.kind === 'player'
+                    ? [
+                          ...cardsAfter[perspective.playerId],
+                          ...(isParticipant ? ['transferred-card'] : [])
+                      ]
+                    : []
+            )
+            const serializedProjection = JSON.stringify(visibleResult)
+            for (const card of [
+                'actor-card',
+                'transferred-card',
+                'target-card',
+                'observer-card',
+                'fourth-player-card',
+                'stock-card'
+            ]) {
+                if (!allowedCards.has(card)) {
+                    expect(serializedProjection).not.toContain(card)
+                }
+            }
+        }
+    })
+})
+
+describe('A6: Processed Action metadata contains secrets', () => {
+    it('projects nested history and animation metadata for each perspective', () => {
+        const scenario = createPrivateTransferScenario()
+        const engine = new GameEngine(scenario.runtime)
+        const canonicalResult = engine.executeAction({
+            action: scenario.stealTopCard,
+            state: scenario.before,
+            game: scenario.game
+        })
+
+        expect(canonicalResult.processedActions[0]).toMatchObject({
+            metadata: {
+                publicDescription: 'One card changed hands',
+                historyDescription: 'Player 1 stole transferred-card from Player 2',
+                animation: {
+                    kind: 'private-card-transfer',
+                    cardId: 'transferred-card',
+                    fromPlayerId: PlayerIds[1],
+                    toPlayerId: PlayerIds[0]
+                }
+            }
+        })
+
+        for (const perspective of perspectives) {
+            const visibleResult = Visibility.projectActionResult({
+                result: canonicalResult,
+                visibility: scenario.runtime.visibility,
+                perspective,
+                replay: { game: scenario.game, runtime: scenario.runtime }
+            })
+            const visibleAction = visibleResult.processedActions[0]
+            if (visibleAction === undefined) {
+                throw Error('Expected the private-transfer Action')
+            }
+            expect(visibleAction).toMatchObject({
+                metadata: {
+                    publicDescription: 'One card changed hands',
+                    animation: {
+                        kind: 'private-card-transfer',
+                        fromPlayerId: PlayerIds[1],
+                        toPlayerId: PlayerIds[0]
+                    }
+                }
+            })
+
+            const isParticipant =
+                perspective.kind === 'player' &&
+                (perspective.playerId === PlayerIds[0] || perspective.playerId === PlayerIds[1])
+            if (isParticipant) {
+                expect(visibleAction).toHaveProperty(
+                    'metadata.historyDescription',
+                    'Player 1 stole transferred-card from Player 2'
+                )
+                expect(visibleAction).toHaveProperty(
+                    'metadata.animation.cardId',
+                    'transferred-card'
+                )
+            } else {
+                expect(visibleAction).not.toHaveProperty('metadata.historyDescription')
+                expect(visibleAction).not.toHaveProperty('metadata.animation.cardId')
+                expect(JSON.stringify(visibleAction)).not.toContain('transferred-card')
+            }
+
+            const visibleHistory = Visibility.projectActionHistory({
+                currentState: canonicalResult.updatedState,
+                actions: canonicalResult.processedActions,
+                visibility: scenario.runtime.visibility,
+                perspective,
+                replay: { game: scenario.game, runtime: scenario.runtime }
+            })
+            expect(visibleHistory.actions[0]).toEqual(visibleAction)
         }
     })
 })

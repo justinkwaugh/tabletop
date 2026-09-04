@@ -1,12 +1,13 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { assertExists } from '../../../util/assertions.js'
+import { assert, assertExists } from '../../../util/assertions.js'
 import { ActionSource, GameAction, HydratableAction } from '../../engine/gameAction.js'
 import type { MachineContext } from '../../engine/machineContext.js'
 import type { GameRuntime } from '../../definition/gameDefinition.js'
 import type { Game } from '../../model/game.js'
 import { GameStatus } from '../../model/game.js'
 import {
+    GameResult,
     GameState,
     HydratableGameState,
     type UninitializedGameState
@@ -24,13 +25,51 @@ export const ActionType = {
     PeekTopCard: 'scenario.peek-top-card',
     DrawTopCard: 'scenario.draw-top-card',
     EndRound: 'scenario.end-round',
-    ForgetKnownCards: 'scenario.forget-known-cards'
+    ForgetKnownCards: 'scenario.forget-known-cards',
+    StealTopCard: 'scenario.steal-top-card',
+    AdvanceSecretAudience: 'scenario.advance-secret-audience',
+    RevealCard: 'scenario.reveal-card',
+    CompleteGame: 'scenario.complete-game'
 } as const
 
 const MachineState = 'scenario.round'
 const CardVisibilityPolicy = 'scenario.card-visibility'
+const ActionParticipantPolicy = 'scenario.action-participant'
+const TeamSecretPolicy = 'scenario.team-secret'
 const CardZoneScope = 'scenario.card-zone'
+const TeamSecretScope = 'scenario.team-secret'
 const Card = Type.String()
+
+const SecretRevealLevel = {
+    Owner: 'owner',
+    Team: 'team',
+    Public: 'public'
+} as const
+
+const SecretRevealLevelSchema = Type.Union([
+    Type.Literal(SecretRevealLevel.Owner),
+    Type.Literal(SecretRevealLevel.Team),
+    Type.Literal(SecretRevealLevel.Public)
+])
+
+const TeamSecretContext = Visibility.scope(
+    Type.Object({
+        ownerPlayerId: Type.String(),
+        teamPlayerIds: Type.Array(Type.String()),
+        revealLevel: SecretRevealLevelSchema
+    }),
+    TeamSecretScope
+)
+
+const TeamSecret = Visibility.scope(
+    Type.Object({
+        ownerPlayerId: Type.String(),
+        teamPlayerIds: Type.Array(Type.String()),
+        revealLevel: SecretRevealLevelSchema,
+        value: Visibility.protect(Type.Optional(Type.String()), { policy: TeamSecretPolicy })
+    }),
+    TeamSecretScope
+)
 
 const ProtectedCard = Visibility.protect(Card, { policy: CardVisibilityPolicy })
 
@@ -70,14 +109,17 @@ const HiddenCardState = Type.Evaluate(
             phase: Type.Union([
                 Type.Literal('waiting'),
                 Type.Literal('dealing'),
-                Type.Literal('playing')
+                Type.Literal('playing'),
+                Type.Literal('complete')
             ]),
             deck: PrivateDeck,
             hands: Type.Array(OwnedCards),
+            revealedCardIds: Type.Array(Card),
             knowledge: Visibility.protect(Type.Array(CardKnowledge), {
                 policy: Visibility.Policy.HostOnly,
                 redaction: Visibility.redaction.emptyArray()
-            })
+            }),
+            teamSecret: Type.Optional(TeamSecret)
         })
     ])
 )
@@ -156,6 +198,71 @@ const ForgetKnownCards = Type.Evaluate(
     ])
 )
 
+type StealTopCard = Type.Static<typeof StealTopCard>
+const PrivateTransferMetadata = Type.Object({
+    publicDescription: Type.String(),
+    historyDescription: Visibility.protect(Type.String(), {
+        policy: ActionParticipantPolicy
+    }),
+    animation: Type.Object({
+        kind: Type.Literal('private-card-transfer'),
+        cardId: Visibility.protect(Card, { policy: ActionParticipantPolicy }),
+        fromPlayerId: Type.String(),
+        toPlayerId: Type.String()
+    })
+})
+const StealTopCard = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['type', 'playerId', 'revealsInfo']),
+        Type.Object({
+            type: Type.Literal(ActionType.StealTopCard),
+            playerId: Type.String(),
+            targetPlayerId: Type.String(),
+            revealsInfo: Type.Literal(true),
+            stolenCard: Visibility.protect(Type.Optional(Card), {
+                policy: ActionParticipantPolicy
+            }),
+            metadata: Type.Optional(PrivateTransferMetadata)
+        })
+    ])
+)
+
+type AdvanceSecretAudience = Type.Static<typeof AdvanceSecretAudience>
+const AdvanceSecretAudience = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['type', 'playerId', 'revealsInfo']),
+        Type.Object({
+            type: Type.Literal(ActionType.AdvanceSecretAudience),
+            playerId: Type.String(),
+            revealsInfo: Type.Literal(true)
+        })
+    ])
+)
+
+type RevealCard = Type.Static<typeof RevealCard>
+const RevealCard = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['type', 'playerId', 'revealsInfo']),
+        Type.Object({
+            type: Type.Literal(ActionType.RevealCard),
+            playerId: Type.String(),
+            cardId: Card,
+            revealsInfo: Type.Literal(true)
+        })
+    ])
+)
+
+type CompleteGame = Type.Static<typeof CompleteGame>
+const CompleteGame = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['type', 'playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.CompleteGame),
+            playerId: Type.String()
+        })
+    ])
+)
+
 const HiddenCardStateValidator = Compile(HiddenCardState)
 const StartRoundValidator = Compile(StartRound)
 const DealCardsValidator = Compile(DealCards)
@@ -163,16 +270,22 @@ const PeekTopCardValidator = Compile(PeekTopCard)
 const DrawTopCardValidator = Compile(DrawTopCard)
 const EndRoundValidator = Compile(EndRound)
 const ForgetKnownCardsValidator = Compile(ForgetKnownCards)
+const StealTopCardValidator = Compile(StealTopCard)
+const AdvanceSecretAudienceValidator = Compile(AdvanceSecretAudience)
+const RevealCardValidator = Compile(RevealCard)
+const CompleteGameValidator = Compile(CompleteGame)
 
 class HydratedHiddenCardState
     extends HydratableGameState<typeof HiddenCardState, PlayerState>
     implements HiddenCardState
 {
     declare machineState: typeof MachineState
-    declare phase: 'waiting' | 'dealing' | 'playing'
+    declare phase: 'waiting' | 'dealing' | 'playing' | 'complete'
     declare deck: Type.Static<typeof PrivateDeck>
     declare hands: Type.Static<typeof OwnedCards>[]
+    declare revealedCardIds: string[]
     declare knowledge: Type.Static<typeof CardKnowledge>[]
+    declare teamSecret?: Type.Static<typeof TeamSecret>
 
     constructor(state: HiddenCardState) {
         super(state, HiddenCardStateValidator)
@@ -301,6 +414,118 @@ class HydratedForgetKnownCards
     }
 }
 
+class HydratedStealTopCard extends HydratableAction<typeof StealTopCard> implements StealTopCard {
+    declare type: typeof ActionType.StealTopCard
+    declare playerId: string
+    declare targetPlayerId: string
+    declare revealsInfo: true
+    declare stolenCard?: string
+    declare metadata?: Type.Static<typeof PrivateTransferMetadata>
+
+    constructor(action: StealTopCard) {
+        super(action, StealTopCardValidator)
+    }
+
+    apply(state: HydratedHiddenCardState): void {
+        const actorHand = state.hands.find(({ playerId }) => playerId === this.playerId)
+        assertExists(actorHand, `Cannot find a hand for Player ${this.playerId}`)
+        const targetHand = state.hands.find(({ playerId }) => playerId === this.targetPlayerId)
+        assertExists(targetHand, `Cannot find a hand for Player ${this.targetPlayerId}`)
+        const stolenCard = targetHand.cards.shift()
+        assertExists(stolenCard, `Cannot steal from Player ${this.targetPlayerId}'s empty hand`)
+
+        actorHand.cards.push(stolenCard)
+        actorHand.cardCount = actorHand.cards.length
+        targetHand.cardCount = targetHand.cards.length
+        this.stolenCard = stolenCard
+        this.metadata = {
+            publicDescription: 'One card changed hands',
+            historyDescription: `Player 1 stole ${stolenCard} from Player 2`,
+            animation: {
+                kind: 'private-card-transfer',
+                cardId: stolenCard,
+                fromPlayerId: this.targetPlayerId,
+                toPlayerId: this.playerId
+            }
+        }
+
+        const existingKnowledge = state.knowledge.find(
+            ({ playerId }) => playerId === this.targetPlayerId
+        )
+        if (existingKnowledge === undefined) {
+            state.knowledge.push({ playerId: this.targetPlayerId, cardIds: [stolenCard] })
+        } else if (!existingKnowledge.cardIds.includes(stolenCard)) {
+            existingKnowledge.cardIds.push(stolenCard)
+        }
+    }
+}
+
+class HydratedAdvanceSecretAudience
+    extends HydratableAction<typeof AdvanceSecretAudience>
+    implements AdvanceSecretAudience
+{
+    declare type: typeof ActionType.AdvanceSecretAudience
+    declare playerId: string
+    declare revealsInfo: true
+
+    constructor(action: AdvanceSecretAudience) {
+        super(action, AdvanceSecretAudienceValidator)
+    }
+
+    apply(state: HydratedHiddenCardState): void {
+        const teamSecret = state.teamSecret
+        assertExists(teamSecret, 'Cannot advance a missing team secret')
+        if (teamSecret.revealLevel === SecretRevealLevel.Owner) {
+            teamSecret.revealLevel = SecretRevealLevel.Team
+            return
+        }
+        if (teamSecret.revealLevel === SecretRevealLevel.Team) {
+            teamSecret.revealLevel = SecretRevealLevel.Public
+            return
+        }
+        throw Error('Cannot advance an already-public team secret')
+    }
+}
+
+class HydratedRevealCard extends HydratableAction<typeof RevealCard> implements RevealCard {
+    declare type: typeof ActionType.RevealCard
+    declare playerId: string
+    declare cardId: string
+    declare revealsInfo: true
+
+    constructor(action: RevealCard) {
+        super(action, RevealCardValidator)
+    }
+
+    apply(state: HydratedHiddenCardState): void {
+        const hand = state.hands.find(({ playerId }) => playerId === this.playerId)
+        assertExists(hand, `Cannot find a hand for Player ${this.playerId}`)
+        assert(
+            hand.cards.includes(this.cardId),
+            `Player ${this.playerId} cannot reveal a Card outside their hand`
+        )
+        if (!state.revealedCardIds.includes(this.cardId)) {
+            state.revealedCardIds.push(this.cardId)
+        }
+    }
+}
+
+class HydratedCompleteGame extends HydratableAction<typeof CompleteGame> implements CompleteGame {
+    declare type: typeof ActionType.CompleteGame
+    declare playerId: string
+
+    constructor(action: CompleteGame) {
+        super(action, CompleteGameValidator)
+    }
+
+    apply(state: HydratedHiddenCardState): void {
+        state.phase = 'complete'
+        state.result = GameResult.Win
+        state.winningPlayerIds = [this.playerId]
+        state.activePlayerIds = []
+    }
+}
+
 function isStartRound(action: GameAction): action is StartRound {
     return action.type === ActionType.StartRound
 }
@@ -325,12 +550,32 @@ function isForgetKnownCards(action: GameAction): action is ForgetKnownCards {
     return action.type === ActionType.ForgetKnownCards
 }
 
-function playerIdOf(value: unknown): string | undefined {
+function isStealTopCard(action: GameAction): action is StealTopCard {
+    return action.type === ActionType.StealTopCard
+}
+
+function isAdvanceSecretAudience(action: GameAction): action is AdvanceSecretAudience {
+    return action.type === ActionType.AdvanceSecretAudience
+}
+
+function isRevealCard(action: GameAction): action is RevealCard {
+    return action.type === ActionType.RevealCard
+}
+
+function isCompleteGame(action: GameAction): action is CompleteGame {
+    return action.type === ActionType.CompleteGame
+}
+
+function stringPropertyOf(value: unknown, property: string): string | undefined {
     if (typeof value !== 'object' || value === null) {
         return undefined
     }
-    const playerId: unknown = Reflect.get(value, 'playerId')
-    return typeof playerId === 'string' ? playerId : undefined
+    const propertyValue: unknown = Reflect.get(value, property)
+    return typeof propertyValue === 'string' ? propertyValue : undefined
+}
+
+function playerIdOf(value: unknown): string | undefined {
+    return stringPropertyOf(value, 'playerId')
 }
 
 function cardIsKnownTo(root: unknown, playerId: string, card: unknown): boolean {
@@ -350,7 +595,18 @@ function cardIsKnownTo(root: unknown, playerId: string, card: unknown): boolean 
     })
 }
 
+function cardIsPubliclyRevealed(root: unknown, card: unknown): boolean {
+    if (typeof root !== 'object' || root === null) {
+        return false
+    }
+    const revealedCardIds: unknown = Reflect.get(root, 'revealedCardIds')
+    return Array.isArray(revealedCardIds) && revealedCardIds.includes(card)
+}
+
 function canViewCard(context: Visibility.PolicyContext<unknown>): boolean {
+    if (cardIsPubliclyRevealed(context.root, context.value)) {
+        return true
+    }
     if (context.perspective.kind === 'spectator') {
         return false
     }
@@ -361,7 +617,36 @@ function canViewCard(context: Visibility.PolicyContext<unknown>): boolean {
     )
 }
 
-const policies = { [CardVisibilityPolicy]: canViewCard }
+function canViewActionParticipant(context: Visibility.PolicyContext<unknown>): boolean {
+    return (
+        context.perspective.kind === 'player' &&
+        (context.perspective.playerId === playerIdOf(context.root) ||
+            context.perspective.playerId === stringPropertyOf(context.root, 'targetPlayerId'))
+    )
+}
+
+function canViewTeamSecret(context: Visibility.PolicyContext<unknown>): boolean {
+    const teamSecret = context.requireScope(TeamSecretContext)
+    if (teamSecret.revealLevel === SecretRevealLevel.Public) {
+        return true
+    }
+    if (context.perspective.kind === 'spectator') {
+        return false
+    }
+    if (context.perspective.playerId === teamSecret.ownerPlayerId) {
+        return true
+    }
+    return (
+        teamSecret.revealLevel === SecretRevealLevel.Team &&
+        teamSecret.teamPlayerIds.includes(context.perspective.playerId)
+    )
+}
+
+const policies = {
+    [CardVisibilityPolicy]: canViewCard,
+    [ActionParticipantPolicy]: canViewActionParticipant,
+    [TeamSecretPolicy]: canViewTeamSecret
+}
 
 const visibility = {
     state: Visibility.createProjector(HiddenCardState, { policies }),
@@ -372,7 +657,11 @@ const visibility = {
             [ActionType.PeekTopCard]: PeekTopCard,
             [ActionType.DrawTopCard]: DrawTopCard,
             [ActionType.EndRound]: EndRound,
-            [ActionType.ForgetKnownCards]: ForgetKnownCards
+            [ActionType.ForgetKnownCards]: ForgetKnownCards,
+            [ActionType.StealTopCard]: StealTopCard,
+            [ActionType.AdvanceSecretAudience]: AdvanceSecretAudience,
+            [ActionType.RevealCard]: RevealCard,
+            [ActionType.CompleteGame]: CompleteGame
         },
         { policies }
     )
@@ -408,6 +697,18 @@ const runtime = {
             if (isForgetKnownCards(action)) {
                 return new HydratedForgetKnownCards(action)
             }
+            if (isStealTopCard(action)) {
+                return new HydratedStealTopCard(action)
+            }
+            if (isAdvanceSecretAudience(action)) {
+                return new HydratedAdvanceSecretAudience(action)
+            }
+            if (isRevealCard(action)) {
+                return new HydratedRevealCard(action)
+            }
+            if (isCompleteGame(action)) {
+                return new HydratedCompleteGame(action)
+            }
             throw Error(`Unknown scenario Action ${action.type}`)
         },
         hydrateState: (state: HiddenCardState) => new HydratedHiddenCardState(state)
@@ -417,7 +718,11 @@ const runtime = {
         [ActionType.StartRound]: StartRound,
         [ActionType.PeekTopCard]: PeekTopCard,
         [ActionType.DrawTopCard]: DrawTopCard,
-        [ActionType.EndRound]: EndRound
+        [ActionType.EndRound]: EndRound,
+        [ActionType.StealTopCard]: StealTopCard,
+        [ActionType.AdvanceSecretAudience]: AdvanceSecretAudience,
+        [ActionType.RevealCard]: RevealCard,
+        [ActionType.CompleteGame]: CompleteGame
     },
     stateHandlers: {
         [MachineState]: {
@@ -426,7 +731,11 @@ const runtime = {
                 ActionType.StartRound,
                 ActionType.PeekTopCard,
                 ActionType.DrawTopCard,
-                ActionType.EndRound
+                ActionType.EndRound,
+                ActionType.StealTopCard,
+                ActionType.AdvanceSecretAudience,
+                ActionType.RevealCard,
+                ActionType.CompleteGame
             ],
             enter: () => undefined,
             onAction: () => MachineState
@@ -475,6 +784,7 @@ function createCardState(
             remaining: deckItems.length
         },
         hands: PlayerIds.map((playerId) => ({ playerId, cards: [], cardCount: 0 })),
+        revealedCardIds: [],
         knowledge: []
     }
 }
@@ -554,4 +864,90 @@ export function createForgetKnowledgeScenario() {
         targetPlayerId: PlayerIds[0]
     }
     return { before, endRound, game: createGame(), runtime }
+}
+
+export function createPrivateTransferScenario() {
+    const before = createCardState(['stock-card'])
+    before.phase = 'playing'
+    before.hands = [
+        { playerId: PlayerIds[0], cards: ['actor-card'], cardCount: 1 },
+        {
+            playerId: PlayerIds[1],
+            cards: ['transferred-card', 'target-card'],
+            cardCount: 2
+        },
+        { playerId: PlayerIds[2], cards: ['observer-card'], cardCount: 1 },
+        { playerId: PlayerIds[3], cards: ['fourth-player-card'], cardCount: 1 }
+    ]
+
+    const stealTopCard: StealTopCard = {
+        id: 'steal-top-card',
+        gameId: before.gameId,
+        source: ActionSource.User,
+        type: ActionType.StealTopCard,
+        playerId: PlayerIds[0],
+        targetPlayerId: PlayerIds[1],
+        revealsInfo: true
+    }
+    return { before, game: createGame(), runtime, stealTopCard }
+}
+
+export function createProgressiveTeamRevealScenario() {
+    const before = createCardState(['stock-card'])
+    before.phase = 'playing'
+    before.teamSecret = {
+        ownerPlayerId: PlayerIds[0],
+        teamPlayerIds: [PlayerIds[0], PlayerIds[1]],
+        revealLevel: SecretRevealLevel.Owner,
+        value: 'shared-plan'
+    }
+
+    const shareWithTeam: AdvanceSecretAudience = {
+        id: 'share-secret-with-team',
+        gameId: before.gameId,
+        source: ActionSource.User,
+        type: ActionType.AdvanceSecretAudience,
+        playerId: PlayerIds[0],
+        revealsInfo: true
+    }
+    const revealPublicly: AdvanceSecretAudience = {
+        id: 'reveal-secret-publicly',
+        gameId: before.gameId,
+        source: ActionSource.User,
+        type: ActionType.AdvanceSecretAudience,
+        playerId: PlayerIds[0],
+        revealsInfo: true
+    }
+    return { before, game: createGame(), revealPublicly, runtime, shareWithTeam }
+}
+
+export function createSelectiveRevealScenario() {
+    const before = createCardState(['unused-deck-card'])
+    before.phase = 'playing'
+    before.hands = [
+        {
+            playerId: PlayerIds[0],
+            cards: ['revealed-card', 'permanently-hidden-card'],
+            cardCount: 2
+        },
+        ...PlayerIds.slice(1).map((playerId) => ({ playerId, cards: [], cardCount: 0 }))
+    ]
+
+    const revealCard: RevealCard = {
+        id: 'reveal-card',
+        gameId: before.gameId,
+        source: ActionSource.User,
+        type: ActionType.RevealCard,
+        playerId: PlayerIds[0],
+        cardId: 'revealed-card',
+        revealsInfo: true
+    }
+    const completeGame: CompleteGame = {
+        id: 'complete-game',
+        gameId: before.gameId,
+        source: ActionSource.User,
+        type: ActionType.CompleteGame,
+        playerId: PlayerIds[0]
+    }
+    return { before, completeGame, game: createGame(), revealCard, runtime }
 }
