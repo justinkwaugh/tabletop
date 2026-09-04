@@ -2,8 +2,10 @@
     import JSONTree from 'svelte-json-tree'
     import { Tabs, TabItem } from 'flowbite-svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.js'
+    import PrivilegedGameViewControl from './PrivilegedGameViewControl.svelte'
 
     let gameSession = getGameSession()
+    const { myPlayer, privilegedGameView } = gameSession.bridge
     let copiedState = false
     let copiedActions = false
     let stateCopyTimeout: ReturnType<typeof setTimeout> | undefined
@@ -64,6 +66,9 @@
     class="rounded-lg dark:bg-black space-y-2 text-left ms-2 p-4 sm:h-[calc(100dvh-84px)] h-[calc(100dvh-116px)] overflow-auto"
 >
     <div class="flex items-center gap-2">
+        {#if privilegedGameView}
+            <PrivilegedGameViewControl view={privilegedGameView} actingPlayer={myPlayer} />
+        {/if}
         <button
             type="button"
             class="rounded border border-zinc-500 bg-zinc-900 px-2 py-1 text-xs font-medium text-zinc-100 hover:bg-zinc-800"

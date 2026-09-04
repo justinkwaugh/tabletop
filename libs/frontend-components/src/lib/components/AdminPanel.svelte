@@ -2,9 +2,10 @@
     import { getGameSession } from '$lib/model/gameSessionContext.js'
     import { Button } from 'flowbite-svelte'
     import ActingPlayerControl from './ActingPlayerControl.svelte'
+    import PrivilegedGameViewControl from './PrivilegedGameViewControl.svelte'
 
     let gameSession = getGameSession()
-    const { colors, myPlayer } = gameSession.bridge
+    const { colors, myPlayer, privilegedGameView } = gameSession.bridge
     let adminPlayerBgColor = $derived($colors.getPlayerBgColorValue($myPlayer?.id))
     let adminPlayerTextColor = $derived($colors.getPlayerTextColorValue($myPlayer?.id))
 
@@ -18,7 +19,12 @@
     style:background-color={adminPlayerBgColor}
     style:color={adminPlayerTextColor}
 >
-    <div><ActingPlayerControl /></div>
+    <div class="flex items-center gap-2">
+        <ActingPlayerControl />
+        {#if privilegedGameView}
+            <PrivilegedGameViewControl view={privilegedGameView} actingPlayer={myPlayer} />
+        {/if}
+    </div>
     <Button
         onclick={() => undo()}
         size="xs"
