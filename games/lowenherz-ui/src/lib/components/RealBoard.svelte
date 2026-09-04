@@ -9,6 +9,7 @@
     import { heartPosition } from '$lib/model/allianceGeometry.js'
     import { CELL_SIZE, RAMPART_THICKNESS, scaled } from '$lib/model/boardMetrics.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { HOVER_INTENT_MS } from '$lib/model/hoverIntent.js'
     import {
         ALLIANCE_CANCELLATION_COST,
         BOARD_COLS,
@@ -1293,7 +1294,7 @@
                     : ''}"
                 style="left: {village.col * CELL_SIZE + CELL_SIZE / 2}px; top: {village.row *
                     CELL_SIZE +
-                    CELL_SIZE / 2}px;"
+                    CELL_SIZE / 2}px; --hover-intent: {HOVER_INTENT_MS}ms;"
             >
                 {village.name}
             </div>
@@ -1555,9 +1556,12 @@
         transition: opacity 260ms ease-out;
     }
 
+    /* Appears only after the pointer has rested for the shared hover-intent beat (the same
+       wait the enlarged politics card uses), so sweeping across the board shows nothing;
+       leaving before the delay is up cancels it with no flash. Hiding is immediate. */
     .village-name-shown {
         opacity: 1;
-        transition: opacity 160ms ease-in;
+        transition: opacity 160ms ease-in var(--hover-intent);
     }
 
     /* The renegade knight's arc. The horizontal and vertical travel come in as custom

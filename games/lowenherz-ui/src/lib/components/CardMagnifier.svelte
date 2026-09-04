@@ -14,13 +14,13 @@
     import { scale } from 'svelte/transition'
     import type { PoliticsCard as PoliticsCardModel } from '@tabletop/lowenherz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { HOVER_INTENT_MS } from '$lib/model/hoverIntent.js'
     import PoliticsCard from './PoliticsCard.svelte'
 
     let { card }: { card: PoliticsCardModel } = $props()
 
     const gameSession = getGameSession()
 
-    const HOLD_MS = 200
     const GROWTH = 4
     const CARD_ASPECT = 534 / 832
     const VIEWPORT_MARGIN = 16
@@ -60,7 +60,7 @@
             // A press that turned into a preview is not a choice: swallow the click the release
             // is about to produce so the card underneath is not taken or applied by accident.
             if (fromTouch) suppressNextClick = true
-        }, HOLD_MS)
+        }, HOVER_INTENT_MS)
     }
 
     function cancelHold() {
