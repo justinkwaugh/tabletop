@@ -12,15 +12,10 @@
 
     let gameSession = getGameSession()
 
-    let reversedActions = $derived.by(() => {
-        const reversed = gameSession.actions
-            .toReversed()
-            .toSorted(
-                (a, b) =>
-                    (b.createdAt?.getTime() ?? Date.now()) - (a.createdAt?.getTime() ?? Date.now())
-            )
-        return reversed
-    })
+    // Newest first, in the order the engine assigned (index), not by timestamp. Timestamps come
+    // from different clocks - the acting player's browser until the server's copy replaces it, the
+    // server for everyone else's - so sorting by them let an older entry surface above a newer one.
+    let reversedActions = $derived(gameSession.actions.toReversed())
 </script>
 
 <div

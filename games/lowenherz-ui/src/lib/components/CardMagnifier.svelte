@@ -1,5 +1,5 @@
 <script lang="ts">
-    // A politics card that grows to double size, centred where it sits, after the pointer has
+    // A politics card that grows to four times its size, centred where it sits, after the pointer has
     // rested on it for a moment (mouse) or the finger has held it (touch). Hover feedback only,
     // so it stays local to this component and outside the shared animation timeline.
     //
@@ -14,14 +14,14 @@
     import { scale } from 'svelte/transition'
     import type { PoliticsCard as PoliticsCardModel } from '@tabletop/lowenherz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { HOVER_INTENT_MS } from '$lib/model/hoverIntent.js'
     import PoliticsCard from './PoliticsCard.svelte'
 
     let { card }: { card: PoliticsCardModel } = $props()
 
     const gameSession = getGameSession()
 
-    const HOLD_MS = 200
-    const GROWTH = 2
+    const GROWTH = 4
     const CARD_ASPECT = 534 / 832
     const VIEWPORT_MARGIN = 16
 
@@ -34,11 +34,19 @@
         enlarged !== undefined && gameSession.magnifiedPoliticsCard?.cardId === card.id
     )
 
+    // Centred on the card, then nudged only as far as needed to keep the whole copy inside the
+    // viewport - at this growth a card near an edge would otherwise hang off the screen.
     function enlargedGeometry(rect: DOMRect) {
-        const maxWidth = window.innerWidth - VIEWPORT_MARGIN
-        const maxHeight = window.innerHeight - VIEWPORT_MARGIN
+        const maxWidth = window.innerWidth - 2 * VIEWPORT_MARGIN
+        const maxHeight = window.innerHeight - 2 * VIEWPORT_MARGIN
         const width = Math.min(rect.width * GROWTH, maxWidth, maxHeight * CARD_ASPECT)
-        return { centerX: rect.left + rect.width / 2, centerY: rect.top + rect.height / 2, width }
+        const height = width / CARD_ASPECT
+        const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max)
+        return {
+            centerX: clamp(rect.left + rect.width / 2, VIEWPORT_MARGIN + width / 2, window.innerWidth - VIEWPORT_MARGIN - width / 2),
+            centerY: clamp(rect.top + rect.height / 2, VIEWPORT_MARGIN + height / 2, window.innerHeight - VIEWPORT_MARGIN - height / 2),
+            width
+        }
     }
 
     function beginHold(fromTouch: boolean) {
@@ -52,7 +60,7 @@
             // A press that turned into a preview is not a choice: swallow the click the release
             // is about to produce so the card underneath is not taken or applied by accident.
             if (fromTouch) suppressNextClick = true
-        }, HOLD_MS)
+        }, HOVER_INTENT_MS)
     }
 
     function cancelHold() {
@@ -68,8 +76,15 @@
         }
     }
 
-    function onPointerEnter(event: PointerEvent) {
-        if (event.pointerType === 'mouse') beginHold(false)
+    // Hover means the pointer moving over the card, so the hold starts on pointer movement, not
+    // on pointerenter. Enter also fires when the DOM changes under a stationary pointer - for
+    // example when a clicked ACTIVE strip is replaced by an APPLY pill that bounces in from
+    // nothing - which briefly exposed the card beneath and grew a copy the player never asked
+    // for, only to shrink it again as the pill grew back under the pointer.
+    function onPointerMove(event: PointerEvent) {
+        if (event.pointerType !== 'mouse') return
+        if (holdTimer !== undefined || enlarged) return
+        beginHold(false)
     }
 
     function onPointerDown(event: PointerEvent) {
@@ -104,7 +119,7 @@
     {@attach clearOnUnmount}
     role="presentation"
     class="block w-full select-none [-webkit-touch-callout:none]"
-    onpointerenter={onPointerEnter}
+    onpointermove={onPointerMove}
     onpointerleave={release}
     onpointerdown={onPointerDown}
     onpointerup={onPointerUp}

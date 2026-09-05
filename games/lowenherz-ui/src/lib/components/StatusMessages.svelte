@@ -323,6 +323,14 @@
     // and when rewound past the very first action, so it doubles as "are we in history".
     const historyAction = $derived(gameSession.history.currentAction)
 
+    // An alliance just ended by clicking its heart leaves no other trace on the board - the
+    // heart is simply gone - so the status window repeats the history's own sentence for it
+    // until the next action of any kind arrives.
+    const latestAllianceCancellation = $derived.by(() => {
+        const latest = gameSession.actions.at(-1)
+        return latest && isCancelAlliance(latest) ? latest : undefined
+    })
+
     // One label per thing a single sword can buy. The composite labels are gone with the
     // composite plans - a two-sword action now reads this list twice.
     const KNIGHT_PLAN_LABELS: Record<KnightPlan, string> = {
@@ -415,6 +423,11 @@
                 {@render playerPill(historyAction.playerId)}
             {/if}
             <ActionDescription action={historyAction} justify="start" history={false} />
+        </div>
+    {:else if latestAllianceCancellation}
+        <div class="text-black text-[18px] text-center border-b-2 border-black/15 pb-1">
+            {@render playerPill(latestAllianceCancellation.playerId)}
+            <ActionDescription action={latestAllianceCancellation} justify="start" history={false} />
         </div>
     {/if}
     {#if lastDuelOutcome?.type === 'giveUp'}
