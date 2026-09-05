@@ -68,7 +68,7 @@
 
 <div class="shrink-0 grow-0 w-full p-2 {height} {borderClass} {bgClass}">
     <div class="w-full flex flex-row justify-between items-center">
-        <button aria-label="start exploring" onclick={requestFork}>
+        <button aria-label="fork game" onclick={requestFork}>
             <svg
                 class="w-[22px] h-[22px] {!gameSession.isExploring ? enabledColor : disabledColor}"
                 aria-hidden="true"

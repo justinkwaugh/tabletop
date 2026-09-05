@@ -139,6 +139,7 @@ export class FirestoreGameStore implements GameStore {
         storedActions: GameAction[]
     }> {
         const storedGame = structuredClone(game) as StoredGame
+        storedGame.actionChunkSize = ACTION_CHUNK_SIZE
         const date = new Date()
         storedGame.createdAt = date
         storedGame.updatedAt = date
@@ -169,7 +170,7 @@ export class FirestoreGameStore implements GameStore {
                 async () =>
                     this.games.firestore.runTransaction(async (transaction: Transaction) => {
                         // Write Game
-                        await this.games.doc(game.id).create(storedGame)
+                        transaction.create(this.games.doc(game.id), storedGame)
 
                         // Write GameState
                         transaction.create(stateCollection.doc(gameId), stateToUpdate)

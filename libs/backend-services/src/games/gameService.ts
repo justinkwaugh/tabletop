@@ -1,6 +1,8 @@
 import {
     ActionSource,
     calculateActionChecksum,
+    createGameFork,
+    GameForkError,
     findLast,
     findPlayerForUserId,
     Game,
@@ -58,7 +60,6 @@ import {
     UserIsNotAllowedPlayerError
 } from './errors.js'
 
-import { reconstructForkHistory } from './gameFork.js'
 import { GameInvitationTokenData } from '../tokens/tokenData.js'
 import { nanoid } from 'nanoid'
 import { GameStore } from '../persistence/stores/gameStore.js'
@@ -200,80 +201,35 @@ export class GameService {
         name?: string
         owner: User
     }): Promise<Game> {
-        const game = await this.getGame({ gameId })
+        const game = await this.getGame({ gameId, withState: true })
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
         }
+        if (!game.state || game.typeId !== definition.info.id) {
+            throw new GameForkError(gameId, actionIndex)
+        }
         const actions = await this.getGameActions(game)
-
-        const forkedGame = structuredClone(game)
-
-        let storedState: GameState | undefined
-        if (definition.runtime.visibility !== undefined || !forkedGame.seed) {
-            const gameWithState = await this.getGame({ gameId, withState: true })
-            storedState = gameWithState?.state
-            assertExists(storedState, 'Fork reconstruction requires canonical source state')
-            forkedGame.seed ??= storedState.prng.seed
-        }
-
-        // Reset fields
-        forkedGame.id = nanoid()
-        if (name && name.trim().length > 0) {
-            forkedGame.name = name
-        }
-        forkedGame.ownerId = owner.id
-        forkedGame.startedAt = undefined
-        forkedGame.storage = GameStorage.Remote
-        delete forkedGame.result
-        delete forkedGame.finishedAt
-        forkedGame.winningPlayerIds = []
-        forkedGame.parentId = game.id
-
-        for (const player of forkedGame.players) {
-            if (player.userId === owner.id) {
-                player.status = PlayerStatus.Joined
-            } else {
-                player.status = PlayerStatus.Reserved
-            }
-        }
-
-        // Generate initial state
-        const engine = new GameEngine(definition.runtime)
-        const { startedGame, initialState } = engine.startGame(forkedGame)
-
-        // Reset state to waiting
-        startedGame.status = GameStatus.WaitingForPlayers
-
-        const { state: newState, actions: appliedActions } = reconstructForkHistory({
-            engine,
-            game: startedGame,
-            initialState,
-            canonicalState: storedState,
+        const fork = createGameFork({
+            game,
+            state: game.state,
             actions,
-            actionIndex
+            actionIndex,
+            runtime: definition.runtime,
+            name
         })
-
-        // Update some relevant fields on the game
-        startedGame.activePlayerIds = newState.activePlayerIds || []
-        const lastAction = appliedActions.at(-1)
-        startedGame.lastActionAt = undefined
-        if (lastAction) {
-            startedGame.lastActionPlayerId = lastAction.playerId
-        } else {
-            startedGame.lastActionPlayerId = undefined
+        fork.game.ownerId = owner.id
+        fork.game.storage = GameStorage.Remote
+        fork.game.status = GameStatus.WaitingForPlayers
+        fork.game.lastActionAt = undefined
+        for (const player of fork.game.players) {
+            player.status = player.userId === owner.id ? PlayerStatus.Joined : PlayerStatus.Reserved
         }
-
-        // Store the forked data
         const { storedGame } = await this.gameStore.writeFullGameData(
-            startedGame,
-            newState,
-            appliedActions
+            fork.game,
+            fork.state,
+            fork.actions
         )
-
-        // Send notifications
         await this.notifyGamePlayers(GameNotificationAction.Create, { game: storedGame })
-
-        console.log(`Forked game ${game.id} with seed ${newState.prng?.seed}`)
         return storedGame
     }
 

@@ -5,11 +5,12 @@ import {
     GameState,
     type HydratedGameState,
     GameEngine,
+    createGameFork,
+    GameForkError,
     GameStorage,
     GameCategory
 } from '@tabletop/common'
 import { SvelteMap } from 'svelte/reactivity'
-import { nanoid } from 'nanoid'
 import type { GameService } from '$lib/services/gameService.js'
 import type { GameStore } from '$lib/persistence/gameStore.js'
 import type { GameSession } from '$lib/model/gameSession.svelte.js'
@@ -102,7 +103,9 @@ export class HarnessGameService implements GameService {
     }
 
     getExplorations(gameId: string): Game[] {
-        return Array.from(this.gamesById.values()).filter((game) => game.parentId === gameId)
+        return Array.from(this.gamesById.values()).filter(
+            (game) => game.parentId === gameId && game.category === GameCategory.Exploration
+        )
     }
 
     async createGame(game: Partial<Game>): Promise<Game> {
@@ -158,67 +161,17 @@ export class HarnessGameService implements GameService {
             throw new Error(`Game definition not found for typeId ${actualGame.typeId}`)
         }
 
-        const forkedGame = structuredClone(actualGame)
-
-        // Reset fields
-        forkedGame.id = nanoid()
-        if (name && name.trim().length > 0) {
-            forkedGame.name = name
-        }
-        forkedGame.startedAt = undefined
-        forkedGame.status = GameStatus.Started
-        delete forkedGame.result
-        delete forkedGame.finishedAt
-        forkedGame.winningPlayerIds = []
-
-        // Generate initial state
-        const runtime = await definition.runtime()
-        const engine = new GameEngine(runtime)
-        const { startedGame, initialState } = engine.startGame(forkedGame)
-
-        // Copy the entire action history up to the specified index
-        const actionSubset = actions
-            .slice(0, actionIndex + 1)
-            .map((action) => structuredClone(action))
-
-        let state = initialState
-        const updatedActions = []
-        // Run the game to the desired index
-        for (const action of actionSubset) {
-            // Copy and adjust
-            action.id = nanoid()
-            action.gameId = forkedGame.id
-            action.undoPatch = undefined
-
-            // Apply each action to the forked game state
-            const { processedActions, updatedState } = engine.executeSingleAction({
-                action,
-                state,
-                game: startedGame
-            })
-            state = updatedState
-            updatedActions.push(...processedActions)
-        }
-
-        // Update some relevant fields on the game
-        startedGame.activePlayerIds = state.activePlayerIds || []
-        const lastAction = updatedActions.at(-1)
-        if (lastAction) {
-            startedGame.lastActionAt = lastAction.createdAt
-            startedGame.lastActionPlayerId = lastAction.playerId
-        } else {
-            startedGame.lastActionAt = undefined
-            startedGame.lastActionPlayerId = undefined
-        }
-
-        await this.saveGameLocally({
-            game: startedGame,
-            state,
-            actions: updatedActions
+        if (!actualGame.state) throw new GameForkError(actualGame.id, actionIndex)
+        const fork = createGameFork({
+            game: actualGame,
+            state: actualGame.state,
+            actions,
+            actionIndex,
+            runtime: await definition.runtime(),
+            name
         })
-        this.gamesById.set(startedGame.id, startedGame)
-
-        return startedGame
+        await this.saveGameLocally(fork)
+        return fork.game
     }
 
     async updateGame(game: Partial<Game>): Promise<Game> {

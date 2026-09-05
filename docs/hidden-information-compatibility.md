@@ -1,6 +1,6 @@
 # Hidden-information compatibility and completion review
 
-Reviewed 2026-09-05 against `3fd8c5e5...4740bfef`, followed by the slice-6 fixes in `a0586281` and the forward-play compatibility slice. This completes the repository compatibility audit; it does not establish release readiness. The [wider review](hidden-information-review.md) retains the unresolved authoring and publication requirements. Hosted Fork policy remains separate from the completed hypothetical Exploration implementation.
+Reviewed 2026-09-05 against `3fd8c5e5...4740bfef`, followed by the slice-6 fixes in `a0586281` and the forward-play compatibility slice. This completes the repository compatibility audit; it does not establish release readiness. The [wider review](hidden-information-review.md) retains the unresolved authoring and publication requirements. Hosted Fork now has a separate [canonical-copy implementation](hidden-information-forks.md); Exploration remains hypothetical.
 
 ## Standards
 
@@ -58,8 +58,7 @@ The slice adds tests for missing host capability and projected Host responses, f
 ## Remaining development slices
 
 1. **Projected authoring contract:** settle required-field hydration and legal-Action discovery for owner-known private hands; validate with one realistic private-hand flow. Fresh Fish's canonical-hydratable projection does not settle the general contract.
-2. **Hosted Fork decision:** choose whether it preserves canonical history/randomness or samples a hypothetical world, then fix C1 source selection with service-level coverage. Ordinary Exploration is already hypothetical.
-3. **Completion work:** measure long-history projection/checkpoint cost, provide useful fallback diagnostics, and condense the authoring documentation. C2 remains deferred unless release testing elevates its risk.
+2. **Completion work:** measure long-history projection/checkpoint cost, provide useful fallback diagnostics, and condense the authoring documentation. C2 remains deferred unless release testing elevates its risk.
 
 ## Final validation record
 

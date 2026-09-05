@@ -1176,7 +1176,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     async forkGame(newGameName: string): Promise<void> {
-        await this.gameService.forkGame(this.primaryGame, this.currentActionIndex, newGameName)
+        try {
+            await this.gameService.forkGame(this.primaryGame, this.currentActionIndex, newGameName)
+        } catch {
+            toast.error('This game cannot be forked from that position.')
+        }
     }
 
     addGameStateChangeListener(listener: GameStateChangeListener<U>) {

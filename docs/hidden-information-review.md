@@ -169,4 +169,8 @@ This follow-up changes no host dependency or payload shape. It does not resolve 
 
 ### Slice-6 completion review
 
-See [Hidden-information compatibility and completion review](hidden-information-compatibility.md) for the new findings and fixes. C3 is fixed. P3 uses the existing major-version reload with tested notice precedence; actual old/new artifact rollout remains a release check. C1 Hosted Fork remains a product decision, and C2 ETags remains deferred. Exploration implementation and the Game Session ownership extractions are complete; their current conformance coverage does not remove those release requirements.
+See [Hidden-information compatibility and completion review](hidden-information-compatibility.md) for the new findings and fixes. C3 is fixed. P3 uses the existing major-version reload with tested notice precedence; actual old/new artifact rollout remains a release check. C1 Hosted Fork was subsequently settled and fixed in the canonical Fork follow-up below; C2 ETags remains deferred. Exploration implementation and the Game Session ownership extractions are complete; their current conformance coverage does not remove those release requirements.
+
+## Canonical Fork follow-up
+
+C1 is fixed by the [canonical Fork slice](hidden-information-forks.md). The user settled Forks as real continuations and Exploration as hypothetical. Hosted Fork always loads canonical state, regardless of visibility registration; Hosted, Hotseat, and harness paths share suffix reconstruction without reinitialization or replay. Unsupported historical reconstruction may fail explicitly. The old recommendation to preserve seed-based replay fallback is superseded by that accepted compatibility policy. C2 remains deferred.

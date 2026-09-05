@@ -122,3 +122,9 @@ A supported current position remains playable when older projected History canno
 Undo cannot cross an unavailable record, including during Exploration. The backend enforces the same limit for projected Games before persistence. A replacement requiring unavailable replay uses current-state reload recovery. Existing transition animation intents and publication ownership remain unchanged.
 
 A projected Exploration population hook receives only available source knowledge. If unavailable historical records remove facts required to construct a valid sample, the title must decline population; it must not use canonical secrets or silently ignore missing constraints. Authorized Host View can still explore its complete current state.
+
+## Canonical Fork
+
+The Fork control requests a real continuation from the selected primary History position. A position inside an automatic Action sequence includes its remaining consequences through the next player decision. Fork is unavailable while exploring; saved local Forks appear as Games, separately from saved Explorations. The accessible control name is `fork game`.
+
+The host resolves Hosted Fork positions from canonical history independently of the client's projected History or Undo restrictions. Hotseat resolves from full local state and history. An unsupported position reports `This game cannot be forked from that position.` through the shared toast after the name dialog closes. The source position remains displayed. Hosted Forks enter the existing player-reservation lobby; local Forks are saved as playable Games.
