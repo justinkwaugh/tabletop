@@ -1,23 +1,13 @@
 import {
     ActionSource,
     ExplorationHistory,
-    CanonicalActionReplayManifest,
     Game,
     GameAction,
-    GameAddActionsNotification,
-    GameAddProjectedActionsNotification,
-    GameReplaceProjectedActionsNotification,
     GameEngine,
-    GameNotificationAction,
-    NotificationCategory,
-    Notification,
     type Player,
     GameState,
-    GameUndoActionNotification,
-    GameDeleteNotification,
     type HydratedGameState,
     PlayerAction,
-    ProcessedActionReplay,
     GameStorage,
     assertExists,
     createAction,
@@ -26,17 +16,10 @@ import {
     Visibility
 } from '@tabletop/common'
 import { watch } from 'runed'
-import * as Value from 'typebox/value'
 import { toast } from 'svelte-sonner'
 import { nanoid } from 'nanoid'
 import { fromStore } from 'svelte/store'
-import {
-    isDataEvent,
-    isDiscontinuityEvent,
-    NotificationChannel,
-    type NotificationEvent,
-    type NotificationService
-} from '$lib/services/notificationService.js'
+import type { NotificationService } from '$lib/services/notificationService.js'
 import type { AuthorizationBridge } from '$lib/services/bridges/authorizationBridge.svelte.js'
 import type { BridgedContext } from '$lib/services/bridges/bridgedContext.svelte.js'
 import type { ChatServiceBridge } from '$lib/services/bridges/chatServiceBridge.svelte.js'
@@ -45,7 +28,8 @@ import type { ChatService } from '$lib/services/chatService'
 import type { GameService } from '$lib/services/gameService.js'
 import { GameSessionBridge } from '$lib/services/bridges/gameSessionBridge.svelte.js'
 import { GameContext } from './gameContext.svelte.js'
-import { GameReconciliation, ServerActionHandling } from './gameReconciliation.js'
+import { GameReconciliation } from './gameReconciliation.js'
+import { GameNotifications } from './gameNotifications.js'
 import { GameRepresentations, HostViewUnsupportedError } from './gameRepresentations.svelte.js'
 import { GameHistory, type HistoryAnimationIntent } from './gameHistory.svelte.js'
 import { GameActionResults } from './gameActionResults.svelte.js'
@@ -98,7 +82,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private showDebugStore: { current: boolean }
     private actAsAdminStore: { current: boolean }
     private sessionUserStore: { current: User | undefined }
-    private notificationService: NotificationService
+    private notifications: GameNotifications
 
     public runtime: GameUIRuntime<T, U>
     private engine: GameEngine<T, U>
@@ -513,7 +497,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.explorationGamesStore = fromStore(bridgedContext.gameService.explorations)
         this.currentGameChatStore = fromStore(this.chatBridge.currentGameChat)
         this.hasUnreadMessagesStore = fromStore(this.chatBridge.hasUnreadMessages)
-        this.notificationService = notificationService
         this.chatService = chatService
         this.gameService = gameService
 
@@ -550,6 +533,16 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             isPaused: () => this.busy,
             recover: () => this.checkSync(),
             acceptsPerspective: (perspective) => this.matchesPrimaryPerspective(perspective)
+        })
+
+        this.notifications = new GameNotifications(game, notificationService, {
+            usesProjection: this.runtime.visibility !== undefined,
+            acceptsPerspective: (perspective) => this.matchesPrimaryPerspective(perspective),
+            hasHostContext: () => this.representations.hostContext !== undefined,
+            refreshHost: () => this.representations.refreshHost(),
+            enqueue: (update) => this.reconciliation.enqueue(update),
+            recover: () => this.checkSync(),
+            onDeleted: () => toast.error('The game has been deleted')
         })
 
         this.history = new GameHistory(this.gameContext, {
@@ -661,6 +654,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     dispose() {
+        this.notifications.stop()
         this.representations.dispose()
         this.effectDisposer()
     }
@@ -799,23 +793,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     listenToGame() {
-        if (this.gameContext.game.hotseat) {
-            return
-        }
-
-        if (this.debug) {
-            console.log(`listening to game ${this.gameContext.game.id}`)
-        }
-        this.notificationService.addListener(this.NotificationListener)
-        this.notificationService.listenToGame(this.gameContext.game.id)
+        this.notifications.start()
     }
 
     stopListeningToGame() {
-        if (this.debug) {
-            console.log(`unlistening to game ${this.gameContext.game.id}`)
-        }
-        this.notificationService.removeListener(this.NotificationListener)
-        this.notificationService.stopListeningToGame(this.gameContext.game.id)
+        this.notifications.stop()
     }
 
     createPlayerAction<T extends TSchema>(schema: T, data?: Partial<Static<T>>): Static<T> {
@@ -1244,136 +1226,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return new GameActionResults(processedActions, updatedState)
     }
 
-    private NotificationListener = async (event: NotificationEvent) => {
-        if (isDataEvent(event)) {
-            const notification = event.notification
-            try {
-                if (
-                    this.representations.hostContext !== undefined &&
-                    this.isCurrentGameRepresentationNotification(notification)
-                ) {
-                    await this.representations.refreshHost()
-                } else if (this.isGameAddActionsNotification(notification)) {
-                    await this.handleAddActionsNotification(notification)
-                } else if (this.isGameAddProjectedActionsNotification(notification)) {
-                    await this.handleAddProjectedActionsNotification(notification)
-                } else if (this.isGameReplaceProjectedActionsNotification(notification)) {
-                    if (
-                        notification.data.game.id === this.gameContext.game.id &&
-                        this.matchesPrimaryPerspective(notification.data.perspective)
-                    ) {
-                        const replay = Value.Convert(
-                            ProcessedActionReplay,
-                            notification.data.actionReplay
-                        )
-                        Value.Assert(ProcessedActionReplay, replay)
-                        const game = Value.Convert(Game, notification.data.game)
-                        Value.Assert(Game, game)
-                        await this.reconciliation.enqueue({
-                            kind: 'replacement',
-                            replay,
-                            checksum: notification.data.checksum,
-                            game,
-                            perspective: notification.data.perspective
-                        })
-                    }
-                } else if (this.isGameUndoActionNotification(notification)) {
-                    await this.handleUndoNotification(notification)
-                } else if (this.isGameDeleteNotification(notification)) {
-                    await this.handleDeleteNotification(notification)
-                }
-            } catch (e) {
-                console.log('Error handling notification', e)
-                await this.checkSync()
-            }
-        } else if (
-            isDiscontinuityEvent(event) &&
-            (event.channel === NotificationChannel.GameInstance ||
-                (event.channel === NotificationChannel.User &&
-                    this.runtime.visibility !== undefined))
-        ) {
-            await this.reconciliation.enqueue({ kind: 'synchronize' })
-        }
-    }
-
-    // For primary game context only
-    private async handleAddActionsNotification(notification: GameAddActionsNotification) {
-        if (notification.data.game.id !== this.gameContext.game.id) {
-            return
-        }
-
-        await this.applyNotifiedActions(
-            notification.data.game,
-            notification.data.actions,
-            ServerActionHandling.Execute
-        )
-    }
-
-    private async handleAddProjectedActionsNotification(
-        notification: GameAddProjectedActionsNotification
-    ) {
-        if (notification.data.game.id !== this.gameContext.game.id) {
-            return
-        }
-        if (!this.matchesPrimaryPerspective(notification.data.perspective)) {
-            return
-        }
-
-        await this.applyNotifiedActions(
-            notification.data.game,
-            notification.data.actions,
-            ServerActionHandling.ApplyProcessed
-        )
-    }
-
-    private async applyNotifiedActions(
-        gameData: Game,
-        actionData: GameAction[],
-        handling: ServerActionHandling
-    ) {
-        const actions = actionData.map((action) => {
-            const converted = Value.Convert(GameAction, action)
-            Value.Assert(GameAction, converted)
-            return converted
-        })
-        const game = Value.Convert(Game, gameData)
-        Value.Assert(Game, game)
-        await this.reconciliation.enqueue({ kind: 'actions', actions, handling, game })
-    }
-
-    // For primary game context only
-    private async handleUndoNotification(notification: GameUndoActionNotification): Promise<void> {
-        if (notification.data.game.id !== this.gameContext.game.id) {
-            return
-        }
-        const manifest = Value.Convert(
-            CanonicalActionReplayManifest,
-            notification.data.canonicalReplay
-        )
-        Value.Assert(CanonicalActionReplayManifest, manifest)
-        const redoneActions = notification.data.redoneActions.map((action) => {
-            const convertedAction = Value.Convert(GameAction, action)
-            Value.Assert(GameAction, convertedAction)
-            return convertedAction
-        })
-        const game = Value.Convert(Game, notification.data.game)
-        Value.Assert(Game, game)
-        await this.reconciliation.enqueue({
-            kind: 'manifest',
-            manifest,
-            redoneActions,
-            checksum: notification.data.checksum,
-            game
-        })
-    }
-
-    private async handleDeleteNotification(notification: GameDeleteNotification) {
-        if (notification.data.game.id === this.gameContext.game.id) {
-            toast.error('The game has been deleted')
-            this.stopListeningToGame()
-        }
-    }
-
     // For primary game context only
     private async checkSync() {
         if (this.gameContext.game.hotseat) {
@@ -1467,64 +1319,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return player === undefined
             ? { kind: 'spectator' }
             : { kind: 'player', playerId: player.id }
-    }
-
-    private isCurrentGameRepresentationNotification(notification: Notification): boolean {
-        if (
-            !this.isGameAddActionsNotification(notification) &&
-            !this.isGameAddProjectedActionsNotification(notification) &&
-            !this.isGameReplaceProjectedActionsNotification(notification) &&
-            !this.isGameUndoActionNotification(notification)
-        ) {
-            return false
-        }
-
-        return notification.data.game.id === this.gameContext.game.id
-    }
-
-    private isGameAddActionsNotification(
-        notification: Notification
-    ): notification is GameAddActionsNotification {
-        return (
-            notification.type === NotificationCategory.Game &&
-            notification.action === GameNotificationAction.AddActions
-        )
-    }
-
-    private isGameAddProjectedActionsNotification(
-        notification: Notification
-    ): notification is GameAddProjectedActionsNotification {
-        return (
-            notification.type === NotificationCategory.Game &&
-            notification.action === GameNotificationAction.AddProjectedActions
-        )
-    }
-
-    private isGameReplaceProjectedActionsNotification(
-        notification: Notification
-    ): notification is GameReplaceProjectedActionsNotification {
-        return (
-            notification.type === NotificationCategory.Game &&
-            notification.action === GameNotificationAction.ReplaceProjectedActions
-        )
-    }
-
-    private isGameUndoActionNotification(
-        notification: Notification
-    ): notification is GameUndoActionNotification {
-        return (
-            notification.type === NotificationCategory.Game &&
-            notification.action === GameNotificationAction.UndoAction
-        )
-    }
-
-    private isGameDeleteNotification(
-        notification: Notification
-    ): notification is GameDeleteNotification {
-        return (
-            notification.type === NotificationCategory.Game &&
-            notification.action === GameNotificationAction.Delete
-        )
     }
 
     private isMajorChange(): boolean {

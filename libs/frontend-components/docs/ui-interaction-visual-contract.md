@@ -111,6 +111,8 @@ Playable inherited Undo stops at the first forward-patched or non-optimistic cas
 
 A primary representation refresh while Exploration is open updates the primary context without replacing the Exploration's History or displayed state. Ending Exploration returns to the currently selected primary representation. Transient action selections continue to reset through the existing visible-state transition lifecycle.
 
+A Game Session owns its notification subscription. Repeated listen/stop calls do not duplicate subscriptions, and disposing the Game Session stops listening even when its host has not explicitly stopped it.
+
 Primary recovery continues during Exploration without changing the sample or its History source. A notification arriving during a representation load retains a recovery request after that representation replaces the old context. Both legacy and projected Undo wait for processing/presentation to settle before publication.
 
 A Game UI requests hosted canonical inspection only when the injected API explicitly advertises Host View support. An older Site Frontend keeps ordinary play available and reports that a site reload is needed for Host View; a projected response cannot become the retained Host Context.
