@@ -10,6 +10,7 @@ import {
     createPrivateObservationScenario,
     createPrivateTransferScenario,
     createProgressiveTeamRevealScenario,
+    createSecretRandomnessScenario,
     createSelectiveRevealScenario,
     PlayerIds
 } from './hiddenCardScenarios.js'
@@ -35,6 +36,178 @@ function visibleCardsFor(
         ? expectedCardsByPlayer[playerId]
         : []
 }
+
+describe('I6: secret game randomness', () => {
+    it('creates version 3 states independently of visibility registration', () => {
+        const scenario = createPrivateDealScenario()
+        const withoutVisibility = { ...scenario.runtime, visibility: undefined }
+
+        expect(
+            new GameEngine(scenario.runtime).generateUninitializedState(scenario.game).systemVersion
+        ).toBe(3)
+        expect(
+            new GameEngine(withoutVisibility).generateUninitializedState(scenario.game)
+                .systemVersion
+        ).toBe(3)
+    })
+
+    it('projects a neutral PRNG state without exposing its canonical seed or position', () => {
+        const scenario = createPrivateDealScenario()
+        scenario.before.seed = 101
+        scenario.before.protectedPrng = { seed: 8675309, invocations: 42 }
+
+        const visibleState = scenario.runtime.visibility.state.project(scenario.before, {
+            kind: 'spectator'
+        })
+
+        expect(visibleState.protectedPrng).toEqual({ seed: 0, invocations: 0 })
+        expect(visibleState.prng).toEqual(scenario.before.prng)
+        expect(visibleState.seed).toBe(101)
+        expect(JSON.stringify(visibleState)).not.toContain('8675309')
+        expect(JSON.stringify(visibleState)).not.toContain('"invocations":42')
+    })
+
+    it('preserves version 2 PRNG-derived System Action identities', () => {
+        const scenario = createPrivateDealScenario()
+        scenario.before.systemVersion = 2
+
+        const result = new GameEngine(scenario.runtime).executeAction({
+            action: scenario.startRound,
+            state: scenario.before,
+            game: scenario.game
+        })
+
+        expect(result.processedActions[1]?.id).toBe('05uZfktKuiw2bL2TWqpqr')
+        expect(result.updatedState.prng.invocations).toBe(35)
+    })
+
+    it('stops projected execution when a public Action consumes secret randomness', () => {
+        const scenario = createSecretRandomnessScenario()
+        const perspective = { kind: 'spectator' as const }
+        const visibleBefore = scenario.publicShuffleRuntime.visibility.state.project(
+            scenario.before,
+            perspective
+        )
+        const unchangedVisibleBefore = structuredClone(visibleBefore)
+
+        expect(() =>
+            new GameEngine(scenario.publicShuffleRuntime).executeAction({
+                action: scenario.prepareDeck,
+                state: visibleBefore,
+                game: scenario.game,
+                perspective
+            })
+        ).toThrow('Projected execution cannot access protected value at /protectedPrng')
+        expect(visibleBefore).toEqual(unchangedVisibleBefore)
+    })
+
+    it('replays a public cascade after a patched secret shuffle with the public PRNG cursor aligned', () => {
+        const scenario = createSecretRandomnessScenario()
+        const engine = new GameEngine(scenario.runtime)
+        const perspective = { kind: 'spectator' as const }
+        const originalDeck = [...scenario.before.deck.items]
+        const canonicalShuffle = engine.executeAction({
+            action: scenario.prepareDeck,
+            state: scenario.before,
+            game: scenario.game
+        })
+
+        expect(canonicalShuffle.processedActions.map(({ id, type }) => ({ id, type }))).toEqual([
+            { id: 'prepare-secret-deck', type: ActionType.PrepareDeck },
+            {
+                id: canonicalShuffle.processedActions[1]?.id,
+                type: ActionType.ShuffleDeck
+            },
+            {
+                id: canonicalShuffle.processedActions[2]?.id,
+                type: ActionType.DeckPrepared
+            }
+        ])
+        expect(canonicalShuffle.updatedState.protectedPrng?.invocations).toBe(4)
+        expect(canonicalShuffle.updatedState.prng.invocations).toBeGreaterThan(0)
+        expect(canonicalShuffle.updatedState.deck.items).not.toEqual(originalDeck)
+
+        const visibleBefore = scenario.runtime.visibility.state.project(
+            scenario.before,
+            perspective
+        )
+        const visibleShuffle = Visibility.projectActionResult({
+            result: canonicalShuffle,
+            visibility: scenario.runtime.visibility,
+            perspective,
+            replay: { game: scenario.game, runtime: scenario.runtime }
+        })
+
+        expect(visibleShuffle.processedActions.map(({ id, type }) => ({ id, type }))).toEqual([
+            { id: 'prepare-secret-deck', type: ActionType.PrepareDeck },
+            {
+                id: canonicalShuffle.processedActions[1]?.id,
+                type: Visibility.RedactedActionType
+            },
+            {
+                id: canonicalShuffle.processedActions[2]?.id,
+                type: ActionType.DeckPrepared
+            }
+        ])
+        expect(
+            visibleShuffle.processedActions.every((action) => action.forwardPatch !== undefined)
+        ).toBe(true)
+        expect(visibleShuffle.updatedState.protectedPrng).toEqual({ seed: 0, invocations: 0 })
+        expect(visibleShuffle.updatedState.prng).toEqual(canonicalShuffle.updatedState.prng)
+        const serializedShuffle = JSON.stringify(visibleShuffle)
+        for (const card of originalDeck) {
+            expect(serializedShuffle).not.toContain(card)
+        }
+        expect(serializedShuffle).not.toContain('791946283')
+
+        let clientState = visibleBefore
+        for (const action of visibleShuffle.processedActions) {
+            clientState = engine.applyProcessedAction({
+                action,
+                state: clientState,
+                game: scenario.game
+            })
+        }
+        expect(clientState).toEqual(visibleShuffle.updatedState)
+
+        const canonicalContinuation = engine.executeAction({
+            action: scenario.continueAfterShuffle,
+            state: canonicalShuffle.updatedState,
+            game: scenario.game
+        })
+        const visibleContinuation = Visibility.projectActionResult({
+            result: canonicalContinuation,
+            visibility: scenario.runtime.visibility,
+            perspective,
+            replay: { game: scenario.game, runtime: scenario.runtime }
+        })
+
+        expect(visibleContinuation.processedActions.map(({ id, type }) => ({ id, type }))).toEqual([
+            { id: 'continue-after-shuffle', type: ActionType.EndRound },
+            {
+                id: canonicalContinuation.processedActions[1]?.id,
+                type: ActionType.ForgetKnownCards
+            }
+        ])
+        expect(
+            visibleContinuation.processedActions.every(
+                (action) => action.forwardPatch === undefined
+            )
+        ).toBe(true)
+
+        for (const action of visibleContinuation.processedActions) {
+            clientState = engine.applyProcessedAction({
+                action,
+                state: clientState,
+                game: scenario.game
+            })
+        }
+        expect(clientState).toEqual(visibleContinuation.updatedState)
+        expect(clientState.protectedPrng).toEqual({ seed: 0, invocations: 0 })
+        expect(clientState.prng).toEqual(canonicalContinuation.updatedState.prng)
+        expect(clientState.actionChecksum).toBe(canonicalContinuation.updatedState.actionChecksum)
+    })
+})
 
 describe('I3 / S2: a public Action triggers a private multi-Player deal', () => {
     it('projects and round-trips one system deal to four private hands for every perspective', () => {
@@ -1240,6 +1413,6 @@ describe('A9: legal choices depend on private state', () => {
             engine.getValidActionTypesForPlayer(scenario.game, projected, PlayerIds[0], {
                 perspective
             })
-        ).toThrow('Projected execution cannot access protected value at /hands/1/cards/0')
+        ).toThrow('Projected execution cannot access protected value at /hands/1/cards')
     })
 })

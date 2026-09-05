@@ -1,5 +1,6 @@
 import {
     ActionSource,
+    ExplorationHistory,
     CanonicalActionReplayManifest,
     Game,
     GameAction,
@@ -12,8 +13,6 @@ import {
     Notification,
     type Player,
     GameState,
-    GameSyncStatus,
-    findLastIndex,
     GameUndoActionNotification,
     GameDeleteNotification,
     type HydratedGameState,
@@ -46,6 +45,8 @@ import type { ChatService } from '$lib/services/chatService'
 import type { GameService } from '$lib/services/gameService.js'
 import { GameSessionBridge } from '$lib/services/bridges/gameSessionBridge.svelte.js'
 import { GameContext } from './gameContext.svelte.js'
+import { GameReconciliation, ServerActionHandling } from './gameReconciliation.js'
+import { GameRepresentations } from './gameRepresentations.svelte.js'
 import { GameHistory, type HistoryAnimationIntent } from './gameHistory.svelte.js'
 import { GameActionResults } from './gameActionResults.svelte.js'
 import { GameColors } from './gameColors.svelte.js'
@@ -60,16 +61,6 @@ export enum GameSessionMode {
     Play = 'play',
     Explore = 'explore',
     History = 'history'
-}
-
-enum ServerActionHandling {
-    Execute = 'execute',
-    ApplyProcessed = 'applyProcessed'
-}
-
-type PendingServerAction = {
-    action: GameAction
-    handling: ServerActionHandling
 }
 
 export type GameStateChangeListener<U extends HydratedGameState> = ({
@@ -113,18 +104,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private engine: GameEngine<T, U>
     private api: RemoteApiService
 
-    private actionsToProcess: PendingServerAction[] = []
-
     private gameStateChangeListeners: Set<GameStateChangeListener<U>> = new Set()
     private visibleTransitionWaiters: Array<() => void> = []
     private pendingHistoryAnimationIntent?: HistoryAnimationIntent = $state()
 
+    private reconciliation: GameReconciliation<T, U>
     private gameContext: GameContext<T, U>
-    private hostGameContext?: GameContext<T, U> = $state.raw()
-    private actingPlayerPerspectiveViewEnabled = $state(false)
-    private privilegedInspectionEnabled = false
-    private representationRequestGeneration = 0
-    private disposed = false
+    private representations: GameRepresentations<T, U>
     explorationContext?: GameContext<T, U> = $state()
 
     private suppressStateChangeActions = false
@@ -145,19 +131,18 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     )
     isExploring = $derived(this.mode === GameSessionMode.Explore)
     get isViewingHost(): boolean {
-        return this.hostGameContext !== undefined && !this.actingPlayerPerspectiveViewEnabled
+        return (
+            this.representations.hostContext !== undefined &&
+            !this.representations.isViewingAsActingPlayer
+        )
     }
 
     get isViewingAsActingPlayer(): boolean {
-        return this.hostGameContext !== undefined && this.actingPlayerPerspectiveViewEnabled
+        return this.representations.isViewingAsActingPlayer
     }
 
     get canViewAsActingPlayer(): boolean {
-        return (
-            this.hostGameContext !== undefined &&
-            !this.isExploring &&
-            this.privilegedActingPlayer(this.hostGameContext) !== undefined
-        )
+        return !this.isExploring && this.representations.actingPlayer !== undefined
     }
     isExitingHistory = $state(false)
     isViewingHistory = $derived.by(() => this.history.inHistory || this.isExitingHistory)
@@ -234,6 +219,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         let undoableUserAction: GameAction | undefined
         for (let i = this.actions.length - 1; i >= 0; i--) {
             const action = this.actions[i]
+            const undoLimit =
+                this.currentModifiableContext.state.explorationState?.checkpoint?.undoLimit
+            if (undoLimit !== undefined && i < undoLimit) break
 
             // Cannot undo beyond revealed info
             if (!superUserAccess && action.revealsInfo) {
@@ -435,14 +423,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         assertExists(actingPlayer, `Active player ${playerId} not found`)
         this.chosenAdminPlayerId = actingPlayer.id
 
-        const hostContext = this.hostGameContext
-        if (this.actingPlayerPerspectiveViewEnabled && hostContext !== undefined) {
-            this.replacePrimaryGameContext(
-                this.projectGameContext(hostContext, {
-                    kind: 'player',
-                    playerId: actingPlayer.id
-                })
-            )
+        if (this.representations.isViewingAsActingPlayer) {
+            this.representations.setViewAsActingPlayer(true)
         }
     }
 
@@ -550,6 +532,24 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             actions
         })
 
+        this.representations = new GameRepresentations(this.gameContext, {
+            getGame: (...args) => this.api.getGame(...args),
+            getUserId: () => this.sessionUserStore.current?.id,
+            getChosenPlayerId: () => this.chosenAdminPlayerId,
+            publish: (context) => this.replacePrimaryGameContext(context),
+            setLoading: (loading) => {
+                this.loadingGameRepresentation = loading
+            }
+        })
+
+        this.reconciliation = new GameReconciliation(this.gameContext, {
+            checkSync: (...args) => this.api.checkSync(...args),
+            reload: () => this.loadRecoveryContext(),
+            isPaused: () => this.busy,
+            recover: () => this.checkSync(),
+            acceptsPerspective: (perspective) => this.matchesPrimaryPerspective(perspective)
+        })
+
         this.history = new GameHistory(this.gameContext, {
             onHistoryAction: (action, animationIntent) =>
                 this.onHistoryAction(action, animationIntent),
@@ -583,6 +583,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 onExplorationSwitched: (context) => {
                     this.suppressStateChangeActions = true
                     this.explorationContext = context
+                    this.history.updateSourceGameContext(context)
                 }
             }
         )
@@ -632,8 +633,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     }
                     // console.log('Busy changed from', oldBusy, 'to', newBusy)
                     if (oldBusy === true && newBusy === false) {
-                        this.applyQueuedActions().catch((error) => {
-                            console.error('Error applying queued actions:', error)
+                        this.reconciliation.resume().catch((error) => {
+                            console.error('Error applying queued server updates:', error)
                         })
                     }
                 }
@@ -658,256 +659,30 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     dispose() {
-        this.disposed = true
-        this.representationRequestGeneration += 1
-        this.actingPlayerPerspectiveViewEnabled = false
-        this.hostGameContext = undefined
+        this.representations.dispose()
         this.effectDisposer()
     }
 
     async setPrivilegedGameViewEnabled(privilegedViewRequested: boolean): Promise<void> {
-        this.privilegedInspectionEnabled = privilegedViewRequested
-        if (!this.usesProjectedHostedRepresentation()) {
-            return
-        }
-
-        const requestGeneration = ++this.representationRequestGeneration
-        this.loadingGameRepresentation = true
-        try {
-            if (privilegedViewRequested) {
-                const hostContext = await this.loadGameContext({ hostView: true })
-                if (this.isRepresentationRequestStale(requestGeneration)) {
-                    return
-                }
-                this.hostGameContext = hostContext
-                this.actingPlayerPerspectiveViewEnabled = false
-                this.replacePrimaryGameContext(hostContext)
-                return
-            }
-
-            const hostContext = this.hostGameContext
-            if (hostContext === undefined) {
-                return
-            }
-
-            const perspective = this.ordinaryPerspective()
-            const safeContext = this.projectGameContext(hostContext, perspective)
-            this.actingPlayerPerspectiveViewEnabled = false
-            this.hostGameContext = undefined
-            this.replacePrimaryGameContext(safeContext)
-
-            const ordinaryContext = await this.loadGameContext()
-            if (this.isRepresentationRequestStale(requestGeneration)) {
-                return
-            }
-            this.replacePrimaryGameContext(ordinaryContext)
-        } finally {
-            if (!this.isRepresentationRequestStale(requestGeneration)) {
-                this.loadingGameRepresentation = false
-            }
-        }
+        await this.representations.setPrivilegedEnabled(privilegedViewRequested)
     }
 
     setViewAsActingPlayer(enabled: boolean): void {
-        const hostContext = this.hostGameContext
-        if (!enabled) {
-            this.actingPlayerPerspectiveViewEnabled = false
-            if (hostContext !== undefined) {
-                this.replacePrimaryGameContext(hostContext)
-            }
-            return
-        }
-
-        assertExists(hostContext, 'Host View is not available')
-        const actingPlayer = this.privilegedActingPlayer(hostContext)
-        assertExists(actingPlayer, 'Acting Player is not available')
-        const projectedContext = this.projectGameContext(hostContext, {
-            kind: 'player',
-            playerId: actingPlayer.id
-        })
-        this.actingPlayerPerspectiveViewEnabled = true
-        this.replacePrimaryGameContext(projectedContext)
-    }
-
-    private usesProjectedHostedRepresentation(): boolean {
-        return (
-            this.gameContext.game.storage === GameStorage.Remote &&
-            !this.gameContext.game.hotseat &&
-            this.runtime.visibility !== undefined
-        )
-    }
-
-    private async loadGameContext(options?: { hostView: true }): Promise<GameContext<T, U>> {
-        const { game, actions } = await this.api.getGame(this.gameContext.game.id, options)
-        const state = game.state
-        assertExists(state, `Game ${game.id} has no state`)
-        if (!this.isGameSessionState(state)) {
-            throw new Error(`Game ${game.id} state does not match its projected schema`)
-        }
-
-        const stateFreeGame = structuredClone(game)
-        delete stateFreeGame.state
-        return new GameContext({
-            runtime: this.runtime,
-            game: stateFreeGame,
-            state,
-            actions
-        })
-    }
-
-    private isGameSessionState(state: GameState): state is T {
-        const visibility = this.runtime.visibility
-        return visibility !== undefined && Value.Check(visibility.state.schema, state)
-    }
-
-    private ordinaryPerspective(): Visibility.Perspective {
-        const userId = this.sessionUserStore.current?.id
-        const player = this.gameContext.game.players.find(
-            (candidate) => candidate.userId === userId
-        )
-        return player === undefined
-            ? { kind: 'spectator' }
-            : { kind: 'player', playerId: player.id }
-    }
-
-    private privilegedActingPlayer(hostContext: GameContext<T, U>): Player | undefined {
-        const activePlayerIds = hostContext.state.activePlayerIds
-        const chosenPlayer = hostContext.game.players.find(
-            (player) =>
-                player.id === this.chosenAdminPlayerId && activePlayerIds.includes(player.id)
-        )
-        if (this.chosenAdminPlayerId !== undefined) {
-            return chosenPlayer
-        }
-
-        const primaryPlayer = hostContext.game.players.find(
-            (player) =>
-                player.userId === this.sessionUserStore.current?.id &&
-                activePlayerIds.includes(player.id)
-        )
-        if (primaryPlayer !== undefined) {
-            return primaryPlayer
-        }
-
-        const activePlayers = hostContext.game.players.filter((player) =>
-            activePlayerIds.includes(player.id)
-        )
-        return activePlayers.length === 1 ? activePlayers[0] : undefined
-    }
-
-    private projectGameContext(
-        hostContext: GameContext<T, U>,
-        perspective: Visibility.Perspective
-    ): GameContext<T, U> {
-        const visibility = this.runtime.visibility
-        assertExists(visibility, 'Game Runtime has no visibility projection')
-        const history = Visibility.projectActionHistory({
-            currentState: hostContext.state,
-            actions: hostContext.actions,
-            visibility,
-            perspective,
-            replay: { game: hostContext.game, runtime: this.runtime }
-        })
-        const state = history.currentState
-        if (!this.isGameSessionState(state)) {
-            throw new Error(`Game ${hostContext.game.id} projection has an invalid state`)
-        }
-        return new GameContext({
-            runtime: this.runtime,
-            game: structuredClone(hostContext.game),
-            state,
-            actions: [...history.actions]
-        })
-    }
-
-    private replaceDisplayedPrivilegedContext(hostContext: GameContext<T, U>): void {
-        if (this.actingPlayerPerspectiveViewEnabled) {
-            const actingPlayer = this.privilegedActingPlayer(hostContext)
-            if (actingPlayer !== undefined) {
-                this.replacePrimaryGameContext(
-                    this.projectGameContext(hostContext, {
-                        kind: 'player',
-                        playerId: actingPlayer.id
-                    })
-                )
-                return
-            }
-            this.actingPlayerPerspectiveViewEnabled = false
-        }
-
-        this.replacePrimaryGameContext(hostContext)
-    }
-
-    private async refreshPrivilegedGameContext(): Promise<void> {
-        if (this.hostGameContext === undefined) {
-            return
-        }
-
-        const requestGeneration = ++this.representationRequestGeneration
-        this.loadingGameRepresentation = true
-        try {
-            const hostContext = await this.loadGameContext({ hostView: true })
-            if (this.isRepresentationRequestStale(requestGeneration)) {
-                return
-            }
-            this.hostGameContext = hostContext
-            this.replaceDisplayedPrivilegedContext(hostContext)
-        } finally {
-            if (!this.isRepresentationRequestStale(requestGeneration)) {
-                this.loadingGameRepresentation = false
-            }
-        }
-    }
-
-    private async reloadRequestedGameRepresentation(): Promise<void> {
-        if (this.disposed) {
-            return
-        }
-
-        if (this.privilegedInspectionEnabled) {
-            if (this.hostGameContext === undefined) {
-                await this.setPrivilegedGameViewEnabled(true)
-            } else {
-                await this.refreshPrivilegedGameContext()
-            }
-            return
-        }
-
-        if (this.hostGameContext !== undefined) {
-            await this.setPrivilegedGameViewEnabled(false)
-            return
-        }
-
-        const requestGeneration = ++this.representationRequestGeneration
-        this.loadingGameRepresentation = true
-        try {
-            const ordinaryContext = await this.loadGameContext()
-            if (this.isRepresentationRequestStale(requestGeneration)) {
-                return
-            }
-            this.replacePrimaryGameContext(ordinaryContext)
-        } finally {
-            if (!this.isRepresentationRequestStale(requestGeneration)) {
-                this.loadingGameRepresentation = false
-            }
-        }
+        this.representations.setViewAsActingPlayer(enabled)
     }
 
     private replacePrimaryGameContext(context: GameContext<T, U>): void {
-        this.suppressStateChangeActions = true
+        if (!this.isExploring) this.suppressStateChangeActions = true
         // A complete representation already includes every accepted Action, so any queued
         // incremental records belong to the representation being replaced.
-        this.actionsToProcess = []
-        this.history.updateSourceGameContext(this.gameContext)
+        this.reconciliation.clearPending()
+        if (!this.isExploring) this.history.updateSourceGameContext(this.gameContext)
         this.gameContext.restoreFrom(context.clone())
+        if (this.isExploring) return
         // A representation change is a confidentiality boundary. Publish its state immediately
         // instead of retaining the prior perspective while asynchronous listeners settle.
         this.pendingHistoryAnimationIntent = 'silent-swap'
         this.gameState = this.runtime.hydrator.hydrateState(this.gameContext.state)
-    }
-
-    private isRepresentationRequestStale(requestGeneration: number): boolean {
-        return this.disposed || requestGeneration !== this.representationRequestGeneration
     }
 
     private handleGameRepresentationError(error: unknown): void {
@@ -1060,12 +835,42 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
     }
 
+    get canExplore(): boolean {
+        return (
+            this.explorationPerspective() === undefined ||
+            this.runtime.initializer.populateExplorationState !== undefined
+        )
+    }
+
+    private explorationPerspective(): Visibility.Perspective | undefined {
+        const context = this.currentVisibleContext
+        if (
+            context.game.storage !== GameStorage.Remote ||
+            context.game.hotseat ||
+            !this.runtime.visibility ||
+            this.isViewingHost
+        )
+            return undefined
+        if (this.isViewingAsActingPlayer) {
+            const player = this.representations.actingPlayer
+            assertExists(player, 'Acting Player is not available')
+            return { kind: 'player', playerId: player.id }
+        }
+        const player = this.myPrimaryPlayer
+        return player ? { kind: 'player', playerId: player.id } : { kind: 'spectator' }
+    }
+
     async startExploring() {
         if (this.isExploring) {
             return
         }
 
-        await this.explorations.startExploring(this.currentVisibleContext)
+        if (!this.canExplore) return
+        await this.explorations.startExploring(
+            this.currentVisibleContext,
+            this.explorationPerspective(),
+            this.history.inHistory
+        )
     }
 
     // This will only be triggered by the UI and as such we can use the current context
@@ -1077,7 +882,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         const relevantContext = this.currentModifiableContext
-        const representationRequestGeneration = this.representationRequestGeneration
+        const isRepresentationCurrent = this.representations.captureValidity()
         const requiresAuthoritativeApplication = this.requiresServerAuthoritativeProcessing(
             relevantContext,
             action
@@ -1087,10 +892,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         action = structuredClone($state.snapshot(action))
 
         const gameSnapshot = structuredClone(relevantContext.game)
-        let stateSnapshot = structuredClone(relevantContext.state) as T
+        const stateSnapshot = structuredClone(relevantContext.state)
 
         // Make copy of original state to allow rollback
-        let priorContext = relevantContext.clone()
+        const priorContext = relevantContext.clone()
         try {
             // Block server actions while we are processing
             if (this.mode === GameSessionMode.Play) {
@@ -1102,7 +907,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 console.log(`Applying ${action.type} ${action.id} from UI: `, action)
             }
 
-            if (this.hostGameContext !== undefined && relevantContext === this.gameContext) {
+            if (
+                this.representations.hostContext !== undefined &&
+                relevantContext === this.gameContext
+            ) {
                 await this.applyActionInPrivilegedView(action)
                 return
             }
@@ -1160,96 +968,26 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 }
 
                 // Send the actions to the server and receive the updated actions back
-                const { actions: serverActions, missingActions } = await this.api.applyAction(
-                    this.gameContext.game,
-                    action
-                )
-                if (this.isRepresentationRequestStale(representationRequestGeneration)) {
-                    await this.reloadRequestedGameRepresentation()
+                const response = await this.api.applyAction(this.gameContext.game, action)
+                if (!isRepresentationCurrent()) {
+                    await this.representations.reload()
                     return
                 }
-
-                let applyServerActions = actionResults.revealing
-                if (
-                    !actionResults.revealing &&
-                    !this.canKeepOptimisticResult(actionResults.processedActions, serverActions)
-                ) {
-                    relevantContext.restoreFrom(priorContext)
-                    applyServerActions = true
-                }
-
-                // Check to see if our server assigned index is less than what we calculated
-                // If so, then that means our action was accepted but something was undone that we did
-                // not know about so we we need to undo to the correct point and re-apply
-                const serverAction = serverActions.find((a) => a.id === action.id)
-                if (
-                    serverAction &&
-                    serverAction.index !== undefined &&
-                    serverAction.index < (action.index ?? 0)
-                ) {
-                    // Rollback our local action and any deferred results
-                    relevantContext.restoreFrom(priorContext)
-
-                    // Undo to the server's index
-                    stateSnapshot = this.undoToIndex(
-                        stateSnapshot,
-                        serverAction.index - 1,
-                        relevantContext
-                    )
-                    priorContext = relevantContext.clone()
-
-                    applyServerActions = true
-                }
-
-                // Check to see if the server told us we missed some actions
-                // If the server says so, that means our action was accepted, and these need to be processed
-                // prior to the action we sent
-                if (missingActions && missingActions.length > 0) {
-                    // Sort the actions by index to be sure, though the server should have done this
-                    // There should never be an index not provided
-                    missingActions.sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
-
-                    // Rollback our local action and any deferred results
-                    relevantContext.restoreFrom(priorContext)
-
-                    // Prepend the missing actions
-                    serverActions.unshift(...missingActions)
-
-                    applyServerActions = true
-                }
-
-                // Apply the server provided actions
-                if (applyServerActions) {
-                    for (const action of serverActions) {
-                        const actionResults = this.applyProcessedActionToGame(
-                            action,
-                            gameSnapshot,
-                            stateSnapshot
-                        )
-                        stateSnapshot = actionResults.updatedState
-                        relevantContext.applyActionResults(actionResults)
-                    }
-                }
-
-                // Overwrite the local ones if necessary so we have canonical data
-                serverActions.forEach((action) => {
-                    relevantContext.upsertAction(action)
+                this.reconciliation.acceptSubmission(action.id, response, {
+                    before: priorContext,
+                    result: actionResults
                 })
-
-                relevantContext.verifyFullChecksum()
             }
         } catch (e) {
             console.log(e)
-            const representationRequestStale = this.isRepresentationRequestStale(
-                representationRequestGeneration
-            )
+            const representationRequestStale = !isRepresentationCurrent()
             if (!representationRequestStale) {
                 relevantContext.restoreFrom(priorContext)
             }
             if (!this.isMajorChange()) {
                 toast.error('An error occurred processing your action, resyncing')
                 if (representationRequestStale) {
-                    await this.reloadRequestedGameRepresentation()
+                    await this.representations.reload()
                 } else {
                     await this.checkSync()
                 }
@@ -1263,7 +1001,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     private async applyActionInPrivilegedView(action: GameAction): Promise<void> {
-        const hostContext = this.hostGameContext
+        const hostContext = this.representations.hostContext
         assertExists(hostContext, 'Host View is not available')
         action.index = hostContext.state.actionCount
 
@@ -1276,14 +1014,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             response.actions.find((processedAction) => processedAction.id === action.id),
             `Processed action not found for ${action.id}`
         )
-        await this.reloadRequestedGameRepresentation()
+        await this.representations.reload()
     }
 
     private async applyServerAuthoritativeAction(
         action: GameAction,
         context: GameContext<T, U>
     ): Promise<void> {
-        const representationRequestGeneration = this.representationRequestGeneration
+        const isRepresentationCurrent = this.representations.captureValidity()
         action.index = context.state.actionCount
 
         if (this.debug) {
@@ -1291,46 +1029,27 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         const response = await this.api.applyAction(context.game, action)
-        if (this.isRepresentationRequestStale(representationRequestGeneration)) {
-            await this.reloadRequestedGameRepresentation()
+        if (!isRepresentationCurrent()) {
+            await this.representations.reload()
             return
         }
-        assertExists(
-            response.actions.find((processedAction) => processedAction.id === action.id),
-            `Processed action not found for ${action.id}`
-        )
-
-        const actions = [...(response.missingActions ?? []), ...response.actions].toSorted(
-            (left, right) => (left.index ?? 0) - (right.index ?? 0)
-        )
-        const game = structuredClone(context.game)
-        let state = structuredClone(context.state)
-        for (const processedAction of actions) {
-            const result = this.applyProcessedActionToGame(processedAction, game, state)
-            state = result.updatedState
-            context.applyActionResults(result)
-        }
-
-        context.updateGame(response.game)
-        context.verifyFullChecksum()
+        this.reconciliation.acceptSubmission(action.id, response)
     }
 
     private async applyServerAuthoritativeUndo(
         actionId: string,
         context: GameContext<T, U>
     ): Promise<void> {
-        const representationRequestGeneration = this.representationRequestGeneration
+        const isRepresentationCurrent = this.representations.captureValidity()
         const { actionReplay, canonicalReplay, checksum, game } = await this.api.undoAction(
             context.game,
             actionId
         )
-        if (this.isRepresentationRequestStale(representationRequestGeneration)) {
-            await this.reloadRequestedGameRepresentation()
+        if (!isRepresentationCurrent()) {
+            await this.representations.reload()
             return
         }
-        this.reconcileProcessedActionReplay(context, actionReplay ?? canonicalReplay, checksum)
-        context.updateGame(game)
-        context.verifyFullChecksum()
+        this.reconciliation.replace(actionReplay ?? canonicalReplay, checksum, game)
     }
 
     // This will only be triggered by the UI and as such we can use the current context
@@ -1342,7 +1061,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         const relevantContext = this.currentModifiableContext
-        const representationRequestGeneration = this.representationRequestGeneration
+        const isRepresentationCurrent = this.representations.captureValidity()
         const targetAction = structuredClone($state.snapshot(this.undoableAction))
 
         this.willUndo(targetAction)
@@ -1361,7 +1080,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             const priorContext = relevantContext.clone()
 
             try {
-                if (this.hostGameContext !== undefined && relevantContext === this.gameContext) {
+                if (
+                    this.representations.hostContext !== undefined &&
+                    relevantContext === this.gameContext
+                ) {
                     await this.undoInPrivilegedView(targetActionId)
                     return
                 }
@@ -1393,6 +1115,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     })
                 } while (actionToUndo.id !== targetActionId)
 
+                stateSnapshot = new ExplorationHistory(this.engine).afterUndo(
+                    priorContext.state,
+                    stateSnapshot,
+                    priorContext.actions.slice(stateSnapshot.actionCount)
+                )
                 relevantContext.updateGameState(stateSnapshot)
                 for (const action of redoActions) {
                     const results = this.executeActionInGame(action, gameSnapshot, stateSnapshot)
@@ -1413,23 +1140,20 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                         targetActionId
                     )
                     relevantContext.restoreFrom(priorContext)
-                    this.reconcileProcessedActionReplay(relevantContext, canonicalReplay, checksum)
-                    relevantContext.updateGame(game)
+                    this.reconciliation.replace(canonicalReplay, checksum, game)
                 }
 
                 relevantContext.verifyFullChecksum()
             } catch (e) {
                 console.log(e)
-                const representationRequestStale = this.isRepresentationRequestStale(
-                    representationRequestGeneration
-                )
+                const representationRequestStale = !isRepresentationCurrent()
                 if (!representationRequestStale) {
                     relevantContext.restoreFrom(priorContext)
                 }
                 if (!this.isMajorChange()) {
                     toast.error('An error occurred while undoing an action')
                     if (representationRequestStale) {
-                        await this.reloadRequestedGameRepresentation()
+                        await this.representations.reload()
                     } else {
                         await this.checkSync()
                     }
@@ -1443,10 +1167,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     private async undoInPrivilegedView(actionId: string): Promise<void> {
-        const hostContext = this.hostGameContext
+        const hostContext = this.representations.hostContext
         assertExists(hostContext, 'Host View is not available')
         await this.api.undoAction(hostContext.game, actionId)
-        await this.reloadRequestedGameRepresentation()
+        await this.representations.reload()
     }
 
     async forkGame(newGameName: string): Promise<void> {
@@ -1469,16 +1193,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         )
     }
 
-    private async applyQueuedActions() {
-        if (this.actionsToProcess.length === 0) {
-            return
-        }
-        const queuedActions = this.actionsToProcess
-        this.actionsToProcess = []
-        // console.log('Applying queued actions')
-        await this.applyServerActionsWithHandling(queuedActions)
-    }
-
     public shouldAutoStepAction(action: GameAction, next?: GameAction) {
         return action.source === ActionSource.System
     }
@@ -1499,14 +1213,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         if (this.isViewingAsActingPlayer) {
             throw new Error('Canonical Game State can only be edited from Host View')
         }
-        const editingHostView = this.hostGameContext !== undefined
-        const representationRequestGeneration = this.representationRequestGeneration
+        const editingHostView = this.representations.hostContext !== undefined
+        const isRepresentationCurrent = this.representations.captureValidity()
         await this.gameService.setGameState(this.primaryGame, state)
-        if (
-            editingHostView ||
-            this.isRepresentationRequestStale(representationRequestGeneration)
-        ) {
-            await this.reloadRequestedGameRepresentation()
+        if (editingHostView || !isRepresentationCurrent()) {
+            await this.representations.reload()
             return
         }
         this.gameContext.updateGameState(state)
@@ -1527,138 +1238,39 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return new GameActionResults(processedActions, updatedState)
     }
 
-    private applyProcessedActionToGame(
-        action: GameAction,
-        game: Game,
-        state: T
-    ): GameActionResults<T> {
-        const updatedState = this.engine.applyProcessedAction({ action, state, game })
-        return new GameActionResults([action], updatedState)
-    }
-
-    private undoToIndex(stateSnapshot: T, index: number, context: GameContext<T, U>): T {
-        const undoneActions: GameAction[] = []
-
-        while (context.actions.length > 0 && context.actions.length - 1 !== index) {
-            const actionToUndo = context.popAction() as GameAction
-            undoneActions.push(actionToUndo)
-
-            const updatedState = this.engine.undoProcessedAction({
-                action: actionToUndo,
-                state: stateSnapshot
-            })
-            stateSnapshot = updatedState
-        }
-
-        return stateSnapshot
-    }
-
-    private reconcileProcessedActionReplay(
-        context: GameContext<T, U>,
-        replay: ProcessedActionReplay,
-        checksum: number
-    ): void {
-        if (replay.startIndex > context.actions.length) {
-            throw new Error('Processed Action replay starts beyond local Action History')
-        }
-
-        const gameSnapshot = structuredClone(context.game)
-        let stateSnapshot = structuredClone(context.state)
-        stateSnapshot = this.undoToIndex(stateSnapshot, replay.startIndex - 1, context)
-        if (
-            context.actions.length !== replay.startIndex ||
-            stateSnapshot.actionCount !== replay.startIndex
-        ) {
-            throw new Error('Processed Action replay did not reach its starting state')
-        }
-        context.updateGameState(stateSnapshot)
-
-        for (const action of replay.actions) {
-            if (action.index !== context.actions.length) {
-                throw new Error(
-                    `Processed Action replay has Action ${action.id} at index ${action.index}, expected ${context.actions.length}`
-                )
-            }
-            const results = this.applyProcessedActionToGame(
-                structuredClone(action),
-                gameSnapshot,
-                stateSnapshot
-            )
-            stateSnapshot = results.updatedState
-            context.applyActionResults(results)
-        }
-
-        if (context.state.actionChecksum !== checksum) {
-            throw new Error(
-                `Processed Action replay checksum mismatch, got ${context.state.actionChecksum} expected ${checksum}`
-            )
-        }
-        context.verifyFullChecksum()
-    }
-
-    private async tryToResync(serverActions: GameAction[], checksum: number): Promise<boolean> {
-        // Find the latest action that matches
-        const matchedActionIndex = findLastIndex(serverActions, (action) => {
-            if (
-                action.index === undefined ||
-                action.index < 0 ||
-                action.index >= this.gameContext.actions.length
-            ) {
-                return false
-            }
-
-            const foundAction = this.gameContext.findAction(action.id)
-            return foundAction?.index === action.index
-        })
-
-        if (serverActions.length > 0 && matchedActionIndex === -1) {
-            return false
-        }
-
-        const rollbackIndex =
-            matchedActionIndex >= 0 ? (serverActions[matchedActionIndex].index ?? -1) : -1
-        const gameSnapshot = structuredClone(this.gameContext.game)
-        let stateSnapshot = structuredClone(this.gameContext.state) as T
-        stateSnapshot = this.undoToIndex(stateSnapshot, rollbackIndex, this.gameContext)
-        this.gameContext.updateGameState(stateSnapshot)
-
-        // Apply the actions from the server
-        if (matchedActionIndex < serverActions.length - 1) {
-            const actionsToApply = serverActions.slice(matchedActionIndex + 1)
-            for (const action of actionsToApply) {
-                const actionResults = this.applyProcessedActionToGame(
-                    action,
-                    gameSnapshot,
-                    stateSnapshot
-                )
-                stateSnapshot = actionResults.updatedState
-                this.gameContext.applyActionResults(actionResults)
-            }
-        }
-
-        // Check the checksum
-        if (this.gameContext.state?.actionChecksum !== checksum) {
-            // console.log('Checksums do not match after resync')
-            return false
-        }
-        return true
-    }
-
     private NotificationListener = async (event: NotificationEvent) => {
         if (isDataEvent(event)) {
             const notification = event.notification
             try {
                 if (
-                    this.hostGameContext !== undefined &&
+                    this.representations.hostContext !== undefined &&
                     this.isCurrentGameRepresentationNotification(notification)
                 ) {
-                    await this.refreshPrivilegedGameContext()
+                    await this.representations.refreshHost()
                 } else if (this.isGameAddActionsNotification(notification)) {
                     await this.handleAddActionsNotification(notification)
                 } else if (this.isGameAddProjectedActionsNotification(notification)) {
                     await this.handleAddProjectedActionsNotification(notification)
                 } else if (this.isGameReplaceProjectedActionsNotification(notification)) {
-                    this.handleReplaceProjectedActionsNotification(notification)
+                    if (
+                        notification.data.game.id === this.gameContext.game.id &&
+                        this.matchesPrimaryPerspective(notification.data.perspective)
+                    ) {
+                        const replay = Value.Convert(
+                            ProcessedActionReplay,
+                            notification.data.actionReplay
+                        )
+                        Value.Assert(ProcessedActionReplay, replay)
+                        const game = Value.Convert(Game, notification.data.game)
+                        Value.Assert(Game, game)
+                        await this.reconciliation.enqueue({
+                            kind: 'replacement',
+                            replay,
+                            checksum: notification.data.checksum,
+                            game,
+                            perspective: notification.data.perspective
+                        })
+                    }
                 } else if (this.isGameUndoActionNotification(notification)) {
                     await this.handleUndoNotification(notification)
                 } else if (this.isGameDeleteNotification(notification)) {
@@ -1670,9 +1282,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             }
         } else if (
             isDiscontinuityEvent(event) &&
-            event.channel === NotificationChannel.GameInstance
+            (event.channel === NotificationChannel.GameInstance ||
+                (event.channel === NotificationChannel.User &&
+                    this.runtime.visibility !== undefined))
         ) {
-            await this.checkSync()
+            await this.reconciliation.enqueue({ kind: 'synchronize' })
         }
     }
 
@@ -1711,14 +1325,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         actionData: GameAction[],
         handling: ServerActionHandling
     ) {
-        const actions = actionData.map((action) =>
-            Value.Convert(GameAction, action)
-        ) as GameAction[]
-
-        await this.applyServerActions(actions, handling)
-
-        const game = Value.Convert(Game, gameData) as Game
-        this.gameContext.updateGame(game)
+        const actions = actionData.map((action) => {
+            const converted = Value.Convert(GameAction, action)
+            Value.Assert(GameAction, converted)
+            return converted
+        })
+        const game = Value.Convert(Game, gameData)
+        Value.Assert(Game, game)
+        await this.reconciliation.enqueue({ kind: 'actions', actions, handling, game })
     }
 
     // For primary game context only
@@ -1731,76 +1345,24 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             return
         }
 
-        const priorContext = this.gameContext.clone()
-        try {
-            const manifest = Value.Convert(
-                CanonicalActionReplayManifest,
-                notification.data.canonicalReplay
-            )
-            Value.Assert(CanonicalActionReplayManifest, manifest)
-            const redoneActions = notification.data.redoneActions.map((action) => {
-                const convertedAction = Value.Convert(GameAction, action)
-                Value.Assert(GameAction, convertedAction)
-                return convertedAction
-            })
-            const redoneActionsById = new Map(redoneActions.map((action) => [action.id, action]))
-            const actions = manifest.actionIds.map((actionId) => {
-                const action =
-                    redoneActionsById.get(actionId) ?? this.gameContext.findAction(actionId)
-                assertExists(action, `Processed Action replay Action ${actionId} is unavailable`)
-                return structuredClone(action)
-            })
-            this.reconcileProcessedActionReplay(
-                this.gameContext,
-                {
-                    startIndex: manifest.startIndex,
-                    actions
-                },
-                notification.data.checksum
-            )
-
-            const game = Value.Convert(Game, notification.data.game)
-            Value.Assert(Game, game)
-            this.gameContext.updateGame(game)
-        } catch (error) {
-            this.gameContext.restoreFrom(priorContext)
-            throw error
-        }
-    }
-
-    private handleReplaceProjectedActionsNotification(
-        notification: GameReplaceProjectedActionsNotification
-    ): void {
-        if (notification.data.game.id !== this.gameContext.game.id) {
-            return
-        }
-        if (!this.matchesPrimaryPerspective(notification.data.perspective)) {
-            return
-        }
-        if (this.gameContext === this.currentVisibleContext && this.busy) {
-            return
-        }
-
-        const priorContext = this.gameContext.clone()
-        try {
-            const actionReplay = Value.Convert(
-                ProcessedActionReplay,
-                notification.data.actionReplay
-            )
-            Value.Assert(ProcessedActionReplay, actionReplay)
-            this.reconcileProcessedActionReplay(
-                this.gameContext,
-                actionReplay,
-                notification.data.checksum
-            )
-
-            const game = Value.Convert(Game, notification.data.game)
-            Value.Assert(Game, game)
-            this.gameContext.updateGame(game)
-        } catch (error) {
-            this.gameContext.restoreFrom(priorContext)
-            throw error
-        }
+        const manifest = Value.Convert(
+            CanonicalActionReplayManifest,
+            notification.data.canonicalReplay
+        )
+        Value.Assert(CanonicalActionReplayManifest, manifest)
+        const redoneActions = notification.data.redoneActions.map((action) => {
+            const convertedAction = Value.Convert(GameAction, action)
+            Value.Assert(GameAction, convertedAction)
+            return convertedAction
+        })
+        const game = Value.Convert(Game, notification.data.game)
+        Value.Assert(Game, game)
+        this.reconciliation.replaceFromManifest(
+            manifest,
+            redoneActions,
+            notification.data.checksum,
+            game
+        )
     }
 
     private async handleDeleteNotification(notification: GameDeleteNotification) {
@@ -1816,137 +1378,39 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             return
         }
 
-        if (this.hostGameContext !== undefined) {
-            await this.refreshPrivilegedGameContext()
+        if (this.representations.hostContext !== undefined) {
+            await this.representations.refreshHost()
             return
         }
 
-        const representationRequestGeneration = this.representationRequestGeneration
-        const priorContext = this.gameContext.clone()
+        if (this.representations.inspectionRequested) {
+            await this.representations.reload()
+            return
+        }
+
+        const isRepresentationCurrent = this.representations.captureValidity()
         try {
-            const { status, actions, checksum } = await this.api.checkSync(
-                this.gameContext.game.id,
-                this.gameContext.state?.actionChecksum ?? 0,
-                this.gameContext.actions.length - 1
-            )
-            if (this.isRepresentationRequestStale(representationRequestGeneration)) {
-                await this.reloadRequestedGameRepresentation()
-                return
-            }
-
-            let resyncNeeded = false
-            if (status === GameSyncStatus.InSync) {
-                if (actions.length > 0) {
-                    const handling =
-                        this.runtime.visibility === undefined
-                            ? ServerActionHandling.Execute
-                            : ServerActionHandling.ApplyProcessed
-                    await this.applyServerActions(actions, handling)
-                    if (this.gameContext.state?.actionChecksum !== checksum) {
-                        // console.log('Checksums do not match after applying actions from sync')
-                        resyncNeeded = true
-                    }
-                }
-            } else {
-                resyncNeeded = true
-            }
-
-            if (!resyncNeeded || (await this.tryToResync(actions, checksum))) {
-                return
+            const result = await this.reconciliation.synchronize(isRepresentationCurrent)
+            if (result === 'stale') {
+                await this.representations.reload()
             }
         } catch (error) {
-            console.log('Incremental synchronization failed', error)
-        }
-
-        if (this.isRepresentationRequestStale(representationRequestGeneration)) {
-            await this.reloadRequestedGameRepresentation()
-            return
-        }
-        this.gameContext.restoreFrom(priorContext)
-        await this.doFullResync()
-    }
-
-    // For primary game context only... we can just drop out of the other modes if they get messed up
-    private async doFullResync() {
-        // console.log('DOING FULL RESYNC')
-        try {
-            if (this.privilegedInspectionEnabled) {
-                await this.reloadRequestedGameRepresentation()
-                return
-            }
-            const { game, actions } = await this.api.getGame(this.gameContext.game.id)
-            if (!game.state) {
-                throw new Error('Game state is missing from server')
-            }
-            const newContext = new GameContext<T, U>({
-                runtime: this.runtime,
-                game,
-                state: game.state as T,
-                actions
-            })
-            this.gameContext.restoreFrom(newContext)
-        } catch (e) {
-            // console.log('Error during full resync', e)
+            console.error('Unable to synchronize game:', error)
             toast.error('Unable to load game, try refreshing')
         }
     }
 
-    // For primary game context only
-    private async applyServerActions(
-        actions: GameAction[],
-        handling: ServerActionHandling
-    ): Promise<void> {
-        await this.applyServerActionsWithHandling(actions.map((action) => ({ action, handling })))
-    }
-
-    private async applyServerActionsWithHandling(actions: PendingServerAction[]) {
-        if (actions.length === 0) {
-            return
+    private async loadRecoveryContext(): Promise<GameContext<T, U>> {
+        const { game, actions } = await this.api.getGame(this.gameContext.game.id)
+        if (!game.state) {
+            throw new Error('Game state is missing from server')
         }
-
-        // If we are already processing actions locally, just queue them up
-        if (this.busy) {
-            // console.log('Busy.. enqueuing actions')
-            this.actionsToProcess.push(...actions)
-            return
-        }
-
-        const gameSnapshot = structuredClone(this.gameContext.game)
-        let stateSnapshot = structuredClone(this.gameContext.state) as T
-
-        const allActionResults = new GameActionResults<T>([], stateSnapshot)
-
-        let stateUpdateNeeded = false
-        for (const { action, handling } of actions) {
-            // Make sure we have not already processed this action
-            if (this.gameContext.hasAction(action.id)) {
-                // console.log(`Skipping already processed action ${action.id}`)
-                continue
-            }
-
-            if (this.debug) {
-                // console.log(`Applying ${action.type} ${action.id} from server`, action)
-            }
-            let actionResults: GameActionResults<T>
-            if (handling === ServerActionHandling.Execute) {
-                if (action.source !== ActionSource.User) {
-                    continue
-                }
-                actionResults = this.executeActionInGame(action, gameSnapshot, stateSnapshot)
-            } else {
-                actionResults = this.applyProcessedActionToGame(action, gameSnapshot, stateSnapshot)
-            }
-            allActionResults.add(actionResults)
-
-            stateSnapshot = allActionResults.updatedState
-            stateUpdateNeeded = true
-        }
-
-        if (stateUpdateNeeded) {
-            // Once all the actions are processed, update the game state
-            // console.log('Updating the game state with server actions')
-            this.gameContext.applyActionResults(allActionResults)
-        }
+        return new GameContext<T, U>({
+            runtime: this.runtime,
+            game,
+            state: game.state as T,
+            actions
+        })
     }
 
     private matchesPrimaryPerspective(perspective: Visibility.Perspective): boolean {
@@ -1978,9 +1442,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private projectedExecutionPerspective(
         context: GameContext<T, U>
     ): Visibility.Perspective | undefined {
-        const hostContext = this.hostGameContext
-        if (hostContext !== undefined && this.actingPlayerPerspectiveViewEnabled) {
-            const actingPlayer = this.privilegedActingPlayer(hostContext)
+        if (context !== this.gameContext) return undefined
+        const hostContext = this.representations.hostContext
+        if (hostContext !== undefined && this.representations.isViewingAsActingPlayer) {
+            const actingPlayer = this.representations.actingPlayer
             return actingPlayer === undefined
                 ? undefined
                 : { kind: 'player', playerId: actingPlayer.id }
@@ -2000,38 +1465,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return player === undefined
             ? { kind: 'spectator' }
             : { kind: 'player', playerId: player.id }
-    }
-
-    private matchesProcessedActionTrace(
-        localActions: readonly GameAction[],
-        serverActions: readonly GameAction[]
-    ): boolean {
-        return (
-            localActions.length === serverActions.length &&
-            localActions.every((localAction, index) => {
-                const serverAction = serverActions[index]
-                return (
-                    serverAction !== undefined &&
-                    localAction.id === serverAction.id &&
-                    localAction.index === serverAction.index &&
-                    localAction.source === serverAction.source &&
-                    localAction.type === serverAction.type
-                )
-            })
-        )
-    }
-
-    private canKeepOptimisticResult(
-        localActions: readonly GameAction[],
-        serverActions: readonly GameAction[]
-    ): boolean {
-        const serverActionsHaveForwardPatches = serverActions.some(
-            (action) => action.forwardPatch !== undefined
-        )
-        return (
-            !serverActionsHaveForwardPatches &&
-            this.matchesProcessedActionTrace(localActions, serverActions)
-        )
     }
 
     private isCurrentGameRepresentationNotification(notification: Notification): boolean {

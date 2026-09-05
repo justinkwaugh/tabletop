@@ -1,0 +1,78 @@
+# Hidden-information Exploration implementation plan
+
+This plan records the Exploration decisions from the Game Session refactor discussion. The implementation now provides projected-state population, persisted source/hypothetical checkpoints, inherited Undo barriers, and Fresh Fish continuation. Validation and compatibility results are recorded below. Hosted Fork remains a separate, undecided operation.
+
+## Agreed behavior
+
+- Ordinary Exploration starts from the selected projected Game State and fills unknown information with hypothetical values consistent with the Game rules and the explorer's knowledge at that position. Later source-Game revelations do not constrain an earlier branch.
+- The title supplies the state-population logic. Shared visibility annotations do not imply a generic state generator. Titles can support projected Exploration without every title being required to implement it.
+- Debug/Admin Exploration from an authorized Host View remains available through the existing canonical-state initializer, even when the title has no projected-state population method. The retained authorized Host Game Context supplies that path. Ordinary Exploration must never silently fall back to it.
+- Fresh exploration randomness prevents either path from predicting the source Game's random future. The source protected PRNG is never reused as the hypothetical branch's random future.
+- Recorded source History remains navigable backward and forward up to the source position. It displays the source representation, independently of the populated hypothetical state.
+- Undo changes the playable hypothetical state. When undoing inherited Actions, stop before the first Action with a forward patch or requiring non-optimistic execution. Check the entire User/System cascade; do not skip an unsafe System Action. Existing protected/sentinel Actions also cannot be executed as complete Actions.
+- Exploration-generated Actions have their own execution records and normal local Undo behavior. Undo/redo within a branch must preserve its sampled hidden values and randomness.
+
+## Implementation slices
+
+### E1: explicit initialization paths
+
+Add an optional title-owned projected Exploration population capability alongside the existing `initializeExplorationState` hook. Its inputs are a copy of the projected state, permitted source history through the chosen position, relevant Game configuration, source Perspective, and fresh exploration randomness. Its output is a complete, hydratable hypothetical state. The exact TypeScript signature should reuse existing Game, Perspective, Action, and randomness types.
+
+The framework owns source selection, cloning, branch identity, fresh public/protected PRNG initialization, and branch persistence. The title owns population of missing game information and validation of game-specific constraints. Keep the new capability additive so older UI/Logic implementations and full-information initialization remain usable. Preserve historical system versions; existing v2 Games do not receive a privacy upgrade.
+
+### E2: Fresh Fish population
+
+Reuse the existing tile-population and board-setup rules to recover the starting bag composition. Subtract revealed `DrawTile` outcomes from the permitted history prefix. This accounts for the current chosen tile and tiles that were discarded, placed into the void, or later removed from the board. Do not infer the remaining bag solely from current board occupancy, and do not subtract final-stall supply as though it came from the bag. Validate the reconstructed total against `tileBag.remaining`, then shuffle using exploration randomness.
+
+Populate submitted auction bids whose amounts are absent with hypothetical legal amounts, preserving visible bid amounts, submission status, participant eligibility, public funds, and any outcome already established at the branch point. Do not invent submissions for participants who have not bid. Prefer a straightforward valid sampling policy; this feature does not promise a statistical model of opponents' decisions.
+
+For Host View, retain the existing full-state initializer and reshuffling behavior. There is no need to replace already authorized canonical bid values with guesses. Give subsequent execution fresh branch randomness.
+
+### E3: source History and hypothetical execution
+
+Retain the original permitted source state/history for recorded History navigation. Keep the populated branch state as a separate checkpoint, with its own subsequent Action history. Moving the History cursor across the source position selects the appropriate recorded or hypothetical context; it must not apply source patches to sampled hidden state.
+
+Implement inherited Undo eligibility using the agreed forward-patch/non-optimistic cascade barrier. Safely reversible source Actions may be undone; unsafe Actions remain available for recorded History navigation. Preserve hypothetical state and randomness when reversing the safe suffix. Verify actual reconstruction rather than assuming that absence of a forward patch makes every inherited undo patch compatible with changed branch data.
+
+Replace the current unconditional undo/reapply-last-Action initialization step. Handle source positions within a User/System cascade explicitly, preserving recorded source outcomes and completing only the hypothetical continuation that belongs after the selected point.
+
+Persist the selected source position, source representation needed for recorded History, populated checkpoint, and branch Action history so saving/loading does not sample a different world. Reuse existing storage structure where it can represent these distinctions; preserve loading of existing saved Explorations.
+
+### E4: Game Session integration and compatibility
+
+Expose ordinary projected Exploration only when the title can populate its source state. Keep authorized Host View Exploration available in Debug/Admin regardless of that capability. Preserve existing Local/Hotseat and legacy full-information Exploration behavior. An Acting Player projection must not accidentally acquire the retained Host Context through the ordinary population path.
+
+Exercise privilege switching, entering Exploration from History, returning to Live, switching saved Explorations, and save/load. Preserve the immediate publication rules for representation changes. Review the Game UI Host Bridge Contract before adding any UI-facing availability value; do not require an atomic Site Frontend/UI Artifact rollout.
+
+### E5: conformance and release checks
+
+- Same permitted state/history and exploration seed produce the same hypothetical state despite differing undisclosed source values.
+- Reconstructed Fresh Fish bags have correct composition/count at setup, after draws, during an auction, after tile removal, and at bag exhaustion/final-stall play.
+- Known bids stay unchanged; hidden submitted bids are valid; unfinished bidding and completed auctions continue correctly.
+- Source History round-trips across an unsafe Action while playable Undo stops at its cascade barrier. Safe inherited Actions and newly simulated Actions remain undoable without resampling.
+- Partial-cascade branch positions preserve revealed facts and do not replay unknown canonical outcomes.
+- Saving/loading preserves the hypothetical checkpoint, random streams, history, and Undo eligibility.
+- Debug/Admin Host View can explore a title without the new population hook. Ordinary clients cannot obtain that path through projection failure or missing capability.
+- Existing v2 Games, full-information titles, and saved Explorations remain usable.
+
+Use the existing runtime and GameSession seams for focused tests, with Chromium coverage for History/Undo and context switching. Shared-client changes require each title's UI Artifact to be republished to adopt them. Runtime interface or title initializer changes need their matching Logic/UI publication assessment. No deployment is part of writing this plan.
+
+## Implemented interface and storage
+
+`GameInitializer.populateExplorationState` is optional. It receives `ExplorationPopulation<T>` containing the copied state, permitted Action prefix, Game configuration, Perspective, and sampling randomness. `getExplorationActions` optionally prepares the automatic Actions needed after the selected position, advancing the supplied state's public PRNG when reserving their identities; Fresh Fish uses it to continue a revealed draw or pending auction without replaying the revealing Action. Its automatic bidding, auction-resolution, and forced-placement helpers are shared with ordinary rules execution. Legacy full-state initializers keep their last-Action continuation path.
+
+The framework independently initializes the branch's public and version-3 protected PRNGs and gives population fresh sampling randomness. The optional `explorationState.checkpoint` stores two root state patches: the permitted source snapshot and hypothetical snapshot, both excluding recursive Exploration metadata. Existing Action storage retains the source prefix plus simulated suffix. Snapshot storage adds two states per saved branch; there is no source-world reconstruction from the protected seed.
+
+`ExplorationHistory` owns checkpoint transitions and inherited Undo verification. In addition to explicit forward-patch/reveal/non-optimistic barriers, it probes complete safe cascades against the sampled state, checking resulting state and Action identities. Undo is conservative if that reconstruction fails. Undo into the verified source suffix moves the checkpoint to the earlier position while retaining the sampled world. Older saved Explorations without checkpoints continue through the previous replay behavior.
+
+`GameSession.canExplore` and the bundled History control expose availability without a new host bridge member. Switching saved Explorations updates History's source, and refreshing the primary representation during Exploration leaves the branch's History intact. A new branch opened from History uses that selected position even when saved branches exist.
+
+## Publication
+
+This change adds optional runtime initializer capabilities and serialized checkpoint metadata, and changes shared Game Client behavior. Fresh Fish needs matching Logic/UI artifacts for its initializer changes; each other title needs a new UI artifact to adopt the shared client, with a compatible embedded runtime. The Site Frontend bridge and transport result shapes are unchanged. No publication or old/new deployed-artifact test has been performed.
+
+## Validation results
+
+The affected suites pass: 119 Common tests, 28 Fresh Fish logic tests, 19 shared Game Client tests, 45 Fresh Fish client tests, and ten Chromium scenarios. The seven new client cases cover population independence, bag composition and exhaustion, known/unknown bids, version-1/version-2 continuation with a legacy initializer, loading old saved Explorations, and Host View without a population hook. Five new browser scenarios cover source History and save/load, branching earlier while a saved branch exists, safe inherited and simulated Undo, partial-cascade continuation, privilege transitions, and a simulated auction's History/Undo round trip.
+
+Both client type checks report zero errors with the existing seven/one warnings. Common, Fresh Fish, and shared-client builds pass. These are repository-level tests; mixed deployed artifacts, long-history performance, and population hooks for other hidden-information titles remain future work. Hosted Fork policy remains undecided.

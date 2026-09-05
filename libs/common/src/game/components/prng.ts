@@ -1,11 +1,20 @@
 import * as Type from 'typebox'
 import { getPrng, type RandomFunction } from '../../util/prng.js'
 import { customRandom } from 'nanoid'
+import { NeutralPrngAdapter, Policy, protect, redaction } from '../visibility/visibilitySchema.js'
 
 export type PrngState = Type.Static<typeof PrngState>
 export const PrngState = Type.Object({
     seed: Type.Number(),
     invocations: Type.Number()
+})
+
+export const ProtectedPrngState = protect(PrngState, {
+    policy: Policy.HostOnly,
+    redaction: redaction.replaceWith(
+        NeutralPrngAdapter,
+        Type.Object({ seed: Type.Literal(0), invocations: Type.Literal(0) })
+    )
 })
 
 export class Prng {

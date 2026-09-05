@@ -54,11 +54,12 @@ export class GameEngine<
     generateUninitializedState(game: Game): UninitializedGameState {
         const seed = game.seed ?? generateSeed()
         return {
-            systemVersion: 2,
+            systemVersion: 3,
             id: nanoid(),
             gameId: game.id,
             seed,
             prng: { seed, invocations: 0 },
+            protectedPrng: { seed: generateSeed(), invocations: 0 },
             activePlayerIds: [],
             winningPlayerIds: [],
             actionCount: 0,
@@ -288,6 +289,7 @@ export class GameEngine<
 
             if (
                 updatedState.explorationState &&
+                !updatedState.explorationState.checkpoint &&
                 updatedState.actionCount === updatedState.explorationState.actionCount
             ) {
                 updatedState.prng.invocations = updatedState.explorationState.invocations

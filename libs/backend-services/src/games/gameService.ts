@@ -57,6 +57,7 @@ import {
     UserIsNotAllowedPlayerError
 } from './errors.js'
 
+import { reconstructForkHistory } from './gameFork.js'
 import { GameInvitationTokenData } from '../tokens/tokenData.js'
 import { nanoid } from 'nanoid'
 import { GameStore } from '../persistence/stores/gameStore.js'
@@ -206,14 +207,12 @@ export class GameService {
 
         const forkedGame = structuredClone(game)
 
-        let storedState
-        if (!forkedGame.seed) {
-            // We have to look up the state, because we did not always store the seed on the game.
-            // This also coincides with Kaivai not using prng to generate piece ids, so we can
-            // use the presence of this stored state to decide to rewind it
+        let storedState: GameState | undefined
+        if (definition.runtime.visibility !== undefined || !forkedGame.seed) {
             const gameWithState = await this.getGame({ gameId, withState: true })
             storedState = gameWithState?.state
-            forkedGame.seed = storedState?.prng?.seed
+            assertExists(storedState, 'Fork reconstruction requires canonical source state')
+            forkedGame.seed ??= storedState.prng.seed
         }
 
         // Reset fields
@@ -244,45 +243,14 @@ export class GameService {
         // Reset state to waiting
         startedGame.status = GameStatus.WaitingForPlayers
 
-        let newState = initialState
-
-        // For old Kaivai games that did not use seeds for piece ids, we have to run the
-        // game back to the start to get the initial state
-        if (storedState) {
-            console.log('Rewinding game to get initial state...')
-            actions.reverse()
-            for (const action of actions) {
-                storedState = engine.undoProcessedAction({ action, state: storedState })
-            }
-            if (storedState.actionChecksum !== 0 || storedState.actionCount !== 0) {
-                throw new Error('Could not rewind game to initial state')
-            }
-            newState = storedState
-            actions.reverse()
-        }
-
-        // Copy the entire action history up to the specified index
-        const actionSubset = actions
-            .slice(0, actionIndex + 1)
-            .map((action) => structuredClone(action))
-
-        const appliedActions = []
-        // Run the game to the desired index
-        for (const action of actionSubset) {
-            // Copy and adjust
-            action.id = nanoid()
-            action.gameId = forkedGame.id
-            action.undoPatch = undefined
-
-            // Apply each action to the forked game state
-            const { processedActions, updatedState } = engine.executeSingleAction({
-                action,
-                state: newState,
-                game: startedGame
-            })
-            newState = updatedState
-            appliedActions.push(...processedActions)
-        }
+        const { state: newState, actions: appliedActions } = reconstructForkHistory({
+            engine,
+            game: startedGame,
+            initialState,
+            canonicalState: storedState,
+            actions,
+            actionIndex
+        })
 
         // Update some relevant fields on the game
         startedGame.activePlayerIds = newState.activePlayerIds || []

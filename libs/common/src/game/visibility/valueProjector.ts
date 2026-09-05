@@ -8,6 +8,7 @@ import {
     EmptyArrayAdapter,
     getScopeName,
     getVisibilityMetadata,
+    NeutralPrngAdapter,
     Policy,
     ScopeKey,
     type Metadata,
@@ -143,6 +144,7 @@ function assertSupportedDeclarations<Root>(
         if (
             metadata.redaction.kind === 'replace' &&
             metadata.redaction.adapter !== EmptyArrayAdapter &&
+            metadata.redaction.adapter !== NeutralPrngAdapter &&
             findRedactionAdapter(adapters, metadata.redaction.adapter) === undefined
         ) {
             throw Error(
@@ -267,6 +269,9 @@ function redactValue<Root>(
     }
     if (metadata.redaction.adapter === EmptyArrayAdapter) {
         return []
+    }
+    if (metadata.redaction.adapter === NeutralPrngAdapter) {
+        return { seed: 0, invocations: 0 }
     }
     const adapter = findRedactionAdapter(context.adapters, metadata.redaction.adapter)
     if (adapter !== undefined) {
@@ -533,7 +538,7 @@ class ProjectedExecutionGuard {
             root: value,
             scopes: []
         })
-        if (!containsVisibilityMetadata(frame.schema)) {
+        if (!this.requiresGuard(frame)) {
             return value
         }
         return this.createProxy(frame, value)
@@ -598,6 +603,14 @@ class ProjectedExecutionGuard {
     }
 
     private createProxy<Value extends object>(frame: GuardFrame, value: Value): Value {
+        const memberSchema = Type.IsArray(frame.schema)
+            ? frame.schema.items
+            : Type.IsRecord(frame.schema)
+              ? Type.RecordValue(frame.schema)
+              : undefined
+        if (memberSchema !== undefined && this.canOmitMember(memberSchema, frame.context)) {
+            throw new UnavailableProjectedValueError(frame.context.path)
+        }
         const children = new Map<PropertyKey, GuardedChild>()
         const guarded = new Proxy(value, {
             get: (target, property, receiver) => {
@@ -660,12 +673,82 @@ class ProjectedExecutionGuard {
         return guarded
     }
 
+    private canOmitMember(
+        schema: Type.TSchema,
+        context: TraversalContext<unknown>,
+        visited = new Set<Type.TSchema>()
+    ): boolean {
+        if (visited.has(schema)) {
+            return true
+        }
+        const ancestors = new Set(visited).add(schema)
+        const metadata = getVisibilityMetadata(schema)
+        if (metadata !== undefined) {
+            const alwaysVisible =
+                metadata.policy === Policy.Actor &&
+                builtInPolicyResult(metadata, undefined, context) === true
+            if (!alwaysVisible && metadata.redaction.kind === 'omit') {
+                return true
+            }
+            if (
+                !alwaysVisible &&
+                (metadata.policy === Policy.HostOnly || metadata.policy === Policy.Actor)
+            ) {
+                return false
+            }
+        }
+        if (Type.IsUnion(schema)) {
+            return schema.anyOf.some((candidate) =>
+                this.canOmitMember(candidate, context, ancestors)
+            )
+        }
+        if (Type.IsIntersect(schema)) {
+            const evaluated = Type.Evaluate(schema)
+            return Type.IsIntersect(evaluated) || this.canOmitMember(evaluated, context, ancestors)
+        }
+        if (Type.IsCyclic(schema)) {
+            const recursiveSchema = resolveReference(schema.$defs, schema.$ref)
+            return this.canOmitMember(
+                recursiveSchema,
+                {
+                    ...context,
+                    definitions: schema.$defs,
+                    recursiveSchema
+                },
+                ancestors
+            )
+        }
+        if (Type.IsRef(schema)) {
+            return this.canOmitMember(
+                resolveReference(context.definitions, schema.$ref),
+                context,
+                ancestors
+            )
+        }
+        if (Type.IsThis(schema)) {
+            return (
+                context.recursiveSchema === undefined ||
+                this.canOmitMember(context.recursiveSchema, context, ancestors)
+            )
+        }
+        return false
+    }
+
     private guardValue(frame: GuardFrame, value: unknown): unknown {
         const prepared = this.prepareFrame(frame.schema, value, frame.context)
-        if (!isObject(value) || !containsVisibilityMetadata(prepared.schema)) {
+        if (!isObject(value) || !this.requiresGuard(prepared)) {
             return value
         }
         return this.createProxy(prepared, value)
+    }
+
+    private requiresGuard(frame: GuardFrame): boolean {
+        return (
+            containsVisibilityMetadata(frame.schema) ||
+            Object.values(frame.context.definitions).some(containsVisibilityMetadata) ||
+            (frame.context.recursiveSchema !== undefined &&
+                containsVisibilityMetadata(frame.context.recursiveSchema))
+        )
     }
 
     private unwrap(value: unknown): unknown {
@@ -682,6 +765,13 @@ class ProjectedExecutionGuard {
     private assertKeyEnumeration(frame: GuardFrame, target: object) {
         if (!Type.IsObject(frame.schema)) {
             return
+        }
+        const additionalProperties: unknown = Reflect.get(frame.schema, 'additionalProperties')
+        if (
+            Type.IsSchema(additionalProperties) &&
+            this.canOmitMember(additionalProperties, frame.context)
+        ) {
+            throw new UnavailableProjectedValueError(frame.context.path)
         }
         for (const [property, schema] of Object.entries(frame.schema.properties)) {
             const context = childContext(frame.context, target, property)
@@ -712,18 +802,19 @@ class ProjectedExecutionGuard {
             return undefined
         }
 
+        if (
+            Type.IsRecord(frame.schema) &&
+            typeof property === 'string' &&
+            (Object.hasOwn(target, property) || !(property in Object.prototype))
+        ) {
+            return {
+                schema: Type.RecordValue(frame.schema),
+                context: childContext(frame.context, target, property)
+            }
+        }
+
         const index = arrayIndex(property)
         if (index === undefined) {
-            if (
-                Type.IsRecord(frame.schema) &&
-                typeof property === 'string' &&
-                (Object.hasOwn(target, property) || !(property in Object.prototype))
-            ) {
-                return {
-                    schema: Type.RecordValue(frame.schema),
-                    context: childContext(frame.context, target, property)
-                }
-            }
             return undefined
         }
         if (Type.IsArray(frame.schema)) {

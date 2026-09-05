@@ -89,6 +89,65 @@ afterEach(() => {
 })
 
 describe('privileged Game views', () => {
+    test.each(['exit', 'dispose'])(
+        '%s prevents a pending Host View load from publishing',
+        async (transition) => {
+            const host = createAuctionHost()
+            host.apply(createBid('bid-a', PLAYER_A_ID, 7))
+            const ordinary = gameDataFor(host, PLAYER_B_PERSPECTIVE)
+            const appContext = createHarnessAppContext(HARNESS_DEFINITION)
+            appContext.authorizationService.debugViewEnabled = false
+            appContext.authorizationService.adminCapabilitiesEnabled = false
+            const gate = Promise.withResolvers<void>()
+            const getGame = vi.spyOn(appContext.api, 'getGame').mockImplementation(async () => {
+                await gate.promise
+                const data = gameDataFor(host)
+                return { game: data.game, actions: data.actions }
+            })
+            const bridgedContext = new BridgedContext({
+                authorizationService: appContext.authorizationService,
+                gameService: appContext.gameService,
+                chatService: appContext.chatService,
+                gameId: GAME_ID
+            })
+            const session = new FreshFishGameSession({
+                gameService: appContext.gameService,
+                bridgedContext,
+                notificationService: appContext.notificationService,
+                chatService: appContext.chatService,
+                api: appContext.api,
+                runtime: FreshFishUiRuntime,
+                game: ordinary.game,
+                state: ordinary.state,
+                actions: ordinary.actions
+            })
+
+            try {
+                await tick()
+                const pendingLoad = session.setPrivilegedGameViewEnabled(true)
+                expect(getGame).toHaveBeenCalledOnce()
+                if (transition === 'dispose') {
+                    session.dispose()
+                } else {
+                    await session.setPrivilegedGameViewEnabled(false)
+                }
+                gate.resolve()
+                await pendingLoad
+
+                expect(session.isViewingHost).toBe(false)
+                expect(session.isViewingAsActingPlayer).toBe(false)
+                expect(bidFor(session, PLAYER_A_ID)).toBeUndefined()
+                expect(displayedBidFor(session, PLAYER_A_ID)).toBeUndefined()
+                expect(session.history.visibleContext.state.tileBag.items).toEqual([])
+                expect(session.gameState.tileBag.items).toEqual([])
+            } finally {
+                gate.resolve()
+                session.dispose()
+                bridgedContext.dispose()
+            }
+        }
+    )
+
     test('Debug enters Host View and exits through a fresh authenticated-Player load', async () => {
         const host = createAuctionHost()
         host.apply(createBid('bid-a', PLAYER_A_ID, 7))

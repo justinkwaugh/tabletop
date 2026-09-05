@@ -153,10 +153,7 @@ describe('projected Action availability', () => {
     test('does not infer an Action from protected state redacted for the Player', () => {
         const started = createStartedGame()
         const perspective = { kind: 'player', playerId: started.playerId } as const
-        const projectedState = FreshFishRuntime.visibility.state.project(
-            started.state,
-            perspective
-        )
+        const projectedState = FreshFishRuntime.visibility.state.project(started.state, perspective)
         const stateHandler = FreshFishUiRuntime.stateHandlers[started.state.machineState]
         assertExists(stateHandler, `Fresh Fish has no handler for ${started.state.machineState}`)
         const runtime = {
@@ -481,10 +478,7 @@ describe('projected hosted Actions', () => {
     test('uses incremental synchronization after an authoritative submission fails', async () => {
         const started = createStartedGame()
         const perspective = { kind: 'player', playerId: started.playerId } as const
-        const projectedState = FreshFishRuntime.visibility.state.project(
-            started.state,
-            perspective
-        )
+        const projectedState = FreshFishRuntime.visibility.state.project(started.state, perspective)
         const appContext = createHarnessAppContext(HARNESS_DEFINITION)
         const bridgedContext = new BridgedContext({
             authorizationService: appContext.authorizationService,
@@ -519,11 +513,7 @@ describe('projected hosted Actions', () => {
             })
             await session.applyAction(action)
 
-            expect(checkSync).toHaveBeenCalledWith(
-                GAME_ID,
-                projectedState.actionChecksum,
-                -1
-            )
+            expect(checkSync).toHaveBeenCalledWith(GAME_ID, projectedState.actionChecksum, -1)
             expect(getGame).not.toHaveBeenCalled()
             expect(session.history.visibleContext.state).toEqual(projectedState)
             expect(session.history.visibleContext.actions).toEqual([])
@@ -874,78 +864,83 @@ describe('projected hosted Actions', () => {
         }
     })
 
-    test('applies a projected synchronization suffix after a realtime discontinuity', async () => {
-        const started = createStartedGame()
-        const perspective = { kind: 'player', playerId: started.playerId } as const
-        const projectedState = FreshFishRuntime.visibility.state.project(started.state, perspective)
-        const appContext = createHarnessAppContext(HARNESS_DEFINITION)
-        const bridgedContext = new BridgedContext({
-            authorizationService: appContext.authorizationService,
-            gameService: appContext.gameService,
-            chatService: appContext.chatService,
-            gameId: GAME_ID
-        })
-        const session = new FreshFishGameSession({
-            gameService: appContext.gameService,
-            bridgedContext,
-            notificationService: appContext.notificationService,
-            chatService: appContext.chatService,
-            api: appContext.api,
-            runtime: FreshFishUiRuntime,
-            game: structuredClone(started.game),
-            state: projectedState,
-            actions: []
-        })
-
-        try {
-            session.listenToGame()
-            const action = session.createDrawTileAction()
-            const result = new GameEngine(FreshFishRuntime).executeAction({
-                action,
-                state: started.state,
-                game: started.game
-            })
-            const projectedHistory = Visibility.projectActionHistory({
-                currentState: result.updatedState,
-                actions: result.processedActions,
-                visibility: FreshFishRuntime.visibility,
-                perspective,
-                replay: { game: started.game, runtime: FreshFishRuntime }
-            })
-            const checkSync = vi.spyOn(appContext.api, 'checkSync').mockResolvedValue({
-                status: GameSyncStatus.InSync,
-                actions: [...projectedHistory.actions],
-                checksum: result.updatedState.actionChecksum
-            })
-            const getGame = vi.spyOn(appContext.api, 'getGame')
-
-            await appContext.notificationService.emit({
-                eventType: NotificationEventType.Discontinuity,
-                channel: NotificationChannel.GameInstance
-            })
-            await session.waitForVisibleTransitionSettled()
-
-            expect(checkSync).toHaveBeenCalledWith(GAME_ID, started.state.actionChecksum, -1)
-            expect(getGame).not.toHaveBeenCalled()
-            expect(session.history.visibleContext.state).toEqual(projectedHistory.currentState)
-            expect(session.history.visibleContext.actions.map((item) => item.id)).toEqual(
-                result.processedActions.map((item) => item.id)
+    test.each([NotificationChannel.GameInstance, NotificationChannel.User])(
+        'applies a projected synchronization suffix after a %s discontinuity',
+        async (channel) => {
+            const started = createStartedGame()
+            const perspective = { kind: 'player', playerId: started.playerId } as const
+            const projectedState = FreshFishRuntime.visibility.state.project(
+                started.state,
+                perspective
             )
-            expect(JSON.stringify(session.history.visibleContext)).not.toContain(HIDDEN_TILE_MARKER)
-        } finally {
-            session.stopListeningToGame()
-            session.dispose()
-            bridgedContext.dispose()
+            const appContext = createHarnessAppContext(HARNESS_DEFINITION)
+            const bridgedContext = new BridgedContext({
+                authorizationService: appContext.authorizationService,
+                gameService: appContext.gameService,
+                chatService: appContext.chatService,
+                gameId: GAME_ID
+            })
+            const session = new FreshFishGameSession({
+                gameService: appContext.gameService,
+                bridgedContext,
+                notificationService: appContext.notificationService,
+                chatService: appContext.chatService,
+                api: appContext.api,
+                runtime: FreshFishUiRuntime,
+                game: structuredClone(started.game),
+                state: projectedState,
+                actions: []
+            })
+
+            try {
+                session.listenToGame()
+                const action = session.createDrawTileAction()
+                const result = new GameEngine(FreshFishRuntime).executeAction({
+                    action,
+                    state: started.state,
+                    game: started.game
+                })
+                const projectedHistory = Visibility.projectActionHistory({
+                    currentState: result.updatedState,
+                    actions: result.processedActions,
+                    visibility: FreshFishRuntime.visibility,
+                    perspective,
+                    replay: { game: started.game, runtime: FreshFishRuntime }
+                })
+                const checkSync = vi.spyOn(appContext.api, 'checkSync').mockResolvedValue({
+                    status: GameSyncStatus.InSync,
+                    actions: [...projectedHistory.actions],
+                    checksum: result.updatedState.actionChecksum
+                })
+                const getGame = vi.spyOn(appContext.api, 'getGame')
+
+                await appContext.notificationService.emit({
+                    eventType: NotificationEventType.Discontinuity,
+                    channel
+                })
+                await session.waitForVisibleTransitionSettled()
+
+                expect(checkSync).toHaveBeenCalledWith(GAME_ID, started.state.actionChecksum, -1)
+                expect(getGame).not.toHaveBeenCalled()
+                expect(session.history.visibleContext.state).toEqual(projectedHistory.currentState)
+                expect(session.history.visibleContext.actions.map((item) => item.id)).toEqual(
+                    result.processedActions.map((item) => item.id)
+                )
+                expect(JSON.stringify(session.history.visibleContext)).not.toContain(
+                    HIDDEN_TILE_MARKER
+                )
+            } finally {
+                session.stopListeningToGame()
+                session.dispose()
+                bridgedContext.dispose()
+            }
         }
-    })
+    )
 
     test('falls back to a full reload when an incremental Action cannot be applied', async () => {
         const started = createStartedGame()
         const perspective = { kind: 'player', playerId: started.playerId } as const
-        const projectedState = FreshFishRuntime.visibility.state.project(
-            started.state,
-            perspective
-        )
+        const projectedState = FreshFishRuntime.visibility.state.project(started.state, perspective)
         const appContext = createHarnessAppContext(HARNESS_DEFINITION)
         const bridgedContext = new BridgedContext({
             authorizationService: appContext.authorizationService,

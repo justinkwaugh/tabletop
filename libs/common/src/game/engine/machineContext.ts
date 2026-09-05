@@ -38,7 +38,10 @@ export class MachineContext<State extends HydratedGameState = HydratedGameState>
         this.pendingActions.push(action)
     }
 
-    createSystemAction<T extends Type.TSchema>(schema: T, data?: Partial<Type.Static<T>>): Type.Static<T> {
+    createSystemAction<T extends Type.TSchema>(
+        schema: T,
+        data?: Partial<Type.Static<T>>
+    ): Type.Static<T> {
         const actionData = data ?? {}
         const partialAction = this.generatePartialSystemAction()
         Object.assign(actionData, partialAction)
@@ -47,30 +50,28 @@ export class MachineContext<State extends HydratedGameState = HydratedGameState>
 
     private generatePartialSystemAction(): Partial<GameAction> {
         return {
-            id: this.gameState.isAtLeastVersion(2)
-                ? this.gameState.getPrng().randId()
-                : this.generateLegacyActionId(), // Deterministic id
+            id: this.generateSystemActionId(),
             gameId: this.gameState.gameId,
             source: ActionSource.System,
             createdAt: new Date()
         }
     }
 
-    /**
-     * @deprecated only for prior action id generation
-     */
-    private addedActionCount = 0
-
-    /**
-     * @deprecated only for prior action id generation
-     */
+    private generatedSystemActionCount = 0
     private initialActionId: string
 
+    private generateSystemActionId(): string {
+        if (this.gameState.isAtLeastVersion(2)) {
+            return this.gameState.getPrng().randId()
+        }
+        return this.generateLegacyActionId()
+    }
+
     /**
-     * @deprecated better to use prng directly for id generation
+     * @deprecated only for version 1 Game Instances
      */
     private generateLegacyActionId(): string {
-        this.addedActionCount++
-        return `${this.initialActionId}-${this.addedActionCount}`
+        this.generatedSystemActionCount++
+        return `${this.initialActionId}-${this.generatedSystemActionCount}`
     }
 }

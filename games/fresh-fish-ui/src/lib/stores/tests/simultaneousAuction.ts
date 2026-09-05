@@ -160,7 +160,7 @@ export class CanonicalHost {
         return this.actions.map((action) => structuredClone(action))
     }
 
-    private gameWithoutState(): Game {
+    gameWithoutState(): Game {
         const game = structuredClone(this.game)
         delete game.state
         game.activePlayerIds = [...this.state.activePlayerIds]

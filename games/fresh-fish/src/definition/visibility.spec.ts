@@ -77,6 +77,71 @@ function findEmptyCoords(state: ReturnType<typeof generateTestState>): PlaceDisk
 }
 
 describe('Fresh Fish visibility', () => {
+    it.each([1, 2])(
+        'retains the original version %i seeded tile order and cursor',
+        (systemVersion) => {
+            const game = createGame(generateTestState())
+            game.seed = 101
+            const uninitialized = new GameEngine(FreshFishRuntime).generateUninitializedState(game)
+            uninitialized.systemVersion = systemVersion
+            delete uninitialized.protectedPrng
+            const state = FreshFishRuntime.initializer.initializeGameState(game, uninitialized)
+            expect(state.prng).toEqual({ seed: 101, invocations: 30 })
+            expect(state.protectedPrng).toBeUndefined()
+            expect(
+                state.tileBag.items.map((tile) =>
+                    tile.type === TileType.Market ? 'market' : tile.goodsType
+                )
+            ).toEqual([
+                'market',
+                'market',
+                'market',
+                'icecream',
+                'lemonade',
+                'market',
+                'market',
+                'icecream',
+                'market',
+                'market',
+                'market',
+                'market',
+                'cheese',
+                'market',
+                'fish',
+                'market',
+                'lemonade',
+                'market',
+                'market',
+                'market',
+                'cheese',
+                'fish'
+            ])
+        }
+    )
+
+    it('changes only hidden setup when the protected seed changes', () => {
+        const game = createGame(generateTestState())
+        game.seed = 101
+        const engine = new GameEngine(FreshFishRuntime)
+        const uninitialized = engine.generateUninitializedState(game)
+        const first = FreshFishRuntime.initializer.initializeGameState(game, {
+            ...structuredClone(uninitialized),
+            protectedPrng: { seed: 123, invocations: 0 }
+        })
+        const second = FreshFishRuntime.initializer.initializeGameState(game, {
+            ...structuredClone(uninitialized),
+            protectedPrng: { seed: 987, invocations: 0 }
+        })
+        expect(first.tileBag.items).not.toEqual(second.tileBag.items)
+        expect(first.protectedPrng?.invocations).toBeGreaterThan(0)
+        expect(
+            FreshFishRuntime.visibility.state.project(first.dehydrate(), { kind: 'spectator' })
+        ).toEqual(
+            FreshFishRuntime.visibility.state.project(second.dehydrate(), { kind: 'spectator' })
+        )
+        expect(first.finalStalls).toEqual(second.finalStalls)
+    })
+
     it('protects tile identities while retaining the public bag count', () => {
         const projector = Visibility.createProjector(TileBag)
 
@@ -90,9 +155,7 @@ describe('Fresh Fish visibility', () => {
         expect(TileBag.required).toEqual(['items', 'remaining'])
         expect(projector.schema.required).toEqual(['items', 'remaining'])
         expect(Compile(projector.schema).Check({ items: [], remaining: 20 })).toBe(true)
-        expectTypeOf(projector.schema).toEqualTypeOf<
-            Visibility.ProjectedSchema<typeof TileBag>
-        >()
+        expectTypeOf(projector.schema).toEqualTypeOf<Visibility.ProjectedSchema<typeof TileBag>>()
     })
 
     it('projects a tile bag to its public count without exposing tile identities or order', () => {
@@ -666,9 +729,9 @@ describe('Fresh Fish visibility', () => {
                 Visibility.MetadataKey
             )
         ).toBeDefined()
-        expect(
-            Reflect.get(projection.properties.currentAuction, Visibility.ScopeKey)
-        ).toBe(SimultaneousAuctionVisibility.Scope)
+        expect(Reflect.get(projection.properties.currentAuction, Visibility.ScopeKey)).toBe(
+            SimultaneousAuctionVisibility.Scope
+        )
         expectTypeOf(projection).toEqualTypeOf<
             Visibility.ProjectedSchema<typeof FreshFishGameState>
         >()
@@ -676,6 +739,8 @@ describe('Fresh Fish visibility', () => {
 
     it('projects current auction bids through the registered Game Runtime visibility', () => {
         const canonical = createCanonicalAuctionState()
+        canonical.seed = 101
+        canonical.protectedPrng = { seed: 8675309, invocations: 42 }
         const projector = FreshFishRuntime.visibility.state
 
         const playerOneProjection = projector.project(canonical, {
@@ -706,6 +771,14 @@ describe('Fresh Fish visibility', () => {
         expect(playerOneProjection.tileBag.items).toEqual([])
         expect(playerTwoProjection.tileBag.items).toEqual([])
         expect(spectatorProjection.tileBag.items).toEqual([])
+        expect(playerOneProjection.protectedPrng).toEqual({ seed: 0, invocations: 0 })
+        expect(playerTwoProjection.protectedPrng).toEqual({ seed: 0, invocations: 0 })
+        expect(spectatorProjection.protectedPrng).toEqual({ seed: 0, invocations: 0 })
+        expect(playerOneProjection.prng).toEqual(canonical.prng)
+        expect(playerTwoProjection.prng).toEqual(canonical.prng)
+        expect(spectatorProjection.prng).toEqual(canonical.prng)
+        expect(canonical.seed).toBe(101)
+        expect(canonical.protectedPrng).toEqual({ seed: 8675309, invocations: 42 })
 
         const auction = canonical.currentAuction
         if (auction === undefined) {

@@ -107,8 +107,11 @@ Removal of the latest Manual Draft Entry and any downstream Draft Entries that d
 ## Exploration
 
 **Exploration**:
-A private, Local, Hotseat branch opened within a Game Session for trying alternate Actions. It may begin from Live or History View and starts as a Transient Game Instance.
+A private, Local, Hotseat branch opened within a Game Session for trying alternate Actions, with unknown information simulated consistently with the explorer’s permitted knowledge at the selected branch point. It may begin from Live or History View and starts as a Transient Game Instance.
 _Avoid_: Fork
 
 **Saved Exploration**:
 An Exploration persisted as a separate Local Game Instance linked to its source. Saving it does not change the source Game Context.
+
+**Hypothetical Game State**:
+A rules-valid Game State whose unknown information is simulated while honoring facts available to the explorer at the selected branch point. Later source-Game revelations do not constrain an earlier branch. Its simulated information does not disclose the source Game’s unknown information.

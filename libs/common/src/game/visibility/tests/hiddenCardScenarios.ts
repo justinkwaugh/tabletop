@@ -21,6 +21,7 @@ import {
 import { Color } from '../../model/colors.js'
 import { PlayerStatus } from '../../model/player.js'
 import type { PlayerState } from '../../model/playerState.js'
+import { shuffle } from '../../../util/shuffle.js'
 import * as Visibility from '../index.js'
 
 export const PlayerIds = ['player-1', 'player-2', 'player-3', 'player-4'] as const
@@ -28,6 +29,9 @@ export const PlayerIds = ['player-1', 'player-2', 'player-3', 'player-4'] as con
 export const ActionType = {
     StartRound: 'scenario.start-round',
     DealCards: 'scenario.deal-cards',
+    PrepareDeck: 'scenario.prepare-deck',
+    ShuffleDeck: 'scenario.shuffle-deck',
+    DeckPrepared: 'scenario.deck-prepared',
     PeekTopCard: 'scenario.peek-top-card',
     DrawTopCard: 'scenario.draw-top-card',
     EndRound: 'scenario.end-round',
@@ -125,6 +129,8 @@ const HiddenCardState = Type.Evaluate(
                 policy: Visibility.Policy.HostOnly,
                 redaction: Visibility.redaction.emptyArray()
             }),
+            generatedActionIds: Type.Optional(Type.Array(Type.String())),
+            siblingCount: Type.Optional(Type.Number()),
             teamSecret: Type.Optional(TeamSecret)
         })
     ])
@@ -149,6 +155,30 @@ const DealCards = Type.Evaluate(
                 policy: Visibility.Policy.HostOnly
             })
         })
+    ])
+)
+
+type PrepareDeck = Type.Static<typeof PrepareDeck>
+const PrepareDeck = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['type']),
+        Type.Object({ type: Type.Literal(ActionType.PrepareDeck) })
+    ])
+)
+
+type ShuffleDeck = Type.Static<typeof ShuffleDeck>
+const ShuffleDeck = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['type']),
+        Type.Object({ type: Type.Literal(ActionType.ShuffleDeck) })
+    ])
+)
+
+type DeckPrepared = Type.Static<typeof DeckPrepared>
+const DeckPrepared = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['type']),
+        Type.Object({ type: Type.Literal(ActionType.DeckPrepared) })
     ])
 )
 
@@ -272,6 +302,9 @@ const CompleteGame = Type.Evaluate(
 const HiddenCardStateValidator = Compile(HiddenCardState)
 const StartRoundValidator = Compile(StartRound)
 const DealCardsValidator = Compile(DealCards)
+const PrepareDeckValidator = Compile(PrepareDeck)
+const ShuffleDeckValidator = Compile(ShuffleDeck)
+const DeckPreparedValidator = Compile(DeckPrepared)
 const PeekTopCardValidator = Compile(PeekTopCard)
 const DrawTopCardValidator = Compile(DrawTopCard)
 const EndRoundValidator = Compile(EndRound)
@@ -291,6 +324,8 @@ class HydratedHiddenCardState
     declare hands: Type.Static<typeof OwnedCards>[]
     declare revealedCardIds: string[]
     declare knowledge: Type.Static<typeof CardKnowledge>[]
+    declare generatedActionIds?: string[]
+    declare siblingCount?: number
     declare teamSecret?: Type.Static<typeof TeamSecret>
 
     constructor(state: HiddenCardState) {
@@ -333,6 +368,56 @@ class HydratedDealCards extends HydratableAction<typeof DealCards> implements De
         state.phase = 'playing'
         this.deals = deals
         this.hostNote = 'host-only-deal-note'
+    }
+}
+
+class HydratedPrepareDeck extends HydratableAction<typeof PrepareDeck> implements PrepareDeck {
+    declare type: typeof ActionType.PrepareDeck
+
+    constructor(action: PrepareDeck) {
+        super(action, PrepareDeckValidator)
+    }
+
+    apply(state: HydratedHiddenCardState, context?: MachineContext): void {
+        assertExists(context, 'Prepare Deck requires a Machine Context')
+        state.phase = 'dealing'
+        const shuffleAction = context.createSystemAction(ShuffleDeck)
+        state.generatedActionIds?.push(shuffleAction.id)
+        context.getPendingActions().push(shuffleAction)
+        for (let index = 0; index < (state.siblingCount ?? 0); index++) {
+            const sibling = context.createSystemAction(DeckPrepared)
+            state.generatedActionIds?.push(sibling.id)
+            context.getPendingActions().push(sibling)
+        }
+    }
+}
+
+class HydratedShuffleDeck extends HydratableAction<typeof ShuffleDeck> implements ShuffleDeck {
+    declare type: typeof ActionType.ShuffleDeck
+
+    constructor(action: ShuffleDeck) {
+        super(action, ShuffleDeckValidator)
+    }
+
+    apply(state: HydratedHiddenCardState, context?: MachineContext): void {
+        assertExists(context, 'Shuffle Deck requires a Machine Context')
+        const random = state.getProtectedPrng().random
+        shuffle(state.deck.items, random)
+        const prepared = context.createSystemAction(DeckPrepared)
+        state.generatedActionIds?.push(prepared.id)
+        context.getPendingActions().push(prepared)
+    }
+}
+
+class HydratedDeckPrepared extends HydratableAction<typeof DeckPrepared> implements DeckPrepared {
+    declare type: typeof ActionType.DeckPrepared
+
+    constructor(action: DeckPrepared) {
+        super(action, DeckPreparedValidator)
+    }
+
+    apply(state: HydratedHiddenCardState): void {
+        state.phase = 'playing'
     }
 }
 
@@ -540,6 +625,18 @@ function isDealCards(action: GameAction): action is DealCards {
     return action.type === ActionType.DealCards
 }
 
+function isPrepareDeck(action: GameAction): action is PrepareDeck {
+    return action.type === ActionType.PrepareDeck
+}
+
+function isShuffleDeck(action: GameAction): action is ShuffleDeck {
+    return action.type === ActionType.ShuffleDeck
+}
+
+function isDeckPrepared(action: GameAction): action is DeckPrepared {
+    return action.type === ActionType.DeckPrepared
+}
+
 function isPeekTopCard(action: GameAction): action is PeekTopCard {
     return action.type === ActionType.PeekTopCard
 }
@@ -657,6 +754,11 @@ const policies = {
 const actionSchemas = {
     [ActionType.StartRound]: StartRound,
     [ActionType.DealCards]: DealCards,
+    [ActionType.PrepareDeck]: PrepareDeck,
+    [ActionType.ShuffleDeck]: Visibility.protectAction(ShuffleDeck, {
+        policy: Visibility.Policy.HostOnly
+    }),
+    [ActionType.DeckPrepared]: DeckPrepared,
     [ActionType.PeekTopCard]: PeekTopCard,
     [ActionType.DrawTopCard]: DrawTopCard,
     [ActionType.EndRound]: EndRound,
@@ -690,6 +792,15 @@ const runtime = {
             if (isDealCards(action)) {
                 return new HydratedDealCards(action)
             }
+            if (isPrepareDeck(action)) {
+                return new HydratedPrepareDeck(action)
+            }
+            if (isShuffleDeck(action)) {
+                return new HydratedShuffleDeck(action)
+            }
+            if (isDeckPrepared(action)) {
+                return new HydratedDeckPrepared(action)
+            }
             if (isPeekTopCard(action)) {
                 return new HydratedPeekTopCard(action)
             }
@@ -721,6 +832,7 @@ const runtime = {
     playerColors: [Color.Red, Color.Blue, Color.Green, Color.Yellow],
     apiActions: {
         [ActionType.StartRound]: StartRound,
+        [ActionType.PrepareDeck]: PrepareDeck,
         [ActionType.PeekTopCard]: PeekTopCard,
         [ActionType.DrawTopCard]: DrawTopCard,
         [ActionType.EndRound]: EndRound,
@@ -734,6 +846,7 @@ const runtime = {
             isValidAction: () => true,
             validActionsForPlayer: () => [
                 ActionType.StartRound,
+                ActionType.PrepareDeck,
                 ActionType.PeekTopCard,
                 ActionType.DrawTopCard,
                 ActionType.EndRound,
@@ -747,6 +860,20 @@ const runtime = {
         }
     },
     visibility
+} satisfies GameRuntime<HiddenCardState, HydratedHiddenCardState>
+
+const publicShuffleRuntime = {
+    ...runtime,
+    visibility: {
+        ...visibility,
+        actions: Visibility.createActionProjector(
+            {
+                ...actionSchemas,
+                [ActionType.ShuffleDeck]: ShuffleDeck
+            },
+            { policies }
+        )
+    }
 } satisfies GameRuntime<HiddenCardState, HydratedHiddenCardState>
 
 function runtimeWithValidActionsForPlayer(
@@ -781,7 +908,7 @@ function createCardState(
     ]
 ): HiddenCardState {
     return {
-        systemVersion: 2,
+        systemVersion: 3,
         id: 'hidden-card-state',
         gameId: 'hidden-card-game',
         players: [
@@ -794,6 +921,7 @@ function createCardState(
         actionCount: 0,
         actionChecksum: 0,
         prng: { seed: 101, invocations: 0 },
+        protectedPrng: { seed: 791946283, invocations: 0 },
         machineState: MachineState,
         turnManager: {
             series: [],
@@ -866,6 +994,39 @@ export function createOpaqueDealScenario() {
     } satisfies GameRuntime<HiddenCardState, HydratedHiddenCardState>
 
     return { ...scenario, runtime: opaqueDealRuntime }
+}
+
+export function createSecretRandomnessScenario() {
+    const before = createCardState([
+        'hidden-card-a',
+        'hidden-card-b',
+        'hidden-card-c',
+        'hidden-card-d',
+        'hidden-card-e'
+    ])
+    const prepareDeck: PrepareDeck = {
+        id: 'prepare-secret-deck',
+        gameId: before.gameId,
+        source: ActionSource.User,
+        type: ActionType.PrepareDeck,
+        playerId: PlayerIds[0]
+    }
+    const continueAfterShuffle: EndRound = {
+        id: 'continue-after-shuffle',
+        gameId: before.gameId,
+        source: ActionSource.User,
+        type: ActionType.EndRound,
+        playerId: PlayerIds[0],
+        targetPlayerId: PlayerIds[1]
+    }
+    return {
+        before,
+        continueAfterShuffle,
+        game: createGame(),
+        prepareDeck,
+        publicShuffleRuntime,
+        runtime
+    }
 }
 
 export function createPrivateObservationScenario() {

@@ -10,6 +10,7 @@ export const Policy = {
 } as const
 
 export const EmptyArrayAdapter = 'tabletop.empty-array' as const
+export const NeutralPrngAdapter = 'tabletop.neutral-prng' as const
 
 export interface OmitRedaction {
     kind: 'omit'

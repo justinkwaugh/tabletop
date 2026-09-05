@@ -81,3 +81,5 @@ export * from './util/prng.js'
 export * from './util/checksum.js'
 export * from './util/pairing.js'
 export * from './util/typebox.js'
+
+export * from './game/engine/explorationHistory.js'

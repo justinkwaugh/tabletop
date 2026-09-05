@@ -1,4 +1,9 @@
-import { GameState, type GameAction, type HydratedGameState } from '@tabletop/common'
+import {
+    ExplorationHistory,
+    GameState,
+    type GameAction,
+    type HydratedGameState
+} from '@tabletop/common'
 import type { GameContext } from './gameContext.svelte.js'
 
 export type StepDirection = 'forward' | 'backward'
@@ -231,7 +236,10 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
                 ]
             }
 
-            normalizedStartIndex = Math.max(0, Math.min(normalizedStartIndex, lastAvailableActionIndex))
+            normalizedStartIndex = Math.max(
+                0,
+                Math.min(normalizedStartIndex, lastAvailableActionIndex)
+            )
             normalizedEndIndex = Math.max(
                 normalizedStartIndex,
                 Math.min(normalizedEndIndex, lastAvailableActionIndex)
@@ -311,10 +319,11 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         let lastAction: GameAction | undefined
         do {
             lastAction = this.historyContext.actions[this.actionIndex]
-            const updatedState = this.historyContext.engine.undoProcessedAction({
-                action: lastAction,
-                state: stateSnapshot
-            })
+            const updatedState = new ExplorationHistory(this.historyContext.engine).backward(
+                stateSnapshot,
+                lastAction,
+                this.gameContext.state.explorationState
+            )
             this.actionIndex -= 1
             stateSnapshot = updatedState
         } while (
@@ -374,11 +383,12 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         do {
             const nextActionIndex = this.actionIndex + 1
             nextAction = this.historyContext.actions[nextActionIndex] as GameAction
-            stateSnapshot = this.historyContext.engine.applyProcessedAction({
-                action: nextAction,
-                state: stateSnapshot,
-                game: gameSnapshot
-            })
+            stateSnapshot = new ExplorationHistory(this.historyContext.engine).forward(
+                stateSnapshot,
+                nextAction,
+                gameSnapshot,
+                this.gameContext.state.explorationState
+            )
             this.actionIndex = nextActionIndex
         } while (
             (this.actionIndex < this.historyContext.actions.length - 1 &&
@@ -592,6 +602,12 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
             return
         }
         this.historyContext = this.gameContext.clone()
+        this.historyContext.updateGameState(
+            new ExplorationHistory(this.historyContext.engine).recordedState(
+                this.historyContext.state,
+                this.gameContext.state.explorationState
+            )
+        )
         this.actionIndex = this.historyContext.actions.length - 1
 
         this.onHistoryEnter()

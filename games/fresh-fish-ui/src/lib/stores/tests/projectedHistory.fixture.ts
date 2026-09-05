@@ -1,6 +1,15 @@
-import { assertExists, type GameState, type HydratedGameState } from '@tabletop/common'
+import {
+    GameNotificationAction,
+    GameSyncStatus,
+    NotificationCategory,
+    assertExists,
+    type GameState,
+    type HydratedGameState
+} from '@tabletop/common'
 import {
     BridgedContext,
+    NotificationChannel,
+    NotificationEventType,
     createHarnessAppContext,
     type GameUiDefinition
 } from '@tabletop/frontend-components'
@@ -16,9 +25,11 @@ import {
     PLAYER_B_PERSPECTIVE,
     PLAYER_C_ID,
     PLAYER_D_ID,
+    type CanonicalHost,
     createAuctionHost,
     createBid,
-    projectHostHistory
+    projectHostHistory,
+    projectHostHistorySuffix
 } from './simultaneousAuction.js'
 
 const HARNESS_DEFINITION: GameUiDefinition<GameState, HydratedGameState> = {
@@ -80,24 +91,8 @@ async function waitUntilHistoryIsEnabled(session: FreshFishGameSession): Promise
     throw new Error('History did not become enabled')
 }
 
-export async function runProjectedHistoryRoundTrip() {
-    const host = createAuctionHost()
-    const canonicalBeforeAuction = structuredClone(host.state)
-
-    host.apply(createBid('bid-a-01', PLAYER_A_ID, 7))
-    host.apply(createBid('bid-d-02', PLAYER_D_ID, 3))
-    host.apply(createBid('bid-b-03', PLAYER_B_ID, 2))
-    host.apply(createBid('bid-c-04', PLAYER_C_ID, 4))
-
-    const hiddenTile = host.state.tileBag.items[0]
-    assertExists(hiddenTile, 'Expected a hidden Tile in the canonical bag')
-    Reflect.set(hiddenTile, 'testMarker', 'canonical-hidden-tile')
-
+function createProjectedClient(host: CanonicalHost) {
     const projectedHistory = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
-    const projectedBeforeAuction = FreshFishRuntime.visibility.state.project(
-        canonicalBeforeAuction,
-        PLAYER_B_PERSPECTIVE
-    )
     const appContext = createHarnessAppContext(HARNESS_DEFINITION)
     const bridgedContext = new BridgedContext({
         authorizationService: appContext.authorizationService,
@@ -116,6 +111,28 @@ export async function runProjectedHistoryRoundTrip() {
         state: projectedHistory.currentState,
         actions: [...projectedHistory.actions]
     })
+
+    return { appContext, bridgedContext, session }
+}
+
+export async function runProjectedHistoryRoundTrip() {
+    const host = createAuctionHost()
+    const canonicalBeforeAuction = structuredClone(host.state)
+
+    host.apply(createBid('bid-a-01', PLAYER_A_ID, 7))
+    host.apply(createBid('bid-d-02', PLAYER_D_ID, 3))
+    host.apply(createBid('bid-b-03', PLAYER_B_ID, 2))
+    host.apply(createBid('bid-c-04', PLAYER_C_ID, 4))
+
+    const hiddenTile = host.state.tileBag.items[0]
+    assertExists(hiddenTile, 'Expected a hidden Tile in the canonical bag')
+    Reflect.set(hiddenTile, 'testMarker', 'canonical-hidden-tile')
+
+    const projectedBeforeAuction = FreshFishRuntime.visibility.state.project(
+        canonicalBeforeAuction,
+        PLAYER_B_PERSPECTIVE
+    )
+    const { bridgedContext, session } = createProjectedClient(host)
 
     try {
         await session.waitForVisibleTransitionSettled()
@@ -165,6 +182,139 @@ export async function runProjectedHistoryRoundTrip() {
             )
         }
     } finally {
+        session.dispose()
+        bridgedContext.dispose()
+    }
+}
+
+export async function runBusyProjectedUndo(
+    busyReason: 'processing' | 'presentation',
+    recovery: 'none' | 'corruptReplay' | 'discontinuity' = 'none'
+) {
+    const host = createAuctionHost()
+    const aBid = host.apply(createBid('bid-a-01', PLAYER_A_ID, 1))
+    host.apply(createBid('bid-d-02', PLAYER_D_ID, 2))
+    const { appContext, bridgedContext, session } = createProjectedClient(host)
+    let syncRequests = 0
+    appContext.api.checkSync = async () => {
+        syncRequests += 1
+        const history = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
+        return {
+            status: GameSyncStatus.OutOfSync,
+            actions: [...history.actions],
+            checksum: host.state.actionChecksum
+        }
+    }
+    appContext.api.getGame = async () => {
+        const history = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
+        return {
+            game: { ...host.gameWithoutState(), state: history.currentState },
+            actions: [...history.actions]
+        }
+    }
+    let releasePresentation = () => {}
+    const presentation = new Promise<void>((resolve) => {
+        releasePresentation = resolve
+    })
+    session.listenToGame()
+    try {
+        await session.waitForVisibleTransitionSettled()
+        await waitUntilHistoryIsEnabled(session)
+        let initialChecksum = session.history.visibleContext.state.actionChecksum
+        if (busyReason === 'processing') {
+            session.processingActions = true
+        } else {
+            session.addGameStateChangeListener(async () => {
+                await presentation
+            })
+        }
+        await tick()
+        let busyDuringDelivery = session.busy
+        for (const step of ['add-before', 'undo', 'add-after']) {
+            if (step === 'undo') {
+                const result = host.undo(aBid.id)
+                const history = projectHostHistorySuffix(
+                    host,
+                    result.actionReplay.startIndex,
+                    PLAYER_B_PERSPECTIVE
+                )
+                await appContext.notificationService.emit({
+                    eventType: NotificationEventType.Data,
+                    channel: NotificationChannel.User,
+                    notification: {
+                        id: step,
+                        type: NotificationCategory.Game,
+                        action: GameNotificationAction.ReplaceProjectedActions,
+                        data: {
+                            game: result.game,
+                            actionReplay: {
+                                startIndex: history.startIndex,
+                                actions: [...history.actions]
+                            },
+                            checksum:
+                                recovery === 'corruptReplay'
+                                    ? result.checksum + 1
+                                    : result.checksum,
+                            perspective: PLAYER_B_PERSPECTIVE
+                        }
+                    }
+                })
+            } else {
+                const startIndex = host.actions.length
+                host.apply(
+                    step === 'add-before'
+                        ? createBid('bid-b-03', PLAYER_B_ID, 3)
+                        : createBid('bid-a-04', PLAYER_A_ID, 4)
+                )
+                const history = projectHostHistorySuffix(host, startIndex, PLAYER_B_PERSPECTIVE)
+                await appContext.notificationService.emit({
+                    eventType: NotificationEventType.Data,
+                    channel: NotificationChannel.User,
+                    notification: {
+                        id: step,
+                        type: NotificationCategory.Game,
+                        action: GameNotificationAction.AddProjectedActions,
+                        data: {
+                            game: host.gameWithoutState(),
+                            actions: [...history.actions],
+                            perspective: PLAYER_B_PERSPECTIVE
+                        }
+                    }
+                })
+                if (step === 'add-before' && busyReason === 'presentation') {
+                    await tick()
+                    busyDuringDelivery = session.busy
+                    initialChecksum = session.history.visibleContext.state.actionChecksum
+                }
+            }
+        }
+        if (recovery === 'discontinuity') {
+            await appContext.notificationService.emit({
+                eventType: NotificationEventType.Discontinuity,
+                channel: NotificationChannel.User
+            })
+        }
+        const unchangedWhileBusy =
+            session.history.visibleContext.state.actionChecksum === initialChecksum
+        session.processingActions = false
+        releasePresentation()
+        await tick()
+        await waitUntilHistoryIsEnabled(session)
+        const expected = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
+        return {
+            busyDuringDelivery,
+            unchangedWhileBusy,
+            syncRequests,
+            metadataMatches: valuesMatch(
+                session.history.visibleContext.game.activePlayerIds,
+                host.state.activePlayerIds
+            ),
+            stateMatches: valuesMatch(session.history.visibleContext.state, expected.currentState),
+            actualActionIds: session.history.visibleContext.actions.map((action) => action.id),
+            expectedActionIds: expected.actions.map((action) => action.id)
+        }
+    } finally {
+        session.stopListeningToGame()
         session.dispose()
         bridgedContext.dispose()
     }

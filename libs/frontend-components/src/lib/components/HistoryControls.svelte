@@ -280,6 +280,10 @@
         </button>
         <button
             aria-label="start exploring"
+            disabled={!gameSession.isExploring && !gameSession.canExplore}
+            title={!gameSession.isExploring && !gameSession.canExplore
+                ? 'Exploration is unavailable for this view'
+                : undefined}
             onclick={async () =>
                 gameSession.isExploring
                     ? gameSession.explorations.endExploring()

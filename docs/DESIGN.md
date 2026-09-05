@@ -45,7 +45,7 @@ Every action type that may cross the serialized boundary must be registered in t
 
 ## Deterministic execution
 
-Given the same initial configuration, state, and ordered processed actions, the runtime must produce the same game state and the same cascade of system actions. Random values and identifiers that affect game state must come from the state PRNG.
+Given the same initial configuration, state, and ordered processed actions, the runtime must produce the same game state and the same cascade of system actions. Random game-rule values and domain-object identifiers that affect Game State must come from a persisted state PRNG. System Action identities use the public PRNG from system version 2 onward; its durable cursor preserves generation across flattened replay and undo. The hidden-information experiment adds a separate protected stream for secret game randomness; see its working proposal before opting a Game Title into that behavior.
 
 For each processed action, the engine:
 

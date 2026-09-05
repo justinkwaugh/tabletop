@@ -100,3 +100,13 @@ The current visual verification method is manual exercise unless a focused autom
 ## Maintenance
 
 Update this contract whenever perspective intent, Acting Player precedence, shared-state lifecycle, History or Exploration behavior, render ownership, or banner composition changes. Keep Game UI artifact isolation and cross-version bridge compatibility in [ADR 0004](../../../docs/adr/0004-game-ui-host-bridge-contract.md).
+
+## Exploration and recorded History
+
+Ordinary projected Exploration is available when the title supplies state population. Its control is disabled with an explanatory title when that capability is absent. Authorized Debug/Admin Host View retains Exploration availability independently of projected-state population. An Acting Player inspection uses that Player's projected capability.
+
+Source History is read-only and remains navigable in both directions through the selected source position. At that position it displays the original permitted source state. Continuing into simulated Actions uses the populated Exploration checkpoint; returning to Live restores the same hypothetical world. Existing `state-only`, `full-action`, and silent restoration intents retain their animation lifecycle and ownership.
+
+Playable inherited Undo stops at the first forward-patched or non-optimistic cascade, or where reconstruction against the hypothetical world cannot be verified. That barrier does not disable recorded History. Exploration-generated Actions retain local Undo. Saving/loading and switching Explorations preserve each branch's sampled information, History source, and Undo eligibility.
+
+A primary representation refresh while Exploration is open updates the primary context without replacing the Exploration's History or displayed state. Ending Exploration returns to the currently selected primary representation. Transient action selections continue to reset through the existing visible-state transition lifecycle.
