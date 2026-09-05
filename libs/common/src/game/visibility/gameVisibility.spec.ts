@@ -2,6 +2,7 @@ import jsonpatch from 'fast-json-patch'
 import * as Type from 'typebox'
 import { describe, expect, it } from 'vitest'
 import { ActionSource, GameAction } from '../engine/gameAction.js'
+import { calculateActionChecksum } from '../../util/checksum.js'
 import { GameState } from '../model/gameState.js'
 import * as Visibility from './index.js'
 
@@ -372,7 +373,7 @@ describe('game visibility', () => {
         })
     })
 
-    it('fails closed when canonical history contains an Action without an undo patch', () => {
+    it('retains only the public envelope when an old Action has no undo patch', () => {
         const currentState = createState('current', 'canonical-current-secret')
         const action: Type.Static<typeof ChangeValue> = {
             id: 'action-without-undo',
@@ -388,14 +389,115 @@ describe('game visibility', () => {
             actions: Visibility.createActionProjector({ [ActionType]: ChangeValue })
         }
 
+        const projected = Visibility.projectActionHistory({
+            currentState,
+            actions: [action],
+            visibility,
+            perspective: { kind: 'spectator' }
+        })
+        expect(projected.currentState.publicValue).toBe('current')
+        expect(projected.actions).toEqual([
+            {
+                id: action.id,
+                gameId: action.gameId,
+                source: ActionSource.User,
+                type: Visibility.RedactedActionType,
+                index: 0
+            }
+        ])
+    })
+
+    it.each(['state schema', 'action schema', 'invalid patch'])(
+        'keeps compatible recent history when older history has an incompatible %s',
+        (failure) => {
+            const states = [0, 1, 2, 3].map((actionCount) => ({
+                ...createState(`value-${actionCount}`, `secret-${actionCount}`),
+                actionCount,
+                actionChecksum: 0
+            }))
+            const actions: GameAction[] = []
+            for (let index = 0; index < 3; index++) {
+                const action = {
+                    id: `action-${index}`,
+                    gameId: 'game-1',
+                    source: index === 1 ? ActionSource.System : ActionSource.User,
+                    type: ActionType,
+                    index,
+                    publicValue: `value-${index + 1}`,
+                    secretValue: `payload-secret-${index}`,
+                    undoPatch: jsonpatch.compare(states[index + 1], states[index])
+                }
+                states[index + 1].actionChecksum = calculateActionChecksum(
+                    states[index].actionChecksum,
+                    [action]
+                )
+                action.undoPatch = jsonpatch.compare(states[index + 1], states[index])
+                actions.push(action)
+            }
+            if (failure === 'state schema') {
+                actions[0].undoPatch?.push({ op: 'remove', path: '/publicValue' })
+            } else if (failure === 'action schema') {
+                actions[1].type = 'removed-action-type'
+            } else {
+                actions[0].undoPatch?.push({ op: 'remove', path: '/missing/path' })
+            }
+            const currentState = states[3]
+            const input = structuredClone({ currentState, actions })
+            const visibility = {
+                state: Visibility.createProjector(CanonicalState),
+                actions: Visibility.createActionProjector({ [ActionType]: ChangeValue })
+            }
+            const perspective: Visibility.Perspective = { kind: 'spectator' }
+            const projected = Visibility.projectActionHistory({
+                currentState,
+                actions,
+                visibility,
+                perspective
+            })
+            expect(projected.actions.map((action) => action.type)).toEqual([
+                Visibility.RedactedActionType,
+                Visibility.RedactedActionType,
+                ActionType
+            ])
+            expect(
+                projected.actions
+                    .slice(0, 2)
+                    .every(
+                        (action) =>
+                            action.undoPatch === undefined && action.forwardPatch === undefined
+                    )
+            ).toBe(true)
+            const recent = projected.actions[2]
+            expect(recent.undoPatch).toBeDefined()
+            expect(
+                jsonpatch.applyPatch(
+                    structuredClone(projected.currentState),
+                    recent.undoPatch ?? []
+                ).newDocument
+            ).toEqual(visibility.state.project(states[2], perspective))
+            expect(calculateActionChecksum(0, [...projected.actions])).toBe(
+                currentState.actionChecksum
+            )
+            expect(JSON.stringify(projected)).not.toContain('secret-')
+            expect({ currentState, actions }).toEqual(input)
+        }
+    )
+
+    it('still rejects an incompatible current state', () => {
+        const currentState = createState('current', 'secret')
+        currentState.actionCount = 0
+        Reflect.deleteProperty(currentState, 'publicValue')
         expect(() =>
             Visibility.projectActionHistory({
                 currentState,
-                actions: [action],
-                visibility,
+                actions: [],
+                visibility: {
+                    state: Visibility.createProjector(CanonicalState),
+                    actions: Visibility.createActionProjector({ [ActionType]: ChangeValue })
+                },
                 perspective: { kind: 'spectator' }
             })
-        ).toThrow('Canonical Action action-without-undo has no undo patch')
+        ).toThrow()
     })
 
     it('fails closed when canonical current state and Action History are incomplete', () => {

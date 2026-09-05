@@ -68,15 +68,10 @@ export class TabletopApi {
         this.baseUrl = `${host}${this.basePath}`
         this.baseSseUrl = `${sseHost}${this.basePath}`
 
-        const handleVersionChange = (changeType: VersionChange, _url: string) => {
-            console.log('Frontend things version is:', this.version)
-            console.log('Version changed:', changeType)
-            this.versionChange = changeType
-        }
         const versionCheckerMiddleware = checkVersion({
             resolveExpectedVersion: () => this.version,
             headerName: 'X-Tabletop-Version',
-            onVersionChange: handleVersionChange
+            onVersionChange: (change) => this.recordVersionChange(change)
         })
         const gameUiVersionChecker = checkVersion({
             resolveExpectedVersion: (url) => {
@@ -87,7 +82,7 @@ export class TabletopApi {
                 return this.gameVersionProvider?.getUiVersion(gameId)
             },
             headerName: 'X-TABLETOP-GAME-UI-VERSION',
-            onVersionChange: handleVersionChange
+            onVersionChange: (change) => this.recordVersionChange(change)
         })
         this.wretch = wretch()
             .url(this.baseUrl)
@@ -677,7 +672,18 @@ export class TabletopApi {
         return match?.[1] ?? null
     }
 
-    private async handleError(error: WretchError) {
+    private recordVersionChange(change: VersionChange): void {
+        if (
+            this.versionChange === VersionChange.MajorUpgrade ||
+            this.versionChange === VersionChange.Rollback ||
+            (this.versionChange === VersionChange.MinorUpgrade &&
+                change === VersionChange.PatchUpgrade)
+        )
+            return
+        this.versionChange = change
+    }
+
+    private handleError = async (error: WretchError) => {
         if (error.json?.error.name && error.json?.error.message) {
             const apiError = new APIError({
                 name: error.json.error.name,
@@ -693,7 +699,7 @@ export class TabletopApi {
                 if (requestedVersion && serverVersion) {
                     const change = resolveVersionChange(requestedVersion, serverVersion)
                     if (change) {
-                        this.versionChange = change
+                        this.recordVersionChange(change)
                     }
                 }
             }

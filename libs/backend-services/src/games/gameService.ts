@@ -27,6 +27,7 @@ import {
     UserNotificationAction,
     UserStatus,
     WasInvitedNotification,
+    Visibility,
     assertExists
 } from '@tabletop/common'
 import { TaskService } from '../tasks/taskService.js'
@@ -1040,6 +1041,23 @@ export class GameService {
         }
         const retainedActions = undoWindow.actions.slice(0, targetPosition)
         const actions = undoWindow.actions.slice(targetPosition)
+
+        if (definition.runtime.visibility) {
+            const history = Visibility.projectActionHistory({
+                startIndex: actionToUndo.index,
+                currentState: gameState,
+                actions,
+                visibility: definition.runtime.visibility,
+                perspective: { kind: 'spectator' }
+            })
+            if (history.actions.some((action) => action.undoPatch === undefined)) {
+                throw new DisallowedUndoError({
+                    gameId,
+                    actionId,
+                    reason: 'Cannot undo across unavailable history'
+                })
+            }
+        }
 
         const redoActions = []
         if (!user.roles.includes(Role.Admin)) {

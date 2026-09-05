@@ -92,4 +92,10 @@ At completion of slice 5, the broader migration audit was outstanding. Slice 6 b
 
 The [compatibility audit](hidden-information-compatibility.md) records the Standards and Spec findings, supported combinations, validation, and release prerequisites. The fixes queue legacy Undo, recover the primary Game during Exploration, preserve recovery when notifications arrive during representation loads, and require explicit host API support before treating a requested Host View as canonical. New browser regressions and stored v1/v2 auction cases cover these boundaries.
 
-The next release-critical slice is publication and History compatibility: settle old loaded-client delivery (P3) and historical-schema loading (C3), then exercise the chosen policy with actual old/new artifacts. Projected hydration/Action discovery and Hosted Fork policy remain separate decisions. No publication was performed.
+## Completed: forward-play compatibility and major reload
+
+Current projected loading no longer requires every historical schema to remain compatible. Historical projection retains compatible recent cascades and replaces the unavailable prefix with public Action envelopes without patches. History and Undo stop at that position; existing reconciliation can reload the current state when a replacement cannot be replayed. The backend validates the Undo range before writing state. Existing v1/v2 forward-play and randomness behavior remains covered.
+
+The Site Frontend continues to use its existing major-version reload. Version-change precedence and the Logic-major error callback are fixed; a patch notice cannot cancel a required reload. The [compatibility record](hidden-information-compatibility.md) describes validation, deployment requirements, and the limits of response-driven detection.
+
+The next development slice is the projected authoring contract: required-field hydration and legal-Action discovery for private hands, exercised through a realistic private-hand flow. Hosted Fork remains a separate product decision. No publication was performed.

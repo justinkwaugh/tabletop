@@ -56,8 +56,15 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         return this.historyContext.actions[this.actionIndex]
     })
 
+    private earliestActionIndex: number = $derived.by(() =>
+        (this.historyContext ?? this.gameContext).actions.findLastIndex(
+            (action) => action.undoPatch === undefined
+        )
+    )
+
     hasPreviousAction: boolean = $derived.by(() => {
-        return this.inHistory ? this.actionIndex >= 0 : this.gameContext.actions.length > 0
+        const index = this.inHistory ? this.actionIndex : this.gameContext.actions.length - 1
+        return index > this.earliestActionIndex
     })
 
     hasNextAction: boolean = $derived.by(() => {
@@ -223,7 +230,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         try {
             const actions = this.historyContext?.actions ?? this.gameContext.actions
             const lastAvailableActionIndex = actions.length - 1
-            if (lastAvailableActionIndex < 0) {
+            if (lastAvailableActionIndex <= this.earliestActionIndex) {
                 return
             }
 
@@ -237,7 +244,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
             }
 
             normalizedStartIndex = Math.max(
-                0,
+                this.earliestActionIndex + 1,
                 Math.min(normalizedStartIndex, lastAvailableActionIndex)
             )
             normalizedEndIndex = Math.max(
@@ -302,8 +309,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         exact?: boolean
     } = {}) {
         if (
-            (this.inHistory && this.actionIndex < 0) ||
-            (!this.inHistory && this.gameContext.actions.length === 0) ||
+            !this.hasPreviousAction ||
             (toActionIndex !== undefined && toActionIndex >= this.actionIndex)
         ) {
             return
@@ -327,14 +333,14 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
             this.actionIndex -= 1
             stateSnapshot = updatedState
         } while (
-            (this.actionIndex >= 0 &&
-                ((toActionIndex !== undefined && (lastAction.index ?? 0) > toActionIndex + 1) ||
-                    (!exact &&
-                        this.shouldAutoStepAction(
-                            this.historyContext.actions[this.actionIndex],
-                            this.historyContext.actions.at(this.actionIndex + 1)
-                        )))) ||
-            (predicate && predicate() === false)
+            this.actionIndex > this.earliestActionIndex &&
+            ((toActionIndex !== undefined && (lastAction.index ?? 0) > toActionIndex + 1) ||
+                (!exact &&
+                    this.shouldAutoStepAction(
+                        this.historyContext.actions[this.actionIndex],
+                        this.historyContext.actions.at(this.actionIndex + 1)
+                    )) ||
+                (predicate && predicate() === false))
         )
         this.onHistoryAction(
             this.actionIndex >= 0 ? this.historyContext.actions[this.actionIndex] : undefined,
@@ -428,6 +434,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
             exact?: boolean
         } = {}
     ) {
+        actionIndex = Math.max(actionIndex, this.earliestActionIndex)
         if (!this.historyContext) {
             if (this.gameContext.actions.length === 0) {
                 return
@@ -436,10 +443,6 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
                 return
             }
             this.enterHistory()
-        }
-
-        if (actionIndex < -1) {
-            actionIndex = -1
         }
 
         if (this.historyContext && actionIndex > this.historyContext.actions.length - 1) {
@@ -454,7 +457,11 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     public async playHistory() {
-        if (this.disabled || this.playing || this.gameContext.actions.length === 0) {
+        if (
+            this.disabled ||
+            this.playing ||
+            this.gameContext.actions.length - 1 <= this.earliestActionIndex
+        ) {
             return
         }
 
@@ -553,7 +560,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
             ? this.actionIndex
             : this.gameContext.actions.length - 1
 
-        for (let i = startIndex; i >= 0; i--) {
+        for (let i = startIndex; i > this.earliestActionIndex; i--) {
             const action = contextToSearch.actions[i]
             if (action.playerId === playerId) {
                 return true

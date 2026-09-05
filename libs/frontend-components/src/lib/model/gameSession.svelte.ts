@@ -219,6 +219,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         let undoableUserAction: GameAction | undefined
         for (let i = this.actions.length - 1; i >= 0; i--) {
             const action = this.actions[i]
+            if (action.undoPatch === undefined) break
             const undoLimit =
                 this.currentModifiableContext.state.explorationState?.checkpoint?.undoLimit
             if (undoLimit !== undefined && i < undoLimit) break

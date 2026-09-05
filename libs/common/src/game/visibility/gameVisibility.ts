@@ -12,7 +12,7 @@ import type { GameRuntime } from '../definition/gameDefinition.js'
 import type { Game } from '../model/game.js'
 import type { GameState } from '../model/gameState.js'
 import { assert, assertExists } from '../../util/assertions.js'
-import { isRedactedAction, type ActionProjector } from './actionProjector.js'
+import { isRedactedAction, redactActionRecord, type ActionProjector } from './actionProjector.js'
 import type { Perspective, ValueProjector } from './valueProjector.js'
 
 export interface GameVisibility<
@@ -123,31 +123,42 @@ export function projectActionHistory<State extends GameState, ProjectedState ext
         expectedIndex += 1
     }
 
+    const currentState = options.visibility.state.project(options.currentState, options.perspective)
     let before = structuredClone(options.currentState)
-    const reversedTransitions: CanonicalActionTransition<State>[] = []
+    const projectedCascades: (readonly GameAction[])[] = []
+    let end = orderedActions.length
 
-    for (const { action } of orderedActions.toReversed()) {
-        reversedTransitions.push({ action, after: before })
-
-        const undoPatch = action.undoPatch
-        assertExists(undoPatch, `Canonical Action ${action.id} has no undo patch`)
-        before = jsonpatch.applyPatch(structuredClone(before), undoPatch).newDocument
+    while (end > 0) {
+        let start = end - 1
+        while (start > 0 && orderedActions[start].action.source !== ActionSource.User) start -= 1
+        const reversedTransitions: CanonicalActionTransition<State>[] = []
+        try {
+            for (let index = end - 1; index >= start; index--) {
+                const action = orderedActions[index].action
+                reversedTransitions.push({ action, after: before })
+                assertExists(action.undoPatch, `Canonical Action ${action.id} has no undo patch`)
+                before = jsonpatch.applyPatch(structuredClone(before), action.undoPatch).newDocument
+                assert(
+                    before.actionCount === startIndex + index,
+                    'Historical Action count mismatch'
+                )
+            }
+            projectedCascades.push(
+                projectActionCascade(
+                    { before, transitions: reversedTransitions.toReversed() },
+                    options
+                ).actions
+            )
+        } catch {
+            projectedCascades.push(
+                orderedActions.slice(0, end).map(({ action }) => redactActionRecord(action))
+            )
+            break
+        }
+        end = start
     }
 
-    const actions = partitionActionCascades(before, reversedTransitions.toReversed()).flatMap(
-        (actionCascade) =>
-            projectActionCascade(actionCascade, {
-                visibility: options.visibility,
-                perspective: options.perspective,
-                replay: options.replay
-            }).actions
-    )
-
-    return {
-        startIndex,
-        currentState: options.visibility.state.project(options.currentState, options.perspective),
-        actions
-    }
+    return { startIndex, currentState, actions: projectedCascades.toReversed().flat() }
 }
 
 export function projectActionResult<State extends GameState>(
@@ -185,31 +196,6 @@ export function projectActionResult<State extends GameState, ProjectedState exte
         updatedState: visibility.state.project(result.updatedState, perspective),
         indexOffset: result.indexOffset
     }
-}
-
-function partitionActionCascades<State extends GameState>(
-    before: State,
-    transitions: readonly CanonicalActionTransition<State>[]
-): CanonicalActionCascade<State>[] {
-    const actionCascades: CanonicalActionCascade<State>[] = []
-    let cascadeBefore = before
-    let previousAfter = before
-    let cascadeTransitions: CanonicalActionTransition<State>[] = []
-
-    for (const transition of transitions) {
-        if (transition.action.source === ActionSource.User && cascadeTransitions.length > 0) {
-            actionCascades.push({ before: cascadeBefore, transitions: cascadeTransitions })
-            cascadeBefore = previousAfter
-            cascadeTransitions = []
-        }
-        cascadeTransitions.push(transition)
-        previousAfter = transition.after
-    }
-
-    if (cascadeTransitions.length > 0) {
-        actionCascades.push({ before: cascadeBefore, transitions: cascadeTransitions })
-    }
-    return actionCascades
 }
 
 function canReplayCascade(

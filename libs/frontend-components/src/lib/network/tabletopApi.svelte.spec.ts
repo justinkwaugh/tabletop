@@ -1,6 +1,7 @@
 import { ActionSource, Game, GameAction } from '@tabletop/common'
 import * as Value from 'typebox/value'
 import { afterEach, describe, expect, test, vi } from 'vitest'
+import { VersionChange } from './versionChecker.js'
 import { TabletopApi } from './tabletopApi.svelte.js'
 
 afterEach(() => {
@@ -201,5 +202,80 @@ describe('TabletopApi Game views', () => {
         await api.getGame(game.id, { hostView: true })
 
         expect(requestedUrls).toEqual(['http://localhost:3000/api/v1/game/get/game-id?view=host'])
+    })
+})
+
+describe('publication version detection', () => {
+    test.each([
+        ['2.0.0', VersionChange.MajorUpgrade],
+        ['0.9.0', VersionChange.Rollback],
+        ['1.1.0', VersionChange.MinorUpgrade],
+        ['1.0.1', VersionChange.PatchUpgrade],
+        ['1.0.0', undefined],
+        [undefined, undefined]
+    ])('detects frontend %s on ordinary game loading', async (version, expected) => {
+        const game = Value.Create(Game)
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(
+                async () =>
+                    new Response(JSON.stringify({ status: 'ok', payload: { game, actions: [] } }), {
+                        headers: version ? { 'X-Tabletop-Version': version } : {}
+                    })
+            )
+        )
+        const api = new TabletopApi('http://localhost:3000', 'http://localhost:3000', '1.0.0')
+        await api.getGame(game.id)
+        expect(api.versionChange).toBe(expected)
+    })
+
+    test('preserves a required UI reload when the frontend header only reports a patch', async () => {
+        const game = Value.Create(Game)
+        game.typeId = 'freshfish'
+        const action = Value.Create(GameAction)
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(
+                async () =>
+                    new Response(JSON.stringify({ status: 'ok', payload: { game, actions: [] } }), {
+                        headers: {
+                            'X-Tabletop-Version': '1.0.1',
+                            'X-TABLETOP-GAME-UI-VERSION': '6.0.0'
+                        }
+                    })
+            )
+        )
+        const api = new TabletopApi('http://localhost:3000', 'http://localhost:3000', '1.0.0')
+        api.setGameVersionProvider({ getLogicVersion: () => '3.0.0', getUiVersion: () => '5.0.1' })
+        await api.applyAction(game, action)
+        expect(api.versionChange).toBe(VersionChange.MajorUpgrade)
+        await api.getGame(game.id)
+        expect(api.versionChange).toBe(VersionChange.MajorUpgrade)
+    })
+
+    test('records a rejected logic major mismatch without relying on response headers', async () => {
+        const game = Value.Create(Game)
+        game.typeId = 'freshfish'
+        const action = Value.Create(GameAction)
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(
+                async () =>
+                    new Response(
+                        JSON.stringify({
+                            error: {
+                                name: 'GameVersionMismatch',
+                                message: 'Reload required',
+                                metadata: { requestedVersion: '2.0.0', serverVersion: '3.0.0' }
+                            }
+                        }),
+                        { status: 400, headers: { 'Content-Type': 'application/json' } }
+                    )
+            )
+        )
+        const api = new TabletopApi()
+        api.setGameVersionProvider({ getLogicVersion: () => '2.0.0', getUiVersion: () => '5.0.1' })
+        await expect(api.applyAction(game, action)).rejects.toThrow('Reload required')
+        expect(api.versionChange).toBe(VersionChange.MajorUpgrade)
     })
 })

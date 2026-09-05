@@ -76,3 +76,28 @@ test('projected History round-trips a completed simultaneous auction', async ({ 
         })
     }
 })
+
+test('continues play and recent History after a historical schema change', async ({ page }) => {
+    await page.goto('/')
+    const result = await page.evaluate(async () => {
+        const moduleUrl = new URL(
+            '/src/lib/stores/tests/projectedHistory.fixture.ts',
+            window.location.href
+        ).href
+        const scenario = await import(moduleUrl)
+        return await scenario.runIncompatibleHistory()
+    })
+    expect(result.initialHasHistory).toBe(false)
+    expect(result.forwardDifference).toBeUndefined()
+    expect(result.forwardMatches).toBe(true)
+    expect(result.undoCandidate).toBe('new-bid-b')
+    expect(result.boundary).toEqual({ index: 0, count: 1, hasPrevious: false })
+    expect(result.undoMatches).toBe(true)
+    expect(result.undoCount).toBe(1)
+    expect(result.syncRequests).toBeGreaterThan(0)
+    expect(result.reloads).toBe(0)
+    expect(result.finalMatches).toBe(true)
+    expect(result.finalCount).toBe(2)
+    expect(result.finalActionId).toBe('next-bid-b')
+    expect(result.containsHiddenBag).toBe(false)
+})

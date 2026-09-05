@@ -9,7 +9,7 @@ import {
     type ProtectionOptions,
     type ReplacementRedaction
 } from './visibilitySchema.js'
-import type { Perspective, PolicyContext, Projector, ProjectorOptions } from './valueProjector.js'
+import type { Perspective, Projector, ProjectorOptions } from './valueProjector.js'
 import { createProjectorWithRedactionAdapters } from './valueProjector.js'
 
 export type ActionSchemaRegistry = Readonly<Record<string, Type.TSchema>>
@@ -71,12 +71,12 @@ export function isRedactedAction(action: GameAction): boolean {
 
 const redactedActionEnvelopeProperties = new Set(Object.keys(RedactedActionEnvelope.properties))
 
-function redactAction(context: PolicyContext<unknown>): unknown {
-    if (!Value.Check(GameAction, context.value)) {
+export function redactActionRecord(value: unknown): GameAction {
+    if (!Value.Check(GameAction, value)) {
         throw Error('Cannot redact a value that does not retain the GameAction contract')
     }
 
-    const redacted = structuredClone(context.value)
+    const redacted = structuredClone(value)
     for (const property of Object.keys(redacted)) {
         if (!redactedActionEnvelopeProperties.has(property)) {
             Reflect.deleteProperty(redacted, property)
@@ -110,7 +110,7 @@ class SchemaActionProjector<Schemas extends ActionSchemaRegistry> implements Act
         for (const actionType in actionSchemas) {
             const schema = actionSchemas[actionType]
             projectors[actionType] = createProjectorWithRedactionAdapters(schema, options, {
-                [RedactedActionAdapter]: redactAction
+                [RedactedActionAdapter]: (context) => redactActionRecord(context.value)
             })
         }
         this.projectors = projectors

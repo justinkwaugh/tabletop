@@ -11,7 +11,8 @@ import {
     TieResolutionStrategy,
     type Game,
     type User,
-    UserStatus
+    UserStatus,
+    Visibility
 } from '@tabletop/common'
 import {
     ActionType,
@@ -142,6 +143,52 @@ function createFreshFishHistory() {
 }
 
 const freshFishHistory = createFreshFishHistory()
+
+describe('incompatible historical schemas', () => {
+    it('loads the current projection and keeps unavailable sync records private', () => {
+        const { game, after, action } = structuredClone(freshFishHistory)
+        action.undoPatch?.push({ op: 'remove', path: '/board' })
+        const options = {
+            game,
+            actions: [action],
+            visibility: FreshFishRuntime.visibility,
+            user: createUser('user-1')
+        }
+        const loaded = createGameRepresentation(options)
+        const expectedState = FreshFishRuntime.visibility.state.project(after, {
+            kind: 'player',
+            playerId: 'p1'
+        })
+        expect(loaded.game.state).toEqual(expectedState)
+        expect(loaded.actions[0]).toMatchObject({
+            id: action.id,
+            index: 0,
+            type: Visibility.RedactedActionType
+        })
+        expect(loaded.actions[0]).not.toHaveProperty('undoPatch')
+        expect(loaded.actions[0]).not.toHaveProperty('amount')
+        const missing = createActionResultsRepresentation({
+            ...options,
+            result: {
+                processedActions: [],
+                updatedState: after,
+                indexOffset: 0,
+                actionCascade: { before: after, transitions: [] }
+            },
+            priorState: after,
+            storedActions: [],
+            missingActions: [action]
+        })
+        const synced = createGameSyncRepresentation({
+            ...options,
+            status: GameSyncStatus.OutOfSync
+        })
+        expect(synced.actions).toEqual(loaded.actions)
+        expect(synced.checksum).toBe(after.actionChecksum)
+        expect(missing.missingActions).toEqual(loaded.actions)
+        expect(JSON.stringify({ loaded, missing })).not.toContain('canonical-hidden-tile')
+    })
+})
 
 describe('createGameRepresentationEtag', () => {
     it('preserves the canonical ETag for a Game Title without visibility registration', () => {

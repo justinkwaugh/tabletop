@@ -362,3 +362,126 @@ export async function runBusyUndo(
         bridgedContext.dispose()
     }
 }
+
+export async function runIncompatibleHistory() {
+    const host = createAuctionHost()
+    const oldAction = host.apply(createBid('old-bid-a', PLAYER_A_ID, 1))
+    oldAction.undoPatch?.push({ op: 'remove', path: '/board' })
+    const { appContext, bridgedContext, session } = createHistoryClient(host)
+    appContext.authorizationService.debugViewEnabled = false
+    appContext.authorizationService.adminCapabilitiesEnabled = false
+    const api = appContext.api
+    const original = {
+        getGame: api.getGame,
+        checkSync: api.checkSync,
+        applyAction: api.applyAction,
+        undoAction: api.undoAction
+    }
+    let reloads = 0
+    let syncRequests = 0
+    api.getGame = async () => {
+        reloads += 1
+        const history = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
+        return {
+            game: { ...host.gameWithoutState(), state: history.currentState },
+            actions: [...history.actions]
+        }
+    }
+    api.checkSync = async () => {
+        syncRequests += 1
+        const history = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
+        return {
+            status: GameSyncStatus.OutOfSync,
+            actions: [...history.actions],
+            checksum: host.state.actionChecksum
+        }
+    }
+    api.applyAction = async (_game, action) => {
+        const startIndex = host.actions.length
+        host.apply(action)
+        const history = projectHostHistorySuffix(host, startIndex, PLAYER_B_PERSPECTIVE)
+        return { game: host.gameWithoutState(), actions: [...history.actions] }
+    }
+    api.undoAction = async (_game, actionId) => {
+        const result = host.undo(actionId)
+        const history = projectHostHistorySuffix(
+            host,
+            result.actionReplay.startIndex,
+            PLAYER_B_PERSPECTIVE
+        )
+        const replay = { startIndex: history.startIndex, actions: [...history.actions] }
+        return {
+            ...result,
+            actionReplay: replay,
+            canonicalReplay: { ...replay, userActions: [] },
+            perspective: PLAYER_B_PERSPECTIVE
+        }
+    }
+    try {
+        await waitUntilHistoryIsEnabled(session)
+        const initialHasHistory = session.history.hasPreviousAction
+        await session.history.goToBeginning()
+        await tick()
+        session.history.goToEnd()
+        await new Promise<void>((resolve) => setTimeout(resolve))
+        await session.applyAction(createBid('new-bid-b', PLAYER_B_ID, 2))
+        await waitUntilHistoryIsEnabled(session)
+        await session.waitForVisibleTransitionSettled()
+        const forwardMatches = valuesMatch(
+            session.history.visibleContext.state,
+            projectHostHistory(host, PLAYER_B_PERSPECTIVE).currentState
+        )
+        const forwardDifference = forwardMatches
+            ? undefined
+            : describeFirstDifference(
+                  session.history.visibleContext.state,
+                  projectHostHistory(host, PLAYER_B_PERSPECTIVE).currentState
+              )
+        const undoCandidate = session.undoableAction?.id
+        await session.history.goToBeginning()
+        await waitUntilHistoryIsEnabled(session)
+        const boundary = {
+            index: session.history.actionIndex,
+            count: session.history.visibleContext.state.actionCount,
+            hasPrevious: session.history.hasPreviousAction
+        }
+        await session.history.goToPlayersPreviousTurn(PLAYER_C_ID)
+        await waitUntilHistoryIsEnabled(session)
+        await session.history.replayRange(0, 1, { holdMs: 0 })
+        await new Promise<void>((resolve) => setTimeout(resolve))
+        await waitUntilHistoryIsEnabled(session)
+        session.history.goToEnd()
+        await waitUntilHistoryIsEnabled(session)
+        await session.undo()
+        await waitUntilHistoryIsEnabled(session)
+        const undoMatches = valuesMatch(
+            session.history.visibleContext.state,
+            projectHostHistory(host, PLAYER_B_PERSPECTIVE).currentState
+        )
+        const undoCount = host.state.actionCount
+        await session.applyAction(createBid('next-bid-b', PLAYER_B_ID, 3))
+        await waitUntilHistoryIsEnabled(session)
+        return {
+            initialHasHistory,
+            forwardMatches,
+            forwardDifference,
+            undoCandidate,
+            boundary,
+            undoMatches,
+            undoCount,
+            reloads,
+            syncRequests,
+            finalMatches: valuesMatch(
+                session.history.visibleContext.state,
+                projectHostHistory(host, PLAYER_B_PERSPECTIVE).currentState
+            ),
+            finalCount: host.state.actionCount,
+            finalActionId: host.actions.at(-1)?.id,
+            containsHiddenBag: session.history.visibleContext.state.tileBag.items.length > 0
+        }
+    } finally {
+        Object.assign(api, original)
+        session.dispose()
+        bridgedContext.dispose()
+    }
+}
