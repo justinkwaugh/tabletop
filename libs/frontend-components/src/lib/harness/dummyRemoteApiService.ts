@@ -20,6 +20,7 @@ import type { VersionChange } from '$lib/network/versionChecker.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
 
 export class DummyRemoteApiService implements RemoteApiService {
+    readonly supportsHostView?: boolean = true
     private fail(method: string): never {
         throw new Error(`DummyRemoteApiService.${method} is not implemented`)
     }

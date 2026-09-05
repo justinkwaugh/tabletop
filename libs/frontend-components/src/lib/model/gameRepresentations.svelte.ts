@@ -12,10 +12,17 @@ import { GameContext } from './gameContext.svelte.js'
 
 interface RepresentationDependencies<T extends GameState, U extends HydratedGameState<T> & T> {
     getGame: RemoteApiService['getGame']
+    supportsHostView(): boolean
     getUserId(): string | undefined
     getChosenPlayerId(): string | undefined
     publish(context: GameContext<T, U>): void
     setLoading(loading: boolean): void
+}
+
+export class HostViewUnsupportedError extends Error {
+    constructor() {
+        super('Reload the site to enable Host View')
+    }
 }
 
 export class GameRepresentations<T extends GameState, U extends HydratedGameState<T> & T> {
@@ -61,6 +68,13 @@ export class GameRepresentations<T extends GameState, U extends HydratedGameStat
     }
 
     async setPrivilegedEnabled(privilegedViewRequested: boolean): Promise<void> {
+        if (
+            privilegedViewRequested &&
+            this.usesProjectedHostedRepresentation() &&
+            !this.dependencies.supportsHostView()
+        ) {
+            throw new HostViewUnsupportedError()
+        }
         this.privilegedInspectionEnabled = privilegedViewRequested
         if (!this.usesProjectedHostedRepresentation()) {
             return

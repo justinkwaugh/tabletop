@@ -1,6 +1,9 @@
 import {
     ActionSource,
     GameEngine,
+    GameSyncStatus,
+    GameNotificationAction,
+    NotificationCategory,
     GameStorage,
     assertExists,
     createAction,
@@ -10,6 +13,8 @@ import {
 } from '@tabletop/common'
 import {
     BridgedContext,
+    NotificationChannel,
+    NotificationEventType,
     createHarnessAppContext,
     type GameUiDefinition
 } from '@tabletop/frontend-components'
@@ -392,6 +397,124 @@ export async function runSimulatedAuction() {
             sourceUnchanged: host.state.actionCount === sourceCount
         }
     } finally {
+        client.dispose()
+    }
+}
+
+export async function runExplorationRecovery() {
+    const host = createExplorationHost()
+    const client = explorationClient(host)
+    const { session, app } = client
+    let syncRequests = 0
+    app.api.checkSync = async () => {
+        syncRequests++
+        const history = project(host, PLAYER_B_PERSPECTIVE)
+        return {
+            status: GameSyncStatus.InSync,
+            actions: [...history.actions],
+            checksum: host.state.actionChecksum
+        }
+    }
+    session.listenToGame()
+    try {
+        await settleExploration(session)
+        await session.startExploring()
+        await settleExploration(session)
+        const branch = session.explorations.getCurrentExploration()
+        assertExists(branch, 'Expected exploration')
+        const sample = JSON.stringify(branch.state)
+        host.apply(diskAction(host))
+        await app.notificationService.emit({
+            eventType: NotificationEventType.Discontinuity,
+            channel: NotificationChannel.User
+        })
+        await settleExploration(session)
+        const branchUnchanged =
+            JSON.stringify(branch.state) === sample &&
+            session.history.visibleContext.game.id === branch.game.id
+        session.explorations.endExploring()
+        await settleExploration(session)
+        return {
+            syncRequests,
+            branchUnchanged,
+            returnedToCurrentGame:
+                session.history.visibleContext.state.actionChecksum === host.state.actionChecksum,
+            stillProjected: session.history.visibleContext.state.tileBag.items.length === 0
+        }
+    } finally {
+        session.stopListeningToGame()
+        client.dispose()
+    }
+}
+
+export async function runRepresentationRecovery(hostView: boolean) {
+    const host = createExplorationHost()
+    const client = explorationClient(host)
+    const { session, app } = client
+    const started = Promise.withResolvers<void>()
+    const gate = Promise.withResolvers<void>()
+    let delayNext = false
+    app.api.getGame = async (_id, options) => {
+        const history = project(host, options?.hostView ? undefined : PLAYER_B_PERSPECTIVE)
+        const response = {
+            game: { ...host.gameWithoutState(), state: history.currentState },
+            actions: [...history.actions]
+        }
+        if (delayNext) {
+            delayNext = false
+            started.resolve()
+            await gate.promise
+        }
+        return response
+    }
+    app.api.checkSync = async () => {
+        const history = project(host, PLAYER_B_PERSPECTIVE)
+        return {
+            status: GameSyncStatus.InSync,
+            actions: [...history.actions],
+            checksum: host.state.actionChecksum
+        }
+    }
+    session.listenToGame()
+    try {
+        await settleExploration(session)
+        if (!hostView) {
+            await session.setPrivilegedGameViewEnabled(true)
+            await settleExploration(session)
+        }
+        delayNext = true
+        const pending = session.setPrivilegedGameViewEnabled(hostView)
+        await started.promise
+        host.apply(diskAction(host))
+        const history = project(host, PLAYER_B_PERSPECTIVE)
+        await app.notificationService.emit({
+            eventType: NotificationEventType.Data,
+            channel: NotificationChannel.User,
+            notification: {
+                id: 'during-reload',
+                type: NotificationCategory.Game,
+                action: GameNotificationAction.AddProjectedActions,
+                data: {
+                    game: host.gameWithoutState(),
+                    actions: [...history.actions],
+                    perspective: PLAYER_B_PERSPECTIVE
+                }
+            }
+        })
+        gate.resolve()
+        await pending
+        await settleExploration(session)
+        return {
+            current:
+                session.history.visibleContext.state.actionChecksum === host.state.actionChecksum,
+            correctView: session.isViewingHost === hostView,
+            correctBag:
+                session.history.visibleContext.state.tileBag.items.length ===
+                (hostView ? host.state.tileBag.remaining : 0)
+        }
+    } finally {
+        gate.resolve()
+        session.stopListeningToGame()
         client.dispose()
     }
 }

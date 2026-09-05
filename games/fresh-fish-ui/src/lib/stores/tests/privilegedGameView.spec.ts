@@ -89,7 +89,7 @@ afterEach(() => {
 })
 
 describe('privileged Game views', () => {
-    test.each(['exit', 'dispose'])(
+    test.each(['exit', 'dispose', 'legacyHost'])(
         '%s prevents a pending Host View load from publishing',
         async (transition) => {
             const host = createAuctionHost()
@@ -124,6 +124,16 @@ describe('privileged Game views', () => {
 
             try {
                 await tick()
+                if (transition === 'legacyHost') {
+                    Reflect.deleteProperty(appContext.api, 'supportsHostView')
+                    await expect(session.setPrivilegedGameViewEnabled(true)).rejects.toThrow(
+                        'Reload the site'
+                    )
+                    expect(getGame).not.toHaveBeenCalled()
+                    expect(session.isViewingHost).toBe(false)
+                    expect(session.gameState.tileBag.items).toEqual([])
+                    return
+                }
                 const pendingLoad = session.setPrivilegedGameViewEnabled(true)
                 expect(getGame).toHaveBeenCalledOnce()
                 if (transition === 'dispose') {
@@ -141,6 +151,8 @@ describe('privileged Game views', () => {
                 expect(session.history.visibleContext.state.tileBag.items).toEqual([])
                 expect(session.gameState.tileBag.items).toEqual([])
             } finally {
+                if (transition === 'legacyHost')
+                    Reflect.set(appContext.api, 'supportsHostView', true)
                 gate.resolve()
                 session.dispose()
                 bridgedContext.dispose()

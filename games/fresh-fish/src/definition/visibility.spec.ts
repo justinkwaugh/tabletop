@@ -78,6 +78,57 @@ function findEmptyCoords(state: ReturnType<typeof generateTestState>): PlaceDisk
 
 describe('Fresh Fish visibility', () => {
     it.each([1, 2])(
+        'continues and undoes a stored version %i auction without submission markers',
+        (systemVersion) => {
+            const state = createCanonicalAuctionState()
+            state.systemVersion = systemVersion
+            delete state.protectedPrng
+            const auction = state.currentAuction
+            if (!auction) throw new Error('Expected an auction')
+            for (const participant of auction.participants) delete participant.submitted
+            state.activePlayerIds = ['p3']
+            state.chosenTile = { type: TileType.Stall, goodsType: GoodsType.Fish }
+            for (const player of state.players) player.disks = 1
+            const game = createGame(state)
+            const engine = new GameEngine(FreshFishRuntime)
+            const perspective = { kind: 'player', playerId: 'p1' } as const
+            const before = FreshFishRuntime.visibility.state.project(state, perspective)
+            expect(
+                before.currentAuction?.participants.map((participant) => participant.bid)
+            ).toEqual([3, undefined, undefined])
+            const action: PlaceBid = {
+                id: 'last-legacy-bid',
+                gameId: game.id,
+                source: ActionSource.User,
+                type: ActionType.PlaceBid,
+                playerId: 'p3',
+                amount: 7,
+                simultaneousGroupId: auction.id
+            }
+            const result = engine.executeAction({ game, state, action })
+            expect(result.updatedState.systemVersion).toBe(systemVersion)
+            expect(result.updatedState.protectedPrng).toBeUndefined()
+            expect(result.updatedState.machineState).toBe(MachineState.AuctionEnded)
+            expect(result.updatedState.currentAuction?.winnerId).toBe('p3')
+            const history = Visibility.projectActionHistory({
+                currentState: result.updatedState,
+                actions: result.processedActions,
+                visibility: FreshFishRuntime.visibility,
+                perspective,
+                replay: { game, runtime: FreshFishRuntime }
+            })
+            let visible = history.currentState
+            let canonical = result.updatedState
+            for (const action of history.actions.toReversed())
+                visible = engine.undoProcessedAction({ action, state: visible })
+            for (const action of result.processedActions.toReversed())
+                canonical = engine.undoProcessedAction({ action, state: canonical })
+            expect(visible).toEqual(before)
+            expect(canonical).toEqual(state)
+        }
+    )
+
+    it.each([1, 2])(
         'retains the original version %i seeded tile order and cursor',
         (systemVersion) => {
             const game = createGame(generateTestState())

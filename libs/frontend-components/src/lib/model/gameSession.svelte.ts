@@ -46,7 +46,7 @@ import type { GameService } from '$lib/services/gameService.js'
 import { GameSessionBridge } from '$lib/services/bridges/gameSessionBridge.svelte.js'
 import { GameContext } from './gameContext.svelte.js'
 import { GameReconciliation, ServerActionHandling } from './gameReconciliation.js'
-import { GameRepresentations } from './gameRepresentations.svelte.js'
+import { GameRepresentations, HostViewUnsupportedError } from './gameRepresentations.svelte.js'
 import { GameHistory, type HistoryAnimationIntent } from './gameHistory.svelte.js'
 import { GameActionResults } from './gameActionResults.svelte.js'
 import { GameColors } from './gameColors.svelte.js'
@@ -534,6 +534,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
         this.representations = new GameRepresentations(this.gameContext, {
             getGame: (...args) => this.api.getGame(...args),
+            supportsHostView: () => this.api.supportsHostView === true,
             getUserId: () => this.sessionUserStore.current?.id,
             getChosenPlayerId: () => this.chosenAdminPlayerId,
             publish: (context) => this.replacePrimaryGameContext(context),
@@ -673,9 +674,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     private replacePrimaryGameContext(context: GameContext<T, U>): void {
         if (!this.isExploring) this.suppressStateChangeActions = true
-        // A complete representation already includes every accepted Action, so any queued
-        // incremental records belong to the representation being replaced.
-        this.reconciliation.clearPending()
+        this.reconciliation.invalidatePendingRepresentation()
         if (!this.isExploring) this.history.updateSourceGameContext(this.gameContext)
         this.gameContext.restoreFrom(context.clone())
         if (this.isExploring) return
@@ -687,7 +686,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     private handleGameRepresentationError(error: unknown): void {
         console.error('Unable to change Game representation', error)
-        toast.error('Unable to change game view')
+        toast.error(
+            error instanceof HostViewUnsupportedError ? error.message : 'Unable to change game view'
+        )
     }
 
     isBusy(): boolean {
@@ -1336,15 +1337,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     // For primary game context only
-    private handleUndoNotification(notification: GameUndoActionNotification): void {
+    private async handleUndoNotification(notification: GameUndoActionNotification): Promise<void> {
         if (notification.data.game.id !== this.gameContext.game.id) {
             return
         }
-        if (this.gameContext === this.currentVisibleContext && this.busy) {
-            // console.log('cannot apply server undo because we are busy')
-            return
-        }
-
         const manifest = Value.Convert(
             CanonicalActionReplayManifest,
             notification.data.canonicalReplay
@@ -1357,12 +1353,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         })
         const game = Value.Convert(Game, notification.data.game)
         Value.Assert(Game, game)
-        this.reconciliation.replaceFromManifest(
+        await this.reconciliation.enqueue({
+            kind: 'manifest',
             manifest,
             redoneActions,
-            notification.data.checksum,
+            checksum: notification.data.checksum,
             game
-        )
+        })
     }
 
     private async handleDeleteNotification(notification: GameDeleteNotification) {
@@ -1374,7 +1371,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     // For primary game context only
     private async checkSync() {
-        if (this.isExploring || this.gameContext.game.hotseat) {
+        if (this.gameContext.game.hotseat) {
             return
         }
 

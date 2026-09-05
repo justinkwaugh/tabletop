@@ -155,6 +155,25 @@ describe('TabletopApi undo compatibility', () => {
 })
 
 describe('TabletopApi Game views', () => {
+    test('rejects a projected response to a Host View request', async () => {
+        const game = Value.Create(Game)
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(
+                async () =>
+                    new Response(
+                        JSON.stringify({
+                            status: 'ok',
+                            payload: { game, actions: [], perspective: { kind: 'spectator' } }
+                        }),
+                        { status: 200, headers: { 'Content-Type': 'application/json' } }
+                    )
+            )
+        )
+        const api = new TabletopApi()
+        await expect(api.getGame(game.id, { hostView: true })).rejects.toThrow('projected')
+    })
+
     test('requests Host View explicitly', async () => {
         const game = Value.Create(Game)
         game.id = 'game-id'

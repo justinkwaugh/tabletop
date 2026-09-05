@@ -47,6 +47,7 @@ export type GetGameOptions = {
 }
 
 export class TabletopApi {
+    readonly supportsHostView?: boolean = true
     private static readonly API_PREFIX = '/api/v1'
     private readonly host: string
     private readonly sseHost: string
@@ -308,6 +309,9 @@ export class TabletopApi {
             .badRequest(this.handleError)
             .json<GameWithActionsResponse>()
 
+        if (options.hostView && response.payload.perspective !== undefined) {
+            throw new Error('Host View request returned a projected Game')
+        }
         const game = this.validateGame(response.payload.game)
         const actions = this.convertGameActions(response.payload.actions)
 

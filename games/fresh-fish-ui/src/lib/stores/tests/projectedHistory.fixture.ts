@@ -1,4 +1,5 @@
 import {
+    ActionSource,
     GameNotificationAction,
     GameSyncStatus,
     NotificationCategory,
@@ -91,8 +92,8 @@ async function waitUntilHistoryIsEnabled(session: FreshFishGameSession): Promise
     throw new Error('History did not become enabled')
 }
 
-function createProjectedClient(host: CanonicalHost) {
-    const projectedHistory = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
+function createHistoryClient(host: CanonicalHost, projected = true) {
+    const projectedHistory = projectHostHistory(host, projected ? PLAYER_B_PERSPECTIVE : undefined)
     const appContext = createHarnessAppContext(HARNESS_DEFINITION)
     const bridgedContext = new BridgedContext({
         authorizationService: appContext.authorizationService,
@@ -106,7 +107,7 @@ function createProjectedClient(host: CanonicalHost) {
         notificationService: appContext.notificationService,
         chatService: appContext.chatService,
         api: appContext.api,
-        runtime: FreshFishUiRuntime,
+        runtime: projected ? FreshFishUiRuntime : { ...FreshFishUiRuntime, visibility: undefined },
         game: structuredClone(host.game),
         state: projectedHistory.currentState,
         actions: [...projectedHistory.actions]
@@ -132,7 +133,7 @@ export async function runProjectedHistoryRoundTrip() {
         canonicalBeforeAuction,
         PLAYER_B_PERSPECTIVE
     )
-    const { bridgedContext, session } = createProjectedClient(host)
+    const { bridgedContext, session } = createHistoryClient(host)
 
     try {
         await session.waitForVisibleTransitionSettled()
@@ -187,18 +188,19 @@ export async function runProjectedHistoryRoundTrip() {
     }
 }
 
-export async function runBusyProjectedUndo(
+export async function runBusyUndo(
     busyReason: 'processing' | 'presentation',
-    recovery: 'none' | 'corruptReplay' | 'discontinuity' = 'none'
+    recovery: 'none' | 'corruptReplay' | 'discontinuity' = 'none',
+    projected = true
 ) {
     const host = createAuctionHost()
     const aBid = host.apply(createBid('bid-a-01', PLAYER_A_ID, 1))
     host.apply(createBid('bid-d-02', PLAYER_D_ID, 2))
-    const { appContext, bridgedContext, session } = createProjectedClient(host)
+    const { appContext, bridgedContext, session } = createHistoryClient(host, projected)
     let syncRequests = 0
     appContext.api.checkSync = async () => {
         syncRequests += 1
-        const history = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
+        const history = projectHostHistory(host, projected ? PLAYER_B_PERSPECTIVE : undefined)
         return {
             status: GameSyncStatus.OutOfSync,
             actions: [...history.actions],
@@ -206,7 +208,7 @@ export async function runBusyProjectedUndo(
         }
     }
     appContext.api.getGame = async () => {
-        const history = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
+        const history = projectHostHistory(host, projected ? PLAYER_B_PERSPECTIVE : undefined)
         return {
             game: { ...host.gameWithoutState(), state: history.currentState },
             actions: [...history.actions]
@@ -230,7 +232,9 @@ export async function runBusyProjectedUndo(
         }
         await tick()
         let busyDuringDelivery = session.busy
-        for (const step of ['add-before', 'undo', 'add-after']) {
+        for (const step of projected
+            ? ['add-before', 'undo', 'add-after']
+            : ['add-before', 'undo']) {
             if (step === 'undo') {
                 const result = host.undo(aBid.id)
                 const history = projectHostHistorySuffix(
@@ -240,24 +244,51 @@ export async function runBusyProjectedUndo(
                 )
                 await appContext.notificationService.emit({
                     eventType: NotificationEventType.Data,
-                    channel: NotificationChannel.User,
-                    notification: {
-                        id: step,
-                        type: NotificationCategory.Game,
-                        action: GameNotificationAction.ReplaceProjectedActions,
-                        data: {
-                            game: result.game,
-                            actionReplay: {
-                                startIndex: history.startIndex,
-                                actions: [...history.actions]
-                            },
-                            checksum:
-                                recovery === 'corruptReplay'
-                                    ? result.checksum + 1
-                                    : result.checksum,
-                            perspective: PLAYER_B_PERSPECTIVE
-                        }
-                    }
+                    channel: projected
+                        ? NotificationChannel.User
+                        : NotificationChannel.GameInstance,
+                    notification: projected
+                        ? {
+                              id: step,
+                              type: NotificationCategory.Game,
+                              action: GameNotificationAction.ReplaceProjectedActions,
+                              data: {
+                                  game: result.game,
+                                  actionReplay: {
+                                      startIndex: history.startIndex,
+                                      actions: [...history.actions]
+                                  },
+                                  checksum:
+                                      recovery === 'corruptReplay'
+                                          ? result.checksum + 1
+                                          : result.checksum,
+                                  perspective: PLAYER_B_PERSPECTIVE
+                              }
+                          }
+                        : {
+                              id: step,
+                              type: NotificationCategory.Game,
+                              action: GameNotificationAction.UndoAction,
+                              data: {
+                                  game: result.game,
+                                  canonicalReplay: {
+                                      startIndex: result.actionReplay.startIndex,
+                                      actionIds: result.actionReplay.actions.map(
+                                          (action) => action.id
+                                      ),
+                                      userActionIds: result.actionReplay.actions
+                                          .filter((action) => action.source === ActionSource.User)
+                                          .map((action) => action.id)
+                                  },
+                                  redoneActions: result.redoneActions,
+                                  checksum:
+                                      recovery === 'corruptReplay'
+                                          ? result.checksum + 1
+                                          : result.checksum,
+                                  action: aBid,
+                                  undoneActionId: aBid.id
+                              }
+                          }
                 })
             } else {
                 const startIndex = host.actions.length
@@ -269,17 +300,29 @@ export async function runBusyProjectedUndo(
                 const history = projectHostHistorySuffix(host, startIndex, PLAYER_B_PERSPECTIVE)
                 await appContext.notificationService.emit({
                     eventType: NotificationEventType.Data,
-                    channel: NotificationChannel.User,
-                    notification: {
-                        id: step,
-                        type: NotificationCategory.Game,
-                        action: GameNotificationAction.AddProjectedActions,
-                        data: {
-                            game: host.gameWithoutState(),
-                            actions: [...history.actions],
-                            perspective: PLAYER_B_PERSPECTIVE
-                        }
-                    }
+                    channel: projected
+                        ? NotificationChannel.User
+                        : NotificationChannel.GameInstance,
+                    notification: projected
+                        ? {
+                              id: step,
+                              type: NotificationCategory.Game,
+                              action: GameNotificationAction.AddProjectedActions,
+                              data: {
+                                  game: host.gameWithoutState(),
+                                  actions: [...history.actions],
+                                  perspective: PLAYER_B_PERSPECTIVE
+                              }
+                          }
+                        : {
+                              id: step,
+                              type: NotificationCategory.Game,
+                              action: GameNotificationAction.AddActions,
+                              data: {
+                                  game: host.gameWithoutState(),
+                                  actions: host.actionsSnapshot().slice(startIndex)
+                              }
+                          }
                 })
                 if (step === 'add-before' && busyReason === 'presentation') {
                     await tick()
@@ -291,7 +334,7 @@ export async function runBusyProjectedUndo(
         if (recovery === 'discontinuity') {
             await appContext.notificationService.emit({
                 eventType: NotificationEventType.Discontinuity,
-                channel: NotificationChannel.User
+                channel: projected ? NotificationChannel.User : NotificationChannel.GameInstance
             })
         }
         const unchangedWhileBusy =
@@ -300,7 +343,7 @@ export async function runBusyProjectedUndo(
         releasePresentation()
         await tick()
         await waitUntilHistoryIsEnabled(session)
-        const expected = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
+        const expected = projectHostHistory(host, projected ? PLAYER_B_PERSPECTIVE : undefined)
         return {
             busyDuringDelivery,
             unchangedWhileBusy,

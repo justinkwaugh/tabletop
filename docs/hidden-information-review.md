@@ -2,6 +2,8 @@
 
 Reviewed 2026-09-04 from `3fd8c5e5` (immediately before the implementation commits) through `0d32b361` and the current uncommitted worktree. The specification is `hidden-information.md` plus the user's handoff and subsequent corrections. The unrelated Dockerfile edit is excluded.
 
+The [slice-6 compatibility audit](hidden-information-compatibility.md) extends this review through `4740bfef` and the subsequent recovery/capability fixes. It records current validation and the next release-critical work.
+
 The core direction is promising: canonical execution, schema-based projections, independent projected patches, and whole-cascade replay classification fit the scenarios exercised so far. This is not ready for general deployment. The reproduced recovery and execution-guard defects S1, S2, P1, and P2 are now fixed. Hosted Fork policy, publication compatibility, and the remaining design boundaries below still need attention. The user deferred C1 for discussion with exploration and classified C2 as low risk.
 
 ## Change made before this review
@@ -164,3 +166,7 @@ No commits or publication were performed. The pre-existing Dockerfile contents w
 The fixes pass 119 Common tests, 28 Fresh Fish logic tests, 32 targeted Fresh Fish client tests, and five Chromium browser scenarios (184 total). Browser coverage includes pending processing, a pending presentation listener, a corrupt queued replay that requires recovery, a User-channel discontinuity during queued delivery, and projected History round-trips. Both Frontend Components and Fresh Fish UI type checks report zero errors (existing Svelte warnings remain). Common, Frontend Components, and Fresh Fish builds pass through `turbo run build`; `git diff --check` passes.
 
 This follow-up changes no host dependency or payload shape. It does not resolve old-client publication strategy, fork/exploration semantics, or projection ETags. No hidden-information commit or publication was requested for these fixes.
+
+### Slice-6 completion review
+
+See [Hidden-information compatibility and completion review](hidden-information-compatibility.md) for the new findings and fixes. The original P3 old-client migration and C3 historical-schema requirements remain release prerequisites. C1 Hosted Fork remains a product decision, and C2 ETags remains deferred. Exploration implementation and the Game Session ownership extractions are complete; their current conformance coverage does not remove those release requirements.

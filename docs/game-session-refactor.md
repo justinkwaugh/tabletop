@@ -32,9 +32,9 @@ This refactor changes the shared Game Client bundled in each UI Artifact. A Game
 - [x] Slice 1: accepted-history reconciliation
 - [x] Slice 2: queued delivery and recovery
 - [x] Slice 3: submission and Undo integration
-- [ ] Slice 4: fork/exploration decisions — Exploration behavior settled; implementation planned below; Hosted Fork remains open
+- [ ] Slice 4: fork/exploration decisions — Exploration implemented; Hosted Fork remains open
 - [x] Slice 5: representation management
-- [ ] Slice 6: compatibility and completion review
+- [x] Slice 6: compatibility and completion review — repository audit complete; publication/History decisions remain open
 
 ## Completed in slices 1–3
 
@@ -44,7 +44,7 @@ Replacement history is constructed and checksum-validated before it is published
 
 The GameSession constructor and bridge contract remain unchanged. GameContext and GameReconciliation have additive package exports for composition and direct conformance tests. No Game Runtime behavior or host payload changed, and no publication was performed.
 
-Validation: 19 shared Frontend Components tests, 36 Fresh Fish client tests, and five Chromium scenarios pass. Both affected client type checks report zero errors; their existing Svelte warnings remain. The Frontend Components build passes. Tests cover projected and legacy Undo, reordered optimistic submission, rollback on invalid replacement, full-reload cancellation, busy delivery, discontinuity recovery, privileged view transitions, and projected History. Cross-publication deployment and the broader slice-6 compatibility audit remain outstanding.
+Validation: 19 shared Frontend Components tests, 36 Fresh Fish client tests, and five Chromium scenarios pass. Both affected client type checks report zero errors; their existing Svelte warnings remain. The Frontend Components build passes. Tests cover projected and legacy Undo, reordered optimistic submission, rollback on invalid replacement, full-reload cancellation, busy delivery, discontinuity recovery, privileged view transitions, and projected History. Cross-publication deployment and the broader compatibility audit were outstanding at this slice; the slice-6 completion record below describes subsequent validation.
 
 The Exploration knowledge rule is settled. Representation extraction can proceed independently of Hosted Fork policy and hypothetical-history implementation.
 
@@ -86,4 +86,10 @@ The GameSession public interface, bridge members, injected host dependencies, an
 
 Validation: 19 shared Frontend Components tests, 38 Fresh Fish client tests, and five Chromium scenarios pass. New integration cases prove that exiting inspection or disposing the Session prevents a pending canonical load from publishing. Existing cases cover in-flight Action responses, rejected privileged Actions, Acting Player changes, canonical refresh after Actions/Undo, projected History, and queued recovery. Both client type checks have zero errors (seven and one existing warnings), and the Frontend Components build passes.
 
-The broader slice-6 migration audit remains outstanding, including actual mixed-publication deployment, older stored-game coverage across publication, and historical-schema policy. The subsequent [Exploration implementation](hidden-information-exploration.md) now supplies Fresh Fish population, fresh branch randomness, checkpointed History, and inherited Undo barriers. Hosted Fork policy and the broader publication/migration audit remain separate.
+At completion of slice 5, the broader migration audit was outstanding. Slice 6 below records the subsequent audit; actual mixed-publication deployment, older stored-game coverage across publication, and historical-schema policy remain release work. The subsequent [Exploration implementation](hidden-information-exploration.md) now supplies Fresh Fish population, fresh branch randomness, checkpointed History, and inherited Undo barriers. Hosted Fork policy and the broader publication/migration audit remain separate.
+
+## Completed in slice 6
+
+The [compatibility audit](hidden-information-compatibility.md) records the Standards and Spec findings, supported combinations, validation, and release prerequisites. The fixes queue legacy Undo, recover the primary Game during Exploration, preserve recovery when notifications arrive during representation loads, and require explicit host API support before treating a requested Host View as canonical. New browser regressions and stored v1/v2 auction cases cover these boundaries.
+
+The next release-critical slice is publication and History compatibility: settle old loaded-client delivery (P3) and historical-schema loading (C3), then exercise the chosen policy with actual old/new artifacts. Projected hydration/Action discovery and Hosted Fork policy remain separate decisions. No publication was performed.

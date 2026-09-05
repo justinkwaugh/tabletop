@@ -29,6 +29,13 @@ export type ReconciliationUpdate =
           game: Game
           perspective: Visibility.Perspective
       }
+    | {
+          kind: 'manifest'
+          manifest: CanonicalActionReplayManifest
+          redoneActions: GameAction[]
+          checksum: number
+          game: Game
+      }
     | { kind: 'synchronize' }
 
 export interface ReconciliationRemote<T extends GameState, U extends HydratedGameState<T> & T> {
@@ -62,6 +69,12 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         this.pending = []
     }
 
+    invalidatePendingRepresentation(): void {
+        if (this.pending.length > 0) {
+            this.pending = [{ kind: 'synchronize' }]
+        }
+    }
+
     async resume(): Promise<void> {
         if (this.draining) {
             return
@@ -82,6 +95,15 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
                             remote.acceptsPerspective(update.perspective)
                         ) {
                             this.replace(update.replay, update.checksum, update.game)
+                        }
+                    } else if (update.kind === 'manifest') {
+                        if (update.game.id === this.context.game.id) {
+                            this.replaceFromManifest(
+                                update.manifest,
+                                update.redoneActions,
+                                update.checksum,
+                                update.game
+                            )
                         }
                     } else {
                         this.apply(update.actions, update.handling, update.game)
@@ -192,7 +214,11 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         this.context.verifyFullChecksum()
     }
 
-    private apply(actions: readonly GameAction[], handling: ServerActionHandling, game?: Game): void {
+    private apply(
+        actions: readonly GameAction[],
+        handling: ServerActionHandling,
+        game?: Game
+    ): void {
         const gameSnapshot = structuredClone(this.context.game)
         let state = structuredClone(this.context.state)
         const results = new GameActionResults<T>([], state)
