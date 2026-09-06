@@ -1,7 +1,11 @@
 <script lang="ts">
     import { gsap } from 'gsap'
     import { type Player } from '@tabletop/common'
-    import { LowenherzPlayerState, MachineState, type PoliticsCard } from '@tabletop/lowenherz'
+    import {
+        LowenherzProjectedPlayerState,
+        MachineState,
+        type PoliticsCard
+    } from '@tabletop/lowenherz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import iconMoneybagFill from '$lib/images/action-cards/icons/icon-moneybag-transparent.png'
     import iconMoneybagLines from '$lib/images/action-cards/icons/icon-moneybag-lines.png'
@@ -19,14 +23,11 @@
     // contents change and the cards reposition - so scrubbing through a game would otherwise play
     // them at full length, once per step.
     const cardSlideMs = $derived(gameSession.isViewingHistory ? 100 : 220)
-    let { player, playerState }: { player: Player; playerState: LowenherzPlayerState } = $props()
+    let { player, playerState }: { player: Player; playerState: LowenherzProjectedPlayerState } =
+        $props()
 
     let isTurn = $derived(gameSession.gameState.activePlayerIds.includes(player.id))
     let headerColor = $derived(gameSession.colors.getPlayerUiColor(player.id))
-    // Kept face-down per the rulebook - only the owning player ever sees their own cards
-    // face-up (see shouldRevealFace below); everyone else just sees a face-down card and a
-    // count, same convention as the politics-card piles themselves (a client-side
-    // convention, not server-enforced - see LowenherzPlayerState.politicsCards).
     let isMe = $derived(gameSession.myPlayer?.id === player.id)
 
     // "Public Money" game-config option - defaults to on. A player with a perfect
@@ -54,7 +55,7 @@
     let politicsAreaWidth: number = $state(0)
 
     // A little per-card shift/rotation so the splay reads as a loosely-fanned hand
-    // rather than a perfectly aligned stack - computed once per card id and cached
+    // rather than a perfectly aligned stack - computed once per local slot and cached
     // (not re-rolled every render, which would make cards visibly jitter/flicker
     // whenever anything else about the panel re-renders), same "randomize once, hold
     // stable" approach as WallSegment/RampartCorner's own jitter.
@@ -66,16 +67,16 @@
     const MAX_CARD_TILT_DEG = 2.1
     const NO_JITTER = { rotate: 0, dx: 0, dy: 0 }
     const cardJitter = new Map<string, { rotate: number; dx: number; dy: number }>()
-    function jitterFor(cardId: string): { rotate: number; dx: number; dy: number } {
+    function jitterFor(key: string): { rotate: number; dx: number; dy: number } {
         if (!isOverlapping) return NO_JITTER
-        let jitter = cardJitter.get(cardId)
+        let jitter = cardJitter.get(key)
         if (!jitter) {
             jitter = {
                 rotate: (Math.random() * 2 - 1) * MAX_CARD_TILT_DEG,
                 dx: (Math.random() * 2 - 1) * 2,
                 dy: (Math.random() * 2 - 1) * 2
             }
-            cardJitter.set(cardId, jitter)
+            cardJitter.set(key, jitter)
         }
         return jitter
     }
@@ -94,29 +95,37 @@
     // just reached) sits flush, on its own, rather than being buried in (or tilted like) the rest
     // of the hand. Everything else still overlaps as it did before, just among a possibly smaller
     // group now that this splits off.
-    const applicableCardIds = $derived(
-        isMe
-            ? new Set(
-                  playerState.politicsCards
-                      .filter((c) => gameSession.canApplyPoliticsCard(c) || gameSession.isPoliticsCardActive(c))
-                      .map((c) => c.id)
-              )
-            : new Set<string>()
+    const knownCards = $derived(
+        playerState.politicsCards ??
+            gameSession.gameState.finalHands?.find((hand) => hand.playerId === playerState.playerId)
+                ?.cards
     )
-    const applicableCards = $derived(playerState.politicsCards.filter((c) => applicableCardIds.has(c.id)))
-    const overlappedCards = $derived(playerState.politicsCards.filter((c) => !applicableCardIds.has(c.id)))
+    const cardCount = $derived(playerState.politicsCardCount ?? knownCards?.length ?? 0)
+    const applicableCards = $derived(
+        isMe
+            ? (knownCards ?? []).filter(
+                  (card) =>
+                      gameSession.canApplyPoliticsCard(card) ||
+                      gameSession.isPoliticsCardActive(card)
+              )
+            : []
+    )
+    const overlappedCards = $derived(
+        knownCards
+            ? knownCards.filter((c) => !applicableCards.includes(c))
+            : Array.from({ length: cardCount }, () => undefined)
+    )
 
     // An empty hand still gets a slot (so cards don't pop the panel taller the moment
     // someone picks one up), but it doesn't need to reserve a full card's height to say
     // "nothing here" - at full size the placeholder was the tallest thing in the panel
     // and made card-less players look as heavy as card-holding ones. Half height keeps
     // the slot legible as a card-shaped outline while giving the row back to the panel.
-    const hasPoliticsCards = $derived(playerState.politicsCards.length > 0)
+    const hasPoliticsCards = $derived(cardCount > 0)
     // Started at half a card's height; trimmed another 20% from there, which is as small
     // as the outline can get while still reading as a card-shaped placeholder rather than
     // a stray divider. Derived from CARD_H so it tracks the real card size.
     const EMPTY_SLOT_H = Math.round(CARD_H * 0.4)
-
 
     // A card's face only ever shows for your own hand (never an opponent's - that's
     // still purely a client-side convention, not server-enforced, same as before) -
@@ -126,10 +135,11 @@
     // while deciding what to do), and an applicable card shows face-up even outside
     // your turn too, so its APPLY button is actually attached to real card art.
     // Everything else stays face-down.
-    function shouldRevealFace(card: PoliticsCard): boolean {
+    function shouldRevealFace(card?: PoliticsCard): boolean {
+        if (!card) return false
         if (gameSession.gameState.machineState === MachineState.EndOfGame) return true
         if (!isMe) return false
-        if (applicableCardIds.has(card.id)) return true
+        if (applicableCards.includes(card)) return true
         return !!isTurn
     }
 
@@ -183,12 +193,13 @@
         // Stacking exists to fit a big hand into a fixed-width panel - a hand this small has
         // never actually needed it, so it lays out flat even if politicsAreaWidth is narrower
         // than that would ideally want (a phone-width panel, say).
-        if (playerState.politicsCards.length <= 4) return preferred
+        if (cardCount <= 4) return preferred
         const reserved = applicableWidth + (applicableCards.length > 0 ? GROUP_GAP : 0)
         // 2x the buffer, matching the width the layout below actually asks for - counting
         // it once here let a full hand come out a buffer wider than the space measured for
         // it, which is what the compression is meant to prevent.
-        const maxThatFits = (politicsAreaWidth - 2 * CARD_EDGE_BUFFER - reserved - CARD_W) / (count - 1)
+        const maxThatFits =
+            (politicsAreaWidth - 2 * CARD_EDGE_BUFFER - reserved - CARD_W) / (count - 1)
         return Math.max(MIN_SLIVER, Math.min(preferred, maxThatFits))
     })
     // Whether the overlapped group is actually overlapping right now - only the frontmost
@@ -209,8 +220,21 @@
     function bounceIn(el: HTMLElement) {
         gsap.set(el, { scale: BOUNCE_INITIAL_SCALE, opacity: 0 })
         const tl = gsap.timeline()
-        tl.to(el, { scale: BOUNCE_OVERSHOOT_SCALE, opacity: 1, duration: BOUNCE_POP, ease: 'back.out(2.2)' }, 0)
-        tl.to(el, { scale: 1, duration: BOUNCE_SETTLE, ease: 'power2.out', clearProps: 'scale' }, BOUNCE_POP)
+        tl.to(
+            el,
+            {
+                scale: BOUNCE_OVERSHOOT_SCALE,
+                opacity: 1,
+                duration: BOUNCE_POP,
+                ease: 'back.out(2.2)'
+            },
+            0
+        )
+        tl.to(
+            el,
+            { scale: 1, duration: BOUNCE_SETTLE, ease: 'power2.out', clearProps: 'scale' },
+            BOUNCE_POP
+        )
         return () => tl.kill()
     }
 </script>
@@ -255,9 +279,7 @@
     </div>
 {/snippet}
 
-<div
-    class="rounded-lg overflow-hidden"
->
+<div class="rounded-lg overflow-hidden">
     <!-- Name pill, centered right above the flags - a nearly-rectangular pill filled
          with the player's color (same pattern as Indonesia's player nameplates),
          rather than a full-width bar, so it reads as its own badge sitting just above
@@ -313,11 +335,14 @@
                      step compress below CARD_W, tucking each card under its neighbor. Every
                      card flips face up (see shouldRevealFace) on your own turn; otherwise it
                      stays face-down. -->
-                <div class="relative h-[103px] shrink-0" style="width: {CARD_W + (overlapCount - 1) * step}px;">
-                    {#each overlappedCards as card, i (card.id)}
+                <div
+                    class="relative h-[103px] shrink-0"
+                    style="width: {CARD_W + (overlapCount - 1) * step}px;"
+                >
+                    {#each overlappedCards as card, i (i)}
                         {@const isTop = i === overlapCount - 1}
                         {@const revealFace = shouldRevealFace(card)}
-                        {@const jitter = jitterFor(card.id)}
+                        {@const jitter = jitterFor(String(i))}
                         <!-- Every card gets a resting drop shadow, so it sits ON the panel
                              rather than looking printed onto it. PoliticsCard's own shadow-md
                              is far too faint to read at this size against the parchment, and
@@ -347,7 +372,9 @@
                                      its own fully visible slot, so this doesn't apply. -->
                                 <div
                                     class="relative w-full h-full"
-                                    title="{overlapCount} politics card{overlapCount === 1 ? '' : 's'}"
+                                    title="{overlapCount} politics card{overlapCount === 1
+                                        ? ''
+                                        : 's'}"
                                 >
                                     <PoliticsCardView {card} faceDown />
                                 </div>
@@ -377,9 +404,12 @@
                              to show there's more than one AND to keep its own APPLY/ACTIVE band
                              (which spans its card's full width) clickable in that sliver. A
                              group of one behaves exactly as a lone applicable card always did. -->
-                        <div class="relative h-full shrink-0" style="width: {groupWidth(group.cards.length)}px;">
-                            {#each group.cards as card, i (card.id)}
-                                {@const active = gameSession.isPoliticsCardActive(card)}
+                        <div
+                            class="relative h-full shrink-0"
+                            style="width: {groupWidth(group.cards.length)}px;"
+                        >
+                            {#each group.cards as card, i (i)}
+                                {@const active = gameSession.isPoliticsCardActive(card, i)}
                                 <div
                                     class="absolute top-0 rounded-md"
                                     style="
@@ -402,7 +432,7 @@
                                         >
                                             ACTIVE
                                         </div>
-                                    {:else}
+                                    {:else if gameSession.canApplyPoliticsCard(card)}
                                         <!-- inset-x-1 rather than flush left-0/right-0: a pill this
                                              narrow reads better with a sliver of card showing on either
                                              side than stretched edge-to-edge. Border/background/text
@@ -437,5 +467,4 @@
 </div>
 
 <style>
-
 </style>

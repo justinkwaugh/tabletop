@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+    assert,
     ActionSource,
     Color,
     type GameAction,
@@ -9,12 +10,12 @@ import {
     GameStorage,
     PlayerStatus
 } from '@tabletop/common'
-import { LowenherzGameState } from '../model/gameState.js'
+import { LowenherzGameState, LowenherzGameStateValidator } from '../model/gameState.js'
 import { BOARD_COLS, BOARD_ROWS, BoardSquare, SquareType } from '../model/board.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { ActionCard, ActionCardType, CardBack } from '../definition/actionCards.js'
-import { PoliticsCardType } from '../definition/politicsCards.js'
+import { PoliticsCardType, type PoliticsCard } from '../definition/politicsCards.js'
 import { LowenherzRuntime } from '../definition/runtime.js'
 import { ChooseAction } from '../actions/chooseAction.js'
 import { NegotiationMove, NegotiationMoveKind } from '../actions/negotiationMove.js'
@@ -29,7 +30,9 @@ import { isAdvanceResolution } from '../actions/advanceResolution.js'
 const engine = new GameEngine(LowenherzRuntime)
 
 function executeAction(action: GameAction, state: LowenherzGameState, game: Game) {
-    return engine.executeAction({ action, state, game })
+    const result = engine.executeCanonicalAction({ action, state, game })
+    assert(LowenherzGameStateValidator.Check(result.updatedState))
+    return { ...result, updatedState: result.updatedState }
 }
 
 function buildGame(playerIds: string[]): Game {
@@ -105,8 +108,8 @@ function buildState(
         resolvedSlots: [],
         // One dummy card in each pile, so any test whose slot 1 politics winner needs
         // to actually take a card has something to pick.
-        politicsCardPileA: [{ id: 'test-card-a', type: PoliticsCardType.Alliance }],
-        politicsCardPileB: [{ id: 'test-card-b', type: PoliticsCardType.Renegade }]
+        politicsCardPileA: [{ type: PoliticsCardType.Alliance }],
+        politicsCardPileB: [{ type: PoliticsCardType.Renegade }]
     }
 }
 
@@ -200,7 +203,7 @@ function lookAtPoliticsPile(playerId: string, pile: 'A' | 'B'): LookAtPoliticsPi
     }
 }
 
-function takePoliticsCard(playerId: string, pile: 'A' | 'B', cardId: string): TakePoliticsCard {
+function takePoliticsCard(playerId: string, pile: 'A' | 'B', card: PoliticsCard): TakePoliticsCard {
     return {
         id: `take-politics-${playerId}`,
         gameId: 'game-1',
@@ -208,11 +211,54 @@ function takePoliticsCard(playerId: string, pile: 'A' | 'B', cardId: string): Ta
         type: ActionType.TakePoliticsCard,
         playerId,
         pile,
-        cardId
+        card
     }
 }
 
 describe('resolution cascade (via the real GameEngine)', () => {
+    it('plays forward from a legacy save with an inspected pile without rewriting its source', () => {
+        const playerIds = ['p1', 'p2']
+        const game = buildGame(playerIds)
+        const card: ActionCard = {
+            id: 'card-1',
+            back: CardBack.B,
+            type: ActionCardType.Standard,
+            top: { kind: 'politics' },
+            middle: { kind: 'knight', count: 2 },
+            bottom: { kind: 'knight', count: 1 }
+        }
+        const state = {
+            ...buildState(playerIds, card),
+            systemVersion: 2,
+            machineState: MachineState.TakingPoliticsCard,
+            activePlayerIds: ['p1'],
+            politicsTakingPlayerId: 'p1',
+            openedPoliticsPile: 'A' as const,
+            politicsCardPileA: [
+                { id: 'old-alliance-1', type: PoliticsCardType.Alliance },
+                { id: 'old-alliance-2', type: PoliticsCardType.Alliance }
+            ],
+            politicsCardPileB: [{ id: 'old-renegade', type: PoliticsCardType.Renegade }]
+        }
+        engine.validateCanonicalState(state)
+        const result = engine.executeCanonicalAction({
+            game,
+            state,
+            action: takePoliticsCard('p1', 'A', { type: PoliticsCardType.Alliance })
+        })
+        expect(result.updatedState.systemVersion).toBe(2)
+        expect(result.updatedState.politicsCardPileA).toEqual([{ type: PoliticsCardType.Alliance }])
+        expect(result.updatedState.politicsCardPileB).toEqual([{ type: PoliticsCardType.Renegade }])
+        expect(result.updatedState.players[0].politicsCards).toEqual([
+            { type: PoliticsCardType.Alliance }
+        ])
+        expect(state.politicsCardPileA[0].id).toBe('old-alliance-1')
+        expect(result.processedActions[0]).toMatchObject({
+            card: { type: PoliticsCardType.Alliance }
+        })
+        expect(result.processedActions[0]).not.toHaveProperty('cardId')
+    })
+
     it('drops a proposer from the active players, and undoing the proposal puts them back', () => {
         const playerIds = ['p1', 'p2']
         const game = buildGame(playerIds)
@@ -286,7 +332,11 @@ describe('resolution cascade (via the real GameEngine)', () => {
         // p1 is not in activePlayerIds any more, but the engine's own gate
         // (GameEngine.isPlayerAllowed) still lets a Decline from them through - see
         // HydratedLowenherzGameState.isActivePlayer.
-        state = executeAction(negotiationMove('p1', NegotiationMoveKind.Decline), state, game).updatedState
+        state = executeAction(
+            negotiationMove('p1', NegotiationMoveKind.Decline),
+            state,
+            game
+        ).updatedState
         expect(state.machineState).toBe(MachineState.Dueling)
         expect(state.duel?.playerIds).toEqual(['p1', 'p2'])
     })
@@ -365,7 +415,11 @@ describe('resolution cascade (via the real GameEngine)', () => {
         expect(state.politicsTakingPlayerId).toBe('p2')
 
         state = executeAction(lookAtPoliticsPile('p2', 'A'), state, game).updatedState
-        state = executeAction(takePoliticsCard('p2', 'A', 'test-card-a'), state, game).updatedState
+        state = executeAction(
+            takePoliticsCard('p2', 'A', { type: PoliticsCardType.Alliance }),
+            state,
+            game
+        ).updatedState
 
         expect(state.machineState).toBe(MachineState.StartOfTurn)
         expect(state.firstPlayerId).toBe('p2') // rotated from p1
@@ -400,7 +454,11 @@ describe('resolution cascade (via the real GameEngine)', () => {
 
         expect(state.machineState).toBe(MachineState.Negotiating)
 
-        state = executeAction(negotiationMove('p1', NegotiationMoveKind.Decline), state, game).updatedState
+        state = executeAction(
+            negotiationMove('p1', NegotiationMoveKind.Decline),
+            state,
+            game
+        ).updatedState
 
         expect(state.machineState).toBe(MachineState.Dueling)
         expect(state.duel).toEqual({ slot: 1, playerIds: ['p1', 'p2'], bids: [], tieCount: 0 })
@@ -428,7 +486,12 @@ describe('resolution cascade (via the real GameEngine)', () => {
         state = executeAction(chooseAction('p4', 2), state, game).updatedState
 
         expect(state.machineState).toBe(MachineState.Dueling)
-        expect(state.duel).toEqual({ slot: 2, playerIds: ['p2', 'p3', 'p4'], bids: [], tieCount: 0 })
+        expect(state.duel).toEqual({
+            slot: 2,
+            playerIds: ['p2', 'p3', 'p4'],
+            bids: [],
+            tieCount: 0
+        })
         // The money bag (6 ducats, 1 chooser) should have already paid out.
         expect(state.players.find((p) => p.playerId === 'p1')!.money).toBe(12 + 6)
 
@@ -480,7 +543,12 @@ describe('resolution cascade (via the real GameEngine)', () => {
         state = executeAction(chooseAction('p4', 1), state, game).updatedState
 
         expect(state.machineState).toBe(MachineState.Dueling)
-        expect(state.duel).toEqual({ slot: 1, playerIds: ['p2', 'p3', 'p4'], bids: [], tieCount: 0 })
+        expect(state.duel).toEqual({
+            slot: 1,
+            playerIds: ['p2', 'p3', 'p4'],
+            bids: [],
+            tieCount: 0
+        })
 
         // Distinct bids so slot 1 resolves in one round. p4 wins the politics slot and
         // must take a card before the cascade continues into slot 2's solo knight win.
@@ -491,7 +559,11 @@ describe('resolution cascade (via the real GameEngine)', () => {
         expect(state.machineState).toBe(MachineState.TakingPoliticsCard)
         expect(state.politicsTakingPlayerId).toBe('p4')
         state = executeAction(lookAtPoliticsPile('p4', 'A'), state, game).updatedState
-        state = executeAction(takePoliticsCard('p4', 'A', 'test-card-a'), state, game).updatedState
+        state = executeAction(
+            takePoliticsCard('p4', 'A', { type: PoliticsCardType.Alliance }),
+            state,
+            game
+        ).updatedState
 
         expect(state.machineState).toBe(MachineState.PlacingKnights)
         expect(state.knightPlacingPlayerId).toBe('p1')
@@ -543,13 +615,21 @@ describe('resolution cascade (via the real GameEngine)', () => {
 
         expect(state.machineState).toBe(MachineState.TakingPoliticsCard)
         state = executeAction(lookAtPoliticsPile('p4', 'A'), state, game).updatedState
-        state = executeAction(takePoliticsCard('p4', 'A', 'test-card-a'), state, game).updatedState
+        state = executeAction(
+            takePoliticsCard('p4', 'A', { type: PoliticsCardType.Alliance }),
+            state,
+            game
+        ).updatedState
 
         expect(state.machineState).toBe(MachineState.PlacingKnights)
         expect(state.knightPlacingPlayerId).toBe('p1')
         expect(state.knightsRemaining).toBe(1)
 
-        state = executeAction(expandRegion('p1', 'r1', { col: 1, row: 0 }), state, game).updatedState
+        state = executeAction(
+            expandRegion('p1', 'r1', { col: 1, row: 0 }),
+            state,
+            game
+        ).updatedState
 
         expect(state.regions.find((r) => r.id === 'r1')!.squareKeys).toEqual(['0,0', '1,0'])
         expect(state.players.find((p) => p.playerId === 'p1')!.powerPoints).toBe(1)

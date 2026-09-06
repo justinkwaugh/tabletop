@@ -4,10 +4,11 @@ import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { ActionCardType, CardBack } from '../definition/actionCards.js'
+import { ActionCard, ActionCardType, CardBack } from '../definition/actionCards.js'
 
 export type DrawActionCardMetadata = Type.Static<typeof DrawActionCardMetadata>
 export const DrawActionCardMetadata = Type.Object({
+    card: Type.Optional(ActionCard),
     // Which kind of card was flipped - the action itself doesn't otherwise carry this,
     // since it's derived from state.currentActionCard after the fact. Used by history
     // to describe the draw (and, for Mining/King is Dead, the state handler adds
@@ -63,8 +64,11 @@ export class HydratedDrawActionCard
             throw Error('Invalid DrawActionCard action')
         }
 
-        state.currentActionCard = state.actionDeck.shift()
+        state.currentActionCard = state.getActionDeck().shift()
+        state.actionDeckBacks = state.getActionDeck().map((card) => card.back)
+        this.revealsInfo = true
         this.metadata = {
+            card: state.currentActionCard,
             cardType: state.currentActionCard?.type,
             back: state.currentActionCard?.back
         }
@@ -79,7 +83,7 @@ export class HydratedDrawActionCard
             state.machineState === MachineState.StartOfTurn &&
             playerId === state.firstPlayerId &&
             !state.currentActionCard &&
-            state.actionDeck.length > 0
+            (state.actionDeckBacks?.length ?? state.getActionDeck().length) > 0
         )
     }
 }

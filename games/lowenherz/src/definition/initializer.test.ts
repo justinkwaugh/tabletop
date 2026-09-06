@@ -1,3 +1,5 @@
+import { HydratedLowenherzGameState } from '../model/gameState.js'
+import { PoliticsCardType } from './politicsCards.js'
 import { describe, expect, it } from 'vitest'
 import { Game, GameConfig, GameStatus, GameStorage, PlayerStatus } from '@tabletop/common'
 import { LowenherzGameInitializer } from './initializer.js'
@@ -55,7 +57,7 @@ describe('LowenherzGameInitializer', () => {
         expect(state.turnManager.turnOrder).not.toEqual(originalTurnOrder)
     })
 
-    it('deals all 13 politics cards across the two piles with no duplicates, and gives every player an empty hand', () => {
+    it('deals all 13 politics cards across the two piles with the printed multiplicities, and gives every player an empty hand', () => {
         const initializer = new LowenherzGameInitializer()
         const game = buildGame(4)
 
@@ -69,9 +71,9 @@ describe('LowenherzGameInitializer', () => {
             winningPlayerIds: []
         })
 
-        const allCardIds = [...state.politicsCardPileA, ...state.politicsCardPileB].map((c) => c.id)
-        expect(allCardIds.length).toBe(13)
-        expect(new Set(allCardIds).size).toBe(13)
+        const allCards = [...state.getPoliticsPile('A'), ...state.getPoliticsPile('B')]
+        expect(allCards).toHaveLength(13)
+        expect(allCards.filter((card) => card.type === PoliticsCardType.Alliance)).toHaveLength(3)
         expect(state.politicsTakingPlayerId).toBeUndefined()
 
         for (const player of state.players) {
@@ -94,11 +96,18 @@ describe('LowenherzGameInitializer', () => {
         })
 
         expect(state.machineState).toBe(MachineState.PlacingCastles)
-        expect(state.actionDeck.length).toBe(31)
-        expect(state.actionDeck.slice(0, 6).every((c) => c.back === CardBack.A)).toBe(true)
-        expect(state.board.squares.every((row) => row.every((sq) => !sq.castleOwner && !sq.knightOwner))).toBe(
-            true
-        )
+        expect(state.getActionDeck().length).toBe(31)
+        expect(
+            state
+                .getActionDeck()
+                .slice(0, 6)
+                .every((c) => c.back === CardBack.A)
+        ).toBe(true)
+        expect(
+            state.board.squares.every((row) =>
+                row.every((sq) => !sq.castleOwner && !sq.knightOwner)
+            )
+        ).toBe(true)
         expect(state.regions).toEqual([])
     })
 
@@ -118,8 +127,8 @@ describe('LowenherzGameInitializer', () => {
 
         expect(state.machineState).toBe(MachineState.StartOfTurn)
         // Basic-game deck: no A cards, 25 total (see actionDeckAssembly.ts).
-        expect(state.actionDeck.length).toBe(25)
-        expect(state.actionDeck.every((c) => c.back !== CardBack.A)).toBe(true)
+        expect(state.getActionDeck().length).toBe(25)
+        expect(state.getActionDeck().every((c) => c.back !== CardBack.A)).toBe(true)
         // Every player already has a scored starting region and 9 knights left in
         // stock (12 - 3 placed), without anyone ever submitting a PlaceCastle action.
         expect(state.regions.length).toBe(4)
@@ -149,14 +158,16 @@ describe('LowenherzGameInitializer', () => {
         // wholesale. Placement happens regardless of the config option.
         expect(state.machineState).toBe(MachineState.PlacingCastles)
         expect(state.regions).toEqual([])
-        expect(state.board.squares.every((row) => row.every((sq) => !sq.castleOwner && !sq.knightOwner))).toBe(
-            true
-        )
+        expect(
+            state.board.squares.every((row) =>
+                row.every((sq) => !sq.castleOwner && !sq.knightOwner)
+            )
+        ).toBe(true)
         // ...and a neutral color exists for the 2 castles each player places in it.
         expect(state.neutralColor).toBeDefined()
         expect(state.players.some((p) => p.color === state.neutralColor)).toBe(false)
         // A-lettered cards are stacked on top, as variable construction requires.
-        expect(state.actionDeck[0].back).toBe(CardBack.A)
+        expect(state.getActionDeck()[0].back).toBe(CardBack.A)
     })
 
     it('redistributes the politics piles for exploration, not just shuffles within them', () => {
@@ -174,27 +185,31 @@ describe('LowenherzGameInitializer', () => {
             winningPlayerIds: []
         })
 
-        const startingA = new Set(state.politicsCardPileA.map((card) => card.id))
-        const sizeA = state.politicsCardPileA.length
-        const sizeB = state.politicsCardPileB.length
-        const everyCard = [...state.politicsCardPileA, ...state.politicsCardPileB]
-            .map((card) => card.id)
+        const startingA = new Set(state.getPoliticsPile('A').map((card) => JSON.stringify(card)))
+        const sizeA = state.getPoliticsPile('A').length
+        const sizeB = state.getPoliticsPile('B').length
+        const everyCard = [...state.getPoliticsPile('A'), ...state.getPoliticsPile('B')]
+            .map((card) => JSON.stringify(card))
             .sort()
 
         let anyCardMoved = false
         for (let attempt = 0; attempt < 40; attempt++) {
-            const explored = initializer.initializeExplorationState(state.dehydrate())
+            const explored = new HydratedLowenherzGameState(
+                initializer.initializeExplorationState(state.dehydrate())
+            )
 
             // Same cards, same pile sizes - only the split between them may differ.
-            expect(explored.politicsCardPileA).toHaveLength(sizeA)
-            expect(explored.politicsCardPileB).toHaveLength(sizeB)
+            expect(explored.getPoliticsPile('A')).toHaveLength(sizeA)
+            expect(explored.getPoliticsPile('B')).toHaveLength(sizeB)
             expect(
-                [...explored.politicsCardPileA, ...explored.politicsCardPileB]
-                    .map((card) => card.id)
+                [...explored.getPoliticsPile('A'), ...explored.getPoliticsPile('B')]
+                    .map((card) => JSON.stringify(card))
                     .sort()
             ).toEqual(everyCard)
 
-            if (explored.politicsCardPileA.some((card) => !startingA.has(card.id))) {
+            if (
+                explored.getPoliticsPile('A').some((card) => !startingA.has(JSON.stringify(card)))
+            ) {
                 anyCardMoved = true
             }
         }

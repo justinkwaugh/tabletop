@@ -9,7 +9,10 @@ import { PoliticsCardType } from '../definition/politicsCards.js'
 import { Region } from '../model/region.js'
 import { HydratedPlayRenegadeCard } from './playRenegadeCard.js'
 
-function blankBoard(): { squares: BoardSquare[][]; walls: { col: number; row: number; edge: WallEdge }[] } {
+function blankBoard(): {
+    squares: BoardSquare[][]
+    walls: { col: number; row: number; edge: WallEdge }[]
+} {
     return {
         squares: Array.from({ length: BOARD_ROWS }, () =>
             Array.from({ length: BOARD_COLS }, () => ({ type: SquareType.Blank }))
@@ -34,7 +37,7 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         money: 12,
         powerPoints: 0,
         knightsInStock: 5,
-        politicsCards: [{ id: 'card-renegade', type: PoliticsCardType.Renegade }]
+        politicsCards: [{ type: PoliticsCardType.Renegade }]
     }))
 
     const board = blankBoard()
@@ -76,7 +79,6 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
 function makePlayRenegadeCard(
     playerId: string,
     overrides: Partial<{
-        cardId: string
         ownRegionId: string
         enemyRegionId: string
         removedCol: number
@@ -91,7 +93,6 @@ function makePlayRenegadeCard(
         source: ActionSource.User,
         type: ActionType.PlayRenegadeCard,
         playerId,
-        cardId: 'card-renegade',
         ownRegionId: 'own',
         enemyRegionId: 'enemy',
         removedCol: 1,
@@ -103,7 +104,19 @@ function makePlayRenegadeCard(
 }
 
 describe('HydratedPlayRenegadeCard', () => {
-    it('removes an enemy knight and places one of the player\'s own in exchange', () => {
+    it('discards only one identical copy when played', () => {
+        const state = buildState()
+        state.getPlayerState('p1').politicsCards = [
+            { type: PoliticsCardType.Renegade },
+            { type: PoliticsCardType.Renegade }
+        ]
+        makePlayRenegadeCard('p1').apply(state)
+        expect(state.getPlayerState('p1').politicsCards).toEqual([
+            { type: PoliticsCardType.Renegade }
+        ])
+    })
+
+    it("removes an enemy knight and places one of the player's own in exchange", () => {
         const state = buildState()
         const action = makePlayRenegadeCard('p1')
 
@@ -218,9 +231,10 @@ describe('HydratedPlayRenegadeCard', () => {
     it("rejects when the chosen 'own' region doesn't belong to the player", () => {
         const state = buildState()
         expect(
-            makePlayRenegadeCard('p1', { ownRegionId: 'enemy', enemyRegionId: 'own' }).isValidPlayRenegadeCard(
-                state
-            )
+            makePlayRenegadeCard('p1', {
+                ownRegionId: 'enemy',
+                enemyRegionId: 'own'
+            }).isValidPlayRenegadeCard(state)
         ).toBe(false)
     })
 
@@ -230,7 +244,12 @@ describe('HydratedPlayRenegadeCard', () => {
     })
 
     it("rejects when the two regions don't border each other", () => {
-        const farEnemy: Region = { id: 'enemy', owner: 'p2', squareKeys: ['9,9'], castleSquareKey: '9,9' }
+        const farEnemy: Region = {
+            id: 'enemy',
+            owner: 'p2',
+            squareKeys: ['9,9'],
+            castleSquareKey: '9,9'
+        }
         const board = blankBoard()
         board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
         board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p1' }
@@ -239,7 +258,9 @@ describe('HydratedPlayRenegadeCard', () => {
         const state = buildState({ regions: [ownRegion(), farEnemy], board })
 
         expect(
-            makePlayRenegadeCard('p1', { removedCol: 9, removedRow: 9 }).isValidPlayRenegadeCard(state)
+            makePlayRenegadeCard('p1', { removedCol: 9, removedRow: 9 }).isValidPlayRenegadeCard(
+                state
+            )
         ).toBe(false)
     })
 
@@ -247,7 +268,9 @@ describe('HydratedPlayRenegadeCard', () => {
         const state = buildState()
         // (0,0) is Pink's own castle square - nowhere near the enemy region's squareKeys.
         expect(
-            makePlayRenegadeCard('p1', { removedCol: 0, removedRow: 0 }).isValidPlayRenegadeCard(state)
+            makePlayRenegadeCard('p1', { removedCol: 0, removedRow: 0 }).isValidPlayRenegadeCard(
+                state
+            )
         ).toBe(false)
     })
 
@@ -255,13 +278,20 @@ describe('HydratedPlayRenegadeCard', () => {
         const state = buildState({
             regions: [
                 ownRegion(),
-                { id: 'enemy', owner: 'p2', squareKeys: ['0,1', '1,1', '2,1'], castleSquareKey: '0,1' }
+                {
+                    id: 'enemy',
+                    owner: 'p2',
+                    squareKeys: ['0,1', '1,1', '2,1'],
+                    castleSquareKey: '0,1'
+                }
             ]
         })
         state.board.squares[1][2] = { type: SquareType.Blank, knightOwner: 'p2' } // (2,1) - only reachable via (1,1)
 
         expect(
-            makePlayRenegadeCard('p1', { removedCol: 1, removedRow: 1 }).isValidPlayRenegadeCard(state)
+            makePlayRenegadeCard('p1', { removedCol: 1, removedRow: 1 }).isValidPlayRenegadeCard(
+                state
+            )
         ).toBe(false)
     })
 
@@ -274,14 +304,18 @@ describe('HydratedPlayRenegadeCard', () => {
     it("rejects placement onto a square outside the player's own region", () => {
         const state = buildState()
         expect(
-            makePlayRenegadeCard('p1', { placedCol: 5, placedRow: 5 }).isValidPlayRenegadeCard(state)
+            makePlayRenegadeCard('p1', { placedCol: 5, placedRow: 5 }).isValidPlayRenegadeCard(
+                state
+            )
         ).toBe(false)
     })
 
     it('rejects placement onto an already-occupied square', () => {
         const state = buildState()
         expect(
-            makePlayRenegadeCard('p1', { placedCol: 1, placedRow: 0 }).isValidPlayRenegadeCard(state)
+            makePlayRenegadeCard('p1', { placedCol: 1, placedRow: 0 }).isValidPlayRenegadeCard(
+                state
+            )
         ).toBe(false)
     })
 

@@ -572,6 +572,9 @@ class ProjectedExecutionGuard {
             }
         }
 
+        if (value === undefined && Type.IsOptional(schema)) {
+            return { schema, context: scopedContext }
+        }
         if (Type.IsIntersect(schema)) {
             const evaluated = Type.Evaluate(schema)
             if (Type.IsIntersect(evaluated)) {

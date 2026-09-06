@@ -36,22 +36,22 @@
     // last one - but broke exactly at a pack boundary, where the just-drawn card (still
     // showing in the flipped-card slot below) is the OLD pack's last card while the
     // pile itself has already moved on to the new one's first.
-    const nextCardBack = $derived(actionState.actionDeck[0]?.back)
+    const nextCardBack = $derived(actionState.actionDeckBacks?.[0])
     // How many more draws (starting with the current top card) until a new lettered
     // "pack" begins - packs are stacked in order (see actionDeckAssembly.ts) so the
     // deck is just a run of same-back cards followed by a run of the next back, etc.
     // Undefined once we're into the last pack (no next letter to count down to).
     const untilNextPack = $derived.by(() => {
-        const deck = actionState.actionDeck
+        const deck = actionState.actionDeckBacks ?? []
         if (deck.length === 0) return undefined
-        const currentBack = deck[0].back
+        const currentBack = deck[0]
         let count = 0
         for (const deckCard of deck) {
-            if (deckCard.back !== currentBack) break
+            if (deckCard !== currentBack) break
             count++
         }
         if (count >= deck.length) return undefined
-        return { count, nextBack: deck[count].back }
+        return { count, nextBack: deck[count] }
     })
     // The flip lives in an animator now (see animators/actionCardFlipAnimator), registered by the
     // {@attach} below so it is bound to this component's lifetime. It appends its tween to the
@@ -113,7 +113,8 @@
         }}
         disabled={!gameSession.canDrawActionCard}
         onclick={() => gameSession.drawActionCard()}
-        style="width: {CARD_COLUMN_WIDTH}px;" class="relative shadow-[0_4px_10px_rgba(0,0,0,0.35)] {gameSession.canDrawActionCard
+        style="width: {CARD_COLUMN_WIDTH}px;"
+        class="relative shadow-[0_4px_10px_rgba(0,0,0,0.35)] {gameSession.canDrawActionCard
             ? 'cursor-pointer hover:brightness-95'
             : ''} {gameSession.canDrawActionCard && isFirstRound ? 'draw-pile-glow' : ''}"
     >
@@ -130,7 +131,8 @@
             <div
                 class="absolute bottom-[8%] inset-x-0 text-center text-[28px] text-black/80 leading-none"
             >
-                {untilNextPack.count} until <span class="pack-letter">{untilNextPack.nextBack}</span>
+                {untilNextPack.count} until
+                <span class="pack-letter">{untilNextPack.nextBack}</span>
             </div>
         {/if}
     </button>
@@ -162,7 +164,10 @@
                         class="w-full h-full rounded-md shadow-md object-cover"
                     />
                 </div>
-                <div class="absolute inset-0" style="backface-visibility: hidden; transform: rotateY(180deg);">
+                <div
+                    class="absolute inset-0"
+                    style="backface-visibility: hidden; transform: rotateY(180deg);"
+                >
                     <ActionCard
                         card={flippingCard}
                         slots={{ top: slotFor(1), middle: slotFor(2), bottom: slotFor(3) }}
@@ -170,7 +175,10 @@
                 </div>
             </div>
         {:else if card}
-            <ActionCard {card} slots={{ top: slotFor(1), middle: slotFor(2), bottom: slotFor(3) }} />
+            <ActionCard
+                {card}
+                slots={{ top: slotFor(1), middle: slotFor(2), bottom: slotFor(3) }}
+            />
         {:else}
             {@render emptySlot('')}
         {/if}

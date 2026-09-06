@@ -39,7 +39,10 @@ export function advanceRound(state: HydratedLowenherzGameState) {
 // castles a prince has in the standard game; the 2-player variant gives each of them four
 // (see buildPlacementPlan), which a hardcoded 3 would lock out one castle early.
 // The neutral prince's castles belong to no player and are counted for nobody.
-export function hasEveryCastleEnclosed(state: HydratedLowenherzGameState, owner: PieceOwner): boolean {
+export function hasEveryCastleEnclosed(
+    state: HydratedLowenherzGameState,
+    owner: PieceOwner
+): boolean {
     const castleCount = castleSquaresForOwner(state.board, owner).length
     // No castles on the board at all: vacuously "all enclosed", but read as UNcapped
     // rather than capped. The cap exists to stop wall placement that can't accomplish
@@ -57,7 +60,10 @@ export function hasEveryCastleEnclosed(state: HydratedLowenherzGameState, owner:
 // re-deriving the rules. Used to detect the "won the border action, but the board's
 // too full to place a wall anywhere" case up front, instead of making the winner
 // manually Pass out of a phase that was never actually possible.
-export function anyLegalWallPlacement(state: HydratedLowenherzGameState, playerId: string): boolean {
+export function anyLegalWallPlacement(
+    state: HydratedLowenherzGameState,
+    playerId: string
+): boolean {
     for (let row = 0; row < BOARD_ROWS; row++) {
         for (let col = 0; col < BOARD_COLS; col++) {
             if (col + 1 < BOARD_COLS) {
@@ -122,7 +128,8 @@ export function routeAfterSlotResolved(state: HydratedLowenherzGameState): SlotR
     if (!winnerId) return { nextState: MachineState.ResolvingActions }
 
     const card = state.currentActionCard
-    if (!card || card.type !== ActionCardType.Standard) return { nextState: MachineState.ResolvingActions }
+    if (!card || card.type !== ActionCardType.Standard)
+        return { nextState: MachineState.ResolvingActions }
 
     // Slot 1 is income or politics - Money Bag is handled directly in
     // ResolvingActionsStateHandler (it never has a real winner, so it can't reach
@@ -131,7 +138,7 @@ export function routeAfterSlotResolved(state: HydratedLowenherzGameState): SlotR
         // Both piles exhausted: there is nothing to look through and nothing to take, and
         // TakingPoliticsCard has no Pass, so entering it would strand its only active
         // player with no legal action. They won the slot; it just can't pay out.
-        if (state.politicsCardPileA.length === 0 && state.politicsCardPileB.length === 0) {
+        if (state.getPoliticsPileCount('A') === 0 && state.getPoliticsPileCount('B') === 0) {
             return {
                 nextState: MachineState.ResolvingActions,
                 placementSkippedReason: 'noPoliticsCardsLeft'
@@ -142,7 +149,8 @@ export function routeAfterSlotResolved(state: HydratedLowenherzGameState): SlotR
     }
 
     // Slot 1 is handled above; band is only defined for slots 2/3.
-    const band = lastResolved.slot === 2 ? card.middle : lastResolved.slot === 3 ? card.bottom : undefined
+    const band =
+        lastResolved.slot === 2 ? card.middle : lastResolved.slot === 3 ? card.bottom : undefined
     if (!band) return { nextState: MachineState.ResolvingActions }
 
     if (band.kind === 'border') {

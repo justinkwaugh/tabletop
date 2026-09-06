@@ -25,14 +25,16 @@ function planFor(state: HydratedLowenherzGameState): string[] {
     return buildDecisionPlan(rotateToStart(state.turnOrder, state.firstPlayerId))
 }
 
-export class ChoosingActionsStateHandler
-    implements MachineStateHandler<ChoosingActionsAction, HydratedLowenherzGameState>
-{
+export class ChoosingActionsStateHandler implements MachineStateHandler<
+    ChoosingActionsAction,
+    HydratedLowenherzGameState
+> {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedLowenherzGameState>
     ): action is ChoosingActionsAction {
-        if (action instanceof HydratedChooseAction) return action.isValidChooseAction(context.gameState)
+        if (action instanceof HydratedChooseAction)
+            return action.isValidChooseAction(context.gameState)
         if (action instanceof HydratedPlayRenegadeCard) {
             return action.isValidPlayRenegadeCard(context.gameState)
         }
@@ -58,11 +60,15 @@ export class ChoosingActionsStateHandler
         // target-availability check (a neighboring enemy region, a removable knight, a
         // legal placement spot) happens when the action is actually submitted, not
         // when just offering it.
-        const hasRenegadeCard = playerState.politicsCards.some((c) => c.type === PoliticsCardType.Renegade)
+        const hasRenegadeCard = playerState
+            .getPoliticsCards()
+            .some((c) => c.type === PoliticsCardType.Renegade)
         if (hasRenegadeCard && playerState.knightsInStock > 0) {
             result.push(ActionType.PlayRenegadeCard)
         }
-        const hasAllianceCard = playerState.politicsCards.some((c) => c.type === PoliticsCardType.Alliance)
+        const hasAllianceCard = playerState
+            .getPoliticsCards()
+            .some((c) => c.type === PoliticsCardType.Alliance)
         if (hasAllianceCard) {
             result.push(ActionType.PlayAllianceCard)
         }

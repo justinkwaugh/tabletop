@@ -169,6 +169,22 @@ describe('shared hydration for private hands', () => {
 })
 
 describe('owner visibility contract', () => {
+    it('allows absent public optional unions while protecting omitted secrets', () => {
+        const choice = Type.Optional(Type.Union([Type.Literal('A'), Type.Literal('B')]))
+        const projection = Visibility.createProjector(
+            Type.Object({
+                choice,
+                secret: Visibility.protect(choice, { policy: Visibility.Policy.HostOnly })
+            })
+        )
+        const guarded = projection.guardForExecution(projection.project({}, p1), p1)
+        expect(guarded.choice).toBeUndefined()
+        expect(() => guarded.secret).toThrow(Visibility.UnavailableProjectedValueError)
+        expect(
+            projection.guardForExecution(projection.project({ choice: 'B' }, p1), p1).choice
+        ).toBe('B')
+    })
+
     it('uses the immediate containing player rather than the action actor', () => {
         const schema = Type.Object({
             playerId: Type.String(),

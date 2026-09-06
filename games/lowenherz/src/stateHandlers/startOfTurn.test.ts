@@ -26,7 +26,11 @@ const standardCard: ActionCard = {
     bottom: { kind: 'knight', count: 1 }
 }
 const miningCard: ActionCard = { id: 'card-mining', back: CardBack.B, type: ActionCardType.Mining }
-const kingIsDeadCard: ActionCard = { id: 'card-king', back: CardBack.E, type: ActionCardType.KingIsDead }
+const kingIsDeadCard: ActionCard = {
+    id: 'card-king',
+    back: CardBack.E,
+    type: ActionCardType.KingIsDead
+}
 
 function buildState(actionDeck: ActionCard[]): HydratedLowenherzGameState {
     const playerIds = ['p1', 'p2']
@@ -106,6 +110,7 @@ describe('StartOfTurnStateHandler', () => {
         expect(state.getPlayerState('p1').powerPoints).toBe(1)
         expect(state.getPlayerState('p2').powerPoints).toBe(0)
         expect(action.metadata).toEqual({
+            card: { id: 'card-king', back: CardBack.E, type: ActionCardType.KingIsDead },
             cardType: ActionCardType.KingIsDead,
             // Every draw records which lettered pack it came off, so history can report the
             // deck rolling from one pack to the next (see DrawActionCardMetadata.back).

@@ -92,19 +92,15 @@ Sources: [player state](../games/container/src/model/playerState.ts), [value car
 
 ## Lowenherz
 
-Sources: [state](../games/lowenherz/src/model/gameState.ts), [player state](../games/lowenherz/src/model/playerState.ts), [initializer](../games/lowenherz/src/definition/initializer.ts), [LookAtPoliticsPile](../games/lowenherz/src/actions/lookAtPoliticsPile.ts), [TakePoliticsCard](../games/lowenherz/src/actions/takePoliticsCard.ts), [SubmitDuelBid](../games/lowenherz/src/actions/submitDuelBid.ts), [dueling handler](../games/lowenherz/src/stateHandlers/dueling.ts), [DrawActionCard](../games/lowenherz/src/actions/drawActionCard.ts).
+Implemented in matching Logic/UI 2.0.0. See [the design and migration notes](lowenherz-hidden-information-design.md).
 
-- **Protect future cards:** action-deck faces/order, politics pile contents, and opponents' `politicsCards`. Preserve public deck/pile/hand counts and publicly knowable action-card back/group information.
-- **Private inspection:** only `politicsTakingPlayerId` may inspect the pile selected by `openedPoliticsPile`. The choice of pile and the fact of inspection are public. Opponents must not receive the inspected cards in state or patches.
-- **Private acquisition:** `TakePoliticsCard.cardId` needs actor-only protection; the pile choice can stay public. Identifiers can reveal card identity even if their descriptions are omitted elsewhere. Played alliance/renegade cards, targets, and consequences become public when played.
-- **Sealed duels:** protect `duel.bids[].amount`, `treasureCardIds`, `SubmitDuelBid.amount`, `SubmitDuelBid.treasureCardIds`, and `metadata.treasureCardsUsed` until resolution. Preserve public submission membership. The current handler records outcome/winner/reduel metadata but clears or replaces the bid round. Add a complete public bid/treasure reveal snapshot before that reset.
-- **Conditional money:** `players[].money` follows `publicMoney`. Public transactions make balances inferable. Do not incorporate undisclosed parchment values into public running power totals; the final result can reveal the scoring cards and totals.
-- **Keep public:** sequential action-slot `decisions`, negotiation offers, board regions, alliances, and revealed current/discarded action cards. Action selection is not implemented as a sealed simultaneous choice.
-- **Randomness:** protect action-deck assembly and politics-pile allocation. Preserve the ordered letter groups when shuffling within the action deck. Public board/color/order setup can remain public.
-- **Legal discovery and Undo:** drawing currently checks `actionDeck.length`, and pile inspection checks the selected pile's length. Supply public counts. `LookAtPoliticsPile` already marks a reveal; taking a card deliberately permits changing the choice within that inspected pile. `DrawActionCard` has no reveal flag in the Action or its handler and needs the deck-reveal barrier.
-- **Exploration:** the current hook shuffles the entire action deck across its letter groups and pools/redeals both politics piles. This can violate the deck's construction rules and previously learned pile contents. It also leaves other players' real hands untouched. Replace it with hypothetical population that respects group order, public plays, owner cards, and knowledge gained through prior inspections.
-
-**Knowledge decision:** `openedPoliticsPile` describes the current inspection, not a durable record of each player's previous knowledge. Determine how permitted history or explicit knowledge records preserve what an explorer previously saw, accounting for subsequent hidden removals. This title needs more than a generic owner-hand policy. Its comments claiming the platform cannot conceal cards are now stale.
+- Host-only remaining action deck and politics piles; public deck backs and remaining counts.
+- Owner-only politics hands, active inspection snapshot, and pending duel amounts/treasure values. Counts and submitted-player identities stay public.
+- Actor-private inspection records, card choices, and bid payloads. Complete draws, resolved duel rounds (including losing/tied treasure), public payments/plays, and final hands are explicit public observations.
+- New system-v3 initialization uses protected randomness for secret ordering/allocation. Public board/color/turn setup and legacy v1/v2 replay retain public randomness.
+- Exploration reconstructs hypothetical politics trajectories from the explorer's permitted source prefix, preserving observed multisets, revealed ownership, payments, and known hands. It reconstructs remaining action cards by back group and samples only unknown pending bids. Missing historical observations fail explicitly; Host/Admin Exploration retains its full-state path.
+- Current legacy saves normalize before projection and remain playable forward. Old Action History is not guaranteed across the face-based schema change. Existing v2 games do not gain privacy, and old public seeds cannot become retroactively secret.
+- `publicMoney` remains a presentation option; money delivery concealment is still a separate decision.
 
 ## Indonesia
 
@@ -145,7 +141,6 @@ These titles need no visibility registration merely because new game instances u
 - Whether Container and Indonesia retain their current public-money behavior or adopt concealed/configurable balances.
 - Whether Estates, Santiago, and Lowenherz's money options should enforce delivery concealment as well as presentation, accepting that public transactions remain inferable.
 - Indonesia's city-card privacy and exact current-card reveal point.
-- Lowenherz's durable private-knowledge representation for inspected piles and hypothetical Exploration.
 - Whether Estates' sneaky-building option remains a visual memory aid; no new secret zone is assumed here.
 
-Suggested implementation order: Sol first for a public-result/private-deck case; Kaivai for protected dice and final sealed bids; Estates and Santiago for bags and optional money; Container for owner cards and multistage auctions; Indonesia after its reveal/money decisions; Lowenherz after its inspection-knowledge design. Bus, Bridges, and Urbino require no hidden-information adoption work on the present findings.
+Suggested implementation order: Sol first for a public-result/private-deck case; Kaivai for protected dice and final sealed bids; Estates and Santiago for bags and optional money; Container for owner cards and multistage auctions; Indonesia after its reveal/money decisions; Lowenherz has now adopted the inspection-knowledge design. Bus, Bridges, and Urbino require no hidden-information adoption work on the present findings.

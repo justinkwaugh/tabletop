@@ -48,7 +48,7 @@ export class PoliticsPileDealAnimator extends StateAnimator {
                   : undefined
         if (!pile) return
 
-        const cards = pile === 'A' ? to.politicsCardPileA : to.politicsCardPileB
+        const cards = to.inspectedPoliticsCards(this.gameSession.myPlayer?.id ?? '') ?? []
         if (cards.length === 0) return
 
         // No handoff point to fly from - a page reload landing mid-reveal, or a replay with no
@@ -82,13 +82,13 @@ export class PoliticsPileDealAnimator extends StateAnimator {
         }
 
         const cardOffsets = new Map<string, { dx: number; dy: number }>()
-        for (const card of cards) {
-            const node = this.nodes.get(card.id)
+        for (const [index] of cards.entries()) {
+            const node = this.nodes.get(String(index))
             if (!node) continue
             const rect = node.getBoundingClientRect()
             const dx = origin.x - (rect.left + rect.width / 2)
             const dy = origin.y - (rect.top + rect.height / 2)
-            cardOffsets.set(card.id, { dx, dy })
+            cardOffsets.set(String(index), { dx, dy })
             gsap.set(node, { x: dx, y: dy, scale: 0.3, opacity: 0 })
         }
 
@@ -103,24 +103,40 @@ export class PoliticsPileDealAnimator extends StateAnimator {
         const scale = cinematic ? 1 : FALLBACK_DURATION / (DEAL_DURATION / 1000)
 
         if (deckNode) {
-            timeline.to(deckNode, { x: 0, y: 0, duration: (DECK_SLIDE_DURATION / 1000) * scale, ease: 'power2.out' }, 0)
+            timeline.to(
+                deckNode,
+                { x: 0, y: 0, duration: (DECK_SLIDE_DURATION / 1000) * scale, ease: 'power2.out' },
+                0
+            )
             // Fades over the same span the last card takes to land (staggered, in cinematic
             // mode) rather than holding at full opacity until dealing flips off and the real row
             // swaps it for the dashed placeholder underneath it - which read as a hard cut, the
             // deck popping out of existence the instant the splay finished instead of dissolving
             // alongside it.
-            const totalDealDuration = ((cinematic ? (cards.length - 1) * DEAL_STAGGER : 0) + DEAL_DURATION) / 1000 * scale
-            timeline.to(deckNode, { opacity: 0, scale: 0.8, duration: totalDealDuration, ease: 'power1.in' }, 0)
+            const totalDealDuration =
+                (((cinematic ? (cards.length - 1) * DEAL_STAGGER : 0) + DEAL_DURATION) / 1000) *
+                scale
+            timeline.to(
+                deckNode,
+                { opacity: 0, scale: 0.8, duration: totalDealDuration, ease: 'power1.in' },
+                0
+            )
         }
 
-        cards.forEach((card, index) => {
-            const node = this.nodes.get(card.id)
-            if (!node || !cardOffsets.has(card.id)) return
+        cards.forEach((_, index) => {
+            const node = this.nodes.get(String(index))
+            if (!node || !cardOffsets.has(String(index))) return
             const delay = cinematic ? (index * DEAL_STAGGER) / 1000 : 0
             timeline.to(node, { opacity: 1, duration: 0.2 * scale, ease: 'power1.out' }, delay)
             timeline.to(
                 node,
-                { x: 0, y: 0, scale: 1, duration: (DEAL_DURATION / 1000) * scale, ease: 'power2.out' },
+                {
+                    x: 0,
+                    y: 0,
+                    scale: 1,
+                    duration: (DEAL_DURATION / 1000) * scale,
+                    ease: 'power2.out'
+                },
                 delay
             )
         })
@@ -132,6 +148,7 @@ export class PoliticsPileDealAnimator extends StateAnimator {
     }
 
     override onDetach() {
+        this.nodes.clear()
         this.dealing = false
         this.slotRows = []
     }

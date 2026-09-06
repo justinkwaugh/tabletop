@@ -1,19 +1,33 @@
 import {
+    assert,
+    assertExists,
+    type ExplorationPopulation,
     type GameInitializer,
     BaseGameInitializer,
     Prng,
     type UninitializedGameState
 } from '@tabletop/common'
 import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
-import { HydratedLowenherzGameState, LowenherzGameState } from '../model/gameState.js'
+import {
+    HydratedLowenherzGameState,
+    LowenherzGameState,
+    LowenherzGameStateValidator,
+    LowenherzProjectedState
+} from '../model/gameState.js'
 import { HydratedLowenherzPlayerState, LowenherzPlayerState } from '../model/playerState.js'
 
 import { MachineState } from './states.js'
 import { LowenherzGameConfig } from './config.js'
 import { LowenherzColors } from './colors.js'
 import { assembleBoard } from '../util/boardAssembly.js'
-import { assembleActionDeck, assembleActionDeckWithConstruction } from '../util/actionDeckAssembly.js'
+import {
+    assembleActionDeck,
+    assembleActionDeckWithConstruction
+} from '../util/actionDeckAssembly.js'
 import { assembleStandardBoard, applyStandardSetup } from '../util/standardSetup.js'
+import { populateLowenherzExploration } from '../util/exploration.js'
+import { AdvanceResolution } from '../actions/advanceResolution.js'
+import { MachineContext, type GameAction } from '@tabletop/common'
 import { dealPoliticsCardPiles } from '../util/politicsCardAssembly.js'
 
 const STARTING_MONEY = 12
@@ -22,48 +36,56 @@ const STARTING_KNIGHTS = 12
 // This class is responsible for initializing a new game, including setting up the initial game state and
 // player states
 export class LowenherzGameInitializer
-    extends BaseGameInitializer<LowenherzGameState, HydratedLowenherzGameState>
-    implements GameInitializer<LowenherzGameState, HydratedLowenherzGameState>
+    extends BaseGameInitializer<LowenherzProjectedState, HydratedLowenherzGameState>
+    implements GameInitializer<LowenherzProjectedState, HydratedLowenherzGameState>
 {
-    // When an exploration state is created, in order to avoid allowing the player to discover
-    // hidden information, this method can be used to modify the game state to hide such information.
-    // Shuffling the remaining cards in a deck would be a reasonable example.
-    //
-    // This game has three such sources, and returning the state untouched handed all of
-    // them over: actionDeck is ordered (index 0 draws next) and the position of the King is
-    // Dead card is literally when the game ends, and each politics pile is face-down until
-    // a Crown-and-Scepter winner looks through one. Shuffled in place with Math.random
-    // rather than the state's own seeded prng - an exploration branch must not be
-    // reproducible from the real game's seed, and the same pattern is used by
-    // santiago/estates/fresh-fish.
-    initializeExplorationState(state: LowenherzGameState): LowenherzGameState {
-        const explorationState = structuredClone(state)
-
-        // The action deck is ordered - index 0 draws next - so shuffling it is what stops an
-        // exploration branch being read as an oracle for the real game's next cards.
-        shuffle(explorationState.actionDeck, () => Math.random())
-
-        // The politics piles are NOT ordered: a player commits to a pile and takes whichever
-        // card in it they like, by id. Shuffling each pile in place therefore hides nothing -
-        // the same cards stay in the same pile. What is concealed is which pile holds what, so
-        // the two are pooled and redealt at their original sizes.
-        const pooled = [
-            ...explorationState.politicsCardPileA,
-            ...explorationState.politicsCardPileB
-        ]
-        shuffle(pooled, () => Math.random())
-        const pileASize = explorationState.politicsCardPileA.length
-        explorationState.politicsCardPileA = pooled.slice(0, pileASize)
-        explorationState.politicsCardPileB = pooled.slice(pileASize)
-
-        return explorationState
+    initializeExplorationState(state: LowenherzProjectedState): LowenherzProjectedState {
+        const hydrated = new HydratedLowenherzGameState(state)
+        const deck = hydrated.getActionDeck()
+        const backs = [...new Set(deck.map((card) => card.back))]
+        hydrated.actionDeck = backs.flatMap((back) => {
+            const group = deck.filter((card) => card.back === back)
+            shuffle(group, Math.random)
+            return group
+        })
+        const pooled = [...hydrated.getPoliticsPile('A'), ...hydrated.getPoliticsPile('B')]
+        shuffle(pooled, Math.random)
+        const size = hydrated.getPoliticsPile('A').length
+        hydrated.politicsCardPileA = pooled.slice(0, size)
+        hydrated.politicsCardPileB = pooled.slice(size)
+        for (const player of hydrated.players) {
+            if (player.politicsInspection) {
+                player.politicsInspection.cards = structuredClone(
+                    hydrated.getPoliticsPile(player.politicsInspection.pile)
+                )
+            }
+        }
+        return hydrated.dehydrate()
     }
 
-    // Initialize the game state based on things like the number of players and the game config
-    initializeGameState(
-        game: Game,
-        state: UninitializedGameState
-    ): HydratedLowenherzGameState {
+    populateExplorationState(
+        input: ExplorationPopulation<LowenherzProjectedState>
+    ): LowenherzGameState {
+        if ((input.state.systemVersion ?? 1) < 3) {
+            const state = this.initializeExplorationState(input.state)
+            assert(
+                LowenherzGameStateValidator.Check(state),
+                'Legacy Exploration requires complete state'
+            )
+            return state
+        }
+        return populateLowenherzExploration(input)
+    }
+
+    getExplorationActions(game: Game, state: LowenherzProjectedState): GameAction[] {
+        if (state.machineState !== MachineState.ResolvingActions) return []
+        const hydrated = new HydratedLowenherzGameState(state)
+        const context = new MachineContext({ gameConfig: game.config, gameState: hydrated })
+        context.addSystemAction(AdvanceResolution, { playerId: '' })
+        return context.getPendingActions()
+    }
+
+    initializeGameState(game: Game, state: UninitializedGameState): HydratedLowenherzGameState {
         // Initialize a pseudo random number generator for the state
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng)
@@ -72,7 +94,7 @@ export class LowenherzGameInitializer
         const turnManager = HydratedTurnManager.generate(players, prng.random)
 
         // Put players array in our randomly generated turn order
-        const orderedPlayers: LowenherzPlayerState[] = []
+        const orderedPlayers: HydratedLowenherzPlayerState[] = []
         for (const playerId of turnManager.turnOrder) {
             const player = players.find((p) => p.playerId === playerId)
             if (player) {
@@ -103,9 +125,15 @@ export class LowenherzGameInitializer
                 ? LowenherzColors.find((color) => !players.some((p) => p.color === color))
                 : undefined
 
-        const lowenherzGameState: LowenherzGameState = Object.assign(state, {
+        const privateInformation = (state.systemVersion ?? 1) >= 3
+        const hiddenPrngState = privateInformation ? state.protectedPrng : state.prng
+        assertExists(hiddenPrngState, 'Protected initialization requires protectedPrng')
+        const hiddenPrng = privateInformation ? new Prng(hiddenPrngState) : prng
+        const lowenherzGameState: LowenherzProjectedState = Object.assign(state, {
             players: orderedPlayers,
-            machineState: playerPlacedCastles ? MachineState.PlacingCastles : MachineState.StartOfTurn,
+            machineState: playerPlacedCastles
+                ? MachineState.PlacingCastles
+                : MachineState.StartOfTurn,
             turnManager: turnManager,
             board: playerPlacedCastles ? assembleBoard(prng) : assembleStandardBoard(),
             regions: [],
@@ -119,8 +147,8 @@ export class LowenherzGameInitializer
             minimumOneDucat: config.minimumOneDucat !== false,
 
             actionDeck: playerPlacedCastles
-                ? assembleActionDeckWithConstruction(prng)
-                : assembleActionDeck(prng),
+                ? assembleActionDeckWithConstruction(hiddenPrng)
+                : assembleActionDeck(hiddenPrng),
             currentActionCard: undefined,
             discardedActionCard: undefined,
             decisions: [],
@@ -133,7 +161,8 @@ export class LowenherzGameInitializer
             knightsRemaining: undefined,
             knightPlacingPlayerId: undefined,
 
-            ...dealPoliticsCardPiles(prng),
+            ...dealPoliticsCardPiles(hiddenPrng),
+            ...(privateInformation ? { privateInformation: true as const } : {}),
             politicsTakingPlayerId: undefined,
             openedPoliticsPile: undefined
         })
@@ -148,7 +177,7 @@ export class LowenherzGameInitializer
     }
 
     // Initialize player states for all players in the game
-    private initializePlayers(game: Game, prng: Prng): LowenherzPlayerState[] {
+    private initializePlayers(game: Game, prng: Prng): HydratedLowenherzPlayerState[] {
         // Assign colors randomly to players
         const colors = structuredClone(LowenherzColors)
         shuffle(colors, prng.random)

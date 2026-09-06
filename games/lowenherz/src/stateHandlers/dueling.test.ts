@@ -68,7 +68,11 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
     return new HydratedLowenherzGameState(data)
 }
 
-function makeBid(playerId: string, amount: number, treasureCardIds?: string[]): HydratedSubmitDuelBid {
+function makeBid(
+    playerId: string,
+    amount: number,
+    treasureValues?: number[]
+): HydratedSubmitDuelBid {
     return new HydratedSubmitDuelBid({
         id: `bid-${playerId}`,
         gameId: 'game-1',
@@ -76,14 +80,66 @@ function makeBid(playerId: string, amount: number, treasureCardIds?: string[]): 
         type: ActionType.SubmitDuelBid,
         playerId,
         amount,
-        ...(treasureCardIds && treasureCardIds.length > 0 ? { treasureCardIds } : {})
+        ...(treasureValues && treasureValues.length > 0 ? { treasureValues } : {})
     })
 }
 
 describe('DuelingStateHandler', () => {
+    it('continues an unfinished legacy duel using its committed treasure values', () => {
+        const original = buildState().dehydrate()
+        const legacy = {
+            ...original,
+            players: original.players.map((player) => ({
+                ...player,
+                politicsCards:
+                    player.playerId === 'p1'
+                        ? [{ id: 'old-treasure', type: PoliticsCardType.Treasure, value: 10 }]
+                        : []
+            })),
+            duel: {
+                slot: 2 as const,
+                playerIds: ['p1', 'p2'],
+                tieCount: 0,
+                bids: [{ playerId: 'p1', amount: 2, treasureCardIds: ['old-treasure'] }]
+            }
+        }
+        const state = new HydratedLowenherzGameState(legacy)
+        expect(state.duel?.bids).toEqual([{ playerId: 'p1', amount: 2, treasureValues: [10] }])
+        expect(state.getPlayerState('p1').politicsCards).toEqual([
+            { type: PoliticsCardType.Treasure, value: 10 }
+        ])
+        expect(legacy.duel.bids[0].treasureCardIds).toEqual(['old-treasure'])
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+        const bid = makeBid('p2', 8)
+        bid.apply(state, context)
+        new DuelingStateHandler().onAction(bid, context)
+        expect(state.resolvedSlots).toEqual([{ slot: 2, winnerPlayerId: 'p1' }])
+        expect(state.getPlayerState('p1').politicsCards).toEqual([])
+        expect(state.getPlayerState('p1').money).toBe(10)
+    })
+
+    it('rejects legacy duel commitments whose cards cannot be recovered', () => {
+        const original = buildState().dehydrate()
+        const legacy = {
+            ...original,
+            duel: {
+                slot: 2 as const,
+                playerIds: ['p1', 'p2'],
+                tieCount: 0,
+                bids: [{ playerId: 'p1', amount: 2, treasureCardIds: ['missing'] }]
+            }
+        }
+        expect(() => new HydratedLowenherzGameState(legacy)).toThrow('Cannot migrate')
+    })
+
     it('drops a duelist from active as soon as their bid lands', () => {
         const state = buildState({
-            duel: { slot: 2, playerIds: ['p1', 'p2'], bids: [{ playerId: 'p1', amount: 3 }], tieCount: 0 }
+            duel: {
+                slot: 2,
+                playerIds: ['p1', 'p2'],
+                bids: [{ playerId: 'p1', amount: 3 }],
+                tieCount: 0
+            }
         })
         const handler = new DuelingStateHandler()
         const context = new MachineContext({ gameConfig: {}, gameState: state })
@@ -107,9 +163,7 @@ describe('DuelingStateHandler', () => {
 
     it('lets a lower ducat bid win via a Treasure card that pushes its total higher', () => {
         const state = buildState()
-        state.getPlayerState('p2').politicsCards = [
-            { id: 'treasure-10', type: PoliticsCardType.Treasure, value: 10 }
-        ]
+        state.getPlayerState('p2').politicsCards = [{ type: PoliticsCardType.Treasure, value: 10 }]
         const handler = new DuelingStateHandler()
         const context = new MachineContext({ gameConfig: {}, gameState: state })
 
@@ -119,7 +173,7 @@ describe('DuelingStateHandler', () => {
         bid1.apply(state, context)
         expect(handler.onAction(bid1, context)).toBe(MachineState.Dueling)
 
-        const bid2 = makeBid('p2', 2, ['treasure-10'])
+        const bid2 = makeBid('p2', 2, [10])
         bid2.apply(state, context)
         const nextState = handler.onAction(bid2, context)
 
@@ -135,8 +189,8 @@ describe('DuelingStateHandler', () => {
     it('sums more than one Treasure card into a single bid, discarding all of them on a win', () => {
         const state = buildState()
         state.getPlayerState('p2').politicsCards = [
-            { id: 'treasure-6', type: PoliticsCardType.Treasure, value: 6 },
-            { id: 'treasure-4', type: PoliticsCardType.Treasure, value: 4 }
+            { type: PoliticsCardType.Treasure, value: 6 },
+            { type: PoliticsCardType.Treasure, value: 4 }
         ]
         const handler = new DuelingStateHandler()
         const context = new MachineContext({ gameConfig: {}, gameState: state })
@@ -147,7 +201,7 @@ describe('DuelingStateHandler', () => {
         bid1.apply(state, context)
         handler.onAction(bid1, context)
 
-        const bid2 = makeBid('p2', 1, ['treasure-6', 'treasure-4'])
+        const bid2 = makeBid('p2', 1, [6, 4])
         bid2.apply(state, context)
         handler.onAction(bid2, context)
 
@@ -192,15 +246,13 @@ describe('DuelingStateHandler', () => {
 
     it('lets the losing bidder keep their unused Treasure card', () => {
         const state = buildState()
-        state.getPlayerState('p1').politicsCards = [
-            { id: 'treasure-8', type: PoliticsCardType.Treasure, value: 8 }
-        ]
+        state.getPlayerState('p1').politicsCards = [{ type: PoliticsCardType.Treasure, value: 8 }]
         const handler = new DuelingStateHandler()
         const context = new MachineContext({ gameConfig: {}, gameState: state })
 
         // p1 bids 1 + an 8-value Treasure card (total 9); p2 bids 10 ducats outright -
         // p2 wins, p1's card and money are untouched.
-        const bid1 = makeBid('p1', 1, ['treasure-8'])
+        const bid1 = makeBid('p1', 1, [8])
         bid1.apply(state, context)
         handler.onAction(bid1, context)
 
@@ -211,7 +263,7 @@ describe('DuelingStateHandler', () => {
         expect(state.resolvedSlots).toEqual([{ slot: 2, winnerPlayerId: 'p2' }])
         expect(state.getPlayerState('p1').money).toBe(12)
         expect(state.getPlayerState('p1').politicsCards).toEqual([
-            { id: 'treasure-8', type: PoliticsCardType.Treasure, value: 8 }
+            { type: PoliticsCardType.Treasure, value: 8 }
         ])
     })
 
