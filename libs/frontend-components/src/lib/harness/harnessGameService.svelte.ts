@@ -1,4 +1,4 @@
-import { validateLocalGameState } from '$lib/services/validateLocalGameState.js'
+import { validateLocalGameState } from '$lib/utils/validateLocalGameState.js'
 import {
     Game,
     GameStatus,
