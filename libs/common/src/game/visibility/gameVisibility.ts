@@ -23,6 +23,15 @@ export interface GameVisibility<
     readonly actions: ActionProjector
 }
 
+export function getGameVisibility<State extends GameState>(
+    game: Pick<Game, 'protectedInformation'>,
+    runtime: Pick<GameRuntime<State>, 'visibility'>
+): GameVisibility<State> | undefined {
+    if (game.protectedInformation !== true) return undefined
+    assertExists(runtime.visibility, 'Protected Game requires a registered visibility definition')
+    return runtime.visibility
+}
+
 export interface VisibleActionCascade {
     readonly actions: readonly GameAction[]
 }

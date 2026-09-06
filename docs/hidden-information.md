@@ -15,11 +15,13 @@ The core hidden-information implementation is complete through shared projected 
 
 ## Explicit participation
 
-A Game Title explicitly enables hidden-information delivery by registering `runtime.visibility.state` and `runtime.visibility.actions`. Unannotated fields are public. Shared fields such as `protectedPrng` and `DrawBag.items` carry visibility annotations, but those annotations only redact delivery when the runtime registers a projector. The platform does not install automatic common-field projection for a title without visibility.
+A Game Title explicitly supports hidden-information delivery by registering `runtime.visibility.state` and `runtime.visibility.actions`. Unannotated fields are public. Shared fields such as `protectedPrng` and `DrawBag.items` carry visibility annotations, but those annotations only redact delivery when the runtime registers a projector. The platform does not install automatic common-field projection for a title without visibility.
+
+Game Initialization sets public `Game.protectedInformation: true` when the selected runtime registers visibility. The marker is immutable for that Game and is preserved by real Forks and saved Explorations. An absent marker means canonical delivery, including v3 Games started with older artifacts. Unstarted lobbies adopt the selected runtime at initialization. `Visibility.getGameVisibility(game, runtime)` selects the applicable projector for backend delivery and Game Client behavior; a marked Game without a registered projector fails explicitly. Hotseat and authorized Host View retain canonical access. Neither `systemVersion`, a protected PRNG cursor, nor the currently selected publication can retroactively opt an existing Game into protection.
 
 **Decision, 2026-09-06:** games relying on secret randomness or other hidden information must explicitly configure visibility. `getProtectedPrng()` separates deterministic entropy; calling it alone does not make Game State private. Checking that a title has the appropriate registration is an authoring/conformance obligation. There is no new runtime check that rejects every use without visibility.
 
-Games without hidden information or randomness need no visibility boilerplate. New instances created by the updated engine use system version 3 regardless of visibility registration. System version selects deterministic execution behavior; it does not select privacy. Existing v1/v2 instances retain their original behavior and must remain playable. In particular, existing v2 games are not expected to become private, be reseeded, or have already-public history concealed.
+Games without hidden information or randomness need no visibility boilerplate. New instances created by the updated engine use system version 3 regardless of visibility registration. System version selects deterministic execution behavior; it does not select privacy. Existing unmarked instances, including v1/v2 and interim v3 Games, retain their original delivery behavior and must remain playable. In particular, existing v2 games are not expected to become private, be reseeded, or have already-public history concealed.
 
 ## Protected dev harness
 

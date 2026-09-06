@@ -137,7 +137,7 @@ export class GameRepresentations<T extends GameState, U extends HydratedGameStat
         return (
             (this.dependencies.hostPerspective !== undefined ||
                 (this.primary.game.storage === GameStorage.Remote && !this.primary.game.hotseat)) &&
-            this.primary.runtime.visibility !== undefined
+            Visibility.getGameVisibility(this.primary.game, this.primary.runtime) !== undefined
         )
     }
 
@@ -160,7 +160,7 @@ export class GameRepresentations<T extends GameState, U extends HydratedGameStat
     }
 
     private isRuntimeState(state: GameState): state is T {
-        const visibility = this.primary.runtime.visibility
+        const visibility = Visibility.getGameVisibility(this.primary.game, this.primary.runtime)
         return visibility !== undefined && Value.Check(visibility.state.schema, state)
     }
 
@@ -203,7 +203,7 @@ export class GameRepresentations<T extends GameState, U extends HydratedGameStat
         hostContext: GameContext<T, U>,
         perspective: Visibility.Perspective
     ): GameContext<T, U> {
-        const visibility = this.primary.runtime.visibility
+        const visibility = Visibility.getGameVisibility(this.primary.game, this.primary.runtime)
         assertExists(visibility, 'Game Runtime has no visibility projection')
         const history = Visibility.projectActionHistory({
             currentState: hostContext.state,

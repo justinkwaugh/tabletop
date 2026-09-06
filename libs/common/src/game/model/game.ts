@@ -64,6 +64,7 @@ export const Game = Type.Object({
     players: Type.Array(Player),
     config: GameConfig,
     hotseat: Type.Boolean(),
+    protectedInformation: Type.Optional(Type.Literal(true)),
     state: Type.Optional(GameState),
     startedAt: Type.Optional(DateType()),
     finishedAt: Type.Optional(DateType()),

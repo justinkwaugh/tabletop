@@ -74,6 +74,7 @@ function createSyntheticHistory() {
         SyntheticDefinition
     )
     game.status = GameStatus.Started
+    game.protectedInformation = true
 
     const engine = new GameEngine(SyntheticRuntime)
     const hydratedState = SyntheticRuntime.initializer.initializeGameState(
@@ -130,6 +131,79 @@ function createSyntheticHistory() {
 
 const syntheticHistory = createSyntheticHistory()
 
+describe('unprotected Games under a visibility-aware publication', () => {
+    it.each([1, 2, 3])('keeps version %i canonical across delivery paths', (systemVersion) => {
+        const { game, before, after, action } = structuredClone(syntheticHistory)
+        delete game.protectedInformation
+        before.systemVersion = systemVersion
+        after.systemVersion = systemVersion
+        game.state = after
+        const actions = [action]
+        const options = {
+            game,
+            visibility: SyntheticRuntime.visibility,
+            user: createUser('user-1')
+        }
+        expect(createGameRepresentation({ ...options, actions })).toEqual({
+            game,
+            actions,
+            perspective: undefined
+        })
+        expect(createGameRepresentationEtag({ ...options, canonicalEtag: 'revision' })).toBe(
+            'revision'
+        )
+        expect(
+            createGameSyncRepresentation({ ...options, actions, status: GameSyncStatus.InSync })
+        ).toEqual({ status: GameSyncStatus.InSync, actions, checksum: after.actionChecksum })
+        const result = createActionResultsRepresentation({
+            ...options,
+            result: {
+                processedActions: actions,
+                updatedState: after,
+                indexOffset: 0,
+                actionCascade: { before, transitions: [{ action, after }] }
+            },
+            storedActions: actions,
+            missingActions: [],
+            priorState: before
+        })
+        expect(result.actions).toBe(actions)
+        expect(result.perspective).toBeUndefined()
+        const undo = createUndoResultsRepresentation({
+            ...options,
+            actionReplay: { startIndex: 0, actions },
+            undoneActions: actions,
+            redoneActions: []
+        })
+        expect(undo.undoneActions).toBe(actions)
+        expect(undo.perspective).toBeUndefined()
+        expect(undo.canonicalReplay.userActions[0]).toHaveProperty('amount', 7)
+    })
+
+    it.each([false, true])(
+        'fails closed when protection loses its projector, host view %s',
+        (hostView) => {
+            const { game, action } = syntheticHistory
+            expect(() =>
+                createGameRepresentation({
+                    game,
+                    actions: [action],
+                    hostView,
+                    user: createUser('user-1')
+                })
+            ).toThrow('registered visibility')
+            expect(() =>
+                createGameRepresentationEtag({
+                    game,
+                    hostView,
+                    canonicalEtag: 'revision',
+                    user: createUser('user-1')
+                })
+            ).toThrow('registered visibility')
+        }
+    )
+})
+
 describe('incompatible historical schemas', () => {
     it('loads the current projection and keeps unavailable sync records private', () => {
         const { game, after, action } = structuredClone(syntheticHistory)
@@ -181,7 +255,7 @@ describe('createGameRepresentationEtag', () => {
         expect(
             createGameRepresentationEtag({
                 canonicalEtag: 'canonical-revision',
-                game: syntheticHistory.game,
+                game: { ...syntheticHistory.game, protectedInformation: undefined },
                 user: createUser('user-1')
             })
         ).toBe('canonical-revision')
@@ -334,7 +408,8 @@ describe('createGameRepresentation', () => {
     })
 
     it('preserves canonical delivery for a Game Title without visibility registration', () => {
-        const { game, action } = syntheticHistory
+        const { game, action } = structuredClone(syntheticHistory)
+        delete game.protectedInformation
         const actions = [action]
         const representation = createGameRepresentation({
             game,
@@ -462,7 +537,8 @@ describe('createGameSyncRepresentation', () => {
     })
 
     it('preserves the existing canonical synchronization result without visibility', () => {
-        const { game, after, action } = syntheticHistory
+        const { game, after, action } = structuredClone(syntheticHistory)
+        delete game.protectedInformation
         const actions = [action]
         const representation = createGameSyncRepresentation({
             game,
@@ -611,9 +687,10 @@ describe('createActionResultsRepresentation', () => {
     })
 
     it('preserves canonical persisted Actions for a Game Title without visibility', () => {
-        const { game, before, after, action } = syntheticHistory
+        const { game, before, after, action } = structuredClone(syntheticHistory)
         const storedActions = [structuredClone(action)]
         const missingActions = [structuredClone(action)]
+        delete game.protectedInformation
         const representation = createActionResultsRepresentation({
             game,
             result: {
@@ -733,10 +810,11 @@ describe('createUndoResultsRepresentation', () => {
     })
 
     it('preserves the legacy undo result for a Game Title without visibility', () => {
-        const { game, after, action } = syntheticHistory
+        const { game, after, action } = structuredClone(syntheticHistory)
         const actionReplay = { startIndex: 0, actions: [action] }
         const undoneActions = [action]
         const redoneActions = [action]
+        delete game.protectedInformation
         const representation = createUndoResultsRepresentation({
             game,
             actionReplay,

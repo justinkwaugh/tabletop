@@ -50,6 +50,7 @@ function createGame(state: FreshFishGameState): Game {
     return {
         id: state.gameId,
         typeId: 'freshfish',
+        protectedInformation: true,
         status: GameStatus.Started,
         isPublic: false,
         deleted: false,
@@ -118,12 +119,10 @@ describe('Fresh Fish visibility', () => {
             state.chosenTile = { type: TileType.Stall, goodsType: GoodsType.Fish }
             for (const player of state.players) player.disks = 1
             const game = createGame(state)
+            delete game.protectedInformation
             const engine = new GameEngine(FreshFishRuntime)
-            const perspective = { kind: 'player', playerId: 'p1' } as const
-            const before = FreshFishRuntime.visibility.state.project(state, perspective)
-            expect(
-                before.currentAuction?.participants.map((participant) => participant.bid)
-            ).toEqual([3, undefined, undefined])
+            expect(Visibility.getGameVisibility(game, FreshFishRuntime)).toBeUndefined()
+            const before = structuredClone(state)
             const action: PlaceBid = {
                 id: 'last-legacy-bid',
                 gameId: game.id,
@@ -138,20 +137,10 @@ describe('Fresh Fish visibility', () => {
             expect(result.updatedState.protectedPrng).toBeUndefined()
             expect(result.updatedState.machineState).toBe(MachineState.AuctionEnded)
             expect(result.updatedState.currentAuction?.winnerId).toBe('p3')
-            const history = Visibility.projectActionHistory({
-                currentState: result.updatedState,
-                actions: result.processedActions,
-                visibility: FreshFishRuntime.visibility,
-                perspective,
-                replay: { game, runtime: FreshFishRuntime }
-            })
-            let visible = history.currentState
             let canonical = result.updatedState
-            for (const action of history.actions.toReversed())
-                visible = engine.undoProcessedAction({ action, state: visible })
             for (const action of result.processedActions.toReversed())
                 canonical = engine.undoProcessedAction({ action, state: canonical })
-            expect(visible).toEqual(before)
+            expect(canonical).toEqual(before)
             expect(canonical).toEqual(state)
         }
     )

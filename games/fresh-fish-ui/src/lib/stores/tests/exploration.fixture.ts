@@ -117,7 +117,10 @@ export function explorationClient(
         chatService: app.chatService,
         gameId: host.game.id
     })
-    const data = project(host, runtime.visibility ? perspective : undefined)
+    const data = project(
+        host,
+        Visibility.getGameVisibility(host.game, runtime) ? perspective : undefined
+    )
     const session = new FreshFishGameSession({
         gameService: app.gameService,
         bridgedContext: bridge,

@@ -9,7 +9,7 @@ import {
     type GameState,
     type HydratedGameState,
     type ProcessedActionReplay,
-    type Visibility
+    Visibility
 } from '@tabletop/common'
 import type { RemoteApiService } from '../services/remoteApiService.js'
 import { GameActionResults, type ActionResults } from './gameActionResults.svelte.js'
@@ -136,7 +136,8 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
             if (!needsResync && actions.length > 0) {
                 this.apply(
                     actions,
-                    this.context.runtime.visibility === undefined
+                    Visibility.getGameVisibility(this.context.game, this.context.runtime) ===
+                        undefined
                         ? ServerActionHandling.Execute
                         : ServerActionHandling.ApplyProcessed
                 )

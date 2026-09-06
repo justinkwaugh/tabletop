@@ -224,6 +224,7 @@ describe('game notifications', () => {
 
     it('publishes complete projected cascades for each Player and the spectator', async () => {
         const game = createGame()
+        game.protectedInformation = true
         Reflect.set(game, 'actionChunkSize', 200)
         const { before, result, storedActions } = createActionCascade()
         const { notificationService, publications } = createNotificationRecorder()
@@ -287,31 +288,36 @@ describe('game notifications', () => {
         expect(game.state).toBeDefined()
     })
 
-    it('preserves the shared User-Action notification for a legacy Game Title', async () => {
-        const game = createGame()
-        const { before, result, storedActions } = createActionCascade()
-        const { notificationService, publications } = createNotificationRecorder()
+    it.each([undefined, createVisibility()])(
+        'preserves shared User Actions for an unprotected Game with visibility %s',
+        async (visibility) => {
+            const game = createGame()
+            const { before, result, storedActions } = createActionCascade()
+            const { notificationService, publications } = createNotificationRecorder()
 
-        await publishActionResults({
-            game,
-            result,
-            storedActions,
-            priorState: before,
-            notificationService
-        })
+            await publishActionResults({
+                game,
+                result,
+                storedActions,
+                priorState: before,
+                visibility,
+                notificationService
+            })
 
-        expect(publications).toHaveLength(1)
-        const publication = publications[0]
-        const notification = Value.Parse(GameAddActionsNotification, publication.notification)
-        expect(publication.topics).toEqual([`game-${GAME_ID}`])
-        expect(notification.action).toBe(GameNotificationAction.AddActions)
-        expect(Object.keys(notification.data).toSorted()).toEqual(['actions', 'game'])
-        expect(notification.data.actions.map((action) => action.id)).toEqual(['action-1'])
-        expect(notification.data.game).not.toHaveProperty('state')
-    })
+            expect(publications).toHaveLength(1)
+            const publication = publications[0]
+            const notification = Value.Parse(GameAddActionsNotification, publication.notification)
+            expect(publication.topics).toEqual([`game-${GAME_ID}`])
+            expect(notification.action).toBe(GameNotificationAction.AddActions)
+            expect(Object.keys(notification.data).toSorted()).toEqual(['actions', 'game'])
+            expect(notification.data.actions.map((action) => action.id)).toEqual(['action-1'])
+            expect(notification.data.game).not.toHaveProperty('state')
+        }
+    )
 
     it('publishes a complete projected undo replacement for every perspective', async () => {
         const game = createGame()
+        game.protectedInformation = true
         const { result, storedActions } = createActionCascade()
         game.state = result.updatedState
         const { notificationService, publications } = createNotificationRecorder()
@@ -369,38 +375,42 @@ describe('game notifications', () => {
         expect(game.state).toBeDefined()
     })
 
-    it('preserves the existing shared undo notification for a legacy Game Title', async () => {
-        const game = createGame()
-        const { result, storedActions } = createActionCascade()
-        game.state = result.updatedState
-        const { notificationService, publications } = createNotificationRecorder()
-        const actionToUndo = storedActions[0]
-        assertExists(actionToUndo, 'Expected an Action to undo')
+    it.each([undefined, createVisibility()])(
+        'preserves shared Undo for an unprotected Game with visibility %s',
+        async (visibility) => {
+            const game = createGame()
+            const { result, storedActions } = createActionCascade()
+            game.state = result.updatedState
+            const { notificationService, publications } = createNotificationRecorder()
+            const actionToUndo = storedActions[0]
+            assertExists(actionToUndo, 'Expected an Action to undo')
 
-        await publishUndoResults({
-            game,
-            actionReplay: { startIndex: 0, actions: storedActions },
-            actionToUndo,
-            redoneActions: storedActions,
-            notificationService
-        })
+            await publishUndoResults({
+                game,
+                actionReplay: { startIndex: 0, actions: storedActions },
+                actionToUndo,
+                redoneActions: storedActions,
+                visibility,
+                notificationService
+            })
 
-        expect(publications).toHaveLength(1)
-        const publication = publications[0]
-        const notification = Value.Parse(GameUndoActionNotification, publication.notification)
-        expect(publication.topics).toEqual([`game-${GAME_ID}`])
-        expect(notification.action).toBe(GameNotificationAction.UndoAction)
-        expect(notification.data.action.id).toBe('action-1')
-        expect(notification.data.undoneActionId).toBe('action-1')
-        expect(notification.data.redoneActions.map((action) => action.id)).toEqual([
-            'action-1',
-            'action-2'
-        ])
-        expect(notification.data.canonicalReplay).toEqual({
-            startIndex: 0,
-            actionIds: ['action-1', 'action-2'],
-            userActionIds: ['action-1']
-        })
-        expect(notification.data.game).not.toHaveProperty('state')
-    })
+            expect(publications).toHaveLength(1)
+            const publication = publications[0]
+            const notification = Value.Parse(GameUndoActionNotification, publication.notification)
+            expect(publication.topics).toEqual([`game-${GAME_ID}`])
+            expect(notification.action).toBe(GameNotificationAction.UndoAction)
+            expect(notification.data.action.id).toBe('action-1')
+            expect(notification.data.undoneActionId).toBe('action-1')
+            expect(notification.data.redoneActions.map((action) => action.id)).toEqual([
+                'action-1',
+                'action-2'
+            ])
+            expect(notification.data.canonicalReplay).toEqual({
+                startIndex: 0,
+                actionIds: ['action-1', 'action-2'],
+                userActionIds: ['action-1']
+            })
+            expect(notification.data.game).not.toHaveProperty('state')
+        }
+    )
 })

@@ -136,6 +136,7 @@ export class GameService {
         game.storage = GameStorage.Remote // Has to be remote here on the backend
 
         const newGame = definition.runtime.initializer.initializeGame(game, definition)
+        delete newGame.protectedInformation
 
         // Check the specified players and populate them with user data
         const usersByPlayerId = await this.validateAndPopulatePlayers(newGame.players, owner)
@@ -461,6 +462,7 @@ export class GameService {
         fields: Partial<Game>
         owner: User
     }): Promise<Game> {
+        assert(!Object.hasOwn(fields, 'protectedInformation'), 'Game protection cannot be changed')
         const game = await this.getGame({ gameId })
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
@@ -779,6 +781,7 @@ export class GameService {
                     startedAt: new Date(),
                     status: GameStatus.Started,
                     seed: startedGame.seed,
+                    ...(startedGame.protectedInformation ? { protectedInformation: true } : {}),
                     state: initialState
                 },
                 validator: (existingGame, fieldsToUpdate) => {
@@ -1034,12 +1037,13 @@ export class GameService {
         const retainedActions = undoWindow.actions.slice(0, targetPosition)
         const actions = undoWindow.actions.slice(targetPosition)
 
-        if (definition.runtime.visibility) {
+        const visibility = Visibility.getGameVisibility(game, definition.runtime)
+        if (visibility) {
             const history = Visibility.projectActionHistory({
                 startIndex: actionToUndo.index,
                 currentState: gameState,
                 actions,
-                visibility: definition.runtime.visibility,
+                visibility,
                 perspective: { kind: 'spectator' }
             })
             if (history.actions.some((action) => action.undoPatch === undefined)) {

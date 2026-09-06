@@ -942,6 +942,7 @@ function createCardState(
 function createGame(): Game {
     return {
         id: 'hidden-card-game',
+        protectedInformation: true,
         typeId: 'hidden-information-scenario',
         status: GameStatus.Started,
         isPublic: false,

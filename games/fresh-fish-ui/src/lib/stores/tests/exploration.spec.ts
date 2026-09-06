@@ -25,6 +25,31 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks())
 
 describe('hypothetical exploration', () => {
+    test.each([1, 2, 3])(
+        'uses canonical Exploration for unmarked version %i after publication',
+        async (version) => {
+            const host = createExplorationHost()
+            delete host.game.protectedInformation
+            host.state.systemVersion = version
+            delete host.state.protectedPrng
+            const populate = vi.spyOn(FreshFishRuntime.exploration, 'createFromProjectedState')
+            const client = explorationClient(host)
+            try {
+                expect(client.session.gameState?.tileBag.items).toEqual(host.state.tileBag.items)
+                await client.session.startExploring()
+                const branch = client.session.explorations.getCurrentExploration()
+                assertExists(branch, 'Expected canonical Exploration')
+                expect(branch.state.tileBag.items).toHaveLength(host.state.tileBag.remaining)
+                expect(branch.game.protectedInformation).toBeUndefined()
+                expect(populate).not.toHaveBeenCalled()
+                branch.applyAction(diskAction({ game: branch.game, state: branch.state }))
+                expect(branch.state.actionCount).toBe(1)
+            } finally {
+                client.dispose()
+            }
+        }
+    )
+
     test('rejects invalid local saves before persistence', async () => {
         const host = createExplorationHost()
         const client = explorationClient(host)
@@ -169,6 +194,7 @@ describe('hypothetical exploration', () => {
         'keeps version %i full-information games playable with a legacy initializer',
         async (version) => {
             const host = createExplorationHost()
+            delete host.game.protectedInformation
             host.state.systemVersion = version
             delete host.state.protectedPrng
             host.apply(diskAction(host))

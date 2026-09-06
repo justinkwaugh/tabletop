@@ -8,6 +8,7 @@ import { GameStatus, type Game } from '../model/game.js'
 import type { GameState, HydratedGameState } from '../model/gameState.js'
 import { type GameAction, type Patch } from './gameAction.js'
 import { GameEngine } from './gameEngine.js'
+import { getGameVisibility } from '../visibility/gameVisibility.js'
 
 export class GameForkError extends BaseError {
     constructor(gameId: string, actionIndex: number) {
@@ -35,6 +36,7 @@ export function createGameFork<T extends GameState, U extends HydratedGameState<
     name?: string
 }): { game: Game; state: T; actions: GameAction[] } {
     try {
+        getGameVisibility(game, runtime)
         assert(
             Number.isInteger(actionIndex) && actionIndex >= -1 && actionIndex < actions.length,
             'Invalid fork position'

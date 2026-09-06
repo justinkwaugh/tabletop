@@ -52,7 +52,7 @@ export function createGameRepresentationEtag({
     canonicalEtag,
     game,
     hostView = false,
-    visibility,
+    visibility: registeredVisibility,
     user
 }: {
     canonicalEtag: string
@@ -61,6 +61,7 @@ export function createGameRepresentationEtag({
     visibility?: Visibility.GameVisibility<GameState>
     user: User
 }): string {
+    const visibility = Visibility.getGameVisibility(game, { visibility: registeredVisibility })
     if (hostView || game.hotseat || visibility === undefined) {
         return canonicalEtag
     }
@@ -80,7 +81,7 @@ export function createGameRepresentation({
     actions,
     hostView = false,
     runtime,
-    visibility,
+    visibility: registeredVisibility,
     user
 }: {
     game: Game
@@ -90,6 +91,7 @@ export function createGameRepresentation({
     visibility?: Visibility.GameVisibility<GameState>
     user: User
 }): GameRepresentation {
+    const visibility = Visibility.getGameVisibility(game, { visibility: registeredVisibility })
     if (game.state !== undefined && runtime !== undefined) {
         new GameEngine(runtime).validateCanonicalState(game.state)
     }
@@ -128,7 +130,7 @@ export function createGameSyncRepresentation({
     status,
     actions,
     runtime,
-    visibility,
+    visibility: registeredVisibility,
     user
 }: {
     game: Game
@@ -138,6 +140,7 @@ export function createGameSyncRepresentation({
     visibility?: Visibility.GameVisibility<GameState>
     user: User
 }): GameSyncRepresentation {
+    const visibility = Visibility.getGameVisibility(game, { visibility: registeredVisibility })
     const currentState = game.state
     assertExists(currentState, `Cannot represent synchronization for Game ${game.id} without state`)
 
@@ -167,7 +170,7 @@ export function createUndoResultsRepresentation({
     undoneActions,
     redoneActions,
     runtime,
-    visibility,
+    visibility: registeredVisibility,
     user
 }: {
     game: Game
@@ -178,6 +181,7 @@ export function createUndoResultsRepresentation({
     visibility?: Visibility.GameVisibility<GameState>
     user: User
 }): UndoResultsRepresentation {
+    const visibility = Visibility.getGameVisibility(game, { visibility: registeredVisibility })
     if (game.hotseat || visibility === undefined) {
         return {
             game: omitGameState(game),
@@ -254,7 +258,7 @@ export function createActionResultsRepresentation({
     missingActions,
     priorState,
     runtime,
-    visibility,
+    visibility: registeredVisibility,
     user
 }: {
     game: Game
@@ -266,6 +270,7 @@ export function createActionResultsRepresentation({
     visibility?: Visibility.GameVisibility<GameState>
     user: User
 }): ActionResultsRepresentation {
+    const visibility = Visibility.getGameVisibility(game, { visibility: registeredVisibility })
     if (game.hotseat || visibility === undefined) {
         const orderedMissingActions = orderActions(missingActions)
         return {

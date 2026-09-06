@@ -81,8 +81,25 @@ function fixture() {
 }
 
 describe('hosted reproduction seeds', () => {
+    it.each([true, undefined] as const)(
+        'rejects attempts to update protection to %s',
+        async (protectedInformation) => {
+            const { service, store, game } = fixture()
+            const write = vi.spyOn(store, 'updateGame')
+            await expect(
+                service.updateGame({
+                    gameId: game.id,
+                    owner: admin,
+                    fields: { protectedInformation }
+                })
+            ).rejects.toThrow('protection cannot be changed')
+            expect(write).not.toHaveBeenCalled()
+        }
+    )
+
     it('writes the private seed separately and exposes only the derived public seed in lobby metadata and notifications', async () => {
         const { service, store, game, notifications } = fixture()
+        game.protectedInformation = true
         const write = vi.spyOn(store, 'createGame').mockImplementation(async (game) => game)
         const created = await service.createGame({
             definition,
@@ -94,6 +111,7 @@ describe('hosted reproduction seeds', () => {
             expect.objectContaining({ seed: deriveGameSeeds(masterSeed).publicSeed }),
             { masterSeed }
         )
+        expect(created).not.toHaveProperty('protectedInformation')
         expect(JSON.stringify(created)).not.toContain(masterSeed)
         expect(JSON.stringify(vi.mocked(notifications.sendNotification).mock.calls)).not.toContain(
             masterSeed
@@ -132,6 +150,8 @@ describe('hosted reproduction seeds', () => {
             .mockImplementation(async ({ fields }) => [{ ...game, ...fields }, [], game])
         const started = await service.startGame({ definition, gameId: game.id, user: admin })
         expect(write.mock.calls[0]?.[0].fields.seed).toBe(deriveGameSeeds(masterSeed).publicSeed)
+        expect(started.protectedInformation).toBe(true)
+        expect(write.mock.calls[0]?.[0].fields.protectedInformation).toBe(true)
         expect(started.state?.masterSeed).toBe(masterSeed)
         const expected = new GameEngine(definition.runtime).startGame(game, masterSeed).initialState
         expect(started.state?.protectedPrng).toEqual(expected.protectedPrng)
@@ -140,20 +160,25 @@ describe('hosted reproduction seeds', () => {
         )
     })
 
-    it('does not reseed a fork when it starts', async () => {
-        const { service, store, game } = fixture()
-        game.parentId = 'parent'
-        game.status = GameStatus.WaitingToStart
-        vi.spyOn(store, 'findGameById').mockResolvedValue(game)
-        const read = vi.spyOn(store, 'getMasterSeed')
-        const write = vi
-            .spyOn(store, 'updateGame')
-            .mockImplementation(async ({ fields }) => [{ ...game, ...fields }, [], game])
-        await service.startGame({ definition, gameId: game.id, user: admin })
-        expect(read).not.toHaveBeenCalled()
-        expect(write.mock.calls[0]?.[0].fields).not.toHaveProperty('state')
-        expect(write.mock.calls[0]?.[0].fields).not.toHaveProperty('seed')
-    })
+    it.each([true, undefined] as const)(
+        'preserves fork protection %s when it starts',
+        async (protectedInformation) => {
+            const { service, store, game } = fixture()
+            game.parentId = 'parent'
+            game.protectedInformation = protectedInformation
+            game.status = GameStatus.WaitingToStart
+            vi.spyOn(store, 'findGameById').mockResolvedValue(game)
+            const read = vi.spyOn(store, 'getMasterSeed')
+            const write = vi
+                .spyOn(store, 'updateGame')
+                .mockImplementation(async ({ fields }) => [{ ...game, ...fields }, [], game])
+            const started = await service.startGame({ definition, gameId: game.id, user: admin })
+            expect(started.protectedInformation).toBe(protectedInformation)
+            expect(read).not.toHaveBeenCalled()
+            expect(write.mock.calls[0]?.[0].fields).not.toHaveProperty('state')
+            expect(write.mock.calls[0]?.[0].fields).not.toHaveProperty('seed')
+        }
+    )
 
     it('creates the lobby and private seed document in one transaction', async () => {
         const { store, firestore, cache, game } = fixture()

@@ -1,4 +1,5 @@
 import type { HydratedGameState } from '../model/gameState.js'
+import { Prng } from '../components/prng.js'
 import type { GameConfig } from '../model/gameConfig.js'
 import { ActionSource, createAction } from './gameAction.js'
 import { nanoid } from 'nanoid'
@@ -62,7 +63,7 @@ export class MachineContext<State extends HydratedGameState = HydratedGameState>
 
     private generateSystemActionId(): string {
         if (this.gameState.isAtLeastVersion(2)) {
-            return this.gameState.getPublicPrng().randId()
+            return new Prng(this.gameState.prng).randId()
         }
         return this.generateLegacyActionId()
     }

@@ -172,6 +172,10 @@ export class HarnessHostApi extends DummyRemoteApiService {
     private async load(gameId: string) {
         const { game, actions } = await this.gameService.loadGame(gameId)
         assertExists(game, 'Local game is unavailable')
+        assertExists(
+            Visibility.getGameVisibility(game, this.runtime),
+            'Protected mode requires a Game started with protection'
+        )
         const state = game.state
         assertExists(state, 'Local game has no state')
         this.engine.validateCanonicalState(state)

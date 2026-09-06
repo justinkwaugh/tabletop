@@ -1,8 +1,70 @@
 import { describe, expect, it, vi } from 'vitest'
 import { GameEngine } from '../../engine/gameEngine.js'
-import { createSecretRandomnessScenario } from './hiddenCardScenarios.js'
+import { Prng } from '../../components/prng.js'
+import { createPrivateDealScenario, createSecretRandomnessScenario } from './hiddenCardScenarios.js'
 
 describe('randomness and Action identity reconstruction', () => {
+    it.each([1, 2, 3])(
+        'executes, replays and undoes version %i with an older hydrated-state interface',
+        (version) => {
+            const scenario = createPrivateDealScenario()
+            delete scenario.game.protectedInformation
+            scenario.before.systemVersion = version
+            if (version < 3) delete scenario.before.protectedPrng
+            const runtime = {
+                ...scenario.runtime,
+                visibility: undefined,
+                hydrator: {
+                    ...scenario.runtime.hydrator,
+                    hydrateState(state: typeof scenario.before) {
+                        const hydrated = scenario.runtime.hydrator.hydrateState(state)
+                        Object.defineProperties(hydrated, {
+                            getPublicPrng: { value: undefined },
+                            getProtectedPrng: { value: undefined },
+                            getPrng: { value: () => new Prng(hydrated.prng) }
+                        })
+                        return hydrated
+                    }
+                }
+            }
+            const legacyState = runtime.hydrator.hydrateState(scenario.before)
+            expect(legacyState.getPublicPrng).toBeUndefined()
+            expect(legacyState.getProtectedPrng).toBeUndefined()
+            expect(Reflect.get(legacyState, 'getPrng')).toBeTypeOf('function')
+            const engine = new GameEngine(runtime)
+            const full = engine.executeCanonicalAction({
+                action: scenario.startRound,
+                state: scenario.before,
+                game: scenario.game
+            })
+            expect(full.processedActions).toHaveLength(2)
+            const expectedId =
+                version === 1
+                    ? `${scenario.startRound.id}-1`
+                    : new Prng({ ...scenario.before.prng }).randId()
+            expect(full.processedActions[1].id).toBe(expectedId)
+            let replay = scenario.before
+            for (const action of full.processedActions) {
+                replay = engine.executeSingleAction({
+                    action,
+                    state: replay,
+                    game: scenario.game
+                }).updatedState
+            }
+            expect(replay).toEqual(full.updatedState)
+            for (const action of full.processedActions.toReversed()) {
+                replay = engine.undoProcessedAction({ action, state: replay })
+            }
+            expect(replay).toEqual(scenario.before)
+            const redone = engine.executeCanonicalAction({
+                action: scenario.startRound,
+                state: replay,
+                game: scenario.game
+            })
+            expect(redone.updatedState).toEqual(full.updatedState)
+        }
+    )
+
     it.each([
         [2, 0],
         [2, 2],

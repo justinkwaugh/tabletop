@@ -293,6 +293,10 @@ describe('reproduction seed transport', () => {
         )
         vi.stubGlobal('fetch', fetch)
         const api = new TabletopApi()
+        api.setGameVersionProvider({
+            getLogicVersion: () => '4.0.0',
+            getUiVersion: () => '6.0.0'
+        })
         const masterSeed = '0123456789abcdef0123456789abcdef'
         await api.createGame(game, { masterSeed })
         expect(fetch).toHaveBeenCalledWith(

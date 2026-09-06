@@ -22,6 +22,7 @@ export {
     UnavailableProjectedActionError
 } from './actionProjector.js'
 export {
+    getGameVisibility,
     projectActionCascade,
     projectActionHistory,
     projectActionResult

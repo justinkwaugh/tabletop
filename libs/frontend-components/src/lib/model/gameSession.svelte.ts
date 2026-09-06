@@ -572,7 +572,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         })
 
         this.notifications = new GameNotifications(game, notificationService, {
-            usesProjection: this.runtime.visibility !== undefined,
+            usesProjection: Visibility.getGameVisibility(game, this.runtime) !== undefined,
             acceptsPerspective: (perspective) => this.matchesPrimaryPerspective(perspective),
             hasHostContext: () => this.representations.hostContext !== undefined,
             refreshHost: () => this.representations.refreshHost(),
@@ -878,7 +878,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private explorationPerspective(
         context = this.currentVisibleContext
     ): Visibility.Perspective | undefined {
-        if (!this.usesHostExecution(context) || !this.runtime.visibility || this.isViewingHost)
+        if (
+            !this.usesHostExecution(context) ||
+            !Visibility.getGameVisibility(context.game, this.runtime) ||
+            this.isViewingHost
+        )
             return undefined
         if (this.isViewingAsActingPlayer) {
             const player = this.representations.actingPlayer
@@ -1338,7 +1342,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     private matchesPrimaryPerspective(perspective: Visibility.Perspective): boolean {
-        if (this.runtime.visibility === undefined) {
+        if (Visibility.getGameVisibility(this.gameContext.game, this.runtime) === undefined) {
             return false
         }
 
@@ -1361,7 +1365,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         context: GameContext<T, U>,
         action?: GameAction
     ): boolean {
-        const visibility = this.runtime.visibility
+        const visibility = Visibility.getGameVisibility(context.game, this.runtime)
         if (!this.usesHostExecution(context)) {
             return false
         }
@@ -1385,7 +1389,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
         if (
             !this.usesHostExecution(context) ||
-            this.runtime.visibility === undefined ||
+            Visibility.getGameVisibility(context.game, this.runtime) === undefined ||
             this.isExploring ||
             (this.hostPerspective === undefined ? this.actAsAdminStore.current : this.isViewingHost)
         ) {

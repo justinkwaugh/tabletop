@@ -93,6 +93,7 @@ async function waitUntilHistoryIsEnabled(session: FreshFishGameSession): Promise
 }
 
 function createHistoryClient(host: CanonicalHost, projected = true) {
+    if (!projected) delete host.game.protectedInformation
     const projectedHistory = projectHostHistory(host, projected ? PLAYER_B_PERSPECTIVE : undefined)
     const appContext = createHarnessAppContext(HARNESS_DEFINITION)
     const bridgedContext = new BridgedContext({
@@ -107,7 +108,7 @@ function createHistoryClient(host: CanonicalHost, projected = true) {
         notificationService: appContext.notificationService,
         chatService: appContext.chatService,
         api: appContext.api,
-        runtime: projected ? FreshFishUiRuntime : { ...FreshFishUiRuntime, visibility: undefined },
+        runtime: FreshFishUiRuntime,
         game: structuredClone(host.game),
         state: projectedHistory.currentState,
         actions: [...projectedHistory.actions]

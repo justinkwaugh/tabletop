@@ -1,3 +1,4 @@
+import { getGameVisibility } from '../visibility/gameVisibility.js'
 import { deriveGameSeeds, generateMasterSeed, normalizeMasterSeed } from '../../util/gameSeeds.js'
 import jsonpatch from 'fast-json-patch'
 import { GameAction, type HydratedAction, Patch } from './gameAction.js'
@@ -107,6 +108,8 @@ export class GameEngine<
         const startedGame = structuredClone(game)
         startedGame.startedAt = new Date()
         startedGame.status = GameStatus.Started
+        delete startedGame.protectedInformation
+        if (this.runtime.visibility !== undefined) startedGame.protectedInformation = true
 
         const uninitializedState = this.generateUninitializedState(game, masterSeed)
         startedGame.seed = uninitializedState.prng.seed
@@ -143,7 +146,7 @@ export class GameEngine<
         }
 
         const hydratedState = this.runtime.hydrator.hydrateState(state)
-        const runtimeState = this.guardStateForPerspective(hydratedState, perspective)
+        const runtimeState = this.guardStateForPerspective(hydratedState, perspective, game)
         if (!runtimeState.isActivePlayer(playerId)) {
             return []
         }
@@ -283,7 +286,7 @@ export class GameEngine<
         const before = updatedState
 
         const hydratedState = this.runtime.hydrator.hydrateState(updatedState)
-        const runtimeState = this.guardStateForPerspective(hydratedState, perspective)
+        const runtimeState = this.guardStateForPerspective(hydratedState, perspective, game)
         const machineContext = new MachineContext({
             action: action,
             gameConfig: game.config,
@@ -313,7 +316,7 @@ export class GameEngine<
                 this.isPlayerAllowed(currentAction, hydratedState),
                 `Player ${currentAction.playerId} is not an active player`
             )
-            this.assertActionAvailableToPerspective(currentAction, perspective)
+            this.assertActionAvailableToPerspective(currentAction, perspective, game)
 
             const hydratedAction = this.runtime.hydrator.hydrateAction(
                 structuredClone(currentAction)
@@ -369,21 +372,28 @@ export class GameEngine<
         }
     }
 
-    private guardStateForPerspective(state: U, perspective?: Perspective): U {
-        return perspective !== undefined && this.runtime.visibility !== undefined
-            ? this.runtime.visibility.state.guardForExecution(state, perspective)
+    private guardStateForPerspective(
+        state: U,
+        perspective: Perspective | undefined,
+        game: Game
+    ): U {
+        const visibility = getGameVisibility(game, this.runtime)
+        return perspective !== undefined && visibility !== undefined
+            ? visibility.state.guardForExecution(state, perspective)
             : state
     }
 
     private assertActionAvailableToPerspective(
         action: GameAction,
-        perspective?: Perspective
+        perspective: Perspective | undefined,
+        game: Game
     ): void {
-        if (perspective === undefined || this.runtime.visibility === undefined) {
+        const visibility = getGameVisibility(game, this.runtime)
+        if (perspective === undefined || visibility === undefined) {
             return
         }
 
-        const projected = this.runtime.visibility.actions.project(action, perspective)
+        const projected = visibility.actions.project(action, perspective)
         if (isRedactedAction(projected)) {
             throw new UnavailableProjectedActionError(action.type)
         }

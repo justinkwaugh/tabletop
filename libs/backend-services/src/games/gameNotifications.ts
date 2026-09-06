@@ -47,7 +47,7 @@ export async function publishActionResults({
     storedActions,
     priorState,
     runtime,
-    visibility,
+    visibility: registeredVisibility,
     notificationService
 }: {
     game: Game
@@ -58,6 +58,7 @@ export async function publishActionResults({
     visibility?: Visibility.GameVisibility<GameState>
     notificationService: NotificationSender
 }): Promise<void> {
+    const visibility = Visibility.getGameVisibility(game, { visibility: registeredVisibility })
     if (game.hotseat || visibility === undefined) {
         await publish({
             data: {
@@ -106,7 +107,7 @@ export async function publishUndoResults({
     actionToUndo,
     redoneActions,
     runtime,
-    visibility,
+    visibility: registeredVisibility,
     notificationService
 }: {
     game: Game
@@ -117,6 +118,7 @@ export async function publishUndoResults({
     visibility?: Visibility.GameVisibility<GameState>
     notificationService: NotificationSender
 }): Promise<void> {
+    const visibility = Visibility.getGameVisibility(game, { visibility: registeredVisibility })
     const currentState = game.state
     assertExists(currentState, `Cannot publish an undo for Game ${game.id} without current state`)
 
