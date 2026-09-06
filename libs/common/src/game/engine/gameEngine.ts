@@ -1,3 +1,4 @@
+import { deriveGameSeeds, generateMasterSeed, normalizeMasterSeed } from '../../util/gameSeeds.js'
 import jsonpatch from 'fast-json-patch'
 import { GameAction, type HydratedAction, Patch } from './gameAction.js'
 import { Game, GameStatus } from '../model/game.js'
@@ -68,15 +69,28 @@ export class GameEngine<
         return this.executeUnprocessedAction(input, true)
     }
 
-    generateUninitializedState(game: Game): UninitializedGameState {
-        const seed = game.seed ?? generateSeed()
+    generateUninitializedState(game: Game, suppliedMasterSeed?: string): UninitializedGameState {
+        const masterSeed =
+            this.runtime.randomnessVersion === 1
+                ? normalizeMasterSeed(suppliedMasterSeed ?? generateMasterSeed())
+                : undefined
+        assert(
+            suppliedMasterSeed === undefined || masterSeed !== undefined,
+            'This runtime does not support reproduction seeds'
+        )
+        const derived = masterSeed === undefined ? undefined : deriveGameSeeds(masterSeed)
+        const seed = derived?.publicSeed ?? game.seed ?? generateSeed()
         return {
             systemVersion: 3,
             id: nanoid(),
             gameId: game.id,
             seed,
             prng: { seed, invocations: 0 },
-            protectedPrng: { seed: generateSeed(), invocations: 0 },
+            protectedPrng:
+                derived === undefined
+                    ? { seed: generateSeed(), invocations: 0 }
+                    : { algorithm: 'chacha20-v1', seed: derived.protectedSeed, invocations: 0 },
+            ...(masterSeed === undefined ? {} : { masterSeed }),
             activePlayerIds: [],
             winningPlayerIds: [],
             actionCount: 0,
@@ -85,7 +99,7 @@ export class GameEngine<
         }
     }
 
-    startGame(game: Game): { startedGame: Game; initialState: T } {
+    startGame(game: Game, masterSeed?: string): { startedGame: Game; initialState: T } {
         if (game.startedAt !== null && game.startedAt !== undefined) {
             throw Error('Game is already started')
         }
@@ -94,8 +108,12 @@ export class GameEngine<
         startedGame.startedAt = new Date()
         startedGame.status = GameStatus.Started
 
-        const uninitializedState = this.generateUninitializedState(game)
-        const initialState = this.runtime.initializer.initializeGameState(game, uninitializedState)
+        const uninitializedState = this.generateUninitializedState(game, masterSeed)
+        startedGame.seed = uninitializedState.prng.seed
+        const initialState = this.runtime.initializer.initializeGameState(
+            { ...game, seed: startedGame.seed },
+            uninitializedState
+        )
 
         const machineContext = new MachineContext({
             gameConfig: game.config,

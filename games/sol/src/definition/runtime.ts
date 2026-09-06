@@ -15,6 +15,7 @@ import { SolColors } from './colors.js'
 import { SolActionSchemas } from './actionSchemas.js'
 
 export const SolRuntime = {
+    randomnessVersion: 1,
     initializer: new SolGameInitializer(),
     exploration: new SolGameExploration(),
     canonicalStateValidator: SolGameStateValidator,

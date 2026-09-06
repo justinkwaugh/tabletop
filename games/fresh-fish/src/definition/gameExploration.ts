@@ -27,8 +27,7 @@ export class FreshFishGameExploration implements GameExploration<FreshFishGameSt
     }: ExplorationPopulation<FreshFishGameState>): FreshFishGameState {
         const configuredSeed = game.config.boardSeed
         const boardSeed =
-            state.boardSeed ??
-            (typeof configuredSeed === 'number' && configuredSeed ? configuredSeed : game.seed)
+            state.boardSeed ?? (typeof configuredSeed === 'number' ? configuredSeed : game.seed)
         assertExists(boardSeed, 'Exploration requires the public board seed')
         const { numMarketTiles } = generateBoard(game.players.length, getPrng(boardSeed))
         const bag = new HydratedTileBag(createTileBag(game, numMarketTiles, random))

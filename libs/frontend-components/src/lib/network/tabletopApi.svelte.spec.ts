@@ -279,3 +279,28 @@ describe('publication version detection', () => {
         expect(api.versionChange).toBe(VersionChange.MajorUpgrade)
     })
 })
+
+describe('reproduction seed transport', () => {
+    test('sends private creation options outside public game metadata', async () => {
+        const game = Value.Create(Game)
+        game.id = 'seeded'
+        game.typeId = 'freshfish'
+        const fetch = vi.fn(
+            async () =>
+                new Response(JSON.stringify({ status: 'ok', payload: { game } }), {
+                    headers: { 'Content-Type': 'application/json' }
+                })
+        )
+        vi.stubGlobal('fetch', fetch)
+        const api = new TabletopApi()
+        const masterSeed = '0123456789abcdef0123456789abcdef'
+        await api.createGame(game, { masterSeed })
+        expect(fetch).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                body: JSON.stringify({ game, options: { masterSeed } })
+            })
+        )
+        expect(game).not.toHaveProperty('masterSeed')
+    })
+})

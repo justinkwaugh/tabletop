@@ -1,4 +1,6 @@
 import {
+    deriveGameSeeds,
+    generateMasterSeed,
     ExplorationHistory,
     getPrng,
     generateSeed,
@@ -179,9 +181,17 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
         })
         const state = structuredClone(source.state)
         delete state.explorationState
+        delete state.masterSeed
         state.prng = { seed: generateSeed(), invocations: 0 }
         if ((state.systemVersion ?? 1) >= 3) {
-            state.protectedPrng = { seed: generateSeed(), invocations: 0 }
+            state.protectedPrng =
+                this.runtime.randomnessVersion === 1
+                    ? {
+                          algorithm: 'chacha20-v1',
+                          seed: deriveGameSeeds(generateMasterSeed()).protectedSeed,
+                          invocations: 0
+                      }
+                    : { seed: generateSeed(), invocations: 0 }
         }
         const exploration = this.runtime.exploration
         let hypothetical: T

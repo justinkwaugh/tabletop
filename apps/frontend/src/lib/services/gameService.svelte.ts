@@ -13,6 +13,7 @@ import {
     IndexedDbGameStore
 } from '@tabletop/frontend-components'
 import {
+    type GameCreationOptions,
     Game,
     type GameNotification,
     GameNotificationAction,
@@ -36,6 +37,9 @@ import { NotificationService } from './notificationService.svelte'
 import type { LibraryService } from './libraryService.svelte'
 
 export class GameService implements GameServiceInterface {
+    get supportsReproductionSeed(): boolean {
+        return this.api.supportsReproductionSeed === true
+    }
     private gamesById: Map<string, Game> = new SvelteMap()
     private localGamesById: Map<string, Game> = new SvelteMap()
 
@@ -196,7 +200,7 @@ export class GameService implements GameServiceInterface {
         )
     }
 
-    async createGame(game: Partial<Game>): Promise<Game> {
+    async createGame(game: Partial<Game>, options?: GameCreationOptions): Promise<Game> {
         await this.libraryService.whenReady()
         let newGame: Game
         if (!game.typeId) {
@@ -218,14 +222,17 @@ export class GameService implements GameServiceInterface {
             const initializedGame = runtime.initializer.initializeGame(game, gameDefinition)
 
             const engine = new GameEngine(runtime)
-            const { startedGame, initialState } = engine.startGame(initializedGame)
+            const { startedGame, initialState } = engine.startGame(
+                initializedGame,
+                options?.masterSeed
+            )
 
             startedGame.activePlayerIds = initialState.activePlayerIds
 
             newGame = await this.localGameStore.createGame(startedGame, initialState)
             this.localGamesById.set(newGame.id, newGame)
         } else {
-            newGame = await this.api.createGame(game)
+            newGame = await this.api.createGame(game, options)
             this.gamesById.set(newGame.id, newGame)
 
             if (newGame.isPublic && newGame.status === GameStatus.WaitingForPlayers) {

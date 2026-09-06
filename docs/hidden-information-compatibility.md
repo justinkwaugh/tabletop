@@ -84,3 +84,13 @@ The review found one new Standards violation and three new Spec defects; all fou
 The optional `hostPerspective` Game Session constructor option lets the dev harness supply a Player/Spectator projection backed by a local authoritative API. Local storage and hotseat metadata remain unchanged. Omitted options retain existing hosted and ordinary hotseat behavior; Site Frontend does not need to send the new option or implement a new API capability.
 
 The dev harness loads matching source-tree UI code. A UI-only Publication is needed for each Game Title that should adopt the updated shared Game Client; existing UI Artifacts continue using their bundled implementation. No Logic Artifact change, stored-state migration, or coordinated Site Frontend publication is required for this harness feature.
+
+## Reproducible randomness adoption (2026-09-06)
+
+Fresh Fish Logic 4 / UI 6, Sol Logic 6 / UI 7, and Löwenherz Logic 3 / UI 3 adopt `randomnessVersion: 1`. Publish each matching Logic/UI pair with the updated backend and Site Frontend. Their Logic major gate and UI major notices require old loaded clients to reload. Other titles need no publication for this slice and keep legacy initialization; republishing their UI is necessary only to adopt the shared client improvements.
+
+`GameService.createGame(game, options?)` and `TabletopApi.createGame(game, options?)` add an optional argument. Older callers continue to work. The optional `supportsReproductionSeed` capability lets the new creation form reject supplied reproduction seeds when injected into an older host, instead of silently dropping them. The backend requires Admin authorization for supplied master seeds and rejects them for runtimes lacking the new initialization capability. No private seed enters public Game metadata or notifications.
+
+Old v1/v2 and existing numeric v3 saves keep their stored generators and remain playable with the updated runtimes. A lobby created before adoption has no private seed document; starting it generates a fresh master seed and persists its derived public seed. It has no gameplay state to migrate. Forks bypass initialization and preserve their saved cursors. Older Logic Artifacts cannot read new ChaCha20 saves, so rollback after new games start requires a forward-compatible fix, not selecting an old artifact.
+
+The crypto dependencies require Node 20.19 or newer; the production Node 22 image satisfies that floor. Deployment and mixed-publication rollout verification remain release work.

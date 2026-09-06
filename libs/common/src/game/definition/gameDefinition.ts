@@ -22,6 +22,7 @@ export interface GameRuntime<
     T extends GameState = GameState,
     U extends HydratedGameState<T> = HydratedGameState<T>
 > {
+    randomnessVersion?: 1
     initializer: GameInitializer<T, U>
     exploration?: GameExploration<T>
     hydrator: GameHydrator<T, U>

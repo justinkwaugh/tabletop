@@ -11,6 +11,8 @@
         RadioButton
     } from 'flowbite-svelte'
     import {
+        normalizeMasterSeed,
+        type GameCreationOptions,
         assertExists,
         BooleanConfigOption,
         ConfigOption,
@@ -212,13 +214,27 @@
             config: mergedConfig
         }
 
+        let options: GameCreationOptions | undefined
         if (mode === EditMode.Create) {
             gameData.typeId = gameTitle.info.id
             if (seed.trim().length > 0) {
                 try {
-                    gameData.seed = parseInt(seed.trim())
+                    const runtime = await gameTitle.runtime()
+                    if (runtime.randomnessVersion === 1) {
+                        if (gameService.supportsReproductionSeed !== true) {
+                            errors['seed'] = ['Reload the site to use reproduction seeds']
+                            return
+                        }
+                        options = { masterSeed: normalizeMasterSeed(seed) }
+                    } else {
+                        const numericSeed = Number(seed)
+                        if (!Number.isInteger(numericSeed)) throw Error('Invalid numeric seed')
+                        gameData.seed = numericSeed
+                    }
                 } catch {
-                    errors['seed'] = ['The seed must be a valid number']
+                    errors['seed'] = [
+                        'Use a 32-digit hexadecimal reproduction seed, or a number for legacy titles'
+                    ]
                     return
                 }
             }
@@ -227,7 +243,7 @@
         try {
             let updatedGame: Game
             if (mode === EditMode.Create) {
-                updatedGame = await gameService.createGame(gameData)
+                updatedGame = await gameService.createGame(gameData, options)
             } else {
                 updatedGame = await gameService.updateGame(gameData)
             }
@@ -482,8 +498,11 @@
         </div>
     {/if}
     {#if authorizationService.isAdmin && mode === EditMode.Create}
-        <Label class="mb-2">Seed</Label>
-        <Input type="text" name="seed" bind:value={seed} placeholder="optional game seed" />
+        <Label class="mb-2">Reproduction seed</Label>
+        <Input type="text" name="seed" bind:value={seed} placeholder="optional reproduction seed" />
+        {#each errors['seed'] ?? [] as error}
+            <Helper color="red">{error}</Helper>
+        {/each}
     {/if}
 
     <div class="flex justify-between mt-6">

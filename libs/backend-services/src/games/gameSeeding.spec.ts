@@ -1,0 +1,175 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { Firestore, Transaction } from '@google-cloud/firestore'
+import {
+    deriveGameSeeds,
+    GameEngine,
+    GameStatus,
+    PlayerStatus,
+    Role,
+    UserStatus,
+    type User
+} from '@tabletop/common'
+import { SyntheticDefinition, SyntheticRuntime } from './tests/syntheticGame.js'
+import { GameService } from './gameService.js'
+import { FirestoreGameStore } from '../persistence/firestore/gameStore.js'
+import { RedisCacheService } from '../cache/cacheService.js'
+import { UserService } from '../users/userService.js'
+import { TokenService } from '../tokens/tokenService.js'
+import type { TaskService } from '../tasks/taskService.js'
+import type { NotificationService } from '../notifications/notificationService.js'
+
+const masterSeed = '0123456789abcdef0123456789abcdef'
+const definition = {
+    ...SyntheticDefinition,
+    runtime: { ...SyntheticRuntime, randomnessVersion: 1 as const }
+}
+const admin: User = { id: 'admin', status: UserStatus.Active, roles: [Role.Admin], externalIds: [] }
+afterEach(() => vi.restoreAllMocks())
+
+function fixture() {
+    const firestore = new Firestore({ projectId: 'seeding-unit-test' })
+    const cache: RedisCacheService = Object.create(RedisCacheService.prototype)
+    const store = new FirestoreGameStore(cache, firestore)
+    const unused = vi.fn(async () => {
+        throw Error('Unexpected dependency call')
+    })
+    const tasks: TaskService = {
+        createPushTask: unused,
+        sendVerificationEmail: unused,
+        sendPasswordResetEmail: unused,
+        sendAuthVerificationEmail: unused,
+        sendAccountChangeNotificationEmail: unused,
+        sendGameInvitationEmail: unused,
+        sendTurnNotification: unused,
+        sendGameEndEmail: unused
+    }
+    const notifications: NotificationService = {
+        addTopicTransport: vi.fn(),
+        addTopicListener: unused,
+        removeTopicListener: unused,
+        addTransport: vi.fn(),
+        registerNotificationSubscription: unused,
+        unregisterNotificationSubscription: unused,
+        sendNotification: vi.fn(async () => {})
+    }
+    const service = new GameService(
+        store,
+        UserService.prototype,
+        TokenService.prototype,
+        tasks,
+        notifications,
+        cache,
+        { synthetic: definition }
+    )
+    const game = SyntheticRuntime.initializer.initializeGame(
+        {
+            id: 'seeded-game',
+            typeId: definition.info.id,
+            ownerId: admin.id,
+            isPublic: true,
+            config: {},
+            players: ['p1', 'p2', 'p3'].map((id) => ({
+                id,
+                name: '',
+                isHuman: true,
+                status: PlayerStatus.Joined
+            }))
+        },
+        definition
+    )
+    return { service, store, firestore, cache, notifications, game }
+}
+
+describe('hosted reproduction seeds', () => {
+    it('writes the private seed separately and exposes only the derived public seed in lobby metadata and notifications', async () => {
+        const { service, store, game, notifications } = fixture()
+        const write = vi.spyOn(store, 'createGame').mockImplementation(async (game) => game)
+        const created = await service.createGame({
+            definition,
+            game,
+            owner: admin,
+            options: { masterSeed }
+        })
+        expect(write).toHaveBeenCalledWith(
+            expect.objectContaining({ seed: deriveGameSeeds(masterSeed).publicSeed }),
+            { masterSeed }
+        )
+        expect(JSON.stringify(created)).not.toContain(masterSeed)
+        expect(JSON.stringify(vi.mocked(notifications.sendNotification).mock.calls)).not.toContain(
+            masterSeed
+        )
+    })
+
+    it('rejects a supplied seed from a non-admin and from an older runtime before writing', async () => {
+        const { service, store, game } = fixture()
+        const write = vi.spyOn(store, 'createGame')
+        await expect(
+            service.createGame({
+                definition,
+                game,
+                owner: { ...admin, roles: [Role.User] },
+                options: { masterSeed }
+            })
+        ).rejects.toThrow()
+        await expect(
+            service.createGame({
+                definition: SyntheticDefinition,
+                game,
+                owner: admin,
+                options: { masterSeed }
+            })
+        ).rejects.toThrow('does not support')
+        expect(write).not.toHaveBeenCalled()
+    })
+
+    it('uses the stored seed at start and persists the matching public seed', async () => {
+        const { service, store, game, notifications } = fixture()
+        game.status = GameStatus.WaitingToStart
+        vi.spyOn(store, 'findGameById').mockResolvedValue(game)
+        vi.spyOn(store, 'getMasterSeed').mockResolvedValue(masterSeed)
+        const write = vi
+            .spyOn(store, 'updateGame')
+            .mockImplementation(async ({ fields }) => [{ ...game, ...fields }, [], game])
+        const started = await service.startGame({ definition, gameId: game.id, user: admin })
+        expect(write.mock.calls[0]?.[0].fields.seed).toBe(deriveGameSeeds(masterSeed).publicSeed)
+        expect(started.state?.masterSeed).toBe(masterSeed)
+        const expected = new GameEngine(definition.runtime).startGame(game, masterSeed).initialState
+        expect(started.state?.protectedPrng).toEqual(expected.protectedPrng)
+        expect(JSON.stringify(vi.mocked(notifications.sendNotification).mock.calls)).not.toContain(
+            masterSeed
+        )
+    })
+
+    it('does not reseed a fork when it starts', async () => {
+        const { service, store, game } = fixture()
+        game.parentId = 'parent'
+        game.status = GameStatus.WaitingToStart
+        vi.spyOn(store, 'findGameById').mockResolvedValue(game)
+        const read = vi.spyOn(store, 'getMasterSeed')
+        const write = vi
+            .spyOn(store, 'updateGame')
+            .mockImplementation(async ({ fields }) => [{ ...game, ...fields }, [], game])
+        await service.startGame({ definition, gameId: game.id, user: admin })
+        expect(read).not.toHaveBeenCalled()
+        expect(write.mock.calls[0]?.[0].fields).not.toHaveProperty('state')
+        expect(write.mock.calls[0]?.[0].fields).not.toHaveProperty('seed')
+    })
+
+    it('creates the lobby and private seed document in one transaction', async () => {
+        const { store, firestore, cache, game } = fixture()
+        const transaction: Transaction = Object.create(Transaction.prototype)
+        const create = vi.spyOn(transaction, 'create').mockReturnValue(transaction)
+        vi.spyOn(firestore, 'runTransaction').mockImplementation(async (update) =>
+            update(transaction)
+        )
+        vi.spyOn(cache, 'lockWhileWriting').mockImplementation(async (_keys, writer) => writer())
+        const created = await store.createGame(game, { masterSeed })
+        expect(create.mock.calls.map(([reference]) => reference.path)).toEqual([
+            `games/${game.id}`,
+            `games/${game.id}/private/initialization`
+        ])
+        expect(create.mock.calls[0]?.[1]).not.toHaveProperty('masterSeed')
+        expect(create.mock.calls[1]?.[1]).toEqual({ masterSeed })
+        expect(created).not.toHaveProperty('masterSeed')
+    })
+})

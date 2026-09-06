@@ -45,7 +45,10 @@ const engine = new GameEngine(SolRuntime)
 const spectator = { kind: 'spectator' } as const
 
 function initialize(systemVersion = 3, protectedSeed = 123) {
-    const state = engine.generateUninitializedState(game)
+    const state = new GameEngine({
+        ...SolRuntime,
+        randomnessVersion: undefined
+    }).generateUninitializedState(game)
     state.id = 'sol-state'
     state.systemVersion = systemVersion
     if (systemVersion < 3) delete state.protectedPrng
@@ -98,6 +101,21 @@ function projectHistory(state: SolGameState, actions: readonly GameAction[]) {
 }
 
 describe('Sol visibility', () => {
+    it('reproduces canonical setup from a master seed and conceals it in projections', () => {
+        const masterSeed = '0123456789abcdef0123456789abcdef'
+        const initialize = () => {
+            const state = engine.generateUninitializedState(game, masterSeed)
+            state.id = 'reproduction-state'
+            return SolRuntime.initializer.initializeGameState(game, state).dehydrate()
+        }
+        const first = initialize()
+        expect(initialize()).toEqual(first)
+        expect(first.protectedPrng).toMatchObject({ algorithm: 'chacha20-v1' })
+        expect(
+            SolRuntime.visibility.state.project(first, { kind: 'spectator' })
+        ).not.toHaveProperty('masterSeed')
+    })
+
     it.each([1, 2])('preserves version %i initialization and forward play', (version) => {
         const state = initialize(version)
         expect(state.prng).toEqual({ seed: 101, invocations: 5215 })

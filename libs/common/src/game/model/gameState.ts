@@ -4,8 +4,10 @@ import { Hydratable } from '../../util/hydration.js'
 import { calculateActionChecksum } from '../../util/checksum.js'
 import { GameAction, Patch } from '../engine/gameAction.js'
 import { PlayerState } from './playerState.js'
-import { Prng, PrngState, ProtectedPrngState } from '../components/prng.js'
+import { Prng, PrngState, ProtectedPrngState, type RandomState } from '../components/prng.js'
 import { assertExists } from '../../util/assertions.js'
+import { MasterSeed } from '../../util/gameSeeds.js'
+import { protect, Policy } from '../visibility/visibilitySchema.js'
 import { Validator } from 'typebox/compile'
 
 export enum GameResult {
@@ -39,6 +41,7 @@ export const GameState = Type.Object({
     seed: Type.Optional(Type.Number()), // deprecated.. moved to game
     prng: PrngState,
     protectedPrng: Type.Optional(ProtectedPrngState),
+    masterSeed: Type.Optional(protect(MasterSeed, { policy: Policy.HostOnly })),
     machineState: Type.String(),
     turnManager: TurnManager,
     result: Type.Optional(Type.Enum(GameResult)),
@@ -77,7 +80,8 @@ export abstract class HydratableGameState<T extends Type.TSchema, P extends Play
     declare actionCount: number
     declare actionChecksum: number
     declare prng: PrngState
-    declare protectedPrng?: PrngState
+    declare protectedPrng?: RandomState
+    declare masterSeed?: string
     declare machineState: string
     declare turnManager: HydratedTurnManager
     declare result?: GameResult

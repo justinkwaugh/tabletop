@@ -27,3 +27,17 @@ test('Fresh Fish renders and discovers legal moves in the protected harness', as
     await expect(page.getByText('Please place your disk', { exact: true })).toBeVisible()
     expect(errors).toEqual([])
 })
+
+test('reproduction seed survives harness creation and IndexedDB reload', async ({ page }) => {
+    await page.goto('/')
+    const { first, second } = await page.evaluate(async () => {
+        const fixture = await import(
+            new URL('/src/lib/stores/tests/exploration.fixture.ts', location.href).href
+        )
+        return fixture.reproduceHarnessGame()
+    })
+    expect(first).toEqual(second)
+    expect(first.masterSeed).toBe('0123456789abcdef0123456789abcdef')
+    expect(first.boardSeed).toBe(0)
+    expect(first.protectedPrng.algorithm).toBe('chacha20-v1')
+})

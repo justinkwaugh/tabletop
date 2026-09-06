@@ -60,7 +60,10 @@ function canonical(state: LowenherzProjectedState): LowenherzGameState {
     return state
 }
 function initialize(version = 3, seed = 31) {
-    const state = engine.generateUninitializedState(game)
+    const state = new GameEngine({
+        ...LowenherzRuntime,
+        randomnessVersion: undefined
+    }).generateUninitializedState(game)
     state.id = 'state'
     state.systemVersion = version
     if (version >= 3) state.protectedPrng = { seed, invocations: 0 }
@@ -116,6 +119,22 @@ function sorted(cards: PoliticsCard[]) {
 }
 
 describe('Lowenherz privacy', () => {
+    it('reproduces canonical setup from a master seed and conceals it in projections', () => {
+        const masterSeed = '0123456789abcdef0123456789abcdef'
+        const initialize = () => {
+            const state = engine.generateUninitializedState(game, masterSeed)
+            state.id = 'reproduction-state'
+            return LowenherzRuntime.initializer.initializeGameState(game, state).dehydrate()
+        }
+        const first = initialize()
+        expect(initialize()).toEqual(first)
+        assert(LowenherzGameStateValidator.Check(first), 'Expected canonical seeded state')
+        expect(first.protectedPrng).toMatchObject({ algorithm: 'chacha20-v1' })
+        expect(
+            LowenherzRuntime.visibility.state.project(first, { kind: 'spectator' })
+        ).not.toHaveProperty('masterSeed')
+    })
+
     it('registers every Action and separates protected initialization from public setup', () => {
         expect(Object.keys(LowenherzActionSchemas).sort()).toEqual(Object.values(ActionType).sort())
         const first = initialize(3, 1),

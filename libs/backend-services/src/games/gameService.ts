@@ -1,4 +1,9 @@
 import {
+    GameCreationOptions,
+    deriveGameSeeds,
+    generateMasterSeed,
+    normalizeMasterSeed,
+    assert,
     ActionSource,
     calculateActionChecksum,
     createGameFork,
@@ -106,12 +111,27 @@ export class GameService {
     async createGame({
         definition,
         game,
-        owner
+        owner,
+        options
     }: {
         definition: GameDefinition
         game: Partial<Game>
         owner: User
+        options?: GameCreationOptions
     }): Promise<Game> {
+        assertExists(game.id, 'Game id is required')
+        if (options?.masterSeed !== undefined && !owner.roles.includes(Role.Admin)) {
+            throw new UnauthorizedAccessError({ user: owner, gameId: game.id })
+        }
+        assert(
+            options?.masterSeed === undefined || definition.runtime.randomnessVersion === 1,
+            'This runtime does not support reproduction seeds'
+        )
+        const masterSeed =
+            definition.runtime.randomnessVersion === 1
+                ? normalizeMasterSeed(options?.masterSeed ?? generateMasterSeed())
+                : undefined
+        if (masterSeed !== undefined) game.seed = deriveGameSeeds(masterSeed).publicSeed
         game.ownerId = owner.id // Don't trust client
         game.storage = GameStorage.Remote // Has to be remote here on the backend
 
@@ -149,7 +169,10 @@ export class GameService {
             }
         }
 
-        const createdGame = await this.gameStore.createGame(newGame)
+        const createdGame = await this.gameStore.createGame(
+            newGame,
+            masterSeed === undefined ? undefined : { masterSeed }
+        )
 
         // Send invites
         for (const user of Object.values(usersByPlayerId)) {
@@ -741,11 +764,23 @@ export class GameService {
                 }
             })
         } else {
-            const { startedGame, initialState } = new GameEngine(definition.runtime).startGame(game)
+            const masterSeed =
+                definition.runtime.randomnessVersion === 1
+                    ? await this.gameStore.getMasterSeed(gameId)
+                    : undefined
+            const { startedGame, initialState } = new GameEngine(definition.runtime).startGame(
+                game,
+                masterSeed
+            )
             startedGame.state = initialState
             ;[updatedGame] = await this.gameStore.updateGame({
                 game,
-                fields: { startedAt: new Date(), status: GameStatus.Started, state: initialState },
+                fields: {
+                    startedAt: new Date(),
+                    status: GameStatus.Started,
+                    seed: startedGame.seed,
+                    state: initialState
+                },
                 validator: (existingGame, fieldsToUpdate) => {
                     if (existingGame.status !== GameStatus.WaitingToStart) {
                         throw new GameNotWaitingToStartError({ id: gameId })

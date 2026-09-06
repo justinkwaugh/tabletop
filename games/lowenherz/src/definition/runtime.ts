@@ -18,6 +18,7 @@ import { normalizeLowenherzState } from '../util/normalizePoliticsCards.js'
 const stateProjector = Visibility.createProjector(LowenherzGameState)
 
 export const LowenherzRuntime = {
+    randomnessVersion: 1,
     initializer: new LowenherzGameInitializer(),
     exploration: new LowenherzGameExploration(),
     canonicalStateValidator: LowenherzGameStateValidator,

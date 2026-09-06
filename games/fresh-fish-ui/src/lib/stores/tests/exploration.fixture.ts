@@ -20,6 +20,7 @@ import {
     type GameUiDefinition
 } from '@tabletop/frontend-components'
 import {
+    FreshFishGameStateValidator,
     FreshFishRuntime,
     HydratedPlaceDisk,
     PlaceDisk,
@@ -36,6 +37,8 @@ import {
     createBid,
     PLAYER_B_PERSPECTIVE
 } from './simultaneousAuction.js'
+
+const masterSeed = '0123456789abcdef0123456789abcdef'
 
 const definition: GameUiDefinition<GameState, HydratedGameState> = {
     info: UiDefinition.info,
@@ -59,7 +62,10 @@ const definition: GameUiDefinition<GameState, HydratedGameState> = {
 export function createExplorationHost(): CanonicalHost {
     const game = structuredClone(createAuctionHost().game)
     delete game.startedAt
-    const { startedGame, initialState } = new GameEngine(FreshFishRuntime).startGame(game)
+    const { startedGame, initialState } = new GameEngine(FreshFishRuntime).startGame(
+        game,
+        masterSeed
+    )
     return new CanonicalHost(startedGame, initialState)
 }
 
@@ -419,6 +425,10 @@ export async function runPrivilegedExploration() {
         session.explorations.endExploring()
         await settleExploration(session)
         return {
+            sourceHadMasterSeed: host.state.masterSeed !== undefined,
+            branchRemovedMasterSeed: context.state.masterSeed === undefined,
+            freshProtectedFuture:
+                context.state.protectedPrng?.seed !== host.state.protectedPrng?.seed,
             ordinaryUnavailable,
             actingViewUnavailable,
             hostAvailable,
@@ -651,4 +661,36 @@ export async function saveProtectedHarnessGame() {
         actions: host.actionsSnapshot()
     })
     return host.state.activePlayerIds[0]
+}
+
+export async function reproduceHarnessGame() {
+    const app = createHarnessAppContext(definition)
+    const original = createExplorationHost()
+    const create = async () => {
+        const game = await app.gameService.createGame(
+            {
+                ...original.game,
+                id: crypto.randomUUID(),
+                startedAt: undefined,
+                storage: GameStorage.Local,
+                hotseat: true,
+                config: { ...original.game.config, boardSeed: 0 }
+            },
+            { masterSeed }
+        )
+        const loaded = await app.gameService.loadGame(game.id)
+        assertExists(loaded.game?.state, 'Expected persisted canonical state')
+        const state = loaded.game.state
+        if (!FreshFishGameStateValidator.Check(state))
+            throw Error('Expected canonical Fresh Fish state')
+        return {
+            masterSeed: state.masterSeed,
+            publicSeed: game.seed,
+            board: state.board,
+            boardSeed: state.boardSeed,
+            tileBag: state.tileBag,
+            protectedPrng: state.protectedPrng
+        }
+    }
+    return { first: await create(), second: await create() }
 }

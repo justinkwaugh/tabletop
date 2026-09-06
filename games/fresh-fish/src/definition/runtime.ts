@@ -15,6 +15,7 @@ import { FreshFishStateHandlers } from './stateHandlers.js'
 import { FreshFishColors } from './colors.js'
 
 export const FreshFishRuntime = {
+    randomnessVersion: 1,
     initializer: new FreshFishGameInitializer(),
     exploration: new FreshFishGameExploration(),
     canonicalStateValidator: FreshFishGameStateValidator,

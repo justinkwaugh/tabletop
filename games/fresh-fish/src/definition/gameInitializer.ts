@@ -27,7 +27,7 @@ export class FreshFishGameInitializer
         const prng = new Prng(state.prng)
         const config = game.config as FreshFishGameConfig
 
-        const boardSeed = config.boardSeed ? config.boardSeed : state.prng.seed
+        const boardSeed = config.boardSeed ?? state.prng.seed
         const boardPrng = new Prng({ seed: boardSeed, invocations: 0 })
         const { board, numMarketTiles } = generateBoard(game.players.length, boardPrng.random)
 

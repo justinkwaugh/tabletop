@@ -1,6 +1,7 @@
 import wretch, { type Wretch, type WretchError } from 'wretch'
 import * as Value from 'typebox/value'
 import {
+    type GameCreationOptions,
     assertExists,
     Bookmark,
     CanonicalActionReplay,
@@ -47,6 +48,7 @@ export type GetGameOptions = {
 }
 
 export class TabletopApi {
+    readonly supportsReproductionSeed?: boolean = true
     readonly supportsHostView?: boolean = true
     private static readonly API_PREFIX = '/api/v1'
     private readonly host: string
@@ -374,7 +376,7 @@ export class TabletopApi {
 
     /** Game Specific Endpoints */
 
-    async createGame(game: Partial<Game>): Promise<Game> {
+    async createGame(game: Partial<Game>, options?: GameCreationOptions): Promise<Game> {
         const logicVersion = this.getGameLogicVersion(game.typeId!)
         const uiVersion = this.getGameUiVersion(game.typeId!)
         const response = await this.wretch
@@ -382,7 +384,7 @@ export class TabletopApi {
                 'X-TABLETOP-GAME-LOGIC-VERSION': logicVersion,
                 'X-TABLETOP-GAME-UI-VERSION': uiVersion
             })
-            .post({ game }, `/game/${game.typeId}/create`)
+            .post({ game, options }, `/game/${game.typeId}/create`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GameResponse>()

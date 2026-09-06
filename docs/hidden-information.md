@@ -88,9 +88,16 @@ Custom replacement adapters, arbitrary TypeBox composition with precise static i
 | --- | --- |
 | `Game.seed`, deprecated `GameState.seed`, `prng` | Public setup seed and persisted public stream |
 | `getPublicPrng()` | Predictable public rules randomness and durable System Action identity generation |
-| `getProtectedPrng()` | Independently seeded protected stream in v3; historical public stream in v1/v2 |
+| `getProtectedPrng()` | Private deterministic stream in v3; historical public stream in v1/v2 |
+| `masterSeed` | Optional private reproduction seed, omitted from ordinary projections |
 
-The protected seed is independently generated, not derived from `Game.seed`. A v3 protected access requires its cursor to exist. The neutral projected cursor is a redaction, not usable entropy, and guarded execution rejects its use.
+New instances of runtimes declaring `randomnessVersion: 1` derive both streams from a private 128-bit master seed. HKDF-SHA256 uses salt `tabletop/game-seeds/v1` and separate UTF-8 labels `public-v1` (four output bytes, little-endian unsigned integer) and `protected-v1` (32 output bytes). The public SplitMix32 seed remains a simple number. The protected cursor is `{ algorithm: 'chacha20-v1', seed: <64 hex digits>, invocations }`; it uses ChaCha20 with a zero 96-bit nonce, starting at block zero, and consumes little-endian 32-bit words divided by 2^32. A cached block supplies 16 invocations. Both generators resume directly at their persisted position; SplitMix32 skip-ahead preserves the original sequence.
+
+The master seed is generated with `crypto.getRandomValues` and represented as 32 hexadecimal digits. Admin creation accepts it through `GameCreationOptions.masterSeed`, separate from public Game metadata. Hosted creation atomically stores it in `games/{id}/private/initialization`; initialization copies it into canonical state and persists the derived public `Game.seed`. Local creation stores canonical state directly. Copy the master seed from canonical Host View/debug state and reuse it with the same configuration, player setup, and compatible rules to reproduce setup and subsequent random choices along the same action path. Record identifiers and timestamps can differ. In Fresh Fish, reproducing only the board uses the public numeric `boardSeed`, including zero. An explicit board override does not determine hidden tile order; without an override, the board seed is the derived public seed.
+
+Existing numeric cursors, including already-created v3 Games, retain SplitMix32 and their exact seeds. They are not migrated or assigned a master seed. Their independently generated seed pairs cannot be reconstructed from one newly introduced seed. Runtimes without the capability retain legacy initialization, including independently generated numeric protected seeds, so old published artifacts continue to work. Fresh Fish, Sol, and Löwenherz adopt the new capability. It selects initialization only: persisted cursor shape selects execution, and `systemVersion` continues to control legacy rules behavior independently.
+
+A v3 protected access requires its cursor to exist. The neutral projected cursor is a redaction, not usable entropy, and guarded execution rejects its use. Explicit visibility registration is still required to conceal protected fields. Exploration removes the source master seed and supplies fresh branch randomness; a real Fork retains the source seed and both cursor positions.
 
 Use public randomness only when prediction before committing a choice is acceptable. Gameplay dice normally use protected randomness even when their outcomes are revealed publicly. Secret shuffles use protected randomness; drawing from an already shuffled deck or bag ordinarily consumes neither stream.
 

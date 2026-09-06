@@ -1,4 +1,5 @@
 import {
+    assertExists,
     ActionSource,
     AuctionType,
     type Game,
@@ -77,6 +78,33 @@ function findEmptyCoords(state: ReturnType<typeof generateTestState>): PlaceDisk
 }
 
 describe('Fresh Fish visibility', () => {
+    it('reproduces complete setup from one seed while keeping board overrides public', () => {
+        const game = createGame(generateTestState())
+        const engine = new GameEngine(FreshFishRuntime)
+        const firstSeed = '0123456789abcdef0123456789abcdef'
+        const secondSeed = '1123456789abcdef0123456789abcdef'
+        const initialize = (masterSeed: string) => {
+            const state = engine.generateUninitializedState(game, masterSeed)
+            state.id = 'reproduction-state'
+            return FreshFishRuntime.initializer.initializeGameState(game, state).dehydrate()
+        }
+        const first = initialize(firstSeed)
+        expect(initialize(firstSeed)).toEqual(first)
+        expect(first.boardSeed).toBe(first.prng.seed)
+        assertExists(first.boardSeed, 'Expected public board seed')
+        game.config.boardSeed = first.boardSeed
+        const another = initialize(secondSeed)
+        expect(another.board).toEqual(first.board)
+        expect(another.tileBag.items).not.toEqual(first.tileBag.items)
+        expect(
+            FreshFishRuntime.visibility.state.project(first, { kind: 'spectator' }).boardSeed
+        ).toBe(first.boardSeed)
+        game.config.boardSeed = 0
+        const zero = initialize(firstSeed)
+        expect(zero.boardSeed).toBe(0)
+        expect(initialize(secondSeed).board).toEqual(zero.board)
+    })
+
     it.each([1, 2])(
         'continues and undoes a stored version %i auction without submission markers',
         (systemVersion) => {
@@ -133,7 +161,10 @@ describe('Fresh Fish visibility', () => {
         (systemVersion) => {
             const game = createGame(generateTestState())
             game.seed = 101
-            const uninitialized = new GameEngine(FreshFishRuntime).generateUninitializedState(game)
+            const uninitialized = new GameEngine({
+                ...FreshFishRuntime,
+                randomnessVersion: undefined
+            }).generateUninitializedState(game)
             uninitialized.systemVersion = systemVersion
             delete uninitialized.protectedPrng
             const state = FreshFishRuntime.initializer.initializeGameState(game, uninitialized)

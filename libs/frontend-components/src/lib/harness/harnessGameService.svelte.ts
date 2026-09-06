@@ -1,5 +1,6 @@
 import { validateLocalGameState } from '$lib/utils/validateLocalGameState.js'
 import {
+    type GameCreationOptions,
     Game,
     GameStatus,
     GameAction,
@@ -20,6 +21,7 @@ import type { AuthorizationService } from '$lib/services/authorizationService.js
 import type { LibraryService } from '$lib/services/libraryService.js'
 
 export class HarnessGameService implements GameService {
+    readonly supportsReproductionSeed = true
     private gamesById: Map<string, Game> = new SvelteMap()
     private localGameStore: GameStore
 
@@ -112,7 +114,7 @@ export class HarnessGameService implements GameService {
         )
     }
 
-    async createGame(game: Partial<Game>): Promise<Game> {
+    async createGame(game: Partial<Game>, options?: GameCreationOptions): Promise<Game> {
         let newGame: Game
         if (!game.typeId) {
             throw new Error('Game typeId is required to create a game')
@@ -136,7 +138,7 @@ export class HarnessGameService implements GameService {
         const initializedGame = runtime.initializer.initializeGame(game, gameDefinition)
 
         const engine = new GameEngine(runtime)
-        const { startedGame, initialState } = engine.startGame(initializedGame)
+        const { startedGame, initialState } = engine.startGame(initializedGame, options?.masterSeed)
 
         startedGame.activePlayerIds = initialState.activePlayerIds
 

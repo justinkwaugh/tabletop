@@ -10,6 +10,8 @@ import {
     DocumentData
 } from '@google-cloud/firestore'
 import {
+    GameCreationOptions,
+    MasterSeed,
     GameAction,
     Game,
     GameState,
@@ -60,7 +62,7 @@ export class FirestoreGameStore implements GameStore {
         this.games = firestore.collection('games').withConverter(gameConverter)
     }
 
-    async createGame(game: Game): Promise<Game> {
+    async createGame(game: Game, options?: GameCreationOptions): Promise<Game> {
         const storedGame = structuredClone(game) as StoredGame
 
         storedGame.actionChunkSize = ACTION_CHUNK_SIZE
@@ -85,9 +87,18 @@ export class FirestoreGameStore implements GameStore {
 
         try {
             await this.cacheService.lockWhileWriting(cacheKeys, async () =>
-                this.games.firestore.runTransaction(
-                    async () => await this.games.doc(game.id).create(structuredClone(storedGame))
-                )
+                this.games.firestore.runTransaction(async (transaction) => {
+                    transaction.create(this.games.doc(game.id), structuredClone(storedGame))
+                    if (options?.masterSeed !== undefined) {
+                        Value.Assert(MasterSeed, options.masterSeed)
+                        transaction.create(
+                            this.games.doc(game.id).collection('private').doc('initialization'),
+                            {
+                                masterSeed: options.masterSeed
+                            }
+                        )
+                    }
+                })
             )
         } catch (error) {
             this.handleError(error, game.id)
@@ -95,6 +106,18 @@ export class FirestoreGameStore implements GameStore {
         }
 
         return storedGame
+    }
+
+    async getMasterSeed(gameId: string): Promise<string | undefined> {
+        const snapshot = await this.games
+            .doc(gameId)
+            .collection('private')
+            .doc('initialization')
+            .get()
+        if (!snapshot.exists) return undefined
+        const seed: unknown = snapshot.get('masterSeed')
+        Value.Assert(MasterSeed, seed)
+        return seed
     }
 
     async deleteGame(game: Game): Promise<void> {
