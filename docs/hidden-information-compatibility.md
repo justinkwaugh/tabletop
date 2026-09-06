@@ -57,8 +57,10 @@ The slice adds tests for missing host capability and projected Host responses, f
 
 ## Remaining development slices
 
-1. **Projected authoring contract:** settle required-field hydration and legal-Action discovery for owner-known private hands; validate with one realistic private-hand flow. Fresh Fish's canonical-hydratable projection does not settle the general contract.
-2. **Completion work:** measure long-history projection/checkpoint cost, provide useful fallback diagnostics, and condense the authoring documentation. C2 remains deferred unless release testing elevates its risk.
+The projected authoring slice is integrated: canonical schemas remain strict; shared hydrated types and validators derive from the visibility schema; `Policy.Owner` supports owner-known private hands. Permanent Common, backend, and Chromium GameSession fixtures cover the private-hand flow, including legal discovery, optimistic play, protected-read fallback, delivery, and Exploration. See the [integration record](projected-hydration-prototype.md#integration-follow-up) and [authoring contract](DESIGN.md#schemas-and-hydration).
+
+1. **Completion work:** measure long-history projection/checkpoint cost, provide useful fallback diagnostics, and consolidate the remaining project documentation. C2 remains deferred unless release testing elevates its risk.
+2. **Release verification:** publish the affected matching artifacts and verify the actual mixed-publication rollout. The private-hand conformance fixture is not a deployed title.
 
 ## Final validation record
 

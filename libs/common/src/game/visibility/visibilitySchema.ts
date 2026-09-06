@@ -6,6 +6,7 @@ export const ScopeKey = 'x-tabletop-visibility-scope' as const
 
 export const Policy = {
     Actor: 'tabletop.actor',
+    Owner: 'tabletop.owner',
     HostOnly: 'tabletop.host-only'
 } as const
 

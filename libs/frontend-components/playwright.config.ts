@@ -2,9 +2,10 @@ import type { PlaywrightTestConfig } from '@playwright/test'
 
 const config: PlaywrightTestConfig = {
     webServer: {
-        command: 'pnpm run build && pnpm run preview',
-        port: 4173
+        command: 'pnpm exec vite dev --force --host 127.0.0.1 --port 4174',
+        port: 4174
     },
+    use: { baseURL: 'http://127.0.0.1:4174' },
     testDir: 'tests',
     testMatch: /(.+\.)?(test|spec)\.[jt]s/
 }

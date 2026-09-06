@@ -3,8 +3,14 @@
     "version": "0.0.1",
     "type": "module",
     "exports": {
-        "import": "./esm/index.js",
-        "types": "./src/index.ts"
+        ".": {
+            "import": "./esm/index.js",
+            "types": "./src/index.ts"
+        },
+        "./test-fixtures/private-hand": {
+            "types": "./src/game/visibility/tests/privateHandGame.ts",
+            "import": "./esm/game/visibility/tests/privateHandGame.js"
+        }
     },
     "sideEffects": false,
     "private": true,

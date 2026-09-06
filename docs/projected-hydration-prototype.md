@@ -1,6 +1,6 @@
 # Shared projected hydration: prototype findings
 
-The experiment supports one projection-compatible hydrated representation, with strict canonical validation at operations that require complete state. This is a recommendation for the next implementation slice, not a production change.
+The experiment supports one projection-compatible hydrated representation, with strict canonical validation at operations that require complete state. That approach is now integrated: canonical gates landed in `9f128dd6`, and the follow-up adds the built-in owner policy, Fresh Fish's derived hydration schemas, and permanent private-hand regressions. The supported authoring contract is in [DESIGN.md](DESIGN.md#schemas-and-hydration). The findings below describe the original experiment.
 
 Prototype: local branch `codex/projected-hydration-prototype`, commit `35448a8f`, based on `c984a981`. Its source, README, observations, and standalone captured walkthrough are under `libs/common/src/game/visibility/prototypes/projectedHydration/` on that branch. The prepared worktree is `/tmp/tabletop-hydration-prototype`.
 
@@ -26,8 +26,12 @@ Cover initialization, authoritative execution and persistence, canonical loading
 
 **Preserve actual omissions.** A nested constructor should instantiate an optional child only when present. Eagerly assigning `undefined` changed the in-memory shape even though JSON serialization concealed the difference. A `knownHand()` assertion helper kept shared rule methods straightforward without pretending the field always exists.
 
-## Recommended next slice
+## Integration follow-up
 
-Implement complete-state validation first, retaining existing title behavior. Then opt one realistic private-hand fixture into shared hydration and add locally decidable owner visibility. Keep canonical schemas strict and derive shared schemas from their protection declarations. Convert the prototype observations into permanent framework/client regressions during that implementation.
+Complete-state validation is enforced at the framework and persistence boundaries. The [permanent fixture](../libs/common/src/game/visibility/tests/privateHandGame.ts) uses the derived shared schema, strict canonical validator, and `Policy.Owner` without prototype wrappers. Common tests cover exact hydration round trips, legal discovery, guarded access, canonical gates, real Forks, and hypothetical population. Backend tests exercise actual response and notification projection. Chromium tests exercise actual GameSession optimistic play, protected-read fallback, authoritative draw delivery to owner/opponent/spectator, reload, History/Undo, and ordinary and Host View Exploration.
 
-The experiment did not exercise a real hosted private-hand title, production persistence, arbitrary custom visibility, or replacement redactions with unrelated field types. It changed no production code, versions, deployed artifacts, or validation defaults on `feature/hidden-information`.
+Fresh Fish adopts derived state and tile-bag hydration validators. All title logic packages compile with the shared runtime typing. This changes no stored schema, host bridge capability, wire payload, or system version. Adopting the accumulated Fresh Fish runtime changes requires matching Logic/UI publication; other existing artifacts do not need immediate republication for this addition. Existing v2 games retain their public behavior.
+
+The integration uses a permanent private-hand fixture with an in-memory authoritative host, rather than registering and deploying a new title. It does not establish live hosted private-hand release readiness, arbitrary custom-policy execution, or replacement redactions with unrelated field types. No artifacts are published or versions bumped by this integration.
+
+Integration validation: 322 unit tests pass (143 Common, 56 backend, 30 Fresh Fish logic, 44 shared client, 49 Fresh Fish client), plus 22 Chromium scenarios (six private-hand and 16 Fresh Fish). All 11 title logic packages build. Shared-client, Fresh Fish UI, and Site Frontend checks report zero errors with existing warnings. The Fresh Fish Exploration fixture now supplies a runtime for the canonical save validation introduced in the preceding slice.

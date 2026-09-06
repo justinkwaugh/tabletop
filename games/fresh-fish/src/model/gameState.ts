@@ -5,7 +5,8 @@ import {
     HydratedTurnManager,
     HydratedSimultaneousAuction,
     SimultaneousAuction,
-    PrngState
+    PrngState,
+    Visibility
 } from '@tabletop/common'
 import { FreshFishPlayerState, HydratedFreshFishPlayerState } from './playerState.js'
 import { HydratedTileBag, TileBag } from '../components/tileBag.js'
@@ -37,10 +38,13 @@ export const FreshFishGameState = Type.Evaluate(
 )
 
 export const FreshFishGameStateValidator = Compile(FreshFishGameState)
+export const FreshFishHydrationState = Visibility.createProjectionSchema(FreshFishGameState)
+export type FreshFishHydrationState = Type.Static<typeof FreshFishHydrationState>
+const FreshFishHydrationStateValidator = Compile(FreshFishHydrationState)
 
 export class HydratedFreshFishGameState
-    extends HydratableGameState<typeof FreshFishGameState, HydratedFreshFishPlayerState>
-    implements FreshFishGameState
+    extends HydratableGameState<typeof FreshFishHydrationState, HydratedFreshFishPlayerState>
+    implements FreshFishHydrationState
 {
     declare id: string
     declare gameId: string
@@ -60,8 +64,8 @@ export class HydratedFreshFishGameState
     declare currentAuction?: HydratedSimultaneousAuction
     declare boardSeed?: number
 
-    constructor(data: FreshFishGameState) {
-        super(data, FreshFishGameStateValidator)
+    constructor(data: FreshFishHydrationState) {
+        super(data, FreshFishHydrationStateValidator)
 
         this.tileBag = new HydratedTileBag(data.tileBag)
         this.board = new HydratedGameBoard(data.board)

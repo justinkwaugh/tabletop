@@ -124,6 +124,7 @@ function findRedactionAdapter<Root>(
 function isBuiltInPolicy(name: string): boolean {
     return (
         name === Policy.Actor ||
+        name === Policy.Owner ||
         name === Policy.HostOnly ||
         name === SimultaneousAuctionVisibility.Policy.Bid
     )
@@ -225,6 +226,17 @@ function builtInPolicyResult<Root>(
 ): boolean | undefined {
     if (metadata.policy === Policy.HostOnly) {
         return false
+    }
+    if (metadata.policy === Policy.Owner) {
+        if (!isObjectValue(context.parent) || typeof context.parent.playerId !== 'string') {
+            throw Error(
+                `The "${Policy.Owner}" visibility policy requires the containing object to have a public playerId`
+            )
+        }
+        return (
+            context.perspective.kind === 'player' &&
+            context.perspective.playerId === context.parent.playerId
+        )
     }
     if (metadata.policy === Policy.Actor) {
         if (!isObjectValue(context.root) || typeof context.root.playerId !== 'string') {

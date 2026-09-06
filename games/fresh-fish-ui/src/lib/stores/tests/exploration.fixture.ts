@@ -13,6 +13,7 @@ import {
 } from '@tabletop/common'
 import {
     BridgedContext,
+    GameSession,
     NotificationChannel,
     NotificationEventType,
     createHarnessAppContext,
@@ -39,7 +40,19 @@ import {
 const definition: GameUiDefinition<GameState, HydratedGameState> = {
     info: UiDefinition.info,
     async runtime() {
-        throw new Error('Metadata-only fixture')
+        return {
+            ...FreshFishRuntime,
+            sessionClass: GameSession,
+            colorizer: FreshFishUiRuntime.colorizer,
+            gameUI: {
+                load: async () => {
+                    throw Error('Exploration fixture does not render a table')
+                },
+                mount: () => {
+                    throw Error('Exploration fixture does not render a table')
+                }
+            }
+        }
     }
 }
 

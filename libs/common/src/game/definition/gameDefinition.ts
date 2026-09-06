@@ -28,7 +28,7 @@ export interface GameRuntime<
     apiActions: Record<string, Type.TSchema>
     stateHandlers: Record<string, MachineStateHandler<HydratedAction, U>>
     stateLogger?: GameStateLogger
-    visibility?: GameVisibility<T>
+    visibility?: GameVisibility<T, T>
 }
 
 export interface GameDefinition<

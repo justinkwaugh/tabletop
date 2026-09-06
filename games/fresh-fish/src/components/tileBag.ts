@@ -1,15 +1,20 @@
 import { Compile } from 'typebox/compile'
 import { GoodsType } from '../definition/goodsType.js'
 import { Tile, generateMarketTile, generateStallTile } from './tiles.js'
-import { DrawBag, HydratedDrawBag, type RandomFunction } from '@tabletop/common'
+import { DrawBag, HydratedDrawBag, Visibility, type RandomFunction } from '@tabletop/common'
 import * as Type from 'typebox'
 
 export type TileBag = Type.Static<typeof TileBag>
 export const TileBag = DrawBag(Tile)
 
 export const TileBagValidator = Compile(TileBag)
+const TileBagHydration = Visibility.createProjectionSchema(TileBag)
+const TileBagHydrationValidator = Compile(TileBagHydration)
 
-export class HydratedTileBag extends HydratedDrawBag<Tile, typeof TileBag> implements TileBag {
+export class HydratedTileBag
+    extends HydratedDrawBag<Tile, typeof TileBagHydration>
+    implements TileBag
+{
     static generate(
         numMarket: number,
         numFish: number,
@@ -46,6 +51,6 @@ export class HydratedTileBag extends HydratedDrawBag<Tile, typeof TileBag> imple
     }
 
     constructor(data: TileBag) {
-        super(data, TileBagValidator)
+        super(data, TileBagHydrationValidator)
     }
 }
