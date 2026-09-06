@@ -38,13 +38,13 @@ export const FreshFishGameState = Type.Evaluate(
 )
 
 export const FreshFishGameStateValidator = Compile(FreshFishGameState)
-export const FreshFishHydrationState = Visibility.createProjectionSchema(FreshFishGameState)
-export type FreshFishHydrationState = Type.Static<typeof FreshFishHydrationState>
-const FreshFishHydrationStateValidator = Compile(FreshFishHydrationState)
+export const FreshFishProjectedState = Visibility.createProjectionSchema(FreshFishGameState)
+export type FreshFishProjectedState = Type.Static<typeof FreshFishProjectedState>
+const FreshFishProjectedStateValidator = Compile(FreshFishProjectedState)
 
 export class HydratedFreshFishGameState
-    extends HydratableGameState<typeof FreshFishHydrationState, HydratedFreshFishPlayerState>
-    implements FreshFishHydrationState
+    extends HydratableGameState<typeof FreshFishProjectedState, HydratedFreshFishPlayerState>
+    implements FreshFishProjectedState
 {
     declare id: string
     declare gameId: string
@@ -64,8 +64,8 @@ export class HydratedFreshFishGameState
     declare currentAuction?: HydratedSimultaneousAuction
     declare boardSeed?: number
 
-    constructor(data: FreshFishHydrationState) {
-        super(data, FreshFishHydrationStateValidator)
+    constructor(data: FreshFishProjectedState) {
+        super(data, FreshFishProjectedStateValidator)
 
         this.tileBag = new HydratedTileBag(data.tileBag)
         this.board = new HydratedGameBoard(data.board)

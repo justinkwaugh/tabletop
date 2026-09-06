@@ -2,7 +2,7 @@ import { type GameRuntime, Visibility } from '@tabletop/common'
 import {
     FreshFishGameStateValidator,
     FreshFishGameState,
-    type FreshFishHydrationState,
+    type FreshFishProjectedState,
     type HydratedFreshFishGameState
 } from '../model/gameState.js'
 import { FreshFishHydrator } from './hydrator.js'
@@ -25,4 +25,4 @@ export const FreshFishRuntime = {
         state: Visibility.createProjector(FreshFishGameState),
         actions: Visibility.createActionProjector(FreshFishActionSchemas)
     }
-} satisfies GameRuntime<FreshFishHydrationState, HydratedFreshFishGameState>
+} satisfies GameRuntime<FreshFishProjectedState, HydratedFreshFishGameState>

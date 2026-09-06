@@ -63,7 +63,7 @@ Use helpers from `Visibility` in `@tabletop/common` with the canonical TypeBox s
 | `SimultaneousAuction` | Owner-known bid before resolution, public bids after a winner is recorded, and public submission status |
 | Named custom policy | Pure snapshot projection using canonical context; not trusted for local guarded execution |
 
-Keep canonical schemas strict. Derive the shared hydration type and validator from visibility metadata, and use that single validator in constructors for both canonical and projected input. Omitted protected fields are optional in hydrated types; replacement shapes may require unions. Instantiate optional nested objects only when present and preserve exact omissions. Never fill secrets during hydration. The [authoring guide](DESIGN.md#schemas-and-hydration) and [private-hand fixture](../libs/common/src/game/visibility/tests/privateHandGame.ts) give the complete pattern.
+Keep canonical schemas strict. Derive the projected type and validator from visibility metadata, and use that single validator in constructors for both canonical and projected input. Name the input type `SolProjectedState` or `FreshFishProjectedState`; reserve `Hydrated` for the class with rule methods. Omitted protected fields are optional in hydrated types; replacement shapes may require unions. Instantiate optional nested objects only when present and preserve exact omissions. Never fill secrets during hydration. The [authoring guide](DESIGN.md#schemas-and-hydration) and [private-hand fixture](../libs/common/src/game/visibility/tests/privateHandGame.ts) give the complete pattern.
 
 A runtime adopting broader hydration must supply `canonicalStateValidator`. Complete-state validation runs at initialization, authoritative execution, canonical Undo, Fork reconstruction, completed Exploration population, canonical loading after normalization/migration, and writes including administrative replacement. Shared hydration, projected patch application, and History retain their broader representation. An absent Perspective alone does not establish completeness. Older published runtimes retain their existing hydrator validation when the optional canonical validator is absent.
 
@@ -85,6 +85,8 @@ Use public randomness only when prediction before committing a choice is accepta
 Version 2 and 3 System Action identities consume the durable public cursor. Patches for hidden cascades advance that cursor, allowing a later public cascade to reproduce canonical IDs and checksums. No demonstrated scenario requires a third identity stream. Version 1 retains its historical identity behavior.
 
 Fresh Fish uses protected randomness for tile-bag initialization, its existing local `boardSeed` stream for the board, and public setup randomness for colors, turn order, and the already-public final stalls. Existing legacy initialization remains covered by pinned tests.
+
+Sol also explicitly registers state and complete Action projection. In v3 its deck shuffle uses protected randomness; public card identities, colors, turn order, selected suits, effect mapping, and board setup retain the public stream. Undrawn deck items are concealed while the remaining count, drawn cards, kept face-up cards, and flare results stay public. Pinned initialization and forward-play tests preserve v1/v2 behavior.
 
 ## Local execution, delivery, and recovery
 

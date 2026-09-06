@@ -8,6 +8,8 @@ This catalogs the ten implemented Game Titles other than Fresh Fish. It examines
 
 The requirements below concern new games adopting protected delivery. Existing v1/v2 games retain their historical behavior; in particular, already-public v2 games are not expected to become private. This catalog does not change runtime behavior.
 
+**Implementation follow-up:** Sol now implements explicit projection, protected v3 deck shuffling, shared projected hydration, and hypothetical deck population with continuation of pending automatic Actions. Its entry below preserves the audit requirements; Sol is no longer outstanding repository adoption work. Matching Logic/UI publication and major-version reload remain release work.
+
 ## Overview
 
 | Title | State to protect | Action data to protect | Protected randomness |

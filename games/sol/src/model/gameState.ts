@@ -6,7 +6,8 @@ import {
     HydratableGameState,
     HydratedTurnManager,
     OffsetCoordinates,
-    PrngState
+    PrngState,
+    Visibility
 } from '@tabletop/common'
 import { SolPlayerState, HydratedSolPlayerState } from './playerState.js'
 import * as Type from 'typebox'
@@ -66,10 +67,13 @@ export const SolGameState = Type.Evaluate(
 )
 
 export const SolGameStateValidator = Compile(SolGameState)
+export const SolProjectedState = Visibility.createProjectionSchema(SolGameState)
+export type SolProjectedState = Type.Static<typeof SolProjectedState>
+export const SolProjectedStateValidator = Compile(SolProjectedState)
 
 export class HydratedSolGameState
-    extends HydratableGameState<typeof SolGameState, HydratedSolPlayerState>
-    implements SolGameState
+    extends HydratableGameState<typeof SolProjectedState, HydratedSolPlayerState>
+    implements SolProjectedState
 {
     declare id: string
     declare gameId: string
@@ -114,8 +118,8 @@ export class HydratedSolGameState
         passageGates: number[]
     }
 
-    constructor(data: SolGameState) {
-        super(data, SolGameStateValidator)
+    constructor(data: SolProjectedState) {
+        super(data, SolProjectedStateValidator)
 
         this.players = data.players.map((player) => new HydratedSolPlayerState(player))
         this.board = new HydratedSolGameBoard(data.board)

@@ -8,11 +8,11 @@ export type TileBag = Type.Static<typeof TileBag>
 export const TileBag = DrawBag(Tile)
 
 export const TileBagValidator = Compile(TileBag)
-const TileBagHydration = Visibility.createProjectionSchema(TileBag)
-const TileBagHydrationValidator = Compile(TileBagHydration)
+const TileBagProjection = Visibility.createProjectionSchema(TileBag)
+const TileBagProjectionValidator = Compile(TileBagProjection)
 
 export class HydratedTileBag
-    extends HydratedDrawBag<Tile, typeof TileBagHydration>
+    extends HydratedDrawBag<Tile, typeof TileBagProjection>
     implements TileBag
 {
     static generate(
@@ -51,6 +51,6 @@ export class HydratedTileBag
     }
 
     constructor(data: TileBag) {
-        super(data, TileBagHydrationValidator)
+        super(data, TileBagProjectionValidator)
     }
 }

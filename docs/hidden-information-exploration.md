@@ -71,6 +71,16 @@ The framework independently initializes the branch's public and version-3 protec
 
 ## Publication
 
+### Sol adoption follow-up
+
+Sol reconstructs thirteen cards per publicly selected suit and subtracts only `DrawCards.metadata.drawnCards` from the permitted source prefix. `squeezedCards` repeats previously revealed cards and is not subtracted again. Population checks the remaining count, preserves all visible player cards, assigns hypothetical remaining identities without reusing revealed ones, and shuffles with fresh exploration randomness. Missing draw results or inconsistent counts fail explicitly. No canonical deck or protected seed is consulted.
+
+Its continuation hook resumes pending solar flares, automatic no-choice passes, and Motivate activations without replaying the source draw or duplicating a flare already awaiting player activations. Authorized Host View keeps the complete-state reshuffle path. The title's conformance suite covers projection and History patch round trips, public legal discovery and optimistic card choice, population independence and exhaustion, partial-cascade continuation, and legacy initialization/forward play. The Sol logic suite passes 30 tests; its build passes, and its UI type check reports zero errors with 40 warnings in unchanged UI files.
+
+Publishing this adoption requires matching Sol Logic/UI artifacts. Use a Logic major bump to reject incompatible old Action submissions and the UI major reload mechanism for clients predating protected delivery. No host bridge members or Site Frontend transport shapes changed. Package versions have not been bumped, and actual mixed published-artifact verification remains a release check; nothing was deployed.
+
+### Shared-client publication
+
 This change adds optional runtime initializer capabilities and serialized checkpoint metadata, and changes shared Game Client behavior. Fresh Fish needs matching Logic/UI artifacts for its initializer changes; each other title needs a new UI artifact to adopt the shared client, with a compatible embedded runtime. The Site Frontend bridge and transport result shapes are unchanged. No publication or old/new deployed-artifact test has been performed.
 
 ## Validation at the Exploration slice
