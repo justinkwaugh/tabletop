@@ -21,6 +21,7 @@ export * from './game/model/gameConfig.js'
 export * from './game/definition/gameConfigurator.js'
 export * from './game/definition/gameHydrator.js'
 export * from './game/definition/gameInitializer.js'
+export * from './game/definition/gameExploration.js'
 export * from './game/definition/gameStateLogger.js'
 
 export * from './game/model/gameState.js'
@@ -84,3 +85,5 @@ export * from './util/pairing.js'
 export * from './util/typebox.js'
 
 export * from './game/engine/explorationHistory.js'
+
+export * from './game/engine/actionHistory.js'

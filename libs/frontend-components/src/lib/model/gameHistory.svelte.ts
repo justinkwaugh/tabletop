@@ -1,5 +1,6 @@
 import {
     ExplorationHistory,
+    getActionCascadeEndIndex,
     GameState,
     type GameAction,
     type HydratedGameState
@@ -24,6 +25,11 @@ export type HistoryCallbacks = {
     shouldAutoStepAction?: HistoryShouldAutoStepCallback
     onHistoryExit?: HistoryExitCallback
     waitForTransitionSettled?: HistoryWaitForTransitionSettledCallback
+}
+
+export interface HistoryPosition<T extends GameState, U extends HydratedGameState<T> & T> {
+    context: GameContext<T, U>
+    actionIndex: number
 }
 
 export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T> {
@@ -99,7 +105,48 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         }
     }
 
+    capturePosition(): HistoryPosition<T, U> | undefined {
+        if (!this.historyContext) return undefined
+        const context = this.visibleContext.clone()
+        context.addActions(
+            this.historyContext.actions
+                .slice(this.actionIndex + 1)
+                .map((action) => structuredClone(action))
+        )
+        return { context, actionIndex: this.actionIndex }
+    }
+
+    restorePosition(gameContext: GameContext<T, U>, position?: HistoryPosition<T, U>): void {
+        this.updateSourceGameContext(gameContext)
+        if (!position) return
+        this.historyContext = position.context
+        this.actionIndex = position.actionIndex
+        this.onHistoryEnter()
+        this.onHistoryAction(this.currentAction, 'silent-swap')
+    }
+
+    createExplorationSource(): GameContext<T, U> {
+        const source = this.visibleContext.clone()
+        if (!this.historyContext) return source
+        const end = getActionCascadeEndIndex(this.historyContext.actions, this.actionIndex)
+        const history = new ExplorationHistory(source.engine)
+        for (const action of this.historyContext.actions.slice(this.actionIndex + 1, end + 1)) {
+            source.updateGameState(
+                history.forward(
+                    source.state,
+                    action,
+                    source.game,
+                    this.gameContext.state.explorationState
+                )
+            )
+            source.addAction(structuredClone(action))
+        }
+        source.verifyFullChecksum()
+        return source
+    }
+
     updateSourceGameContext(gameContext: GameContext<T, U>) {
+        this.stopHistoryPlayback()
         this.exitHistory()
         this.gameContext = gameContext
     }

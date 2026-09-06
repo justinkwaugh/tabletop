@@ -1,3 +1,4 @@
+import * as Value from 'typebox/value'
 import {
     ActionSource,
     ExplorationHistory,
@@ -31,7 +32,11 @@ import { GameContext } from './gameContext.svelte.js'
 import { GameReconciliation } from './gameReconciliation.js'
 import { GameNotifications } from './gameNotifications.js'
 import { GameRepresentations, HostViewUnsupportedError } from './gameRepresentations.svelte.js'
-import { GameHistory, type HistoryAnimationIntent } from './gameHistory.svelte.js'
+import {
+    GameHistory,
+    type HistoryAnimationIntent,
+    type HistoryPosition
+} from './gameHistory.svelte.js'
 import { GameActionResults } from './gameActionResults.svelte.js'
 import { GameColors } from './gameColors.svelte.js'
 import { GameExplorations } from './gameExplorations.svelte.js'
@@ -101,6 +106,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private nonActivePlayerViewEnabled = $state(false)
 
     history: GameHistory<T, U>
+    private explorationReturnPosition?: HistoryPosition<T, U>
+    private explorationReturnPerspective?: Visibility.Perspective
     explorations: GameExplorations<T, U>
     colors: GameColors<T>
     bridge: GameSessionBridge<T, U>
@@ -572,7 +579,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 onExplorationEnd: () => {
                     this.suppressStateChangeActions = true
                     this.mode = GameSessionMode.Play
-                    this.history.updateSourceGameContext(this.gameContext)
+                    const position = Value.Equal(
+                        this.explorationReturnPerspective,
+                        this.explorationPerspective(this.gameContext)
+                    )
+                        ? this.explorationReturnPosition
+                        : undefined
+                    this.history.restorePosition(this.gameContext, position)
+                    this.explorationReturnPosition = undefined
+                    this.explorationReturnPerspective = undefined
                     this.explorationContext = undefined
                 },
                 onExplorationSwitched: (context) => {
@@ -822,12 +837,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     get canExplore(): boolean {
         return (
             this.explorationPerspective() === undefined ||
-            this.runtime.initializer.populateExplorationState !== undefined
+            this.runtime.exploration?.createFromProjectedState !== undefined
         )
     }
 
-    private explorationPerspective(): Visibility.Perspective | undefined {
-        const context = this.currentVisibleContext
+    private explorationPerspective(
+        context = this.currentVisibleContext
+    ): Visibility.Perspective | undefined {
         if (
             context.game.storage !== GameStorage.Remote ||
             context.game.hotseat ||
@@ -850,11 +866,22 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         if (!this.canExplore) return
-        await this.explorations.startExploring(
-            this.currentVisibleContext,
-            this.explorationPerspective(),
-            this.history.inHistory
-        )
+        this.history.stopHistoryPlayback()
+        const source = this.history.createExplorationSource()
+        this.explorationReturnPosition = this.history.capturePosition()
+        this.explorationReturnPerspective = this.explorationPerspective()
+        try {
+            await this.explorations.startExploring(
+                source,
+                this.explorationReturnPerspective,
+                this.history.inHistory
+            )
+        } finally {
+            if (!this.isExploring) {
+                this.explorationReturnPosition = undefined
+                this.explorationReturnPerspective = undefined
+            }
+        }
     }
 
     // This will only be triggered by the UI and as such we can use the current context

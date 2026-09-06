@@ -63,16 +63,12 @@ describe('hypothetical exploration', () => {
 
     test('rejects incomplete population before installing an exploration context', async () => {
         const host = createExplorationHost()
-        const initializer = FreshFishRuntime.initializer
         const client = explorationClient(host, PLAYER_B_PERSPECTIVE, {
             ...FreshFishUiRuntime,
-            initializer: {
-                initializeGame: initializer.initializeGame.bind(initializer),
-                initializeGameState: initializer.initializeGameState.bind(initializer),
-                initializeExplorationState:
-                    initializer.initializeExplorationState.bind(initializer),
-                populateExplorationState(input) {
-                    const state = initializer.populateExplorationState(input)
+            exploration: {
+                createFromCanonicalState: FreshFishRuntime.exploration.createFromCanonicalState,
+                createFromProjectedState(input) {
+                    const state = FreshFishRuntime.exploration.createFromProjectedState(input)
                     Reflect.deleteProperty(state, 'board')
                     return state
                 }
@@ -93,7 +89,7 @@ describe('hypothetical exploration', () => {
         drawStall(host)
         const populate = () => {
             const history = project(host, PLAYER_B_PERSPECTIVE)
-            return FreshFishRuntime.initializer.populateExplorationState({
+            return FreshFishRuntime.exploration.createFromProjectedState({
                 game: host.game,
                 state: history.currentState,
                 actions: history.actions,
@@ -118,7 +114,7 @@ describe('hypothetical exploration', () => {
         host.apply(createBid('a', PLAYER_A_ID, 8))
         host.apply(createBid('b', PLAYER_B_ID, 3))
         const history = project(host, PLAYER_B_PERSPECTIVE)
-        const state = FreshFishRuntime.initializer.populateExplorationState({
+        const state = FreshFishRuntime.exploration.createFromProjectedState({
             game: host.game,
             state: history.currentState,
             actions: history.actions,
@@ -149,7 +145,7 @@ describe('hypothetical exploration', () => {
         )
         const state = project(host, PLAYER_B_PERSPECTIVE).currentState
         state.tileBag.remaining = 0
-        const result = FreshFishRuntime.initializer.populateExplorationState({
+        const result = FreshFishRuntime.exploration.createFromProjectedState({
             game: host.game,
             state,
             actions,
@@ -159,7 +155,7 @@ describe('hypothetical exploration', () => {
         expect(result.tileBag).toEqual({ items: [], remaining: 0 })
         expect(result.finalStalls).toEqual(state.finalStalls)
         expect(() =>
-            FreshFishRuntime.initializer.populateExplorationState({
+            FreshFishRuntime.exploration.createFromProjectedState({
                 game: host.game,
                 state,
                 actions: actions.slice(1),
@@ -182,9 +178,7 @@ describe('hypothetical exploration', () => {
                 visibility: undefined,
                 initializer: {
                     initializeGame: initializer.initializeGame.bind(initializer),
-                    initializeGameState: initializer.initializeGameState.bind(initializer),
-                    initializeExplorationState:
-                        initializer.initializeExplorationState.bind(initializer)
+                    initializeGameState: initializer.initializeGameState.bind(initializer)
                 }
             })
             try {
@@ -237,12 +231,12 @@ describe('hypothetical exploration', () => {
         const initializer = FreshFishRuntime.initializer
         const runtime = {
             ...FreshFishUiRuntime,
+            exploration: {
+                createFromCanonicalState: FreshFishRuntime.exploration.createFromCanonicalState
+            },
             initializer: {
                 initializeGame: initializer.initializeGame.bind(initializer),
-                initializeGameState: initializer.initializeGameState.bind(initializer),
-                initializeExplorationState:
-                    initializer.initializeExplorationState.bind(initializer),
-                getExplorationActions: initializer.getExplorationActions.bind(initializer)
+                initializeGameState: initializer.initializeGameState.bind(initializer)
             }
         }
         const client = explorationClient(host, PLAYER_B_PERSPECTIVE, runtime)

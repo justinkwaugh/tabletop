@@ -781,8 +781,7 @@ const runtime = {
         },
         initializeGameState: (_game: Game, _state: UninitializedGameState) => {
             throw Error('Scenario does not initialize Game State')
-        },
-        initializeExplorationState: (state: HiddenCardState) => structuredClone(state)
+        }
     },
     hydrator: {
         hydrateAction: (action: GameAction) => {

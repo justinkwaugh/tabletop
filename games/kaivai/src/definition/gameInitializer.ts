@@ -28,10 +28,6 @@ export class KaivaiGameInitializer
     extends BaseGameInitializer<KaivaiGameState, HydratedKaivaiGameState>
     implements GameInitializer<KaivaiGameState, HydratedKaivaiGameState>
 {
-    initializeExplorationState(state: KaivaiGameState): KaivaiGameState {
-        return state
-    }
-
     initializeGameState(game: Game, state: UninitializedGameState): HydratedKaivaiGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng)

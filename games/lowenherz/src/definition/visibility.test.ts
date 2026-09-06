@@ -139,7 +139,7 @@ describe('Lowenherz privacy', () => {
         const state = initialize(version)
         expect(state.protectedPrng).toBeUndefined()
         expect(state.privateInformation).toBeUndefined()
-        const sample = LowenherzRuntime.initializer.populateExplorationState({
+        const sample = LowenherzRuntime.exploration.createFromProjectedState({
             game,
             state,
             actions: [],
@@ -302,7 +302,7 @@ describe('Lowenherz privacy', () => {
             metadata: { card: state.actionDeck[0] }
         })
         const projected = LowenherzRuntime.visibility.state.project(result.updatedState, spectator)
-        const sample = LowenherzRuntime.initializer.populateExplorationState({
+        const sample = LowenherzRuntime.exploration.createFromProjectedState({
             game,
             state: projected,
             actions: result.processedActions,
@@ -335,7 +335,7 @@ describe('Lowenherz hypothetical politics', () => {
         )
         const samples = new Set<string>()
         for (let seed = 0; seed < 20; seed++) {
-            const sample = LowenherzRuntime.initializer.populateExplorationState({
+            const sample = LowenherzRuntime.exploration.createFromProjectedState({
                 game,
                 state: projected,
                 actions: history,
@@ -420,7 +420,7 @@ describe('Lowenherz hypothetical politics', () => {
         )
         const projected = view(state)
         for (let seed = 0; seed < 10; seed++) {
-            const sample = LowenherzRuntime.initializer.populateExplorationState({
+            const sample = LowenherzRuntime.exploration.createFromProjectedState({
                 game,
                 state: projected,
                 actions: history,
@@ -445,7 +445,7 @@ describe('Lowenherz hypothetical politics', () => {
         const result = inspect(initialize())
         const projected = view(result.updatedState)
         expect(() =>
-            LowenherzRuntime.initializer.populateExplorationState({
+            LowenherzRuntime.exploration.createFromProjectedState({
                 game,
                 state: projected,
                 actions: [],
@@ -457,7 +457,7 @@ describe('Lowenherz hypothetical politics', () => {
             LowenherzRuntime.visibility.actions.project(action, spectator)
         )
         expect(() =>
-            LowenherzRuntime.initializer.populateExplorationState({
+            LowenherzRuntime.exploration.createFromProjectedState({
                 game,
                 state: projected,
                 actions: hiddenHistory,

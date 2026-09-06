@@ -72,7 +72,7 @@ New initialization needs protected entropy for both action-deck assembly and pol
 
 ## Politics-card assignment
 
-The external seam should be the existing `populateExplorationState` hook. Put the title-specific analysis and assignment in a focused module under Lowenherz's logic package. Its inputs are the permitted state/history and supplied sampling randomness; it must have no canonical loader, host context, hidden seed, or hidden source-state argument.
+The external seam should be the existing `createFromProjectedState` hook. Put the title-specific analysis and assignment in a focused module under Lowenherz's logic package. Its inputs are the permitted state/history and supplied sampling randomness; it must have no canonical loader, host context, hidden seed, or hidden source-state argument.
 
 ### Slots
 
@@ -142,7 +142,7 @@ Implemented together:
 
 - Public deck backs and hand/pile counts; owner inspection snapshots; immutable actor-private inspection/choice history; complete public draw and duel-round results; public final hands.
 - Host-only remaining piles/deck, owner hands and pending bids, actor-private submissions, projected hydrated types, and projected UI rendering with unknown card backs.
-- Thirteen-slot constrained politics population, action-deck reconstruction by back group, legal hypothetical pending bids, and continuation through queued resolution actions. Host/Admin retains complete-state Exploration.
+- Thirteen-slot constrained politics population, action-deck reconstruction by back group, legal hypothetical pending bids, with source selection after recorded resolution cascades. Host/Admin retains complete-state Exploration.
 - Current-save normalization before projection, legacy deterministic initialization, and focused projection, history, rule, migration, and Exploration tests.
 
 The local manifest selects matching 2.0.0 Logic/UI artifacts. Production publication remains a separate action. The shared host bridge contract is unchanged. A shared execution-guard correction permits absent public optional unions while still denying protected optional fields; UI artifacts need republishing to adopt that correction. Lowenherz's new artifact includes it.

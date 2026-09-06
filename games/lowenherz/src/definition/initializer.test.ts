@@ -1,3 +1,4 @@
+import { LowenherzGameExploration } from './gameExploration.js'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { PoliticsCardType } from './politicsCards.js'
 import { describe, expect, it } from 'vitest'
@@ -195,7 +196,7 @@ describe('LowenherzGameInitializer', () => {
         let anyCardMoved = false
         for (let attempt = 0; attempt < 40; attempt++) {
             const explored = new HydratedLowenherzGameState(
-                initializer.initializeExplorationState(state.dehydrate())
+                new LowenherzGameExploration().createFromCanonicalState(state.dehydrate())
             )
 
             // Same cards, same pile sizes - only the split between them may differ.

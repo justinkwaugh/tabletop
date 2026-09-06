@@ -20,8 +20,6 @@ import { SolGameStateValidator, type SolGameState } from '../model/gameState.js'
 import { Suit } from '../components/cards.js'
 import { isDrawCards, type DrawCards } from '../actions/drawCards.js'
 import { type ChooseCard } from '../actions/chooseCard.js'
-import { EffectType } from '../components/effects.js'
-import { Ring } from '../utils/solGraph.js'
 
 const game: Game = {
     id: 'sol-visibility',
@@ -80,7 +78,7 @@ function prepareDraw(suits: Suit[], version = 3) {
 }
 
 function populate(state: SolGameState, actions: readonly GameAction[], seed = 1234) {
-    return SolRuntime.initializer.populateExplorationState({
+    return SolRuntime.exploration.createFromProjectedState({
         game,
         state,
         actions,
@@ -263,66 +261,24 @@ describe('Sol visibility', () => {
         expect(() => populate(view, [record])).toThrow('revealed draw outcomes')
     })
 
-    it('continues between a draw and its pending flare without drawing again', () => {
-        const source = prepareDraw([Suit.Flare, Suit.Flare])
-        const result = engine.executeCanonicalAction({ game, ...source })
-        const afterDraw = result.actionCascade.transitions[0].after
-        const history = projectHistory(afterDraw, [result.processedActions[0]])
+    it('populates after the complete draw cascade, preserving its revealed consequences', () => {
+        const result = engine.executeCanonicalAction({
+            game,
+            ...prepareDraw([Suit.Flare, Suit.Flare])
+        })
+        const history = projectHistory(result.updatedState, result.processedActions)
         const sample = populate(history.currentState, history.actions)
-        const actions = SolRuntime.initializer.getExplorationActions(game, sample)
-        expect(actions.map((action) => action.type)).toEqual([ActionType.SolarFlare])
-        const continued = engine.executeCanonicalAction({ game, state: sample, action: actions[0] })
-        expect(continued.updatedState.instability).toBe(result.updatedState.instability)
-        expect(continued.updatedState.players).toEqual(result.updatedState.players)
-        expect(continued.updatedState.deck).toEqual(sample.deck)
-        expect(continued.processedActions.some(isDrawCards)).toBe(false)
-    })
-
-    it('continues an automatic card-choice pass but preserves a real choice', () => {
-        const source = prepareDraw([Suit.Flare])
-        const result = engine.executeCanonicalAction({ game, ...source })
-        const state = SolRuntime.hydrator.hydrateState(result.updatedState)
-        const player = state.getPlayerState(source.action.playerId)
-        player.card = player.drawnCards[0]
-        const rawState = state.dehydrate()
-        const actions = SolRuntime.initializer.getExplorationActions(game, rawState)
-        expect(actions.map((action) => action.type)).toEqual([ActionType.Pass])
-        expect(
-            engine.executeCanonicalAction({ game, state: rawState, action: actions[0] })
-                .updatedState.machineState
-        ).toBe(MachineState.StartOfTurn)
-        expect(SolRuntime.initializer.getExplorationActions(game, result.updatedState)).toEqual([])
-    })
-
-    it('resumes Motivate once and waits for player choices during flare activations', () => {
-        const source = prepareDraw([Suit.Flare])
-        const state = SolRuntime.hydrator.hydrateState(source.state)
-        const player = state.getPlayerState(source.action.playerId)
-        const station = player.energyNodes.pop()
-        assertExists(station, 'Expected an energy node')
-        const coords = { row: Ring.Outer, col: 0 }
-        state.board.addStationAt(station, coords)
-        state.getEffectTracking().convertedStation = { ...station, coords }
-        state.machineState = MachineState.Activating
-        state.activeEffect = EffectType.Motivate
-        state.cardsToDraw = 0
-        const raw = state.dehydrate()
-        const actions = SolRuntime.initializer.getExplorationActions(game, raw)
-        expect(actions.map((action) => action.type)).toEqual([ActionType.Activate])
-        const result = engine.executeCanonicalAction({ game, state: raw, action: actions[0] })
-        expect(SolRuntime.initializer.getExplorationActions(game, result.updatedState)).toEqual([])
-
-        const flare = engine.executeCanonicalAction({ game, ...source })
-        const pending = flare.actionCascade.transitions[0].after
-        pending.solarFlareActivationsGroupId = 'processed-flare'
-        pending.activations = [{ playerId: player.playerId, activatedIds: [] }]
-        expect(SolRuntime.initializer.getExplorationActions(game, pending)).toEqual([])
+        expect(sample.instability).toBe(result.updatedState.instability)
+        expect(sample.players).toEqual(history.currentState.players)
+        expect(sample.machineState).toBe(result.updatedState.machineState)
+        expect(sample.actionCount).toBe(result.updatedState.actionCount)
+        expect(sample.deck.remaining).toBe(result.updatedState.deck.remaining)
     })
 
     it('retains host exploration and supports an exhausted hypothetical deck', () => {
         const state = initialize()
         const before = structuredClone(state)
-        const host = SolRuntime.initializer.initializeExplorationState(state)
+        const host = SolRuntime.exploration.createFromCanonicalState(state)
         expect(host.deck.items.toSorted((a, b) => a.id.localeCompare(b.id))).toEqual(
             before.deck.items.toSorted((a, b) => a.id.localeCompare(b.id))
         )

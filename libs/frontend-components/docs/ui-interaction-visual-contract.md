@@ -105,11 +105,13 @@ Update this contract whenever perspective intent, Acting Player precedence, shar
 
 Ordinary projected Exploration is available when the title supplies state population. Its control is disabled with an explanatory title when that capability is absent. Authorized Debug/Admin Host View retains Exploration availability independently of projected-state population. An Acting Player inspection uses that Player's projected capability.
 
+Starting Exploration from inside a cascade advances only a copied context through its remaining recorded System Actions, stopping before the next User Action. The displayed source does not advance or animate. Its exact return snapshot is retained across new/saved branch switches and restored with `silent-swap` on closing; failed creation leaves the source view unchanged.
+
 Compatible source History is read-only and remains navigable in both directions through the selected source position. At that position it displays the original permitted source state. Continuing into simulated Actions uses the populated Exploration checkpoint; returning to Live restores the same hypothetical world. Existing `state-only`, `full-action`, and silent restoration intents retain their animation lifecycle and ownership.
 
 Playable inherited Undo stops at the first forward-patched or non-optimistic cascade, or where reconstruction against the hypothetical world cannot be verified. That barrier does not disable recorded History. Exploration-generated Actions retain local Undo. Saving/loading and switching Explorations preserve each branch's sampled information, History source, and Undo eligibility.
 
-A primary representation refresh while Exploration is open updates the primary context without replacing the Exploration's History or displayed state. Ending Exploration returns to the currently selected primary representation. Transient action selections continue to reset through the existing visible-state transition lifecycle.
+A primary representation refresh while Exploration is open updates the primary context without replacing the Exploration's History or displayed state. Ending Exploration restores the exact original History snapshot/index when entered from History, or the latest primary state when entered from Live. A changed primary Perspective invalidates the old return snapshot, so closing uses the current permitted representation. Transient action selections continue to reset through the existing visible-state transition lifecycle.
 
 A Game Session owns its notification subscription. Repeated listen/stop calls do not duplicate subscriptions, and disposing the Game Session stops listening even when its host has not explicitly stopped it.
 

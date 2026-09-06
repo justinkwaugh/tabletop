@@ -1,3 +1,4 @@
+import { getActionCascadeEndIndex } from './actionHistory.js'
 import { nanoid } from 'nanoid'
 import { assert, assertExists } from '../../util/assertions.js'
 import { calculateActionChecksum } from '../../util/checksum.js'
@@ -5,7 +6,7 @@ import { BaseError } from '../../util/errors.js'
 import type { GameRuntime } from '../definition/gameDefinition.js'
 import { GameStatus, type Game } from '../model/game.js'
 import type { GameState, HydratedGameState } from '../model/gameState.js'
-import { ActionSource, type GameAction, type Patch } from './gameAction.js'
+import { type GameAction, type Patch } from './gameAction.js'
 import { GameEngine } from './gameEngine.js'
 
 export class GameForkError extends BaseError {
@@ -52,10 +53,7 @@ export function createGameFork<T extends GameState, U extends HydratedGameState<
             'Fork source checksum mismatch'
         )
 
-        let end = actionIndex + 1
-        if (end > 0) {
-            while (end < ordered.length && ordered[end].source === ActionSource.System) end += 1
-        }
+        const end = getActionCascadeEndIndex(ordered, actionIndex) + 1
         const engine = new GameEngine(runtime)
         engine.validateCanonicalState(currentState)
         let state = structuredClone(currentState)

@@ -4,11 +4,7 @@ import {
     BaseGameInitializer,
     Prng,
     PlayerState,
-    assert,
     assertExists,
-    type ExplorationPopulation,
-    type GameAction,
-    MachineContext,
     type UninitializedGameState
 } from '@tabletop/common'
 import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
@@ -25,10 +21,6 @@ import { HydratedSolGameBoard } from '../components/gameBoard.js'
 import { Suit } from '../components/cards.js'
 import { HydratedDeck } from '../components/deck.js'
 import { Effect, EffectColor, Effects, EffectType } from '../components/effects.js'
-import { isDrawCards } from '../actions/drawCards.js'
-import { SolarFlare } from '../actions/solarFlare.js'
-import { PassContext } from '../actions/pass.js'
-import { queueCardChoicePass, queueMotivatedActivation } from '../utils/automaticActions.js'
 
 const MOTHERSHIP_SPACING = [0, 6, 4, 3, 3]
 
@@ -36,69 +28,6 @@ export class SolGameInitializer
     extends BaseGameInitializer<SolGameState, HydratedSolGameState>
     implements GameInitializer<SolGameState, HydratedSolGameState>
 {
-    initializeExplorationState(state: SolGameState): SolGameState {
-        const hydratedState = new HydratedSolGameState(state)
-        hydratedState.deck.shuffle()
-        return hydratedState.dehydrate()
-    }
-
-    populateExplorationState({
-        state,
-        actions,
-        random
-    }: ExplorationPopulation<SolGameState>): SolGameState {
-        const suits = Object.values(Suit).filter((suit) => state.effects[suit] !== undefined)
-        const prng = new Prng({ seed: Math.floor(random() * 2 ** 32), invocations: 0 })
-        const deck = HydratedDeck.create(suits, prng, random)
-        const revealedIds = new Set<string>()
-        for (const action of actions) {
-            if (!isDrawCards(action)) continue
-            assertExists(action.metadata, 'Exploration requires the revealed draw outcomes')
-            for (const card of action.metadata.drawnCards) {
-                assert(!revealedIds.has(card.id), 'Exploration contains a repeated card draw')
-                revealedIds.add(card.id)
-                const index = deck.items.findIndex((candidate) => candidate.suit === card.suit)
-                assert(index >= 0, 'Revealed draws exceed the starting card population')
-                deck.items.splice(index, 1)
-            }
-        }
-        assert(
-            deck.items.length === state.deck.remaining,
-            'Exploration card count does not match the source'
-        )
-        for (const card of deck.items) {
-            while (revealedIds.has(card.id)) card.id = prng.randId()
-            revealedIds.add(card.id)
-        }
-        deck.remaining = deck.items.length
-        deck.shuffle(random)
-        return { ...state, deck: deck.dehydrate() }
-    }
-
-    getExplorationActions(game: Game, state: SolGameState): GameAction[] {
-        const hydrated = new HydratedSolGameState(state)
-        const context = new MachineContext({ gameConfig: game.config, gameState: hydrated })
-        const playerId = hydrated.turnManager.currentTurn()?.playerId
-        if (
-            hydrated.machineState === MachineState.SolarFlares &&
-            !hydrated.solarFlareActivationsGroupId
-        ) {
-            context.addSystemAction(SolarFlare)
-        } else if (hydrated.machineState === MachineState.ChoosingCard) {
-            assertExists(playerId, 'No player choosing a card')
-            queueCardChoicePass(context, playerId, PassContext.NoCardChoice)
-        } else if (
-            hydrated.machineState === MachineState.Activating &&
-            hydrated.activeEffect === EffectType.Motivate
-        ) {
-            assertExists(playerId, 'No player activating Motivate')
-            if (!hydrated.getActivationForPlayer(playerId))
-                queueMotivatedActivation(context, playerId)
-        }
-        Object.assign(state, hydrated.dehydrate())
-        return context.getPendingActions()
-    }
-
     initializeGameState(game: Game, state: UninitializedGameState): HydratedSolGameState {
         const prng = new Prng(state.prng)
 

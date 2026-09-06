@@ -37,7 +37,7 @@ Mechanisms that are genuinely shared across games belong in `@tabletop/common` o
 The logic package exports a `GameDefinition`:
 
 - `info` provides the stable game id, metadata, and an optional configurator.
-- `runtime` provides the initializer, hydrator, player-color mapping, canonical state validator, API action schemas, machine-state handlers, and an optional state logger.
+- `runtime` provides the initializer, hydrator, player-color mapping, canonical state validator, API action schemas, machine-state handlers, an optional state logger, and optional exploration state preparation.
 
 The UI package exports a `GameUiDefinition`. Its info adds the thumbnail, and its lazy runtime provides the Game UI component, session class, colorizer, optional player-color palette, and the complete game runtime.
 

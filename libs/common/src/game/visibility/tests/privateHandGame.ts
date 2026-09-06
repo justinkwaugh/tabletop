@@ -208,26 +208,26 @@ class Initializer extends BaseGameInitializer<SharedState, HydratedPrivateHandSt
             turnManager: { series: [], turnOrder: ['p1', 'p2'], turnCounts: { p1: 0, p2: 0 } }
         })
     }
-    initializeExplorationState(state: SharedState): SharedState {
-        const result = structuredClone(state)
-        shuffle(result.drawPile.items, getPrng())
-        return result
-    }
-    populateExplorationState({
-        state,
-        random
-    }: ExplorationPopulation<SharedState>): CanonicalState {
-        return populate(state, random)
-    }
-    getExplorationActions(): GameAction[] {
-        return []
-    }
 }
 export const projector = Visibility.createProjector(CanonicalSchema)
 
 const actions = Visibility.createActionProjector({ play: PlaySchema, draw: DrawSchema })
 export const runtime: GameRuntime<SharedState, HydratedPrivateHandState> = {
     initializer: new Initializer(),
+    exploration: {
+        createFromCanonicalState(state: SharedState): SharedState {
+            const result = structuredClone(state)
+            shuffle(result.drawPile.items, getPrng())
+            return result
+        },
+
+        createFromProjectedState({
+            state,
+            random
+        }: ExplorationPopulation<SharedState>): CanonicalState {
+            return populate(state, random)
+        }
+    },
     canonicalStateValidator: CanonicalValidator,
     hydrator: {
         hydrateState(state) {

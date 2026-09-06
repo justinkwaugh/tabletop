@@ -1,3 +1,4 @@
+import { SolGameExploration } from './gameExploration.js'
 import type { GameRuntime } from '@tabletop/common'
 import { DefaultStateLogger, Visibility } from '@tabletop/common'
 import {
@@ -15,6 +16,7 @@ import { SolActionSchemas } from './actionSchemas.js'
 
 export const SolRuntime = {
     initializer: new SolGameInitializer(),
+    exploration: new SolGameExploration(),
     canonicalStateValidator: SolGameStateValidator,
     hydrator: new SolHydrator(),
     stateHandlers: SolStateHandlers,

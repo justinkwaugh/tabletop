@@ -141,9 +141,6 @@ class Initializer extends BaseGameInitializer<ProjectedState, SyntheticState> {
             drawPile: { items: [{ id: 'hidden-one' }, { id: 'hidden-two' }], remaining: 2 }
         })
     }
-    initializeExplorationState(state: ProjectedState): ProjectedState {
-        return state
-    }
 }
 
 export const SyntheticRuntime = {

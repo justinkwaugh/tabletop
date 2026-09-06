@@ -256,6 +256,11 @@ export async function runSafeExplorationUndo() {
 export async function runPartialExploration() {
     const host = createExplorationHost()
     const draw = drawStall(host)
+    const cascadeEnd = host.state.actionCount
+    const auctionId = host.state.currentAuction?.id
+    const bidder = host.state.activePlayerIds[0]
+    assertExists(bidder, 'Expected a bidder')
+    host.apply(createBid('next-decision', bidder, 2))
     const client = explorationClient(host)
     const { session } = client
     try {
@@ -264,18 +269,97 @@ export async function runPartialExploration() {
         await session.history.goToActionIndex(draw.index)
         await settleExploration(session)
         const source = session.history.visibleContext.state
+        const original = JSON.stringify(source)
         const chosen = JSON.stringify(source.chosenTile)
         const count = source.tileBag.remaining
+        session.shouldAutoStepAction = () => true
+        const branchSource = session.history.createExplorationSource()
+        const advanceWasIndependent =
+            session.history.actionIndex === draw.index &&
+            JSON.stringify(session.history.visibleContext.state) === original
         await session.startExploring()
         await settleExploration(session)
         const context = session.explorations.getCurrentExploration()
         assertExists(context, 'Expected exploration')
-        return {
+        const result = {
             sourcePhase: source.machineState,
             phase: context.state.machineState,
             sameTile: JSON.stringify(context.state.chosenTile) === chosen,
             sameCount: context.state.tileBag.remaining === count,
-            undoBlocked: session.undoableAction === undefined
+            undoBlocked: session.undoableAction === undefined,
+            advanceWasIndependent,
+            startsAtBoundary:
+                branchSource.state.actionCount === cascadeEnd &&
+                context.state.explorationState?.actionCount === cascadeEnd,
+            keepsRecordedConsequences:
+                context.state.currentAuction?.id === auctionId &&
+                context.actions.at(-1)?.id === host.actions[cascadeEnd - 1].id,
+            excludesNextDecision: !context.actions.some((action) => action.id === 'next-decision')
+        }
+        await session.explorations.saveExploration('Boundary sample')
+        const savedId = context.game.id
+        await session.explorations.createNewExploration()
+        await settleExploration(session)
+        const another = session.explorations.getCurrentExploration()
+        const newBranchUsesBoundary = another?.state.explorationState?.actionCount === cascadeEnd
+        await session.explorations.switchExploration(savedId)
+        await settleExploration(session)
+        session.explorations.endExploring()
+        await settleExploration(session)
+        return {
+            ...result,
+            newBranchUsesBoundary,
+            returnedToOriginal:
+                session.history.inHistory &&
+                session.history.actionIndex === draw.index &&
+                JSON.stringify(session.history.visibleContext.state) === original,
+            originalWasUnchanged: JSON.stringify(source) === original
+        }
+    } finally {
+        client.dispose()
+    }
+}
+
+export async function runFailedHistoryExploration() {
+    const host = createExplorationHost()
+    const draw = drawStall(host)
+    const client = explorationClient(host, PLAYER_B_PERSPECTIVE, {
+        ...FreshFishUiRuntime,
+        exploration: {
+            createFromCanonicalState: FreshFishRuntime.exploration.createFromCanonicalState,
+            createFromProjectedState(input) {
+                const state = FreshFishRuntime.exploration.createFromProjectedState(input)
+                Reflect.deleteProperty(state, 'board')
+                return state
+            }
+        }
+    })
+    const { session } = client
+    try {
+        await settleExploration(session)
+        assertExists(draw.index, 'Expected a draw index')
+        await session.history.goToActionIndex(draw.index)
+        await settleExploration(session)
+        const original = JSON.stringify(session.history.visibleContext.state)
+        let rejected = false
+        try {
+            await session.startExploring()
+        } catch (error) {
+            rejected =
+                error instanceof Error &&
+                error.message.includes('Complete canonical state is required')
+        }
+        await settleExploration(session)
+        return {
+            rejected,
+            noBranch:
+                !session.isExploring && session.explorations.getCurrentExploration() === undefined,
+            historyUnchanged:
+                session.currentActionIndex === draw.index &&
+                session.actions.length === draw.index + 1 &&
+                session.history.inHistory &&
+                session.history.actionIndex === draw.index &&
+                JSON.stringify(session.history.visibleContext.state) === original
         }
     } finally {
         client.dispose()
@@ -284,14 +368,16 @@ export async function runPartialExploration() {
 
 export async function runPrivilegedExploration() {
     const host = createExplorationHost()
+    host.apply(diskAction(host))
     const initializer = FreshFishRuntime.initializer
     const client = explorationClient(host, PLAYER_B_PERSPECTIVE, {
         ...FreshFishUiRuntime,
+        exploration: {
+            createFromCanonicalState: FreshFishRuntime.exploration.createFromCanonicalState
+        },
         initializer: {
             initializeGame: initializer.initializeGame.bind(initializer),
-            initializeGameState: initializer.initializeGameState.bind(initializer),
-            initializeExplorationState: initializer.initializeExplorationState.bind(initializer),
-            getExplorationActions: initializer.getExplorationActions.bind(initializer)
+            initializeGameState: initializer.initializeGameState.bind(initializer)
         }
     })
     const { session, app } = client
@@ -313,6 +399,8 @@ export async function runPrivilegedExploration() {
         session.setViewAsActingPlayer(false)
         await settleExploration(session)
         const hostAvailable = session.canExplore
+        await session.history.goToBeginning()
+        await settleExploration(session)
         await session.startExploring()
         await settleExploration(session)
         const context = session.explorations.getCurrentExploration()
@@ -337,7 +425,9 @@ export async function runPrivilegedExploration() {
             historyStillExploration,
             actionPresented,
             populated,
-            returnedToProjection: session.history.visibleContext.state.tileBag.items.length === 0
+            returnedToProjection:
+                !session.history.inHistory &&
+                session.history.visibleContext.state.tileBag.items.length === 0
         }
     } finally {
         client.dispose()
@@ -414,8 +504,9 @@ export async function runSimulatedAuction() {
     }
 }
 
-export async function runExplorationRecovery() {
+export async function runExplorationRecovery(fromHistory = false) {
     const host = createExplorationHost()
+    if (fromHistory) host.apply(diskAction(host))
     const client = explorationClient(host)
     const { session, app } = client
     let syncRequests = 0
@@ -431,6 +522,12 @@ export async function runExplorationRecovery() {
     session.listenToGame()
     try {
         await settleExploration(session)
+        if (fromHistory) {
+            await session.history.goToBeginning()
+            await settleExploration(session)
+        }
+        const returnState = JSON.stringify(session.history.visibleContext.state)
+        const returnIndex = session.history.actionIndex
         await session.startExploring()
         await settleExploration(session)
         const branch = session.explorations.getCurrentExploration()
@@ -447,7 +544,15 @@ export async function runExplorationRecovery() {
             session.history.visibleContext.game.id === branch.game.id
         session.explorations.endExploring()
         await settleExploration(session)
+        const returnPositionPreserved = fromHistory
+            ? session.history.inHistory &&
+              session.history.actionIndex === returnIndex &&
+              JSON.stringify(session.history.visibleContext.state) === returnState
+            : !session.history.inHistory
+        session.history.goToEnd()
+        await settleExploration(session)
         return {
+            returnPositionPreserved,
             syncRequests,
             branchUnchanged,
             returnedToCurrentGame:

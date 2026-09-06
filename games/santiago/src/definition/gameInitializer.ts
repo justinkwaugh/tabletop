@@ -61,12 +61,6 @@ export class SantiagoGameInitializer
     extends BaseGameInitializer<SantiagoGameState, HydratedSantiagoGameState>
     implements GameInitializer<SantiagoGameState, HydratedSantiagoGameState>
 {
-    initializeExplorationState(state: SantiagoGameState): SantiagoGameState {
-        const hydratedState = new HydratedSantiagoGameState(state)
-        shuffle(hydratedState.tileBag, () => Math.random())
-        return hydratedState.dehydrate()
-    }
-
     initializeGameState(game: Game, state: UninitializedGameState): HydratedSantiagoGameState {
         const prng = new Prng(state.prng)
         const config = (game.config ?? {}) as SantiagoGameConfig

@@ -1,20 +1,13 @@
 import {
-    assert,
     assertExists,
-    type ExplorationPopulation,
     type GameInitializer,
     BaseGameInitializer,
     Prng,
     type UninitializedGameState
 } from '@tabletop/common'
 import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
-import {
-    HydratedLowenherzGameState,
-    LowenherzGameState,
-    LowenherzGameStateValidator,
-    LowenherzProjectedState
-} from '../model/gameState.js'
-import { HydratedLowenherzPlayerState, LowenherzPlayerState } from '../model/playerState.js'
+import { HydratedLowenherzGameState, LowenherzProjectedState } from '../model/gameState.js'
+import { HydratedLowenherzPlayerState } from '../model/playerState.js'
 
 import { MachineState } from './states.js'
 import { LowenherzGameConfig } from './config.js'
@@ -25,9 +18,6 @@ import {
     assembleActionDeckWithConstruction
 } from '../util/actionDeckAssembly.js'
 import { assembleStandardBoard, applyStandardSetup } from '../util/standardSetup.js'
-import { populateLowenherzExploration } from '../util/exploration.js'
-import { AdvanceResolution } from '../actions/advanceResolution.js'
-import { MachineContext, type GameAction } from '@tabletop/common'
 import { dealPoliticsCardPiles } from '../util/politicsCardAssembly.js'
 
 const STARTING_MONEY = 12
@@ -39,52 +29,6 @@ export class LowenherzGameInitializer
     extends BaseGameInitializer<LowenherzProjectedState, HydratedLowenherzGameState>
     implements GameInitializer<LowenherzProjectedState, HydratedLowenherzGameState>
 {
-    initializeExplorationState(state: LowenherzProjectedState): LowenherzProjectedState {
-        const hydrated = new HydratedLowenherzGameState(state)
-        const deck = hydrated.getActionDeck()
-        const backs = [...new Set(deck.map((card) => card.back))]
-        hydrated.actionDeck = backs.flatMap((back) => {
-            const group = deck.filter((card) => card.back === back)
-            shuffle(group, Math.random)
-            return group
-        })
-        const pooled = [...hydrated.getPoliticsPile('A'), ...hydrated.getPoliticsPile('B')]
-        shuffle(pooled, Math.random)
-        const size = hydrated.getPoliticsPile('A').length
-        hydrated.politicsCardPileA = pooled.slice(0, size)
-        hydrated.politicsCardPileB = pooled.slice(size)
-        for (const player of hydrated.players) {
-            if (player.politicsInspection) {
-                player.politicsInspection.cards = structuredClone(
-                    hydrated.getPoliticsPile(player.politicsInspection.pile)
-                )
-            }
-        }
-        return hydrated.dehydrate()
-    }
-
-    populateExplorationState(
-        input: ExplorationPopulation<LowenherzProjectedState>
-    ): LowenherzGameState {
-        if ((input.state.systemVersion ?? 1) < 3) {
-            const state = this.initializeExplorationState(input.state)
-            assert(
-                LowenherzGameStateValidator.Check(state),
-                'Legacy Exploration requires complete state'
-            )
-            return state
-        }
-        return populateLowenherzExploration(input)
-    }
-
-    getExplorationActions(game: Game, state: LowenherzProjectedState): GameAction[] {
-        if (state.machineState !== MachineState.ResolvingActions) return []
-        const hydrated = new HydratedLowenherzGameState(state)
-        const context = new MachineContext({ gameConfig: game.config, gameState: hydrated })
-        context.addSystemAction(AdvanceResolution, { playerId: '' })
-        return context.getPendingActions()
-    }
-
     initializeGameState(game: Game, state: UninitializedGameState): HydratedLowenherzGameState {
         // Initialize a pseudo random number generator for the state
         const prng = new Prng(state.prng)

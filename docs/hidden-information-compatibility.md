@@ -34,8 +34,8 @@ These fixes implement the existing slice-6 requirement to exercise notification 
 | Exploration with primary discontinuity | Browser case preserves the sample and returns to current projected play | Hosted Fork is a separate operation |
 | Stored v1/v2 state | Existing seeded initialization tests plus new auctions without `submitted` or `protectedPrng` cover projection, last bid, resolution, and canonical/projected Undo | No retroactive privacy guarantee; not a blanket promise for arbitrary historical schemas |
 | New title with no visibility declaration | Existing engine tests create systemVersion 3 independently of visibility | Protected randomness alone does not make canonical delivery private |
-| Older saved Exploration without a checkpoint | Existing legacy loading/continuation tests remain passing | Reading new checkpointed branches with older clients is not established |
-| Current saved Exploration | History, save/load, partial-cascade continuation, inherited Undo barriers, and simulated Undo remain covered | Per-title population is still required for ordinary projected Exploration |
+| Older saved Exploration without a checkpoint | Existing legacy loading and forward-play tests remain passing | Reading new checkpointed branches with older clients is not established |
+| Current saved Exploration | History, save/load, cascade-boundary creation and exact History return, inherited Undo barriers, and simulated Undo remain covered | Per-title population is still required for ordinary projected Exploration |
 
 ## Publication and rollback
 

@@ -4,17 +4,6 @@ import type { GameState, HydratedGameState, UninitializedGameState } from '../mo
 import * as Value from 'typebox/value'
 import type { GameDefinition } from './gameDefinition.js'
 import { assertExists } from '../../util/assertions.js'
-import type { GameAction } from '../engine/gameAction.js'
-import type { Perspective } from '../visibility/valueProjector.js'
-import type { RandomFunction } from '../../util/prng.js'
-
-export interface ExplorationPopulation<T extends GameState> {
-    game: Game
-    state: T
-    actions: readonly GameAction[]
-    perspective: Perspective
-    random: RandomFunction
-}
 
 export interface GameInitializer<
     T extends GameState = GameState,
@@ -22,9 +11,6 @@ export interface GameInitializer<
 > {
     initializeGame(game: Partial<Game>, definition: GameDefinition<T, U>): Game
     initializeGameState(game: Game, state: UninitializedGameState): U
-    initializeExplorationState(state: T): T
-    populateExplorationState?(input: ExplorationPopulation<T>): T
-    getExplorationActions?(game: Game, state: T): GameAction[]
 }
 
 export abstract class BaseGameInitializer<
@@ -32,7 +18,6 @@ export abstract class BaseGameInitializer<
     U extends HydratedGameState<T> = HydratedGameState<T>
 > implements GameInitializer<T, U> {
     abstract initializeGameState(game: Game, state: UninitializedGameState): U
-    abstract initializeExplorationState(state: T): T
 
     initializeGame(game: Partial<Game>, definition: GameDefinition<T, U>): Game {
         if (Object.keys(game.config ?? {}).length > 0) {

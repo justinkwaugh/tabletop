@@ -42,9 +42,6 @@ const definition: GameDefinition = {
             },
             initializeGameState() {
                 throw new Error('Unused by route test')
-            },
-            initializeExplorationState(state) {
-                return state
             }
         },
         hydrator: {

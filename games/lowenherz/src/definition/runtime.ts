@@ -1,3 +1,4 @@
+import { LowenherzGameExploration } from './gameExploration.js'
 import { assert, DefaultStateLogger, Visibility, type GameRuntime } from '@tabletop/common'
 import {
     LowenherzGameStateValidator,
@@ -18,6 +19,7 @@ const stateProjector = Visibility.createProjector(LowenherzGameState)
 
 export const LowenherzRuntime = {
     initializer: new LowenherzGameInitializer(),
+    exploration: new LowenherzGameExploration(),
     canonicalStateValidator: LowenherzGameStateValidator,
     hydrator: new LowenherzHydrator(),
     stateHandlers: LowenherzStateHandlers,

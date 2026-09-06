@@ -1,3 +1,4 @@
+import { EstatesGameExploration } from './gameExploration.js'
 import type { GameRuntime } from '@tabletop/common'
 import { DefaultStateLogger } from '@tabletop/common'
 import {
@@ -12,6 +13,7 @@ import { EstatesStateHandlers } from './stateHandlers.js'
 
 export const EstatesRuntime: GameRuntime<EstatesGameState, HydratedEstatesGameState> = {
     initializer: new EstatesGameInitializer(),
+    exploration: new EstatesGameExploration(),
     canonicalStateValidator: EstatesGameStateValidator,
     hydrator: new EstatesHydrator(),
     stateHandlers: EstatesStateHandlers,

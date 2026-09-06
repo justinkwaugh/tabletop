@@ -4,6 +4,7 @@ for (const scenario of [
     'runExplorationHistory',
     'runSafeExplorationUndo',
     'runPartialExploration',
+    'runFailedHistoryExploration',
     'runPrivilegedExploration',
     'runSimulatedAuction'
 ]) {
@@ -23,7 +24,14 @@ for (const scenario of [
                 phase: 'AuctioningTile',
                 sameTile: true,
                 sameCount: true,
-                undoBlocked: true
+                undoBlocked: true,
+                advanceWasIndependent: true,
+                startsAtBoundary: true,
+                keepsRecordedConsequences: true,
+                excludesNextDecision: true,
+                newBranchUsesBoundary: true,
+                returnedToOriginal: true,
+                originalWasUnchanged: true
             })
         } else {
             for (const value of Object.values(result))
@@ -32,25 +40,28 @@ for (const scenario of [
     })
 }
 
-test('recovers the primary game during Exploration without changing the sample', async ({
-    page
-}) => {
-    await page.goto('/')
-    const result = await page.evaluate(async () => {
-        const moduleUrl = new URL(
-            '/src/lib/stores/tests/exploration.fixture.ts',
-            window.location.href
-        ).href
-        const scenario = await import(moduleUrl)
-        return await scenario.runExplorationRecovery()
+for (const fromHistory of [false, true]) {
+    test(`recovers the primary game during Exploration from ${fromHistory ? 'history' : 'live'}`, async ({
+        page
+    }) => {
+        await page.goto('/')
+        const result = await page.evaluate(async (fromHistory) => {
+            const moduleUrl = new URL(
+                '/src/lib/stores/tests/exploration.fixture.ts',
+                window.location.href
+            ).href
+            const scenario = await import(moduleUrl)
+            return await scenario.runExplorationRecovery(fromHistory)
+        }, fromHistory)
+        expect(result).toEqual({
+            returnPositionPreserved: true,
+            syncRequests: 1,
+            branchUnchanged: true,
+            returnedToCurrentGame: true,
+            stillProjected: true
+        })
     })
-    expect(result).toEqual({
-        syncRequests: 1,
-        branchUnchanged: true,
-        returnedToCurrentGame: true,
-        stillProjected: true
-    })
-})
+}
 
 for (const hostView of [true, false]) {
     test(`retains notifications arriving during a ${hostView ? 'host' : 'ordinary'} representation load`, async ({

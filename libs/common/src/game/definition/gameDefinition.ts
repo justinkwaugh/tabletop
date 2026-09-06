@@ -2,6 +2,7 @@ import type * as Type from 'typebox'
 import type { Validator } from 'typebox/compile'
 import type { GameHydrator } from './gameHydrator.js'
 import type { GameMetadata } from './gameMetadata.js'
+import type { GameExploration } from './gameExploration.js'
 import type { GameInitializer } from './gameInitializer.js'
 import type { MachineStateHandler } from '../engine/machineStateHandler.js'
 import type { HydratedAction } from '../engine/gameAction.js'
@@ -22,6 +23,7 @@ export interface GameRuntime<
     U extends HydratedGameState<T> = HydratedGameState<T>
 > {
     initializer: GameInitializer<T, U>
+    exploration?: GameExploration<T>
     hydrator: GameHydrator<T, U>
     canonicalStateValidator?: Pick<Validator, 'Check'>
     playerColors: Color[]
