@@ -1,6 +1,6 @@
 # Hidden-information compatibility and completion review
 
-Reviewed 2026-09-05 against `3fd8c5e5...4740bfef`, followed by the slice-6 fixes in `a0586281` and the forward-play compatibility slice. This completes the repository compatibility audit; it does not establish release readiness. The [wider review](hidden-information-review.md) retains the unresolved authoring and publication requirements. Hosted Fork now has a separate [canonical-copy implementation](hidden-information-forks.md); Exploration remains hypothetical.
+Reviewed 2026-09-05 against `3fd8c5e5...4740bfef`, followed by the slice-6 fixes in `a0586281`, forward-play compatibility, canonical Forks, and shared hydration through `808537fe`. The original audit and its validation are retained below; the [remaining-work section](#remaining-development-slices) is the current completion list. The repository implementation does not establish publication readiness. The [current contract](hidden-information.md) records explicit visibility setup and completed authoring decisions.
 
 ## Standards
 
@@ -59,10 +59,15 @@ The slice adds tests for missing host capability and projected Host responses, f
 
 The projected authoring slice is integrated: canonical schemas remain strict; shared hydrated types and validators derive from the visibility schema; `Policy.Owner` supports owner-known private hands. Permanent Common, backend, and Chromium GameSession fixtures cover the private-hand flow, including legal discovery, optimistic play, protected-read fallback, delivery, and Exploration. See the [integration record](projected-hydration-prototype.md#integration-follow-up) and [authoring contract](DESIGN.md#schemas-and-hydration).
 
-1. **Completion work:** measure long-history projection/checkpoint cost, provide useful fallback diagnostics, and consolidate the remaining project documentation. C2 remains deferred unless release testing elevates its risk.
-2. **Release verification:** publish the affected matching artifacts and verify the actual mixed-publication rollout. The private-hand conformance fixture is not a deployed title.
+Explicit visibility setup is settled: a title relying on secret randomness or hidden information registers its state and Action projectors. Common-field projection is not automatic, and a no-hidden-information title needs no visibility registration. The documentation consolidation is complete: [the current contract](hidden-information.md), [scenario reference](hidden-information-scenarios.md), and historical slice records have distinct purposes. The planned GameSession extractions are complete.
 
-## Final validation record
+1. **Performance measurement:** benchmark long-history materialization, larger states/cascades, multiple Player Perspectives, and Exploration checkpoint size. Establish useful latency/memory targets before adding projection caches or equivalent-Perspective grouping.
+2. **Fallback diagnostics:** distinguish expected protected reads from unexpected execution exceptions, Action-trace differences, and projected-state/replay mismatches. The proposed surfaces are opt-in debug output in the browser console/local harness for client attempts and structured backend logs for host classification. Include Action identity/type, a reason, and the first affected transition/path where safe; do not send canonical values or host exception details to ordinary clients. Expected fallback should not generate routine player warnings. A dedicated diagnostics panel is not currently planned. This diagnostic work is not yet implemented.
+3. **Publication and rollback verification:** rehearse an already-open older client, the current client, existing v2 forward play, a new title without visibility, projection-rule changes, and unsupported historical schemas using actual old/new artifacts. Deploy the backend and Site Frontend and publish affected UI Artifacts; Fresh Fish requires matching Logic/UI artifacts for its accumulated runtime changes. Verify the old-reader boundary for saved Exploration and reverse-state compatibility before allowing rollback after newer writes. Publish compatible artifacts before announcing a breaking major version. The private-hand conformance fixture is not a deployed title.
+
+C2 projection ETags remain deliberately deferred as low risk unless release evidence changes that assessment. Additional titles need their own declarations, knowledge rules, and projected Exploration population as they adopt hidden information. General custom-policy execution, arbitrary replacement adapters, a universal knowledge model, and tighter transport authorization are outside the completed contract, not prerequisites silently added to these slices.
+
+## Validation at the compatibility slice
 
 275 automated tests pass: 123 Common, 30 Fresh Fish logic, 32 backend representation/notification/fork, 28 shared Game Client, 46 Fresh Fish client, and 16 Chromium scenarios. New cases cover incompatible historical states and Actions, malformed/missing patches, current-state rejection, preserved checksums and confidentiality, continued browser play/History/Undo, and version-change precedence. Both client type checks report zero errors, with the existing seven shared-client and one Fresh Fish UI warnings. Common/Fresh Fish/shared-client builds and `git diff --check` pass.
 

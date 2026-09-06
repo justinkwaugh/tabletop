@@ -1,6 +1,6 @@
 # Shared projected hydration: prototype findings
 
-The experiment supports one projection-compatible hydrated representation, with strict canonical validation at operations that require complete state. That approach is now integrated: canonical gates landed in `9f128dd6`, and the follow-up adds the built-in owner policy, Fresh Fish's derived hydration schemas, and permanent private-hand regressions. The supported authoring contract is in [DESIGN.md](DESIGN.md#schemas-and-hydration). The findings below describe the original experiment.
+The experiment supports one projection-compatible hydrated representation, with strict canonical validation at operations that require complete state. That approach is now integrated: canonical gates landed in `9f128dd6`, and `808537fe` adds the built-in owner policy, Fresh Fish's derived hydration schemas, and permanent private-hand regressions. The supported authoring contract is in [DESIGN.md](DESIGN.md#schemas-and-hydration). The findings below describe the original experiment.
 
 Prototype: local branch `codex/projected-hydration-prototype`, commit `35448a8f`, based on `c984a981`. Its source, README, observations, and standalone captured walkthrough are under `libs/common/src/game/visibility/prototypes/projectedHydration/` on that branch. The prepared worktree is `/tmp/tabletop-hydration-prototype`.
 

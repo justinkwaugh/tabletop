@@ -1,6 +1,6 @@
 # Game Session development slices
 
-This work follows the hidden-information review and the decision to refactor the reconciliation responsibilities before adding more hidden-information behavior.
+This is the completed development-slice record for the hidden-information GameSession refactor. Reconciliation, representation management, and notification handling now have distinct owners. The [current completion list](hidden-information-compatibility.md#remaining-development-slices) tracks operational and release work; no additional broad GameSession refactor is required by this project.
 
 ## Constraints
 
@@ -10,12 +10,12 @@ This work follows the hidden-information review and the decision to refactor the
 - Extract ownership and algorithms together. New modules receive their dependencies explicitly and do not reach into private GameSession state.
 - Slices 1–3 make no fork/exploration policy, ETag, publication, or unrelated presentation changes. Slice 4 records the exploration decisions before further implementation.
 
-## Slices
+## Original slices (completed)
 
 1. **Accepted-history reconciliation.** Extract application of accepted Actions, complete replay suffix replacement, checksum verification, and reconstruction from a legacy Undo manifest. Verify public module outcomes against canonical host fixtures and preserve the existing GameSession integration tests.
 2. **Queued delivery and recovery.** Move pending-update ordering, busy deferral, recovery after failures, incremental synchronization, and full reload into the reconciliation module. Keep perspective/representation selection in GameSession; a stale response must not overwrite a newer representation.
 3. **Submission and Undo integration.** Route direct authoritative responses and optimistic acceptance through the same reconciliation algorithms. Remove duplicate history mutation and trace-comparison paths from GameSession. Preserve local/hotseat execution and subclass entry points.
-4. **Fork/exploration design discussion.** Settle source randomness, unknown information, retained knowledge, and the relationships among primary, exploration, and displayed contexts. This slice requires product/design input before implementation.
+4. **Fork/exploration design discussion.** Settle source randomness, unknown information, retained knowledge, and the relationships among primary, exploration, and displayed contexts. The final decisions and implementation are recorded below.
 5. **Representation management.** With the Exploration knowledge rule settled, extract context loading, perspective selection, privileged inspection, request generations, and stale-response handling behind an interface that fits the agreed context model.
 6. **Compatibility and completion review.** Exercise notification ordering, in-flight submissions, Undo, History, privilege transitions, older stored games, and mixed artifact contracts. Update the hidden-information review and resume its remaining functional work.
 
@@ -32,9 +32,11 @@ This refactor changes the shared Game Client bundled in each UI Artifact. A Game
 - [x] Slice 1: accepted-history reconciliation
 - [x] Slice 2: queued delivery and recovery
 - [x] Slice 3: submission and Undo integration
-- [ ] Slice 4: fork/exploration decisions — Exploration implemented; Hosted Fork remains open
+- [x] Slice 4: Fork/Exploration decisions and implementations — hypothetical Exploration; real canonical Forks
 - [x] Slice 5: representation management
-- [x] Slice 6: compatibility and completion review — repository audit complete; publication/History decisions remain open
+- [x] Slice 6: repository compatibility audit, forward-play policy, and major-version reload
+- [x] Follow-up: notification ownership extraction
+- [x] Follow-up: canonical validation and shared projected hydration
 
 ## Completed in slices 1–3
 
@@ -46,7 +48,7 @@ The GameSession constructor and bridge contract remain unchanged. GameContext an
 
 Validation: 19 shared Frontend Components tests, 36 Fresh Fish client tests, and five Chromium scenarios pass. Both affected client type checks report zero errors; their existing Svelte warnings remain. The Frontend Components build passes. Tests cover projected and legacy Undo, reordered optimistic submission, rollback on invalid replacement, full-reload cancellation, busy delivery, discontinuity recovery, privileged view transitions, and projected History. Cross-publication deployment and the broader compatibility audit were outstanding at this slice; the slice-6 completion record below describes subsequent validation.
 
-The Exploration knowledge rule is settled. Representation extraction can proceed independently of Hosted Fork policy and hypothetical-history implementation.
+The later representation, Exploration, and Fork sections record the completed follow-ups.
 
 ## Slice 4: hypothetical exploration
 
@@ -65,28 +67,27 @@ For a deck where five identified Cards have been drawn and have not returned, th
 
 ### Implementation follow-up
 
-The existing flow already branches from the selected visible Game Context, including a History position. `GameExplorations.createExploration` invokes `initializeExplorationState` on its clone and changes the public PRNG cursor; the engine restores that cursor when replay reaches the branch point. Fresh Fish and Sol shuffle their remaining bag/deck; Lowenherz also redistributes unknown politics Cards while preserving pile sizes. These hooks already aim to prevent Exploration from predicting the real hidden future. The new work must preserve that behavior with projected inputs and independent version-3 protected randomness.
+The existing flow already branches from the selected visible Game Context, including a History position. `GameExplorations.createExploration` invokes `initializeExplorationState` on its clone and changes the public PRNG cursor; the engine restores that cursor when replay reaches the branch point. Fresh Fish and Sol shuffle their remaining bag/deck; Lowenherz also redistributes unknown politics Cards while preserving pile sizes. These hooks already aim to prevent Exploration from predicting the real hidden future. The implemented projected population path preserves that behavior with independent version-3 protected randomness.
 
 The [Exploration implementation](hidden-information-exploration.md) now adds a projected-state population hook. Fresh Fish reconstructs its remaining bag and supplies hypothetical hidden submitted bids. Persisted source/hypothetical checkpoints separate recorded History from playable execution, and inherited Undo checks complete cascades. The canonical initializer remains available for authorized Host View.
 
-### Decisions still open in slice 4
+### Settled Fork and Exploration decisions
 
-- Whether a Hosted Fork has the same hypothetical-information contract as Exploration; they are distinct lifecycle operations in the current model.
-  The user settled recorded History versus playable Undo: source History stays navigable in both directions; inherited Undo stops at the first forward-patched or non-optimistically executable Action cascade. Debug/Admin Host View Exploration must remain available without a projected-state generator. The [Exploration implementation plan](hidden-information-exploration.md) records these requirements and Fresh Fish population slices.
+[Canonical Forks](hidden-information-forks.md) preserve the real position, including hidden information and random cursors. The host always supplies canonical source state; Hotseat and the harness already possess it. Historical points remain eligible independently of projected History and Undo barriers, but unsupported reconstruction can fail explicitly.
 
-The Exploration privacy and historical-knowledge rules are settled. Slice 5 manages primary representations and privileged inspection without changing Exploration construction or deciding Hosted Fork policy. The subsequent Exploration work implements checkpointed History and inherited Undo barriers. Existing v2 games still have no retroactive privacy-upgrade requirement.
+Exploration uses hypothetical unknowns. Source History stays navigable within the supported schema range; inherited Undo stops at a forward-patched or non-optimistically executable cascade. Debug/Admin Host View Exploration remains available without projected population. Existing v2 games have no retroactive privacy-upgrade requirement.
 
 ## Completed in slice 5
 
 `GameRepresentations` owns retained Host Game Contexts, ordinary and Acting Player projections, schema-checked representation loading, requested inspection mode, and asynchronous request validity. It receives transport, user/Acting Player selection, loading status, and context publication explicitly. It has no GameSession reference. Request generations stay private; submission, Undo, and reconciliation capture a validity function before awaiting a response.
 
-GameSession retains Action initiation and presentation coordination. Its existing context replacement still clears superseded deliveries, resets History, and immediately publishes the safe state when privileged inspection ends, including when the ordinary reload subsequently fails. Exploration continues to own a separate context and its existing initialization behavior. The pre-existing legacy recovery loader remains a Session adapter with its transport-to-runtime type assumption; the extraction does not impose a visibility schema on older runtimes.
+GameSession retains Action initiation and presentation coordination. Context replacement resets History and immediately publishes safe state when privileged inspection ends, including when the ordinary reload subsequently fails. Slice 6 subsequently preserves a recovery request for updates arriving after a load snapshot while invalidating superseded payloads. Exploration continues to own a separate context and its existing initialization behavior. The pre-existing legacy recovery loader remains a Session adapter with its transport-to-runtime type assumption; the extraction does not impose a visibility schema on older runtimes.
 
 The GameSession public interface, bridge members, injected host dependencies, and transport payloads are unchanged. The new module is internal to the bundled Game Client. Each title needs a UI-only publication to adopt this refactor, with the earlier hidden-information runtime work retaining its separate Logic/UI requirements. No artifact was published.
 
 Validation: 19 shared Frontend Components tests, 38 Fresh Fish client tests, and five Chromium scenarios pass. New integration cases prove that exiting inspection or disposing the Session prevents a pending canonical load from publishing. Existing cases cover in-flight Action responses, rejected privileged Actions, Acting Player changes, canonical refresh after Actions/Undo, projected History, and queued recovery. Both client type checks have zero errors (seven and one existing warnings), and the Frontend Components build passes.
 
-At completion of slice 5, the broader migration audit was outstanding. Slice 6 below records the subsequent audit; actual mixed-publication deployment, older stored-game coverage across publication, and historical-schema policy remain release work. The subsequent [Exploration implementation](hidden-information-exploration.md) now supplies Fresh Fish population, fresh branch randomness, checkpointed History, and inherited Undo barriers. Hosted Fork policy and the broader publication/migration audit remain separate.
+At completion of slice 5, the broader migration audit was outstanding. Slice 6 and the forward-play follow-up below record its implementation and agreed historical-schema policy. Actual mixed-publication deployment remains release work. The [Exploration implementation](hidden-information-exploration.md) supplies Fresh Fish population, fresh branch randomness, checkpointed History, and inherited Undo barriers.
 
 ## Completed in slice 6
 
@@ -98,4 +99,12 @@ Current projected loading no longer requires every historical schema to remain c
 
 The Site Frontend continues to use its existing major-version reload. Version-change precedence and the Logic-major error callback are fixed; a patch notice cannot cancel a required reload. The [compatibility record](hidden-information-compatibility.md) describes validation, deployment requirements, and the limits of response-driven detection.
 
-The next development slice is the projected authoring contract: required-field hydration and legal-Action discovery for private hands, exercised through a realistic private-hand flow. Hosted Fork remains a separate product decision. No publication was performed.
+## Completed: notification handling
+
+`GameNotifications` owns subscriptions, payload validation, Perspective filtering, routing accepted deliveries into reconciliation, discontinuity recovery requests, and listener cleanup. It receives explicit callbacks for context/representation operations and holds no GameSession reference. GameSession retains public Action initiation and presentation coordination. This is an internal bundled-client extraction, with no new host bridge capability or payload shape.
+
+## Completed: canonical validation and projected authoring
+
+`9f128dd6` adds complete-state validation at canonical operations. `808537fe` integrates shared hydration and locally decidable owner visibility, with a permanent private-hand flow across Common, backend representations, and actual browser GameSession behavior. See the [authoring contract](DESIGN.md#schemas-and-hydration) and [integration validation](projected-hydration-prototype.md#integration-follow-up).
+
+The completed slices have not published artifacts. Performance, diagnostics, and mixed-publication verification remain on the [completion list](hidden-information-compatibility.md#remaining-development-slices).

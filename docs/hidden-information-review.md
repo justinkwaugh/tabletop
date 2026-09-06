@@ -1,10 +1,8 @@
 # Hidden-information implementation review
 
-Reviewed 2026-09-04 from `3fd8c5e5` (immediately before the implementation commits) through `0d32b361` and the current uncommitted worktree. The specification is `hidden-information.md` plus the user's handoff and subsequent corrections. The unrelated Dockerfile edit is excluded.
+This is the historical review of `3fd8c5e5` through `0d32b361` and the worktree reviewed on 2026-09-04, with resolution notes added after subsequent slices. The unrelated Dockerfile edit was excluded. Findings and validation counts below describe their respective slices, not the current release status.
 
-The [slice-6 compatibility audit](hidden-information-compatibility.md) extends this review through `4740bfef` and the subsequent recovery/capability fixes. It records current validation and the next release-critical work.
-
-The core direction is promising: canonical execution, schema-based projections, independent projected patches, and whole-cascade replay classification fit the scenarios exercised so far. This is not ready for general deployment. The reproduced recovery and execution-guard defects S1, S2, P1, and P2 are now fixed. Hosted Fork policy, publication compatibility, and the remaining design boundaries below still need attention. The user deferred C1 for discussion with exploration and classified C2 as low risk.
+The targeted guard/recovery defects, canonical Forks, shared hydration, owner-hand discovery, and planned GameSession extractions are complete. Major-version reload and forward-play compatibility are implemented and tested. C2 projection ETags remain deferred as low risk; S6 performance/diagnostics and actual mixed-publication rollout remain work. Use the [current contract](hidden-information.md) and [remaining-work list](hidden-information-compatibility.md#remaining-development-slices) for current decisions and scope.
 
 ## Change made before this review
 
@@ -28,29 +26,25 @@ A protected-item array `[1, 2]` previously projected to `[]`, and guarded `.leng
 
 The guard now rejects access to an Array or Record when its member schema can omit entries for the current Perspective. This is a conservative schema check: even an empty projection cannot prove canonical emptiness. Union branches and reference definitions participate in the check. Object enumeration also rejects potentially omitted additional properties.
 
-Public collection membership remains usable when only nested fields are protected, when an Actor policy proves every member visible, or when whole-member replacement retains membership. Individual protected values remain guarded. Custom policies that cannot prove membership locally still require authoritative execution; the broader Action-discovery limitation S3 remains open.
+Public collection membership remains usable when only nested fields are protected, when an Actor policy proves every member visible, or when whole-member replacement retains membership. Individual protected values remain guarded. Custom policies that cannot prove membership locally still require authoritative execution; the supported owner-hand resolution and custom-policy limit are recorded in S3 below.
 
 The public-projector tests cover empty and nonempty arrays, shifted union indexes, Record enumeration, reference schemas, custom policies, and preservation of safe public operations. The A9 availability scenario now reports the collection path where execution stops.
 
-### S3 — Custom-policy visibility does not yet support ordinary Action discovery (DX limitation)
+### S3 — Custom-policy Action discovery (owner-hand contract integrated; custom-policy limit retained)
 
-[valueProjector.ts:555](/workspace/libs/common/src/game/visibility/valueProjector.ts:555) deliberately rejects custom policies during guarded execution, even when the projected value is actually visible to its owner. [gameSession.svelte.ts:409](/workspace/libs/frontend-components/src/lib/model/gameSession.svelte.ts:409) converts unavailable-value errors into an empty list of valid Actions.
+The original custom owner policy could project a hand correctly but could not prove its safety during guarded local discovery. Arbitrary custom callbacks may depend on canonical fields missing from the client, so the guard deliberately rejects them.
 
-This is conservative, but it makes a natural Hearts/Go Fish/Rummy implementation difficult: an availability rule inspecting the current Player's own hand can advertise no Actions. Automatic authoritative submission fallback does not help when the UI cannot discover an Action to submit. The built-in actor policy expects a root `playerId`; it is not a generic nested Player-state ownership policy.
+`808537fe` adds `Policy.Owner`, based on the immediate containing object's public, stable `playerId`. Permanent private-hand tests exercise owner-known rule methods, legal discovery, optimistic play, and authoritative fallback while preserving guards on opponents' hands and hidden decks. Titles with team or retained-knowledge rules must expose sufficient permitted data or add a tested policy; there is no generic authoritative availability endpoint or relaxation of custom-policy guards.
 
-Provide locally provable owner/team/knowledge policies, a permitted-view availability interface, or authoritative availability. The choice is still open; do not resolve it by trusting arbitrary custom policy code against incomplete state.
+### S4 — Projected types and hydration (integrated)
 
-### S4 — Projection types and client hydration have an unfinished boundary (design judgment)
+The original client contract used canonical validators in hydrated constructors, rejecting projections that omitted required secret fields. `9f128dd6` first established complete-state validation at canonical execution, initialization, loading, persistence, Undo, Fork, and Exploration boundaries.
 
-`GameRuntime.visibility?: GameVisibility<T>` in [gameDefinition.ts:29](/workspace/libs/common/src/game/definition/gameDefinition.ts:29) does not carry the concrete projected shape into the Game Session. The session still uses the canonical hydrator, whose `Hydratable` constructor validates the canonical schema.
+`808537fe` then adopted a shared hydration type and validator derived from the canonical visibility schema. Canonical schemas remain strict; constructors accept both representations without a mode flag. `GameRuntime.visibility` carries the shared state type through projection. Required nested hands and secret scalars are covered by permanent Common, backend, and browser tests, and Fresh Fish adopts derived hydration schemas. See [Schemas and hydration](DESIGN.md#schemas-and-hydration).
 
-Fresh Fish's neutral PRNG, empty bag, and optional bid fields fit that schema. Other supported-looking declarations do not: omitting a required secret scalar can produce a valid projection that the canonical hydrator rejects before patch application. The schema-level API is more flexible than the integrated client contract.
+### S5 — Game Session responsibilities (planned extractions complete)
 
-Either document and validate a restricted, canonical-hydratable projected shape for this phase, or introduce an explicit projected hydration/rendering boundary. A second rules implementation is not required. TypeBox composition metadata and static inference should have conformance coverage around whichever boundary is selected.
-
-### S5 — Game Session responsibilities are growing together (complexity judgment)
-
-Follow-up on 2026-09-05: the first three [Game Session refactor slices](game-session-refactor.md) extract accepted-history reconciliation, queued delivery/recovery, and submission/Undo response handling into `GameReconciliation`. Slice 5 now extracts retained host contexts, projections, representation loading, and request cancellation into `GameRepresentations`. GameSession retains Action initiation, mode selection, and presentation publication. The original concern below motivated those extractions; Fresh Fish hypothetical Exploration is now implemented through an optional population hook, with checkpointed History and conservative inherited Undo. Broader publication compatibility validation remains outstanding.
+Follow-up on 2026-09-05: the first three [Game Session refactor slices](game-session-refactor.md) extract accepted-history reconciliation, queued delivery/recovery, and submission/Undo response handling into `GameReconciliation`. Slice 5 now extracts retained host contexts, projections, representation loading, and request cancellation into `GameRepresentations`. `GameNotifications` subsequently takes ownership of subscription lifecycle, notification validation/routing, and discontinuity handling. GameSession retains Action initiation, mode selection, and presentation publication. The original concern below motivated those extractions; Fresh Fish hypothetical Exploration is now implemented through an optional population hook, with checkpointed History and conservative inherited Undo. Broader publication compatibility validation remains outstanding.
 
 The privileged representation lifecycle introduced request generations, asynchronous loading, perspective switching, and authoritative reconciliation alongside existing history and presentation coordination. These algorithms now live in [gameRepresentations.svelte.ts](/workspace/libs/frontend-components/src/lib/model/gameRepresentations.svelte.ts) and [gameReconciliation.ts](/workspace/libs/frontend-components/src/lib/model/gameReconciliation.ts).
 
@@ -88,19 +82,21 @@ This is required release work, not an instruction to publish or bump versions du
 
 ## Additional cross-flow findings
 
-### C1 — Fork preservation is still coupled to visibility (P2, reproduced)
+### C1 — Fork preservation coupled to visibility (P2, fixed)
+
+The following reproduction describes the original defect. The [canonical Fork follow-up](#canonical-fork-follow-up) supersedes the original reconstruction recommendation: always use complete canonical source state, preserve inherited identities and random cursors, and fail explicitly when a historical point cannot be reconstructed.
 
 [gameService.ts:211](/workspace/libs/backend-services/src/games/gameService.ts:211) loads canonical source state only when visibility exists or the public seed is absent. With creation now independent of visibility, a version-3 title can have a second PRNG without entering that preservation path.
 
 Reproducing the no-projector path with Fresh Fish's runtime and fixed distinct initial seeds produced version-3 source and fork states with different protected PRNGs and different bags—even when forking before any Action. The reconstruction helper works when canonical state is supplied; the service does not always supply it. Existing fork tests exercise the helper and therefore miss this selection defect.
 
-Fork initialization must be driven by source execution version and canonical initialization data. Add service-level coverage with and without visibility. Preserve the source version as well as random cursors. Retain a deliberate strategy for old histories lacking complete undo patches; blindly requiring every historical snapshot would remove existing seed-based reconstruction capabilities.
+The initial review requested service-level coverage with and without visibility and preservation of source version and random cursors. The implemented canonical-copy path now provides that coverage. The user accepted explicit failure for incompatible historical reconstruction; seed-based replay fallback is not part of the final contract.
 
-### C2 — Projection changes do not invalidate ETags (P2, verified by code path)
+### C2 — Projection changes do not invalidate ETags (deferred as low risk)
 
 [gameRepresentation.ts:70](/workspace/libs/backend-services/src/games/gameRepresentation.ts:70) hashes only the canonical Game revision and Perspective. The current projection definition or Logic Artifact revision is absent. Publishing different projection rules without changing Game data can therefore retain the old validator, and [apps/backend/.../game/get.ts:49](/workspace/apps/backend/src/app/routes/api/game/get.ts:49) returns `304` before creating the new representation.
 
-Include a stable representation revision in the ETag or invalidate validators on publication. This is distinct from already-disclosed knowledge: the endpoint can incorrectly claim an altered representation has not changed.
+A future fix could include a stable representation revision in the ETag or invalidate validators on publication. The user deliberately deferred this issue; it is not an active implementation requirement. This is distinct from already-disclosed knowledge: the endpoint can incorrectly claim an altered representation has not changed.
 
 ### C3 — Ordinary loads require historical schema compatibility (fixed)
 
@@ -119,47 +115,41 @@ This exceeds the repository's Operational Compatibility guarantee, which promise
 - Host inspection explicitly retains canonical context and derives a separate acting-Player view. Generic notifications and start responses are state-free.
 - Schema-local annotations, reusable DrawBag protection, and shared auction semantics reduce title-specific projection code. Public-by-default fields remain the intended authoring model.
 
-## Scenario coverage and its limits
+## Current coverage and limits
 
-| Scenario family                                               | Evidence                                                                  | Remaining gap                                                                          |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Hidden scalars, bags, hands, multi-Player deals               | Schema tests, Fresh Fish bag, synthetic card fixtures                     | Required scalar hydration; incomplete collections now fail closed                      |
-| Hidden Actions, mixed cascades, secret shuffles               | Sentinel, guarded attempt, patched cascade followed by public replay      | Default confidentiality without a registered projector                                 |
-| Sealed simultaneous submissions and Undo                      | Fresh Fish engine/client tests and previous hosted manual validation      | Old-client deployment behavior; recovery regressions now covered                       |
-| Owner/team/private transfer, progressive/selective reveal     | Synthetic perspective fixtures                                            | Practical owner/team Action discovery in a complete game UI                            |
-| Private observation and retained knowledge                    | Explicit card-knowledge fixture survives movement                         | History entitlement after later reveals, reassignment, and deliberate forgetting       |
-| Initial load, sync, submission, notification, privileged view | Route, backend representation, and client tests                           | Old-client publication tests, historical schema compatibility, publication ETags       |
-| Fork and exploration                                          | Fork helper tests; Fresh Fish population and checkpoint browser scenarios | Hosted Fork selection and Action-ID relationships; population support for other titles |
+| Scenario family | Evidence | Remaining limit |
+| --- | --- | --- |
+| Required hidden scalars, bags, nested private hands | Derived hydration schemas, strict canonical gates, permanent private-hand flow | Additional replacement shapes and deeply composed schemas need their own conformance coverage |
+| Hidden Actions, mixed cascades, secret shuffles | Sentinel, guarded attempts, patched cascade followed by public replay | Titles must explicitly register visibility; protected randomness alone is not confidential delivery |
+| Owner-known legal discovery | Owner policy, Common methods, actual browser GameSession play and fallback | Arbitrary custom/team/knowledge policy execution is not generally supported |
+| Sealed simultaneous submissions and Undo | Fresh Fish engine/client tests and hosted checks | Actual old/new artifact rollout |
+| Private observation and retained knowledge | Card-knowledge fixtures preserve represented knowledge | Title-owned lifecycle and entitlement rules; no universal memory model |
+| Load, sync, notifications, History, privileged views | Backend, client, Chromium, and local hosted Fresh Fish checks | Mixed-publication verification and deferred projection ETags |
+| Fork and Exploration | Canonical reconstruction/service tests, hosted historical Fork, hypothetical population and saved-branch browser tests | Population hooks for additional titles; historical reconstruction may explicitly fail |
 
-Fixture coverage demonstrates the mechanisms; it does not establish that complete Hearts, Rummy, Go Fish, or War implementations are ready without further authoring work.
+The [scenario catalog](hidden-information-scenarios.md) is a title-adoption checklist. It does not establish that complete Hearts, Rummy, Go Fish, or War implementations are deployed.
 
-## Decisions still open
+## Decision resolutions
 
-1. **Confidentiality without custom visibility.** Creation no longer requires visibility, but canonical delivery still exposes the entire state when no projector is registered ([gameRepresentation.ts:92](/workspace/libs/backend-services/src/games/gameRepresentation.ts:92)). An unused second stream is harmless; `getProtectedPrng()` alone is not a secrecy guarantee. Decide whether using protected randomness requires explicit projection setup or whether common-field protection becomes automatic. Do not let a no-hidden-information/no-randomness title need boilerplate just to obtain the current system version.
-2. **Available Actions and projected hydration.** Select the supported contracts before expanding the schema API further. Prefer a small set of useful owner/aggregate patterns over author-written parallel rules.
-3. **Historical knowledge.** Historical compatibility is settled: forward play from the latest state is required; History across schema changes is not. Current loading must tolerate unavailable History. Entitlement/knowledge presentation within supported History remains a separate concern. Software can remove a value from a view; it cannot make a Player forget previously delivered information.
-4. **Fork/exploration semantics.** The user settled Exploration’s privacy rule: unknown information must be hypothetical and consistent with permitted knowledge; the real hidden state must not supply new revelations. [Slice 4](game-session-refactor.md#slice-4-hypothetical-exploration) records the rule and implementation follow-up. Historical branches use only knowledge available at that position. Recorded source History remains navigable while inherited Undo stops at a forward-patched/non-optimistic cascade. Debug/Admin Host View Exploration remains available. The [Exploration plan](hidden-information-exploration.md) covers implementation; Hosted Fork treatment remains open. Canonical history reconstruction and hypothetical sampling have separate randomness requirements; the Hosted Fork policy remains undecided. Generic remapping of title-owned references to rewritten Action IDs is still unsupported.
-5. **Release and cache migration.** Establish the old-client transition, projection revision, and rollback boundary. Existing v2 games retain their historical behavior and have no privacy-upgrade requirement.
-6. **Classifier cost and diagnostics.** Set realistic latency/memory targets and define an author-facing explanation for patch fallback. Keep the two-stream design unless a real scenario demonstrates another requirement.
+- **Explicit visibility setup:** confirmed on 2026-09-06. Titles relying on secret randomness or hidden information register state and Action projectors. There is no automatic common-field projection for unregistered titles and no new runtime rejection check in this documentation change. Titles with no hidden information need no registration to create system-version-3 instances.
+- **Hydration and legal discovery:** one derived shared hydration representation with strict canonical gates; owner-known methods run through the existing guard. No parallel rules runtime is needed.
+- **History and migration:** latest-state forward play is required; historical compatibility is not. Existing v2 games retain public behavior. Missing historical patches stop navigation/Undo without blocking current play.
+- **Fork and Exploration:** Fork preserves a real canonical position; Exploration samples a hypothetical one using only knowledge at the selected point. Host View Exploration remains available. Inherited Fork IDs remain intact, avoiding generic remapping of title-owned references.
+- **Loaded clients and rollback:** use the existing major-version reload and compatible Publication. Actual old/new rollout and reverse compatibility after newer writes remain release checks.
 
-The current threat model deliberately accepts broad Ably subscription capabilities and public Action existence/count. Those are existing constraints, not newly discovered defects. Secret-dependent rejection behavior remains a title conformance obligation. These constraints should stay visible in acceptance criteria without expanding this project into unrelated security hardening.
+Public Action existence/count and the previously accepted broad Ably subscription capabilities remain threat-model constraints. Secret-dependent rejection behavior and retained knowledge are title conformance obligations, not newly promised generic framework capabilities.
 
-## Recommended remaining work
+## Remaining work
 
-1. Discuss fork source selection together with exploration before changing C1. C2 publication ETags is deferred as low risk. The four targeted guard/recovery defects have permanent regression coverage and are fixed.
-2. Settle projected hydration and Action availability; collection completeness now uses a conservative execution guard. Add one realistic private-hand game flow whose legal choices depend on the owner's known cards.
-3. Write and exercise the publication/migration plan: open old client, current client, old stored v2 instance continuing without a privacy upgrade, new instance without visibility, projection-rule change, and older history schema.
-4. Exercise remaining fork/exploration and knowledge lifecycle decisions; include actual service selection and browser timing rather than only engine/helper tests.
-5. Benchmark long histories and larger cascades, add patch-fallback diagnostics, then simplify Game Session ownership around the measured and tested contracts.
-6. Separate a concise authoring contract from the exploratory scenario catalog and implementation log, and record accepted architecture only after the unresolved boundaries are decided.
+The [compatibility completion list](hidden-information-compatibility.md#remaining-development-slices) is the single current list: performance measurement, fallback diagnostics, and publication/rollback verification. C2 stays deliberately deferred. The authoring documentation and scenario catalog are now separated, and the planned GameSession extractions are complete.
 
-## Validation and limits
+## Historical validation and limits
 
 The existing suites passed after the versioning fix: 108 common tests, 28 Fresh Fish logic tests, 36 backend service/Undo-window tests, 11 backend route tests, and 31 Fresh Fish client tests (214 total). Common, Fresh Fish, and backend-services builds passed through `turbo run build`; `git diff --check` passed.
 
 The review's targeted probes intentionally exposed behavior absent from those suites: numeric Record access, incomplete collection operations, User-channel discontinuity, busy projected Undo, fork initialization without a projector, and historical schema changes. Temporary probe files were removed. The busy-Undo probe tested the handler boundary; no fresh full-hosted browser run or cross-publication deployment test was performed. Existing passing tests do not negate those reproduced gaps.
 
-No commits or publication were performed. The pre-existing Dockerfile contents were verified unchanged.
+At the original review, no commits or publication were performed. The pre-existing Dockerfile contents were verified unchanged.
 
 ### Follow-up validation for defects 1–4
 
@@ -174,3 +164,7 @@ See [Hidden-information compatibility and completion review](hidden-information-
 ## Canonical Fork follow-up
 
 C1 is fixed by the [canonical Fork slice](hidden-information-forks.md). The user settled Forks as real continuations and Exploration as hypothetical. Hosted Fork always loads canonical state, regardless of visibility registration; Hosted, Hotseat, and harness paths share suffix reconstruction without reinitialization or replay. Unsupported historical reconstruction may fail explicitly. The old recommendation to preserve seed-based replay fallback is superseded by that accepted compatibility policy. C2 remains deferred.
+
+## Shared hydration integration follow-up
+
+`9f128dd6` adds canonical validation boundaries; `808537fe` integrates shared hydration, owner visibility, and permanent private-hand regressions. The [integration record](projected-hydration-prototype.md#integration-follow-up) reports 322 unit tests and 22 Chromium scenarios passing, with all 11 title logic packages building. This is repository conformance evidence, not publication of a new private-hand title.
