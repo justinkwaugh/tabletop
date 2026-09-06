@@ -11,6 +11,7 @@ import {
     type GameState,
     type GameWithoutState,
     GameSyncStatus,
+    GameEngine,
     omitGameState,
     type ProcessedActionReplay,
     type User,
@@ -89,6 +90,9 @@ export function createGameRepresentation({
     visibility?: Visibility.GameVisibility<GameState>
     user: User
 }): GameRepresentation {
+    if (game.state !== undefined && runtime !== undefined) {
+        new GameEngine(runtime).validateCanonicalState(game.state)
+    }
     if (hostView || game.hotseat || visibility === undefined) {
         return { game, actions, perspective: undefined }
     }

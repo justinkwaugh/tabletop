@@ -37,7 +37,7 @@ Mechanisms that are genuinely shared across games belong in `@tabletop/common` o
 The logic package exports a `GameDefinition`:
 
 - `info` provides the stable game id, metadata, and an optional configurator.
-- `runtime` provides the initializer, hydrator, player-color mapping, API action schemas, machine-state handlers, and an optional state logger.
+- `runtime` provides the initializer, hydrator, player-color mapping, canonical state validator, API action schemas, machine-state handlers, and an optional state logger.
 
 The UI package exports a `GameUiDefinition`. Its info adds the thumbnail, and its lazy runtime provides the Game UI component, session class, colorizer, optional player-color palette, and the complete game runtime.
 
@@ -59,11 +59,15 @@ For each processed action, the engine:
 
 Automatic rule consequences are first-class System Actions created or scheduled through `MachineContext`. A Svelte effect or other reactive UI loop must never commit gameplay. Gameplay-relevant mutation belongs inside runtime processing so history, undo, replay, and remote clients observe the same sequence.
 
-The Game Engine interface distinguishes Action lifecycle rather than host and client roles. `executeAction` sanitizes and processes one Unprocessed Action together with its complete generated System Action cascade. `applyProcessedAction` advances through exactly one authoritative Processed Action: it applies an Action-carried `forwardPatch` when present and otherwise replays that record without recursively processing generated children. `undoProcessedAction` performs Action Reversal from the record's `undoPatch`. Hotseat Play and explicitly safe Optimistic Application use the same Unprocessed Action operation as the backend; authoritative delivery and History Navigation use the Processed Action operations.
+The Game Engine interface distinguishes Action lifecycle and state completeness. `executeAction` sanitizes and processes one Unprocessed Action together with its complete generated System Action cascade. `applyProcessedAction` advances through exactly one authoritative Processed Action: it applies an Action-carried `forwardPatch` when present and otherwise replays that record without recursively processing generated children. `undoProcessedAction` performs Action Reversal from the record's `undoPatch`. Authoritative execution, Hotseat Play, and hypothetical Exploration use `executeCanonicalAction`, which checks complete input and every completed transition against the canonical validator. Projected Optimistic Application and replay checks retain `executeAction`; authoritative delivery and History Navigation use the Processed Action operations. An absent Perspective does not prove completeness: projected Processed Action replay also runs without one.
 
 ## Schemas and hydration
 
 TypeBox schemas define the serialized contract. Keep them JSON-compatible, derive TypeScript types with `Type.Static`, and compile validators where runtime validation is required.
+
+Canonical validation belongs at complete-state operations: completed initialization, canonical execution, canonical Undo targets, real Fork sources and reconstructed targets, completed Exploration population, current canonical loads, and canonical writes including administrative state replacement. Load and normalize or migrate current stored state before checking it. Historical snapshots need not satisfy the current schema; incompatible historical operations fail independently of forward play.
+
+Current title runtimes expose their existing compiled canonical validator through `canonicalStateValidator`. The property remains optional for independently published older runtimes, whose existing hydrators supply validation. A runtime adopting projection-compatible hydration must supply its strict canonical validator. Shared constructors, generic patch application, and History Navigation must continue to accept their appropriate projected or historical representation. Canonical schema validity does not establish that hypothetical secrets match the real game, nor replace rule legality or authorization checks.
 
 Raw state and action types are data. Hydrated classes add behavior. Declare hydrated fields explicitly and hydrate nested values deliberately; do not rely on incidental object assignment to preserve class behavior.
 

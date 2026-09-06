@@ -125,7 +125,7 @@ export const IndonesiaGameState = Type.Evaluate(
     ])
 )
 
-const IndonesiaGameStateValidator = Compile(IndonesiaGameState)
+export const IndonesiaGameStateValidator = Compile(IndonesiaGameState)
 
 export class HydratedIndonesiaGameState
     extends HydratableGameState<typeof IndonesiaGameState, HydratedIndonesiaPlayerState>
@@ -262,7 +262,8 @@ export class HydratedIndonesiaGameState
     public canPlayerTakeAnyMeaningfulOperationAction(playerId: string): boolean {
         return this.companies.some(
             (company) =>
-                company.owner === playerId && this.canCompanyTakeMeaningfulOperationAction(company.id)
+                company.owner === playerId &&
+                this.canCompanyTakeMeaningfulOperationAction(company.id)
         )
     }
 
@@ -322,7 +323,10 @@ export class HydratedIndonesiaGameState
     }
 
     public setOperatingCompanyProducedGoodsCount(count: number): void {
-        assert(Number.isInteger(count), 'Operating company produced-goods count should be an integer')
+        assert(
+            Number.isInteger(count),
+            'Operating company produced-goods count should be an integer'
+        )
         assert(count >= 0, 'Operating company produced-goods count should be non-negative')
 
         const operatingCompanyId = this.operatingCompanyId
@@ -348,7 +352,10 @@ export class HydratedIndonesiaGameState
         }
 
         const company = this.companies.find((entry) => entry.id === companyId)
-        assertExists(company, `Company ${companyId} should exist before recording operations income`)
+        assertExists(
+            company,
+            `Company ${companyId} should exist before recording operations income`
+        )
 
         this.operationsIncomeByCompanyId = this.operationsIncomeByCompanyId ?? {}
         this.operationsIncomeByCompanyId[companyId] =
@@ -525,9 +532,7 @@ export class HydratedIndonesiaGameState
             return true
         }
 
-        const allShipping = this.availableDeeds.every(
-            (deed) => deed.type === CompanyType.Shipping
-        )
+        const allShipping = this.availableDeeds.every((deed) => deed.type === CompanyType.Shipping)
         if (allShipping) {
             return true
         }
@@ -671,7 +676,10 @@ export class HydratedIndonesiaGameState
     }
 
     public canCompanyExpandToArea(companyId: string, areaId: string): boolean {
-        assert(isIndonesiaNodeId(areaId), `Invalid area id ${areaId} is not a valid Indonesia node id`)
+        assert(
+            isIndonesiaNodeId(areaId),
+            `Invalid area id ${areaId} is not a valid Indonesia node id`
+        )
 
         const company = this.companies.find((entry) => entry.id === companyId)
         assertExists(company, `Company with id ${companyId} was not found`)
@@ -835,7 +843,8 @@ export class HydratedIndonesiaGameState
 
             for (const shippingCompanyId of area.ships) {
                 const companySeaAreaIds =
-                    shippingSeaAreaIdsByCompanyId.get(shippingCompanyId) ?? new Set<IndonesiaNodeId>()
+                    shippingSeaAreaIdsByCompanyId.get(shippingCompanyId) ??
+                    new Set<IndonesiaNodeId>()
                 companySeaAreaIds.add(area.id)
                 shippingSeaAreaIdsByCompanyId.set(shippingCompanyId, companySeaAreaIds)
             }
@@ -906,7 +915,11 @@ export class HydratedIndonesiaGameState
         targetSeaAreaIds: ReadonlySet<IndonesiaNodeId>,
         allowedSeaAreaIds: ReadonlySet<IndonesiaNodeId>
     ): number | null {
-        if (startSeaAreaIds.size === 0 || targetSeaAreaIds.size === 0 || allowedSeaAreaIds.size === 0) {
+        if (
+            startSeaAreaIds.size === 0 ||
+            targetSeaAreaIds.size === 0 ||
+            allowedSeaAreaIds.size === 0
+        ) {
             return null
         }
 
@@ -930,7 +943,10 @@ export class HydratedIndonesiaGameState
 
         while (queue.length > 0) {
             const current = queue.shift()
-            assertExists(current, 'Sea queue should contain an entry while resolving sea path length')
+            assertExists(
+                current,
+                'Sea queue should contain an entry while resolving sea path length'
+            )
 
             const currentNode = this.board.graph.nodeById(current.seaAreaId)
             if (!currentNode) {
@@ -964,7 +980,10 @@ export class HydratedIndonesiaGameState
                 continue
             }
 
-            assert(isIndonesiaNodeId(area.id), `Cultivated area ${area.id} should be a valid node id`)
+            assert(
+                isIndonesiaNodeId(area.id),
+                `Cultivated area ${area.id} should be a valid node id`
+            )
             areaIds.push(area.id)
         }
 
@@ -984,10 +1003,7 @@ export class HydratedIndonesiaGameState
         }
     }
 
-    private canProductionCompanyExpandToArea(
-        company: ProductionCompany,
-        areaId: string
-    ): boolean {
+    private canProductionCompanyExpandToArea(company: ProductionCompany, areaId: string): boolean {
         const candidateArea = this.board.getArea(areaId)
         if (!this.board.canBeNewlyCultivated(candidateArea, company.good, company.id)) {
             return false

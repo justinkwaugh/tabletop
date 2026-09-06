@@ -1,14 +1,18 @@
 import { DefaultStateLogger, type GameRuntime } from '@tabletop/common'
-import type { HydratedLowenherzGameState, LowenherzGameState } from '../model/gameState.js'
+import {
+    LowenherzGameStateValidator,
+    type HydratedLowenherzGameState,
+    type LowenherzGameState
+} from '../model/gameState.js'
 import { LowenherzHydrator } from './hydrator.js'
 import { LowenherzGameInitializer } from './initializer.js'
 import { LowenherzApiActions } from './apiActions.js'
 import { LowenherzStateHandlers } from './stateHandlers.js'
 import { LowenherzColors } from './colors.js'
 
-
 export const LowenherzRuntime: GameRuntime<LowenherzGameState, HydratedLowenherzGameState> = {
     initializer: new LowenherzGameInitializer(),
+    canonicalStateValidator: LowenherzGameStateValidator,
     hydrator: new LowenherzHydrator(),
     stateHandlers: LowenherzStateHandlers,
     apiActions: LowenherzApiActions,

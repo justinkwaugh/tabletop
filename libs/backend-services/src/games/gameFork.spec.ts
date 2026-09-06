@@ -284,12 +284,63 @@ function createService(source: ReturnType<typeof createSource>) {
         RedisCacheService.prototype,
         { [Definition.info.id]: Definition }
     )
-    return { service, reads, writes, notifications }
+    return { service, store, reads, writes, notifications }
 }
 
 const owner: User = { id: 'owner', status: UserStatus.Active, roles: [Role.User], externalIds: [] }
 
 describe('Hosted Fork service', () => {
+    it('rejects an incomplete Undo result before persistence', async () => {
+        const source = createSource()
+        const { service, store } = createService(source)
+        source.actions[0].undoPatch?.push({ op: 'remove', path: '/board' })
+        vi.spyOn(store, 'findUndoActionWindow').mockResolvedValue({
+            targetAction: source.actions[0],
+            startIndex: 0,
+            actions: source.actions
+        })
+        const write = vi.spyOn(store, 'undoActionsFromGame')
+        await expect(
+            service.undoAction({
+                definition: {
+                    ...Definition,
+                    runtime: { ...FreshFishRuntime, visibility: undefined }
+                },
+                user: { ...owner, roles: [Role.Admin] },
+                gameId: source.game.id,
+                actionId: source.actions[0].id
+            })
+        ).rejects.toThrow('Complete canonical state is required')
+        expect(write).not.toHaveBeenCalled()
+    })
+
+    it('rejects invalid administrative state replacement before persistence', async () => {
+        const source = createSource()
+        const { service } = createService(source)
+        const write = vi
+            .spyOn(FirestoreGameStore.prototype, 'setGameState')
+            .mockResolvedValue(undefined)
+        Reflect.deleteProperty(source.state, 'board')
+        await expect(service.setGameState(source.state)).rejects.toThrow(
+            'Complete canonical state is required'
+        )
+        expect(write).not.toHaveBeenCalled()
+    })
+
+    it('validates the current Host View without requiring compatible history', async () => {
+        const source = createSource()
+        source.actions[0].undoPatch?.push({ op: 'remove', path: '/board' })
+        const { service } = createService(source)
+        const admin = { ...owner, roles: [Role.Admin] }
+        await expect(
+            service.getGameForUser({ gameId: source.game.id, user: admin, hostView: true })
+        ).resolves.toBeDefined()
+        Reflect.deleteProperty(source.state, 'board')
+        await expect(
+            service.getGameForUser({ gameId: source.game.id, user: admin, hostView: true })
+        ).rejects.toThrow('Complete canonical state is required')
+    })
+
     it.each([true, false])(
         'uses stored canonical state with visibility registration %s',
         async (visible) => {

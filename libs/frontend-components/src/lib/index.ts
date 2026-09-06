@@ -55,3 +55,5 @@ export * from './utils/trimInput.js'
 export * from './utils/dynamicComponent.js'
 export * from './utils/publishCssVarFromRect.js'
 export * from './utils/runeBackedStore.svelte.js'
+
+export * from './services/validateLocalGameState.js'

@@ -1,4 +1,4 @@
-import { GameSessionMode } from '@tabletop/frontend-components'
+import { GameSessionMode, GameSession, IndexedDbGameStore } from '@tabletop/frontend-components'
 import { getPrng, assertExists, createAction, ActionSource, GameStorage } from '@tabletop/common'
 import { FreshFishRuntime, DrawTile } from '@tabletop/fresh-fish'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
@@ -25,6 +25,69 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks())
 
 describe('hypothetical exploration', () => {
+    test('rejects invalid local saves before persistence', async () => {
+        const host = createExplorationHost()
+        const client = explorationClient(host)
+        const title = client.app.libraryService.getTitle(host.game.typeId)
+        assertExists(title, 'Expected local game title')
+        vi.spyOn(title, 'runtime').mockResolvedValue({
+            ...FreshFishUiRuntime,
+            sessionClass: GameSession,
+            gameUI: {
+                load: async () => {
+                    throw Error('Persistence does not load UI')
+                },
+                mount: () => {
+                    throw Error('Persistence does not mount UI')
+                }
+            }
+        })
+        const write = vi
+            .spyOn(IndexedDbGameStore.prototype, 'storeGameData')
+            .mockResolvedValue(undefined)
+        const state = structuredClone(host.state)
+        Reflect.deleteProperty(state, 'board')
+        try {
+            await expect(
+                client.app.gameService.saveGameLocally({
+                    game: { ...host.game, storage: GameStorage.Local },
+                    state,
+                    actions: host.actions
+                })
+            ).rejects.toThrow('Complete canonical state is required')
+            expect(write).not.toHaveBeenCalled()
+        } finally {
+            client.dispose()
+        }
+    })
+
+    test('rejects incomplete population before installing an exploration context', async () => {
+        const host = createExplorationHost()
+        const initializer = FreshFishRuntime.initializer
+        const client = explorationClient(host, PLAYER_B_PERSPECTIVE, {
+            ...FreshFishUiRuntime,
+            initializer: {
+                initializeGame: initializer.initializeGame.bind(initializer),
+                initializeGameState: initializer.initializeGameState.bind(initializer),
+                initializeExplorationState:
+                    initializer.initializeExplorationState.bind(initializer),
+                populateExplorationState(input) {
+                    const state = initializer.populateExplorationState(input)
+                    Reflect.deleteProperty(state, 'board')
+                    return state
+                }
+            }
+        })
+        try {
+            await expect(client.session.startExploring()).rejects.toThrow(
+                'Complete canonical state is required'
+            )
+            expect(client.session.explorations.getCurrentExploration()).toBeUndefined()
+        } finally {
+            client.dispose()
+        }
+    })
+
     test('populates the same bag from the same knowledge, without reading hidden order or seeds', () => {
         const host = createExplorationHost()
         drawStall(host)

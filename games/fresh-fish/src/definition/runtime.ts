@@ -1,5 +1,9 @@
 import { type GameRuntime, Visibility } from '@tabletop/common'
-import { FreshFishGameState, type HydratedFreshFishGameState } from '../model/gameState.js'
+import {
+    FreshFishGameStateValidator,
+    FreshFishGameState,
+    type HydratedFreshFishGameState
+} from '../model/gameState.js'
 import { FreshFishHydrator } from './hydrator.js'
 import { FreshFishGameInitializer } from './gameInitializer.js'
 import { FreshFishStateLogger } from '../util/stateLogger.js'
@@ -10,6 +14,7 @@ import { FreshFishColors } from './colors.js'
 
 export const FreshFishRuntime = {
     initializer: new FreshFishGameInitializer(),
+    canonicalStateValidator: FreshFishGameStateValidator,
     hydrator: new FreshFishHydrator(),
     stateHandlers: FreshFishStateHandlers,
     apiActions: FreshFishApiActions,

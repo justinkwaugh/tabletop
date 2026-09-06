@@ -1,6 +1,10 @@
 import type { GameRuntime } from '@tabletop/common'
 import { DefaultStateLogger } from '@tabletop/common'
-import type { HydratedSolGameState, SolGameState } from '../model/gameState.js'
+import {
+    SolGameStateValidator,
+    type HydratedSolGameState,
+    type SolGameState
+} from '../model/gameState.js'
 import { SolHydrator } from './hydrator.js'
 import { SolGameInitializer } from './gameInitializer.js'
 import { SolApiActions } from './apiActions.js'
@@ -9,6 +13,7 @@ import { SolColors } from './colors.js'
 
 export const SolRuntime: GameRuntime<SolGameState, HydratedSolGameState> = {
     initializer: new SolGameInitializer(),
+    canonicalStateValidator: SolGameStateValidator,
     hydrator: new SolHydrator(),
     stateHandlers: SolStateHandlers,
     apiActions: SolApiActions,

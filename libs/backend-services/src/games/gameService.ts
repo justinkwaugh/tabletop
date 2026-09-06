@@ -345,6 +345,7 @@ export class GameService {
         if (!game) {
             throw new GameNotFoundError({ id: state.gameId })
         }
+        new GameEngine(this.getRequiredTitle(game).runtime).validateCanonicalState(state)
         await this.gameStore.setGameState({ gameId: state.gameId, state })
     }
 
@@ -804,7 +805,7 @@ export class GameService {
         const initialIndex = action.index
 
         const gameEngine = new GameEngine(definition.runtime)
-        const actionResult = gameEngine.executeAction({
+        const actionResult = gameEngine.executeCanonicalAction({
             action,
             state: game.state,
             game
@@ -1053,13 +1054,15 @@ export class GameService {
         }
 
         const gameEngine = new GameEngine(definition.runtime)
+        gameEngine.validateCanonicalState(gameState)
         for (const action of actions.toReversed()) {
             gameState = gameEngine.undoProcessedAction({ action, state: gameState })
         }
 
+        gameEngine.validateCanonicalState(gameState)
         const redoneActions: GameAction[] = []
         for (const redoAction of redoActions) {
-            const { processedActions, updatedState } = gameEngine.executeAction({
+            const { processedActions, updatedState } = gameEngine.executeCanonicalAction({
                 action: redoAction,
                 state: gameState,
                 game
@@ -1070,6 +1073,7 @@ export class GameService {
 
         // store the updated state
         const updatedState = gameState
+        gameEngine.validateCanonicalState(updatedState)
 
         const {
             undoneActions,

@@ -97,7 +97,7 @@ export class ExplorationHistory<T extends GameState, U extends HydratedGameState
                 for (const record of actions.slice(index, groupEnd).toReversed()) {
                     before = this.engine.undoProcessedAction({ action: record, state: before })
                 }
-                const replay = this.engine.executeAction({ action, state: before, game })
+                const replay = this.engine.executeCanonicalAction({ action, state: before, game })
                 if (
                     jsonpatch.compare(after, replay.updatedState).length !== 0 ||
                     replay.processedActions.length !== groupEnd - index ||

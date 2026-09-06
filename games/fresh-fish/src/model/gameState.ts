@@ -36,7 +36,7 @@ export const FreshFishGameState = Type.Evaluate(
     ])
 )
 
-const FreshFishGameStateValidator = Compile(FreshFishGameState)
+export const FreshFishGameStateValidator = Compile(FreshFishGameState)
 
 export class HydratedFreshFishGameState
     extends HydratableGameState<typeof FreshFishGameState, HydratedFreshFishPlayerState>

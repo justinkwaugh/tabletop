@@ -51,6 +51,23 @@ export class GameEngine<
 > {
     constructor(public readonly runtime: GameRuntime<T, U>) {}
 
+    validateCanonicalState(state: T): void {
+        const validator = this.runtime.canonicalStateValidator
+        if (validator === undefined) {
+            this.runtime.hydrator.hydrateState(state)
+            return
+        }
+        assert(validator.Check(state), 'Complete canonical state is required')
+    }
+
+    executeCanonicalAction(input: {
+        action: GameAction
+        state: T
+        game: Game
+    }): ActionCascadeResult<T> {
+        return this.executeUnprocessedAction(input, true)
+    }
+
     generateUninitializedState(game: Game): UninitializedGameState {
         const seed = game.seed ?? generateSeed()
         return {
@@ -88,7 +105,9 @@ export class GameEngine<
         const initialHandler = this.getStateHandler(initialState)
         initialHandler.enter(machineContext)
 
-        return { startedGame, initialState: initialState.dehydrate() }
+        const state = initialState.dehydrate()
+        this.validateCanonicalState(state)
+        return { startedGame, initialState: state }
     }
 
     getValidActionTypesForPlayer(
@@ -120,22 +139,35 @@ export class GameEngine<
         return stateHandler.validActionsForPlayer(playerId, machineContext)
     }
 
-    executeAction({
-        action,
-        state,
-        game,
-        perspective
-    }: {
+    executeAction(input: {
         action: GameAction
         state: T
         game: Game
         perspective?: Perspective
     }): ActionCascadeResult<T> {
+        return this.executeUnprocessedAction(input, false)
+    }
+
+    private executeUnprocessedAction(
+        {
+            action,
+            state,
+            game,
+            perspective
+        }: {
+            action: GameAction
+            state: T
+            game: Game
+            perspective?: Perspective
+        },
+        canonical: boolean
+    ): ActionCascadeResult<T> {
         const execution = this.executeThroughRuntime({
             action: this.sanitizeUnprocessedAction(action),
             state,
             game,
             processGeneratedActions: true,
+            canonical,
             perspective
         })
 
@@ -211,17 +243,21 @@ export class GameEngine<
         state,
         game,
         processGeneratedActions,
-        perspective
+        perspective,
+        canonical = false
     }: {
         action: GameAction
         state: T
         game: Game
         processGeneratedActions: boolean
         perspective?: Perspective
+        canonical?: boolean
     }): RuntimeExecution<T> {
         if (isRedactedAction(action)) {
             throw Error('Redacted Action records cannot be executed by game rules')
         }
+
+        if (canonical) this.validateCanonicalState(state)
 
         const processedActions: GameAction[] = []
         const transitions: CanonicalActionTransition<T>[] = []
@@ -294,6 +330,8 @@ export class GameEngine<
             ) {
                 updatedState.prng.invocations = updatedState.explorationState.invocations
             }
+
+            if (canonical) this.validateCanonicalState(updatedState)
 
             const undoPatch: Patch = jsonpatch.compare(updatedState, stateBeforeAction)
 

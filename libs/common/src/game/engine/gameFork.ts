@@ -57,6 +57,7 @@ export function createGameFork<T extends GameState, U extends HydratedGameState<
             while (end < ordered.length && ordered[end].source === ActionSource.System) end += 1
         }
         const engine = new GameEngine(runtime)
+        engine.validateCanonicalState(currentState)
         let state = structuredClone(currentState)
         for (const action of ordered.slice(end).toReversed()) {
             state = engine.undoProcessedAction({ action, state })
@@ -67,7 +68,7 @@ export function createGameFork<T extends GameState, U extends HydratedGameState<
                 state.actionChecksum === calculateActionChecksum(0, inherited),
             'Fork position could not be reconstructed'
         )
-        runtime.hydrator.hydrateState(state)
+        engine.validateCanonicalState(state)
         assertExists(
             runtime.stateHandlers[state.machineState],
             'Fork position has no state handler'
@@ -89,6 +90,7 @@ export function createGameFork<T extends GameState, U extends HydratedGameState<
         fork.lastActionAt = inherited.at(-1)?.createdAt
         fork.lastActionPlayerId = inherited.at(-1)?.playerId
         state.gameId = fork.id
+        engine.validateCanonicalState(state)
 
         return {
             game: fork,

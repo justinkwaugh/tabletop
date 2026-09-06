@@ -96,6 +96,7 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
         if (!context) {
             return
         }
+        context.engine.validateCanonicalState(context.state)
         const game = structuredClone(context.game)
         game.name = gameName
         game.storage = GameStorage.Local
@@ -199,6 +200,7 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
         } else {
             hypothetical = initializer.initializeExplorationState(state)
         }
+        source.engine.validateCanonicalState(hypothetical)
         const history = new ExplorationHistory(source.engine)
         const pending = initializer.getExplorationActions?.(source.game, hypothetical)
         const lastAction = source.actions.at(-1)
@@ -208,7 +210,7 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
                 action: lastAction,
                 state: hypothetical
             })
-            const result = source.engine.executeAction({
+            const result = source.engine.executeCanonicalAction({
                 action: lastAction,
                 state: before,
                 game: source.game
@@ -270,6 +272,7 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
             state: state as T,
             actions
         })
+        explorationContext.engine.validateCanonicalState(explorationContext.state)
         return explorationContext
     }
 

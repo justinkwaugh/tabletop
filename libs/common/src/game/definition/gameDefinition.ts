@@ -1,4 +1,5 @@
 import type * as Type from 'typebox'
+import type { Validator } from 'typebox/compile'
 import type { GameHydrator } from './gameHydrator.js'
 import type { GameMetadata } from './gameMetadata.js'
 import type { GameInitializer } from './gameInitializer.js'
@@ -22,6 +23,7 @@ export interface GameRuntime<
 > {
     initializer: GameInitializer<T, U>
     hydrator: GameHydrator<T, U>
+    canonicalStateValidator?: Pick<Validator, 'Check'>
     playerColors: Color[]
     apiActions: Record<string, Type.TSchema>
     stateHandlers: Record<string, MachineStateHandler<HydratedAction, U>>

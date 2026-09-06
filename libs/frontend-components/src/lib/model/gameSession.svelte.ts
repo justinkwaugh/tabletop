@@ -1104,6 +1104,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     stateSnapshot,
                     priorContext.actions.slice(stateSnapshot.actionCount)
                 )
+                if (this.projectedExecutionPerspective(relevantContext) === undefined) {
+                    this.engine.validateCanonicalState(stateSnapshot)
+                }
                 relevantContext.updateGameState(stateSnapshot)
                 for (const action of redoActions) {
                     const results = this.executeActionInGame(action, gameSnapshot, stateSnapshot)
@@ -1201,6 +1204,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         if (this.isViewingAsActingPlayer) {
             throw new Error('Canonical Game State can only be edited from Host View')
         }
+        this.engine.validateCanonicalState(state)
         const editingHostView = this.representations.hostContext !== undefined
         const isRepresentationCurrent = this.representations.captureValidity()
         await this.gameService.setGameState(this.primaryGame, state)
@@ -1217,12 +1221,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         state: T,
         perspective?: Visibility.Perspective
     ): GameActionResults<T> {
-        const { processedActions, updatedState } = this.engine.executeAction({
-            action,
-            state,
-            game,
-            perspective
-        })
+        const { processedActions, updatedState } =
+            perspective === undefined
+                ? this.engine.executeCanonicalAction({ action, state, game })
+                : this.engine.executeAction({ action, state, game, perspective })
         return new GameActionResults(processedActions, updatedState)
     }
 

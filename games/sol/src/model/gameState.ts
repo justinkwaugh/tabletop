@@ -65,7 +65,7 @@ export const SolGameState = Type.Evaluate(
     ])
 )
 
-const SolGameStateValidator = Compile(SolGameState)
+export const SolGameStateValidator = Compile(SolGameState)
 
 export class HydratedSolGameState
     extends HydratableGameState<typeof SolGameState, HydratedSolPlayerState>

@@ -1,5 +1,6 @@
 import {
     GameSession,
+    validateLocalGameState,
     type GameService as GameServiceInterface,
     TabletopApi,
     type GetGameOptions,
@@ -175,7 +176,10 @@ export class GameService implements GameServiceInterface {
 
         const localGame = this.localGamesById.get(id)
         if (localGame) {
-            return await this.localGameStore.loadGameData(id)
+            const data = await this.localGameStore.loadGameData(id)
+            if (data.game?.state)
+                await validateLocalGameState(this.libraryService, data.game, data.game.state)
+            return data
         }
 
         // Check remote games
@@ -293,6 +297,7 @@ export class GameService implements GameServiceInterface {
             throw new Error('Can only save local games locally')
         }
 
+        await validateLocalGameState(this.libraryService, gameData, stateData)
         await this.localGameStore.storeGameData({
             game: gameData,
             actions: actionsData,

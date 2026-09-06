@@ -196,7 +196,7 @@ export class GameContext<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     applyAction(action: GameAction): GameActionResults<T> {
-        const result = this.engine.executeAction({
+        const result = this.engine.executeCanonicalAction({
             action,
             state: this.state,
             game: this.game

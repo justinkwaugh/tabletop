@@ -211,7 +211,7 @@ export const LowenherzGameState = Type.Evaluate(
     ])
 )
 
-const LowenherzGameStateValidator = Compile(LowenherzGameState)
+export const LowenherzGameStateValidator = Compile(LowenherzGameState)
 
 export class HydratedLowenherzGameState
     extends HydratableGameState<typeof LowenherzGameState, HydratedLowenherzPlayerState>

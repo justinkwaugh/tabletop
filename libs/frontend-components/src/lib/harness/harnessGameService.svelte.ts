@@ -1,3 +1,4 @@
+import { validateLocalGameState } from '$lib/services/validateLocalGameState.js'
 import {
     Game,
     GameStatus,
@@ -99,7 +100,10 @@ export class HarnessGameService implements GameService {
                 this.gamesById.set(localGame.id, localGame)
             }
         }
-        return await this.localGameStore.loadGameData(id)
+        const data = await this.localGameStore.loadGameData(id)
+        if (data.game?.state)
+            await validateLocalGameState(this.libraryService, data.game, data.game.state)
+        return data
     }
 
     getExplorations(gameId: string): Game[] {
@@ -197,6 +201,7 @@ export class HarnessGameService implements GameService {
             throw new Error('Can only save local games locally')
         }
 
+        await validateLocalGameState(this.libraryService, gameData, stateData)
         await this.localGameStore.storeGameData({
             game: gameData,
             actions: actionsData,
