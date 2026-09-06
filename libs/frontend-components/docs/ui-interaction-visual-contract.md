@@ -132,3 +132,13 @@ A projected Exploration population hook receives only available source knowledge
 The Fork control requests a real continuation from the selected primary History position. A position inside an automatic Action sequence includes its remaining consequences through the next player decision. Fork is unavailable while exploring; saved local Forks appear as Games, separately from saved Explorations. The accessible control name is `fork game`.
 
 The host resolves Hosted Fork positions from canonical history independently of the client's projected History or Undo restrictions. Hotseat resolves from full local state and history. An unsupported position reports `This game cannot be forked from that position.` through the shared toast after the name dialog closes. The source position remains displayed. Hosted Forks enter the existing player-reservation lobby; local Forks are saved as playable Games.
+
+## Protected harness perspectives
+
+Protected mode is opt-in for runtimes with visibility. The navbar identifies the selected Player, Spectator, or Host View. Player views show only that Player's permitted information and allow actions only for that Player; the banner distinguishes their turn from waiting. Spectator has no player actions. Host View retains ordinary hotseat/Admin Acting Player controls.
+
+Switching mode or perspective replaces the table and session, clears staged selections and animations through teardown, and reconstructs history from the new representation. The old table is removed while loading. The same historical index is selected where the new representation permits it; no old-perspective snapshot is restored. A failed load shows its error and offers ordinary hotseat recovery.
+
+Protected Player/Spectator views suppress Admin authority and Non-active view. Debug remains available on projected data and cannot implicitly request Host View. Host View is an explicit selector choice. Color preferences continue to apply after replacement.
+
+The mode and perspective selectors are unavailable while processing or exploring. Projected Exploration uses hypothetical population; Host View Exploration uses complete state. Closing Exploration restores the selected representation and its source history according to the existing Exploration contract. Canonical local persistence belongs to the harness host, while branch persistence belongs to Exploration.

@@ -636,3 +636,19 @@ export async function runRepresentationRecovery(hostView: boolean) {
         client.dispose()
     }
 }
+
+export async function saveProtectedHarnessGame() {
+    const host = createExplorationHost()
+    host.game.hotseat = true
+    host.game.storage = GameStorage.Local
+    host.game.ownerId = 'harness-user'
+    host.game.name = 'Protected Fresh Fish'
+    for (const player of host.game.players) player.userId = 'harness-user'
+    const app = createHarnessAppContext(definition)
+    await app.gameService.saveGameLocally({
+        game: host.game,
+        state: host.state,
+        actions: host.actionsSnapshot()
+    })
+    return host.state.activePlayerIds[0]
+}

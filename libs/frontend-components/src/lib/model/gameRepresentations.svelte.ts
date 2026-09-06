@@ -11,6 +11,7 @@ import type { RemoteApiService } from '$lib/services/remoteApiService.js'
 import { GameContext } from './gameContext.svelte.js'
 
 interface RepresentationDependencies<T extends GameState, U extends HydratedGameState<T> & T> {
+    hostPerspective?: Visibility.Perspective
     getGame: RemoteApiService['getGame']
     supportsHostView(): boolean
     getUserId(): string | undefined
@@ -134,8 +135,8 @@ export class GameRepresentations<T extends GameState, U extends HydratedGameStat
 
     private usesProjectedHostedRepresentation(): boolean {
         return (
-            this.primary.game.storage === GameStorage.Remote &&
-            !this.primary.game.hotseat &&
+            (this.dependencies.hostPerspective !== undefined ||
+                (this.primary.game.storage === GameStorage.Remote && !this.primary.game.hotseat)) &&
             this.primary.runtime.visibility !== undefined
         )
     }
@@ -164,6 +165,8 @@ export class GameRepresentations<T extends GameState, U extends HydratedGameStat
     }
 
     private ordinaryPerspective(): Visibility.Perspective {
+        if (this.dependencies.hostPerspective !== undefined)
+            return this.dependencies.hostPerspective
         const userId = this.dependencies.getUserId()
         const player = this.primary.game.players.find((candidate) => candidate.userId === userId)
         return player === undefined

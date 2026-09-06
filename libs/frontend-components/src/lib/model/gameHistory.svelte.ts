@@ -235,7 +235,16 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         }
     }
 
-    public async goToActionIndex(actionIndex: number) {
+    public async goToActionIndex(
+        actionIndex: number,
+        {
+            exact = false,
+            animationIntent = 'state-only'
+        }: {
+            exact?: boolean
+            animationIntent?: HistoryAnimationIntent
+        } = {}
+    ) {
         if (this.stepping || this.disabled || !Number.isFinite(actionIndex)) {
             return
         }
@@ -243,7 +252,8 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         try {
             await this.gotoAction(Math.trunc(actionIndex), {
                 ensureHistory: true,
-                animationIntent: 'state-only'
+                animationIntent,
+                exact
             })
         } finally {
             setTimeout(() => {

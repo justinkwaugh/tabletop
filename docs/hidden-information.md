@@ -21,11 +21,23 @@ A Game Title explicitly enables hidden-information delivery by registering `runt
 
 Games without hidden information or randomness need no visibility boilerplate. New instances created by the updated engine use system version 3 regardless of visibility registration. System version selects deterministic execution behavior; it does not select privacy. Existing v1/v2 instances retain their original behavior and must remain playable. In particular, existing v2 games are not expected to become private, be reseeded, or have already-public history concealed.
 
+## Protected dev harness
+
+Open a local game, then enable **Options → Protected mode**. The runtime must register visibility. The **Protected view** selector chooses a Player, Spectator, or explicit Host View. Ordinary hotseat remains the default.
+
+The harness executes Actions and Undo canonically through a local host, saves complete state and history in IndexedDB, and delivers the selected projection to the Game Session. It uses the same projection, optimistic execution, protected-access fallback, and reconciliation code as a networked client. Changing the selector creates a new session and reprojects history; it never combines knowledge from different Players. History stays at the selected index where that position remains available. The selected Player stays fixed across turns, so choose another Player to play their turn.
+
+Debug inspects the currently selected representation and does not reveal canonical state in Protected mode. Select Host View to inspect complete state or enable Admin controls. If projection fails, the harness reports the error and offers ordinary hotseat so the developer can inspect the canonical game. Protected mode is a development check, not browser isolation: the local host and canonical saves remain in the same browser.
+
+Exploration from a Player or Spectator uses the title's hypothetical population hook. Host View can explore canonical state. Exploration play and Undo stay local to the branch; closing returns to the source view/history. Mode and perspective controls are disabled during action processing and Exploration.
+
+This checks game visibility definitions and the Game Client without a backend. It does not test hosted authorization, notification transport, or deployment compatibility.
+
 ## Canonical state and permitted representations
 
 The backend stores one complete canonical Game State and Canonical Action History. Ordinary networked clients receive a Player or spectator projection derived from authenticated membership. A client cannot authorize a Perspective by supplying a Player ID.
 
-The projected Perspective type is `{ kind: 'player'; playerId: string } | { kind: 'spectator' }`. Host View is a separately authorized canonical-access path for Developer/Admin inspection, not another projector Perspective. Hotseat Play and local games already possess complete state; concealment there is a presentation convention.
+The projected Perspective type is `{ kind: 'player'; playerId: string } | { kind: 'spectator' }`. Host View is a separately authorized canonical-access path for Developer/Admin inspection, not another projector Perspective. Ordinary Hotseat Play and local games possess complete state; concealment there is a presentation convention. Protected dev harness mode instead supplies projected state to its Game Session through a local canonical host.
 
 Projection traverses declared schema fields as an allowlist, preserves permitted values, and omits or replaces protected values. It does not mutate canonical input, copy undeclared runtime properties, or encode visibility discriminators in stored domain objects. Missing policy/adapter implementations fail closed, and projected results are checked against the derived projection schema.
 

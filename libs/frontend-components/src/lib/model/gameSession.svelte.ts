@@ -107,6 +107,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     history: GameHistory<T, U>
     private explorationReturnPosition?: HistoryPosition<T, U>
+    private readonly hostPerspective?: Visibility.Perspective
     private explorationReturnPerspective?: Visibility.Perspective
     explorations: GameExplorations<T, U>
     colors: GameColors<T>
@@ -195,7 +196,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     undoableAction: GameAction | undefined = $derived.by(() => {
         const superUserAccess =
-            (this.actAsAdminStore.current || this.isExploring) && !this.isViewingAsNonActivePlayer
+            (this.isActingAdmin || this.isExploring) && !this.isViewingAsNonActivePlayer
 
         // No spectators, must have actions, not viewing history
         if (
@@ -225,7 +226,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 continue
             }
 
-            if (superUserAccess || (this.game.hotseat && !this.isViewingAsNonActivePlayer)) {
+            if (
+                superUserAccess ||
+                (this.game.hotseat &&
+                    !this.usesHostExecution(this.currentModifiableContext) &&
+                    !this.isViewingAsNonActivePlayer)
+            ) {
                 undoableUserAction = action
                 break
             }
@@ -304,7 +310,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     )
 
     canViewAsNonActivePlayer: boolean = $derived(
-        this.game.hotseat && this.nonActivePlayer !== undefined
+        this.hostPerspective === undefined &&
+            this.game.hotseat &&
+            this.nonActivePlayer !== undefined
     )
 
     isViewingAsNonActivePlayer: boolean = $derived(
@@ -312,6 +320,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     )
 
     myPrimaryPlayer: Player | undefined = $derived.by(() => {
+        if (this.hostPerspective !== undefined) {
+            const perspective = this.hostPerspective
+            return perspective.kind === 'player'
+                ? this.primaryGame.players.find((player) => player.id === perspective.playerId)
+                : undefined
+        }
         const sessionUser = this.sessionUserStore.current
         if (!sessionUser) {
             return undefined
@@ -330,8 +344,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             return this.activePlayers.at(0)
         }
 
-        if (this.actAsAdminStore.current && this.adminPlayerId) {
+        if (this.isActingAdmin && this.adminPlayerId) {
             return this.gameContext.game.players.find((player) => player.id === this.adminPlayerId)
+        }
+
+        if (this.hostPerspective !== undefined && !this.isViewingHost) {
+            return this.myPrimaryPlayer
         }
 
         if (this.gameContext.game.hotseat) {
@@ -367,7 +385,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             return false
         }
 
-        if (this.isExploring || this.gameContext.game.hotseat || this.actAsAdminStore.current) {
+        if (
+            this.isExploring ||
+            (this.gameContext.game.hotseat && !this.usesHostExecution(this.gameContext)) ||
+            this.isActingAdmin
+        ) {
             return true
         }
 
@@ -451,7 +473,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     isActingAdmin: boolean = $derived.by(() => {
-        return this.actAsAdminStore.current
+        return (
+            this.actAsAdminStore.current &&
+            (this.hostPerspective === undefined || this.isViewingHost || this.isExploring)
+        )
     })
 
     explorationsForGame: Game[] = $derived.by(() => {
@@ -483,7 +508,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         game,
         state,
         actions,
-        debug = false
+        debug = false,
+        hostPerspective
     }: {
         gameService: GameService
         bridgedContext: BridgedContext
@@ -495,6 +521,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         state: T
         actions: GameAction[]
         debug?: boolean
+        hostPerspective?: Visibility.Perspective
     }) {
         this.authorizationBridge = bridgedContext.authorization
         this.chatBridge = bridgedContext.chatService
@@ -507,6 +534,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.chatService = chatService
         this.gameService = gameService
 
+        this.hostPerspective = hostPerspective
         this.api = api
 
         this.runtime = runtime
@@ -526,6 +554,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.representations = new GameRepresentations(this.gameContext, {
             getGame: (...args) => this.api.getGame(...args),
             supportsHostView: () => this.api.supportsHostView === true,
+            hostPerspective,
             getUserId: () => this.sessionUserStore.current?.id,
             getChosenPlayerId: () => this.chosenAdminPlayerId,
             publish: (context) => this.replacePrimaryGameContext(context),
@@ -651,7 +680,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             )
 
             watch(
-                () => this.showDebugStore.current || this.actAsAdminStore.current,
+                () =>
+                    this.hostPerspective === undefined &&
+                    (this.showDebugStore.current || this.actAsAdminStore.current),
                 (privilegedViewRequested) => {
                     void this.setPrivilegedGameViewEnabled(privilegedViewRequested).catch((error) =>
                         this.handleGameRepresentationError(error)
@@ -661,7 +692,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             )
         })
 
-        if (this.showDebugStore.current || this.actAsAdminStore.current) {
+        if (
+            this.hostPerspective === undefined &&
+            (this.showDebugStore.current || this.actAsAdminStore.current)
+        ) {
             void this.setPrivilegedGameViewEnabled(true).catch((error) =>
                 this.handleGameRepresentationError(error)
             )
@@ -844,12 +878,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private explorationPerspective(
         context = this.currentVisibleContext
     ): Visibility.Perspective | undefined {
-        if (
-            context.game.storage !== GameStorage.Remote ||
-            context.game.hotseat ||
-            !this.runtime.visibility ||
-            this.isViewingHost
-        )
+        if (!this.usesHostExecution(context) || !this.runtime.visibility || this.isViewingHost)
             return undefined
         if (this.isViewingAsActingPlayer) {
             const player = this.representations.actingPlayer
@@ -954,7 +983,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             // Don't update the local state if the action reveals info, instead wait for the server to validate.
             // This is because the server may reject the action due to undo or any other reason and we
             // do not want to show the player the revealed info.
-            if (this.isExploring || this.gameContext.game.hotseat || !actionResults.revealing) {
+            if (!this.usesHostExecution(relevantContext) || !actionResults.revealing) {
                 relevantContext.applyActionResults(actionResults)
             }
 
@@ -966,13 +995,19 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             action.index = processedAction.index
 
             // Now handle local or remote persistence
-            if (relevantContext.game.storage === GameStorage.Local) {
+            if (
+                relevantContext.game.storage === GameStorage.Local &&
+                !this.usesHostExecution(relevantContext)
+            ) {
                 await this.gameService.saveGameLocally({
                     game: relevantContext.game,
                     actions: relevantContext.actions,
                     state: relevantContext.state
                 })
-            } else if (relevantContext.game.storage === GameStorage.Remote) {
+            } else if (
+                this.usesHostExecution(relevantContext) ||
+                relevantContext.game.storage === GameStorage.Remote
+            ) {
                 // Now send the action to the server
                 if (this.debug) {
                     console.log(`Sending ${action.type} ${action.id} to server: `, action)
@@ -1141,13 +1176,19 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     relevantContext.applyActionResults(results)
                 }
 
-                if (relevantContext.game.storage === GameStorage.Local) {
+                if (
+                    relevantContext.game.storage === GameStorage.Local &&
+                    !this.usesHostExecution(relevantContext)
+                ) {
                     await this.gameService.saveGameLocally({
                         game: relevantContext.game,
                         actions: relevantContext.actions,
                         state: relevantContext.state
                     })
-                } else if (relevantContext.game.storage === GameStorage.Remote) {
+                } else if (
+                    this.usesHostExecution(relevantContext) ||
+                    relevantContext.game.storage === GameStorage.Remote
+                ) {
                     // Undo on the server
                     const { canonicalReplay, checksum, game } = await this.api.undoAction(
                         relevantContext.game,
@@ -1257,7 +1298,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     // For primary game context only
     private async checkSync() {
-        if (this.gameContext.game.hotseat) {
+        if (!this.usesHostExecution(this.gameContext)) {
             return
         }
 
@@ -1308,12 +1349,20 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return perspective.playerId === player?.id
     }
 
+    private usesHostExecution(context: GameContext<T, U>): boolean {
+        return (
+            context.game.id === this.gameContext.game.id &&
+            (this.hostPerspective !== undefined ||
+                (context.game.storage === GameStorage.Remote && !context.game.hotseat))
+        )
+    }
+
     private requiresServerAuthoritativeProcessing(
         context: GameContext<T, U>,
         action?: GameAction
     ): boolean {
         const visibility = this.runtime.visibility
-        if (context.game.storage !== GameStorage.Remote || context.game.hotseat) {
+        if (!this.usesHostExecution(context)) {
             return false
         }
         if (action?.revealsInfo || action?.skipOptimisticExecution) {
@@ -1335,11 +1384,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         if (
-            context.game.storage !== GameStorage.Remote ||
-            context.game.hotseat ||
+            !this.usesHostExecution(context) ||
             this.runtime.visibility === undefined ||
             this.isExploring ||
-            this.actAsAdminStore.current
+            (this.hostPerspective === undefined ? this.actAsAdminStore.current : this.isViewingHost)
         ) {
             return undefined
         }

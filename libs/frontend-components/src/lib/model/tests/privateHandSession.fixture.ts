@@ -12,7 +12,9 @@ import {
     assert,
     assertExists,
     type GameAction,
-    type Game
+    type Game,
+    type GameState,
+    type HydratedGameState
 } from '@tabletop/common'
 import {
     PrivateHandHost,
@@ -50,7 +52,7 @@ export class PrivateHandSession extends GameSession<SharedState, HydratedPrivate
     }
 }
 
-const uiRuntime = {
+export const uiRuntime = {
     ...runtime,
     sessionClass: PrivateHandSession,
     colorizer: new DefaultColorizer(),
@@ -206,7 +208,9 @@ function client(host: PrivateHandHost, perspective: Visibility.Perspective = p1)
     }
 }
 
-async function settle(session: PrivateHandSession) {
+export async function settle<T extends GameState, U extends HydratedGameState<T> & T>(
+    session: GameSession<T, U>
+) {
     await tick()
     await session.waitForVisibleTransitionSettled()
     await new Promise<void>((resolve) => setTimeout(resolve, 0))

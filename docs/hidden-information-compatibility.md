@@ -78,3 +78,9 @@ This hosted smoke uses the current locally staged artifacts and a test Game crea
 The forward-play follow-up used the same runner and three separate accounts against persisted Actions. A test-only old Undo patch was changed to reconstruct a state without the required board. All accounts still loaded the current projection; the backend rejected a direct Admin Undo across that record before persistence. A new hosted Action, its notifications, Undo, and another Action produced matching checksums on all three clients without exposing their bags. The test patch was restored afterward. Injecting only a `17.0.0` response header into the actual `16.1.3` Site Frontend triggered its existing reload after 5.026 seconds. This verifies the real UI response path, not publication of an actual older/newer artifact pair. The runner was stopped after testing.
 
 The review found one new Standards violation and three new Spec defects; all four have fixes and regression coverage. C3 is fixed and the P3 mechanism is implemented and tested; actual cross-publication rollout remains release work alongside the explicitly deferred decisions. No artifact was published and no version was bumped.
+
+## Protected dev harness compatibility
+
+The optional `hostPerspective` Game Session constructor option lets the dev harness supply a Player/Spectator projection backed by a local authoritative API. Local storage and hotseat metadata remain unchanged. Omitted options retain existing hosted and ordinary hotseat behavior; Site Frontend does not need to send the new option or implement a new API capability.
+
+The dev harness loads matching source-tree UI code. A UI-only Publication is needed for each Game Title that should adopt the updated shared Game Client; existing UI Artifacts continue using their bundled implementation. No Logic Artifact change, stored-state migration, or coordinated Site Frontend publication is required for this harness feature.
