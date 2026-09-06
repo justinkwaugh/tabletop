@@ -42,7 +42,6 @@
     "devDependencies": {
         "@tabletop/vitest-config": "workspace:*",
         "@tabletop/eslint-config": "workspace:*",
-        "@tabletop/fresh-fish": "workspace:*",
         "@types/bcrypt": "^5.0.2",
         "@types/glob-to-regexp": "^0.4.4",
         "@types/web-push": "^3.6.3",

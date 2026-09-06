@@ -14,14 +14,11 @@ import {
     type User
 } from '@tabletop/common'
 import {
-    ActionType,
-    CellType,
-    Definition,
-    FreshFishRuntime,
-    TileType,
-    type DrawTile,
-    type PlaceDisk
-} from '@tabletop/fresh-fish'
+    SyntheticDefinition as Definition,
+    SyntheticRuntime,
+    type Step,
+    type Draw
+} from './tests/syntheticGame.js'
 import { GameService } from './gameService.js'
 import { FirestoreGameStore } from '../persistence/firestore/gameStore.js'
 import { RedisCacheService } from '../cache/cacheService.js'
@@ -33,13 +30,13 @@ import type { NotificationService } from '../notifications/notificationService.j
 afterEach(() => vi.restoreAllMocks())
 
 function createSource(systemVersion = 3) {
-    const game = FreshFishRuntime.initializer.initializeGame(
+    const game = SyntheticRuntime.initializer.initializeGame(
         {
             id: 'source',
             typeId: Definition.info.id,
             ownerId: 'owner',
             seed: 101,
-            config: { forceThreeDisks: false },
+            config: {},
             players: ['p1', 'p2', 'p3'].map((id) => ({
                 id,
                 userId: id === 'p1' ? 'owner' : id,
@@ -51,32 +48,25 @@ function createSource(systemVersion = 3) {
         Definition
     )
     game.status = GameStatus.Started
-    const engine = new GameEngine(FreshFishRuntime)
-    const initial = FreshFishRuntime.initializer.initializeGameState(game, {
+    const engine = new GameEngine(SyntheticRuntime)
+    const initial = SyntheticRuntime.initializer.initializeGameState(game, {
         ...engine.generateUninitializedState(game),
         systemVersion,
         protectedPrng: systemVersion >= 3 ? { seed: 123, invocations: 0 } : undefined
     })
     initial.activePlayerIds = [initial.turnManager.startNextTurn(0)]
-    const firstCell = [...initial.board].find(({ cell }) => cell.type === CellType.Empty)
-    assertExists(firstCell, 'Expected an empty cell')
-    const action: PlaceDisk = {
-        id: 'place-disk',
+    const action: Step = {
+        id: 'first-step',
         gameId: game.id,
-        type: ActionType.PlaceDisk,
+        type: 'step',
         source: ActionSource.User,
-        playerId: initial.activePlayerIds[0],
-        coords: firstCell.coords
+        playerId: initial.activePlayerIds[0]
     }
     const prefix = engine.executeAction({ action, state: initial.dehydrate(), game })
-    const nextState = FreshFishRuntime.hydrator.hydrateState(prefix.updatedState)
-    const secondCell = [...nextState.board].find(({ cell }) => cell.type === CellType.Empty)
-    assertExists(secondCell, 'Expected another empty cell')
-    const secondAction: PlaceDisk = {
+    const secondAction: Step = {
         ...action,
-        id: 'second-disk',
-        playerId: nextState.activePlayerIds[0],
-        coords: secondCell.coords
+        id: 'second-step',
+        playerId: prefix.updatedState.activePlayerIds[0]
     }
     const source = engine.executeAction({ action: secondAction, state: prefix.updatedState, game })
     const actions = [...prefix.processedActions, ...source.processedActions]
@@ -101,8 +91,8 @@ describe('Canonical Fork', () => {
                 state: source.state,
                 actions: source.actions
             })
-            const initializer = vi.spyOn(FreshFishRuntime.initializer, 'initializeGameState')
-            const fork = createGameFork({ ...source, runtime: FreshFishRuntime, actionIndex: 0 })
+            const initializer = vi.spyOn(SyntheticRuntime.initializer, 'initializeGameState')
+            const fork = createGameFork({ ...source, runtime: SyntheticRuntime, actionIndex: 0 })
             expect(initializer).not.toHaveBeenCalled()
             expect(fork.game.id).not.toBe(source.game.id)
             expect(fork.game.parentId).toBe(source.game.id)
@@ -127,11 +117,11 @@ describe('Canonical Fork', () => {
                 game: fork.game
             })
             expect(continuation.updatedState).toEqual({ ...source.state, gameId: fork.game.id })
-            fork.state.tileBag.items.pop()
+            fork.state.drawPile.items.pop()
             expect({ game: source.game, state: source.state, actions: source.actions }).toEqual(
                 original
             )
-            const start = createGameFork({ ...source, runtime: FreshFishRuntime, actionIndex: -1 })
+            const start = createGameFork({ ...source, runtime: SyntheticRuntime, actionIndex: -1 })
             expect(start.actions).toEqual([])
             expect(start.state).toEqual({ ...source.initial, gameId: start.game.id })
         }
@@ -142,12 +132,12 @@ describe('Canonical Fork', () => {
         delete source.actions[0].undoPatch
         source.actions[0].type = 'retired-action-type'
         Reflect.set(source.state, 'priorActionId', source.actions[0].id)
-        const fork = createGameFork({ ...source, runtime: FreshFishRuntime, actionIndex: 1 })
+        const fork = createGameFork({ ...source, runtime: SyntheticRuntime, actionIndex: 1 })
         expect(fork.state).toEqual({ ...source.state, gameId: fork.game.id })
         expect(Reflect.get(fork.state, 'priorActionId')).toBe(fork.actions[0].id)
         expect(fork.actions[0].undoPatch).toBeUndefined()
         expect(() =>
-            createGameFork({ ...source, runtime: FreshFishRuntime, actionIndex: -1 })
+            createGameFork({ ...source, runtime: SyntheticRuntime, actionIndex: -1 })
         ).toThrow(GameForkError)
     })
 
@@ -157,7 +147,7 @@ describe('Canonical Fork', () => {
         source.actions[0].forwardPatch = [
             { op: 'replace', path: '', value: source.prefix.updatedState }
         ]
-        const fork = createGameFork({ ...source, runtime: FreshFishRuntime, actionIndex: 0 })
+        const fork = createGameFork({ ...source, runtime: SyntheticRuntime, actionIndex: 0 })
         expect(
             source.engine.undoProcessedAction({ action: fork.actions[0], state: fork.state })
         ).toEqual({ ...source.initial, gameId: fork.game.id })
@@ -170,49 +160,30 @@ describe('Canonical Fork', () => {
         ).toEqual(fork.state)
     })
 
-    it('includes the real DrawTile cascade and preserves generated auction identities', () => {
+    it('includes generated cascade actions and preserves their auction identities', () => {
         const source = createSource()
-        const hydrated = FreshFishRuntime.hydrator.hydrateState(source.state)
-        const cell = [...hydrated.board].find(({ cell }) => cell.type === CellType.Empty)
-        assertExists(cell, 'Expected another empty cell')
-        const thirdDisk: PlaceDisk = {
-            ...source.secondAction,
-            id: 'third-disk',
-            playerId: hydrated.activePlayerIds[0],
-            coords: cell.coords
-        }
-        const third = source.engine.executeAction({
-            action: thirdDisk,
-            state: source.state,
-            game: source.game
-        })
-        const bag = third.updatedState.tileBag.items
-        const stallIndex = bag.findIndex((tile) => tile.type === TileType.Stall)
-        const stall = bag.splice(stallIndex, 1)[0]
-        assertExists(stall, 'Expected a stall tile')
-        bag.push(stall)
-        const draw: DrawTile = {
-            id: 'draw-stall',
+        const draw: Draw = {
+            id: 'draw-token',
             gameId: source.game.id,
-            type: ActionType.DrawTile,
+            type: 'draw',
             source: ActionSource.User,
-            playerId: third.updatedState.activePlayerIds[0],
+            playerId: source.state.activePlayerIds[0],
             revealsInfo: true
         }
         const drawn = source.engine.executeAction({
             action: draw,
-            state: third.updatedState,
+            state: source.state,
             game: source.game
         })
         expect(drawn.processedActions.length).toBeGreaterThan(1)
         expect(drawn.updatedState.currentAuction).toBeDefined()
-        const actions = [...source.actions, ...third.processedActions, ...drawn.processedActions]
+        const actions = [...source.actions, ...drawn.processedActions]
         const fork = createGameFork({
             game: source.game,
             state: drawn.updatedState,
             actions,
-            runtime: FreshFishRuntime,
-            actionIndex: third.updatedState.actionCount
+            runtime: SyntheticRuntime,
+            actionIndex: source.state.actionCount
         })
         expect(fork.state).toEqual({ ...drawn.updatedState, gameId: fork.game.id })
         expect(fork.actions.map((action) => action.id)).toEqual(actions.map((action) => action.id))
@@ -220,7 +191,7 @@ describe('Canonical Fork', () => {
 
     it.each([-2, 0.5, 2, NaN])('rejects invalid fork index %s', (actionIndex) => {
         expect(() =>
-            createGameFork({ ...createSource(), runtime: FreshFishRuntime, actionIndex })
+            createGameFork({ ...createSource(), runtime: SyntheticRuntime, actionIndex })
         ).toThrow(GameForkError)
     })
 
@@ -228,7 +199,7 @@ describe('Canonical Fork', () => {
         const source = createSource()
         source.actions[1].undoPatch?.push({ op: 'remove', path: '/board' })
         expect(() =>
-            createGameFork({ ...source, runtime: FreshFishRuntime, actionIndex: 0 })
+            createGameFork({ ...source, runtime: SyntheticRuntime, actionIndex: 0 })
         ).toThrow('This game cannot be forked from that position.')
     })
 })
@@ -304,7 +275,7 @@ describe('Hosted Fork service', () => {
             service.undoAction({
                 definition: {
                     ...Definition,
-                    runtime: { ...FreshFishRuntime, visibility: undefined }
+                    runtime: { ...SyntheticRuntime, visibility: undefined }
                 },
                 user: { ...owner, roles: [Role.Admin] },
                 gameId: source.game.id,
@@ -349,8 +320,8 @@ describe('Hosted Fork service', () => {
             const definition = {
                 ...Definition,
                 runtime: {
-                    ...FreshFishRuntime,
-                    visibility: visible ? FreshFishRuntime.visibility : undefined
+                    ...SyntheticRuntime,
+                    visibility: visible ? SyntheticRuntime.visibility : undefined
                 }
             }
             const game = await service.forkGame({
