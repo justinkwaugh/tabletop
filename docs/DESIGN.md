@@ -8,7 +8,7 @@ This document is the architectural map for implementing a new game title or maki
 - Read the [game-runtime domain context](../libs/common/CONTEXT.md) and [game-client domain context](../libs/frontend-components/CONTEXT.md), including any ADRs they route to.
 - For a structural change to an existing game, inspect the current canonical interfaces and trace the affected behavior through that game. The new-game completion checklist is not relevant unless the change alters game registration or package boundaries.
 - For a new game, use a maintained sibling game for package configuration and integration conventions, while treating the canonical interfaces as authoritative.
-- For a Hosted Game that must conceal game information from clients, read the current [hidden-information model and scenario catalog](hidden-information.md). It is a design exploration, not an implemented capability.
+- For a Hosted Game that must conceal game information from clients, read the implemented [hidden-information contract](hidden-information.md) and [per-title adoption catalog](hidden-information-game-catalog.md).
 - For UI-only work, also read [user interaction semantics](user-interactions.md), the game’s visual contract when present, and the [game UI animation skill](../.agents/skills/game-ui-animation/SKILL.md) when animation is involved.
 
 ## Canonical interfaces
@@ -45,7 +45,7 @@ Every action type that may cross the serialized boundary must be registered in t
 
 ## Deterministic execution
 
-Given the same initial configuration, state, and ordered processed actions, the runtime must produce the same game state and the same cascade of system actions. Random game-rule values and domain-object identifiers that affect Game State must come from a persisted state PRNG. System Action identities use the public PRNG from system version 2 onward; its durable cursor preserves generation across flattened replay and undo. The hidden-information experiment adds a separate protected stream for secret game randomness; see its working proposal before opting a Game Title into that behavior.
+Given the same initial configuration, state, and ordered processed actions, the runtime must produce the same game state and the same cascade of system actions. Random game-rule values and domain-object identifiers that affect Game State must come from a persisted state PRNG. System Action identities use the public PRNG from system version 2 onward; its durable cursor preserves generation across flattened replay and undo. System version 3 adds a separate protected stream for secret game randomness; follow the [hidden-information contract](hidden-information.md) and explicitly register visibility before relying on concealed delivery.
 
 For each processed action, the engine:
 

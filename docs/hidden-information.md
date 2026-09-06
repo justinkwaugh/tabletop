@@ -9,6 +9,7 @@ The core hidden-information implementation is complete through shared projected 
 - [Game Session ownership](game-session-refactor.md): completed responsibility extractions.
 - [Compatibility and remaining work](hidden-information-compatibility.md#remaining-development-slices): the current completion and release list.
 - [Scenarios and title conformance](hidden-information-scenarios.md): card-game examples and the broader acceptance catalog.
+- [Other-game adoption catalog](hidden-information-game-catalog.md): per-title state, Action, randomness, and Exploration requirements beyond Fresh Fish.
 - [Original review](hidden-information-review.md) and [hydration experiment](projected-hydration-prototype.md): dated findings and their resolutions.
 
 ## Explicit participation
