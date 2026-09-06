@@ -62,7 +62,7 @@ export class MachineContext<State extends HydratedGameState = HydratedGameState>
 
     private generateSystemActionId(): string {
         if (this.gameState.isAtLeastVersion(2)) {
-            return this.gameState.getPrng().randId()
+            return this.gameState.getPublicPrng().randId()
         }
         return this.generateLegacyActionId()
     }

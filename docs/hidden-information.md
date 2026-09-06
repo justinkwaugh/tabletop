@@ -76,7 +76,6 @@ Custom replacement adapters, arbitrary TypeBox composition with precise static i
 | --- | --- |
 | `Game.seed`, deprecated `GameState.seed`, `prng` | Public setup seed and persisted public stream |
 | `getPublicPrng()` | Predictable public rules randomness and durable System Action identity generation |
-| `getPrng()` | Backwards-compatible public accessor |
 | `getProtectedPrng()` | Independently seeded protected stream in v3; historical public stream in v1/v2 |
 
 The protected seed is independently generated, not derived from `Game.seed`. A v3 protected access requires its cursor to exist. The neutral projected cursor is a redaction, not usable entropy, and guarded execution rejects its use.
@@ -113,7 +112,7 @@ History Navigation uses delivered records and patches. Current forward play must
 
 Ordinary Exploration samples a complete hypothetical state from permitted knowledge at the selected source position. Later revelations do not constrain an earlier branch. The optional title-owned population hook receives only the projection, permitted history, configuration, Perspective, and fresh sampling randomness. Fresh Fish reconstructs bag composition and hypothetical submitted bids. Unknown data must follow the game's constraints: previously drawn cards are excluded unless rules returned them. An identical permitted input and sample seed must produce the same hypothetical state regardless of undisclosed source secrets.
 
-Recorded source History remains navigable within its supported range. Play uses the separate sampled state; inherited Undo stops at the first forward-patched or non-optimistically executable cascade. Saved checkpoints preserve the sample rather than resampling on reload. Authorized Debug/Admin Host View Exploration retains the full-state initializer path without requiring projected population. See [Exploration](hidden-information-exploration.md).
+Recorded source History remains navigable within its supported range. Play uses the separate sampled state; inherited Undo stops at the first forward-patched or non-optimistically executable cascade. Saved checkpoints retain reversible source/hypothetical difference patches, preserving the sample without two full state copies or resampling on reload. Authorized Debug/Admin Host View Exploration retains the full-state initializer path without requiring projected population. See [Exploration](hidden-information-exploration.md).
 
 A Fork is a real continuation of the canonical position. Hosted Fork always loads canonical state; Hotseat and the harness use their complete local state. Historical points remain eligible regardless of projected History/Undo restrictions. Reconstruction reverses the canonical suffix without rerunning setup or historical rules, preserves both random cursors and inherited identities, and may fail explicitly if the requested state cannot be reconstructed or validated. See [canonical Forks](hidden-information-forks.md).
 

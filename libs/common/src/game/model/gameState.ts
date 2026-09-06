@@ -55,7 +55,6 @@ export interface HydratedGameState<
     players: P[]
     numPlayers: number
     turnManager: HydratedTurnManager
-    getPrng(): Prng
     getPublicPrng(): Prng
     getProtectedPrng(): Prng
     getPlayerState(playerId?: string): P
@@ -93,10 +92,6 @@ export abstract class HydratableGameState<T extends Type.TSchema, P extends Play
 
     get numPlayers(): number {
         return this.players.length
-    }
-
-    getPrng(): Prng {
-        return this.getPublicPrng()
     }
 
     getPublicPrng(): Prng {

@@ -376,16 +376,62 @@ export async function runPrivateHandExploration() {
         )
         assert(host.actions.length === 1, 'Exploration changed host history')
         const sampledState = exploration.state
+        const comparableSample = { ...sampledState, explorationState: undefined }
+        for (let pass = 0; pass < 3; pass++) {
+            await c.session.history.goToBeginning()
+            await settle(c.session)
+            assert(
+                c.session.history.visibleContext.state.players[0].hand === undefined,
+                'History exposed a hypothetical hand'
+            )
+            await c.session.history.goToActionIndex(host.actions.length - 1)
+            await settle(c.session)
+            assert(
+                c.session.history.visibleContext.state.drawPile.items.length === 0,
+                'Source History exposed the hypothetical deck'
+            )
+            await c.session.history.goToActionIndex(sampledState.actionCount - 1)
+            await settle(c.session)
+            assert(
+                Value.Equal(
+                    { ...c.session.history.visibleContext.state, explorationState: undefined },
+                    comparableSample
+                ),
+                'History changed the sampled future'
+            )
+        }
+        c.session.history.goToEnd()
+        await settle(c.session)
         await c.session.explorations.saveExploration('Private-hand sample')
         const id = exploration.game.id
         c.session.explorations.endExploring()
         await settle(c.session)
+        await c.session.startExploring()
+        await settle(c.session)
         await c.session.explorations.switchExploration(id)
         await settle(c.session)
+        assert(c.session.isExploring, 'Saved Exploration is not active')
         const loaded = c.session.explorations.getCurrentExploration()
         assertExists(loaded, 'Saved Exploration did not load')
         assert(Value.Equal(loaded.state, sampledState), 'Saved Exploration changed its sample')
-        return { complete: true, knownHand: true, hypotheticalPlay: true, savedSample: true }
+        await c.session.history.goToBeginning()
+        await settle(c.session)
+        await c.session.history.goToActionIndex(loaded.state.actionCount - 1)
+        await settle(c.session)
+        assert(
+            Value.Equal(
+                { ...c.session.history.visibleContext.state, explorationState: undefined },
+                comparableSample
+            ),
+            'Reloaded History changed the sampled future'
+        )
+        return {
+            complete: true,
+            knownHand: true,
+            hypotheticalPlay: true,
+            savedSample: true,
+            historyRoundTrip: true
+        }
     } finally {
         c.dispose()
     }

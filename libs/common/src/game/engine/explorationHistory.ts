@@ -1,4 +1,5 @@
 import jsonpatch from 'fast-json-patch'
+import { assert } from '../../util/assertions.js'
 import { ActionSource, type GameAction, type Patch } from './gameAction.js'
 import type { GameEngine } from './gameEngine.js'
 import type { Game } from '../model/game.js'
@@ -17,11 +18,11 @@ export class ExplorationHistory<T extends GameState, U extends HydratedGameState
         return {
             actionCount: hypothetical.actionCount,
             invocations: hypothetical.prng.invocations,
-            checkpoint: {
-                source: this.snapshot(source),
-                hypothetical: this.snapshot(hypothetical),
-                undoLimit: this.findUndoLimit(hypothetical, actions, game)
-            }
+            checkpoint: this.createBoundary(
+                source,
+                hypothetical,
+                this.findUndoLimit(hypothetical, actions, game)
+            )
         }
     }
 
@@ -33,8 +34,7 @@ export class ExplorationHistory<T extends GameState, U extends HydratedGameState
     }
 
     backward(state: T, action: GameAction, exploration?: ExplorationState): T {
-        const before = this.recordedState(state, exploration)
-        const result = this.engine.undoProcessedAction({ state: before, action })
+        const result = this.engine.undoProcessedAction({ state, action })
         return this.recordedState(result, exploration)
     }
 
@@ -51,7 +51,17 @@ export class ExplorationHistory<T extends GameState, U extends HydratedGameState
         const exploration = before.explorationState
         const checkpoint = exploration?.checkpoint
         if (!checkpoint || after.actionCount >= exploration.actionCount) return after
-        let source = this.restore(before, checkpoint.source)
+        let boundary = before
+        for (const action of removed.toReversed()) {
+            if (action.index !== undefined && action.index >= exploration.actionCount) {
+                boundary = this.engine.undoProcessedAction({ state: boundary, action })
+            }
+        }
+        assert(
+            boundary.actionCount === exploration.actionCount,
+            'Undo must reconstruct the Exploration boundary'
+        )
+        let source = this.restore(boundary, checkpoint.source)
         for (const action of removed.toReversed()) {
             if (action.index !== undefined && action.index < exploration.actionCount) {
                 source = this.engine.undoProcessedAction({ state: source, action })
@@ -60,23 +70,33 @@ export class ExplorationHistory<T extends GameState, U extends HydratedGameState
         after.explorationState = {
             actionCount: after.actionCount,
             invocations: after.prng.invocations,
-            checkpoint: {
-                source: this.snapshot(source),
-                hypothetical: this.snapshot(after),
-                undoLimit: checkpoint.undoLimit
-            }
+            checkpoint: this.createBoundary(source, after, checkpoint.undoLimit)
         }
         return after
     }
 
-    private snapshot(state: T): Patch {
+    private createBoundary(
+        source: T,
+        hypothetical: T,
+        undoLimit: number
+    ): NonNullable<ExplorationState['checkpoint']> {
+        const recorded = this.withoutExploration(source)
+        const sampled = this.withoutExploration(hypothetical)
+        return {
+            source: jsonpatch.compare(sampled, recorded),
+            hypothetical: jsonpatch.compare(recorded, sampled),
+            undoLimit
+        }
+    }
+
+    private withoutExploration(state: T): T {
         const value = structuredClone(state)
         delete value.explorationState
-        return [{ op: 'replace', path: '', value }]
+        return value
     }
 
     private restore(state: T, patch: Patch): T {
-        return jsonpatch.applyPatch(structuredClone(state), patch).newDocument
+        return jsonpatch.applyPatch(this.withoutExploration(state), patch).newDocument
     }
 
     private findUndoLimit(state: T, actions: readonly GameAction[], game: Game): number {
