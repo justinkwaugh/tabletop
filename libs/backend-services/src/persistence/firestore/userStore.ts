@@ -208,9 +208,11 @@ export class FirestoreUserStore implements UserStore {
     async updatePassword(userId: string, password: string): Promise<void> {
         try {
             const passwordHash = await this.hashPassword(password)
-            await this.users.firestore.runTransaction(async (transaction) => {
-                transaction.update(this.users.doc(userId), { passwordHash })
-            })
+            await this.cacheService.lockWhileWriting([this.makeUserCacheKey(userId)], async () =>
+                this.users.firestore.runTransaction(async (transaction) => {
+                    transaction.update(this.users.doc(userId), { passwordHash })
+                })
+            )
         } catch (error) {
             this.handleError(error, userId)
         }

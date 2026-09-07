@@ -225,14 +225,14 @@ export class GameService {
         name?: string
         owner: User
     }): Promise<Game> {
-        const game = await this.getGame({ gameId, withState: true })
-        if (!game) {
+        const data = await this.gameStore.loadGameData(gameId)
+        if (!data) {
             throw new GameNotFoundError({ id: gameId })
         }
+        const { game, actions } = data
         if (!game.state || game.typeId !== definition.info.id) {
             throw new GameForkError(gameId, actionIndex)
         }
-        const actions = await this.getGameActions(game)
         const fork = createGameFork({
             game,
             state: game.state,
@@ -318,14 +318,11 @@ export class GameService {
     }): Promise<GameRepresentation | undefined> {
         this.assertHostViewAccess({ gameId, hostView, user })
 
-        const game = await this.getGame({ gameId, withState: true })
-        if (game === undefined) {
-            return undefined
-        }
-
+        const data = await this.gameStore.loadGameData(gameId)
+        if (!data) return undefined
+        const { game, actions } = data
         const definition = this.getRequiredTitle(game)
 
-        const actions = await this.getGameActions(game)
         if (game.state && game.state.actionChecksum === undefined) {
             const checksum = await this.backfillChecksum(game.state, actions)
             game.state.actionChecksum = checksum
@@ -390,37 +387,36 @@ export class GameService {
             return { status: GameSyncStatus.InSync, actions: [], checksum: currentChecksum }
         }
 
-        // If we don't match we have to do more complicated things
-        const game = await this.getGame({ gameId, withState: true })
-        if (!game || !game.state) {
-            throw new GameNotFoundError({ id: gameId })
-        }
+        const data = await this.gameStore.readGameData(gameId, async (reader) => {
+            const game = reader.game
+            if (!game.state) {
+                throw new GameNotFoundError({ id: gameId })
+            }
 
-        const state = game.state
+            const state = game.state
 
-        // Look up actions and verify the checksum
-        const actions = await this.gameStore.findActionRangeForGame({
-            game,
-            startIndex: index + 1,
-            endIndex: state.actionCount
+            // Look up actions and verify the checksum
+            const actions = await reader.actionRange(index + 1, state.actionCount)
+
+            const calculatedChecksum = calculateActionChecksum(checksum, actions)
+
+            let syncStatus = GameSyncStatus.InSync
+            // If we are not in sync, we need to say so and return enough actions to hopefully allow the client to resync
+            if (calculatedChecksum !== state.actionChecksum) {
+                syncStatus = GameSyncStatus.OutOfSync
+
+                // Add 10 actions in the past to help the client resync (this should cover most undo scenarios)
+                const startIndex = Math.max(index - 10, 0)
+                const extraActions = await reader.actionRange(
+                    startIndex,
+                    Math.min(index + 1, state.actionCount)
+                )
+                actions.unshift(...extraActions)
+            }
+            return { game, actions, syncStatus }
         })
-
-        const calculatedChecksum = calculateActionChecksum(checksum, actions)
-
-        let syncStatus = GameSyncStatus.InSync
-        // If we are not in sync, we need to say so and return enough actions to hopefully allow the client to resync
-        if (calculatedChecksum !== state.actionChecksum) {
-            syncStatus = GameSyncStatus.OutOfSync
-
-            // Add 10 actions in the past to help the client resync (this should cover most undo scenarios)
-            const startIndex = Math.max(index - 10, 0)
-            const extraActions = await this.gameStore.findActionRangeForGame({
-                game,
-                startIndex,
-                endIndex: Math.min(index + 1, state.actionCount)
-            })
-            actions.unshift(...extraActions)
-        }
+        if (!data) throw new GameNotFoundError({ id: gameId })
+        const { game, actions, syncStatus } = data
         const definition = this.getRequiredTitle(game)
         return createGameSyncRepresentation({
             game,
@@ -604,53 +600,45 @@ export class GameService {
             throw new GameNotFoundError({ id: gameId })
         }
 
-        let player: Player
-        if (!game.isPublic) {
-            player = this.findValidPlayerForUser({ user, game })
-            player.status = PlayerStatus.Joined
-        } else {
-            // For public games, we have to add the player
-            const existingPlayer = findPlayerForUserId(game, user.id)
-            if (existingPlayer) {
-                if (existingPlayer.status === PlayerStatus.Joined) {
-                    return game
-                }
-                existingPlayer.status = PlayerStatus.Joined
-                player = existingPlayer
-            } else {
-                const openSlot = game.players.find((p) => p.status === PlayerStatus.Open)
-                if (!openSlot) {
-                    throw new GameNotWaitingForPlayersError({ id: game.id })
-                }
-                openSlot.userId = user.id
-                openSlot.name = user.username ?? 'Player'
-                openSlot.status = PlayerStatus.Joined
-                player = openSlot
-            }
-        }
-
-        const [updatedGame] = await this.gameStore.updateGame({
+        const [updatedGame, updatedFields] = await this.gameStore.updateGame({
             game,
             fields: { players: game.players },
-            validator: (existingGame) => {
-                if (existingGame.status != GameStatus.WaitingForPlayers) {
+            validator: (existingGame, fieldsToUpdate) => {
+                const existingPlayer = findPlayerForUserId(existingGame, user.id)
+                if (existingGame.isPublic && existingPlayer?.status === PlayerStatus.Joined) {
+                    return UpdateValidationResult.Cancel
+                }
+                if (existingGame.status !== GameStatus.WaitingForPlayers) {
                     throw new GameNotWaitingForPlayersError({ id: existingGame.id })
                 }
-
-                let existingPlayer: Player | undefined
                 if (!existingGame.isPublic) {
-                    existingPlayer = this.findValidPlayerForUser({ user, game: existingGame })
-                } else {
-                    existingPlayer = findPlayerForUserId(existingGame, user.id)
+                    this.findValidPlayerForUser({ user, game: existingGame })
+                    if (existingPlayer?.status === PlayerStatus.Joined) {
+                        throw new UserAlreadyJoinedError({ user, gameId: game.id })
+                    }
                 }
 
-                if (existingPlayer && existingPlayer.status === PlayerStatus.Joined) {
-                    throw new UserAlreadyJoinedError({ user, gameId: game.id })
+                const players = structuredClone(existingGame.players)
+                const player = existingPlayer
+                    ? players.find((candidate) => candidate.id === existingPlayer.id)
+                    : players.find((candidate) => candidate.status === PlayerStatus.Open)
+                if (!player) {
+                    throw new GameNotWaitingForPlayersError({ id: existingGame.id })
                 }
+                if (!existingPlayer) {
+                    player.userId = user.id
+                    player.name = user.username ?? 'Player'
+                }
+                player.status = PlayerStatus.Joined
+                fieldsToUpdate.players = players
                 return UpdateValidationResult.Proceed
             }
         })
 
+        if (updatedFields.length === 0) {
+            return updatedGame
+        }
+        const player = this.findValidPlayerForUser({ user, game: updatedGame })
         if (game.isPublic) {
             await this.notifyGlobal(GameNotificationAction.Update, { game: updatedGame })
         } else {
@@ -666,32 +654,33 @@ export class GameService {
             throw new GameNotFoundError({ id: gameId })
         }
 
-        console.log(JSON.stringify(game.players, null, 2))
-        const player = this.findValidPlayerForUser({ user, game })
-        if (game.isPublic) {
-            // For public games, we can just mark the player slot as open again
-            player.userId = undefined
-            player.name = ''
-            player.status = PlayerStatus.Open
-        } else {
-            player.status = PlayerStatus.Declined
-        }
-
-        const [updatedGame] = await this.gameStore.updateGame({
+        const [updatedGame, , existingGame] = await this.gameStore.updateGame({
             game,
             fields: { players: game.players },
-            validator: (existingGame) => {
+            validator: (existingGame, fieldsToUpdate) => {
                 if (
-                    existingGame.status != GameStatus.WaitingForPlayers &&
-                    existingGame.status != GameStatus.WaitingToStart
+                    existingGame.status !== GameStatus.WaitingForPlayers &&
+                    existingGame.status !== GameStatus.WaitingToStart
                 ) {
                     throw new GameNotWaitingForPlayersError({ id: existingGame.id })
                 }
 
-                const player = this.findValidPlayerForUser({ user, game: existingGame })
+                const players = structuredClone(existingGame.players)
+                const player = this.findValidPlayerForUser({
+                    user,
+                    game: { ...existingGame, players }
+                })
                 if (player.status === PlayerStatus.Declined) {
                     throw new UserAlreadyDeclinedError({ user, gameId: game.id })
                 }
+                if (existingGame.isPublic) {
+                    player.userId = undefined
+                    player.name = ''
+                    player.status = PlayerStatus.Open
+                } else {
+                    player.status = PlayerStatus.Declined
+                }
+                fieldsToUpdate.players = players
                 return UpdateValidationResult.Proceed
             }
         })
@@ -701,7 +690,11 @@ export class GameService {
         } else {
             await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
         }
-        await this.notifyDeclined(user, game, player)
+        await this.notifyDeclined(
+            user,
+            updatedGame,
+            this.findValidPlayerForUser({ user, game: existingGame })
+        )
         return updatedGame
     }
 
@@ -986,7 +979,11 @@ export class GameService {
         gameId: string
         actionId: string
     }): Promise<UndoResultsRepresentation> {
-        const game = await this.getGame({ gameId, withState: true })
+        const data = await this.gameStore.readGameData(gameId, async (reader) => ({
+            game: reader.game,
+            undoWindow: reader.game.state ? await reader.undoWindow(actionId) : undefined
+        }))
+        const game = data?.game
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
         }
@@ -1004,11 +1001,7 @@ export class GameService {
 
         const priorActionCount = gameState.actionCount
         const priorChecksum = gameState.actionChecksum
-        const undoWindow = await this.gameStore.findUndoActionWindow({
-            game,
-            actionId,
-            endIndex: priorActionCount
-        })
+        const undoWindow = data?.undoWindow
         if (!undoWindow || undoWindow.targetAction.index === undefined) {
             throw new DisallowedUndoError({ gameId, actionId, reason: `Action not found` })
         }
@@ -1198,7 +1191,8 @@ export class GameService {
     async backfillChecksum(state: GameState, actions: GameAction[]): Promise<number> {
         const checksum = calculateActionChecksum(0, actions)
         state.actionChecksum = checksum
-        return await this.gameStore.setChecksum({ gameId: state.gameId, checksum })
+        await this.gameStore.setChecksum({ gameId: state.gameId, checksum })
+        return checksum
     }
 
     private isSameSimultaneousGroup(action: GameAction, other: GameAction): boolean {

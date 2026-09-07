@@ -187,7 +187,9 @@ describe('hosted reproduction seeds', () => {
         vi.spyOn(firestore, 'runTransaction').mockImplementation(async (update) =>
             update(transaction)
         )
-        vi.spyOn(cache, 'lockWhileWriting').mockImplementation(async (_keys, writer) => writer())
+        vi.spyOn(cache, 'lockWhileWriting').mockImplementation(async (_keys, writer) =>
+            writer({ addKeys: async () => {} })
+        )
         const created = await store.createGame(game, { masterSeed })
         expect(create.mock.calls.map(([reference]) => reference.path)).toEqual([
             `games/${game.id}`,

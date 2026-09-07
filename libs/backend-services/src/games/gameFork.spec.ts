@@ -217,6 +217,18 @@ function createService(source: ReturnType<typeof createSource>) {
     vi.spyOn(store, 'findActionsForGame').mockImplementation(async () =>
         structuredClone(source.actions)
     )
+    vi.spyOn(store, 'readGameData').mockImplementation(async (gameId, read) => {
+        const game = await store.findGameById(gameId, true)
+        if (!game) return undefined
+        return read({
+            game,
+            actions: () => store.findActionsForGame(game),
+            actionRange: (startIndex, endIndex) =>
+                store.findActionRangeForGame({ game, startIndex, endIndex }),
+            undoWindow: (actionId) =>
+                store.findUndoActionWindow({ game, actionId, endIndex: source.state.actionCount })
+        })
+    })
     const writes = vi
         .spyOn(store, 'writeFullGameData')
         .mockImplementation(async (game, state, actions) => ({
@@ -283,6 +295,15 @@ describe('Hosted Fork service', () => {
             })
         ).rejects.toThrow('Complete canonical state is required')
         expect(write).not.toHaveBeenCalled()
+    })
+
+    it('keeps a loaded checksum tied to its history when backfill observes a newer checksum', async () => {
+        const source = createSource()
+        const { service, store } = createService(source)
+        const expected = source.state.actionChecksum
+        vi.spyOn(store, 'setChecksum').mockResolvedValue(expected + 1)
+        expect(await service.backfillChecksum(source.state, source.actions)).toBe(expected)
+        expect(source.state.actionChecksum).toBe(expected)
     })
 
     it('rejects invalid administrative state replacement before persistence', async () => {
