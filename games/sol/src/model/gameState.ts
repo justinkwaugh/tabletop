@@ -127,8 +127,8 @@ export class HydratedSolGameState
     }
 
     getEffectTracking() {
-        if (!this.effectTracking) {
-            this.effectTracking = {
+        return (
+            this.effectTracking ?? {
                 outerRingLaunches: 0,
                 clustersRemaining: 0,
                 squeezed: false,
@@ -137,7 +137,11 @@ export class HydratedSolGameState
                 fuelRemaining: 0,
                 passageGates: []
             }
-        }
+        )
+    }
+
+    ensureEffectTracking() {
+        this.effectTracking ??= this.getEffectTracking()
         return this.effectTracking
     }
 

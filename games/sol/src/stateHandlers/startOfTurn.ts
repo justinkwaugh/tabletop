@@ -101,7 +101,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         const preEffectState = gameState.getEffectTracking()?.preEffectState
         if (preEffectState === MachineState.StartOfTurn) {
             // If effect came from here.. just clear it and don't reset the turn
-            gameState.getEffectTracking().preEffectState = undefined
+            gameState.ensureEffectTracking().preEffectState = undefined
             return
         }
 
@@ -131,7 +131,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
                 const state = context.gameState
                 // This is sort of cheating to remain in StartOfTurn, but deconstructing
                 // doesn't change the state machine
-                state.getEffectTracking().preEffectState = MachineState.StartOfTurn
+                state.ensureEffectTracking().preEffectState = MachineState.StartOfTurn
                 return MachineState.StartOfTurn
             }
             case isPass(action): {

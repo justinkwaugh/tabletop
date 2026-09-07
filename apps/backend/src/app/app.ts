@@ -55,7 +55,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     })
 
     await fastify.register(fastifyRateLimit, {
-        global: true,
+        global: service !== 'local',
         max: (request: FastifyRequest, key: string) => {
             if (key.startsWith('user:')) {
                 return 500

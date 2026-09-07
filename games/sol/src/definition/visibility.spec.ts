@@ -20,6 +20,10 @@ import { SolGameStateValidator, type SolGameState } from '../model/gameState.js'
 import { Suit } from '../components/cards.js'
 import { isDrawCards, type DrawCards } from '../actions/drawCards.js'
 import { type ChooseCard } from '../actions/chooseCard.js'
+import { HydratedActivate, type Activate } from '../actions/activate.js'
+import { EffectColor, EffectType } from '../components/effects.js'
+import { StationType } from '../components/stations.js'
+import { Ring } from '../utils/solGraph.js'
 
 const game: Game = {
     id: 'sol-visibility',
@@ -141,6 +145,63 @@ describe('Sol visibility', () => {
         expect(initialize(3, 123)).toEqual(first)
     })
 
+    it.each([2, 3])(
+        'does not mutate version %i state when discovering Motivate activations',
+        (version) => {
+            const initial = initialize(version)
+            const state = SolRuntime.hydrator.hydrateState(initial)
+            const player = state.players[0]
+            const coords = { row: Ring.Outer, col: 0 }
+            player.card = { id: 'motivate-card', suit: Suit.Refraction }
+            state.effects[Suit.Refraction] = { type: EffectType.Motivate, color: EffectColor.Blue }
+            state.board.addStationAt(
+                { id: 'station', playerId: player.playerId, type: StationType.EnergyNode },
+                coords
+            )
+            const before = structuredClone(state.dehydrate())
+            expect(HydratedActivate.canActivateStationAt(state, player.playerId, coords)).toBe(
+                false
+            )
+            expect(state.dehydrate()).toEqual(before)
+        }
+    )
+
+    it('keeps one activation per player while activating successive stations', () => {
+        let state = SolRuntime.hydrator.hydrateState(initialize(2))
+        SolRuntime.stateHandlers[MachineState.StartOfTurn].enter(
+            new MachineContext({ gameConfig: {}, gameState: state })
+        )
+        state.machineState = MachineState.Activating
+        const player = state.getPlayerState(state.activePlayerIds[0])
+        for (const col of [0, 1, 2]) {
+            const coords = { row: Ring.Outer, col }
+            state.board.addStationAt(
+                { id: `station-${col}`, playerId: player.playerId, type: StationType.EnergyNode },
+                coords
+            )
+            state.board.addSundiversToCell(player.holdSundivers.splice(0, 1), coords)
+        }
+        for (const col of [0, 1]) {
+            const action: Activate = {
+                id: `activate-${col}`,
+                gameId: game.id,
+                type: ActionType.Activate,
+                source: ActionSource.User,
+                playerId: player.playerId,
+                stationId: `station-${col}`,
+                coords: { row: Ring.Outer, col }
+            }
+            const result = engine.executeCanonicalAction({
+                game,
+                state: state.dehydrate(),
+                action
+            })
+            state = SolRuntime.hydrator.hydrateState(result.updatedState)
+        }
+        expect(state.activations).toHaveLength(1)
+        expect(state.activations?.[0].activatedIds).toEqual(['station-0', 'station-1'])
+    })
+
     it('conceals the future deck and entropy for every ordinary perspective', () => {
         const { state } = prepareDraw([Suit.Flare])
         const card = state.deck.items[0]
@@ -163,14 +224,17 @@ describe('Sol visibility', () => {
 
     it('discovers draws from public data but rejects local access to the hidden deck', () => {
         const { state, action } = prepareDraw([Suit.Flare])
+        const protectedGame: Game = { ...game, protectedInformation: true }
         const perspective = { kind: 'player', playerId: action.playerId } as const
         const view = SolRuntime.visibility.state.project(state, perspective)
         expect(
-            engine.getValidActionTypesForPlayer(game, view, action.playerId, { perspective })
+            engine.getValidActionTypesForPlayer(protectedGame, view, action.playerId, {
+                perspective
+            })
         ).toContain(ActionType.DrawCards)
-        expect(() => engine.executeAction({ game, state: view, action, perspective })).toThrow(
-            Visibility.UnavailableProjectedValueError
-        )
+        expect(() =>
+            engine.executeAction({ game: protectedGame, state: view, action, perspective })
+        ).toThrow(Visibility.UnavailableProjectedValueError)
         expect(view.deck.items).toEqual([])
         expect(view.deck.remaining).toBe(65)
     })
