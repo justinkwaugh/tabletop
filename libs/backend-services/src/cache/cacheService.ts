@@ -1,3 +1,4 @@
+import { Timed, measure, countTiming, startTiming } from '../diagnostics/requestTimings.js'
 import {
     ClientClosedError,
     ClientOfflineError,
@@ -63,6 +64,7 @@ export class RedisCacheService {
         this.guardPool.destroy()
     }
 
+    @Timed('cache.readConsistently')
     public async readConsistently<T>({
         keys,
         read,
@@ -79,11 +81,11 @@ export class RedisCacheService {
             outcome = await this.withWatchedKeys(
                 uniqueKeys,
                 async (client) => {
-                    const values = await client.mGet(uniqueKeys)
+                    const values = await measure('redis.mGet', () => client.mGet(uniqueKeys))
                     if (values.some((value) => value?.startsWith(WRITE_LOCK_PREFIX)))
                         return undefined
                     const [result] = await Promise.allSettled([Promise.resolve().then(read)])
-                    await client.multi().get(uniqueKeys[0]).exec()
+                    await measure('redis.exec', () => client.multi().get(uniqueKeys[0]).exec())
                     return result
                 },
                 this.guardPool
@@ -91,7 +93,10 @@ export class RedisCacheService {
         } catch (error) {
             if (!(error instanceof WatchError) && !this.isCacheUnavailable(error)) throw error
         }
-        if (outcome === undefined) return fallback()
+        if (outcome === undefined) {
+            countTiming('cache.consistentRead.fallbacks')
+            return measure('cache.consistentRead.fallback', fallback)
+        }
         if (outcome.status === 'rejected') throw outcome.reason
         return outcome.value
     }
@@ -107,19 +112,20 @@ export class RedisCacheService {
         const valueToCache = this.valueForCache(value)
         const cacheValue = valueToCache === undefined ? NONE_PREFIX : VALUE_PREFIX + valueToCache
         if (forSeconds === undefined) {
-            await this.client.set(key, cacheValue)
+            await measure('redis.set', () => this.client.set(key, cacheValue))
         } else {
-            await this.client.setEx(key, forSeconds, cacheValue)
+            await measure('redis.setEx', () => this.client.setEx(key, forSeconds, cacheValue))
         }
     }
 
     // Simple remove from the cache without any locking
     public async delete(key: string): Promise<void> {
-        await this.client.del(key)
+        await measure('redis.del', () => this.client.del(key))
     }
 
     // This method will do a cached get, but on a miss will call the provided
     // function to produce the correct value and then will attempt to cache it
+    @Timed('cache.cachingGet')
     public async cachingGet<T>(
         key: string,
         produceValue: MissedValueProducer
@@ -148,6 +154,7 @@ export class RedisCacheService {
 
     // This method will do a cached get, but on a miss will call the provided
     // function to produce the correct value and then will attempt to cache it
+    @Timed('cache.cachingGetMulti')
     public async cachingGetMulti<T>(
         keys: string[],
         produceValues: MissedValuesProducer
@@ -199,10 +206,16 @@ export class RedisCacheService {
     // Get from the cache returning either the actual cached value or whatever
     // lock might be present for the key
     public async cacheGet(key: string): Promise<CacheResult> {
-        return this.readOrMiss(async () => this.readCacheResult(await this.client.get(key)), {
-            value: null,
-            cached: false
-        })
+        const result = await this.readOrMiss(
+            async () =>
+                this.readCacheResult(await measure('redis.get', () => this.client.get(key))),
+            {
+                value: null,
+                cached: false
+            }
+        )
+        countTiming(result.cached ? 'cache.hits' : 'cache.misses')
+        return result
     }
 
     // Get multiple values from the cache returning either the actual cached values or whatever
@@ -212,10 +225,15 @@ export class RedisCacheService {
             return []
         }
 
-        return this.readOrMiss(
-            async () => (await this.client.mGet(keys)).map((value) => this.readCacheResult(value)),
+        const results = await this.readOrMiss(
+            async () =>
+                (await measure('redis.mGet', () => this.client.mGet(keys))).map((value) =>
+                    this.readCacheResult(value)
+                ),
             keys.map(() => ({ value: null, cached: false }))
         )
+        for (const result of results) countTiming(result.cached ? 'cache.hits' : 'cache.misses')
+        return results
     }
 
     public async acquireReadLock(lockRequest: ReadLockRequest): Promise<string | undefined> {
@@ -254,6 +272,7 @@ export class RedisCacheService {
     }
 
     // This method will lock a set of keys while a writer function is executed
+    @Timed('cache.lockWhileWriting')
     public async lockWhileWriting<T>(keys: string[], writer: ValueWriter<T>): Promise<T> {
         const startedAt = performance.now()
         const lockId = '.' + nanoid()
@@ -310,9 +329,9 @@ export class RedisCacheService {
     // Increment a value in the cache
     public async incrementValue(key: string, amount?: number): Promise<void> {
         if (amount !== undefined) {
-            await this.client.incrBy(key, amount)
+            await measure('redis.incrBy', () => this.client.incrBy(key, amount))
         } else {
-            await this.client.incr(key)
+            await measure('redis.incr', () => this.client.incr(key))
         }
     }
 
@@ -321,29 +340,40 @@ export class RedisCacheService {
         operation: (client: PooledRedisClient) => Promise<T>,
         pool: RedisClientPoolType = this.pool
     ): Promise<T> {
-        return pool.execute(async (client) => {
-            if (!client.isOpen) {
-                await client.connect()
-            }
-            try {
-                if (client.isWatching) {
-                    await client.unwatch()
+        const waiting = startTiming(
+            pool === this.guardPool ? 'redis.guardPool.wait' : 'redis.pool.wait'
+        )
+        try {
+            return await pool.execute(async (client) => {
+                waiting?.end()
+                if (!client.isOpen) {
+                    await measure('redis.connect', () => client.connect())
                 }
-                await client.watch(keys)
-                return await operation(client)
-            } finally {
                 try {
-                    await client.unwatch()
-                } catch (error) {
-                    if (client.isOpen) {
-                        client.destroy()
+                    if (client.isWatching) {
+                        await measure('redis.unwatch', () => client.unwatch())
                     }
-                    console.error('Unable to clear cache WATCH state; connection closed', error)
+                    await measure('redis.watch', () => client.watch(keys))
+                    return await operation(client)
+                } finally {
+                    try {
+                        await measure('redis.unwatch', () => client.unwatch())
+                    } catch (error) {
+                        if (client.isOpen) {
+                            client.destroy()
+                        }
+                        console.error('Unable to clear cache WATCH state; connection closed', error)
+                    }
                 }
-            }
-        })
+            })
+        } catch (error) {
+            waiting?.end('error')
+            if (error instanceof WatchError) countTiming('cache.watchConflicts')
+            throw error
+        }
     }
 
+    @Timed('cache.tryLockReads')
     private async tryLockReads(keys: string[]): Promise<(string | undefined)[]> {
         if (keys.length === 0) {
             return []
@@ -351,7 +381,7 @@ export class RedisCacheService {
         try {
             return await this.withWatchedKeys(keys, async (isolatedClient) => {
                 const lockValues = []
-                const currentValues = await isolatedClient.mGet(keys)
+                const currentValues = await measure('redis.mGet', () => isolatedClient.mGet(keys))
 
                 const pipeline = isolatedClient.multi()
                 for (const [index, currentValue] of currentValues.entries()) {
@@ -363,7 +393,7 @@ export class RedisCacheService {
                         lockValues.push(lockValue)
                     }
                 }
-                await pipeline.exec()
+                await measure('redis.exec', () => pipeline.exec())
                 return lockValues
             })
         } catch (error) {
@@ -380,17 +410,19 @@ export class RedisCacheService {
     }
 
     @Retryable({ maxAttempts: 5, value: [WatchError], useOriginalError: true })
+    @Timed('cache.tryLockWrite')
     private async tryLockWrite(
         keys: string[],
         lockId: string,
         previouslyOwned: string[]
     ): Promise<void> {
+        countTiming('cache.writeAcquire.attempts')
         if (keys.length === 0) {
             return
         }
 
         await this.withWatchedKeys(keys, async (isolatedClient) => {
-            const currentValues = await isolatedClient.mGet(keys)
+            const currentValues = await measure('redis.mGet', () => isolatedClient.mGet(keys))
             const expectedOwners = new Set(previouslyOwned)
             const lockData: [string, string][] = keys.map((key, index) => {
                 const owners = this.writeLockOwners(currentValues[index])
@@ -404,18 +436,20 @@ export class RedisCacheService {
             for (const key of keys) {
                 transaction.expire(key, WRITE_LOCK_SECONDS)
             }
-            await transaction.exec()
+            await measure('redis.exec', () => transaction.exec())
         })
     }
 
     @Retryable({ maxAttempts: 5, value: [WatchError], useOriginalError: true })
+    @Timed('cache.unlockWrite')
     private async unlockWrite(keys: string[], lockId: string): Promise<void> {
+        countTiming('cache.writeRelease.attempts')
         if (keys.length === 0) {
             return
         }
 
         await this.withWatchedKeys(keys, async (isolatedClient) => {
-            const currentValues = await isolatedClient.mGet(keys)
+            const currentValues = await measure('redis.mGet', () => isolatedClient.mGet(keys))
             const lockData: [string, string][] = []
             const missingOwners: string[] = []
             for (const [index, currentValue] of currentValues.entries()) {
@@ -444,12 +478,13 @@ export class RedisCacheService {
             for (const [key, value] of lockData) {
                 transaction.expire(key, value ? WRITE_LOCK_SECONDS : READ_LOCK_SECONDS)
             }
-            await transaction.exec()
+            await measure('redis.exec', () => transaction.exec())
         })
     }
 
     // We use an isolated context here to run a pipeline of commands to set the values only if
     // the existing lock value equals what we expect and has not changed
+    @Timed('cache.trySetValues')
     private async trySetValues(setRequests: SetValueRequest[]): Promise<void> {
         if (setRequests.length === 0) {
             return
@@ -459,7 +494,7 @@ export class RedisCacheService {
             const keys = [...new Set(setRequests.map((request) => request.key))]
             await this.withWatchedKeys(keys, async (isolatedClient) => {
                 const pipeline = isolatedClient.multi()
-                const currentValues = await isolatedClient.mGet(keys)
+                const currentValues = await measure('redis.mGet', () => isolatedClient.mGet(keys))
                 const valuesByKey = new Map(keys.map((key, index) => [key, currentValues[index]]))
                 for (const request of setRequests) {
                     const currentValue = valuesByKey.get(request.key)
@@ -469,7 +504,7 @@ export class RedisCacheService {
                         pipeline.set(request.key, request.value)
                     }
                 }
-                await pipeline.exec()
+                await measure('redis.exec', () => pipeline.exec())
             })
         } catch (error) {
             if (error instanceof WatchError) {

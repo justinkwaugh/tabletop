@@ -1,3 +1,4 @@
+import { Timed, measure, measureSync, countTiming } from '../diagnostics/requestTimings.js'
 import {
     GameCreationOptions,
     deriveGameSeeds,
@@ -15,7 +16,7 @@ import {
     GameDefinition,
     GameEngine,
     GameNotificationAction,
-    GameNotificationData,
+    type GameNotificationData,
     GameStartedNotification,
     GameState,
     GameStatus,
@@ -800,6 +801,7 @@ export class GameService {
         maxAttempts: 3,
         value: [GameUpdateCollisionError]
     })
+    @Timed('game.applyActionToGame')
     async applyActionToGame({
         definition,
         action,
@@ -809,6 +811,7 @@ export class GameService {
         action: GameAction
         user: User
     }): Promise<ActionResultsRepresentation> {
+        countTiming('game.action.attempts')
         const gameId = action.gameId
         const game = await this.getGame({ gameId, withState: true })
         if (!game || !game.state) {
@@ -835,13 +838,17 @@ export class GameService {
 
         const initialIndex = action.index
 
+        const initialState = game.state
         const gameEngine = new GameEngine(definition.runtime)
-        const actionResult = gameEngine.executeCanonicalAction({
-            action,
-            state: game.state,
-            game
-        })
+        const actionResult = measureSync('engine.execute', () =>
+            gameEngine.executeCanonicalAction({
+                action,
+                state: initialState,
+                game
+            })
+        )
         const { processedActions, updatedState, indexOffset } = actionResult
+        countTiming('game.processedActions', processedActions.length)
 
         // write the action and the updated state
         const { storedActions, updatedGame, relatedActions, priorState } =
@@ -924,26 +931,30 @@ export class GameService {
                 }
             })
 
-        const representation = createActionResultsRepresentation({
-            game: updatedGame,
-            result: actionResult,
-            storedActions,
-            missingActions: relatedActions,
-            priorState,
-            runtime: definition.runtime,
-            visibility: definition.runtime.visibility,
-            user
-        })
+        const representation = measureSync('projection.response.action', () =>
+            createActionResultsRepresentation({
+                game: updatedGame,
+                result: actionResult,
+                storedActions,
+                missingActions: relatedActions,
+                priorState,
+                runtime: definition.runtime,
+                visibility: definition.runtime.visibility,
+                user
+            })
+        )
 
-        await publishActionResults({
-            game: updatedGame,
-            result: actionResult,
-            storedActions,
-            priorState,
-            runtime: definition.runtime,
-            visibility: definition.runtime.visibility,
-            notificationService: this.notificationService
-        })
+        await measure('projection.publish.action', () =>
+            publishActionResults({
+                game: updatedGame,
+                result: actionResult,
+                storedActions,
+                priorState,
+                runtime: definition.runtime,
+                visibility: definition.runtime.visibility,
+                notificationService: this.notificationService
+            })
+        )
         await this.notifyGamePlayers(GameNotificationAction.Update, { game: representation.game })
 
         for (const activePlayerId of updatedState.activePlayerIds) {
@@ -968,6 +979,7 @@ export class GameService {
         return representation
     }
 
+    @Timed('game.undoAction')
     async undoAction({
         user,
         definition,
@@ -1086,26 +1098,30 @@ export class GameService {
         }
 
         const gameEngine = new GameEngine(definition.runtime)
-        gameEngine.validateCanonicalState(gameState)
+        measureSync('engine.validate', () => gameEngine.validateCanonicalState(gameState))
         for (const action of actions.toReversed()) {
-            gameState = gameEngine.undoProcessedAction({ action, state: gameState })
+            gameState = measureSync('engine.undo', () =>
+                gameEngine.undoProcessedAction({ action, state: gameState })
+            )
         }
 
-        gameEngine.validateCanonicalState(gameState)
+        measureSync('engine.validate', () => gameEngine.validateCanonicalState(gameState))
         const redoneActions: GameAction[] = []
         for (const redoAction of redoActions) {
-            const { processedActions, updatedState } = gameEngine.executeCanonicalAction({
-                action: redoAction,
-                state: gameState,
-                game
-            })
+            const { processedActions, updatedState } = measureSync('engine.execute', () =>
+                gameEngine.executeCanonicalAction({
+                    action: redoAction,
+                    state: gameState,
+                    game
+                })
+            )
             redoneActions.push(...processedActions)
             gameState = updatedState
         }
 
         // store the updated state
         const updatedState = gameState
-        gameEngine.validateCanonicalState(updatedState)
+        measureSync('engine.validate', () => gameEngine.validateCanonicalState(updatedState))
 
         const {
             undoneActions,
@@ -1162,25 +1178,29 @@ export class GameService {
             startIndex: undoWindow.startIndex,
             actions: replayActions.map((action) => structuredClone(action))
         }
-        const representation = createUndoResultsRepresentation({
-            game: updatedGame,
-            actionReplay,
-            undoneActions,
-            redoneActions: processedRedoneActions,
-            runtime: definition.runtime,
-            visibility: definition.runtime.visibility,
-            user
-        })
+        const representation = measureSync('projection.response.undo', () =>
+            createUndoResultsRepresentation({
+                game: updatedGame,
+                actionReplay,
+                undoneActions,
+                redoneActions: processedRedoneActions,
+                runtime: definition.runtime,
+                visibility: definition.runtime.visibility,
+                user
+            })
+        )
 
-        await publishUndoResults({
-            game: updatedGame,
-            actionReplay,
-            actionToUndo,
-            redoneActions: processedRedoneActions,
-            runtime: definition.runtime,
-            visibility: definition.runtime.visibility,
-            notificationService: this.notificationService
-        })
+        await measure('projection.publish.undo', () =>
+            publishUndoResults({
+                game: updatedGame,
+                actionReplay,
+                actionToUndo,
+                redoneActions: processedRedoneActions,
+                runtime: definition.runtime,
+                visibility: definition.runtime.visibility,
+                notificationService: this.notificationService
+            })
+        )
         await this.notifyGamePlayers(GameNotificationAction.Update, {
             game: representation.game
         })
@@ -1325,6 +1345,7 @@ export class GameService {
         })
     }
 
+    @Timed('game.notifyGamePlayers')
     private async notifyGamePlayers(
         action: GameNotificationAction,
         data: GameNotificationData
@@ -1369,6 +1390,7 @@ export class GameService {
         })
     }
 
+    @Timed('game.scheduleTurnNotification')
     async scheduleTurnNotification(
         userId: string,
         gameId: string,

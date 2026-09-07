@@ -1,3 +1,5 @@
+import RequestTimingsPlugin from './plugins/requestTimings.js'
+import { measure } from '@tabletop/backend-services/diagnostics'
 import * as path from 'path'
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import AutoLoad from '@fastify/autoload'
@@ -46,6 +48,7 @@ export interface AppOptions {
 }
 
 export async function app(fastify: FastifyInstance, opts: AppOptions) {
+    await fastify.register(RequestTimingsPlugin)
     await fastify.register(fastifyPrintRoutes)
     fastify.addHook('onSend', async (request, reply, payload) => {
         if (typeof payload !== 'string' && !(payload instanceof String)) {
@@ -104,7 +107,9 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         let frontendVersion = FRONTEND_VERSION_OVERRIDE
         if (!frontendVersion) {
             try {
-                const manifest = await fastify.libraryService.getManifest()
+                const manifest = await measure('manifest.get', () =>
+                    fastify.libraryService.getManifest()
+                )
                 frontendVersion = manifest.frontend?.version ?? null
             } catch (error) {
                 console.warn('Unable to resolve frontend version for response header', error)
@@ -172,7 +177,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
                 return
             }
             try {
-                await fastify.libraryService.refreshManifest()
+                await measure('manifest.refresh', () => fastify.libraryService.refreshManifest())
             } catch (error) {
                 console.warn('Unable to refresh manifest', error)
             }
@@ -302,7 +307,9 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
 
             if (!frontendVersion) {
                 try {
-                    const manifest = await fastify.libraryService.getManifest()
+                    const manifest = await measure('manifest.get', () =>
+                        fastify.libraryService.getManifest()
+                    )
                     frontendVersion = manifest.frontend?.version ?? null
                 } catch (error) {
                     console.warn('Unable to resolve frontend version from manifest', error)

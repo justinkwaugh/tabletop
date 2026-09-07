@@ -20,6 +20,7 @@ export default async function (
     fastify.post<{ Body: ActionRequest }>(
         `/action/${actionType}`,
         {
+            config: { requestTiming: true },
             schema: {
                 body: ActionRequest
             },

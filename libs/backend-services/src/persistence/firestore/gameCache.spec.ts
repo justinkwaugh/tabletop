@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { randomUUID } from 'node:crypto'
-import { Firestore, type DocumentReference, type DocumentSnapshot } from '@google-cloud/firestore'
+import { Firestore, DocumentReference } from '@google-cloud/firestore'
 import { createClient, SocketClosedUnexpectedlyError, type RedisClientType } from 'redis'
 import {
     ActionSource,
@@ -400,6 +400,86 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             )
         })
         describe('consistent Game data reads', () => {
+            it('starts the State read while the Game read is still pending', async () => {
+                await store.writeFullGameData(game, state, [])
+                const held = Promise.withResolvers<void>()
+                const findGame = store.findGameById.bind(store)
+                vi.spyOn(store, 'findGameById').mockImplementationOnce(async (...args) => {
+                    const result = await findGame(...args)
+                    await held.promise
+                    return result
+                })
+                const get = vi.spyOn(DocumentReference.prototype, 'get')
+                const loading = store.loadGameData(game.id)
+                try {
+                    await vi.waitFor(
+                        () => {
+                            expect(
+                                get.mock.contexts.some(
+                                    (reference) =>
+                                        reference instanceof DocumentReference &&
+                                        reference.path === `games/${game.id}/states/${game.id}`
+                                )
+                            ).toBe(true)
+                        },
+                        { timeout: 500 }
+                    )
+                } finally {
+                    held.resolve()
+                    await loading
+                }
+                expect((await loading)?.game.state).toEqual(state)
+            })
+
+            it('batches Game and State reads for action, Undo, and snapshot fallback', async () => {
+                await store.writeFullGameData(game, state, [])
+                const batches: string[][] = []
+                const run = db.runTransaction.bind(db)
+                vi.spyOn(db, 'runTransaction').mockImplementation((read, options) =>
+                    run(async (transaction) => {
+                        const getAll = vi.spyOn(transaction, 'getAll')
+                        const get = vi.spyOn(transaction, 'get')
+                        const result = await read(transaction)
+                        expect(get).not.toHaveBeenCalled()
+                        batches.push(
+                            getAll.mock.calls[0]?.flatMap((reference) =>
+                                reference instanceof DocumentReference ? [reference.path] : []
+                            ) ?? []
+                        )
+                        return result
+                    }, options)
+                )
+                const action: GameAction = {
+                    id: 'action',
+                    gameId: game.id,
+                    source: ActionSource.User,
+                    type: 'synthetic',
+                    index: 0
+                }
+                await store.addActionsToGame({
+                    game,
+                    actions: [action],
+                    state: { ...state, actionCount: 1 },
+                    validator: async () => UpdateValidationResult.Proceed
+                })
+                await store.undoActionsFromGame({
+                    gameId: game.id,
+                    actions: [action],
+                    redoneActions: [],
+                    state,
+                    validator: async () => UpdateValidationResult.Proceed
+                })
+                await live.cache.lockWhileWriting([GameCacheKeys.revision(game.id)], async () => {
+                    expect((await store.findGameById(game.id, true))?.state).toEqual(state)
+                })
+                expect(batches).toEqual(
+                    Array.from({ length: 3 }, () => [
+                        `games/${game.id}`,
+                        `games/${game.id}/states/${game.id}`
+                    ])
+                )
+            })
+
             it('loads and synchronizes protected representations across concurrent history changes', async () => {
                 const host = new PrivateHandHost()
                 host.game.id = game.id
@@ -545,22 +625,27 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 vi.spyOn(db, 'runTransaction').mockImplementation((read, options) => {
                     if (!options?.readOnly) return run(read, options)
                     return run(async (transaction) => {
-                        const get = transaction.get.bind(transaction)
-                        const reader: {
-                            get(reference: DocumentReference<Game>): Promise<DocumentSnapshot<Game>>
-                        } = transaction
-                        vi.spyOn(reader, 'get').mockImplementationOnce(async (reference) => {
-                            const snapshot = await get(reference)
-                            await store.updateGame({
-                                game,
-                                fields: {
-                                    status: GameStatus.Finished,
-                                    result: GameResult.Draw,
-                                    state: { ...state, result: GameResult.Draw }
-                                }
-                            })
-                            return snapshot
-                        })
+                        const getAll = transaction.getAll.bind(transaction)
+                        vi.spyOn(transaction, 'getAll').mockImplementationOnce(
+                            async (...references) => {
+                                const snapshots = await getAll(...references)
+                                await store.addActionsToGame({
+                                    game,
+                                    actions: [
+                                        {
+                                            id: 'finish',
+                                            gameId: game.id,
+                                            source: ActionSource.User,
+                                            type: 'synthetic',
+                                            index: 0
+                                        }
+                                    ],
+                                    state: { ...state, actionCount: 1, result: GameResult.Draw },
+                                    validator: async () => UpdateValidationResult.Proceed
+                                })
+                                return snapshots
+                            }
+                        )
                         return read(transaction)
                     }, options)
                 })

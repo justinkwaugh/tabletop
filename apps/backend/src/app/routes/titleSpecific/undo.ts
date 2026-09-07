@@ -12,6 +12,7 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
     fastify.post<{ Body: UndoRequest }>(
         '/undo',
         {
+            config: { requestTiming: true },
             schema: { body: UndoRequest },
             onRequest: fastify.auth([fastify.verifyUser], { relation: 'and' })
         },

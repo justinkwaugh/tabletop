@@ -1,3 +1,4 @@
+import { RequestTimings } from '../diagnostics/requestTimings.js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { randomUUID } from 'node:crypto'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -40,7 +41,18 @@ describe('cache write locking', () => {
             expect(exec).toHaveBeenCalledTimes(2)
             return 'saved'
         })
-        await expect(cache.lockWhileWriting(['game-lobby'], writer)).resolves.toBe('saved')
+        const timings = new RequestTimings()
+        await timings.run(() =>
+            expect(cache.lockWhileWriting(['game-lobby'], writer)).resolves.toBe('saved')
+        )
+        const report = timings.finish()
+        expect(report.counters).toMatchObject({
+            'cache.writeAcquire.attempts': 2,
+            'cache.writeRelease.attempts': 1,
+            'cache.watchConflicts': 1
+        })
+        expect(report.spans.filter((span) => span.name === 'redis.exec')).toHaveLength(3)
+        expect(JSON.stringify(report)).not.toContain('game-lobby')
         expect(writer).toHaveBeenCalledTimes(1)
     })
 
