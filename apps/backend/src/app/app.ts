@@ -17,6 +17,7 @@ import FirestorePlugin from './plugins/firestore.js'
 import SensiblePlugin from './plugins/sensible.js'
 import ServicesPlugin from './plugins/services.js'
 import GamesPlugin from './plugins/games.js'
+import { routeAutoloadOptions } from './lib/routeAutoload.js'
 
 const __dirname = import.meta.dirname
 
@@ -196,6 +197,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         console.log('Registering API routes')
         // This loads all API routes
         await fastify.register(AutoLoad, {
+            ...routeAutoloadOptions,
             dir: path.join(__dirname, 'routes/api'),
             options: { ...opts, prefix: API_PREFIX }
         })
@@ -372,6 +374,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     if (service === 'local' || service === 'tasks') {
         console.log('Registering Task routes')
         await fastify.register(AutoLoad, {
+            ...routeAutoloadOptions,
             dir: path.join(__dirname, 'routes/tasks'),
             options: { ...opts, prefix: TASKS_PREFIX }
         })
