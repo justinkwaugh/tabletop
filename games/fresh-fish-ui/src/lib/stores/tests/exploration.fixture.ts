@@ -697,3 +697,56 @@ export async function reproduceHarnessGame() {
     }
     return { first: await create(), second: await create() }
 }
+
+export async function runCanonicalExplorationUndo() {
+    const host = createExplorationHost()
+    drawStall(host)
+    const original = JSON.stringify(host.state)
+    const client = explorationClient(host)
+    const { session, app } = client
+    app.api.getGame = async (_id, options) => {
+        const history = project(host, options?.hostView ? undefined : PLAYER_B_PERSPECTIVE)
+        return {
+            game: { ...host.gameWithState(), state: history.currentState },
+            actions: [...history.actions]
+        }
+    }
+    try {
+        await settleExploration(session)
+        await session.setPrivilegedGameViewEnabled(true)
+        await settleExploration(session)
+        await session.startExploring()
+        await settleExploration(session)
+        const context = session.explorations.getCurrentExploration()
+        assertExists(context)
+        const startsWithBid = session.chosenAction === 'placeBid'
+        const canUndoDraw = session.undoableAction?.type === 'drawTile'
+        await session.undo()
+        await settleExploration(session)
+        const clearsBid = session.chosenAction !== 'placeBid' && !context.state.currentAuction
+        const restoresTile = context.state.tileBag.remaining === host.state.tileBag.remaining + 1
+        let undoCount = 0
+        while (session.undoableAction && undoCount++ < host.actions.length) {
+            await session.undo()
+            await settleExploration(session)
+        }
+        const rewindsToBeginning = context.state.actionCount === 0
+        await session.applyAction(diskAction(context))
+        await settleExploration(session)
+        const playsForward = context.state.actionCount > 0
+        session.explorations.endExploring()
+        await settleExploration(session)
+        return {
+            startsWithBid,
+            canUndoDraw,
+            clearsBid,
+            restoresTile,
+            rewindsToBeginning,
+            playsForward,
+            sourceUnchanged: JSON.stringify(host.state) === original,
+            returnsToAuction: session.gameState.currentAuction !== undefined
+        }
+    } finally {
+        client.dispose()
+    }
+}

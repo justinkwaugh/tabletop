@@ -1,9 +1,6 @@
 import {
-    deriveGameSeeds,
-    generateMasterSeed,
     ExplorationHistory,
     getPrng,
-    generateSeed,
     assertExists,
     type Visibility,
     GameAction,
@@ -179,20 +176,8 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
                 for (const action of actions) action.gameId = newGameId
             }
         })
-        const state = structuredClone(source.state)
-        delete state.explorationState
-        delete state.masterSeed
-        state.prng = { seed: generateSeed(), invocations: 0 }
-        if ((state.systemVersion ?? 1) >= 3) {
-            state.protectedPrng =
-                this.runtime.randomnessVersion === 1
-                    ? {
-                          algorithm: 'chacha20-v1',
-                          seed: deriveGameSeeds(generateMasterSeed()).protectedSeed,
-                          invocations: 0
-                      }
-                    : { seed: generateSeed(), invocations: 0 }
-        }
+        const history = new ExplorationHistory(source.engine)
+        const state = history.prepareState(source.state)
         const exploration = this.runtime.exploration
         let hypothetical: T
         if (this.sourcePerspective !== undefined) {
@@ -211,12 +196,12 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
             hypothetical = exploration ? exploration.createFromCanonicalState(state) : state
         }
         source.engine.validateCanonicalState(hypothetical)
-        const history = new ExplorationHistory(source.engine)
         hypothetical.explorationState = history.checkpoint(
             source.state,
             hypothetical,
             source.actions,
-            source.game
+            source.game,
+            this.sourcePerspective === undefined ? 'canonical' : 'projected'
         )
         return new GameContext({
             runtime: this.runtime,

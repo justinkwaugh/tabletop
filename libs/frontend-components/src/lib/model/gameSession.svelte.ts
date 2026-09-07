@@ -1144,6 +1144,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 }
 
                 // Undo locally
+                const explorationHistory = new ExplorationHistory(this.engine)
                 const redoActions: GameAction[] = []
                 let actionToUndo
                 do {
@@ -1159,13 +1160,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                         redoAction.undoPatch = undefined
                         redoActions.push(redoAction)
                     }
-                    stateSnapshot = this.engine.undoProcessedAction({
-                        action: actionToUndo,
-                        state: stateSnapshot
-                    })
+                    stateSnapshot = explorationHistory.undo(
+                        stateSnapshot,
+                        actionToUndo,
+                        priorContext.state.explorationState
+                    )
                 } while (actionToUndo.id !== targetActionId)
 
-                stateSnapshot = new ExplorationHistory(this.engine).afterUndo(
+                stateSnapshot = explorationHistory.afterUndo(
                     priorContext.state,
                     stateSnapshot,
                     priorContext.actions.slice(stateSnapshot.actionCount)

@@ -6,6 +6,7 @@ for (const scenario of [
     'runPartialExploration',
     'runFailedHistoryExploration',
     'runPrivilegedExploration',
+    'runCanonicalExplorationUndo',
     'runSimulatedAuction'
 ]) {
     test(scenario, async ({ page }) => {

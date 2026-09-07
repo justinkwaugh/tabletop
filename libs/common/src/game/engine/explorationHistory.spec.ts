@@ -248,6 +248,89 @@ describe('Exploration boundary patches', () => {
         }
     )
 
+    it.each([false, true])(
+        'rewinds canonical revealing history with a future suffix: %s',
+        (withFuture) => {
+            const { game, state: initial, engine } = createPrivateHandGame()
+            const draw = {
+                id: 'original-draw',
+                gameId: game.id,
+                type: 'draw',
+                source: ActionSource.User,
+                playerId: 'p1',
+                revealsInfo: true
+            }
+            const result = engine.executeCanonicalAction({ game, state: initial, action: draw })
+            const source = result.updatedState
+            const history = new ExplorationHistory(engine)
+            const hypothetical = history.prepareState(source)
+            for (const player of hypothetical.players) player.hand?.cards.reverse()
+            const exploration = history.checkpoint(
+                source,
+                hypothetical,
+                result.processedActions,
+                game,
+                'canonical'
+            )
+            expect(exploration.checkpoint?.undoLimit).toBe(0)
+            let before: SharedState = { ...hypothetical, explorationState: exploration }
+            let removed = result.processedActions
+            if (withFuture) {
+                const action = {
+                    id: 'future-play',
+                    gameId: game.id,
+                    type: 'play',
+                    source: ActionSource.User,
+                    playerId: 'p2',
+                    cardId: 'r2'
+                }
+                const future = engine.executeCanonicalAction({ game, state: before, action })
+                before = future.updatedState
+                let boundary = before
+                for (const action of future.processedActions.toReversed()) {
+                    boundary = history.undo(boundary, action, exploration)
+                }
+                expect(history.afterUndo(before, boundary, future.processedActions)).toEqual({
+                    ...hypothetical,
+                    explorationState: exploration
+                })
+                removed = [...removed, ...future.processedActions]
+            }
+            const loaded = JSON.parse(JSON.stringify(before))
+            assert(CanonicalValidator.Check(loaded))
+            let after: SharedState = loaded
+            for (const action of removed.toReversed())
+                after = history.undo(after, action, exploration)
+            const rebased = history.afterUndo(loaded, after, removed)
+            engine.validateCanonicalState(rebased)
+            expect(history.recordedState(rebased, rebased.explorationState)).toEqual(initial)
+            expect(rebased.explorationState?.checkpoint?.canonicalSource).toBe(true)
+            expect(rebased.prng.seed).not.toBe(initial.prng.seed)
+            expect(rebased.players).toEqual(initial.players)
+            expect([...rebased.drawPile.items].sort((a, b) => a.id.localeCompare(b.id))).toEqual(
+                [...initial.drawPile.items].sort((a, b) => a.id.localeCompare(b.id))
+            )
+            expect(
+                engine.executeCanonicalAction({ game, state: rebased, action: draw }).updatedState
+                    .actionCount
+            ).toBe(1)
+        }
+    )
+
+    it('retains inherited projected Undo limits when branching from a populated Exploration', () => {
+        const { game, source, hypothetical, history, exploration, actions } = scenario()
+        const branch = { ...hypothetical, explorationState: exploration }
+        const checkpoint = history.checkpoint(
+            branch,
+            history.prepareState(branch),
+            actions,
+            game,
+            'canonical'
+        )
+        expect(checkpoint.checkpoint?.undoLimit).toBe(exploration.checkpoint?.undoLimit)
+        expect(source.actionCount).toBe(1)
+    })
+
     it('leaves older Explorations without checkpoints on their existing history path', () => {
         const { game, engine, state, firstPlay } = createPrivateHandGame()
         const result = engine.executeCanonicalAction({ game, state, action: firstPlay })

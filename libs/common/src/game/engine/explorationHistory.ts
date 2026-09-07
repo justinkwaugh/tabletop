@@ -1,4 +1,6 @@
 import jsonpatch from 'fast-json-patch'
+import { deriveGameSeeds, generateMasterSeed } from '../../util/gameSeeds.js'
+import { generateSeed } from '../../util/prng.js'
 import { assert } from '../../util/assertions.js'
 import { ActionSource, type GameAction, type Patch } from './gameAction.js'
 import type { GameEngine } from './gameEngine.js'
@@ -13,7 +15,8 @@ export class ExplorationHistory<T extends GameState, U extends HydratedGameState
         source: T,
         hypothetical: T,
         actions: readonly GameAction[],
-        game: Game
+        game: Game,
+        sourceRepresentation: 'canonical' | 'projected' = 'projected'
     ): ExplorationState {
         return {
             actionCount: hypothetical.actionCount,
@@ -21,9 +24,36 @@ export class ExplorationHistory<T extends GameState, U extends HydratedGameState
             checkpoint: this.createBoundary(
                 source,
                 hypothetical,
-                this.findUndoLimit(hypothetical, actions, game)
+                sourceRepresentation === 'canonical'
+                    ? (source.explorationState?.checkpoint?.undoLimit ?? 0)
+                    : this.findUndoLimit(hypothetical, actions, game),
+                sourceRepresentation === 'canonical' ? true : undefined
             )
         }
+    }
+
+    prepareState(source: T): T {
+        const state = this.withoutExploration(source)
+        delete state.masterSeed
+        state.prng = { seed: generateSeed(), invocations: 0 }
+        if ((state.systemVersion ?? 1) >= 3) {
+            state.protectedPrng =
+                this.engine.runtime.randomnessVersion === 1
+                    ? {
+                          algorithm: 'chacha20-v1',
+                          seed: deriveGameSeeds(generateMasterSeed()).protectedSeed,
+                          invocations: 0
+                      }
+                    : { seed: generateSeed(), invocations: 0 }
+        }
+        return state
+    }
+
+    undo(state: T, action: GameAction, exploration?: ExplorationState): T {
+        const before = exploration?.checkpoint?.canonicalSource
+            ? this.recordedState(state, exploration)
+            : state
+        return this.engine.undoProcessedAction({ state: before, action })
     }
 
     recordedState(state: T, exploration?: ExplorationState): T {
@@ -51,6 +81,18 @@ export class ExplorationHistory<T extends GameState, U extends HydratedGameState
         const exploration = before.explorationState
         const checkpoint = exploration?.checkpoint
         if (!checkpoint || after.actionCount >= exploration.actionCount) return after
+        if (checkpoint.canonicalSource) {
+            const prepared = this.prepareState(after)
+            const hypothetical = this.engine.runtime.exploration
+                ? this.engine.runtime.exploration.createFromCanonicalState(prepared)
+                : prepared
+            hypothetical.explorationState = {
+                actionCount: hypothetical.actionCount,
+                invocations: hypothetical.prng.invocations,
+                checkpoint: this.createBoundary(after, hypothetical, checkpoint.undoLimit, true)
+            }
+            return hypothetical
+        }
         let boundary = before
         for (const action of removed.toReversed()) {
             if (action.index !== undefined && action.index >= exploration.actionCount) {
@@ -78,14 +120,16 @@ export class ExplorationHistory<T extends GameState, U extends HydratedGameState
     private createBoundary(
         source: T,
         hypothetical: T,
-        undoLimit: number
+        undoLimit: number,
+        canonicalSource?: true
     ): NonNullable<ExplorationState['checkpoint']> {
         const recorded = this.withoutExploration(source)
         const sampled = this.withoutExploration(hypothetical)
         return {
             source: jsonpatch.compare(sampled, recorded),
             hypothetical: jsonpatch.compare(recorded, sampled),
-            undoLimit
+            undoLimit,
+            ...(canonicalSource ? { canonicalSource } : {})
         }
     }
 

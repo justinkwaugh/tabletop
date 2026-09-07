@@ -24,7 +24,8 @@ export const ExplorationState = Type.Object({
         Type.Object({
             source: Patch,
             hypothetical: Patch,
-            undoLimit: Type.Number()
+            undoLimit: Type.Number(),
+            canonicalSource: Type.Optional(Type.Literal(true))
         })
     )
 })

@@ -70,18 +70,6 @@
     function decrementBid() {
         bidValue = Math.max(bidValue - 1, 0)
     }
-
-    $effect(() => {
-        if (gameSession.isMyTurn && gameSession.validActionTypes.length === 1) {
-            const singleAction = gameSession.validActionTypes[0]
-            // Don't force a draw tile as that reveals info and makes the prior player unable to quickly undo
-            if (singleAction !== ActionType.DrawTile) {
-                chooseAction(gameSession.validActionTypes[0]).catch((error) => {
-                    console.error('Error choosing action:', error)
-                })
-            }
-        }
-    })
 </script>
 
 <svelte:window bind:innerHeight={windowHeight} />
