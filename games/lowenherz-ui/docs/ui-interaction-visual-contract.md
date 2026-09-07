@@ -14,6 +14,8 @@ The deal and the interactive pile are mutually exclusive render phases. Taking i
 
 The selected pile occurrence is a local array index shared by the pile component and its take animator. It only selects the node to emphasize; the Action contains the card face. The index is valid against the displayed source pile and is cleared when submission settles or the animator detaches. Replay without a local selection emphasizes the first matching face.
 
+Hovering or touch-holding a face-up card shows a magnified copy. The magnifier shares its anchor element and scale with the session, so taking that rendered occurrence transfers the enlarged view into the take animation. This reference identifies only a mounted element, never a card in game state, and clears on release or unmount. Identical faces and separate views of the same card therefore remain independent.
+
 The session supplies the measured row width and click origin for the deal. Both transient and interactive layouts use the same slot calculation. Reloading into an inspection can render the cards directly after measuring, without a prior click origin.
 
 Committed actions use the shared animation timeline. Actionless History navigation and Undo use the existing fast fallback, at most 200 ms; silent restoration contributes no animation. Restored inspections remain selectable. Hand keys and jitter belong to local rendering slots and never enter Game State, Action payloads, or saved History.

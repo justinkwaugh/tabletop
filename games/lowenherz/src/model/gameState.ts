@@ -20,6 +20,11 @@ import { PoliticsCard } from '../definition/politicsCards.js'
 import { repairDuplicateRegionIds } from '../util/regionDetection.js'
 import { normalizeLowenherzState } from '../util/normalizePoliticsCards.js'
 
+// New games use six empty squares between same-owner castles. Existing states without
+// the recorded distance retain the old rule so they remain playable and replayable.
+export const RULEBOOK_CASTLE_MIN_DISTANCE = 7
+export const LEGACY_CASTLE_MIN_DISTANCE = 6
+
 // One committed decision-card placement: which player placed it, and which slot
 // (1 = top action, 2 = middle, 3 = bottom) they chose.
 export type Decision = Type.Static<typeof Decision>
@@ -115,6 +120,7 @@ export const LowenherzGameState = Type.Object({
     // Read as `!== false`, like the config option it comes from: absent means
     // the rule is on, so a state built without it gets the stricter reading.
     minimumOneDucat: Type.Optional(Type.Boolean()),
+    minimumCastleDistance: Type.Optional(Type.Number()),
 
     // The setup castle whose knight has not been placed yet, and who is placing
     // it. Set by PlaceCastle and cleared by PlaceSetupKnight, so it is defined
@@ -253,6 +259,7 @@ export class HydratedLowenherzGameState
     declare firstPlayerId: string
     declare neutralColor?: Color
     declare minimumOneDucat?: boolean
+    declare minimumCastleDistance?: number
     declare pendingSetupCastle?: { col: number; row: number; playerId: string }
 
     declare actionDeck?: ActionCard[]
@@ -339,5 +346,9 @@ export class HydratedLowenherzGameState
     override isActivePlayer(playerId: string): boolean {
         if (super.isActivePlayer(playerId)) return true
         return this.negotiation?.playerIds.includes(playerId) ?? false
+    }
+
+    get requiredCastleDistance(): number {
+        return this.minimumCastleDistance ?? LEGACY_CASTLE_MIN_DISTANCE
     }
 }

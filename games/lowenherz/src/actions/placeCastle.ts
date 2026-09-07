@@ -15,8 +15,6 @@ import { buildPlacementPlan, currentPlacementSlot } from '../util/placementPlan.
 import { hasLegalSetupKnightSquare } from '../util/setupKnightSquares.js'
 import { PieceOwner } from '../model/owner.js'
 
-const SAME_OWNER_CASTLE_MIN_GAP = 6
-
 function placementPlanFor(state: HydratedLowenherzGameState) {
     return buildPlacementPlan(state.turnOrder, state.neutralColor !== undefined)
 }
@@ -169,9 +167,10 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
         return tooClose ? 'tooClose' : undefined
     }
 
-    // The same-owner spacing this placement actually has to clear. Normally the rulebook's
-    // "at least 6 spaces between them", but relaxed to the best the board still offers when
-    // NOTHING clears 6.
+    // The same-owner spacing this placement actually has to clear. Normally the game's
+    // requiredCastleDistance (the rulebook's six empty spaces between, or the legacy value a
+    // pre-correction game was recorded under), but relaxed to the best the board still offers
+    // when NOTHING clears it.
     //
     // Setup places 12 castles under a hard spacing rule with no Pass and no take-backs, so a
     // sequence of individually legal placements can leave the next one with nowhere to go -
@@ -183,7 +182,8 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
     // unsatisfiable, so ordinary games are unaffected.
     static requiredCastleGap(state: HydratedLowenherzGameState, owner: PieceOwner): number {
         const existing = castleSquaresForOwner(state.board, owner)
-        if (existing.length === 0) return SAME_OWNER_CASTLE_MIN_GAP
+        const requiredDistance = state.requiredCastleDistance
+        if (existing.length === 0) return requiredDistance
 
         let bestAchievableGap = 0
         for (let row = 0; row < state.board.squares.length; row++) {
@@ -197,7 +197,7 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
                 for (const castle of existing) {
                     nearest = Math.min(nearest, manhattanDistance(castle.col, castle.row, col, row))
                 }
-                if (nearest >= SAME_OWNER_CASTLE_MIN_GAP) return SAME_OWNER_CASTLE_MIN_GAP
+                if (nearest >= requiredDistance) return requiredDistance
                 bestAchievableGap = Math.max(bestAchievableGap, nearest)
             }
         }
