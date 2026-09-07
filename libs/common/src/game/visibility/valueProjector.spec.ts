@@ -336,6 +336,67 @@ describe('visibility value projection', () => {
         expect(Compile(projector.schema).Check(projected)).toBe(true)
     })
 
+    it('resolves shared union references against each projector definition set', () => {
+        const Entry = Type.Union([Type.Ref('Value'), Type.Null()])
+        const numbers = Visibility.createProjector(
+            Type.Cyclic({ Entries: Type.Array(Entry), Value: Type.Number() }, 'Entries')
+        )
+        const secrets = Visibility.createProjector(
+            Type.Cyclic(
+                {
+                    Entries: Type.Array(Entry),
+                    Value: Visibility.protect(Type.String(), {
+                        policy: Visibility.Policy.HostOnly
+                    })
+                },
+                'Entries'
+            )
+        )
+
+        expect(numbers.project([42, null], spectatorPerspective)).toEqual([42, null])
+        expect(secrets.project(['hidden', null], spectatorPerspective)).toEqual([null])
+        expect(numbers.project([7], playerPerspective)).toEqual([7])
+        expect(secrets.project(['another secret'], playerPerspective)).toEqual([])
+    })
+
+    it('rechecks values and privacy policies when projecting a reused union schema', () => {
+        const Entry = Type.Union([
+            Type.Object({
+                playerId: Type.String(),
+                secret: Visibility.protect(Type.String(), { policy: Visibility.Policy.Owner })
+            }),
+            Type.Null()
+        ])
+        const projector = Visibility.createProjector(Entry)
+        const value = { playerId: 'player-1', secret: 'first' }
+
+        expect(projector.project(value, playerPerspective)).toEqual(value)
+        expect(projector.project(value, spectatorPerspective)).toEqual({ playerId: 'player-1' })
+        value.secret = 'second'
+        expect(projector.project(value, playerPerspective)).toEqual(value)
+        expect(projector.project(null, spectatorPerspective)).toBeNull()
+        Reflect.set(value, 'secret', 42)
+        expect(() => projector.project(value, playerPerspective)).toThrow()
+    })
+
+    it('rejects matching union branches that expose different fields on repeated projections', () => {
+        const projector = Visibility.createProjector(
+            Type.Union([
+                Type.Object({ secret: Type.String() }),
+                Type.Object({
+                    secret: Visibility.protect(Type.String(), {
+                        policy: Visibility.Policy.HostOnly
+                    })
+                })
+            ])
+        )
+        for (const perspective of [playerPerspective, spectatorPerspective]) {
+            expect(() => projector.project({ secret: 'hidden' }, perspective)).toThrow(
+                'Visibility projection is ambiguous across matching union branches'
+            )
+        }
+    })
+
     it('fails closed when a named policy or redaction Adapter has no implementation', () => {
         const UnknownPolicy = Type.Object({
             secret: Visibility.protect(Type.String(), { policy: 'example.unknown' })

@@ -412,13 +412,30 @@ function projectionsEqual(left: unknown, right: unknown): boolean {
     return Value.Equal(left, right)
 }
 
+const emptyDefinitions: Type.TProperties = {}
+const unionValidators = new WeakMap<Type.TProperties, WeakMap<Type.TSchema, Validator>>()
+
+function unionValidator(definitions: Type.TProperties, schema: Type.TSchema): Validator {
+    let validators = unionValidators.get(definitions)
+    if (validators === undefined) {
+        validators = new WeakMap()
+        unionValidators.set(definitions, validators)
+    }
+    let validator = validators.get(schema)
+    if (validator === undefined) {
+        validator = Compile(definitions, schema)
+        validators.set(schema, validator)
+    }
+    return validator
+}
+
 function projectUnion<Root>(
     schema: Type.TUnion,
     value: unknown,
     context: TraversalContext<Root>
 ): unknown {
     const matchingSchemas = schema.anyOf.filter((candidate) =>
-        Value.Check(context.definitions, candidate, value)
+        unionValidator(context.definitions, candidate).Check(value)
     )
     if (matchingSchemas.length === 0) {
         throw Error('Cannot find a matching visibility union branch')
@@ -877,7 +894,7 @@ class BuiltInProjector<Schema extends Type.TSchema> implements Projector<Schema>
 
         const result = projectValue(this.canonicalSchema, value, {
             adapters: this.adapters,
-            definitions: {},
+            definitions: emptyDefinitions,
             path: [],
             policies: this.policies,
             perspective,
