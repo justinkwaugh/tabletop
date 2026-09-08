@@ -1,5 +1,5 @@
 import { GameAction, type GameHydrator, type HydratedAction } from '@tabletop/common'
-import { SantiagoGameState, HydratedSantiagoGameState } from '../model/gameState.js'
+import { SantiagoProjectedState, HydratedSantiagoGameState } from '../model/gameState.js'
 import { HydratedPlaceSpring, isPlaceSpring } from '../actions/placeSpring.js'
 import { HydratedPlaceBid, isPlaceBid } from '../actions/placeBid.js'
 import { HydratedPlaceField, isPlaceField } from '../actions/placeField.js'
@@ -10,9 +10,10 @@ import { HydratedProposeCanal, isProposeCanal } from '../actions/proposeCanal.js
 import { HydratedOverseerDecision, isOverseerDecision } from '../actions/overseerDecision.js'
 import { HydratedEndRoundEvent, isEndRoundEvent } from '../actions/endRoundEvent.js'
 
-export class SantiagoHydrator
-    implements GameHydrator<SantiagoGameState, HydratedSantiagoGameState>
-{
+export class SantiagoHydrator implements GameHydrator<
+    SantiagoProjectedState,
+    HydratedSantiagoGameState
+> {
     hydrateAction(data: GameAction): HydratedAction {
         switch (true) {
             case isPlaceSpring(data):
@@ -38,7 +39,7 @@ export class SantiagoHydrator
         }
     }
 
-    hydrateState(state: SantiagoGameState): HydratedSantiagoGameState {
+    hydrateState(state: SantiagoProjectedState): HydratedSantiagoGameState {
         return new HydratedSantiagoGameState(state)
     }
 }

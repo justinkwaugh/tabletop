@@ -15,7 +15,7 @@ import {
     isOverseerDecision,
     isSameSegment,
     type CanalProposal,
-    type SantiagoGameState,
+    type SantiagoProjectedState,
     type CanalSegment,
     type CropType,
     isValidFieldPlacement,
@@ -28,9 +28,17 @@ import {
 import { type GameAction } from '@tabletop/common'
 
 export class SantiagoGameSession extends GameSession<
-    SantiagoGameState,
+    SantiagoProjectedState,
     HydratedSantiagoGameState
 > {
+    override get canExplore(): boolean {
+        return (
+            this.game.config?.publicMoney !== false &&
+            this.gameState.publicMoney !== false &&
+            super.canExplore
+        )
+    }
+
     chosenAction: string | undefined = $state(undefined)
     bidValue: number = $state(0)
     proposalAmount: number = $state(1)

@@ -3,7 +3,7 @@ import type {
     PlayerColorPalette
 } from '@tabletop/frontend-components/definition/gameUiDefinition'
 import { Color } from '@tabletop/common'
-import type { SantiagoGameState, HydratedSantiagoGameState } from '@tabletop/santiago'
+import type { SantiagoProjectedState, HydratedSantiagoGameState } from '@tabletop/santiago'
 import { SantiagoRuntime } from '@tabletop/santiago'
 import { mountDynamicComponent } from '@tabletop/frontend-components/utils/dynamicComponent'
 import { SantiagoColorizer } from './gameColorizer.js'
@@ -19,7 +19,7 @@ const santiagoPlayerColorPalette: PlayerColorPalette = {
     [Color.Purple]: { fill: '#9a0ee6', text: '#ffffff', contrast: '#ffffff' }
 }
 
-export const SantiagoUiRuntime: GameUIRuntime<SantiagoGameState, HydratedSantiagoGameState> = {
+export const SantiagoUiRuntime: GameUIRuntime<SantiagoProjectedState, HydratedSantiagoGameState> = {
     ...SantiagoRuntime,
     gameUI: {
         component: Table,

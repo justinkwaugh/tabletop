@@ -1,8 +1,9 @@
 import { SantiagoGameExploration } from './gameExploration.js'
-import type { GameRuntime } from '@tabletop/common'
+import { Visibility, type GameRuntime } from '@tabletop/common'
 import {
     SantiagoGameStateValidator,
-    type SantiagoGameState,
+    SantiagoGameState,
+    type SantiagoProjectedState,
     type HydratedSantiagoGameState
 } from '../model/gameState.js'
 import { SantiagoHydrator } from './hydrator.js'
@@ -12,7 +13,8 @@ import { SantiagoApiActions } from './apiActions.js'
 import { SantiagoStateHandlers } from './stateHandlers.js'
 import { SantiagoColors } from './colors.js'
 
-export const SantiagoRuntime: GameRuntime<SantiagoGameState, HydratedSantiagoGameState> = {
+export const SantiagoRuntime = {
+    randomnessVersion: 1,
     initializer: new SantiagoGameInitializer(),
     exploration: new SantiagoGameExploration(),
     canonicalStateValidator: SantiagoGameStateValidator,
@@ -20,5 +22,9 @@ export const SantiagoRuntime: GameRuntime<SantiagoGameState, HydratedSantiagoGam
     stateHandlers: SantiagoStateHandlers,
     apiActions: SantiagoApiActions,
     playerColors: SantiagoColors,
-    stateLogger: new SantiagoStateLogger()
-}
+    stateLogger: new SantiagoStateLogger(),
+    visibility: {
+        state: Visibility.createProjector(SantiagoGameState),
+        actions: Visibility.createActionProjector(SantiagoApiActions)
+    }
+} satisfies GameRuntime<SantiagoProjectedState, HydratedSantiagoGameState>

@@ -57,13 +57,14 @@ Sources: [state and scoring](../games/estates/src/model/gameState.ts), [initiali
 
 Sources: [state and scoring](../games/santiago/src/model/gameState.ts), [initializer](../games/santiago/src/definition/gameInitializer.ts), [options](../games/santiago/src/definition/gameConfig.ts), [bidding handler](../games/santiago/src/stateHandlers/bidding.ts), [PlaceBid](../games/santiago/src/actions/placeBid.ts), [round transition](../games/santiago/src/stateHandlers/extraIrrigation.ts).
 
-- **Protect:** ordered `tileBag`. It is a raw array, so introduce a public count rather than treating an omitted/empty array as an exhausted bag.
-- **Conditional fields:** `players[].money` when `publicMoney` is false. Public payments and known starting balances still permit accounting. Final scores intentionally include remaining money and can be revealed at the end.
-- **Keep public:** `revealedTiles`, field placements, canal proposals/amounts, overseer decisions, water infrastructure, and realized drought/income results.
-- **Actions:** `PlaceBid.amount` is public. The handler explicitly implements sequential bidding and uses earlier bids to validate later bids. A simultaneous-group field does not make this auction sealed. The title description's “secretly bid” wording conflicts with this implementation and should be corrected or reconciled during adoption.
-- **Randomness:** protect the tile-bag shuffle; public board setup, colors, and initial order can remain public.
-- **Reveal barrier:** new tiles are drawn when entering the bidding state, including through the end-round cascade. No `revealsInfo` marker was found in the title's implementation. Mark the actual reveal transition so Undo cannot erase knowledge; authoritative fallback alone is not the information-reveal Undo contract.
-- **Exploration:** generate a remaining bag consistent with all publicly removed tiles, including three-player discards, not just tiles still on the board. The existing hook only shuffles canonical contents.
+Implemented in the [Santiago visibility contract](../games/santiago/docs/visibility.md):
+
+- Future tile contents/order and private entropy are concealed; the remaining count stays public.
+- `publicMoney: false` makes balances owner-only until EndOfGame. Sequential bids, payments, canal proposals, tile reveals, and final scores remain public. Public transactions remain inferable.
+- New v3 tile shuffles use protected randomness. Legacy setup and unmarked saved Games retain their existing behavior.
+- Manual spring placement and non-final end-round cascades mark tile reveals as information barriers for Undo.
+- Public-money Exploration samples a possible bag and unknown setup discard from visible board tiles and the current offer. Private-money Exploration is disabled.
+- Conformance includes projected full-game history, all supported player counts, browser perspective switching and Exploration, and pre-adoption saved continuation.
 
 ## Kaivai
 
@@ -139,7 +140,6 @@ These titles need no visibility registration merely because new game instances u
 ## Decisions to resolve before the affected title is implemented
 
 - Whether Container and Indonesia retain their current public-money behavior or adopt concealed/configurable balances.
-- Whether Santiago's money option should enforce delivery concealment as well as presentation, accepting that public transactions remain inferable.
 - Indonesia's city-card privacy and exact current-card reveal point.
 
-Suggested implementation order: Sol first for a public-result/private-deck case; Kaivai for protected dice and final sealed bids; Santiago for its bag and optional money (Estates has adopted protection); Container for owner cards and multistage auctions; Indonesia after its reveal/money decisions; Lowenherz has now adopted the inspection-knowledge design. Bus, Bridges, and Urbino require no hidden-information adoption work on the present findings.
+Suggested implementation order: Sol first for a public-result/private-deck case; Kaivai for protected dice and final sealed bids; Container for owner cards and multistage auctions; Indonesia after its reveal/money decisions; Santiago and Estates have adopted bag and optional-money protection; Lowenherz has adopted the inspection-knowledge design. Bus, Bridges, and Urbino require no hidden-information adoption work on the present findings.
