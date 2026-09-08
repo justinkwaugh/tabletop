@@ -6,7 +6,7 @@
     import { AllianceFormAnimator } from '$lib/animators/allianceFormAnimator.svelte.js'
     import { ScorePopupAnimator } from '$lib/animators/scorePopupAnimator.svelte.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
-    import { HEART_BOX, heartPositions } from '$lib/model/allianceGeometry.js'
+    import { HEART_BOX, heartSpan } from '$lib/model/allianceGeometry.js'
     import { CELL_SIZE, RAMPART_THICKNESS, scaled } from '$lib/model/boardMetrics.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { BOARD_HOVER_INTENT_MS } from '$lib/model/hoverIntent.js'
@@ -1205,53 +1205,64 @@
                  already has was undoing something the player had never seen. The hover
                  preview is now the hearts themselves. -->
             {#each marker.walls as wall (wall.col + ',' + wall.row + ',' + wall.edge + '-heart')}
-                {#each heartPositions(wall) as { left, top }, index (index)}
-                    {#if marker.cancellable}
-                        <!-- A heart's own idle animation is a heartbeat, which is exactly the
-                             "alive, touchable" cue this needs - it beats only while cancelling
-                             is actually open to this player, and sits dead still otherwise.
-                             The words live in aria-label rather than on screen. -->
-                        <button
-                            type="button"
-                            aria-label={allianceCancelLabel(marker)}
-                            title={allianceCancelLabel(marker)}
-                            class="absolute flex items-center justify-center z-40 cursor-pointer rounded-full {previewing
-                                ? ''
-                                : 'alliance-heartbeat'}"
-                            style="left: {left}px; top: {top}px; width: {HEART_BOX}px; height: {HEART_BOX}px;"
-                            onmouseenter={() => (hoveredAllianceId = marker.id)}
-                            onmouseleave={() => (hoveredAllianceId = undefined)}
-                            onfocus={() => (hoveredAllianceId = marker.id)}
-                            onblur={() => (hoveredAllianceId = undefined)}
-                            onclick={(e) => {
-                                e.stopPropagation()
-                                hoveredAllianceId = undefined
-                                gameSession.cancelAlliance(marker.id)
-                            }}
-                        >
-                            <!-- Ducat-gold ring, so the beating heart reads as costing money
-                                 rather than as decoration. -->
+                {@const span = heartSpan(wall)}
+                {#if marker.cancellable}
+                    <!-- A heart's own idle animation is a heartbeat, which is exactly the
+                         "alive, touchable" cue this needs - it beats only while cancelling
+                         is actually open to this player, and sits dead still otherwise.
+                         The words live in aria-label rather than on screen. -->
+                    <button
+                        type="button"
+                        aria-label={allianceCancelLabel(marker)}
+                        title={allianceCancelLabel(marker)}
+                        class="absolute z-40 cursor-pointer rounded-full {previewing
+                            ? ''
+                            : 'alliance-heartbeat'}"
+                        style="left: {span.left}px; top: {span.top}px; width: {span.width}px; height: {span.height}px;"
+                        onmouseenter={() => (hoveredAllianceId = marker.id)}
+                        onmouseleave={() => (hoveredAllianceId = undefined)}
+                        onfocus={() => (hoveredAllianceId = marker.id)}
+                        onblur={() => (hoveredAllianceId = undefined)}
+                        onclick={(e) => {
+                            e.stopPropagation()
+                            hoveredAllianceId = undefined
+                            gameSession.cancelAlliance(marker.id)
+                        }}
+                    >
+                        <!-- Ducat-gold ring, so the beating hearts read as costing money
+                             rather than as decoration. -->
+                        <span
+                            class="absolute inset-0 rounded-full pointer-events-none"
+                            style="border: 1.5px solid rgba(217, 180, 74, {previewing
+                                ? 1
+                                : 0.85}); box-shadow: 0 0 6px rgba(217, 180, 74, 0.55);"
+                        ></span>
+                        <!-- The shiver is on the glyphs, not the button, so the gold ring
+                             stays put and the hearts tremble inside it. -->
+                        {#each span.hearts as heart, index (index)}
                             <span
-                                class="absolute inset-0 rounded-full pointer-events-none"
-                                style="border: 1.5px solid rgba(217, 180, 74, {previewing
-                                    ? 1
-                                    : 0.85}); box-shadow: 0 0 6px rgba(217, 180, 74, 0.55);"
-                            ></span>
-                            <!-- The shiver is on the glyph, not the button, so the gold ring
-                                 stays put and the heart trembles inside it. -->
-                            <span class="absolute inset-0 {previewing ? 'alliance-heart-shiver' : ''}">
+                                class="absolute {previewing ? 'alliance-heart-shiver' : ''}"
+                                style="left: {heart.left}px; top: {heart.top}px; width: {HEART_BOX}px; height: {HEART_BOX}px;"
+                            >
                                 <AllianceHeart broken={previewing} />
                             </span>
-                        </button>
-                    {:else}
-                        <div
-                            class="absolute pointer-events-none z-40"
-                            style="left: {left}px; top: {top}px; width: {HEART_BOX}px; height: {HEART_BOX}px;"
-                        >
-                            <AllianceHeart />
-                        </div>
-                    {/if}
-                {/each}
+                        {/each}
+                    </button>
+                {:else}
+                    <div
+                        class="absolute pointer-events-none z-40"
+                        style="left: {span.left}px; top: {span.top}px; width: {span.width}px; height: {span.height}px;"
+                    >
+                        {#each span.hearts as heart, index (index)}
+                            <span
+                                class="absolute"
+                                style="left: {heart.left}px; top: {heart.top}px; width: {HEART_BOX}px; height: {HEART_BOX}px;"
+                            >
+                                <AllianceHeart />
+                            </span>
+                        {/each}
+                    </div>
+                {/if}
             {/each}
 
             <!-- The price, shown once per alliance (on its first heart) while previewing -

@@ -55,3 +55,25 @@ export function heartPositions(wall: AllianceWall): HeartPosition[] {
         top: (wall.edge === 'west' ? wall.row + offset : wall.row) * CELL_SIZE - half
     }))
 }
+
+export type HeartSpan = {
+    left: number
+    top: number
+    width: number
+    height: number
+    hearts: HeartPosition[]
+}
+
+/** The box enclosing a wall's hearts, with the hearts placed relative to it. */
+export function heartSpan(wall: AllianceWall): HeartSpan {
+    const positions = heartPositions(wall)
+    const left = Math.min(...positions.map((position) => position.left))
+    const top = Math.min(...positions.map((position) => position.top))
+    return {
+        left,
+        top,
+        width: Math.max(...positions.map((position) => position.left)) - left + HEART_BOX,
+        height: Math.max(...positions.map((position) => position.top)) - top + HEART_BOX,
+        hearts: positions.map((position) => ({ left: position.left - left, top: position.top - top }))
+    }
+}
