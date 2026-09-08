@@ -17,7 +17,7 @@ Ordinary protected views have an empty roof bag with a public remaining count. T
 
 In Hidden Money Games, all bidders take an explicit turn. A player unable to raise sees “You can only pass”, an enabled Pass, and a disabled Bid. An auctioneer unable to buy out still confirms No; Yes is disabled. Other perspectives see the normal waiting state, without an automatic cash-based skip.
 
-Exploration is disabled for Hidden Money Games in every perspective and phase, including legacy Games configured with the option. The control remains available for public-money Games, where hypothetical roof contents are sampled from public observations.
+Exploration is disabled for Hidden Money Games in every perspective and phase, including legacy Games configured with the option. Its lightbulb uses the disabled color whenever entry is unavailable. The control remains available for public-money Games, where hypothetical roof contents are sampled from public observations, and returning from an active exploration remains enabled.
 
 Adoption requires matching Estates Logic and UI publications, with versions assigned at deployment. See [visibility and compatibility](../../estates/docs/visibility.md).
 
