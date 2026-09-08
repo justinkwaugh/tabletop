@@ -79,7 +79,7 @@ export async function inspectScene(page: Page) {
         [
             '**/AuctionPreview.svelte*',
             '$.set(group, ref, true);',
-            'window.estatesPreview = ref; window.estatesPreviewAnimating = () => gsap.getTweensOf(ref.position).some(tween => tween.isActive()); $.set(group, ref, true);'
+            'window.estatesPreview = ref; window.estatesPreviewAnimating = () => ref.position.y < 0; $.set(group, ref, true);'
         ]
     ]) {
         await page.route(url, async (route) => {

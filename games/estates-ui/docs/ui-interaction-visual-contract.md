@@ -35,11 +35,11 @@ Postprocessing selections contain the meshes emphasized by pointer interaction. 
 
 The board's effect composer owns the main scene render, with Threlte's automatic scene render disabled. The HUD and HTML projection tasks share the on-demand render stage. Camera controls run their update step without automatically requesting a frame; their update events request rendering when the camera changes. Player panels face the updated camera before rendering.
 
-Threlte runs reveal callbacks inside a tracked effect. Camera fitting on reveal must exclude the debounce timer's reactive bookkeeping from that effect's dependencies.
+Canvas dimensions come from an explicit size subscription. Model attachment and size changes schedule camera fitting through a plain debounce timer; unmounting cancels the timer and subscription. Components do not use reactive effects for lifecycle or animation ownership.
 
 Panel height is a projection of the visible board. Changes animate the persistent Three.js group through the shared action timeline, with a 200ms state-only fallback; silent swaps apply the derived height immediately. Preview entrance is local presentation and does not gate interaction. Its movement and visibility animations are canceled when their nodes unmount.
 
-Reactive Threlte properties request their own frames. Imperative Three.js tweens and postprocessing selection changes explicitly invalidate the board, including final tween values and delayed highlight removal. DOM-only fades do not require WebGL draws. No change to the Site Frontend / Game UI host contract is required; adopting this behavior requires republishing the Estates UI Artifact.
+Reactive Threlte properties request their own frames. Imperative Three.js tweens and postprocessing selection changes explicitly invalidate the board, including final tween values and delayed highlight removal. HTML controls use 200ms CSS opacity transitions and disable pointer events while hidden; these fades do not require WebGL draws. Placement pulses animate Three.js material opacity directly, stop after their exit fade, and are disposed with their material. Inactive mayor cues do not consume pointer events. Preview rotation also updates its Three.js group directly, without per-frame reactive writes. No change to the Site Frontend / Game UI host contract is required; adopting this behavior requires republishing the Estates UI Artifact.
 
 ## Verification scenarios
 

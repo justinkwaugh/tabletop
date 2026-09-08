@@ -14,15 +14,13 @@
     import Cert3d from './Cert3d.svelte'
     import PlayerPanel3d from './PlayerPanel3d.svelte'
     import GlowingCircle from './GlowingCircle.svelte'
-    import { gsap, Power1 } from 'gsap'
     import { Company, HydratedEstatesGameState, isMayor, MachineState } from '@tabletop/estates'
     import CameraControls from 'camera-controls'
     import { fade, fadeIn, fadeOut, hideInstant, scale } from '$lib/utils/animations'
-    import { useDebounce } from 'runed'
     import { AnimationContext, GameSessionMode } from '@tabletop/frontend-components'
     import type { GameAction } from '@tabletop/common'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
-    import { onDestroy } from 'svelte'
+    import { onDestroy, onMount, tick } from 'svelte'
 
     CameraControls.install({ THREE: THREE })
 
@@ -221,72 +219,40 @@
     let lastWidth: number = 0
     let lastHeight: number = 0
 
-    const adjustRenderSize = useDebounce(() => {
-        if (!lastWidth || !lastHeight) {
-            return
-        }
+    let resizeTimer: ReturnType<typeof setTimeout> | undefined
+    let mounted = false
 
-        if (lastWidth < lastHeight) {
-            gameSession.mobileView = true
-            moveCameraToOverhead()
-        } else {
-            gameSession.mobileView = false
-            moveCameraToFit()
-        }
-    }, 50)
+    function adjustRenderSize() {
+        clearTimeout(resizeTimer)
+        resizeTimer = setTimeout(async () => {
+            if (!mounted || !lastWidth || !lastHeight) return
+            gameSession.mobileView = lastWidth < lastHeight
+            await tick()
+            if (!mounted) return
+            if (gameSession.mobileView) await moveCameraToOverhead()
+            else await moveCameraToFit()
+        }, 50)
+    }
 
-    $effect(() => {
-        const newWidth = $size.width
-        const newHeight = $size.height
-        if (newWidth === lastWidth && newHeight === lastHeight) {
-            return
-        }
-        lastWidth = newWidth
-        lastHeight = newHeight
-
-        adjustRenderSize()
-    })
-
-    sizingGroup.addEventListener('childadded', (e) => {
-        setTimeout(adjustRenderSize, 1)
-    })
-
-    let pulseOpacity = $state({ opacity: 0 })
-    const pulse = gsap.timeline()
-    pulse.to(pulseOpacity, {
-        opacity: 1,
-        duration: 0.6,
-        ease: Power1.easeIn
-    })
-    pulse.to(pulseOpacity, {
-        opacity: 0.15,
-        duration: 1.2,
-        ease: Power1.easeInOut,
-        repeat: -1,
-        yoyo: true
-    })
-
-    let showingMayorHighlights = $state(false)
-    $effect(() => {
-        if (showMayorHighlights) {
-            showingMayorHighlights = true
-            pulse.play(0)
-        } else {
-            pulse.pause()
-            gsap.to(pulseOpacity, {
-                opacity: 0,
-                duration: 0.2,
-                onComplete: () => {
-                    showingMayorHighlights = false
-                }
-            })
+    onMount(() => {
+        mounted = true
+        const unsubscribe = size.subscribe(({ width, height }) => {
+            if (width === lastWidth && height === lastHeight) return
+            lastWidth = width
+            lastHeight = height
+            adjustRenderSize()
+        })
+        sizingGroup.addEventListener('childadded', adjustRenderSize)
+        return () => {
+            mounted = false
+            unsubscribe()
+            clearTimeout(resizeTimer)
+            sizingGroup.removeEventListener('childadded', adjustRenderSize)
         }
     })
 
     onDestroy(() => {
         gameSession.removeGameStateChangeListener(onGameStateChange)
-        pulse.kill()
-        gsap.killTweensOf(pulseOpacity)
     })
 </script>
 
@@ -314,6 +280,7 @@
 
         return () => {
             cameraControls?.dispose()
+            cameraControls = undefined
         }
     }}
 ></T.PerspectiveCamera>
@@ -399,70 +366,39 @@
             />
         {/if}
     {/each}
-    {#if showMayorHighlights || showingMayorHighlights}
+    {#each RowOffsets as offset, row}
         <GlowingCircle
             onpointerenter={(event: any) => {
+                if (!showMayorHighlights) return
                 event.stopPropagation()
-                ghostHat = 0
+                ghostHat = row
             }}
             onpointerleave={(event: any) => {
+                if (!showMayorHighlights) return
                 event.stopPropagation()
                 ghostHat = undefined
             }}
             onclick={(event: any) => {
+                if (!showMayorHighlights) return
                 event.stopPropagation()
-                placeMayor(0)
+                placeMayor(row)
             }}
-            position={[10.1, -0.49, RowOffsets[0]]}
-            opacity={pulseOpacity.opacity}
+            position={[10.1, -0.49, offset]}
+            active={showMayorHighlights}
             rotation.x={-Math.PI / 2}
         />
-        <GlowingCircle
-            onpointerenter={(event: any) => {
-                event.stopPropagation()
-                ghostHat = 1
-            }}
-            onpointerleave={(event: any) => {
-                event.stopPropagation()
-                ghostHat = undefined
-            }}
-            onclick={(event: any) => {
-                event.stopPropagation()
-                placeMayor(1)
-            }}
-            position={[10.1, -0.49, RowOffsets[1]]}
-            opacity={pulseOpacity.opacity}
-            rotation.x={-Math.PI / 2}
-        />
-        <GlowingCircle
-            onpointerenter={(event: any) => {
-                event.stopPropagation()
-                ghostHat = 2
-            }}
-            onpointerleave={(event: any) => {
-                event.stopPropagation()
-                ghostHat = undefined
-            }}
-            onclick={(event: any) => {
-                event.stopPropagation()
-                placeMayor(2)
-            }}
-            position={[10.1, -0.49, RowOffsets[2]]}
-            opacity={pulseOpacity.opacity}
-            rotation.x={-Math.PI / 2}
-        />
+    {/each}
 
-        {#if ghostHat !== undefined}
-            <TopHat
-                onloaded={(ref: Object3D) => {
-                    hideInstant(ref)
-                    fadeInHat(ref)
-                }}
-                scale={0.5}
-                position.y={0}
-                position.x={10.1}
-                position.z={RowOffsets[ghostHat]}
-            />
-        {/if}
+    {#if showMayorHighlights && ghostHat !== undefined}
+        <TopHat
+            onloaded={(ref: Object3D) => {
+                hideInstant(ref)
+                fadeInHat(ref)
+            }}
+            scale={0.5}
+            position.y={0}
+            position.x={10.1}
+            position.z={RowOffsets[ghostHat]}
+        />
     {/if}
 </Suspense>

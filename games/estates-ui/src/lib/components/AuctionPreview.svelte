@@ -1,6 +1,6 @@
 <script lang="ts">
     import { T, useTask, useThrelte } from '@threlte/core'
-    import { onMount } from 'svelte'
+    import { onMount, tick } from 'svelte'
     import Cube3d from './Cube3d.svelte'
     import {
         HydratedEstatesGameState,
@@ -10,13 +10,12 @@
         isMayor,
         isRoof
     } from '@tabletop/estates'
-    import { gsap } from 'gsap'
     import { Object3D } from 'three'
     import TopHat from '$lib/3d/TopHat.svelte'
     import CancelCube from './CancelCube.svelte'
     import Roof from './Roof3d.svelte'
     import BarrierOne from '$lib/3d/BarrierOne.svelte'
-    import { fade, fadeOut, hideInstant } from '$lib/utils/animations'
+    import { AuctionPreviewGroup } from '$lib/utils/auctionPreviewGroup.js'
     import type { GameAction } from '@tabletop/common'
     import type { AnimationContext } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
@@ -27,18 +26,18 @@
         $props()
 
     let auctionPiece = $derived(gameSession.gameState.chosenPiece)
-    let rotation = $state(0)
+    let group = $state<AuctionPreviewGroup>()
     useTask(
         (delta) => {
-            rotation += delta
+            if (group) group.rotation.y += delta
         },
         { running: () => !!auctionPiece && !hidden }
     )
 
-    let group = $state<Object3D>()
-    let piece = $state<Object3D>()
-
-    let visibilityTimeline: gsap.core.Timeline | undefined
+    async function revealPiece(ref: Object3D) {
+        await tick()
+        group?.reveal(ref)
+    }
 
     async function onGameStateChange({
         to,
@@ -53,42 +52,9 @@
     }) {
         const object = group
         if (object && from?.chosenPiece && !to.chosenPiece) {
-            visibilityTimeline?.kill()
-            fadeOut({
-                onUpdate: invalidate,
-                object,
-                duration: 0.2,
-                timeline: animationContext.actionTimeline,
-                startAt: 0
-            })
+            object.leave(animationContext.actionTimeline)
         }
     }
-
-    $effect(() => {
-        if (!group || !piece) {
-            return
-        }
-        const timeline = fade({
-            object: group,
-            opacity: hidden ? 0 : 1,
-            duration: 0.2,
-            onUpdate: invalidate
-        })
-        visibilityTimeline = timeline
-        return () => timeline.kill()
-    })
-
-    $effect(() => {
-        if (!group || !piece) {
-            return
-        }
-        const tween = gsap.fromTo(
-            group.position,
-            { y: -2.4 },
-            { y: 0, duration: 0.2, onUpdate: invalidate }
-        )
-        return () => tween.kill()
-    })
 
     onMount(() => {
         gameSession.addGameStateChangeListener(onGameStateChange)
@@ -100,65 +66,58 @@
 
 {#if auctionPiece}
     <T.Group {position}>
-        <T.Group
+        <T
+            is={AuctionPreviewGroup}
+            args={[invalidate]}
+            concealed={hidden}
             scale={gameSession.mobileView ? 0.7 : 0.8}
-            oncreate={(ref: Object3D) => {
+            oncreate={(ref: AuctionPreviewGroup) => {
                 group = ref
                 return () => {
+                    ref.dispose()
                     group = undefined
-                    piece = undefined
                 }
             }}
         >
             {#if isCube(auctionPiece)}
                 <Cube3d
                     oncreate={(ref: Object3D) => {
-                        hideInstant(ref)
-                        piece = ref
+                        void revealPiece(ref)
                     }}
                     position={[0, 0, 0]}
-                    rotation.y={rotation}
                     cube={auctionPiece}
                 />
             {:else if isMayor(auctionPiece)}
                 <TopHat
                     onloaded={(ref: Object3D) => {
-                        hideInstant(ref)
-                        piece = ref
+                        void revealPiece(ref)
                     }}
-                    rotation.y={rotation}
                     position.y={0.15}
                     scale={0.46}
                 />
             {:else if isCancelCube(auctionPiece)}
                 <CancelCube
                     oncreate={(ref: Object3D) => {
-                        hideInstant(ref)
-                        piece = ref
+                        void revealPiece(ref)
                     }}
-                    rotation.y={rotation}
                 />
             {:else if isBarrier(auctionPiece)}
                 <BarrierOne
                     onloaded={(ref: Object3D) => {
-                        hideInstant(ref)
-                        piece = ref
+                        void revealPiece(ref)
                     }}
                     stripes={auctionPiece.value}
                     scale={1}
-                    rotation.y={rotation}
                 />
             {:else if isRoof(auctionPiece)}
                 <Roof
                     onloaded={(ref: Object3D) => {
-                        hideInstant(ref)
-                        piece = ref
+                        void revealPiece(ref)
                     }}
                     roof={auctionPiece}
                     rotation.x={Math.PI / 2}
-                    rotation.z={-rotation}
                 />
             {/if}
-        </T.Group>
+        </T>
     </T.Group>
 {/if}

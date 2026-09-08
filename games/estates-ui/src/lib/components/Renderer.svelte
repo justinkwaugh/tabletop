@@ -1,6 +1,6 @@
 <script lang="ts">
     import { useThrelte, useTask } from '@threlte/core'
-    import { onDestroy } from 'svelte'
+    import { onMount } from 'svelte'
     import {
         EffectComposer,
         EffectPass,
@@ -66,18 +66,18 @@
         effects.outline = outlineEffect
         effects.pulseOutline = pulseOutlineEffect
     }
-    let cameraSetup = false
-    $effect(() => {
-        if (cameraSetup) return
-        setupEffectComposer($camera)
-        cameraSetup = true
-    })
-    $effect(() => {
-        composer.setSize($size.width, $size.height)
-        invalidate()
+    onMount(() => {
+        setupEffectComposer(camera.current)
+        const unsubscribe = size.subscribe(({ width, height }) => {
+            composer.setSize(width, height)
+            invalidate()
+        })
+        return () => {
+            unsubscribe()
+            composer.dispose()
+        }
     })
 
-    onDestroy(() => composer.dispose())
     useTask(
         (delta) => {
             composer.render(delta)

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import '$lib/styles/hud.css'
     import { useViewport, HTML } from '@threlte/extras'
     import AuctionPreview from './AuctionPreview.svelte'
     import HighBid from './HighBid.svelte'
@@ -9,13 +10,11 @@
     import WaitingInstructions from './WaitingInstructions.svelte'
     import GameEndPanel from './GameEndPanel.svelte'
     import Offer from './Offer.svelte'
-    import { fade } from '$lib/utils/animations'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let gameSession = getGameSession()
 
     const viewport = useViewport()
-    let auctionControls = $state<HTMLDivElement>()
 
     let instructionY = $derived.by(() => {
         if (
@@ -28,24 +27,13 @@
             return $viewport.height / 2 - 0.6
         }
     })
-    $effect(() => {
-        if (!auctionControls) {
-            return
-        }
-        const timeline = fade({
-            object: auctionControls,
-            opacity: gameSession.shouldHideHud ? 0 : 1,
-            duration: 0.2
-        })
-        return () => timeline.kill()
-    })
 </script>
 
 {#if gameSession.gameState.machineState === MachineState.Auctioning && gameSession.isPlayable}
     <HTML position.y={$viewport.height / 2 - 0.6} center>
         <div
-            bind:this={auctionControls}
-            class="flex flex-col justify-start items-center gap-y-4 opacity-0"
+            class:hud-hidden={gameSession.shouldHideHud}
+            class="flex flex-col justify-start items-center gap-y-4 hud-fade"
         >
             <div class="w-[340px] flex flex-row justify-between items-center">
                 <HighBid />

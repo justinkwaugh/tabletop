@@ -2,7 +2,6 @@
     import { T } from '@threlte/core'
     import { useTexture, onReveal, useSuspense } from '@threlte/extras'
     import boardImg from '$lib/images/board.jpg'
-    import { untrack } from 'svelte'
 
     let { onrender }: { onrender?: () => void } = $props()
 
@@ -12,7 +11,7 @@
     const width = height * 2.75
 
     onReveal(() => {
-        untrack(() => onrender?.())
+        onrender?.()
     })
 </script>
 

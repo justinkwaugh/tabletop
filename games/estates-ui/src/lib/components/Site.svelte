@@ -21,7 +21,8 @@
     import Barrier3d from '$lib/3d/BarrierOne.svelte'
     import type { Effects } from '$lib/model/Effects.svelte'
     import { EffectHighlighter } from '$lib/utils/effectHighlighter'
-    import { gsap, Power1, Power2 } from 'gsap'
+    import { gsap, Power2 } from 'gsap'
+    import { PulsingMaterial } from '$lib/utils/pulsingMaterial.js'
     import { fadeOut, scaleIn, scaleOut } from '$lib/utils/animations'
     import type { Object3D } from 'three'
     import { ColumnOffsets } from '$lib/utils/boardOffsets'
@@ -331,37 +332,6 @@
         return calculateBarrierOffset(site.barriers)
     })
 
-    let pulseOpacity = $state({ opacity: 0 })
-    const pulse = gsap.timeline()
-    pulse.to(pulseOpacity, {
-        opacity: 1,
-        duration: 0.6,
-        ease: Power1.easeIn
-    })
-    pulse.to(pulseOpacity, {
-        opacity: 0.4,
-        duration: 1.2,
-        ease: Power1.easeInOut,
-        repeat: -1,
-        yoyo: true
-    })
-    let showing = $state(false)
-    $effect(() => {
-        if (canPreview) {
-            showing = true
-            pulse.play(0)
-        } else {
-            pulse.pause()
-            gsap.to(pulseOpacity, {
-                opacity: 0,
-                duration: 0.2,
-                onComplete: () => {
-                    showing = false
-                }
-            })
-        }
-    })
-
     const sneakyBuildings: boolean = $derived.by(() => {
         const config = gameSession.game.config
         if (!config) {
@@ -372,27 +342,23 @@
     onDestroy(() => {
         gameSession.removeGameStateChangeListener(onGameStateChange)
         bloomer.dispose()
-        pulse.kill()
-        gsap.killTweensOf(pulseOpacity)
     })
 </script>
 
 <T.Group position.x={x} position.y={y} position.z={z} scale={1}>
-    {#if canPreview || showing}
-        <T.Mesh
-            oncreate={(ref) => {
-                effects.bloom?.selection.add(ref)
-                return () => {
-                    effects.bloom?.selection.delete(ref)
-                }
-            }}
-            position.y={-0.49 + site.cubes.length}
-            rotation.x={-Math.PI / 2}
-        >
-            <T.PlaneGeometry args={site.cubes.length === 0 ? [1, 1] : [1, 1]} />
-            <T.MeshBasicMaterial color="white" transparent={true} opacity={pulseOpacity.opacity} />
-        </T.Mesh>
-    {/if}
+    <T.Mesh
+        oncreate={(ref) => {
+            effects.bloom?.selection.add(ref)
+            return () => {
+                effects.bloom?.selection.delete(ref)
+            }
+        }}
+        position.y={-0.49 + site.cubes.length}
+        rotation.x={-Math.PI / 2}
+    >
+        <T.PlaneGeometry args={[1, 1]} />
+        <T is={PulsingMaterial} args={[invalidate, 0.4]} active={canPreview} />
+    </T.Mesh>
     <!-- This mesh is used to make pointer enter/leave more simple -->
     {#if canPreview}
         <T.Mesh
