@@ -70,12 +70,13 @@ Implemented in the [Santiago visibility contract](../games/santiago/docs/visibil
 
 Sources: [state](../games/kaivai/src/model/gameState.ts), [normal bid](../games/kaivai/src/actions/placeBid.ts), [scoring bid](../games/kaivai/src/actions/placeScoringBid.ts), [island bidding](../games/kaivai/src/stateHandlers/islandBidding.ts), [ScoreIsland](../games/kaivai/src/actions/scoreIsland.ts), [Fish](../games/kaivai/src/actions/fish.ts).
 
-- **Protect:** entries in `bids` during final island bidding, known only to the submitting player until resolution. Preserve the public bidder list/submission status.
-- **Keep public:** ordinary round bids. Those are sequential and determine visible `buildingCost` and `baseMovement`. The same `bids` record is used for both systems; a blanket private annotation would conceal information required by normal bidding.
-- **Actions:** protect `PlaceScoringBid.amount` with actor entitlement. Keep `PlaceBid.amount` public. `ScoreIsland.metadata.playerMajorities[playerId].influence` already records each revealed final bid, alongside public huts, boats, winners, and awards; retain this as the public reveal snapshot.
-- **Randomness:** both editions' randomized fishing branches currently use `state.prng`. Move them to the version-aware protected accessor. Some less-luck variants still roll dice and need protection; the luckless deterministic branch does not. Keep fishing location and realized `numFish`/`dieResults` metadata public.
-- **Schema dependency:** `Record<playerId, number>` does not supply the immediate containing `playerId` required by `Policy.Owner`. Separate normal/scoring bid structures or use explicit owner-bearing records and an appropriate reveal representation.
-- **Exploration:** sample unknown pending scoring bids within public influence constraints, preserve the explorer's own known bid, and use fresh hypothetical dice entropy. No unseen future dice result should come from the real game.
+Implemented in the repository; see the [visibility and compatibility contract](../games/kaivai/docs/visibility.md).
+
+- **Protect:** new `scoringBids` records retain public player identities and conceal amounts with owner entitlement. Ordinary `bids` remain public.
+- **Actions:** `PlaceScoringBid.amount` is actor-private. `ScoreIsland.metadata.playerMajorities[playerId].influence` publishes every final bid at the reveal barrier; old submissions remain private.
+- **Randomness:** both editions' randomized fishing and Less Luck branches use the version-aware protected stream. Luckless fishing stays deterministic. Public setup and fishing result metadata remain public.
+- **Exploration:** sample only unknown submitted amounts within each player's public influence, preserving known amounts. Shared preparation supplies fresh hypothetical dice entropy.
+- **Compatibility:** missing `scoringBids` preserves the legacy map path without migrating history. Unmarked Games retain canonical delivery, and v1/v2 fishing retains public randomness. Publication requires matching new Logic/UI Artifacts and major-version reload protection.
 
 ## Container
 
@@ -142,4 +143,4 @@ These titles need no visibility registration merely because new game instances u
 - Whether Container and Indonesia retain their current public-money behavior or adopt concealed/configurable balances.
 - Indonesia's city-card privacy and exact current-card reveal point.
 
-Suggested implementation order: Sol first for a public-result/private-deck case; Kaivai for protected dice and final sealed bids; Container for owner cards and multistage auctions; Indonesia after its reveal/money decisions; Santiago and Estates have adopted bag and optional-money protection; Lowenherz has adopted the inspection-knowledge design. Bus, Bridges, and Urbino require no hidden-information adoption work on the present findings.
+Suggested implementation order: Container for owner cards and multistage auctions; Indonesia after its reveal/money decisions. Sol and Kaivai have adopted protection; Santiago and Estates have adopted bag and optional-money protection; Lowenherz has adopted the inspection-knowledge design. Bus, Bridges, and Urbino require no hidden-information adoption work on the present findings.

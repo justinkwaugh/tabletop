@@ -8,6 +8,7 @@ import {
     isMoveGod,
     isPass,
     isPlaceBid,
+    isPlaceScoringBid,
     isLoseValue,
     isIncrease,
     isSacrifice,
@@ -24,6 +25,11 @@ export function getHistoryDescriptionForAction(action?: GameAction, self?: boole
     switch (true) {
         case isPlaceBid(action): {
             return `placed a bid of ${action.amount}`
+        }
+        case isPlaceScoringBid(action): {
+            return action.amount === undefined
+                ? 'submitted a scoring bid'
+                : `submitted a scoring bid of ${action.amount}`
         }
         case isDeliver(action): {
             const numFish = action.deliveries.reduce((acc, delivery) => acc + delivery.amount, 0)

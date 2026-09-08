@@ -3,7 +3,7 @@ import type {
     PlayerColorPalette
 } from '@tabletop/frontend-components/definition/gameUiDefinition'
 import { Color } from '@tabletop/common'
-import type { HydratedKaivaiGameState, KaivaiGameState } from '@tabletop/kaivai'
+import type { HydratedKaivaiGameState, KaivaiProjectedState } from '@tabletop/kaivai'
 import { KaivaiRuntime } from '@tabletop/kaivai'
 import { mountDynamicComponent } from '@tabletop/frontend-components/utils/dynamicComponent'
 import { KaivaiGameColorizer } from './gameColorizer.js'
@@ -33,7 +33,7 @@ const kaivaiPlayerColorPalette: PlayerColorPalette = {
     }
 }
 
-export const KaivaiUiRuntime: GameUIRuntime<KaivaiGameState, HydratedKaivaiGameState> = {
+export const KaivaiUiRuntime: GameUIRuntime<KaivaiProjectedState, HydratedKaivaiGameState> = {
     ...KaivaiRuntime,
     gameUI: {
         component: Table,

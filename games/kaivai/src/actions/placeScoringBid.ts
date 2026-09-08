@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction } from '@tabletop/common'
+import { GameAction, HydratableAction, Visibility } from '@tabletop/common'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
@@ -11,7 +11,7 @@ export const PlaceScoringBid = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.PlaceScoringBid),
             playerId: Type.String(),
-            amount: Type.Number()
+            amount: Visibility.protect(Type.Number(), { policy: Visibility.Policy.Actor })
         })
     ])
 )
@@ -45,7 +45,11 @@ export class HydratedPlaceScoringBid
             throw Error(reason)
         }
 
-        state.bids[this.playerId] = this.amount
+        if (state.scoringBids === undefined) {
+            state.bids[this.playerId] = this.amount
+        } else {
+            state.scoringBids.push({ playerId: this.playerId, amount: this.amount })
+        }
     }
 
     static isValidBid(
@@ -62,7 +66,11 @@ export class HydratedPlaceScoringBid
             return { valid: false, reason: 'Player is not a bidder' }
         }
 
-        if (Object.keys(state.bids).includes(playerId)) {
+        const alreadyBid =
+            state.scoringBids === undefined
+                ? Object.hasOwn(state.bids, playerId)
+                : state.scoringBids.some((bid) => bid.playerId === playerId)
+        if (alreadyBid) {
             return { valid: false, reason: 'Player already bid' }
         }
 
