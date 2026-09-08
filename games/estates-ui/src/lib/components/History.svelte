@@ -2,16 +2,15 @@
     import { Timeline, TimelineItem } from 'flowbite-svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { type GameAction } from '@tabletop/common'
-    import TimeAgo from 'javascript-time-ago'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { GameSessionMode } from '@tabletop/frontend-components'
+    import { createTimeAgo, GameSessionMode } from '@tabletop/frontend-components'
     import { isDrawRoof } from '@tabletop/estates'
     import ActionDescription from '$lib/components/ActionDescription.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    const timeAgo = new TimeAgo('en-US')
+    const timeAgo = createTimeAgo()
 
     let gameSession = getGameSession() as EstatesGameSession
 

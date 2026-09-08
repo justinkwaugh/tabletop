@@ -214,15 +214,21 @@ export class HydratedSolGameBoard
             return { gates: [], direct: false }
         }
 
-        const directPath = current.row === end.row
-
         const localGates = this.findGatesLocalToRing(current.row)
         const remainingRange =
             effectiveRange !== undefined ? effectiveRange - (path.length - 1) : undefined
+        const directPath = this.pathToDestination({
+            start: current,
+            destination: end,
+            range: remainingRange,
+            requiredGatesOnly: true,
+            illegalCoordinates,
+            portal
+        })
 
         // Check each gate to see if the path from the opposite side of the gate to the destination is valid
         return {
-            direct: directPath,
+            direct: directPath !== undefined,
             gates: localGates.filter((gate) => {
                 if (!gate.innerCoords || !gate.outerCoords) {
                     return false

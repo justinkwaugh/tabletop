@@ -3,16 +3,15 @@
     import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svelte'
     import { ActionType, isDrawTile, isEndAuction, isMarketTile } from '@tabletop/fresh-fish'
     import type { GameAction } from '@tabletop/common'
-    import TimeAgo from 'javascript-time-ago'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { GameSessionMode, PlayerName } from '@tabletop/frontend-components'
+    import { createTimeAgo, GameSessionMode, PlayerName } from '@tabletop/frontend-components'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
     import AuctionResults from './AuctionResults.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    const timeAgo = new TimeAgo('en-US')
+    const timeAgo = createTimeAgo()
 
     let gameSession = getGameSession() as FreshFishGameSession
     let unhighlightTimeout: ReturnType<typeof setTimeout>

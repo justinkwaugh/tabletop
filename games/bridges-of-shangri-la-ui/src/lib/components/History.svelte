@@ -7,15 +7,14 @@
         isBeginJourney
     } from '@tabletop/bridges-of-shangri-la'
     import type { GameAction } from '@tabletop/common'
-    import TimeAgo from 'javascript-time-ago'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    const timeAgo = new TimeAgo('en-US')
+    const timeAgo = createTimeAgo()
 
     let gameSession = getGameSession() as BridgesGameSession
     let unhighlightTimeout: ReturnType<typeof setTimeout>

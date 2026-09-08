@@ -1,10 +1,3 @@
-<script module lang="ts">
-    import TimeAgo from 'javascript-time-ago'
-    import en from 'javascript-time-ago/locale/en'
-
-    TimeAgo.addDefaultLocale(en)
-</script>
-
 <script lang="ts">
     import 'es-iterator-helpers/auto'
     import { onMount, onDestroy, untrack } from 'svelte'

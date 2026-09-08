@@ -2,18 +2,17 @@
     import { Timeline, TimelineItem } from 'flowbite-svelte'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import type { GameAction } from '@tabletop/common'
-    import TimeAgo from 'javascript-time-ago'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { GameSessionMode, PlayerName } from '@tabletop/frontend-components'
+    import { createTimeAgo, GameSessionMode, PlayerName } from '@tabletop/frontend-components'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
     import { isChooseActivate, isChooseConvert, isChooseMove } from '@tabletop/sol'
     import ActionDescription from './ActionDescription.svelte'
     import { aggregateActions } from '$lib/utils/actionAggregator.js'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    const timeAgo = new TimeAgo('en-US')
+    const timeAgo = createTimeAgo()
 
     let gameSession = getGameSession() as SolGameSession
     let unhighlightTimeout: ReturnType<typeof setTimeout>
