@@ -14,7 +14,8 @@
     import { getContext } from 'svelte'
     import type { Effects } from '$lib/model/Effects.svelte'
 
-    const { scene, renderer, camera, size } = useThrelte()
+    const { scene, renderer, camera, size, renderStage, invalidate } = useThrelte()
+    const effects = getContext<Effects>('effects')
 
     // Adapt the default WebGLRenderer: https://github.com/pmndrs/postprocessing#usage
     const composer = new EffectComposer(renderer, {
@@ -61,30 +62,22 @@
 
         composer.addPass(new EffectPass(camera, pulseOutlineEffect))
 
-        const effects = getContext('effects') as Effects
         effects.bloom = bloomEffect
         effects.outline = outlineEffect
         effects.pulseOutline = pulseOutlineEffect
     }
-    // We need to set up the passes according to the camera in use
-    let cameraSetup = false
-    $effect(() => {
-        if (cameraSetup) return
-        setupEffectComposer($camera)
-        cameraSetup = true
-    })
-    $effect(() => {
-        composer.setSize($size.width, $size.height)
+    onMount(() => {
+        setupEffectComposer(camera.current)
+        const unsubscribe = size.subscribe(({ width, height }) => {
+            composer.setSize(width, height)
+            invalidate()
+        })
+        return () => {
+            unsubscribe()
+            composer.dispose()
+        }
     })
 
-    const { renderStage, autoRender } = useThrelte()
-    // We need to disable auto rendering as soon as this component is
-    // mounted and restore the previous state when it is unmounted.
-    onMount(() => {
-        let before = autoRender.current
-        autoRender.set(false)
-        return () => autoRender.set(before)
-    })
     useTask(
         (delta) => {
             composer.render(delta)

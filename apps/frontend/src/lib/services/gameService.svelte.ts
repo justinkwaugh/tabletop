@@ -1,7 +1,9 @@
 import {
     GameSession,
+    validateLocalGameState,
     type GameService as GameServiceInterface,
     TabletopApi,
+    type GetGameOptions,
     type AuthorizationService,
     type GameStore,
     type NotificationEvent,
@@ -11,6 +13,7 @@ import {
     IndexedDbGameStore
 } from '@tabletop/frontend-components'
 import {
+    type GameCreationOptions,
     Game,
     type GameNotification,
     GameNotificationAction,
@@ -21,20 +24,22 @@ import {
     GameState,
     type HydratedGameState,
     GameEngine,
+    createGameFork,
+    GameForkError,
     GameStorage,
     GameCategory,
-    RunMode,
-    PlayerStatus,
-    assertExists
+    PlayerStatus
 } from '@tabletop/common'
 import * as Value from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
 import { NotificationService } from './notificationService.svelte'
 
 import type { LibraryService } from './libraryService.svelte'
-import { nanoid } from 'nanoid'
 
 export class GameService implements GameServiceInterface {
+    get supportsReproductionSeed(): boolean {
+        return this.api.supportsReproductionSeed === true
+    }
     private gamesById: Map<string, Game> = new SvelteMap()
     private localGamesById: Map<string, Game> = new SvelteMap()
 
@@ -160,7 +165,10 @@ export class GameService implements GameServiceInterface {
         this.openGamesByTitleId.set(titleId, response)
     }
 
-    async loadGame(id: string): Promise<{ game?: Game; actions: GameAction[] }> {
+    async loadGame(
+        id: string,
+        options: GetGameOptions = {}
+    ): Promise<{ game?: Game; actions: GameAction[] }> {
         await this.libraryService.whenReady()
         // First check local hotseat games
         if (!this.localGamesById.has(id)) {
@@ -172,11 +180,14 @@ export class GameService implements GameServiceInterface {
 
         const localGame = this.localGamesById.get(id)
         if (localGame) {
-            return await this.localGameStore.loadGameData(id)
+            const data = await this.localGameStore.loadGameData(id)
+            if (data.game?.state)
+                await validateLocalGameState(this.libraryService, data.game, data.game.state)
+            return data
         }
 
         // Check remote games
-        const { game, actions } = await this.api.getGame(id)
+        const { game, actions } = await this.api.getGame(id, options)
         if (game) {
             this.gamesById.set(game.id, game)
         }
@@ -184,10 +195,12 @@ export class GameService implements GameServiceInterface {
     }
 
     getExplorations(gameId: string): Game[] {
-        return Array.from(this.localGamesById.values()).filter((game) => game.parentId === gameId)
+        return Array.from(this.localGamesById.values()).filter(
+            (game) => game.parentId === gameId && game.category === GameCategory.Exploration
+        )
     }
 
-    async createGame(game: Partial<Game>): Promise<Game> {
+    async createGame(game: Partial<Game>, options?: GameCreationOptions): Promise<Game> {
         await this.libraryService.whenReady()
         let newGame: Game
         if (!game.typeId) {
@@ -209,14 +222,17 @@ export class GameService implements GameServiceInterface {
             const initializedGame = runtime.initializer.initializeGame(game, gameDefinition)
 
             const engine = new GameEngine(runtime)
-            const { startedGame, initialState } = engine.startGame(initializedGame)
+            const { startedGame, initialState } = engine.startGame(
+                initializedGame,
+                options?.masterSeed
+            )
 
             startedGame.activePlayerIds = initialState.activePlayerIds
 
             newGame = await this.localGameStore.createGame(startedGame, initialState)
             this.localGamesById.set(newGame.id, newGame)
         } else {
-            newGame = await this.api.createGame(game)
+            newGame = await this.api.createGame(game, options)
             this.gamesById.set(newGame.id, newGame)
 
             if (newGame.isPublic && newGame.status === GameStatus.WaitingForPlayers) {
@@ -245,68 +261,17 @@ export class GameService implements GameServiceInterface {
                 throw new Error(`Game definition not found for typeId ${actualGame.typeId}`)
             }
 
-            const forkedGame = structuredClone(actualGame)
-
-            // Reset fields
-            forkedGame.id = nanoid()
-            if (name && name.trim().length > 0) {
-                forkedGame.name = name
-            }
-            forkedGame.startedAt = undefined
-            forkedGame.status = GameStatus.Started
-            delete forkedGame.result
-            delete forkedGame.finishedAt
-            forkedGame.winningPlayerIds = []
-
-            // Generate initial state
-            const runtime = await definition.runtime()
-            const engine = new GameEngine(runtime)
-            const { startedGame, initialState } = engine.startGame(forkedGame)
-
-            // Copy the entire action history up to the specified index
-            const actionSubset = actions
-                .slice(0, actionIndex + 1)
-                .map((action) => structuredClone(action))
-
-            let state = initialState
-            const updatedActions = []
-            // Run the game to the desired index
-            for (const action of actionSubset) {
-                // Copy and adjust
-                action.id = nanoid()
-                action.gameId = forkedGame.id
-                action.undoPatch = undefined
-
-                // Apply each action to the forked game state
-                const { processedActions, updatedState } = engine.run(
-                    action,
-                    state,
-                    startedGame,
-                    RunMode.Single
-                )
-                state = updatedState
-                updatedActions.push(...processedActions)
-            }
-
-            // Update some relevant fields on the game
-            startedGame.activePlayerIds = state.activePlayerIds || []
-            const lastAction = updatedActions.at(-1)
-            if (lastAction) {
-                startedGame.lastActionAt = lastAction.createdAt
-                startedGame.lastActionPlayerId = lastAction.playerId
-            } else {
-                startedGame.lastActionAt = undefined
-                startedGame.lastActionPlayerId = undefined
-            }
-
-            await this.saveGameLocally({
-                game: startedGame,
-                state,
-                actions: updatedActions
+            if (!actualGame.state) throw new GameForkError(actualGame.id, actionIndex)
+            const fork = createGameFork({
+                game: actualGame,
+                state: actualGame.state,
+                actions,
+                actionIndex,
+                runtime: await definition.runtime(),
+                name
             })
-            this.localGamesById.set(startedGame.id, startedGame)
-
-            return startedGame
+            await this.saveGameLocally(fork)
+            return fork.game
         } else {
             const newGame = await this.api.forkGame(game, actionIndex, name)
             this.gamesById.set(newGame.id, newGame)
@@ -339,6 +304,7 @@ export class GameService implements GameServiceInterface {
             throw new Error('Can only save local games locally')
         }
 
+        await validateLocalGameState(this.libraryService, gameData, stateData)
         await this.localGameStore.storeGameData({
             game: gameData,
             actions: actionsData,
@@ -453,7 +419,6 @@ export class GameService implements GameServiceInterface {
             if (!this.isGameNotification(notification)) {
                 return
             }
-            console.log('game notification received', notification)
             const game = Value.Convert(Game, notification.data.game) as Game
             if (
                 notification.action === GameNotificationAction.Create ||

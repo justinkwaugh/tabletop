@@ -1,0 +1,989 @@
+{
+    "game": {
+        "id": "estates-v2",
+        "typeId": "estates",
+        "status": "started",
+        "isPublic": false,
+        "deleted": false,
+        "ownerId": "owner",
+        "name": "Legacy Estates",
+        "players": [
+            {
+                "id": "p1",
+                "name": "p1",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "p2",
+                "name": "p2",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "p3",
+                "name": "p3",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "p4",
+                "name": "p4",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {
+            "hiddenMoney": true,
+            "sneakyBuildings": false
+        },
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "createdAt": "1970-01-01T00:00:00.000Z",
+        "seed": 12345
+    },
+    "setupChecksum": -723461930,
+    "setupPrng": {
+        "seed": 12345,
+        "invocations": 49
+    },
+    "state": {
+        "systemVersion": 2,
+        "id": "legacy-estates-state",
+        "gameId": "estates-v2",
+        "seed": 12345,
+        "prng": {
+            "seed": 12345,
+            "invocations": 84
+        },
+        "activePlayerIds": ["p2"],
+        "winningPlayerIds": [],
+        "actionCount": 6,
+        "actionChecksum": 1241900766,
+        "players": [
+            {
+                "playerId": "p1",
+                "color": "white",
+                "certificates": [],
+                "money": 12,
+                "stolen": 0,
+                "score": 0
+            },
+            {
+                "playerId": "p2",
+                "color": "white",
+                "certificates": [],
+                "money": 12,
+                "stolen": 0,
+                "score": 0
+            },
+            {
+                "playerId": "p3",
+                "color": "white",
+                "certificates": ["sienna"],
+                "money": 12,
+                "stolen": 0,
+                "score": -2
+            },
+            {
+                "playerId": "p4",
+                "color": "white",
+                "certificates": [],
+                "money": 12,
+                "stolen": 0,
+                "score": 0
+            }
+        ],
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "p3",
+                    "start": 0,
+                    "end": 6
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p2",
+                    "start": 6
+                }
+            ],
+            "turnOrder": ["p3", "p2", "p1", "p4"],
+            "turnCounts": {
+                "p1": 0,
+                "p2": 0,
+                "p3": 1,
+                "p4": 0
+            }
+        },
+        "machineState": "StartOfTurn",
+        "board": {
+            "rows": [
+                {
+                    "mayor": false,
+                    "sites": [
+                        {
+                            "single": false,
+                            "cubes": [
+                                {
+                                    "pieceType": "cube",
+                                    "company": "sienna",
+                                    "value": 2
+                                }
+                            ],
+                            "barriers": []
+                        },
+                        {
+                            "single": true,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        }
+                    ],
+                    "length": 4
+                },
+                {
+                    "mayor": false,
+                    "sites": [
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": true,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": true,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        }
+                    ],
+                    "length": 4
+                },
+                {
+                    "mayor": false,
+                    "sites": [
+                        {
+                            "single": true,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": true,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        }
+                    ],
+                    "length": 4
+                }
+            ]
+        },
+        "certificates": ["skyline", "collar", "emerald", "golden", "heather"],
+        "cubes": [
+            [
+                null,
+                {
+                    "pieceType": "cube",
+                    "company": "skyline",
+                    "value": 1
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "collar",
+                    "value": 6
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "emerald",
+                    "value": 1
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "sienna",
+                    "value": 4
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "golden",
+                    "value": 2
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "skyline",
+                    "value": 4
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "collar",
+                    "value": 4
+                }
+            ],
+            [
+                {
+                    "pieceType": "cube",
+                    "company": "heather",
+                    "value": 4
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "emerald",
+                    "value": 2
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "heather",
+                    "value": 6
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "golden",
+                    "value": 1
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "emerald",
+                    "value": 4
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "golden",
+                    "value": 3
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "golden",
+                    "value": 4
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "skyline",
+                    "value": 3
+                }
+            ],
+            [
+                {
+                    "pieceType": "cube",
+                    "company": "collar",
+                    "value": 5
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "heather",
+                    "value": 5
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "emerald",
+                    "value": 3
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "skyline",
+                    "value": 5
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "skyline",
+                    "value": 6
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "emerald",
+                    "value": 5
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "emerald",
+                    "value": 6
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "collar",
+                    "value": 2
+                }
+            ]
+        ],
+        "roofs": {
+            "items": [
+                {
+                    "pieceType": "roof",
+                    "value": 6
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 2
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 4
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 6
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 3
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 1
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 4
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 5
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 1
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 5
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 2
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 3
+                }
+            ],
+            "remaining": 12
+        },
+        "visibleRoofs": [true, true, true, true, true, true, true, true, true, true, true, true],
+        "mayor": true,
+        "barrierOne": true,
+        "barrierTwo": true,
+        "barrierThree": true,
+        "cancelCube": true,
+        "embezzled": false
+    },
+    "continuation": [
+        {
+            "id": "legacy-6",
+            "gameId": "estates-v2",
+            "playerId": "p2",
+            "source": "user",
+            "type": "embezzle"
+        },
+        {
+            "id": "legacy-7",
+            "gameId": "estates-v2",
+            "playerId": "p2",
+            "source": "user",
+            "type": "drawRoof",
+            "visibleIndex": 0,
+            "revealsInfo": true
+        },
+        {
+            "id": "legacy-8",
+            "gameId": "estates-v2",
+            "playerId": "p1",
+            "source": "user",
+            "type": "placeBid",
+            "amount": 2
+        },
+        {
+            "id": "legacy-9",
+            "gameId": "estates-v2",
+            "playerId": "p4",
+            "source": "user",
+            "type": "placeBid",
+            "amount": 0
+        },
+        {
+            "id": "legacy-10",
+            "gameId": "estates-v2",
+            "playerId": "p3",
+            "source": "user",
+            "type": "placeBid",
+            "amount": 0
+        },
+        {
+            "id": "legacy-11",
+            "gameId": "estates-v2",
+            "playerId": "p2",
+            "source": "user",
+            "type": "chooseRecipient",
+            "recipient": "highestBidder"
+        },
+        {
+            "id": "legacy-12",
+            "gameId": "estates-v2",
+            "playerId": "p1",
+            "source": "user",
+            "type": "placeRoof",
+            "roof": {
+                "pieceType": "roof",
+                "value": 3
+            },
+            "coords": {
+                "row": 0,
+                "col": 0
+            }
+        }
+    ],
+    "expectedState": {
+        "systemVersion": 2,
+        "id": "legacy-estates-state",
+        "gameId": "estates-v2",
+        "seed": 12345,
+        "prng": {
+            "seed": 12345,
+            "invocations": 154
+        },
+        "activePlayerIds": ["p1"],
+        "winningPlayerIds": [],
+        "actionCount": 15,
+        "actionChecksum": 1266450131,
+        "players": [
+            {
+                "playerId": "p1",
+                "color": "white",
+                "certificates": [],
+                "money": 10,
+                "stolen": 0,
+                "score": 0
+            },
+            {
+                "playerId": "p2",
+                "color": "white",
+                "certificates": [],
+                "money": 13,
+                "stolen": 1,
+                "score": 1
+            },
+            {
+                "playerId": "p3",
+                "color": "white",
+                "certificates": ["sienna"],
+                "money": 12,
+                "stolen": 0,
+                "score": -5
+            },
+            {
+                "playerId": "p4",
+                "color": "white",
+                "certificates": [],
+                "money": 12,
+                "stolen": 0,
+                "score": 0
+            }
+        ],
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "p3",
+                    "start": 0,
+                    "end": 6
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p2",
+                    "start": 6,
+                    "end": 15
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p1",
+                    "start": 15
+                }
+            ],
+            "turnOrder": ["p3", "p2", "p1", "p4"],
+            "turnCounts": {
+                "p1": 0,
+                "p2": 1,
+                "p3": 1,
+                "p4": 0
+            }
+        },
+        "machineState": "StartOfTurn",
+        "board": {
+            "rows": [
+                {
+                    "mayor": false,
+                    "sites": [
+                        {
+                            "single": false,
+                            "cubes": [
+                                {
+                                    "pieceType": "cube",
+                                    "company": "sienna",
+                                    "value": 2
+                                }
+                            ],
+                            "roof": {
+                                "pieceType": "roof",
+                                "value": 3
+                            },
+                            "barriers": []
+                        },
+                        {
+                            "single": true,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        }
+                    ],
+                    "length": 4
+                },
+                {
+                    "mayor": false,
+                    "sites": [
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": true,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": true,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        }
+                    ],
+                    "length": 4
+                },
+                {
+                    "mayor": false,
+                    "sites": [
+                        {
+                            "single": true,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": true,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        },
+                        {
+                            "single": false,
+                            "cubes": [],
+                            "barriers": []
+                        }
+                    ],
+                    "length": 4
+                }
+            ]
+        },
+        "certificates": ["skyline", "collar", "emerald", "golden", "heather"],
+        "cubes": [
+            [
+                null,
+                {
+                    "pieceType": "cube",
+                    "company": "skyline",
+                    "value": 1
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "collar",
+                    "value": 6
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "emerald",
+                    "value": 1
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "sienna",
+                    "value": 4
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "golden",
+                    "value": 2
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "skyline",
+                    "value": 4
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "collar",
+                    "value": 4
+                }
+            ],
+            [
+                {
+                    "pieceType": "cube",
+                    "company": "heather",
+                    "value": 4
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "emerald",
+                    "value": 2
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "heather",
+                    "value": 6
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "golden",
+                    "value": 1
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "emerald",
+                    "value": 4
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "golden",
+                    "value": 3
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "golden",
+                    "value": 4
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "skyline",
+                    "value": 3
+                }
+            ],
+            [
+                {
+                    "pieceType": "cube",
+                    "company": "collar",
+                    "value": 5
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "heather",
+                    "value": 5
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "emerald",
+                    "value": 3
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "skyline",
+                    "value": 5
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "skyline",
+                    "value": 6
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "emerald",
+                    "value": 5
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "emerald",
+                    "value": 6
+                },
+                {
+                    "pieceType": "cube",
+                    "company": "collar",
+                    "value": 2
+                }
+            ]
+        ],
+        "roofs": {
+            "items": [
+                {
+                    "pieceType": "roof",
+                    "value": 6
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 2
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 4
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 6
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 3
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 1
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 4
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 5
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 1
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 5
+                },
+                {
+                    "pieceType": "roof",
+                    "value": 2
+                }
+            ],
+            "remaining": 11
+        },
+        "visibleRoofs": [false, true, true, true, true, true, true, true, true, true, true, true],
+        "mayor": true,
+        "barrierOne": true,
+        "barrierTwo": true,
+        "barrierThree": true,
+        "cancelCube": true,
+        "embezzled": false
+    }
+}

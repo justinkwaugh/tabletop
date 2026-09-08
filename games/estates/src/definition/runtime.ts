@@ -1,16 +1,30 @@
+import { EstatesGameExploration } from './gameExploration.js'
 import type { GameRuntime } from '@tabletop/common'
-import { DefaultStateLogger } from '@tabletop/common'
-import type { EstatesGameState, HydratedEstatesGameState } from '../model/gameState.js'
+import { DefaultStateLogger, Visibility } from '@tabletop/common'
+import {
+    EstatesGameStateValidator,
+    EstatesGameState,
+    type EstatesProjectedState,
+    type HydratedEstatesGameState
+} from '../model/gameState.js'
 import { EstatesHydrator } from './hydrator.js'
 import { EstatesGameInitializer } from './gameInitializer.js'
 import { EstatesApiActions } from './apiActions.js'
+import { EstatesActionSchemas } from './actionSchemas.js'
 import { EstatesStateHandlers } from './stateHandlers.js'
 
-export const EstatesRuntime: GameRuntime<EstatesGameState, HydratedEstatesGameState> = {
+export const EstatesRuntime = {
+    randomnessVersion: 1,
     initializer: new EstatesGameInitializer(),
+    exploration: new EstatesGameExploration(),
+    canonicalStateValidator: EstatesGameStateValidator,
     hydrator: new EstatesHydrator(),
     stateHandlers: EstatesStateHandlers,
     apiActions: EstatesApiActions,
     playerColors: [],
-    stateLogger: new DefaultStateLogger()
-}
+    stateLogger: new DefaultStateLogger(),
+    visibility: {
+        state: Visibility.createProjector(EstatesGameState),
+        actions: Visibility.createActionProjector(EstatesActionSchemas)
+    }
+} satisfies GameRuntime<EstatesProjectedState, HydratedEstatesGameState>

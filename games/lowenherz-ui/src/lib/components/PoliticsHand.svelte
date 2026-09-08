@@ -34,7 +34,6 @@
     // tiled position, staggered slightly per card like a quick riffle deal. Done with direct DOM
     // writes (rather than a Svelte transition) because the "from" point is external and only known
     // at click time, and the "to" point is wherever flex-wrap happens to lay each card out.
-    let cardEls: Record<string, HTMLElement> = {}
 
     const DEAL_DURATION = 380 // ms
     const DEAL_STAGGER = 45 // ms between each successive card starting its flight
@@ -85,7 +84,18 @@
             // had (200ms fade against a 380ms move) - a snappy fade-in reads better than one
             // that's still creeping up as the card settles into place.
             tl.to(el, { opacity: 1, duration: 0.2, ease: 'power1.out' }, 0)
-            tl.to(el, { x: 0, y: 0, scale: 1, rotate: 0, duration: DEAL_DURATION / 1000, ease: 'power3.out' }, 0)
+            tl.to(
+                el,
+                {
+                    x: 0,
+                    y: 0,
+                    scale: 1,
+                    rotate: 0,
+                    duration: DEAL_DURATION / 1000,
+                    ease: 'power3.out'
+                },
+                0
+            )
 
             return () => tl.kill()
         }
@@ -112,8 +122,21 @@
     function bounceIn(el: HTMLElement) {
         gsap.set(el, { scale: BOUNCE_INITIAL_SCALE, opacity: 0 })
         const tl = gsap.timeline()
-        tl.to(el, { scale: BOUNCE_OVERSHOOT_SCALE, opacity: 1, duration: BOUNCE_POP, ease: 'back.out(2.2)' }, 0)
-        tl.to(el, { scale: 1, duration: BOUNCE_SETTLE, ease: 'power2.out', clearProps: 'scale' }, BOUNCE_POP)
+        tl.to(
+            el,
+            {
+                scale: BOUNCE_OVERSHOOT_SCALE,
+                opacity: 1,
+                duration: BOUNCE_POP,
+                ease: 'back.out(2.2)'
+            },
+            0
+        )
+        tl.to(
+            el,
+            { scale: 1, duration: BOUNCE_SETTLE, ease: 'power2.out', clearProps: 'scale' },
+            BOUNCE_POP
+        )
         return () => tl.kill()
     }
 </script>
@@ -137,13 +160,8 @@
             role="presentation"
             onclick={(e) => e.stopPropagation()}
         >
-            {#each cards as card, dealIndex (card.id)}
-                <div
-                    bind:this={cardEls[card.id]}
-                    {@attach dealIn(dealIndex)}
-                    class="relative opacity-90"
-                    style={cardWidthStyle}
-                >
+            {#each cards as card, dealIndex (dealIndex)}
+                <div {@attach dealIn(dealIndex)} class="relative opacity-90" style={cardWidthStyle}>
                     <CardMagnifier {card} />
                     {#if gameSession.canApplyPoliticsCard(card)}
                         <!-- Border/background/text match the board's own village-name pill (see

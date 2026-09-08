@@ -111,8 +111,8 @@ export class HydratedNegotiationMove
                     this.revealsInfo = true
 
                     const toPlayerId = negotiation.playerIds.find((id) => id !== standing.fromPlayerId)!
-                    state.getPlayerState(standing.fromPlayerId).money -= standing.amount
-                    state.getPlayerState(toPlayerId).money += standing.amount
+                    state.getPlayerState(standing.fromPlayerId).adjustMoney(-standing.amount)
+                    state.getPlayerState(toPlayerId).adjustMoney(standing.amount)
                     state.resolvedSlots.push({ slot: negotiation.slot, winnerPlayerId: standing.fromPlayerId })
                     state.negotiation = undefined
                     this.metadata = {
@@ -153,13 +153,18 @@ export class HydratedNegotiationMove
                 if (this.fromPlayerId === undefined || !negotiation.playerIds.includes(this.fromPlayerId)) {
                     return false
                 }
-                const proposerMoney = state.getPlayerState(this.fromPlayerId).money
-                return (
-                    this.amount !== undefined &&
-                    Number.isInteger(this.amount) &&
-                    this.amount >= (state.minimumOneDucat !== false ? 1 : 0) &&
-                    this.amount <= proposerMoney
-                )
+                if (
+                    this.amount === undefined ||
+                    !Number.isInteger(this.amount) ||
+                    this.amount < (state.minimumOneDucat !== false ? 1 : 0)
+                ) {
+                    return false
+                }
+
+                // A demand cannot probe the other player's private balance; the payer
+                // must be able to afford the terms when proposing or accepting them.
+                if (state.publicMoney === false && this.fromPlayerId !== this.playerId) return true
+                return this.amount <= state.getPlayerState(this.fromPlayerId).getMoney()
             }
             case NegotiationMoveKind.Decline: {
                 return true

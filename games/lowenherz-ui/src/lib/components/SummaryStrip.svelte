@@ -8,13 +8,15 @@
     // matters turn to turn (their contents are hidden until you win politics and look through
     // one). Just a plain readout here; choosing between them lives in PoliticsDeckChooser, above
     // the board, once there's an actual choice to make.
-    const pileACount = $derived(gameSession.gameState.politicsCardPileA.length)
-    const pileBCount = $derived(gameSession.gameState.politicsCardPileB.length)
+    const pileACount = $derived(gameSession.gameState.getPoliticsPileCount('A'))
+    const pileBCount = $derived(gameSession.gameState.getPoliticsPileCount('B'))
 
     // Per-player Silver Mine payout, while a revealed mine is still sitting on the
     // discard pile (see GameSession.lastMineHillScoring) - keyed for the lookup below.
     const minePointsByPlayerId = $derived(
-        new Map((gameSession.lastMineHillScoring ?? []).map((entry) => [entry.playerId, entry.points]))
+        new Map(
+            (gameSession.lastMineHillScoring ?? []).map((entry) => [entry.playerId, entry.points])
+        )
     )
 
     // The caption sits snug under the scores normally. A mine payout pushes it down by the
@@ -22,7 +24,6 @@
     // before - but landing 2px under a pill reads as jammed where 2px under a score box
     // reads as attached, so it gets a little extra clearance in that case only.
     const anyMineGain = $derived(minePointsByPlayerId.size > 0)
-
 </script>
 
 <!-- The Silver Mine "+N" sits in NORMAL FLOW under its player's score, not absolutely
@@ -36,7 +37,9 @@
      spent a while in the player panels themselves, but that pushed the name pill off
      centre and cost the panels a row, so they came back up here. The captions sit BELOW
      their numbers so the numbers align on one line and the eye reads the figures first. -->
-<div class="px-3 pt-2 pb-1 flex items-start justify-center gap-12 border-b-2 border-black/20 text-black">
+<div
+    class="px-3 pt-2 pb-1 flex items-start justify-center gap-12 border-b-2 border-black/20 text-black"
+>
     <div class="flex flex-col items-center gap-0.5">
         <div class="flex items-start gap-1.5">
             {#each gameSession.gameState.players as ps (ps.playerId)}
@@ -51,7 +54,9 @@
                     {#if mineGain > 0}
                         <span
                             class="w-full text-center px-1 py-0.5 rounded-md text-[13px] font-bold leading-none text-white shadow-sm"
-                            style="background-color: {gameSession.colors.getPlayerUiColor(ps.playerId)}"
+                            style="background-color: {gameSession.colors.getPlayerUiColor(
+                                ps.playerId
+                            )}"
                             title="Silver Mine: power points for enclosed hills"
                         >
                             +<Numeral value={mineGain} />
@@ -71,13 +76,20 @@
 
     <div class="flex flex-col items-center gap-0.5">
         <div class="flex items-center gap-1.5">
-            <span class="px-2 py-0.5 rounded-md bg-black/10 font-bold tabular-nums" title="Cards left in politics pile A">
+            <span
+                class="px-2 py-0.5 rounded-md bg-black/10 font-bold tabular-nums"
+                title="Cards left in politics pile A"
+            >
                 <Numeral value={pileACount} />
             </span>
-            <span class="px-2 py-0.5 rounded-md bg-black/10 font-bold tabular-nums" title="Cards left in politics pile B">
+            <span
+                class="px-2 py-0.5 rounded-md bg-black/10 font-bold tabular-nums"
+                title="Cards left in politics pile B"
+            >
                 <Numeral value={pileBCount} />
             </span>
         </div>
-        <span class="text-[13px] font-semibold uppercase tracking-wide text-black/60">Politics</span>
+        <span class="text-[13px] font-semibold uppercase tracking-wide text-black/60">Politics</span
+        >
     </div>
 </div>

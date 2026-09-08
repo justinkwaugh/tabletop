@@ -1,4 +1,11 @@
-import { GameAction, Game, GameState, User, GameStatusCategory } from '@tabletop/common'
+import {
+    GameCreationOptions,
+    GameAction,
+    Game,
+    GameState,
+    User,
+    GameStatusCategory
+} from '@tabletop/common'
 import { UpdateValidationResult, UpdateValidator } from './validator.js'
 
 export type ActionUpdateValidator = (
@@ -25,8 +32,23 @@ export type UndoActionWindow = {
     actions: GameAction[]
 }
 
+export type GameData = { game: Game; actions: GameAction[] }
+
+export interface GameDataReader {
+    readonly game: Game
+    actions(): Promise<GameAction[]>
+    actionRange(startIndex: number, endIndex: number): Promise<GameAction[]>
+    undoWindow(actionId: string): Promise<UndoActionWindow | undefined>
+}
+
 export interface GameStore {
-    createGame(game: Game): Promise<Game>
+    loadGameData(gameId: string): Promise<GameData | undefined>
+    readGameData<T>(
+        gameId: string,
+        read: (reader: GameDataReader) => Promise<T>
+    ): Promise<T | undefined>
+    createGame(game: Game, options?: GameCreationOptions): Promise<Game>
+    getMasterSeed(gameId: string): Promise<string | undefined>
     writeFullGameData(
         game: Game,
         state: GameState,

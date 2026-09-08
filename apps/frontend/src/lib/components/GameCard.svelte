@@ -3,12 +3,11 @@
     import { Game, GameStatus, PlayerStatus, GameResult, ConfigOptionType } from '@tabletop/common'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
     import { goto } from '$app/navigation'
-    import TimeAgo from 'javascript-time-ago'
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
-    import { GameEditForm, getAppContext } from '@tabletop/frontend-components'
+    import { createTimeAgo, GameEditForm, getAppContext } from '@tabletop/frontend-components'
 
-    const timeAgo = new TimeAgo('en-US')
+    const timeAgo = createTimeAgo()
 
     let {
         game,

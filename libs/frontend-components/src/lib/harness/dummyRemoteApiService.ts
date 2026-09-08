@@ -8,16 +8,19 @@ import type {
     GameChatMessage,
     GameState,
     GameSyncStatus,
+    ProcessedActionReplay,
     User,
-    UserPreferences
+    UserPreferences,
+    Visibility
 } from '@tabletop/common'
-import type { GameVersionProvider } from '$lib/network/tabletopApi.svelte.js'
+import type { GameVersionProvider, GetGameOptions } from '$lib/network/tabletopApi.svelte.js'
 import type { Credentials } from '$lib/network/requestTypes.js'
 import type { GameChatMessageResponsePayload } from '$lib/network/responseTypes.js'
 import type { VersionChange } from '$lib/network/versionChecker.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
 
 export class DummyRemoteApiService implements RemoteApiService {
+    readonly supportsHostView?: boolean = true
     private fail(method: string): never {
         throw new Error(`DummyRemoteApiService.${method} is not implemented`)
     }
@@ -128,7 +131,10 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('getOpenGames')
     }
 
-    async getGame(_gameId: string): Promise<{ game: Game; actions: GameAction[] }> {
+    async getGame(
+        _gameId: string,
+        _options?: GetGameOptions
+    ): Promise<{ game: Game; actions: GameAction[] }> {
         return this.fail('getGame')
     }
 
@@ -175,9 +181,11 @@ export class DummyRemoteApiService implements RemoteApiService {
         _game: Game,
         _actionId: string
     ): Promise<{
+        actionReplay?: ProcessedActionReplay
         canonicalReplay: CanonicalActionReplay
         game: Game
         checksum: number
+        perspective?: Visibility.Perspective
     }> {
         return this.fail('undoAction')
     }

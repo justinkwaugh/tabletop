@@ -1,11 +1,11 @@
 <script lang="ts">
-import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+    import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import Cert2d from './Cert2d.svelte'
     import { MachineState } from '@tabletop/estates'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let gameSession = getGameSession() as EstatesGameSession
-    let { playerId }: { playerId: String } = $props()
+    let { playerId }: { playerId: string } = $props()
 
     let player = $derived(gameSession.game.players.find((p) => p.id === playerId))
     let playerState = $derived(gameSession.gameState.players.find((p) => p.playerId === playerId))
@@ -28,7 +28,7 @@ import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
         }
     }
 
-    const hideMoney = $derived(gameSession.game.config?.hiddenMoney ?? false)
+    const showMoney = $derived(gameSession.canShowMoney(playerId))
 </script>
 
 <div
@@ -41,7 +41,7 @@ import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
             <h1 class="leading-none text-sm">
                 {playerId === gameSession.myPlayer?.id ? 'You' : player?.name}
             </h1>
-            {#if playerState?.stolen && !hideMoney}
+            {#if playerState?.stolen && showMoney}
                 <h1 class="text-gray-300" style="font-size:.5rem; line-height:.65rem">
                     stole ${playerState?.stolen}
                 </h1>
@@ -52,7 +52,7 @@ import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
             {#if gameSession.gameState.machineState === MachineState.EndOfGame}
                 <div class="text-xs leading-none">SCORE</div>
                 <div class="text-xl leading-none">{playerState?.score}</div>
-            {:else if !hideMoney || playerId === gameSession.myPlayer?.id}
+            {:else if showMoney && playerState?.money !== undefined}
                 <div class="text-2xl leading-none">${playerState?.money}</div>
             {/if}
         </div>

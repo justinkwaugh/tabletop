@@ -4,6 +4,7 @@ import { GameState } from '../model/gameState.js'
 import { Hydratable } from '../../util/hydration.js'
 import { MachineContext } from './machineContext.js'
 import * as Value from 'typebox/value'
+import { Policy, protect } from '../visibility/visibilitySchema.js'
 
 export enum ActionSource {
     User = 'user',
@@ -11,12 +12,42 @@ export enum ActionSource {
 }
 
 export type PatchOperation = Type.Static<typeof PatchOperation>
-export const PatchOperation = Type.Object({
-    op: Type.String(),
-    path: Type.String(),
-    from: Type.Optional(Type.String()),
-    value: Type.Optional(Type.Any())
-})
+export const PatchOperation = Type.Union([
+    Type.Object({
+        op: Type.Literal('add'),
+        path: Type.String(),
+        value: Type.Any()
+    }),
+    Type.Object({
+        op: Type.Literal('remove'),
+        path: Type.String()
+    }),
+    Type.Object({
+        op: Type.Literal('replace'),
+        path: Type.String(),
+        value: Type.Any()
+    }),
+    Type.Object({
+        op: Type.Literal('move'),
+        path: Type.String(),
+        from: Type.String()
+    }),
+    Type.Object({
+        op: Type.Literal('copy'),
+        path: Type.String(),
+        from: Type.String()
+    }),
+    Type.Object({
+        op: Type.Literal('test'),
+        path: Type.String(),
+        value: Type.Any()
+    }),
+    Type.Object({
+        op: Type.Literal('_get'),
+        path: Type.String(),
+        value: Type.Any()
+    })
+])
 
 export type Patch = Type.Static<typeof Patch>
 export const Patch = Type.Array(PatchOperation)
@@ -28,10 +59,12 @@ export const GameAction = Type.Object({
     source: Type.Enum(ActionSource),
     type: Type.String(),
     playerId: Type.Optional(Type.String()),
-    undoPatch: Type.Optional(Patch),
+    undoPatch: protect(Type.Optional(Patch), { policy: Policy.HostOnly }),
+    forwardPatch: protect(Type.Optional(Patch), { policy: Policy.HostOnly }),
     index: Type.Optional(Type.Number()),
     simultaneousGroupId: Type.Optional(Type.String()),
     revealsInfo: Type.Optional(Type.Boolean()),
+    skipOptimisticExecution: Type.Optional(Type.Literal(true)),
     createdAt: Type.Optional(DateType()),
     updatedAt: Type.Optional(DateType())
 })
@@ -73,15 +106,20 @@ export abstract class HydratableAction<T extends Type.TSchema>
     declare type: string
     declare playerId?: string
     declare undoPatch?: Patch
+    declare forwardPatch?: Patch
     declare simultaneousGroupId?: string
     declare revealsInfo?: boolean
+    declare skipOptimisticExecution?: true
     declare createdAt?: Date
     declare updatedAt?: Date
 
     abstract apply(state: GameState, context?: MachineContext): void
 }
 
-export function createAction<T extends Type.TSchema>(schema: T, data?: Partial<Type.Static<T>>): Type.Static<T> {
+export function createAction<T extends Type.TSchema>(
+    schema: T,
+    data?: Partial<Type.Static<T>>
+): Type.Static<T> {
     // Create a new action with dummy values/defaults
     const newAction = Value.Create(schema)
 

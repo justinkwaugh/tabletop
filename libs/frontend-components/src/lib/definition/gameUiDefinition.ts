@@ -8,7 +8,8 @@ import type {
     GameInfo,
     GameRuntime,
     GameState,
-    HydratedGameState
+    HydratedGameState,
+    Visibility
 } from '@tabletop/common'
 import { type Component } from 'svelte'
 import type { GameColorizer } from './gameColorizer'
@@ -51,6 +52,7 @@ export interface GameSessionConstructor<T extends GameState, U extends HydratedG
         state: T
         actions: GameAction[]
         debug?: boolean
+        hostPerspective?: Visibility.Perspective
     }): GameSession<T, U>
 }
 
@@ -58,8 +60,10 @@ export type GameUIInfo = GameInfo & {
     thumbnailUrl: string
 }
 
-export interface GameUIRuntime<T extends GameState, U extends HydratedGameState<T> & T>
-    extends GameRuntime<T, U> {
+export interface GameUIRuntime<
+    T extends GameState,
+    U extends HydratedGameState<T> & T
+> extends GameRuntime<T, U> {
     gameUI: DynamicComponent<GameTable<T, U>>
     sessionClass: GameSessionConstructor<T, U>
     colorizer: GameColorizer

@@ -48,7 +48,7 @@ export class HydratedPlaceCity extends HydratableAction<typeof PlaceCity> implem
         }
 
         const city: City = {
-            id: state.getPrng().randId(),
+            id: state.getPublicPrng().randId(),
             area: this.areaId,
             size: 1,
             demand: {}

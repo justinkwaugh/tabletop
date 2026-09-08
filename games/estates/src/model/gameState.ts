@@ -6,7 +6,8 @@ import {
     HydratedTurnManager,
     OffsetCoordinates,
     OnceAroundAuction,
-    PrngState
+    PrngState,
+    Visibility
 } from '@tabletop/common'
 import { EstatesPlayerState, HydratedEstatesPlayerState } from './playerState.js'
 import * as Type from 'typebox'
@@ -21,13 +22,13 @@ import { Piece } from '../components/pieces.js'
 export type OptionalCube = Type.Static<typeof OptionalCube>
 export const OptionalCube = Type.Union([Type.Undefined(), Type.Null(), Cube])
 
-export type EstatesGameState = Type.Static<typeof EstatesGameState>
 export const EstatesGameState = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameState, ['players', 'machineState']),
         Type.Object({
-            players: Type.Array(EstatesPlayerState),
+            hiddenMoney: Type.Optional(Type.Boolean()),
             machineState: Type.Enum(MachineState),
+            players: Type.Array(EstatesPlayerState),
             board: EstatesGameBoard,
             certificates: Type.Array(Type.Enum(Company)),
             cubes: Type.Array(Type.Array(OptionalCube)), // 3x8 array of cubes
@@ -46,12 +47,18 @@ export const EstatesGameState = Type.Evaluate(
     ])
 )
 
-const EstatesGameStateValidator = Compile(EstatesGameState)
+export type EstatesGameState = Type.Static<typeof EstatesGameState>
+export const EstatesProjectedState = Visibility.createProjectionSchema(EstatesGameState)
+export type EstatesProjectedState = Type.Static<typeof EstatesProjectedState>
+const EstatesProjectedStateValidator = Compile(EstatesProjectedState)
 
-export class HydratedEstatesGameState
-    extends HydratableGameState<typeof EstatesGameState, HydratedEstatesPlayerState>
-    implements EstatesGameState
-{
+export const EstatesGameStateValidator = Compile(EstatesGameState)
+
+export class HydratedEstatesGameState extends HydratableGameState<
+    typeof EstatesProjectedState,
+    HydratedEstatesPlayerState
+> {
+    declare hiddenMoney?: boolean
     declare id: string
     declare gameId: string
     declare prng: PrngState
@@ -78,8 +85,8 @@ export class HydratedEstatesGameState
     declare recipient?: string
     declare embezzled?: boolean
 
-    constructor(data: EstatesGameState) {
-        super(data, EstatesGameStateValidator)
+    constructor(data: EstatesProjectedState) {
+        super(data, EstatesProjectedStateValidator)
 
         this.players = data.players.map((player) => new HydratedEstatesPlayerState(player))
         this.board = new HydratedEstatesGameBoard(data.board)
@@ -132,6 +139,6 @@ export class HydratedEstatesGameState
     }
 
     calculatePlayerScore(playerState: HydratedEstatesPlayerState): number {
-        return this.board.playerScore(playerState) + playerState.stolen
+        return this.board.playerScore(playerState) + playerState.getStolenMoney()
     }
 }

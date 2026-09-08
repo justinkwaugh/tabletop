@@ -1,5 +1,5 @@
+import { queueAuctionEnd, queueStallWithoutDisk } from '../util/automaticActions.js'
 import {
-    ActionSource,
     type HydratedAction,
     MachineContext,
     type MachineStateHandler,
@@ -8,18 +8,18 @@ import {
 import { HydratedFreshFishGameState } from '../model/gameState.js'
 import { HydratedPlaceBid, isPlaceBid } from '../actions/placeBid.js'
 import { MachineState } from '../definition/states.js'
-import { PlaceStall } from '../actions/placeStall.js'
 import { isStallTile } from '../components/tiles.js'
 import { ActionType } from '../definition/actions.js'
-import { EndAuction, HydratedEndAuction, isEndAuction } from '../actions/endAuction.js'
+import { HydratedEndAuction, isEndAuction } from '../actions/endAuction.js'
 
 type AuctioningTileAction = HydratedPlaceBid | HydratedEndAuction
 
 // Transition from AuctioningTile(PlaceBid) -> AuctionEnded (if all bids placed)
 //                 AuctioningTile(PlaceBid) -> AuctioningTile (if not all bids placed)
-export class AuctioningTileStateHandler
-    implements MachineStateHandler<AuctioningTileAction, HydratedFreshFishGameState>
-{
+export class AuctioningTileStateHandler implements MachineStateHandler<
+    AuctioningTileAction,
+    HydratedFreshFishGameState
+> {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedFreshFishGameState>
@@ -80,11 +80,7 @@ export class AuctioningTileStateHandler
                     throw Error(`No auction winner found but no one left to bid`)
                 }
 
-                context.addSystemAction(EndAuction, {
-                    winnerId: winnerId,
-                    highBid: currentAuction.highBid ?? 0,
-                    revealsInfo: true
-                })
+                queueAuctionEnd(context)
                 gameState.activePlayerIds = []
 
                 return MachineState.AuctioningTile
@@ -99,13 +95,7 @@ export class AuctioningTileStateHandler
                     throw Error(`The auctioned tile was not a stall`)
                 }
 
-                // Oops, player didn't have anywhere to put the stall, so we auto-place it into the void
-                if (!winningPlayer.hasDiskOnBoard()) {
-                    context.addSystemAction(PlaceStall, {
-                        playerId: winningPlayer.playerId,
-                        goodsType: chosenTile.goodsType
-                    })
-                }
+                queueStallWithoutDisk(context)
                 return MachineState.AuctionEnded
             }
         }

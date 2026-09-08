@@ -12,7 +12,7 @@
     // moved rather than being copied. The values both halves need went onto the session in an
     // earlier pass, which is why this file reads them off gameSession instead of receiving props.
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { splitDuelBidsIntoRounds } from '$lib/model/duelRounds.js'
+    import { revealedDuelRoundEndingWith } from '$lib/model/duelRounds.js'
     import { ActionSource, type Color, type GameAction } from '@tabletop/common'
     import {
         isAdvanceResolution,
@@ -25,7 +25,7 @@
         isTakePoliticsCard,
         MachineState,
         type Negotiation,
-        type SubmitDuelBid
+        type SubmitDuelBidMetadata
     } from '@tabletop/lowenherz'
     import PlayerPill from './PlayerPill.svelte'
     import ActionDescription from './ActionDescription.svelte'
@@ -127,17 +127,9 @@
         return undefined
     })
 
-
-    // A bid's actual strength, including any Treasure cards added on top - metadata
-    // keeps a snapshot of the cards used (see SubmitDuelBidMetadata's comment) since
-    // the real cards get removed from the winner's hand once they're spent, so they
-    // can't be looked up fresh from current player state after the fact.
-    function effectiveBidAmount(bid: SubmitDuelBid): number {
-        const treasureValue = (bid.metadata?.treasureCardsUsed ?? []).reduce(
-            (sum, card) => sum + (card.value ?? 0),
-            0
-        )
-        return bid.amount + treasureValue
+    type RevealedBid = NonNullable<SubmitDuelBidMetadata['roundResult']>['bids'][number]
+    function effectiveBidAmount(bid: RevealedBid): number {
+        return bid.amount + bid.treasureValues.reduce((sum, value) => sum + value, 0)
     }
 
     // This round's SubmitDuelBid actions (if any), plus the slot they were fought
@@ -150,14 +142,17 @@
     // the same round can't leak into a later, unrelated one.
     const recentDuelContext = $derived.by(() => {
         const actions = gameSession.actions
-        const bids: SubmitDuelBid[] = []
+        const rounds: RevealedBid[][] = []
         let slot: 1 | 2 | 3 | undefined
         let roundBoundariesSeen = 0
         for (let i = actions.length - 1; i >= 0; i--) {
             const action = actions[i]
             if (isDrawActionCard(action)) break
             if (isSubmitDuelBid(action)) {
-                bids.unshift(action)
+                if (action.metadata?.duelResult) {
+                    rounds.unshift(revealedDuelRoundEndingWith(actions, action))
+                    slot ??= action.metadata.roundResult?.slot
+                }
                 continue
             }
             if (isAdvanceResolution(action)) {
@@ -170,7 +165,7 @@
                 }
             }
         }
-        return { bids, slot }
+        return { rounds, slot }
     })
 
     // While still dueling, whatever the immediately preceding (tied) round's bids
@@ -179,8 +174,8 @@
     const previousTiedRoundBids = $derived.by(() => {
         const duel = gameSession.gameState.duel
         if (!duel || duel.tieCount === 0) return undefined
-        const rounds = splitDuelBidsIntoRounds(recentDuelContext.bids)
-        const completedRounds = duel.bids.length > 0 ? rounds.length - 1 : rounds.length
+        const rounds = recentDuelContext.rounds
+        const completedRounds = rounds.length
         if (completedRounds <= 0) return undefined
         return rounds[completedRounds - 1]
     })
@@ -190,7 +185,7 @@
     // consecutive tie - no one performs the action).
     const lastDuelOutcome = $derived.by(() => {
         if (gameSession.gameState.duel) return undefined
-        const rounds = splitDuelBidsIntoRounds(recentDuelContext.bids)
+        const rounds = recentDuelContext.rounds
         const lastRound = rounds.at(-1)
         if (!lastRound || lastRound.length === 0) return undefined
 
@@ -201,7 +196,9 @@
             return {
                 type: 'win' as const,
                 winnerId: topBidders[0].playerId,
-                otherIds: lastRound.filter((b) => b.playerId !== topBidders[0].playerId).map((b) => b.playerId),
+                otherIds: lastRound
+                    .filter((b) => b.playerId !== topBidders[0].playerId)
+                    .map((b) => b.playerId),
                 bids: lastRound
             }
         }
@@ -214,7 +211,9 @@
         return {
             type: 'giveUp' as const,
             bids: lastRound,
-            actionNoun: recentDuelContext.slot ? gameSession.actionNounForSlot(recentDuelContext.slot) : ''
+            actionNoun: recentDuelContext.slot
+                ? gameSession.actionNounForSlot(recentDuelContext.slot)
+                : ''
         }
     })
 
@@ -288,7 +287,9 @@
     // negotiation is still live, so this never hides the panel from an active negotiator.
     const negotiationHoldHidesForMe = $derived(
         !gameSession.gameState.negotiation &&
-            (gameSession.canPlaceWall || gameSession.canPlaceKnight || gameSession.canTakePoliticsCard)
+            (gameSession.canPlaceWall ||
+                gameSession.canPlaceKnight ||
+                gameSession.canTakePoliticsCard)
     )
 
     const negotiationOtherPlayerId = $derived.by(() => {
@@ -298,9 +299,11 @@
     })
 
     const negotiationProposerMoney = $derived(
-        gameSession.negotiationProposerId ? gameSession.gameState.getPlayerState(gameSession.negotiationProposerId).money : 0
+        gameSession.negotiationProposerId &&
+        gameSession.canShowMoney(gameSession.negotiationProposerId)
+            ? gameSession.gameState.getPlayerState(gameSession.negotiationProposerId).money
+            : undefined
     )
-
 
     // A local, per-player draft bid amount - each duelist's own private stepper,
     // unlike negotiation's single shared offer (a duel bid is a one-shot commitment
@@ -391,13 +394,11 @@
     <span>ducat{bidAmount === 1 ? '' : 's'}</span>
 {/snippet}
 
-{#snippet bidList(bids: SubmitDuelBid[])}
+{#snippet bidList(bids: RevealedBid[])}
     {#each bids as bid, i (bid.playerId)}
-        {@const treasureValue = (bid.metadata?.treasureCardsUsed ?? []).reduce(
-            (sum, card) => sum + (card.value ?? 0),
-            0
-        )}
-        {i > 0 ? ', ' : ''}{@render playerPill(bid.playerId)} bid {bid.amount} ducat{bid.amount === 1
+        {@const treasureValue = bid.treasureValues.reduce((sum, value) => sum + value, 0)}
+        {i > 0 ? ', ' : ''}{@render playerPill(bid.playerId)} bid {bid.amount} ducat{bid.amount ===
+        1
             ? ''
             : 's'}{#if treasureValue > 0}
             {' '}+ Treasure ({treasureValue}){/if}
@@ -479,9 +480,9 @@
             {/if}
         {:else if gameSession.canPlaceWall}
             {#if lastNegotiationPayment && lastNegotiationPayment.fromPlayerId === gameSession.gameState.wallPlacingPlayerId}
-                    {@render playerPill(lastNegotiationPayment.fromPlayerId)} paid {@render playerPill(
-                        lastNegotiationPayment.toPlayerId
-                    )}
+                {@render playerPill(lastNegotiationPayment.fromPlayerId)} paid {@render playerPill(
+                    lastNegotiationPayment.toPlayerId
+                )}
                 {lastNegotiationPayment.amount} ducat{lastNegotiationPayment.amount === 1
                     ? ''
                     : 's'} for the walls action.
@@ -492,7 +493,8 @@
             {:else}
                 {@render myPill()} won a wall action.
             {/if}
-            Place {gameSession.gameState.wallsRemaining} wall{gameSession.gameState.wallsRemaining === 1
+            Place {gameSession.gameState.wallsRemaining} wall{gameSession.gameState
+                .wallsRemaining === 1
                 ? ''
                 : 's'} or
             <button
@@ -502,8 +504,7 @@
             >
                 pass
             </button>.
-        {:else if gameSession.gameState.machineState === MachineState.PlacingWalls &&
-            gameSession.gameState.wallPlacingPlayerId}
+        {:else if gameSession.gameState.machineState === MachineState.PlacingWalls && gameSession.gameState.wallPlacingPlayerId}
             Waiting for {@render playerPill(gameSession.gameState.wallPlacingPlayerId)} to place
             {gameSession.gameState.wallsRemaining} wall{gameSession.gameState.wallsRemaining === 1
                 ? ''
@@ -566,8 +567,7 @@
             <!-- Suppressed for the two click-to-expand branches, which end in their own "or pass"
                  - and only those two. The region-pick branch also has expandStageActive set,
                  and it still wants this. -->
-            {#if !gameSession.canContinueExpansion &&
-                !(expandStageActive && gameSession.selectedExpandRegionId)}
+            {#if !gameSession.canContinueExpansion && !(expandStageActive && gameSession.selectedExpandRegionId)}
                 Or
                 <button
                     type="button"
@@ -584,9 +584,9 @@
                  shown only while nothing has been spent yet. -->
             {#if knightSwordsLeft >= gameSession.knightActionSwords}
                 {#if lastNegotiationPayment && lastNegotiationPayment.fromPlayerId === gameSession.gameState.knightPlacingPlayerId}
-                {@render playerPill(lastNegotiationPayment.fromPlayerId)} paid {@render playerPill(
-                    lastNegotiationPayment.toPlayerId
-                )}
+                    {@render playerPill(lastNegotiationPayment.fromPlayerId)} paid {@render playerPill(
+                        lastNegotiationPayment.toPlayerId
+                    )}
                     {lastNegotiationPayment.amount} ducat{lastNegotiationPayment.amount === 1
                         ? ''
                         : 's'} for the {knightActionName}.
@@ -638,12 +638,10 @@
                 >
                     pass
                 </button>.
-
             {/if}
-        {:else if gameSession.gameState.machineState === MachineState.PlacingKnights &&
-            gameSession.gameState.knightPlacingPlayerId}
-            Waiting for {@render playerPill(gameSession.gameState.knightPlacingPlayerId)} to perform
-            a {knightActionName}.
+        {:else if gameSession.gameState.machineState === MachineState.PlacingKnights && gameSession.gameState.knightPlacingPlayerId}
+            Waiting for {@render playerPill(gameSession.gameState.knightPlacingPlayerId)} to perform a
+            {knightActionName}.
         {:else if lastMineReveal}
             {@const mineScorers = lastMineReveal.filter((entry) => entry.points > 0)}
             <!-- Who earned what is shown as a "+N" hanging under each player's points box
@@ -657,22 +655,22 @@
             {#if gameSession.canDrawActionCard}
                 Choose the action card draw pile to start the next round.
             {:else}
-                Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
-                next action card.
+                Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the next
+                action card.
             {/if}
         {:else if lastRoundEndedInDuelGiveUp}
             The duel was tied a second time, so no one performs the action.
             {#if gameSession.canDrawActionCard}
                 Choose the action card draw pile to start the next round.
             {:else}
-                Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
-                next action card.
+                Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the next
+                action card.
             {/if}
         {:else if gameSession.canDrawActionCard}
             Choose the action card draw pile to start the next round.
         {:else if gameSession.gameState.machineState === MachineState.StartOfTurn}
-            Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the
-            next action card.
+            Waiting for {@render playerPill(gameSession.gameState.firstPlayerId)} to draw the next action
+            card.
         {:else if gameSession.canChooseAction}
             <!-- Below 4 players the first player lays 2 decision cards (see
                  buildDecisionPlan). No need to announce the count: the ordinal on the
@@ -680,22 +678,21 @@
                  over, and it says it exactly when it matters. -->
             {@const decisions = gameSession.myDecisionsThisRound}
             {#if decisions.laid > 0}
-                Choose a {decisions.laid === 1 ? 'second' : 'third'} region of the card for
-                your next action.
+                Choose a {decisions.laid === 1 ? 'second' : 'third'} region of the card for your next
+                action.
             {:else}
                 Choose a region of the card to pick an action.
             {/if}
-        {:else if gameSession.gameState.machineState === MachineState.ChoosingActions &&
-            gameSession.gameState.activePlayerIds[0]}
+        {:else if gameSession.gameState.machineState === MachineState.ChoosingActions && gameSession.gameState.activePlayerIds[0]}
             Waiting for {@render playerPill(gameSession.gameState.activePlayerIds[0])} to choose.
         {:else if gameSession.gameState.machineState === MachineState.ChoosingActions}
             Waiting for the next player to choose.
         {:else if gameSession.gameState.machineState === MachineState.Dueling && gameSession.gameState.duel}
             <!-- The duelists are named right here rather than getting a row each below,
                  so the whole duel fits in two lines: who's in it, then your own bid. -->
-            Dueling for {duelActionNoun}{gameSession.gameState.duel.tieCount >= 1
-                ? ' again'
-                : ''}: {@render playerPillList(gameSession.gameState.duel.playerIds)}.
+            Dueling for {duelActionNoun}{gameSession.gameState.duel.tieCount >= 1 ? ' again' : ''}: {@render playerPillList(
+                gameSession.gameState.duel.playerIds
+            )}.
             {#if previousTiedRoundBids}
                 <!-- Kept on its own line, unlike the other two-sentence messages: naming
                      the duelists and then listing everyone's previous bid is reliably too
@@ -725,10 +722,9 @@
                  as a heading local to that component so it never has to agree on layout height
                  with PoliticsDeckChooser's row above it. -->
             Choose a politics card.
-        {:else if gameSession.gameState.machineState === MachineState.TakingPoliticsCard &&
-            gameSession.gameState.politicsTakingPlayerId}
-            Waiting for {@render playerPill(gameSession.gameState.politicsTakingPlayerId)} to take a
-            politics card.
+        {:else if gameSession.gameState.machineState === MachineState.TakingPoliticsCard && gameSession.gameState.politicsTakingPlayerId}
+            Waiting for {@render playerPill(gameSession.gameState.politicsTakingPlayerId)} to take a politics
+            card.
         {:else if !gameSession.setupComplete}
             Waiting for the other player(s) to place a castle.
         {/if}
@@ -751,7 +747,9 @@
                 <!-- Side by side rather than stacked. Two names in a column made this box two lines
                      tall on its own, which set the height of the whole row and so of the space the
                      panel takes above the board. -->
-                <div class="flex flex-row items-center gap-2 border border-black/30 rounded px-2 py-1">
+                <div
+                    class="flex flex-row items-center gap-2 border border-black/30 rounded px-2 py-1"
+                >
                     {#each negotiation.playerIds as playerId (playerId)}
                         <button
                             type="button"
@@ -765,7 +763,11 @@
                         </button>
                     {/each}
                 </div>
-                <span>{gameSession.negotiationProposerId === gameSession.myPlayer?.id ? 'offer' : 'offers'}</span>
+                <span
+                    >{gameSession.negotiationProposerId === gameSession.myPlayer?.id
+                        ? 'offer'
+                        : 'offers'}</span
+                >
                 <!-- Its own tight-gap group, separate from the row's gap-2: that gap reads fine
                      between unrelated segments (the picker, "offer(s)", this trio, "ducats to"),
                      but stacked with the -/+ buttons' own px-2 it left the number floating rather
@@ -786,13 +788,17 @@
                     >
                         −
                     </button>
-                    <span class="w-6 text-center font-semibold">{gameSession.negotiationAmount}</span>
+                    <span class="w-6 text-center font-semibold"
+                        >{gameSession.negotiationAmount}</span
+                    >
                     <button
                         type="button"
                         class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
                         disabled={!gameSession.isMyNegotiationTurn ||
-                            gameSession.negotiationAmount >= negotiationProposerMoney}
-                        onclick={() => gameSession.setNegotiationAmount(gameSession.negotiationAmount + 1)}
+                            (negotiationProposerMoney !== undefined &&
+                                gameSession.negotiationAmount >= negotiationProposerMoney)}
+                        onclick={() =>
+                            gameSession.setNegotiationAmount(gameSession.negotiationAmount + 1)}
                     >
                         +
                     </button>
@@ -864,17 +870,15 @@
                  own name disappearing from it is the confirmation - and the row goes away entirely
                  rather than saying so twice. -->
             {#if myId && duel.playerIds.includes(myId) && !gameSession.hasPlayerBidInDuel(myId)}
-                {@const money = gameSession.gameState.getPlayerState(myId).money}
+                {@const money = gameSession.gameState.getPlayerState(myId).getMoney()}
                 {@const bidAmount = Math.min(gameSession.duelBidAmounts[myId] ?? 0, money)}
-                {@const unarmedTreasureCards = gameSession.myTreasureCards.filter(
-                    (c) => !gameSession.armedDuelTreasureIds.includes(c.id)
-                )}
+                {@const unarmedTreasureCards = gameSession.unarmedDuelTreasureCards}
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="font-semibold">Your bid:</span>
-                        {@render duelBidStepper(myId, bidAmount, money)}
-                        <!-- One chip per armed Treasure - nothing in the rulebook caps a bid at
+                    {@render duelBidStepper(myId, bidAmount, money)}
+                    <!-- One chip per armed Treasure - nothing in the rulebook caps a bid at
                              one, so unlike a wooded knight placement's single armedTreasure this
-                             is a set (see GameSession.armedDuelTreasureIds). Clicking a chip
+                             is a set (see GameSession.armedDuelTreasureValues). Clicking a chip
                              unarms just that card. This is the ONLY way back: arming is local UI
                              state, not a game action, so Undo never touches it, and APPLY in the
                              hand only ever arms. It used to be a "don't play it" button on a
@@ -882,18 +886,21 @@
 
                              The X that used to sit on the end is gone; the hover title and the
                              red hover state are what advertise that a chip is removable. -->
-                        {#each gameSession.armedDuelTreasureCards as treasureCard (treasureCard.id)}
-                            <button
-                                type="button"
-                                class="px-1.5 py-[3px] rounded font-semibold bg-green-700/15 hover:bg-red-700/20"
-                                title="Choose to take this Treasure back out of your bid"
-                                onclick={() => gameSession.unarmDuelTreasure(treasureCard.id)}
-                            >
-                                + Treasure ({treasureCard.value})
-                            </button>
-                        {/each}
-                        {#if unarmedTreasureCards.length > 0}
-                            <!-- The empty slot the next chip will fill, shown only while a duelist
+                    {#each gameSession.armedDuelTreasureCards as treasureCard, index (index)}
+                        <button
+                            type="button"
+                            class="px-1.5 py-[3px] rounded font-semibold bg-green-700/15 hover:bg-red-700/20"
+                            title="Choose to take this Treasure back out of your bid"
+                            onclick={() =>
+                                gameSession.unarmDuelTreasure(
+                                    gameSession.armedDuelTreasureValues[index]
+                                )}
+                        >
+                            + Treasure ({treasureCard.value})
+                        </button>
+                    {/each}
+                    {#if unarmedTreasureCards.length > 0}
+                        <!-- The empty slot the next chip will fill, shown only while a duelist
                                  still holds an unarmed Treasure. It replaces a "Nudge: You hold a
                                  Treasure!" sentence that sat after Submit bid: same information,
                                  but pointing at the place the card lands instead of announcing it
@@ -905,38 +912,40 @@
                                  hitting APPLY in the hand, just without the detour. With more than
                                  one, this instead opens the hand (the same peek PlayerState's pile
                                  offers) so the player can pick which to APPLY. -->
-                            <button
-                                type="button"
-                                class="px-1.5 py-[3px] rounded font-semibold border border-dashed border-black/30 text-black/45 hover:border-black/50 hover:text-black/70"
-                                title={unarmedTreasureCards.length === 1
-                                    ? 'Add this Treasure to your bid'
-                                    : 'Open your hand and hit APPLY on a Treasure to add it to this bid'}
-                                onclick={(event) => {
-                                    if (unarmedTreasureCards.length === 1) {
-                                        gameSession.armDuelTreasure(unarmedTreasureCards[0].id)
-                                        return
-                                    }
-                                    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-                                    gameSession.showMyPoliticsCards({
-                                        x: rect.left + rect.width / 2,
-                                        y: rect.top + rect.height / 2
-                                    })
-                                }}
-                            >
-                                + Treasure?
-                            </button>
-                        {/if}
                         <button
                             type="button"
-                            class="px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 font-semibold"
-                            onclick={() =>
-                                gameSession.submitDuelBid(
-                                    bidAmount,
-                                    gameSession.armedDuelTreasureIds
-                                )}
+                            class="px-1.5 py-[3px] rounded font-semibold border border-dashed border-black/30 text-black/45 hover:border-black/50 hover:text-black/70"
+                            title={unarmedTreasureCards.length === 1
+                                ? 'Add this Treasure to your bid'
+                                : 'Open your hand and hit APPLY on a Treasure to add it to this bid'}
+                            onclick={(event) => {
+                                if (unarmedTreasureCards.length === 1) {
+                                    gameSession.applyPoliticsCard(unarmedTreasureCards[0])
+                                    return
+                                }
+                                const rect = (
+                                    event.currentTarget as HTMLElement
+                                ).getBoundingClientRect()
+                                gameSession.showMyPoliticsCards({
+                                    x: rect.left + rect.width / 2,
+                                    y: rect.top + rect.height / 2
+                                })
+                            }}
                         >
-                            Submit bid
+                            + Treasure?
                         </button>
+                    {/if}
+                    <button
+                        type="button"
+                        class="px-2 py-[3px] rounded bg-green-700/20 hover:bg-green-700/30 font-semibold"
+                        onclick={() =>
+                            gameSession.submitDuelBid(
+                                bidAmount,
+                                gameSession.armedDuelTreasureValues
+                            )}
+                    >
+                        Submit bid
+                    </button>
                 </div>
             {/if}
 

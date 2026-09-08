@@ -21,6 +21,7 @@
     import darkLogo from '$lib/components/images/dark-logo.png'
     import { goto } from '$app/navigation'
     import { onMount } from 'svelte'
+    import { fromStore } from 'svelte/store'
     import { UserStatus } from '@tabletop/common'
     import {
         VersionChange,
@@ -50,6 +51,12 @@
     let showCreateGameModel = $state(false)
     let showCancelPrompt = $state(false)
 
+    let currentGameState = $derived.by(() => {
+        const state = gameService.currentGameSession?.bridge.gameState
+        return state ? fromStore(state) : undefined
+    })
+    let reproductionSeed = $derived(currentGameState?.current?.masterSeed)
+
     let seed = $derived.by(() => {
         if (!gameService.currentGameSession) {
             return undefined
@@ -61,7 +68,7 @@
             return undefined
         }
 
-        return game.seed
+        return reproductionSeed ?? game.seed
     })
 
     let gameLogicVersion = $derived.by(() => {
@@ -236,12 +243,10 @@
 {/snippet}
 
 {#snippet gameSeed()}
-    {#if seed}
-        <div
-            class="text-nowrap text-center mb-2 sm:mb-0 max-w-[320px] dark:text-gray-400 font-mono text-xs overflow-clip text-ellipsis"
-            style=""
-        >
-            Seed: {seed}
+    {#if seed !== undefined}
+        <div class="text-center mb-2 sm:mb-0 max-w-[320px] dark:text-gray-400 text-xs">
+            <div>{reproductionSeed !== undefined ? 'Reproduction seed' : 'Public seed'}</div>
+            <div class="font-mono break-all select-all">{seed}</div>
         </div>
     {/if}
 {/snippet}
@@ -387,7 +392,7 @@
                                             >UI: v{gameUiVersion ?? 'N/A'}</DropdownItem
                                         >
                                     {/if}
-                                    {#if seed}
+                                    {#if seed !== undefined}
                                         <DropdownItem class="w-full text-left py-1"
                                             >{@render gameSeed()}</DropdownItem
                                         >

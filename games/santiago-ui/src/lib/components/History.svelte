@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Timeline, TimelineItem } from 'flowbite-svelte'
-    import TimeAgo from 'javascript-time-ago'
+    import { createTimeAgo } from '@tabletop/frontend-components'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
@@ -10,7 +10,7 @@
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
     import PlayerNameChip from './PlayerNameChip.svelte'
 
-    const timeAgo = new TimeAgo('en-US')
+    const timeAgo = createTimeAgo()
     const session = getGameSession()
 
     const reversedActions = $derived.by(() =>

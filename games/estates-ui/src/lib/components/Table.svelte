@@ -8,14 +8,15 @@
     import Board from '$lib/components/Board.svelte'
     import { onMount } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    import type { EstatesGameState, HydratedEstatesGameState } from '@tabletop/estates'
+    import type { EstatesProjectedState, HydratedEstatesGameState } from '@tabletop/estates'
     import History from '$lib/components/History.svelte'
     import LastActionDescription from './LastActionDescription.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
     import { setGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let { gameSession }: { gameSession: GameSession<EstatesGameState, HydratedEstatesGameState> } =
-        $props()
+    let {
+        gameSession
+    }: { gameSession: GameSession<EstatesProjectedState, HydratedEstatesGameState> } = $props()
 
     // svelte-ignore state_referenced_locally
     const estatesSession = gameSession as EstatesGameSession

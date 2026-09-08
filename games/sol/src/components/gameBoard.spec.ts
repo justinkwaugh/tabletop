@@ -18,6 +18,67 @@ describe('Sol Game Board Tests', () => {
         })
     })
 
+    it<LocalTestContext>('selects an inner-ring shortcut when the same-ring route exceeds remaining movement', ({
+        board
+    }) => {
+        const start = { row: Ring.Inner, col: 0 }
+        const end = { row: Ring.Convective, col: 7 }
+        const entry: SolarGate = { id: 'entry', playerId: 'p1' }
+        const inward: SolarGate = { id: 'inward', playerId: 'p1' }
+        const outward: SolarGate = { id: 'outward', playerId: 'p2' }
+        board.addGateAt(entry, { row: Ring.Convective, col: 0 }, start)
+        board.addGateAt(inward, { row: Ring.Radiative, col: 7 }, { row: Ring.Convective, col: 0 })
+        board.addGateAt(outward, { row: Ring.Radiative, col: 4 }, end)
+
+        const requiredGates: SolarGate[] = []
+        for (const expectedGate of [entry, inward, outward]) {
+            const choices = board.gateChoicesForDestination({ start, end, range: 6, requiredGates })
+            expect(choices.direct).toBe(false)
+            expect(choices.gates).toEqual([expectedGate])
+            requiredGates.push(expectedGate)
+        }
+
+        expect(
+            board.pathToDestination({
+                start,
+                destination: end,
+                range: 6,
+                requiredGates,
+                requiredGatesOnly: true
+            })
+        ).toEqual([
+            start,
+            { row: Ring.Convective, col: 0 },
+            { row: Ring.Radiative, col: 7 },
+            { row: Ring.Radiative, col: 6 },
+            { row: Ring.Radiative, col: 5 },
+            { row: Ring.Radiative, col: 4 },
+            end
+        ])
+
+        expect(
+            board.gateChoicesForDestination({
+                start,
+                end,
+                range: 7,
+                requiredGates: [entry]
+            }).direct
+        ).toBe(true)
+    })
+
+    it<LocalTestContext>('does not offer a direct route through forbidden coordinates', ({
+        board
+    }) => {
+        const choices = board.gateChoicesForDestination({
+            start: { row: Ring.Convective, col: 0 },
+            end: { row: Ring.Convective, col: 2 },
+            range: 2,
+            illegalCoordinates: [{ row: Ring.Convective, col: 1 }]
+        })
+
+        expect(choices.direct).toBe(false)
+    })
+
     it<LocalTestContext>('should find only local gate choices', ({ board }) => {
         const gate = {
             id: 'g1',

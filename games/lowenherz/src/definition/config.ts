@@ -1,18 +1,11 @@
 import * as Type from 'typebox'
 import { GameConfigOptions, BooleanConfigOption, ConfigOptionType } from '@tabletop/common'
 
-// A player with a perfect memory could always work out everyone's exact ducat total
-// anyway - every transaction (negotiation payments, revealed duel bids, the wooded-
-// space cost, money bag payouts, alliance cancellations) is public, and everyone
-// starts from the same known 12. Defaults to on (money shown openly, which is what
-// this implementation already did before this option existed) - turn off to make
-// each player conceal their own total, closer to the physical game's actual setup
-// ("A player's money is private").
 const publicMoneyOption: BooleanConfigOption = {
     id: 'publicMoney',
     type: ConfigOptionType.Boolean,
     name: 'Public Money',
-    description: 'Turn off to keep money private',
+    description: 'Turn off to keep balances private until game end and disable exploration',
     default: true
 }
 

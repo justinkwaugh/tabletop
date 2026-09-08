@@ -1,4 +1,9 @@
-import { GameResult, type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    GameResult,
+    type HydratedAction,
+    type MachineStateHandler,
+    MachineContext
+} from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { MachineState } from '../definition/states.js'
 import { PoliticsCardType } from '../definition/politicsCards.js'
@@ -12,9 +17,10 @@ import { PoliticsCardType } from '../definition/politicsCards.js'
 // for - a player holding Treasure(15) and 3 ducats beats one holding 5. A true tie
 // survives as multiple winningPlayerIds/GameResult.Draw, matching every other game in
 // this repo's end-of-game convention.
-export class EndOfGameStateHandler
-    implements MachineStateHandler<HydratedAction, HydratedLowenherzGameState>
-{
+export class EndOfGameStateHandler implements MachineStateHandler<
+    HydratedAction,
+    HydratedLowenherzGameState
+> {
     isValidAction(
         _action: HydratedAction,
         _context: MachineContext<HydratedLowenherzGameState>
@@ -32,12 +38,17 @@ export class EndOfGameStateHandler
     enter(context: MachineContext<HydratedLowenherzGameState>) {
         const state = context.gameState
         state.activePlayerIds = []
+        state.finalHands = state.players.map((player) => ({
+            playerId: player.playerId,
+            cards: structuredClone(player.getPoliticsCards())
+        }))
 
         // "These cards are saved and used at the end of the game. Their owners move
         // their power markers forward the number of spaces stated on the cards." -
         // Parchment is never "played" during the game, it just always counts here.
         for (const player of state.players) {
-            const parchmentBonus = player.politicsCards
+            const parchmentBonus = player
+                .getPoliticsCards()
                 .filter((c) => c.type === PoliticsCardType.Parchment)
                 .reduce((sum, c) => sum + (c.value ?? 0), 0)
             player.powerPoints += parchmentBonus
@@ -50,8 +61,9 @@ export class EndOfGameStateHandler
         // spendable as money on a wooded knight placement or a duel bid), so an unspent one
         // counts at face value here.
         const spendableWealth = (player: (typeof state.players)[number]) =>
-            player.money +
-            player.politicsCards
+            player.getMoney() +
+            player
+                .getPoliticsCards()
                 .filter((c) => c.type === PoliticsCardType.Treasure)
                 .reduce((sum, c) => sum + (c.value ?? 0), 0)
 

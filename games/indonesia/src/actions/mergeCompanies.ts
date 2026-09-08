@@ -116,7 +116,7 @@ export class HydratedMergeCompanies
             state.getPlayerState(ownerPayment.ownerId).cash += ownerPayment.payout
         }
 
-        const mergedCompanyId = state.getPrng().randId()
+        const mergedCompanyId = state.getPublicPrng().randId()
         const mergedDeeds = [...companyA.deeds, ...companyB.deeds]
 
         const resultingGood = proposal.resultingGood

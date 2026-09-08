@@ -1,3 +1,4 @@
+import { measure } from '@tabletop/backend-services/diagnostics'
 import fp from 'fastify-plugin'
 import { User, Role, UserStatus } from '@tabletop/common'
 import { FastifyAuthFunction } from '@fastify/auth'
@@ -47,7 +48,7 @@ export default fp(async function (fastify: FastifyInstance) {
             throw new Error('No user id in session')
         }
 
-        const user = await fastify.userService.getUser(userId)
+        const user = await measure('auth.user', () => fastify.userService.getUser(userId))
         if (!user) {
             throw new Error('No user found for id ' + userId)
         }

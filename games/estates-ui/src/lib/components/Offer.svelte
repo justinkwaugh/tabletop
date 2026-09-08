@@ -1,6 +1,5 @@
 <script lang="ts">
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    import { fadeIn, fadeOut } from '$lib/utils/animations'
     import { range, sameCoordinates, type OffsetCoordinates } from '@tabletop/common'
     import { BarrierDirection, Cube, MachineState, PieceType } from '@tabletop/estates'
     import { useThrelte } from '@threlte/core'
@@ -9,7 +8,6 @@
 
     let { hidden }: { hidden?: boolean } = $props()
     let gameSession = getGameSession() as EstatesGameSession
-    let ref: HTMLDivElement
     let { size } = useThrelte()
 
     let canPlace = $derived(
@@ -58,14 +56,6 @@
         }
         gameSession.startAuction({ pieceType: PieceType.CancelCube })
     }
-
-    $effect(() => {
-        if (hidden) {
-            fadeOut({ object: ref, duration: 0.2 })
-        } else {
-            fadeIn({ object: ref, duration: 0.2 })
-        }
-    })
 </script>
 
 {#snippet barrier(stripes: number)}
@@ -78,7 +68,7 @@
     </div>
 {/snippet}
 
-<div bind:this={ref} class="p-2 flex justify-center bg-gray-900 opacity-0">
+<div class:hud-hidden={hidden} class="p-2 flex justify-center bg-gray-900 hud-fade">
     <div
         class="flex justify-between items-center {$size.width < 380
             ? 'gap-x-1'

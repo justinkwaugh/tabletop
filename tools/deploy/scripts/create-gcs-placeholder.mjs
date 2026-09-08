@@ -1,12 +1,9 @@
 #!/usr/bin/env node
 
 import { spawn } from 'node:child_process'
-import fs from 'node:fs/promises'
 
 const usage = 'Usage: node tools/deploy/scripts/create-gcs-placeholder.mjs gs://<bucket>/<path>/'
 const gcsDirectoryPattern = /^gs:\/\/([^/]+)\/(.+)$/
-const tokenCachePath = '/tmp/tabletop-gcs-placeholder-token.json'
-const tokenLifetimeMs = 50 * 60 * 1000
 
 const readArgs = () => {
     const target = process.argv[2]
@@ -58,51 +55,9 @@ const printAccessToken = () =>
         })
     })
 
-const readCachedToken = async () => {
-    try {
-        const raw = await fs.readFile(tokenCachePath, 'utf8')
-        const parsed = JSON.parse(raw)
-        if (typeof parsed?.token !== 'string') {
-            return undefined
-        }
-        if (typeof parsed?.expiresAt !== 'number') {
-            return undefined
-        }
-        if (Date.now() >= parsed.expiresAt) {
-            return undefined
-        }
-        return parsed.token
-    } catch {
-        return undefined
-    }
-}
-
-const writeCachedToken = async (token) => {
-    const payload = {
-        token,
-        expiresAt: Date.now() + tokenLifetimeMs
-    }
-    await fs.writeFile(tokenCachePath, JSON.stringify(payload), 'utf8')
-}
-
-const clearCachedToken = async () => {
-    try {
-        await fs.unlink(tokenCachePath)
-    } catch {
-        // ignore missing or unreadable cache
-    }
-}
-
-const resolveAccessToken = async () => {
+const resolveAccessToken = () => {
     const envToken = process.env.TABLETOP_GCS_ACCESS_TOKEN?.trim()
-    if (envToken) return envToken
-
-    const cached = await readCachedToken()
-    if (cached) return cached
-
-    const token = await printAccessToken()
-    await writeCachedToken(token)
-    return token
+    return envToken || printAccessToken()
 }
 
 const uploadPlaceholder = async (bucket, objectName, token) => {
@@ -128,7 +83,6 @@ const createPlaceholder = async () => {
     let response = await uploadPlaceholder(bucket, objectName, token)
 
     if (response.status === 401 && !process.env.TABLETOP_GCS_ACCESS_TOKEN?.trim()) {
-        await clearCachedToken()
         token = await resolveAccessToken()
         response = await uploadPlaceholder(bucket, objectName, token)
     }

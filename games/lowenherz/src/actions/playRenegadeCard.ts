@@ -3,8 +3,15 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { PoliticsCardType } from '../definition/politicsCards.js'
-import { getSquare, isOnBoard, isWalledBetween, neighbors, squareKey, SquareType } from '../model/board.js'
+import { PoliticsCardType, removePoliticsCard } from '../definition/politicsCards.js'
+import {
+    getSquare,
+    isOnBoard,
+    isWalledBetween,
+    neighbors,
+    squareKey,
+    SquareType
+} from '../model/board.js'
 import { regionsAreNeighboring } from '../util/regionScoring.js'
 import { isKnightSafeToRemove } from '../util/knightConnectivity.js'
 import { currentChoosingPlayerId } from '../util/decisionPlan.js'
@@ -27,7 +34,6 @@ export const PlayRenegadeCard = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.PlayRenegadeCard), // This action is always this type
             playerId: Type.String(), // Required now
-            cardId: Type.String(),
             // One of the player's own regions, and a neighboring enemy region - the
             // knight is removed from the enemy region, the replacement is placed into
             // the own region.
@@ -59,7 +65,6 @@ export class HydratedPlayRenegadeCard
 {
     declare type: ActionType.PlayRenegadeCard
     declare playerId: string
-    declare cardId: string
     declare ownRegionId: string
     declare enemyRegionId: string
     declare removedCol: number
@@ -87,9 +92,10 @@ export class HydratedPlayRenegadeCard
         const victimPlayer = state.players.find((p) => p.playerId === enemyRegion.owner)
 
         const removedSquare = getSquare(state.board, this.removedCol, this.removedRow)!
-        const removalWoodedCostPaid = removedSquare.type === SquareType.Forest ? WOODED_KNIGHT_COST : undefined
+        const removalWoodedCostPaid =
+            removedSquare.type === SquareType.Forest ? WOODED_KNIGHT_COST : undefined
         if (removalWoodedCostPaid) {
-            playerState.money -= removalWoodedCostPaid
+            playerState.adjustMoney(-removalWoodedCostPaid)
         }
         const { knightOwner: _removedKnightOwner, ...clearedSquare } = removedSquare
         state.board.squares[this.removedRow][this.removedCol] = clearedSquare
@@ -99,14 +105,19 @@ export class HydratedPlayRenegadeCard
         }
 
         const placedSquare = getSquare(state.board, this.placedCol, this.placedRow)!
-        state.board.squares[this.placedRow][this.placedCol] = { ...placedSquare, knightOwner: this.playerId }
+        state.board.squares[this.placedRow][this.placedCol] = {
+            ...placedSquare,
+            knightOwner: this.playerId
+        }
         playerState.knightsInStock -= 1
-        const placementWoodedCostPaid = placedSquare.type === SquareType.Forest ? WOODED_KNIGHT_COST : undefined
+        const placementWoodedCostPaid =
+            placedSquare.type === SquareType.Forest ? WOODED_KNIGHT_COST : undefined
         if (placementWoodedCostPaid) {
-            playerState.money -= placementWoodedCostPaid
+            playerState.adjustMoney(-placementWoodedCostPaid)
         }
 
-        playerState.politicsCards = playerState.politicsCards.filter((c) => c.id !== this.cardId)
+        removePoliticsCard(playerState.getPoliticsCards(), { type: PoliticsCardType.Renegade })
+        playerState.syncPoliticsCardCount()
 
         this.metadata = {
             victimOwner: enemyRegion.owner!,
@@ -124,13 +135,21 @@ export class HydratedPlayRenegadeCard
     // Same checks as isValidPlayRenegadeCard, but reports WHY a play is rejected - the
     // client uses this to show a specific message instead of one generic one.
     invalidPlayRenegadeCardReason(state: HydratedLowenherzGameState): string | undefined {
-        if (currentChoosingPlayerId(state.turnOrder, state.firstPlayerId, state.decisions.length) !== this.playerId) {
+        if (
+            currentChoosingPlayerId(
+                state.turnOrder,
+                state.firstPlayerId,
+                state.decisions.length
+            ) !== this.playerId
+        ) {
             return "It isn't your turn to lay a decision card."
         }
 
         const playerState = state.getPlayerState(this.playerId)
-        const card = playerState.politicsCards.find((c) => c.id === this.cardId)
-        if (!card || card.type !== PoliticsCardType.Renegade) {
+        const card = playerState
+            .getPoliticsCards()
+            .find((c) => c.type === PoliticsCardType.Renegade)
+        if (!card) {
             return "That Renegade card isn't in your hand."
         }
         if (playerState.knightsInStock <= 0) {
@@ -160,7 +179,7 @@ export class HydratedPlayRenegadeCard
             return "There's no enemy knight on that square."
         }
         if (!isKnightSafeToRemove(state, enemyRegion.owner, this.removedCol, this.removedRow)) {
-            return "Removing that knight would cut off another one of their knights from their castle."
+            return 'Removing that knight would cut off another one of their knights from their castle.'
         }
 
         const placedKey = squareKey(this.placedCol, this.placedRow)
@@ -182,7 +201,8 @@ export class HydratedPlayRenegadeCard
         }
         const isAdjacentToOwnPiece = neighbors(this.placedCol, this.placedRow).some((n) => {
             if (!isOnBoard(n.col, n.row)) return false
-            if (isWalledBetween(state.board, this.placedCol, this.placedRow, n.col, n.row)) return false
+            if (isWalledBetween(state.board, this.placedCol, this.placedRow, n.col, n.row))
+                return false
             const neighborSquare = getSquare(state.board, n.col, n.row)
             return (
                 neighborSquare?.knightOwner === this.playerId ||
@@ -200,7 +220,7 @@ export class HydratedPlayRenegadeCard
         const removalWoodedCost = removedSquare.type === SquareType.Forest ? WOODED_KNIGHT_COST : 0
         const placementWoodedCost = placedSquare.type === SquareType.Forest ? WOODED_KNIGHT_COST : 0
         const totalWoodedCost = removalWoodedCost + placementWoodedCost
-        if (totalWoodedCost > playerState.money) {
+        if (totalWoodedCost > playerState.getMoney()) {
             return `Removing/placing a knight in the woods costs ${totalWoodedCost} ducats total, which you can't afford.`
         }
 

@@ -1,5 +1,6 @@
 import {
     CollectionReference,
+    DocumentReference,
     Firestore,
     PartialWithFieldValue,
     QueryDocumentSnapshot,
@@ -7,7 +8,7 @@ import {
     Transaction
 } from '@google-cloud/firestore'
 
-import { AlreadyExistsError, UnknownStorageError } from '../stores/errors.js'
+import { AlreadyExistsError, NotFoundError, UnknownStorageError } from '../stores/errors.js'
 import { addToChecksum, BaseError, Bookmark, GameChat, GameChatMessage } from '@tabletop/common'
 import { isFirestoreError } from './errors.js'
 import { ChatStore } from '../stores/chatStore.js'
@@ -16,6 +17,8 @@ import { StoredGameChat } from '../model/storedGameChat.js'
 import { nanoid } from 'nanoid'
 import { StoredBookmark } from '../model/storedBookmark.js'
 import * as Value from 'typebox/value'
+import { GameCacheKeys } from './gameCacheKeys.js'
+import { gameChatDocument, gameChatBookmarks } from './gameChatDocuments.js'
 
 const GAME_CHAT_MESSAGE_LIMIT = 2000
 
@@ -26,10 +29,9 @@ export class FirestoreChatStore implements ChatStore {
     ) {}
 
     async findGameChat(gameId: string): Promise<GameChat | undefined> {
-        const collection = this.getGameChatCollection(gameId)
-        const doc = collection.doc(gameId)
+        const doc = this.getGameChatDocument(gameId)
         try {
-            return (await doc.get()).data() as GameChat
+            return (await doc.get()).data()
         } catch (error) {
             this.handleError(error, gameId)
             throw Error('unreachable')
@@ -37,13 +39,12 @@ export class FirestoreChatStore implements ChatStore {
     }
 
     async addGameChatMessage(message: GameChatMessage, gameId: string): Promise<GameChat> {
-        const chats = this.getGameChatCollection(gameId)
+        const chat = this.getGameChatDocument(gameId)
         const transactionBody = async (
             transaction: Transaction
         ): Promise<{ updatedGameChat: GameChat }> => {
-            const existingChat: GameChat | undefined = (
-                await transaction.get(chats.doc(gameId))
-            ).data() as GameChat | undefined
+            await this.requireGame(transaction, gameId)
+            const existingChat = (await transaction.get(chat)).data()
 
             const chatToUpdate = existingChat ?? { id: gameId, gameId, messages: [], checksum: 0 }
 
@@ -54,18 +55,15 @@ export class FirestoreChatStore implements ChatStore {
             chatToUpdate.messages.push(message)
             chatToUpdate.checksum = addToChecksum(chatToUpdate.checksum, [message.id])
 
-            transaction.set(chats.doc(gameId), chatToUpdate)
+            transaction.set(chat, chatToUpdate)
 
             return { updatedGameChat: chatToUpdate }
         }
 
-        const checksumCacheKey = `csum-${gameId}-chat`
-        const chatRevisionCacheKey = `etag-${gameId}-chat`
-
         try {
             const { updatedGameChat } = await this.cacheService.lockWhileWriting(
-                [checksumCacheKey, chatRevisionCacheKey],
-                async () => chats.firestore.runTransaction(transactionBody)
+                GameCacheKeys.chatWrite(gameId),
+                async () => chat.firestore.runTransaction(transactionBody)
             )
 
             return updatedGameChat
@@ -77,7 +75,7 @@ export class FirestoreChatStore implements ChatStore {
     }
 
     async getGameChatEtag(gameId: string): Promise<string | undefined> {
-        const cacheKey = `etag-${gameId}-chat`
+        const cacheKey = GameCacheKeys.chatRevision(gameId)
 
         const generateEtag = async (): Promise<string> => {
             return nanoid()
@@ -87,7 +85,7 @@ export class FirestoreChatStore implements ChatStore {
     }
 
     async getGameChatBookmark(gameId: string, playerId: string): Promise<Bookmark> {
-        const cacheKey = `bookmark-${gameId}-${playerId}`
+        const cacheKey = GameCacheKeys.bookmark(gameId, playerId)
 
         const getBookmark = async (): Promise<unknown> => {
             const collection = this.getGameChatBookmarkCollection(gameId)
@@ -114,11 +112,12 @@ export class FirestoreChatStore implements ChatStore {
     async setGameChatBookmark(gameId: string, bookmark: Bookmark): Promise<void> {
         const bookmarks = this.getGameChatBookmarkCollection(gameId)
         const transactionBody = async (transaction: Transaction): Promise<void> => {
+            await this.requireGame(transaction, gameId)
             const bookmarkToSet = structuredClone(bookmark)
             transaction.set(bookmarks.doc(bookmark.id), bookmarkToSet)
         }
 
-        const cacheKey = `bookmark-${gameId}-${bookmark.id}`
+        const cacheKey = GameCacheKeys.bookmark(gameId, bookmark.id)
 
         try {
             await this.cacheService.lockWhileWriting([cacheKey], async () =>
@@ -131,22 +130,17 @@ export class FirestoreChatStore implements ChatStore {
         }
     }
 
-    private getGameChatCollection(gameId: string): CollectionReference {
-        return this.firestore
-            .collection('games')
-            .doc(gameId)
-            .collection('chats')
-            .withConverter(gameChatConverter)
+    private async requireGame(transaction: Transaction, gameId: string): Promise<void> {
+        const game = await transaction.get(this.firestore.collection('games').doc(gameId))
+        if (!game.exists) throw new NotFoundError({ type: 'Game', id: gameId })
+    }
+
+    private getGameChatDocument(gameId: string): DocumentReference<GameChat> {
+        return gameChatDocument(this.firestore, gameId).withConverter(gameChatConverter)
     }
 
     private getGameChatBookmarkCollection(gameId: string): CollectionReference {
-        return this.firestore
-            .collection('games')
-            .doc(gameId)
-            .collection('chats')
-            .doc(gameId)
-            .collection('bookmarks')
-            .withConverter(bookmarkConverter)
+        return gameChatBookmarks(this.firestore, gameId).withConverter(bookmarkConverter)
     }
 
     private handleError(error: unknown, id: string) {

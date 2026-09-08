@@ -1,0 +1,15 @@
+.hud-fade {
+    opacity: 1;
+    transition: opacity 200ms ease-in;
+}
+
+.hud-fade.hud-hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+@starting-style {
+    .hud-fade {
+        opacity: 0;
+    }
+}

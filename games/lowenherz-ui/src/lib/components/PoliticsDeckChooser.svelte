@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { PoliticsCardDeck } from '@tabletop/lowenherz'
     import { gsap } from 'gsap'
     import { onDestroy } from 'svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -46,13 +47,15 @@
     // this), just never shown face-up until a pile is taken. Only the first card of each pile is
     // ever read here, and only for its id (PoliticsCard ignores a face-down card's own content) -
     // this is a deck back, not a peek at what's in it.
-    const pileACards = $derived(gameSession.gameState.politicsCardPileA)
-    const pileBCards = $derived(gameSession.gameState.politicsCardPileB)
+    const pileACount = $derived(gameSession.gameState.getPoliticsPileCount('A'))
+    const pileBCount = $derived(gameSession.gameState.getPoliticsPileCount('B'))
 
     // This component renders nothing at all once this is false - either nobody needs to choose
     // right now, or a pile has already been picked and PoliticsPileReveal has taken over the same
     // spot above the board.
-    const choosingPolitics = $derived(gameSession.canTakePoliticsCard && !gameSession.selectedPoliticsPile)
+    const choosingPolitics = $derived(
+        gameSession.canTakePoliticsCard && !gameSession.selectedPoliticsPile
+    )
 
     // Warms the browser's image cache for every card in both piles as soon as there's a real
     // choice to make - well before PoliticsPileReveal deals any of them in. This is the best
@@ -68,7 +71,7 @@
     // contents this player could look through change while there's an actual choice on the table.
     $effect(() => {
         if (!choosingPolitics) return
-        for (const card of [...pileACards, ...pileBCards]) {
+        for (const card of PoliticsCardDeck) {
             preloadPoliticsCardFace(card)
         }
     })
@@ -128,7 +131,7 @@
         if (takingPile) return
         const clickedEl = event.currentTarget as HTMLElement
         const otherEl = pile === 'A' ? pileBEl : pileAEl
-        const totalCount = (pile === 'A' ? pileACards : pileBCards).length
+        const totalCount = pile === 'A' ? pileACount : pileBCount
         takingPileTag = pile
         // Cleared here, not left to attemptIsCurrent's own staleness check alone: a round that
         // finished normally left this stuck at true (nothing else ever resets it after a
@@ -147,13 +150,19 @@
             // No explicit position argument - GSAP timelines append sequentially by default,
             // which is exactly "once it's gone" ordering: the slide below only starts once this
             // fade actually finishes.
-            tl.to(otherEl, { opacity: 0, scale: 0.85, duration: FADE_OUT_DURATION / 1000, ease: 'power1.in' })
+            tl.to(otherEl, {
+                opacity: 0,
+                scale: 0.85,
+                duration: FADE_OUT_DURATION / 1000,
+                ease: 'power1.in'
+            })
         }
 
         const areaRect = rowEl?.getBoundingClientRect()
         if (areaRect) {
             const firstRowSize = rowSizes(totalCount + 1, areaRect.width, cardWidth)[0] ?? 1
-            const firstRowLeft = areaRect.left + (areaRect.width - rowContentWidth(firstRowSize, cardWidth)) / 2
+            const firstRowLeft =
+                areaRect.left + (areaRect.width - rowContentWidth(firstRowSize, cardWidth)) / 2
             const targetCenterX = firstRowLeft + cardWidth / 2
 
             const clickedRect = clickedEl.getBoundingClientRect()
@@ -239,8 +248,12 @@
          PoliticsPileReveal's, so neither component needs to reserve space to agree with the
          other's layout. -->
     <div class="px-3 py-2">
-        <div class="flex items-center justify-center gap-3" bind:this={rowEl} bind:clientWidth={rowWidth}>
-            {#if pileACards.length > 0}
+        <div
+            class="flex items-center justify-center gap-3"
+            bind:this={rowEl}
+            bind:clientWidth={rowWidth}
+        >
+            {#if pileACount > 0}
                 <button
                     type="button"
                     bind:this={pileAEl}
@@ -251,8 +264,8 @@
                         : 'transition-opacity duration-150'}"
                     style="width: {cardWidthCss};"
                 >
-                    <PoliticsCard card={pileACards[0]} faceDown />
-                    {@render countBadge(pileACards.length)}
+                    <PoliticsCard faceDown />
+                    {@render countBadge(pileACount)}
                 </button>
             {:else}
                 <div
@@ -263,7 +276,7 @@
                     empty
                 </div>
             {/if}
-            {#if pileBCards.length > 0}
+            {#if pileBCount > 0}
                 <button
                     type="button"
                     bind:this={pileBEl}
@@ -274,8 +287,8 @@
                         : 'transition-opacity duration-150'}"
                     style="width: {cardWidthCss};"
                 >
-                    <PoliticsCard card={pileBCards[0]} faceDown />
-                    {@render countBadge(pileBCards.length)}
+                    <PoliticsCard faceDown />
+                    {@render countBadge(pileBCount)}
                 </button>
             {:else}
                 <div

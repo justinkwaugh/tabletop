@@ -26,12 +26,13 @@
     const VIEWPORT_MARGIN = 16
 
     let anchor: HTMLElement | undefined = $state(undefined)
-    let enlarged: { centerX: number; centerY: number; width: number } | undefined = $state(undefined)
+    let enlarged: { centerX: number; centerY: number; width: number } | undefined =
+        $state(undefined)
     let holdTimer: ReturnType<typeof setTimeout> | undefined
     let suppressNextClick = false
 
     const showingCopy = $derived(
-        enlarged !== undefined && gameSession.magnifiedPoliticsCard?.cardId === card.id
+        enlarged !== undefined && gameSession.magnifiedPoliticsCard?.element === anchor
     )
 
     // Centred on the card, then nudged only as far as needed to keep the whole copy inside the
@@ -56,7 +57,10 @@
             if (!anchor) return
             const rect = anchor.getBoundingClientRect()
             enlarged = enlargedGeometry(rect)
-            gameSession.magnifiedPoliticsCard = { cardId: card.id, scale: enlarged.width / rect.width }
+            gameSession.magnifiedPoliticsCard = {
+                element: anchor,
+                scale: enlarged.width / rect.width
+            }
             // A press that turned into a preview is not a choice: swallow the click the release
             // is about to produce so the card underneath is not taken or applied by accident.
             if (fromTouch) suppressNextClick = true
@@ -71,7 +75,7 @@
     function release() {
         cancelHold()
         enlarged = undefined
-        if (gameSession.magnifiedPoliticsCard?.cardId === card.id) {
+        if (gameSession.magnifiedPoliticsCard?.element === anchor) {
             gameSession.magnifiedPoliticsCard = undefined
         }
     }
@@ -105,8 +109,12 @@
     }
 
     function portalToBody(el: HTMLElement) {
-        document.body.appendChild(el)
-        return () => el.remove()
+        // Game CSS only applies beneath its scope, including when rendered outside GameUI.
+        const layer = document.createElement('div')
+        layer.dataset.gameUi = 'lowenherz'
+        document.body.appendChild(layer)
+        layer.appendChild(el)
+        return () => layer.remove()
     }
 
     function clearOnUnmount() {
@@ -142,7 +150,11 @@
              entry is gone while this magnifier still holds its geometry), and a shrink otherwise. -->
         <div
             in:scale={{ start: 1 / GROWTH, duration: 150, opacity: 1 }}
-            out:scale={{ start: 1 / GROWTH, duration: enlarged !== undefined ? 0 : 150, opacity: 1 }}
+            out:scale={{
+                start: 1 / GROWTH,
+                duration: enlarged !== undefined ? 0 : 150,
+                opacity: 1
+            }}
             class="drop-shadow-2xl"
         >
             <PoliticsCard {card} />

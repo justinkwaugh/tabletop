@@ -16,10 +16,6 @@ export class UrbinoGameInitializer
     extends BaseGameInitializer<UrbinoGameState, HydratedUrbinoGameState>
     implements GameInitializer<UrbinoGameState, HydratedUrbinoGameState>
 {
-    initializeExplorationState(state: UrbinoGameState): UrbinoGameState {
-        return state
-    }
-
     initializeGameState(game: Game, state: UninitializedGameState): HydratedUrbinoGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng)

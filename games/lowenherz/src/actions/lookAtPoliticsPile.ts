@@ -1,31 +1,41 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import {
+    Visibility,
+    assertExists,
+    GameAction,
+    HydratableAction,
+    MachineContext
+} from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
+import { PoliticsCard } from '../definition/politicsCards.js'
 import { ActionType } from '../definition/actions.js'
 
 export type LookAtPoliticsPile = Type.Static<typeof LookAtPoliticsPile>
-export const LookAtPoliticsPile = Type.Evaluate(
-    Type.Intersect([
-        Type.Omit(GameAction, ['playerId']), // Omit playerId to redefine it
+export const LookAtPoliticsPile = Type.Object({
+    ...Type.Omit(GameAction, ['playerId']).properties,
+    type: Type.Literal(ActionType.LookAtPoliticsPile), // This action is always this type
+    playerId: Type.String(), // Required now
+    // Which of the two piles the player is committing to look through - per
+    // the rulebook, they may look through only one, not both.
+    pile: Type.Union([Type.Literal('A'), Type.Literal('B')]),
+    metadata: Type.Optional(
         Type.Object({
-            type: Type.Literal(ActionType.LookAtPoliticsPile), // This action is always this type
-            playerId: Type.String(), // Required now
-            // Which of the two piles the player is committing to look through - per
-            // the rulebook, they may look through only one, not both.
-            pile: Type.Union([Type.Literal('A'), Type.Literal('B')]),
-            // This is the actual information reveal (it shows every card in the
-            // chosen pile, not just the one eventually taken) - undo must not be able
-            // to step back past it, or a player could peek at a pile, undo, and use
-            // that knowledge to change an earlier decision (which pile to open, or
-            // even which action to pick before that). TakePoliticsCard, the specific
-            // pick that follows, deliberately does NOT set this, so it stays freely
-            // undoable on its own - a player can reconsider which card to take from
-            // the same already-opened pile.
-            revealsInfo: Type.Literal(true)
+            cards: Visibility.protect(Type.Optional(Type.Array(PoliticsCard)), {
+                policy: Visibility.Policy.Actor
+            })
         })
-    ])
-)
+    ),
+    // This is the actual information reveal (it shows every card in the
+    // chosen pile, not just the one eventually taken) - undo must not be able
+    // to step back past it, or a player could peek at a pile, undo, and use
+    // that knowledge to change an earlier decision (which pile to open, or
+    // even which action to pick before that). TakePoliticsCard, the specific
+    // pick that follows, deliberately does NOT set this, so it stays freely
+    // undoable on its own - a player can reconsider which card to take from
+    // the same already-opened pile.
+    revealsInfo: Type.Literal(true)
+})
 
 export const LookAtPoliticsPileValidator = Compile(LookAtPoliticsPile)
 
@@ -43,6 +53,7 @@ export class HydratedLookAtPoliticsPile
     declare playerId: string
     declare pile: 'A' | 'B'
     declare revealsInfo: true
+    declare metadata?: { cards?: PoliticsCard[] }
 
     constructor(data: LookAtPoliticsPile) {
         super(data, LookAtPoliticsPileValidator)
@@ -54,6 +65,9 @@ export class HydratedLookAtPoliticsPile
         }
 
         state.openedPoliticsPile = this.pile
+        const cards = structuredClone(state.getPoliticsPile(this.pile))
+        state.getPlayerState(this.playerId).politicsInspection = { pile: this.pile, cards }
+        this.metadata = { cards }
     }
 
     isValidLookAtPoliticsPile(state: HydratedLowenherzGameState): boolean {
@@ -75,8 +89,7 @@ export class HydratedLookAtPoliticsPile
         // legal follow-up is taking a card FROM that pile. Committing to an empty one left
         // the phase with no legal action at all for its only active player, and there's no
         // Pass here to escape with, so the game hung.
-        const pile = this.pile === 'A' ? state.politicsCardPileA : state.politicsCardPileB
-        if (pile.length === 0) {
+        if (state.getPoliticsPileCount(this.pile) === 0) {
             return 'That pile is empty - look through the other one.'
         }
 

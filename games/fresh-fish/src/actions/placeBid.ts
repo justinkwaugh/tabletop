@@ -1,5 +1,5 @@
 import * as Type from 'typebox'
-import { GameAction, HydratableAction } from '@tabletop/common'
+import { GameAction, HydratableAction, Visibility } from '@tabletop/common'
 import { HydratedFreshFishGameState } from '../model/gameState.js'
 import { Compile } from 'typebox/compile'
 import { ActionType } from '../definition/actions.js'
@@ -11,7 +11,9 @@ export const PlaceBid = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.PlaceBid),
             playerId: Type.String(),
-            amount: Type.Number()
+            amount: Visibility.protect(Type.Number(), {
+                policy: Visibility.Policy.Actor
+            })
         })
     ])
 )

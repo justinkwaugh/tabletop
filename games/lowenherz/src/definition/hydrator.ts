@@ -1,9 +1,5 @@
-import {
-    GameAction,
-    type GameHydrator,
-    type HydratedAction
-} from '@tabletop/common'
-import { HydratedLowenherzGameState, LowenherzGameState } from '../model/gameState.js'
+import { GameAction, type GameHydrator, type HydratedAction } from '@tabletop/common'
+import { HydratedLowenherzGameState, LowenherzProjectedState } from '../model/gameState.js'
 import { HydratedPlaceCastle, isPlaceCastle } from '../actions/placeCastle.js'
 import { HydratedPlaceSetupKnight, isPlaceSetupKnight } from '../actions/placeSetupKnight.js'
 import { HydratedDrawActionCard, isDrawActionCard } from '../actions/drawActionCard.js'
@@ -23,9 +19,10 @@ import { HydratedCancelAlliance, isCancelAlliance } from '../actions/cancelAllia
 
 // This is essentially a factory that knows how to take raw action and state data
 // and return the correct hydrated class instances for the Löwenherz game.  Used by the game engine
-export class LowenherzHydrator
-    implements GameHydrator<LowenherzGameState, HydratedLowenherzGameState>
-{
+export class LowenherzHydrator implements GameHydrator<
+    LowenherzProjectedState,
+    HydratedLowenherzGameState
+> {
     hydrateAction(data: GameAction): HydratedAction {
         switch (true) {
             case isPlaceCastle(data): {
@@ -82,7 +79,7 @@ export class LowenherzHydrator
         }
     }
 
-    hydrateState(state: LowenherzGameState): HydratedLowenherzGameState {
+    hydrateState(state: LowenherzProjectedState): HydratedLowenherzGameState {
         return new HydratedLowenherzGameState(state)
     }
 }

@@ -13,7 +13,7 @@ import { HydratedPass, isPass } from '../actions/pass.js'
 import { drawCardsOrEndTurn } from './postActionHelper.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 import { EffectType } from '../components/effects.js'
-import { Activate } from '../actions/activate.js'
+import { queueMotivatedActivation } from '../utils/automaticActions.js'
 import { nanoid } from 'nanoid'
 import { ActivatingStateHandler } from './activating.js'
 import { Ring } from '../utils/solGraph.js'
@@ -82,14 +82,7 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
             }
             case isActivateEffect(action): {
                 if (gameState.activeEffect === EffectType.Motivate) {
-                    const station = gameState.effectTracking?.convertedStation
-                    assertExists(station, 'No converted station found for Motivate effect')
-                    assertExists(station.coords, 'No coords found for Motivate effect station')
-                    context.addSystemAction(Activate, {
-                        playerId: action.playerId,
-                        coords: station.coords,
-                        stationId: station.id
-                    })
+                    queueMotivatedActivation(context, action.playerId)
                     return MachineState.Activating
                 } else if (gameState.activeEffect === EffectType.Augment) {
                     return ActivatingStateHandler.handleActivation(
