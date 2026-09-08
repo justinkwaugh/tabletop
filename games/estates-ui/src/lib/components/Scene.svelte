@@ -4,6 +4,7 @@
     import * as THREE from 'three'
     import { Group, Object3D, Box3, Vector3 } from 'three'
     import Map from './Map.svelte'
+    import { playerPanelHeight } from '$lib/utils/boardLayout.js'
     import { ColumnOffsets, RowOffsets } from '$lib/utils/boardOffsets.js'
     import Site from './Site.svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
@@ -21,8 +22,7 @@
     import { AnimationContext, GameSessionMode } from '@tabletop/frontend-components'
     import type { GameAction } from '@tabletop/common'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
-    // import { Checkbox, Folder, FpsGraph, List, Pane, Slider } from 'svelte-tweakpane-ui'
-    // import RenderIndicator from './RenderIndicator.svelte'
+    import { onDestroy } from 'svelte'
 
     CameraControls.install({ THREE: THREE })
 
@@ -38,13 +38,11 @@
 
     const sizingGroup = new Group() // This group is used to measure sizing for the camera
 
-    const { scene, renderer, camera, size, invalidate } = useThrelte()
+    const { scene, renderer, camera, size, invalidate, shouldRender } = useThrelte()
 
     let cameraControls: CameraControls | undefined
 
-    let playerPanelPos = $state({
-        y: 2
-    })
+    const playerPanels = new Group()
 
     let currentMayor: Object3D | undefined
 
@@ -59,16 +57,14 @@
         action?: GameAction
         animationContext: AnimationContext
     }) {
-        const heightForBackRow = to.board.maxRowHeight(0) - 0.8
-        const heightForMiddleRow = to.board.maxRowHeight(1) - 1.5
-        const heightForFrontRow = to.board.maxRowHeight(2) - 3
-
-        const maxHeight = Math.max(2, heightForBackRow, heightForMiddleRow, heightForFrontRow)
-
-        gsap.to(playerPanelPos, {
-            duration: 0.5,
-            y: maxHeight + 0.5
-        })
+        const height = playerPanelHeight(to.board)
+        if (height !== playerPanels.position.y) {
+            animationContext.actionTimeline.to(
+                playerPanels.position,
+                { y: height, duration: action ? 0.5 : 0.2, onUpdate: invalidate },
+                0
+            )
+        }
 
         if (
             currentMayor !== undefined &&
@@ -77,42 +73,43 @@
             !to.board.rows[2].mayor
         ) {
             scale({
+                onUpdate: invalidate,
                 object: currentMayor,
                 duration: 0.1,
                 scale: 0.01,
-                timeline: animationContext.actionTimeline
+                timeline: animationContext.actionTimeline,
+                startAt: 0
             })
             fadeOut({
+                onUpdate: invalidate,
                 object: currentMayor,
                 duration: 0.1,
-                timeline: animationContext.actionTimeline
+                timeline: animationContext.actionTimeline,
+                startAt: 0
             })
         }
     }
 
     gameSession.addGameStateChangeListener(onGameStateChange)
-    // onGameStateChange({ to: gameSession.gameState, timeline: gsap.timeline() })
 
-    let billboards: any[] = []
+    const billboards = new Set<Object3D>()
+    const billboardTarget = new Vector3()
 
     useTask(
-        async (delta) => {
-            if (camera.current) {
+        (delta) => {
+            cameraControls?.update(delta)
+            if (shouldRender()) {
                 for (const obj of billboards) {
-                    const vector = new Vector3(
+                    billboardTarget.set(
                         obj.position.x,
                         camera.current.position.y,
                         camera.current.position.z
                     )
-                    obj.lookAt(vector)
+                    obj.lookAt(billboardTarget)
                 }
             }
-
-            if (cameraControls) {
-                cameraControls.update(delta)
-            }
         },
-        { autoInvalidate: true }
+        { autoInvalidate: false }
     )
 
     const certPositions: [number, number, number][] = [
@@ -125,7 +122,7 @@
     ]
 
     function fadeInHat(ref: Object3D) {
-        fade({ object: ref, duration: 0.2, opacity: 1 })
+        fade({ onUpdate: invalidate, object: ref, duration: 0.2, opacity: 1 })
     }
 
     async function placeMayor(row: number) {
@@ -285,9 +282,14 @@
             })
         }
     })
+
+    onDestroy(() => {
+        gameSession.removeGameStateChangeListener(onGameStateChange)
+        pulse.kill()
+        gsap.killTweensOf(pulseOpacity)
+    })
 </script>
 
-<!-- <Stars /> -->
 <T.PerspectiveCamera
     makeDefault
     position={[0, 16, 20]}
@@ -352,16 +354,24 @@
                 {/if}
             {/each}
 
-            <PlayerPanel3d
-                position.x={0}
-                position.y={playerPanelPos.y}
-                position.z={-6}
-                oncreate={(ref: Group) => {
-                    let size = new Box3().setFromObject(ref).getSize(new Vector3())
-                    ref.position.x = -(size.x / 2) + 2.5
-                    billboards.push(ref)
-                }}
-            />
+            <T
+                is={playerPanels}
+                name="player-panels"
+                position.y={playerPanelHeight(gameSession.gameState.board)}
+            >
+                <PlayerPanel3d
+                    position.x={0}
+                    position.z={-6}
+                    oncreate={(ref: Group) => {
+                        let size = new Box3().setFromObject(ref).getSize(new Vector3())
+                        ref.position.x = -(size.x / 2) + 2.5
+                        billboards.add(ref)
+                        return () => {
+                            billboards.delete(ref)
+                        }
+                    }}
+                />
+            </T>
         {/if}
     </T>
 
@@ -378,8 +388,8 @@
                         ref.scale.x = 0.1
                         ref.scale.y = 0.1
                         ref.scale.z = 0.1
-                        fadeIn({ object: ref, duration: 0.1 })
-                        scale({ object: ref, duration: 0.1, scale: 0.5 })
+                        fadeIn({ onUpdate: invalidate, object: ref, duration: 0.1 })
+                        scale({ onUpdate: invalidate, object: ref, duration: 0.1, scale: 0.5 })
                     }
                 }}
                 scale={0.5}
@@ -456,10 +466,3 @@
         {/if}
     {/if}
 </Suspense>
-
-<!-- <Pane position="fixed" title="Tweaks">
-    <Folder title="Rendering Activity">
-        <RenderIndicator />
-        <FpsGraph />
-    </Folder>
-</Pane> -->

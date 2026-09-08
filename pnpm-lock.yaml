@@ -904,11 +904,11 @@ importers:
         specifier: workspace:*
         version: link:../../libs/frontend-components
       '@threlte/core':
-        specifier: 8.3.1
-        version: 8.3.1(svelte@5.49.0)(three@0.182.0)
+        specifier: 8.6.0
+        version: 8.6.0(svelte@5.49.0)(three@0.182.0)
       '@threlte/extras':
-        specifier: 9.7.1
-        version: 9.7.1(@types/three@0.182.0)(svelte@5.49.0)(three@0.182.0)
+        specifier: 9.21.1
+        version: 9.21.1(@types/three@0.182.0)(svelte@5.49.0)(three@0.182.0)
       '@types/three':
         specifier: 0.182.0
         version: 0.182.0
@@ -4799,14 +4799,14 @@ packages:
     peerDependencies:
       three: '>=0.170.0'
 
-  '@threlte/core@8.3.1':
-    resolution: {integrity: sha512-qKjjNCQ+40hyeBcfOMh/8ef5x/j5PG5Wmo/L9Ye0aDCcdD6fCewWxfp7tV/J3CxPzX1dEp1JGK7sjyc7ntZSrg==}
+  '@threlte/core@8.6.0':
+    resolution: {integrity: sha512-WzXjUAy6FW4T2M6cXgrP4WP0UlagU2C20t3h/0QJmCGALgWMct/yAG2xR8FIH3UAi4MGWQ5HkpQ8eQrp0NEHSg==}
     peerDependencies:
       svelte: '>=5'
       three: '>=0.160'
 
-  '@threlte/extras@9.7.1':
-    resolution: {integrity: sha512-SGm59HDCdHxADFHuweHfFDknwubkCPodyK0pbfsVtOWWOX26gE2xfK7aKolh6YFDiPAjWjGxN0jIgkNbbr1ohg==}
+  '@threlte/extras@9.21.1':
+    resolution: {integrity: sha512-vSX9uXFqDVlA/xT5EHQN3YwWZvvcva6RKHQs6K39qa7w2nO+WV8TJvIR++SFpv3PjjED/F/mthj+KmkIkuL5Pw==}
     peerDependencies:
       svelte: '>=5'
       three: '>=0.160'
@@ -7343,9 +7343,6 @@ packages:
   minipass@7.1.2:
     resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
     engines: {node: '>=16 || 14 >=14.17'}
-
-  mitt@3.0.1:
-    resolution: {integrity: sha512-vKivATfr97l2/QBCYAkXYDbrIWPM2IIKEl7YPhjCvKlG3kE2gm+uBo6nEXK3M5/Ffh/FLpKExzOQ3JJoJGFKBw==}
 
   mkdirp@0.5.6:
     resolution: {integrity: sha512-FP+p8RB8OWpF3YZBCrP5gtADmtXApB5AMLn+vdyA+PyxCjrCs00mjyUozssO33cwDeT3wNGdLxJ5M//YqtHAJw==}
@@ -11390,13 +11387,12 @@ snapshots:
     transitivePeerDependencies:
       - '@types/three'
 
-  '@threlte/core@8.3.1(svelte@5.49.0)(three@0.182.0)':
+  '@threlte/core@8.6.0(svelte@5.49.0)(three@0.182.0)':
     dependencies:
-      mitt: 3.0.1
       svelte: 5.49.0
       three: 0.182.0
 
-  '@threlte/extras@9.7.1(@types/three@0.182.0)(svelte@5.49.0)(three@0.182.0)':
+  '@threlte/extras@9.21.1(@types/three@0.182.0)(svelte@5.49.0)(three@0.182.0)':
     dependencies:
       '@threejs-kit/instanced-sprite-mesh': 2.5.1(@types/three@0.182.0)(three@0.182.0)
       camera-controls: 3.1.2(three@0.182.0)
@@ -14275,8 +14271,6 @@ snapshots:
   minimist@1.2.8: {}
 
   minipass@7.1.2: {}
-
-  mitt@3.0.1: {}
 
   mkdirp@0.5.6:
     dependencies:

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { T, type Props } from '@threlte/core'
+    import { useThrelte, T, type Props } from '@threlte/core'
     import {
         BarrierDirection,
         Cube,
@@ -30,21 +30,26 @@
     import woodImg from '$lib/images/wood.jpg'
     import { useTexture } from '@threlte/extras'
     import BarrierOne from '$lib/3d/BarrierOne.svelte'
-    import { Outliner } from '$lib/utils/outliner'
     import { fadeIn, fadeOut, hideInstant } from '$lib/utils/animations'
-    import { Bloomer } from '$lib/utils/bloomer'
+    import { EffectHighlighter } from '$lib/utils/effectHighlighter'
     import { AnimationContext, GameSessionMode } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     const wood = useTexture(woodImg)
+
+    const { invalidate } = useThrelte()
 
     let gameSession = getGameSession() as EstatesGameSession
 
     let { ...others }: Props<typeof Group> = $props()
 
     const effects = getContext('effects') as Effects
-    const outliner = new Outliner(effects)
-    const bloomer = new Bloomer(effects)
+    const outliner = new EffectHighlighter(() => effects.outline?.selection, invalidate)
+    const bloomer = new EffectHighlighter(() => effects.bloom?.selection, invalidate)
+    onDestroy(() => {
+        bloomer.dispose()
+        outliner.dispose()
+    })
     let enterCounter = 0
     let unHoverCubeTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -211,8 +216,8 @@
     }
 
     function chooseMayor(obj: Object3D) {
-        outliner.removeOutline(obj)
-        bloomer.removeBloom(obj)
+        outliner.remove(obj)
+        bloomer.remove(obj)
 
         setTimeout(() => {
             fadeUp({
@@ -234,8 +239,8 @@
     }
 
     function chooseCancelCube(obj: Object3D) {
-        outliner.removeOutline(obj)
-        bloomer.removeBloom(obj)
+        outliner.remove(obj)
+        bloomer.remove(obj)
         setTimeout(() => {
             fadeUp({
                 object: obj,
@@ -261,8 +266,8 @@
     }
 
     function chooseBarrier(obj: Object3D, value: number) {
-        outliner.removeOutline(obj)
-        bloomer.removeBloom(obj)
+        outliner.remove(obj)
+        bloomer.remove(obj)
         setTimeout(() => {
             fadeUp({
                 object: obj,
@@ -296,8 +301,8 @@
     // allow the state to be updated so that we don't overlap animations.
     async function chooseRoof(obj: Object3D, index: number) {
         allowRoofInteraction = false
-        outliner.removeOutline(obj)
-        bloomer.removeBloom(obj)
+        outliner.remove(obj)
+        bloomer.remove(obj)
         let listenerHandled = false
         let interactionRestoreTimeout: ReturnType<typeof setTimeout> | undefined
         // Make a listener for the game state update
@@ -381,12 +386,13 @@
             object.position,
             {
                 duration: 0.2,
-                y: height
+                y: height,
+                onUpdate: invalidate
             },
             0
         )
 
-        fadeOut({ object, duration: 0.2, startAt: 0, timeline: myTimeline })
+        fadeOut({ onUpdate: invalidate, object, duration: 0.2, startAt: 0, timeline: myTimeline })
         if (!timeline) {
             myTimeline.play()
         }
@@ -396,20 +402,26 @@
         const timeline = gsap.timeline({
             onComplete
         })
-        timeline.to(object.rotation, {
-            duration: 0.2,
-            z: 0
-        })
+        timeline.to(
+            object.rotation,
+            {
+                duration: 0.2,
+                z: 0,
+                onUpdate: invalidate
+            },
+            0
+        )
         timeline.to(
             object.position,
             {
                 duration: 0.5,
-                y: 2
+                y: 2,
+                onUpdate: invalidate
             },
             0
         )
 
-        fadeOut({ object, duration: 0.2, startAt: 0.3, timeline })
+        fadeOut({ onUpdate: invalidate, object, duration: 0.2, startAt: 0.3, timeline })
         timeline.play()
     }
 
@@ -433,14 +445,14 @@
 
         event.stopPropagation()
         if (parentName === 'topHat') {
-            outliner.findAndOutline(event.object, parentName)
+            outliner.highlight(event.object, parentName)
         }
-        bloomer.addBloom(event.object, parentName)
+        bloomer.highlight(event.object, parentName)
     }
 
     function leavePiece(event: any, parentName?: string) {
-        outliner.removeOutline(event.object, parentName)
-        bloomer.removeBloom(event.object, parentName)
+        outliner.remove(event.object, parentName)
+        bloomer.remove(event.object, parentName)
     }
 
     function enterRoof(event: any) {
@@ -503,7 +515,7 @@
                     onloaded={(ref: Object3D) => {
                         roofObjects[i] = ref
                         hideInstant(ref)
-                        fadeIn({ object: ref, duration: 0.1 })
+                        fadeIn({ onUpdate: invalidate, object: ref, duration: 0.1 })
                         return () => {
                             roofObjects[i] = undefined
                         }
@@ -529,7 +541,7 @@
                                 const id = coordinatesToNumber({ row, col })
                                 cubeObjects.set(id, ref)
                                 hideInstant(ref)
-                                fadeIn({ object: ref, duration: 0.1 })
+                                fadeIn({ onUpdate: invalidate, object: ref, duration: 0.1 })
                                 return () => {
                                     cubeObjects.delete(id)
                                 }
@@ -561,7 +573,7 @@
                 onloaded={(ref: Object3D) => {
                     barrierOneObject = ref
                     hideInstant(ref)
-                    fadeIn({ object: ref, duration: 0.1 })
+                    fadeIn({ onUpdate: invalidate, object: ref, duration: 0.1 })
                     return () => {
                         barrierOneObject = undefined
                     }
@@ -583,7 +595,7 @@
                 onloaded={(ref: Object3D) => {
                     barrierTwoObject = ref
                     hideInstant(ref)
-                    fadeIn({ object: ref, duration: 0.1 })
+                    fadeIn({ onUpdate: invalidate, object: ref, duration: 0.1 })
                     return () => {
                         barrierTwoObject = undefined
                     }
@@ -605,7 +617,7 @@
                 onloaded={(ref: Object3D) => {
                     barrierThreeObject = ref
                     hideInstant(ref)
-                    fadeIn({ object: ref, duration: 0.1 })
+                    fadeIn({ onUpdate: invalidate, object: ref, duration: 0.1 })
                     return () => {
                         barrierThreeObject = undefined
                     }
@@ -627,7 +639,7 @@
                 onloaded={(ref: Object3D) => {
                     mayorObject = ref
                     hideInstant(ref)
-                    fadeIn({ object: ref, duration: 0.1 })
+                    fadeIn({ onUpdate: invalidate, object: ref, duration: 0.1 })
                     return () => {
                         mayorObject = undefined
                     }
@@ -646,7 +658,7 @@
                 oncreate={(ref: Object3D) => {
                     cancelCubeObject = ref
                     hideInstant(ref)
-                    fadeIn({ object: ref, duration: 0.1 })
+                    fadeIn({ onUpdate: invalidate, object: ref, duration: 0.1 })
                     return () => {
                         cancelCubeObject = undefined
                     }

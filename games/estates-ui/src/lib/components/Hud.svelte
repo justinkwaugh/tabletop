@@ -4,27 +4,18 @@
     import HighBid from './HighBid.svelte'
     import BidControls from './BidControls.svelte'
     import BidButtons from './BidButtons.svelte'
-    import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    import { onMount } from 'svelte'
-    import { EstatesGameState, HydratedEstatesGameState, MachineState } from '@tabletop/estates'
+    import { MachineState } from '@tabletop/estates'
     import Instructions from './Instructions.svelte'
     import WaitingInstructions from './WaitingInstructions.svelte'
     import GameEndPanel from './GameEndPanel.svelte'
     import Offer from './Offer.svelte'
-    import { fadeIn, fadeOut } from '$lib/utils/animations'
-    import { AnimationContext, GameSessionMode } from '@tabletop/frontend-components'
-    import type { GameAction } from '@tabletop/common'
+    import { fade } from '$lib/utils/animations'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let gameSession = getGameSession() as EstatesGameSession
+    let gameSession = getGameSession()
 
     const viewport = useViewport()
-    let ready = $state(false)
-    let auctionControls: HTMLDivElement
-
-    function onFlyDone() {
-        ready = true
-    }
+    let auctionControls = $state<HTMLDivElement>()
 
     let instructionY = $derived.by(() => {
         if (
@@ -37,52 +28,24 @@
             return $viewport.height / 2 - 0.6
         }
     })
-    function onAdd(element: HTMLElement) {
-        element.style.opacity = '0'
-        fadeIn({ object: element, duration: 0.3 })
-    }
-
-    async function onGameStateChange({
-        to,
-        from,
-        action,
-        animationContext
-    }: {
-        to: HydratedEstatesGameState
-        from?: HydratedEstatesGameState
-        action?: GameAction
-        animationContext: AnimationContext
-    }) {
-        if (
-            to.machineState === MachineState.Auctioning &&
-            (!from || from.machineState === MachineState.StartOfTurn)
-        ) {
-            ready = false
-        }
-    }
-
-    onMount(() => {
-        gameSession.addGameStateChangeListener(onGameStateChange)
-        return () => {
-            gameSession.removeGameStateChangeListener(onGameStateChange)
-        }
-    })
-
     $effect(() => {
-        if (gameSession.shouldHideHud) {
-            fadeOut({ object: auctionControls, duration: 0.2 })
-        } else {
-            fadeIn({ object: auctionControls, duration: 0.2 })
+        if (!auctionControls) {
+            return
         }
+        const timeline = fade({
+            object: auctionControls,
+            opacity: gameSession.shouldHideHud ? 0 : 1,
+            duration: 0.2
+        })
+        return () => timeline.kill()
     })
 </script>
 
-{#if ready && gameSession.gameState.machineState === MachineState.Auctioning && gameSession.isPlayable}
+{#if gameSession.gameState.machineState === MachineState.Auctioning && gameSession.isPlayable}
     <HTML position.y={$viewport.height / 2 - 0.6} center>
         <div
             bind:this={auctionControls}
-            use:onAdd
-            class="flex flex-col justify-start items-center gap-y-4"
+            class="flex flex-col justify-start items-center gap-y-4 opacity-0"
         >
             <div class="w-[340px] flex flex-row justify-between items-center">
                 <HighBid />
@@ -115,11 +78,7 @@
     </HTML>
 {/if}
 
-<AuctionPreview
-    flyDone={onFlyDone}
-    hidden={gameSession.shouldHideHud}
-    position={[0, $viewport.height / 2 - 0.6, 0]}
-/>
+<AuctionPreview hidden={gameSession.shouldHideHud} position={[0, $viewport.height / 2 - 0.6, 0]} />
 
 {#if gameSession.mobileView}
     <HTML position={[0, -$viewport.height / 2 + 0.6, 0]} center={true}

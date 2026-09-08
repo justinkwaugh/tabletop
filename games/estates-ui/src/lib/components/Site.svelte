@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { T } from '@threlte/core'
+    import { useThrelte, T } from '@threlte/core'
     import {
         Barrier,
         EstatesGameConfig,
@@ -16,12 +16,12 @@
     import { Cube, Roof } from '@tabletop/estates'
     import Roof3d from './Roof3d.svelte'
     import { spring } from 'svelte/motion'
-    import { getContext } from 'svelte'
+    import { getContext, onDestroy } from 'svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { GameAction, remove, type OffsetCoordinates } from '@tabletop/common'
     import Barrier3d from '$lib/3d/BarrierOne.svelte'
     import type { Effects } from '$lib/model/Effects.svelte'
-    import { Bloomer } from '$lib/utils/bloomer'
+    import { EffectHighlighter } from '$lib/utils/effectHighlighter'
     import { gsap, Power1, Power2 } from 'gsap'
     import { fadeOut, scaleIn, scaleOut } from '$lib/utils/animations'
     import type { Object3D } from 'three'
@@ -29,9 +29,11 @@
     import type { AnimationContext } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
+    const { invalidate } = useThrelte()
+
     let gameSession = getGameSession() as EstatesGameSession
     const effects = getContext('effects') as Effects
-    const bloomer = new Bloomer(effects)
+    const bloomer = new EffectHighlighter(() => effects.bloom?.selection, invalidate)
 
     let {
         site,
@@ -96,6 +98,7 @@
                 const barrierObject = barrierObjects.get(barrier.value)
                 if (barrierObject) {
                     fadeOut({
+                        onUpdate: invalidate,
                         object: barrierObject,
                         duration: 0.2,
                         timeline: animationContext.actionTimeline,
@@ -116,7 +119,8 @@
                         {
                             x: ColumnOffsets[barrierCoords.col] - x + offsetInSite,
                             duration: 0.2,
-                            ease: Power2.easeInOut
+                            ease: Power2.easeInOut,
+                            onUpdate: invalidate
                         },
                         0
                     )
@@ -133,7 +137,8 @@
                 {
                     x: offsetInSite,
                     duration: 0.2,
-                    ease: Power2.easeInOut
+                    ease: Power2.easeInOut,
+                    onUpdate: invalidate
                 },
                 0
             )
@@ -146,12 +151,14 @@
             const cubeObject = cubeObjects[i]
             if (cubeObject) {
                 scaleOut({
+                    onUpdate: invalidate,
                     object: cubeObject,
                     duration: 0.1,
                     timeline: animationContext.actionTimeline,
                     startAt: 0
                 })
                 fadeOut({
+                    onUpdate: invalidate,
                     object: cubeObject,
                     duration: 0.1,
                     timeline: animationContext.actionTimeline,
@@ -162,12 +169,14 @@
 
         if (site.roof && !upcomingSite.roof && roofObject) {
             scaleOut({
+                onUpdate: invalidate,
                 object: roofObject,
                 duration: 0.1,
                 timeline: animationContext.actionTimeline,
                 startAt: 0
             })
             fadeOut({
+                onUpdate: invalidate,
                 object: roofObject,
                 duration: 0.1,
                 timeline: animationContext.actionTimeline,
@@ -278,11 +287,11 @@
         }
 
         event.stopPropagation()
-        bloomer.addBloom(event.object, 'barrier')
+        bloomer.highlight(event.object, 'barrier')
     }
 
     function leavePiece(event: any) {
-        bloomer.removeBloom(event.object, 'barrier')
+        bloomer.remove(event.object, 'barrier')
     }
 
     function onBarrierClick(event: any, barrier: Barrier) {
@@ -294,7 +303,7 @@
             return
         }
 
-        bloomer.removeBloom(event.object, 'barrier')
+        bloomer.remove(event.object, 'barrier')
 
         gameSession.removeBarrier(barrier, coords)
     }
@@ -361,6 +370,12 @@
         }
         return (config as EstatesGameConfig).sneakyBuildings ?? false
     })
+    onDestroy(() => {
+        gameSession.removeGameStateChangeListener(onGameStateChange)
+        bloomer.dispose()
+        pulse.kill()
+        gsap.killTweensOf(pulseOpacity)
+    })
 </script>
 
 <T.Group position.x={x} position.y={y} position.z={z} scale={1}>
@@ -404,7 +419,7 @@
                     ref.scale.x = 0.1
                     ref.scale.y = 0.1
                     ref.scale.z = 0.1
-                    scaleIn({ object: ref, duration: 0.1, startAt: 0 })
+                    scaleIn({ onUpdate: invalidate, object: ref, duration: 0.1, startAt: 0 })
                 }
                 return () => {
                     remove(cubeObjects, ref)
@@ -430,7 +445,7 @@
                     ref.scale.x = 0.1
                     ref.scale.y = 0.1
                     ref.scale.z = 0.1
-                    scaleIn({ object: ref, duration: 0.1, startAt: 0 })
+                    scaleIn({ onUpdate: invalidate, object: ref, duration: 0.1, startAt: 0 })
                 }
                 return () => {
                     roofObject = undefined

@@ -14,7 +14,7 @@
     }: { roof: Roof; onloaded?: ((ref: Object3D) => void) | undefined } & Props<typeof Group> =
         $props()
 
-    let text = roof.value === -1 ? '?' : (roof.value?.toString() ?? '?')
+    let text = $derived(roof.value === -1 ? '?' : (roof.value?.toString() ?? '?'))
 </script>
 
 <T.Group
