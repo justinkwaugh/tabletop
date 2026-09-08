@@ -68,7 +68,7 @@
 
 <div class="shrink-0 grow-0 w-full p-2 {height} {borderClass} {bgClass}">
     <div class="w-full flex flex-row justify-between items-center">
-        <button aria-label="start exploring" onclick={requestFork}>
+        <button aria-label="fork game" onclick={requestFork}>
             <svg
                 class="w-[22px] h-[22px] {!gameSession.isExploring ? enabledColor : disabledColor}"
                 aria-hidden="true"
@@ -280,6 +280,10 @@
         </button>
         <button
             aria-label="start exploring"
+            disabled={!gameSession.isExploring && !gameSession.canExplore}
+            title={!gameSession.isExploring && !gameSession.canExplore
+                ? 'Exploration is unavailable for this view'
+                : undefined}
             onclick={async () =>
                 gameSession.isExploring
                     ? gameSession.explorations.endExploring()

@@ -1,3 +1,4 @@
+import { Timed, measure } from '../../diagnostics/requestTimings.js'
 import { BaseError, ExternalAuthService, Role, User, UserStatus } from '@tabletop/common'
 import {
     CollectionReference,
@@ -82,13 +83,16 @@ export class FirestoreUserStore implements UserStore {
         }
     }
 
+    @Timed('store.user.findById')
     async findById(id: string): Promise<User | undefined> {
         const cacheKey = this.makeUserCacheKey(id)
 
         const getUser = async () => {
             try {
                 const doc = this.users.doc(id)
-                const user = (await doc.get()).data() as StoredUser
+                const user = (
+                    await measure('firestore.user.get', () => doc.get())
+                ).data() as StoredUser
                 this.recordRead()
                 return this.sanitize(user)
             } catch (error) {
@@ -208,9 +212,11 @@ export class FirestoreUserStore implements UserStore {
     async updatePassword(userId: string, password: string): Promise<void> {
         try {
             const passwordHash = await this.hashPassword(password)
-            await this.users.firestore.runTransaction(async (transaction) => {
-                transaction.update(this.users.doc(userId), { passwordHash })
-            })
+            await this.cacheService.lockWhileWriting([this.makeUserCacheKey(userId)], async () =>
+                this.users.firestore.runTransaction(async (transaction) => {
+                    transaction.update(this.users.doc(userId), { passwordHash })
+                })
+            )
         } catch (error) {
             this.handleError(error, userId)
         }

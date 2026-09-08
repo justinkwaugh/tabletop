@@ -49,6 +49,7 @@ export class LibraryService {
 
     private manifestSnapshot?: SiteManifest
     private manifestSignature?: string
+    private manifestRefreshQueue: Promise<void> = Promise.resolve()
     private titlesById?: Record<string, GameDefinition>
     private titlesSignature?: string
     private readonly mismatchListeners = new Set<ManifestMismatchListener>()
@@ -78,7 +79,16 @@ export class LibraryService {
         await this.cacheService.delete(this.manifestCacheKey)
     }
 
-    async refreshManifest(): Promise<SiteManifest> {
+    refreshManifest(): Promise<SiteManifest> {
+        const refresh = this.manifestRefreshQueue.then(() => this.refreshManifestSnapshot())
+        this.manifestRefreshQueue = refresh.then(
+            () => {},
+            () => {}
+        )
+        return refresh
+    }
+
+    private async refreshManifestSnapshot(): Promise<SiteManifest> {
         const manifest = await this.loadManifest()
         const previous = this.manifestSnapshot
         const signature = this.getManifestSignature(manifest)
@@ -227,39 +237,36 @@ export class LibraryService {
     }
 
     private async loadManifest(): Promise<SiteManifest> {
-        if (this.useCache) {
-            const cached = await this.cacheService.get<SiteManifest>(this.manifestCacheKey)
-            if (cached.cached && cached.value) {
-                return cached.value
+        const unavailable = new Error('Manifest unavailable')
+        const readManifest = async (): Promise<SiteManifest> => {
+            try {
+                const manifest: SiteManifest = JSON.parse(await readFile(this.manifestPath, 'utf8'))
+                if (manifest) return manifest
+            } catch (error) {
+                console.warn('Unable to load manifest from disk', error)
             }
+            throw unavailable
         }
-
-        let manifest: SiteManifest | undefined
 
         try {
-            const rawManifest = await readFile(this.manifestPath, 'utf8')
-            manifest = JSON.parse(rawManifest) as SiteManifest
+            const manifest = this.useCache
+                ? await this.cacheService.cachingGet<SiteManifest>(
+                      this.manifestCacheKey,
+                      readManifest
+                  )
+                : await readManifest()
+            if (manifest) return manifest
         } catch (error) {
-            console.warn('Unable to load manifest from disk', error)
+            if (error !== unavailable) throw error
         }
 
-        if (!manifest && this.allowFallback) {
-            manifest = SiteManifest
+        if (this.allowFallback) {
+            return SiteManifest
         }
-
-        if (!manifest) {
-            if (this.manifestSnapshot) {
-                return this.manifestSnapshot
-            }
-
-            throw new Error('Manifest unavailable')
+        if (this.manifestSnapshot) {
+            return this.manifestSnapshot
         }
-
-        if (this.useCache) {
-            await this.cacheService.set(this.manifestCacheKey, manifest)
-        }
-
-        return manifest
+        throw unavailable
     }
 
     private getManifestSignature(manifest: SiteManifest): string {

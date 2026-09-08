@@ -3,7 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { PoliticsCardType } from '../definition/politicsCards.js'
+import { PoliticsCardType, removePoliticsCard } from '../definition/politicsCards.js'
 import { regionsAreNeighboring } from '../util/regionScoring.js'
 import { areRegionsAllied } from '../util/allianceHelpers.js'
 import { currentChoosingPlayerId } from '../util/decisionPlan.js'
@@ -22,7 +22,6 @@ export const PlayAllianceCard = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.PlayAllianceCard), // This action is always this type
             playerId: Type.String(), // Required now
-            cardId: Type.String(),
             // One of the player's own regions, and a neighboring enemy region - once
             // chosen, "this cannot be changed" (the rulebook's wording).
             ownRegionId: Type.String(),
@@ -50,7 +49,6 @@ export class HydratedPlayAllianceCard
 {
     declare type: ActionType.PlayAllianceCard
     declare playerId: string
-    declare cardId: string
     declare ownRegionId: string
     declare enemyRegionId: string
     declare metadata?: PlayAllianceCardMetadata
@@ -67,7 +65,8 @@ export class HydratedPlayAllianceCard
         const playerState = state.getPlayerState(this.playerId)
         const enemyRegion = state.regions.find((r) => r.id === this.enemyRegionId)!
 
-        playerState.politicsCards = playerState.politicsCards.filter((c) => c.id !== this.cardId)
+        removePoliticsCard(playerState.getPoliticsCards(), { type: PoliticsCardType.Alliance })
+        playerState.syncPoliticsCardCount()
 
         state.alliances.push({
             id: this.id,
@@ -88,13 +87,21 @@ export class HydratedPlayAllianceCard
     // Same checks as isValidPlayAllianceCard, but reports WHY a play is rejected - the
     // client uses this to show a specific message instead of one generic one.
     invalidPlayAllianceCardReason(state: HydratedLowenherzGameState): string | undefined {
-        if (currentChoosingPlayerId(state.turnOrder, state.firstPlayerId, state.decisions.length) !== this.playerId) {
+        if (
+            currentChoosingPlayerId(
+                state.turnOrder,
+                state.firstPlayerId,
+                state.decisions.length
+            ) !== this.playerId
+        ) {
             return "It isn't your turn to lay a decision card."
         }
 
         const playerState = state.getPlayerState(this.playerId)
-        const card = playerState.politicsCards.find((c) => c.id === this.cardId)
-        if (!card || card.type !== PoliticsCardType.Alliance) {
+        const card = playerState
+            .getPoliticsCards()
+            .find((c) => c.type === PoliticsCardType.Alliance)
+        if (!card) {
             return "That Alliance card isn't in your hand."
         }
 

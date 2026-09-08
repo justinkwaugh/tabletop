@@ -4,12 +4,13 @@
 
     // faceDown shows the shared card back instead of this specific card's face - used
     // for the pile you didn't look through, and other players' hands, which are kept
-    // hidden by UI convention (see LowenherzPlayerState.politicsCards' comment on why
+    // hidden by UI convention (see LowenherzProjectedPlayerState.politicsCards' comment on why
     // this isn't enforced server-side).
-    let { card, faceDown = false }: { card: PoliticsCard; faceDown?: boolean } = $props()
+    let { card, faceDown = false }: { card?: PoliticsCard; faceDown?: boolean } = $props()
 
-    const faceImage = $derived(politicsCardFaceImage(card))
+    const faceImage = $derived(card ? politicsCardFaceImage(card) : undefined)
     const faceAlt = $derived.by(() => {
+        if (!card) return ''
         switch (card.type) {
             case PoliticsCardType.Alliance:
                 return 'Alliance'

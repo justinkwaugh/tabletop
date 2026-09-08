@@ -27,6 +27,9 @@ The Active Game Context when it is eligible to receive new Actions. No Game Cont
 **Displayed Game State**:
 The Game State currently published to game UI components. During transition presentation, it remains at the prior state until the resulting state is ready to be displayed.
 
+**Displayed Game Representation**:
+The Game Context currently supplying the game UI. For a Hosted Game with hidden information, it may be an ordinary Player or spectator projection, an authorized canonical Host View, or a Player projection derived locally from a retained Host Game Context for inspection.
+
 ## Views and history
 
 **Live View**:
@@ -40,6 +43,9 @@ Moving History View backward through Action Reversal or forward through Action r
 
 **History Step**:
 One backward or forward movement across a User Action and its generated System Action cascade. The underlying history continues to record every Processed Action individually.
+
+**Host View**:
+An authorized Developer or Administrator view of the canonical Game State and Canonical Action History. Host View is a representation choice, not a Player Perspective or Acting Player identity.
 
 ## Play arrangements
 
@@ -57,12 +63,15 @@ _Avoid_: Viewed Player, My Player
 The Player whose identity the Game Client uses when constructing the next User Action. When multiple Players are active in Hotseat Play or Exploration, the person using the client chooses the Acting Player.
 _Avoid_: My Player
 
-Entering Admin Mode does not itself change the Acting Player or Player Perspective when multiple
-Players are active. An explicit administrator choice temporarily sets both to a currently active
-Player. With exactly one active Player, that Player is selected automatically. If a selected Player
-becomes inactive or Admin Mode ends, the choice is cleared and the Game Client returns to its
-ordinary perspective rules. Exploration ignores the Admin choice and uses its ordinary Hotseat Play
-perspective while active.
+Entering Admin Mode does not itself change the Acting Player when multiple Players are active. An
+explicit administrator choice temporarily selects a currently active Player for Action construction.
+With exactly one active Player, that Player is selected automatically. Debug and Admin inspection
+default to Host View. When an Acting Player is available, the inspector may independently replace the
+Displayed Game Representation with that Player Perspective while retaining the canonical Host Game
+Context. Changing the Acting Player then derives a fresh projection from the Host Game Context; it
+does not merge projections. If a selected Player becomes inactive or Admin Mode ends, the choice is
+cleared. Exploration ignores the Admin choice and uses its ordinary Hotseat Play perspective while
+active.
 
 ## Client action handling
 
@@ -98,8 +107,11 @@ Removal of the latest Manual Draft Entry and any downstream Draft Entries that d
 ## Exploration
 
 **Exploration**:
-A private, Local, Hotseat branch opened within a Game Session for trying alternate Actions. It may begin from Live or History View and starts as a Transient Game Instance.
+A private, Local, Hotseat branch opened within a Game Session for trying alternate Actions, with unknown information simulated consistently with the explorer’s permitted knowledge at the selected branch point. It may begin from Live or History View and starts as a Transient Game Instance.
 _Avoid_: Fork
 
 **Saved Exploration**:
 An Exploration persisted as a separate Local Game Instance linked to its source. Saving it does not change the source Game Context.
+
+**Hypothetical Game State**:
+A rules-valid Game State whose unknown information is simulated while honoring facts available to the explorer at the selected branch point. Later source-Game revelations do not constrain an earlier branch. Its simulated information does not disclose the source Game’s unknown information.

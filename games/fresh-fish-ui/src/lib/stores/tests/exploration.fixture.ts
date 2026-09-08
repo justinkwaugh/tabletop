@@ -1,0 +1,752 @@
+import {
+    ActionSource,
+    GameEngine,
+    GameSyncStatus,
+    GameNotificationAction,
+    NotificationCategory,
+    GameStorage,
+    assertExists,
+    createAction,
+    type GameState,
+    type HydratedGameState,
+    Visibility
+} from '@tabletop/common'
+import {
+    BridgedContext,
+    GameSession,
+    NotificationChannel,
+    NotificationEventType,
+    createHarnessAppContext,
+    type GameUiDefinition
+} from '@tabletop/frontend-components'
+import {
+    FreshFishGameStateValidator,
+    FreshFishRuntime,
+    HydratedPlaceDisk,
+    PlaceDisk,
+    DrawTile,
+    TileType
+} from '@tabletop/fresh-fish'
+import { tick } from 'svelte'
+import { FreshFishUiRuntime } from '../../definition/gameUiRuntime.js'
+import { UiDefinition } from '../../index.js'
+import { FreshFishGameSession } from '../FreshFishGameSession.svelte.js'
+import {
+    CanonicalHost,
+    createAuctionHost,
+    createBid,
+    PLAYER_B_PERSPECTIVE
+} from './simultaneousAuction.js'
+
+const masterSeed = '0123456789abcdef0123456789abcdef'
+
+const definition: GameUiDefinition<GameState, HydratedGameState> = {
+    info: UiDefinition.info,
+    async runtime() {
+        return {
+            ...FreshFishRuntime,
+            sessionClass: GameSession,
+            colorizer: FreshFishUiRuntime.colorizer,
+            gameUI: {
+                load: async () => {
+                    throw Error('Exploration fixture does not render a table')
+                },
+                mount: () => {
+                    throw Error('Exploration fixture does not render a table')
+                }
+            }
+        }
+    }
+}
+
+export function createExplorationHost(): CanonicalHost {
+    const game = structuredClone(createAuctionHost().game)
+    delete game.startedAt
+    const { startedGame, initialState } = new GameEngine(FreshFishRuntime).startGame(
+        game,
+        masterSeed
+    )
+    return new CanonicalHost(startedGame, initialState)
+}
+
+export function diskAction(host: Pick<CanonicalHost, 'state' | 'game'>) {
+    const state = FreshFishRuntime.hydrator.hydrateState(host.state)
+    const playerId = state.activePlayerIds[0]
+    assertExists(playerId, 'Expected active Player')
+    const cell = [...state.board].find(({ coords }) =>
+        HydratedPlaceDisk.isValidCellForPlacement(state, coords, playerId)
+    )
+    assertExists(cell, 'Expected a legal disk placement')
+    return createAction(PlaceDisk, {
+        id: `disk-${state.actionCount}`,
+        gameId: host.game.id,
+        playerId,
+        source: ActionSource.User,
+        coords: cell.coords
+    })
+}
+
+export function drawStall(host: CanonicalHost) {
+    for (let i = 0; i < host.game.players.length; i++) host.apply(diskAction(host))
+    const index = host.state.tileBag.items.findIndex((tile) => tile.type === TileType.Stall)
+    const stall = host.state.tileBag.items.splice(index, 1)[0]
+    assertExists(stall, 'Expected a stall in the bag')
+    host.state.tileBag.items.push(stall)
+    return host.apply(
+        createAction(DrawTile, {
+            id: 'draw-stall',
+            gameId: host.game.id,
+            playerId: host.state.activePlayerIds[0],
+            source: ActionSource.User,
+            revealsInfo: true
+        })
+    )
+}
+
+export function explorationClient(
+    host: CanonicalHost,
+    perspective: Visibility.Perspective = PLAYER_B_PERSPECTIVE,
+    runtime = FreshFishUiRuntime
+) {
+    const app = createHarnessAppContext(definition)
+    app.authorizationService.debugViewEnabled = false
+    app.authorizationService.adminCapabilitiesEnabled = false
+    const bridge = new BridgedContext({
+        authorizationService: app.authorizationService,
+        gameService: app.gameService,
+        chatService: app.chatService,
+        gameId: host.game.id
+    })
+    const data = project(
+        host,
+        Visibility.getGameVisibility(host.game, runtime) ? perspective : undefined
+    )
+    const session = new FreshFishGameSession({
+        gameService: app.gameService,
+        bridgedContext: bridge,
+        notificationService: app.notificationService,
+        chatService: app.chatService,
+        api: app.api,
+        runtime,
+        game: structuredClone(host.game),
+        state: data.currentState,
+        actions: [...data.actions]
+    })
+    return {
+        app,
+        session,
+        dispose() {
+            session.dispose()
+            bridge.dispose()
+        }
+    }
+}
+
+export function project(host: CanonicalHost, perspective?: Visibility.Perspective) {
+    if (perspective === undefined)
+        return { currentState: structuredClone(host.state), actions: host.actionsSnapshot() }
+    return Visibility.projectActionHistory({
+        currentState: host.state,
+        actions: host.actions,
+        visibility: FreshFishRuntime.visibility,
+        perspective,
+        replay: { game: host.game, runtime: FreshFishRuntime }
+    })
+}
+
+export async function settleExploration(session: FreshFishGameSession) {
+    await tick()
+    await session.waitForVisibleTransitionSettled()
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+    for (let attempt = 0; attempt < 30 && session.history.isDisabled(); attempt++) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 0))
+        await tick()
+    }
+}
+
+export async function runExplorationHistory() {
+    const host = createExplorationHost()
+    drawStall(host)
+    const client = explorationClient(host)
+    const { session } = client
+    try {
+        await settleExploration(session)
+        await session.startExploring()
+        await settleExploration(session)
+        const context = session.explorations.getCurrentExploration()
+        assertExists(context, 'Exploration was not created')
+        const initial = JSON.stringify(context.state)
+        const blocked = session.undoableAction === undefined
+        await session.history.goToBeginning()
+        await settleExploration(session)
+        const hiddenInHistory = session.history.visibleContext.state.tileBag.items.length === 0
+        await session.history.goToActionIndex(host.actions.length - 1)
+        await settleExploration(session)
+        session.history.goToEnd()
+        await settleExploration(session)
+        await session.explorations.saveExploration('Hypothetical fish')
+        const id = context.game.id
+        session.explorations.endExploring()
+        await settleExploration(session)
+        await session.startExploring()
+        await settleExploration(session)
+        await session.explorations.switchExploration(id)
+        const loaded = session.explorations.getCurrentExploration()
+        assertExists(loaded, 'Saved Exploration was not loaded')
+        const historyFollowsSaved = session.history.visibleContext.game.id === loaded.game.id
+        session.explorations.endExploring()
+        await settleExploration(session)
+        await session.history.goToActionIndex(0)
+        await settleExploration(session)
+        await session.startExploring()
+        await settleExploration(session)
+        const earlier = session.explorations.getCurrentExploration()
+        return {
+            earlierBranch: earlier?.game.id !== id && earlier?.state.actionCount === 1,
+            blocked,
+            hiddenInHistory,
+            unchanged: JSON.stringify(loaded.state) === initial,
+            local: loaded.game.storage === GameStorage.Local,
+            historyFollowsSaved
+        }
+    } finally {
+        client.dispose()
+    }
+}
+
+export async function runSafeExplorationUndo() {
+    const host = createExplorationHost()
+    host.apply(diskAction(host))
+    const client = explorationClient(host)
+    const { session } = client
+    try {
+        await settleExploration(session)
+        await session.startExploring()
+        await settleExploration(session)
+        const context = session.explorations.getCurrentExploration()
+        assertExists(context, 'Expected exploration')
+        const bag = JSON.stringify(context.state.tileBag)
+        const safeUndoAvailable = session.undoableAction?.id === host.actions[0].id
+        await session.history.goToBeginning()
+        await settleExploration(session)
+        const historyProjected = session.history.visibleContext.state.tileBag.items.length === 0
+        await session.history.goToActionIndex(0)
+        await settleExploration(session)
+        const sourceForwardProjected =
+            session.history.visibleContext.state.tileBag.items.length === 0
+        session.history.goToEnd()
+        await settleExploration(session)
+        await session.undo()
+        await settleExploration(session)
+        const inheritedUndone = context.state.actionCount === 0
+        await session.applyAction(diskAction({ game: context.game, state: context.state }))
+        await settleExploration(session)
+        const applied = context.state.actionCount === 1
+        await session.history.goToBeginning()
+        await settleExploration(session)
+        session.history.goToEnd()
+        await settleExploration(session)
+        await session.undo()
+        await settleExploration(session)
+        return {
+            safeUndoAvailable,
+            historyProjected,
+            sourceForwardProjected,
+            inheritedUndone,
+            applied,
+            simulatedUndone: context.state.actionCount === 0,
+            sameBag: JSON.stringify(context.state.tileBag) === bag
+        }
+    } finally {
+        client.dispose()
+    }
+}
+
+export async function runPartialExploration() {
+    const host = createExplorationHost()
+    const draw = drawStall(host)
+    const cascadeEnd = host.state.actionCount
+    const auctionId = host.state.currentAuction?.id
+    const bidder = host.state.activePlayerIds[0]
+    assertExists(bidder, 'Expected a bidder')
+    host.apply(createBid('next-decision', bidder, 2))
+    const client = explorationClient(host)
+    const { session } = client
+    try {
+        await settleExploration(session)
+        assertExists(draw.index, 'Missing draw index')
+        await session.history.goToActionIndex(draw.index)
+        await settleExploration(session)
+        const source = session.history.visibleContext.state
+        const original = JSON.stringify(source)
+        const chosen = JSON.stringify(source.chosenTile)
+        const count = source.tileBag.remaining
+        session.shouldAutoStepAction = () => true
+        const branchSource = session.history.createExplorationSource()
+        const advanceWasIndependent =
+            session.history.actionIndex === draw.index &&
+            JSON.stringify(session.history.visibleContext.state) === original
+        await session.startExploring()
+        await settleExploration(session)
+        const context = session.explorations.getCurrentExploration()
+        assertExists(context, 'Expected exploration')
+        const result = {
+            sourcePhase: source.machineState,
+            phase: context.state.machineState,
+            sameTile: JSON.stringify(context.state.chosenTile) === chosen,
+            sameCount: context.state.tileBag.remaining === count,
+            undoBlocked: session.undoableAction === undefined,
+            advanceWasIndependent,
+            startsAtBoundary:
+                branchSource.state.actionCount === cascadeEnd &&
+                context.state.explorationState?.actionCount === cascadeEnd,
+            keepsRecordedConsequences:
+                context.state.currentAuction?.id === auctionId &&
+                context.actions.at(-1)?.id === host.actions[cascadeEnd - 1].id,
+            excludesNextDecision: !context.actions.some((action) => action.id === 'next-decision')
+        }
+        await session.explorations.saveExploration('Boundary sample')
+        const savedId = context.game.id
+        await session.explorations.createNewExploration()
+        await settleExploration(session)
+        const another = session.explorations.getCurrentExploration()
+        const newBranchUsesBoundary = another?.state.explorationState?.actionCount === cascadeEnd
+        await session.explorations.switchExploration(savedId)
+        await settleExploration(session)
+        session.explorations.endExploring()
+        await settleExploration(session)
+        return {
+            ...result,
+            newBranchUsesBoundary,
+            returnedToOriginal:
+                session.history.inHistory &&
+                session.history.actionIndex === draw.index &&
+                JSON.stringify(session.history.visibleContext.state) === original,
+            originalWasUnchanged: JSON.stringify(source) === original
+        }
+    } finally {
+        client.dispose()
+    }
+}
+
+export async function runFailedHistoryExploration() {
+    const host = createExplorationHost()
+    const draw = drawStall(host)
+    const client = explorationClient(host, PLAYER_B_PERSPECTIVE, {
+        ...FreshFishUiRuntime,
+        exploration: {
+            createFromCanonicalState: FreshFishRuntime.exploration.createFromCanonicalState,
+            createFromProjectedState(input) {
+                const state = FreshFishRuntime.exploration.createFromProjectedState(input)
+                Reflect.deleteProperty(state, 'board')
+                return state
+            }
+        }
+    })
+    const { session } = client
+    try {
+        await settleExploration(session)
+        assertExists(draw.index, 'Expected a draw index')
+        await session.history.goToActionIndex(draw.index)
+        await settleExploration(session)
+        const original = JSON.stringify(session.history.visibleContext.state)
+        let rejected = false
+        try {
+            await session.startExploring()
+        } catch (error) {
+            rejected =
+                error instanceof Error &&
+                error.message.includes('Complete canonical state is required')
+        }
+        await settleExploration(session)
+        return {
+            rejected,
+            noBranch:
+                !session.isExploring && session.explorations.getCurrentExploration() === undefined,
+            historyUnchanged:
+                session.currentActionIndex === draw.index &&
+                session.actions.length === draw.index + 1 &&
+                session.history.inHistory &&
+                session.history.actionIndex === draw.index &&
+                JSON.stringify(session.history.visibleContext.state) === original
+        }
+    } finally {
+        client.dispose()
+    }
+}
+
+export async function runPrivilegedExploration() {
+    const host = createExplorationHost()
+    host.apply(diskAction(host))
+    const initializer = FreshFishRuntime.initializer
+    const client = explorationClient(host, PLAYER_B_PERSPECTIVE, {
+        ...FreshFishUiRuntime,
+        exploration: {
+            createFromCanonicalState: FreshFishRuntime.exploration.createFromCanonicalState
+        },
+        initializer: {
+            initializeGame: initializer.initializeGame.bind(initializer),
+            initializeGameState: initializer.initializeGameState.bind(initializer)
+        }
+    })
+    const { session, app } = client
+    app.api.getGame = async (_id, options) => {
+        const history = project(host, options?.hostView ? undefined : PLAYER_B_PERSPECTIVE)
+        return {
+            game: { ...host.gameWithState(), state: history.currentState },
+            actions: [...history.actions]
+        }
+    }
+    try {
+        await settleExploration(session)
+        const ordinaryUnavailable = !session.canExplore
+        await session.setPrivilegedGameViewEnabled(true)
+        await settleExploration(session)
+        session.setViewAsActingPlayer(true)
+        await settleExploration(session)
+        const actingViewUnavailable = !session.canExplore
+        session.setViewAsActingPlayer(false)
+        await settleExploration(session)
+        const hostAvailable = session.canExplore
+        await session.history.goToBeginning()
+        await settleExploration(session)
+        await session.startExploring()
+        await settleExploration(session)
+        const context = session.explorations.getCurrentExploration()
+        assertExists(context, 'Expected Host View exploration')
+        await session.setPrivilegedGameViewEnabled(false)
+        await settleExploration(session)
+        const historyStillExploration = session.history.visibleContext.game.id === context.game.id
+        const populated = context.state.tileBag.items.length === host.state.tileBag.remaining
+        const nextAction = diskAction({ game: context.game, state: context.state })
+        let actionPresented = false
+        session.addGameStateChangeListener(async ({ action }) => {
+            if (action?.id === nextAction.id) actionPresented = true
+        })
+        await session.applyAction(nextAction)
+        await settleExploration(session)
+        session.explorations.endExploring()
+        await settleExploration(session)
+        return {
+            sourceHadMasterSeed: host.state.masterSeed !== undefined,
+            branchRemovedMasterSeed: context.state.masterSeed === undefined,
+            freshProtectedFuture:
+                context.state.protectedPrng?.seed !== host.state.protectedPrng?.seed,
+            ordinaryUnavailable,
+            actingViewUnavailable,
+            hostAvailable,
+            historyStillExploration,
+            actionPresented,
+            populated,
+            returnedToProjection:
+                !session.history.inHistory &&
+                session.history.visibleContext.state.tileBag.items.length === 0
+        }
+    } finally {
+        client.dispose()
+    }
+}
+
+export async function runSimulatedAuction() {
+    const host = createExplorationHost()
+    drawStall(host)
+    const firstBidder = host.state.currentAuction?.participants.find(
+        (p) => p.playerId !== PLAYER_B_PERSPECTIVE.playerId
+    )
+    assertExists(firstBidder, 'Expected an opponent bidder')
+    host.apply(createBid('source-bid', firstBidder.playerId, 8))
+    const client = explorationClient(host)
+    const { session } = client
+    try {
+        await settleExploration(session)
+        await session.startExploring()
+        await settleExploration(session)
+        const context = session.explorations.getCurrentExploration()
+        assertExists(context, 'Expected exploration')
+        const initial = JSON.stringify(context.state)
+        const sourceCount = context.state.actionCount
+        for (
+            let index = 0;
+            index < host.game.players.length && context.state.machineState === 'AuctioningTile';
+            index++
+        ) {
+            const playerId: string | undefined = context.state.activePlayerIds[0]
+            assertExists(playerId, 'Expected a pending bidder')
+            const bid = createBid(`hypothetical-${index}`, playerId, index + 1)
+            bid.gameId = context.game.id
+            await session.applyAction(bid)
+            await settleExploration(session)
+        }
+        const auctionFinished = context.state.machineState === 'AuctionEnded'
+        const expected = {
+            bag: context.state.tileBag,
+            players: context.state.players,
+            auction: context.state.currentAuction,
+            checksum: context.state.actionChecksum
+        }
+        await session.history.goToBeginning()
+        await settleExploration(session)
+        await session.history.goToActionIndex(context.actions.length - 1)
+        await settleExploration(session)
+        const visible = session.history.visibleContext.state
+        const historyMatches =
+            JSON.stringify({
+                bag: visible.tileBag,
+                players: visible.players,
+                auction: visible.currentAuction,
+                checksum: visible.actionChecksum
+            }) === JSON.stringify(expected)
+        session.history.goToEnd()
+        await settleExploration(session)
+        for (
+            let index = 0;
+            index < host.game.players.length && context.state.actionCount > sourceCount;
+            index++
+        ) {
+            await session.undo()
+            await settleExploration(session)
+        }
+        return {
+            auctionFinished,
+            historyMatches,
+            undoRestoresSample: JSON.stringify(context.state) === initial,
+            sourceUnchanged: host.state.actionCount === sourceCount
+        }
+    } finally {
+        client.dispose()
+    }
+}
+
+export async function runExplorationRecovery(fromHistory = false) {
+    const host = createExplorationHost()
+    if (fromHistory) host.apply(diskAction(host))
+    const client = explorationClient(host)
+    const { session, app } = client
+    let syncRequests = 0
+    app.api.checkSync = async () => {
+        syncRequests++
+        const history = project(host, PLAYER_B_PERSPECTIVE)
+        return {
+            status: GameSyncStatus.InSync,
+            actions: [...history.actions],
+            checksum: host.state.actionChecksum
+        }
+    }
+    session.listenToGame()
+    try {
+        await settleExploration(session)
+        if (fromHistory) {
+            await session.history.goToBeginning()
+            await settleExploration(session)
+        }
+        const returnState = JSON.stringify(session.history.visibleContext.state)
+        const returnIndex = session.history.actionIndex
+        await session.startExploring()
+        await settleExploration(session)
+        const branch = session.explorations.getCurrentExploration()
+        assertExists(branch, 'Expected exploration')
+        const sample = JSON.stringify(branch.state)
+        host.apply(diskAction(host))
+        await app.notificationService.emit({
+            eventType: NotificationEventType.Discontinuity,
+            channel: NotificationChannel.User
+        })
+        await settleExploration(session)
+        const branchUnchanged =
+            JSON.stringify(branch.state) === sample &&
+            session.history.visibleContext.game.id === branch.game.id
+        session.explorations.endExploring()
+        await settleExploration(session)
+        const returnPositionPreserved = fromHistory
+            ? session.history.inHistory &&
+              session.history.actionIndex === returnIndex &&
+              JSON.stringify(session.history.visibleContext.state) === returnState
+            : !session.history.inHistory
+        session.history.goToEnd()
+        await settleExploration(session)
+        return {
+            returnPositionPreserved,
+            syncRequests,
+            branchUnchanged,
+            returnedToCurrentGame:
+                session.history.visibleContext.state.actionChecksum === host.state.actionChecksum,
+            stillProjected: session.history.visibleContext.state.tileBag.items.length === 0
+        }
+    } finally {
+        session.stopListeningToGame()
+        client.dispose()
+    }
+}
+
+export async function runRepresentationRecovery(hostView: boolean) {
+    const host = createExplorationHost()
+    const client = explorationClient(host)
+    const { session, app } = client
+    const started = Promise.withResolvers<void>()
+    const gate = Promise.withResolvers<void>()
+    let delayNext = false
+    app.api.getGame = async (_id, options) => {
+        const history = project(host, options?.hostView ? undefined : PLAYER_B_PERSPECTIVE)
+        const response = {
+            game: { ...host.gameWithoutState(), state: history.currentState },
+            actions: [...history.actions]
+        }
+        if (delayNext) {
+            delayNext = false
+            started.resolve()
+            await gate.promise
+        }
+        return response
+    }
+    app.api.checkSync = async () => {
+        const history = project(host, PLAYER_B_PERSPECTIVE)
+        return {
+            status: GameSyncStatus.InSync,
+            actions: [...history.actions],
+            checksum: host.state.actionChecksum
+        }
+    }
+    session.listenToGame()
+    try {
+        await settleExploration(session)
+        if (!hostView) {
+            await session.setPrivilegedGameViewEnabled(true)
+            await settleExploration(session)
+        }
+        delayNext = true
+        const pending = session.setPrivilegedGameViewEnabled(hostView)
+        await started.promise
+        host.apply(diskAction(host))
+        const history = project(host, PLAYER_B_PERSPECTIVE)
+        await app.notificationService.emit({
+            eventType: NotificationEventType.Data,
+            channel: NotificationChannel.User,
+            notification: {
+                id: 'during-reload',
+                type: NotificationCategory.Game,
+                action: GameNotificationAction.AddProjectedActions,
+                data: {
+                    game: host.gameWithoutState(),
+                    actions: [...history.actions],
+                    perspective: PLAYER_B_PERSPECTIVE
+                }
+            }
+        })
+        gate.resolve()
+        await pending
+        await settleExploration(session)
+        return {
+            current:
+                session.history.visibleContext.state.actionChecksum === host.state.actionChecksum,
+            correctView: session.isViewingHost === hostView,
+            correctBag:
+                session.history.visibleContext.state.tileBag.items.length ===
+                (hostView ? host.state.tileBag.remaining : 0)
+        }
+    } finally {
+        gate.resolve()
+        session.stopListeningToGame()
+        client.dispose()
+    }
+}
+
+export async function saveProtectedHarnessGame() {
+    const host = createExplorationHost()
+    host.game.hotseat = true
+    host.game.storage = GameStorage.Local
+    host.game.ownerId = 'harness-user'
+    host.game.name = 'Protected Fresh Fish'
+    for (const player of host.game.players) player.userId = 'harness-user'
+    const app = createHarnessAppContext(definition)
+    await app.gameService.saveGameLocally({
+        game: host.game,
+        state: host.state,
+        actions: host.actionsSnapshot()
+    })
+    return host.state.activePlayerIds[0]
+}
+
+export async function reproduceHarnessGame() {
+    const app = createHarnessAppContext(definition)
+    const original = createExplorationHost()
+    const create = async () => {
+        const game = await app.gameService.createGame(
+            {
+                ...original.game,
+                id: crypto.randomUUID(),
+                startedAt: undefined,
+                storage: GameStorage.Local,
+                hotseat: true,
+                config: { ...original.game.config, boardSeed: 0 }
+            },
+            { masterSeed }
+        )
+        const loaded = await app.gameService.loadGame(game.id)
+        assertExists(loaded.game?.state, 'Expected persisted canonical state')
+        const state = loaded.game.state
+        if (!FreshFishGameStateValidator.Check(state))
+            throw Error('Expected canonical Fresh Fish state')
+        return {
+            masterSeed: state.masterSeed,
+            publicSeed: game.seed,
+            board: state.board,
+            boardSeed: state.boardSeed,
+            tileBag: state.tileBag,
+            protectedPrng: state.protectedPrng
+        }
+    }
+    return { first: await create(), second: await create() }
+}
+
+export async function runCanonicalExplorationUndo() {
+    const host = createExplorationHost()
+    drawStall(host)
+    const original = JSON.stringify(host.state)
+    const client = explorationClient(host)
+    const { session, app } = client
+    app.api.getGame = async (_id, options) => {
+        const history = project(host, options?.hostView ? undefined : PLAYER_B_PERSPECTIVE)
+        return {
+            game: { ...host.gameWithState(), state: history.currentState },
+            actions: [...history.actions]
+        }
+    }
+    try {
+        await settleExploration(session)
+        await session.setPrivilegedGameViewEnabled(true)
+        await settleExploration(session)
+        await session.startExploring()
+        await settleExploration(session)
+        const context = session.explorations.getCurrentExploration()
+        assertExists(context)
+        const startsWithBid = session.chosenAction === 'placeBid'
+        const canUndoDraw = session.undoableAction?.type === 'drawTile'
+        await session.undo()
+        await settleExploration(session)
+        const clearsBid = session.chosenAction !== 'placeBid' && !context.state.currentAuction
+        const restoresTile = context.state.tileBag.remaining === host.state.tileBag.remaining + 1
+        let undoCount = 0
+        while (session.undoableAction && undoCount++ < host.actions.length) {
+            await session.undo()
+            await settleExploration(session)
+        }
+        const rewindsToBeginning = context.state.actionCount === 0
+        await session.applyAction(diskAction(context))
+        await settleExploration(session)
+        const playsForward = context.state.actionCount > 0
+        session.explorations.endExploring()
+        await settleExploration(session)
+        return {
+            startsWithBid,
+            canUndoDraw,
+            clearsBid,
+            restoresTile,
+            rewindsToBeginning,
+            playsForward,
+            sourceUnchanged: JSON.stringify(host.state) === original,
+            returnsToAuction: session.gameState.currentAuction !== undefined
+        }
+    } finally {
+        client.dispose()
+    }
+}

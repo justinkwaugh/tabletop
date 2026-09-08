@@ -2,18 +2,19 @@ import * as Type from 'typebox'
 import { shuffle } from '../../util/shuffle.js'
 import { Hydratable } from '../../util/hydration.js'
 import { type RandomFunction } from '../../util/prng.js'
+import * as Visibility from '../visibility/index.js'
 
-export const DrawBag = <T extends Type.TSchema>(T: T) =>
+export const DrawBag = <Item extends Type.TSchema>(item: Item) =>
     Type.Object({
-        items: Type.Array(T),
+        items: Visibility.protect(Type.Array(item), {
+            policy: Visibility.Policy.HostOnly,
+            redaction: Visibility.redaction.emptyArray()
+        }),
         remaining: Type.Number()
     })
 
 export type AnyDrawBag = Type.Static<typeof AnyDrawBag>
-export const AnyDrawBag = Type.Object({
-    items: Type.Array(Type.Any()),
-    remaining: Type.Number()
-})
+export const AnyDrawBag = DrawBag(Type.Any())
 
 export abstract class HydratedDrawBag<T, U extends Type.TSchema> extends Hydratable<U> {
     //

@@ -1,15 +1,22 @@
+import { Timed, measure, measureSync, countTiming } from '../diagnostics/requestTimings.js'
 import {
+    GameCreationOptions,
+    deriveGameSeeds,
+    generateMasterSeed,
+    normalizeMasterSeed,
+    assert,
     ActionSource,
-    assertExists,
     calculateActionChecksum,
+    createGameFork,
+    GameForkError,
     findLast,
+    findPlayerForUserId,
     Game,
     GameAction,
     GameDefinition,
     GameEngine,
-    GameNotification,
     GameNotificationAction,
-    GameNotificationData,
+    type GameNotificationData,
     GameStartedNotification,
     GameState,
     GameStatus,
@@ -23,12 +30,13 @@ import {
     PlayerJoinedNotification,
     PlayerStatus,
     Role,
-    RunMode,
     User,
     UserNotification,
     UserNotificationAction,
     UserStatus,
-    WasInvitedNotification
+    WasInvitedNotification,
+    Visibility,
+    assertExists
 } from '@tabletop/common'
 import { TaskService } from '../tasks/taskService.js'
 import { TokenService, TokenType } from '../tokens/tokenService.js'
@@ -65,6 +73,22 @@ import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import { Retryable } from 'typescript-retry-decorator'
 import { RedisCacheService } from '../cache/cacheService.js'
 import { EnvService } from '../env/envService.js'
+import {
+    createActionResultsRepresentation,
+    createGameRepresentation,
+    createGameRepresentationEtag,
+    createGameSyncRepresentation,
+    createUndoResultsRepresentation,
+    type ActionResultsRepresentation,
+    type GameRepresentation,
+    type GameSyncRepresentation,
+    type UndoResultsRepresentation
+} from './gameRepresentation.js'
+import {
+    createGameNotification,
+    publishActionResults,
+    publishUndoResults
+} from './gameNotifications.js'
 
 export class GameService {
     constructor(
@@ -88,16 +112,32 @@ export class GameService {
     async createGame({
         definition,
         game,
-        owner
+        owner,
+        options
     }: {
         definition: GameDefinition
         game: Partial<Game>
         owner: User
+        options?: GameCreationOptions
     }): Promise<Game> {
+        assertExists(game.id, 'Game id is required')
+        if (options?.masterSeed !== undefined && !owner.roles.includes(Role.Admin)) {
+            throw new UnauthorizedAccessError({ user: owner, gameId: game.id })
+        }
+        assert(
+            options?.masterSeed === undefined || definition.runtime.randomnessVersion === 1,
+            'This runtime does not support reproduction seeds'
+        )
+        const masterSeed =
+            definition.runtime.randomnessVersion === 1
+                ? normalizeMasterSeed(options?.masterSeed ?? generateMasterSeed())
+                : undefined
+        if (masterSeed !== undefined) game.seed = deriveGameSeeds(masterSeed).publicSeed
         game.ownerId = owner.id // Don't trust client
         game.storage = GameStorage.Remote // Has to be remote here on the backend
 
         const newGame = definition.runtime.initializer.initializeGame(game, definition)
+        delete newGame.protectedInformation
 
         // Check the specified players and populate them with user data
         const usersByPlayerId = await this.validateAndPopulatePlayers(newGame.players, owner)
@@ -131,7 +171,10 @@ export class GameService {
             }
         }
 
-        const createdGame = await this.gameStore.createGame(newGame)
+        const createdGame = await this.gameStore.createGame(
+            newGame,
+            masterSeed === undefined ? undefined : { masterSeed }
+        )
 
         // Send invites
         for (const user of Object.values(usersByPlayerId)) {
@@ -183,119 +226,72 @@ export class GameService {
         name?: string
         owner: User
     }): Promise<Game> {
-        const game = await this.getGame({ gameId })
-        if (!game) {
+        const data = await this.gameStore.loadGameData(gameId)
+        if (!data) {
             throw new GameNotFoundError({ id: gameId })
         }
-        const actions = await this.getGameActions(game)
-
-        const forkedGame = structuredClone(game)
-
-        let storedState
-        if (!forkedGame.seed) {
-            // We have to look up the state, because we did not always store the seed on the game.
-            // This also coincides with Kaivai not using prng to generate piece ids, so we can
-            // use the presence of this stored state to decide to rewind it
-            const gameWithState = await this.getGame({ gameId, withState: true })
-            storedState = gameWithState?.state
-            forkedGame.seed = storedState?.prng?.seed
+        const { game, actions } = data
+        if (!game.state || game.typeId !== definition.info.id) {
+            throw new GameForkError(gameId, actionIndex)
         }
-
-        // Reset fields
-        forkedGame.id = nanoid()
-        if (name && name.trim().length > 0) {
-            forkedGame.name = name
+        const fork = createGameFork({
+            game,
+            state: game.state,
+            actions,
+            actionIndex,
+            runtime: definition.runtime,
+            name
+        })
+        fork.game.ownerId = owner.id
+        fork.game.storage = GameStorage.Remote
+        fork.game.status = GameStatus.WaitingForPlayers
+        fork.game.lastActionAt = undefined
+        for (const player of fork.game.players) {
+            player.status = player.userId === owner.id ? PlayerStatus.Joined : PlayerStatus.Reserved
         }
-        forkedGame.ownerId = owner.id
-        forkedGame.startedAt = undefined
-        forkedGame.storage = GameStorage.Remote
-        delete forkedGame.result
-        delete forkedGame.finishedAt
-        forkedGame.winningPlayerIds = []
-        forkedGame.parentId = game.id
-
-        for (const player of forkedGame.players) {
-            if (player.userId === owner.id) {
-                player.status = PlayerStatus.Joined
-            } else {
-                player.status = PlayerStatus.Reserved
-            }
-        }
-
-        // Generate initial state
-        const engine = new GameEngine(definition.runtime)
-        const { startedGame, initialState } = engine.startGame(forkedGame)
-
-        // Reset state to waiting
-        startedGame.status = GameStatus.WaitingForPlayers
-
-        let newState = initialState
-
-        // For old Kaivai games that did not use seeds for piece ids, we have to run the
-        // game back to the start to get the initial state
-        if (storedState) {
-            console.log('Rewinding game to get initial state...')
-            actions.reverse()
-            for (const action of actions) {
-                storedState = engine.undoAction(storedState, action)
-            }
-            if (storedState.actionChecksum !== 0 || storedState.actionCount !== 0) {
-                throw new Error('Could not rewind game to initial state')
-            }
-            newState = storedState
-            actions.reverse()
-        }
-
-        // Copy the entire action history up to the specified index
-        const actionSubset = actions
-            .slice(0, actionIndex + 1)
-            .map((action) => structuredClone(action))
-
-        const appliedActions = []
-        // Run the game to the desired index
-        for (const action of actionSubset) {
-            // Copy and adjust
-            action.id = nanoid()
-            action.gameId = forkedGame.id
-            action.undoPatch = undefined
-
-            // Apply each action to the forked game state
-            const { processedActions, updatedState } = engine.run(
-                action,
-                newState,
-                startedGame,
-                RunMode.Single
-            )
-            newState = updatedState
-            appliedActions.push(...processedActions)
-        }
-
-        // Update some relevant fields on the game
-        startedGame.activePlayerIds = newState.activePlayerIds || []
-        const lastAction = appliedActions.at(-1)
-        startedGame.lastActionAt = undefined
-        if (lastAction) {
-            startedGame.lastActionPlayerId = lastAction.playerId
-        } else {
-            startedGame.lastActionPlayerId = undefined
-        }
-
-        // Store the forked data
         const { storedGame } = await this.gameStore.writeFullGameData(
-            startedGame,
-            newState,
-            appliedActions
+            fork.game,
+            fork.state,
+            fork.actions
         )
-
-        // Send notifications
         await this.notifyGamePlayers(GameNotificationAction.Create, { game: storedGame })
-
-        console.log(`Forked game ${game.id} with seed ${newState.prng?.seed}`)
         return storedGame
     }
 
-    async getGameEtag(gameId: string): Promise<string | undefined> {
-        return await this.gameStore.getGameEtag(gameId)
+    canAccessHostView(user: User): boolean {
+        return user.roles.includes(Role.Admin) || user.roles.includes(Role.Developer)
+    }
+
+    async getGameEtag(gameId: string): Promise<string> {
+        const etag = await this.gameStore.getGameEtag(gameId)
+        assertExists(etag, `Game ${gameId} ETag is unavailable`)
+        return etag
+    }
+
+    async getGameEtagForUser({
+        gameId,
+        hostView = false,
+        user
+    }: {
+        gameId: string
+        hostView?: boolean
+        user: User
+    }): Promise<string | undefined> {
+        this.assertHostViewAccess({ gameId, hostView, user })
+
+        const game = await this.getGame({ gameId })
+        if (game === undefined) {
+            return undefined
+        }
+
+        const definition = this.getRequiredTitle(game)
+        return createGameRepresentationEtag({
+            canonicalEtag: await this.getGameEtag(gameId),
+            game,
+            hostView,
+            visibility: definition.runtime.visibility,
+            user
+        })
     }
 
     async getGame({
@@ -310,6 +306,37 @@ export class GameService {
 
     async getGameActions(game: Game): Promise<GameAction[]> {
         return await this.gameStore.findActionsForGame(game)
+    }
+
+    async getGameForUser({
+        gameId,
+        hostView = false,
+        user
+    }: {
+        gameId: string
+        hostView?: boolean
+        user: User
+    }): Promise<GameRepresentation | undefined> {
+        this.assertHostViewAccess({ gameId, hostView, user })
+
+        const data = await this.gameStore.loadGameData(gameId)
+        if (!data) return undefined
+        const { game, actions } = data
+        const definition = this.getRequiredTitle(game)
+
+        if (game.state && game.state.actionChecksum === undefined) {
+            const checksum = await this.backfillChecksum(game.state, actions)
+            game.state.actionChecksum = checksum
+        }
+
+        return createGameRepresentation({
+            game,
+            actions,
+            hostView,
+            runtime: definition.runtime,
+            visibility: definition.runtime.visibility,
+            user
+        })
     }
 
     async userHasCachedActiveGames(user: User): Promise<boolean> {
@@ -340,56 +367,66 @@ export class GameService {
         if (!game) {
             throw new GameNotFoundError({ id: state.gameId })
         }
+        new GameEngine(this.getRequiredTitle(game).runtime).validateCanonicalState(state)
         await this.gameStore.setGameState({ gameId: state.gameId, state })
     }
 
     async checkSync({
         gameId,
         checksum,
-        index
+        index,
+        user
     }: {
         gameId: string
         checksum: number
         index: number
-    }): Promise<{ status: GameSyncStatus; actions: GameAction[]; checksum: number }> {
+        user: User
+    }): Promise<GameSyncRepresentation> {
         // Try a potentially cached check
         const currentChecksum = await this.gameStore.getActionChecksum(gameId)
         if (checksum === currentChecksum) {
             return { status: GameSyncStatus.InSync, actions: [], checksum: currentChecksum }
         }
 
-        // If we don't match we have to do more complicated things
-        const game = await this.getGame({ gameId, withState: true })
-        if (!game || !game.state) {
-            throw new GameNotFoundError({ id: gameId })
-        }
+        const data = await this.gameStore.readGameData(gameId, async (reader) => {
+            const game = reader.game
+            if (!game.state) {
+                throw new GameNotFoundError({ id: gameId })
+            }
 
-        const state = game.state
+            const state = game.state
 
-        // Look up actions and verify the checksum
-        const actions = await this.gameStore.findActionRangeForGame({
-            game,
-            startIndex: index + 1,
-            endIndex: state.actionCount
+            // Look up actions and verify the checksum
+            const actions = await reader.actionRange(index + 1, state.actionCount)
+
+            const calculatedChecksum = calculateActionChecksum(checksum, actions)
+
+            let syncStatus = GameSyncStatus.InSync
+            // If we are not in sync, we need to say so and return enough actions to hopefully allow the client to resync
+            if (calculatedChecksum !== state.actionChecksum) {
+                syncStatus = GameSyncStatus.OutOfSync
+
+                // Add 10 actions in the past to help the client resync (this should cover most undo scenarios)
+                const startIndex = Math.max(index - 10, 0)
+                const extraActions = await reader.actionRange(
+                    startIndex,
+                    Math.min(index + 1, state.actionCount)
+                )
+                actions.unshift(...extraActions)
+            }
+            return { game, actions, syncStatus }
         })
-
-        const calculatedChecksum = calculateActionChecksum(checksum, actions)
-
-        let syncStatus = GameSyncStatus.InSync
-        // If we are not in sync, we need to say so and return enough actions to hopefully allow the client to resync
-        if (calculatedChecksum !== state.actionChecksum) {
-            syncStatus = GameSyncStatus.OutOfSync
-
-            // Add 10 actions in the past to help the client resync (this should cover most undo scenarios)
-            const startIndex = Math.max(index - 10, 0)
-            const extraActions = await this.gameStore.findActionRangeForGame({
-                game,
-                startIndex,
-                endIndex: Math.min(index + 1, state.actionCount)
-            })
-            actions.unshift(...extraActions)
-        }
-        return { status: syncStatus, actions, checksum: state.actionChecksum }
+        if (!data) throw new GameNotFoundError({ id: gameId })
+        const { game, actions, syncStatus } = data
+        const definition = this.getRequiredTitle(game)
+        return createGameSyncRepresentation({
+            game,
+            status: syncStatus,
+            actions,
+            runtime: definition.runtime,
+            visibility: definition.runtime.visibility,
+            user
+        })
     }
 
     async checkInvitation({ user, gameId }: { user: User; gameId: string }): Promise<Game> {
@@ -422,6 +459,7 @@ export class GameService {
         fields: Partial<Game>
         owner: User
     }): Promise<Game> {
+        assert(!Object.hasOwn(fields, 'protectedInformation'), 'Game protection cannot be changed')
         const game = await this.getGame({ gameId })
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
@@ -563,53 +601,45 @@ export class GameService {
             throw new GameNotFoundError({ id: gameId })
         }
 
-        let player: Player
-        if (!game.isPublic) {
-            player = this.findValidPlayerForUser({ user, game })
-            player.status = PlayerStatus.Joined
-        } else {
-            // For public games, we have to add the player
-            const existingPlayer = game.players.find((p) => p.userId === user.id)
-            if (existingPlayer) {
-                if (existingPlayer.status === PlayerStatus.Joined) {
-                    return game
-                }
-                existingPlayer.status = PlayerStatus.Joined
-                player = existingPlayer
-            } else {
-                const openSlot = game.players.find((p) => p.status === PlayerStatus.Open)
-                if (!openSlot) {
-                    throw new GameNotWaitingForPlayersError({ id: game.id })
-                }
-                openSlot.userId = user.id
-                openSlot.name = user.username ?? 'Player'
-                openSlot.status = PlayerStatus.Joined
-                player = openSlot
-            }
-        }
-
-        const [updatedGame] = await this.gameStore.updateGame({
+        const [updatedGame, updatedFields] = await this.gameStore.updateGame({
             game,
             fields: { players: game.players },
-            validator: (existingGame) => {
-                if (existingGame.status != GameStatus.WaitingForPlayers) {
+            validator: (existingGame, fieldsToUpdate) => {
+                const existingPlayer = findPlayerForUserId(existingGame, user.id)
+                if (existingGame.isPublic && existingPlayer?.status === PlayerStatus.Joined) {
+                    return UpdateValidationResult.Cancel
+                }
+                if (existingGame.status !== GameStatus.WaitingForPlayers) {
                     throw new GameNotWaitingForPlayersError({ id: existingGame.id })
                 }
-
-                let existingPlayer: Player | undefined
                 if (!existingGame.isPublic) {
-                    existingPlayer = this.findValidPlayerForUser({ user, game: existingGame })
-                } else {
-                    existingPlayer = existingGame.players.find((p) => p.userId === user.id)
+                    this.findValidPlayerForUser({ user, game: existingGame })
+                    if (existingPlayer?.status === PlayerStatus.Joined) {
+                        throw new UserAlreadyJoinedError({ user, gameId: game.id })
+                    }
                 }
 
-                if (existingPlayer && existingPlayer.status === PlayerStatus.Joined) {
-                    throw new UserAlreadyJoinedError({ user, gameId: game.id })
+                const players = structuredClone(existingGame.players)
+                const player = existingPlayer
+                    ? players.find((candidate) => candidate.id === existingPlayer.id)
+                    : players.find((candidate) => candidate.status === PlayerStatus.Open)
+                if (!player) {
+                    throw new GameNotWaitingForPlayersError({ id: existingGame.id })
                 }
+                if (!existingPlayer) {
+                    player.userId = user.id
+                    player.name = user.username ?? 'Player'
+                }
+                player.status = PlayerStatus.Joined
+                fieldsToUpdate.players = players
                 return UpdateValidationResult.Proceed
             }
         })
 
+        if (updatedFields.length === 0) {
+            return updatedGame
+        }
+        const player = this.findValidPlayerForUser({ user, game: updatedGame })
         if (game.isPublic) {
             await this.notifyGlobal(GameNotificationAction.Update, { game: updatedGame })
         } else {
@@ -625,32 +655,33 @@ export class GameService {
             throw new GameNotFoundError({ id: gameId })
         }
 
-        console.log(JSON.stringify(game.players, null, 2))
-        const player = this.findValidPlayerForUser({ user, game })
-        if (game.isPublic) {
-            // For public games, we can just mark the player slot as open again
-            player.userId = undefined
-            player.name = ''
-            player.status = PlayerStatus.Open
-        } else {
-            player.status = PlayerStatus.Declined
-        }
-
-        const [updatedGame] = await this.gameStore.updateGame({
+        const [updatedGame, , existingGame] = await this.gameStore.updateGame({
             game,
             fields: { players: game.players },
-            validator: (existingGame) => {
+            validator: (existingGame, fieldsToUpdate) => {
                 if (
-                    existingGame.status != GameStatus.WaitingForPlayers &&
-                    existingGame.status != GameStatus.WaitingToStart
+                    existingGame.status !== GameStatus.WaitingForPlayers &&
+                    existingGame.status !== GameStatus.WaitingToStart
                 ) {
                     throw new GameNotWaitingForPlayersError({ id: existingGame.id })
                 }
 
-                const player = this.findValidPlayerForUser({ user, game: existingGame })
+                const players = structuredClone(existingGame.players)
+                const player = this.findValidPlayerForUser({
+                    user,
+                    game: { ...existingGame, players }
+                })
                 if (player.status === PlayerStatus.Declined) {
                     throw new UserAlreadyDeclinedError({ user, gameId: game.id })
                 }
+                if (existingGame.isPublic) {
+                    player.userId = undefined
+                    player.name = ''
+                    player.status = PlayerStatus.Open
+                } else {
+                    player.status = PlayerStatus.Declined
+                }
+                fieldsToUpdate.players = players
                 return UpdateValidationResult.Proceed
             }
         })
@@ -660,7 +691,11 @@ export class GameService {
         } else {
             await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
         }
-        await this.notifyDeclined(user, game, player)
+        await this.notifyDeclined(
+            user,
+            updatedGame,
+            this.findValidPlayerForUser({ user, game: existingGame })
+        )
         return updatedGame
     }
 
@@ -725,11 +760,24 @@ export class GameService {
                 }
             })
         } else {
-            const { startedGame, initialState } = new GameEngine(definition.runtime).startGame(game)
+            const masterSeed =
+                definition.runtime.randomnessVersion === 1
+                    ? await this.gameStore.getMasterSeed(gameId)
+                    : undefined
+            const { startedGame, initialState } = new GameEngine(definition.runtime).startGame(
+                game,
+                masterSeed
+            )
             startedGame.state = initialState
             ;[updatedGame] = await this.gameStore.updateGame({
                 game,
-                fields: { startedAt: new Date(), status: GameStatus.Started, state: initialState },
+                fields: {
+                    startedAt: new Date(),
+                    status: GameStatus.Started,
+                    seed: startedGame.seed,
+                    ...(startedGame.protectedInformation ? { protectedInformation: true } : {}),
+                    state: initialState
+                },
                 validator: (existingGame, fieldsToUpdate) => {
                     if (existingGame.status !== GameStatus.WaitingToStart) {
                         throw new GameNotWaitingToStartError({ id: gameId })
@@ -753,6 +801,7 @@ export class GameService {
         maxAttempts: 3,
         value: [GameUpdateCollisionError]
     })
+    @Timed('game.applyActionToGame')
     async applyActionToGame({
         definition,
         action,
@@ -761,11 +810,8 @@ export class GameService {
         definition: GameDefinition
         action: GameAction
         user: User
-    }): Promise<{
-        processedActions: GameAction[]
-        updatedGame: Game
-        missingActions?: GameAction[]
-    }> {
+    }): Promise<ActionResultsRepresentation> {
+        countTiming('game.action.attempts')
         const gameId = action.gameId
         const game = await this.getGame({ gameId, withState: true })
         if (!game || !game.state) {
@@ -792,12 +838,17 @@ export class GameService {
 
         const initialIndex = action.index
 
+        const initialState = game.state
         const gameEngine = new GameEngine(definition.runtime)
-        const { processedActions, updatedState, indexOffset } = gameEngine.run(
-            action,
-            game.state,
-            game
+        const actionResult = measureSync('engine.execute', () =>
+            gameEngine.executeCanonicalAction({
+                action,
+                state: initialState,
+                game
+            })
         )
+        const { processedActions, updatedState, indexOffset } = actionResult
+        countTiming('game.processedActions', processedActions.length)
 
         // write the action and the updated state
         const { storedActions, updatedGame, relatedActions, priorState } =
@@ -821,6 +872,14 @@ export class GameService {
                         throw new GameNotInProgressError({ id: gameId })
                     }
 
+                    const executedState = actionResult.actionCascade.before
+                    if (
+                        executedState.actionCount !== existingState.actionCount ||
+                        executedState.actionChecksum !== existingState.actionChecksum
+                    ) {
+                        throw new GameUpdateCollisionError({ id: gameId })
+                    }
+
                     let newActionIndex = existingState.actionCount
                     actions.forEach((action) => {
                         action.index = newActionIndex
@@ -836,7 +895,7 @@ export class GameService {
 
                     // Lookup and verify the missing actions
                     let missingActions: GameAction[] = []
-                    if (indexOffset > 0 && initialIndex) {
+                    if (indexOffset > 0 && initialIndex !== undefined) {
                         const startIndex = initialIndex
                         const endIndex = initialIndex + indexOffset
                         missingActions = await this.gameStore.findActionRangeForGame({
@@ -872,22 +931,35 @@ export class GameService {
                 }
             })
 
-        delete updatedGame.state
+        const representation = measureSync('projection.response.action', () =>
+            createActionResultsRepresentation({
+                game: updatedGame,
+                result: actionResult,
+                storedActions,
+                missingActions: relatedActions,
+                priorState,
+                runtime: definition.runtime,
+                visibility: definition.runtime.visibility,
+                user
+            })
+        )
 
-        // Only user actions need to be broadcast
-        const userActions = storedActions.filter((a) => a.source === ActionSource.User)
-        await this.notifyGameInstance(GameNotificationAction.AddActions, {
-            game: updatedGame,
-            actions: userActions
-        })
-        await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
-
-        // Currently we know the related actions are the missing ones, but maybe not always
-        relatedActions.sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+        await measure('projection.publish.action', () =>
+            publishActionResults({
+                game: updatedGame,
+                result: actionResult,
+                storedActions,
+                priorState,
+                runtime: definition.runtime,
+                visibility: definition.runtime.visibility,
+                notificationService: this.notificationService
+            })
+        )
+        await this.notifyGamePlayers(GameNotificationAction.Update, { game: representation.game })
 
         for (const activePlayerId of updatedState.activePlayerIds) {
             if (!priorState.activePlayerIds.includes(activePlayerId)) {
-                const activePlayer = this.findPlayerByPlayerId(updatedGame, activePlayerId)
+                const activePlayer = this.findPlayerByPlayerId(representation.game, activePlayerId)
                 if (!activePlayer || !activePlayer.userId) {
                     continue
                 }
@@ -896,21 +968,18 @@ export class GameService {
                     continue
                 }
 
-                await this.scheduleTurnNotification(activeUser.id, updatedGame.id)
+                await this.scheduleTurnNotification(activeUser.id, representation.game.id)
             }
         }
 
-        if (!game.result && updatedGame.result) {
-            await this.sendGameEndEmail(updatedGame)
+        if (!game.result && representation.game.result) {
+            await this.sendGameEndEmail(representation.game)
         }
 
-        return {
-            processedActions: storedActions,
-            updatedGame,
-            missingActions: relatedActions.length > 0 ? relatedActions : undefined
-        }
+        return representation
     }
 
+    @Timed('game.undoAction')
     async undoAction({
         user,
         definition,
@@ -921,8 +990,12 @@ export class GameService {
         definition: GameDefinition
         gameId: string
         actionId: string
-    }) {
-        const game = await this.getGame({ gameId, withState: true })
+    }): Promise<UndoResultsRepresentation> {
+        const data = await this.gameStore.readGameData(gameId, async (reader) => ({
+            game: reader.game,
+            undoWindow: reader.game.state ? await reader.undoWindow(actionId) : undefined
+        }))
+        const game = data?.game
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
         }
@@ -932,18 +1005,15 @@ export class GameService {
             userPlayer = this.findValidPlayerForUser({ user, game })
         }
 
-        let gameState = game.state
-        if (!gameState) {
+        const storedGameState = game.state
+        if (!storedGameState) {
             throw new DisallowedUndoError({ gameId, actionId, reason: `Game state not found` })
         }
+        let gameState = storedGameState
 
         const priorActionCount = gameState.actionCount
         const priorChecksum = gameState.actionChecksum
-        const undoWindow = await this.gameStore.findUndoActionWindow({
-            game,
-            actionId,
-            endIndex: priorActionCount
-        })
+        const undoWindow = data?.undoWindow
         if (!undoWindow || undoWindow.targetAction.index === undefined) {
             throw new DisallowedUndoError({ gameId, actionId, reason: `Action not found` })
         }
@@ -971,6 +1041,24 @@ export class GameService {
         }
         const retainedActions = undoWindow.actions.slice(0, targetPosition)
         const actions = undoWindow.actions.slice(targetPosition)
+
+        const visibility = Visibility.getGameVisibility(game, definition.runtime)
+        if (visibility) {
+            const history = Visibility.projectActionHistory({
+                startIndex: actionToUndo.index,
+                currentState: gameState,
+                actions,
+                visibility,
+                perspective: { kind: 'spectator' }
+            })
+            if (history.actions.some((action) => action.undoPatch === undefined)) {
+                throw new DisallowedUndoError({
+                    gameId,
+                    actionId,
+                    reason: 'Cannot undo across unavailable history'
+                })
+            }
+        }
 
         const redoActions = []
         if (!user.roles.includes(Role.Admin)) {
@@ -1010,19 +1098,30 @@ export class GameService {
         }
 
         const gameEngine = new GameEngine(definition.runtime)
+        measureSync('engine.validate', () => gameEngine.validateCanonicalState(gameState))
         for (const action of actions.toReversed()) {
-            gameState = gameEngine.undoAction(gameState, action)
+            gameState = measureSync('engine.undo', () =>
+                gameEngine.undoProcessedAction({ action, state: gameState })
+            )
         }
 
+        measureSync('engine.validate', () => gameEngine.validateCanonicalState(gameState))
         const redoneActions: GameAction[] = []
         for (const redoAction of redoActions) {
-            const { processedActions, updatedState } = gameEngine.run(redoAction, gameState, game)
+            const { processedActions, updatedState } = measureSync('engine.execute', () =>
+                gameEngine.executeCanonicalAction({
+                    action: redoAction,
+                    state: gameState,
+                    game
+                })
+            )
             redoneActions.push(...processedActions)
             gameState = updatedState
         }
 
         // store the updated state
         const updatedState = gameState
+        measureSync('engine.validate', () => gameEngine.validateCanonicalState(updatedState))
 
         const {
             undoneActions,
@@ -1074,43 +1173,46 @@ export class GameService {
                 return UpdateValidationResult.Proceed
             }
         })
-        const checksum = updatedState.actionChecksum
-        delete updatedGame.state
-
-        const canonicalReplay = {
+        const replayActions = [...retainedActions, ...processedRedoneActions]
+        const actionReplay = {
             startIndex: undoWindow.startIndex,
-            userActions: [...retainedActions, ...processedRedoneActions]
-                .filter((action) => action.source === ActionSource.User)
-                .map((action) => this.prepareCanonicalReplayAction(action))
+            actions: replayActions.map((action) => structuredClone(action))
         }
+        const representation = measureSync('projection.response.undo', () =>
+            createUndoResultsRepresentation({
+                game: updatedGame,
+                actionReplay,
+                undoneActions,
+                redoneActions: processedRedoneActions,
+                runtime: definition.runtime,
+                visibility: definition.runtime.visibility,
+                user
+            })
+        )
 
-        // send out notifications
-        await this.notifyGameInstance(GameNotificationAction.UndoAction, {
-            game: updatedGame,
-            action: actionToUndo,
-            redoneActions: processedRedoneActions,
-            undoneActionId: actionToUndo.id,
-            canonicalReplay: {
-                startIndex: canonicalReplay.startIndex,
-                userActionIds: canonicalReplay.userActions.map((action) => action.id)
-            },
-            checksum
+        await measure('projection.publish.undo', () =>
+            publishUndoResults({
+                game: updatedGame,
+                actionReplay,
+                actionToUndo,
+                redoneActions: processedRedoneActions,
+                runtime: definition.runtime,
+                visibility: definition.runtime.visibility,
+                notificationService: this.notificationService
+            })
+        )
+        await this.notifyGamePlayers(GameNotificationAction.Update, {
+            game: representation.game
         })
-        await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
 
-        return {
-            undoneActions,
-            updatedGame,
-            redoneActions: processedRedoneActions,
-            canonicalReplay,
-            checksum
-        }
+        return representation
     }
 
     async backfillChecksum(state: GameState, actions: GameAction[]): Promise<number> {
         const checksum = calculateActionChecksum(0, actions)
         state.actionChecksum = checksum
-        return await this.gameStore.setChecksum({ gameId: state.gameId, checksum })
+        await this.gameStore.setChecksum({ gameId: state.gameId, checksum })
+        return checksum
     }
 
     private isSameSimultaneousGroup(action: GameAction, other: GameAction): boolean {
@@ -1119,12 +1221,6 @@ export class GameService {
             other.simultaneousGroupId !== undefined &&
             action.simultaneousGroupId === other.simultaneousGroupId
         )
-    }
-
-    private prepareCanonicalReplayAction(action: GameAction): GameAction {
-        const replayAction = structuredClone(action)
-        delete replayAction.undoPatch
-        return replayAction
     }
 
     private verifyUserIsActionPlayer(action: GameAction, game: Game, user: User) {
@@ -1151,6 +1247,27 @@ export class GameService {
             return player.id === playerId
         })
     }
+
+    private assertHostViewAccess({
+        gameId,
+        hostView,
+        user
+    }: {
+        gameId: string
+        hostView: boolean
+        user: User
+    }): void {
+        if (hostView && !this.canAccessHostView(user)) {
+            throw new UnauthorizedAccessError({ user, gameId })
+        }
+    }
+
+    private getRequiredTitle(game: Game): GameDefinition {
+        const definition = this.getTitle(game.typeId)
+        assertExists(definition, `Game definition ${game.typeId} is unavailable`)
+        return definition
+    }
+
     private checkForDuplicatePlayers(players: Player[]): void {
         const userIds = new Set<string>()
         for (const player of players) {
@@ -1165,7 +1282,7 @@ export class GameService {
     }
 
     findValidPlayerForUser({ user, game }: { user: User; game: Game }): Player {
-        const player = game.players.find((p) => p.userId === user.id)
+        const player = findPlayerForUserId(game, user.id)
         if (!player) {
             throw new UserIsNotAllowedPlayerError({ user, gameId: game.id })
         }
@@ -1219,12 +1336,7 @@ export class GameService {
         action: GameNotificationAction,
         data: GameNotificationData
     ): Promise<void> {
-        const notification = <GameNotification>{
-            id: nanoid(),
-            type: NotificationCategory.Game,
-            action: action,
-            data
-        }
+        const notification = createGameNotification(action, data)
         const gameTopic = `game-${data.game.id}`
         await this.notificationService.sendNotification({
             notification,
@@ -1233,17 +1345,15 @@ export class GameService {
         })
     }
 
+    @Timed('game.notifyGamePlayers')
     private async notifyGamePlayers(
         action: GameNotificationAction,
         data: GameNotificationData
     ): Promise<void> {
-        const notification = <GameNotification>{
-            id: nanoid(),
-            type: NotificationCategory.Game,
-            action: action,
-            data
-        }
-        const userTopics = data.game.players.map((p) => `user-${p.userId}`)
+        const notification = createGameNotification(action, data)
+        const userTopics = data.game.players.flatMap((player) =>
+            player.userId === undefined ? [] : [`user-${player.userId}`]
+        )
         await this.notificationService.sendNotification({
             notification,
             topics: [...userTopics],
@@ -1272,12 +1382,7 @@ export class GameService {
         action: GameNotificationAction,
         data: GameNotificationData
     ): Promise<void> {
-        const notification = <GameNotification>{
-            id: nanoid(),
-            type: NotificationCategory.Game,
-            action: action,
-            data
-        }
+        const notification = createGameNotification(action, data)
         await this.notificationService.sendNotification({
             notification,
             topics: ['global'],
@@ -1285,6 +1390,7 @@ export class GameService {
         })
     }
 
+    @Timed('game.scheduleTurnNotification')
     async scheduleTurnNotification(
         userId: string,
         gameId: string,

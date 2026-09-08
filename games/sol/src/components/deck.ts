@@ -9,7 +9,7 @@ export const Deck = DrawBag(Card)
 export const DeckValidator = Compile(Deck)
 
 export class HydratedDeck extends HydratedDrawBag<Card, typeof Deck> implements Deck {
-    static create(suits: Suit[], prng: Prng) {
+    static create(suits: Suit[], prng: Prng, random: RandomFunction = prng.random) {
         const cards = []
         for (const suit of suits) {
             for (let i = 0; i < 13; i++) {
@@ -23,7 +23,7 @@ export class HydratedDeck extends HydratedDrawBag<Card, typeof Deck> implements 
         }
 
         const hydratedDeck = new HydratedDeck(deck)
-        hydratedDeck.shuffle(prng.random)
+        hydratedDeck.shuffle(random)
         return hydratedDeck
     }
 

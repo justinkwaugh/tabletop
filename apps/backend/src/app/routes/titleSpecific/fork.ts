@@ -5,7 +5,7 @@ import { GameDefinition } from '@tabletop/common'
 type GameForkRequest = Static<typeof GameForkRequest>
 const GameForkRequest = Type.Object({
     gameId: Type.String(),
-    actionIndex: Type.Number({ minimum: -1 }),
+    actionIndex: Type.Integer({ minimum: -1 }),
     name: Type.Optional(Type.String())
 })
 

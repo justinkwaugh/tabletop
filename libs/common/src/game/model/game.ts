@@ -4,6 +4,7 @@ import { Player } from './player.js'
 import { GameResult, GameState } from './gameState.js'
 import { GameConfig } from './gameConfig.js'
 import { Compile } from 'typebox/compile'
+import * as Value from 'typebox/value'
 
 export enum GameStatus {
     WaitingForPlayers = 'waitingForPlayers',
@@ -63,6 +64,7 @@ export const Game = Type.Object({
     players: Type.Array(Player),
     config: GameConfig,
     hotseat: Type.Boolean(),
+    protectedInformation: Type.Optional(Type.Literal(true)),
     state: Type.Optional(GameState),
     startedAt: Type.Optional(DateType()),
     finishedAt: Type.Optional(DateType()),
@@ -78,5 +80,23 @@ export const Game = Type.Object({
     parentId: Type.Optional(Type.String()),
     category: Type.Optional(Type.String({ default: GameCategory.Standard }))
 })
+
+export type GameWithoutState = Type.Static<typeof GameWithoutState>
+export const GameWithoutState = Type.Omit(Game, ['state'], { additionalProperties: false })
+
+export function omitGameState(game: Game): GameWithoutState {
+    const gameWithoutState = structuredClone(game)
+    delete gameWithoutState.state
+    const cleanedGame = Value.Clean(GameWithoutState, gameWithoutState)
+    Value.Assert(GameWithoutState, cleanedGame)
+    return cleanedGame
+}
+
+export function findPlayerForUserId(
+    game: Pick<Game, 'players'>,
+    userId: string
+): Player | undefined {
+    return game.players.find((player) => player.userId === userId)
+}
 
 export const GameValidator = Compile(Game)

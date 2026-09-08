@@ -4,7 +4,7 @@ import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { getSquare, isOnBoard, isWalledBetween, neighbors, SquareType } from '../model/board.js'
-import { PoliticsCard, PoliticsCardType } from '../definition/politicsCards.js'
+import { PoliticsCard, PoliticsCardType, removePoliticsCard } from '../definition/politicsCards.js'
 
 export const WOODED_KNIGHT_COST = 5
 
@@ -34,7 +34,7 @@ export const PlaceKnight = Type.Evaluate(
             row: Type.Number(),
             // Optional Treasure card to cover the wooded-space cost instead of ducats -
             // only meaningful when the target square is wooded.
-            treasureCardId: Type.Optional(Type.String()),
+            treasureValue: Type.Optional(Type.Number()),
             metadata: Type.Optional(PlaceKnightMetadata) // Always optional, because it is an output
         })
     ])
@@ -58,7 +58,7 @@ export class HydratedPlaceKnight
     declare playerId: string
     declare col: number
     declare row: number
-    declare treasureCardId?: string
+    declare treasureValue?: number
     declare metadata?: PlaceKnightMetadata
 
     constructor(data: PlaceKnight) {
@@ -78,11 +78,12 @@ export class HydratedPlaceKnight
         playerState.knightsInStock -= 1
 
         if (square.type === SquareType.Forest) {
-            if (this.treasureCardId) {
-                const card = playerState.politicsCards.find((c) => c.id === this.treasureCardId)!
-                playerState.politicsCards = playerState.politicsCards.filter(
-                    (c) => c.id !== this.treasureCardId
-                )
+            if (this.treasureValue !== undefined) {
+                const card = removePoliticsCard(playerState.getPoliticsCards(), {
+                    type: PoliticsCardType.Treasure,
+                    value: this.treasureValue
+                })
+                playerState.syncPoliticsCardCount()
                 this.metadata = { woodedCostPaid: WOODED_KNIGHT_COST, paidWithTreasureCard: card }
             } else {
                 playerState.money -= WOODED_KNIGHT_COST
@@ -128,20 +129,22 @@ export class HydratedPlaceKnight
         }
 
         if (square.knightOwner || square.castleOwner) {
-            return "That square is already occupied."
+            return 'That square is already occupied.'
         }
 
         const playerState = state.getPlayerState(this.playerId)
 
-        if (this.treasureCardId) {
+        if (this.treasureValue !== undefined) {
             if (square.type !== SquareType.Forest) {
                 return "There's no cost to pay with a Treasure card here."
             }
-            const card = playerState.politicsCards.find((c) => c.id === this.treasureCardId)
-            if (!card || card.type !== PoliticsCardType.Treasure) {
+            const card = playerState
+                .getPoliticsCards()
+                .find((c) => c.type === PoliticsCardType.Treasure && c.value === this.treasureValue)
+            if (!card) {
                 return "That Treasure card isn't in your hand."
             }
-            if (card.value! < WOODED_KNIGHT_COST) {
+            if (this.treasureValue < WOODED_KNIGHT_COST) {
                 return `That Treasure card isn't worth enough to cover the ${WOODED_KNIGHT_COST}-ducat wooded cost.`
             }
         } else {

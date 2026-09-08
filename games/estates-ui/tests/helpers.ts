@@ -35,7 +35,7 @@ export async function createGame(page: Page, name = 'Render check') {
     await page.goto('/')
     await page.getByRole('button', { name: 'New game', exact: true }).click()
     await page.getByPlaceholder('choose a name for your game').fill(name)
-    await page.getByPlaceholder('optional game seed').fill('12345')
+    await page.getByPlaceholder('optional reproduction seed').fill('12345')
     const names = page.getByPlaceholder('player name')
     for (let i = 1; i < (await names.count()); i++) {
         await names.nth(i).fill(`Player ${i + 1}`)

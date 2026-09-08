@@ -1,6 +1,9 @@
 <script lang="ts">
     import type { Player } from '@tabletop/common'
-    import { type HydratedLowenherzPlayerState, type LowenherzPlayerState } from '@tabletop/lowenherz'
+    import {
+        type HydratedLowenherzPlayerState,
+        type LowenherzProjectedPlayerState
+    } from '@tabletop/lowenherz'
     import { flip } from 'svelte/animate'
     import { cubicOut } from 'svelte/easing'
     import PlayerState from '$lib/components/PlayerState.svelte'
@@ -30,7 +33,9 @@
         while (rotated[0] !== gameSession.gameState.firstPlayerId) {
             rotated.push(rotated.shift()!)
         }
-        const turnOrderSorted = rotated.map((playerId) => playersAndStatesById.get(playerId)!) as PlayerAndState[]
+        const turnOrderSorted = rotated.map(
+            (playerId) => playersAndStatesById.get(playerId)!
+        ) as PlayerAndState[]
 
         // if not hotseat, rotate until user player is at top
         if (gameSession.myPlayer && !gameSession.primaryGame.hotseat) {
@@ -44,7 +49,7 @@
 
         return turnOrderSorted
     })
-    function getPlayerForState(playerState: LowenherzPlayerState) {
+    function getPlayerForState(playerState: LowenherzProjectedPlayerState) {
         return gameSession.game.players.find((player) => player.id === playerState.playerId)
     }
 </script>

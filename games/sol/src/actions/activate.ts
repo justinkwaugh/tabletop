@@ -11,7 +11,6 @@ import {
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Station, StationType } from '../components/stations.js'
-import { Activation } from '../model/activation.js'
 import {
     BASE_AWARD_PER_RING,
     BONUS_AWARD_PER_RING,
@@ -74,20 +73,23 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
         assertExists(station)
         const ring = this.coords.row
 
-        const activation: Activation = state.getActivationForPlayer(this.playerId) ?? {
-            playerId: this.playerId,
-            activatedIds: [],
-            stationType:
-                state.activeEffect === EffectType.Festival ||
-                state.activeEffect === EffectType.Pulse
-                    ? undefined
-                    : station.type
+        let activation = state.getActivationForPlayer(this.playerId)
+        if (!activation) {
+            activation = {
+                playerId: this.playerId,
+                activatedIds: [],
+                stationType:
+                    state.activeEffect === EffectType.Festival ||
+                    state.activeEffect === EffectType.Pulse
+                        ? undefined
+                        : station.type
+            }
+            state.addActivation(activation)
         }
 
         activation.activatedIds.push(this.stationId)
         activation.currentStationId = this.stationId
         activation.currentStationCoords = this.coords
-        state.addActivation(activation)
 
         this.metadata = {
             sundiverId: undefined,

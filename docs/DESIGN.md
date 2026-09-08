@@ -8,6 +8,7 @@ This document is the architectural map for implementing a new game title or maki
 - Read the [game-runtime domain context](../libs/common/CONTEXT.md) and [game-client domain context](../libs/frontend-components/CONTEXT.md), including any ADRs they route to.
 - For a structural change to an existing game, inspect the current canonical interfaces and trace the affected behavior through that game. The new-game completion checklist is not relevant unless the change alters game registration or package boundaries.
 - For a new game, use a maintained sibling game for package configuration and integration conventions, while treating the canonical interfaces as authoritative.
+- For a Hosted Game that must conceal game information from clients, read the implemented [hidden-information contract](hidden-information.md) and [per-title adoption catalog](hidden-information-game-catalog.md).
 - For UI-only work, also read [user interaction semantics](user-interactions.md), the game’s visual contract when present, and the [game UI animation skill](../.agents/skills/game-ui-animation/SKILL.md) when animation is involved.
 
 ## Canonical interfaces
@@ -36,7 +37,7 @@ Mechanisms that are genuinely shared across games belong in `@tabletop/common` o
 The logic package exports a `GameDefinition`:
 
 - `info` provides the stable game id, metadata, and an optional configurator.
-- `runtime` provides the initializer, hydrator, player-color mapping, API action schemas, machine-state handlers, and an optional state logger.
+- `runtime` provides the initializer, hydrator, player-color mapping, canonical state validator, API action schemas, machine-state handlers, an optional state logger, and optional exploration state preparation.
 
 The UI package exports a `GameUiDefinition`. Its info adds the thumbnail, and its lazy runtime provides the Game UI component, session class, colorizer, optional player-color palette, and the complete game runtime.
 
@@ -44,7 +45,7 @@ Every action type that may cross the serialized boundary must be registered in t
 
 ## Deterministic execution
 
-Given the same initial configuration, state, and ordered processed actions, the runtime must produce the same game state and the same cascade of system actions. Random values and identifiers that affect game state must come from the state PRNG.
+Given the same initial configuration, state, and ordered processed actions, the runtime must produce the same game state and the same cascade of system actions. Random game-rule values and domain-object identifiers that affect Game State must come from a persisted state PRNG. System Action identities use the public PRNG from system version 2 onward; its durable cursor preserves generation across flattened replay and undo. System version 3 adds a separate protected stream for secret game randomness; follow the [hidden-information contract](hidden-information.md) and explicitly register visibility before relying on concealed delivery.
 
 For each processed action, the engine:
 
@@ -58,9 +59,25 @@ For each processed action, the engine:
 
 Automatic rule consequences are first-class System Actions created or scheduled through `MachineContext`. A Svelte effect or other reactive UI loop must never commit gameplay. Gameplay-relevant mutation belongs inside runtime processing so history, undo, replay, and remote clients observe the same sequence.
 
+The Game Engine interface distinguishes Action lifecycle and state completeness. `executeAction` sanitizes and processes one Unprocessed Action together with its complete generated System Action cascade. `applyProcessedAction` advances through exactly one authoritative Processed Action: it applies an Action-carried `forwardPatch` when present and otherwise replays that record without recursively processing generated children. `undoProcessedAction` performs Action Reversal from the record's `undoPatch`. Authoritative execution, Hotseat Play, and hypothetical Exploration use `executeCanonicalAction`, which checks complete input and every completed transition against the canonical validator. Projected Optimistic Application and replay checks retain `executeAction`; authoritative delivery and History Navigation use the Processed Action operations. An absent Perspective does not prove completeness: projected Processed Action replay also runs without one.
+
 ## Schemas and hydration
 
 TypeBox schemas define the serialized contract. Keep them JSON-compatible, derive TypeScript types with `Type.Static`, and compile validators where runtime validation is required.
+
+Hidden-information delivery requires explicit `runtime.visibility` registration for both state and Actions. Shared-field annotations and `getProtectedPrng()` do not automatically enable projection. A title relying on secret randomness must register visibility and verify its permitted output; this is an authoring obligation, not an automatic runtime rejection of unregistered titles. Titles without hidden information need no registration. New system-version-3 creation is independent of visibility, and existing v2 games retain their historical public behavior. See the [hidden-information contract](hidden-information.md#explicit-participation).
+
+Canonical validation belongs at complete-state operations: completed initialization, canonical execution, canonical Undo targets, real Fork sources and reconstructed targets, completed Exploration population, current canonical loads, and canonical writes including administrative state replacement. Load and normalize or migrate current stored state before checking it. Historical snapshots need not satisfy the current schema; incompatible historical operations fail independently of forward play.
+
+Current title runtimes expose their existing compiled canonical validator through `canonicalStateValidator`. The property remains optional for independently published older runtimes, whose existing hydrators supply validation. A runtime adopting projection-compatible hydration must supply its strict canonical validator. Shared constructors, generic patch application, and History Navigation must continue to accept their appropriate projected or historical representation. Canonical schema validity does not establish that hypothetical secrets match the real game, nor replace rule legality or authorization checks.
+
+For hidden information, keep the canonical schema strict and derive the projected schema with `Visibility.createProjectionSchema(CanonicalSchema)`. Compile that derived schema once and use it in the hydrated constructor for both canonical and projected input. Use its static type as the runtime's state type and its schema as the `Hydratable` base argument. Name these representations distinctly: `SolGameState` is canonical data, `SolProjectedState` is the projected schema and data type accepted by hydration, and `HydratedSolGameState` is the class with rule methods. Keep the canonical schema's compiled validator on `runtime.canonicalStateValidator`. Constructors need no visibility mode or validator selection.
+
+Hydrated fields must describe the derived representation: omitted protected fields are optional, while replacement redactions may require unions. Instantiate optional nested children only when present; preserve omissions exactly instead of assigning `undefined` or inventing hidden values. Rule methods may assert that a required known child exists. Hypothetical hidden values belong in Exploration population, which must produce complete canonical state using only the supplied projection and public constraints.
+
+Use `Visibility.Policy.Owner` for a field whose immediate containing object has a public, stable `playerId`, such as `players[].hand`. It exposes the entire hand to that player and permits guarded rule methods to use it for legal Action discovery and optimistic play. It does not search ancestors for an owner. `Policy.Actor` continues to use the root Action's `playerId`. Arbitrary custom policies remain unavailable during projected execution; a hidden read still triggers authoritative fallback. Annotating a field does not make hidden data available for local legality checks.
+
+The [private-hand conformance fixture](../libs/common/src/game/visibility/tests/privateHandGame.ts) demonstrates required nested hands, an omitted scalar, a redacted draw bag, known-hand methods, and constrained Exploration population. Its Common, backend representation, and Chromium GameSession tests cover the supported flow. Fresh Fish and Sol also use derived projected schemas while retaining their canonical schemas.
 
 Raw state and action types are data. Hydrated classes add behavior. Declare hydrated fields explicitly and hydrate nested values deliberately; do not rely on incidental object assignment to preserve class behavior.
 
@@ -74,7 +91,7 @@ An action type defines:
 - Hydrated behavior for validation and application.
 - A type guard for narrowing when the runtime or UI needs one.
 - Immutable input describing the player or system decision.
-- Optional metadata describing the result for history, logging, or UI without reconstructing prior state.
+- Optional engine-produced metadata describing the result for history, logging, or UI without reconstructing prior state. `metadata` is reserved for Processed Action output; player-supplied input uses domain-specific fields.
 
 Validation protects the action invariant. The current machine-state handler and shared rule helpers determine when the action is available. User versus System identifies the action’s origin; player attribution is independent of that origin. Set information-reveal and simultaneous-group semantics when the rules require them.
 

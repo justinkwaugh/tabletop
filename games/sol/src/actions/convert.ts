@@ -89,7 +89,7 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
 
         const ring = this.isGate ? this.innerCoords.row : this.coords.row
         state.cardsToDraw += CARDS_DRAWN_PER_RING[ring]
-        state.getEffectTracking().convertedStation = this.metadata?.convertedStation
+        state.ensureEffectTracking().convertedStation = this.metadata?.convertedStation
     }
 
     static canConvert(state: HydratedSolGameState, playerId: string): boolean {

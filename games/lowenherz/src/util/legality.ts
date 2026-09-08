@@ -1,3 +1,4 @@
+import type { PoliticsCard } from '../definition/politicsCards.js'
 import { ActionSource } from '@tabletop/common'
 import type { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
@@ -62,18 +63,20 @@ export function placeKnightReason(
     playerId: string,
     col: number,
     row: number,
-    treasureCardId?: string
+    treasureValue?: number
 ): string | undefined {
-    return candidatePlaceKnight(state, playerId, col, row, treasureCardId).invalidPlaceKnightReason(state)
+    return candidatePlaceKnight(state, playerId, col, row, treasureValue).invalidPlaceKnightReason(
+        state
+    )
 }
 
-// Every square the player could legally place a knight on. treasureCardIdFor lets the caller
+// Every square the player could legally place a knight on. treasureValueFor lets the caller
 // decide, per square, whether an armed Treasure card would be spent there - a wooded square
 // costs ducats otherwise, so the answer can differ square by square.
 export function legalKnightSquares(
     state: HydratedLowenherzGameState,
     playerId: string,
-    treasureCardIdFor?: (col: number, row: number) => string | undefined
+    treasureValueFor?: (col: number, row: number) => number | undefined
 ): { col: number; row: number }[] {
     const candidate = candidatePlaceKnight(state, playerId, 0, 0, undefined)
     const result: { col: number; row: number }[] = []
@@ -81,7 +84,7 @@ export function legalKnightSquares(
         for (let col = 0; col < BOARD_COLS; col++) {
             candidate.col = col
             candidate.row = row
-            candidate.treasureCardId = treasureCardIdFor?.(col, row)
+            candidate.treasureValue = treasureValueFor?.(col, row)
             if (candidate.isValidPlaceKnight(state)) result.push({ col, row })
         }
     }
@@ -145,7 +148,7 @@ function candidatePlaceKnight(
     playerId: string,
     col: number,
     row: number,
-    treasureCardId: string | undefined
+    treasureValue: number | undefined
 ): HydratedPlaceKnight {
     return new HydratedPlaceKnight({
         id: 'candidate',
@@ -155,7 +158,7 @@ function candidatePlaceKnight(
         playerId,
         col,
         row,
-        ...(treasureCardId ? { treasureCardId } : {})
+        ...(treasureValue !== undefined ? { treasureValue } : {})
     })
 }
 
@@ -242,7 +245,7 @@ export function duelBidIsValid(
     state: HydratedLowenherzGameState,
     playerId: string,
     amount: number,
-    treasureCardIds?: string[]
+    treasureValues?: number[]
 ): boolean {
     return new HydratedSubmitDuelBid({
         id: 'candidate',
@@ -251,7 +254,7 @@ export function duelBidIsValid(
         type: ActionType.SubmitDuelBid,
         playerId,
         amount,
-        ...(treasureCardIds && treasureCardIds.length > 0 ? { treasureCardIds } : {})
+        ...(treasureValues && treasureValues.length > 0 ? { treasureValues } : {})
     }).isValidSubmitDuelBid(state)
 }
 
@@ -275,7 +278,7 @@ export function takePoliticsCardReason(
     state: HydratedLowenherzGameState,
     playerId: string,
     pile: 'A' | 'B',
-    cardId: string
+    card: PoliticsCard
 ): string | undefined {
     return new HydratedTakePoliticsCard({
         id: 'candidate',
@@ -284,7 +287,7 @@ export function takePoliticsCardReason(
         type: ActionType.TakePoliticsCard,
         playerId,
         pile,
-        cardId,
+        card,
         revealsInfo: true
     }).invalidTakePoliticsCardReason(state)
 }
@@ -293,7 +296,6 @@ export function playRenegadeCardReason(
     state: HydratedLowenherzGameState,
     playerId: string,
     params: {
-        cardId: string
         ownRegionId: string
         enemyRegionId: string
         removedCol: number
@@ -315,7 +317,7 @@ export function playRenegadeCardReason(
 export function playAllianceCardReason(
     state: HydratedLowenherzGameState,
     playerId: string,
-    params: { cardId: string; ownRegionId: string; enemyRegionId: string }
+    params: { ownRegionId: string; enemyRegionId: string }
 ): string | undefined {
     return new HydratedPlayAllianceCard({
         id: 'candidate',

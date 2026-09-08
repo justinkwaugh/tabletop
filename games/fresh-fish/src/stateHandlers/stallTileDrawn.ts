@@ -1,18 +1,15 @@
-import {
-    type HydratedAction,
-    type MachineStateHandler,
-    MachineContext,
-    ActionSource
-} from '@tabletop/common'
+import { queueForcedBids } from '../util/automaticActions.js'
+import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { HydratedFreshFishGameState } from '../model/gameState.js'
 import { HydratedStartAuction } from '../actions/startAuction.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
-import { PlaceBid } from '../actions/placeBid.js'
-import { nanoid } from 'nanoid'
 
 // Transition from StallTileDrawn(StartAuction) -> AuctioningTile
-export class StallTileDrawnStateHandler implements MachineStateHandler<HydratedStartAuction, HydratedFreshFishGameState> {
+export class StallTileDrawnStateHandler implements MachineStateHandler<
+    HydratedStartAuction,
+    HydratedFreshFishGameState
+> {
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedFreshFishGameState>
@@ -20,13 +17,19 @@ export class StallTileDrawnStateHandler implements MachineStateHandler<HydratedS
         return action.type === ActionType.StartAuction
     }
 
-    validActionsForPlayer(_playerId: string, _context: MachineContext<HydratedFreshFishGameState>): string[] {
+    validActionsForPlayer(
+        _playerId: string,
+        _context: MachineContext<HydratedFreshFishGameState>
+    ): string[] {
         return [ActionType.StartAuction]
     }
 
     enter(_context: MachineContext<HydratedFreshFishGameState>) {}
 
-    onAction(action: HydratedStartAuction, context: MachineContext<HydratedFreshFishGameState>): MachineState {
+    onAction(
+        action: HydratedStartAuction,
+        context: MachineContext<HydratedFreshFishGameState>
+    ): MachineState {
         const gameState = context.gameState
         if (!gameState.currentAuction) {
             throw Error('No auction found')
@@ -36,18 +39,7 @@ export class StallTileDrawnStateHandler implements MachineStateHandler<HydratedS
             return participant.playerId
         })
 
-        // Add 0 Bids for players with no money or only player in auction
-        for (const participant of gameState.currentAuction.participants) {
-            if (
-                gameState.currentAuction.participants.length === 1 ||
-                gameState.getPlayerState(participant.playerId).money === 0
-            ) {
-                context.addSystemAction(PlaceBid, {
-                    playerId: participant.playerId,
-                    amount: 0
-                })
-            }
-        }
+        queueForcedBids(context)
         return MachineState.AuctioningTile
     }
 }

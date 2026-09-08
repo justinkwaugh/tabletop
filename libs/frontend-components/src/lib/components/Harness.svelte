@@ -7,7 +7,7 @@
 
 <script lang="ts">
     import 'es-iterator-helpers/auto'
-    import { onMount } from 'svelte'
+    import { onMount, onDestroy, untrack } from 'svelte'
     import type { Game } from '@tabletop/common'
     import {
         Button,
@@ -20,26 +20,27 @@
     } from 'flowbite-svelte'
     import { ChevronDownOutline, TrashBinSolid } from 'flowbite-svelte-icons'
     import HarnessGame from './HarnessGame.svelte'
-    import type { GameSession } from '$lib/model/gameSession.svelte.js'
     import GameEditForm from './GameEditForm.svelte'
     import DeleteModal from './DeleteModal.svelte'
     import { type GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
     import { setAppContext } from '$lib/model/appContext.js'
     import { createHarnessAppContext } from '$lib/harness/harnessContext.js'
     import type { GameState, HydratedGameState } from '@tabletop/common'
-    import { BridgedContext } from '$lib/services/bridges/bridgedContext.svelte.js'
+    import { HarnessSessions } from '$lib/harness/harnessSessions.svelte.js'
     import { attachGlobalCssVarFromRect } from '$lib/utils/publishCssVarFromRect.js'
 
     let { definition }: { definition: GameUiDefinition<GameState, HydratedGameState> } = $props()
     const appContext = createHarnessAppContext(definition)
     setAppContext(appContext)
 
-    let { gameService, authorizationService, notificationService, chatService, api } = appContext
+    let { gameService, authorizationService } = appContext
+    const sessions = untrack(() => new HarnessSessions(appContext, definition))
+    onDestroy(() => sessions.dispose())
 
     let showCreateModal = $state(false)
     let gameToDelete: string | undefined = $state(undefined)
     let deleteModalOpen = $derived(gameToDelete !== undefined)
-    let gameSession: GameSession<GameState, HydratedGameState> | undefined = $state(undefined)
+    let gameSession = $derived(sessions.session)
     let availableGames = $derived([...gameService.activeGames, ...gameService.finishedGames])
     let preferredColorsEnabled = $state(false)
     let colorBlindPalette = $state(false)
@@ -136,39 +137,19 @@
     }
 
     async function loadGame(gameId: string) {
-        if (!definition) {
-            return
-        }
+        await sessions.load(gameId)
+        updateColorPreferencePreview()
+    }
 
-        const { game, actions } = await gameService.loadGame(gameId)
-        if (!game) {
-            return
-        }
+    async function setProtectedMode(event: Event) {
+        if (!(event.currentTarget instanceof HTMLInputElement) || !gameSession) return
+        await sessions.load(gameSession.primaryGame.id, event.currentTarget.checked)
+        updateColorPreferencePreview()
+    }
 
-        if (!game.state) {
-            return
-        }
-
-        const runtime = await definition.runtime()
-        const sessionClass = runtime.sessionClass
-        chatService.setGame(game)
-        const bridgedContext = new BridgedContext({
-            authorizationService,
-            gameService,
-            chatService,
-            gameId: game.id
-        })
-        gameSession = new sessionClass({
-            gameService: gameService,
-            bridgedContext: bridgedContext,
-            notificationService: notificationService,
-            chatService: chatService,
-            api: api,
-            runtime: runtime,
-            game,
-            state: game.state,
-            actions
-        })
+    async function setProtectedView(event: Event) {
+        if (!(event.currentTarget instanceof HTMLSelectElement) || !gameSession) return
+        await sessions.load(gameSession.primaryGame.id, true, event.currentTarget.value)
         updateColorPreferencePreview()
     }
 </script>
@@ -206,6 +187,7 @@
     <Toggle
         checked={authorizationService.adminCapabilitiesEnabled}
         onchange={setAdminCapabilities}
+        disabled={sessions.protectedMode && sessions.selectedView !== 'host'}
         class={className}>Admin</Toggle
     >
 {/snippet}
@@ -278,6 +260,18 @@
                     <Dropdown placement="bottom-end" bind:isOpen={optionsOpen}>
                         <DropdownGroup class="py-1 min-w-[190px]">
                             <li>
+                                <Toggle
+                                    checked={sessions.protectedMode}
+                                    disabled={!gameSession?.runtime.visibility ||
+                                        gameSession.busy ||
+                                        gameSession.isExploring ||
+                                        sessions.loading}
+                                    onchange={setProtectedMode}
+                                    class="w-full rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                    >Protected mode</Toggle
+                                >
+                            </li>
+                            <li>
                                 {@render nonActivePlayerToggle(
                                     'w-full rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600'
                                 )}
@@ -306,14 +300,50 @@
                     </Dropdown>
                 </div>
             </div>
+            {#if sessions.protectedMode && gameSession}
+                <label class="flex items-center justify-center gap-2 p-2 text-sm text-white">
+                    Protected view
+                    <select
+                        aria-label="Protected view"
+                        class="rounded bg-gray-700 text-white text-sm"
+                        value={sessions.selectedView}
+                        disabled={gameSession.busy || gameSession.isExploring || sessions.loading}
+                        onchange={setProtectedView}
+                    >
+                        {#each gameSession.primaryGame.players as player}
+                            <option value={player.id}>{player.name}</option>
+                        {/each}
+                        <option value="spectator">Spectator</option>
+                        <option value="host">Host View</option>
+                    </select>
+                </label>
+            {/if}
         </div>
     </Navbar>
 </div>
 
+{#if sessions.error}
+    <div role="alert" class="p-3 text-red-500">
+        <p>{sessions.error}</p>
+        {#if sessions.failedGameId}
+            <Button
+                size="xs"
+                onclick={async () => {
+                    if (sessions.failedGameId) await sessions.load(sessions.failedGameId, false)
+                    updateColorPreferencePreview()
+                }}>Open in ordinary hotseat</Button
+            >
+        {/if}
+    </div>
+{/if}
+{#if sessions.loading}
+    <p role="status" class="p-3">Loading game…</p>
+{/if}
+
 <div class="flex flex-col w-full overflow-auto">
-    {#if gameSession}
+    {#if gameSession && !sessions.loading}
         {#key gameSession}
-            <HarnessGame {gameSession} />
+            <HarnessGame {gameSession} protectedMode={sessions.protectedMode} />
         {/key}
     {/if}
 </div>

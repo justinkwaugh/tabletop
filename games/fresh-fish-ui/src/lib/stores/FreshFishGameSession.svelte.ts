@@ -22,9 +22,28 @@ export class FreshFishGameSession extends GameSession<
     FreshFishGameState,
     HydratedFreshFishGameState
 > {
-    chosenAction: string | undefined = $state(undefined)
+    private manualAction: string | undefined = $state(undefined)
+    private automaticAction = $derived(
+        this.isMyTurn &&
+            this.validActionTypes.length === 1 &&
+            this.validActionTypes[0] !== ActionType.DrawTile
+            ? this.validActionTypes[0]
+            : undefined
+    )
+
+    get chosenAction(): string | undefined {
+        return this.manualAction ?? this.automaticAction
+    }
+
+    set chosenAction(action: string | undefined) {
+        this.manualAction = action
+    }
     previewExpropriateCoords: OffsetTupleCoordinates[] = $state([])
     highlightedCoords: OffsetTupleCoordinates | undefined = $state()
+
+    override beforeNewState() {
+        this.manualAction = undefined
+    }
 
     override async onGameStateChange({
         to,
@@ -37,7 +56,6 @@ export class FreshFishGameSession extends GameSession<
         action?: GameAction
         animationContext: AnimationContext
     }) {
-        this.chosenAction = undefined
         this.clearExpropriationPreview()
         this.clearHighlightedCoords()
     }

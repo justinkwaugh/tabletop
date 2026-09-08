@@ -1,9 +1,11 @@
 import wretch, { type Wretch, type WretchError } from 'wretch'
 import * as Value from 'typebox/value'
 import {
+    type GameCreationOptions,
     assertExists,
     Bookmark,
     CanonicalActionReplay,
+    ProcessedActionReplay,
     Game,
     GameAction,
     GameChat,
@@ -12,7 +14,8 @@ import {
     GameSyncStatus,
     GameValidator,
     User,
-    UserPreferences
+    UserPreferences,
+    Visibility
 } from '@tabletop/common'
 import type {
     AblyTokenResponse,
@@ -40,7 +43,13 @@ import { toast } from 'svelte-sonner'
 
 const DEFAULT_HOST = 'http://localhost:3000'
 
+export type GetGameOptions = {
+    hostView?: boolean
+}
+
 export class TabletopApi {
+    readonly supportsReproductionSeed?: boolean = true
+    readonly supportsHostView?: boolean = true
     private static readonly API_PREFIX = '/api/v1'
     private readonly host: string
     private readonly sseHost: string
@@ -61,15 +70,10 @@ export class TabletopApi {
         this.baseUrl = `${host}${this.basePath}`
         this.baseSseUrl = `${sseHost}${this.basePath}`
 
-        const handleVersionChange = (changeType: VersionChange, _url: string) => {
-            console.log('Frontend things version is:', this.version)
-            console.log('Version changed:', changeType)
-            this.versionChange = changeType
-        }
         const versionCheckerMiddleware = checkVersion({
             resolveExpectedVersion: () => this.version,
             headerName: 'X-Tabletop-Version',
-            onVersionChange: handleVersionChange
+            onVersionChange: (change) => this.recordVersionChange(change)
         })
         const gameUiVersionChecker = checkVersion({
             resolveExpectedVersion: (url) => {
@@ -80,7 +84,7 @@ export class TabletopApi {
                 return this.gameVersionProvider?.getUiVersion(gameId)
             },
             headerName: 'X-TABLETOP-GAME-UI-VERSION',
-            onVersionChange: handleVersionChange
+            onVersionChange: (change) => this.recordVersionChange(change)
         })
         this.wretch = wretch()
             .url(this.baseUrl)
@@ -291,13 +295,20 @@ export class TabletopApi {
         return response.payload.games.map((game) => this.validateGame(game))
     }
 
-    async getGame(gameId: string): Promise<{ game: Game; actions: GameAction[] }> {
+    async getGame(
+        gameId: string,
+        options: GetGameOptions = {}
+    ): Promise<{ game: Game; actions: GameAction[] }> {
+        const path = `/game/get/${gameId}${options.hostView ? '?view=host' : ''}`
         const response = await this.wretch
-            .get(`/game/get/${gameId}`)
+            .get(path)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GameWithActionsResponse>()
 
+        if (options.hostView && response.payload.perspective !== undefined) {
+            throw new Error('Host View request returned a projected Game')
+        }
         const game = this.validateGame(response.payload.game)
         const actions = this.convertGameActions(response.payload.actions)
 
@@ -365,7 +376,7 @@ export class TabletopApi {
 
     /** Game Specific Endpoints */
 
-    async createGame(game: Partial<Game>): Promise<Game> {
+    async createGame(game: Partial<Game>, options?: GameCreationOptions): Promise<Game> {
         const logicVersion = this.getGameLogicVersion(game.typeId!)
         const uiVersion = this.getGameUiVersion(game.typeId!)
         const response = await this.wretch
@@ -373,7 +384,7 @@ export class TabletopApi {
                 'X-TABLETOP-GAME-LOGIC-VERSION': logicVersion,
                 'X-TABLETOP-GAME-UI-VERSION': uiVersion
             })
-            .post({ game }, `/game/${game.typeId}/create`)
+            .post({ game, options }, `/game/${game.typeId}/create`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GameResponse>()
@@ -446,11 +457,13 @@ export class TabletopApi {
         game: Game,
         actionId: string
     ): Promise<{
+        actionReplay?: ProcessedActionReplay
         canonicalReplay: CanonicalActionReplay
         game: Game
         checksum: number
         undoneActions?: GameAction[]
         redoneActions?: GameAction[]
+        perspective?: Visibility.Perspective
     }> {
         const logicVersion = this.getGameLogicVersion(game.typeId!)
         const uiVersion = this.getGameUiVersion(game.typeId!)
@@ -470,6 +483,13 @@ export class TabletopApi {
             response.payload.canonicalReplay
         )
         Value.Assert(CanonicalActionReplay, canonicalReplay)
+        const actionReplay = response.payload.actionReplay
+            ? Value.Convert(ProcessedActionReplay, response.payload.actionReplay)
+            : {
+                  startIndex: canonicalReplay.startIndex,
+                  actions: canonicalReplay.actions
+              }
+        Value.Assert(ProcessedActionReplay, actionReplay)
         // Game UI bundles are deployed separately and may still use the legacy undo contract.
         const undoneActions = response.payload.undoneActions
             ? this.convertGameActions(response.payload.undoneActions)
@@ -477,13 +497,18 @@ export class TabletopApi {
         const redoneActions = response.payload.redoneActions
             ? this.convertGameActions(response.payload.redoneActions)
             : undefined
+        const perspective = response.payload.perspective
+            ? Value.Parse(Visibility.Perspective, response.payload.perspective)
+            : undefined
 
         return {
+            actionReplay,
             canonicalReplay,
             game: responseGame,
             checksum: response.payload.checksum,
             undoneActions,
-            redoneActions
+            redoneActions,
+            perspective
         }
     }
 
@@ -649,7 +674,18 @@ export class TabletopApi {
         return match?.[1] ?? null
     }
 
-    private async handleError(error: WretchError) {
+    private recordVersionChange(change: VersionChange): void {
+        if (
+            this.versionChange === VersionChange.MajorUpgrade ||
+            this.versionChange === VersionChange.Rollback ||
+            (this.versionChange === VersionChange.MinorUpgrade &&
+                change === VersionChange.PatchUpgrade)
+        )
+            return
+        this.versionChange = change
+    }
+
+    private handleError = async (error: WretchError) => {
         if (error.json?.error.name && error.json?.error.message) {
             const apiError = new APIError({
                 name: error.json.error.name,
@@ -665,7 +701,7 @@ export class TabletopApi {
                 if (requestedVersion && serverVersion) {
                     const change = resolveVersionChange(requestedVersion, serverVersion)
                     if (change) {
-                        this.versionChange = change
+                        this.recordVersionChange(change)
                     }
                 }
             }

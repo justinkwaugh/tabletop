@@ -8,7 +8,11 @@
     import GameUI from './GameUI.svelte'
     import { attachGlobalCssVarFromRect } from '$lib/utils/publishCssVarFromRect.js'
 
-    let { gameSession }: { gameSession: GameSession<GameState, HydratedGameState> } = $props()
+    let {
+        gameSession,
+        protectedMode = false
+    }: { gameSession: GameSession<GameState, HydratedGameState>; protectedMode?: boolean } =
+        $props()
 
     // svelte-ignore state_referenced_locally
     setGameSession(gameSession)
@@ -19,6 +23,16 @@
 <div {@attach attachGlobalCssVarFromRect('--app-banner-height')}>
     {#if gameSession.isExploring}
         <ExplorationPanel />
+    {:else if protectedMode && !gameSession.isViewingHost}
+        <div class="p-2 text-center bg-gray-800 text-white">
+            {#if gameSession.myPlayer}
+                {gameSession.myPlayer.name} — {gameSession.isMyTurn
+                    ? 'It’s your turn'
+                    : 'Waiting for active player'}
+            {:else}
+                Spectator
+            {/if}
+        </div>
     {:else if gameSession.game.hotseat}
         <HotseatPanel />
     {/if}

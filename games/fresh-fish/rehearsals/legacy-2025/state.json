@@ -1,0 +1,1558 @@
+{
+  "id": "fR56MugC0WQ0ewX_7ZCFJ",
+  "gameId": "7jsFO7439DLn9FPTGzoeh",
+  "prng": {
+    "seed": 3948031636,
+    "invocations": 112
+  },
+  "activePlayerIds": [],
+  "turnManager": {
+    "series": [
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 0,
+        "end": 1
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 1,
+        "end": 2
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 2,
+        "end": 3
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 3,
+        "end": 4
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 4,
+        "end": 5
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 5,
+        "end": 6
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 6,
+        "end": 7
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 7,
+        "end": 8
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 8,
+        "end": 9
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 9,
+        "end": 10
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 10,
+        "end": 11
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 11,
+        "end": 12
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 12,
+        "end": 13
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 13,
+        "end": 14
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 14,
+        "end": 15
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 15,
+        "end": 16
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 16,
+        "end": 17
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 17,
+        "end": 18
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 18,
+        "end": 19
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 19,
+        "end": 36
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 36,
+        "end": 37
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 37,
+        "end": 38
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 38,
+        "end": 40
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 40,
+        "end": 42
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 42,
+        "end": 51
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 51,
+        "end": 52
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 52,
+        "end": 53
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 53,
+        "end": 54
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 54,
+        "end": 55
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 55,
+        "end": 56
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 56,
+        "end": 57
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 57,
+        "end": 58
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 58,
+        "end": 60
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 60,
+        "end": 68
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 68,
+        "end": 70
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 70,
+        "end": 71
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 71,
+        "end": 72
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 72,
+        "end": 74
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 74,
+        "end": 75
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 75,
+        "end": 76
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 76,
+        "end": 77
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 77,
+        "end": 78
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 78,
+        "end": 80
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 80,
+        "end": 81
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 81,
+        "end": 83
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 83,
+        "end": 91
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 91,
+        "end": 92
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 92,
+        "end": 93
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 93,
+        "end": 94
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 94,
+        "end": 96
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 96,
+        "end": 103
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 103,
+        "end": 109
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 109,
+        "end": 110
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 110,
+        "end": 111
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 111,
+        "end": 112
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 112,
+        "end": 114
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 114,
+        "end": 116
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 116,
+        "end": 117
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 117,
+        "end": 140
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 140,
+        "end": 141
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 141,
+        "end": 142
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 142,
+        "end": 143
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 143,
+        "end": 144
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 144,
+        "end": 145
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 145,
+        "end": 146
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 146,
+        "end": 148
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 148,
+        "end": 149
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 149,
+        "end": 150
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 150,
+        "end": 151
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 151,
+        "end": 152
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 152,
+        "end": 154
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 154,
+        "end": 156
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 156,
+        "end": 157
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 157,
+        "end": 158
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 158,
+        "end": 166
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 166,
+        "end": 173
+      },
+      {
+        "type": "turn",
+        "playerId": "55q8UNHldxUYUmZBUOnwV",
+        "start": 173,
+        "end": 174
+      },
+      {
+        "type": "turn",
+        "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+        "start": 174,
+        "end": 176
+      },
+      {
+        "type": "turn",
+        "playerId": "dBdKXpfWyXOEibVmsgGEn",
+        "start": 176,
+        "end": 177
+      },
+      {
+        "type": "turn",
+        "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+        "start": 177,
+        "end": 179
+      }
+    ],
+    "turnOrder": [
+      "55q8UNHldxUYUmZBUOnwV",
+      "5DCPdPjCBnQYAeN4_UaO1",
+      "dBdKXpfWyXOEibVmsgGEn",
+      "BQF0J0J2IB7QUOb3FZu9Y"
+    ],
+    "turnCounts": {
+      "BQF0J0J2IB7QUOb3FZu9Y": 20,
+      "dBdKXpfWyXOEibVmsgGEn": 20,
+      "55q8UNHldxUYUmZBUOnwV": 20,
+      "5DCPdPjCBnQYAeN4_UaO1": 20
+    }
+  },
+  "actionCount": 183,
+  "actionChecksum": -268498726,
+  "players": [
+    {
+      "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+      "color": "purple",
+      "money": 8,
+      "score": -4,
+      "stalls": [
+        {
+          "goodsType": "fish",
+          "placed": true,
+          "path": [
+            [
+              6,
+              5
+            ],
+            [
+              7,
+              5
+            ],
+            [
+              7,
+              6
+            ],
+            [
+              7,
+              7
+            ],
+            [
+              7,
+              8
+            ],
+            [
+              6,
+              8
+            ],
+            [
+              5,
+              8
+            ],
+            [
+              5,
+              7
+            ],
+            [
+              5,
+              6
+            ]
+          ],
+          "coords": [
+            6,
+            5
+          ],
+          "distance": 7
+        },
+        {
+          "goodsType": "cheese",
+          "placed": true,
+          "path": [
+            [
+              7,
+              2
+            ],
+            [
+              6,
+              2
+            ],
+            [
+              5,
+              2
+            ],
+            [
+              5,
+              1
+            ]
+          ],
+          "coords": [
+            7,
+            2
+          ],
+          "distance": 2
+        },
+        {
+          "goodsType": "icecream",
+          "placed": true,
+          "path": [
+            [
+              2,
+              5
+            ],
+            [
+              2,
+              6
+            ],
+            [
+              1,
+              6
+            ]
+          ],
+          "coords": [
+            2,
+            5
+          ],
+          "distance": 1
+        },
+        {
+          "goodsType": "lemonade",
+          "placed": true,
+          "path": [
+            [
+              2,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              0,
+              2
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "coords": [
+            2,
+            2
+          ],
+          "distance": 2
+        }
+      ],
+      "disks": 6
+    },
+    {
+      "playerId": "dBdKXpfWyXOEibVmsgGEn",
+      "color": "yellow",
+      "money": 12,
+      "score": 7,
+      "stalls": [
+        {
+          "goodsType": "fish",
+          "placed": true,
+          "path": [
+            [
+              6,
+              7
+            ],
+            [
+              5,
+              7
+            ],
+            [
+              5,
+              6
+            ]
+          ],
+          "coords": [
+            6,
+            7
+          ],
+          "distance": 1
+        },
+        {
+          "goodsType": "cheese",
+          "placed": true,
+          "path": [
+            [
+              6,
+              1
+            ],
+            [
+              6,
+              2
+            ],
+            [
+              5,
+              2
+            ],
+            [
+              5,
+              1
+            ]
+          ],
+          "coords": [
+            6,
+            1
+          ],
+          "distance": 2
+        },
+        {
+          "goodsType": "icecream",
+          "placed": true,
+          "path": [
+            [
+              1,
+              8
+            ],
+            [
+              1,
+              7
+            ],
+            [
+              1,
+              6
+            ]
+          ],
+          "coords": [
+            1,
+            8
+          ],
+          "distance": 1
+        },
+        {
+          "goodsType": "lemonade",
+          "placed": true,
+          "path": [
+            [
+              0,
+              3
+            ],
+            [
+              0,
+              2
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "coords": [
+            0,
+            3
+          ],
+          "distance": 1
+        }
+      ],
+      "disks": 6
+    },
+    {
+      "playerId": "55q8UNHldxUYUmZBUOnwV",
+      "color": "blue",
+      "money": 15,
+      "score": -16,
+      "stalls": [
+        {
+          "goodsType": "fish",
+          "placed": true,
+          "path": [
+            [
+              7,
+              3
+            ],
+            [
+              7,
+              4
+            ],
+            [
+              7,
+              5
+            ],
+            [
+              7,
+              6
+            ],
+            [
+              7,
+              7
+            ],
+            [
+              7,
+              8
+            ],
+            [
+              6,
+              8
+            ],
+            [
+              5,
+              8
+            ],
+            [
+              5,
+              7
+            ],
+            [
+              5,
+              6
+            ]
+          ],
+          "coords": [
+            7,
+            3
+          ],
+          "distance": 8
+        },
+        {
+          "goodsType": "cheese",
+          "placed": true,
+          "path": []
+        },
+        {
+          "goodsType": "icecream",
+          "placed": true,
+          "path": [
+            [
+              3,
+              9
+            ],
+            [
+              2,
+              9
+            ],
+            [
+              2,
+              8
+            ],
+            [
+              2,
+              7
+            ],
+            [
+              1,
+              7
+            ],
+            [
+              1,
+              6
+            ]
+          ],
+          "coords": [
+            3,
+            9
+          ],
+          "distance": 4
+        },
+        {
+          "goodsType": "lemonade",
+          "placed": true,
+          "path": [
+            [
+              2,
+              1
+            ],
+            [
+              3,
+              1
+            ],
+            [
+              3,
+              2
+            ],
+            [
+              3,
+              3
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              0,
+              2
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "coords": [
+            2,
+            1
+          ],
+          "distance": 7
+        }
+      ],
+      "disks": 6
+    },
+    {
+      "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+      "color": "red",
+      "money": 4,
+      "score": -15,
+      "stalls": [
+        {
+          "goodsType": "fish",
+          "placed": true,
+          "path": [
+            [
+              4,
+              4
+            ],
+            [
+              5,
+              4
+            ],
+            [
+              6,
+              4
+            ],
+            [
+              7,
+              4
+            ],
+            [
+              7,
+              5
+            ],
+            [
+              7,
+              6
+            ],
+            [
+              7,
+              7
+            ],
+            [
+              7,
+              8
+            ],
+            [
+              6,
+              8
+            ],
+            [
+              5,
+              8
+            ],
+            [
+              5,
+              7
+            ],
+            [
+              5,
+              6
+            ]
+          ],
+          "coords": [
+            4,
+            4
+          ],
+          "distance": 10
+        },
+        {
+          "goodsType": "cheese",
+          "placed": true,
+          "path": [
+            [
+              5,
+              3
+            ],
+            [
+              5,
+              2
+            ],
+            [
+              5,
+              1
+            ]
+          ],
+          "coords": [
+            5,
+            3
+          ],
+          "distance": 1
+        },
+        {
+          "goodsType": "icecream",
+          "placed": true,
+          "path": [
+            [
+              3,
+              6
+            ],
+            [
+              2,
+              6
+            ],
+            [
+              1,
+              6
+            ]
+          ],
+          "coords": [
+            3,
+            6
+          ],
+          "distance": 1
+        },
+        {
+          "goodsType": "lemonade",
+          "placed": true,
+          "path": [
+            [
+              4,
+              1
+            ],
+            [
+              3,
+              1
+            ],
+            [
+              3,
+              2
+            ],
+            [
+              3,
+              3
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              0,
+              2
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "coords": [
+            4,
+            1
+          ],
+          "distance": 7
+        }
+      ],
+      "disks": 6
+    }
+  ],
+  "machineState": "EndOfGame",
+  "winningPlayerIds": [
+    "dBdKXpfWyXOEibVmsgGEn"
+  ],
+  "tileBag": {
+    "items": [
+      {
+        "type": "market"
+      },
+      {
+        "type": "market"
+      },
+      {
+        "type": "stall",
+        "goodsType": "icecream"
+      },
+      {
+        "type": "market"
+      },
+      {
+        "type": "stall",
+        "goodsType": "lemonade"
+      },
+      {
+        "type": "market"
+      },
+      {
+        "type": "market"
+      },
+      {
+        "type": "market"
+      },
+      {
+        "type": "market"
+      },
+      {
+        "type": "stall",
+        "goodsType": "lemonade"
+      },
+      {
+        "type": "stall",
+        "goodsType": "cheese"
+      },
+      {
+        "type": "stall",
+        "goodsType": "lemonade"
+      },
+      {
+        "type": "market"
+      },
+      {
+        "type": "market"
+      },
+      {
+        "type": "stall",
+        "goodsType": "fish"
+      },
+      {
+        "type": "stall",
+        "goodsType": "fish"
+      },
+      {
+        "type": "market"
+      },
+      {
+        "type": "stall",
+        "goodsType": "cheese"
+      },
+      {
+        "type": "market"
+      },
+      {
+        "type": "market"
+      },
+      {
+        "type": "market"
+      },
+      {
+        "type": "market"
+      },
+      {
+        "type": "stall",
+        "goodsType": "fish"
+      },
+      {
+        "type": "market"
+      },
+      {
+        "type": "market"
+      },
+      {
+        "type": "stall",
+        "goodsType": "icecream"
+      },
+      {
+        "type": "market"
+      },
+      {
+        "type": "market"
+      },
+      {
+        "type": "stall",
+        "goodsType": "icecream"
+      },
+      {
+        "type": "stall",
+        "goodsType": "cheese"
+      }
+    ],
+    "remaining": 0
+  },
+  "board": {
+    "cells": [
+      [
+        {
+          "type": "off"
+        },
+        {
+          "type": "off"
+        },
+        {
+          "type": "off"
+        },
+        {
+          "type": "off"
+        },
+        {
+          "type": "off"
+        },
+        {
+          "type": "off"
+        },
+        {
+          "type": "market"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        }
+      ],
+      [
+        {
+          "type": "truck",
+          "goodsType": "lemonade"
+        },
+        {
+          "type": "market"
+        },
+        {
+          "type": "stall",
+          "playerId": "55q8UNHldxUYUmZBUOnwV",
+          "goodsType": "lemonade"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "stall",
+          "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+          "goodsType": "lemonade"
+        },
+        {
+          "type": "truck",
+          "goodsType": "cheese"
+        },
+        {
+          "type": "stall",
+          "playerId": "dBdKXpfWyXOEibVmsgGEn",
+          "goodsType": "cheese"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        }
+      ],
+      [
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "stall",
+          "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+          "goodsType": "lemonade"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "stall",
+          "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+          "goodsType": "cheese"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        }
+      ],
+      [
+        {
+          "type": "stall",
+          "playerId": "dBdKXpfWyXOEibVmsgGEn",
+          "goodsType": "lemonade"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "market"
+        },
+        {
+          "type": "stall",
+          "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+          "goodsType": "cheese"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "stall",
+          "playerId": "55q8UNHldxUYUmZBUOnwV",
+          "goodsType": "fish"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        }
+      ],
+      [
+        {
+          "type": "off"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "market"
+        },
+        {
+          "type": "stall",
+          "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+          "goodsType": "fish"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "off"
+        }
+      ],
+      [
+        {
+          "type": "off"
+        },
+        {
+          "type": "market"
+        },
+        {
+          "type": "stall",
+          "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+          "goodsType": "icecream"
+        },
+        {
+          "type": "market"
+        },
+        {
+          "type": "market"
+        },
+        {
+          "type": "market"
+        },
+        {
+          "type": "stall",
+          "playerId": "BQF0J0J2IB7QUOb3FZu9Y",
+          "goodsType": "fish"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "off"
+        }
+      ],
+      [
+        {
+          "type": "off"
+        },
+        {
+          "type": "truck",
+          "goodsType": "icecream"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "stall",
+          "playerId": "5DCPdPjCBnQYAeN4_UaO1",
+          "goodsType": "icecream"
+        },
+        {
+          "type": "market"
+        },
+        {
+          "type": "truck",
+          "goodsType": "fish"
+        },
+        {
+          "type": "market"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "market"
+        },
+        {
+          "type": "off"
+        }
+      ],
+      [
+        {
+          "type": "off"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "market"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "stall",
+          "playerId": "dBdKXpfWyXOEibVmsgGEn",
+          "goodsType": "fish"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "off"
+        }
+      ],
+      [
+        {
+          "type": "off"
+        },
+        {
+          "type": "stall",
+          "playerId": "dBdKXpfWyXOEibVmsgGEn",
+          "goodsType": "icecream"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "market"
+        },
+        {
+          "type": "market"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "market"
+        },
+        {
+          "type": "off"
+        }
+      ],
+      [
+        {
+          "type": "off"
+        },
+        {
+          "type": "market"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "stall",
+          "playerId": "55q8UNHldxUYUmZBUOnwV",
+          "goodsType": "icecream"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "market"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "market"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "off"
+        }
+      ],
+      [
+        {
+          "type": "off"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "road"
+        },
+        {
+          "type": "off"
+        }
+      ]
+    ]
+  },
+  "finalStalls": [],
+  "result": "Win"
+}

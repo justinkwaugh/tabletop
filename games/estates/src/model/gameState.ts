@@ -46,7 +46,7 @@ export const EstatesGameState = Type.Evaluate(
     ])
 )
 
-const EstatesGameStateValidator = Compile(EstatesGameState)
+export const EstatesGameStateValidator = Compile(EstatesGameState)
 
 export class HydratedEstatesGameState
     extends HydratableGameState<typeof EstatesGameState, HydratedEstatesPlayerState>

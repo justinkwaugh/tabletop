@@ -2,12 +2,14 @@ import { Type, type Static } from 'typebox'
 import {
     Bookmark,
     CanonicalActionReplay,
+    ProcessedActionReplay,
     Game,
     GameAction,
     GameChat,
     GameChatMessage,
     GameSyncStatus,
-    User
+    User,
+    Visibility
 } from '@tabletop/common'
 
 export type ApiResponse = Static<typeof ApiResponse>
@@ -52,7 +54,11 @@ export const GameWithActionsResponse = Type.Evaluate(
     Type.Intersect([
         Type.Omit(ApiResponse, ['payload']),
         Type.Object({
-            payload: Type.Object({ game: Game, actions: Type.Array(GameAction) })
+            payload: Type.Object({
+                game: Game,
+                actions: Type.Array(GameAction),
+                perspective: Type.Optional(Visibility.Perspective)
+            })
         })
     ])
 )
@@ -95,7 +101,8 @@ export const ApplyActionResponse = Type.Evaluate(
             payload: Type.Object({
                 actions: Type.Array(GameAction),
                 game: Game,
-                missingActions: Type.Optional(Type.Array(GameAction))
+                missingActions: Type.Optional(Type.Array(GameAction)),
+                perspective: Type.Optional(Visibility.Perspective)
             })
         })
     ])
@@ -184,8 +191,10 @@ export const UndoActionResponse = Type.Evaluate(
                 undoneActions: Type.Optional(Type.Array(GameAction)),
                 game: Game,
                 redoneActions: Type.Optional(Type.Array(GameAction)),
+                actionReplay: Type.Optional(ProcessedActionReplay),
                 canonicalReplay: CanonicalActionReplay,
-                checksum: Type.Number()
+                checksum: Type.Number(),
+                perspective: Type.Optional(Visibility.Perspective)
             })
         })
     ])

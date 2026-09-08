@@ -1,5 +1,32 @@
 import type { GameAction } from '@tabletop/common'
-import { isSubmitDuelBid, type SubmitDuelBid } from '@tabletop/lowenherz'
+import {
+    isSubmitDuelBid,
+    type SubmitDuelBid,
+    type SubmitDuelBidMetadata
+} from '@tabletop/lowenherz'
+
+// Protected histories keep earlier bids sealed even after resolution. The resolving
+// action publishes the whole round; older games instead carry amounts on each bid.
+export function revealedDuelRoundEndingWith(
+    actions: GameAction[],
+    resolvingBid: SubmitDuelBid
+): NonNullable<SubmitDuelBidMetadata['roundResult']>['bids'] {
+    if (!resolvingBid.metadata?.duelResult) return []
+    if (resolvingBid.metadata.roundResult) return resolvingBid.metadata.roundResult.bids
+    return duelRoundEndingWith(actions, resolvingBid).flatMap((bid) =>
+        bid.amount === undefined
+            ? []
+            : [
+                  {
+                      playerId: bid.playerId,
+                      amount: bid.amount,
+                      treasureValues: (bid.metadata?.treasureCardsUsed ?? []).map(
+                          (card) => card.value ?? 0
+                      )
+                  }
+              ]
+    )
+}
 
 // Splits a flat run of consecutive SubmitDuelBid actions into per-round groups. Every
 // duelist bids exactly once per round, so the same player bidding again can only mean a
@@ -24,8 +51,11 @@ export function splitDuelBidsIntoRounds(bids: SubmitDuelBid[]): SubmitDuelBid[][
 // The bids of the duel round that the given bid closed, in the order they were placed.
 // Bids of one round are contiguous in the action log (Dueling accepts nothing else), and
 // a re-duel's bids follow the tied round's directly, so the walk back stops at the first
-// non-bid action or at a player who has already been collected for this round.
-export function duelRoundEndingWith(actions: GameAction[], resolvingBid: SubmitDuelBid): SubmitDuelBid[] {
+// previous resolving bid, non-bid action, or repeated player.
+export function duelRoundEndingWith(
+    actions: GameAction[],
+    resolvingBid: SubmitDuelBid
+): SubmitDuelBid[] {
     const end = actions.findIndex((action) => action.id === resolvingBid.id)
     if (end < 0) return [resolvingBid]
 
@@ -34,6 +64,7 @@ export function duelRoundEndingWith(actions: GameAction[], resolvingBid: SubmitD
     for (let i = end; i >= 0; i--) {
         const action = actions[i]
         if (!isSubmitDuelBid(action) || seen.has(action.playerId)) break
+        if (i < end && action.metadata?.duelResult) break
         round.unshift(action)
         seen.add(action.playerId)
     }

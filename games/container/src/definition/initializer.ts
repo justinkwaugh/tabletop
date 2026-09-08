@@ -30,10 +30,6 @@ export class ContainerGameInitializer
     extends BaseGameInitializer<ContainerGameState, HydratedContainerGameState>
     implements GameInitializer<ContainerGameState, HydratedContainerGameState>
 {
-    initializeExplorationState(state: ContainerGameState): ContainerGameState {
-        return state
-    }
-
     initializeGameState(
         game: Game,
         state: UninitializedGameState

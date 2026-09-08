@@ -67,7 +67,11 @@ export class HydratedStartAuction
         const validBidders = biddingOrder.filter((playerId) =>
             state.getPlayerState(playerId).hasUnplacedStall(chosenTile.goodsType)
         )
-        const participants = validBidders.map((playerId) => ({ playerId: playerId, passed: false }))
+        const participants = validBidders.map((playerId) => ({
+            playerId,
+            passed: false,
+            submitted: false
+        }))
 
         state.currentAuction = new HydratedSimultaneousAuction({
             id: this.id,

@@ -41,7 +41,7 @@ export const KaivaiGameState = Type.Evaluate(
     ])
 )
 
-const KaivaiGameStateValidator = Compile(KaivaiGameState)
+export const KaivaiGameStateValidator = Compile(KaivaiGameState)
 
 export class HydratedKaivaiGameState
     extends HydratableGameState<typeof KaivaiGameState, HydratedKaivaiPlayerState>
