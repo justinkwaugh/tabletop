@@ -53,7 +53,7 @@ export class HydratedEndRoundEvent
         super(data, EndRoundEventValidator)
     }
 
-    apply(_state: HydratedSantiagoGameState) {
-        // Pure history marker — no game state change
+    apply(state: HydratedSantiagoGameState) {
+        if ((state.systemVersion ?? 1) >= 3 && !state.isBagEmpty()) this.revealsInfo = true
     }
 }

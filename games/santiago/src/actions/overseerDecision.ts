@@ -74,7 +74,7 @@ export class HydratedOverseerDecision
             // enforce anything. Also see CanalBuildingStateHandler.isValidAction, which
             // only lets an overseer who can't cover the cost through in exactly that case.
             const penalty = maxSegmentTotal(state.canalProposals)
-            overseer.pay(Math.min(penalty + 1, overseer.money))
+            overseer.pay(Math.min(penalty + 1, overseer.getMoney()))
         }
     }
 }

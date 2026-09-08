@@ -1,0 +1,1052 @@
+{
+  "game": {
+    "id": "santiago-visibility",
+    "typeId": "santiago",
+    "status": "started",
+    "isPublic": false,
+    "deleted": false,
+    "ownerId": "p1",
+    "name": "Santiago visibility",
+    "players": [
+      {
+        "id": "p1",
+        "name": "p1",
+        "isHuman": true,
+        "status": "joined"
+      },
+      {
+        "id": "p2",
+        "name": "p2",
+        "isHuman": true,
+        "status": "joined"
+      },
+      {
+        "id": "p3",
+        "name": "p3",
+        "isHuman": true,
+        "status": "joined"
+      },
+      {
+        "id": "p4",
+        "name": "p4",
+        "isHuman": true,
+        "status": "joined"
+      }
+    ],
+    "config": {},
+    "hotseat": false,
+    "winningPlayerIds": [],
+    "createdAt": "1970-01-01T00:00:00.000Z",
+    "seed": 101
+  },
+  "initial": {
+    "systemVersion": 2,
+    "id": "santiago-state",
+    "gameId": "santiago-visibility",
+    "seed": 101,
+    "prng": {
+      "seed": 101,
+      "invocations": 100
+    },
+    "activePlayerIds": [
+      "p3"
+    ],
+    "winningPlayerIds": [],
+    "actionCount": 0,
+    "actionChecksum": 0,
+    "players": [
+      {
+        "playerId": "p1",
+        "color": "blue",
+        "money": 10,
+        "score": 0,
+        "hasPersonalCanal": true
+      },
+      {
+        "playerId": "p2",
+        "color": "green",
+        "money": 10,
+        "score": 0,
+        "hasPersonalCanal": true
+      },
+      {
+        "playerId": "p3",
+        "color": "red",
+        "money": 10,
+        "score": 0,
+        "hasPersonalCanal": true
+      },
+      {
+        "playerId": "p4",
+        "color": "purple",
+        "money": 10,
+        "score": 0,
+        "hasPersonalCanal": true
+      }
+    ],
+    "turnManager": {
+      "series": [],
+      "turnOrder": [
+        "p3",
+        "p1",
+        "p4",
+        "p2"
+      ],
+      "turnCounts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "p4": 0
+      }
+    },
+    "machineState": "Bidding",
+    "board": {
+      "squares": [
+        [
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          }
+        ],
+        [
+          {
+            "type": "empty",
+            "hasPalmTree": true
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          }
+        ],
+        [
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          }
+        ],
+        [
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          }
+        ],
+        [
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          }
+        ],
+        [
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          }
+        ],
+        [
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": true
+          }
+        ],
+        [
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": true
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          }
+        ]
+      ],
+      "spring": {
+        "col": 0,
+        "row": 0
+      },
+      "canals": []
+    },
+    "tileBag": [
+      {
+        "crop": "chili",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "chili",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "bananas",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "watermelon",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "coconut",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "coconut",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "bananas",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "grapes",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "bananas",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "watermelon",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "grapes",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "grapes",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "chili",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "chili",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "watermelon",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "grapes",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "coconut",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "coconut",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "watermelon",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "chili",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "bananas",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "grapes",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "coconut",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "grapes",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "chili",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "coconut",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "watermelon",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "coconut",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "coconut",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "bananas",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "watermelon",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "grapes",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "bananas",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "coconut",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "chili",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "watermelon",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "chili",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "bananas",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "watermelon",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "chili",
+        "farmerCapacity": 1
+      }
+    ],
+    "round": 1,
+    "plantersOrder": [],
+    "planterIndex": 0,
+    "extraIrrigationPassed": [],
+    "extraIrrigationOrder": [],
+    "extraIrrigationIndex": 0,
+    "overseerBidZero": false,
+    "biddingOrder": [
+      "p3",
+      "p1",
+      "p4",
+      "p2"
+    ],
+    "currentBidderIndex": 0,
+    "revealedTiles": [
+      {
+        "crop": "bananas",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "bananas",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "grapes",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "grapes",
+        "farmerCapacity": 2
+      }
+    ],
+    "canalProposals": [],
+    "canalProposalOrder": [],
+    "canalProposalIndex": -1,
+    "seatOrder": [
+      "p2",
+      "p3",
+      "p1",
+      "p4"
+    ],
+    "previousOverseerId": "p2"
+  },
+  "actions": [
+    {
+      "id": "legacy-0",
+      "gameId": "santiago-visibility",
+      "playerId": "p3",
+      "source": "user",
+      "type": "placeBid",
+      "amount": 0
+    },
+    {
+      "id": "legacy-1",
+      "gameId": "santiago-visibility",
+      "playerId": "p1",
+      "source": "user",
+      "type": "placeBid",
+      "amount": 1
+    },
+    {
+      "id": "legacy-2",
+      "gameId": "santiago-visibility",
+      "playerId": "p4",
+      "source": "user",
+      "type": "placeBid",
+      "amount": 2
+    },
+    {
+      "id": "legacy-3",
+      "gameId": "santiago-visibility",
+      "playerId": "p2",
+      "source": "user",
+      "type": "placeBid",
+      "amount": 3
+    }
+  ],
+  "expected": {
+    "systemVersion": 2,
+    "id": "santiago-state",
+    "gameId": "santiago-visibility",
+    "seed": 101,
+    "prng": {
+      "seed": 101,
+      "invocations": 100
+    },
+    "activePlayerIds": [
+      "p2"
+    ],
+    "winningPlayerIds": [],
+    "actionCount": 4,
+    "actionChecksum": 425839137,
+    "players": [
+      {
+        "playerId": "p1",
+        "color": "blue",
+        "money": 9,
+        "score": 0,
+        "hasPersonalCanal": true,
+        "bid": 1
+      },
+      {
+        "playerId": "p2",
+        "color": "green",
+        "money": 7,
+        "score": 0,
+        "hasPersonalCanal": true,
+        "bid": 3
+      },
+      {
+        "playerId": "p3",
+        "color": "red",
+        "money": 10,
+        "score": 0,
+        "hasPersonalCanal": true,
+        "bid": 0
+      },
+      {
+        "playerId": "p4",
+        "color": "purple",
+        "money": 8,
+        "score": 0,
+        "hasPersonalCanal": true,
+        "bid": 2
+      }
+    ],
+    "turnManager": {
+      "series": [],
+      "turnOrder": [
+        "p3",
+        "p1",
+        "p4",
+        "p2"
+      ],
+      "turnCounts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "p4": 0
+      }
+    },
+    "machineState": "PlantingPhase",
+    "board": {
+      "squares": [
+        [
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          }
+        ],
+        [
+          {
+            "type": "empty",
+            "hasPalmTree": true
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          }
+        ],
+        [
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          }
+        ],
+        [
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          }
+        ],
+        [
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          }
+        ],
+        [
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          }
+        ],
+        [
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": true
+          }
+        ],
+        [
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": true
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          },
+          {
+            "type": "empty",
+            "hasPalmTree": false
+          }
+        ]
+      ],
+      "spring": {
+        "col": 0,
+        "row": 0
+      },
+      "canals": []
+    },
+    "tileBag": [
+      {
+        "crop": "chili",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "chili",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "bananas",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "watermelon",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "coconut",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "coconut",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "bananas",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "grapes",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "bananas",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "watermelon",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "grapes",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "grapes",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "chili",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "chili",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "watermelon",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "grapes",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "coconut",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "coconut",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "watermelon",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "chili",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "bananas",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "grapes",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "coconut",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "grapes",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "chili",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "coconut",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "watermelon",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "coconut",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "coconut",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "bananas",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "watermelon",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "grapes",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "bananas",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "coconut",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "chili",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "watermelon",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "chili",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "bananas",
+        "farmerCapacity": 1
+      },
+      {
+        "crop": "watermelon",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "chili",
+        "farmerCapacity": 1
+      }
+    ],
+    "round": 1,
+    "plantersOrder": [
+      "p2",
+      "p4",
+      "p1",
+      "p3"
+    ],
+    "planterIndex": 0,
+    "extraIrrigationPassed": [],
+    "extraIrrigationOrder": [],
+    "extraIrrigationIndex": 0,
+    "overseerBidZero": true,
+    "canalOverseerId": "p3",
+    "biddingOrder": [
+      "p3",
+      "p1",
+      "p4",
+      "p2"
+    ],
+    "currentBidderIndex": 4,
+    "revealedTiles": [
+      {
+        "crop": "bananas",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "bananas",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "grapes",
+        "farmerCapacity": 2
+      },
+      {
+        "crop": "grapes",
+        "farmerCapacity": 2
+      }
+    ],
+    "canalProposals": [],
+    "canalProposalOrder": [],
+    "canalProposalIndex": -1,
+    "seatOrder": [
+      "p2",
+      "p3",
+      "p1",
+      "p4"
+    ],
+    "previousOverseerId": "p2"
+  }
+}

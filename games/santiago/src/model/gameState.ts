@@ -3,12 +3,13 @@ import {
     GameState,
     HydratableGameState,
     HydratedTurnManager,
-    PrngState
+    PrngState,
+    Visibility
 } from '@tabletop/common'
 import { SantiagoPlayerState, HydratedSantiagoPlayerState } from './playerState.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { SantiagoBoard, CropType, PlantingTile, isFieldSquare, CanalSegment } from './board.js'
+import { SantiagoBoard, PlantingTile, isFieldSquare, CanalSegment } from './board.js'
 
 export type CanalProposal = Type.Static<typeof CanalProposal>
 export const CanalProposal = Type.Object({
@@ -29,7 +30,12 @@ export const SantiagoGameState = Type.Evaluate(
             machineState: Type.Enum(MachineState),
             board: SantiagoBoard,
             // Shuffled bag of planting tiles; draw from front
-            tileBag: Type.Array(PlantingTile),
+            tileBag: Visibility.protect(Type.Array(PlantingTile), {
+                policy: Visibility.Policy.HostOnly,
+                redaction: Visibility.redaction.emptyArray()
+            }),
+            remainingTiles: Type.Optional(Type.Number({ minimum: 0 })),
+            publicMoney: Type.Optional(Type.Boolean()),
             // Current round number (1-based)
             round: Type.Number({ default: 0 }),
             // Player IDs in the order they will plant this round
@@ -71,9 +77,13 @@ export const SantiagoGameState = Type.Evaluate(
 
 export const SantiagoGameStateValidator = Compile(SantiagoGameState)
 
+export const SantiagoProjectedState = Visibility.createProjectionSchema(SantiagoGameState)
+export type SantiagoProjectedState = Type.Static<typeof SantiagoProjectedState>
+const SantiagoProjectedStateValidator = Compile(SantiagoProjectedState)
+
 export class HydratedSantiagoGameState
-    extends HydratableGameState<typeof SantiagoGameState, HydratedSantiagoPlayerState>
-    implements SantiagoGameState
+    extends HydratableGameState<typeof SantiagoProjectedState, HydratedSantiagoPlayerState>
+    implements SantiagoProjectedState
 {
     declare id: string
     declare gameId: string
@@ -88,6 +98,8 @@ export class HydratedSantiagoGameState
     declare winningPlayerIds: string[]
     declare board: SantiagoBoard
     declare tileBag: PlantingTile[]
+    declare remainingTiles?: number
+    declare publicMoney?: boolean
     declare round: number
     declare plantersOrder: string[]
     declare planterIndex: number
@@ -105,17 +117,24 @@ export class HydratedSantiagoGameState
     declare canalProposalIndex: number
     declare seatOrder: string[]
 
-    constructor(data: SantiagoGameState) {
-        super(data, SantiagoGameStateValidator)
+    constructor(data: SantiagoProjectedState) {
+        super(data, SantiagoProjectedStateValidator)
         this.players = data.players.map((p) => new HydratedSantiagoPlayerState(p))
     }
 
     drawTile(): PlantingTile | undefined {
-        return this.tileBag.shift()
+        const tile = this.tileBag.shift()
+        if (tile && this.remainingTiles !== undefined) this.remainingTiles--
+        return tile
+    }
+
+    getRemainingTileCount(): number {
+        // Legacy saves predate the public count and retain their canonical bag.
+        return this.remainingTiles ?? this.tileBag.length
     }
 
     isBagEmpty(): boolean {
-        return this.tileBag.length === 0
+        return this.getRemainingTileCount() === 0
     }
 
     applyDrought(isLastRound = false) {
@@ -150,7 +169,7 @@ export class HydratedSantiagoGameState
     score() {
         const scores = calculateScores(this.board)
         for (const player of this.players) {
-            player.score = (scores[player.playerId] ?? 0) + player.money
+            player.score = (scores[player.playerId] ?? 0) + player.getMoney()
         }
     }
 }
