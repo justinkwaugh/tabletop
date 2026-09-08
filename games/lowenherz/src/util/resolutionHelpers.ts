@@ -18,7 +18,7 @@ export function distributeMoneyBag(
     if (chooserIds.length === 0) return
     const share = Math.floor(amount / chooserIds.length)
     for (const playerId of chooserIds) {
-        state.getPlayerState(playerId).money += share
+        state.getPlayerState(playerId).adjustMoney(share)
     }
 }
 

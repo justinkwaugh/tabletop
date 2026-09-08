@@ -75,8 +75,10 @@ export function populateLowenherzExploration({
         players: state.players.map((player) => {
             const politicsCards = hands.get(player.playerId)
             assertExists(politicsCards, 'Exploration hand was not populated')
+            assertExists(player.money, 'Exploration requires public money')
             return {
                 ...structuredClone(player),
+                money: player.money,
                 politicsCards,
                 ...(state.openedPoliticsPile && state.politicsTakingPlayerId === player.playerId
                     ? {
@@ -101,6 +103,7 @@ export function populateLowenherzExploration({
                               (player) => player.playerId === bid.playerId
                           )
                           assertExists(player, 'Unknown duel bidder')
+                          assertExists(player.money, 'Exploration requires public money')
                           const hand = hands.get(bid.playerId)
                           assertExists(hand, 'Exploration bidder hand was not populated')
                           const treasureValues =

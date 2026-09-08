@@ -30,19 +30,24 @@ export const LowenherzRuntime = {
     visibility: {
         state: {
             schema: stateProjector.schema,
-            project(state: LowenherzGameState, perspective: Visibility.Perspective) {
+            project(
+                state: LowenherzGameState,
+                perspective: Visibility.Perspective,
+                context?: Visibility.ProjectionContext
+            ) {
                 const normalized = normalizeLowenherzState(state)
                 assert(
                     LowenherzGameStateValidator.Check(normalized),
                     'Cannot project invalid Lowenherz state'
                 )
-                return stateProjector.project(normalized, perspective)
+                return stateProjector.project(normalized, perspective, context)
             },
             guardForExecution<Value extends object>(
                 state: Value,
-                perspective: Visibility.Perspective
+                perspective: Visibility.Perspective,
+                context?: Visibility.ProjectionContext
             ): Value {
-                return stateProjector.guardForExecution(state, perspective)
+                return stateProjector.guardForExecution(state, perspective, context)
             }
         },
         actions: Visibility.createActionProjector(LowenherzActionSchemas)

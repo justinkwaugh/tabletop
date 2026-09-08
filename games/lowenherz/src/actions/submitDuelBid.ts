@@ -108,7 +108,7 @@ export class HydratedSubmitDuelBid
         if (!duel.playerIds.includes(this.playerId)) return false
         if (duel.bids.some((b) => b.playerId === this.playerId)) return false
 
-        const myMoney = state.getPlayerState(this.playerId).money
+        const myMoney = state.getPlayerState(this.playerId).getMoney()
         if (!Number.isInteger(this.amount) || this.amount < 0 || this.amount > myMoney) return false
 
         const cards = (this.treasureValues ?? []).map((value) => ({

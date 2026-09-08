@@ -299,9 +299,10 @@
     })
 
     const negotiationProposerMoney = $derived(
-        gameSession.negotiationProposerId
+        gameSession.negotiationProposerId &&
+        gameSession.canShowMoney(gameSession.negotiationProposerId)
             ? gameSession.gameState.getPlayerState(gameSession.negotiationProposerId).money
-            : 0
+            : undefined
     )
 
     // A local, per-player draft bid amount - each duelist's own private stepper,
@@ -781,7 +782,8 @@
                         type="button"
                         class="leading-none px-2 pt-[3px] pb-[2px] rounded bg-black/10 hover:bg-black/20 font-semibold disabled:opacity-40"
                         disabled={!gameSession.isMyNegotiationTurn ||
-                            gameSession.negotiationAmount >= negotiationProposerMoney}
+                            (negotiationProposerMoney !== undefined &&
+                                gameSession.negotiationAmount >= negotiationProposerMoney)}
                         onclick={() =>
                             gameSession.setNegotiationAmount(gameSession.negotiationAmount + 1)}
                     >
@@ -855,7 +857,7 @@
                  own name disappearing from it is the confirmation - and the row goes away entirely
                  rather than saying so twice. -->
             {#if myId && duel.playerIds.includes(myId) && !gameSession.hasPlayerBidInDuel(myId)}
-                {@const money = gameSession.gameState.getPlayerState(myId).money}
+                {@const money = gameSession.gameState.getPlayerState(myId).getMoney()}
                 {@const bidAmount = Math.min(gameSession.duelBidAmounts[myId] ?? 0, money)}
                 {@const unarmedTreasureCards = gameSession.unarmedDuelTreasureCards}
                 <div class="flex flex-wrap items-center gap-2">

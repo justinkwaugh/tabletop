@@ -31,15 +31,7 @@
     let headerColor = $derived(gameSession.colors.getPlayerUiColor(player.id))
     let isMe = $derived(gameSession.myPlayer?.id === player.id)
 
-    // "Public Money" game-config option - defaults to on. A player with a perfect
-    // memory could always work out everyone's exact ducat total anyway (every
-    // transaction that changes it is public - negotiation payments, revealed duel
-    // bids, wooded-space costs, money bag payouts, alliance cancellations - and
-    // everyone starts from the same known 12), so showing it openly isn't really
-    // giving away hidden information; this option just controls whether the app
-    // does that bookkeeping for you or makes you track it yourself, closer to the
-    // physical game's actual setup ("A player's money is private").
-    let showMoney = $derived(isMe || gameSession.game?.config?.publicMoney !== false)
+    let showMoney = $derived(gameSession.canShowMoney(playerState.playerId))
 
     // Politics-card slot sizing - a fixed pixel width (rather than the single-card
     // aspect-ratio-driven one) so the splayed layout below can lay multiple cards out
@@ -298,7 +290,7 @@
             class="w-[64px] shrink-0 flex items-center justify-end gap-1 text-gray-800 text-[19px] font-semibold"
             title={showMoney ? 'Ducats' : 'Ducats (hidden)'}
         >
-            {#if showMoney}<Numeral value={playerState.money} />{:else}?{/if}
+            {#if showMoney && playerState.money !== undefined}<Numeral value={playerState.money} />{:else}?{/if}
             <span class="relative w-[28px] h-[28px] shrink-0">
                 {@render tintedIcon(iconMoneybagFill, iconMoneybagLines, player.id, 2, 0)}
             </span>

@@ -92,6 +92,22 @@ export class LowenherzGameSession extends GameSession<
     LowenherzProjectedState,
     HydratedLowenherzGameState
 > {
+    override get canExplore(): boolean {
+        return (
+            this.game.config?.publicMoney !== false &&
+            this.gameState.publicMoney !== false &&
+            super.canExplore
+        )
+    }
+
+    canShowMoney(playerId: string): boolean {
+        return (
+            this.gameState.machineState === MachineState.EndOfGame ||
+            this.game.config?.publicMoney !== false ||
+            this.myPlayer?.id === playerId
+        )
+    }
+
     // A friendly message describing why the last placement attempt was rejected, shown
     // in the UI instead of letting the engine's validation error surface as a raw crash.
     errorMessage: string | undefined = $state(undefined)
@@ -1753,7 +1769,7 @@ export class LowenherzGameSession extends GameSession<
             if (!square) return false
             if (square.type !== SquareType.Blank && square.type !== SquareType.Forest) return false
             if (square.knightOwner || square.castleOwner) return false
-            if (square.type === SquareType.Forest && playerState.money < WOODED_KNIGHT_COST)
+            if (square.type === SquareType.Forest && playerState.getMoney() < WOODED_KNIGHT_COST)
                 return false
             return neighbors(col, row).some((n) => {
                 if (!isOnBoard(n.col, n.row)) return false
@@ -2172,7 +2188,7 @@ export class LowenherzGameSession extends GameSession<
             return []
         }
         const myPlayerId = this.myPlayer.id
-        if (this.gameState.getPlayerState(myPlayerId).money < ALLIANCE_CANCELLATION_COST) return []
+        if (this.gameState.getPlayerState(myPlayerId).getMoney() < ALLIANCE_CANCELLATION_COST) return []
 
         const result: { id: string; otherOwner: PieceOwner }[] = []
         for (const alliance of this.gameState.alliances) {
@@ -2258,7 +2274,7 @@ export class LowenherzGameSession extends GameSession<
                 // unchanged) rather than countering forever.
                 const negotiation = this.gameState.negotiation
                 if (!negotiation?.offer) {
-                    const myMoney = this.gameState.getPlayerState(this.myPlayer.id).money
+                    const myMoney = this.gameState.getPlayerState(this.myPlayer.id).getMoney()
                     await this.proposeNegotiationOffer(this.myPlayer.id, Math.min(1, myMoney))
                 } else {
                     await this.proposeNegotiationOffer(
@@ -2270,7 +2286,7 @@ export class LowenherzGameSession extends GameSession<
             }
 
             if (this.canSubmitDuelBid && this.myPlayer) {
-                const myMoney = this.gameState.getPlayerState(this.myPlayer.id).money
+                const myMoney = this.gameState.getPlayerState(this.myPlayer.id).getMoney()
                 await this.submitDuelBid(Math.min(Math.floor(Math.random() * 3), myMoney))
                 continue
             }

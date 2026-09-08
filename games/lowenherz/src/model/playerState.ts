@@ -3,11 +3,18 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Color } from '@tabletop/common'
 import { PoliticsCard } from '../definition/politicsCards.js'
+import { MachineState } from '../definition/states.js'
+
+const moneyPolicy = Visibility.Policy.anyOf(
+    Visibility.Policy.Owner,
+    Visibility.Policy.configEquals('publicMoney', true, { defaultValue: true }),
+    Visibility.Policy.stateEquals('machineState', MachineState.EndOfGame)
+)
 
 export type LowenherzPlayerState = Type.Static<typeof LowenherzPlayerState>
 export const LowenherzPlayerState = Type.Object({
     ...PlayerState.properties,
-    money: Type.Number(),
+    money: Visibility.protect(Type.Number(), { policy: moneyPolicy }),
     powerPoints: Type.Number(),
     knightsInStock: Type.Number(), // starts at 12, minus those placed on the board
     politicsCards: Visibility.protect(Type.Array(PoliticsCard), {
@@ -37,12 +44,21 @@ export class HydratedLowenherzPlayerState
 {
     declare playerId: string
     declare color: Color
-    declare money: number
+    declare money?: number
     declare powerPoints: number
     declare knightsInStock: number
     declare politicsCards?: PoliticsCard[]
     declare politicsCardCount?: number
     declare politicsInspection?: { pile: 'A' | 'B'; cards: PoliticsCard[] }
+
+    getMoney(): number {
+        assertExists(this.money, 'Player money is unavailable in this representation')
+        return this.money
+    }
+
+    adjustMoney(amount: number): void {
+        this.money = this.getMoney() + amount
+    }
 
     getPoliticsCards(): PoliticsCard[] {
         assertExists(this.politicsCards, 'Politics hand is unavailable')

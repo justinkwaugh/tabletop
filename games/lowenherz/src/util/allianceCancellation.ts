@@ -9,7 +9,7 @@ import { ALLIANCE_CANCELLATION_COST } from '../actions/cancelAlliance.js'
 // note on HydratedCancelAlliance), so several state handlers offer it and share this.
 export function canCancelAnAlliance(state: HydratedLowenherzGameState, playerId: string): boolean {
     const playerState = state.getPlayerState(playerId)
-    if (playerState.money < ALLIANCE_CANCELLATION_COST) return false
+    if (playerState.getMoney() < ALLIANCE_CANCELLATION_COST) return false
     return state.alliances.some((alliance) => {
         const regionA = state.regions.find((r) => r.id === alliance.regionAId)
         const regionB = state.regions.find((r) => r.id === alliance.regionBId)

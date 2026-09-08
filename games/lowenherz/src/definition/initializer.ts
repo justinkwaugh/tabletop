@@ -93,6 +93,7 @@ export class LowenherzGameInitializer
             firstPlayerId: turnManager.turnOrder[0],
             neutralColor,
             minimumOneDucat: config.minimumOneDucat !== false,
+            ...(privateInformation ? { publicMoney: config.publicMoney !== false } : {}),
             minimumCastleDistance: RULEBOOK_CASTLE_MIN_DISTANCE,
 
             actionDeck: playerPlacedCastles

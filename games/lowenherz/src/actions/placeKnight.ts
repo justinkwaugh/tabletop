@@ -86,7 +86,7 @@ export class HydratedPlaceKnight
                 playerState.syncPoliticsCardCount()
                 this.metadata = { woodedCostPaid: WOODED_KNIGHT_COST, paidWithTreasureCard: card }
             } else {
-                playerState.money -= WOODED_KNIGHT_COST
+                playerState.adjustMoney(-WOODED_KNIGHT_COST)
                 this.metadata = { woodedCostPaid: WOODED_KNIGHT_COST }
             }
         } else {
@@ -149,7 +149,7 @@ export class HydratedPlaceKnight
             }
         } else {
             const woodedCost = square.type === SquareType.Forest ? WOODED_KNIGHT_COST : 0
-            if (woodedCost > playerState.money) {
+            if (woodedCost > playerState.getMoney()) {
                 return `Placing a knight in the woods costs ${WOODED_KNIGHT_COST} ducats, which you can't afford.`
             }
         }

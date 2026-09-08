@@ -120,6 +120,7 @@ export const LowenherzGameState = Type.Object({
     // Read as `!== false`, like the config option it comes from: absent means
     // the rule is on, so a state built without it gets the stricter reading.
     minimumOneDucat: Type.Optional(Type.Boolean()),
+    publicMoney: Type.Optional(Type.Boolean()),
     minimumCastleDistance: Type.Optional(Type.Number()),
 
     // The setup castle whose knight has not been placed yet, and who is placing
@@ -259,6 +260,7 @@ export class HydratedLowenherzGameState
     declare firstPlayerId: string
     declare neutralColor?: Color
     declare minimumOneDucat?: boolean
+    declare publicMoney?: boolean
     declare minimumCastleDistance?: number
     declare pendingSetupCastle?: { col: number; row: number; playerId: string }
 

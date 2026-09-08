@@ -106,7 +106,7 @@ export class DuelingStateHandler implements MachineStateHandler<
             // Only the ducat portion comes out of money - any Treasure cards are paid
             // to the bank as themselves, discarded rather than converted to cash.
             assertExists(winningBid.amount, 'Winning bid is unavailable')
-            winnerState.money -= winningBid.amount
+            winnerState.adjustMoney(-winningBid.amount)
             for (const value of winningBid.treasureValues ?? []) {
                 removePoliticsCard(winnerState.getPoliticsCards(), {
                     type: PoliticsCardType.Treasure,
