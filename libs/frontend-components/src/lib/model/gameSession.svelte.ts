@@ -1,7 +1,6 @@
 import * as Value from 'typebox/value'
 import {
     ActionSource,
-    ExplorationHistory,
     Game,
     GameAction,
     GameEngine,
@@ -30,6 +29,7 @@ import type { GameService } from '$lib/services/gameService.js'
 import { GameSessionBridge } from '$lib/services/bridges/gameSessionBridge.svelte.js'
 import { GameContext } from './gameContext.svelte.js'
 import { GameReconciliation } from './gameReconciliation.js'
+import { GameUndo } from './gameUndo.js'
 import { GameNotifications } from './gameNotifications.js'
 import { GameRepresentations, HostViewUnsupportedError } from './gameRepresentations.svelte.js'
 import {
@@ -1086,152 +1086,77 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.reconciliation.acceptSubmission(action.id, response)
     }
 
-    private async applyServerAuthoritativeUndo(
-        actionId: string,
-        context: GameContext<T, U>
-    ): Promise<void> {
-        const isRepresentationCurrent = this.representations.captureValidity()
-        const { actionReplay, canonicalReplay, checksum, game } = await this.api.undoAction(
-            context.game,
-            actionId
-        )
-        if (!isRepresentationCurrent()) {
-            await this.representations.reload()
-            return
-        }
-        this.reconciliation.replace(actionReplay ?? canonicalReplay, checksum, game)
-    }
-
-    // This will only be triggered by the UI and as such we can use the current context
-    // internally, rather than having to pass it in.  No server generated actions go through
-    // here.
     async undo() {
         if (this.isViewingHistory || !this.undoableAction || this.busy) {
             return
         }
 
-        const relevantContext = this.currentModifiableContext
+        const context = this.currentModifiableContext
         const isRepresentationCurrent = this.representations.captureValidity()
         const targetAction = structuredClone($state.snapshot(this.undoableAction))
+        const before = context.clone()
+        const hosted =
+            this.usesHostExecution(context) || context.game.storage === GameStorage.Remote
+        const privileged =
+            context === this.gameContext && this.representations.hostContext !== undefined
 
+        let optimisticState: T | undefined
         this.willUndo(targetAction)
+        if (this.mode === GameSessionMode.Play) this.processingActions = true
         try {
-            // Block server actions while we are processing primary actions
-            if (this.mode === GameSessionMode.Play) {
-                this.processingActions = true
+            try {
+                const preview = new GameUndo(context).preview(
+                    targetAction,
+                    this.projectedExecutionPerspective(context)
+                )
+                this.suppressStateChangeActions = true
+                context.restoreFrom(preview)
+                optimisticState = context.state
+            } catch (error) {
+                if (!hosted) throw error
+                if (this.debug) console.log('Local Undo unavailable; awaiting host', error)
             }
 
-            const targetActionId = targetAction.id
-
-            // Preserve state in case we need to roll back
-            const gameSnapshot = structuredClone(relevantContext.game)
-            let stateSnapshot = structuredClone(relevantContext.state) as T
-
-            const priorContext = relevantContext.clone()
-
-            try {
-                if (
-                    this.representations.hostContext !== undefined &&
-                    relevantContext === this.gameContext
-                ) {
-                    await this.undoInPrivilegedView(targetActionId)
+            if (hosted) {
+                const response = await this.api.undoAction(before.game, targetAction.id)
+                await this.waitForVisibleTransitionSettled()
+                if (!isRepresentationCurrent() || privileged) {
+                    await this.representations.reload()
                     return
                 }
-
-                if (this.requiresServerAuthoritativeProcessing(relevantContext)) {
-                    await this.applyServerAuthoritativeUndo(targetActionId, relevantContext)
-                    return
-                }
-
-                // Undo locally
-                const explorationHistory = new ExplorationHistory(this.engine)
-                const redoActions: GameAction[] = []
-                let actionToUndo
-                do {
-                    actionToUndo = relevantContext.popAction() as GameAction
-                    if (
-                        actionToUndo.playerId &&
-                        actionToUndo.playerId !== targetAction.playerId &&
-                        this.isSameSimultaneousGroup(targetAction, actionToUndo)
-                    ) {
-                        const redoAction = structuredClone(actionToUndo)
-                        // These fields will be re-assigned by the game engine
-                        redoAction.index = undefined
-                        redoAction.undoPatch = undefined
-                        redoActions.push(redoAction)
-                    }
-                    stateSnapshot = explorationHistory.undo(
-                        stateSnapshot,
-                        actionToUndo,
-                        priorContext.state.explorationState
-                    )
-                } while (actionToUndo.id !== targetActionId)
-
-                stateSnapshot = explorationHistory.afterUndo(
-                    priorContext.state,
-                    stateSnapshot,
-                    priorContext.actions.slice(stateSnapshot.actionCount)
+                this.suppressStateChangeActions = true
+                this.reconciliation.replace(
+                    response.actionReplay ?? response.canonicalReplay,
+                    response.checksum,
+                    response.game,
+                    before
                 )
-                if (this.projectedExecutionPerspective(relevantContext) === undefined) {
-                    this.engine.validateCanonicalState(stateSnapshot)
-                }
-                relevantContext.updateGameState(stateSnapshot)
-                for (const action of redoActions) {
-                    const results = this.executeActionInGame(action, gameSnapshot, stateSnapshot)
-                    stateSnapshot = results.updatedState
-                    relevantContext.applyActionResults(results)
-                }
-
-                if (
-                    relevantContext.game.storage === GameStorage.Local &&
-                    !this.usesHostExecution(relevantContext)
-                ) {
-                    await this.gameService.saveGameLocally({
-                        game: relevantContext.game,
-                        actions: relevantContext.actions,
-                        state: relevantContext.state
-                    })
-                } else if (
-                    this.usesHostExecution(relevantContext) ||
-                    relevantContext.game.storage === GameStorage.Remote
-                ) {
-                    // Undo on the server
-                    const { canonicalReplay, checksum, game } = await this.api.undoAction(
-                        relevantContext.game,
-                        targetActionId
-                    )
-                    relevantContext.restoreFrom(priorContext)
-                    this.reconciliation.replace(canonicalReplay, checksum, game)
-                }
-
-                relevantContext.verifyFullChecksum()
-            } catch (e) {
-                console.log(e)
-                const representationRequestStale = !isRepresentationCurrent()
-                if (!representationRequestStale) {
-                    relevantContext.restoreFrom(priorContext)
-                }
-                if (!this.isMajorChange()) {
-                    toast.error('An error occurred while undoing an action')
-                    if (representationRequestStale) {
-                        await this.representations.reload()
-                    } else {
-                        await this.checkSync()
-                    }
+            } else {
+                await this.gameService.saveGameLocally({
+                    game: context.game,
+                    actions: context.actions,
+                    state: context.state
+                })
+            }
+        } catch (error) {
+            console.error('Unable to undo action:', error)
+            await this.waitForVisibleTransitionSettled()
+            const stale = !isRepresentationCurrent()
+            if (!stale || context.state === optimisticState) {
+                this.suppressStateChangeActions = true
+                context.restoreFrom(before)
+            }
+            if (!this.isMajorChange()) {
+                toast.error('An error occurred while undoing an action')
+                if (stale) {
+                    await this.representations.reload()
+                } else {
+                    await this.checkSync()
                 }
             }
         } finally {
-            if (this.mode === GameSessionMode.Play) {
-                this.processingActions = false
-            }
+            if (this.mode === GameSessionMode.Play) this.processingActions = false
         }
-    }
-
-    private async undoInPrivilegedView(actionId: string): Promise<void> {
-        const hostContext = this.representations.hostContext
-        assertExists(hostContext, 'Host View is not available')
-        await this.api.undoAction(hostContext.game, actionId)
-        await this.representations.reload()
     }
 
     async forkGame(newGameName: string): Promise<void> {
@@ -1248,14 +1173,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     removeGameStateChangeListener(listener: GameStateChangeListener<U>) {
         this.gameStateChangeListeners.delete(listener)
-    }
-
-    private isSameSimultaneousGroup(action: GameAction, other: GameAction): boolean {
-        return (
-            action.simultaneousGroupId !== undefined &&
-            other.simultaneousGroupId !== undefined &&
-            action.simultaneousGroupId === other.simultaneousGroupId
-        )
     }
 
     public shouldAutoStepAction(action: GameAction, next?: GameAction) {
@@ -1365,16 +1282,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     private requiresServerAuthoritativeProcessing(
         context: GameContext<T, U>,
-        action?: GameAction
+        action: GameAction
     ): boolean {
-        const visibility = Visibility.getGameVisibility(context.game, this.runtime)
         if (!this.usesHostExecution(context)) {
             return false
         }
-        if (action?.revealsInfo || action?.skipOptimisticExecution) {
-            return true
-        }
-        return visibility !== undefined && action === undefined
+        return !!(action.revealsInfo || action.skipOptimisticExecution)
     }
 
     private projectedExecutionPerspective(

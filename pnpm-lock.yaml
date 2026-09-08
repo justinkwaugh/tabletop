@@ -2431,6 +2431,9 @@ importers:
       es-iterator-helpers:
         specifier: ^1.2.2
         version: 1.2.2
+      fast-json-patch:
+        specifier: https://github.com/justinkwaugh/fast-json-patch.git
+        version: https://codeload.github.com/justinkwaugh/fast-json-patch/tar.gz/cd3677146f4543287076bd4595f88deee14587b8
       gsap:
         specifier: ^3.14.2
         version: 3.14.2

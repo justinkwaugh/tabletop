@@ -255,8 +255,13 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         }
     }
 
-    replace(replay: ProcessedActionReplay, checksum: number, game?: Game): void {
-        const replacement = this.context.clone()
+    replace(
+        replay: ProcessedActionReplay,
+        checksum: number,
+        game?: Game,
+        before: GameContext<T, U> = this.context
+    ): void {
+        const replacement = before.clone()
         if (replay.startIndex > replacement.actions.length) {
             throw new Error('Processed Action replay starts beyond local Action History')
         }

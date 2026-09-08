@@ -142,3 +142,13 @@ Switching mode or perspective replaces the table and session, clears staged sele
 Protected Player/Spectator views suppress Admin authority and Non-active view. Debug remains available on projected data and cannot implicitly request Host View. Host View is an explicit selector choice. Color preferences continue to apply after replacement.
 
 The mode and perspective selectors are unavailable while processing or exploring. Projected Exploration uses hypothetical population; Host View Exploration uses complete state. Closing Exploration restores the selected representation and its source history according to the existing Exploration contract. Canonical local persistence belongs to the harness host, while branch persistence belongs to Exploration.
+
+## Optimistic Undo
+
+An eligible live Undo immediately attempts reversal and simultaneous-action replay from the client's available state, including projected forward patches. The attempt is built separately and published only if it can be hydrated. Host View uses its complete displayed state; an acting-player view retains its projection. Existing reveal and Exploration Undo boundaries still determine eligibility.
+
+The session keeps action controls blocked until the host request and visible transition settle. Undo and authoritative correction use actionless state transitions through the existing animation lifecycle, with the existing 200ms limit. Acceptance and rejection wait for an in-flight optimistic transition to settle before publishing their result. The server response is replayed from the saved pre-Undo context even when the speculative checksum matches; it replaces speculative state and history together. Host View reloads its canonical representation after acceptance. A perspective change during the request reloads the selected representation instead of applying an obsolete response.
+
+If local replay fails, the displayed state stays unchanged while the host processes Undo. Rejection restores the prior state and invokes synchronization. A concurrent representation replacement must never be overwritten by that rollback.
+
+Browser regression scenarios in `tests/privateHandSession.spec.ts` hold acceptance pending and verify visible reversal, retained-action ordering, equal-checksum state correction, replay failure, rejection, canonical Admin Undo of a reveal, acting-player privacy, perspective changes, queued notifications, subsequent history navigation, v2 public games, and a response arriving during an optimistic animation.

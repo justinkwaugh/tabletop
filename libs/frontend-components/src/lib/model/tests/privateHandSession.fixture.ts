@@ -11,6 +11,7 @@ import {
     Visibility,
     assert,
     assertExists,
+    createAction,
     type GameAction,
     type Game,
     type GameState,
@@ -85,6 +86,7 @@ class Remote extends DummyRemoteApiService {
     undos = 0
     pendingAcceptance?: Promise<void>
     onSubmit?: () => void
+    pendingUndo?: Promise<void>
 
     constructor(
         private readonly host: PrivateHandHost,
@@ -129,6 +131,7 @@ class Remote extends DummyRemoteApiService {
     }
     async undoAction(_game: Game, actionId: string) {
         this.undos += 1
+        await this.pendingUndo
         this.host.undo(actionId)
         const history = this.host.history(this.perspective)
         const actionReplay = { startIndex: 0, actions: [...history.actions] }
@@ -145,7 +148,11 @@ class Remote extends DummyRemoteApiService {
     }
 }
 
-function client(host: PrivateHandHost, perspective: Visibility.Perspective = p1) {
+function client(
+    host: PrivateHandHost,
+    perspective: Visibility.Perspective = p1,
+    transformActions?: (actions: readonly GameAction[]) => void
+) {
     host.game.storage = GameStorage.Remote
     const authorization = new Authorization(perspective)
     const library = new HarnessLibraryService({
@@ -163,6 +170,7 @@ function client(host: PrivateHandHost, perspective: Visibility.Perspective = p1)
         gameId: host.game.id
     })
     const history = host.history(perspective)
+    transformActions?.(history.actions)
     const session = new PrivateHandSession({
         gameService,
         chatService,
@@ -252,7 +260,18 @@ export async function runPrivateHandPlayAndUndo() {
         )
         await c.session.history.goToEnd()
         await settle(c.session)
-        await c.session.undo()
+        const undoAcceptance = Promise.withResolvers<void>()
+        c.api.pendingUndo = undoAcceptance.promise
+        const undo = c.session.undo()
+        await settle(c.session)
+        assert(Number(c.session.actions.length) === 0, 'Undo was not optimistic')
+        assert(
+            c.session.gameState.getPlayerState('p1').knownHand().cards.length === 2,
+            'Undo did not restore the visible hand before acceptance'
+        )
+        assert(host.actions.length === 1, 'Host accepted Undo too early')
+        undoAcceptance.resolve()
+        await undo
         await settle(c.session)
         assert(c.api.undos === 1, 'Undo did not reach host')
         assert(
@@ -496,6 +515,233 @@ export async function runPrivateHandProtectedFallback() {
         )
         assert(c.session.undoableAction === undefined, 'Refill reveal permits Undo')
         return { fallback: true, ownerReceivesCard: true, undoBlocked: true }
+    } finally {
+        c.dispose()
+    }
+}
+
+class SimultaneousHost extends PrivateHandHost {
+    constructor() {
+        super({
+            ...runtime,
+            stateHandlers: {
+                playing: {
+                    ...runtime.stateHandlers.playing,
+                    onAction(action, context) {
+                        action.simultaneousGroupId = 'round'
+                        context.gameState.activePlayerIds = ['p1', 'p2']
+                        context.gameState.turnManager.turnCounts.p1 = context.gameState.table.length
+                        return 'playing'
+                    }
+                }
+            }
+        })
+        this.state.activePlayerIds = ['p1', 'p2']
+    }
+
+    play(id: string, playerId: string, cardId: string) {
+        return this.apply(
+            createAction(PlaySchema, {
+                id,
+                playerId,
+                cardId,
+                gameId: this.game.id,
+                source: ActionSource.User,
+                type: 'play'
+            })
+        )
+    }
+
+    override history(perspective?: Visibility.Perspective) {
+        return super.history(this.game.protectedInformation === true ? perspective : undefined)
+    }
+
+    override undo(actionId: string) {
+        const index = this.actions.findIndex((action) => action.id === actionId)
+        const target = this.actions[index]
+        assertExists(target, 'Unknown Undo target')
+        const retained = this.actions
+            .slice(index + 1)
+            .filter(
+                (action) =>
+                    action.playerId !== target.playerId &&
+                    action.simultaneousGroupId === target.simultaneousGroupId
+            )
+        super.undo(actionId)
+        for (const original of retained) {
+            const action = structuredClone(original)
+            delete action.index
+            delete action.undoPatch
+            this.apply(action)
+        }
+    }
+}
+
+export async function runOptimisticUndoScenario(
+    mode:
+        | 'simultaneous'
+        | 'fallback'
+        | 'rejection'
+        | 'host'
+        | 'acting-player'
+        | 'perspective-change'
+        | 'notification'
+        | 'legacy'
+        | 'animation'
+) {
+    const host = new SimultaneousHost()
+    if (mode === 'legacy') {
+        delete host.game.protectedInformation
+        host.state.systemVersion = 2
+    }
+    if (mode === 'host') {
+        host.apply(
+            createAction(DrawSchema, {
+                id: 'first',
+                gameId: host.game.id,
+                source: ActionSource.User,
+                playerId: 'p1',
+                type: 'draw',
+                revealsInfo: true
+            })
+        )
+    } else {
+        host.play('first', 'p1', 'r1')
+    }
+    if (
+        mode === 'simultaneous' ||
+        mode === 'fallback' ||
+        mode === 'legacy' ||
+        mode === 'animation'
+    ) {
+        host.play('second', 'p2', 'r2')
+        host.play('third', 'p2', 'b2')
+    }
+    const c = client(
+        host,
+        p1,
+        mode === 'fallback'
+            ? (actions) => {
+                  const action = actions[1]
+                  assertExists(action, 'Expected retained Action')
+                  action.forwardPatch = [{ op: 'remove', path: '/missing/field' }]
+              }
+            : undefined
+    )
+    try {
+        await settle(c.session)
+        if (mode === 'host') {
+            c.authorization.adminCapabilitiesEnabled = true
+            await settle(c.session)
+        }
+        if (mode === 'host' || mode === 'acting-player' || mode === 'perspective-change') {
+            await c.session.setPrivilegedGameViewEnabled(true)
+            if (mode === 'acting-player') c.session.setViewAsActingPlayer(true)
+            await settle(c.session)
+        }
+        const animatedActions: GameAction[] = []
+        const animation = Promise.withResolvers<void>()
+        const animationStarted = Promise.withResolvers<void>()
+        c.session.addGameStateChangeListener(async ({ action, from, to }) => {
+            if (action !== undefined) animatedActions.push(action)
+            if (mode === 'animation' && from?.actionCount === 3 && to.actionCount === 2) {
+                animationStarted.resolve()
+                await animation.promise
+            }
+        })
+        const before = c.session.gameState.dehydrate()
+        const acceptance = Promise.withResolvers<void>()
+        c.api.pendingUndo = acceptance.promise
+        const pending = c.session.undo()
+        if (mode === 'animation') {
+            await animationStarted.promise
+            acceptance.resolve()
+            await new Promise<void>((resolve) => setTimeout(resolve, 0))
+            animation.resolve()
+        }
+        await settle(c.session)
+        assert(c.api.undos === 1, 'Undo did not reach host')
+        if (mode !== 'animation') {
+            assert(c.session.processingActions, 'Pending Undo permits another submission')
+        }
+        if (mode === 'fallback') {
+            assert(
+                Value.Equal(c.session.gameState.dehydrate(), before),
+                'Failed local replay published a partial Undo'
+            )
+        } else {
+            assert(
+                !c.session.actions.some((action) => action.id === 'first'),
+                'Undo was not optimistic'
+            )
+            assert(
+                c.session.gameState.getPlayerState('p1').knownHand().cards.length === 2,
+                'Visible hand was not restored optimistically'
+            )
+        }
+        if (mode === 'host') {
+            assert(
+                CanonicalValidator.Check(c.session.gameState.dehydrate()),
+                'Optimistic Host Undo lost canonical state'
+            )
+        }
+        if (mode === 'acting-player') {
+            assert(
+                c.session.gameState.getPlayerState('p2').hand === undefined,
+                'Optimistic acting-player Undo exposed secrets'
+            )
+        }
+        if (mode === 'notification') {
+            await c.notify(host.play('concurrent', 'p2', 'r2'))
+            assert(
+                !c.session.actions.some((action) => action.id === 'concurrent'),
+                'Notification was applied during speculative Undo'
+            )
+        }
+        const speculative = c.session.gameState.dehydrate()
+        if (mode === 'rejection') {
+            acceptance.reject(new Error('Undo rejected'))
+        } else {
+            if (mode === 'perspective-change') {
+                await c.session.setPrivilegedGameViewEnabled(false)
+            }
+            acceptance.resolve()
+        }
+        await pending
+        await settle(c.session)
+        const expected = host.history(mode === 'host' ? undefined : p1).currentState
+        assert(
+            Value.Equal(c.session.gameState.dehydrate(), expected),
+            'Authoritative Undo did not replace the speculative state'
+        )
+        assert(!c.session.processingActions, 'Undo left submissions blocked')
+        assert(animatedActions.length === 0, 'Undo correction used action replay animations')
+        if (mode === 'simultaneous' || mode === 'legacy') {
+            assert(
+                Value.Equal(
+                    c.session.actions.map((action) => action.id),
+                    ['second', 'third']
+                ),
+                'Retained Actions were reordered'
+            )
+            assert(
+                speculative.actionChecksum === expected.actionChecksum,
+                'Scenario does not exercise equal-checksum reconciliation'
+            )
+            if (mode === 'simultaneous') {
+                assert(
+                    !Value.Equal(speculative, expected),
+                    'Scenario did not need state correction'
+                )
+            }
+            await c.session.history.goToBeginning()
+            await settle(c.session)
+            assert(c.session.gameState.table.length === 1, 'Undo reconciliation broke history')
+            await c.session.history.goToEnd()
+            await settle(c.session)
+            assert(Value.Equal(c.session.gameState.dehydrate(), expected), 'History changed state')
+        }
+        return { optimistic: true, reconciled: true }
     } finally {
         c.dispose()
     }

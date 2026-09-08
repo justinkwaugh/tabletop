@@ -419,7 +419,6 @@ export class GameService implements GameServiceInterface {
             if (!this.isGameNotification(notification)) {
                 return
             }
-            console.log('game notification received', notification)
             const game = Value.Convert(Game, notification.data.game) as Game
             if (
                 notification.action === GameNotificationAction.Create ||
