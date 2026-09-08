@@ -98,9 +98,9 @@ Implemented in matching Logic/UI 2.0.0. See [the design and migration notes](low
 - Owner-only politics hands, active inspection snapshot, and pending duel amounts/treasure values. Counts and submitted-player identities stay public.
 - Actor-private inspection records, card choices, and bid payloads. Complete draws, resolved duel rounds (including losing/tied treasure), public payments/plays, and final hands are explicit public observations.
 - New system-v3 initialization uses protected randomness for secret ordering/allocation. Public board/color/turn setup and legacy v1/v2 replay retain public randomness.
-- Exploration reconstructs hypothetical politics trajectories from the explorer's permitted source prefix, preserving observed multisets, revealed ownership, payments, and known hands. It reconstructs remaining action cards by back group and samples only unknown pending bids. Missing historical observations fail explicitly; Host/Admin Exploration retains its full-state path.
+- Exploration reconstructs hypothetical politics trajectories from the explorer's permitted source prefix, preserving observed multisets, revealed ownership, payments, and known hands. It reconstructs remaining action cards by back group and samples only unknown pending bids. Missing historical observations fail explicitly; Host/Admin Exploration retains its full-state path with Public Money enabled. Private-money Games disable Exploration, including legacy and Host View entry.
 - Current legacy saves normalize before projection and remain playable forward. Old Action History is not guaranteed across the face-based schema change. Existing v2 games do not gain privacy, and old public seeds cannot become retroactively secret.
-- `publicMoney` remains a presentation option; money delivery concealment is still a separate decision.
+- `publicMoney: false` omits other balances during play and reveals them at EndOfGame. Private-money negotiation demands do not query the other player’s balance; the payer must afford personal commitments. Public payments remain inferable.
 
 ## Indonesia
 
@@ -139,7 +139,7 @@ These titles need no visibility registration merely because new game instances u
 ## Decisions to resolve before the affected title is implemented
 
 - Whether Container and Indonesia retain their current public-money behavior or adopt concealed/configurable balances.
-- Whether Santiago and Lowenherz's money options should enforce delivery concealment as well as presentation, accepting that public transactions remain inferable.
+- Whether Santiago's money option should enforce delivery concealment as well as presentation, accepting that public transactions remain inferable.
 - Indonesia's city-card privacy and exact current-card reveal point.
 
 Suggested implementation order: Sol first for a public-result/private-deck case; Kaivai for protected dice and final sealed bids; Santiago for its bag and optional money (Estates has adopted protection); Container for owner cards and multistage auctions; Indonesia after its reveal/money decisions; Lowenherz has now adopted the inspection-knowledge design. Bus, Bridges, and Urbino require no hidden-information adoption work on the present findings.

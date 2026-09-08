@@ -61,7 +61,7 @@ export class EndOfGameStateHandler implements MachineStateHandler<
         // spendable as money on a wooded knight placement or a duel bid), so an unspent one
         // counts at face value here.
         const spendableWealth = (player: (typeof state.players)[number]) =>
-            player.money +
+            player.getMoney() +
             player
                 .getPoliticsCards()
                 .filter((c) => c.type === PoliticsCardType.Treasure)

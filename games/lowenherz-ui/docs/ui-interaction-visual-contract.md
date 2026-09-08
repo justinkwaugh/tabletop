@@ -37,4 +37,12 @@ Browser checks use the local harness and controlled complete states:
 
 Rule tests separately verify one-copy consumption for taking, Alliance/Renegade plays, bid ownership, and forward continuation from legacy saves.
 
-Hosted checks additionally use separate owner, opponent, and spectator accounts. Inspection faces and their history appear only for the inspector; reload preserves the snapshot, taking adds one card, Undo restores selection, and ordinary Exploration populates a complete hypothetical state. Admin Host View and Exploration retain complete-state access.
+Hosted checks additionally use separate owner, opponent, and spectator accounts. Inspection faces and their history appear only for the inspector; reload preserves the snapshot, taking adds one card, Undo restores selection, and ordinary Exploration populates a complete hypothetical state. Admin Host View retains complete-state access. Exploration is unavailable with Public Money off, including from Host View and legacy Games.
+
+## Private money
+
+With Public Money off, player panels show the owner’s balance and question marks for other balances during play. EndOfGame reveals all balances. This rendering rule also applies to complete hotseat and legacy representations; protected network projections omit other balances entirely.
+
+Negotiation amount controls cap only publicly displayed balances or the acting player’s own balance. A demand against an opponent’s private balance has no balance-derived cap; the payer must afford any amount they personally propose or accept. Duel controls and knight/alliance costs use the acting player’s known money.
+
+The session disables Exploration when Game configuration or the recorded state flag makes money private. This includes Host View and legacy Games. Public-money Exploration keeps the existing card population behavior.

@@ -67,7 +67,7 @@ export class HydratedCancelAlliance extends HydratableAction<typeof CancelAllian
         const regionB = state.regions.find((r) => r.id === alliance.regionBId)!
         const otherOwner = regionA.owner === this.playerId ? regionB.owner! : regionA.owner!
 
-        playerState.money -= ALLIANCE_CANCELLATION_COST
+        playerState.adjustMoney(-ALLIANCE_CANCELLATION_COST)
         state.alliances = state.alliances.filter((a) => a.id !== this.allianceId)
 
         this.metadata = { otherOwner }
@@ -98,7 +98,7 @@ export class HydratedCancelAlliance extends HydratableAction<typeof CancelAllian
             return "You're not one of the two princes in that alliance."
         }
 
-        if (playerState.money < ALLIANCE_CANCELLATION_COST) {
+        if (playerState.getMoney() < ALLIANCE_CANCELLATION_COST) {
             return `You need ${ALLIANCE_CANCELLATION_COST} ducats to cancel an alliance.`
         }
 

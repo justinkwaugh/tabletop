@@ -9,6 +9,7 @@ import { populateLowenherzExploration } from '../util/exploration.js'
 
 export class LowenherzGameExploration implements GameExploration<LowenherzProjectedState> {
     createFromCanonicalState(state: LowenherzProjectedState): LowenherzProjectedState {
+        assert(state.publicMoney !== false, 'Exploration is unavailable with private money')
         const hydrated = new HydratedLowenherzGameState(state)
         const deck = hydrated.getActionDeck()
         const backs = [...new Set(deck.map((card) => card.back))]
@@ -35,6 +36,10 @@ export class LowenherzGameExploration implements GameExploration<LowenherzProjec
     createFromProjectedState(
         input: ExplorationPopulation<LowenherzProjectedState>
     ): LowenherzGameState {
+        assert(
+            input.game.config?.publicMoney !== false && input.state.publicMoney !== false,
+            'Exploration is unavailable with private money'
+        )
         if ((input.state.systemVersion ?? 1) < 3) {
             const state = this.createFromCanonicalState(input.state)
             assert(

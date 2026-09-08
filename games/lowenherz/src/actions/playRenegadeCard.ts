@@ -95,7 +95,7 @@ export class HydratedPlayRenegadeCard
         const removalWoodedCostPaid =
             removedSquare.type === SquareType.Forest ? WOODED_KNIGHT_COST : undefined
         if (removalWoodedCostPaid) {
-            playerState.money -= removalWoodedCostPaid
+            playerState.adjustMoney(-removalWoodedCostPaid)
         }
         const { knightOwner: _removedKnightOwner, ...clearedSquare } = removedSquare
         state.board.squares[this.removedRow][this.removedCol] = clearedSquare
@@ -113,7 +113,7 @@ export class HydratedPlayRenegadeCard
         const placementWoodedCostPaid =
             placedSquare.type === SquareType.Forest ? WOODED_KNIGHT_COST : undefined
         if (placementWoodedCostPaid) {
-            playerState.money -= placementWoodedCostPaid
+            playerState.adjustMoney(-placementWoodedCostPaid)
         }
 
         removePoliticsCard(playerState.getPoliticsCards(), { type: PoliticsCardType.Renegade })
@@ -220,7 +220,7 @@ export class HydratedPlayRenegadeCard
         const removalWoodedCost = removedSquare.type === SquareType.Forest ? WOODED_KNIGHT_COST : 0
         const placementWoodedCost = placedSquare.type === SquareType.Forest ? WOODED_KNIGHT_COST : 0
         const totalWoodedCost = removalWoodedCost + placementWoodedCost
-        if (totalWoodedCost > playerState.money) {
+        if (totalWoodedCost > playerState.getMoney()) {
             return `Removing/placing a knight in the woods costs ${totalWoodedCost} ducats total, which you can't afford.`
         }
 
