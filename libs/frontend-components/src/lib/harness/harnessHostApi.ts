@@ -56,6 +56,7 @@ export class HarnessHostApi extends DummyRemoteApiService {
         const projected = this.hostView
             ? result
             : Visibility.projectActionResult({
+                  game: game,
                   result,
                   visibility: this.visibility,
                   perspective: this.perspective,
@@ -184,6 +185,7 @@ export class HarnessHostApi extends DummyRemoteApiService {
 
     private projectHistory(game: Game, state: GameState, actions: GameAction[]) {
         return Visibility.projectActionHistory({
+            game: game,
             currentState: state,
             actions,
             visibility: this.visibility,

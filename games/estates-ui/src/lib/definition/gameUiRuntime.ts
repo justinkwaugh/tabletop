@@ -3,7 +3,7 @@ import type {
     PlayerColorPalette
 } from '@tabletop/frontend-components/definition/gameUiDefinition'
 import { Color } from '@tabletop/common'
-import type { EstatesGameState, HydratedEstatesGameState } from '@tabletop/estates'
+import type { EstatesProjectedState, HydratedEstatesGameState } from '@tabletop/estates'
 import { EstatesRuntime } from '@tabletop/estates'
 import { mountDynamicComponent } from '@tabletop/frontend-components/utils/dynamicComponent'
 import { EstatesGameColorizer } from './gameColorizer.js'
@@ -43,7 +43,7 @@ const estatesPlayerColorPalette: PlayerColorPalette = {
     }
 }
 
-export const EstatesUiRuntime: GameUIRuntime<EstatesGameState, HydratedEstatesGameState> = {
+export const EstatesUiRuntime: GameUIRuntime<EstatesProjectedState, HydratedEstatesGameState> = {
     ...EstatesRuntime,
     gameUI: {
         component: Table,

@@ -1,3 +1,4 @@
+import * as Type from 'typebox'
 import {
     ActionSource,
     assertExists,
@@ -14,6 +15,7 @@ import {
     PlayerStatus,
     Visibility,
     GameState,
+    GameAction,
     type Game
 } from '@tabletop/common'
 import * as Value from 'typebox/value'
@@ -411,6 +413,58 @@ describe('game notifications', () => {
                 userActionIds: ['action-1']
             })
             expect(notification.data.game).not.toHaveProperty('state')
+        }
+    )
+})
+
+describe('configuration policies in notification delivery', () => {
+    it.each([false, true])(
+        'uses stored config for every audience with hiddenMoney=%s',
+        async (hiddenMoney) => {
+            const game = createGame()
+            game.protectedInformation = true
+            game.config = { hiddenMoney }
+            const { before, result, storedActions } = createActionCascade()
+            const { notificationService, publications } = createNotificationRecorder()
+            const visibility = {
+                state: Visibility.createProjector(GameState),
+                actions: Visibility.createActionProjector({
+                    placeBid: Type.Object({
+                        ...GameAction.properties,
+                        type: Type.Literal('placeBid'),
+                        amount: Visibility.protect(Type.Number(), {
+                            policy: Visibility.Policy.anyOf(
+                                Visibility.Policy.Actor,
+                                Visibility.Policy.configEquals('hiddenMoney', false)
+                            )
+                        })
+                    }),
+                    recordBid: Type.Object({
+                        ...GameAction.properties,
+                        type: Type.Literal('recordBid')
+                    })
+                })
+            }
+            await publishActionResults({
+                game,
+                result,
+                storedActions,
+                priorState: before,
+                visibility,
+                notificationService
+            })
+            expect(publications).toHaveLength(3)
+            for (const publication of publications) {
+                const notification = Value.Parse(
+                    GameAddProjectedActionsNotification,
+                    publication.notification
+                )
+                const perspective = notification.data.perspective
+                const entitled =
+                    !hiddenMoney ||
+                    (perspective.kind === 'player' && perspective.playerId === 'player-1')
+                expect(Object.hasOwn(notification.data.actions[0], 'amount')).toBe(entitled)
+            }
         }
     )
 })

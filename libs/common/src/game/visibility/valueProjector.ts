@@ -2,6 +2,8 @@ import * as Type from 'typebox'
 import { Compile, type Validator } from 'typebox/compile'
 import * as Value from 'typebox/value'
 import { SimultaneousAuctionVisibility } from '../components/auctions/simultaneous.js'
+import type { GameConfig } from '../model/gameConfig.js'
+import { visitPolicyExpression, type PolicyExpression } from './policyExpression.js'
 import { canViewSimultaneousAuctionBid } from '../components/auctions/simultaneousVisibility.js'
 import {
     createProjectionSchema,
@@ -28,7 +30,12 @@ export const Perspective = Type.Union([
     Type.Object({ kind: Type.Literal('spectator') })
 ])
 
+export interface ProjectionContext {
+    readonly config: Readonly<GameConfig>
+}
+
 export interface PolicyContext<Root> {
+    readonly config?: Readonly<GameConfig>
     readonly perspective: Perspective
     readonly root: Readonly<Root>
     readonly value: unknown
@@ -51,9 +58,13 @@ type RedactionAdapterRegistry<Root> = Readonly<Record<string, RedactionAdapter<R
 
 export interface ValueProjector<Canonical, Projected = unknown> {
     readonly schema: Type.TSchema
-    project(value: Canonical, perspective: Perspective): Projected
+    project(value: Canonical, perspective: Perspective, context?: ProjectionContext): Projected
     /** Wraps hydrated state so game runtime code cannot use values unavailable to its Perspective. */
-    guardForExecution<Value extends object>(value: Value, perspective: Perspective): Value
+    guardForExecution<Value extends object>(
+        value: Value,
+        perspective: Perspective,
+        context?: ProjectionContext
+    ): Value
 }
 
 export class UnavailableProjectedValueError extends Error {
@@ -72,6 +83,7 @@ export function isUnavailableProjectedValueError(
 }
 
 interface TraversalContext<Root> {
+    config?: Readonly<GameConfig>
     adapters: RedactionAdapterRegistry<Root>
     definitions: Type.TProperties
     parent?: unknown
@@ -123,6 +135,7 @@ function findRedactionAdapter<Root>(
 
 function isBuiltInPolicy(name: string): boolean {
     return (
+        name === Policy.Public ||
         name === Policy.Actor ||
         name === Policy.Owner ||
         name === Policy.HostOnly ||
@@ -130,18 +143,41 @@ function isBuiltInPolicy(name: string): boolean {
     )
 }
 
+function isPublicStateField(schema: Type.TSchema, field: string): boolean {
+    if (getVisibilityMetadata(schema) !== undefined) return false
+    if (Type.IsIntersect(schema)) {
+        const evaluated = Type.Evaluate(schema)
+        return !Type.IsIntersect(evaluated) && isPublicStateField(evaluated, field)
+    }
+    if (Type.IsUnion(schema))
+        return schema.anyOf.every((branch) => isPublicStateField(branch, field))
+    if (!Type.IsObject(schema) || !Object.hasOwn(schema.properties, field)) return false
+    let protectedValue = false
+    visitVisibilityMetadata(schema.properties[field], () => {
+        protectedValue = true
+    })
+    return !protectedValue
+}
+
 function assertSupportedDeclarations<Root>(
     schema: Type.TSchema,
     policies: PolicyRegistry<Root>,
     adapters: RedactionAdapterRegistry<Root>
-) {
+): boolean {
+    let requiresConfig = false
     visitVisibilityMetadata(schema, (metadata) => {
-        if (
-            !isBuiltInPolicy(metadata.policy) &&
-            findPolicy(policies, metadata.policy) === undefined
-        ) {
-            throw Error(`No visibility policy registered for "${metadata.policy}"`)
-        }
+        visitPolicyExpression(metadata.policy, (policy) => {
+            if (typeof policy === 'string') {
+                if (!isBuiltInPolicy(policy) && findPolicy(policies, policy) === undefined) {
+                    throw Error(`No visibility policy registered for "${policy}"`)
+                }
+            } else if (policy.kind === 'configEquals') requiresConfig = true
+            else if (!isPublicStateField(schema, policy.field)) {
+                throw Error(
+                    `Visibility state condition requires an unconditionally public field: ${policy.field}`
+                )
+            }
+        })
         if (
             metadata.redaction.kind === 'replace' &&
             metadata.redaction.adapter !== EmptyArrayAdapter &&
@@ -153,6 +189,7 @@ function assertSupportedDeclarations<Root>(
             )
         }
     })
+    return requiresConfig
 }
 
 function childContext<Root>(
@@ -209,6 +246,7 @@ function createPolicyContext<Root>(
     context: TraversalContext<Root>
 ): PolicyContext<Root> {
     return {
+        config: context.config,
         perspective: context.perspective,
         root: context.root,
         value,
@@ -219,15 +257,45 @@ function createPolicyContext<Root>(
     }
 }
 
-function builtInPolicyResult<Root>(
-    metadata: Metadata,
+function evaluatePolicy<Root>(
+    policy: PolicyExpression,
     value: unknown,
-    context: TraversalContext<Root>
+    context: TraversalContext<Root>,
+    allowCustomPolicies = false
 ): boolean | undefined {
-    if (metadata.policy === Policy.HostOnly) {
+    if (typeof policy !== 'string') {
+        if (policy.kind === 'anyOf') {
+            let unknown = false
+            for (const child of policy.policies) {
+                const result = evaluatePolicy(child, value, context, allowCustomPolicies)
+                if (result === true) return true
+                unknown ||= result === undefined
+            }
+            return unknown ? undefined : false
+        }
+        if (policy.kind === 'configEquals') {
+            if (context.config === undefined)
+                throw Error('Visibility policy requires Game configuration')
+            const configured = Object.hasOwn(context.config, policy.key)
+                ? context.config[policy.key]
+                : policy.defaultValue
+            if (configured === undefined)
+                throw Error(
+                    `Visibility policy requires config option "${policy.key}" or an explicit default`
+                )
+            return configured === policy.value
+        }
+        return (
+            isObjectValue(context.root) &&
+            Object.hasOwn(context.root, policy.field) &&
+            context.root[policy.field] === policy.value
+        )
+    }
+    if (policy === Policy.Public) return true
+    if (policy === Policy.HostOnly) {
         return false
     }
-    if (metadata.policy === Policy.Owner) {
+    if (policy === Policy.Owner) {
         if (!isObjectValue(context.parent) || typeof context.parent.playerId !== 'string') {
             throw Error(
                 `The "${Policy.Owner}" visibility policy requires the containing object to have a public playerId`
@@ -238,7 +306,7 @@ function builtInPolicyResult<Root>(
             context.perspective.playerId === context.parent.playerId
         )
     }
-    if (metadata.policy === Policy.Actor) {
+    if (policy === Policy.Actor) {
         if (!isObjectValue(context.root) || typeof context.root.playerId !== 'string') {
             throw Error(
                 `The "${Policy.Actor}" visibility policy requires the projected root value to have a playerId`
@@ -249,10 +317,13 @@ function builtInPolicyResult<Root>(
             context.perspective.playerId === context.root.playerId
         )
     }
-    if (metadata.policy === SimultaneousAuctionVisibility.Policy.Bid) {
+    if (policy === SimultaneousAuctionVisibility.Policy.Bid) {
         return canViewSimultaneousAuctionBid(createPolicyContext(value, context))
     }
-    return undefined
+    if (!allowCustomPolicies) return undefined
+    const resolver = findPolicy(context.policies, policy)
+    if (resolver === undefined) throw Error(`No visibility policy registered for "${policy}"`)
+    return resolver(createPolicyContext(value, context))
 }
 
 function canViewCanonicalValue<Root>(
@@ -260,15 +331,7 @@ function canViewCanonicalValue<Root>(
     value: unknown,
     context: TraversalContext<Root>
 ): boolean {
-    const builtInResult = builtInPolicyResult(metadata, value, context)
-    if (builtInResult !== undefined) {
-        return builtInResult
-    }
-    const policy = findPolicy(context.policies, metadata.policy)
-    if (policy === undefined) {
-        throw Error(`No visibility policy registered for "${metadata.policy}"`)
-    }
-    return policy(createPolicyContext(value, context))
+    return evaluatePolicy(metadata.policy, value, context, true) === true
 }
 
 function redactValue<Root>(
@@ -555,16 +618,20 @@ function arrayIndex(property: PropertyKey): number | undefined {
 class ProjectedExecutionGuard {
     private readonly rawValues = new WeakMap<object, object>()
 
-    constructor(private readonly perspective: Perspective) {}
+    constructor(
+        private readonly perspective: Perspective,
+        private readonly config?: Readonly<GameConfig>
+    ) {}
 
     guard<Value extends object>(schema: Type.TSchema, value: Value): Value {
         const frame = this.prepareFrame(schema, value, {
+            config: this.config,
             adapters: {},
             definitions: {},
             path: [],
             policies: {},
             perspective: this.perspective,
-            root: value,
+            root: Object.freeze({ ...value }),
             scopes: []
         })
         if (!this.requiresGuard(frame)) {
@@ -583,7 +650,7 @@ class ProjectedExecutionGuard {
         if (metadata !== undefined) {
             // Custom policies may depend on canonical data absent from this projection. Only a
             // built-in policy whose answer is reproducible locally can prove access is safe.
-            const policyResult = builtInPolicyResult(metadata, value, scopedContext)
+            const policyResult = evaluatePolicy(metadata.policy, value, scopedContext)
             if (policyResult !== true) {
                 throw new UnavailableProjectedValueError(scopedContext.path)
             }
@@ -718,7 +785,7 @@ class ProjectedExecutionGuard {
         if (metadata !== undefined) {
             const alwaysVisible =
                 metadata.policy === Policy.Actor &&
-                builtInPolicyResult(metadata, undefined, context) === true
+                evaluatePolicy(metadata.policy, undefined, context) === true
             if (!alwaysVisible && metadata.redaction.kind === 'omit') {
                 return true
             }
@@ -870,6 +937,7 @@ class ProjectedExecutionGuard {
 
 class BuiltInProjector<Schema extends Type.TSchema> implements Projector<Schema> {
     readonly schema: ProjectedSchema<Schema>
+    private readonly requiresConfig: boolean
     private readonly canonicalValidator: Validator<Type.TProperties, Schema>
     private readonly projectionValidator: Validator<Type.TProperties, ProjectedSchema<Schema>>
 
@@ -878,21 +946,31 @@ class BuiltInProjector<Schema extends Type.TSchema> implements Projector<Schema>
         private readonly policies: PolicyRegistry<Type.Static<Schema>>,
         private readonly adapters: RedactionAdapterRegistry<Type.Static<Schema>>
     ) {
-        assertSupportedDeclarations(canonicalSchema, policies, adapters)
+        this.requiresConfig = assertSupportedDeclarations(canonicalSchema, policies, adapters)
         this.schema = createProjectionSchema(canonicalSchema)
         this.canonicalValidator = Compile(canonicalSchema)
         this.projectionValidator = Compile(this.schema)
     }
 
+    private policyConfiguration(context?: ProjectionContext): Readonly<GameConfig> | undefined {
+        if (context?.config === undefined) {
+            if (this.requiresConfig) throw Error('Visibility policy requires Game configuration')
+            return undefined
+        }
+        return Object.freeze({ ...context.config })
+    }
+
     project(
         value: Type.Static<Schema>,
-        perspective: Perspective
+        perspective: Perspective,
+        context?: ProjectionContext
     ): Type.Static<ProjectedSchema<Schema>> {
         if (!this.canonicalValidator.Check(value)) {
             throw Error('Cannot project a value that does not match its canonical schema')
         }
 
         const result = projectValue(this.canonicalSchema, value, {
+            config: this.policyConfiguration(context),
             adapters: this.adapters,
             definitions: emptyDefinitions,
             path: [],
@@ -908,8 +986,15 @@ class BuiltInProjector<Schema extends Type.TSchema> implements Projector<Schema>
         return projected
     }
 
-    guardForExecution<Value extends object>(value: Value, perspective: Perspective): Value {
-        return new ProjectedExecutionGuard(perspective).guard(this.canonicalSchema, value)
+    guardForExecution<Value extends object>(
+        value: Value,
+        perspective: Perspective,
+        context?: ProjectionContext
+    ): Value {
+        return new ProjectedExecutionGuard(perspective, this.policyConfiguration(context)).guard(
+            this.canonicalSchema,
+            value
+        )
     }
 }
 

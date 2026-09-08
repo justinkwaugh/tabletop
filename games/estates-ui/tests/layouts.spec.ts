@@ -1,44 +1,6 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { MachineState, PieceType } from '@tabletop/estates'
-import type { Object3D, Scene } from 'three'
-import type { EstatesGameSession } from '../src/lib/model/EstatesGameSession.svelte'
-import { createGame, waitForFrames } from './helpers'
-
-declare global {
-    interface Window {
-        estatesSession: EstatesGameSession
-        estatesScene: Scene
-        estatesPreview: Object3D
-        estatesPreviewAnimating: () => boolean
-    }
-}
-
-async function inspectScene(page: Page) {
-    for (const [url, original, replacement] of [
-        [
-            '**/gameSessionContext.svelte.ts*',
-            'return getContext();',
-            'return window.estatesSession = getContext();'
-        ],
-        [
-            '**/Scene.svelte*',
-            'let cameraControls;',
-            'window.estatesScene = scene; let cameraControls;'
-        ],
-        [
-            '**/AuctionPreview.svelte*',
-            '$.set(group, ref, true);',
-            'window.estatesPreview = ref; window.estatesPreviewAnimating = () => gsap.getTweensOf(ref.position).some(tween => tween.isActive()); $.set(group, ref, true);'
-        ]
-    ]) {
-        await page.route(url, async (route) => {
-            const response = await route.fetch()
-            const body = await response.text()
-            expect(body).toContain(original)
-            await route.fulfill({ response, body: body.replace(original, () => replacement) })
-        })
-    }
-}
+import { createGame, waitForFrames, inspectScene } from './helpers'
 
 test('bidding and the preview recover when camera dragging interrupts entrance', async ({
     page

@@ -3,7 +3,6 @@
     import {
         Barrier,
         EstatesGameConfig,
-        EstatesGameState,
         HydratedEstatesGameState,
         isBarrier,
         isCancelCube,

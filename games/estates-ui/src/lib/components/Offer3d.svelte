@@ -3,7 +3,7 @@
     import {
         BarrierDirection,
         Cube,
-        EstatesGameState,
+        EstatesProjectedState,
         HydratedEstatesGameState,
         isDrawRoof,
         isMayor,
@@ -312,8 +312,8 @@
             action,
             animationContext
         }: {
-            to: EstatesGameState
-            from?: EstatesGameState
+            to: EstatesProjectedState
+            from?: EstatesProjectedState
             action?: GameAction
             animationContext: AnimationContext
         }) => {

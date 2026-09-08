@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+    import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { Button } from 'flowbite-svelte'
     import { fadeIn, fadeOut } from '$lib/utils/animations'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
@@ -35,5 +35,7 @@ import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     {...others}
 >
     <Button onclick={(event: any) => pass(event)} size="xs" color="light">Pass</Button>
-    <Button onclick={(event: any) => placeBid(event)} size="xs">Bid</Button>
+    <Button onclick={(event: any) => placeBid(event)} disabled={!gameSession.canAffordBid} size="xs"
+        >Bid</Button
+    >
 </div>

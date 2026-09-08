@@ -1,12 +1,6 @@
-import {
-    ActionSource,
-    type HydratedAction,
-    type MachineStateHandler,
-    MachineContext
-} from '@tabletop/common'
+import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { HydratedEstatesGameState } from '../model/gameState.js'
 import { MachineState } from '../definition/states.js'
-import { nanoid } from 'nanoid'
 import { ActionType } from '../definition/actions.js'
 import { HydratedPlaceBid, isPlaceBid, PlaceBid } from '../actions/placeBid.js'
 import { EndAuction, HydratedEndAuction, isEndAuction } from '../actions/endAuction.js'
@@ -17,18 +11,27 @@ import { AuctionRecipient, ChooseRecipient } from '../actions/chooseRecipient.js
 
 type AuctioningAction = HydratedPlaceBid | HydratedEndAuction
 
-export class AuctioningStateHandler implements MachineStateHandler<AuctioningAction, HydratedEstatesGameState> {
-    isValidAction(action: HydratedAction, _context: MachineContext<HydratedEstatesGameState>): action is AuctioningAction {
+export class AuctioningStateHandler implements MachineStateHandler<
+    AuctioningAction,
+    HydratedEstatesGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedEstatesGameState>
+    ): action is AuctioningAction {
         if (!action.playerId && !isEndAuction(action)) return false
         return isPlaceBid(action) || isEndAuction(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedEstatesGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedEstatesGameState>
+    ): ActionType[] {
         const validActions: ActionType[] = []
         const gameState = context.gameState
         const playerState = gameState.getPlayerState(playerId)
 
-        if (playerState.money > 0) {
+        if (gameState.hiddenMoney || playerState.getMoney() > 0) {
             validActions.push(ActionType.PlaceBid)
         }
 
@@ -54,14 +57,17 @@ export class AuctioningStateHandler implements MachineStateHandler<AuctioningAct
                 }
                 // Auto Pass if player doesn't have enough money to bid
                 const bidderState = gameState.getPlayerState(nextBidder)
-                if (bidderState.money < (auction.highBid ?? 0) + 1) {
+                if (!gameState.hiddenMoney && bidderState.getMoney() < (auction.highBid ?? 0) + 1) {
                     context.addSystemAction(PlaceBid, { playerId: nextBidder, amount: 0 })
                 }
             }
         }
     }
 
-    onAction(action: AuctioningAction, context: MachineContext<HydratedEstatesGameState>): MachineState {
+    onAction(
+        action: AuctioningAction,
+        context: MachineContext<HydratedEstatesGameState>
+    ): MachineState {
         const gameState = context.gameState
 
         switch (true) {
@@ -89,7 +95,7 @@ export class AuctioningStateHandler implements MachineStateHandler<AuctioningAct
                         throw Error(`No auction found or no auctioneer`)
                     }
                     const auctioneer = gameState.getPlayerState(currentAuction.auctioneerId)
-                    if (auctioneer.money < action.highBid) {
+                    if (!gameState.hiddenMoney && auctioneer.getMoney() < action.highBid) {
                         context.addSystemAction(ChooseRecipient, {
                             playerId: currentAuction.auctioneerId,
                             recipient: AuctionRecipient.HighestBidder

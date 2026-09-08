@@ -50,9 +50,12 @@ export class HydratedPlaceBid extends HydratableAction<typeof PlaceBid> implemen
         playerId: string,
         amount: number
     ): { valid: boolean; reason: string } {
+        if (!Number.isInteger(amount) || amount < 0) {
+            return { valid: false, reason: 'Bid must be a non-negative whole number' }
+        }
         if (amount > 0) {
             const playerState = state.getPlayerState(playerId)
-            if (playerState.money < amount) {
+            if (playerState.getMoney() < amount) {
                 return { valid: false, reason: 'Bid amount exceeds player money' }
             }
 

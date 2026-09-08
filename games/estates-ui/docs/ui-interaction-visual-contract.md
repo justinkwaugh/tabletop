@@ -9,6 +9,18 @@
 - Roof numbers always reflect the current roof, including direct jumps between roof auctions.
 - Piece movement, fades, and scaling remain visible throughout action and history transitions. The auction preview rotates while shown, and legal placement cues pulse while applicable.
 
+## Protected information
+
+Both the portrait player cards and the anchored 3D panels show money and stolen totals only when the option, owner perspective, or final game phase permits them. Omitted balances stay absent; they never render as `$undefined` or a fabricated zero. Final scores are public. This same display rule applies to legacy Games whose canonical state still contains all balances.
+
+Ordinary protected views have an empty roof bag with a public remaining count. The offer renders its public selectable slots. A roof appears only from the authoritative draw result; animation and label updates consume that projected state. Perspective changes replace the visible state and table through the shared harness/session lifecycle.
+
+In Hidden Money Games, all bidders take an explicit turn. A player unable to raise sees “You can only pass”, an enabled Pass, and a disabled Bid. An auctioneer unable to buy out still confirms No; Yes is disabled. Other perspectives see the normal waiting state, without an automatic cash-based skip.
+
+Exploration is disabled for Hidden Money Games in every perspective and phase, including legacy Games configured with the option. The control remains available for public-money Games, where hypothetical roof contents are sampled from public observations.
+
+Adoption requires matching Estates Logic and UI publications, with versions assigned at deployment. See [visibility and compatibility](../../estates/docs/visibility.md).
+
 ## Coexistence and precedence
 
 Camera motion, piece animation, and hover emphasis can render together. All request frames from the same board canvas; none owns an independent WebGL loop. Active visible animation takes precedence over idling. A static hover highlight does not require continuous frames.
@@ -39,3 +51,9 @@ Reactive Threlte properties request their own frames. Imperative Three.js tweens
 
 - Interrupt the auction entrance with a mouse camera drag, release, and submit a bid/pass without resizing: controls recover and the preview reaches its final position. Automated browser test.
 - Load a fixture with a tall completed building, resize through portrait and back, and switch directly between roof-auction states: panels start at the correct height and roof labels follow each state. Automated browser test.
+
+- Enable Hidden Money and Protected mode, switch between owner, spectator, and Host View, and resize through both layouts: only permitted balances appear. Complete cube and roof auctions, checking the public draw label and the concealed remaining bag. Automated browser test.
+
+- With Hidden Money and zero cash, the bidding turn remains pending across a resize, Bid is disabled, and clicking Pass advances exactly one bidder. Automated browser test.
+
+- Hidden Money disables exploration in ordinary, player, spectator, Host View, and legacy state without the visibility flag. Public-money Games can enter and leave projected exploration. Automated browser tests.

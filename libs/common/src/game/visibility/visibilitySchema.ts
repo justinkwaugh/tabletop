@@ -1,10 +1,21 @@
 import * as Type from 'typebox'
 import { Memory } from 'typebox/system'
+import {
+    anyOf,
+    configEquals,
+    stateEquals,
+    isPolicyExpression,
+    type PolicyExpression
+} from './policyExpression.js'
 
 export const MetadataKey = 'x-tabletop-visibility' as const
 export const ScopeKey = 'x-tabletop-visibility-scope' as const
 
 export const Policy = {
+    anyOf,
+    configEquals,
+    stateEquals,
+    Public: 'tabletop.public',
     Actor: 'tabletop.actor',
     Owner: 'tabletop.owner',
     HostOnly: 'tabletop.host-only'
@@ -29,14 +40,14 @@ export interface ReplacementRedaction<
 export type Redaction = OmitRedaction | ReplacementRedaction
 
 export interface Metadata<
-    PolicyName extends string = string,
+    PolicyName extends PolicyExpression = PolicyExpression,
     RedactionType extends Redaction = Redaction
 > {
     policy: PolicyName
     redaction: RedactionType
 }
 
-type VisibilityOptions<PolicyName extends string, RedactionType extends Redaction> = {
+type VisibilityOptions<PolicyName extends PolicyExpression, RedactionType extends Redaction> = {
     [MetadataKey]: Metadata<PolicyName, RedactionType>
 }
 
@@ -46,7 +57,7 @@ export interface ScopeMetadata<Name extends string = string> {
 
 export type ProtectedSchema<
     Schema extends Type.TSchema,
-    PolicyName extends string = string,
+    PolicyName extends PolicyExpression = PolicyExpression,
     RedactionType extends Redaction = OmitRedaction
 > = Type.TOptions<Schema, VisibilityOptions<PolicyName, RedactionType>>
 
@@ -55,7 +66,7 @@ export type ScopedSchema<Schema extends Type.TSchema, Name extends string = stri
     ScopeMetadata<Name>
 >
 
-export interface ProtectionOptions<PolicyName extends string = string> {
+export interface ProtectionOptions<PolicyName extends PolicyExpression = PolicyExpression> {
     policy: PolicyName
 }
 
@@ -87,13 +98,13 @@ export function scope(schema: Type.TSchema, name: string): Type.TSchema {
 
 export function protect<
     Schema extends Type.TSchema,
-    const PolicyName extends string,
+    const PolicyName extends PolicyExpression,
     RedactionType extends Redaction
 >(
     schema: Schema,
     options: ProtectionOptions<PolicyName> & { redaction: RedactionType }
 ): ProtectedSchema<Schema, PolicyName, RedactionType>
-export function protect<Schema extends Type.TSchema, const PolicyName extends string>(
+export function protect<Schema extends Type.TSchema, const PolicyName extends PolicyExpression>(
     schema: Schema,
     options: ProtectionOptions<PolicyName>
 ): ProtectedSchema<Schema, PolicyName>
@@ -180,7 +191,7 @@ type ProjectedProtectedSchema<
       : never
 
 export type ProjectedSchema<Schema extends Type.TSchema> = Schema extends {
-    [MetadataKey]: Metadata<string, infer RedactionType extends Redaction>
+    [MetadataKey]: Metadata<PolicyExpression, infer RedactionType extends Redaction>
 }
     ? ProjectedProtectedSchema<Schema, RedactionType>
     : ProjectedValue<Schema>
@@ -312,7 +323,7 @@ export function getVisibilityMetadata(schema: Type.TSchema): Metadata | undefine
     }
     const policy: unknown = Reflect.get(metadata, 'policy')
     const redaction: unknown = Reflect.get(metadata, 'redaction')
-    if (typeof policy !== 'string' || !isVisibilityRedaction(redaction)) {
+    if (!isPolicyExpression(policy) || !isVisibilityRedaction(redaction)) {
         throw Error(`Invalid ${MetadataKey} declaration`)
     }
     return {

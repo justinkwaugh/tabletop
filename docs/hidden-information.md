@@ -70,6 +70,10 @@ Use helpers from `Visibility` in `@tabletop/common` with the canonical TypeBox s
 
 | Policy or component | Supported behavior |
 | --- | --- |
+| `Policy.Public` | Every ordinary Perspective receives the value |
+| `Policy.configEquals(key, value, { defaultValue? })` | Matches persisted public Game configuration; explicit defaults handle older Games missing an option |
+| `Policy.stateEquals(field, value)` | Matches an unconditionally public top-level field of the projected root, such as `machineState` |
+| `Policy.anyOf(...policies)` | Grants access when any child policy grants access; supports nested expressions |
 | `Policy.HostOnly` | No ordinary Perspective receives the value |
 | `Policy.Actor` | Matches the root value's `playerId`, normally on an Action |
 | `Policy.Owner` | Matches the immediate containing object's public, stable `playerId`, such as `players[].hand`; does not search ancestors |
@@ -77,6 +81,22 @@ Use helpers from `Visibility` in `@tabletop/common` with the canonical TypeBox s
 | `ProtectedPrngState` | Replaces a present protected cursor with `{ seed: 0, invocations: 0 }` |
 | `SimultaneousAuction` | Owner-known bid before resolution, public bids after a winner is recorded, and public submission status |
 | Named custom policy | Pure snapshot projection using canonical context; not trusted for local guarded execution |
+
+Conditional policies are serialized declarations, evaluated by the same engine during projection and guarded execution. For example:
+
+```ts
+const moneyPolicy = Visibility.Policy.anyOf(
+    Visibility.Policy.Owner,
+    Visibility.Policy.configEquals('hiddenMoney', false, { defaultValue: false }),
+    Visibility.Policy.stateEquals('machineState', 'EndOfGame')
+)
+```
+
+`project(value, perspective, { config: game.config })` and `guardForExecution(value, perspective, { config: game.config })` take a per-call, immutable config snapshot. The Game engine, backend delivery, and shared client supply persisted Game configuration; Action payloads never determine it. Cascade, history, and result projection helpers accept `game` independently of the optional replay runtime. Older callers providing `replay.game` are also supported. Existing string-only policies still work without context. A schema using a config condition requires context; a missing option requires an explicit default when evaluated, otherwise projection fails closed.
+
+State conditions may reference only top-level fields declared public in every root schema branch. Conditions based on protected or undeclared fields are rejected at projector construction. Evaluate the phase of each historical state, not the current Game status, for end-of-game disclosure. Guarded execution snapshots top-level policy inputs at entry: advancing a local phase cannot authorize a placeholder that was withheld from that input. A new authoritative projection supplies newly disclosed values. This avoids storing visibility-only state variants. Configuration conditions assume Game configuration stays fixed during play.
+
+Custom callbacks remain supported for canonical projection, including inside `anyOf`, but are never invoked to authorize guarded execution. A safe declarative child can independently prove access; otherwise execution requires authoritative state. Config-based visibility does not make hidden-information Exploration possible: a title must still supply a safe population strategy or disable it.
 
 Keep canonical schemas strict. Derive the projected type and validator from visibility metadata, and use that single validator in constructors for both canonical and projected input. Name the input type `SolProjectedState` or `FreshFishProjectedState`; reserve `Hydrated` for the class with rule methods. Omitted protected fields are optional in hydrated types; replacement shapes may require unions. Instantiate optional nested objects only when present and preserve exact omissions. Never fill secrets during hydration. The [authoring guide](DESIGN.md#schemas-and-hydration) and [private-hand fixture](../libs/common/src/game/visibility/tests/privateHandGame.ts) give the complete pattern.
 

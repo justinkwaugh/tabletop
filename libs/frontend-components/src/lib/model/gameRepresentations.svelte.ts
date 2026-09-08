@@ -206,6 +206,7 @@ export class GameRepresentations<T extends GameState, U extends HydratedGameStat
         const visibility = Visibility.getGameVisibility(this.primary.game, this.primary.runtime)
         assertExists(visibility, 'Game Runtime has no visibility projection')
         const history = Visibility.projectActionHistory({
+            game: hostContext.game,
             currentState: hostContext.state,
             actions: hostContext.actions,
             visibility,

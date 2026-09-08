@@ -379,7 +379,7 @@ export class GameEngine<
     ): U {
         const visibility = getGameVisibility(game, this.runtime)
         return perspective !== undefined && visibility !== undefined
-            ? visibility.state.guardForExecution(state, perspective)
+            ? visibility.state.guardForExecution(state, perspective, { config: game.config })
             : state
     }
 
@@ -393,7 +393,7 @@ export class GameEngine<
             return
         }
 
-        const projected = visibility.actions.project(action, perspective)
+        const projected = visibility.actions.project(action, perspective, { config: game.config })
         if (isRedactedAction(projected)) {
             throw new UnavailableProjectedActionError(action.type)
         }
