@@ -30,6 +30,7 @@ import type { LookAtPoliticsPile } from '../actions/lookAtPoliticsPile.js'
 import type { TakePoliticsCard } from '../actions/takePoliticsCard.js'
 import type { SubmitDuelBid } from '../actions/submitDuelBid.js'
 import { populatePoliticsCards } from '../util/politicsExploration.js'
+import { negotiationProposalIsValid } from '../util/legality.js'
 import { HydratedNegotiationMove, NegotiationMoveKind, type NegotiationMove } from '../actions/negotiationMove.js'
 
 const game: Game = {
@@ -503,6 +504,52 @@ describe('Lowenherz hypothetical politics', () => {
 describe('Lowenherz private money', () => {
     const privateGame = { ...game, config: { ...game.config, publicMoney: false } }
     const context = { config: privateGame.config }
+
+    it.each([1, 2, 3])(
+        'keeps unmarked legacy version %i negotiation on complete-state delivery',
+        (version) => {
+            const state = initialize(version, 31, privateGame)
+            delete state.publicMoney
+            state.machineState = MachineState.Negotiating
+            state.negotiation = { slot: 1, playerIds: ['p1', 'p2'] }
+            state.activePlayerIds = ['p1', 'p2']
+            const legacyGame = { ...privateGame, state }
+            expect(legacyGame).not.toHaveProperty('protectedInformation')
+
+            const visibility = Visibility.getGameVisibility(legacyGame, LowenherzRuntime)
+            expect(visibility).toBeUndefined()
+            const delivered = visibility
+                ? visibility.state.project(state, owner, context)
+                : state
+            assert(LowenherzGameStateValidator.Check(delivered), 'Legacy delivery must be complete')
+            const hydrated = LowenherzRuntime.hydrator.hydrateState(delivered)
+            expect(hydrated.getPlayerState('p2').getMoney()).toBe(12)
+            expect(negotiationProposalIsValid(hydrated, 'p1', 'p2', 4)).toBe(true)
+            expect(negotiationProposalIsValid(hydrated, 'p1', 'p2', 20)).toBe(false)
+
+            const demand: NegotiationMove = {
+                id: 'legacy-demand',
+                gameId: game.id,
+                source: ActionSource.User,
+                type: ActionType.NegotiationMove,
+                playerId: 'p1',
+                kind: NegotiationMoveKind.Propose,
+                fromPlayerId: 'p2',
+                amount: 4
+            }
+            const result = engine.executeAction({
+                game: legacyGame,
+                state: delivered,
+                action: demand
+            })
+            expect(result.updatedState.negotiation?.offer).toEqual({
+                fromPlayerId: 'p2',
+                amount: 4
+            })
+            expect(result.updatedState.systemVersion).toBe(version)
+            expect(result.updatedState).not.toHaveProperty('publicMoney')
+        }
+    )
 
     it.each([owner, other, spectator])(
         'omits other balances for %j and reveals final balances',
