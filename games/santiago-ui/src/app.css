@@ -61,8 +61,10 @@
        the container's border-radius so the grain stays clipped to rounded corners. */
     .paper-texture {
         position: relative;
+        isolation: isolate;
     }
     .paper-texture::before {
+        z-index: -1;
         content: '';
         position: absolute;
         inset: 0;
