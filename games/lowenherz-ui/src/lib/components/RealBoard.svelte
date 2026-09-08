@@ -1215,7 +1215,7 @@
                         type="button"
                         aria-label={allianceCancelLabel(marker)}
                         title={allianceCancelLabel(marker)}
-                        class="absolute z-40 cursor-pointer rounded-full {previewing
+                        class="absolute z-40 cursor-pointer {previewing
                             ? ''
                             : 'alliance-heartbeat'}"
                         style="left: {span.left}px; top: {span.top}px; width: {span.width}px; height: {span.height}px;"
@@ -1229,16 +1229,8 @@
                             gameSession.cancelAlliance(marker.id)
                         }}
                     >
-                        <!-- Ducat-gold ring, so the beating hearts read as costing money
-                             rather than as decoration. -->
-                        <span
-                            class="absolute inset-0 rounded-full pointer-events-none"
-                            style="border: 1.5px solid rgba(217, 180, 74, {previewing
-                                ? 1
-                                : 0.85}); box-shadow: 0 0 6px rgba(217, 180, 74, 0.55);"
-                        ></span>
-                        <!-- The shiver is on the glyphs, not the button, so the gold ring
-                             stays put and the hearts tremble inside it. -->
+                        <!-- The shiver is on the glyphs, not the button, so the pair of hearts
+                             trembles in place. -->
                         {#each span.hearts as heart, index (index)}
                             <span
                                 class="absolute {previewing ? 'alliance-heart-shiver' : ''}"
