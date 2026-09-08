@@ -75,7 +75,7 @@ export class HydratedStartCompany
         state.availableDeeds = state.availableDeeds.filter((d) => d.id !== this.deedId)
 
         const baseCompany = {
-            id: state.getPrng().randId(),
+            id: state.getPublicPrng().randId(),
             deeds: [deed],
             owner: this.playerId
         }

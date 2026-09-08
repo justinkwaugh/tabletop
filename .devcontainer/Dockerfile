@@ -7,6 +7,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 RUN npm install -g \
-    @openai/codex \
     pnpm@10.28.2 \
     turbo
+
+USER node
+
+RUN curl -fsSL https://chatgpt.com/codex/install.sh | sh
+
+USER root

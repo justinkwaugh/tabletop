@@ -1,5 +1,10 @@
+import { SantiagoGameExploration } from './gameExploration.js'
 import type { GameRuntime } from '@tabletop/common'
-import type { SantiagoGameState, HydratedSantiagoGameState } from '../model/gameState.js'
+import {
+    SantiagoGameStateValidator,
+    type SantiagoGameState,
+    type HydratedSantiagoGameState
+} from '../model/gameState.js'
 import { SantiagoHydrator } from './hydrator.js'
 import { SantiagoGameInitializer } from './gameInitializer.js'
 import { SantiagoStateLogger } from '../util/stateLogger.js'
@@ -9,6 +14,8 @@ import { SantiagoColors } from './colors.js'
 
 export const SantiagoRuntime: GameRuntime<SantiagoGameState, HydratedSantiagoGameState> = {
     initializer: new SantiagoGameInitializer(),
+    exploration: new SantiagoGameExploration(),
+    canonicalStateValidator: SantiagoGameStateValidator,
     hydrator: new SantiagoHydrator(),
     stateHandlers: SantiagoStateHandlers,
     apiActions: SantiagoApiActions,

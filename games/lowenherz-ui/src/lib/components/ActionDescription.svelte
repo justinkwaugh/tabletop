@@ -27,7 +27,7 @@
         type SlotKind
     } from '@tabletop/lowenherz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { duelRoundEndingWith } from '$lib/model/duelRounds.js'
+    import { revealedDuelRoundEndingWith } from '$lib/model/duelRounds.js'
 
     let {
         action,
@@ -108,8 +108,11 @@
          the player's own either way. The owner isn't in the action, so it's read off the
          square: a castle never moves or changes hands once placed, so this stays right for
          every past action in the feed too. -->
-    {@const placedOwner = getSquare(gameSession.gameState.board, action.castleCol, action.castleRow)
-        ?.castleOwner}
+    {@const placedOwner = getSquare(
+        gameSession.gameState.board,
+        action.castleCol,
+        action.castleRow
+    )?.castleOwner}
     {#if placedOwner !== undefined && isNeutralOwner(placedOwner)}
         placed a neutral castle.
     {:else}
@@ -118,8 +121,11 @@
 {:else if isPlaceSetupKnight(action)}
     <!-- Same reading-off-the-square trick as the castle above, and for the same reason: the
          owner is not on the action, and a setup knight never changes hands. -->
-    {@const knightOwner = getSquare(gameSession.gameState.board, action.knightCol, action.knightRow)
-        ?.knightOwner}
+    {@const knightOwner = getSquare(
+        gameSession.gameState.board,
+        action.knightCol,
+        action.knightRow
+    )?.knightOwner}
     {#if knightOwner !== undefined && isNeutralOwner(knightOwner)}
         placed the neutral castle's knight.
     {:else}
@@ -134,7 +140,8 @@
         {#if action.metadata.hillScoring && action.metadata.hillScoring.length > 0}
             {#each action.metadata.hillScoring as entry (entry.playerId)}
                 <br />
-                <PlayerName playerId={entry.playerId} /> gained {entry.points} power point{entry.points === 1
+                <PlayerName playerId={entry.playerId} /> gained {entry.points} power point{entry.points ===
+                1
                     ? ''
                     : 's'}.
             {/each}
@@ -145,7 +152,10 @@
             <br />
             {#each action.metadata.hillScoring as entry, i (entry.playerId)}
                 {i > 0 ? ', ' : ''}<PlayerName playerId={entry.playerId} /> gained {entry.points}
-                power point{entry.points === 1 ? '' : 's'}{i === action.metadata.hillScoring.length - 1 ? '.' : ''}
+                power point{entry.points === 1 ? '' : 's'}{i ===
+                action.metadata.hillScoring.length - 1
+                    ? '.'
+                    : ''}
             {/each}
         {/if}
     {:else}
@@ -183,29 +193,31 @@
              bid of that round together, so the log never tips off a player still to bid. -->
         placed a bid in the duel.
     {:else}
-        {@const roundBids = duelRoundEndingWith(gameSession.actions, action)}
+        {@const roundBids = revealedDuelRoundEndingWith(gameSession.actions, action)}
         placed the last bid in the duel:
         <!-- Spans, not a list element: the history renders each entry inside a <p>, where only
              phrasing content is valid. Colours come from the surrounding text, since the same
              description is shown on the dark history panel and on the parchment status banner. -->
         <span class="my-1 block text-[13px] leading-snug">
-            {#each roundBids as bid (bid.id)}
-                {@const treasures = bid.metadata?.treasureCardsUsed ?? []}
-                {@const treasureTotal = treasures.reduce((sum, card) => sum + (card.value ?? 0), 0)}
+            {#each roundBids as bid (bid.playerId)}
+                {@const treasures = bid.treasureValues}
+                {@const treasureTotal = treasures.reduce((sum, card) => sum + card, 0)}
                 {@const isWinner = action.metadata.winnerId === bid.playerId}
                 <span class="block pl-3 -indent-3 {isWinner ? 'font-semibold' : ''}">
                     • <PlayerName playerId={bid.playerId} /> bid {bid.amount} ducat{bid.amount === 1
                         ? ''
                         : 's'}{#if treasures.length > 0}
-                        {' '}+ {treasures.length === 1 ? 'a ' : ''}{#each treasures as treasureCard, j (j)}{j >
-                            0
+                        {' '}+ {treasures.length === 1
+                            ? 'a '
+                            : ''}{#each treasures as treasureCard, j (j)}{j > 0
                                 ? j === treasures.length - 1
                                     ? ' and '
                                     : ', '
-                                : ''}{politicsCardLabel(treasureCard.type, treasureCard.value)}{/each} card{treasures.length ===
-                        1
-                            ? ''
-                            : 's'} ({bid.amount + treasureTotal} in all){/if}.
+                                : ''}{politicsCardLabel(
+                                PoliticsCardType.Treasure,
+                                treasureCard
+                            )}{/each} card{treasures.length === 1 ? '' : 's'} ({bid.amount +
+                            treasureTotal} in all){/if}.
                 </span>
             {/each}
         </span>
@@ -245,10 +257,8 @@
                     ? ''
                     : 's'}{i === completed.length - 1 ? '.' : ''}
             {:else}
-                a neutral zone ({region.spaceCount} space{region.spaceCount === 1 ? '' : 's'}) was sealed off{i ===
-                completed.length - 1
-                    ? '.'
-                    : ''}
+                a neutral zone ({region.spaceCount} space{region.spaceCount === 1 ? '' : 's'}) was
+                sealed off{i === completed.length - 1 ? '.' : ''}
             {/if}
         {/each}
     {/if}
@@ -256,7 +266,8 @@
     placed a knight{#if action.metadata?.paidWithTreasureCard}, paying with a {politicsCardLabel(
             action.metadata.paidWithTreasureCard.type,
             action.metadata.paidWithTreasureCard.value
-        )} card for the wooded space{:else if action.metadata?.woodedCostPaid}, paying {action.metadata.woodedCostPaid} ducats for the wooded space{/if}.
+        )} card for the wooded space{:else if action.metadata?.woodedCostPaid}, paying {action
+            .metadata.woodedCostPaid} ducats for the wooded space{/if}.
 {:else if isExpandRegion(action)}
     expanded a region by 1 space
     {townsPhrase(action.metadata?.townsTaken)}
@@ -273,13 +284,14 @@
                 A neutral prince
             {/if}
             lost {invasion.directSpacesLost} space{invasion.directSpacesLost === 1 ? '' : 's'} (-{invasion.directPointsLost}
-            power point{invasion.directPointsLost === 1 ? '' : 's'}){#if invasion.disconnectedSpaces > 0}, and {invasion.disconnectedSpaces} more space{invasion.disconnectedSpaces === 1
-                    ? ''
-                    : 's'}
-            {invasion.disconnectedSpaces === 1 ? 'was' : 'were'} cut off into a neutral zone (-{invasion.disconnectedPointsLost} power point{invasion.disconnectedPointsLost ===
+            power point{invasion.directPointsLost === 1
+                ? ''
+                : 's'}){#if invasion.disconnectedSpaces > 0}, and {invasion.disconnectedSpaces} more space{invasion.disconnectedSpaces ===
                 1
                     ? ''
-                    : 's'}){/if}.
+                    : 's'}
+                {invasion.disconnectedSpaces === 1 ? 'was' : 'were'} cut off into a neutral zone (-{invasion.disconnectedPointsLost}
+                power point{invasion.disconnectedPointsLost === 1 ? '' : 's'}){/if}.
         {/each}
     {/if}
     {#if action.metadata?.completedRegions && action.metadata.completedRegions.length > 0}
@@ -300,8 +312,9 @@
                     ? ''
                     : 's'}.
             {:else}
-                a neutral zone elsewhere ({region.spaceCount} space{region.spaceCount === 1 ? '' : 's'}) was
-                incidentally sealed off.
+                a neutral zone elsewhere ({region.spaceCount} space{region.spaceCount === 1
+                    ? ''
+                    : 's'}) was incidentally sealed off.
             {/if}
         {/each}
     {/if}
@@ -309,9 +322,7 @@
     looked through the {pileLabels[action.pile]} politics pile.
 {:else if isTakePoliticsCard(action)}
     {@const isMe = gameSession.myPlayer?.id === action.playerId}
-    {@const takenCard = gameSession.gameState
-        .getPlayerState(action.playerId)
-        .politicsCards.find((c) => c.id === action.cardId)}
+    {@const takenCard = action.card}
     took a politics card from the {pileLabels[action.pile]} pile{#if isMe && takenCard}
         {' '}({politicsCardLabel(takenCard.type, takenCard.value)}){/if}.
 {:else if isPlayRenegadeCard(action)}
@@ -322,7 +333,9 @@
     {:else}
         a neutral prince's
     {/if}
-    region and placed one of their own in exchange{#if action.metadata?.removalWoodedCostPaid}, paying {action.metadata.removalWoodedCostPaid} ducats to remove it from the woods{/if}{#if action.metadata?.placementWoodedCostPaid}, paying {action.metadata.placementWoodedCostPaid} ducats to place into the woods{/if}.
+    region and placed one of their own in exchange{#if action.metadata?.removalWoodedCostPaid},
+        paying {action.metadata.removalWoodedCostPaid} ducats to remove it from the woods{/if}{#if action.metadata?.placementWoodedCostPaid},
+        paying {action.metadata.placementWoodedCostPaid} ducats to place into the woods{/if}.
 {:else if isPlayAllianceCard(action)}
     {@const enemyId = playerIdForOwner(action.metadata?.enemyOwner)}
     played an Alliance card — allied one of their regions with
@@ -363,7 +376,9 @@
             {#each meta.moneyBagRecipientIds as playerId, i (playerId)}
                 {i > 0 ? ', ' : ''}<PlayerName {playerId} />
             {/each}
-            split the money bag (+{meta.moneyBagAmountEach} ducat{meta.moneyBagAmountEach === 1 ? '' : 's'} each).
+            split the money bag (+{meta.moneyBagAmountEach} ducat{meta.moneyBagAmountEach === 1
+                ? ''
+                : 's'} each).
         {:else}
             <span class="text-gray-500">no one chose the money bag - nothing to split.</span>
         {/if}
@@ -371,12 +386,15 @@
         {#if meta.slotWinnerPlayerId}
             <PlayerName playerId={meta.slotWinnerPlayerId} />
             {#if meta.bandKind === 'border'}
-                won the right to place {meta.bandCount} wall{meta.bandCount === 1 ? '' : 's'}{#if !meta.placementSkippedReason}.{/if}
+                won the right to place {meta.bandCount} wall{meta.bandCount === 1
+                    ? ''
+                    : 's'}{#if !meta.placementSkippedReason}.{/if}
                 {#if meta.placementSkippedReason === 'regionCap'}
                     <!-- Not "3 regions": the cap is a region per castle, and the 2-player
                          variant gives each prince four (see hasEveryCastleEnclosed). -->
                     <span class="text-gray-500"
-                        >— but every one of their castles is already enclosed; their turn is skipped.</span
+                        >— but every one of their castles is already enclosed; their turn is
+                        skipped.</span
                     >
                 {:else if meta.placementSkippedReason === 'noLegalWallSpots'}
                     <span class="text-gray-500"
@@ -384,18 +402,23 @@
                     >
                 {/if}
             {:else if meta.bandKind === 'knight'}
-                won the right to place {meta.bandCount === 1 ? 'a knight' : `${meta.bandCount} knights`} or expand{#if !meta.placementSkippedReason}.{/if}
+                won the right to place {meta.bandCount === 1
+                    ? 'a knight'
+                    : `${meta.bandCount} knights`} or expand{#if !meta.placementSkippedReason}.{/if}
                 {#if meta.placementSkippedReason === 'noKnightsInStock'}
                     <!-- An empty stock alone no longer wastes the action - it can still
                          be spent expanding a region, so this only fires when there's no
                          region of theirs to expand either (see resolveBandForWinner). -->
                     <span class="text-gray-500"
-                        >— but has no knights left in stock and no region to expand; their turn is skipped.</span
+                        >— but has no knights left in stock and no region to expand; their turn is
+                        skipped.</span
                     >
                 {/if}
             {:else if meta.placementSkippedReason === 'noPoliticsCardsLeft'}
                 won the {slotLabel(meta.slot!, meta.slotKind)} action
-                <span class="text-gray-500">— but both politics piles are empty, so there's nothing to take.</span>
+                <span class="text-gray-500"
+                    >— but both politics piles are empty, so there's nothing to take.</span
+                >
             {:else}
                 won the {slotLabel(meta.slot!, meta.slotKind)} action outright.
             {/if}
@@ -406,7 +429,9 @@
         {/if}
     {:else if meta?.tiedPlayerIds}
         {#each meta.tiedPlayerIds as playerId, i (playerId)}
-            {i > 0 ? (i === meta.tiedPlayerIds.length - 1 ? ' and ' : ', ') : ''}<PlayerName {playerId} />
+            {i > 0 ? (i === meta.tiedPlayerIds.length - 1 ? ' and ' : ', ') : ''}<PlayerName
+                {playerId}
+            />
         {/each}
         tied for the {slotLabel(meta.slot!, meta.slotKind)} action and {meta.tieWentToDuel
             ? 'duel for it'

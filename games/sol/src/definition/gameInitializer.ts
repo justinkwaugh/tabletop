@@ -4,6 +4,7 @@ import {
     BaseGameInitializer,
     Prng,
     PlayerState,
+    assertExists,
     type UninitializedGameState
 } from '@tabletop/common'
 import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
@@ -27,12 +28,6 @@ export class SolGameInitializer
     extends BaseGameInitializer<SolGameState, HydratedSolGameState>
     implements GameInitializer<SolGameState, HydratedSolGameState>
 {
-    initializeExplorationState(state: SolGameState): SolGameState {
-        const hydratedState = new HydratedSolGameState(state)
-        hydratedState.deck.shuffle()
-        return hydratedState.dehydrate()
-    }
-
     initializeGameState(game: Game, state: UninitializedGameState): HydratedSolGameState {
         const prng = new Prng(state.prng)
 
@@ -57,7 +52,10 @@ export class SolGameInitializer
         ]
         shuffle(nonFlareSuits, prng.random)
         const suits = [Suit.Flare, ...nonFlareSuits.slice(0, players.length + 1)]
-        const deck = HydratedDeck.create(suits, prng)
+        const deckPrngState = (state.systemVersion ?? 1) >= 3 ? state.protectedPrng : state.prng
+        assertExists(deckPrngState, 'Protected deck initialization requires protectedPrng')
+        const deckPrng = (state.systemVersion ?? 1) >= 3 ? new Prng(deckPrngState) : prng
+        const deck = HydratedDeck.create(suits, prng, deckPrng.random)
 
         const config = game.config as SolGameConfig
 

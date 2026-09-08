@@ -69,7 +69,7 @@ export const SantiagoGameState = Type.Evaluate(
     ])
 )
 
-const SantiagoGameStateValidator = Compile(SantiagoGameState)
+export const SantiagoGameStateValidator = Compile(SantiagoGameState)
 
 export class HydratedSantiagoGameState
     extends HydratableGameState<typeof SantiagoGameState, HydratedSantiagoPlayerState>

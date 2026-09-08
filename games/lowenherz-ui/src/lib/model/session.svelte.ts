@@ -48,7 +48,7 @@ import {
     isOnBoard,
     isWalledBetween,
     LookAtPoliticsPile,
-    LowenherzGameState,
+    LowenherzProjectedState,
     MachineState,
     manhattanDistance,
     type Negotiation,
@@ -65,6 +65,7 @@ import {
     PlayRenegadeCard,
     type PoliticsCard,
     PoliticsCardType,
+    removePoliticsCard,
     Region,
     regionsAreNeighboring,
     rotateToStart,
@@ -88,7 +89,7 @@ import {
 export type KnightPlan = 'knight' | 'expand'
 
 export class LowenherzGameSession extends GameSession<
-    LowenherzGameState,
+    LowenherzProjectedState,
     HydratedLowenherzGameState
 > {
     // A friendly message describing why the last placement attempt was rejected, shown
@@ -111,7 +112,7 @@ export class LowenherzGameSession extends GameSession<
     // The politics card currently shown enlarged by a CardMagnifier, and by how much. Shared
     // so the pile's take animator can start the chosen card at that size and shrink it on the
     // way to the centre, taking over from the magnifier's copy rather than playing beside it.
-    magnifiedPoliticsCard: { cardId: string; scale: number } | undefined = $state(undefined)
+    magnifiedPoliticsCard: { element: HTMLElement; scale: number } | undefined = $state(undefined)
 
     // What the negotiation panel shows: the live negotiation, or the completed one being held on
     // screen for a beat after it resolves.
@@ -238,8 +239,7 @@ export class LowenherzGameSession extends GameSession<
     setDuelBidAmount(playerId: string, amount: number) {
         const signature = this.duelSignature
         if (!signature) return
-        const amounts =
-            this.duelBids?.signature === signature ? { ...this.duelBids.amounts } : {}
+        const amounts = this.duelBids?.signature === signature ? { ...this.duelBids.amounts } : {}
         amounts[playerId] = amount
         this.duelBids = { signature, amounts }
     }
@@ -320,11 +320,17 @@ export class LowenherzGameSession extends GameSession<
     async placeCastle(col: number, row: number) {
         if (!this.myPlayer || !this.canPlaceCastle) return
 
-        const problem = HydratedPlaceCastle.describeCastleSquareProblem(this.gameState, this.myPlayer.id, col, row)
+        const problem = HydratedPlaceCastle.describeCastleSquareProblem(
+            this.gameState,
+            this.myPlayer.id,
+            col,
+            row
+        )
         if (problem) {
             this.errorMessage = {
                 notYourTurn: "It's not your turn to place a castle right now.",
-                wrongTerrain: "That spot isn't allowed for a castle — it can't be a hill or village.",
+                wrongTerrain:
+                    "That spot isn't allowed for a castle — it can't be a hill or village.",
                 occupied: "That spot isn't allowed for a castle — it's already occupied.",
                 noKnightSquare:
                     "That spot isn't allowed for a castle — there's nowhere beside it to put its knight.",
@@ -403,8 +409,7 @@ export class LowenherzGameSession extends GameSession<
                 const regionB = regions.find((r) => r.id === alliance.regionBId)
                 // Shared with the burst animator, which needs the same walls out of a state this
                 // getter cannot reach (see model/allianceGeometry.ts).
-                const walls =
-                    !regionA || !regionB ? [] : allianceWalls(this.gameState, alliance.id)
+                const walls = !regionA || !regionB ? [] : allianceWalls(this.gameState, alliance.id)
                 return {
                     id: alliance.id,
                     walls,
@@ -439,7 +444,6 @@ export class LowenherzGameSession extends GameSession<
         if (this.canStartFreshExpansion) plans.push('expand')
         return plans
     }
-
 
     // How many swords this knight action started with, for wording it. Read off the band of the
     // slot being resolved - resolvedSlots is pushed before the placement phase, so its length IS
@@ -549,7 +553,10 @@ export class LowenherzGameSession extends GameSession<
     // A money bag payout is the exception: the log lists it as its own event, so stepping
     // stops on it rather than showing the ducats arrive alongside whatever happened next.
     override shouldAutoStepAction(action: GameAction, next?: GameAction): boolean {
-        if (isAdvanceResolution(action) && (action.metadata?.moneyBagRecipientIds?.length ?? 0) > 0) {
+        if (
+            isAdvanceResolution(action) &&
+            (action.metadata?.moneyBagRecipientIds?.length ?? 0) > 0
+        ) {
             return false
         }
         // A sealed bid is nothing to look at on its own; stepping lands on the bid that ends
@@ -597,8 +604,11 @@ export class LowenherzGameSession extends GameSession<
         // on top for that setup) - play then begins from the B deck, exactly like the
         // rulebook's basic game. A no-op in standard-setup games, whose deck never had
         // A cards to begin with.
-        if (this.gameState.actionDeck.some((c) => c.back === CardBack.A)) {
-            this.gameState.actionDeck = this.gameState.actionDeck.filter((c) => c.back !== CardBack.A)
+        if (this.gameState.getActionDeck().some((c) => c.back === CardBack.A)) {
+            this.gameState.actionDeck = this.gameState
+                .getActionDeck()
+                .filter((c) => c.back !== CardBack.A)
+            this.gameState.actionDeckBacks = this.gameState.actionDeck.map((card) => card.back)
             await this.setGameState(this.gameState.dehydrate())
         }
     }
@@ -685,12 +695,16 @@ export class LowenherzGameSession extends GameSession<
             if ((regionCountByOwner.get(owner) ?? 0) >= MAX_SEEDED_REGIONS_PER_OWNER) continue
 
             const knight = neighbors(castle.col, castle.row).find(
-                (n) => isOnBoard(n.col, n.row) && getSquare(board, n.col, n.row)?.knightOwner === owner
+                (n) =>
+                    isOnBoard(n.col, n.row) && getSquare(board, n.col, n.row)?.knightOwner === owner
             )
             if (!knight) continue
 
             const cells = [castle, knight]
-            const cellKeys = new Set([squareKey(castle.col, castle.row), squareKey(knight.col, knight.row)])
+            const cellKeys = new Set([
+                squareKey(castle.col, castle.row),
+                squareKey(knight.col, knight.row)
+            ])
             while (cells.length < TARGET_BLOB_SIZE) {
                 const grownFrom = cells.find((cell) =>
                     neighbors(cell.col, cell.row).some((n) => {
@@ -766,15 +780,11 @@ export class LowenherzGameSession extends GameSession<
         const mine = this.myPlayer ? this.gameState.getPlayerState(this.myPlayer.id) : players[0]
         const other = players.find((p) => p.playerId !== mine.playerId) ?? players[1]
 
-        mine.politicsCards = [
-            ...mine.politicsCards,
-            { id: `test-renegade-${Math.random().toString(36).slice(2)}`, type: PoliticsCardType.Renegade }
-        ]
-        other.politicsCards = [
-            ...other.politicsCards,
-            { id: `test-alliance-${Math.random().toString(36).slice(2)}`, type: PoliticsCardType.Alliance }
-        ]
+        mine.politicsCards = [...mine.getPoliticsCards(), { type: PoliticsCardType.Renegade }]
+        other.politicsCards = [...other.getPoliticsCards(), { type: PoliticsCardType.Alliance }]
 
+        mine.syncPoliticsCardCount()
+        other.syncPoliticsCardCount()
         await this.setGameState(this.gameState.dehydrate())
     }
 
@@ -801,12 +811,12 @@ export class LowenherzGameSession extends GameSession<
                 const values = valuesByType[type]
                 const value = values ? values[Math.floor(Math.random() * values.length)] : undefined
                 return {
-                    id: `test-${type}-${Math.random().toString(36).slice(2)}`,
                     type,
                     ...(value !== undefined ? { value } : {})
                 }
             })
             playerState.politicsCards = newCards
+            playerState.syncPoliticsCardCount()
         }
 
         await this.setGameState(this.gameState.dehydrate())
@@ -937,7 +947,9 @@ export class LowenherzGameSession extends GameSession<
     async declineNegotiation() {
         if (!this.canDeclineNegotiation) return
 
-        const action = this.createPlayerAction(NegotiationMove, { kind: NegotiationMoveKind.Decline })
+        const action = this.createPlayerAction(NegotiationMove, {
+            kind: NegotiationMoveKind.Decline
+        })
         this.errorMessage = undefined
         try {
             await this.applyAction(action)
@@ -952,7 +964,10 @@ export class LowenherzGameSession extends GameSession<
         if (!this.myPlayer) return false
         const duel = this.gameState.duel
         if (!duel) return false
-        return duel.playerIds.includes(this.myPlayer.id) && !duel.bids.some((b) => b.playerId === this.myPlayer!.id)
+        return (
+            duel.playerIds.includes(this.myPlayer.id) &&
+            !duel.bids.some((b) => b.playerId === this.myPlayer!.id)
+        )
     }
 
     hasPlayerBidInDuel(playerId: string): boolean {
@@ -961,25 +976,27 @@ export class LowenherzGameSession extends GameSession<
 
     // This player's Treasure cards - usable to back a duel bid, or to cover the
     // wooded-knight cost, on top of (or instead of) ducats. Held cards aren't shown
-    // for other players (see LowenherzPlayerState.politicsCards' comment).
+    // for other players (see LowenherzProjectedPlayerState.politicsCards' comment).
     get myTreasureCards(): PoliticsCard[] {
         if (!this.myPlayer) return []
         return this.gameState
             .getPlayerState(this.myPlayer.id)
-            .politicsCards.filter((c) => c.type === PoliticsCardType.Treasure)
+            .getPoliticsCards()
+            .filter((c) => c.type === PoliticsCardType.Treasure)
     }
 
-    async submitDuelBid(amount: number, treasureCardIds?: string[]) {
+    async submitDuelBid(amount: number, treasureValues?: number[]) {
         if (!this.myPlayer || !this.canSubmitDuelBid) return
 
-        if (!duelBidIsValid(this.gameState, this.myPlayer.id, amount, treasureCardIds)) {
-            this.errorMessage = "That bid isn't allowed — it must be a whole number of ducats you can afford, backed by Treasure cards you actually hold (if any)."
+        if (!duelBidIsValid(this.gameState, this.myPlayer.id, amount, treasureValues)) {
+            this.errorMessage =
+                "That bid isn't allowed — it must be a whole number of ducats you can afford, backed by Treasure cards you actually hold (if any)."
             return
         }
 
         const action = this.createPlayerAction(SubmitDuelBid, {
             amount,
-            ...(treasureCardIds && treasureCardIds.length > 0 ? { treasureCardIds } : {})
+            ...(treasureValues && treasureValues.length > 0 ? { treasureValues } : {})
         })
         this.errorMessage = undefined
         this.armedDuelTreasures = undefined
@@ -1002,7 +1019,9 @@ export class LowenherzGameSession extends GameSession<
 
     private isValidWallBetween(col1: number, row1: number, col2: number, row2: number): boolean {
         if (!this.myPlayer) return false
-        return placeWallReason(this.gameState, this.myPlayer.id, col1, row1, col2, row2) === undefined
+        return (
+            placeWallReason(this.gameState, this.myPlayer.id, col1, row1, col2, row2) === undefined
+        )
     }
 
     // Every currently-legal wall position, as the pair of squares it separates - one
@@ -1021,7 +1040,14 @@ export class LowenherzGameSession extends GameSession<
 
         const action = this.createPlayerAction(PlaceWall, { col1, row1, col2, row2 })
 
-        const invalidReason = placeWallReason(this.gameState, action.playerId, col1, row1, col2, row2)
+        const invalidReason = placeWallReason(
+            this.gameState,
+            action.playerId,
+            col1,
+            row1,
+            col2,
+            row2
+        )
         if (invalidReason) {
             this.errorMessage = invalidReason
             return
@@ -1069,10 +1095,10 @@ export class LowenherzGameSession extends GameSession<
     // A duel bid uses a separate, multi-card mechanism (see armedDuelTreasures below) - a
     // knight placement only ever needs one, but nothing in the rulebook caps a duel bid at
     // one Treasure card.
-    private armedTreasure: string | undefined = $state(undefined)
+    private armedTreasure: number | undefined = $state(undefined)
 
-    selectTreasureCard(cardId: string | undefined) {
-        this.armedTreasure = cardId
+    selectTreasureCard(value: number | undefined) {
+        this.armedTreasure = value
     }
 
     // The armed card itself, but only while arming it still means anything: it has to be
@@ -1082,9 +1108,9 @@ export class LowenherzGameSession extends GameSession<
     // wooded knight placement silently paid with the card instead of ducats, with nothing
     // on screen to say a card was armed at all.
     get selectedTreasureCard(): PoliticsCard | undefined {
-        if (!this.armedTreasure) return undefined
+        if (this.armedTreasure === undefined) return undefined
         if (!this.canPlaceKnight) return undefined
-        return this.myTreasureCards.find((c) => c.id === this.armedTreasure)
+        return this.myTreasureCards.find((c) => c.value === this.armedTreasure)
     }
 
     // Armed Treasure cards for the current duel bid - unlike selectedTreasureCard above,
@@ -1092,40 +1118,50 @@ export class LowenherzGameSession extends GameSession<
     // Keyed to the duel they were armed during (same signature dueBids/duelBidAmounts use),
     // so a re-duel - new terms, a bumped tieCount - starts empty rather than carrying an
     // armed set over from the duel that led to it.
-    private armedDuelTreasures: { signature: string; cardIds: string[] } | undefined =
+    private armedDuelTreasures: { signature: string; values: number[] } | undefined =
         $state(undefined)
 
-    get armedDuelTreasureIds(): string[] {
+    get armedDuelTreasureValues(): number[] {
         const signature = this.duelSignature
         if (!signature || this.armedDuelTreasures?.signature !== signature) return []
-        return this.armedDuelTreasures.cardIds
+        return this.armedDuelTreasures.values
     }
 
     get armedDuelTreasureCards(): PoliticsCard[] {
-        const ids = this.armedDuelTreasureIds
-        if (ids.length === 0) return []
-        return this.myTreasureCards.filter((c) => ids.includes(c.id))
+        const values = this.armedDuelTreasureValues
+        if (values.length === 0) return []
+        return values.map((value) => ({ type: PoliticsCardType.Treasure, value }))
     }
 
-    armDuelTreasure(cardId: string) {
+    get unarmedDuelTreasureCards(): PoliticsCard[] {
+        const cards = [...this.myTreasureCards]
+        for (const card of this.armedDuelTreasureCards) removePoliticsCard(cards, card)
+        return cards
+    }
+
+    armDuelTreasure(value: number) {
         const signature = this.duelSignature
         if (!signature) return
-        const ids = this.armedDuelTreasureIds
-        if (ids.includes(cardId)) return
-        this.armedDuelTreasures = { signature, cardIds: [...ids, cardId] }
+        const values = this.armedDuelTreasureValues
+        if (!this.unarmedDuelTreasureCards.some((card) => card.value === value)) return
+        this.armedDuelTreasures = { signature, values: [...values, value] }
     }
 
-    unarmDuelTreasure(cardId: string) {
+    unarmDuelTreasure(value: number) {
         const signature = this.duelSignature
         if (!signature) return
-        this.armedDuelTreasures = { signature, cardIds: this.armedDuelTreasureIds.filter((id) => id !== cardId) }
+        const values = [...this.armedDuelTreasureValues]
+        const index = values.indexOf(value)
+        if (index < 0) return
+        values.splice(index, 1)
+        this.armedDuelTreasures = { signature, values }
     }
 
-    // Deliberately routed through selectedTreasureCard rather than the raw id, so a stale
+    // Deliberately routed through selectedTreasureCard rather than the raw value, so a stale
     // arming can never be attached to a placement.
-    private treasureCardIdFor(col: number, row: number): string | undefined {
+    private treasureValueFor(col: number, row: number): number | undefined {
         const square = getSquare(this.gameState.board, col, row)
-        return square?.type === SquareType.Forest ? this.selectedTreasureCard?.id : undefined
+        return square?.type === SquareType.Forest ? this.selectedTreasureCard?.value : undefined
     }
 
     // Every square the current player could legally place a knight on right now -
@@ -1133,18 +1169,18 @@ export class LowenherzGameSession extends GameSession<
     get legalKnightSquares(): { col: number; row: number }[] {
         if (!this.myPlayer || !this.canPlaceKnight) return []
         return legalKnightSquares(this.gameState, this.myPlayer.id, (col, row) =>
-            this.treasureCardIdFor(col, row)
+            this.treasureValueFor(col, row)
         )
     }
 
     async placeKnight(col: number, row: number) {
         if (!this.canPlaceKnight || !this.myPlayer) return
 
-        const treasureCardId = this.treasureCardIdFor(col, row)
+        const treasureValue = this.treasureValueFor(col, row)
         const action = this.createPlayerAction(PlaceKnight, {
             col,
             row,
-            ...(treasureCardId ? { treasureCardId } : {})
+            ...(treasureValue !== undefined ? { treasureValue } : {})
         })
 
         const invalidReason = placeKnightReason(
@@ -1152,7 +1188,7 @@ export class LowenherzGameSession extends GameSession<
             action.playerId,
             col,
             row,
-            treasureCardId
+            treasureValue
         )
         if (invalidReason) {
             // The legal-square dots (legalKnightSquares) already cover adjacency - clicking
@@ -1368,9 +1404,6 @@ export class LowenherzGameSession extends GameSession<
         this.cancelExpansion()
     }
 
-
-
-
     // Whether this knight ACTION has produced anything real yet - which decides whether Undo
     // cancels a choice or reverts a move.
     //
@@ -1478,7 +1511,10 @@ export class LowenherzGameSession extends GameSession<
         return expandRegionReason(this.gameState, this.myPlayer.id, regionId, space)
     }
 
-    private isValidExpansionAttempt(regionId: string, space: { col: number; row: number }): boolean {
+    private isValidExpansionAttempt(
+        regionId: string,
+        space: { col: number; row: number }
+    ): boolean {
         return this.expansionAttemptReason(regionId, space) === undefined
     }
 
@@ -1540,7 +1576,7 @@ export class LowenherzGameSession extends GameSession<
     // every OTHER player's own client) would otherwise see the exact same pile - meaning
     // PoliticsPileReveal would render the real, opened cards face-up to players who never
     // opened them. Real concealment still needs server-side redaction (see
-    // LowenherzPlayerState.politicsCards' own comment); this at least keeps the client from
+    // LowenherzProjectedPlayerState.politicsCards' own comment); this at least keeps the client from
     // actively rendering what it already has on hand for someone it doesn't belong to.
     get selectedPoliticsPile(): 'A' | 'B' | undefined {
         if (!this.myPlayer || this.gameState.politicsTakingPlayerId !== this.myPlayer.id) {
@@ -1598,7 +1634,9 @@ export class LowenherzGameSession extends GameSession<
     viewingMyPoliticsCards: boolean = $state(false)
 
     get myPoliticsCards(): PoliticsCard[] {
-        return this.myPlayer ? this.gameState.getPlayerState(this.myPlayer.id).politicsCards : []
+        return this.myPlayer
+            ? this.gameState.getPlayerState(this.myPlayer.id).getPoliticsCards()
+            : []
     }
 
     showMyPoliticsCards(origin: { x: number; y: number }) {
@@ -1610,12 +1648,12 @@ export class LowenherzGameSession extends GameSession<
         this.viewingMyPoliticsCards = false
     }
 
-    async takePoliticsCard(pile: 'A' | 'B', cardId: string) {
+    async takePoliticsCard(pile: 'A' | 'B', card: PoliticsCard) {
         if (!this.canTakePoliticsCard || !this.myPlayer) return
 
-        const action = this.createPlayerAction(TakePoliticsCard, { pile, cardId })
+        const action = this.createPlayerAction(TakePoliticsCard, { pile, card })
 
-        const invalidReason = takePoliticsCardReason(this.gameState, action.playerId, pile, cardId)
+        const invalidReason = takePoliticsCardReason(this.gameState, action.playerId, pile, card)
         if (invalidReason) {
             this.errorMessage = invalidReason
             return
@@ -1635,7 +1673,8 @@ export class LowenherzGameSession extends GameSession<
         if (!this.myPlayer || !this.canChooseAction) return false
         const playerState = this.gameState.getPlayerState(this.myPlayer.id)
         if (playerState.knightsInStock <= 0) return false
-        if (!playerState.politicsCards.some((c) => c.type === PoliticsCardType.Renegade)) return false
+        if (!playerState.getPoliticsCards().some((c) => c.type === PoliticsCardType.Renegade))
+            return false
         // Holding the card and having a spare knight isn't enough - there also needs
         // to be at least one of the player's own regions with both a legal square for
         // the replacement knight AND a bordering enemy region with a knight actually
@@ -1651,7 +1690,7 @@ export class LowenherzGameSession extends GameSession<
     // targeting flow (own region -> neighboring enemy region -> enemy knight to remove
     // -> own placement square) the player has gotten - purely local UI state, same
     // pattern as selectedExpandRegionId.
-    renegadeCardId: string | undefined = $state(undefined)
+    renegadeCardSelected = $state(false)
     renegadeOwnRegionId: string | undefined = $state(undefined)
     renegadeEnemyRegionId: string | undefined = $state(undefined)
     renegadeRemovedSquare: { col: number; row: number } | undefined = $state(undefined)
@@ -1661,21 +1700,21 @@ export class LowenherzGameSession extends GameSession<
     // that and cancel afterwards. Derived, it simply stops being true, and the four selections
     // below stop being read.
     get isPlayingRenegadeCard(): boolean {
-        return this.renegadeCardId !== undefined && this.canPlayRenegadeCard
+        return this.renegadeCardSelected && this.canPlayRenegadeCard
     }
 
-    startPlayingRenegadeCard(cardId: string) {
+    startPlayingRenegadeCard() {
         if (!this.canPlayRenegadeCard) return
         this.errorMessage = undefined
         this.cancelPlayingAllianceCard()
-        this.renegadeCardId = cardId
+        this.renegadeCardSelected = true
         this.renegadeOwnRegionId = undefined
         this.renegadeEnemyRegionId = undefined
         this.renegadeRemovedSquare = undefined
 
         // Skip the click when there is nothing to choose - same "one option counts as
         // picked" pattern startPlayingAllianceCard uses. legalRenegadeOwnRegionIds reads
-        // isPlayingRenegadeCard, which is already true now that renegadeCardId is set above.
+        // isPlayingRenegadeCard, which is already true now that renegadeCardSelected is set above.
         const ownRegionIds = this.legalRenegadeOwnRegionIds
         if (ownRegionIds.size === 1) {
             this.selectRenegadeOwnRegion([...ownRegionIds][0])
@@ -1683,14 +1722,14 @@ export class LowenherzGameSession extends GameSession<
     }
 
     cancelPlayingRenegadeCard() {
-        this.renegadeCardId = undefined
+        this.renegadeCardSelected = false
         this.renegadeOwnRegionId = undefined
         this.renegadeEnemyRegionId = undefined
         this.renegadeRemovedSquare = undefined
     }
 
     selectRenegadeOwnRegion(regionId: string) {
-        if (!this.renegadeCardId) return
+        if (!this.renegadeCardSelected) return
         this.renegadeOwnRegionId = regionId
         this.renegadeEnemyRegionId = undefined
         this.renegadeRemovedSquare = undefined
@@ -1703,7 +1742,10 @@ export class LowenherzGameSession extends GameSession<
     // legalRenegadeOwnRegionIds (restricted to the in-progress flow) and
     // canPlayRenegadeCard (checked across every region, to know up front whether the
     // card has any legal play at all).
-    private regionHasRenegadeCandidateSquare(region: Region, playerState: HydratedLowenherzPlayerState): boolean {
+    private regionHasRenegadeCandidateSquare(
+        region: Region,
+        playerState: HydratedLowenherzPlayerState
+    ): boolean {
         const board = this.gameState.board
         return region.squareKeys.some((key) => {
             const [col, row] = key.split(',').map(Number)
@@ -1711,12 +1753,16 @@ export class LowenherzGameSession extends GameSession<
             if (!square) return false
             if (square.type !== SquareType.Blank && square.type !== SquareType.Forest) return false
             if (square.knightOwner || square.castleOwner) return false
-            if (square.type === SquareType.Forest && playerState.money < WOODED_KNIGHT_COST) return false
+            if (square.type === SquareType.Forest && playerState.money < WOODED_KNIGHT_COST)
+                return false
             return neighbors(col, row).some((n) => {
                 if (!isOnBoard(n.col, n.row)) return false
                 if (isWalledBetween(board, col, row, n.col, n.row)) return false
                 const ns = getSquare(board, n.col, n.row)
-                return ns?.knightOwner === playerState.playerId || ns?.castleOwner === playerState.playerId
+                return (
+                    ns?.knightOwner === playerState.playerId ||
+                    ns?.castleOwner === playerState.playerId
+                )
             })
         })
     }
@@ -1733,7 +1779,8 @@ export class LowenherzGameSession extends GameSession<
             if (!this.regionHasRenegadeCandidateSquare(region, playerState)) continue
             // A region with room for the replacement knight but nothing bordering it to
             // take one FROM is just as much a dead end, so it isn't offered either.
-            if (!this.gameState.regions.some((r) => this.isEligibleRenegadeEnemyRegion(region, r))) continue
+            if (!this.gameState.regions.some((r) => this.isEligibleRenegadeEnemyRegion(region, r)))
+                continue
             result.add(region.id)
         }
         return result
@@ -1766,7 +1813,9 @@ export class LowenherzGameSession extends GameSession<
     get legalRenegadeEnemyRegions(): Region[] {
         const ownRegion = this.gameState.regions.find((r) => r.id === this.renegadeOwnRegionId)
         if (!ownRegion) return []
-        return this.gameState.regions.filter((r) => this.isEligibleRenegadeEnemyRegion(ownRegion, r))
+        return this.gameState.regions.filter((r) =>
+            this.isEligibleRenegadeEnemyRegion(ownRegion, r)
+        )
     }
 
     selectRenegadeEnemyRegion(regionId: string) {
@@ -1805,7 +1854,7 @@ export class LowenherzGameSession extends GameSession<
     private isValidRenegadeAttempt(placedCol: number, placedRow: number): boolean {
         if (
             !this.myPlayer ||
-            !this.renegadeCardId ||
+            !this.renegadeCardSelected ||
             !this.renegadeOwnRegionId ||
             !this.renegadeEnemyRegionId ||
             !this.renegadeRemovedSquare
@@ -1814,7 +1863,6 @@ export class LowenherzGameSession extends GameSession<
         }
         return (
             playRenegadeCardReason(this.gameState, this.myPlayer.id, {
-                cardId: this.renegadeCardId,
                 ownRegionId: this.renegadeOwnRegionId,
                 enemyRegionId: this.renegadeEnemyRegionId,
                 removedCol: this.renegadeRemovedSquare.col,
@@ -1829,7 +1877,8 @@ export class LowenherzGameSession extends GameSession<
     // knight, given everything picked so far - computed once per access, same pattern
     // as legalNextExpansionSquares.
     get legalRenegadePlacementSquares(): { col: number; row: number }[] {
-        if (!this.renegadeOwnRegionId || !this.renegadeEnemyRegionId || !this.renegadeRemovedSquare) return []
+        if (!this.renegadeOwnRegionId || !this.renegadeEnemyRegionId || !this.renegadeRemovedSquare)
+            return []
 
         const result: { col: number; row: number }[] = []
         for (let row = 0; row < BOARD_ROWS; row++) {
@@ -1841,13 +1890,24 @@ export class LowenherzGameSession extends GameSession<
     }
 
     async confirmRenegadePlacement(placedCol: number, placedRow: number) {
-        const { myPlayer, renegadeCardId, renegadeOwnRegionId, renegadeEnemyRegionId, renegadeRemovedSquare } = this
-        if (!myPlayer || !renegadeCardId || !renegadeOwnRegionId || !renegadeEnemyRegionId || !renegadeRemovedSquare) {
+        const {
+            myPlayer,
+            renegadeCardSelected,
+            renegadeOwnRegionId,
+            renegadeEnemyRegionId,
+            renegadeRemovedSquare
+        } = this
+        if (
+            !myPlayer ||
+            !renegadeCardSelected ||
+            !renegadeOwnRegionId ||
+            !renegadeEnemyRegionId ||
+            !renegadeRemovedSquare
+        ) {
             return
         }
 
         const action = this.createPlayerAction(PlayRenegadeCard, {
-            cardId: renegadeCardId,
             ownRegionId: renegadeOwnRegionId,
             enemyRegionId: renegadeEnemyRegionId,
             removedCol: renegadeRemovedSquare.col,
@@ -1860,7 +1920,6 @@ export class LowenherzGameSession extends GameSession<
             // Same reasoning as placeKnight's own comment: legalRenegadePlacementSquares (the
             // dots) already covers adjacency, so that one reason stays silent.
             const reason = playRenegadeCardReason(this.gameState, myPlayer.id, {
-                cardId: renegadeCardId,
                 ownRegionId: renegadeOwnRegionId,
                 enemyRegionId: renegadeEnemyRegionId,
                 removedCol: renegadeRemovedSquare.col,
@@ -1889,7 +1948,8 @@ export class LowenherzGameSession extends GameSession<
         if (!this.canActNow) return false
         if (!this.myPlayer || !this.canChooseAction) return false
         const playerState = this.gameState.getPlayerState(this.myPlayer.id)
-        if (!playerState.politicsCards.some((c) => c.type === PoliticsCardType.Alliance)) return false
+        if (!playerState.getPoliticsCards().some((c) => c.type === PoliticsCardType.Alliance))
+            return false
         // Holding the card isn't enough on its own - there also needs to be at least
         // one of the player's own regions bordering an enemy region it isn't already
         // allied with, or there'd be nothing legal to pick in the 2-step flow.
@@ -1902,24 +1962,24 @@ export class LowenherzGameSession extends GameSession<
     // picked their own region yet - a 2-step targeting flow (own region -> a
     // neighboring enemy region, which immediately confirms), same overall pattern as
     // the Renegade flow but shorter.
-    allianceCardId: string | undefined = $state(undefined)
+    allianceCardSelected = $state(false)
     allianceOwnRegionId: string | undefined = $state(undefined)
 
     // Same as isPlayingRenegadeCard: true only while it is still legal to be playing one.
     get isPlayingAllianceCard(): boolean {
-        return this.allianceCardId !== undefined && this.canPlayAllianceCard
+        return this.allianceCardSelected && this.canPlayAllianceCard
     }
 
-    startPlayingAllianceCard(cardId: string) {
+    startPlayingAllianceCard() {
         if (!this.canPlayAllianceCard) return
         this.errorMessage = undefined
         this.cancelPlayingRenegadeCard()
-        this.allianceCardId = cardId
+        this.allianceCardSelected = true
         this.allianceOwnRegionId = undefined
 
         // Skip the click when there is nothing to choose - same "one option counts as
         // picked" pattern selectedExpandRegionId and knightPlan use. legalAllianceOwnRegionIds
-        // reads allianceCardId, which is already set above, so this sees the real choices.
+        // reads allianceCardSelected, which is already set above, so this sees the real choices.
         const ownRegionIds = this.legalAllianceOwnRegionIds
         if (ownRegionIds.size === 1) {
             this.selectAllianceOwnRegion([...ownRegionIds][0])
@@ -1927,12 +1987,12 @@ export class LowenherzGameSession extends GameSession<
     }
 
     cancelPlayingAllianceCard() {
-        this.allianceCardId = undefined
+        this.allianceCardSelected = false
         this.allianceOwnRegionId = undefined
     }
 
     selectAllianceOwnRegion(regionId: string) {
-        if (!this.allianceCardId) return
+        if (!this.allianceCardSelected) return
         this.allianceOwnRegionId = regionId
 
         // Same skip-the-click logic for the enemy side: picking the enemy region normally
@@ -1980,24 +2040,24 @@ export class LowenherzGameSession extends GameSession<
     get legalAllianceEnemyRegions(): Region[] {
         const ownRegion = this.gameState.regions.find((r) => r.id === this.allianceOwnRegionId)
         if (!ownRegion) return []
-        return this.gameState.regions.filter((r) => this.isEligibleAllianceEnemyRegion(ownRegion, r))
+        return this.gameState.regions.filter((r) =>
+            this.isEligibleAllianceEnemyRegion(ownRegion, r)
+        )
     }
 
     // Picking the enemy region immediately confirms the play - there's no further
     // step (no board squares to choose), unlike Renegade.
     async selectAllianceEnemyRegion(regionId: string) {
-        const { myPlayer, allianceCardId, allianceOwnRegionId } = this
-        if (!myPlayer || !allianceCardId || !allianceOwnRegionId) return
+        const { myPlayer, allianceCardSelected, allianceOwnRegionId } = this
+        if (!myPlayer || !allianceCardSelected || !allianceOwnRegionId) return
         if (!this.legalAllianceEnemyRegions.some((r) => r.id === regionId)) return
 
         const action = this.createPlayerAction(PlayAllianceCard, {
-            cardId: allianceCardId,
             ownRegionId: allianceOwnRegionId,
             enemyRegionId: regionId
         })
 
         const invalidReason = playAllianceCardReason(this.gameState, myPlayer.id, {
-            cardId: allianceCardId,
             ownRegionId: allianceOwnRegionId,
             enemyRegionId: regionId
         })
@@ -2044,16 +2104,17 @@ export class LowenherzGameSession extends GameSession<
     applyPoliticsCard(card: PoliticsCard) {
         switch (card.type) {
             case PoliticsCardType.Renegade:
-                this.startPlayingRenegadeCard(card.id)
+                this.startPlayingRenegadeCard()
                 break
             case PoliticsCardType.Alliance:
-                this.startPlayingAllianceCard(card.id)
+                this.startPlayingAllianceCard()
                 break
             case PoliticsCardType.Treasure:
+                if (card.value === undefined) return
                 if (this.canSubmitDuelBid) {
-                    this.armDuelTreasure(card.id)
+                    this.armDuelTreasure(card.value)
                 } else {
-                    this.selectTreasureCard(card.id)
+                    this.selectTreasureCard(card.value)
                 }
                 break
         }
@@ -2065,14 +2126,19 @@ export class LowenherzGameSession extends GameSession<
     // Renegade/Alliance immediately show their next step on the board itself (a highlighted
     // region to click), so they don't need this - but are included for completeness, since a
     // card mid-targeting-flow is exactly as "active" as an armed Treasure.
-    isPoliticsCardActive(card: PoliticsCard): boolean {
+    isPoliticsCardActive(card: PoliticsCard, occurrence = 0): boolean {
         switch (card.type) {
             case PoliticsCardType.Renegade:
-                return this.renegadeCardId === card.id
+                return occurrence === 0 && this.isPlayingRenegadeCard
             case PoliticsCardType.Alliance:
-                return this.allianceCardId === card.id
+                return occurrence === 0 && this.isPlayingAllianceCard
             case PoliticsCardType.Treasure:
-                return this.selectedTreasureCard?.id === card.id || this.armedDuelTreasureIds.includes(card.id)
+                return (
+                    card.value !== undefined &&
+                    ((occurrence === 0 && this.selectedTreasureCard?.value === card.value) ||
+                        this.armedDuelTreasureValues.filter((value) => value === card.value)
+                            .length > occurrence)
+                )
             default:
                 return false
         }
@@ -2100,7 +2166,9 @@ export class LowenherzGameSession extends GameSession<
 
     get myCancellableAlliances(): { id: string; otherOwner: PieceOwner }[] {
         if (!this.myPlayer || !this.gameState.activePlayerIds.includes(this.myPlayer.id)) return []
-        if (!LowenherzGameSession.ALLIANCE_CANCELLATION_STATES.includes(this.gameState.machineState)) {
+        if (
+            !LowenherzGameSession.ALLIANCE_CANCELLATION_STATES.includes(this.gameState.machineState)
+        ) {
             return []
         }
         const myPlayerId = this.myPlayer.id
@@ -2193,7 +2261,10 @@ export class LowenherzGameSession extends GameSession<
                     const myMoney = this.gameState.getPlayerState(this.myPlayer.id).money
                     await this.proposeNegotiationOffer(this.myPlayer.id, Math.min(1, myMoney))
                 } else {
-                    await this.proposeNegotiationOffer(negotiation.offer.fromPlayerId, negotiation.offer.amount)
+                    await this.proposeNegotiationOffer(
+                        negotiation.offer.fromPlayerId,
+                        negotiation.offer.amount
+                    )
                 }
                 continue
             }

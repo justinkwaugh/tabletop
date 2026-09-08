@@ -91,7 +91,7 @@ describe('routeAfterSlotResolved', () => {
         expect(state.wallPlacingPlayerId).toBe('p1')
     })
 
-    it('does not route to PlacingWalls once every one of the winner\'s castles is enclosed', () => {
+    it("does not route to PlacingWalls once every one of the winner's castles is enclosed", () => {
         // The rulebook's cap is "three regions" because a prince has three castles and a
         // region holds exactly one - so the cap is really "nothing left to enclose", and
         // the castles have to be on the board for it to mean anything.
@@ -100,8 +100,16 @@ describe('routeAfterSlotResolved', () => {
             { id: 'r2', owner: 'p1', squareKeys: ['1,0'], castleSquareKey: '1,0' },
             { id: 'r3', owner: 'p1', squareKeys: ['2,0'], castleSquareKey: '2,0' }
         ]
-        const state = buildState([{ slot: 2, winnerPlayerId: 'p1' }], cardWithBorderMiddle, existingRegions)
-        for (const [col, row] of [[0, 0], [1, 0], [2, 0]]) {
+        const state = buildState(
+            [{ slot: 2, winnerPlayerId: 'p1' }],
+            cardWithBorderMiddle,
+            existingRegions
+        )
+        for (const [col, row] of [
+            [0, 0],
+            [1, 0],
+            [2, 0]
+        ]) {
             state.board.squares[row][col] = { type: SquareType.Blank, castleOwner: 'p1' }
         }
 
@@ -122,8 +130,17 @@ describe('routeAfterSlotResolved', () => {
             { id: 'r2', owner: 'p1', squareKeys: ['1,0'], castleSquareKey: '1,0' },
             { id: 'r3', owner: 'p1', squareKeys: ['2,0'], castleSquareKey: '2,0' }
         ]
-        const state = buildState([{ slot: 2, winnerPlayerId: 'p1' }], cardWithBorderMiddle, existingRegions)
-        for (const [col, row] of [[0, 0], [1, 0], [2, 0], [8, 5]]) {
+        const state = buildState(
+            [{ slot: 2, winnerPlayerId: 'p1' }],
+            cardWithBorderMiddle,
+            existingRegions
+        )
+        for (const [col, row] of [
+            [0, 0],
+            [1, 0],
+            [2, 0],
+            [8, 5]
+        ]) {
             state.board.squares[row][col] = { type: SquareType.Blank, castleOwner: 'p1' }
         }
 
@@ -140,8 +157,10 @@ describe('routeAfterSlotResolved', () => {
         const state = buildState([{ slot: 2, winnerPlayerId: 'p1' }], cardWithBorderMiddle)
         for (let row = 0; row < BOARD_ROWS; row++) {
             for (let col = 0; col < BOARD_COLS; col++) {
-                if (col + 1 < BOARD_COLS) state.board.walls.push({ col: col + 1, row, edge: WallEdge.West })
-                if (row + 1 < BOARD_ROWS) state.board.walls.push({ col, row: row + 1, edge: WallEdge.North })
+                if (col + 1 < BOARD_COLS)
+                    state.board.walls.push({ col: col + 1, row, edge: WallEdge.West })
+                if (row + 1 < BOARD_ROWS)
+                    state.board.walls.push({ col, row: row + 1, edge: WallEdge.North })
             }
         }
 
@@ -169,7 +188,8 @@ describe('routeAfterSlotResolved', () => {
     it('still routes to TakingPoliticsCard when only one pile has cards left', () => {
         const state = buildState([{ slot: 1, winnerPlayerId: 'p1' }], cardWithBorderMiddle)
         state.politicsCardPileA = []
-        state.politicsCardPileB = [{ id: 'c1', type: PoliticsCardType.Alliance }]
+        state.politicsCardPileB = [{ type: PoliticsCardType.Alliance }]
+        state.politicsPileBCount = 1
 
         const routing = routeAfterSlotResolved(state)
         expect(routing.nextState).toBe(MachineState.TakingPoliticsCard)
@@ -240,13 +260,17 @@ describe('routeAfterSlotResolved', () => {
         const state = buildState([{ slot: 1, winnerPlayerId: 'p1' }], cardWithBorderMiddle)
         // There has to be something left to take - buildState's piles start empty, and an
         // exhausted pair now skips the slot instead (see the test below).
-        state.politicsCardPileA = [{ id: 'c1', type: PoliticsCardType.Alliance }]
+        state.politicsCardPileA = [{ type: PoliticsCardType.Alliance }]
+        state.politicsPileACount = 1
         expect(routeAfterSlotResolved(state).nextState).toBe(MachineState.TakingPoliticsCard)
         expect(state.politicsTakingPlayerId).toBe('p1')
     })
 
     it('does not route slot 1 to TakingPoliticsCard when the top band is income, not politics', () => {
-        const cardWithIncomeTop: ActionCard = { ...cardWithBorderMiddle, top: { kind: 'income', value: 4 } }
+        const cardWithIncomeTop: ActionCard = {
+            ...cardWithBorderMiddle,
+            top: { kind: 'income', value: 4 }
+        }
         const state = buildState([{ slot: 1, winnerPlayerId: 'p1' }], cardWithIncomeTop)
         expect(routeAfterSlotResolved(state).nextState).toBe(MachineState.ResolvingActions)
         expect(state.politicsTakingPlayerId).toBeUndefined()

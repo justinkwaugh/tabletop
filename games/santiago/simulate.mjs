@@ -175,7 +175,7 @@ while (state.machineState !== MachineState.EndOfGame) {
 
     try {
         const action = buildAction(type, activeId, state)
-        const result = engine.run(action, state, startedGame)
+        const result = engine.executeAction({ action, state, game: startedGame })
         state = result.updatedState
         actionCount += result.processedActions.length
     } catch (err) {

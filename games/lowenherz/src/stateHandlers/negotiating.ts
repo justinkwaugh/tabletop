@@ -35,7 +35,7 @@ export class NegotiatingStateHandler
 
         // Turn-based: proposing hands the move to the other side, so the proposer stops being
         // active. The engine calls enter() after EVERY action, not only on a change of state (see
-        // GameEngine.run - nextHandler.enter is unconditional), so this recomputes as moves come
+        // GameEngine.executeAction - nextHandler.enter is unconditional), so this recomputes as moves come
         // in. Nobody has proposed yet right when the negotiation opens (lastProposedBy is
         // undefined), which leaves both free to open with the first proposal.
         //

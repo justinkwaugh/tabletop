@@ -139,18 +139,18 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
 
         if (flyOrHurl.passage) {
             // Initialize passage sundiver tracking
-            state.getEffectTracking().passageSundiverId = flyOrHurl.sundiverIds[0]
+            state.ensureEffectTracking().passageSundiverId = flyOrHurl.sundiverIds[0]
         }
 
         if (flyOrHurl.stationId) {
-            state.getEffectTracking().flownStationId = flyOrHurl.stationId
+            state.ensureEffectTracking().flownStationId = flyOrHurl.stationId
         }
 
         const distanceMoved = path.length - 1
 
         if (flyOrHurl.cluster) {
             playerState.movementPoints -= distanceMoved
-            state.getEffectTracking().clustersRemaining -= 1
+            state.ensureEffectTracking().clustersRemaining -= 1
         } else if (flyOrHurl.teleport) {
             playerState.movementPoints -= 3
         } else {
@@ -158,7 +158,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
                 let sundiverMovement = distanceMoved
                 if (flyOrHurl.catapult && flyOrHurl.gates.length > 0) {
                     if (!state.getEffectTracking().catapultedIds.includes(sundiverId)) {
-                        state.getEffectTracking().catapultedIds.push(sundiverId)
+                        state.ensureEffectTracking().catapultedIds.push(sundiverId)
                         sundiverMovement -= 1
                     }
                 }
@@ -172,8 +172,8 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         }
 
         if (state.activeEffect === EffectType.Hyperdrive) {
-            state.getEffectTracking().flownSundiverId = flyOrHurl.sundiverIds[0]
-            state.getEffectTracking().movementUsed += distanceMoved
+            state.ensureEffectTracking().flownSundiverId = flyOrHurl.sundiverIds[0]
+            state.ensureEffectTracking().movementUsed += distanceMoved
         }
 
         // Find all the gates traversed
@@ -196,7 +196,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
                     this.hasPassageSundiver(state, flyOrHurl.sundiverIds) &&
                     !state.getEffectTracking().passageGates.includes(key)
                 ) {
-                    state.getEffectTracking().passageGates.push(key)
+                    state.ensureEffectTracking().passageGates.push(key)
                     playerState.momentum += 1
                     flyOrHurl.metadata!.momentumGained += 1
                     flyOrHurl.metadata!.passage = true

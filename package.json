@@ -14,7 +14,8 @@
         "watch:backend": "turbo watch dev --filter=@tabletop/backend",
         "start:backend": "turbo run start --filter=@tabletop/backend",
         "update-games": "turbo update-games",
-        "deploy:tui": "node tools/deploy/esm/cli.js tui"
+        "deploy:tui": "node tools/deploy/esm/cli.js tui",
+        "rehearse": "pnpm --filter @tabletop/tools exec tsx src/rehearsal/cli.mjs"
     },
     "devDependencies": {
         "@turbo/gen": "^2.8.0",
@@ -26,7 +27,7 @@
         "vitest": "^4.0.17"
     },
     "engines": {
-        "node": ">=18"
+        "node": ">=20.19"
     },
     "name": "tabletop",
     "packageManager": "pnpm@10.28.2",

@@ -20,6 +20,7 @@ export default async function (
     fastify.post<{ Body: ActionRequest }>(
         `/action/${actionType}`,
         {
+            config: { requestTiming: true },
             schema: {
                 body: ActionRequest
             },
@@ -41,19 +42,15 @@ export default async function (
                 throw Error('Invalid action format')
             }
 
-            const { processedActions, updatedGame, missingActions } =
-                await fastify.gameService.applyActionToGame({
-                    definition,
-                    action,
-                    user
-                })
-
-            // Don't send the state back
-            delete updatedGame.state
+            const representation = await fastify.gameService.applyActionToGame({
+                definition,
+                action,
+                user
+            })
 
             return {
                 status: 'ok',
-                payload: { actions: processedActions, game: updatedGame, missingActions }
+                payload: representation
             }
         }
     )

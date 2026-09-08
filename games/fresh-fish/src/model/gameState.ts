@@ -1,18 +1,16 @@
 import {
-    AuctionType,
-    Color,
     GameResult,
     GameState,
     HydratableGameState,
     HydratedTurnManager,
     HydratedSimultaneousAuction,
-    PrngState,
     SimultaneousAuction,
-    TieResolutionStrategy
+    PrngState,
+    Visibility
 } from '@tabletop/common'
 import { FreshFishPlayerState, HydratedFreshFishPlayerState } from './playerState.js'
 import { HydratedTileBag, TileBag } from '../components/tileBag.js'
-import { isStallTile, StallTile, Tile, TileType } from '../components/tiles.js'
+import { isStallTile, StallTile, Tile } from '../components/tiles.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameBoard, HydratedGameBoard } from '../components/gameBoard.js'
@@ -39,11 +37,14 @@ export const FreshFishGameState = Type.Evaluate(
     ])
 )
 
-const FreshFishGameStateValidator = Compile(FreshFishGameState)
+export const FreshFishGameStateValidator = Compile(FreshFishGameState)
+export const FreshFishProjectedState = Visibility.createProjectionSchema(FreshFishGameState)
+export type FreshFishProjectedState = Type.Static<typeof FreshFishProjectedState>
+const FreshFishProjectedStateValidator = Compile(FreshFishProjectedState)
 
 export class HydratedFreshFishGameState
-    extends HydratableGameState<typeof FreshFishGameState, HydratedFreshFishPlayerState>
-    implements FreshFishGameState
+    extends HydratableGameState<typeof FreshFishProjectedState, HydratedFreshFishPlayerState>
+    implements FreshFishProjectedState
 {
     declare id: string
     declare gameId: string
@@ -63,8 +64,8 @@ export class HydratedFreshFishGameState
     declare currentAuction?: HydratedSimultaneousAuction
     declare boardSeed?: number
 
-    constructor(data: FreshFishGameState) {
-        super(data, FreshFishGameStateValidator)
+    constructor(data: FreshFishProjectedState) {
+        super(data, FreshFishProjectedStateValidator)
 
         this.tileBag = new HydratedTileBag(data.tileBag)
         this.board = new HydratedGameBoard(data.board)

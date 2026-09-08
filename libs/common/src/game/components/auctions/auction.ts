@@ -1,4 +1,5 @@
 import * as Type from 'typebox'
+import { Compile } from 'typebox/compile'
 import { Hydratable } from '../../../util/hydration.js'
 import { range } from '../../../util/range.js'
 
@@ -14,6 +15,7 @@ export const AuctionParticipant = Type.Object({
     bid: Type.Optional(Type.Number()),
     passed: Type.Boolean({ default: false })
 })
+export const AuctionParticipantValidator = Compile(AuctionParticipant)
 
 export type Auction = Type.Static<typeof Auction>
 export const Auction = Type.Object({

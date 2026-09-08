@@ -58,3 +58,5 @@ tools/deploy/deploy.config.json
 
 # local git worktrees
 .worktrees/
+
+.local-rehearsals/

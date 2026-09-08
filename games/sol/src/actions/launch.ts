@@ -69,7 +69,7 @@ export class HydratedLaunch extends HydratableAction<typeof Launch> implements L
 
         // Effect related
         if (this.destination.row === Ring.Outer) {
-            state.getEffectTracking().outerRingLaunches += this.numSundivers
+            state.ensureEffectTracking().outerRingLaunches += this.numSundivers
 
             if (state.activeEffect === EffectType.Ceremony) {
                 playerState.energyCubes += this.numSundivers
@@ -78,8 +78,8 @@ export class HydratedLaunch extends HydratableAction<typeof Launch> implements L
         }
 
         if (state.activeEffect === EffectType.Hyperdrive) {
-            state.getEffectTracking().flownSundiverId = launchedSundivers[0].id
-            state.getEffectTracking().movementUsed += this.numSundivers
+            state.ensureEffectTracking().flownSundiverId = launchedSundivers[0].id
+            state.ensureEffectTracking().movementUsed += this.numSundivers
         }
     }
 

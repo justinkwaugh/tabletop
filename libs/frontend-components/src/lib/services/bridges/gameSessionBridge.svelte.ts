@@ -1,4 +1,5 @@
 import type { Game, GameState, HydratedGameState, Player } from '@tabletop/common'
+import type { Readable } from 'svelte/store'
 import type { GameSession } from '$lib/model/gameSession.svelte.js'
 import { RuneBackedStore } from '$lib/utils/runeBackedStore.svelte.js'
 
@@ -7,6 +8,44 @@ export type GameSessionBridgeColors = {
     getPlayerTextColor: (playerId?: string) => string
     getPlayerBgColorValue: (playerId?: string) => string
     getPlayerTextColorValue: (playerId?: string) => string
+}
+
+export interface PrivilegedGameViewControls {
+    readonly isViewingHost: Readable<boolean>
+    readonly isViewingAsActingPlayer: Readable<boolean>
+    readonly canViewAsActingPlayer: Readable<boolean>
+    readonly busy: Readable<boolean>
+    setActingPlayerPerspectiveEnabled(enabled: boolean): void
+}
+
+export class PrivilegedGameViewBridge<
+    T extends GameState,
+    U extends HydratedGameState<T> & T
+> implements PrivilegedGameViewControls {
+    readonly isViewingHost: RuneBackedStore<boolean>
+    readonly isViewingAsActingPlayer: RuneBackedStore<boolean>
+    readonly canViewAsActingPlayer: RuneBackedStore<boolean>
+    readonly busy: RuneBackedStore<boolean>
+
+    constructor(private session: GameSession<T, U>) {
+        this.isViewingHost = new RuneBackedStore(() => this.session.isViewingHost)
+        this.isViewingAsActingPlayer = new RuneBackedStore(
+            () => this.session.isViewingAsActingPlayer
+        )
+        this.canViewAsActingPlayer = new RuneBackedStore(() => this.session.canViewAsActingPlayer)
+        this.busy = new RuneBackedStore(() => this.session.busy)
+    }
+
+    connect() {
+        this.isViewingHost.connect()
+        this.isViewingAsActingPlayer.connect()
+        this.canViewAsActingPlayer.connect()
+        this.busy.connect()
+    }
+
+    setActingPlayerPerspectiveEnabled(enabled: boolean) {
+        this.session.setViewAsActingPlayer(enabled)
+    }
 }
 
 export class GameSessionBridge<T extends GameState, U extends HydratedGameState<T> & T> {
@@ -21,6 +60,8 @@ export class GameSessionBridge<T extends GameState, U extends HydratedGameState<
     readonly isViewingHistory: RuneBackedStore<boolean>
     readonly gameState: RuneBackedStore<U | undefined>
     readonly colors: RuneBackedStore<GameSessionBridgeColors>
+    // Optional because the Site Frontend can host an older independently published UI Artifact.
+    readonly privilegedGameView?: PrivilegedGameViewBridge<T, U>
 
     constructor(private session: GameSession<T, U>) {
         this.isExploring = new RuneBackedStore(() => this.session.isExploring)
@@ -32,12 +73,13 @@ export class GameSessionBridge<T extends GameState, U extends HydratedGameState<
         this.currentExplorationGame = new RuneBackedStore(
             () => this.session.explorations.getCurrentExploration()?.game
         )
-        this.hasUnsavedChanges = new RuneBackedStore(
-            () => this.session.explorations.hasUnsavedChanges()
+        this.hasUnsavedChanges = new RuneBackedStore(() =>
+            this.session.explorations.hasUnsavedChanges()
         )
         this.isViewingHistory = new RuneBackedStore(() => this.session.isViewingHistory)
         this.gameState = new RuneBackedStore(() => this.session.gameState)
         this.colors = new RuneBackedStore(() => this.buildColorsSnapshot())
+        this.privilegedGameView = new PrivilegedGameViewBridge(this.session)
     }
 
     connect() {
@@ -52,6 +94,7 @@ export class GameSessionBridge<T extends GameState, U extends HydratedGameState<
         this.isViewingHistory.connect()
         this.gameState.connect()
         this.colors.connect()
+        this.privilegedGameView?.connect()
     }
 
     // The frontend shell and game UI artifacts deploy independently, so this remains the
@@ -82,8 +125,7 @@ export class GameSessionBridge<T extends GameState, U extends HydratedGameState<
         const defaultTextValue = this.session.colors.getPlayerTextColorValue(undefined)
 
         return {
-            getPlayerBgColor: (playerId?: string) =>
-                bgById.get(playerId ?? 'unknown') ?? defaultBg,
+            getPlayerBgColor: (playerId?: string) => bgById.get(playerId ?? 'unknown') ?? defaultBg,
             getPlayerTextColor: (playerId?: string) =>
                 textById.get(playerId ?? 'unknown') ?? defaultText,
             getPlayerBgColorValue: (playerId?: string) =>

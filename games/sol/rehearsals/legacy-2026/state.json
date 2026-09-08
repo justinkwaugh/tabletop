@@ -1,0 +1,1836 @@
+{
+  "systemVersion": 2,
+  "id": "eqXFdYFPnw_Wnlx9T_o7Z",
+  "gameId": "CXTXexcGI_xuEMwK-1lLN",
+  "seed": 2360779589,
+  "prng": {
+    "seed": 2360779589,
+    "invocations": 7259
+  },
+  "activePlayerIds": [],
+  "winningPlayerIds": [
+    "07sMHrXa8s-F4D5hGItFH"
+  ],
+  "actionCount": 512,
+  "actionChecksum": 134208168,
+  "players": [
+    {
+      "playerId": "YDRljyRDxf5E62npnCcRo",
+      "color": "purple",
+      "score": 0,
+      "holdSundivers": [
+        {
+          "id": "weIwDzk5hQbGwHqMWsHY0",
+          "playerId": "YDRljyRDxf5E62npnCcRo",
+          "reserve": true,
+          "hold": "YDRljyRDxf5E62npnCcRo"
+        }
+      ],
+      "reserveSundivers": [
+        {
+          "id": "3EvUcckSm1fAcbKuwsele",
+          "playerId": "YDRljyRDxf5E62npnCcRo",
+          "reserve": true
+        },
+        {
+          "id": "GYtTKgCL1bv02UohSHg9M",
+          "playerId": "YDRljyRDxf5E62npnCcRo",
+          "reserve": true
+        },
+        {
+          "id": "nkIRVms8XHTd7zXZuVlDH",
+          "playerId": "YDRljyRDxf5E62npnCcRo",
+          "reserve": true
+        },
+        {
+          "id": "5ayH0Jf9CNymIitqTwObe",
+          "playerId": "YDRljyRDxf5E62npnCcRo",
+          "reserve": true
+        },
+        {
+          "id": "hR4knbtV1AqO1ChvbN6DG",
+          "playerId": "YDRljyRDxf5E62npnCcRo",
+          "reserve": true
+        },
+        {
+          "id": "sY2MCAH5PsCGgiCxGFAJ1",
+          "playerId": "YDRljyRDxf5E62npnCcRo",
+          "reserve": true
+        },
+        {
+          "id": "RwL6Iskb59kyyXfDWuOgb",
+          "playerId": "YDRljyRDxf5E62npnCcRo",
+          "reserve": true
+        },
+        {
+          "id": "gxSyTUB3JwYt50khRjsay",
+          "playerId": "YDRljyRDxf5E62npnCcRo",
+          "reserve": true
+        },
+        {
+          "id": "eA9hIMPq78ExF77mBa0b8",
+          "playerId": "YDRljyRDxf5E62npnCcRo",
+          "reserve": true
+        },
+        {
+          "id": "MsSOQdrpgcVVplRzWdpYT",
+          "playerId": "YDRljyRDxf5E62npnCcRo",
+          "reserve": true
+        }
+      ],
+      "energyCubes": 9,
+      "solarGates": [
+        {
+          "id": "rrjyc2QeAAUjYYKz4XeRc",
+          "playerId": "YDRljyRDxf5E62npnCcRo"
+        },
+        {
+          "id": "KlWfYNZ1lr0KKjoG7LHZY",
+          "playerId": "YDRljyRDxf5E62npnCcRo"
+        }
+      ],
+      "energyNodes": [
+        {
+          "type": "EnergyNode",
+          "id": "78WdM3pyHruETKhe94v1Z",
+          "playerId": "YDRljyRDxf5E62npnCcRo"
+        }
+      ],
+      "sundiverFoundries": [
+        {
+          "type": "SundiverFoundry",
+          "id": "ZkfXwNESokU8EDFOUoq8S",
+          "playerId": "YDRljyRDxf5E62npnCcRo"
+        },
+        {
+          "type": "SundiverFoundry",
+          "id": "xAqvKv9C5HgqhB0xLK8ce",
+          "playerId": "YDRljyRDxf5E62npnCcRo"
+        }
+      ],
+      "transmitTowers": [
+        {
+          "type": "TransmitTower",
+          "id": "ZmWCrTgyqGccFJbtyOMDx",
+          "playerId": "YDRljyRDxf5E62npnCcRo"
+        },
+        {
+          "type": "TransmitTower",
+          "id": "2hcRxWCPS2DrLKoYlQcdE",
+          "playerId": "YDRljyRDxf5E62npnCcRo"
+        }
+      ],
+      "movement": 7,
+      "movementPoints": 0,
+      "drawnCards": [],
+      "momentum": 6,
+      "card": {
+        "id": "pkq7c7sUZa1Eggh8GADfk",
+        "suit": "Flare"
+      }
+    },
+    {
+      "playerId": "07sMHrXa8s-F4D5hGItFH",
+      "color": "black",
+      "score": 0,
+      "holdSundivers": [
+        {
+          "id": "QfImRpkh701ksQ0bFeDzx",
+          "playerId": "07sMHrXa8s-F4D5hGItFH",
+          "reserve": true,
+          "hold": "07sMHrXa8s-F4D5hGItFH"
+        },
+        {
+          "id": "fF4XftAIHIqfizcVLcJiq",
+          "playerId": "07sMHrXa8s-F4D5hGItFH",
+          "reserve": false,
+          "hold": "07sMHrXa8s-F4D5hGItFH"
+        },
+        {
+          "id": "SMuah3mrTUiItu9JiTXyy",
+          "playerId": "07sMHrXa8s-F4D5hGItFH",
+          "reserve": false,
+          "hold": "07sMHrXa8s-F4D5hGItFH"
+        }
+      ],
+      "reserveSundivers": [
+        {
+          "id": "t6FL1LiZ5LdIcUcXveKEg",
+          "playerId": "07sMHrXa8s-F4D5hGItFH",
+          "reserve": true
+        },
+        {
+          "id": "uESo3XP6dfttBSw4Ktuhx",
+          "playerId": "07sMHrXa8s-F4D5hGItFH",
+          "reserve": true
+        },
+        {
+          "id": "jPdwcjMw6oJC4W3trCPIy",
+          "playerId": "07sMHrXa8s-F4D5hGItFH",
+          "reserve": true
+        },
+        {
+          "id": "biK7N7Etz0VekYz1yWf0f",
+          "playerId": "07sMHrXa8s-F4D5hGItFH",
+          "reserve": true
+        },
+        {
+          "id": "7BDrp3qXlh0WIUXJsZ7Tg",
+          "playerId": "07sMHrXa8s-F4D5hGItFH",
+          "reserve": true
+        },
+        {
+          "id": "ep9ZHYywWTBN4TkonUlv6",
+          "playerId": "07sMHrXa8s-F4D5hGItFH",
+          "reserve": true
+        }
+      ],
+      "energyCubes": 3,
+      "solarGates": [
+        {
+          "id": "qIh9mzvrWyhwAbjkHslJ0",
+          "playerId": "07sMHrXa8s-F4D5hGItFH"
+        },
+        {
+          "id": "2LAy97k6viTyphidAQjMq",
+          "playerId": "07sMHrXa8s-F4D5hGItFH"
+        },
+        {
+          "id": "9BJIGnp21QEhVSSZdi4Iy",
+          "playerId": "07sMHrXa8s-F4D5hGItFH"
+        }
+      ],
+      "energyNodes": [
+        {
+          "type": "EnergyNode",
+          "id": "99lthvwQKcmFjWXDwkgFW",
+          "playerId": "07sMHrXa8s-F4D5hGItFH"
+        }
+      ],
+      "sundiverFoundries": [
+        {
+          "type": "SundiverFoundry",
+          "id": "eRnNxZNDyDeU7JtePdnIB",
+          "playerId": "07sMHrXa8s-F4D5hGItFH"
+        },
+        {
+          "type": "SundiverFoundry",
+          "id": "h9JyTw6j6P6D3OK0G0L3P",
+          "playerId": "07sMHrXa8s-F4D5hGItFH"
+        }
+      ],
+      "transmitTowers": [
+        {
+          "type": "TransmitTower",
+          "id": "AxshiOn46nDwIUgsuFbY5",
+          "playerId": "07sMHrXa8s-F4D5hGItFH"
+        },
+        {
+          "type": "TransmitTower",
+          "id": "Hf6EDpu4aV5FPFQMJs2vu",
+          "playerId": "07sMHrXa8s-F4D5hGItFH"
+        }
+      ],
+      "movement": 6,
+      "movementPoints": 6,
+      "drawnCards": [
+        {
+          "id": "anXc9VJ8cphlcmjo52ICG",
+          "suit": "Flare"
+        }
+      ],
+      "momentum": 21
+    },
+    {
+      "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+      "color": "green",
+      "score": 0,
+      "holdSundivers": [
+        {
+          "id": "2ZOcpS1DOWaMgCDhEdyjJ",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+          "reserve": true,
+          "hold": "Aj-WEwgK0k-6T3BzgTdFO"
+        },
+        {
+          "id": "0uSUdmeaCVvJaI5F98RaH",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+          "reserve": true,
+          "hold": "Aj-WEwgK0k-6T3BzgTdFO"
+        },
+        {
+          "id": "1oWaO43a1VD8bksTdAGos",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+          "reserve": true,
+          "hold": "Aj-WEwgK0k-6T3BzgTdFO"
+        },
+        {
+          "id": "gbTBoysN9MSR75ea0HVBP",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+          "reserve": true,
+          "hold": "Aj-WEwgK0k-6T3BzgTdFO"
+        },
+        {
+          "id": "Qqw7W4ArNKoe0X3q9dGmK",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+          "reserve": false,
+          "hold": "Aj-WEwgK0k-6T3BzgTdFO"
+        },
+        {
+          "id": "SykhvjTQ9ZMXXIP1W8l2I",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+          "reserve": true,
+          "hold": "Aj-WEwgK0k-6T3BzgTdFO"
+        }
+      ],
+      "reserveSundivers": [
+        {
+          "id": "J0cNVDfCj81LgSzplcTzP",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+          "reserve": true
+        },
+        {
+          "id": "XErGBL1OYWZV2Xn7TxE4p",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+          "reserve": true
+        },
+        {
+          "id": "9D5y2ubd4JenqI7Owawow",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+          "reserve": true
+        }
+      ],
+      "energyCubes": 2,
+      "solarGates": [
+        {
+          "id": "8yu5C2N4wvFQqGMK5supA",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO"
+        },
+        {
+          "id": "W1nYb79P1w7JhIBoMYjeR",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO"
+        }
+      ],
+      "energyNodes": [
+        {
+          "type": "EnergyNode",
+          "id": "h4i0CIf0y1qKuTProWeE0",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO"
+        },
+        {
+          "type": "EnergyNode",
+          "id": "AfSvGJMbQ4W7Kq18lhr2S",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO"
+        }
+      ],
+      "sundiverFoundries": [
+        {
+          "type": "SundiverFoundry",
+          "id": "ozzn9Nu9J2uDfXB6nQeEW",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO"
+        }
+      ],
+      "transmitTowers": [
+        {
+          "type": "TransmitTower",
+          "id": "zSTMsg02yfM8sqLgOtjqq",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO"
+        },
+        {
+          "type": "TransmitTower",
+          "id": "WrfLNqPHw1WGZTYKxLHsA",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO"
+        }
+      ],
+      "movement": 6,
+      "movementPoints": 6,
+      "drawnCards": [],
+      "momentum": 17,
+      "card": {
+        "id": "NtS4vhAPZeb5A7kNYTJAu",
+        "suit": "Subduction"
+      }
+    },
+    {
+      "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+      "color": "gray",
+      "score": 0,
+      "holdSundivers": [
+        {
+          "id": "DKmx1dkSYu0J3TieBNHfL",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+          "reserve": true,
+          "hold": "Ff0j7UsZ5opEBe5VuS8TN"
+        },
+        {
+          "id": "c8xUrnuJqb1cDdTSJ9LLC",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+          "reserve": true,
+          "hold": "Ff0j7UsZ5opEBe5VuS8TN"
+        },
+        {
+          "id": "dzKZL9Ty43EprGKCjSQR4",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+          "reserve": true,
+          "hold": "Ff0j7UsZ5opEBe5VuS8TN"
+        }
+      ],
+      "reserveSundivers": [
+        {
+          "id": "uE4VHAErOj2Z5UiKMZpiJ",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+          "reserve": true
+        },
+        {
+          "id": "ZknVQNJEPIa5Y37xdHemW",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+          "reserve": true
+        },
+        {
+          "id": "pGdzCxOxKXAz2qHkrpJiD",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+          "reserve": true
+        },
+        {
+          "id": "T7YkZAn8wYVtPBhzF6hvP",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+          "reserve": true
+        }
+      ],
+      "energyCubes": 11,
+      "solarGates": [
+        {
+          "id": "fev7QyIosLfLIFYpOO3ZB",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN"
+        },
+        {
+          "id": "OX0pxLU1AGlpMmr6WbRcM",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN"
+        },
+        {
+          "id": "sMEdMyJXGfAYYMyx0tMbe",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN"
+        },
+        {
+          "id": "CVnPrZInKLikToF2fkwPi",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN"
+        }
+      ],
+      "energyNodes": [
+        {
+          "type": "EnergyNode",
+          "id": "aYX5mvEFMMwaEV57xlI0W",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN"
+        }
+      ],
+      "sundiverFoundries": [
+        {
+          "type": "SundiverFoundry",
+          "id": "yMyXjTYJInzNUsUPDDiAB",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN"
+        },
+        {
+          "type": "SundiverFoundry",
+          "id": "ejps89zEy8QED2BXJm025",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN"
+        },
+        {
+          "type": "SundiverFoundry",
+          "id": "S7JgoZlKQ4oRL5vNlPp05",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN"
+        }
+      ],
+      "transmitTowers": [
+        {
+          "type": "TransmitTower",
+          "id": "WJhsJRkX7ZdG9b2no4DOR",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN"
+        },
+        {
+          "type": "TransmitTower",
+          "id": "Syz7oiM9WvGfHPXwsqb4D",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN"
+        }
+      ],
+      "movement": 5,
+      "movementPoints": 5,
+      "drawnCards": [],
+      "momentum": 19,
+      "card": {
+        "id": "bkQ1MihdinVmhS90mLY7A",
+        "suit": "Expansion"
+      }
+    }
+  ],
+  "machineState": "EndOfGame",
+  "turnManager": {
+    "series": [
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 0,
+        "end": 3
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 3,
+        "end": 6
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 6,
+        "end": 10
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 10,
+        "end": 14
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 14,
+        "end": 18
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 18,
+        "end": 22
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 22,
+        "end": 25
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 25,
+        "end": 27
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 27,
+        "end": 31
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 31,
+        "end": 37
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 37,
+        "end": 41
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 41,
+        "end": 44
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 44,
+        "end": 48
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 48,
+        "end": 52
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 52,
+        "end": 54
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 54,
+        "end": 57
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 57,
+        "end": 59
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 59,
+        "end": 62
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 62,
+        "end": 66
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 66,
+        "end": 69
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 69,
+        "end": 73
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 73,
+        "end": 77
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 77,
+        "end": 79
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 79,
+        "end": 83
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 83,
+        "end": 91
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 91,
+        "end": 94
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 94,
+        "end": 99
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 99,
+        "end": 104
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 104,
+        "end": 110
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 110,
+        "end": 112
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 112,
+        "end": 117
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 117,
+        "end": 120
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 120,
+        "end": 125
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 125,
+        "end": 132
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 132,
+        "end": 135
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 135,
+        "end": 144
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 144,
+        "end": 147
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 147,
+        "end": 152
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 152,
+        "end": 154
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 154,
+        "end": 157
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 157,
+        "end": 159
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 159,
+        "end": 164
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 164,
+        "end": 169
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 169,
+        "end": 176
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 176,
+        "end": 180
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 180,
+        "end": 184
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 184,
+        "end": 188
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 188,
+        "end": 193
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 193,
+        "end": 197
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 197,
+        "end": 200
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 200,
+        "end": 204
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 204,
+        "end": 209
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 209,
+        "end": 213
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 213,
+        "end": 217
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 217,
+        "end": 223
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 223,
+        "end": 227
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 227,
+        "end": 231
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 231,
+        "end": 236
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 236,
+        "end": 239
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 239,
+        "end": 247
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 247,
+        "end": 252
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 252,
+        "end": 256
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 256,
+        "end": 259
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 259,
+        "end": 266
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 266,
+        "end": 269
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 269,
+        "end": 274
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 274,
+        "end": 277
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 277,
+        "end": 284
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 284,
+        "end": 286
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 286,
+        "end": 289
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 289,
+        "end": 301
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 301,
+        "end": 303
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 303,
+        "end": 306
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 306,
+        "end": 313
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 313,
+        "end": 316
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 316,
+        "end": 318
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 318,
+        "end": 320
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 320,
+        "end": 326
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 326,
+        "end": 329
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 329,
+        "end": 334
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 334,
+        "end": 339
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 339,
+        "end": 342
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 342,
+        "end": 350
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 350,
+        "end": 359
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 359,
+        "end": 363
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 363,
+        "end": 370
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 370,
+        "end": 377
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 377,
+        "end": 381
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 381,
+        "end": 386
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 386,
+        "end": 391
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 391,
+        "end": 393
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 393,
+        "end": 398
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 398,
+        "end": 401
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 401,
+        "end": 408
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 408,
+        "end": 411
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 411,
+        "end": 428
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 428,
+        "end": 430
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 430,
+        "end": 435
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 435,
+        "end": 440
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 440,
+        "end": 451
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 451,
+        "end": 455
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 455,
+        "end": 463
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 463,
+        "end": 471
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 471,
+        "end": 474
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 474,
+        "end": 483
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 483,
+        "end": 486
+      },
+      {
+        "type": "turn",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "start": 486,
+        "end": 494
+      },
+      {
+        "type": "turn",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "start": 494,
+        "end": 503
+      },
+      {
+        "type": "turn",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "start": 503,
+        "end": 507
+      },
+      {
+        "type": "turn",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "start": 507
+      }
+    ],
+    "turnOrder": [
+      "YDRljyRDxf5E62npnCcRo",
+      "07sMHrXa8s-F4D5hGItFH",
+      "Aj-WEwgK0k-6T3BzgTdFO",
+      "Ff0j7UsZ5opEBe5VuS8TN"
+    ],
+    "turnCounts": {
+      "Aj-WEwgK0k-6T3BzgTdFO": 27,
+      "Ff0j7UsZ5opEBe5VuS8TN": 27,
+      "07sMHrXa8s-F4D5hGItFH": 27,
+      "YDRljyRDxf5E62npnCcRo": 28
+    }
+  },
+  "board": {
+    "numPlayers": 4,
+    "motherships": {
+      "YDRljyRDxf5E62npnCcRo": 0,
+      "07sMHrXa8s-F4D5hGItFH": 4,
+      "Aj-WEwgK0k-6T3BzgTdFO": 7,
+      "Ff0j7UsZ5opEBe5VuS8TN": 10
+    },
+    "cells": {
+      "2": {
+        "coords": {
+          "col": 0,
+          "row": 1
+        },
+        "sundivers": [
+          {
+            "id": "v7jQuzlLjXF5Q9tIPZxu5",
+            "playerId": "YDRljyRDxf5E62npnCcRo",
+            "reserve": true,
+            "coords": {
+              "col": 0,
+              "row": 1
+            }
+          }
+        ],
+        "station": {
+          "type": "TransmitTower",
+          "id": "j1gci5BvkoI3W51AlUwQG",
+          "playerId": "YDRljyRDxf5E62npnCcRo",
+          "coords": {
+            "col": 0,
+            "row": 1
+          }
+        }
+      },
+      "8": {
+        "coords": {
+          "col": 0,
+          "row": 2
+        },
+        "sundivers": [],
+        "station": {
+          "type": "TransmitTower",
+          "id": "PfUlczdChVlM4oRNV4zFR",
+          "playerId": "07sMHrXa8s-F4D5hGItFH",
+          "coords": {
+            "col": 0,
+            "row": 2
+          }
+        }
+      },
+      "9": {
+        "coords": {
+          "col": 1,
+          "row": 2
+        },
+        "station": {
+          "type": "EnergyNode",
+          "id": "mc6NQJ3vD1ATsXBQbWtEO",
+          "playerId": "07sMHrXa8s-F4D5hGItFH",
+          "coords": {
+            "col": 1,
+            "row": 2
+          }
+        },
+        "sundivers": []
+      },
+      "12": {
+        "coords": {
+          "col": 2,
+          "row": 2
+        },
+        "sundivers": []
+      },
+      "18": {
+        "coords": {
+          "col": 0,
+          "row": 3
+        },
+        "sundivers": []
+      },
+      "19": {
+        "coords": {
+          "col": 1,
+          "row": 3
+        },
+        "sundivers": [],
+        "station": {
+          "type": "SundiverFoundry",
+          "id": "dD0vySfZ90VIWSXghU0a3",
+          "playerId": "YDRljyRDxf5E62npnCcRo",
+          "coords": {
+            "col": 1,
+            "row": 3
+          }
+        }
+      },
+      "20": {
+        "coords": {
+          "col": 2,
+          "row": 3
+        },
+        "sundivers": []
+      },
+      "23": {
+        "coords": {
+          "col": 3,
+          "row": 2
+        },
+        "sundivers": [],
+        "station": {
+          "type": "EnergyNode",
+          "id": "rX6YDhZhcKLtlquaW9vzW",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+          "coords": {
+            "col": 3,
+            "row": 2
+          }
+        }
+      },
+      "32": {
+        "coords": {
+          "col": 0,
+          "row": 4
+        },
+        "sundivers": []
+      },
+      "33": {
+        "coords": {
+          "col": 1,
+          "row": 4
+        },
+        "sundivers": [],
+        "station": {
+          "type": "EnergyNode",
+          "id": "SRLBZPgeKfo9xqynN2GN0",
+          "playerId": "YDRljyRDxf5E62npnCcRo",
+          "coords": {
+            "col": 1,
+            "row": 4
+          }
+        }
+      },
+      "34": {
+        "coords": {
+          "col": 2,
+          "row": 4
+        },
+        "sundivers": []
+      },
+      "35": {
+        "coords": {
+          "col": 3,
+          "row": 4
+        },
+        "sundivers": []
+      },
+      "38": {
+        "coords": {
+          "col": 4,
+          "row": 2
+        },
+        "sundivers": [
+          {
+            "id": "nJuDZKroaAYUHGCx72RDB",
+            "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+            "reserve": true,
+            "coords": {
+              "col": 4,
+              "row": 2
+            }
+          }
+        ],
+        "station": {
+          "type": "TransmitTower",
+          "id": "6dKqdHvCa5tMNEvBP7cVP",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+          "coords": {
+            "col": 4,
+            "row": 2
+          }
+        }
+      },
+      "39": {
+        "coords": {
+          "col": 4,
+          "row": 3
+        },
+        "sundivers": [],
+        "station": {
+          "type": "SundiverFoundry",
+          "id": "B1y1VvIj3DnVKo8A9MLg9",
+          "playerId": "07sMHrXa8s-F4D5hGItFH",
+          "coords": {
+            "col": 4,
+            "row": 3
+          }
+        }
+      },
+      "40": {
+        "coords": {
+          "col": 4,
+          "row": 4
+        },
+        "sundivers": []
+      },
+      "50": {
+        "coords": {
+          "col": 0,
+          "row": 5
+        },
+        "sundivers": [],
+        "station": {
+          "type": "EnergyNode",
+          "id": "YMOtLYQDP7hFf2Az1WXAP",
+          "playerId": "YDRljyRDxf5E62npnCcRo",
+          "coords": {
+            "col": 0,
+            "row": 5
+          }
+        }
+      },
+      "51": {
+        "coords": {
+          "col": 1,
+          "row": 5
+        },
+        "sundivers": []
+      },
+      "52": {
+        "coords": {
+          "col": 2,
+          "row": 5
+        },
+        "sundivers": []
+      },
+      "53": {
+        "coords": {
+          "col": 3,
+          "row": 5
+        },
+        "sundivers": []
+      },
+      "54": {
+        "coords": {
+          "col": 4,
+          "row": 5
+        },
+        "sundivers": []
+      },
+      "58": {
+        "coords": {
+          "col": 5,
+          "row": 3
+        },
+        "sundivers": []
+      },
+      "59": {
+        "coords": {
+          "col": 5,
+          "row": 4
+        },
+        "sundivers": []
+      },
+      "60": {
+        "coords": {
+          "col": 5,
+          "row": 5
+        },
+        "station": {
+          "type": "EnergyNode",
+          "id": "1eau4fv5xT9B8O8g2EI4U",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+          "coords": {
+            "col": 5,
+            "row": 5
+          }
+        },
+        "sundivers": [
+          {
+            "id": "kwzdMVlsvsCjYXBhBiiqD",
+            "playerId": "YDRljyRDxf5E62npnCcRo",
+            "reserve": true,
+            "coords": {
+              "col": 5,
+              "row": 5
+            }
+          }
+        ]
+      },
+      "83": {
+        "coords": {
+          "col": 6,
+          "row": 5
+        },
+        "sundivers": []
+      },
+      "107": {
+        "coords": {
+          "col": 7,
+          "row": 2
+        },
+        "sundivers": [],
+        "station": {
+          "type": "TransmitTower",
+          "id": "Yl3KgLpJGtJJoVOIVtXTh",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+          "coords": {
+            "col": 7,
+            "row": 2
+          }
+        }
+      },
+      "108": {
+        "coords": {
+          "col": 7,
+          "row": 3
+        },
+        "sundivers": [
+          {
+            "id": "0Gyr4erRlY4KKOBVHOMC9",
+            "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+            "reserve": true,
+            "coords": {
+              "col": 7,
+              "row": 3
+            }
+          }
+        ],
+        "station": {
+          "type": "SundiverFoundry",
+          "id": "ZzJXdUaTjgywQVJ9wBg2m",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+          "coords": {
+            "col": 7,
+            "row": 3
+          }
+        }
+      },
+      "109": {
+        "coords": {
+          "col": 7,
+          "row": 4
+        },
+        "sundivers": []
+      },
+      "110": {
+        "coords": {
+          "col": 7,
+          "row": 5
+        },
+        "sundivers": []
+      },
+      "139": {
+        "coords": {
+          "col": 8,
+          "row": 3
+        },
+        "sundivers": []
+      },
+      "140": {
+        "coords": {
+          "col": 8,
+          "row": 4
+        },
+        "sundivers": [
+          {
+            "id": "3XPtC6peyRaVUWUX2R3lz",
+            "playerId": "07sMHrXa8s-F4D5hGItFH",
+            "reserve": true,
+            "coords": {
+              "col": 8,
+              "row": 4
+            }
+          }
+        ],
+        "station": {
+          "type": "EnergyNode",
+          "id": "MrGQP30lipnLV4KS0oLSs",
+          "playerId": "07sMHrXa8s-F4D5hGItFH",
+          "coords": {
+            "col": 8,
+            "row": 4
+          }
+        }
+      },
+      "175": {
+        "coords": {
+          "col": 9,
+          "row": 4
+        },
+        "sundivers": []
+      },
+      "176": {
+        "coords": {
+          "col": 9,
+          "row": 5
+        },
+        "sundivers": []
+      },
+      "215": {
+        "coords": {
+          "col": 10,
+          "row": 5
+        },
+        "sundivers": [],
+        "station": {
+          "type": "EnergyNode",
+          "id": "45QX2KWfB2eJxyWfMNgFA",
+          "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+          "coords": {
+            "col": 10,
+            "row": 5
+          }
+        }
+      },
+      "256": {
+        "coords": {
+          "col": 11,
+          "row": 3
+        },
+        "sundivers": []
+      },
+      "258": {
+        "coords": {
+          "col": 11,
+          "row": 5
+        },
+        "sundivers": []
+      },
+      "303": {
+        "coords": {
+          "col": 12,
+          "row": 3
+        },
+        "sundivers": [
+          {
+            "id": "RtEEIa1maAJmUTOPume71",
+            "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+            "reserve": true,
+            "coords": {
+              "col": 12,
+              "row": 3
+            }
+          },
+          {
+            "id": "7yoXSlRiP5SvPXYWGJNMB",
+            "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+            "reserve": true,
+            "coords": {
+              "col": 12,
+              "row": 3
+            }
+          }
+        ],
+        "station": {
+          "type": "SundiverFoundry",
+          "id": "CX4aJ8zCKPbU7qp5Jj6kF",
+          "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+          "coords": {
+            "col": 12,
+            "row": 3
+          }
+        }
+      },
+      "304": {
+        "coords": {
+          "col": 12,
+          "row": 4
+        },
+        "sundivers": [
+          {
+            "id": "VqBB2nAkCxY77JaOpDIP6",
+            "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+            "reserve": true,
+            "coords": {
+              "col": 12,
+              "row": 4
+            }
+          },
+          {
+            "id": "rZLFnrqu51ca1x3tlgRah",
+            "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+            "reserve": true,
+            "coords": {
+              "col": 12,
+              "row": 4
+            }
+          },
+          {
+            "id": "wp66XoCn2OeYNjllr6H20",
+            "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+            "reserve": true,
+            "coords": {
+              "col": 12,
+              "row": 4
+            }
+          },
+          {
+            "id": "JrXpWZz6pBpKvLqXM7nTm",
+            "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+            "reserve": true,
+            "coords": {
+              "col": 12,
+              "row": 4
+            }
+          },
+          {
+            "id": "OULhMGTt8A0eE3ofqewUV",
+            "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+            "reserve": true,
+            "coords": {
+              "col": 12,
+              "row": 4
+            }
+          },
+          {
+            "id": "7ij5IpyNDF5am33lfcQNg",
+            "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+            "reserve": false,
+            "coords": {
+              "col": 12,
+              "row": 4
+            }
+          }
+        ]
+      },
+      "305": {
+        "coords": {
+          "col": 12,
+          "row": 5
+        },
+        "sundivers": []
+      }
+    },
+    "gates": {
+      "130": {
+        "id": "K6LSKWQlpYrbmPytXSsDu",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "innerCoords": {
+          "col": 0,
+          "row": 1
+        },
+        "outerCoords": {
+          "col": 0,
+          "row": 2
+        }
+      },
+      "730": {
+        "id": "87f5kjwNL9FaLuqyaqTDY",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "innerCoords": {
+          "col": 0,
+          "row": 2
+        },
+        "outerCoords": {
+          "col": 1,
+          "row": 3
+        }
+      },
+      "2197": {
+        "id": "lgJ4a2aPXk35oGBOUpPmo",
+        "playerId": "YDRljyRDxf5E62npnCcRo",
+        "innerCoords": {
+          "col": 1,
+          "row": 3
+        },
+        "outerCoords": {
+          "col": 1,
+          "row": 4
+        }
+      },
+      "3054": {
+        "id": "1zIrxyBOYNRuiFRWCmIMK",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "innerCoords": {
+          "col": 2,
+          "row": 2
+        },
+        "outerCoords": {
+          "col": 4,
+          "row": 3
+        }
+      },
+      "3239": {
+        "id": "iQDTo1qUlFi4jTJ7aw5b7",
+        "playerId": "07sMHrXa8s-F4D5hGItFH",
+        "innerCoords": {
+          "col": 4,
+          "row": 3
+        },
+        "outerCoords": {
+          "col": 4,
+          "row": 4
+        }
+      },
+      "23366": {
+        "id": "sL5FU36wOuhqwp6xgg7Vm",
+        "playerId": "Ff0j7UsZ5opEBe5VuS8TN",
+        "innerCoords": {
+          "col": 4,
+          "row": 2
+        },
+        "outerCoords": {
+          "col": 7,
+          "row": 3
+        }
+      },
+      "23870": {
+        "id": "0qlQ1loA23lSMrqscv3Kb",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "innerCoords": {
+          "col": 7,
+          "row": 3
+        },
+        "outerCoords": {
+          "col": 7,
+          "row": 4
+        }
+      },
+      "183725": {
+        "id": "pXt14BjMTObVJmeS172Og",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "innerCoords": {
+          "col": 7,
+          "row": 2
+        },
+        "outerCoords": {
+          "col": 12,
+          "row": 3
+        }
+      },
+      "185135": {
+        "id": "flBdzCqM2UKh0IvxSlyWJ",
+        "playerId": "Aj-WEwgK0k-6T3BzgTdFO",
+        "innerCoords": {
+          "col": 12,
+          "row": 3
+        },
+        "outerCoords": {
+          "col": 12,
+          "row": 4
+        }
+      }
+    }
+  },
+  "deck": {
+    "items": [
+      {
+        "id": "WhoDBzEXzVmp8b9aFQcSl",
+        "suit": "Condensation"
+      },
+      {
+        "id": "XgNxYuHFN31B5uR0XVycm",
+        "suit": "Expansion"
+      }
+    ],
+    "remaining": 2
+  },
+  "effects": {
+    "Flare": {
+      "type": "Portal",
+      "color": "Yellow"
+    },
+    "Refraction": {
+      "type": "Cascade",
+      "color": "Blue"
+    },
+    "Condensation": {
+      "type": "Pillar",
+      "color": "Yellow"
+    },
+    "Expansion": {
+      "type": "Blight",
+      "color": "Yellow"
+    },
+    "Oscillation": {
+      "type": "Motivate",
+      "color": "Blue"
+    },
+    "Subduction": {
+      "type": "Sacrifice",
+      "color": "Yellow"
+    }
+  },
+  "instability": 0,
+  "energyCubes": 89,
+  "cardsToDraw": 0,
+  "solarFlares": 1,
+  "solarFlaresRemaining": 0,
+  "solarFlareActivations": [],
+  "hurled": false,
+  "paidPlayerIds": [],
+  "moved": false,
+  "result": "Win"
+}

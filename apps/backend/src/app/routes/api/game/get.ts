@@ -6,10 +6,16 @@ const ParamsType = Type.Object({
     gameId: Type.String()
 })
 
+type QueryType = Static<typeof QueryType>
+const QueryType = Type.Object({
+    view: Type.Optional(Type.Literal('host'))
+})
+
 export default async function (fastify: FastifyInstance) {
-    fastify.get<{ Params: ParamsType }>(
+    fastify.get<{ Params: ParamsType; Querystring: QueryType }>(
         '/get/:gameId',
         {
+            schema: { querystring: QueryType },
             onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyRoleUser], {
                 relation: 'and'
             })
@@ -20,34 +26,46 @@ export default async function (fastify: FastifyInstance) {
             }
 
             const { gameId } = request.params
-            const etagData = await fastify.gameService.getGameEtag(gameId)
-            const etag = etagData ? `W/"${etagData}"` : undefined
-            const ifNoneMatch = request.headers['if-none-match']
-            console.log('etag', etag)
-            console.log('if-none-match', ifNoneMatch)
-            if (ifNoneMatch === etag) {
-                await reply.code(304).send()
+            const hostView = request.query.view === 'host'
+            if (hostView && !fastify.gameService.canAccessHostView(request.user)) {
+                await reply.code(403).send()
                 return
             }
 
-            const game = await fastify.gameService.getGame({ gameId, withState: true })
+            const gameEtag = await fastify.gameService.getGameEtagForUser({
+                gameId,
+                hostView,
+                user: request.user
+            })
 
-            if (!game) {
+            if (gameEtag === undefined) {
                 await reply.code(404).send()
                 return
             }
 
-            void reply.header('ETag', etag)
-            const actions = await fastify.gameService.getGameActions(game)
-
-            // For transitioning to undo
-            if (game.state && game.state.actionChecksum === undefined) {
-                console.log('Game state has no checksum, calculating...')
-                const checksum = await fastify.gameService.backfillChecksum(game.state, actions)
-                game.state.actionChecksum = checksum
+            const responseEtag = `W/"${gameEtag}"`
+            void reply.header('ETag', responseEtag)
+            void reply.header('Cache-Control', 'private, no-cache')
+            if (request.headers['if-none-match'] === responseEtag) {
+                await reply.code(304).send()
+                return
             }
 
-            return { status: 'ok', payload: { game, actions } }
+            const representation = await fastify.gameService.getGameForUser({
+                gameId,
+                hostView,
+                user: request.user
+            })
+
+            if (representation === undefined) {
+                await reply.code(404).send()
+                return
+            }
+
+            return {
+                status: 'ok',
+                payload: representation
+            }
         }
     )
 }

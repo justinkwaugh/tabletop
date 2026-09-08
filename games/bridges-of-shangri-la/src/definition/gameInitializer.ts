@@ -19,10 +19,6 @@ export class BridgesGameInitializer
     extends BaseGameInitializer<BridgesGameState, HydratedBridgesGameState>
     implements GameInitializer<BridgesGameState, HydratedBridgesGameState>
 {
-    initializeExplorationState(state: BridgesGameState): BridgesGameState {
-        return state
-    }
-
     initializeGameState(game: Game, state: UninitializedGameState): HydratedBridgesGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng.random)

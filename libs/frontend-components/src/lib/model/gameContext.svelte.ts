@@ -189,14 +189,18 @@ export class GameContext<T extends GameState, U extends HydratedGameState<T> & T
             return undefined
         }
 
-        const updatedState = this.engine.undoAction(this.state, action)
+        const updatedState = this.engine.undoProcessedAction({ action, state: this.state })
         this.updateGameState(updatedState)
 
         return action
     }
 
     applyAction(action: GameAction): GameActionResults<T> {
-        const result = this.engine.run(action, this.state, this.game)
+        const result = this.engine.executeCanonicalAction({
+            action,
+            state: this.state,
+            game: this.game
+        })
         this.updateGameState(result.updatedState)
         this.addActions(result.processedActions)
         return new GameActionResults(result.processedActions, result.updatedState)

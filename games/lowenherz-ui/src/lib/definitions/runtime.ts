@@ -1,5 +1,5 @@
 import type { GameUIRuntime } from '@tabletop/frontend-components/definition/gameUiDefinition'
-import type { HydratedLowenherzGameState, LowenherzGameState } from '@tabletop/lowenherz'
+import type { HydratedLowenherzGameState, LowenherzProjectedState } from '@tabletop/lowenherz'
 import { LowenherzRuntime } from '@tabletop/lowenherz'
 import { mountDynamicComponent } from '@tabletop/frontend-components/utils/dynamicComponent'
 import { LowenherzGameColorizer } from './colorizer.js'
@@ -7,7 +7,10 @@ import GameTable from '../components/GameTable.svelte'
 import { LowenherzGameSession } from '$lib/model/session.svelte.js'
 import '../../app.css'
 
-export const LowenherzUiRuntime: GameUIRuntime<LowenherzGameState, HydratedLowenherzGameState> = {
+export const LowenherzUiRuntime: GameUIRuntime<
+    LowenherzProjectedState,
+    HydratedLowenherzGameState
+> = {
     ...LowenherzRuntime,
     gameUI: {
         component: GameTable,

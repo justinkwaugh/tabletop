@@ -21,12 +21,6 @@ export class EstatesGameInitializer
     extends BaseGameInitializer<EstatesGameState, HydratedEstatesGameState>
     implements GameInitializer<EstatesGameState, HydratedEstatesGameState>
 {
-    initializeExplorationState(state: EstatesGameState): EstatesGameState {
-        const hydratedState = new HydratedEstatesGameState(state)
-        hydratedState.roofs.shuffle()
-        return hydratedState.dehydrate()
-    }
-
     initializeGameState(game: Game, state: UninitializedGameState): HydratedEstatesGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game)
