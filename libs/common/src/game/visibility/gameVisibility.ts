@@ -13,7 +13,7 @@ import type { Game } from '../model/game.js'
 import type { GameState } from '../model/gameState.js'
 import { assert, assertExists } from '../../util/assertions.js'
 import { isRedactedAction, redactActionRecord, type ActionProjector } from './actionProjector.js'
-import type { Perspective, ValueProjector } from './valueProjector.js'
+import type { Perspective, ProjectionContext, ValueProjector } from './valueProjector.js'
 
 export interface GameVisibility<
     State extends GameState = GameState,
@@ -48,6 +48,7 @@ export interface ActionCascadeProjectionOptions<
 > {
     readonly visibility: GameVisibility<State, ProjectedState>
     readonly perspective: Perspective
+    readonly game?: Pick<Game, 'config'>
     readonly replay?: ActionReplayContext
 }
 
@@ -63,6 +64,7 @@ export interface ActionResultProjectionOptions<
     readonly result: ActionCascadeResult<State>
     readonly visibility?: GameVisibility<State, ProjectedState>
     readonly perspective: Perspective
+    readonly game?: Pick<Game, 'config'>
     readonly replay?: ActionReplayContext
 }
 
@@ -79,12 +81,25 @@ export function projectActionCascade<State extends GameState, ProjectedState ext
     actionCascade: CanonicalActionCascade<State>,
     options: ActionCascadeProjectionOptions<State, ProjectedState>
 ): VisibleActionCascade {
-    const before = options.visibility.state.project(actionCascade.before, options.perspective)
+    const context = projectionContext(options)
+    const before = options.visibility.state.project(
+        actionCascade.before,
+        options.perspective,
+        context
+    )
     const transitions: CanonicalActionTransition<ProjectedState>[] = []
     let previous = before
     for (const transition of actionCascade.transitions) {
-        const after = options.visibility.state.project(transition.after, options.perspective)
-        const action = options.visibility.actions.project(transition.action, options.perspective)
+        const after = options.visibility.state.project(
+            transition.after,
+            options.perspective,
+            context
+        )
+        const action = options.visibility.actions.project(
+            transition.action,
+            options.perspective,
+            context
+        )
         action.forwardPatch = jsonpatch.compare(previous, after)
         action.undoPatch = jsonpatch.compare(after, previous)
         transitions.push({ action, after })
@@ -132,7 +147,11 @@ export function projectActionHistory<State extends GameState, ProjectedState ext
         expectedIndex += 1
     }
 
-    const currentState = options.visibility.state.project(options.currentState, options.perspective)
+    const currentState = options.visibility.state.project(
+        options.currentState,
+        options.perspective,
+        projectionContext(options)
+    )
     let before = structuredClone(options.currentState)
     const projectedCascades: (readonly GameAction[])[] = []
     let end = orderedActions.length
@@ -197,14 +216,26 @@ export function projectActionResult<State extends GameState, ProjectedState exte
     const visibleActionCascade = projectActionCascade(result.actionCascade, {
         visibility,
         perspective,
+        game: options.game,
         replay: options.replay
     })
 
     return {
         processedActions: [...visibleActionCascade.actions],
-        updatedState: visibility.state.project(result.updatedState, perspective),
+        updatedState: visibility.state.project(
+            result.updatedState,
+            perspective,
+            projectionContext(options)
+        ),
         indexOffset: result.indexOffset
     }
+}
+
+function projectionContext(
+    options: Pick<ActionCascadeProjectionOptions, 'game' | 'replay'>
+): ProjectionContext | undefined {
+    const game = options.game ?? options.replay?.game
+    return game === undefined ? undefined : { config: game.config }
 }
 
 function canReplayCascade(

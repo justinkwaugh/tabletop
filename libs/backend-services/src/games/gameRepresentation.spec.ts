@@ -1,9 +1,11 @@
+import * as Type from 'typebox'
 import {
     ActionSource,
     AuctionType,
     calculateActionChecksum,
     GameEngine,
     GameStatus,
+    GameState,
     GameSyncStatus,
     HydratedSimultaneousAuction,
     PlayerStatus,
@@ -834,4 +836,75 @@ describe('createUndoResultsRepresentation', () => {
         expect(representation.undoneActions).toBe(undoneActions)
         expect(representation.redoneActions).toBe(redoneActions)
     })
+})
+
+describe('configuration policies without a replay runtime', () => {
+    it.each([false, true])(
+        'projects load, sync, results, and undo with hiddenMoney=%s',
+        (hiddenMoney) => {
+            const { game, before, after, action } = structuredClone(syntheticHistory)
+            game.config = { hiddenMoney }
+            const canonicalBefore = { ...before, money: 12 }
+            const canonicalAfter = { ...after, money: 11 }
+            action.undoPatch?.push({ op: 'replace', path: '/money', value: 12 })
+            game.state = canonicalAfter
+            const visibility = {
+                state: Visibility.createProjector(
+                    Type.Object({
+                        ...GameState.properties,
+                        money: Type.Optional(
+                            Visibility.protect(Type.Number(), {
+                                policy: Visibility.Policy.configEquals('hiddenMoney', false)
+                            })
+                        )
+                    })
+                ),
+                actions: SyntheticRuntime.visibility.actions
+            }
+            const options = { game, visibility, user: createUser('user-1') }
+            const actions = [action]
+            const loaded = createGameRepresentation({ ...options, actions })
+            expect(Object.hasOwn(loaded.game.state ?? {}, 'money')).toBe(!hiddenMoney)
+            const synced = createGameSyncRepresentation({
+                ...options,
+                actions,
+                status: GameSyncStatus.InSync
+            })
+            const result = createActionResultsRepresentation({
+                ...options,
+                result: {
+                    processedActions: actions,
+                    updatedState: canonicalAfter,
+                    indexOffset: 0,
+                    actionCascade: {
+                        before: canonicalBefore,
+                        transitions: [{ action, after: canonicalAfter }]
+                    }
+                },
+                storedActions: actions,
+                missingActions: [],
+                priorState: canonicalBefore
+            })
+            const undo = createUndoResultsRepresentation({
+                ...options,
+                actionReplay: { startIndex: 0, actions },
+                undoneActions: actions,
+                redoneActions: []
+            })
+            for (const records of [
+                loaded.actions,
+                synced.actions,
+                result.actions,
+                undo.actionReplay.actions
+            ]) {
+                expect(records).toHaveLength(1)
+                expect(records[0].undoPatch?.some((patch) => patch.path === '/money')).toBe(
+                    !hiddenMoney
+                )
+                expect(records[0].forwardPatch?.some((patch) => patch.path === '/money')).toBe(
+                    !hiddenMoney
+                )
+            }
+        }
+    )
 })

@@ -1,8 +1,9 @@
 import { GameSession } from '@tabletop/frontend-components'
 import {
     HydratedEstatesGameState,
-    EstatesGameState,
+    EstatesProjectedState,
     Company,
+    MachineState,
     Piece,
     StartAuction,
     PlaceBid,
@@ -24,16 +25,38 @@ import {
 } from '@tabletop/estates'
 import { Color, GameAction, OffsetCoordinates } from '@tabletop/common'
 
-export class EstatesGameSession extends GameSession<EstatesGameState, HydratedEstatesGameState> {
+export class EstatesGameSession extends GameSession<
+    EstatesProjectedState,
+    HydratedEstatesGameState
+> {
     chosenAction: string | undefined = $state(undefined)
 
     currentBid = $state(1)
-    validBid = $derived(Math.max(this.currentBid, (this.gameState.auction?.highBid ?? 0) + 1))
+    minimumBid = $derived((this.gameState.auction?.highBid ?? 0) + 1)
+    validBid = $derived(Math.max(this.currentBid, this.minimumBid))
+    canRaiseBid = $derived(
+        this.myPlayerState?.money !== undefined && this.minimumBid <= this.myPlayerState.money
+    )
+    canAffordBid = $derived(
+        this.myPlayerState?.money !== undefined && this.validBid <= this.myPlayerState.money
+    )
 
     mobileView: boolean | undefined = $state()
     touching: boolean = $state(false)
 
     shouldHideHud = $derived(this.touching)
+
+    override get canExplore(): boolean {
+        return !this.game.config?.hiddenMoney && !this.gameState.hiddenMoney && super.canExplore
+    }
+
+    canShowMoney(playerId: string): boolean {
+        return (
+            this.gameState.machineState === MachineState.EndOfGame ||
+            !this.game.config?.hiddenMoney ||
+            this.myPlayer?.id === playerId
+        )
+    }
 
     getCompanyColor(company: Company): Color {
         switch (company) {

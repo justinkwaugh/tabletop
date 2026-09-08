@@ -271,7 +271,7 @@ export class HydratedEstatesGameBoard
         )
     }
 
-    playerScore(playerState: EstatesPlayerState): number {
+    playerScore(playerState: Pick<EstatesPlayerState, 'certificates'>): number {
         let score = 0
         for (const row of this.rows) {
             const rowComplete = this.isRowComplete(row)

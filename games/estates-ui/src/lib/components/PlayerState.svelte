@@ -1,12 +1,15 @@
 <script lang="ts">
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import Cert2d from './Cert2d.svelte'
-    import { EstatesPlayerState, MachineState } from '@tabletop/estates'
+    import { EstatesProjectedPlayerState, MachineState } from '@tabletop/estates'
     import type { Player } from '@tabletop/common'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let gameSession = getGameSession() as EstatesGameSession
-    let { player, playerState }: { player: Player; playerState: EstatesPlayerState } = $props()
+    let { player, playerState }: { player: Player; playerState: EstatesProjectedPlayerState } =
+        $props()
+
+    const showMoney = $derived(gameSession.canShowMoney(playerState.playerId))
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(playerState.playerId))
     let bgColor = $derived(gameSession.colors.getPlayerBgColor(playerState.playerId))
@@ -32,7 +35,7 @@
                 {isTurn ? '\u276f' : ''}
                 {player.name}
             </h1>
-            {#if playerState?.stolen}
+            {#if playerState?.stolen && showMoney}
                 <h1 class="text-gray-300 text-xs leading-none mb-1">
                     stole ${playerState?.stolen}
                 </h1>
@@ -43,7 +46,7 @@
             {#if gameSession.gameState.machineState === MachineState.EndOfGame}
                 <div class="text-xs leading-none">SCORE</div>
                 <div class="text-xl leading-none">{playerState?.score}</div>
-            {:else}
+            {:else if showMoney && playerState.money !== undefined}
                 <div class="text-2xl leading-none">${playerState?.money}</div>
             {/if}
         </div>

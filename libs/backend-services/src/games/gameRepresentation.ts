@@ -109,6 +109,7 @@ export function createGameRepresentation({
     }
 
     const history = Visibility.projectActionHistory({
+        game: game,
         currentState: game.state,
         actions,
         visibility,
@@ -149,6 +150,7 @@ export function createGameSyncRepresentation({
     }
 
     const history = Visibility.projectActionHistory({
+        game: game,
         currentState,
         actions,
         startIndex: currentState.actionCount - actions.length,
@@ -221,6 +223,7 @@ export function createUndoResultsRepresentationForPerspective({
 }): UndoResultsRepresentation {
     const currentState = requireGameState(game)
     const projectedHistory = Visibility.projectActionHistory({
+        game: game,
         currentState,
         actions: actionReplay.actions,
         startIndex: actionReplay.startIndex,
@@ -341,6 +344,7 @@ export function createActionResultsRepresentationForPerspective({
         }
     }
     const projectedResult = Visibility.projectActionResult({
+        game: game,
         result: storedResult,
         visibility,
         perspective,
@@ -350,6 +354,7 @@ export function createActionResultsRepresentationForPerspective({
     let projectedMissingActions: GameAction[] | undefined
     if (orderedMissingActions.length > 0) {
         const history = Visibility.projectActionHistory({
+            game: game,
             currentState: priorState,
             actions: orderedMissingActions,
             startIndex: priorState.actionCount - orderedMissingActions.length,

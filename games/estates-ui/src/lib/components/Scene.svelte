@@ -4,6 +4,7 @@
     import * as THREE from 'three'
     import { Group, Object3D, Box3, Vector3 } from 'three'
     import Map from './Map.svelte'
+    import { playerPanelHeight } from '$lib/utils/boardLayout.js'
     import { ColumnOffsets, RowOffsets } from '$lib/utils/boardOffsets.js'
     import Site from './Site.svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
@@ -13,16 +14,13 @@
     import Cert3d from './Cert3d.svelte'
     import PlayerPanel3d from './PlayerPanel3d.svelte'
     import GlowingCircle from './GlowingCircle.svelte'
-    import { gsap, Power1 } from 'gsap'
     import { Company, HydratedEstatesGameState, isMayor, MachineState } from '@tabletop/estates'
     import CameraControls from 'camera-controls'
     import { fade, fadeIn, fadeOut, hideInstant, scale } from '$lib/utils/animations'
-    import { useDebounce } from 'runed'
     import { AnimationContext, GameSessionMode } from '@tabletop/frontend-components'
     import type { GameAction } from '@tabletop/common'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
-    // import { Checkbox, Folder, FpsGraph, List, Pane, Slider } from 'svelte-tweakpane-ui'
-    // import RenderIndicator from './RenderIndicator.svelte'
+    import { onDestroy, onMount, tick } from 'svelte'
 
     CameraControls.install({ THREE: THREE })
 
@@ -38,13 +36,11 @@
 
     const sizingGroup = new Group() // This group is used to measure sizing for the camera
 
-    const { scene, renderer, camera, size, invalidate } = useThrelte()
+    const { scene, renderer, camera, size, invalidate, shouldRender } = useThrelte()
 
     let cameraControls: CameraControls | undefined
 
-    let playerPanelPos = $state({
-        y: 2
-    })
+    const playerPanels = new Group()
 
     let currentMayor: Object3D | undefined
 
@@ -59,16 +55,14 @@
         action?: GameAction
         animationContext: AnimationContext
     }) {
-        const heightForBackRow = to.board.maxRowHeight(0) - 0.8
-        const heightForMiddleRow = to.board.maxRowHeight(1) - 1.5
-        const heightForFrontRow = to.board.maxRowHeight(2) - 3
-
-        const maxHeight = Math.max(2, heightForBackRow, heightForMiddleRow, heightForFrontRow)
-
-        gsap.to(playerPanelPos, {
-            duration: 0.5,
-            y: maxHeight + 0.5
-        })
+        const height = playerPanelHeight(to.board)
+        if (height !== playerPanels.position.y) {
+            animationContext.actionTimeline.to(
+                playerPanels.position,
+                { y: height, duration: action ? 0.5 : 0.2, onUpdate: invalidate },
+                0
+            )
+        }
 
         if (
             currentMayor !== undefined &&
@@ -77,42 +71,43 @@
             !to.board.rows[2].mayor
         ) {
             scale({
+                onUpdate: invalidate,
                 object: currentMayor,
                 duration: 0.1,
                 scale: 0.01,
-                timeline: animationContext.actionTimeline
+                timeline: animationContext.actionTimeline,
+                startAt: 0
             })
             fadeOut({
+                onUpdate: invalidate,
                 object: currentMayor,
                 duration: 0.1,
-                timeline: animationContext.actionTimeline
+                timeline: animationContext.actionTimeline,
+                startAt: 0
             })
         }
     }
 
     gameSession.addGameStateChangeListener(onGameStateChange)
-    // onGameStateChange({ to: gameSession.gameState, timeline: gsap.timeline() })
 
-    let billboards: any[] = []
+    const billboards = new Set<Object3D>()
+    const billboardTarget = new Vector3()
 
     useTask(
-        async (delta) => {
-            if (camera.current) {
+        (delta) => {
+            cameraControls?.update(delta)
+            if (shouldRender()) {
                 for (const obj of billboards) {
-                    const vector = new Vector3(
+                    billboardTarget.set(
                         obj.position.x,
                         camera.current.position.y,
                         camera.current.position.z
                     )
-                    obj.lookAt(vector)
+                    obj.lookAt(billboardTarget)
                 }
             }
-
-            if (cameraControls) {
-                cameraControls.update(delta)
-            }
         },
-        { autoInvalidate: true }
+        { autoInvalidate: false }
     )
 
     const certPositions: [number, number, number][] = [
@@ -125,7 +120,7 @@
     ]
 
     function fadeInHat(ref: Object3D) {
-        fade({ object: ref, duration: 0.2, opacity: 1 })
+        fade({ onUpdate: invalidate, object: ref, duration: 0.2, opacity: 1 })
     }
 
     async function placeMayor(row: number) {
@@ -224,70 +219,43 @@
     let lastWidth: number = 0
     let lastHeight: number = 0
 
-    const adjustRenderSize = useDebounce(() => {
-        if (!lastWidth || !lastHeight) {
-            return
-        }
+    let resizeTimer: ReturnType<typeof setTimeout> | undefined
+    let mounted = false
 
-        if (lastWidth < lastHeight) {
-            gameSession.mobileView = true
-            moveCameraToOverhead()
-        } else {
-            gameSession.mobileView = false
-            moveCameraToFit()
-        }
-    }, 50)
+    function adjustRenderSize() {
+        clearTimeout(resizeTimer)
+        resizeTimer = setTimeout(async () => {
+            if (!mounted || !lastWidth || !lastHeight) return
+            gameSession.mobileView = lastWidth < lastHeight
+            await tick()
+            if (!mounted) return
+            if (gameSession.mobileView) await moveCameraToOverhead()
+            else await moveCameraToFit()
+        }, 50)
+    }
 
-    $effect(() => {
-        const newWidth = $size.width
-        const newHeight = $size.height
-        if (newWidth === lastWidth && newHeight === lastHeight) {
-            return
+    onMount(() => {
+        mounted = true
+        const unsubscribe = size.subscribe(({ width, height }) => {
+            if (width === lastWidth && height === lastHeight) return
+            lastWidth = width
+            lastHeight = height
+            adjustRenderSize()
+        })
+        sizingGroup.addEventListener('childadded', adjustRenderSize)
+        return () => {
+            mounted = false
+            unsubscribe()
+            clearTimeout(resizeTimer)
+            sizingGroup.removeEventListener('childadded', adjustRenderSize)
         }
-        lastWidth = newWidth
-        lastHeight = newHeight
-
-        adjustRenderSize()
     })
 
-    sizingGroup.addEventListener('childadded', (e) => {
-        setTimeout(adjustRenderSize, 1)
-    })
-
-    let pulseOpacity = $state({ opacity: 0 })
-    const pulse = gsap.timeline()
-    pulse.to(pulseOpacity, {
-        opacity: 1,
-        duration: 0.6,
-        ease: Power1.easeIn
-    })
-    pulse.to(pulseOpacity, {
-        opacity: 0.15,
-        duration: 1.2,
-        ease: Power1.easeInOut,
-        repeat: -1,
-        yoyo: true
-    })
-
-    let showingMayorHighlights = $state(false)
-    $effect(() => {
-        if (showMayorHighlights) {
-            showingMayorHighlights = true
-            pulse.play(0)
-        } else {
-            pulse.pause()
-            gsap.to(pulseOpacity, {
-                opacity: 0,
-                duration: 0.2,
-                onComplete: () => {
-                    showingMayorHighlights = false
-                }
-            })
-        }
+    onDestroy(() => {
+        gameSession.removeGameStateChangeListener(onGameStateChange)
     })
 </script>
 
-<!-- <Stars /> -->
 <T.PerspectiveCamera
     makeDefault
     position={[0, 16, 20]}
@@ -312,6 +280,7 @@
 
         return () => {
             cameraControls?.dispose()
+            cameraControls = undefined
         }
     }}
 ></T.PerspectiveCamera>
@@ -352,16 +321,24 @@
                 {/if}
             {/each}
 
-            <PlayerPanel3d
-                position.x={0}
-                position.y={playerPanelPos.y}
-                position.z={-6}
-                oncreate={(ref: Group) => {
-                    let size = new Box3().setFromObject(ref).getSize(new Vector3())
-                    ref.position.x = -(size.x / 2) + 2.5
-                    billboards.push(ref)
-                }}
-            />
+            <T
+                is={playerPanels}
+                name="player-panels"
+                position.y={playerPanelHeight(gameSession.gameState.board)}
+            >
+                <PlayerPanel3d
+                    position.x={0}
+                    position.z={-6}
+                    oncreate={(ref: Group) => {
+                        let size = new Box3().setFromObject(ref).getSize(new Vector3())
+                        ref.position.x = -(size.x / 2) + 2.5
+                        billboards.add(ref)
+                        return () => {
+                            billboards.delete(ref)
+                        }
+                    }}
+                />
+            </T>
         {/if}
     </T>
 
@@ -378,8 +355,8 @@
                         ref.scale.x = 0.1
                         ref.scale.y = 0.1
                         ref.scale.z = 0.1
-                        fadeIn({ object: ref, duration: 0.1 })
-                        scale({ object: ref, duration: 0.1, scale: 0.5 })
+                        fadeIn({ onUpdate: invalidate, object: ref, duration: 0.1 })
+                        scale({ onUpdate: invalidate, object: ref, duration: 0.1, scale: 0.5 })
                     }
                 }}
                 scale={0.5}
@@ -389,77 +366,39 @@
             />
         {/if}
     {/each}
-    {#if showMayorHighlights || showingMayorHighlights}
+    {#each RowOffsets as offset, row}
         <GlowingCircle
             onpointerenter={(event: any) => {
+                if (!showMayorHighlights) return
                 event.stopPropagation()
-                ghostHat = 0
+                ghostHat = row
             }}
             onpointerleave={(event: any) => {
+                if (!showMayorHighlights) return
                 event.stopPropagation()
                 ghostHat = undefined
             }}
             onclick={(event: any) => {
+                if (!showMayorHighlights) return
                 event.stopPropagation()
-                placeMayor(0)
+                placeMayor(row)
             }}
-            position={[10.1, -0.49, RowOffsets[0]]}
-            opacity={pulseOpacity.opacity}
+            position={[10.1, -0.49, offset]}
+            active={showMayorHighlights}
             rotation.x={-Math.PI / 2}
         />
-        <GlowingCircle
-            onpointerenter={(event: any) => {
-                event.stopPropagation()
-                ghostHat = 1
-            }}
-            onpointerleave={(event: any) => {
-                event.stopPropagation()
-                ghostHat = undefined
-            }}
-            onclick={(event: any) => {
-                event.stopPropagation()
-                placeMayor(1)
-            }}
-            position={[10.1, -0.49, RowOffsets[1]]}
-            opacity={pulseOpacity.opacity}
-            rotation.x={-Math.PI / 2}
-        />
-        <GlowingCircle
-            onpointerenter={(event: any) => {
-                event.stopPropagation()
-                ghostHat = 2
-            }}
-            onpointerleave={(event: any) => {
-                event.stopPropagation()
-                ghostHat = undefined
-            }}
-            onclick={(event: any) => {
-                event.stopPropagation()
-                placeMayor(2)
-            }}
-            position={[10.1, -0.49, RowOffsets[2]]}
-            opacity={pulseOpacity.opacity}
-            rotation.x={-Math.PI / 2}
-        />
+    {/each}
 
-        {#if ghostHat !== undefined}
-            <TopHat
-                onloaded={(ref: Object3D) => {
-                    hideInstant(ref)
-                    fadeInHat(ref)
-                }}
-                scale={0.5}
-                position.y={0}
-                position.x={10.1}
-                position.z={RowOffsets[ghostHat]}
-            />
-        {/if}
+    {#if showMayorHighlights && ghostHat !== undefined}
+        <TopHat
+            onloaded={(ref: Object3D) => {
+                hideInstant(ref)
+                fadeInHat(ref)
+            }}
+            scale={0.5}
+            position.y={0}
+            position.x={10.1}
+            position.z={RowOffsets[ghostHat]}
+        />
     {/if}
 </Suspense>
-
-<!-- <Pane position="fixed" title="Tweaks">
-    <Folder title="Rendering Activity">
-        <RenderIndicator />
-        <FpsGraph />
-    </Folder>
-</Pane> -->

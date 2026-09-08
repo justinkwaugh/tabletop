@@ -49,7 +49,9 @@ export class HydratedStartAuction
         )
 
         const validBidders = bidOrder.filter(
-            (playerId) => state.getPlayerState(playerId).money > 0 && playerId !== this.playerId
+            (playerId) =>
+                playerId !== this.playerId &&
+                (state.hiddenMoney || state.getPlayerState(playerId).getMoney() > 0)
         )
         const participants = validBidders.map((playerId) => ({ playerId: playerId, passed: false }))
 

@@ -1045,6 +1045,7 @@ export class GameService {
         const visibility = Visibility.getGameVisibility(game, definition.runtime)
         if (visibility) {
             const history = Visibility.projectActionHistory({
+                game: game,
                 startIndex: actionToUndo.index,
                 currentState: gameState,
                 actions,

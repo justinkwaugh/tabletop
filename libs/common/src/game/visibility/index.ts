@@ -40,6 +40,7 @@ export type {
     ScopeMetadata
 } from './visibilitySchema.js'
 export type {
+    ProjectionContext,
     PolicyContext,
     PolicyRegistry,
     PolicyResolver,
@@ -62,3 +63,11 @@ export type {
     VisibleActionHistory
 } from './gameVisibility.js'
 export type { CanonicalActionCascade, CanonicalActionTransition } from '../engine/gameEngine.js'
+
+export type {
+    PolicyExpression,
+    PolicyValue,
+    AnyOfPolicy,
+    ConfigEqualsPolicy,
+    StateEqualsPolicy
+} from './policyExpression.js'

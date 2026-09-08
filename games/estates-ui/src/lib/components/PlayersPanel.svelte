@@ -1,13 +1,13 @@
 <script lang="ts">
     import type { Player } from '@tabletop/common'
-    import type { EstatesPlayerState } from '@tabletop/estates'
+    import type { EstatesProjectedPlayerState } from '@tabletop/estates'
     import PlayerState from '$lib/components/PlayerState.svelte'
-import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+    import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let gameSession = getGameSession() as EstatesGameSession
 
-    type PlayerAndState = { player: Player; playerState: EstatesPlayerState }
+    type PlayerAndState = { player: Player; playerState: EstatesProjectedPlayerState }
 
     let playersAndStates: PlayerAndState[] = $derived.by(() => {
         const playersAndStates = gameSession.gameState.players.map((playerState) => {
@@ -24,7 +24,7 @@ import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
             (playerId) => playersAndStatesById.get(playerId)!
         ) as PlayerAndState[]
     })
-    function getPlayerForState(playerState: EstatesPlayerState) {
+    function getPlayerForState(playerState: EstatesProjectedPlayerState) {
         return gameSession.game.players.find((player) => player.id === playerState.playerId)
     }
 </script>

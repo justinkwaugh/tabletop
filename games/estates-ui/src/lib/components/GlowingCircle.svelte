@@ -1,11 +1,13 @@
 <script lang="ts">
-    import { T, type Props } from '@threlte/core'
+    import { T, useThrelte, type Props } from '@threlte/core'
     import { Mesh } from 'three'
+    import { PulsingMaterial } from '$lib/utils/pulsingMaterial.js'
     import { getContext } from 'svelte'
     import type { Effects } from '$lib/model/Effects.svelte'
 
-    let { opacity = 0, ...others }: { opacity: number } & Props<typeof Mesh> = $props()
+    let { active, ...others }: { active: boolean } & Props<typeof Mesh> = $props()
 
+    const { invalidate } = useThrelte()
     const effects = getContext('effects') as Effects
 </script>
 
@@ -19,5 +21,5 @@
     {...others}
 >
     <T.CircleGeometry args={[0.65, 20]} />
-    <T.MeshBasicMaterial color="white" transparent={true} {opacity} />
+    <T is={PulsingMaterial} args={[invalidate, 0.15]} {active} />
 </T.Mesh>

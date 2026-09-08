@@ -15,7 +15,7 @@ The requirements below concern new games adopting protected delivery. Existing v
 | Title | State to protect | Action data to protect | Protected randomness |
 | --- | --- | --- | --- |
 | Sol | Undrawn deck contents/order | No private payload identified; drawn results are public | Deck shuffle |
-| The Estates | Undrawn roof bag; money/stolen totals if enforcing the hidden-money option | No sealed bids; drawn roofs and embezzlement are public | Roof shuffle |
+| The Estates | Undrawn roof bag; owner-only money, stolen totals, and running scores with Hidden Money | No sealed bids; drawn roofs and embezzlement are public | Roof shuffle |
 | Santiago | Future tile bag; money under its private-money option | No sealed bids; tile reveals are public | Tile shuffle |
 | Kaivai | Pending final island bids | `PlaceScoringBid.amount` until the round is revealed | Fishing dice, including randomized less-luck variants |
 | Container | Owner scoring card; pending foreign-island bids and duplicate totals; money policy to decide | `SubmitBid.bidAmount` until round reveal | Scoring-card allocation |
@@ -44,12 +44,12 @@ This is principally a future-deck protection task, not an owner-private-hand tas
 Sources: [state and scoring](../games/estates/src/model/gameState.ts), [initializer](../games/estates/src/definition/gameInitializer.ts), [options](../games/estates/src/definition/gameConfig.ts), [DrawRoof](../games/estates/src/actions/drawRoof.ts), [StartAuction](../games/estates/src/actions/startAuction.ts), [Embezzle](../games/estates/src/actions/embezzle.ts).
 
 - **Protect:** `roofs.items`. Keep the remaining count and `visibleRoofs` selection-slot availability public. A selected roof becomes public.
-- **Conditional fields:** with `hiddenMoney`, conceal opponents' `players[].money` and `stolen` if the option is intended to govern delivery as well as display. The running `score` includes stolen money, so hiding `stolen` alone still discloses it by subtracting the public board score. Define a public board-only score or conceal the combined running total.
+- **Implemented conditional fields:** with `hiddenMoney`, opponents' `players[].money`, `stolen`, and combined running `score` are omitted during play. Final totals are public at EndOfGame.
 - **Keep public:** cube offers, board, certificates, chosen pieces, roof results, and the once-around auction. Its bids are public, not sealed.
 - **Actions:** `DrawRoof.visibleIndex` and `metadata.chosenRoof` remain public. `Embezzle` always transfers one unit, so the public Action history reveals the stolen total even if its current-state field is omitted. Hidden-money delivery is a display/memory convention, not a promise that balances cannot be calculated.
-- **Randomness:** roof shuffle needs protected entropy. The initially revealed cube supply and other public setup can keep public randomness.
-- **Legal discovery:** auction setup filters players by `money > 0`. Projecting opponents' money requires an explicit public eligibility decision or authoritative processing; missing money must not silently exclude them.
-- **Exploration:** reconstruct the remaining roof multiset from known revealed roofs before sampling. The existing reshuffle hook assumes complete contents.
+- **Randomness:** roof shuffle uses protected entropy for newly initialized v3 Games. The initially revealed cube supply and other public setup can keep public randomness.
+- **Legal discovery:** Hidden Money auctions include every non-auctioneer and require explicit bids/passes and recipient choices, preventing cash-based automatic skips from disclosing affordability. Own cash limits positive bids and buyouts. Public-money and legacy Games retain their automatic decisions.
+- **Exploration:** unavailable with Hidden Money, including legacy Games. Public-money Games reconstruct the remaining roof multiset from public draw history before sampling. See the [implementation and compatibility contract](../games/estates/docs/visibility.md).
 
 **Decision:** `sneakyBuildings` currently changes rendering of previously public building faces. Auction history, placements, and scoring can disclose those values. Treat it as presentation unless a different information rule is explicitly desired; do not automatically protect every placed cube value.
 
@@ -139,8 +139,7 @@ These titles need no visibility registration merely because new game instances u
 ## Decisions to resolve before the affected title is implemented
 
 - Whether Container and Indonesia retain their current public-money behavior or adopt concealed/configurable balances.
-- Whether Estates, Santiago, and Lowenherz's money options should enforce delivery concealment as well as presentation, accepting that public transactions remain inferable.
+- Whether Santiago and Lowenherz's money options should enforce delivery concealment as well as presentation, accepting that public transactions remain inferable.
 - Indonesia's city-card privacy and exact current-card reveal point.
-- Whether Estates' sneaky-building option remains a visual memory aid; no new secret zone is assumed here.
 
-Suggested implementation order: Sol first for a public-result/private-deck case; Kaivai for protected dice and final sealed bids; Estates and Santiago for bags and optional money; Container for owner cards and multistage auctions; Indonesia after its reveal/money decisions; Lowenherz has now adopted the inspection-knowledge design. Bus, Bridges, and Urbino require no hidden-information adoption work on the present findings.
+Suggested implementation order: Sol first for a public-result/private-deck case; Kaivai for protected dice and final sealed bids; Santiago for its bag and optional money (Estates has adopted protection); Container for owner cards and multistage auctions; Indonesia after its reveal/money decisions; Lowenherz has now adopted the inspection-knowledge design. Bus, Bridges, and Urbino require no hidden-information adoption work on the present findings.

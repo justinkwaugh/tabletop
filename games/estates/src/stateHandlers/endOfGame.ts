@@ -7,26 +7,37 @@ import {
 import { HydratedEstatesGameState } from '../model/gameState.js'
 
 // Terminal state
-export class EndOfGameStateHandler implements MachineStateHandler<HydratedAction, HydratedEstatesGameState> {
-    isValidAction(_action: HydratedAction, _context: MachineContext<HydratedEstatesGameState>): boolean {
+export class EndOfGameStateHandler implements MachineStateHandler<
+    HydratedAction,
+    HydratedEstatesGameState
+> {
+    isValidAction(
+        _action: HydratedAction,
+        _context: MachineContext<HydratedEstatesGameState>
+    ): boolean {
         return false
     }
-    validActionsForPlayer(_playerId: string, _context: MachineContext<HydratedEstatesGameState>): string[] {
+    validActionsForPlayer(
+        _playerId: string,
+        _context: MachineContext<HydratedEstatesGameState>
+    ): string[] {
         return []
     }
     enter(context: MachineContext<HydratedEstatesGameState>): void {
         // Record the end of game data
         const gameState = context.gameState
-        const highScore = Math.max(...gameState.players.map((player) => player.score))
+        const highScore = Math.max(...gameState.players.map((player) => player.getScore()))
         let winningIds = gameState.players
-            .filter((player) => player.score === highScore)
+            .filter((player) => player.getScore() === highScore)
             .map((player) => player.playerId)
 
         if (winningIds.length > 1) {
             const tiedPlayers = winningIds.map((playerId) => gameState.getPlayerState(playerId))
-            const mostMoney = Math.max(...tiedPlayers.map((player) => player.money + player.stolen))
+            const mostMoney = Math.max(
+                ...tiedPlayers.map((player) => player.getMoney() + player.getStolenMoney())
+            )
             winningIds = tiedPlayers
-                .filter((player) => player.money + player.stolen === mostMoney)
+                .filter((player) => player.getMoney() + player.getStolenMoney() === mostMoney)
                 .map((player) => player.playerId)
         }
 

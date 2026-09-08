@@ -10,6 +10,8 @@ import {
     type ReplacementRedaction
 } from './visibilitySchema.js'
 import type { Perspective, Projector, ProjectorOptions } from './valueProjector.js'
+import type { PolicyExpression } from './policyExpression.js'
+import type { ProjectionContext } from './valueProjector.js'
 import { createProjectorWithRedactionAdapters } from './valueProjector.js'
 
 export type ActionSchemaRegistry = Readonly<Record<string, Type.TSchema>>
@@ -51,7 +53,10 @@ const RedactedActionEnvelope = Type.Object({
     updatedAt: GameAction.properties.updatedAt
 })
 
-export function protectAction<Schema extends Type.TSchema, const PolicyName extends string>(
+export function protectAction<
+    Schema extends Type.TSchema,
+    const PolicyName extends PolicyExpression
+>(
     schema: Schema,
     options: ProtectionOptions<PolicyName>
 ): ProtectedSchema<
@@ -87,7 +92,7 @@ export function redactActionRecord(value: unknown): GameAction {
 }
 
 export interface ActionProjector {
-    project(action: GameAction, perspective: Perspective): GameAction
+    project(action: GameAction, perspective: Perspective, context?: ProjectionContext): GameAction
 }
 
 type RegisteredAction<Schemas extends ActionSchemaRegistry> = Type.Static<Schemas[keyof Schemas]>
@@ -116,7 +121,7 @@ class SchemaActionProjector<Schemas extends ActionSchemaRegistry> implements Act
         this.projectors = projectors
     }
 
-    project(action: GameAction, perspective: Perspective): GameAction {
+    project(action: GameAction, perspective: Perspective, context?: ProjectionContext): GameAction {
         const projector = this.projectors[action.type]
         if (projector === undefined) {
             throw Error(`No visibility schema registered for Action type "${action.type}"`)
@@ -126,7 +131,11 @@ class SchemaActionProjector<Schemas extends ActionSchemaRegistry> implements Act
         delete actionWithoutCanonicalPatches.undoPatch
         delete actionWithoutCanonicalPatches.forwardPatch
 
-        const projected: unknown = projector.project(actionWithoutCanonicalPatches, perspective)
+        const projected: unknown = projector.project(
+            actionWithoutCanonicalPatches,
+            perspective,
+            context
+        )
         if (!this.actionValidator.Check(projected)) {
             throw Error('Action visibility projection does not retain the GameAction contract')
         }
