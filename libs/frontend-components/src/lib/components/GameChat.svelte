@@ -3,7 +3,7 @@
     import { Button } from 'flowbite-svelte'
     import { nanoid } from 'nanoid'
     import { onMount } from 'svelte'
-    import TimeAgo from 'javascript-time-ago'
+    import { createTimeAgo } from '$lib/utils/timeAgo.js'
     import { flip } from 'svelte/animate'
     import { fade } from 'svelte/transition'
     import { quartIn } from 'svelte/easing'
@@ -33,7 +33,7 @@
         inputBorderColor?: string
         borderColor?: string
     } = $props()
-    const timeAgo = new TimeAgo('en-US')
+    const timeAgo = createTimeAgo()
 
     let gameSession = getGameSession()
     let chatService = gameSession.chatService

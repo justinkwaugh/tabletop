@@ -1,19 +1,18 @@
 <script lang="ts">
     import { tick } from 'svelte'
     import { Timeline, TimelineItem } from 'flowbite-svelte'
-    import TimeAgo from 'javascript-time-ago'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
     import { ActionSource, type GameAction } from '@tabletop/common'
     import { ClockSolid } from 'flowbite-svelte-icons'
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
     import ActionDescription from './ActionDescription.svelte'
     import { isAggregatedBusAction } from '$lib/aggregates/aggregatedBusAction.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { aggregateActions } from '$lib/utils/actionAggregator.js'
 
-    const timeAgo = new TimeAgo('en-US')
+    const timeAgo = createTimeAgo()
 
     let gameSession = getGameSession()
     let scrollContainer: HTMLDivElement | undefined = $state()
