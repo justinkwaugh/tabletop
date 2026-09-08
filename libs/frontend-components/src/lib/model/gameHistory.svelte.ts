@@ -454,14 +454,14 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
             )
             this.actionIndex = nextActionIndex
         } while (
-            (this.actionIndex < this.historyContext.actions.length - 1 &&
-                ((toActionIndex !== undefined && (nextAction.index ?? 0) < toActionIndex) ||
-                    (!exact &&
-                        this.shouldAutoStepAction(
-                            nextAction,
-                            this.historyContext.actions.at(this.actionIndex + 1)
-                        )))) ||
-            (predicate && predicate() === false)
+            this.actionIndex < this.historyContext.actions.length - 1 &&
+            ((toActionIndex !== undefined && (nextAction.index ?? 0) < toActionIndex) ||
+                (!exact &&
+                    this.shouldAutoStepAction(
+                        nextAction,
+                        this.historyContext.actions.at(this.actionIndex + 1)
+                    )) ||
+                (predicate && predicate() === false))
         )
         this.onHistoryAction(this.historyContext.actions[this.actionIndex], animationIntent)
         this.historyContext.updateGameState(stateSnapshot)
