@@ -4,6 +4,7 @@
     const REMINDERS = [
         'A wall may never be placed between your castle and one of your knights.',
         'Once every one of your castles is inside a region, you may not place any more walls.',
+        'The politics deck contains four Treasures (8, 10, 12, and 15 ducats), three Parchments (3, 4, and 5 points), and three each of Alliance and Renegade cards.',
         'Alliance and Renegade cards are played just before choosing an action. You may play more than one such card at a time.',
         'Treasure cards may only be spent in a duel, or to pay for a wooded space when placing a knight.'
     ]
