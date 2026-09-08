@@ -1,59 +1,22 @@
 <script lang="ts">
-import { ActionType, HutType, MachineState, Ruleset } from '@tabletop/kaivai'
+    import { ActionType, HutType, MachineState, Ruleset } from '@tabletop/kaivai'
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import DeliverySelection from './DeliverySelection.svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let gameSession = getGameSession() as KaivaiGameSession
-    let bidValue = $state(0)
-    let showCancel = $derived.by(() => {
-        if (isMultiBoatState() && !gameSession.chosenBoat) {
-            return false
-        }
-
-        if (gameSession.chosenHutType || gameSession.chosenBoatLocation || gameSession.chosenBoat) {
-            return true
-        } else if (gameSession.chosenAction && gameSession.validActionTypes.length > 1) {
-            return true
-        }
-        return false
+    const biddingPlayerId = $derived(
+        !gameSession.isViewingHistory && gameSession.chosenAction === ActionType.PlaceScoringBid
+            ? gameSession.myPlayer?.id
+            : undefined
+    )
+    const biddingIslandId = $derived(gameSession.gameState.chosenIsland)
+    let bidValue = $derived.by(() => {
+        biddingPlayerId
+        biddingIslandId
+        return 0
     })
-
-    let buttonRow = $derived.by(() => {
-        return (
-            showCancel ||
-            (gameSession.chosenAction === ActionType.Deliver &&
-                gameSession.chosenDeliveries.length > 0)
-        )
-    })
-
-    function isMultiBoatState() {
-        return (
-            gameSession.gameState.machineState === MachineState.Building ||
-            gameSession.gameState.machineState === MachineState.Delivering ||
-            gameSession.gameState.machineState === MachineState.Fishing ||
-            gameSession.gameState.machineState === MachineState.Moving
-        )
-    }
-
-    async function chooseAction(action: string) {
-        switch (action) {
-            case ActionType.Increase:
-                await increase()
-                break
-            default:
-                gameSession.chosenAction = action
-                break
-        }
-    }
-
-    async function increase() {
-        const action = gameSession.createIncreaseAction()
-        // gameSession.resetAction()
-        await gameSession.applyAction(action)
-    }
-
     const instructions = $derived.by(() => {
         if (!gameSession.chosenBoat) {
             if (gameSession.gameState.machineState === MachineState.Building) {
@@ -143,35 +106,6 @@ import { ActionType, HutType, MachineState, Ruleset } from '@tabletop/kaivai'
         }
     })
 
-    $effect(() => {
-        if (gameSession.validActionTypes.length === 1) {
-            const singleAction = gameSession.validActionTypes[0]
-            chooseAction(singleAction)
-        } else if (gameSession.validActionTypes.length === 0) {
-            // gameSession.resetAction()
-        } else if (
-            gameSession.gameState.machineState === MachineState.Building &&
-            gameSession.validActionTypes.includes(ActionType.Build)
-        ) {
-            chooseAction(ActionType.Build)
-        } else if (
-            gameSession.gameState.machineState === MachineState.Moving &&
-            gameSession.validActionTypes.includes(ActionType.Move)
-        ) {
-            chooseAction(ActionType.Move)
-        } else if (
-            gameSession.gameState.machineState === MachineState.Delivering &&
-            gameSession.validActionTypes.includes(ActionType.Deliver)
-        ) {
-            chooseAction(ActionType.Deliver)
-        } else if (
-            gameSession.gameState.machineState === MachineState.Fishing &&
-            gameSession.validActionTypes.includes(ActionType.Fish)
-        ) {
-            chooseAction(ActionType.Fish)
-        }
-    })
-
     function chooseHutType(hutType: HutType) {
         gameSession.chosenHutType = hutType
     }
@@ -253,7 +187,8 @@ import { ActionType, HutType, MachineState, Ruleset } from '@tabletop/kaivai'
     }
 </script>
 
-<div
+<fieldset
+    disabled={gameSession.busy}
     class="rounded-lg bg-transparent p-2 text-center flex flex-row flex-wrap justify-center items-center"
 >
     <div class="flex flex-col justify-center items-center mx-8">
@@ -359,23 +294,14 @@ import { ActionType, HutType, MachineState, Ruleset } from '@tabletop/kaivai'
             <DeliverySelection />
         {/if}
 
-        {#if buttonRow}
+        {#if gameSession.chosenAction === ActionType.Deliver && gameSession.chosenDeliveries.length > 0}
             <div class="flex flex-row justify-center items-center mt-2 space-x-2">
-                {#if showCancel}
-                    <button
-                        onclick={() => gameSession.cancel()}
-                        class="px-2 uppercase bg-[#634a11] rounded-lg text-white kaivai-font"
-                        >&#8636; Back</button
-                    >
-                {/if}
-                {#if gameSession.chosenAction === ActionType.Deliver && gameSession.chosenDeliveries.length > 0}
-                    <button
-                        onclick={async () => deliverFish()}
-                        class="px-2 uppercase bg-[#634a11] rounded-lg text-white kaivai-font"
-                        >Deliver the fish! &#8640;</button
-                    >
-                {/if}
+                <button
+                    onclick={async () => deliverFish()}
+                    class="px-2 uppercase bg-[#634a11] rounded-lg text-white kaivai-font"
+                    >Deliver the fish! &#8640;</button
+                >
             </div>
         {/if}
     </div>
-</div>
+</fieldset>

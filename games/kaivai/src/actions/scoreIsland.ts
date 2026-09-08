@@ -69,7 +69,7 @@ export class HydratedScoreIsland
 
             const huts = state.board.numHutsOnIsland(island.id, playerId)
             const boats = state.board.numBoatsAtIslandCultSites(island.id, playerId)
-            const influence = state.bids[playerId] ?? 0
+            const influence = state.scoringBidForPlayer(playerId)
 
             playerMajorities[playerId] = { huts, boats, influence }
         }
@@ -101,9 +101,8 @@ export class HydratedScoreIsland
 
         // Everyone loses their bids in 2nd edition
         if (config.ruleset === Ruleset.SecondEdition) {
-            for (const playerId of Object.keys(state.bids)) {
-                const playerState = state.getPlayerState(playerId)
-                playerState.influence -= state.bids[playerId] ?? 0
+            for (const playerState of state.players) {
+                playerState.influence -= playerMajorities[playerState.playerId].influence
             }
         }
 

@@ -1,4 +1,5 @@
 import {
+    assertExists,
     AxialCoordinates,
     GameResult,
     GameState,
@@ -8,13 +9,19 @@ import {
     HydratedTurnManager,
     PhaseManager,
     PrngState,
-    RoundManager
+    RoundManager,
+    Visibility
 } from '@tabletop/common'
 import { KaivaiPlayerState, HydratedKaivaiPlayerState } from './playerState.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 import { KaivaiGameBoard, HydratedKaivaiGameBoard } from '../components/gameBoard.js'
+
+export const ScoringBid = Type.Object({
+    playerId: Type.String(),
+    amount: Visibility.protect(Type.Number(), { policy: Visibility.Policy.Owner })
+})
 
 export type KaivaiGameState = Type.Static<typeof KaivaiGameState>
 export const KaivaiGameState = Type.Evaluate(
@@ -29,6 +36,7 @@ export const KaivaiGameState = Type.Evaluate(
             influence: Type.Record(Type.String(), Type.Number()),
             bidders: Type.Array(Type.String()),
             bids: Type.Record(Type.String(), Type.Number()),
+            scoringBids: Type.Optional(Type.Array(ScoringBid)),
             cultTiles: Type.Number(),
             godLocation: Type.Optional(
                 Type.Object({ coords: AxialCoordinates, islandId: Type.String() })
@@ -43,9 +51,13 @@ export const KaivaiGameState = Type.Evaluate(
 
 export const KaivaiGameStateValidator = Compile(KaivaiGameState)
 
+export const KaivaiProjectedState = Visibility.createProjectionSchema(KaivaiGameState)
+export type KaivaiProjectedState = Type.Static<typeof KaivaiProjectedState>
+export const KaivaiProjectedStateValidator = Compile(KaivaiProjectedState)
+
 export class HydratedKaivaiGameState
-    extends HydratableGameState<typeof KaivaiGameState, HydratedKaivaiPlayerState>
-    implements KaivaiGameState
+    extends HydratableGameState<typeof KaivaiProjectedState, HydratedKaivaiPlayerState>
+    implements KaivaiProjectedState
 {
     declare id: string
     declare gameId: string
@@ -64,6 +76,7 @@ export class HydratedKaivaiGameState
     declare influence: Record<string, number>
     declare bidders: string[]
     declare bids: Record<string, number>
+    declare scoringBids?: KaivaiProjectedState['scoringBids']
     declare cultTiles: number
     declare godLocation?: { coords: AxialCoordinates; islandId: string }
     declare passedPlayers: string[]
@@ -71,13 +84,21 @@ export class HydratedKaivaiGameState
     declare islandsToScore: string[]
     declare chosenIsland?: string
 
-    constructor(data: KaivaiGameState) {
-        super(data, KaivaiGameStateValidator)
+    constructor(data: KaivaiProjectedState) {
+        super(data, KaivaiProjectedStateValidator)
 
         this.rounds = new HydratedRoundManager(data.rounds)
         this.phases = new HydratedPhaseManager(data.phases)
         this.players = data.players.map((player) => new HydratedKaivaiPlayerState(player))
         this.board = new HydratedKaivaiGameBoard(data.board)
+    }
+
+    scoringBidForPlayer(playerId: string): number {
+        if (this.scoringBids === undefined) return this.bids[playerId] ?? 0
+        const bid = this.scoringBids.find((bid) => bid.playerId === playerId)
+        if (!bid) return 0
+        assertExists(bid.amount, 'Scoring requires the submitted bid amount')
+        return bid.amount
     }
 
     playersOrderedByAscendingWealth(afterDevalue: boolean = false): string[] {
