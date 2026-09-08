@@ -262,6 +262,67 @@ export async function runSafeExplorationUndo() {
     }
 }
 
+export async function runExplorationPersistenceUndo(version: number, saved: boolean) {
+    const host = createExplorationHost()
+    if (version < 3) {
+        delete host.game.protectedInformation
+        host.state.systemVersion = version
+        delete host.state.protectedPrng
+    }
+    host.apply(diskAction(host))
+    host.apply(diskAction(host))
+    const client = explorationClient(host)
+    const { session, app } = client
+    const save = app.gameService.saveGameLocally.bind(app.gameService)
+    let writes = 0
+    app.gameService.saveGameLocally = async (input) => {
+        writes++
+        await save(input)
+    }
+    try {
+        await settleExploration(session)
+        await session.history.goToActionIndex(0)
+        await settleExploration(session)
+        const source = JSON.stringify(session.history.visibleContext.state)
+        await session.startExploring()
+        await settleExploration(session)
+        const branch = session.explorations.getCurrentExploration()
+        assertExists(branch, 'Expected exploration from History')
+        if (saved) await session.explorations.saveExploration('Undo persistence regression')
+        const before = JSON.stringify(branch.state)
+        const storage = branch.game.storage
+        const initialActionCount = branch.state.actionCount
+        await session.applyAction(diskAction(branch))
+        await settleExploration(session)
+        const applied = branch.state.actionCount === initialActionCount + 1
+        const writesBeforeUndo = writes
+
+        await session.undo()
+        await settleExploration(session)
+
+        let persisted = true
+        if (saved) {
+            const loaded = await app.gameService.loadGame(branch.game.id)
+            persisted =
+                JSON.stringify(loaded.game?.state) === before &&
+                loaded.actions.length === initialActionCount
+        }
+        session.explorations.endExploring()
+        await settleExploration(session)
+        return {
+            applied,
+            restored: JSON.stringify(branch.state) === before,
+            correctStorage: storage === (saved ? GameStorage.Local : GameStorage.None),
+            storageUnchanged: branch.game.storage === storage,
+            correctWrites: writes - writesBeforeUndo === (saved ? 1 : 0),
+            persisted,
+            sourceUnchanged: JSON.stringify(session.history.visibleContext.state) === source
+        }
+    } finally {
+        client.dispose()
+    }
+}
+
 export async function runPartialExploration() {
     const host = createExplorationHost()
     const draw = drawStall(host)

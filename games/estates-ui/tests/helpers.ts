@@ -1,4 +1,4 @@
-import type { Object3D, Scene } from 'three'
+import type { Camera, Object3D, Scene } from 'three'
 import type { EstatesGameSession } from '../src/lib/model/EstatesGameSession.svelte'
 import { expect, type Page } from '@playwright/test'
 
@@ -58,6 +58,8 @@ export async function createGame(page: Page, name = 'Render check', hiddenMoney 
 declare global {
     interface Window {
         estatesSession: EstatesGameSession
+        estatesCamera: () => Camera
+        estatesInvalidate: () => void
         estatesScene: Scene
         estatesPreview: Object3D
         estatesPreviewAnimating: () => boolean
@@ -74,7 +76,7 @@ export async function inspectScene(page: Page) {
         [
             '**/Scene.svelte*',
             'let cameraControls;',
-            'window.estatesScene = scene; let cameraControls;'
+            'window.estatesScene = scene; window.estatesCamera = () => camera.current; window.estatesInvalidate = invalidate; let cameraControls;'
         ],
         [
             '**/AuctionPreview.svelte*',

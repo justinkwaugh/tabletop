@@ -10,7 +10,7 @@ export class PulsingMaterial extends MeshBasicMaterial {
         private readonly invalidate: () => void,
         minimumOpacity: number
     ) {
-        super({ color: 'white', transparent: true, opacity: 0, depthWrite: false })
+        super({ color: 'white', transparent: true, opacity: 0, depthWrite: false, visible: false })
         this.pulse = gsap.timeline({ paused: true, onUpdate: invalidate })
         this.pulse.to(this, { opacity: 1, duration: 0.6, ease: 'power1.in' }, 0)
         this.pulse.to(
@@ -35,13 +35,18 @@ export class PulsingMaterial extends MeshBasicMaterial {
         this.enabled = value
         this.exitTween?.kill()
         if (value) {
+            this.visible = true
             this.pulse.restart()
         } else {
             this.pulse.pause()
             this.exitTween = gsap.to(this, {
                 opacity: 0,
                 duration: 0.2,
-                onUpdate: this.invalidate
+                onUpdate: this.invalidate,
+                onComplete: () => {
+                    this.visible = false
+                    this.invalidate()
+                }
             })
         }
     }

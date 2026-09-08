@@ -18,26 +18,32 @@ test('placement pulses survive interrupted exit, then stop requesting frames aft
     const material = new PulsingMaterial(invalidate, 0.4)
     advance(1)
     expect(material.opacity).toBe(0)
+    expect(material.visible).toBe(false)
     expect(invalidate).not.toHaveBeenCalled()
 
     material.active = true
+    expect(material.visible).toBe(true)
     advance(0.6)
     expect(material.opacity).toBeCloseTo(1)
     material.active = false
     advance(0.1)
+    expect(material.visible).toBe(true)
     expect(material.opacity).toBeGreaterThan(0)
     expect(material.opacity).toBeLessThan(1)
     material.active = true
+    expect(material.visible).toBe(true)
     advance(0.6)
     expect(material.opacity).toBeCloseTo(1)
     material.active = false
     advance(0.2)
     expect(material.opacity).toBe(0)
+    expect(material.visible).toBe(false)
     invalidate.mockClear()
     advance(2)
     expect(invalidate).not.toHaveBeenCalled()
 
     material.active = true
+    expect(material.visible).toBe(true)
     advance(0.3)
     material.dispose()
     invalidate.mockClear()

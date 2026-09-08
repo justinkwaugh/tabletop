@@ -33,28 +33,28 @@
     {
       "gameId": "estates",
       "packageId": "estates",
-      "logicVersion": "2.0.0",
-      "uiVersion": "3.0.1",
+      "logicVersion": "2.1.0",
+      "uiVersion": "3.4.0",
       "priorLogicVersions": [
+        "2.0.0",
         "1.3.0",
         "1.2.0",
         "2.0.0",
-        "1.2.0",
-        "1.1.0"
+        "1.2.0"
       ],
       "priorUiVersions": [
-        "3.0.0",
-        "2.2.0",
-        "2.1.0",
-        "2.0.0",
-        "1.3.0"
+        "3.3.0",
+        "3.2.0",
+        "3.1.0",
+        "3.0.1",
+        "3.0.0"
       ]
     },
     {
       "gameId": "freshfish",
       "packageId": "fresh-fish",
       "logicVersion": "4.0.0",
-      "uiVersion": "6.2.0",
+      "uiVersion": "6.3.0",
       "priorLogicVersions": [
         "3.0.0",
         "4.0.0",
@@ -63,11 +63,11 @@
         "3.0.0"
       ],
       "priorUiVersions": [
+        "6.2.0",
         "6.1.0",
         "6.0.1",
         "6.0.0",
-        "5.0.1",
-        "6.0.0"
+        "5.0.1"
       ]
     },
     {
@@ -94,7 +94,7 @@
       "gameId": "sol",
       "packageId": "sol",
       "logicVersion": "5.8.0",
-      "uiVersion": "6.2.0",
+      "uiVersion": "6.3.0",
       "priorLogicVersions": [
         "5.7.0",
         "5.6.0",
@@ -103,11 +103,11 @@
         "5.5.0"
       ],
       "priorUiVersions": [
+        "6.2.0",
         "6.1.0",
         "6.0.1",
         "7.0.0",
-        "6.0.1",
-        "6.0.0"
+        "6.0.1"
       ]
     },
     {

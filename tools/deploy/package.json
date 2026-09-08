@@ -10,7 +10,8 @@
         "clean": "rimraf esm",
         "build": "tsgo",
         "deploy": "node --enable-source-maps esm/cli.js tui",
-        "start": "node --enable-source-maps esm/cli.js"
+        "start": "node --enable-source-maps esm/cli.js",
+        "test": "node --experimental-vm-modules --test scripts/*.test.mjs"
     },
     "dependencies": {
         "@tabletop/games-config": "workspace:*",

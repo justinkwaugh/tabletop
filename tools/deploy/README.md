@@ -118,4 +118,5 @@ Notes:
 - A frontend deploy publishes only the Site Frontend Artifact. Each game needs a separate UI-only Publication to adopt shared Game Client changes bundled into its UI Artifact; see the [Game UI Host Bridge Contract](../../docs/adr/0004-game-ui-host-bridge-contract.md).
 - Package versions are the source of truth; the manifest is synced from package.json on refresh/deploy.
 - GCS deploys create explicit placeholder objects for each destination directory path, including nested subdirectories under rsync sources (for non-HNS buckets / explicit-directory gcsfuse mounts).
-- Placeholder creation uses a direct Cloud Storage API call and defaults to `gcloud auth print-access-token` if `TABLETOP_GCS_ACCESS_TOKEN` is not provided.
+- Placeholder creation uses a direct Cloud Storage API call and requests the current credential from `gcloud auth print-access-token` on every invocation unless `TABLETOP_GCS_ACCESS_TOKEN` is provided. The helper does not cache tokens across invocations, so `gcloud config configurations activate` takes effect on the next call. Explicit Cloud SDK environment overrides and `TABLETOP_GCS_ACCESS_TOKEN` still take precedence.
+- Run credential-selection regression tests with `pnpm --filter @tabletop/deploy test`; these use fake credentials and do not contact Google Cloud.

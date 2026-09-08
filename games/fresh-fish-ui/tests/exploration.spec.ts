@@ -1,5 +1,39 @@
 import { expect, test } from '@playwright/test'
 
+for (const version of [1, 2, 3]) {
+    for (const saved of [false, true]) {
+        test(`undoes ${saved ? 'saved' : 'unsaved'} v${version} exploration from History`, async ({
+            page
+        }) => {
+            const errors: string[] = []
+            page.on('console', (message) => {
+                if (
+                    message.type() === 'error' &&
+                    message.text().includes('Unable to undo action')
+                ) {
+                    errors.push(message.text())
+                }
+            })
+            await page.goto('/')
+            const result = await page.evaluate(
+                async ({ version, saved }) => {
+                    const url = new URL(
+                        '/src/lib/stores/tests/exploration.fixture.ts',
+                        window.location.href
+                    ).href
+                    const fixture = await import(url)
+                    return fixture.runExplorationPersistenceUndo(version, saved)
+                },
+                { version, saved }
+            )
+
+            expect(errors).toEqual([])
+            for (const value of Object.values(result))
+                expect(value, JSON.stringify(result)).toBe(true)
+        })
+    }
+}
+
 for (const scenario of [
     'runExplorationHistory',
     'runSafeExplorationUndo',

@@ -23,6 +23,7 @@
     import { EffectHighlighter } from '$lib/utils/effectHighlighter'
     import { gsap, Power2 } from 'gsap'
     import { PulsingMaterial } from '$lib/utils/pulsingMaterial.js'
+    import { placementPieceKey, withPlacementPreview } from '$lib/utils/placementPreview.js'
     import { fadeOut, scaleIn, scaleOut } from '$lib/utils/animations'
     import type { Object3D } from 'three'
     import { ColumnOffsets } from '$lib/utils/boardOffsets'
@@ -45,12 +46,16 @@
     let scale = spring(0.1)
 
     let hoverCube: Cube | undefined = $state()
-    let hoverCubeHeight = $state(0)
+    let placedCubes = $derived(site.cubes)
+    const visibleCubes = $derived(withPlacementPreview(placedCubes, hoverCube))
     let hoverRoof: Roof | undefined = $state()
+    let placedRoof = $derived(site.roof)
+    const visibleRoof = $derived(placedRoof ?? hoverRoof)
     let hoverBarrier: Barrier | undefined = $state()
 
-    let choosingBarrier = $state(false)
-    let hoverBarrierObject: Object3D | undefined
+    let placedBarriers = $derived(site.barriers)
+    const visibleBarriers = $derived(withPlacementPreview(placedBarriers, hoverBarrier))
+    let committingPlacement = $state(false)
     let barrierObjects: Map<number, Object3D> = new Map()
     let cubeObjects: Object3D[] = []
     let roofObject: Object3D | undefined
@@ -87,6 +92,13 @@
         const upcomingSite = to.board.getSiteAtCoords(coords)
         if (!upcomingSite) {
             return
+        }
+
+        if (upcomingSite.cubes.length > site.cubes.length) {
+            placedCubes = upcomingSite.cubes
+        }
+        if (upcomingSite.roof) {
+            placedRoof = upcomingSite.roof
         }
 
         for (const barrier of site.barriers) {
@@ -127,8 +139,12 @@
                 }
             }
         }
+        const hoverBarrierObject = hoverBarrier && barrierObjects.get(hoverBarrier.value)
         if (hoverBarrier && hoverBarrierObject) {
             const index = upcomingSite.barriers.findIndex((b) => b.value === hoverBarrier!.value)
+            if (index >= 0) {
+                placedBarriers = [...site.barriers, upcomingSite.barriers[index]]
+            }
             const offsetInSite =
                 calculateBarrierStart(upcomingSite.barriers) +
                 index * calculateBarrierOffset(upcomingSite.barriers)
@@ -193,7 +209,6 @@
         }
 
         if (isCube(gameSession.gameState.chosenPiece)) {
-            hoverCubeHeight = site.cubes.length
             hoverCube = gameSession.gameState.chosenPiece as Cube
         }
 
@@ -209,9 +224,9 @@
         scale.set(1)
     }
     function onPointerLeave(event: PointerEvent) {
-        hoverCube = undefined
-        hoverRoof = undefined
-        if (!choosingBarrier) {
+        if (!committingPlacement) {
+            hoverCube = undefined
+            hoverRoof = undefined
             hoverBarrier = undefined
             scale.set(0.1)
         }
@@ -223,21 +238,23 @@
             return
         }
 
-        if (isCube(gameSession.gameState.chosenPiece)) {
-            canPreview = false
-            await gameSession.placeCube(gameSession.gameState.chosenPiece, coords)
-
+        committingPlacement = true
+        try {
+            if (isCube(gameSession.gameState.chosenPiece)) {
+                canPreview = false
+                await gameSession.placeCube(gameSession.gameState.chosenPiece, coords)
+            } else if (isRoof(gameSession.gameState.chosenPiece)) {
+                await gameSession.placeRoof(gameSession.gameState.chosenPiece, coords)
+            } else if (isBarrier(gameSession.gameState.chosenPiece)) {
+                await gameSession.placeBarrier(gameSession.gameState.chosenPiece, coords)
+            }
+        } finally {
+            committingPlacement = false
             hoverCube = undefined
-        } else if (isRoof(gameSession.gameState.chosenPiece)) {
-            await gameSession.placeRoof(gameSession.gameState.chosenPiece, coords)
             hoverRoof = undefined
-        } else if (isBarrier(gameSession.gameState.chosenPiece)) {
-            choosingBarrier = true
-            await gameSession.placeBarrier(gameSession.gameState.chosenPiece, coords)
-            choosingBarrier = false
             hoverBarrier = undefined
+            scale.set(0.1)
         }
-        scale.set(0.1)
     }
     let height = $derived(site.cubes.length + (site.roof !== undefined ? 0.5 : 0))
     let dims = $derived(site.cubes.length === 0 ? 1.6 : 1)
@@ -372,14 +389,13 @@
             <T.MeshBasicMaterial color="white" transparent={true} opacity={0} />
         </T.Mesh>
     {/if}
-    {#each site.cubes as cube, i (`${cube.company}-${cube.value}`)}
+    {#each visibleCubes as cube, i (placementPieceKey(cube))}
         <Cube3d
             {cube}
+            scale={i < placedCubes.length ? 1 : $scale}
             oncreate={(ref: Object3D) => {
                 cubeObjects.push(ref)
 
-                // Only scale in on create in history mode because regularly
-                // we are replacing the hover cube and do not want to animate
                 if (gameSession.isViewingHistory) {
                     ref.scale.x = 0.1
                     ref.scale.y = 0.1
@@ -398,14 +414,15 @@
             rotation.z={!sneakyBuildings && gameSession.mobileView ? -Math.PI / 2 : 0}
         />
     {/each}
-    {#if site.roof}
+    {#if visibleRoof}
         <Roof3d
-            roof={site.roof}
+            roof={visibleRoof}
+            scale={placedRoof ? 1 : $scale}
+            transparent={!placedRoof}
+            opacity={placedRoof ? 1 : 0.6}
             oncreate={(ref: Object3D) => {
                 roofObject = ref
 
-                // Only scale in on create in history mode because regularly
-                // we are replacing the hover roof and do not want to animate
                 if (gameSession.isViewingHistory) {
                     ref.scale.x = 0.1
                     ref.scale.y = 0.1
@@ -422,7 +439,7 @@
             rotation.y={gameSession.mobileView ? -Math.PI / 2 : 0}
         />
     {/if}
-    {#each site.barriers as barrier, i (barrier.value)}
+    {#each visibleBarriers as barrier, i (placementPieceKey(barrier))}
         <Barrier3d
             oncreate={(ref: Object3D) => {
                 barrierObjects.set(barrier.value, ref)
@@ -431,54 +448,19 @@
                 }
             }}
             stripes={barrier.value}
-            onpointerenter={(event: any) => enterBarrier(event, barrier)}
-            onpointerleave={leavePiece}
-            onclick={(event: any) => onBarrierClick(event, barrier)}
-            position.x={barrierStart + i * barrierOffset}
+            scale={i < placedBarriers.length ? 1 : $scale}
+            transparent={i >= placedBarriers.length}
+            opacity={i < placedBarriers.length ? 1 : 0.6}
+            onpointerenter={i < site.barriers.length
+                ? (event: any) => enterBarrier(event, barrier)
+                : undefined}
+            onpointerleave={i < site.barriers.length ? leavePiece : undefined}
+            onclick={i < site.barriers.length
+                ? (event: any) => onBarrierClick(event, barrier)
+                : undefined}
+            position.x={i < site.barriers.length ? barrierStart + i * barrierOffset : 0}
             z={0}
             position.y={0}
         />
     {/each}
-    {#if hoverCube}
-        <Cube3d
-            cube={hoverCube}
-            singleNumber={sneakyBuildings}
-            position.x={0}
-            position.z={0}
-            position.y={hoverCubeHeight}
-            rotation.y={sneakyBuildings && gameSession.mobileView ? -Math.PI / 2 : 0}
-            rotation.z={!sneakyBuildings && gameSession.mobileView ? -Math.PI / 2 : 0}
-            scale={$scale}
-        />
-    {/if}
-    {#if hoverRoof}
-        <Roof3d
-            transparent={true}
-            opacity={0.6}
-            roof={hoverRoof}
-            position.x={0}
-            position.z={0}
-            position.y={site.cubes.length - 0.305}
-            rotation.y={gameSession.mobileView ? -Math.PI / 2 : 0}
-            scale={$scale}
-        />
-    {/if}
-    {#if hoverBarrier}
-        <Barrier3d
-            oncreate={(ref: Object3D) => {
-                hoverBarrierObject = ref
-                return () => {
-                    hoverBarrierObject = undefined
-                }
-            }}
-            stripes={hoverBarrier.value}
-            transparent={true}
-            opacity={0.6}
-            barrier={hoverBarrier}
-            position.x={0}
-            position.z={0}
-            position.y={0}
-            scale={$scale}
-        />
-    {/if}
 </T.Group>

@@ -1131,7 +1131,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     response.game,
                     before
                 )
-            } else {
+            } else if (context.game.storage === GameStorage.Local) {
                 await this.gameService.saveGameLocally({
                     game: context.game,
                     actions: context.actions,
