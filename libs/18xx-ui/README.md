@@ -46,3 +46,6 @@ or `pnpm --filter @tabletop/18xx-ui check` to run Svelte and TypeScript checks.
 Run `pnpm --filter @tabletop/18xx-ui test` for shared geometry and filtering checks.
 Run `pnpm --filter @tabletop/18xx-tile-viewer dev` for the tile gallery at port 4188,
 or `pnpm --filter @tabletop/18xx-tile-viewer test` for title integration and browser checks.
+
+The [economic inspection slice](../18xx/finance.md) adds shared financial fields and queries
+and portfolio inspection, with title-owned examples in the standalone app.

@@ -19,7 +19,9 @@
         "@tabletop/common": "workspace:*",
         "@tabletop/the-old-prince": "workspace:*",
         "@tabletop/shikoku-1889": "workspace:*",
-        "@tabletop/frontend-components": "workspace:*"
+        "@tabletop/frontend-components": "workspace:*",
+        "@tabletop/the-old-prince-ui": "workspace:*",
+        "@tabletop/shikoku-1889-ui": "workspace:*"
     },
     "devDependencies": {
         "@sveltejs/kit": "^2.48.4",

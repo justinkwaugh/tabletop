@@ -10,10 +10,11 @@ The public entry point exports `Shikoku1889Tiles`, `Shikoku1889TileSet`, and
 `Shikoku1889Map` exports the complete semantic map, including geography,
 construction facts, reservations, and markers. See the [M1 map design](../../libs/18xx/maps.md).
 See the [T3 inventory design and evidence](../../libs/18xx/inventory.md), including
-the rulebook's extra beginner #57. There is no Game State, initializer,
-Action registration, or `GameDefinition` yet, and the title is not registered in
-the site catalog. Shared mechanisms will be developed against both Shikoku 1889
-and TOP before composing their title runtimes.
+the rulebook's extra beginner #57. The public `Definition` now loads a strict three-player finance example through
+Common Game Runtime. It includes cash, certificates, and control inspection; it is
+not full game setup or a playable game. There are no registered gameplay Actions,
+and the title is not registered in the site catalog. See the
+[shared economic model and title examples](../../libs/18xx/finance.md).
 
 ## Rule evidence
 

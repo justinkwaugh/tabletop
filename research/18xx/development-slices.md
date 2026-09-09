@@ -2,9 +2,9 @@
 
 This is a research-backed proposal for developing both titles through the shared
 `@tabletop/18xx` and `@tabletop/18xx-ui` libraries. The packages currently contain
-buildable scaffolds, not implemented rules. The slices below are proposed work,
-not completed features or published issue specifications. Accepted implementation
-tickets belong in the repository's GitHub Issues.
+tile/map foundations and inspection scenarios. Implemented slices are marked
+below; the remaining slices are proposed work, not published issue specifications.
+Accepted implementation tickets belong in the repository's GitHub Issues.
 
 ## Approach
 
@@ -303,6 +303,10 @@ their live rules arrive in the numbered slices.
 
 ## M2. Add physical-board presentation and independent view selection
 
+**Deferred:** matching board artwork is not currently available. Continue with
+numbered slice 1 using the boardless presentation; return to M2 when the artwork
+is available.
+
 **Outcome:** show the same position on title board artwork, with current tiles
 overlaid in their correct locations, and switch between this and boardless mode.
 
@@ -341,34 +345,38 @@ does not require a second game-state schema, tile catalog, or railway graph.
 
 ## 1. Inspect the same economic concepts in both titles
 
-**Outcome:** load a prepared scenario for each title and inspect its players,
-corporations, cash, certificates, and control relationships in a small local Game
+**Implemented:** shared financial fields and queries, strict example Game State
+hydration, both title definitions and local Game Session inspection screens. See the
+[finance design and verification note](../../libs/18xx/finance.md).
+
+**Outcome:** load a prepared example for each title and inspect its players,
+companies, cash, certificates, and control relationships in a small local Game
 Client harness.
 
 **Shared work:** JSON schemas and hydrated models for the holdings actually needed
-now; stable identities; identifiable certificates with economic units separate
-from certificate-limit contribution; owned cash accounts; a strict scenario Game
-State and round-trip hydration. Add player portfolios and corporation/private
+now; stable identities; identifiable certificates with shares separate
+from certificate-limit contribution; cash, portfolios, and treasuries; a strict example Game
+State and round-trip hydration. Add player portfolios and company
 summaries in the prototype harness. Establish title `GameDefinition`/`GameUiDefinition`
 composition and the existing Game Session path as needed for this harness.
 
 **Paired evidence:** ordinary president/10% certificates for 1889; TOP fixtures
-also include Union Bank-owned certificates and five numbered PEIR rights. A
+also include Union Bank-owned certificates and five numbered PEIR shares. A
 person's own portfolio and Union Bank's portfolio remain separate; PEIR entitlement
-is based on surviving rights rather than an assumed fixed 10% unit. [S §§1, 7;
+is based on outstanding shares rather than an assumed fixed 10% unit. [S §§1, 7;
 T §§3, 6.3, 7.7, 11.3]
 
 **Acceptance:** JSON hydration preserves identities and quantities; a 20%
-president certificate counts as one physical certificate and two ordinary share
-units; changing player colors/order does not change ownership. The inspector
+president certificate counts as one physical certificate and two shares; changing
+player colors/order does not change ownership. The inspector
 shows why Union Bank can own a certificate while a human decides for it.
 
-**Depends on:** existing scaffolds. **Limit:** prepared scenarios, no invented
+**Depends on:** existing scaffolds. **Limit:** prepared examples, no invented
 generic transfer button or claimed complete initialization.
 
 ## 2. Buy an existing share and settle its actual cost
 
-**Outcome:** execute a stock purchase through the Game Session in both scenarios.
+**Outcome:** execute a stock purchase through the Game Session in both title examples.
 
 **Shared work:** purchase eligibility, cash settlement and ownership transfer;
 candidate `BuyShares` Action; stock-purchase handler; result metadata for a clear
@@ -731,7 +739,7 @@ priority; the financial scenarios do not depend on it.
 and four players, then reach the proper first SR.
 
 **Title work using shared models:** Mainline/Shortline assignment, five retained
-PEIR rights, starting stations, Union Bank assets, public offer piles, and
+PEIR shares, starting stations, Union Bank assets, public offer piles, and
 concession awards. Auctioneer, two eligible bidders, and forced purchaser remain
 distinct. Implement fallback richest-player purchase and repeated private payouts
 when nobody can afford the mandatory purchase. Add offer-pile and forced-buyer UI.
@@ -819,7 +827,7 @@ states expose no actions; do not equate end triggered with game already ended.
 **Paired evidence:** 1889 bank breaking changes the bank to unlimited and ends at
 the specified SR/OR-set boundary; TOP starts with an unlimited bank and uses its
 diesel ending schedule. Both end immediately on bankruptcy. TOP includes remaining
-PEIR rights and Union Bank net worth; neither ruleset automatically excludes a
+PEIR shares and Union Bank net worth; neither ruleset automatically excludes a
 bankrupt player from winning. [S §10; T §8]
 
 **Acceptance:** trigger bank break during an SR and during an OR; continue all

@@ -9,10 +9,11 @@ The public entry point exports `TheOldPrinceTileSet` and `TheOldPrinceTiles`:
 `TheOldPrincePreprintedTiles` supplies all 110 preprinted tiles.
 `TheOldPrinceMap` exports the complete semantic map, including geography,
 construction facts, reservations, and markers. See the [M1 map design](../../libs/18xx/maps.md). See the
-[T3 inventory design and evidence](../../libs/18xx/inventory.md). There is no Game State, initializer,
-Action registration, or `GameDefinition` yet, and the title is not registered in
-the site catalog. Shared mechanisms will be developed against both TOP and
-Shikoku 1889 before composing their title runtimes.
+[T3 inventory design and evidence](../../libs/18xx/inventory.md). The public `Definition` now loads a strict three-player finance example through
+Common Game Runtime. It includes cash, certificates, and control inspection; it is
+not full game setup or a playable game. There are no registered gameplay Actions,
+and the title is not registered in the site catalog. See the
+[shared economic model and title examples](../../libs/18xx/finance.md).
 
 ## Rule evidence
 
@@ -28,7 +29,7 @@ The older rulebook and prototype source do not establish a reconciled current
 rules edition. No disputed rule values are encoded in this scaffold.
 
 TOP owns its opening auction, Mainline/Shortline setup roles, Union Bank rules,
-PEIR rights and contraction, tranche availability, and branch-splitting procedure.
+PEIR shares and contraction, tranche availability, and branch-splitting procedure.
 These procedures can consume shared financial, track, train, and decision modules.
 See the [family mechanism map](../../libs/18xx/README.md#initial-title-pair).
 

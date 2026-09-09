@@ -40,7 +40,7 @@ requirement for every title to use every mechanism.
 
 | Candidate module    | Shared behavior                                                                                                  | Differences exercised by these titles                                                                                                                                                 |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Cash and holdings   | Explicit asset ownership, transfers, identifiable certificates, economic interests, and human decision authority | 1889 has ordinary player shareholdings; TOP also has Union Bank investments and numbered PEIR rights with changing payout fractions.                                                  |
+| Cash and holdings   | Explicit asset ownership, transfers, identifiable certificates, economic interests, and human decision authority | 1889 has ordinary player shareholdings; TOP also has Union Bank investments and numbered PEIR shares with changing payout fractions.                                                  |
 | Stock transactions  | Purchase/sale settlement, presidency exchanges, and separate start, funding, and flotation facts                 | 1889 floats at 50% remaining in the Initial Offering and receives ten times par (rulebook §§7.2.2, 7.4); TOP has reserved exchanges, tranches, and separately funded branches (§6.7). |
 | Track and stations  | Hex/path connectivity, physical tile inventory, rotation, and preservation of station rights                     | 1889's ordinary construction step permits one lay or upgrade (§8.3); TOP permits a second yellow lay for a fee, plus title-specific restrictions (§7.2).                              |
 | Trains and routes   | Train ownership, route validation, service results, and event consequences                                       | 1889 counts revenue locations (§8.5); TOP distinguishes H-train boundary crossings, later distance metrics, and delayed retirement for eligible 4+ trains (§13.2).                    |
@@ -66,3 +66,6 @@ Existing Common auction, turn, round, phase, and PRNG mechanisms remain availabl
 for reuse where their semantics match. Titles compose decision procedures and
 supply differing rules; they do not inherit one canonical 18xx game. Shared
 presentation belongs in `@tabletop/18xx-ui`.
+
+The [economic inspection slice](../18xx/finance.md) adds shared financial fields and queries
+and portfolio inspection, with title-owned examples in the standalone app.

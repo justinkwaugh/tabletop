@@ -51,9 +51,15 @@ importers:
       '@tabletop/shikoku-1889':
         specifier: workspace:*
         version: link:../../games/shikoku-1889
+      '@tabletop/shikoku-1889-ui':
+        specifier: workspace:*
+        version: link:../../games/shikoku-1889-ui
       '@tabletop/the-old-prince':
         specifier: workspace:*
         version: link:../../games/the-old-prince
+      '@tabletop/the-old-prince-ui':
+        specifier: workspace:*
+        version: link:../../games/the-old-prince-ui
     devDependencies:
       '@playwright/test':
         specifier: ^1.42.1

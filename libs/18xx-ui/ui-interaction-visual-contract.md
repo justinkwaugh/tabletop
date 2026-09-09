@@ -175,3 +175,48 @@ Manual review covers both complete maps at fit, enlarged Kouchi's track/label/co
 layout, and narrow-screen navigation. The surrounding controls remain prototype
 presentation; the tile/map geometry and semantic hit-target contract are shared
 library assets.
+
+## Finance inspection
+
+### Visible intent
+
+The inspection example shows player portfolios, company treasuries, and the
+Bank's cash and certificates. Each certificate shows its shares or private
+ownership, president's-certificate status, and certificate-limit contribution.
+Numbered shares retain their numbers. Company details identify the President or
+private Owner and the Controlling Owner. Titles may add share-specific details.
+All content is read-only.
+
+### Coexistence and precedence
+
+Ownership keeps personal, company, and Bank assets separate. Certificate pools
+appear as named groups within their owner's certificates, including the Bank's
+IPO and Market. A controlling owner's identity never merges the company's assets
+into the player's portfolio. Retired certificates are omitted. Player color never
+determines identity. Cash is shown only where recorded; unlimited cash is explicit.
+
+### Shared visual state
+
+The Game Session supplies Displayed Game State and player identities. The financial
+fields are read directly from that state, without an intermediate container. The inspector
+owns no selection, Action Draft, hover, or financial mutations. Switching titles
+disposes the previous Game Session. Revisiting restores the saved local example
+for the current fixture version. The host preserves earlier versions and creates
+a current example when needed. Loading and failure states belong to the host.
+There are no game Actions, Back/Undo controls, or history transitions in this scenario.
+
+### Render ownership
+
+The shared Portfolio renders certificates grouped by pool and optional cash.
+FinanceInspector arranges owners and displays private ownership, presidency, and
+controlling ownership. Titles supply share-specific explanations; the host supplies
+title choice and Game Session lifetime. These are prototype layouts.
+
+### Verification scenarios
+
+Desktop/mobile checks distinguish a two-share president's certificate from its
+single certificate-limit contribution; Union Bank's treasury from Alex's portfolio;
+and Souris's President from its Controlling Owner. They verify PEIR's numbered
+shares and payout fraction, company-owned privates, Bank-owned IPO/Market pools,
+title switching, current-example reload, and preservation of older examples.
+Screens must have no horizontal overflow or page errors.

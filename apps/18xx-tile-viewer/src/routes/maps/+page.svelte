@@ -47,7 +47,11 @@
 
 <svelte:head><title>18xx maps</title></svelte:head>
 <main>
-    <nav><a href="/">Tile library</a><a href="/specimens">Tile specimens</a></nav>
+    <nav>
+        <a href="/">Tile library</a><a href="/specimens">Tile specimens</a><a href="/economy"
+            >Finances</a
+        >
+    </nav>
     <header>
         <label
             >Map<select bind:value={title}

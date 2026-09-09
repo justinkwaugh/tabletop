@@ -18,3 +18,5 @@ export {
     MutedTileAppearance,
     type TileAppearance
 } from './tiles/tileAppearance.js'
+export { default as Portfolio } from './finance/Portfolio.svelte'
+export { default as FinanceInspector } from './finance/FinanceInspector.svelte'
