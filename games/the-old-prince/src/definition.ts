@@ -1,4 +1,5 @@
-import { TheOldPrinceSharePurchaseRules } from './sharePurchase.js'
+import { createTheOldPrinceStockMarket } from './stockMarket.js'
+import { TheOldPrinceStockRules } from './stockRules.js'
 import { type GameDefinition } from '@tabletop/common'
 import {
     createFinanceExampleRuntime,
@@ -25,6 +26,7 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
     },
     runtime: createFinanceExampleRuntime(
         createTheOldPrinceFinanceExample,
-        TheOldPrinceSharePurchaseRules
+        TheOldPrinceStockRules,
+        createTheOldPrinceStockMarket
     )
 }

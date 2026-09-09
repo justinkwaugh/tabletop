@@ -1,4 +1,5 @@
-import { Shikoku1889SharePurchaseRules } from './sharePurchase.js'
+import { createShikoku1889StockMarket } from './stockMarket.js'
+import { Shikoku1889StockRules } from './stockRules.js'
 import { type GameDefinition } from '@tabletop/common'
 import {
     createFinanceExampleRuntime,
@@ -25,6 +26,7 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
     },
     runtime: createFinanceExampleRuntime(
         createShikoku1889FinanceExample,
-        Shikoku1889SharePurchaseRules
+        Shikoku1889StockRules,
+        createShikoku1889StockMarket
     )
 }

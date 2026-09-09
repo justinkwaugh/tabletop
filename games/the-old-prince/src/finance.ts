@@ -26,7 +26,7 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
                 name: 'Charlottetown · Mainline',
                 kind: 'major',
                 shareCount: 10,
-                marketPrice: 92,
+                operated: true,
                 floated: true,
                 president: alex
             },
@@ -35,7 +35,7 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
                 name: 'Souris',
                 kind: 'major',
                 shareCount: 10,
-                marketPrice: 86,
+                operated: true,
                 floated: true,
                 president: union
             },
@@ -82,7 +82,7 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
                 'So',
                 [
                     { owner: union },
-                    { owner: blair },
+                    { owner: alex },
                     { owner: blair },
                     market,
                     market,

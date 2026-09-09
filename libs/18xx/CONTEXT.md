@@ -80,3 +80,30 @@ _Avoid_: Holder
 **Decision Authority**:
 The right to make a particular decision under the title's rules.
 It is separate from asset ownership and responsibility for paying an obligation.
+
+**Ownership Limit**:
+The maximum permitted shareholding by one owner in a particular company, subject
+to the title's exemptions and rules for counting interests.
+
+**Stock Round**:
+A round in which participants conduct stock transactions and may form companies
+under the title's rules.
+
+**Stock Turn**:
+One participant's opportunity to perform the permitted stock actions within a
+stock round.
+
+**Stock Market**:
+The system of share prices and positions used to track company values under the
+title's rules.
+
+**Stock Market Space**:
+A distinct position in the stock market, with a price and any rules associated
+with occupying that position.
+
+**Stock Market Marker**:
+A token identifying a company's current stock-market position.
+
+**Marker Stack**:
+The ordered markers sharing one stock-market space, whose relative order may
+determine company priority.

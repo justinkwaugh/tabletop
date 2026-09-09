@@ -22,4 +22,5 @@ export { default as Portfolio } from './finance/Portfolio.svelte'
 export { default as FinanceInspector } from './finance/FinanceInspector.svelte'
 
 export * from './examples/financeExampleSession.svelte.js'
-export { default as SharePurchase } from './examples/SharePurchase.svelte'
+export { default as StockTrading } from './examples/StockTrading.svelte'
+export { default as StockMarket } from './stock/StockMarket.svelte'

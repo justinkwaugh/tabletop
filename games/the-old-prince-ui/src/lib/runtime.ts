@@ -1,5 +1,5 @@
 import { createFinanceExampleSessionClass } from '@tabletop/18xx-ui'
-import { Definition, TheOldPrinceSharePurchaseRules } from '@tabletop/the-old-prince'
+import { Definition, TheOldPrinceStockRules } from '@tabletop/the-old-prince'
 import {
     DefaultColorizer,
     mountDynamicComponent,
@@ -11,6 +11,6 @@ import Table from './Table.svelte'
 export const UiRuntime: GameUIRuntime<GameState, HydratedGameState> = {
     ...Definition.runtime,
     gameUI: { component: Table, load: async () => Table, mount: mountDynamicComponent },
-    sessionClass: createFinanceExampleSessionClass(TheOldPrinceSharePurchaseRules),
+    sessionClass: createFinanceExampleSessionClass(TheOldPrinceStockRules),
     colorizer: new DefaultColorizer()
 }

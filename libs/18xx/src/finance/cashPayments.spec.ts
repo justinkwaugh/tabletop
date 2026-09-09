@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
-import { settleCashPayments } from './sharePurchase.js'
-import type { FinancialState } from '../finance/finance.js'
+import { settleCashPayments } from './cashPayments.js'
+import type { FinancialState } from './finance.js'
 
 const player = { kind: 'player', playerId: 'player' } as const
 const company = { kind: 'company', companyId: 'company' } as const

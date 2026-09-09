@@ -8,18 +8,21 @@
     } from '@tabletop/18xx'
     import { assertExists, type Player, type PlayerState } from '@tabletop/common'
     import type { Certificate, Owner, FinancialState } from '@tabletop/18xx'
+    import type { Portfolio as PortfolioModel } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
     import Portfolio from './Portfolio.svelte'
     let {
         state,
         players,
         playerStates,
-        certificateDetail
+        certificateDetail,
+        certificateWeight
     }: {
         state: FinancialState
         players: readonly Player[]
         playerStates: readonly PlayerState[]
         certificateDetail?: Snippet<[Certificate]>
+        certificateWeight?: (certificate: PortfolioModel[number]) => number
     } = $props()
     function playerName(playerId: string) {
         const player = players.find((player) => player.id === playerId)
@@ -51,6 +54,7 @@
                     cash={cashOwnedBy(state, owner)}
                     color={player.color}
                     {certificateDetail}
+                    {certificateWeight}
                 />
             {/each}
         </div>
@@ -70,6 +74,7 @@
                         label="treasury"
                         cash={getTreasury(state, company.id).cash}
                         {certificateDetail}
+                        {certificateWeight}
                     />
                     {#if company.kind === 'private'}
                         <p class="authority">Owner: {owner ? ownerName(owner) : 'None'}</p>
@@ -100,6 +105,7 @@
                 label="certificates"
                 cash={cashOwnedBy(state, { kind: 'bank' })}
                 {certificateDetail}
+                {certificateWeight}
             />
         </div>
     </section>

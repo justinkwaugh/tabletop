@@ -28,7 +28,7 @@ export const Company = Type.Object(
         kind: Id,
         shareCount: Type.Optional(Type.Integer({ minimum: 1 })),
         parPrice: Type.Optional(Type.Integer({ minimum: 1 })),
-        marketPrice: Type.Optional(Type.Integer({ minimum: 1 })),
+        operated: Type.Optional(Type.Boolean()),
         floated: Type.Optional(Type.Boolean()),
         president: Type.Optional(President),
         privateRevenue: Type.Optional(Type.Integer({ minimum: 0 }))
@@ -277,4 +277,14 @@ export function createOrdinaryShareCertificates(
             })
         )
     ]
+}
+
+export function copyFinances(state: FinancialState): FinancialState {
+    return {
+        bank: { ...state.bank },
+        companies: state.companies.map((company) => ({ ...company })),
+        cash: state.cash.map((cash) => ({ ...cash })),
+        certificatePools: state.certificatePools.map((pool) => ({ ...pool })),
+        certificates: state.certificates.map((certificate) => ({ ...certificate }))
+    }
 }

@@ -10,13 +10,11 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import { Owner } from '../finance/finance.js'
-import {
-    evaluateSharePurchase,
-    settleCashPayments,
-    SharePurchaseDetails,
-    type SharePurchaseRules,
-    type SharePurchaseState
-} from './sharePurchase.js'
+import { evaluateSharePurchase, SharePurchaseDetails } from './sharePurchase.js'
+import { settleCashPayments } from '../finance/cashPayments.js'
+import { applyPresidencyChange } from './presidency.js'
+import type { StockRules } from './stockRules.js'
+import type { StockState } from './stockState.js'
 
 export const BuyShares = Type.Object(
     {
@@ -45,12 +43,12 @@ export class HydratedBuyShares extends HydratableAction<typeof BuyShares> implem
     declare certificateId: string
     declare expectedPrice: number
     declare metadata?: SharePurchaseDetails
-    readonly #rules: SharePurchaseRules
-    constructor(data: BuyShares, rules: SharePurchaseRules) {
+    readonly #rules: StockRules
+    constructor(data: BuyShares, rules: StockRules) {
         super(data instanceof HydratedBuyShares ? data.dehydrate() : data, BuySharesValidator)
         this.#rules = rules
     }
-    apply(state: HydratedGameState & SharePurchaseState): void {
+    apply(state: HydratedGameState & StockState): void {
         assert(this.source === ActionSource.User, 'A share purchase requires a player action')
         const result = evaluateSharePurchase(state, this, this.#rules)
         assert(result.details, result.reason ?? 'Invalid purchase')
@@ -65,6 +63,9 @@ export class HydratedBuyShares extends HydratableAction<typeof BuyShares> implem
         delete certificate.poolId
         if (this.buyer.kind === 'company')
             state.stockRound.companyPurchases.push(this.buyer.companyId)
+        if (result.details.presidency) applyPresidencyChange(state, result.details.presidency)
+        state.stockRound.turn.soldBeforeBuying = state.stockRound.turn.companiesSold.length > 0
+        state.stockRound.turn.bought = true
         this.metadata = result.details
     }
 }

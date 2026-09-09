@@ -3,13 +3,13 @@
         getCompany,
         certificatesOwnedBy,
         certificatesInPool,
-        countCertificatesForLimit,
         sameOwner,
         type Cash,
         type Certificate,
         type Owner,
         type FinancialState
     } from '@tabletop/18xx'
+    import type { Portfolio as PortfolioModel } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
     let {
         state,
@@ -18,7 +18,8 @@
         cash,
         color,
         label = 'portfolio',
-        certificateDetail
+        certificateDetail,
+        certificateWeight = (certificate) => certificate.certificateLimitCount
     }: {
         state: FinancialState
         owner: Owner
@@ -27,6 +28,7 @@
         color?: string
         label?: string
         certificateDetail?: Snippet<[Certificate]>
+        certificateWeight?: (certificate: PortfolioModel[number]) => number
     } = $props()
     const certificates = $derived(certificatesOwnedBy(state, owner))
     const groups = $derived([
@@ -62,8 +64,9 @@
     </header>
     <p class="counts">
         {certificates.length}
-        {certificates.length === 1 ? 'certificate' : 'certificates'} · Limit count {countCertificatesForLimit(
-            certificates
+        {certificates.length === 1 ? 'certificate' : 'certificates'} · Limit count {certificates.reduce(
+            (sum, certificate) => sum + certificateWeight(certificate),
+            0
         )}
     </p>
     {#each groups as group (group.id)}
@@ -82,7 +85,7 @@
                                 </div>
                                 <div class="details">
                                     <span>{interest(certificate)}</span><span
-                                        >Counts as {certificate.certificateLimitCount}</span
+                                        >Counts as {certificateWeight(certificate)}</span
                                     >
                                 </div>
                                 {#if certificateDetail}{@render certificateDetail(certificate)}{/if}

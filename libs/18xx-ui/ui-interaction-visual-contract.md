@@ -178,68 +178,67 @@ library assets.
 
 ## Finance inspection
 
-### Visible intent
+### Visible intents
 
-The inspection example shows player portfolios, company treasuries, and the
-Bank's cash and certificates. Each certificate shows its shares or private
-ownership, president's-certificate status, and certificate-limit contribution.
-Numbered shares retain their numbers. Company details identify the President or
-private Owner and the Controlling Owner. Titles may add share-specific details.
-The portfolio inspector is read-only. A purchase panel above it offers existing
-shares for the active player or a company that player may act for. Selecting one
-shows the buyer, seller, price, and each cash payment before confirmation.
-Native buttons support keyboard, pointer, and touch input.
+Portfolios show cash, certificate pools, share units, effective certificate-limit
+weights, and private ownership. Company details identify the President and
+Controlling Owner. Title-specific numbered-share explanations remain visible.
+
+The prepared stock turn supports purchasing, selling, and finishing. A manual
+purchase selection replaces the choices with the price, payer contributions, and
+any presidency exchange. A sale selection shows quantities, total proceeds,
+resulting market prices, and presidency exchanges. Additional companies may join
+the sale; ordered blocks determine marker arrival order. Buttons move a block
+earlier or later or remove it. Native buttons support pointer, keyboard, and touch.
+
+The shared stock market displays each distinct space and its committed marker
+stack, top to bottom. Its scroll area is keyboard focusable and contained at
+mobile widths. Market order is listed beneath it. Equal prices retain separate
+spaces and stack identities. Previewing a trade does not move markers.
 
 ### Coexistence and precedence
 
-Ownership keeps personal, company, and Bank assets separate. Certificate pools
-appear as named groups within their owner's certificates, including the Bank's
-IPO and Market. A controlling owner's identity never merges the company's assets
-into the player's portfolio. Retired certificates are omitted. Player color never
-determines identity. Cash is shown only where recorded; unlimited cash is explicit.
+Only one manual purchase or sale selection exists at a time. A sale may contain
+several ordered company blocks. Back cancels the entire manual selection. Undo
+clears a manual selection first, otherwise it undoes committed history, including
+Finish turn. There are no automatic selections. While processing or in History
+View, selections do not render and trade controls are unavailable.
+
+Finishing requires no pending selection and compliance with the stock limits.
+Over-limit states display a sale requirement. Title rules determine available
+purchases and sales, including sale-before/after-purchase restrictions. The example
+stops after Finish turn; Undo restores that turn.
 
 ### Shared visual state
 
-The Game Session supplies Displayed Game State and player identities. The financial
-fields are read directly from that state, without an intermediate container. The inspector
-owns no selection, Action Draft, hover, or financial mutations. Switching titles
-disposes the previous Game Session. Revisiting restores the saved local example
-for the current fixture version. The host preserves earlier versions and creates
-a current example when needed. Loading and failure states belong to the host.
-The Game Session owns one manual purchase selection. It drives only the payment
-preview; it never changes cash or certificate ownership. Back clears that selection.
-Undo clears a manual selection first, otherwise it undoes the committed purchase.
-There are no automatic selections. A selection is hidden while visible state is
-updating and cleared before the next state is published. History view is read-only.
-Title switching and reload discard uncommitted selection.
-
-Confirmation submits a BuyShares Action through the Game Session. The engine
-rechecks eligibility and price before settling payments. While busy, purchase and
-Undo controls are disabled. The prepared turn ends after one purchase, displaying
-its payment history and updated portfolios; Undo restores the turn. Saved purchases
-and their history survive reload. The example does not expose history navigation.
+The Game Session owns manual selection and derives eligibility and preview results
+from Displayed Game State. Selection is hidden during visible-state updates and
+cleared before new state is published. It drives previews only. Title switching,
+reload, and state replacement discard selection; saved trades and their history
+survive reload. History View is read-only; the example exposes Undo but no history
+navigation controls. Portfolio counts and market positions follow the displayed
+state when it changes, without local mutation or replay effects.
 
 ### Render ownership
 
-The shared Portfolio renders certificates grouped by pool and optional cash.
-FinanceInspector arranges owners and displays private ownership, presidency, and
-controlling ownership. Titles supply share-specific explanations; the host supplies
-title choice and Game Session lifetime. The shared purchase panel renders session
-choices, confirmation, and committed payment history. These are prototype layouts.
+The shared trading panel renders choices, confirmation, and committed trade history.
+The market renders spaces and marker stacks. The inspector arranges owner portfolios
+and management details; its certificate-weight input comes from the title's stock
+rules, so market exemptions affect both legality and displayed counts. The Game
+Session creates all actions. The host supplies title choice and session lifetime,
+preserving earlier fixture versions. These are prototype trading layouts.
 
 ### Verification scenarios
 
-Desktop/mobile checks distinguish a two-share president's certificate from its
-single certificate-limit contribution; Union Bank's treasury from Alex's portfolio;
-and Souris's President from its Controlling Owner. They verify PEIR's numbered
-shares and payout fraction, company-owned privates, Bank-owned IPO/Market pools,
-title switching, current-example reload, and preservation of older examples.
-Screens must have no horizontal overflow or page errors.
+Automated desktop/mobile browser checks select, cancel, confirm, reload, and undo
+Union Bank purchases, with 40 paid by Union Bank and 52 by Alex. Reserved purchases
+are disabled. 1889 distinguishes IPO par from Market pricing.
 
-Purchase checks at desktop/mobile widths select a Union Bank purchase, cancel with
-Back, cancel with Undo, confirm, reload, and undo the saved purchase. They verify
-Union Bank pays 40 and Alex pays 52, while Union Bank receives the certificate.
-Reserved shares are disabled. 1889 displays IPO price 65 and Market price 90;
-confirming the IPO purchase pays the Bank and moves the certificate to Alex.
-Switching titles clears a pending selection. Engine tests verify exact processed
-replay and Undo, rejection without mutation, and authoritative payment metadata.
+Sale checks select two Mainline shares, preview 184 and an Alex-to-Blair presidency
+exchange, cancel without mutation, then confirm. Mainline enters the 86 space below
+Souris; Alex receives 184. Reload restores the sale. A Souris purchase and Finish
+turn then undo in reverse order, restoring cash, presidency, certificates, and
+market position. 1889 checks an Iyo purchase that changes president and a subsequent
+Awa sale; both undo exactly. Engine tests cover multi-company arrival order, market
+exemptions, rejection, and processed replay. Screens have no page errors or document
+horizontal overflow.

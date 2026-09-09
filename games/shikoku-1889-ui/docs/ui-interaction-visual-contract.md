@@ -2,8 +2,8 @@
 
 The finance example follows the shared
 [finance inspection contract](../../../libs/18xx-ui/ui-interaction-visual-contract.md#finance-inspection).
-The Game Session exposes an illustrative position with one prepared stock turn.
-Share selection, payment confirmation, purchase history, and Undo follow the shared
+The Game Session exposes an illustrative position with one prepared stock turn supporting purchases, sales, and Finish turn.
+Share selection, trade previews, stock history, market rendering, and Undo follow the shared
 contract. Switching away disposes this Game Session,
 and revisiting restores its local example.
 
@@ -19,3 +19,8 @@ checked through the engine.
 
 IPO purchases display the par price; Market purchases display the market price.
 Both pay the Bank. The prepared position uses ordinary market spaces.
+
+Sales follow the shared contract: preview and cancellation leave the market and
+portfolios unchanged; confirmation updates proceeds, presidency, and market
+position. Undo restores the full trade. Effective certificate counts come from
+the title rules for the current displayed market position.

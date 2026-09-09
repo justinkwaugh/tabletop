@@ -4,7 +4,8 @@
     import type { GameState, HydratedGameState } from '@tabletop/common'
     import {
         FinanceInspector,
-        SharePurchase,
+        StockTrading,
+        StockMarket,
         requireFinanceExampleSession
     } from '@tabletop/18xx-ui'
     let { gameSession }: { gameSession: GameSession<GameState, HydratedGameState> } = $props()
@@ -12,6 +13,12 @@
     const state = $derived(requireFinanceExampleState(gameSession.gameState))
 </script>
 
-<SharePurchase {session} />
+<StockTrading {session} />
+<StockMarket market={state.stockMarket} companies={state.companies} />
 
-<FinanceInspector {state} players={gameSession.game.players} playerStates={state.players} />
+<FinanceInspector
+    certificateWeight={session.certificateWeight}
+    {state}
+    players={gameSession.game.players}
+    playerStates={state.players}
+/>

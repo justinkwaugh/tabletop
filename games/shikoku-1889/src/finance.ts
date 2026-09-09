@@ -24,7 +24,7 @@ export function createShikoku1889FinanceExample(players: readonly PlayerState[])
                 kind: 'major',
                 shareCount: 10,
                 parPrice: 65,
-                marketPrice: 90,
+                operated: true,
                 floated: true,
                 president: alex
             },
@@ -34,7 +34,7 @@ export function createShikoku1889FinanceExample(players: readonly PlayerState[])
                 kind: 'major',
                 shareCount: 10,
                 parPrice: 70,
-                marketPrice: 100,
+                operated: true,
                 floated: true,
                 president: blair
             },
@@ -74,8 +74,8 @@ export function createShikoku1889FinanceExample(players: readonly PlayerState[])
                 [
                     { owner: blair },
                     { owner: alex },
-                    { owner: casey },
-                    market,
+                    { owner: alex },
+                    { owner: alex },
                     offering,
                     offering,
                     offering,

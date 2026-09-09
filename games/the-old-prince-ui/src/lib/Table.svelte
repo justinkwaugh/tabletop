@@ -4,7 +4,8 @@
     import type { GameState, HydratedGameState } from '@tabletop/common'
     import {
         FinanceInspector,
-        SharePurchase,
+        StockTrading,
+        StockMarket,
         requireFinanceExampleSession
     } from '@tabletop/18xx-ui'
     import { peirShares, peirPresident } from '@tabletop/the-old-prince'
@@ -13,14 +14,20 @@
     const state = $derived(requireFinanceExampleState(gameSession.gameState))
 </script>
 
-<SharePurchase {session} />
+<StockTrading {session} />
+<StockMarket market={state.stockMarket} companies={state.companies} />
 
 <p class="peir-summary">
     PEIR: {peirShares(state).length} outstanding shares. President: {gameSession.game.players.find(
         (player) => player.id === peirPresident(state)
     )?.name}. Largest shareholding wins; ties go to the lowest numbered share.
 </p>
-<FinanceInspector {state} players={gameSession.game.players} playerStates={state.players}>
+<FinanceInspector
+    certificateWeight={session.certificateWeight}
+    {state}
+    players={gameSession.game.players}
+    playerStates={state.players}
+>
     {#snippet certificateDetail(certificate)}
         {#if certificate.kind === 'share' && certificate.companyId === 'PEIR'}
             <p class="share-income">

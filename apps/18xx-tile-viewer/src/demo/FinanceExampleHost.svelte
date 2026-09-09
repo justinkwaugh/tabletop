@@ -24,7 +24,7 @@
     let error = $state<string>()
     let bridge: BridgedContext | undefined
     let disposed = false
-    const exampleName = 'Finances example · 3'
+    const exampleName = 'Finances example · 5'
 
     onMount(() => {
         void load()

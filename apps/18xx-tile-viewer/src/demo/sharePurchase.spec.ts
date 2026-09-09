@@ -1,5 +1,6 @@
+import { example, purchase } from './stockTestUtils.js'
 import { describe, expect, it } from 'vitest'
-import { ActionSource, GameEngine, GameStorage, PlayerStatus } from '@tabletop/common'
+import { ActionSource } from '@tabletop/common'
 import {
     cashOwnedBy,
     getCompany,
@@ -7,49 +8,14 @@ import {
     evaluateSharePurchase,
     sameOwner,
     type BuyShares,
-    type FinanceExampleState,
-    type President
+    type FinanceExampleState
 } from '@tabletop/18xx'
-import { Definition as Top, TheOldPrinceSharePurchaseRules } from '@tabletop/the-old-prince'
-import { Definition as Shikoku, Shikoku1889SharePurchaseRules } from '@tabletop/shikoku-1889'
+import { Definition as Top, TheOldPrinceStockRules } from '@tabletop/the-old-prince'
+import { Definition as Shikoku, Shikoku1889StockRules } from '@tabletop/shikoku-1889'
 
 const alex = { kind: 'player', playerId: 'alex' } as const
 const union = { kind: 'company', companyId: 'UB' } as const
 const bank = { kind: 'bank' } as const
-function example(definition: typeof Top) {
-    const game = definition.runtime.initializer.initializeGame(
-        {
-            id: 'purchase-example',
-            typeId: definition.info.id,
-            name: 'Purchase example',
-            ownerId: 'user',
-            storage: GameStorage.Local,
-            hotseat: true,
-            seed: 5,
-            players: ['alex', 'blair', 'casey'].map((id) => ({
-                id,
-                name: id,
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        definition
-    )
-    const engine = new GameEngine(definition.runtime)
-    return { game, engine, state: engine.startGame(game).initialState }
-}
-function purchase(certificateId: string, price: number, buyer: President = alex): BuyShares {
-    return {
-        id: 'buy',
-        gameId: 'purchase-example',
-        source: ActionSource.User,
-        type: 'BuyShares',
-        playerId: 'alex',
-        buyer,
-        certificateId,
-        expectedPrice: price
-    }
-}
 
 it.each([
     {
@@ -125,7 +91,7 @@ it.each([
         expect(
             updatedState.certificates.find((certificate) => certificate.id === certificateId)
         ).not.toHaveProperty('poolId')
-        expect(updatedState.machineState).toBe('InspectFinances')
+        expect(updatedState.machineState).toBe('TradingShares')
         expect(updatedState.activePlayerIds).toEqual(['alex'])
         expect(updatedState.actionCount).toBe(1)
         const [action] = processedActions
@@ -219,21 +185,6 @@ describe('purchase rejection', () => {
                     }
                 }
             }
-        },
-        {
-            name: 'presidency change',
-            action: { certificateId: 'IR:share:5', expectedPrice: 70 },
-            change: (state) => {
-                for (const id of [3, 4]) {
-                    const certificate = state.certificates.find(
-                        (certificate) => certificate.id === `IR:share:${id}`
-                    )!
-                    if (!certificate.retired) {
-                        certificate.owner = alex
-                        delete certificate.poolId
-                    }
-                }
-            }
         }
     ]
     it.each(cases)('rejects $name without mutation', ({ change, action }) => {
@@ -252,39 +203,28 @@ describe('purchase rejection', () => {
     it('rejects TOP reserved shares and a second Union Bank purchase in the round', () => {
         const { state } = example(Top)
         expect(
-            evaluateSharePurchase(state, purchase('ML:share:8', 92), TheOldPrinceSharePurchaseRules)
-                .reason
+            evaluateSharePurchase(state, purchase('ML:share:8', 92), TheOldPrinceStockRules).reason
         ).toContain('not available')
         state.stockRound.companyPurchases.push('UB')
         expect(
-            evaluateSharePurchase(
-                state,
-                purchase('ML:share:5', 92, union),
-                TheOldPrinceSharePurchaseRules
-            ).reason
+            evaluateSharePurchase(state, purchase('ML:share:5', 92, union), TheOldPrinceStockRules)
+                .reason
         ).toContain('cannot buy')
         expect(
-            evaluateSharePurchase(state, purchase('ML:share:5', 92), TheOldPrinceSharePurchaseRules)
-                .details
+            evaluateSharePurchase(state, purchase('ML:share:5', 92), TheOldPrinceStockRules).details
         ).toBeDefined()
     })
     it('requires enough combined funds for Union Bank and preserves the incumbent on ties', () => {
         const { state } = example(Top)
         state.cash.find((cash) => sameOwner(cash.owner, alex))!.amount = 51
         expect(
-            evaluateSharePurchase(
-                state,
-                purchase('ML:share:5', 92, union),
-                TheOldPrinceSharePurchaseRules
-            ).reason
+            evaluateSharePurchase(state, purchase('ML:share:5', 92, union), TheOldPrinceStockRules)
+                .reason
         ).toContain('cannot afford')
         const { state: shikoku } = example(Shikoku)
         expect(
-            evaluateSharePurchase(
-                shikoku,
-                purchase('IR:share:5', 70),
-                Shikoku1889SharePurchaseRules
-            ).details
+            evaluateSharePurchase(shikoku, purchase('IR:share:5', 70), Shikoku1889StockRules)
+                .details
         ).toBeDefined()
     })
     it('replaces client-supplied settlement metadata with the authoritative details', () => {

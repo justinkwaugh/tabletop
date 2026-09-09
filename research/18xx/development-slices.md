@@ -415,6 +415,14 @@ or presidency changes; those branches become available with slices 3–4.
 
 ## 3. Sell shares, move market markers, and transfer presidency
 
+**Implemented:** shared market spaces/stacks, sale evaluation and settlement,
+presidency exchange on purchases and sales, effective stock limits, SellShares,
+and FinishStockTurn. Both examples now exercise one prepared stock turn, including
+permitted sales around a purchase, ordered sale blocks, previews, market rendering,
+portfolio counts, saved history, and Undo. See the
+[slice design and family review](stock-trading-slice-design.md).
+
+
 **Outcome:** an investment decision changes cash, market position, and who controls
 a corporation, visibly and consistently.
 

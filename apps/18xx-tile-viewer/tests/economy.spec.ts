@@ -1,6 +1,38 @@
 import { expect, test } from '@playwright/test'
 
 for (const width of [1280, 390]) {
+    test(`orders and removes sale blocks before committing at ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 })
+        await page.goto('/economy')
+        const trading = page.getByRole('region', { name: 'Stock trading', exact: true })
+        const alex = page.getByRole('article', { name: 'Alex portfolio', exact: true })
+        await page.locator('[data-sale-company="ML"][data-sale-shares="1"]').click()
+        await page.locator('[data-sale-company="So"][data-sale-shares="1"]').click()
+        const order = trading.locator('[aria-label="Confirm share sale"] ol li strong')
+        const original = await order.allTextContents()
+        expect(original).toHaveLength(2)
+        await trading.getByRole('button', { name: 'Move So earlier', exact: true }).click()
+        await expect(order).toHaveText([...original].reverse())
+        await trading.getByRole('button', { name: 'Remove ML sale', exact: true }).click()
+        await expect(order).toHaveText([original[1]])
+        await expect(trading).toContainText('Total proceeds: 86')
+        await expect(alex).toContainText('Cash 240')
+        await page.locator('[data-sale-company="ML"][data-sale-shares="1"]').click()
+        await expect(order).toHaveText([...original].reverse())
+        await expect(trading).toContainText('Total proceeds: 178')
+        await trading.getByRole('button', { name: 'Confirm sale', exact: true }).click()
+        await expect(alex).toContainText('Cash 418')
+        await expect(
+            page.getByRole('list', { name: 'Stock history' }).locator('li > span')
+        ).toHaveText([
+            `${original[1]}: 1 shares at 86; market price 80.`,
+            `${original[0]}: 1 shares at 92; market price 86.`
+        ])
+        await trading.getByRole('button', { name: 'Undo', exact: true }).click()
+        await expect(alex).toContainText('Cash 240')
+        await expect(page.getByRole('list', { name: 'Stock history' })).toHaveCount(0)
+    })
+
     test(`inspects both finance examples and restores local state at ${width}px`, async ({
         page
     }) => {
@@ -39,7 +71,7 @@ for (const width of [1280, 390]) {
         ).toHaveCount(8)
         await expect(
             bank.locator('[data-pool-id="open-market"] [data-certificate-id]')
-        ).toHaveCount(2)
+        ).toHaveCount(1)
         await expect(page.locator('[data-company-id="ER"]')).toContainText('Owner: Iyo Railway')
         await expect(page.locator('[data-company-id="ER"]')).toContainText(
             'Controlling owner: Blair'
@@ -108,7 +140,7 @@ test('preserves earlier examples and reuses the current fixture on reload', asyn
     const saved = await examples()
     expect(saved).toHaveLength(2)
     expect(saved).toContainEqual({ id: previousId, name: 'Finances example · 2' })
-    expect(saved.filter((game) => game.name === 'Finances example · 3')).toHaveLength(1)
+    expect(saved.filter((game) => game.name === 'Finances example · 5')).toHaveLength(1)
     await page.reload()
     await expect(union).toContainText('Cash 40')
     expect(await examples()).toEqual(saved)
@@ -122,7 +154,7 @@ for (const width of [1280, 390]) {
         page.on('pageerror', (error) => errors.push(error.message))
         await page.setViewportSize({ width, height: 900 })
         await page.goto('/economy')
-        const purchase = page.getByRole('region', { name: 'Buy shares', exact: true })
+        const purchase = page.getByRole('region', { name: 'Stock trading', exact: true })
         const union = page.getByRole('article', { name: 'Union Bank treasury', exact: true })
         const alex = page.getByRole('article', { name: 'Alex portfolio', exact: true })
         const chooseUnion = () =>
@@ -142,11 +174,11 @@ for (const width of [1280, 390]) {
         await expect(alex).toContainText('Cash 240')
         await chooseUnion()
         await purchase.getByRole('button', { name: 'Confirm purchase' }).click()
-        await expect(purchase.getByRole('heading', { name: 'Purchase complete' })).toBeVisible()
+        await expect(purchase.getByRole('heading', { name: 'Stock turn' })).toBeVisible()
         await expect(union).toContainText('Cash 0')
         await expect(union.locator('[data-certificate-id="ML:share:5"]')).toBeVisible()
         await expect(alex).toContainText('Cash 188')
-        await expect(page.getByRole('list', { name: 'Purchase history' })).toContainText(
+        await expect(page.getByRole('list', { name: 'Stock history' })).toContainText(
             'Alex paid 52 to Bank.'
         )
         await page.reload()
@@ -156,7 +188,7 @@ for (const width of [1280, 390]) {
         await expect(union).toContainText('Cash 40')
         await expect(alex).toContainText('Cash 240')
         await expect(union.locator('[data-certificate-id="ML:share:5"]')).toHaveCount(0)
-        await expect(page.getByRole('list', { name: 'Purchase history' })).toHaveCount(0)
+        await expect(page.getByRole('list', { name: 'Stock history' })).toHaveCount(0)
         await page.getByRole('button', { name: 'Shikoku 1889', exact: true }).click()
         await expect(page.locator('[data-purchase-certificate="AR:share:5"]')).toContainText(
             'Buy for 65'
@@ -178,6 +210,74 @@ for (const width of [1280, 390]) {
         await expect(union).toContainText('Cash 40')
         await page.getByRole('button', { name: 'Shikoku 1889', exact: true }).click()
         await expect(purchase.getByRole('button', { name: 'Confirm purchase' })).toHaveCount(0)
+        await expect(alex).toContainText('Cash 240')
+        await expect
+            .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+            .toBe(true)
+        expect(errors).toEqual([])
+    })
+}
+
+for (const width of [1280, 390]) {
+    test(`sells shares, transfers presidency, finishes and undoes a stock turn at ${width}px`, async ({
+        page
+    }) => {
+        const errors: string[] = []
+        page.on('pageerror', (error) => errors.push(error.message))
+        await page.setViewportSize({ width, height: 900 })
+        await page.goto('/economy')
+        const trading = page.getByRole('region', { name: 'Stock trading', exact: true })
+        const alex = page.getByRole('article', { name: 'Alex portfolio', exact: true })
+        const sale = page.locator('[data-sale-company="ML"][data-sale-shares="2"]')
+        await sale.click()
+        await expect(trading).toContainText('Total proceeds: 184')
+        await expect(trading).toContainText('President: Alex → Blair')
+        await expect(alex).toContainText('Cash 240')
+        await trading.getByRole('button', { name: 'Back', exact: true }).click()
+        await expect(alex).toContainText('Cash 240')
+        await sale.click()
+        await trading.getByRole('button', { name: 'Confirm sale', exact: true }).click()
+        await expect(alex).toContainText('Cash 424')
+        await expect(page.locator('[data-company-id="ML"]')).toContainText('President: Blair')
+        await expect(page.locator('[data-market-space="2:1"] [data-market-company]')).toHaveText([
+            'So',
+            'ML'
+        ])
+        await expect(
+            page.locator('[data-purchase-certificate="ML:share:5"][data-buyer="player"]')
+        ).toBeDisabled()
+        await page.reload()
+        await expect(alex).toContainText('Cash 424')
+        await page.locator('[data-purchase-certificate="So:share:5"][data-buyer="player"]').click()
+        await trading.getByRole('button', { name: 'Confirm purchase' }).click()
+        await expect(alex).toContainText('Cash 338')
+        await trading.getByRole('button', { name: 'Finish turn' }).click()
+        await expect(trading.getByRole('heading', { name: 'Turn complete' })).toBeVisible()
+        await trading.getByRole('button', { name: 'Undo', exact: true }).click()
+        await expect(trading.getByRole('heading', { name: 'Stock turn' })).toBeVisible()
+        await trading.getByRole('button', { name: 'Undo', exact: true }).click()
+        await expect(alex).toContainText('Cash 424')
+        await trading.getByRole('button', { name: 'Undo', exact: true }).click()
+        await expect(alex).toContainText('Cash 240')
+        await expect(page.locator('[data-company-id="ML"]')).toContainText('President: Alex')
+        await expect(page.locator('[data-market-space="1:1"] [data-market-company]')).toHaveText([
+            'ML'
+        ])
+        await page.getByRole('button', { name: 'Shikoku 1889', exact: true }).click()
+        await page.locator('[data-purchase-certificate="IR:share:5"]').click()
+        await expect(trading).toContainText('President: Blair → Alex')
+        await trading.getByRole('button', { name: 'Confirm purchase' }).click()
+        await expect(page.locator('[data-company-id="IR"]')).toContainText('President: Alex')
+        await expect(alex).toContainText('Cash 170')
+        await page.locator('[data-sale-company="AR"][data-sale-shares="1"]').click()
+        await trading.getByRole('button', { name: 'Confirm sale' }).click()
+        await expect(alex).toContainText('Cash 260')
+        await expect(page.locator('[data-market-space="2:3"] [data-market-company]')).toHaveText([
+            'AR'
+        ])
+        await trading.getByRole('button', { name: 'Undo', exact: true }).click()
+        await trading.getByRole('button', { name: 'Undo', exact: true }).click()
+        await expect(page.locator('[data-company-id="IR"]')).toContainText('President: Blair')
         await expect(alex).toContainText('Cash 240')
         await expect
             .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))

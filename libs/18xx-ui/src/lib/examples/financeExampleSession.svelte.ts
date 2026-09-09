@@ -2,19 +2,34 @@ import { GameSession } from '@tabletop/frontend-components'
 import { assert, assertExists, type GameState, type HydratedGameState } from '@tabletop/common'
 import {
     BuyShares,
+    SellShares,
+    FinishStockTurn,
     isBuyShares,
+    isSellShares,
     evaluateSharePurchase,
+    evaluateShareSale,
     requireFinanceExampleState,
+    getCompany,
+    sharesOwned,
+    sameOwner,
+    exceedsStockLimits,
     type PurchaseRequest,
-    type SharePurchaseRules
+    type SaleRequest,
+    type ShareSale,
+    type StockRules,
+    type Owner,
+    type Portfolio
 } from '@tabletop/18xx'
 
 type SessionOptions = ConstructorParameters<typeof GameSession<GameState, HydratedGameState>>[0]
+type Selection =
+    | { kind: 'purchase'; request: PurchaseRequest }
+    | { kind: 'sale'; request: SaleRequest }
 export class FinanceExampleSession extends GameSession<GameState, HydratedGameState> {
-    selection: PurchaseRequest | undefined = $state()
+    selection: Selection | undefined = $state()
     constructor(
         options: SessionOptions,
-        private readonly purchaseRules: SharePurchaseRules
+        private readonly stockRules: StockRules
     ) {
         super(options)
     }
@@ -26,44 +41,140 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             !playerId ||
             this.updatingVisibleState ||
             this.isViewingHistory ||
-            !this.validActionTypes.includes('BuyShares')
+            state.machineState !== 'TradingShares' ||
+            state.stockRound.turn.bought
         )
             return []
-        return this.purchaseRules.buyers(state, playerId).flatMap((buyer) =>
+        return this.stockRules.buyers(state, playerId).flatMap((buyer) =>
             state.certificates
                 .filter((certificate) => !certificate.retired)
-                .filter((certificate) => certificate.kind === 'share')
-                .filter((certificate) => certificate.poolId !== undefined)
+                .filter(
+                    (certificate) =>
+                        certificate.kind === 'share' && certificate.poolId !== undefined
+                )
                 .map((certificate) => {
                     const request = { playerId, buyer, certificateId: certificate.id }
                     return {
                         certificate,
                         request,
-                        result: evaluateSharePurchase(state, request, this.purchaseRules)
+                        result: evaluateSharePurchase(state, request, this.stockRules)
                     }
                 })
         )
     })
+    saleChoices = $derived.by(() => {
+        const state = this.financialState
+        const playerId = this.myPlayer?.id
+        if (
+            !playerId ||
+            this.updatingVisibleState ||
+            this.isViewingHistory ||
+            state.machineState !== 'TradingShares'
+        )
+            return []
+        return this.stockRules.sellers(state, playerId).flatMap((seller) =>
+            state.companies.flatMap((company) => {
+                const owned = sharesOwned(state, company.id, seller)
+                return Array.from({ length: owned }, (_, index) => {
+                    const sale = { companyId: company.id, shares: index + 1 }
+                    const request = { playerId, seller, sales: [sale] }
+                    return {
+                        sale,
+                        request,
+                        result: evaluateShareSale(state, request, this.stockRules)
+                    }
+                })
+            })
+        )
+    })
     selectedPurchaseDetails = $derived.by(() => {
-        if (!this.selection || this.updatingVisibleState || this.isViewingHistory) return undefined
-        return evaluateSharePurchase(this.financialState, this.selection, this.purchaseRules)
+        if (
+            this.selection?.kind !== 'purchase' ||
+            this.updatingVisibleState ||
+            this.isViewingHistory
+        )
+            return undefined
+        return evaluateSharePurchase(this.financialState, this.selection.request, this.stockRules)
             .details
     })
-    purchases = $derived(this.actions.slice(0, this.gameState.actionCount).filter(isBuyShares))
+    selectedSale = $derived(
+        this.selection?.kind === 'sale' && !this.updatingVisibleState && !this.isViewingHistory
+            ? this.selection.request
+            : undefined
+    )
+    selectedSaleResult = $derived.by(() =>
+        this.selectedSale
+            ? evaluateShareSale(this.financialState, this.selectedSale, this.stockRules)
+            : undefined
+    )
+    trades = $derived(
+        this.actions
+            .slice(0, this.gameState.actionCount)
+            .filter((action) => isBuyShares(action) || isSellShares(action))
+    )
+    mustSell = $derived.by(() =>
+        this.myPlayer
+            ? exceedsStockLimits(
+                  this.financialState,
+                  { kind: 'player', playerId: this.myPlayer.id },
+                  this.stockRules
+              )
+            : false
+    )
+    certificateWeight = (certificate: Portfolio[number]) =>
+        this.stockRules.certificateWeight(this.financialState, certificate)
+    ownerName(owner: Owner): string {
+        if (owner.kind === 'player') return this.getPlayerName(owner.playerId)
+        return owner.kind === 'bank'
+            ? this.financialState.bank.name
+            : getCompany(this.financialState, owner.companyId).name
+    }
     selectPurchase(request: PurchaseRequest) {
-        assert(!this.busy && !this.isViewingHistory, 'Purchase selection is unavailable')
-        assert(request.playerId === this.myPlayer?.id, 'Select a purchase for the acting player')
+        this.assertSelectionAvailable(request.playerId)
         assert(
-            evaluateSharePurchase(this.financialState, request, this.purchaseRules).details,
+            evaluateSharePurchase(this.financialState, request, this.stockRules).details,
             'Purchase is unavailable'
         )
-        this.selection = request
+        this.selection = { kind: 'purchase', request }
     }
-    cancelPurchase() {
+    selectSale(request: SaleRequest) {
+        this.assertSelectionAvailable(request.playerId)
+        const existing =
+            this.selection?.kind === 'sale' &&
+            sameOwner(this.selection.request.seller, request.seller)
+                ? this.selection.request.sales
+                : []
+        const chosen = request.sales[0]
+        this.selection = {
+            kind: 'sale',
+            request: {
+                ...request,
+                sales: [...existing.filter((sale) => sale.companyId !== chosen.companyId), chosen]
+            }
+        }
+    }
+    removeSale(companyId: string) {
+        if (this.selection?.kind !== 'sale') return
+        const sales = this.selection.request.sales.filter((sale) => sale.companyId !== companyId)
+        this.selection = sales.length
+            ? { kind: 'sale', request: { ...this.selection.request, sales } }
+            : undefined
+    }
+    moveSale(companyId: string, offset: number) {
+        if (this.selection?.kind !== 'sale') return
+        const sales = [...this.selection.request.sales]
+        const index = sales.findIndex((sale) => sale.companyId === companyId)
+        const target = index + offset
+        assert(index >= 0 && target >= 0 && target < sales.length, 'Invalid sale order')
+        const [sale] = sales.splice(index, 1)
+        sales.splice(target, 0, sale)
+        this.selection = { kind: 'sale', request: { ...this.selection.request, sales } }
+    }
+    cancelSelection() {
         this.selection = undefined
     }
     async confirmPurchase() {
-        assert(!this.busy && !this.isViewingHistory, 'Purchase is unavailable')
+        this.assertSelectionAvailable(this.myPlayer?.id)
         const details = this.selectedPurchaseDetails
         assertExists(details, 'Select an available purchase')
         await this.applyAction(
@@ -74,20 +185,54 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             })
         )
     }
+    async confirmSale() {
+        this.assertSelectionAvailable(this.myPlayer?.id)
+        const details = this.selectedSaleResult?.details
+        assertExists(details, 'Select an available sale')
+        const sales: ShareSale[] = details.sales.map(({ companyId, shares }) => ({
+            companyId,
+            shares
+        }))
+        await this.applyAction(
+            this.createPlayerAction(SellShares, {
+                seller: details.seller,
+                sales,
+                expectedProceeds: details.proceeds
+            })
+        )
+    }
+    async finishTurn() {
+        this.assertSelectionAvailable(this.myPlayer?.id)
+        assert(
+            !this.selection && this.validActionTypes.includes('FinishStockTurn'),
+            'Finish the current selection first'
+        )
+        await this.applyAction(this.createPlayerAction(FinishStockTurn, {}))
+    }
     override beforeNewState() {
-        this.cancelPurchase()
+        this.cancelSelection()
     }
     override async undo() {
         if (this.busy || this.isViewingHistory) return
         if (this.selection) {
-            this.cancelPurchase()
+            this.cancelSelection()
             return
         }
         await super.undo()
     }
+    private assertSelectionAvailable(playerId: string | undefined) {
+        assert(
+            !this.busy && !this.isViewingHistory && !this.updatingVisibleState,
+            'Stock selection is unavailable'
+        )
+        assert(
+            playerId !== undefined && playerId === this.myPlayer?.id,
+            'Select a trade for the acting player'
+        )
+    }
 }
 export function createFinanceExampleSessionClass(
-    rules: SharePurchaseRules
+    rules: StockRules
 ): new (options: SessionOptions) => FinanceExampleSession {
     return class extends FinanceExampleSession {
         constructor(options: SessionOptions) {
