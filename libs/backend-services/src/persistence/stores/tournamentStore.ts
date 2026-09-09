@@ -3,12 +3,14 @@ import type {
     TournamentList,
     TournamentListQuery,
     TournamentSchedule,
+    TournamentGameLink,
     User
 } from '@tabletop/common'
 
 export interface TournamentStore {
     create(tournament: Tournament, user: User): Promise<Tournament>
     read(id: string): Promise<Tournament | undefined>
+    readGameLinks(id: string): Promise<TournamentGameLink[]>
     list(user: User, query: TournamentListQuery): Promise<TournamentList>
     update(
         id: string,

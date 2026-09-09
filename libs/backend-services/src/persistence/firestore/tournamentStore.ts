@@ -7,7 +7,9 @@ import {
     UserStatus,
     type User,
     type TournamentListQuery,
-    TournamentList
+    TournamentList,
+    TournamentGameReference,
+    type TournamentGameLink
 } from '@tabletop/common'
 import * as Value from 'typebox/value'
 import * as Type from 'typebox'
@@ -21,17 +23,23 @@ import {
 } from '../model/storedTournamentSchedule.js'
 import { TournamentError } from '../../competitions/tournamentError.js'
 
+import { TournamentCacheKeys } from './tournamentCacheKeys.js'
+
 const CachedTournamentPage = Type.Object({ generation: Type.String(), page: TournamentList })
 
 export class FirestoreTournamentStore implements TournamentStore {
+    private readonly cacheKeys: TournamentCacheKeys
+
     constructor(
         private readonly cache: RedisCacheService,
         private readonly firestore: Firestore,
-        private readonly cachePrefix = 'tournaments:v1'
-    ) {}
+        cachePrefix = 'tournaments:v1'
+    ) {
+        this.cacheKeys = new TournamentCacheKeys(cachePrefix)
+    }
 
     async create(tournament: Tournament, user: User): Promise<Tournament> {
-        return this.cache.lockWhileWriting([this.cacheKey('event', tournament.id)], (locks) =>
+        return this.cache.lockWhileWriting([this.cacheKeys.key('event', tournament.id)], (locks) =>
             this.firestore.runTransaction(async (transaction) => {
                 await this.authorize(transaction, user, true)
                 const ref = this.document(tournament.id)
@@ -59,16 +67,40 @@ export class FirestoreTournamentStore implements TournamentStore {
     }
 
     async read(id: string): Promise<Tournament | undefined> {
-        return this.cache.cachingGet<Tournament>(this.cacheKey('event', id), async () =>
+        return this.cache.cachingGet<Tournament>(this.cacheKeys.key('event', id), async () =>
             this.parse((await this.document(id).get()).data())
         )
     }
 
+    async readGameLinks(id: string): Promise<TournamentGameLink[]> {
+        const links = await this.cache.cachingGet<TournamentGameLink[]>(
+            this.cacheKeys.key('games', id),
+            async () => {
+                const snapshot = await this.firestore
+                    .collection('games')
+                    .where('tournament.tournamentId', '==', id)
+                    .select('tournament')
+                    .get()
+                return snapshot.docs.map((document) => {
+                    const reference = document.data().tournament
+                    Value.Assert(TournamentGameReference, reference)
+                    return {
+                        gameId: document.id,
+                        stageId: reference.stageId,
+                        tableId: reference.tableId
+                    }
+                })
+            }
+        )
+        assertExists(links, 'Tournament game links could not be loaded')
+        return links
+    }
+
     async list(user: User, query: TournamentListQuery): Promise<TournamentList> {
-        const family = this.listFamily(query.scope, query.scope === 'mine' ? user.id : '')
+        const family = this.cacheKeys.listFamily(query.scope, query.scope === 'mine' ? user.id : '')
         const generation = await this.cache.cachingGet<string>(family, async () => nanoid())
         assertExists(generation, 'Tournament list cache generation is missing')
-        const pageKey = this.cacheKey('page', family, query.titleId ?? '', query.after ?? '')
+        const pageKey = this.cacheKeys.key('page', family, query.titleId ?? '', query.after ?? '')
         const cached = await this.cache.cacheGet(pageKey)
         if (
             cached.cached &&
@@ -110,7 +142,7 @@ export class FirestoreTournamentStore implements TournamentStore {
         administrative: boolean,
         change: (tournament: Tournament) => void
     ): Promise<Tournament> {
-        return this.cache.lockWhileWriting([this.cacheKey('event', id)], (locks) =>
+        return this.cache.lockWhileWriting([this.cacheKeys.key('event', id)], (locks) =>
             this.firestore.runTransaction(async (transaction) => {
                 if (user) await this.authorize(transaction, user, administrative)
                 const ref = this.document(id)
@@ -129,7 +161,7 @@ export class FirestoreTournamentStore implements TournamentStore {
 
     async readSchedule(tournamentId: string, stageId: string): Promise<TournamentSchedule> {
         const stored = await this.cache.cachingGet<StoredTournamentSchedule>(
-            this.cacheKey('schedule', tournamentId, stageId),
+            this.cacheKeys.key('schedule', tournamentId, stageId),
             async () => {
                 const data = (
                     await this.document(tournamentId).collection('schedules').doc(stageId).get()
@@ -151,8 +183,8 @@ export class FirestoreTournamentStore implements TournamentStore {
         const stored = storeTournamentSchedule(schedule)
         return this.cache.lockWhileWriting(
             [
-                this.cacheKey('event', schedule.tournamentId),
-                this.cacheKey('schedule', schedule.tournamentId, schedule.stageId)
+                this.cacheKeys.key('event', schedule.tournamentId),
+                this.cacheKeys.key('schedule', schedule.tournamentId, schedule.stageId)
             ],
             (locks) =>
                 this.firestore.runTransaction(async (transaction) => {
@@ -187,7 +219,7 @@ export class FirestoreTournamentStore implements TournamentStore {
 
     async due(now: number): Promise<string[]> {
         const deadlines = await this.cache.cachingGet<{ id: string; closesAt: number }[]>(
-            this.cacheKey('deadlines'),
+            this.cacheKeys.key('deadlines'),
             async () => {
                 const documents = await this.firestore
                     .collection('tournaments')
@@ -219,24 +251,6 @@ export class FirestoreTournamentStore implements TournamentStore {
             .map((account) => account.id)
     }
 
-    private cacheKey(...parts: string[]): string {
-        return `${this.cachePrefix}:${JSON.stringify(parts)}`
-    }
-
-    private listFamily(scope: TournamentListQuery['scope'], userId = ''): string {
-        return this.cacheKey('list', scope, userId)
-    }
-
-    private listFamilies(tournament: Tournament | undefined): string[] {
-        if (!tournament) return []
-        const keys = tournament.entrants.map((entrant) => this.listFamily('mine', entrant.userId))
-        const status = tournament.status
-        if (status === 'draft' || status === 'open') keys.push(this.listFamily(status))
-        else if (status === 'locked' || status === 'inProgress')
-            keys.push(this.listFamily('inProgress'))
-        return keys
-    }
-
     private deadline(tournament: Tournament | undefined): number | undefined {
         const policy = tournament?.rules.registration
         return tournament?.status === 'open' && policy?.kind === 'deadline'
@@ -249,8 +263,9 @@ export class FirestoreTournamentStore implements TournamentStore {
         before: Tournament | undefined,
         after: Tournament
     ): Promise<void> {
-        const keys = new Set([...this.listFamilies(before), ...this.listFamilies(after)])
-        if (this.deadline(before) !== this.deadline(after)) keys.add(this.cacheKey('deadlines'))
+        const keys = new Set([...this.cacheKeys.lists(before), ...this.cacheKeys.lists(after)])
+        if (this.deadline(before) !== this.deadline(after))
+            keys.add(this.cacheKeys.key('deadlines'))
         if (keys.size) await locks.addKeys([...keys])
     }
 

@@ -1,5 +1,6 @@
 import * as Type from 'typebox'
 import { GameConfig } from '../game/model/gameConfig.js'
+import { TournamentGameReference } from './tournamentGameReference.js'
 
 export const miniTournamentDefaults = {
     2: { capacity: 5, gamesPerEntrant: 4 },
@@ -135,9 +136,16 @@ export const Tournament = Type.Object(
 )
 export type Tournament = Type.Static<typeof Tournament>
 
+export const TournamentGameLink = Type.Object({
+    ...Type.Pick(TournamentGameReference, ['stageId', 'tableId']).properties,
+    gameId: Type.String()
+})
+export type TournamentGameLink = Type.Static<typeof TournamentGameLink>
+
 export const TournamentDetail = Type.Object({
     tournament: Tournament,
-    usernames: Type.Record(Type.String(), Type.String())
+    usernames: Type.Record(Type.String(), Type.String()),
+    games: Type.Optional(Type.Array(TournamentGameLink))
 })
 export type TournamentDetail = Type.Static<typeof TournamentDetail>
 

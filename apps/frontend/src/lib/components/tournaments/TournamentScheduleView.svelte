@@ -4,7 +4,8 @@
 
     import { generateSeed, type TournamentDetail, type TournamentSchedule } from '@tabletop/common'
 
-    const { api } = getAppContext()
+    const { api, authorizationService } = getAppContext()
+    let user = $derived(authorizationService.getSessionUser())
 
     let {
         detail,
@@ -32,6 +33,13 @@
         )
     )
     let visibleTables = $derived(schedule?.tables.slice(page * 20, (page + 1) * 20) ?? [])
+    let gamesByTable = $derived(
+        new Map(
+            (detail.games ?? [])
+                .filter((game) => game.stageId === schedule?.stageId)
+                .map((game) => [game.tableId, game])
+        )
+    )
 
     async function generate() {
         busy = true
@@ -80,12 +88,9 @@
     })
 </script>
 
-<section
-    aria-labelledby="schedule-heading"
-    class="mt-6 border-t border-gray-200 pt-4 dark:border-gray-700/60"
->
+<section aria-labelledby="schedule-heading">
     <div class="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="schedule-heading" class="text-sm font-medium">
+        <h2 id="schedule-heading" class="font-tournament text-lg font-semibold">
             Schedule{schedule && !saved ? ' preview' : ''}
         </h2>
         {#if isAdmin && !detail.tournament.stages[0]?.scheduleId && detail.tournament.status === 'locked'}
@@ -107,35 +112,7 @@
     </div>
     {#if error}<p role="alert" class="mt-2 text-xs text-red-600 dark:text-red-300">{error}</p>{/if}
     {#if schedule}
-        <div class="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs">
-            <p>
-                <span class="text-gray-500 dark:text-gray-400">Tables</span>
-                {schedule.tables.length}
-            </p>
-            <p>
-                <span class="text-gray-500 dark:text-gray-400">Games each</span>
-                {schedule.gamesPerEntrant}
-            </p>
-            <p>
-                <span class="text-gray-500 dark:text-gray-400">Each starting position</span>
-                {schedule.gamesPerEntrant / schedule.tableSize}×
-            </p>
-        </div>
-        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            {#if schedule.quality.opponentCounts.length === 1}
-                Every pair meets {schedule.quality.opponentCounts[0].games}×.
-            {:else}
-                Opponents meet {schedule.quality.opponentCounts[0]
-                    .games}–{schedule.quality.opponentCounts.at(-1)?.games} times per pair.
-            {/if}
-            {schedule.quality.repeatedTables === 0
-                ? 'No repeated table groups.'
-                : `${schedule.quality.repeatedTables} repeated table groups.`}
-        </p>
-        {#if saved}<p class="mt-2 text-xs text-green-700 dark:text-green-400">
-                Schedule saved. Games have not started.
-            </p>{/if}
-        <div class="mt-4 overflow-x-auto rounded-md bg-gray-50 dark:bg-gray-800">
+        <div class="mt-3 overflow-x-auto rounded-md bg-gray-50 dark:bg-gray-800">
             <table class="w-full text-left text-xs">
                 <thead class="text-gray-500 dark:text-gray-400"
                     ><tr>
@@ -144,21 +121,97 @@
                                 class="px-3 py-2 font-normal whitespace-nowrap"
                                 >Position {position}</th
                             >{/each}
+                        <th
+                            class="sticky right-0 z-10 bg-gray-50 px-3 py-2 font-normal dark:bg-gray-800"
+                            ><span class="sr-only">Game</span></th
+                        >
                     </tr></thead
                 >
                 <tbody
-                    >{#each visibleTables as table, index (table.id)}<tr
-                            class="border-t border-gray-200/60 dark:border-gray-700/50"
+                    >{#each visibleTables as table, index (table.id)}
+                        {@const isMine = table.entrantIds.some((id) => id === user?.id)}
+                        {@const game = gamesByTable.get(table.id)}
+                        {@const href = game ? `/game/${game.gameId}` : undefined}
+                        <tr
+                            class="border-t border-gray-200/60 dark:border-gray-700/50 {isMine
+                                ? 'bg-black/5 dark:bg-black/20'
+                                : ''}"
                         >
-                            <td class="px-3 py-2 tabular-nums">{page * 20 + index + 1}</td>
-                            {#each table.entrantIds as entrant}<td
-                                    class="max-w-40 truncate px-3 py-2"
-                                    title={names.get(entrant)}>{names.get(entrant)}</td
-                                >{/each}
+                            <td class="tabular-nums {isMine ? 'my-table' : ''}">
+                                {#if href}<a
+                                        class="block px-3 py-2"
+                                        {href}
+                                        aria-label={`Open table ${page * 20 + index + 1}`}
+                                        >{page * 20 + index + 1}</a
+                                    >{:else}<span class="block px-3 py-2"
+                                        >{page * 20 + index + 1}</span
+                                    >{/if}
+                            </td>
+                            {#each table.entrantIds as entrant}
+                                {#snippet playerName()}
+                                    <span class="truncate" title={names.get(entrant)}
+                                        >{names.get(entrant)}</span
+                                    >
+                                    {#if entrant === user?.id}<span
+                                            class="shrink-0 text-[0.65rem] font-medium text-orange-700 dark:text-orange-300"
+                                            >You</span
+                                        >{/if}
+                                {/snippet}
+                                <td>
+                                    {#if href}<a
+                                            class="flex max-w-48 items-center gap-1.5 px-3 py-2"
+                                            {href}
+                                        >
+                                            {@render playerName()}
+                                        </a>{:else}<span
+                                            class="flex max-w-48 items-center gap-1.5 px-3 py-2"
+                                            >{@render playerName()}</span
+                                        >{/if}
+                                </td>{/each}
+                            <td
+                                class="sticky right-0 z-10 px-3 py-2 text-right whitespace-nowrap shadow-[-1px_0_0_0_var(--color-gray-200)] dark:shadow-[-1px_0_0_0_var(--color-gray-700)] {isMine
+                                    ? 'bg-[color-mix(in_srgb,var(--color-gray-50),black_5%)] dark:bg-[color-mix(in_srgb,var(--color-gray-800),black_20%)]'
+                                    : 'bg-gray-50 dark:bg-gray-800'}"
+                            >
+                                {#if game}<a
+                                        class="font-medium hover:underline {isMine
+                                            ? 'text-orange-700 dark:text-orange-300'
+                                            : 'text-green-700 dark:text-green-400'}"
+                                        href={`/game/${game.gameId}`}
+                                        aria-label={`${isMine ? 'Play' : 'View'} table ${page * 20 + index + 1}`}
+                                        >{isMine ? 'Play' : 'View'}
+                                        <span aria-hidden="true">→</span></a
+                                    >{/if}
+                            </td>
                         </tr>{/each}</tbody
                 >
             </table>
         </div>
+        <footer class="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs">
+            <p>
+                <span class="text-gray-500 dark:text-gray-400">Games each</span>
+                {schedule.gamesPerEntrant}
+            </p>
+            <p>
+                <span class="text-gray-500 dark:text-gray-400">Each starting position</span>
+                {schedule.gamesPerEntrant / schedule.tableSize}×
+            </p>
+            <p>
+                {#if schedule.quality.opponentCounts.length === 1}
+                    <span class="text-gray-500 dark:text-gray-400">Every pair meets</span>
+                    {schedule.quality.opponentCounts[0].games}×
+                {:else}
+                    <span class="text-gray-500 dark:text-gray-400">Opponents meet</span>
+                    {schedule.quality.opponentCounts[0].games}–{schedule.quality.opponentCounts.at(
+                        -1
+                    )?.games}×
+                {/if}
+            </p>
+            <p>
+                <span class="text-gray-500 dark:text-gray-400">Repeated groups</span>
+                {schedule.quality.repeatedTables}
+            </p>
+        </footer>
         {#if schedule.tables.length > 20}<div
                 class="mt-2 flex items-center justify-end gap-3 text-xs"
             >
@@ -184,6 +237,9 @@
 </section>
 
 <style>
+    .my-table {
+        box-shadow: inset 2px 0 var(--color-orange-400);
+    }
     .schedule-action {
         border: 1px solid var(--color-gray-500);
         border-radius: 0.375rem;

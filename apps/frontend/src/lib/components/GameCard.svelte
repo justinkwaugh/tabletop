@@ -46,6 +46,7 @@
     let isMine = $derived(myPlayer !== undefined)
 
     let canJoin = $derived.by(() => {
+        if (game.tournament) return false
         if (isOwnedByMe) {
             return false
         }
@@ -63,34 +64,39 @@
     })
 
     let canDecline = $derived(
-        (game.status === GameStatus.WaitingForPlayers ||
-            game.status === GameStatus.WaitingToStart) &&
+        !game.tournament &&
+            (game.status === GameStatus.WaitingForPlayers ||
+                game.status === GameStatus.WaitingToStart) &&
             !isOwnedByMe &&
             isMine &&
             myPlayer?.status === PlayerStatus.Reserved
     )
 
     let canLeave = $derived(
-        (game.status === GameStatus.WaitingForPlayers ||
-            game.status === GameStatus.WaitingToStart) &&
+        !game.tournament &&
+            (game.status === GameStatus.WaitingForPlayers ||
+                game.status === GameStatus.WaitingToStart) &&
             !isOwnedByMe &&
             isMine &&
             myPlayer?.status === PlayerStatus.Joined
     )
 
     let canEdit = $derived(
-        !loading &&
+        !game.tournament &&
+            !loading &&
             isOwnedByMe &&
             !game.parentId &&
             (game.status === GameStatus.WaitingForPlayers ||
                 game.status === GameStatus.WaitingToStart)
     )
 
-    let canStart = $derived(isOwnedByMe && game.status === GameStatus.WaitingToStart)
+    let canStart = $derived(
+        !game.tournament && isOwnedByMe && game.status === GameStatus.WaitingToStart
+    )
     let canPlay = $derived(isMine && game.status === GameStatus.Started)
     let canWatch = $derived(!isMine && game.status === GameStatus.Started)
     let canRevisit = $derived(game.status === GameStatus.Finished)
-    let canDelete = $derived(isOwnedByMe || authorizationService.isAdmin)
+    let canDelete = $derived(!game.tournament && (isOwnedByMe || authorizationService.isAdmin))
 
     let confirmDelete = $state(false)
 
@@ -245,6 +251,11 @@
                             <h1 class="text-lg font-light text-left dark:text-gray-200 leading-5">
                                 {game.name}
                             </h1>
+                            {#if game.tournament}<a
+                                    class="mt-1 text-xs text-gray-500 underline decoration-gray-400/50 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                    href={`/tournaments/${game.tournament.tournamentId}`}
+                                    onclick={(event) => event.stopPropagation()}>Tournament</a
+                                >{/if}
                         </div>
                         {#if !isExpanded}
                             <div class="ms-2 text-nowrap">

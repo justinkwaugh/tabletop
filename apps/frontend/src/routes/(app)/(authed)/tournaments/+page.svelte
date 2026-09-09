@@ -8,7 +8,8 @@
     import {
         tournamentFormatText,
         tournamentRegistrationText,
-        tournamentStatusText
+        tournamentStatusText,
+        tournamentStatusColor
     } from '$lib/utils/tournamentPresentation'
 
     const { api, authorizationService, libraryService, notificationService } = getAppContext()
@@ -216,7 +217,9 @@
                 >
                     <div class="mb-2 flex items-center justify-between gap-3 text-xs">
                         <span
-                            class="inline-flex items-center gap-1.5 text-blue-700 dark:text-blue-300"
+                            class="inline-flex items-center gap-1.5 {tournamentStatusColor(
+                                tournament.status
+                            )}"
                             ><span class="size-1.5 rounded-full bg-current"
                             ></span>{tournamentStatusText(tournament)}</span
                         >

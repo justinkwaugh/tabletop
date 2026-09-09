@@ -76,4 +76,4 @@ Tests cover absent-capability rejection and ordinary initialization without the 
 - The previously staged Sol UI 6.3.0 runtime, which lacks assigned-position support, produces the same ordinary setup under the new engine, rejects tournament setup, and hydrates and processes a normal Pass from a newly assigned state with the same result as the new runtime. This checks the older embedded title runtime directly, not a full browser/host bridge session.
 - Build verification also corrected an implicit undefined return in the slice-02 preset helper and renamed two Urbino UI state bindings that collided with the Svelte `$state` rune.
 
-Full hosted tournament setup remains dependent on managed provisioning; this slice introduces no route that bypasses registration or normal game authorization.
+Slice 5 now supplies [managed provisioning and hosted verification](tournament-provisioning.md). Assigned initialization remains an internal operation; automatic scheduling and dispatch follow in slice 6.

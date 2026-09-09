@@ -15,6 +15,7 @@ import {
 import { Type } from 'typebox'
 import type { NotificationService } from '../notifications/notificationService.js'
 import { generateTournamentSchedule } from './tournamentScheduler.js'
+import { GameService } from '../games/gameService.js'
 import { TournamentService } from './tournamentService.js'
 import { FirestoreTournamentStore } from '../persistence/firestore/tournamentStore.js'
 
@@ -80,6 +81,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             { getUser: async (id) => users.find((user) => user.id === id) },
             { test: title },
             notifications,
+            GameService.prototype,
             () => now
         )
         let sequence = 0
@@ -137,7 +139,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 new FirestoreTournamentStore(cache, firestore, cachePrefix),
                 { getUser: async () => undefined },
                 { test: title },
-                notifications
+                notifications,
+                GameService.prototype
             )
             expect((await reload.get(tournament.id, admin)).tournament).toEqual(tournament)
             expect(await service.create(tournament.id, draft(), admin)).toEqual(tournament)
@@ -162,6 +165,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                     }
                 },
                 notifications,
+                GameService.prototype,
                 () => now
             )
             for (const tableSize of [2, 5]) {

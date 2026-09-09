@@ -94,3 +94,5 @@ export * from './game/engine/explorationHistory.js'
 export * from './game/engine/actionHistory.js'
 
 export * from './util/gameSeeds.js'
+
+export * from './site/tournamentGameReference.js'

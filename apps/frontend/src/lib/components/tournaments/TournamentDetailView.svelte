@@ -6,7 +6,8 @@
     import {
         tournamentFormatText,
         tournamentRegistrationText,
-        tournamentStatusText
+        tournamentStatusText,
+        tournamentStatusColor
     } from '$lib/utils/tournamentPresentation'
     import TournamentScheduleView from './TournamentScheduleView.svelte'
     import TournamentForm from './TournamentForm.svelte'
@@ -18,6 +19,7 @@
     let isAdmin = $derived(user?.roles.includes(Role.Admin))
     let detail = $state<TournamentDetail>()
     let tournament = $derived(detail?.tournament)
+    let scheduleFirst = $derived(tournament?.status === 'inProgress')
     let title = $derived(
         tournament ? libraryService.titlesById[tournament.rules.titleId] : undefined
     )
@@ -108,7 +110,9 @@
                             >
                         </div>
                         <p
-                            class="mt-1.5 inline-flex items-center gap-1.5 text-xs text-blue-700 dark:text-blue-300"
+                            class="mt-1.5 inline-flex items-center gap-1.5 text-xs {tournamentStatusColor(
+                                tournament.status
+                            )}"
                         >
                             <span class="size-1.5 rounded-full bg-current" aria-hidden="true"
                             ></span>
@@ -200,10 +204,27 @@
                 {/key}
             </section>
         {/if}
-        <div class="mt-5 grid items-start gap-5 md:grid-cols-[minmax(0,1fr)_18rem]">
+        {#snippet scheduleSection(detail: TournamentDetail)}
+            {#if detail.tournament.stages[0] && (isAdmin || detail.tournament.stages[0].scheduleId)}
+                <div
+                    class={scheduleFirst
+                        ? 'mt-5'
+                        : 'mt-6 border-t border-gray-200 pt-4 dark:border-gray-700/60'}
+                >
+                    {#key detail.tournament.stages[0].scheduleId}
+                        <TournamentScheduleView {detail} {isAdmin} onsaved={() => void refresh()} />
+                    {/key}
+                </div>
+            {/if}
+        {/snippet}
+        {#if scheduleFirst}
+            {@render scheduleSection(detail)}
+            <hr class="mt-5 border-gray-200 dark:border-gray-700/60" />
+        {/if}
+        <div class="mt-5 grid items-start gap-7 md:grid-cols-[minmax(0,1fr)_18rem] md:gap-10">
             <section aria-labelledby="entrants-heading" class="min-w-0">
                 <div class="mb-2 flex items-baseline justify-between gap-3">
-                    <h2 id="entrants-heading" class="text-sm font-medium">
+                    <h2 id="entrants-heading" class="font-tournament text-lg font-semibold">
                         Players <span class="ml-1 text-gray-500"
                             >{tournament.entrants.length}{tournament.rules.registration.capacity
                                 ? ` / ${tournament.rules.registration.capacity}`
@@ -215,32 +236,63 @@
                         >{/if}
                 </div>
                 {#if detail.tournament.entrants.length}
-                    <ul class="rounded-md bg-gray-50 px-3 py-1 dark:bg-gray-800">
-                        {#each detail.tournament.entrants as entrant (entrant.userId)}
-                            <li class="flex min-w-0 items-center gap-2 py-2 text-sm">
-                                <div class="flex min-w-0 flex-1 items-center gap-2">
-                                    <span
-                                        class="truncate"
-                                        title={detail.usernames[entrant.userId] ??
-                                            'Unavailable account'}
-                                    >
-                                        {detail.usernames[entrant.userId] ?? 'Unavailable account'}
-                                    </span>
-                                    {#if entrant.userId === user?.id}<span
-                                            class="shrink-0 rounded bg-gray-200 px-1 text-[0.6rem] text-gray-500 dark:bg-gray-700 dark:text-gray-400"
-                                            >You</span
-                                        >{/if}
-                                </div>
-                                {#if entrant.userId === user?.id && tournament.status === 'open'}
-                                    <button
-                                        class="leave-action shrink-0"
-                                        disabled={busy}
-                                        onclick={() => act('leave')}>Leave</button
-                                    >
+                    <table class="w-full table-fixed text-left text-sm">
+                        <thead
+                            class="border-b border-gray-200 text-xs text-gray-500 dark:border-gray-700/60 dark:text-gray-400"
+                        >
+                            <tr>
+                                <th class="pb-2 font-normal">Name</th>
+                                {#if scheduleFirst}
+                                    <th class="w-16 pb-2 text-right font-normal">Wins</th>
+                                    <th class="w-20 pb-2 text-right font-normal">Score</th>
+                                {:else if joined && tournament.status === 'open'}
+                                    <th class="w-16 pb-2"><span class="sr-only">Action</span></th>
                                 {/if}
-                            </li>
-                        {/each}
-                    </ul>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200/60 dark:divide-gray-700/40">
+                            {#each detail.tournament.entrants as entrant (entrant.userId)}
+                                <tr>
+                                    <td class="py-2.5 pr-3">
+                                        <div class="flex min-w-0 items-center gap-2">
+                                            <span
+                                                class="truncate"
+                                                title={detail.usernames[entrant.userId] ??
+                                                    'Unavailable account'}
+                                            >
+                                                {detail.usernames[entrant.userId] ??
+                                                    'Unavailable account'}
+                                            </span>
+                                            {#if entrant.userId === user?.id}<span
+                                                    class="shrink-0 text-[0.65rem] font-medium text-orange-700 dark:text-orange-300"
+                                                    >You</span
+                                                >{/if}
+                                        </div>
+                                    </td>
+                                    {#if scheduleFirst}
+                                        <td
+                                            class="py-2.5 text-right tabular-nums text-gray-400"
+                                            aria-label="Wins unavailable">—</td
+                                        >
+                                        <td
+                                            class="py-2.5 text-right tabular-nums text-gray-400"
+                                            aria-label="Score unavailable">—</td
+                                        >
+                                    {:else if joined && tournament.status === 'open'}
+                                        <td class="py-2.5 text-right">
+                                            {#if entrant.userId === user?.id}
+                                                <button
+                                                    class="leave-action shrink-0"
+                                                    disabled={busy}
+                                                    onclick={() => act('leave')}>Leave</button
+                                                >
+                                            {/if}
+                                        </td>
+                                    {/if}
+                                </tr>
+                            {/each}
+                        </tbody>
+                    </table>
                 {:else}
                     <p
                         class="rounded-md bg-gray-50 px-3 py-5 text-xs text-gray-500 dark:bg-gray-800"
@@ -249,9 +301,13 @@
                     </p>
                 {/if}
             </section>
-            <aside class="space-y-4 rounded-md bg-gray-50 p-3 dark:bg-gray-800">
+            <aside
+                class="space-y-4 border-t border-gray-200 pt-4 dark:border-gray-700/60 md:border-t-0 md:border-l md:pl-6 md:pt-0"
+            >
                 <section aria-labelledby="format-heading">
-                    <h2 id="format-heading" class="mb-2 text-sm font-medium">Tournament</h2>
+                    <h2 id="format-heading" class="mb-3 font-tournament text-lg font-semibold">
+                        Tournament info
+                    </h2>
                     <dl class="space-y-1.5 text-xs">
                         <div class="flex justify-between gap-3">
                             <dt class="text-gray-500 dark:text-gray-400">Players per game</dt>
@@ -291,11 +347,7 @@
                 </section>
             </aside>
         </div>
-        {#if detail.tournament.stages[0] && (isAdmin || detail.tournament.stages[0].scheduleId)}
-            {#key detail.tournament.stages[0].scheduleId}
-                <TournamentScheduleView {detail} {isAdmin} onsaved={() => void refresh()} />
-            {/key}
-        {/if}
+        {#if !scheduleFirst}{@render scheduleSection(detail)}{/if}
     {/if}
 </main>
 

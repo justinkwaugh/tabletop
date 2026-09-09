@@ -10,7 +10,9 @@ import {
     type TournamentListQuery,
     type TournamentScheduleRequest,
     type CommitTournamentScheduleRequest,
-    type User
+    type User,
+    assertExists,
+    type TournamentGameReference
 } from '@tabletop/common'
 import * as Value from 'typebox/value'
 import type { TournamentStore } from '../persistence/stores/tournamentStore.js'
@@ -23,12 +25,15 @@ import {
     type NotificationService
 } from '../notifications/notificationService.js'
 
+import type { GameService } from '../games/gameService.js'
+
 export class TournamentService {
     constructor(
         private readonly store: TournamentStore,
         private readonly users: Pick<UserService, 'getUser'>,
         private readonly titles: Record<string, Pick<GameDefinition, 'info'>>,
         private readonly notifications: Pick<NotificationService, 'sendNotification'>,
+        private readonly games: Pick<GameService, 'provisionTournamentGame'>,
         private readonly now: () => number = Date.now
     ) {}
 
@@ -165,7 +170,29 @@ export class TournamentService {
                     usernames[userId] = account.username
             })
         )
-        return { tournament, usernames }
+        const games = tournament.status === 'inProgress' ? await this.store.readGameLinks(id) : []
+        return { tournament, usernames, games }
+    }
+
+    async provisionTable({
+        tournamentId,
+        stageId,
+        tableId
+    }: Pick<TournamentGameReference, 'tournamentId' | 'stageId' | 'tableId'>) {
+        const tournament = await this.store.read(tournamentId)
+        assertExists(tournament, 'Tournament not found')
+        const stage = tournament.stages.find((stage) => stage.id === stageId)
+        if (
+            (tournament.status !== 'locked' && tournament.status !== 'inProgress') ||
+            !stage?.scheduleId
+        )
+            throw new TournamentError('The tournament has no saved schedule available for play')
+        const schedule = await this.store.readSchedule(tournamentId, stageId)
+        const game = await this.games.provisionTournamentGame(tournament, schedule, tableId)
+        const updated = await this.store.read(tournamentId)
+        assertExists(updated, 'Tournament disappeared after provisioning')
+        await this.notify(updated)
+        return game
     }
 
     async getSchedule(id: string, user: User) {

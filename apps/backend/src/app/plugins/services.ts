@@ -149,7 +149,8 @@ export default fp(async (fastify: FastifyInstance) => {
         new FirestoreTournamentStore(redisCacheService, fastify.firestore),
         userService,
         availableTitles,
-        notificationService
+        notificationService,
+        gameService
     )
     fastify.decorate('tournamentService', tournamentService)
     if (EnvService.isLocal()) {

@@ -15,6 +15,12 @@ export function tournamentRegistrationText(tournament: Tournament): string {
           })}. At least ${policy.minimumEntrants} players required${policy.capacity ? `; up to ${policy.capacity}` : ''}.`
 }
 
+export function tournamentStatusColor(status: Tournament['status']): string {
+    return status === 'open'
+        ? 'text-green-700 dark:text-green-400'
+        : 'text-blue-700 dark:text-blue-300'
+}
+
 export function tournamentStatusText(tournament: Tournament): string {
     switch (tournament.status) {
         case 'draft':

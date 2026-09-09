@@ -17,7 +17,7 @@ A Game Instance for which a host owns the Canonical Action History and authorize
 _Avoid_: Remote Game
 
 **Tournament Game**:
-A Hosted Game assigned to a Table in a Tournament. Its completed result is final for Players, while an Administrator may make an explicitly attributed correction.
+A Hosted Game assigned to a Table in a Tournament. Enrollment supplies consent for its assigned Joined Players; the Tournament governs its setup and lifecycle. Its completed result is final for Players, while an Administrator may make an explicitly attributed correction.
 
 **Transient Game Instance**:
 A Game Instance that exists only for the current Game Session unless saved.
@@ -26,7 +26,7 @@ A Game Instance that exists only for the current Game Session unless saved.
 A Game Instance that persists beyond the current Game Session.
 
 **Game Owner**:
-The User responsible for managing a Game Instance. A Game Owner need not be a Player and receives no special authority over play history.
+The User responsible for managing a Game Instance. A Game Owner need not be a Player and receives no special authority over play history. In a Tournament Game, the organizer retains ownership for attribution while the Tournament governs lifecycle decisions.
 
 **Game Configuration**:
 The pre-play choices that determine how a Game Instance is set up. Configuration is validated against its Game Title, may change while Recruiting or Ready, and is frozen once play begins.
@@ -105,5 +105,5 @@ An approved Undo that reverses the affected Processed Actions, reapplies eligibl
 A Game Owner has no elevated Undo authority. An administrator may bypass Player ownership and information-revelation restrictions, but still targets a User Action.
 
 **Fork**:
-A new Game Instance derived from a selected position in another Game Instance’s Canonical Action History. It has its own identity, Owner, history, and lifecycle while retaining the source Game Title and Game Configuration.
+A new Game Instance derived from a selected position in another Game Instance’s Canonical Action History. It has its own identity, Owner, history, and lifecycle while retaining the source Game Title and Game Configuration. A Fork of a Tournament Game does not inherit its Tournament participation.
 _Avoid_: Exploration
