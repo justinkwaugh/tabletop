@@ -17,6 +17,7 @@
     import {
         isAdvanceResolution,
         isCancelAlliance,
+        isPlayAllianceCard,
         isDrawActionCard,
         isNegotiationMove,
         isNeutralOwner,
@@ -326,12 +327,25 @@
     // and when rewound past the very first action, so it doubles as "are we in history".
     const historyAction = $derived(gameSession.history.currentAction)
 
-    // An alliance just ended by clicking its heart leaves no other trace on the board - the
-    // heart is simply gone - so the status window repeats the history's own sentence for it
-    // until the next action of any kind arrives.
-    const latestAllianceCancellation = $derived.by(() => {
-        const latest = gameSession.actions.at(-1)
-        return latest && isCancelAlliance(latest) ? latest : undefined
+    // Forming or breaking an alliance leaves little trace on the board - hearts appear or vanish -
+    // so the status window announces the latest such event to everyone until the actor's turn
+    // passes: the message survives their own later actions and disappears once they are no longer
+    // active. It waits for the hearts' animation to finish (the actions list runs ahead of the
+    // visible state) so the board holds still while they form or break.
+    const currentAllianceEvent = $derived.by(() => {
+        if (gameSession.updatingVisibleState) return undefined
+        const actions = gameSession.actions
+        const index = actions.findLastIndex(
+            (action) => isPlayAllianceCard(action) || isCancelAlliance(action)
+        )
+        if (index < 0) return undefined
+        const event = actions[index]
+        const onlyActorActedSince = actions
+            .slice(index + 1)
+            .every((action) => action.source === ActionSource.System || action.playerId === event.playerId)
+        const actorStillActive =
+            event.playerId !== undefined && gameSession.gameState.activePlayerIds.includes(event.playerId)
+        return onlyActorActedSince && actorStillActive ? event : undefined
     })
 
     // One label per thing a single sword can buy. The composite labels are gone with the
@@ -425,10 +439,10 @@
             {/if}
             <ActionDescription action={historyAction} justify="start" history={false} />
         </div>
-    {:else if latestAllianceCancellation}
+    {:else if currentAllianceEvent?.playerId}
         <div class="text-black text-[18px] text-center border-b-2 border-black/15 pb-1">
-            {@render playerPill(latestAllianceCancellation.playerId)}
-            <ActionDescription action={latestAllianceCancellation} justify="start" history={false} />
+            {@render playerPill(currentAllianceEvent.playerId)}
+            <ActionDescription action={currentAllianceEvent} justify="start" history={false} />
         </div>
     {/if}
     {#if lastDuelOutcome?.type === 'giveUp'}
@@ -964,3 +978,4 @@
         </div>
     {/if}
 </div>
+
