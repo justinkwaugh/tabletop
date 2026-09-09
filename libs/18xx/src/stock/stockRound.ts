@@ -5,6 +5,8 @@ import { StockTurn } from './stockTurn.js'
 export const StockRound = Type.Object(
     {
         number: Type.Integer({ minimum: 1 }),
+        completed: Type.Boolean(),
+        passedPlayerIds: Type.Array(Type.String(), { uniqueItems: true }),
         turn: StockTurn,
         sales: Type.Array(
             Type.Object({ owner: Owner, companyId: Type.String() }, { additionalProperties: false })

@@ -1,10 +1,14 @@
 <script lang="ts">
+    import StockRoundStatus from './StockRoundStatus.svelte'
     import CompanyStarting from './CompanyStarting.svelte'
     import {
         getCompany,
         isBuyShares,
         isStartCompany,
         isFloatCompany,
+        isFinishStockTurn,
+        isCompleteStockRound,
+        isStartOperatingSet,
         isSellShares,
         stockMarketSpace,
         type PresidencyChange
@@ -22,14 +26,21 @@
 {/snippet}
 <section class="trading" aria-label="Stock trading">
     <header>
-        <h2>{state.machineState === 'TradingShares' ? 'Stock turn' : 'Turn complete'}</h2>
+        <h2>
+            {state.machineState === 'StockRound'
+                ? `Stock round ${state.stockRound.number}`
+                : state.operatingSet
+                  ? `Operating set ${state.operatingSet.number}`
+                  : 'Starting operating set'}
+        </h2>
         <div class="buttons">
-            {#if state.machineState === 'TradingShares'}<button
+            {#if state.machineState === 'StockRound'}<button
                     onclick={() => session.finishTurn()}
                     disabled={session.busy ||
                         session.isViewingHistory ||
                         !!session.selection ||
-                        !session.validActionTypes.includes('FinishStockTurn')}>Finish turn</button
+                        !session.validActionTypes.includes('FinishStockTurn')}
+                    >{state.stockRound.turn.acted ? 'Finish turn' : 'Pass'}</button
                 >{/if}
             <button
                 onclick={() => session.undo()}
@@ -39,6 +50,7 @@
             >
         </div>
     </header>
+    <StockRoundStatus {session} />
     {#if session.mustSell}<p role="status">
             Sell down to the stock limits before buying or finishing.
         </p>{/if}
@@ -78,8 +90,7 @@
                 >
             </div>
         </div>
-    {:else if state.machineState === 'TradingShares'}
-        <p>{session.getPlayerName(state.activePlayerIds[0])}’s stock turn</p>
+    {:else if state.machineState === 'StockRound'}
         {#if session.selectedSale}
             <div class="preview" aria-label="Confirm share sale">
                 <h3>Sale order</h3>
@@ -199,7 +210,32 @@
     {#if session.trades.length}
         <ol aria-label="Stock history">
             {#each session.trades as trade (trade.id)}
-                {#if isStartCompany(trade) && trade.metadata}
+                {#if isFinishStockTurn(trade) && trade.metadata}
+                    <li>
+                        {session.getPlayerName(trade.playerId)}
+                        {trade.metadata.passed ? 'passed' : 'finished their turn'}.
+                    </li>
+                {:else if isCompleteStockRound(trade) && trade.metadata}
+                    <li>
+                        Stock round complete.
+                        {#each trade.metadata.marketMoves as move}
+                            <span
+                                >{getCompany(state, move.companyId).name} sold out: {stockMarketSpace(
+                                    state.stockMarket,
+                                    move.fromMarketSpaceId
+                                ).price} → {stockMarketSpace(
+                                    state.stockMarket,
+                                    move.toMarketSpaceId
+                                ).price}.</span
+                            >
+                        {/each}
+                    </li>
+                {:else if isStartOperatingSet(trade) && trade.metadata}
+                    <li>
+                        Operating set {trade.metadata.number} started: {trade.metadata.roundCount}
+                        {trade.metadata.roundCount === 1 ? 'round' : 'rounds'}.
+                    </li>
+                {:else if isStartCompany(trade) && trade.metadata}
                     <li>
                         {session.ownerName(trade.metadata.buyer)} started {getCompany(
                             state,

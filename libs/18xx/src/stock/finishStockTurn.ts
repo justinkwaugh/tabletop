@@ -1,3 +1,4 @@
+import { allPlayersPassed } from './stockRoundRules.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -12,7 +13,13 @@ import { exceedsStockLimits, type StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
 
 export const FinishStockTurn = Type.Object(
-    { ...PlayerAction.properties, type: Type.Literal('FinishStockTurn') },
+    {
+        ...PlayerAction.properties,
+        type: Type.Literal('FinishStockTurn'),
+        metadata: Type.Optional(
+            Type.Object({ passed: Type.Boolean() }, { additionalProperties: false })
+        )
+    },
     { additionalProperties: false }
 )
 export type FinishStockTurn = Type.Static<typeof FinishStockTurn>
@@ -29,6 +36,7 @@ export class HydratedFinishStockTurn
 {
     declare type: 'FinishStockTurn'
     declare playerId: string
+    declare metadata?: FinishStockTurn['metadata']
     readonly #rules: StockRules
     constructor(data: FinishStockTurn, rules: StockRules) {
         super(data instanceof HydratedFinishStockTurn ? data.dehydrate() : data, Validator)
@@ -43,6 +51,20 @@ export class HydratedFinishStockTurn
             !exceedsStockLimits(state, { kind: 'player', playerId: this.playerId }, this.#rules),
             'Sell down to the stock limits before finishing'
         )
+        assert(!state.stockRound.completed, 'The stock round has completed')
+        const passed = !state.stockRound.turn.acted
+        if (passed && !state.stockRound.passedPlayerIds.includes(this.playerId))
+            state.stockRound.passedPlayerIds.push(this.playerId)
         state.turnManager.endTurn(state.actionCount)
+        if (!allPlayersPassed(state)) {
+            state.activePlayerIds = [state.turnManager.startNextTurn(state.actionCount + 1)]
+            state.stockRound.turn = {
+                acted: false,
+                bought: false,
+                soldBeforeBuying: false,
+                companiesSold: []
+            }
+        }
+        this.metadata = { passed }
     }
 }

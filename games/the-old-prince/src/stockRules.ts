@@ -1,3 +1,4 @@
+import { TheOldPrinceStockRoundRules } from './roundRules.js'
 import { assertExists } from '@tabletop/common'
 import {
     companyMarketSpace,
@@ -11,6 +12,7 @@ import {
 } from '@tabletop/18xx'
 
 export const TheOldPrinceStockRules: StockRules = {
+    round: TheOldPrinceStockRoundRules,
     buyers(state, playerId) {
         const player: Owner = { kind: 'player', playerId }
         const buyers: Owner[] = [player]

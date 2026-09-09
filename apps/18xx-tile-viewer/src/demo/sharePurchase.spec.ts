@@ -91,7 +91,7 @@ it.each([
         expect(
             updatedState.certificates.find((certificate) => certificate.id === certificateId)
         ).not.toHaveProperty('poolId')
-        expect(updatedState.machineState).toBe('TradingShares')
+        expect(updatedState.machineState).toBe('StockRound')
         expect(updatedState.activePlayerIds).toEqual(['alex'])
         expect(updatedState.actionCount).toBe(1)
         const [action] = processedActions

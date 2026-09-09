@@ -30,7 +30,7 @@
     let error = $state<string>()
     let bridge: BridgedContext | undefined
     let disposed = false
-    const exampleName = untrack(() => `Finances example · 6 · ${position}`)
+    const exampleName = untrack(() => `Finances example · 7 · ${position}`)
 
     onMount(() => {
         void load()
@@ -41,16 +41,32 @@
         bridge?.dispose()
     })
 
+    async function loadCompatibleExample() {
+        for (const game of app.gameService.activeGames.filter(
+            (game) => game.name === exampleName
+        )) {
+            try {
+                return await app.gameService.loadGame(game.id)
+            } catch (cause) {
+                if (
+                    !(cause instanceof Error) ||
+                    cause.message !== 'Complete canonical state is required'
+                )
+                    throw cause
+            }
+        }
+        return undefined
+    }
+
     async function load() {
         try {
             const runtime = await definition.runtime()
             await app.gameService.loadGames()
             const owner = app.authorizationService.getSessionUser()
             assertExists(owner, 'The local harness requires a user')
-            const saved = app.gameService.activeGames.find((game) => game.name === exampleName)
-            const created =
-                saved ??
-                (await app.gameService.createGame({
+            let loaded = await loadCompatibleExample()
+            if (!loaded) {
+                const created = await app.gameService.createGame({
                     id: crypto.randomUUID(),
                     typeId: definition.info.id,
                     name: exampleName,
@@ -65,8 +81,10 @@
                     })),
                     config: { examplePosition: position },
                     seed: 1889
-                }))
-            const { game, actions } = await app.gameService.loadGame(created.id)
+                })
+                loaded = await app.gameService.loadGame(created.id)
+            }
+            const { game, actions } = loaded
             assertExists(game, 'Local example is missing')
             assertExists(game.state, 'Local example has no state')
             if (!FinanceExampleValidator.Check(game.state))

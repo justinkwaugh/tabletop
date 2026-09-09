@@ -1,9 +1,10 @@
-# Finances (slices 1–4)
+# Finances (slices 1–5)
 
 The shared model separates companies, the bank, asset ownership, certificate pools,
 cash, and company management. Both title packages supply reduced example positions
-through the Common Game Runtime and Game Session. Each example offers one prepared stock turn, not complete game setup or a full
-stock round.
+through the Common Game Runtime and Game Session. Each example plays a complete stock round from a prepared position
+to the start of an operating set. Full game setup and company operations follow in
+later slices.
 
 ## Model and interfaces
 
@@ -83,7 +84,7 @@ changes the denominator. The initial stored PEIR president agrees with that rule
 future Actions must settle presidency changes when ownership changes.
 
 Cash and holdings are illustrative midgame values, not full initialization. Other
-companies, trains, and round progression are omitted. TOP uses the supplied
+companies and trains are omitted. TOP uses the supplied
 prototype's King's Mail income of 60, with the edition discrepancy documented in
 the title README.
 
@@ -91,12 +92,13 @@ the title README.
 
 `FinanceExampleState` is built on Common Game State with financial fields at the
 root. Its initializer requires three players, uses their stable IDs, and authors
-deterministic asset IDs. `StockRoundHandler` offers purchases, sales, and company starts for the first player;
-`FinishStockTurn` then enters `InspectFinances` to stop gameplay. It retains the acting player's identity for
-Common's hotseat Undo, but its terminal handler accepts no further Actions. There
-is no game result or automatic turn progression in this example. Each title exports a Definition
-and UiDefinition using a shared finance example Game Session subclass. The shared
-host contract is unchanged.
+deterministic asset IDs. `StockRoundHandler` offers purchases, sales, and company
+starts. `FinishStockTurn` advances the player and records a pass only if the turn
+had no stock action. Final passing schedules `CompleteStockRound`; the example
+then schedules `StartOperatingSet` and stops at `OperatingSet`. The terminal view
+retains a player identity for Common's hotseat Undo and accepts no operating
+Actions. Each title exports a Definition and UiDefinition using a shared finance
+example Game Session subclass. The shared host contract is unchanged.
 
 `Portfolio` renders owned certificates grouped into their owner's certificate pools.
 `FinanceInspector` arranges player portfolios, company treasuries, and Bank cash
@@ -107,7 +109,7 @@ Game Session and renders payment previews and committed history.
 
 The Finances page at the existing `/economy` route uses the existing local harness to persist examples.
 The host identifies this schema's examples with the versioned name
-`Finances example · 6 · <position>`. Earlier inspection examples are preserved, and a new
+`Finances example · 7 · <position>`. Earlier inspection examples are preserved, and a new
 example is created for this version. Current examples are reused on reload and
 when switching titles. This is fixture versioning, not a saved-game migration.
 
@@ -141,7 +143,7 @@ and 15 provide the title rules. TOP remains a prototype with the discrepancies
 already recorded in its title README.
 
 The current slice excludes debt, shorts, preferred dividends, scoring aggregation,
-full setup, and full stock-round progression.
+full setup, and company operations.
 Those rules remain title-owned as they are added.
 
 ## Verification
@@ -158,8 +160,8 @@ current-example reload, and preserving earlier examples while creating a current
 
 `StockRound` defines the shared stock-round schema and type. Game State declares
 `stockRound: StockRound` directly, and purchase logic consumes that model. Its
-fields record its number, current StockTurn, prior sales, and companies that have purchased this round;
-round progression remains deferred to its own slice.
+fields record its number, current StockTurn, prior sales, companies that have
+purchased this round, ordered passed player IDs, and completion.
 
 `BuyShares` records the acting Player ID, buying Owner, certificate identity, and
 expected price. The title supplies eligible buyers, source restrictions, price,
@@ -189,9 +191,9 @@ separate actor/buyer identities; different capitalization schemes require an exp
 recipient rather than inferring one from an IPO label. Different share denominations
 require title pricing of a certificate; limits use share units and weighted certificate
 counts. Ordered payers exercise TOP's required contribution without conflating
-control with liability. Full-round sequencing, shorts, escrow, and unusual multi-buy
-procedures remain separate future work. The stock-trading handler enters its configured next state when the player finishes
-the turn; subsequent actor selection belongs to round progression.
+control with liability. Shorts, escrow, and unusual multi-buy procedures remain
+future work. The stock-round handler enters its configured next state when the
+whole round completes.
 
 Engine tests verify exact payment and certificate ownership for both Bank and
 treasury sales, Union Bank contributions, reserved/unavailable certificates,
@@ -248,5 +250,24 @@ The harness offers Share trading, Starting companies, and Flotation positions,
 each persisted separately. Company and price choices are manual stages; Back
 unwinds them and Undo reverses the triggering purchase together with flotation.
 Reload defaults to the trading position; selecting a saved position restores its
-committed state. Earlier fixture versions remain preserved. Full round progression
-is the next slice. See the [formation design and evidence](../../research/18xx/company-formation-slice-design.md).
+committed state. Earlier fixture versions remain preserved. See the [formation design and evidence](../../research/18xx/company-formation-slice-design.md).
+
+## Stock-round progression and operating sets
+
+`StockRules.round` supplies pass invalidation, next-player ordering, and sold-out
+eligibility. TOP retains other players' passes when someone acts again; 1889 clears
+consecutive passes after a transaction. Common TurnManager advances active players,
+resets per-turn budgets, and keeps round-long sale history and Union Bank usage.
+
+`CompleteStockRound` applies sold-out marker movements in stock-market order and
+records the next stock round's player order. `StartOperatingSet` independently
+records the phase-dependent round count and first operating order through the
+title's `OperatingRules`. The count remains fixed if the phase later changes.
+TOP places open PEIR last; Union Bank does not receive an operating turn.
+
+The prototype exposes Pass or Finish turn, current player and pass status, operating
+order, next stock priority, history, and Undo. Engine tests verify multi-player
+progression, round budgets, pass semantics, movement, snapshots, rejection, replay,
+and Undo. Desktop browser checks verify those interactions and saved completion.
+Mobile presentation is deferred with the disposable finance UI. See the
+[round design and family evidence](../../research/18xx/stock-round-slice-design.md).

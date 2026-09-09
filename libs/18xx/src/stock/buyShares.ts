@@ -1,3 +1,4 @@
+import { recordStockAction } from './stockRoundRules.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -50,6 +51,7 @@ export class HydratedBuyShares extends HydratableAction<typeof BuyShares> implem
         const result = evaluateSharePurchase(state, this, this.#rules)
         assert(result.details, result.reason ?? 'Invalid purchase')
         assert(this.expectedPrice === result.details.price, 'The purchase price has changed')
+        recordStockAction(state, this.playerId, this.#rules.round)
         applySharePurchase(state, result.details)
         this.metadata = result.details
     }

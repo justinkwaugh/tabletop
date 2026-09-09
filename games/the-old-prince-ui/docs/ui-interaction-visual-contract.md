@@ -33,3 +33,10 @@ occupancy. The flotation example exchanges a numbered PEIR share, replaces its
 station, updates certificates and capital, and restores all of those through Undo.
 The title's home positions come from its existing map definition. The finance
 inspector displays station locations; integration into the board view is deferred.
+
+TOP displays retained pass order. Acting again removes that player from the
+order, preserving the others; Union Bank usage remains spent across human turns.
+The completed view places open PEIR last and excludes Union Bank from operations.
+
+Round completion and Undo follow the shared full-stock-round contract. The finance
+UI remains disposable; this slice requires desktop interaction verification only.

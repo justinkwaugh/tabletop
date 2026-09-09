@@ -130,3 +130,22 @@ A company's entitlement to a station location, independently of placing its toke
 
 **Ownership Limit Exemption**:
 Permission to retain specified shares above the ordinary ownership limit.
+
+**Pass**:
+A decision to take no stock action on a turn, contributing to round completion
+under the title's rules.
+
+**Pass Order**:
+The order of players' retained passes used to establish their next stock-round positions.
+
+**Priority Deal**:
+The right to act first in the next stock round.
+
+**Operating Round**:
+A round in which eligible companies perform their operating turns.
+
+**Operating Set**:
+A scheduled sequence of operating rounds with a count established by the title's rules.
+
+**Operating Order**:
+The order in which companies take their turns in an operating round.

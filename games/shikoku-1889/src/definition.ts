@@ -1,3 +1,4 @@
+import { Shikoku1889OperatingRules } from './roundRules.js'
 import { Shikoku1889CompanyRules } from './companyRules.js'
 import { createShikoku1889StockMarket } from './stockMarket.js'
 import { Shikoku1889StockRules } from './stockRules.js'
@@ -31,6 +32,7 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
         createShikoku1889CompanyExample,
         Shikoku1889StockRules,
         createShikoku1889StockMarket,
-        Shikoku1889CompanyRules
+        Shikoku1889CompanyRules,
+        Shikoku1889OperatingRules
     )
 }

@@ -480,6 +480,13 @@ actual creation comes in slice 17.
 
 ## 5. Complete a stock round and establish the next operating set
 
+**Implemented:** shared turn advancement, pass tracking, title-owned next player
+order, round completion and sold-out movement, and a separate operating-set start.
+TOP preserves pass order and Union Bank usage; 1889 resets consecutive passes after
+transactions. The desktop prototype shows round status and operating order, restores
+saved completion, and undoes the final pass with its automatic consequences. See
+[design and family review](stock-round-slice-design.md).
+
 **Outcome:** each title plays a stock round from its prepared starting position to
 an explicit operating-set start.
 

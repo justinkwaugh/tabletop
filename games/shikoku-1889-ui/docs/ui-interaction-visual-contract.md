@@ -30,3 +30,10 @@ can be started by selecting its par price, and its separate flotation example
 shows the qualifying purchase and capital grant. Its home remains reserved and
 its station available after flotation, awaiting the operating round. Undo reverses
 the purchase and automatic grant together.
+
+1889 displays consecutive passes, which reset after any stock transaction.
+The completed view shows next-round priority after the last actor and the
+operating company order after sold-out adjustments.
+
+Round completion and Undo follow the shared full-stock-round contract. The finance
+UI remains disposable; this slice requires desktop interaction verification only.

@@ -265,3 +265,30 @@ own persisted example; switching disposes the session and discards drafts. Reloa
 restores committed state. These controls select examples, not game-rule actions.
 Desktop/mobile checks cover both Back stages, confirmation, reload, position/title
 switching, market/cash/ownership results and complete Undo of flotation.
+
+### Full stock-round prototype
+
+The session's existing FinishStockTurn method advances to the next player. The
+control reads Pass before a stock action and Finish turn afterwards; it stays
+disabled while a manual choice is open. StockRoundStatus renders the active player,
+turn order, and either TOP pass order or 1889 consecutive passes. A committed
+purchase/start/sale updates that status through runtime processing.
+
+The final pass automatically completes the round, adjusts sold-out markers,
+updates player priority, and starts the operating set. The terminal prototype
+shows the first operating order, controlling owners, fixed set length, and next
+stock-round order. It accepts no operating decisions yet. History includes passes,
+turn finishes, round completion, market movements, and operating-set start.
+
+Undo across an ordinary turn finish returns control to the previous player. Undo
+after completion reverses the final pass and both system actions together. No new
+UI effects initiate actions. Reload restores the same stage and facts. Fixture
+version 7 preserves previous example versions. Desktop checks cover these flows;
+mobile refinement is deferred because this finance UI will be replaced.
+
+Saved example selection requires successful canonical loading, not just a matching
+fixture name. The harness preserves incompatible saves and tries another matching
+save, creating a fresh example when none is compatible. Unrelated loading errors
+still surface. A browser regression seeds the old stock-state shape under the
+current fixture name, verifies recovery, and checks that the old data remains
+unchanged and subsequent reloads reuse the new example.

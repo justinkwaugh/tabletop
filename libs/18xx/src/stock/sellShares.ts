@@ -1,3 +1,4 @@
+import { recordStockAction } from './stockRoundRules.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -65,6 +66,7 @@ export class HydratedSellShares extends HydratableAction<typeof SellShares> impl
             state.stockRound.sales.push({ owner: this.seller, companyId: sale.companyId })
             state.stockRound.turn.companiesSold.push(sale.companyId)
         }
+        recordStockAction(state, this.playerId, this.#rules.round)
         this.metadata = result.details
     }
 }

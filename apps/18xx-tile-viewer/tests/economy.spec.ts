@@ -140,7 +140,7 @@ test('preserves earlier examples and reuses the current fixture on reload', asyn
     const saved = await examples()
     expect(saved).toHaveLength(2)
     expect(saved).toContainEqual({ id: previousId, name: 'Finances example · 2' })
-    expect(saved.filter((game) => game.name === 'Finances example · 6 · trading')).toHaveLength(1)
+    expect(saved.filter((game) => game.name === 'Finances example · 7 · trading')).toHaveLength(1)
     await page.reload()
     await expect(union).toContainText('Cash 40')
     expect(await examples()).toEqual(saved)
@@ -174,7 +174,7 @@ for (const width of [1280, 390]) {
         await expect(alex).toContainText('Cash 240')
         await chooseUnion()
         await purchase.getByRole('button', { name: 'Confirm purchase' }).click()
-        await expect(purchase.getByRole('heading', { name: 'Stock turn' })).toBeVisible()
+        await expect(purchase.getByRole('heading', { name: 'Stock round 2' })).toBeVisible()
         await expect(union).toContainText('Cash 0')
         await expect(union.locator('[data-certificate-id="ML:share:5"]')).toBeVisible()
         await expect(alex).toContainText('Cash 188')
@@ -252,9 +252,13 @@ for (const width of [1280, 390]) {
         await trading.getByRole('button', { name: 'Confirm purchase' }).click()
         await expect(alex).toContainText('Cash 338')
         await trading.getByRole('button', { name: 'Finish turn' }).click()
-        await expect(trading.getByRole('heading', { name: 'Turn complete' })).toBeVisible()
+        await expect(page.getByRole('region', { name: 'Round status' })).toContainText(
+            'Blair’s stock turn'
+        )
         await trading.getByRole('button', { name: 'Undo', exact: true }).click()
-        await expect(trading.getByRole('heading', { name: 'Stock turn' })).toBeVisible()
+        await expect(page.getByRole('region', { name: 'Round status' })).toContainText(
+            'Alex’s stock turn'
+        )
         await trading.getByRole('button', { name: 'Undo', exact: true }).click()
         await expect(alex).toContainText('Cash 424')
         await trading.getByRole('button', { name: 'Undo', exact: true }).click()
@@ -285,3 +289,77 @@ for (const width of [1280, 390]) {
         expect(errors).toEqual([])
     })
 }
+
+test('preserves an incompatible saved state and opens a compatible finance example', async ({
+    page
+}) => {
+    await page.goto('/economy')
+    const union = page.getByRole('article', { name: 'Union Bank treasury', exact: true })
+    await expect(union).toContainText('Cash 40')
+    const previous = await page.evaluate(async () => {
+        const db = await new Promise<IDBDatabase>((resolve, reject) => {
+            const request = indexedDB.open('tabletop-local')
+            request.onsuccess = () => resolve(request.result)
+            request.onerror = () => reject(request.error)
+        })
+        const tx = db.transaction(['games', 'states'], 'readwrite')
+        const games = tx.objectStore('games').getAll()
+        const previous = await new Promise<{ id: string; state: unknown }>((resolve, reject) => {
+            games.onsuccess = () => {
+                const game = games.result.find((game) => game.typeId === 'the-old-prince')
+                const states = tx.objectStore('states')
+                const request = states.get(game.id)
+                request.onsuccess = () => {
+                    const state = request.result
+                    state.machineState = 'TradingShares'
+                    delete state.stockRound.completed
+                    delete state.stockRound.passedPlayerIds
+                    delete state.stockRound.turn.acted
+                    states.put(state)
+                    tx.oncomplete = () => resolve({ id: game.id, state })
+                }
+            }
+            tx.onabort = () => reject(tx.error)
+            tx.onerror = () => reject(tx.error)
+        })
+        db.close()
+        return previous
+    })
+    await page.reload()
+    await expect(union).toContainText('Cash 40')
+    await page.getByRole('button', { name: 'Pass', exact: true }).click()
+    await expect(page.getByRole('region', { name: 'Round status' })).toContainText(
+        'Blair’s stock turn'
+    )
+    await page.reload()
+    await expect(page.getByRole('region', { name: 'Round status' })).toContainText(
+        'Blair’s stock turn'
+    )
+    const saved = await page.evaluate(async (previousId) => {
+        const db = await new Promise<IDBDatabase>((resolve, reject) => {
+            const request = indexedDB.open('tabletop-local')
+            request.onsuccess = () => resolve(request.result)
+            request.onerror = () => reject(request.error)
+        })
+        const tx = db.transaction(['games', 'states'])
+        const all = tx.objectStore('games').getAll()
+        const old = tx.objectStore('states').get(previousId)
+        const result = await new Promise<{ ids: string[]; previousState: unknown }>(
+            (resolve, reject) => {
+                tx.oncomplete = () =>
+                    resolve({
+                        ids: all.result
+                            .filter((game) => game.typeId === 'the-old-prince')
+                            .map((game) => game.id),
+                        previousState: old.result
+                    })
+                tx.onabort = () => reject(tx.error)
+            }
+        )
+        db.close()
+        return result
+    }, previous.id)
+    expect(saved.ids).toHaveLength(2)
+    expect(saved.ids).toContain(previous.id)
+    expect(saved.previousState).toEqual(previous.state)
+})

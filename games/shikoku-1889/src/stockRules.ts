@@ -1,3 +1,4 @@
+import { Shikoku1889StockRoundRules } from './roundRules.js'
 import { assertExists } from '@tabletop/common'
 import {
     companyMarketSpace,
@@ -7,6 +8,7 @@ import {
 } from '@tabletop/18xx'
 
 export const Shikoku1889StockRules: StockRules = {
+    round: Shikoku1889StockRoundRules,
     buyers: (_state, playerId) => [{ kind: 'player', playerId }],
     sellers: (_state, playerId) => [{ kind: 'player', playerId }],
     purchaseTerms(state, certificate, buyer) {

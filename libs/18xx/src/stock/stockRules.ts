@@ -1,3 +1,4 @@
+import type { StockRoundRules } from './stockRoundRules.js'
 import {
     sameOwner,
     certificatesOwnedBy,
@@ -18,6 +19,7 @@ export type ShareSaleTerms = {
     movement: number
 }
 export interface StockRules {
+    round: StockRoundRules
     sellers(state: StockState, playerId: string): Owner[]
     buyers(state: StockState, playerId: string): Owner[]
     purchaseTerms(

@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 
 export const StockTurn = Type.Object(
     {
+        acted: Type.Boolean(),
         bought: Type.Boolean(),
         soldBeforeBuying: Type.Boolean(),
         companiesSold: Type.Array(Type.String())

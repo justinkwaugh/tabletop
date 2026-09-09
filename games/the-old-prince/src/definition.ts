@@ -1,3 +1,4 @@
+import { TheOldPrinceOperatingRules } from './roundRules.js'
 import { TheOldPrinceCompanyRules } from './companyRules.js'
 import { createTheOldPrinceStockMarket } from './stockMarket.js'
 import { TheOldPrinceStockRules } from './stockRules.js'
@@ -31,6 +32,7 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
         createTheOldPrinceCompanyExample,
         TheOldPrinceStockRules,
         createTheOldPrinceStockMarket,
-        TheOldPrinceCompanyRules
+        TheOldPrinceCompanyRules,
+        TheOldPrinceOperatingRules
     )
 }

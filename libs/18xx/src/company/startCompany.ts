@@ -1,3 +1,4 @@
+import { recordStockAction } from '../stock/stockRoundRules.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -65,6 +66,7 @@ export class HydratedStartCompany
         company.parPrice = result.details.parPrice
         company.president = result.details.buyer
         placeStockMarker(state.stockMarket, this.companyId, this.marketSpaceId)
+        recordStockAction(state, this.playerId, this.#stockRules.round)
         applySharePurchase(state, result.details)
         this.#companyRules.onStart?.(state, result.details)
         this.metadata = result.details

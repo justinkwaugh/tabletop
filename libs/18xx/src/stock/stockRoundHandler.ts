@@ -1,4 +1,10 @@
 import {
+    CompleteStockRound,
+    isCompleteStockRound,
+    type HydratedCompleteStockRound
+} from './completeStockRound.js'
+import { allPlayersPassed } from './stockRoundRules.js'
+import {
     ActionSource,
     type HydratedAction,
     type HydratedGameState,
@@ -26,6 +32,7 @@ type Action =
     | HydratedFinishStockTurn
     | HydratedStartCompany
     | HydratedFloatCompany
+    | HydratedCompleteStockRound
 export class StockRoundHandler implements MachineStateHandler<Action, State> {
     constructor(
         private readonly rules: StockRules,
@@ -34,6 +41,15 @@ export class StockRoundHandler implements MachineStateHandler<Action, State> {
     ) {}
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         const state = context.gameState
+        if (state.stockRound.completed) return false
+        if (isCompleteStockRound(action))
+            return (
+                action.source === ActionSource.System &&
+                allPlayersPassed(state) &&
+                !state.turnManager.currentTurn() &&
+                !nextCompanyToFloat(state, this.companyRules)
+            )
+        if (allPlayersPassed(state)) return false
         if (isFloatCompany(action))
             return (
                 action.source === ActionSource.System &&
@@ -69,36 +85,34 @@ export class StockRoundHandler implements MachineStateHandler<Action, State> {
     validActionsForPlayer(playerId: string, context: MachineContext<State>): string[] {
         const state = context.gameState
         if (
+            state.stockRound.completed ||
+            allPlayersPassed(state) ||
             !state.activePlayerIds.includes(playerId) ||
             nextCompanyToFloat(state, this.companyRules)
         )
             return []
         const actions: string[] = []
         if (
-            this.rules
-                .buyers(state, playerId)
-                .some((buyer) =>
-                    state.companies.some(
-                        (company) =>
-                            !company.started &&
-                            this.companyRules
-                                .startMarketSpaces(state, company.id)
-                                .some(
-                                    (marketSpaceId) =>
-                                        evaluateCompanyStart(
-                                            state,
-                                            {
-                                                playerId,
-                                                buyer,
-                                                companyId: company.id,
-                                                marketSpaceId
-                                            },
-                                            this.rules,
-                                            this.companyRules
-                                        ).details
-                                )
-                    )
+            this.rules.buyers(state, playerId).some((buyer) =>
+                state.companies.some(
+                    (company) =>
+                        !company.started &&
+                        this.companyRules.startMarketSpaces(state, company.id).some(
+                            (marketSpaceId) =>
+                                evaluateCompanyStart(
+                                    state,
+                                    {
+                                        playerId,
+                                        buyer,
+                                        companyId: company.id,
+                                        marketSpaceId
+                                    },
+                                    this.rules,
+                                    this.companyRules
+                                ).details
+                        )
                 )
+            )
         )
             actions.push('StartCompany')
         if (
@@ -143,6 +157,12 @@ export class StockRoundHandler implements MachineStateHandler<Action, State> {
         return actions
     }
     enter(context: MachineContext<State>): void {
+        if (allPlayersPassed(context.gameState)) {
+            context.addSystemAction(CompleteStockRound, {
+                playerId: context.gameState.activePlayerIds[0]
+            })
+            return
+        }
         const details = nextCompanyToFloat(context.gameState, this.companyRules)
         if (details)
             context.addSystemAction(FloatCompany, {
@@ -151,6 +171,6 @@ export class StockRoundHandler implements MachineStateHandler<Action, State> {
             })
     }
     onAction(action: Action, context: MachineContext<State>): string {
-        return isFinishStockTurn(action) ? this.nextState : context.gameState.machineState
+        return isCompleteStockRound(action) ? this.nextState : context.gameState.machineState
     }
 }

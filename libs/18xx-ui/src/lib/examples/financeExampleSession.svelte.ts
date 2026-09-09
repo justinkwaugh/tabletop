@@ -11,6 +11,9 @@ import {
     StartCompany,
     isStartCompany,
     isFloatCompany,
+    isFinishStockTurn,
+    isCompleteStockRound,
+    isStartOperatingSet,
     evaluateCompanyStart,
     flotationAfterPurchase,
     type CompanyRules,
@@ -49,6 +52,9 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     ) {
         super(options)
     }
+    get passing() {
+        return this.stockRules.round.passing
+    }
     financialState = $derived(requireFinanceExampleState(this.gameState))
     startChoices = $derived.by(() => {
         const state = this.financialState
@@ -57,7 +63,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             !playerId ||
             this.updatingVisibleState ||
             this.isViewingHistory ||
-            state.machineState !== 'TradingShares' ||
+            state.machineState !== 'StockRound' ||
             state.stockRound.turn.bought
         )
             return []
@@ -156,7 +162,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             !playerId ||
             this.updatingVisibleState ||
             this.isViewingHistory ||
-            state.machineState !== 'TradingShares' ||
+            state.machineState !== 'StockRound' ||
             state.stockRound.turn.bought
         )
             return []
@@ -184,7 +190,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             !playerId ||
             this.updatingVisibleState ||
             this.isViewingHistory ||
-            state.machineState !== 'TradingShares'
+            state.machineState !== 'StockRound'
         )
             return []
         return this.stockRules.sellers(state, playerId).flatMap((seller) =>
@@ -230,11 +236,14 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
                     isBuyShares(action) ||
                     isSellShares(action) ||
                     isStartCompany(action) ||
-                    isFloatCompany(action)
+                    isFloatCompany(action) ||
+                    isFinishStockTurn(action) ||
+                    isCompleteStockRound(action) ||
+                    isStartOperatingSet(action)
             )
     )
     mustSell = $derived.by(() =>
-        this.myPlayer
+        this.financialState.machineState === 'StockRound' && this.myPlayer
             ? exceedsStockLimits(
                   this.financialState,
                   { kind: 'player', playerId: this.myPlayer.id },

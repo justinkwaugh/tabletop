@@ -1,3 +1,15 @@
+import {
+    CompleteStockRound,
+    HydratedCompleteStockRound,
+    isCompleteStockRound
+} from '../stock/completeStockRound.js'
+import { OperatingSet, type OperatingRules } from '../operating/operatingSet.js'
+import {
+    StartOperatingSet,
+    HydratedStartOperatingSet,
+    isStartOperatingSet
+} from '../operating/startOperatingSet.js'
+import { StartOperatingSetHandler } from '../operating/startOperatingSetHandler.js'
 import { CompanyFields, type CompanyState } from '../company/companyState.js'
 import { validateStations } from '../map/station.js'
 import { StartCompany, HydratedStartCompany, isStartCompany } from '../company/startCompany.js'
@@ -35,8 +47,13 @@ import { FinanceFields, validateFinances, type FinancialState } from '../finance
 
 const ExampleFields = Type.Object({
     example: Type.Literal('finances'),
-    machineState: Type.Union([Type.Literal('TradingShares'), Type.Literal('InspectFinances')]),
+    machineState: Type.Union([
+        Type.Literal('StockRound'),
+        Type.Literal('StartingOperatingSet'),
+        Type.Literal('OperatingSet')
+    ]),
     stockRound: StockRound,
+    operatingSet: Type.Optional(OperatingSet),
     stockMarket: StockMarket,
     ...FinanceFields,
     ...CompanyFields
@@ -63,7 +80,8 @@ export class HydratedFinanceExampleState
     declare stations: CompanyState['stations']
     declare stationReservations: CompanyState['stationReservations']
     declare example: 'finances'
-    declare machineState: 'TradingShares' | 'InspectFinances'
+    declare machineState: 'StockRound' | 'StartingOperatingSet' | 'OperatingSet'
+    declare operatingSet?: OperatingSet
     declare stockRound: StockRound
     declare stockMarket: StockMarket
     declare companies: FinancialState['companies']
@@ -80,6 +98,22 @@ export class HydratedFinanceExampleState
             new Set(this.players.map((player) => player.playerId)).size === this.players.length,
             'Duplicate player identity'
         )
+        assert(
+            this.stockRound.passedPlayerIds.every((id) => this.turnManager.turnOrder.includes(id)),
+            'Unknown passed player'
+        )
+        if (this.operatingSet) {
+            assert(
+                this.operatingSet.roundNumber <= this.operatingSet.roundCount,
+                'Operating round exceeds the set length'
+            )
+            assert(
+                this.operatingSet.companyOrder.every((id) =>
+                    this.companies.some((company) => company.id === id)
+                ),
+                'Unknown operating company'
+            )
+        }
         validateStations(
             this,
             this.companies.map((company) => company.id)
@@ -124,10 +158,12 @@ class FinanceExampleInitializer extends BaseGameInitializer<
             players,
             activePlayerIds: [players[0].playerId],
             example: 'finances',
-            machineState: 'TradingShares',
+            machineState: 'StockRound',
             stockRound: {
                 number: 2,
-                turn: { bought: false, soldBeforeBuying: false, companiesSold: [] },
+                completed: false,
+                passedPlayerIds: [],
+                turn: { acted: false, bought: false, soldBeforeBuying: false, companiesSold: [] },
                 sales: [],
                 companyPurchases: []
             },
@@ -145,13 +181,18 @@ export function createFinanceExampleRuntime(
     createFinances: CreateFinances,
     rules: StockRules,
     createMarket: (position: FinanceExamplePosition) => StockMarket,
-    companyRules: CompanyRules
+    companyRules: CompanyRules,
+    operatingRules: OperatingRules
 ): GameRuntime<FinanceExampleState, HydratedFinanceExampleState> {
     return {
         initializer: new FinanceExampleInitializer(createFinances, createMarket),
         hydrator: {
             hydrateState: (state) => new HydratedFinanceExampleState(state),
             hydrateAction: (action) => {
+                if (isCompleteStockRound(action))
+                    return new HydratedCompleteStockRound(action, rules.round)
+                if (isStartOperatingSet(action))
+                    return new HydratedStartOperatingSet(action, operatingRules)
                 if (isStartCompany(action))
                     return new HydratedStartCompany(action, rules, companyRules)
                 if (isFloatCompany(action)) return new HydratedFloatCompany(action, companyRules)
@@ -163,10 +204,19 @@ export function createFinanceExampleRuntime(
         },
         canonicalStateValidator: FinanceExampleValidator,
         playerColors: ExampleColors,
-        apiActions: { BuyShares, SellShares, FinishStockTurn, StartCompany, FloatCompany },
+        apiActions: {
+            BuyShares,
+            SellShares,
+            FinishStockTurn,
+            StartCompany,
+            FloatCompany,
+            CompleteStockRound,
+            StartOperatingSet
+        },
         stateHandlers: {
-            TradingShares: new StockRoundHandler(rules, 'InspectFinances', companyRules),
-            InspectFinances: new TerminalStateHandler()
+            StockRound: new StockRoundHandler(rules, 'StartingOperatingSet', companyRules),
+            StartingOperatingSet: new StartOperatingSetHandler('OperatingSet'),
+            OperatingSet: new TerminalStateHandler()
         }
     }
 }
