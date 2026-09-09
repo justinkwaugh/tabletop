@@ -730,10 +730,10 @@
         {/if}
     </div>
 
-    <!-- Cancelling an alliance used to be offered as a sentence-with-a-button here. It's
-         the beating heart on the shared boundary wall now (see allianceMarkers) - the price
-         and the consequence both show on hover, and the affordance stays put on the board
-         instead of appearing in a status area whose other messages are turn-scoped. -->
+    <!-- Cancelling an alliance is not offered here: the board shows a "Break alliance?" pill
+         near the allied border (see RealBoard's offeredAllianceId), so the affordance stays
+         put beside the thing it acts on instead of appearing in a status area whose other
+         messages are turn-scoped. -->
 
     {#if displayNegotiation && !negotiationHoldHidesForMe}
         {@const negotiation = displayNegotiation}
