@@ -5,7 +5,8 @@ The first implemented module is the [tile foundation](tiles.md): serializable
 faces and catalog definitions, explicit variants, rotation, and topology queries.
 The [physical supply module](inventory.md) adds complete title manifests,
 independent inventories, paired faces, and prepared tile replacements.
-Further models, calculations, Actions, and reusable decision procedures will be
+The [semantic map module](maps.md) adds immutable geography and preprinted tiles,
+using Common hex adjacency. Further models, calculations, Actions, and reusable decision procedures will be
 developed alongside TOP and Shikoku 1889.
 
 The first lasting asset is the shared tile model and catalog: reusable definitions,

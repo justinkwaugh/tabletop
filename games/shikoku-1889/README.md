@@ -6,7 +6,9 @@ package is `@tabletop/shikoku-1889-ui`.
 
 The public entry point exports `Shikoku1889Tiles`, `Shikoku1889TileSet`, and
 `Shikoku1889BeginnerTileSet`: 40 shared definitions with 63 standard pieces or
-71 beginner pieces. `Shikoku1889PreprintedTiles` supplies representative preprinted tiles.
+71 beginner pieces. `Shikoku1889PreprintedTiles` supplies all 52 preprinted tiles.
+`Shikoku1889Map` exports the complete semantic map, including geography,
+construction facts, reservations, and markers. See the [M1 map design](../../libs/18xx/maps.md).
 See the [T3 inventory design and evidence](../../libs/18xx/inventory.md), including
 the rulebook's extra beginner #57. There is no Game State, initializer,
 Action registration, or `GameDefinition` yet, and the title is not registered in

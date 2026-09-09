@@ -45,6 +45,9 @@ importers:
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
+      '@tabletop/frontend-components':
+        specifier: workspace:*
+        version: link:../../libs/frontend-components
       '@tabletop/shikoku-1889':
         specifier: workspace:*
         version: link:../../games/shikoku-1889
@@ -67,6 +70,9 @@ importers:
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
+      '@tailwindcss/postcss':
+        specifier: ^4.1.18
+        version: 4.1.18
       prettier-plugin-svelte:
         specifier: ^3.4.1
         version: 3.4.1(prettier@3.8.1)(svelte@5.49.0)
@@ -79,6 +85,9 @@ importers:
       svelte-check:
         specifier: ^4.3.5
         version: 4.3.5(picomatch@4.0.3)(svelte@5.49.0)(typescript@5.9.3)
+      tailwindcss:
+        specifier: ^4.1.18
+        version: 4.1.18
       typescript:
         specifier: 5.9.3
         version: 5.9.3

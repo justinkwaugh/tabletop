@@ -18,7 +18,8 @@
         "@tabletop/18xx-ui": "workspace:*",
         "@tabletop/common": "workspace:*",
         "@tabletop/the-old-prince": "workspace:*",
-        "@tabletop/shikoku-1889": "workspace:*"
+        "@tabletop/shikoku-1889": "workspace:*",
+        "@tabletop/frontend-components": "workspace:*"
     },
     "devDependencies": {
         "@sveltejs/kit": "^2.48.4",
@@ -32,6 +33,8 @@
         "vitest": "^4.0.12",
         "prettier-plugin-svelte": "^3.4.1",
         "@sveltejs/adapter-static": "^3.0.10",
-        "@playwright/test": "^1.42.1"
+        "@playwright/test": "^1.42.1",
+        "tailwindcss": "^4.1.18",
+        "@tailwindcss/postcss": "^4.1.18"
     }
 }

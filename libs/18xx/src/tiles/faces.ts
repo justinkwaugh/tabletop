@@ -1,4 +1,10 @@
-import type { TileEdge, TileFace } from './tile.js'
+import type { TileEdge, TileFace, TileRevenue } from './tile.js'
+
+export function createStagedTileRevenue(
+    values: readonly (readonly [string, number])[]
+): TileRevenue {
+    return { kind: 'staged', values: values.map(([stage, amount]) => ({ stage, amount })) }
+}
 
 export function createTrackTileFace(
     color: string,
@@ -21,14 +27,19 @@ export function createTrackTileFace(
 export function createCityTileFace(
     color: string,
     edges: readonly TileEdge[],
-    revenue: number,
+    revenue: number | TileRevenue,
     stationSlots: number,
     labels: readonly string[] = []
 ): TileFace {
     return {
         color,
         nodes: [
-            { id: 'city', kind: 'city', stationSlots, revenue: { kind: 'fixed', amount: revenue } }
+            {
+                id: 'city',
+                kind: 'city',
+                stationSlots,
+                revenue: typeof revenue === 'number' ? { kind: 'fixed', amount: revenue } : revenue
+            }
         ],
         paths: edges.map((edge) => ({
             id: `edge-${edge}`,
@@ -38,6 +49,21 @@ export function createCityTileFace(
             ]
         })),
         labels
+    }
+}
+
+export function createOffboardTileFace(edges: readonly TileEdge[], revenue: TileRevenue): TileFace {
+    return {
+        color: 'red',
+        labels: [],
+        nodes: [{ id: 'offboard', kind: 'offboard', revenue }],
+        paths: edges.map((edge) => ({
+            id: `edge-${edge}`,
+            endpoints: [
+                { kind: 'edge', edge },
+                { kind: 'node', nodeId: 'offboard' }
+            ]
+        }))
     }
 }
 

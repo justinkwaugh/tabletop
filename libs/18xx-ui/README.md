@@ -23,6 +23,8 @@ That app imports the title packages and supplies their definitions to this libra
 Shared libraries must not depend on games, including in development dependencies
 or tests. This package's tests use shared definitions and synthetic fixtures.
 
+The implemented [map scene and inspector](maps.md) provide boardless rendering
+for complete title maps, composed with the existing `ScalingWrapper` in the app.
 Shared map rendering is also lasting library work: physical-board artwork with
 tile overlays, and a generic boardless presentation of the same semantic map.
 Both share tile rendering, live overlays, and map-object interaction. Titles

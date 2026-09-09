@@ -267,16 +267,22 @@ two verified title tile sets before the first financial slice.
 
 ## M1. Build the lasting map scene and boardless presentation
 
+**Implemented:** complete TOP/1889 semantic maps, shared scene/inspection, prepared
+overlays, and existing `ScalingWrapper` composition. See the
+[M1 design and verification note](../../libs/18xx/maps.md).
+
 **Outcome:** render and inspect both complete semantic maps generically, using
 the shared tile renderer, independent of a physical-board image.
 
 **Shared work:** map definitions with stable hex/location identities, initial
 track/stops, terrain/borders, labels, revenues, and persistent map-owned facts;
 map placement based on Common coordinates and geometry; shared tile, token,
-annotation, selection, and route-overlay layers. Keep map placement and viewport
-transforms explicit so drawing and pointer conversion use the same geometry.
-Build lasting fit/pan/zoom and map-object inspection behavior, with a temporary
-surrounding control panel if convenient.
+annotation, selection, and route-overlay layers. Compose the map inside the existing
+`ScalingWrapper` from `@tabletop/frontend-components` for fitting, panning, zooming,
+and optional focus via `focusRect`. The wrapper owns viewport transforms; the map
+owns hex geometry and map-object inspection. Keep tiles and overlays in the same
+transformed content, and account for that transform when converting pointer positions.
+Use a temporary surrounding control panel if convenient.
 
 **Family review:** survey the full researched map/network profiles, including
 flat/pointy layouts, coordinate conventions, irregular map extents, special

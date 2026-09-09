@@ -4,15 +4,15 @@ import { TheOldPrinceTileSet, TheOldPrincePreprintedTiles } from '@tabletop/the-
 import { Shikoku1889TileSet, Shikoku1889PreprintedTiles } from '@tabletop/shikoku-1889'
 
 export const PreprintedTileExamples = [
-    ...Object.entries(TheOldPrincePreprintedTiles).map(([locationId, face]) => ({
+    ...['K19', 'O15', 'I17'].map((locationId) => ({
         title: 'TOP',
         locationId,
-        face
+        face: TheOldPrincePreprintedTiles[locationId]
     })),
-    ...Object.entries(Shikoku1889PreprintedTiles).map(([locationId, face]) => ({
+    ...['I2', 'I4', 'K4', 'F9'].map((locationId) => ({
         title: '1889',
         locationId,
-        face
+        face: Shikoku1889PreprintedTiles[locationId]
     }))
 ]
 

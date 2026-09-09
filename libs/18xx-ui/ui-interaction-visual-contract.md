@@ -102,3 +102,76 @@ Visual review covers labeled T/X/CX cities, the two #611 definitions, crossings,
 multiple independent cities, staged revenue, and enlarged/mobile views. The
 standalone development host renders on the client so it does not expose controls
 before event handlers are attached.
+
+## Map inspection and navigation
+
+### Visual intents
+
+Selecting a map hex outlines it and shows its map facts in inspection. Selecting
+an internal path also highlights precisely that segment; selecting a station slot
+outlines that space. Nodes without station slots are selectable as stops. Pointer,
+touch activation, Enter, and Space emit the same stable semantic selection.
+Keyboard focus has a visible outline before activation.
+
+Fit, pan, zoom, full screen, and focus-on-selection change only the viewport.
+Changing appearance preserves the current selection. The development host's
+Show sample tile, token & route switch replaces its displayed inventory and overlays; choosing
+a different map replaces the whole scene. Neither operation is a game Action.
+
+### Coexistence and precedence
+
+Slot and stop hit targets take precedence over tracks beneath them; track targets
+take precedence over the containing hex. Transparent hit targets travel with the
+artwork. A selected path's emphasis draws above a route highlight on that path;
+both draw beneath stops and tokens. Hex selection coexists with all overlays. Hex outlines and terrain borders render
+after every tile; selection and keyboard-focus outlines render above those layers.
+These layers never intercept input, and neighboring tiles cannot cover an outline.
+Names and annotations do not intercept pointer input. Markings have their own
+reserved annotation space, while explicit tile layouts retain placement authority.
+
+### Shared visual state
+
+The host owns manual local inspection and supplies it to the scene and inspector.
+The scene tracks keyboard focus locally for its top outline layer, clearing it on
+blur or scene replacement.
+The development host clears inspection when the map or prepared position changes;
+style and viewport changes preserve it. Selection is valid only for a location,
+path, stop, or slot in the current drawing. Tokens and routes are supplied position
+data, independent of inspection. Viewport state belongs to `ScalingWrapper`; a new
+map mounts a fresh wrapper and starts fitted. No map-view state is serialized.
+
+There is no Action Draft, Back, Undo, replay, or history lifecycle in this viewer.
+Future Game Session consumers must supply the intended visible position and own
+selection invalidation at their session boundaries. The shared scene renders the
+supplied position without initiating actions or inferring live/history mode.
+
+### Render ownership
+
+The map composes immutable geography with current tile drawings. The tile renderer
+owns the underlying track/stops/revenues; the map owns location names, terrain,
+future labels, persistent markers, borders, route highlights, tokens, and hit targets.
+Map artwork labels named locations only; coordinates remain in inspection and
+accessible names.
+Initial home labels occupy empty station spaces and are reference annotations;
+active reservation rules remain the host's responsibility. Covered terrain is
+hidden on the board and retained in inspection. Zero fixed revenues are hidden
+on the map, but remain available in inspection. Tile numbers stay outside artwork.
+
+All geometry and overlays share one SVG and wrapper transform. The renderer's
+natural hex size determines content dimensions; fit and focus must use those same
+dimensions. Physical artwork and alignment are not part of the boardless view.
+
+### Verification scenarios
+
+Automated checks select edge stations and internal slots by keyboard and pointer,
+then focus, zoom, pan, refocus, and fit at desktop/mobile widths. Inspection and
+prepared token/route identity survive those viewport changes. Switching maps
+checks complete location counts; inspecting geography checks private markers,
+future labels, untokenable cities, and combined terrain costs. Unit checks verify
+both orientations, adjacent border alignment, immutable map facts after replacement,
+and rejection of invalid overlay targets or multiple tokens in one slot.
+
+Manual review covers both complete maps at fit, enlarged Kouchi's track/label/cost
+layout, and narrow-screen navigation. The surrounding controls remain prototype
+presentation; the tile/map geometry and semantic hit-target contract are shared
+library assets.

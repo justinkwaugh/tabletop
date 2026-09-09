@@ -10,6 +10,7 @@
         drawing,
         appearance = ClassicTileAppearance,
         highlightedPathIds = [],
+        showZeroRevenue = true,
         trackOverlay,
         overlays
     }: {
@@ -17,6 +18,7 @@
         drawing: TileDrawing
         appearance?: TileAppearance
         highlightedPathIds?: readonly string[]
+        showZeroRevenue?: boolean
         trackOverlay?: Snippet<[TileDrawing]>
         overlays?: Snippet<[TileDrawing]>
     } = $props()
@@ -160,7 +162,7 @@
             </g>
         {/if}
         {#each drawing.nodes as { node, revenuePosition } (node.id)}
-            {#if node.kind !== 'junction'}
+            {#if node.kind !== 'junction' && (showZeroRevenue || node.revenue.kind === 'staged' || node.revenue.amount !== 0)}
                 <g
                     data-revenue-for={node.id}
                     transform={`translate(${revenuePosition.x} ${revenuePosition.y})`}

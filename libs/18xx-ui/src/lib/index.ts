@@ -10,6 +10,9 @@ export {
 } from './tiles/tileDrawing.js'
 export { TileColors } from './tiles/tilePresentation.js'
 export { StandardTileLayouts } from './tiles/standardTileLayouts.js'
+export * from './maps/mapDrawing.js'
+export { default as MapScene } from './maps/MapScene.svelte'
+export { default as MapInspector } from './maps/MapInspector.svelte'
 export {
     ClassicTileAppearance,
     MutedTileAppearance,

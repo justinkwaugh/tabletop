@@ -14,7 +14,9 @@ pnpm --filter @tabletop/18xx-tile-viewer dev
 ```
 
 The server uses port 4188. `/` shows the tile library; `/specimens` shows rotations,
-preprinted tiles, and replacement examples. `src/demo` composes title definitions
+preprinted tiles, and replacement examples. `/maps` shows both complete maps with
+selection/inspection and prepared tile, token, and route overlays. The existing
+`ScalingWrapper` provides fit, focus, pan, zoom, and full screen. `src/demo` composes title definitions
 and inspection fixtures. The renderer and viewer component live in
 [`libs/18xx-ui`](../../libs/18xx-ui/README.md).
 

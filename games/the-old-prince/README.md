@@ -6,7 +6,9 @@ on `@tabletop/18xx` and `@tabletop/common`; its companion Game Client package is
 
 The public entry point exports `TheOldPrinceTileSet` and `TheOldPrinceTiles`:
 58 definitions and 164 physical pieces, including all sixteen PEI specials.
-`TheOldPrincePreprintedTiles` supplies representative preprinted tiles. See the
+`TheOldPrincePreprintedTiles` supplies all 110 preprinted tiles.
+`TheOldPrinceMap` exports the complete semantic map, including geography,
+construction facts, reservations, and markers. See the [M1 map design](../../libs/18xx/maps.md). See the
 [T3 inventory design and evidence](../../libs/18xx/inventory.md). There is no Game State, initializer,
 Action registration, or `GameDefinition` yet, and the title is not registered in
 the site catalog. Shared mechanisms will be developed against both TOP and

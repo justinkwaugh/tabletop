@@ -27,6 +27,7 @@ import {
 export type { TileDrawnPath } from './tileTrackGeometry.js'
 
 export type TileLayout = {
+    annotationExclusions?: readonly Point[]
     nodePositions?: Readonly<Record<string, Point>>
     townTrackPositions?: Readonly<Record<string, number>>
     pathControls?: Readonly<Record<string, readonly [Point, Point]>>
@@ -149,13 +150,16 @@ export function createTileDrawing(
         return createCubicTilePath(path.id, start, end, controls)
     })
 
-    const occupied: Point[] = face.nodes.flatMap((node) => {
-        const center = centers.get(node.id)
-        assertExists(center, `Unknown tile node ${node.id}`)
-        return node.kind === 'city' && node.stationSlots > 0
-            ? stationPositions(node.stationSlots, center, angle)
-            : [center]
-    })
+    const occupied: Point[] = [
+        ...(layout.annotationExclusions ?? []),
+        ...face.nodes.flatMap((node) => {
+            const center = centers.get(node.id)
+            assertExists(center, `Unknown tile node ${node.id}`)
+            return node.kind === 'city' && node.stationSlots > 0
+                ? stationPositions(node.stationSlots, center, angle)
+                : [center]
+        })
+    ]
     if (face.labels.length > 0 && layout.labelPosition) {
         occupied.push(orientPoint(layout.labelPosition, angle))
     }
