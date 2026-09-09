@@ -8,15 +8,15 @@ import {
     type Tournament,
     type TournamentDetail,
     type TournamentListQuery,
+    type TournamentScheduleRequest,
+    type CommitTournamentScheduleRequest,
     type User
 } from '@tabletop/common'
 import * as Value from 'typebox/value'
-import type {
-    TournamentRegistration,
-    TournamentStore
-} from '../persistence/stores/tournamentStore.js'
+import type { TournamentStore } from '../persistence/stores/tournamentStore.js'
 import type { UserService } from '../users/userService.js'
 import { TournamentError } from './tournamentError.js'
+import { generateTournamentSchedule } from './tournamentScheduler.js'
 import { nanoid } from 'nanoid'
 import {
     NotificationDistributionMethod,
@@ -43,7 +43,8 @@ export class TournamentService {
                 organizerId: user.id,
                 status: 'draft',
                 revision: 1,
-                entrantCount: 0,
+                entrants: [],
+                stages: [],
                 createdAt: now,
                 updatedAt: now
             },
@@ -61,8 +62,7 @@ export class TournamentService {
     ): Promise<Tournament> {
         this.requireAdmin(user)
         const draft = this.validateDraft(input)
-        const result = await this.store.update(id, user, true, (registration) => {
-            const tournament = registration.tournament
+        const result = await this.store.update(id, user, true, (tournament) => {
             if (tournament.revision !== revision)
                 throw new TournamentError('The tournament changed. Refresh before saving.')
             if (tournament.status !== 'draft')
@@ -72,13 +72,13 @@ export class TournamentService {
             Object.assign(tournament, draft)
             this.touch(tournament)
         })
-        await this.notify(result.tournament)
-        return result.tournament
+        await this.notify(result)
+        return result
     }
 
     async publish(id: string, user: User): Promise<Tournament> {
         this.requireAdmin(user)
-        const result = await this.store.update(id, user, true, ({ tournament }) => {
+        const result = await this.store.update(id, user, true, (tournament) => {
             if (tournament.status === 'open' || tournament.status === 'locked') return
             if (tournament.status !== 'draft')
                 throw new TournamentError('Only a draft can open registration')
@@ -87,13 +87,13 @@ export class TournamentService {
             tournament.publishedAt = this.now()
             this.touch(tournament)
         })
-        await this.notify(result.tournament)
-        return result.tournament
+        await this.notify(result)
+        return result
     }
 
     async cancel(id: string, user: User): Promise<Tournament> {
         this.requireAdmin(user)
-        const result = await this.store.update(id, user, true, ({ tournament }) => {
+        const result = await this.store.update(id, user, true, (tournament) => {
             if (tournament.status === 'cancelled') return
             if (tournament.status === 'inProgress')
                 throw new TournamentError(
@@ -104,96 +104,122 @@ export class TournamentService {
             tournament.cancellationReason = 'administrator'
             this.touch(tournament)
         })
-        await this.notify(result.tournament)
-        return result.tournament
+        await this.notify(result)
+        return result
     }
 
     async lock(id: string, user: User): Promise<Tournament> {
         this.requireAdmin(user)
         const result = await this.store.update(id, user, true, (registration) => {
-            if (
-                registration.tournament.status === 'locked' ||
-                registration.tournament.status === 'cancelled'
-            )
-                return
+            if (registration.status === 'locked' || registration.status === 'cancelled') return
             if (!this.closeRegistration(registration))
                 throw new TournamentError(
                     'Registration stays open until capacity or the published deadline'
                 )
         })
-        await this.notify(result.tournament)
-        return result.tournament
+        await this.notify(result)
+        return result
     }
 
     async join(id: string, user: User): Promise<Tournament> {
         this.requireActive(user)
-        const result = await this.store.update(id, user, false, (registration) => {
-            const tournament = registration.tournament
-            if (registration.entrants.some((entrant) => entrant.userId === user.id)) return
-            this.closeRegistration(registration)
+        const result = await this.store.update(id, user, false, (tournament) => {
+            if (tournament.entrants.some((entrant) => entrant.userId === user.id)) return
+            this.closeRegistration(tournament)
             if (tournament.status !== 'open') return
-            if (tournament.entrantCount >= (tournament.rules.registration.capacity ?? 256))
+            if (tournament.entrants.length >= (tournament.rules.registration.capacity ?? 256))
                 throw new TournamentError('All registration places are currently taken')
-            registration.entrants.push({ userId: user.id, joinedAt: this.now() })
-            tournament.entrantCount = registration.entrants.length
+            tournament.entrants.push({ userId: user.id, joinedAt: this.now() })
             this.touch(tournament)
-            this.closeRegistration(registration)
+            this.closeRegistration(tournament)
         })
-        await this.notify(result.tournament)
+        await this.notify(result)
         if (!result.entrants.some((entrant) => entrant.userId === user.id))
             throw new TournamentError('Registration is closed')
-        return result.tournament
+        return result
     }
 
     async leave(id: string, user: User): Promise<Tournament> {
         this.requireActive(user)
         const result = await this.store.update(id, user, false, (registration) => {
             this.closeRegistration(registration)
-            if (registration.tournament.status !== 'open') return
+            if (registration.status !== 'open') return
             const entrants = registration.entrants.filter((entrant) => entrant.userId !== user.id)
             if (entrants.length === registration.entrants.length) return
             registration.entrants = entrants
-            registration.tournament.entrantCount = entrants.length
-            this.touch(registration.tournament)
+            this.touch(registration)
         })
-        await this.notify(result.tournament)
+        await this.notify(result)
         if (result.entrants.some((entrant) => entrant.userId === user.id))
             throw new TournamentError('You can only leave before registration locks')
-        return result.tournament
+        return result
     }
 
     async get(id: string, user: User): Promise<TournamentDetail> {
+        const tournament = await this.readVisible(id, user)
+        const usernames: Record<string, string> = {}
+        await Promise.all(
+            tournament.entrants.map(async ({ userId }) => {
+                const account = await this.users.getUser(userId)
+                if (account?.status === UserStatus.Active && account.username)
+                    usernames[userId] = account.username
+            })
+        )
+        return { tournament, usernames }
+    }
+
+    async getSchedule(id: string, user: User) {
+        const tournament = await this.readVisible(id, user)
+        const stage = tournament.stages[0]
+        if (!stage?.scheduleId) throw new TournamentError('No schedule has been saved', 404)
+        return this.store.readSchedule(id, stage.id)
+    }
+
+    async previewSchedule(id: string, request: TournamentScheduleRequest, user: User) {
+        this.requireAdmin(user)
+        const tournament = await this.readVisible(id, user)
+        if (tournament.stages[0]?.scheduleId)
+            throw new TournamentError('This stage already has a saved schedule')
+        if (tournament.revision !== request.revision)
+            throw new TournamentError('The tournament changed. Preview its schedule again.')
+        return generateTournamentSchedule(tournament, request.seed)
+    }
+
+    async commitSchedule(id: string, request: CommitTournamentScheduleRequest, user: User) {
+        this.requireAdmin(user)
+        const tournament = await this.readVisible(id, user)
+        const stage = tournament.stages[0]
+        if (stage?.scheduleId && stage.scheduleId !== request.scheduleId)
+            throw new TournamentError('This stage already has a different saved schedule')
+        if (!stage?.scheduleId && tournament.revision !== request.revision)
+            throw new TournamentError('The tournament changed. Preview its schedule again.')
+        const schedule = stage?.scheduleId
+            ? await this.store.readSchedule(id, stage.id)
+            : generateTournamentSchedule(tournament, request.seed)
+        if (schedule.id !== request.scheduleId)
+            throw new TournamentError('The schedule changed. Preview it again before saving.')
+        const result = await this.store.commitSchedule(schedule, request.revision, user, this.now())
+        await this.notify(result)
+        return schedule
+    }
+
+    private async readVisible(id: string, user: User): Promise<Tournament> {
         this.requireActive(user)
-        let registration = await this.store.read(id)
-        if (
-            !registration ||
-            (!registration.tournament.publishedAt && !user.roles.includes(Role.Admin))
-        ) {
+        let tournament = await this.store.read(id)
+        if (!tournament || (!tournament.publishedAt && !user.roles.includes(Role.Admin)))
             throw new TournamentError('Tournament not found', 404)
-        }
-        const policy = registration.tournament.rules.registration
+        const policy = tournament.rules.registration
         if (
-            registration.tournament.status === 'open' &&
+            tournament.status === 'open' &&
             policy.kind === 'deadline' &&
             policy.closesAt <= this.now()
         ) {
-            registration = await this.store.update(id, undefined, false, (current) => {
+            tournament = await this.store.update(id, undefined, false, (current) => {
                 this.closeRegistration(current)
             })
-            await this.notify(registration.tournament)
+            await this.notify(tournament)
         }
-        const entrants = await Promise.all(
-            registration.entrants.map(async (entrant) => {
-                const account = await this.users.getUser(entrant.userId)
-                return {
-                    ...entrant,
-                    ...(account?.status === UserStatus.Active && account.username
-                        ? { username: account.username }
-                        : {})
-                }
-            })
-        )
-        return { ...registration, entrants }
+        return tournament
     }
 
     async list(user: User, query: TournamentListQuery) {
@@ -209,7 +235,7 @@ export class TournamentService {
             const registration = await this.store.update(id, undefined, false, (current) => {
                 this.closeRegistration(current)
             })
-            await this.notify(registration.tournament)
+            await this.notify(registration)
         }
         return ids.length
     }
@@ -224,7 +250,7 @@ export class TournamentService {
                     id: nanoid(),
                     type: NotificationCategory.Tournament,
                     action: 'update',
-                    data: { tournament }
+                    data: { tournamentId: tournament.id, revision: tournament.revision }
                 },
                 topics,
                 channels: [NotificationDistributionMethod.Topical]
@@ -234,26 +260,26 @@ export class TournamentService {
         }
     }
 
-    private closeRegistration(registration: TournamentRegistration): boolean {
-        const tournament = registration.tournament
+    private closeRegistration(tournament: Tournament): boolean {
         if (tournament.status !== 'open') return false
         const policy = tournament.rules.registration
-        if (policy.kind === 'whenFull' && tournament.entrantCount < policy.capacity) return false
+        if (policy.kind === 'whenFull' && tournament.entrants.length < policy.capacity) return false
         if (policy.kind === 'deadline' && policy.closesAt > this.now()) return false
-        if (policy.kind === 'deadline' && tournament.entrantCount < policy.minimumEntrants) {
+        if (policy.kind === 'deadline' && tournament.entrants.length < policy.minimumEntrants) {
             tournament.status = 'cancelled'
             tournament.cancelledAt = this.now()
             tournament.cancellationReason = 'undersubscribed'
         } else {
             tournament.status = 'locked'
             tournament.lockedAt = this.now()
-            registration.stage = {
-                id: tournament.format.stages[0].id,
-                tournamentId: tournament.id,
-                status: 'awaitingSchedule',
-                rosterRevision: tournament.revision + 1,
-                createdAt: this.now()
-            }
+            tournament.stages = [
+                {
+                    id: tournament.format.stages[0].id,
+                    status: 'awaitingSchedule',
+                    rosterRevision: tournament.revision + 1,
+                    createdAt: this.now()
+                }
+            ]
         }
         this.touch(tournament)
         return true

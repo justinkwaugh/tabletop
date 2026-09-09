@@ -6,6 +6,8 @@ import {
     UpdateTournamentRequest,
     JoinTournamentRequest,
     TournamentListQuery,
+    TournamentScheduleRequest,
+    CommitTournamentScheduleRequest,
     TournamentParams
 } from '@tabletop/common'
 import { TournamentError } from '@tabletop/backend-services'
@@ -20,7 +22,10 @@ export default async function (fastify: FastifyInstance) {
         if (error instanceof TournamentError)
             return reply
                 .code(error.statusCode)
-                .send({ status: 'error', error: { message: error.message } })
+                .send({
+                    status: 'error',
+                    error: { name: 'TournamentError', message: error.message }
+                })
         return reply.send(error)
     })
 
@@ -58,6 +63,62 @@ export default async function (fastify: FastifyInstance) {
             return {
                 status: 'ok',
                 payload: await fastify.tournamentService.get(request.params.id, request.user)
+            }
+        }
+    )
+    fastify.get<{ Params: Static<typeof TournamentParams> }>(
+        '/:id/schedule',
+        { schema: { params: TournamentParams } },
+        async (request) => {
+            assertExists(request.user, 'Authenticated user required')
+            return {
+                status: 'ok',
+                payload: await fastify.tournamentService.getSchedule(
+                    request.params.id,
+                    request.user
+                )
+            }
+        }
+    )
+    fastify.post<{
+        Params: Static<typeof TournamentParams>
+        Body: Static<typeof TournamentScheduleRequest>
+    }>(
+        '/:id/schedule/preview',
+        {
+            schema: { params: TournamentParams, body: TournamentScheduleRequest },
+            preHandler: fastify.verifyRoleAdmin
+        },
+        async (request) => {
+            assertExists(request.user, 'Authenticated administrator required')
+            return {
+                status: 'ok',
+                payload: await fastify.tournamentService.previewSchedule(
+                    request.params.id,
+                    request.body,
+                    request.user
+                )
+            }
+        }
+    )
+    fastify.post<{
+        Params: Static<typeof TournamentParams>
+        Body: Static<typeof CommitTournamentScheduleRequest>
+    }>(
+        '/:id/schedule',
+        {
+            schema: { params: TournamentParams, body: CommitTournamentScheduleRequest },
+            preHandler: fastify.verifyRoleAdmin
+        },
+        async (request) => {
+            assertExists(request.user, 'Authenticated administrator required')
+            return {
+                status: 'ok',
+                payload: await fastify.tournamentService.commitSchedule(
+                    request.params.id,
+                    request.body,
+                    request.user
+                )
             }
         }
     )

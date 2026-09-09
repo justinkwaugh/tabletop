@@ -1,5 +1,6 @@
 import wretch, { type Wretch, type WretchError } from 'wretch'
 import * as Value from 'typebox/value'
+import { Type, type Static, type TSchema } from 'typebox'
 import {
     type GameCreationOptions,
     assertExists,
@@ -15,7 +16,15 @@ import {
     GameValidator,
     User,
     UserPreferences,
-    Visibility
+    Visibility,
+    Tournament,
+    TournamentDetail,
+    TournamentList,
+    TournamentSchedule,
+    type CommitTournamentScheduleRequest,
+    type TournamentScheduleRequest,
+    type TournamentDraft,
+    type TournamentListQuery
 } from '@tabletop/common'
 import type {
     AblyTokenResponse,
@@ -295,6 +304,68 @@ export class TabletopApi {
         return response.payload.games.map((game) => this.validateGame(game))
     }
 
+    listTournaments(query: TournamentListQuery) {
+        const params = new URLSearchParams({ scope: query.scope })
+        if (query.after) params.set('after', query.after)
+        if (query.titleId) params.set('titleId', query.titleId)
+        return this.requestTournament(`/tournaments/?${params}`, TournamentList)
+    }
+
+    getTournament(id: string) {
+        return this.requestTournament(`/tournaments/${encodeURIComponent(id)}`, TournamentDetail)
+    }
+    getTournamentSchedule(id: string) {
+        return this.requestTournament(
+            `/tournaments/${encodeURIComponent(id)}/schedule`,
+            TournamentSchedule
+        )
+    }
+    previewTournamentSchedule(id: string, request: TournamentScheduleRequest) {
+        return this.requestTournament(
+            `/tournaments/${encodeURIComponent(id)}/schedule/preview`,
+            TournamentSchedule,
+            'POST',
+            request
+        )
+    }
+    commitTournamentSchedule(id: string, request: CommitTournamentScheduleRequest) {
+        return this.requestTournament(
+            `/tournaments/${encodeURIComponent(id)}/schedule`,
+            TournamentSchedule,
+            'POST',
+            request
+        )
+    }
+    createTournament(id: string, draft: TournamentDraft) {
+        return this.requestTournament('/tournaments/', Tournament, 'POST', { id, draft })
+    }
+    updateTournament(tournament: Tournament, draft: TournamentDraft) {
+        return this.requestTournament(
+            `/tournaments/${encodeURIComponent(tournament.id)}`,
+            Tournament,
+            'PUT',
+            {
+                draft,
+                revision: tournament.revision
+            }
+        )
+    }
+    actOnTournament(id: string, operation: 'publish' | 'cancel' | 'lock' | 'leave') {
+        return this.requestTournament(
+            `/tournaments/${encodeURIComponent(id)}/${operation}`,
+            Tournament,
+            'POST',
+            {}
+        )
+    }
+    joinTournament(id: string) {
+        return this.requestTournament(
+            `/tournaments/${encodeURIComponent(id)}/join`,
+            Tournament,
+            'POST',
+            {}
+        )
+    }
     async getGame(
         gameId: string,
         options: GetGameOptions = {}
@@ -644,6 +715,25 @@ export class TabletopApi {
 
     setGameVersionProvider(provider: GameVersionProvider | null) {
         this.gameVersionProvider = provider
+    }
+
+    private async requestTournament<T extends TSchema>(
+        path: string,
+        schema: T,
+        method = 'GET',
+        body?: object
+    ): Promise<Static<T>> {
+        const request = body === undefined ? this.wretch : this.wretch.json(body)
+        const data = await request
+            .url(path)
+            .options({ cache: 'no-store' })
+            .catcherFallback(this.handleError)
+            .fetch(method)
+            .unauthorized(this.on401)
+            .json<unknown>()
+        Value.Assert(Type.Object({ status: Type.Literal('ok'), payload: Type.Unknown() }), data)
+        Value.Assert(schema, data.payload)
+        return data.payload
     }
 
     private getGameLogicVersion(gameId: string): string {

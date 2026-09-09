@@ -3,17 +3,17 @@
     import { Role, type TournamentDetail } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { listenForTournamentChanges } from '$lib/services/tournamentUpdates'
-    import { tournamentApi } from '$lib/services/tournamentApi'
     import {
         tournamentFormatText,
         tournamentRegistrationText,
         tournamentStatusText
     } from '$lib/utils/tournamentPresentation'
+    import TournamentScheduleView from './TournamentScheduleView.svelte'
     import TournamentForm from './TournamentForm.svelte'
     import TournamentGameOptions from './TournamentGameOptions.svelte'
 
     let { id }: { id: string } = $props()
-    const { authorizationService, libraryService, notificationService } = getAppContext()
+    const { api, authorizationService, libraryService, notificationService } = getAppContext()
     let user = $derived(authorizationService.getSessionUser())
     let isAdmin = $derived(user?.roles.includes(Role.Admin))
     let detail = $state<TournamentDetail>()
@@ -21,10 +21,12 @@
     let title = $derived(
         tournament ? libraryService.titlesById[tournament.rules.titleId] : undefined
     )
-    let joined = $derived(detail?.entrants.some((entrant) => entrant.userId === user?.id))
+    let joined = $derived(
+        detail?.tournament.entrants.some((entrant) => entrant.userId === user?.id)
+    )
     let full = $derived(
         tournament
-            ? tournament.entrantCount >= (tournament.rules.registration.capacity ?? 256)
+            ? tournament.entrants.length >= (tournament.rules.registration.capacity ?? 256)
             : false
     )
     let editingDraft = $state(false)
@@ -35,7 +37,7 @@
     async function refresh() {
         const current = ++request
         try {
-            const value = await tournamentApi.get(id)
+            const value = await api.getTournament(id)
             if (current === request) detail = value
         } catch (failure) {
             if (current === request)
@@ -47,8 +49,8 @@
         busy = true
         error = ''
         try {
-            if (operation === 'join') await tournamentApi.join(tournament)
-            else await tournamentApi.act(id, operation)
+            if (operation === 'join') await api.joinTournament(tournament.id)
+            else await api.actOnTournament(id, operation)
         } catch (failure) {
             error = failure instanceof Error ? failure.message : 'Could not update tournament'
         } finally {
@@ -175,7 +177,9 @@
                 {#if tournament.status === 'open' || tournament.status === 'draft'}
                     {tournamentRegistrationText(tournament)}
                 {:else if tournament.status === 'locked'}
-                    Waiting for games to be scheduled.
+                    {detail.tournament.stages[0]?.scheduleId
+                        ? 'Schedule ready. Waiting for games to start.'
+                        : 'Waiting for games to be scheduled.'}
                 {/if}
             </p>
         </header>
@@ -201,25 +205,26 @@
                 <div class="mb-2 flex items-baseline justify-between gap-3">
                     <h2 id="entrants-heading" class="text-sm font-medium">
                         Players <span class="ml-1 text-gray-500"
-                            >{tournament.entrantCount}{tournament.rules.registration.capacity
+                            >{tournament.entrants.length}{tournament.rules.registration.capacity
                                 ? ` / ${tournament.rules.registration.capacity}`
                                 : ''}</span
                         >
                     </h2>
-                    {#if tournament.status === 'open' && !detail.entrants.length}<span
+                    {#if tournament.status === 'open' && !detail.tournament.entrants.length}<span
                             class="text-xs text-gray-500">Be the first to join</span
                         >{/if}
                 </div>
-                {#if detail.entrants.length}
+                {#if detail.tournament.entrants.length}
                     <ul class="rounded-md bg-gray-50 px-3 py-1 dark:bg-gray-800">
-                        {#each detail.entrants as entrant (entrant.userId)}
+                        {#each detail.tournament.entrants as entrant (entrant.userId)}
                             <li class="flex min-w-0 items-center gap-2 py-2 text-sm">
                                 <div class="flex min-w-0 flex-1 items-center gap-2">
                                     <span
                                         class="truncate"
-                                        title={entrant.username ?? 'Unavailable account'}
+                                        title={detail.usernames[entrant.userId] ??
+                                            'Unavailable account'}
                                     >
-                                        {entrant.username ?? 'Unavailable account'}
+                                        {detail.usernames[entrant.userId] ?? 'Unavailable account'}
                                     </span>
                                     {#if entrant.userId === user?.id}<span
                                             class="shrink-0 rounded bg-gray-200 px-1 text-[0.6rem] text-gray-500 dark:bg-gray-700 dark:text-gray-400"
@@ -286,6 +291,11 @@
                 </section>
             </aside>
         </div>
+        {#if detail.tournament.stages[0] && (isAdmin || detail.tournament.stages[0].scheduleId)}
+            {#key detail.tournament.stages[0].scheduleId}
+                <TournamentScheduleView {detail} {isAdmin} onsaved={() => void refresh()} />
+            {/key}
+        {/if}
     {/if}
 </main>
 

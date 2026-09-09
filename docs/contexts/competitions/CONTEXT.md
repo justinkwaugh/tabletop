@@ -28,9 +28,12 @@ _Avoid_: Player when referring to participation in the Tournament as a whole
 The point after which an event's registration closes and its Entrants are fixed for scheduling. Joining an open event does not permit entering one whose roster has already locked.
 
 **Registration Policy**:
-The published conditions for closing registration. A fill-based Tournament locks when its fixed roster is full, with no required deadline. A dated Tournament closes at its deadline with its actual roster, subject to a minimum and an optional maximum; falling below its minimum cancels the event before play.
+The published conditions for closing registration. A fill-based Tournament starts a one-minute withdrawal window when its fixed roster fills, with no required registration deadline. Entrants may leave during that window; a vacancy cancels the pending start, and filling it starts a fresh window. If the roster remains full, it locks and proceeds automatically to scheduling and play. A dated Tournament closes at its deadline with its actual roster, subject to a minimum and an optional maximum; falling below its minimum cancels the event before play.
 
 ## Tables and participation
+
+**Schedule**:
+The fixed set of Tables and Starting Position assignments for a Stage's locked roster. It defines who plays together; actual start times depend on each Entrant's available concurrency.
 
 **Table**:
 One scheduled contest among assigned Entrants, with a Game Instance created when the Table starts. A Table exists as an assignment before its Game Instance exists.

@@ -4,6 +4,7 @@ import secureSession from '@fastify/secure-session'
 import { randomBytes } from 'node:crypto'
 import { Role, UserStatus, type TournamentDraft, type User } from '@tabletop/common'
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
+import { TournamentError } from '@tabletop/backend-services'
 import authorization from '../../../plugins/authorization.js'
 import tournaments from './index.js'
 import { authSession } from '../../../lib/session.js'
@@ -35,7 +36,9 @@ async function setup(roles: Role[]) {
         update: change,
         publish: change,
         cancel: change,
-        lock: change
+        lock: change,
+        previewSchedule: change,
+        commitSchedule: change
     })
     await server.register(authorization)
     await server.register(tournaments, { prefix: '/tournaments' })
@@ -73,6 +76,16 @@ describe('tournament administrator authorization', () => {
             const requests = [
                 { method: 'POST', url: '/tournaments/', payload: { id: 'event', draft } },
                 { method: 'PUT', url: '/tournaments/event', payload: { draft, revision: 1 } },
+                {
+                    method: 'POST',
+                    url: '/tournaments/event/schedule/preview',
+                    payload: { revision: 1, seed: 42, version: 1 }
+                },
+                {
+                    method: 'POST',
+                    url: '/tournaments/event/schedule',
+                    payload: { revision: 1, seed: 42, version: 1, scheduleId: 'a'.repeat(64) }
+                },
                 ...['publish', 'cancel', 'lock'].map((operation) => ({
                     method: 'POST',
                     url: `/tournaments/event/${operation}`,
@@ -87,9 +100,24 @@ describe('tournament administrator authorization', () => {
                 })
                 expect(response.statusCode).toBe(admin ? 200 : 403)
             }
-            expect(change).toHaveBeenCalledTimes(admin ? 5 : 0)
+            expect(change).toHaveBeenCalledTimes(admin ? 7 : 0)
         }
     )
+    it.each([
+        { revision: 1, seed: -1, version: 1 },
+        { revision: 1, seed: 42, version: 2 },
+        { revision: 1, seed: 0x100000000, version: 1 }
+    ])('rejects invalid schedule inputs before generation', async (payload) => {
+        const { server, cookies, change } = await setup([Role.User, Role.Admin])
+        const response = await server.inject({
+            method: 'POST',
+            url: '/tournaments/event/schedule/preview',
+            cookies,
+            payload
+        })
+        expect(response.statusCode).toBe(400)
+        expect(change).not.toHaveBeenCalled()
+    })
     it('rechecks the role when an administrator loses access', async () => {
         const { server, user, cookies, change } = await setup([Role.User, Role.Admin])
         user.roles = [Role.User]
@@ -101,5 +129,23 @@ describe('tournament administrator authorization', () => {
         })
         expect(response.statusCode).toBe(403)
         expect(change).not.toHaveBeenCalled()
+    })
+})
+
+describe('tournament errors', () => {
+    it.each([403, 404, 409])('uses the shared API error envelope for status %s', async (status) => {
+        const { server, cookies, change } = await setup([Role.User, Role.Admin])
+        change.mockRejectedValueOnce(new TournamentError('Tournament changed', status))
+        const response = await server.inject({
+            method: 'POST',
+            url: '/tournaments/event/publish',
+            cookies,
+            payload: {}
+        })
+        expect(response.statusCode).toBe(status)
+        expect(response.json()).toEqual({
+            status: 'error',
+            error: { name: 'TournamentError', message: 'Tournament changed' }
+        })
     })
 })

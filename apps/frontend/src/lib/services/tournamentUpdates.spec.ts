@@ -14,7 +14,8 @@ const tournament: Tournament = {
     organizerId: 'admin',
     status: 'open',
     revision: 2,
-    entrantCount: 0,
+    entrants: [],
+    stages: [],
     createdAt: 1,
     updatedAt: 2,
     publishedAt: 2,
@@ -35,7 +36,7 @@ const update = {
         id: 'notification',
         type: NotificationCategory.Tournament,
         action: 'update',
-        data: { tournament }
+        data: { tournamentId: tournament.id, revision: tournament.revision }
     }
 }
 function connection() {

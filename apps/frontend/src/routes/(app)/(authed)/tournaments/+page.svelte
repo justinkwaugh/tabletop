@@ -3,7 +3,6 @@
     import { Hr } from 'flowbite-svelte'
     import { Role, type Tournament, type TournamentListQuery } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
-    import { tournamentApi } from '$lib/services/tournamentApi'
     import { listenForTournamentChanges } from '$lib/services/tournamentUpdates'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import {
@@ -12,7 +11,7 @@
         tournamentStatusText
     } from '$lib/utils/tournamentPresentation'
 
-    const { authorizationService, libraryService, notificationService } = getAppContext()
+    const { api, authorizationService, libraryService, notificationService } = getAppContext()
     let isAdmin = $derived(authorizationService.getSessionUser()?.roles.includes(Role.Admin))
     let scope = $state<TournamentListQuery['scope']>('mine')
     let chooseInitialScope = true
@@ -59,13 +58,13 @@
         busy = true
         error = ''
         try {
-            let result = await tournamentApi.list({ scope, after, titleId: titleId || undefined })
+            let result = await api.listTournaments({ scope, after, titleId: titleId || undefined })
             if (current !== request) return
             if (chooseInitialScope) {
                 chooseInitialScope = false
                 if (!result.tournaments.length) {
                     scope = 'open'
-                    result = await tournamentApi.list({ scope })
+                    result = await api.listTournaments({ scope })
                     if (current !== request) return
                 }
             }
@@ -222,7 +221,7 @@
                             ></span>{tournamentStatusText(tournament)}</span
                         >
                         <span class="text-gray-500 dark:text-gray-400"
-                            >{tournament.entrantCount}{tournament.rules.registration.capacity
+                            >{tournament.entrants.length}{tournament.rules.registration.capacity
                                 ? ` / ${tournament.rules.registration.capacity}`
                                 : ''} joined</span
                         >
@@ -259,9 +258,7 @@
                             </div>
                         </div>
                     </div>
-                    <p
-                        class="mt-2 text-xs leading-4 text-gray-600 dark:text-gray-300"
-                    >
+                    <p class="mt-2 text-xs leading-4 text-gray-600 dark:text-gray-300">
                         <span class="font-medium">{tournament.rules.tableSize}</span> players per
                         game
                         <span class="mx-1 text-gray-400 dark:text-gray-600">·</span>
@@ -285,11 +282,7 @@
                             <Hr class="mt-1 mb-1" />
                         </div>
                     {/if}
-                    <p
-                        class="text-xs leading-4 text-gray-500 {options.length
-                            ? 'mt-1'
-                            : 'mt-2'}"
-                    >
+                    <p class="text-xs leading-4 text-gray-500 {options.length ? 'mt-1' : 'mt-2'}">
                         {tournamentRegistrationText(tournament)}
                     </p>
                 </a>

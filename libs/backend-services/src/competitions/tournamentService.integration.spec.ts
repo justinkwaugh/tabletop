@@ -1,4 +1,6 @@
-import { Firestore } from '@google-cloud/firestore'
+import { createClient, type RedisClientType } from 'redis'
+import { cacheFixture } from '../cache/tests/cacheFixture.js'
+import { Firestore, Transaction } from '@google-cloud/firestore'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import {
     BaseConfigurator,
@@ -12,6 +14,7 @@ import {
 } from '@tabletop/common'
 import { Type } from 'typebox'
 import type { NotificationService } from '../notifications/notificationService.js'
+import { generateTournamentSchedule } from './tournamentScheduler.js'
 import { TournamentService } from './tournamentService.js'
 import { FirestoreTournamentStore } from '../persistence/firestore/tournamentStore.js'
 
@@ -28,11 +31,17 @@ class Configurator extends BaseConfigurator {
     ]
 }
 
-describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
+describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_REDIS_HOST)(
     'Tournament registration in Firestore',
+    { timeout: 15_000 },
     () => {
-        const firestore = new Firestore({ projectId: `demo-tournaments-${Date.now()}` })
-        const store = new FirestoreTournamentStore(firestore)
+        const cachePrefix = `demo-tournaments-${Date.now()}`
+        const firestore = new Firestore({ projectId: cachePrefix })
+        const client: RedisClientType = createClient({
+            socket: { host: process.env.CACHE_TEST_REDIS_HOST, reconnectStrategy: false }
+        })
+        const { cache } = cacheFixture(client)
+        const store = new FirestoreTournamentStore(cache, firestore, cachePrefix)
         const users = Array.from(
             { length: 6 },
             (_, index): User => ({
@@ -101,11 +110,20 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
         }
 
         beforeAll(async () => {
+            await client.connect()
             await Promise.all(
                 users.map((user) => firestore.collection('users').doc(user.id).set(user))
             )
         })
         afterAll(async () => {
+            cache.destroy()
+            for await (const keys of client.scanIterator({
+                MATCH: `${cachePrefix}:*`,
+                COUNT: 100
+            })) {
+                if (keys.length) await client.del(keys)
+            }
+            client.destroy()
             await firestore.terminate()
         })
 
@@ -116,7 +134,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
                 statusCode: 404
             })
             const reload = new TournamentService(
-                new FirestoreTournamentStore(firestore),
+                new FirestoreTournamentStore(cache, firestore, cachePrefix),
                 { getUser: async () => undefined },
                 { test: title },
                 notifications
@@ -167,6 +185,198 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
             expect(created.rules.gameConfig).toEqual({ expert: true })
         })
 
+        async function lockedScheduleEvent(capacity = 2, games = 2) {
+            const input = draft()
+            input.rules.registration = { kind: 'whenFull', capacity }
+            input.format.stages[0].gamesPerEntrant = games
+            const id = await open(input)
+            await Promise.all(users.slice(0, capacity).map((user) => service.join(id, user)))
+            const detail = await service.get(id, admin)
+            return {
+                id,
+                request: { revision: detail.tournament.revision, seed: 42, version: 1 as const }
+            }
+        }
+
+        it('previews without writes and publishes one immutable schedule across retries and reloads', async () => {
+            const { id, request } = await lockedScheduleEvent()
+            const preview = await service.previewSchedule(id, request, admin)
+            expect((await store.read(id))?.stages[0]?.status).toBe('awaitingSchedule')
+            await expect(service.getSchedule(id, users[1])).rejects.toMatchObject({
+                statusCode: 404
+            })
+            const commit = { ...request, scheduleId: preview.id }
+            const saved = await Promise.all([
+                service.commitSchedule(id, commit, admin),
+                service.commitSchedule(id, commit, admin)
+            ])
+            expect(saved).toEqual([preview, preview])
+            expect(await service.commitSchedule(id, commit, admin)).toEqual(preview)
+            const detail = await service.get(id, users[1])
+            expect(detail.tournament.stages[0]?.status).toBe('scheduled')
+            expect(detail.tournament.status).toBe('locked')
+            expect(detail.tournament.revision).toBe(request.revision + 1)
+            const freshStore = new FirestoreTournamentStore(cache, firestore, cachePrefix)
+            expect(await freshStore.readSchedule(id, 'opening')).toEqual(preview)
+            expect(await service.getSchedule(id, users[1])).toEqual(preview)
+        })
+
+        it('protects previews and commits against unauthorized, stale, altered and cancelled requests', async () => {
+            const { id, request } = await lockedScheduleEvent()
+            await expect(service.previewSchedule(id, request, users[1])).rejects.toMatchObject({
+                statusCode: 403
+            })
+            await expect(
+                service.previewSchedule(id, { ...request, revision: 1 }, admin)
+            ).rejects.toMatchObject({ statusCode: 409 })
+            const preview = await service.previewSchedule(id, request, admin)
+            const commit = { ...request, scheduleId: preview.id }
+            await expect(service.commitSchedule(id, commit, users[1])).rejects.toMatchObject({
+                statusCode: 403
+            })
+            await expect(
+                service.commitSchedule(id, { ...commit, seed: 99 }, admin)
+            ).rejects.toMatchObject({ statusCode: 409 })
+            await firestore
+                .collection('users')
+                .doc(admin.id)
+                .update({ roles: [Role.User] })
+            try {
+                await expect(service.commitSchedule(id, commit, admin)).rejects.toMatchObject({
+                    statusCode: 403
+                })
+            } finally {
+                await firestore.collection('users').doc(admin.id).set(admin)
+            }
+            await service.cancel(id, admin)
+            await expect(service.commitSchedule(id, commit, admin)).rejects.toMatchObject({
+                statusCode: 409
+            })
+            expect((await store.read(id))?.stages[0]?.scheduleId).toBeUndefined()
+        })
+
+        it('serializes competing draws without replacing the winning schedule', async () => {
+            const { id, request } = await lockedScheduleEvent()
+            const previews = await Promise.all(
+                [42, 99].map((seed) => service.previewSchedule(id, { ...request, seed }, admin))
+            )
+            const results = await Promise.allSettled(
+                previews.map((preview) =>
+                    service.commitSchedule(
+                        id,
+                        { ...request, seed: preview.seed, scheduleId: preview.id },
+                        admin
+                    )
+                )
+            )
+            expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
+            const saved = await service.getSchedule(id, admin)
+            expect(previews).toContainEqual(saved)
+            const loser = previews.find((preview) => preview.id !== saved.id)!
+            await expect(
+                service.commitSchedule(
+                    id,
+                    { ...request, seed: loser.seed, scheduleId: loser.id },
+                    admin
+                )
+            ).rejects.toMatchObject({ statusCode: 409 })
+            expect(await service.getSchedule(id, admin)).toEqual(saved)
+        })
+
+        it('stores 640 tables in one schedule document and commits with two writes', async () => {
+            const { id, request } = await lockedScheduleEvent(5, 256)
+            const preview = await service.previewSchedule(id, request, admin)
+            expect(preview.tables).toHaveLength(640)
+            const writes = vi.spyOn(Transaction.prototype, 'set')
+            const creates = vi.spyOn(Transaction.prototype, 'create')
+            const reads = vi.spyOn(Transaction.prototype, 'get')
+            try {
+                await store.commitSchedule(preview, request.revision, admin, now)
+                expect(writes).toHaveBeenCalledTimes(1)
+                expect(creates).toHaveBeenCalledTimes(1)
+                expect(reads).toHaveBeenCalledTimes(2)
+            } finally {
+                writes.mockRestore()
+                creates.mockRestore()
+                reads.mockRestore()
+            }
+            expect(await service.getSchedule(id, admin)).toEqual(preview)
+            const schedules = await firestore
+                .collection('tournaments')
+                .doc(id)
+                .collection('schedules')
+                .get()
+            expect(schedules.size).toBe(1)
+            expect(schedules.docs[0].data().positions).toHaveLength(1280)
+            expect(await schedules.docs[0].ref.listCollections()).toEqual([])
+        })
+
+        it('fits the maximum schedule and roster in two Firestore documents', async () => {
+            const { id } = await lockedScheduleEvent()
+            const tournament = (await service.get(id, admin)).tournament
+            tournament.rules.tableSize = 2
+            tournament.rules.concurrency = 256
+            tournament.format.stages[0].gamesPerEntrant = 256
+            tournament.entrants = Array.from({ length: 256 }, (_, index) => ({
+                userId: 'x'.repeat(1496) + String(index).padStart(4, '0'),
+                joinedAt: now
+            }))
+            const ref = firestore.collection('tournaments').doc(id)
+            await ref.set({
+                ...tournament,
+                entrantIds: tournament.entrants.map((entrant) => entrant.userId)
+            })
+            const schedule = generateTournamentSchedule(tournament, 42)
+            expect(schedule.tables).toHaveLength(32768)
+            await store.commitSchedule(schedule, tournament.revision, admin, now)
+            const reloaded = await store.readSchedule(id, 'opening')
+            expect(reloaded).toEqual(schedule)
+            expect((await ref.collection('schedules').get()).size).toBe(1)
+        })
+
+        it('rolls back both records if schedule publication fails and retries atomically', async () => {
+            const { id, request } = await lockedScheduleEvent()
+            const preview = await service.previewSchedule(id, request, admin)
+            const commit = { ...request, scheduleId: preview.id }
+            const spy = vi.spyOn(Transaction.prototype, 'set').mockImplementation(() => {
+                throw new Error('Interrupted transaction')
+            })
+            try {
+                await expect(service.commitSchedule(id, commit, admin)).rejects.toThrow(
+                    'Interrupted transaction'
+                )
+            } finally {
+                spy.mockRestore()
+            }
+            expect(
+                (await firestore.collection('tournaments').doc(id).collection('schedules').get())
+                    .empty
+            ).toBe(true)
+            await expect(service.getSchedule(id, admin)).rejects.toMatchObject({ statusCode: 404 })
+            await service.commitSchedule(id, commit, admin)
+            expect(await service.getSchedule(id, admin)).toEqual(preview)
+        })
+
+        it('serializes cancellation and saving without partial schedules', async () => {
+            const { id, request } = await lockedScheduleEvent()
+            const preview = await service.previewSchedule(id, request, admin)
+            const [commit] = await Promise.allSettled([
+                service.commitSchedule(id, { ...request, scheduleId: preview.id }, admin),
+                service.cancel(id, admin)
+            ])
+            const current = await store.read(id)
+            expect(current?.status).toBe('cancelled')
+            const schedules = await firestore
+                .collection('tournaments')
+                .doc(id)
+                .collection('schedules')
+                .get()
+            expect(schedules.size).toBe(commit.status === 'fulfilled' ? 1 : 0)
+            expect(current?.stages[0]?.scheduleId).toBe(
+                commit.status === 'fulfilled' ? preview.id : undefined
+            )
+        })
+
         it('serializes competing joins for the last place and creates one locked stage', async () => {
             const id = await open()
             await service.join(id, users[1])
@@ -177,16 +387,16 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
             expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
             const detail = await service.get(id, admin)
             expect(detail.tournament.status).toBe('locked')
-            expect(detail.entrants).toHaveLength(2)
-            expect(detail.stage?.id).toBe('opening')
+            expect(detail.tournament.entrants).toHaveLength(2)
+            expect(detail.tournament.stages[0]?.id).toBe('opening')
             expect(
-                (await firestore.collection('tournaments').doc(id).collection('stages').get()).size
+                (await firestore.collection('tournaments').doc(id).get()).data()?.stages.length
             ).toBe(1)
             const winner = users.find((user) =>
-                detail.entrants.some((entrant) => entrant.userId === user.id)
+                detail.tournament.entrants.some((entrant) => entrant.userId === user.id)
             )!
             await service.join(id, winner)
-            expect((await service.get(id, admin)).tournament.entrantCount).toBe(2)
+            expect((await service.get(id, admin)).tournament.entrants.length).toBe(2)
             await expect(service.leave(id, winner)).rejects.toMatchObject({ statusCode: 409 })
         })
 
@@ -213,7 +423,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
             await service.reconcileDue()
             const detail = await service.get(id, admin)
             expect(detail.tournament.status).toBe('locked')
-            expect(detail.tournament.entrantCount).toBe(2)
+            expect(detail.tournament.entrants.length).toBe(2)
         })
 
         it('cancels undersubscribed dated events but never expires when-full events', async () => {
@@ -232,7 +442,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
                 'undersubscribed'
             )
             expect((await service.get(indefinite, admin)).tournament.status).toBe('open')
-            expect((await service.get(dated, admin)).stage).toBeUndefined()
+            expect((await service.get(dated, admin)).tournament.stages[0]).toBeUndefined()
         })
 
         it('commits deadline closure even when a late join is rejected', async () => {
@@ -245,7 +455,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
             const id = await open(input)
             now += 1001
             await expect(service.join(id, users[1])).rejects.toMatchObject({ statusCode: 409 })
-            expect((await store.read(id))?.tournament.status).toBe('cancelled')
+            expect((await store.read(id))?.status).toBe('cancelled')
         })
 
         it('keeps join/leave races consistent with the final locked roster', async () => {
@@ -253,9 +463,11 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
             await service.join(id, users[1])
             await Promise.allSettled([service.leave(id, users[1]), service.join(id, users[2])])
             const detail = await service.get(id, admin)
-            expect(detail.tournament.entrantCount).toBe(detail.entrants.length)
-            expect(detail.tournament.status).toBe(detail.entrants.length === 2 ? 'locked' : 'open')
-            expect(Boolean(detail.stage)).toBe(detail.tournament.status === 'locked')
+            expect(detail.tournament.entrants.length).toBe(detail.tournament.entrants.length)
+            expect(detail.tournament.status).toBe(
+                detail.tournament.entrants.length === 2 ? 'locked' : 'open'
+            )
+            expect(Boolean(detail.tournament.stages[0])).toBe(detail.tournament.status === 'locked')
         })
 
         it('rechecks account status in the membership transaction', async () => {
@@ -306,7 +518,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
             expect(sendNotification).toHaveBeenLastCalledWith(
                 expect.objectContaining({
                     topics: expect.arrayContaining([`user-${admin.id}`]),
-                    notification: expect.objectContaining({ data: { tournament: created } })
+                    notification: expect.objectContaining({
+                        data: { tournamentId: created.id, revision: created.revision }
+                    })
                 })
             )
             const privateTopics = sendNotification.mock.calls.at(-1)?.[0].topics ?? []
@@ -318,7 +532,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
                 expect.objectContaining({
                     topics: ['global'],
                     notification: expect.objectContaining({
-                        data: { tournament: expect.objectContaining({ status: 'open' }) }
+                        data: { tournamentId: created.id, revision: created.revision + 1 }
                     })
                 })
             )
@@ -327,7 +541,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
                 expect.objectContaining({
                     topics: ['global'],
                     notification: expect.objectContaining({
-                        data: { tournament: expect.objectContaining({ entrantCount: 1 }) }
+                        data: { tournamentId: created.id, revision: created.revision + 2 }
                     })
                 })
             )
@@ -359,16 +573,10 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
                     batch.set(firestore.collection('tournaments').doc(eventId), {
                         ...template,
                         id: eventId,
+                        entrants: [{ userId: users[5].id, joinedAt: now }],
+                        entrantIds: [users[5].id],
                         rules: { ...template.rules, titleId }
                     })
-                    batch.set(
-                        firestore
-                            .collection('users')
-                            .doc(users[5].id)
-                            .collection('tournamentEntries')
-                            .doc(eventId),
-                        { tournamentId: eventId, titleId }
-                    )
                 }
             }
             for (const status of ['draft', 'locked', 'inProgress']) {

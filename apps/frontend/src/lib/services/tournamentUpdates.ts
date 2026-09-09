@@ -24,7 +24,7 @@ export function listenForTournamentChanges(
         const relevantUpdate =
             isDataEvent(event) &&
             Value.Check(TournamentNotification, event.notification) &&
-            (!tournamentId || event.notification.data.tournament.id === tournamentId)
+            (!tournamentId || event.notification.data.tournamentId === tournamentId)
         if (!reconnect && !relevantUpdate) return
         pending = true
         if (refreshing) return

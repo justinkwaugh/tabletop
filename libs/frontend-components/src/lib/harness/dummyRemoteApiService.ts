@@ -11,7 +11,11 @@ import type {
     ProcessedActionReplay,
     User,
     UserPreferences,
-    Visibility
+    Visibility,
+    Tournament,
+    TournamentDetail,
+    TournamentList,
+    TournamentSchedule
 } from '@tabletop/common'
 import type { GameVersionProvider, GetGameOptions } from '$lib/network/tabletopApi.svelte.js'
 import type { Credentials } from '$lib/network/requestTypes.js'
@@ -31,6 +35,42 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     set versionChange(_value: VersionChange | undefined) {
         return
+    }
+
+    async listTournaments(): Promise<TournamentList> {
+        return this.fail('listTournaments')
+    }
+
+    async getTournament(): Promise<TournamentDetail> {
+        return this.fail('getTournament')
+    }
+
+    async getTournamentSchedule(): Promise<TournamentSchedule> {
+        return this.fail('getTournamentSchedule')
+    }
+
+    async previewTournamentSchedule(): Promise<TournamentSchedule> {
+        return this.fail('previewTournamentSchedule')
+    }
+
+    async commitTournamentSchedule(): Promise<TournamentSchedule> {
+        return this.fail('commitTournamentSchedule')
+    }
+
+    async createTournament(): Promise<Tournament> {
+        return this.fail('createTournament')
+    }
+
+    async updateTournament(): Promise<Tournament> {
+        return this.fail('updateTournament')
+    }
+
+    async actOnTournament(): Promise<Tournament> {
+        return this.fail('actOnTournament')
+    }
+
+    async joinTournament(): Promise<Tournament> {
+        return this.fail('joinTournament')
     }
 
     async getSelf(): Promise<User | undefined> {

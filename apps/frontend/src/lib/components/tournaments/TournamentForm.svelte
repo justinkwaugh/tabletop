@@ -11,7 +11,6 @@
         type ConfigOption
     } from '@tabletop/common'
     import { untrack } from 'svelte'
-    import { tournamentApi } from '$lib/services/tournamentApi'
     import { nanoid } from 'nanoid'
 
     let {
@@ -23,7 +22,7 @@
         onsaved: (tournament: Tournament) => void
         disabled?: boolean
     } = $props()
-    const { libraryService } = getAppContext()
+    const { api, libraryService } = getAppContext()
     const initial = untrack(() => tournament)
     const id = initial?.id ?? nanoid()
     let name = $state(initial?.name ?? '')
@@ -45,7 +44,9 @@
     let gamesPerEntrant = $state(
         initial?.format.stages[0].gamesPerEntrant ?? miniTournamentDefaults[4].gamesPerEntrant
     )
-    let concurrency = $state(initial?.rules.concurrency ?? 2)
+    let concurrency = $state(
+        initial?.rules.concurrency ?? miniTournamentDefaults[4].gamesPerEntrant
+    )
     let config: GameConfig = $state({ ...initial?.rules.gameConfig })
     const initialDeadline = new Date(
         initial?.rules.registration.kind === 'deadline'
@@ -71,18 +72,23 @@
         const selected = libraryService.titlesById[titleId]
         if (!selected) return
         tableSize = selected.info.metadata.defaultPlayerCount
-        gamesPerEntrant = tableSize
         applyMiniDefaults()
         config = defaultGameConfig(selected.info.configurator?.options ?? [])
     }
 
     function applyMiniDefaults() {
         const defaults = getMiniTournamentDefaults(tableSize)
-        if (!defaults) return
-        capacity = defaults.capacity
-        minimumEntrants = defaults.capacity
-        gamesPerEntrant = defaults.gamesPerEntrant
-        concurrency = Math.min(concurrency, gamesPerEntrant)
+        if (defaults) {
+            capacity = defaults.capacity
+            minimumEntrants = defaults.capacity
+        }
+        gamesPerEntrant = defaults?.gamesPerEntrant ?? tableSize
+        concurrency = gamesPerEntrant
+    }
+
+    function updateGamesPerEntrant(value: number) {
+        concurrency = concurrency === gamesPerEntrant ? value : Math.min(concurrency, value)
+        gamesPerEntrant = value
     }
 
     function updateOption(option: ConfigOption, value: string | number | boolean | null) {
@@ -125,8 +131,8 @@
                 }
             }
             const saved = tournament
-                ? await tournamentApi.update(tournament, draft)
-                : await tournamentApi.create(id, draft)
+                ? await api.updateTournament(tournament, draft)
+                : await api.createTournament(id, draft)
             onsaved(saved)
         } catch (failure) {
             error = failure instanceof Error ? failure.message : 'Could not save the tournament'
@@ -179,7 +185,7 @@
             <label
                 >Games per player<input
                     type="number"
-                    bind:value={gamesPerEntrant}
+                    bind:value={() => gamesPerEntrant, updateGamesPerEntrant}
                     min={tableSize}
                     max="256"
                     step={tableSize}

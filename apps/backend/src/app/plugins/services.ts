@@ -146,7 +146,7 @@ export default fp(async (fastify: FastifyInstance) => {
 
     fastify.decorate('taskService', taskService)
     const tournamentService = new TournamentService(
-        new FirestoreTournamentStore(fastify.firestore),
+        new FirestoreTournamentStore(redisCacheService, fastify.firestore),
         userService,
         availableTitles,
         notificationService

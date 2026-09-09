@@ -51,7 +51,7 @@
         },
         "test": {
             "dependsOn": ["^test"],
-            "env": ["FIRESTORE_EMULATOR_HOST"],
+            "env": ["FIRESTORE_EMULATOR_HOST", "CACHE_TEST_REDIS_HOST"],
             "cache": false
         },
         "docker-build": {

@@ -4,18 +4,65 @@
             "collectionGroup": "tournaments",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "rules.titleId", "order": "ASCENDING" }
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "rules.titleId",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "tournaments",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "rules.registration.closesAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "rules.registration.closesAt",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "tournaments",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "entrantIds",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "rules.titleId",
+                    "order": "ASCENDING"
+                }
             ]
         }
     ],
-    "fieldOverrides": []
+    "fieldOverrides": [
+        {
+            "collectionGroup": "tournaments",
+            "fieldPath": "entrants",
+            "indexes": []
+        },
+        {
+            "collectionGroup": "tournaments",
+            "fieldPath": "stages",
+            "indexes": []
+        },
+        {
+            "collectionGroup": "tournaments",
+            "fieldPath": "rules.gameConfig",
+            "indexes": []
+        },
+        {
+            "collectionGroup": "schedules",
+            "fieldPath": "*",
+            "indexes": []
+        }
+    ]
 }

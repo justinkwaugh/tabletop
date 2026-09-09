@@ -85,6 +85,28 @@ export const TournamentDraft = Type.Object(
 )
 export type TournamentDraft = Type.Static<typeof TournamentDraft>
 
+export const TournamentEntrant = Type.Object(
+    {
+        userId: Type.String(),
+        joinedAt: Type.Integer()
+    },
+    { additionalProperties: false }
+)
+export type TournamentEntrant = Type.Static<typeof TournamentEntrant>
+
+export const TournamentStage = Type.Object(
+    {
+        id: TournamentId,
+        status: Type.Union([Type.Literal('awaitingSchedule'), Type.Literal('scheduled')]),
+        scheduleId: Type.Optional(Type.String()),
+        scheduledAt: Type.Optional(Type.Integer()),
+        rosterRevision: Type.Integer(),
+        createdAt: Type.Integer()
+    },
+    { additionalProperties: false }
+)
+export type TournamentStage = Type.Static<typeof TournamentStage>
+
 export const Tournament = Type.Object(
     {
         ...TournamentDraft.properties,
@@ -98,7 +120,8 @@ export const Tournament = Type.Object(
             Type.Literal('cancelled')
         ]),
         revision: Type.Integer({ minimum: 1 }),
-        entrantCount: Type.Integer({ minimum: 0 }),
+        entrants: Type.Array(TournamentEntrant, { maxItems: 256 }),
+        stages: Type.Array(TournamentStage, { maxItems: 32 }),
         createdAt: Type.Integer(),
         updatedAt: Type.Integer(),
         publishedAt: Type.Optional(Type.Integer()),
@@ -112,36 +135,9 @@ export const Tournament = Type.Object(
 )
 export type Tournament = Type.Static<typeof Tournament>
 
-export const TournamentEntrant = Type.Object(
-    {
-        userId: Type.String(),
-        joinedAt: Type.Integer()
-    },
-    { additionalProperties: false }
-)
-export type TournamentEntrant = Type.Static<typeof TournamentEntrant>
-
-export const TournamentStage = Type.Object(
-    {
-        id: TournamentId,
-        tournamentId: TournamentId,
-        status: Type.Literal('awaitingSchedule'),
-        rosterRevision: Type.Integer(),
-        createdAt: Type.Integer()
-    },
-    { additionalProperties: false }
-)
-export type TournamentStage = Type.Static<typeof TournamentStage>
-
 export const TournamentDetail = Type.Object({
     tournament: Tournament,
-    entrants: Type.Array(
-        Type.Object({
-            ...TournamentEntrant.properties,
-            username: Type.Optional(Type.String())
-        })
-    ),
-    stage: Type.Optional(TournamentStage)
+    usernames: Type.Record(Type.String(), Type.String())
 })
 export type TournamentDetail = Type.Static<typeof TournamentDetail>
 
