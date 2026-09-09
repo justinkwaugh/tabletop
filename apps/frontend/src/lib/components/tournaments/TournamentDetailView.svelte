@@ -6,6 +6,7 @@
     import {
         tournamentFormatText,
         tournamentRegistrationText,
+        tournamentRegistrationOpen,
         tournamentStatusText,
         tournamentStatusColor
     } from '$lib/utils/tournamentPresentation'
@@ -48,11 +49,8 @@
     let joined = $derived(
         detail?.tournament.entrants.some((entrant) => entrant.userId === user?.id)
     )
-    let canLeave = $derived(
-        tournament?.status === 'open' &&
-            (tournament.startsAt === undefined || now < tournament.startsAt) &&
-            (tournament.rules.registration.kind !== 'deadline' ||
-                now < tournament.rules.registration.closesAt)
+    let registrationOpen = $derived(
+        tournament ? tournamentRegistrationOpen(tournament, now) : false
     )
     let full = $derived(
         tournament
@@ -61,7 +59,8 @@
     )
     let correcting = $state(false)
     let editingDraft = $state(false)
-    let error = $state('')
+    let loadError = $state('')
+    let actionError = $state('')
     let busy = $state(false)
     let request = 0
 
@@ -69,10 +68,13 @@
         const current = ++request
         try {
             const value = await api.getTournament(id)
-            if (current === request) detail = value
+            if (current === request) {
+                detail = value
+                loadError = ''
+            }
         } catch (failure) {
             if (current === request)
-                error = failure instanceof Error ? failure.message : 'Could not load tournament'
+                loadError = failure instanceof Error ? failure.message : 'Could not load tournament'
         }
     }
     async function act(
@@ -80,12 +82,12 @@
     ) {
         if (!tournament) return
         busy = true
-        error = ''
+        actionError = ''
         try {
             if (operation === 'join') await api.joinTournament(tournament.id)
             else await api.actOnTournament(id, operation)
         } catch (failure) {
-            error = failure instanceof Error ? failure.message : 'Could not update tournament'
+            actionError = failure instanceof Error ? failure.message : 'Could not update tournament'
         } finally {
             await refresh()
             busy = false
@@ -94,11 +96,11 @@
     async function rebuildStandings() {
         if (!tournament) return
         busy = true
-        error = ''
+        actionError = ''
         try {
             await api.rebuildTournamentStandings(id, tournament.revision)
         } catch (failure) {
-            error = failure instanceof Error ? failure.message : 'Could not rebuild standings'
+            actionError = failure instanceof Error ? failure.message : 'Could not rebuild standings'
         } finally {
             await refresh()
             busy = false
@@ -121,13 +123,15 @@
 <svelte:head><title>{tournament?.name ?? 'Tournament'} · Tabletop</title></svelte:head>
 <main
     class="mx-auto max-w-6xl px-4 pb-10 pt-4 text-gray-900 dark:text-gray-100 sm:px-6 sm:pt-5"
-    aria-busy={!detail && !error}
+    aria-busy={!detail && !loadError}
 >
     <a
         class="text-xs text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
         href="/tournaments">← Tournaments</a
     >
-    {#if error}<p role="alert" class="mt-3 text-sm text-red-600 dark:text-red-300">{error}</p>{/if}
+    {#each [loadError, actionError].filter(Boolean) as message}
+        <p role="alert" class="mt-3 text-sm text-red-600 dark:text-red-300">{message}</p>
+    {/each}
     {#if tournament && detail}
         <header class="mt-4 border-b border-gray-200 pb-4 dark:border-gray-700/60">
             <div class="flex flex-wrap items-center justify-between gap-4">
@@ -159,7 +163,8 @@
                         </div>
                         <p
                             class="mt-1.5 inline-flex items-center gap-1.5 text-xs {tournamentStatusColor(
-                                tournament.status
+                                tournament,
+                                now
                             )}"
                         >
                             <span class="size-1.5 rounded-full bg-current" aria-hidden="true"
@@ -169,7 +174,7 @@
                     </div>
                 </div>
                 <div class="flex shrink-0 flex-wrap items-center gap-2">
-                    {#if tournament.status === 'open' && !joined}
+                    {#if registrationOpen && !joined}
                         <button
                             class="primary-action"
                             disabled={busy || full}
@@ -208,7 +213,9 @@
                                 ></summary
                             >
                             <div
-                                class="absolute right-0 z-10 mt-1 w-40 rounded-md border border-gray-200 bg-white p-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+                                class="absolute right-0 z-10 mt-1 {tournament.schedulingError
+                                    ? 'w-64'
+                                    : 'w-40'} rounded-md border border-gray-200 bg-white p-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
                             >
                                 {#if tournament.status === 'locked' || tournament.status === 'inProgress'}
                                     <button
@@ -220,7 +227,14 @@
                                             ? 'Resume scheduling'
                                             : 'Pause scheduling'}
                                     </button>
-                                    {#if !tournament.paused && tournament.stages.some((stage) => stage.dispatch?.error)}
+                                {/if}
+                                {#if tournament.schedulingError}
+                                    <p
+                                        class="border-b border-gray-200 px-2 py-2 text-xs break-words text-red-600 dark:border-gray-700 dark:text-red-300"
+                                    >
+                                        {tournament.schedulingError}
+                                    </p>
+                                    {#if !tournament.paused && (tournament.status === 'locked' || tournament.status === 'inProgress' || (tournament.status === 'open' && !registrationOpen))}
                                         <button
                                             class="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-gray-100 dark:hover:bg-gray-700"
                                             disabled={busy}
@@ -275,10 +289,10 @@
             <p class="mt-3 text-xs text-gray-500">
                 {#if tournament.paused}
                     New games are paused. Games already started can continue.
-                {:else if tournament.stages.some((stage) => stage.dispatch?.error)}
+                {:else if tournament.schedulingError}
                     Some games are waiting to start. Scheduling will retry automatically.
                 {:else if tournament.status === 'open' || tournament.status === 'draft'}
-                    {tournamentRegistrationText(tournament)}
+                    {tournamentRegistrationText(tournament, now)}
                 {:else if tournament.status === 'locked'}
                     {detail.tournament.stages[0]?.scheduleId
                         ? 'Schedule ready. Waiting for games to start.'
@@ -298,6 +312,7 @@
                     <TournamentForm
                         {tournament}
                         disabled={busy}
+                        oncancel={() => (editingDraft = false)}
                         onsaved={() => {
                             editingDraft = false
                             void refresh()
@@ -347,7 +362,7 @@
                                 {#if showStandings}
                                     <th class="w-16 pb-2 text-right font-normal">Wins</th>
                                     <th class="w-20 pb-2 text-right font-normal">Score</th>
-                                {:else if joined && canLeave}
+                                {:else if joined && registrationOpen}
                                     <th class="w-16 pb-2"><span class="sr-only">Action</span></th>
                                 {/if}
                             </tr>
@@ -395,7 +410,7 @@
                                                 maximumFractionDigits: 3
                                             }) ?? '—'}</td
                                         >
-                                    {:else if joined && canLeave}
+                                    {:else if joined && registrationOpen}
                                         <td class="py-2.5 text-right">
                                             {#if entrant.userId === user?.id}
                                                 <button

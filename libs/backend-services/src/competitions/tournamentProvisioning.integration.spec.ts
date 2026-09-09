@@ -227,29 +227,81 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             }
         )
 
-        it('keeps registration open if saving the initial schedule fails', async () => {
-            const { id, timed, task } = await readyTournament()
-            const create = Transaction.prototype.create
-            const failure = vi.spyOn(Transaction.prototype, 'create').mockImplementation(function (
-                this: Transaction,
-                ref,
-                data
-            ) {
-                if (ref.path === `tournaments/${id}/schedules/main`)
-                    throw new Error('Schedule write failed')
-                return create.call(this, ref, data)
-            })
-            await expect(timed.runTask(task)).rejects.toThrow('Schedule write failed')
-            const current = await tournaments.read(id)
-            expect(current?.status).toBe('open')
-            expect(current?.stages).toEqual([])
-            expect(current?.startId).toBe(task.startId)
-            expect((await db.doc(`tournaments/${id}/schedules/main`).get()).exists).toBe(false)
-            expect(await tournaments.readGameLinks(id)).toEqual([])
-            failure.mockRestore()
-            await timed.runTask(task)
-            expect(await tournaments.readGameLinks(id)).toHaveLength(7)
-        })
+        it.each(['whenFull', 'deadline'] as const)(
+            'records an initial %s schedule failure and retries it without a saved stage',
+            async (kind) => {
+                const { id, timed, task: originalTask } = await readyTournament()
+                const task =
+                    kind === 'deadline' ? { tournamentId: id, startId: undefined } : originalTask
+                if (kind === 'deadline')
+                    await tournaments.update(id, admin, true, (current) => {
+                        assertExists(current.startsAt)
+                        current.rules.registration = {
+                            kind,
+                            minimumEntrants: 7,
+                            closesAt: current.startsAt
+                        }
+                        delete current.startsAt
+                        delete current.startId
+                    })
+                const create = Transaction.prototype.create
+                const failure = vi
+                    .spyOn(Transaction.prototype, 'create')
+                    .mockImplementation(function (this: Transaction, ref, data) {
+                        if (ref.path === `tournaments/${id}/schedules/main`)
+                            throw new Error('Schedule write failed')
+                        return create.call(this, ref, data)
+                    })
+                await expect(timed.runTask(task)).rejects.toThrow('Schedule write failed')
+                const current = await tournaments.read(id)
+                expect(current?.status).toBe('open')
+                expect(current?.stages).toEqual([])
+                expect(current?.schedulingError).toBe('Schedule write failed')
+                expect(current?.startId).toBe(task.startId)
+                expect((await db.doc(`tournaments/${id}/schedules/main`).get()).exists).toBe(false)
+                expect(await tournaments.readGameLinks(id)).toEqual([])
+                failure.mockRestore()
+                await expect(timed.control(id, 'retry', users[0])).rejects.toThrow('Administrator')
+                enqueue.mockClear()
+                await timed.control(id, 'retry', admin)
+                expect(enqueue).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        payload: kind === 'deadline' ? { tournamentId: id } : task,
+                        inSeconds: 0
+                    })
+                )
+                await timed.runTask(task)
+                expect(await tournaments.readGameLinks(id)).toHaveLength(7)
+                expect((await tournaments.read(id))?.schedulingError).toBeUndefined()
+            }
+        )
+
+        it.each(['whenFull', 'deadline'] as const)(
+            'rejects retry before the %s deadline and after cancellation',
+            async (kind) => {
+                const { id, timed } = await readyTournament()
+                await tournaments.update(id, admin, true, (current) => {
+                    assertExists(current.startsAt)
+                    current.startsAt += 60_000
+                    if (kind === 'deadline')
+                        current.rules.registration = {
+                            kind,
+                            minimumEntrants: 7,
+                            closesAt: current.startsAt
+                        }
+                })
+                enqueue.mockClear()
+                await expect(timed.control(id, 'retry', admin)).rejects.toThrow(
+                    'not reached scheduling'
+                )
+                expect(enqueue).not.toHaveBeenCalled()
+                await timed.cancel(id, admin)
+                await expect(timed.control(id, 'retry', admin)).rejects.toThrow(
+                    'not reached scheduling'
+                )
+                expect(enqueue).not.toHaveBeenCalled()
+            }
+        )
 
         async function finish(gameId: string, result = GameResult.Win, winners = [0]) {
             const game = await store.findGameById(gameId, true)
@@ -629,13 +681,11 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(enqueue).not.toHaveBeenCalled()
             const interrupted = await tournaments.read(tournament.id)
             expect(interrupted?.stages[0].dispatch?.active).toHaveLength(1)
-            expect(interrupted?.stages[0].dispatch?.error).toBe('Lost acknowledgement')
+            expect(interrupted?.schedulingError).toBe('Lost acknowledgement')
             expect(interrupted?.nextTaskAt).toBeDefined()
             await service.runTask({ tournamentId: tournament.id })
             expect((await tournaments.readGameLinks(tournament.id)).length).toBe(7)
-            expect(
-                (await tournaments.read(tournament.id))?.stages[0].dispatch?.error
-            ).toBeUndefined()
+            expect((await tournaments.read(tournament.id))?.schedulingError).toBeUndefined()
         })
 
         it('retries the original countdown task after registration locked and a game was committed', async () => {
@@ -885,7 +935,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             const { request, gameId } = await fixture(3, 7, 1)
             await tournaments.update(request.tournamentId, undefined, false, (current) => {
                 assertExists(current.stages[0].dispatch)
-                current.stages[0].dispatch.error = 'Previous attempt failed'
+                current.schedulingError = 'Previous attempt failed'
             })
             const before = await tournaments.read(request.tournamentId)
             const create = Transaction.prototype.create
@@ -909,7 +959,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect((await service.provisionTable(request)).status).toBe(GameStatus.Started)
             const started = await tournaments.read(request.tournamentId)
             expect(started?.nextTaskAt).toBeUndefined()
-            expect(started?.stages[0].dispatch?.error).toBeUndefined()
+            expect(started?.schedulingError).toBeUndefined()
             expect(started?.stages[0].dispatch?.reserved).toEqual([])
         })
         it('recovers a committed game after an acknowledgement failure without resetting play', async () => {

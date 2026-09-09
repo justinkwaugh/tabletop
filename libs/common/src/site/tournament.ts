@@ -99,8 +99,7 @@ export type TournamentEntrant = Type.Static<typeof TournamentEntrant>
 export const TournamentDispatch = Type.Object({
     reserved: Type.Array(Type.String(), { maxItems: 32768 }),
     active: Type.Array(Type.String(), { maxItems: 32768 }),
-    finished: Type.Array(Type.String(), { maxItems: 32768 }),
-    error: Type.Optional(Type.String({ maxLength: 512 }))
+    finished: Type.Array(Type.String(), { maxItems: 32768 })
 })
 export type TournamentDispatch = Type.Static<typeof TournamentDispatch>
 
@@ -181,6 +180,7 @@ export const Tournament = Type.Object(
         startId: Type.Optional(Type.String()),
         nextTaskAt: Type.Optional(Type.Integer()),
         paused: Type.Optional(Type.Boolean()),
+        schedulingError: Type.Optional(Type.String({ maxLength: 512 })),
         finishedAt: Type.Optional(Type.Integer()),
         cancelledAt: Type.Optional(Type.Integer()),
         cancellationReason: Type.Optional(

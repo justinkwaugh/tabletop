@@ -66,7 +66,16 @@ export class TournamentService {
     ): Promise<Tournament> {
         this.requireAdmin(user)
         const tournament = await this.store.update(id, user, true, (current) => {
-            if (!['locked', 'inProgress'].includes(current.status))
+            const startAt =
+                current.rules.registration.kind === 'whenFull'
+                    ? current.startsAt
+                    : current.rules.registration.closesAt
+            const retryDueStart =
+                operation === 'retry' &&
+                current.status === 'open' &&
+                startAt !== undefined &&
+                startAt <= this.now()
+            if (!['locked', 'inProgress'].includes(current.status) && !retryDueStart)
                 throw new TournamentError('The tournament has not reached scheduling')
             current.paused = operation === 'pause'
             if (current.paused) delete current.nextTaskAt
@@ -151,6 +160,7 @@ export class TournamentService {
             tournament.status = 'cancelled'
             tournament.cancelledAt = this.now()
             tournament.cancellationReason = 'administrator'
+            delete tournament.schedulingError
             delete tournament.startsAt
             delete tournament.startId
             delete tournament.nextTaskAt

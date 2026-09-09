@@ -216,7 +216,7 @@ export class FirestoreGameStore implements GameStore {
         )
             dispatch.finished.push(reference.tableId)
         else dispatch.active.push(reference.tableId)
-        if (!dispatch.reserved.length) delete dispatch.error
+        if (!dispatch.reserved.length) delete tournament.schedulingError
         if (tournament.status === 'locked') tournament.status = 'inProgress'
         tournament.revision++
         tournament.updatedAt = now
@@ -226,7 +226,9 @@ export class FirestoreGameStore implements GameStore {
             stages: tournament.stages,
             revision: tournament.revision,
             updatedAt: now,
-            ...(!dispatch.reserved.length ? { nextTaskAt: FieldValue.delete() } : {})
+            ...(!dispatch.reserved.length
+                ? { nextTaskAt: FieldValue.delete(), schedulingError: FieldValue.delete() }
+                : {})
         })
     }
 

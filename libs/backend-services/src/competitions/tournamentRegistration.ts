@@ -6,6 +6,7 @@ export function updateTournamentRegistration(tournament: Tournament, now: number
     const policy = tournament.rules.registration
     if (policy.kind === 'whenFull') {
         if (tournament.entrants.length < policy.capacity) {
+            delete tournament.schedulingError
             delete tournament.startsAt
             delete tournament.startId
             delete tournament.nextTaskAt
@@ -25,6 +26,7 @@ export function updateTournamentRegistration(tournament: Tournament, now: number
     delete tournament.startsAt
     delete tournament.startId
     if (policy.kind === 'deadline' && tournament.entrants.length < policy.minimumEntrants) {
+        delete tournament.schedulingError
         tournament.status = 'cancelled'
         tournament.cancelledAt = now
         tournament.cancellationReason = 'undersubscribed'

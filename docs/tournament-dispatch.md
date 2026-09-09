@@ -18,11 +18,11 @@ Queued task executions can overlap or retry the same reservations. Game creation
 
 A valid final Game State releases its active Table and records it as finished in the same transaction as the final action. That transaction persists a new `nextTaskAt`; enqueueing a task wakes dispatch. The existing game-action path logs an enqueue failure without rolling back the committed result. Abandoned Games retain capacity pending the later recovery workflow. These IDs track scheduling completion, not a second result or scoring model.
 
-Task execution failures record an error and return a failure response so the queue retries the original task with its configured backoff. They do not enqueue replacement tasks or set an application retry delay. The existing `nextTaskAt` lets the original queued task resume unfinished dispatch. Idle tournaments and stale tasks return successfully.
+Task execution failures record `Tournament.schedulingError`, including failures before the first Stage is saved, and return a failure response so the queue retries the original task with its configured backoff. They do not enqueue replacement tasks or set an application retry delay. The existing `nextTaskAt` lets the original queued task resume unfinished dispatch. Idle tournaments and stale tasks return successfully.
 
 A task sends one Tournament update after success or partial failure, including any registration and schedule changes. Creating each Game still sends the normal per-game player notifications. Tournament clients receive the final task revision instead of reloading after every Table.
 
-Pause clears the pending wakeup while retaining reservations and active Games. Resume and Retry enqueue another task. Existing Games remain playable while dispatch is paused. Administrator controls use the existing authenticated tournament API.
+Pause clears the pending wakeup while retaining reservations and active Games. Resume and Retry enqueue another task. Existing Games remain playable while dispatch is paused. Administrator controls use the existing authenticated tournament API. Retry also works for an open Tournament whose published start deadline has passed, using its current start identity and the same task handler. It cannot bypass the deadline or revive a cancelled event. Participants see “Start delayed” and the automatic-retry explanation; administrators can inspect the saved error and retry under Manage.
 
 `nextTaskAt` records pending dispatch for countdowns and queued task execution. There is no periodic sweep, startup scan, overdue-work query or reconciliation endpoint. Enqueue failures from Tournament operations propagate to their callers; retrying a join preserves the existing countdown, and an administrator can explicitly retry dispatch. Tournament and Schedule reads retain the shared Redis cache. Duplicate deliveries to an idle Tournament return from its cached object without transaction writes. Completing a Game triggers dispatch when player capacity becomes available.
 
@@ -44,7 +44,7 @@ These are deployment throughput settings, independent of per-player concurrency.
 
 Use the backend's queue-enqueue permissions and the internal tasks service. No production resources are changed by local development checks.
 
-The existing `stages` index exemption also covers dispatch arrays. `nextTaskAt` uses its automatic single-field index. Before adopting this change with pre-slice-6 data, migrate open dated events' `nextTaskAt` to their published closure timestamp; initialize full open events with a fresh one-minute start identity. Existing locked or manually provisioned fixtures can be explicitly resumed through Manage. Do not reset in-progress Game data.
+The existing `stages` index exemption also covers dispatch arrays. `nextTaskAt` uses its automatic single-field index. When adopting the tournament-level error field, move any existing `Stage.dispatch.error` to `Tournament.schedulingError` and remove the old field. Before adopting this change with pre-slice-6 data, migrate open dated events' `nextTaskAt` to their published closure timestamp; initialize full open events with a fresh one-minute start identity. Existing locked or manually provisioned fixtures can be explicitly resumed through Manage. Do not reset in-progress Game data.
 
 ## Verification
 

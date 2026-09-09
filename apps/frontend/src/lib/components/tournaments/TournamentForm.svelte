@@ -1,8 +1,20 @@
 <script lang="ts">
-    import { Select } from 'flowbite-svelte'
+    import {
+        Input,
+        Textarea,
+        Label,
+        Toggle,
+        Button,
+        ButtonGroup,
+        RadioButton,
+        Helper,
+        Hr
+    } from 'flowbite-svelte'
+    import TournamentSelect from './TournamentSelect.svelte'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import {
         defaultGameConfig,
+        range,
         getMiniTournamentDefaults,
         miniTournamentDefaults,
         ConfigOptionType,
@@ -17,10 +29,12 @@
     let {
         tournament,
         onsaved,
+        oncancel,
         disabled = false
     }: {
         tournament?: Tournament
         onsaved: (tournament: Tournament) => void
+        oncancel: () => void
         disabled?: boolean
     } = $props()
     const { api, libraryService } = getAppContext()
@@ -72,12 +86,12 @@
         titleId = selectedTitleId
         const selected = libraryService.titlesById[titleId]
         if (!selected) return
-        tableSize = selected.info.metadata.defaultPlayerCount
-        applyMiniDefaults()
+        setTableSize(selected.info.metadata.defaultPlayerCount)
         config = defaultGameConfig(selected.info.configurator?.options ?? [])
     }
 
-    function applyMiniDefaults() {
+    function setTableSize(value: number) {
+        tableSize = value
         const defaults = getMiniTournamentDefaults(tableSize)
         if (defaults) {
             capacity = defaults.capacity
@@ -143,211 +157,247 @@
     }
 </script>
 
+<div class="mb-5 flex items-center gap-3">
+    <h1 class="font-tournament text-2xl font-semibold text-gray-900 dark:text-gray-200">
+        {tournament ? 'Edit tournament' : 'Create tournament'}
+    </h1>
+    <span
+        class="rounded border border-gray-300 px-1.5 py-0.5 text-[10px] text-gray-500 dark:border-gray-600 dark:text-gray-400"
+        >Mini</span
+    >
+</div>
 <form
     onsubmit={(event) => {
         event.preventDefault()
         void save()
     }}
-    class="space-y-5"
+    class="text-left"
 >
-    <fieldset disabled={disabled || busy} class="space-y-5 disabled:opacity-60">
-        <p class="text-sm">Mini tournament · One stage</p>
-        <label>Name<input bind:value={name} required maxlength="120" /></label>
-        <label
-            >Description<textarea bind:value={description} maxlength="2000" rows="3"
-            ></textarea></label
-        >
-        <label
-            >Game<Select
-                size="sm"
-                placeholder=""
-                value={titleId}
-                onchange={(event) => selectTitle(event.currentTarget.value)}
+    <fieldset disabled={disabled || busy} class="space-y-4 disabled:opacity-60">
+        <div>
+            <Label for="tournament-name" class="mb-2">Name</Label>
+            <Input
+                id="tournament-name"
+                bind:value={name}
+                placeholder="Choose a name for your tournament"
                 required
-                ><option value="">Choose a game</option>{#each titles as item (item.info.id)}<option
-                        value={item.info.id}>{item.info.metadata.name}</option
-                    >{/each}</Select
-            ></label
-        >
-        {#if libraryService.loading}<p>Loading game titles…</p>{:else if !titles.length}<p
-                role="alert"
-            >
-                Game titles are unavailable. Refresh when the game library is available.
-            </p>{/if}
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label
-                >Players per game<input
-                    type="number"
-                    bind:value={tableSize}
-                    onchange={applyMiniDefaults}
-                    min={title?.info.metadata.minPlayers ?? 2}
-                    max={title?.info.metadata.maxPlayers ?? 16}
-                    required
-                /></label
-            >
-            <label
-                >Games per player<input
-                    type="number"
-                    bind:value={() => gamesPerEntrant, updateGamesPerEntrant}
-                    min={tableSize}
-                    max="256"
-                    step={tableSize}
-                    required
-                /></label
-            >
-            <label
-                >Concurrent games per player<input
-                    type="number"
-                    bind:value={concurrency}
-                    min="1"
-                    max={gamesPerEntrant}
-                    required
-                /></label
-            >
+                maxlength={120}
+            />
         </div>
-        <label
-            >Registration closes<Select size="sm" placeholder="" bind:value={registrationKind}
-                ><option value="whenFull">When the tournament fills</option><option value="deadline"
-                    >On a specified date</option
-                ></Select
-            ></label
-        >
-        {#if registrationKind === 'whenFull'}
-            <label
-                >Roster size<input
-                    type="number"
-                    bind:value={capacity}
-                    min={tableSize}
-                    max="256"
-                    required
-                /></label
-            >
-            <p class="text-sm">No deadline. Registration locks when the roster fills.</p>
-        {:else}
-            <div class="grid gap-4 sm:grid-cols-2">
-                <label
-                    >Minimum entrants<input
-                        type="number"
-                        bind:value={minimumEntrants}
-                        min={tableSize}
-                        max="256"
-                        required
-                    /></label
-                >
-                <label
-                    >Closing date (your local time)<input
-                        type="datetime-local"
-                        bind:value={deadline}
-                        required
-                    /></label
-                >
-                <label
-                    ><span>Limit enrollment</span><input
-                        type="checkbox"
-                        bind:checked={capped}
-                    /></label
-                >
-                {#if capped}<label
-                        >Maximum entrants<input
-                            type="number"
-                            bind:value={capacity}
-                            min={minimumEntrants}
-                            max="256"
-                            required
-                        /></label
-                    >{/if}
+        <div>
+            <Label for="tournament-game" class="mb-2">Game</Label>
+            <TournamentSelect
+                id="tournament-game"
+                value={titleId}
+                placeholder="Choose a game"
+                options={titles.map((item) => ({
+                    value: item.info.id,
+                    name: item.info.metadata.name
+                }))}
+                onchange={selectTitle}
+            />
+            {#if libraryService.loading}<Helper class="mt-1">Loading game titles…</Helper
+                >{:else if !titles.length}<Helper color="red" class="mt-1"
+                    >Game titles are unavailable.</Helper
+                >{/if}
+        </div>
+        {#if title}
+            <div>
+                <Label class="mb-2">Players per game</Label>
+                <ButtonGroup aria-label="Players per game">
+                    {#each range(title.info.metadata.minPlayers, title.info.metadata.maxPlayers - title.info.metadata.minPlayers + 1) as count}
+                        <RadioButton
+                            value={count}
+                            bind:group={tableSize}
+                            onchange={() => setTableSize(count)}
+                            checkedClass="dark:hover:bg-transparent dark:bg-transparent dark:text-primary-500 dark:hover:text-primary-500 dark:focus-within:text-primary-500"
+                            >{count}</RadioButton
+                        >
+                    {/each}
+                </ButtonGroup>
             </div>
-            <p class="text-sm">
-                The final roster is everyone enrolled at the closing date. Below the minimum, the
-                event cancels.
-            </p>
         {/if}
         {#if title?.info.configurator?.options.length}
-            <fieldset class="space-y-3 rounded-lg border border-gray-300 p-4 dark:border-gray-600">
-                <legend class="px-2">Game options</legend>
+            <Hr class="my-4" />
+            <div class="space-y-3">
                 {#each title.info.configurator.options as option (option.id)}
-                    <label
-                        >{option.name}
+                    {@const value = config[option.id]}
+                    <div>
                         {#if option.type === ConfigOptionType.Boolean}
-                            <input
-                                type="checkbox"
+                            <Toggle
+                                id={`tournament-option-${option.id}`}
                                 checked={config[option.id] === true}
                                 onchange={(event) =>
                                     updateOption(option, event.currentTarget.checked)}
-                            />
-                        {:else if option.type === ConfigOptionType.List}
-                            <Select
-                                size="sm"
-                                placeholder=""
-                                value={String(config[option.id] ?? '')}
-                                onchange={(event) =>
-                                    updateOption(option, event.currentTarget.value)}
-                                >{#each option.options as choice (choice.value)}<option
-                                        value={choice.value}>{choice.name}</option
-                                    >{/each}</Select
                             >
-                        {:else if option.type === ConfigOptionType.NumberInput}
-                            <input
-                                type="number"
-                                value={typeof config[option.id] === 'number'
-                                    ? config[option.id]
-                                    : undefined}
-                                onchange={(event) =>
-                                    updateOption(
-                                        option,
-                                        event.currentTarget.value === ''
-                                            ? null
-                                            : event.currentTarget.valueAsNumber
-                                    )}
-                            />
+                                <div class="flex flex-col items-start leading-tight">
+                                    {option.name}
+                                    <Helper class="text-[.65rem] leading-tight dark:text-gray-400"
+                                        >{option.description}</Helper
+                                    >
+                                </div>
+                            </Toggle>
                         {:else}
-                            <input
-                                value={String(config[option.id] ?? '')}
-                                onchange={(event) =>
-                                    updateOption(option, event.currentTarget.value)}
-                            />
+                            <Label for={`tournament-option-${option.id}`} class="mb-2"
+                                >{option.name}</Label
+                            >
+                            {#if option.type === ConfigOptionType.List}
+                                <TournamentSelect
+                                    id={`tournament-option-${option.id}`}
+                                    value={String(config[option.id] ?? '')}
+                                    options={option.options}
+                                    onchange={(value) => updateOption(option, value)}
+                                />
+                            {:else if option.type === ConfigOptionType.NumberInput}
+                                <Input
+                                    id={`tournament-option-${option.id}`}
+                                    type="number"
+                                    value={typeof value === 'number' ? value : undefined}
+                                    onchange={(event) =>
+                                        updateOption(
+                                            option,
+                                            event.currentTarget.value === ''
+                                                ? null
+                                                : event.currentTarget.valueAsNumber
+                                        )}
+                                />
+                            {:else}
+                                <Input
+                                    id={`tournament-option-${option.id}`}
+                                    value={String(config[option.id] ?? '')}
+                                    onchange={(event) =>
+                                        updateOption(option, event.currentTarget.value)}
+                                />
+                            {/if}
+                            {#if option.description}<Helper class="mt-1 text-[.65rem] leading-tight"
+                                    >{option.description}</Helper
+                                >{/if}
                         {/if}
-                        <span class="text-xs font-normal text-gray-600 dark:text-gray-400"
-                            >{option.description}</span
-                        >
-                    </label>
+                    </div>
                 {/each}
-            </fieldset>
+            </div>
         {/if}
-        <p class="text-sm text-gray-600 dark:text-gray-400">
-            Each game awards one win credit, divided equally between joint winners. Rules freeze
-            when registration opens.
-        </p>
-        <button class="rounded bg-blue-700 px-5 py-2 text-white" type="submit"
-            >{busy ? 'Saving…' : tournament ? 'Save draft' : 'Create draft'}</button
-        >
+        <Hr class="my-4" />
+        <div>
+            <Label for="tournament-registration" class="mb-2">Registration closes</Label>
+            <TournamentSelect
+                id="tournament-registration"
+                value={registrationKind}
+                options={[
+                    { value: 'whenFull', name: 'When the tournament fills' },
+                    { value: 'deadline', name: 'On a specified date' }
+                ] as const}
+                onchange={(value) => (registrationKind = value)}
+            />
+        </div>
+        {#if registrationKind === 'deadline'}
+            <div>
+                <Label for="tournament-deadline" class="mb-2">Closing date</Label>
+                <Input
+                    id="tournament-deadline"
+                    type="datetime-local"
+                    bind:value={deadline}
+                    required
+                />
+                <Helper class="mt-1 text-xs">Uses your local time.</Helper>
+            </div>
+        {/if}
+        <details>
+            <summary class="cursor-pointer text-sm text-gray-500 dark:text-gray-400"
+                >Advanced</summary
+            >
+            <div class="mt-4 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <Label for="tournament-games" class="mb-2">Total games per player</Label>
+                        <Input
+                            id="tournament-games"
+                            type="number"
+                            bind:value={() => gamesPerEntrant, updateGamesPerEntrant}
+                            min={tableSize}
+                            max="256"
+                            step={tableSize}
+                            required
+                        />
+                    </div>
+                    <div>
+                        <Label for="tournament-concurrency" class="mb-2">At the same time</Label>
+                        <Input
+                            id="tournament-concurrency"
+                            type="number"
+                            bind:value={concurrency}
+                            min="1"
+                            max={gamesPerEntrant}
+                            required
+                        />
+                    </div>
+                </div>
+                {#if registrationKind === 'whenFull'}
+                    <div>
+                        <Label for="tournament-capacity" class="mb-2">Roster size</Label>
+                        <Input
+                            id="tournament-capacity"
+                            type="number"
+                            bind:value={capacity}
+                            min={tableSize}
+                            max="256"
+                            required
+                        />
+                        <Helper class="mt-1 text-xs"
+                            >Starts one minute after the roster fills.</Helper
+                        >
+                    </div>
+                {:else}
+                    <div>
+                        <Label for="tournament-minimum" class="mb-2">Minimum players</Label>
+                        <Input
+                            id="tournament-minimum"
+                            type="number"
+                            bind:value={minimumEntrants}
+                            min={tableSize}
+                            max="256"
+                            required
+                        />
+                        <Helper class="mt-1 text-xs"
+                            >Cancels if fewer than {minimumEntrants} players join.</Helper
+                        >
+                    </div>
+                    <Toggle bind:checked={capped}>Limit roster size</Toggle>
+                    {#if capped}
+                        <div>
+                            <Label for="tournament-capacity" class="mb-2">Maximum players</Label>
+                            <Input
+                                id="tournament-capacity"
+                                type="number"
+                                bind:value={capacity}
+                                min={minimumEntrants}
+                                max="256"
+                                required
+                            />
+                        </div>
+                    {/if}
+                {/if}
+            </div>
+        </details>
+        <details>
+            <summary class="cursor-pointer text-sm text-gray-500 dark:text-gray-400"
+                >Description <span class="text-xs">(optional)</span></summary
+            >
+            <Label for="tournament-description" class="sr-only">Description</Label>
+            <Textarea
+                id="tournament-description"
+                class="mt-2"
+                bind:value={description}
+                maxlength={2000}
+                rows={2}
+            />
+        </details>
+        {#if error}<Helper color="red" role="alert">{error}</Helper>{/if}
+        <div class="flex items-center justify-between pt-2">
+            <Button color="light" type="button" onclick={oncancel}>Cancel</Button>
+            <Button type="submit" disabled={!titleId}
+                >{busy ? 'Saving…' : tournament ? 'Save draft' : 'Create draft'}</Button
+            >
+        </div>
     </fieldset>
-    {#if error}<p role="alert" class="text-red-600 dark:text-red-300">{error}</p>{/if}
 </form>
-
-<style>
-    label {
-        display: flex;
-        flex-direction: column;
-        gap: 0.35rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-    }
-    input:not([type='checkbox']),
-    textarea {
-        width: 100%;
-        border: 1px solid #6b7280;
-        border-radius: 0.5rem;
-        padding: 0.6rem 0.75rem;
-        color: inherit;
-        background: transparent;
-    }
-    option {
-        color: #111827;
-        background: white;
-    }
-    input[type='checkbox'] {
-        width: 1.25rem;
-        height: 1.25rem;
-    }
-</style>

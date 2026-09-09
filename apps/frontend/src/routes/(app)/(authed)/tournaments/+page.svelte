@@ -1,6 +1,8 @@
 <script lang="ts">
     import { onMount } from 'svelte'
-    import { Hr, Dropdown, DropdownGroup, DropdownItem } from 'flowbite-svelte'
+    import { goto } from '$app/navigation'
+    import TournamentForm from '$lib/components/tournaments/TournamentForm.svelte'
+    import { Hr, Dropdown, DropdownGroup, DropdownItem, Modal } from 'flowbite-svelte'
     import { Role, type Tournament, type TournamentListQuery } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { listenForTournamentChanges } from '$lib/services/tournamentUpdates'
@@ -18,6 +20,7 @@
     let chooseInitialScope = true
     let titleId = $state('')
     let gameMenuOpen = $state(false)
+    let creating = $state(false)
     let titles = $derived.by(() => {
         const user = authorizationService.getSessionUser()
         return user ? libraryService.getTitles(user) : []
@@ -139,8 +142,8 @@
             Tournaments
         </h1>
         {#if isAdmin}
-            <a
-                href="/tournaments/new"
+            <button
+                onclick={() => (creating = true)}
                 aria-label="Create tournament"
                 title="Create tournament"
                 class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white transition-colors hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
@@ -154,7 +157,7 @@
                     stroke-width="1.6"
                     ><path d="M10 4v12M4 10h12" stroke-linecap="round"></path></svg
                 >
-            </a>
+            </button>
         {/if}
     </header>
     <div
@@ -272,7 +275,8 @@
                     <div class="mb-2 flex items-center justify-between gap-3 text-xs">
                         <span
                             class="inline-flex items-center gap-1.5 {tournamentStatusColor(
-                                tournament.status
+                                tournament,
+                                now
                             )}"
                             ><span class="size-1.5 rounded-full bg-current"
                             ></span>{tournamentStatusText(tournament, now)}</span
@@ -350,7 +354,7 @@
                         {:else if tournament.status === 'inProgress'}
                             {tournament.stages[0]?.dispatch?.finished.length ?? 0} games finished
                         {:else}
-                            {tournamentRegistrationText(tournament)}
+                            {tournamentRegistrationText(tournament, now)}
                         {/if}
                     </p>
                 </a>
@@ -363,6 +367,26 @@
             >{/if}
     </div>
 </main>
+
+{#if isAdmin && creating}
+    <Modal
+        bind:open={creating}
+        size="xs"
+        autoclose={false}
+        class="w-full"
+        outsideclose
+        dismissable={false}
+        aria-label="Create tournament"
+    >
+        <TournamentForm
+            oncancel={() => (creating = false)}
+            onsaved={(tournament) => {
+                creating = false
+                void goto(`/tournaments/${tournament.id}`)
+            }}
+        />
+    </Modal>
+{/if}
 
 <style>
     .pending-results {

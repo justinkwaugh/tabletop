@@ -105,7 +105,7 @@ export class TournamentDispatcher {
                             }
                             dispatch.reserved = reserveTournamentTables(current, schedule, dispatch)
                             if (!dispatch.reserved.length) {
-                                delete dispatch.error
+                                delete current.schedulingError
                                 delete current.nextTaskAt
                             }
                             currentStage.dispatch = dispatch
@@ -136,11 +136,7 @@ export class TournamentDispatcher {
                     current.nextTaskAt === undefined
                 )
                     return
-                const stage = current.stages[0]
-                if (stage) {
-                    stage.dispatch ??= { reserved: [], active: [], finished: [] }
-                    stage.dispatch.error = message.slice(0, 512)
-                }
+                current.schedulingError = message.slice(0, 512)
                 current.revision++
                 current.updatedAt = this.now()
             })

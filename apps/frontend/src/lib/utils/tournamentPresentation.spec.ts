@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { Tournament } from '@tabletop/common'
-import { tournamentStatusText } from './tournamentPresentation'
+import {
+    tournamentStatusText,
+    tournamentRegistrationOpen,
+    tournamentRegistrationText,
+    tournamentStatusColor
+} from './tournamentPresentation'
 
 const locked: Tournament = {
     id: 'old-preview',
@@ -35,20 +40,7 @@ describe('tournament status labels', () => {
                 {
                     ...locked,
                     nextTaskAt: 30000,
-                    stages: [
-                        {
-                            id: 'main',
-                            status: 'scheduled',
-                            rosterRevision: 1,
-                            createdAt: 1,
-                            dispatch: {
-                                reserved: [],
-                                active: [],
-                                finished: [],
-                                error: 'Setup failed'
-                            }
-                        }
-                    ]
+                    schedulingError: 'Setup failed'
                 },
                 1000
             )
@@ -65,4 +57,57 @@ describe('tournament status labels', () => {
         expect(tournamentStatusText(pending, 61000)).toBe('Starting…')
         expect(tournamentStatusText({ ...locked, status: 'inProgress' }, 61000)).toBe('In progress')
     })
+})
+
+describe('registration cutoff', () => {
+    const dated: Tournament = {
+        ...locked,
+        status: 'open',
+        rules: {
+            ...locked.rules,
+            registration: { kind: 'deadline', minimumEntrants: 7, closesAt: 61000 }
+        }
+    }
+    it('closes at the deadline while the stored event still says open', () => {
+        expect(tournamentRegistrationOpen(dated, 60999)).toBe(true)
+        expect(tournamentStatusText(dated, 60999)).toBe('Registration open')
+        expect(tournamentStatusColor(dated, 60999)).toContain('green')
+        for (const now of [61000, 62000]) {
+            expect(tournamentRegistrationOpen(dated, now)).toBe(false)
+            expect(tournamentStatusText(dated, now)).toBe('Registration closed')
+            expect(tournamentRegistrationText(dated, now)).toContain('Registration closed')
+            expect(tournamentStatusColor(dated, now)).not.toContain('green')
+        }
+    })
+    it('allows withdrawal during the full-roster countdown and closes at its end', () => {
+        const countdown: Tournament = { ...locked, status: 'open', startsAt: 61000 }
+        expect(tournamentRegistrationOpen(countdown, 60999)).toBe(true)
+        expect(tournamentRegistrationOpen(countdown, 61000)).toBe(false)
+        expect(tournamentStatusText(countdown, 61000)).toBe('Starting…')
+    })
+    it('keeps undated registration open until its countdown and respects closed lifecycle states', () => {
+        expect(tournamentRegistrationOpen({ ...locked, status: 'open' }, 62000)).toBe(true)
+        expect(tournamentRegistrationOpen(locked, 62000)).toBe(false)
+    })
+})
+
+it('shows an initial scheduling failure before a stage exists', () => {
+    expect(
+        tournamentStatusText(
+            {
+                ...locked,
+                status: 'open',
+                stages: [],
+                startsAt: 1000,
+                schedulingError: 'Schedule failed'
+            },
+            1000
+        )
+    ).toBe('Start delayed')
+})
+
+it('keeps the paused label when a failed start is paused by an administrator', () => {
+    expect(tournamentStatusText({ ...locked, paused: true, schedulingError: 'Setup failed' })).toBe(
+        'Scheduling paused'
+    )
 })
