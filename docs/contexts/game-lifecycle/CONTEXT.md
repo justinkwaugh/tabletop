@@ -16,6 +16,9 @@ _Avoid_: Offline Game
 A Game Instance for which a host owns the Canonical Action History and authorizes lifecycle operations.
 _Avoid_: Remote Game
 
+**Tournament Game**:
+A Hosted Game assigned to a Table in a Tournament. Its completed result is final for Players, while an Administrator may make an explicitly attributed correction.
+
 **Transient Game Instance**:
 A Game Instance that exists only for the current Game Session unless saved.
 
@@ -70,7 +73,7 @@ The pre-play state in which every configured Player is Joined. Readiness is deri
 The lifecycle state of a Game Instance after it starts and before its Game State contains a result.
 
 **Finished**:
-The lifecycle state derived from a Game State containing a result. Authorized Undo may return a Finished Game to In Progress.
+The lifecycle state derived from a Game State containing a result. Authorized Undo may return a Finished Game to In Progress, except that Players cannot reopen a Finished Tournament Game.
 
 **Delete Game**:
 Permanently remove a Game Instance, its Game State, and its Canonical Action History.
