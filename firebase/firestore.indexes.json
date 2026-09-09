@@ -19,20 +19,6 @@
             "queryScope": "COLLECTION",
             "fields": [
                 {
-                    "fieldPath": "status",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "rules.registration.closesAt",
-                    "order": "ASCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "tournaments",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
                     "fieldPath": "entrantIds",
                     "arrayConfig": "CONTAINS"
                 },

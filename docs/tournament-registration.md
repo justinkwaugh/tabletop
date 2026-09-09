@@ -59,7 +59,7 @@ Registration changes enqueue the dated closure or one-minute start task. The que
 
 Before deploying this slice:
 
-1. Deploy `firebase/firestore.indexes.json` to the target project and wait for its closure (`status` / `rules.registration.closesAt`), game-filter (`status` / `rules.titleId`) and Mine game-filter (`entrantIds` / `rules.titleId`) composite indexes to become ready.
+1. Deploy `firebase/firestore.indexes.json` to the target project and wait for its game-filter (`status` / `rules.titleId`) and Mine game-filter (`entrantIds` / `rules.titleId`) composite indexes to become ready.
 2. Use the existing internal tasks service and `TASKS_HOST`. In production, the public backend does not host task routes. Calls within the existing VPC deployment require no additional request credentials.
 3. Verify a scheduled task locks or cancels an expired event without a page visit, and failed task executions are retried by the queue.
 
