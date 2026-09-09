@@ -169,3 +169,34 @@ describe('physical tile inventory', () => {
         ).toThrow('Unknown tile')
     })
 })
+
+it('seeds distinct physical pieces and rejects duplicate locations or exhausted paired faces', () => {
+    const set = tileSet()
+    const inventory = set.createInventory([
+        { locationId: 'a', definitionId: '18xx:5', rotation: 0 },
+        { locationId: 'b', definitionId: '18xx:5', rotation: 2 },
+        { locationId: 'c', definitionId: '18xx:7', rotation: 1 }
+    ])
+    expect(
+        new Set(Object.values(inventory.placements).map((placement) => placement.pieceId)).size
+    ).toBe(3)
+    expect(
+        set
+            .counts(inventory)
+            .filter((count) => ['18xx:5', '18xx:7', '18xx:8'].includes(count.definitionId))
+            .map((count) => count.available)
+    ).toEqual([0, 0, 0])
+    expect(() =>
+        set.createInventory([
+            { locationId: 'a', definitionId: '18xx:5', rotation: 0 },
+            { locationId: 'a', definitionId: '18xx:5', rotation: 0 }
+        ])
+    ).toThrow('Duplicate initial tile location')
+    expect(() =>
+        set.createInventory([
+            { locationId: 'a', definitionId: '18xx:7', rotation: 0 },
+            { locationId: 'b', definitionId: '18xx:8', rotation: 0 }
+        ])
+    ).toThrow('Initial tile is unavailable')
+    expect(set.createInventory().placements).toEqual({})
+})

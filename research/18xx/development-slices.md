@@ -511,6 +511,12 @@ exchanges and splits must integrate into these same budgets and pass semantics.
 
 ## 6. Connect live game state to the lasting map renderer
 
+**Status:** implemented for boardless presentation. Both title sessions now render
+serialized placements, current stations/reservations, and physical inventory;
+inspection and per-player style stay local. History, Live, Undo, and reload use
+the existing session lifecycle. Physical presentation remains deferred pending
+artwork. See [design and verification](live-map-slice-design.md).
+
 **Outcome:** view and inspect both maps and their available tile inventories.
 
 **Shared work:** connect Game Session state to the T1–T3 and M1–M2 tile/map library.

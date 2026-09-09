@@ -1,3 +1,5 @@
+import { TheOldPrinceMap } from './map.js'
+import { TheOldPrinceTileSet } from './tiles.js'
 import { TheOldPrinceOperatingRules } from './roundRules.js'
 import { TheOldPrinceCompanyRules } from './companyRules.js'
 import { createTheOldPrinceStockMarket } from './stockMarket.js'
@@ -28,11 +30,13 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
             beta: true
         }
     },
-    runtime: createFinanceExampleRuntime(
-        createTheOldPrinceCompanyExample,
-        TheOldPrinceStockRules,
-        createTheOldPrinceStockMarket,
-        TheOldPrinceCompanyRules,
-        TheOldPrinceOperatingRules
-    )
+    runtime: createFinanceExampleRuntime({
+        createFinances: createTheOldPrinceCompanyExample,
+        stockRules: TheOldPrinceStockRules,
+        createMarket: createTheOldPrinceStockMarket,
+        companyRules: TheOldPrinceCompanyRules,
+        operatingRules: TheOldPrinceOperatingRules,
+        map: TheOldPrinceMap,
+        tileSet: TheOldPrinceTileSet
+    })
 }

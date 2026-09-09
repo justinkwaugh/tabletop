@@ -1,8 +1,10 @@
 <script lang="ts">
+    import type { StationReservation } from '@tabletop/18xx'
     import TileArtwork from '../tiles/TileArtwork.svelte'
     import { ClassicTileAppearance, type TileAppearance } from '../tiles/tileAppearance.js'
     import {
         assertMapOverlays,
+        printedMapReservations,
         type MapDrawing,
         type MapSelection,
         type MapToken,
@@ -13,6 +15,7 @@
         scene,
         selection,
         tokens = [],
+        reservations,
         routes = [],
         appearance = ClassicTileAppearance,
         hexDiameter = 100,
@@ -21,13 +24,15 @@
         scene: MapDrawing
         selection?: MapSelection
         tokens?: readonly MapToken[]
+        reservations?: readonly StationReservation[]
         routes?: readonly MapRoute[]
         appearance?: TileAppearance
         hexDiameter?: number
         onselect?: (selection: MapSelection) => void
     } = $props()
+    const currentReservations = $derived(reservations ?? printedMapReservations(scene))
     const entries = $derived.by(() => {
-        assertMapOverlays(scene, tokens, routes)
+        assertMapOverlays(scene, tokens, routes, currentReservations)
         return scene.locations
     })
     let focusedLocationId = $derived.by((): string | undefined => {
@@ -100,6 +105,14 @@
                 {/snippet}
                 {#snippet overlays(drawing)}
                     {#each drawing.nodes as node (node.node.id)}
+                        {@const reservationLabel = currentReservations
+                            .filter(
+                                (reservation) =>
+                                    reservation.locationId === id &&
+                                    reservation.nodeId === node.node.id
+                            )
+                            .map((reservation) => reservation.companyId)
+                            .join('/')}
                         {#each node.slots as point, slot}
                             {@const token = tokens.find(
                                 (token) =>
@@ -126,20 +139,19 @@
                                         fill="white">{token.label}</text
                                     >
                                 </g>
-                            {:else if slot === 0}
+                            {/if}
+                            {#if slot === 0 && reservationLabel}
                                 <text
                                     x={point.x}
-                                    y={point.y}
+                                    y={point.y + (token ? 15 : 0)}
                                     text-anchor="middle"
-                                    dominant-baseline="central"
+                                    dominant-baseline={token ? 'auto' : 'central'}
                                     font-size="5"
                                     fill="#52545b"
-                                    >{entry.location.reservations
-                                        ?.filter(
-                                            (reservation) => reservation.nodeId === node.node.id
-                                        )
-                                        .map((reservation) => reservation.companyId)
-                                        .join('/') ?? ''}</text
+                                    paint-order="stroke"
+                                    stroke={token ? 'white' : 'none'}
+                                    stroke-width="1"
+                                    data-map-reservation>{reservationLabel}</text
                                 >
                             {/if}
                         {/each}

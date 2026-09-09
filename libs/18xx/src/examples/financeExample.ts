@@ -1,3 +1,6 @@
+import { MapFields, RailwayMapState, type MapStateData } from '../map/mapState.js'
+import type { RailwayMap } from '../map/map.js'
+import type { TileSet, TileInventory } from '../tiles/inventory.js'
 import {
     CompleteStockRound,
     HydratedCompleteStockRound,
@@ -56,7 +59,8 @@ const ExampleFields = Type.Object({
     operatingSet: Type.Optional(OperatingSet),
     stockMarket: StockMarket,
     ...FinanceFields,
-    ...CompanyFields
+    ...CompanyFields,
+    ...MapFields
 })
 export const FinanceExampleState: Type.TObject<
     Omit<typeof GameState.properties, 'machineState'> & typeof ExampleFields.properties
@@ -74,6 +78,7 @@ export class HydratedFinanceExampleState
     extends HydratableGameState<typeof FinanceExampleState, PlayerState>
     implements FinanceExampleState
 {
+    declare tileInventory: TileInventory
     declare phaseId: string
     declare tranches: CompanyState['tranches']
     declare ownershipLimitExemptions: CompanyState['ownershipLimitExemptions']
@@ -89,7 +94,7 @@ export class HydratedFinanceExampleState
     declare certificatePools: FinancialState['certificatePools']
     declare cash: FinancialState['cash']
     declare certificates: FinancialState['certificates']
-    constructor(data: FinanceExampleState) {
+    constructor(data: FinanceExampleState, map: RailwayMap, tileSet: TileSet) {
         super(
             data instanceof HydratedFinanceExampleState ? data.dehydrate() : data,
             FinanceExampleValidator
@@ -114,6 +119,7 @@ export class HydratedFinanceExampleState
                 'Unknown operating company'
             )
         }
+        new RailwayMapState(map, tileSet, this.tileInventory).validateStations(this)
         validateStations(
             this,
             this.companies.map((company) => company.id)
@@ -134,14 +140,16 @@ const ExampleColors = [Color.Blue, Color.Red, Color.Green]
 type CreateFinances = (
     players: readonly PlayerState[],
     position: FinanceExamplePosition
-) => CompanyState
+) => CompanyState & MapStateData
 class FinanceExampleInitializer extends BaseGameInitializer<
     FinanceExampleState,
     HydratedFinanceExampleState
 > {
     constructor(
-        private readonly createFinances: CreateFinances,
-        private readonly createMarket: (position: FinanceExamplePosition) => StockMarket
+        private readonly options: Pick<
+            FinanceExampleOptions,
+            'createFinances' | 'createMarket' | 'map' | 'tileSet'
+        >
     ) {
         super()
     }
@@ -153,41 +161,56 @@ class FinanceExampleInitializer extends BaseGameInitializer<
         }))
         const position = game.config?.examplePosition ?? 'trading'
         assert(PositionValidator.Check(position), 'Unknown finance example position')
-        return new HydratedFinanceExampleState({
-            ...state,
-            players,
-            activePlayerIds: [players[0].playerId],
-            example: 'finances',
-            machineState: 'StockRound',
-            stockRound: {
-                number: 2,
-                completed: false,
-                passedPlayerIds: [],
-                turn: { acted: false, bought: false, soldBeforeBuying: false, companiesSold: [] },
-                sales: [],
-                companyPurchases: []
+        return new HydratedFinanceExampleState(
+            {
+                ...state,
+                players,
+                activePlayerIds: [players[0].playerId],
+                example: 'finances',
+                machineState: 'StockRound',
+                stockRound: {
+                    number: 2,
+                    completed: false,
+                    passedPlayerIds: [],
+                    turn: {
+                        acted: false,
+                        bought: false,
+                        soldBeforeBuying: false,
+                        companiesSold: []
+                    },
+                    sales: [],
+                    companyPurchases: []
+                },
+                stockMarket: this.options.createMarket(position),
+                turnManager: new HydratedTurnManager({
+                    series: [{ type: 'turn', playerId: players[0].playerId, start: 0 }],
+                    turnOrder: players.map((player) => player.playerId),
+                    turnCounts: Object.fromEntries(players.map((player) => [player.playerId, 0]))
+                }),
+                ...this.options.createFinances(players, position)
             },
-            stockMarket: this.createMarket(position),
-            turnManager: new HydratedTurnManager({
-                series: [{ type: 'turn', playerId: players[0].playerId, start: 0 }],
-                turnOrder: players.map((player) => player.playerId),
-                turnCounts: Object.fromEntries(players.map((player) => [player.playerId, 0]))
-            }),
-            ...this.createFinances(players, position)
-        })
+            this.options.map,
+            this.options.tileSet
+        )
     }
 }
-export function createFinanceExampleRuntime(
-    createFinances: CreateFinances,
-    rules: StockRules,
-    createMarket: (position: FinanceExamplePosition) => StockMarket,
-    companyRules: CompanyRules,
+export interface FinanceExampleOptions {
+    createFinances: CreateFinances
+    stockRules: StockRules
+    createMarket: (position: FinanceExamplePosition) => StockMarket
+    companyRules: CompanyRules
     operatingRules: OperatingRules
+    map: RailwayMap
+    tileSet: TileSet
+}
+export function createFinanceExampleRuntime(
+    options: FinanceExampleOptions
 ): GameRuntime<FinanceExampleState, HydratedFinanceExampleState> {
+    const { stockRules: rules, companyRules, operatingRules, map, tileSet } = options
     return {
-        initializer: new FinanceExampleInitializer(createFinances, createMarket),
+        initializer: new FinanceExampleInitializer(options),
         hydrator: {
-            hydrateState: (state) => new HydratedFinanceExampleState(state),
+            hydrateState: (state) => new HydratedFinanceExampleState(state, map, tileSet),
             hydrateAction: (action) => {
                 if (isCompleteStockRound(action))
                     return new HydratedCompleteStockRound(action, rules.round)

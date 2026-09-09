@@ -16,12 +16,7 @@ function example(
     label: string
 ) {
     const initial = tileSet.createInventory()
-    const piece = tileSet.availablePieces(initial, '18xx:5')[0]
-    const prepared = tileSet.replace(initial, {
-        locationId,
-        placement: { pieceId: piece.id, definitionId: '18xx:5', rotation },
-        returnPrevious: true
-    })
+    const prepared = tileSet.createInventory([{ locationId, definitionId: '18xx:5', rotation }])
     const tokens: readonly MapToken[] = [
         { id: 'example-station', locationId, nodeId: 'city', slot: 0, color: '#285cb4', label }
     ]

@@ -1,3 +1,5 @@
+import { createMapDrawing, isMapSelectionValid, type MapSelection } from '../maps/mapDrawing.js'
+import { stationMapTokens, type MapViewDefinition } from '../maps/stationPresentation.js'
 import {
     chooseStartCompany,
     chooseStartPrice,
@@ -17,6 +19,7 @@ import {
     evaluateCompanyStart,
     flotationAfterPurchase,
     type CompanyRules,
+    type TileFace,
     type CompanyStartRequest,
     BuyShares,
     SellShares,
@@ -48,7 +51,8 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     constructor(
         options: SessionOptions,
         private readonly stockRules: StockRules,
-        private readonly companyRules: CompanyRules
+        private readonly companyRules: CompanyRules,
+        readonly mapView: MapViewDefinition
     ) {
         super(options)
     }
@@ -56,6 +60,45 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         return this.stockRules.round.passing
     }
     financialState = $derived(requireFinanceExampleState(this.gameState))
+    mapScene = $derived.by(() =>
+        createMapDrawing(
+            this.mapView.map,
+            { tileSet: this.mapView.tileSet, inventory: this.financialState.tileInventory },
+            this.mapView.layouts
+        )
+    )
+    mapTokens = $derived.by(() => stationMapTokens(this.financialState, this.mapView.stations))
+    tileCounts = $derived.by(() => this.mapView.tileSet.counts(this.financialState.tileInventory))
+    private mapInspection: { selection: MapSelection; face: TileFace } | undefined = $state.raw()
+    mapSelection = $derived.by(() => {
+        const inspection = this.mapInspection
+        if (
+            this.updatingVisibleState ||
+            !inspection ||
+            !isMapSelectionValid(this.mapScene, inspection.selection)
+        )
+            return undefined
+        const face = this.mapScene.locations.find(
+            (entry) => entry.location.id === inspection.selection.locationId
+        )?.face
+        return inspection.selection.kind === 'hex' || face === inspection.face
+            ? inspection.selection
+            : undefined
+    })
+    private mapStyles: Record<string, 'classic' | 'muted'> = $state({})
+    mapStyle = $derived(this.myPlayer ? (this.mapStyles[this.myPlayer.id] ?? 'classic') : 'classic')
+    inspectMap(selection: MapSelection) {
+        assert(isMapSelectionValid(this.mapScene, selection), 'Invalid map selection')
+        const entry = this.mapScene.locations.find(
+            (entry) => entry.location.id === selection.locationId
+        )
+        assertExists(entry, 'Selection requires a map location')
+        this.mapInspection = { selection, face: entry.face }
+    }
+    setMapStyle(style: 'classic' | 'muted') {
+        assertExists(this.myPlayer, 'A map preference requires a player')
+        this.mapStyles[this.myPlayer.id] = style
+    }
     startChoices = $derived.by(() => {
         const state = this.financialState
         const playerId = this.myPlayer?.id
@@ -363,11 +406,12 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
 }
 export function createFinanceExampleSessionClass(
     rules: StockRules,
-    companyRules: CompanyRules
+    companyRules: CompanyRules,
+    mapView: MapViewDefinition
 ): new (options: SessionOptions) => FinanceExampleSession {
     return class extends FinanceExampleSession {
         constructor(options: SessionOptions) {
-            super(options, rules, companyRules)
+            super(options, rules, companyRules, mapView)
         }
     }
 }

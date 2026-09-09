@@ -105,8 +105,25 @@ export class TileSet {
         assert(this.piecesById.size === this.pieces.length, 'Duplicate physical tile identity')
     }
 
-    createInventory(): TileInventory {
-        return { tileSetId: this.manifest.id, placements: {}, retiredPieceIds: [] }
+    createInventory(
+        placements: readonly (Omit<TilePlacement, 'pieceId'> & { locationId: string })[] = []
+    ): TileInventory {
+        let inventory: TileInventory = {
+            tileSetId: this.manifest.id,
+            placements: {},
+            retiredPieceIds: []
+        }
+        for (const { locationId, definitionId, rotation } of placements) {
+            assert(!inventory.placements[locationId], 'Duplicate initial tile location')
+            const piece = this.availablePieces(inventory, definitionId)[0]
+            assertExists(piece, 'Initial tile is unavailable')
+            inventory = this.replace(inventory, {
+                locationId,
+                placement: { pieceId: piece.id, definitionId, rotation },
+                returnPrevious: true
+            })
+        }
+        return inventory
     }
 
     parseInventory(value: unknown): TileInventory {

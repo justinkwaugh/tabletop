@@ -1,8 +1,10 @@
+import { TheOldPrinceTileSet } from './tiles.js'
 import { assert, type PlayerState } from '@tabletop/common'
 import {
     createOrdinaryShareCertificates,
     getCompany,
     type CompanyState,
+    type MapStateData,
     type FinanceExamplePosition
 } from '@tabletop/18xx'
 import { createTheOldPrinceFinanceExample } from './finance.js'
@@ -12,8 +14,8 @@ import { TheOldPrinceMap } from './map.js'
 export function createTheOldPrinceCompanyExample(
     players: readonly PlayerState[],
     position: FinanceExamplePosition
-): CompanyState {
-    const state: CompanyState = {
+): CompanyState & MapStateData {
+    const state: CompanyState & MapStateData = {
         ...createTheOldPrinceFinanceExample(players),
         phaseId: '3H',
         tranches: [
@@ -29,7 +31,10 @@ export function createTheOldPrinceCompanyExample(
         ],
         ownershipLimitExemptions: [],
         stations: [],
-        stationReservations: []
+        stationReservations: [],
+        tileInventory: TheOldPrinceTileSet.createInventory([
+            { locationId: 'K19', definitionId: '18xx:5', rotation: 0 }
+        ])
     }
     if (position !== 'trading') {
         const market = { owner: { kind: 'bank' } as const, poolId: 'market' }

@@ -10,6 +10,9 @@ import {
 } from '@tabletop/common'
 import {
     tileEdgeDirection,
+    RailwayMapState,
+    type StationPosition,
+    type StationReservation,
     type RailwayMap,
     type MapLocation,
     type TileFace,
@@ -27,11 +30,8 @@ export type MapSelection =
     | { kind: 'node'; locationId: string; nodeId: string }
     | { kind: 'slot'; locationId: string; nodeId: string; slot: number }
 
-export type MapToken = {
+export type MapToken = StationPosition & {
     id: string
-    locationId: string
-    nodeId: string
-    slot: number
     label: string
     color: string
 }
@@ -64,19 +64,14 @@ export function createMapDrawing(
     supply?: { tileSet: TileSet; inventory: TileInventory },
     layouts: Readonly<Record<string, TileLayout>> = {}
 ): MapDrawing {
-    const inventory = supply?.tileSet.parseInventory(supply.inventory)
-    const definitions = new Map(
-        supply?.tileSet.definitions.map((definition) => [definition.id, definition])
-    )
-    for (const id of Object.keys(inventory?.placements ?? {})) map.location(id)
+    const mapState = supply ? new RailwayMapState(map, supply.tileSet, supply.inventory) : undefined
     const locations = map.definition.locations.map((location): MapDrawnLocation => {
-        const placement = inventory?.placements[location.id]
-        const definition = placement ? definitions.get(placement.definitionId) : undefined
-        if (placement) assertExists(definition, 'Placed map tile requires a definition')
-        const face = definition?.face ?? location.preprintedTile
-        const rotation = placement?.rotation ?? 0
-        const layout = definition
-            ? (layouts[definition.id] ?? StandardTileLayouts[definition.id])
+        const tile = mapState?.tile(location.id)
+        const placement = tile?.placement
+        const face = tile?.face ?? location.preprintedTile
+        const rotation = tile?.rotation ?? 0
+        const layout = placement
+            ? (layouts[placement.definitionId] ?? StandardTileLayouts[placement.definitionId])
             : layouts[location.id]
         const separatedTowns =
             face.nodes.length > 1 &&
@@ -178,7 +173,8 @@ export function mapSelectionPoint(scene: MapDrawing, selection: MapSelection): P
 export function assertMapOverlays(
     scene: MapDrawing,
     tokens: readonly MapToken[],
-    routes: readonly MapRoute[]
+    routes: readonly MapRoute[],
+    reservations: readonly StationReservation[] = []
 ): void {
     const slots = new Set<string>()
     for (const token of tokens) {
@@ -188,6 +184,33 @@ export function assertMapOverlays(
         assert(!slots.has(key), 'Multiple tokens occupy one station slot')
         slots.add(key)
     }
+    for (const reservation of reservations) {
+        const entry = scene.locations.find((entry) => entry.location.id === reservation.locationId)
+        assert(
+            entry?.face.nodes.some(
+                (node) => node.id === reservation.nodeId && node.kind === 'city'
+            ),
+            'Map reservation requires a city'
+        )
+    }
     for (const route of routes)
         for (const segment of route.segments) mapSelectionPoint(scene, { kind: 'path', ...segment })
+}
+
+export function isMapSelectionValid(scene: MapDrawing, selection: MapSelection): boolean {
+    const entry = scene.locations.find((entry) => entry.location.id === selection.locationId)
+    if (!entry) return false
+    if (selection.kind === 'hex') return true
+    if (selection.kind === 'path')
+        return entry.drawing.paths.some((path) => path.id === selection.pathId)
+    const node = entry.drawing.nodes.find((node) => node.node.id === selection.nodeId)
+    return !!node && (selection.kind === 'node' || !!node.slots[selection.slot])
+}
+export function printedMapReservations(scene: MapDrawing): StationReservation[] {
+    return scene.locations.flatMap(({ location }) =>
+        (location.reservations ?? []).map((reservation) => ({
+            ...reservation,
+            locationId: location.id
+        }))
+    )
 }

@@ -1,8 +1,8 @@
 # Tile library visual contract
 
-This library owns tile artwork and catalog inspection. It has no Game Session,
-Action Draft, authorization, history, or rules engine. Game hosts own those
-contracts when composing these assets into a Game Client.
+The lasting tile/map components own artwork, catalog inspection, and navigation.
+Game hosts supply state and own gameplay authorization. The separate finance
+example modules compose these components with a Game Session for prototype play.
 
 ## Visual intents
 
@@ -152,8 +152,11 @@ owns the underlying track/stops/revenues; the map owns location names, terrain,
 future labels, persistent markers, borders, route highlights, tokens, and hit targets.
 Map artwork labels named locations only; coordinates remain in inspection and
 accessible names.
-Initial home labels occupy empty station spaces and are reference annotations;
-active reservation rules remain the host's responsibility. Covered terrain is
+Reservation labels use supplied current reservations; omitted inputs derive printed
+home annotations from the current map. An explicit empty list suppresses them.
+Empty first station spaces contain the label; occupied spaces show it below the
+token. Inspection lists both the placed station and any reservation. Active
+reservation rules remain the host's responsibility. Covered terrain is
 hidden on the board and retained in inspection. Zero fixed revenues are hidden
 on the map, but remain available in inspection. Tile numbers stay outside artwork.
 
@@ -283,7 +286,7 @@ turn finishes, round completion, market movements, and operating-set start.
 Undo across an ordinary turn finish returns control to the previous player. Undo
 after completion reverses the final pass and both system actions together. No new
 UI effects initiate actions. Reload restores the same stage and facts. Fixture
-version 7 preserves previous example versions. Desktop checks cover these flows;
+version 8 preserves previous example versions. Desktop checks cover these flows;
 mobile refinement is deferred because this finance UI will be replaced.
 
 Saved example selection requires successful canonical loading, not just a matching
@@ -292,3 +295,34 @@ save, creating a fresh example when none is compatible. Unrelated loading errors
 still surface. A browser regression seeds the old stock-state shape under the
 current fixture name, verifies recovery, and checks that the old data remains
 unchanged and subsequent reloads reuse the new example.
+
+
+### Live maps in finance examples
+
+The session derives map drawings, placed stations, current reservations, and tile
+counts from its exposed `gameState`, including History View. Static maps, manifests,
+layouts, and station colors come from title UI configuration. Shared modules have
+no title dependencies. Prepared placements persist with the financial example.
+
+Map inspection is manual local presentation state, separate from stock drafts.
+It is hidden during `updatingVisibleState`. Hex inspection remains valid while its
+location exists; path, node, and slot inspection also require the same tile face
+and a valid target in the displayed drawing. Returning to a matching historical
+face can restore that inspection. Station exchange alone preserves the selection.
+Stock Back and Undo retain map inspection; neither consumes it as a stock draft.
+
+The shared MapViewer composes MapScene, MapInspector, and Common ScalingWrapper.
+Fit, focus, pan, zoom, fullscreen, and style choices generate no Game Actions.
+Style is local to each hotseat player in this session; reload resets preferences.
+History controls use the existing Game Session history, including individual
+system actions. Stock decisions are unavailable in History View. Live returns to
+committed state; Undo reverses the player action and its automatic cascade.
+
+The disposable FinanceMap panel exposes inventory through the existing tile
+library. Browsing it cannot place tiles or change available counts. Boardless
+rendering is active; physical presentation awaits title artwork.
+
+Desktop browser checks cover TOP station exchange and its reservation through
+purchase, flotation, history stepping, Live, and Undo; 1889's retained reservation,
+placed tile and inventory count through flotation and reload; and independent
+hotseat styles without extra actions. Shared map tests retain fit/zoom/pan coverage.

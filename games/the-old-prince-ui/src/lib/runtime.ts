@@ -1,3 +1,4 @@
+import { TheOldPrinceMapView } from './mapView.js'
 import { createFinanceExampleSessionClass } from '@tabletop/18xx-ui'
 import {
     Definition,
@@ -17,7 +18,8 @@ export const UiRuntime: GameUIRuntime<GameState, HydratedGameState> = {
     gameUI: { component: Table, load: async () => Table, mount: mountDynamicComponent },
     sessionClass: createFinanceExampleSessionClass(
         TheOldPrinceStockRules,
-        TheOldPrinceCompanyRules
+        TheOldPrinceCompanyRules,
+        TheOldPrinceMapView
     ),
     colorizer: new DefaultColorizer()
 }

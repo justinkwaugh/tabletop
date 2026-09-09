@@ -1,6 +1,23 @@
 <script lang="ts">
-    import type { MapDrawing, MapSelection } from './mapDrawing.js'
-    let { scene, selection }: { scene: MapDrawing; selection?: MapSelection } = $props()
+    import type { StationReservation } from '@tabletop/18xx'
+    import {
+        printedMapReservations,
+        type MapToken,
+        type MapDrawing,
+        type MapSelection
+    } from './mapDrawing.js'
+    let {
+        scene,
+        selection,
+        reservations,
+        tokens = []
+    }: {
+        scene: MapDrawing
+        selection?: MapSelection
+        reservations?: readonly StationReservation[]
+        tokens?: readonly MapToken[]
+    } = $props()
+    const currentReservations = $derived(reservations ?? printedMapReservations(scene))
     const entry = $derived(
         scene.locations.find((entry) => entry.location.id === selection?.locationId)
     )
@@ -41,7 +58,11 @@
                 </p>
             {/if}
         {/each}
-        {#each entry.location.reservations ?? [] as reservation}<p>
+        {#each tokens.filter((token) => token.locationId === entry.location.id) as token}<p>
+                Station: {token.label} · {token.nodeId} · Space {token.slot + 1}
+            </p>{/each}
+        {#each currentReservations.filter((reservation) => reservation.locationId === entry.location.id) as reservation}<p
+            >
                 Home reservation: {reservation.companyId} · {reservation.nodeId}
             </p>{/each}
         {#each entry.location.upgradeLabels ?? [] as label}<p>

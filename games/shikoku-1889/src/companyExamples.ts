@@ -1,8 +1,10 @@
+import { Shikoku1889TileSet } from './tiles.js'
 import { assert, type PlayerState } from '@tabletop/common'
 import {
     createOrdinaryShareCertificates,
     getCompany,
     type CompanyState,
+    type MapStateData,
     type FinanceExamplePosition
 } from '@tabletop/18xx'
 import { createShikoku1889FinanceExample } from './finance.js'
@@ -11,14 +13,17 @@ import { Shikoku1889Map } from './map.js'
 export function createShikoku1889CompanyExample(
     players: readonly PlayerState[],
     position: FinanceExamplePosition
-): CompanyState {
-    const state: CompanyState = {
+): CompanyState & MapStateData {
+    const state: CompanyState & MapStateData = {
         ...createShikoku1889FinanceExample(players),
         phaseId: '2',
         tranches: [],
         ownershipLimitExemptions: [],
         stations: [],
-        stationReservations: []
+        stationReservations: [],
+        tileInventory: Shikoku1889TileSet.createInventory([
+            { locationId: 'I2', definitionId: '18xx:5', rotation: 2 }
+        ])
     }
     if (position !== 'trading') {
         state.companies.push({

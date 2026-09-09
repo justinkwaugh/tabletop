@@ -1,3 +1,5 @@
+import { Shikoku1889Map } from './map.js'
+import { Shikoku1889TileSet } from './tiles.js'
 import { Shikoku1889OperatingRules } from './roundRules.js'
 import { Shikoku1889CompanyRules } from './companyRules.js'
 import { createShikoku1889StockMarket } from './stockMarket.js'
@@ -28,11 +30,13 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
             beta: true
         }
     },
-    runtime: createFinanceExampleRuntime(
-        createShikoku1889CompanyExample,
-        Shikoku1889StockRules,
-        createShikoku1889StockMarket,
-        Shikoku1889CompanyRules,
-        Shikoku1889OperatingRules
-    )
+    runtime: createFinanceExampleRuntime({
+        createFinances: createShikoku1889CompanyExample,
+        stockRules: Shikoku1889StockRules,
+        createMarket: createShikoku1889StockMarket,
+        companyRules: Shikoku1889CompanyRules,
+        operatingRules: Shikoku1889OperatingRules,
+        map: Shikoku1889Map,
+        tileSet: Shikoku1889TileSet
+    })
 }

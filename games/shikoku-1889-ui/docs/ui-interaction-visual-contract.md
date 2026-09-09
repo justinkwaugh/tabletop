@@ -37,3 +37,11 @@ operating company order after sold-out adjustments.
 
 Round completion and Undo follow the shared full-stock-round contract. The finance
 UI remains disposable; this slice requires desktop interaction verification only.
+
+
+The map follows the shared live-map contract. Its current tiles, stations,
+reservations, and inventory counts come from the session's visible state. Map
+inspection is independent of stock drafts and survives station exchange, history,
+and Undo when its target remains valid. Each hotseat player has a local map style.
+Fit/focus/pan/zoom and tile browsing create no actions. This remains a prepared
+position; legal track construction is the next slice.

@@ -31,8 +31,7 @@ Company starts and flotation follow the shared staged-selection contract. The
 starting example supports player and Union Bank starts and displays tranche
 occupancy. The flotation example exchanges a numbered PEIR share, replaces its
 station, updates certificates and capital, and restores all of those through Undo.
-The title's home positions come from its existing map definition. The finance
-inspector displays station locations; integration into the board view is deferred.
+The title's home positions come from its existing map definition. The live map renders those stations and their reservations.
 
 TOP displays retained pass order. Acting again removes that player from the
 order, preserving the others; Union Bank usage remains spent across human turns.
@@ -40,3 +39,11 @@ The completed view places open PEIR last and excludes Union Bank from operations
 
 Round completion and Undo follow the shared full-stock-round contract. The finance
 UI remains disposable; this slice requires desktop interaction verification only.
+
+
+The map follows the shared live-map contract. Its current tiles, stations,
+reservations, and inventory counts come from the session's visible state. Map
+inspection is independent of stock drafts and survives station exchange, history,
+and Undo when its target remains valid. Each hotseat player has a local map style.
+Fit/focus/pan/zoom and tile browsing create no actions. This remains a prepared
+position; legal track construction is the next slice.

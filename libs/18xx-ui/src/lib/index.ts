@@ -24,3 +24,7 @@ export { default as FinanceInspector } from './finance/FinanceInspector.svelte'
 export * from './examples/financeExampleSession.svelte.js'
 export { default as StockTrading } from './examples/StockTrading.svelte'
 export { default as StockMarket } from './stock/StockMarket.svelte'
+
+export * from './maps/stationPresentation.js'
+export { default as MapViewer } from './maps/MapViewer.svelte'
+export { default as FinanceMap } from './examples/FinanceMap.svelte'

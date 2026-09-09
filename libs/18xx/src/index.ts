@@ -38,3 +38,5 @@ export * from './stock/completeStockRound.js'
 export * from './operating/operatingSet.js'
 export * from './operating/startOperatingSet.js'
 export * from './operating/startOperatingSetHandler.js'
+
+export * from './map/mapState.js'

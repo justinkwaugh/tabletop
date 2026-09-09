@@ -4,6 +4,7 @@
     import type { GameState, HydratedGameState } from '@tabletop/common'
     import {
         FinanceInspector,
+        FinanceMap,
         StockTrading,
         StockMarket,
         requireFinanceExampleSession
@@ -14,6 +15,7 @@
     const state = $derived(requireFinanceExampleState(gameSession.gameState))
 </script>
 
+<FinanceMap {session} />
 <StockTrading {session} />
 <StockMarket market={state.stockMarket} companies={state.companies} />
 
