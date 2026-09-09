@@ -13,6 +13,7 @@
     import {
         normalizeMasterSeed,
         defaultGameConfig,
+        normalizeGameConfig,
         type GameCreationOptions,
         assertExists,
         BooleanConfigOption,
@@ -191,14 +192,7 @@
 
         const chosenConfig = $state.snapshot(config)
         const defaultConfig = generateDefaultOptions()
-        const mergedConfig = Object.assign(defaultConfig, chosenConfig)
-
-        // Remove null values from config
-        for (const key of Object.keys(mergedConfig)) {
-            if (mergedConfig[key] === null) {
-                delete mergedConfig[key]
-            }
-        }
+        const mergedConfig = normalizeGameConfig({ ...defaultConfig, ...chosenConfig })
 
         const gameData = <Partial<Game>>{
             id: editedGame.id,

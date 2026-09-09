@@ -1,5 +1,6 @@
 import {
     defaultGameConfig,
+    normalizeGameConfig,
     type CorrectTournamentResultRequest,
     NotificationCategory,
     Role,
@@ -404,10 +405,10 @@ export class TournamentService {
         const gamesPerEntrant = draft.format.stages[0].gamesPerEntrant
         const title = this.titles[rules.titleId]
         if (!title) throw new TournamentError('This game title is unavailable', 400)
-        rules.gameConfig = {
+        rules.gameConfig = normalizeGameConfig({
             ...defaultGameConfig(title.info.configurator?.options ?? []),
             ...rules.gameConfig
-        }
+        })
         const metadata = title.info.metadata
         if (rules.tableSize < metadata.minPlayers || rules.tableSize > metadata.maxPlayers)
             throw new TournamentError('This game does not support that table size', 400)

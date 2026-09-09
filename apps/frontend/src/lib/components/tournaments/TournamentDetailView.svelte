@@ -273,14 +273,16 @@
                     {tournament.description}
                 </p>{/if}
             {#if tournament.status === 'finished'}
-                <p class="mt-3 text-sm text-gray-600 dark:text-gray-300">
-                    {winners.length === 1 ? 'Winner' : 'Shared winners'}:
+                <p
+                    class="mt-3 font-tournament text-xl font-semibold text-gray-600 dark:text-gray-300"
+                >
+                    <span class="mr-3">{winners.length === 1 ? 'Winner' : 'Shared winners'}:</span>
                     {#each winners as winner, index}
                         {#if index > 0},
                         {/if}<span
                             class={winner.userId === user?.id
                                 ? 'text-orange-700 dark:text-orange-300'
-                                : ''}
+                                : 'text-blue-700 dark:text-blue-300'}
                             >{detail.usernames[winner.userId] ?? 'Unavailable account'}</span
                         >
                     {/each}

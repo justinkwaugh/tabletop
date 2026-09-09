@@ -1,6 +1,6 @@
 # Tournament game capabilities
 
-Slice 03 (#60) extends the existing `GameInitializer.initializeGameState` method with an optional starting-position assignment. This is general game setup, usable without a tournament. Results remain the existing `GameState.result` and `winningPlayerIds`; no parallel result model or outcome capability is introduced. Sol and Urbino adopt assigned setup; other titles require setup adoption and verification in #67. Registration still does not launch games. Balanced scheduling, managed provisioning and result settlement remain #61–#64.
+Slice 03 (#60) extends the existing `GameInitializer.initializeGameState` method with an optional starting-position assignment. This is general game setup, usable without a tournament. Results remain the existing `GameState.result` and `winningPlayerIds`; no parallel result model or outcome capability is introduced. Sol, Urbino and Fresh Fish adopt assigned setup; other titles require setup adoption and verification in #67. Registration still does not launch games. Balanced scheduling, managed provisioning and result settlement remain #61–#64.
 
 ## Setup contract
 
@@ -13,6 +13,8 @@ Call `GameEngine.startGame(game, { startingPositions: assignment, masterSeed })`
 `GameEngine.startGame(game)` keeps ordinary randomized behavior. Existing `startGame(game, masterSeed)` calls remain supported for independently published callers; new calls can use the options object for a seed, starting positions, or both. The host-facing `GameCreationOptions` schema is unchanged, so this does not add user-controlled ordering to a hosted API yet. An initializer declares `supportsStartingPositions: true` only when it honors the optional assignment; this prevents older two-argument implementations from silently ignoring it. Adopted initializers pass the assignment to `HydratedTurnManager.generate` before creating any order-dependent board or player state. That helper still consumes the normal shuffle's random draws before replacing the order, keeping later random draws and player colors independent of the assignment. Do not reorder or patch completed states to simulate assigned positions.
 
 Sol uses the assigned order for clockwise mothership seating and the initial turn. Urbino uses it for architect placement; the first position retains the normal decision about who takes the first building turn. Starting-position assignments do not override subsequent choices, auctions, turn-order changes or title-specific tiebreaks.
+
+Fresh Fish uses the assigned order for its first turn and subsequent turn sequence. Board generation, player colors, final stalls and the protected tile bag retain their ordinary seeded behavior. The existing end-of-game handler records all tied winners, which split tournament credit. Optional blank game options are omitted before validation and persistence, matching ordinary game creation; leaving Board Seed blank uses the normal generated board.
 
 Initialization is deterministic for the same configuration, player identities, assignment and initial PRNG states. Sol also accepts its existing reproduction master seed. Urbino retains its existing public-seed behavior; it does not gain reproduction-seed support. Generated state IDs and start timestamps are instance metadata, not deterministic game-rule values.
 
@@ -42,7 +44,7 @@ This is a source-code audit, not certification of the unadopted titles or a new 
 | Bus | 3–5 | Ordered players and initial `scoreOrder`; time-stone penalties and final order-dependent tiebreak. | #67 |
 | Container | 3–5 | Ordered setup distributes machines/value cards and optional broker state; final factory-store tiebreak can leave shared winners. | #67 |
 | The Estates | 2–5 | Initial auction actor, protected roofs and optional hidden money; money tiebreak can leave shared winners. | #67 |
-| Fresh Fish | 2–5 | Initial actor, independent board seed and protected tile bag; terminal scoring declares tied winners. | #67 |
+| Fresh Fish | 2–5 | Assigned initial actor and turn order; independent board seed and protected tile bag; terminal scoring declares tied winners. | Implemented and tested |
 | Indonesia | 3–5 | Ordered players and setup cards; terminal ties resolve in current turn order. Empty-winner Draw branch requires explicit handling. | #67 |
 | Kaivai | 3–4 | Initial bidding order, ruleset-dependent setup and later auction ordering; terminal handler chooses one winner from wealth ordering. | #67 |
 | Lowenherz | 2–4 | Initial `firstPlayerId` and separate fixed seating order; protected cards, final power/wealth scoring and shared ties. | #67 |
@@ -62,7 +64,7 @@ Hosted games continue to follow the current Publication (ADR-0003). No runtime v
 | Existing Site Frontend, new Sol/Urbino UI Artifact | No new injected host capability is required. |
 | New Site Frontend, older UI Artifact | Existing host contract remains compatible; updating the site does not add setup options to the old bundled engine. |
 
-Sol and Urbino require matching Logic and UI Publications to adopt the initializer/runtime changes. Rebuild and publish both artifacts for each title; publishing only the Site Frontend is insufficient. Other titles need no republishing solely because the optional initializer argument exists, but each needs its own matching publication when it adopts assigned initialization. An already-loaded old client can continue playing an assigned game because the resulting state and action contracts are unchanged; it need not initialize or score the tournament itself.
+Sol, Urbino and Fresh Fish require matching Logic and UI Publications to adopt the initializer/runtime changes. Rebuild and publish both artifacts for each title; publishing only the Site Frontend is insufficient. Other titles need no republishing solely because the optional initializer argument exists, but each needs its own matching publication when it adopts assigned initialization. An already-loaded old client can continue playing an assigned game because the resulting state and action contracts are unchanged; it need not initialize or score the tournament itself.
 
 Tests cover absent-capability rejection and ordinary initialization without the new capability, canonical initialization, existing replay/visibility behavior, and unchanged title actions. The mixed-artifact matrix above follows the unchanged interfaces; production artifact rollout and full hosted tournament execution remain later work. No production Publication is changed by this slice.
 
@@ -77,3 +79,11 @@ Tests cover absent-capability rejection and ordinary initialization without the 
 - Build verification also corrected an implicit undefined return in the slice-02 preset helper and renamed two Urbino UI state bindings that collided with the Svelte `$state` rune.
 
 Slice 5 now supplies [managed provisioning and hosted verification](tournament-provisioning.md). Assigned initialization remains an internal operation; automatic scheduling and dispatch follow in slice 6.
+
+## Fresh Fish adoption verification
+
+`games/fresh-fish/src/definition/competition.spec.ts` checks all player counts from two through five, rotating each player through every seat and executing a full first round of disk placements. It checks ordinary seeded equivalence, reversed assignments, both Boolean option settings, an explicit zero Board Seed, participant/spectator tile-bag projections and the existing terminal handler's sole/shared winners. Existing visibility tests also cover legacy seeded setup and auction secrecy. Tournament registration tests cover omitted defaults, blank inputs, explicit zero and clearing a seed before publication. Creation/editing routes validate without coercion so the HTTP validator cannot convert blank or zero numeric options into Boolean values; route tests preserve null, numbers, strings and Booleans unchanged.
+
+The shared game form now uses the same blank-option normalization helper without changing its behavior. No Game Session or host bridge interface changes; older and newer UI Artifacts remain compatible. Fresh Fish needs matching Logic/UI Artifacts containing its updated initializer. Other titles do not need republishing for this normalization refactor.
+
+Local hosted verification used the matching Fresh Fish Logic/UI builds through the running site's manifest: a tournament created in the modal with a cleared Board Seed accepted seven joins and started all seven four-player Games through the scheduled one-minute task. Every persisted Game's turn order matched its saved Table seats, configuration remained frozen, tile-bag delivery was redacted, and participant/spectator game pages rendered. This is local verification; production publication remains separate.

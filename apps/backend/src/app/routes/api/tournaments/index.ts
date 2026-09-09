@@ -1,5 +1,6 @@
-import type { FastifyInstance } from 'fastify'
-import { Type, type Static } from 'typebox'
+import type { FastifyInstance, FastifySchemaCompiler } from 'fastify'
+import { Type, type Static, type TSchema } from 'typebox'
+import { Compile } from 'typebox/compile'
 import {
     assertExists,
     CreateTournamentRequest,
@@ -12,6 +13,12 @@ import {
     TournamentParams
 } from '@tabletop/common'
 import { TournamentError } from '@tabletop/backend-services'
+
+const validateTournamentSettings: FastifySchemaCompiler<TSchema> = ({ schema }) => {
+    const validator = Compile(schema)
+    return (data) =>
+        validator.Check(data) ? { value: data } : { error: new Error('Invalid tournament request') }
+}
 
 export default async function (fastify: FastifyInstance) {
     fastify.addHook('onRequest', fastify.verifyActiveUser)
@@ -41,7 +48,11 @@ export default async function (fastify: FastifyInstance) {
     )
     fastify.post<{ Body: Static<typeof CreateTournamentRequest> }>(
         '/',
-        { schema: { body: CreateTournamentRequest }, preHandler: fastify.verifyRoleAdmin },
+        {
+            schema: { body: CreateTournamentRequest },
+            validatorCompiler: validateTournamentSettings,
+            preHandler: fastify.verifyRoleAdmin
+        },
         async (request) => {
             assertExists(request.user, 'Authenticated administrator required')
             return {
@@ -173,6 +184,7 @@ export default async function (fastify: FastifyInstance) {
         '/:id',
         {
             schema: { params: TournamentParams, body: UpdateTournamentRequest },
+            validatorCompiler: validateTournamentSettings,
             preHandler: fastify.verifyRoleAdmin
         },
         async (request) => {

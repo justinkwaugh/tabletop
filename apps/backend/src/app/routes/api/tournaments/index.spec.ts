@@ -71,6 +71,31 @@ const draft: TournamentDraft = {
 }
 
 describe('tournament administrator authorization', () => {
+    it.each([null, 0, 1, 42, '0', 'true', false])(
+        'preserves game option values on create and edit: %s',
+        async (value) => {
+            const { server, user, cookies, change } = await setup([Role.User, Role.Admin])
+            const input = structuredClone(draft)
+            input.rules.gameConfig = { option: value }
+            const created = await server.inject({
+                method: 'POST',
+                url: '/tournaments/',
+                cookies,
+                payload: { id: 'event', draft: input }
+            })
+            expect(created.statusCode).toBe(200)
+            expect(change).toHaveBeenLastCalledWith('event', input, user)
+            const edited = await server.inject({
+                method: 'PUT',
+                url: '/tournaments/event',
+                cookies,
+                payload: { draft: input, revision: 1 }
+            })
+            expect(edited.statusCode).toBe(200)
+            expect(change).toHaveBeenLastCalledWith('event', input, 1, user)
+        }
+    )
+
     it('accepts the completed tournament filter', async () => {
         const { server, user, cookies, change } = await setup([Role.User])
         const response = await server.inject({

@@ -20,7 +20,10 @@ import { TournamentService } from './tournamentService.js'
 import { FirestoreTournamentStore } from '../persistence/firestore/tournamentStore.js'
 
 class Configurator extends BaseConfigurator {
-    schema = Type.Object({ expert: Type.Boolean() }, { additionalProperties: false })
+    schema = Type.Object(
+        { expert: Type.Boolean(), boardSeed: Type.Optional(Type.Number()) },
+        { additionalProperties: false }
+    )
     options: GameConfigOptions = [
         {
             id: 'expert',
@@ -28,6 +31,12 @@ class Configurator extends BaseConfigurator {
             name: 'Expert rules',
             description: '',
             default: false
+        },
+        {
+            id: 'boardSeed',
+            type: ConfigOptionType.NumberInput,
+            name: 'Board Seed',
+            description: ''
         }
     ]
 }
@@ -152,6 +161,21 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             await expect(service.create('unauthorized', draft(), users[1])).rejects.toMatchObject({
                 statusCode: 403
             })
+        })
+
+        it('omits blank optional inputs while preserving explicit zero and false options', async () => {
+            const input = draft()
+            input.rules.gameConfig = { expert: false, boardSeed: null }
+            const created = await service.create(`event-${sequence++}`, input, admin)
+            expect(created.rules.gameConfig).toEqual({ expert: false })
+            input.rules.gameConfig.boardSeed = 0
+            const seeded = await service.update(created.id, input, created.revision, admin)
+            expect(seeded.rules.gameConfig).toEqual({ expert: false, boardSeed: 0 })
+            input.rules.gameConfig.boardSeed = null
+            const cleared = await service.update(seeded.id, input, seeded.revision, admin)
+            expect(cleared.rules.gameConfig).toEqual({ expert: false })
+            const published = await service.publish(cleared.id, admin)
+            expect(published.rules.gameConfig).toEqual({ expert: false })
         })
 
         it('validates table sizes and options through the existing title definition', async () => {
