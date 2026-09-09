@@ -142,6 +142,10 @@ can proceed while another rule remains unresolved.
 
 ## T1. Establish the shared tile catalog and logical model
 
+**Implemented:** [T1 interface, evidence, scope, and verification](../../libs/18xx/tiles.md).
+Both title logic packages export initial specimen selections; complete inventories
+remain T3 work.
+
 **Outcome:** resolve shared numbered tiles and title-specific variants into
 explicit, serializable tile definitions that both games can use.
 
@@ -160,7 +164,8 @@ definition. Use shared #7/#8/#9 in TOP and 1889 as reuse cases, and the standard
 edge references consistently; crossing paths do not connect unless the definition
 contains an appropriate shared node. Printed map hexes can use the same semantic
 vocabulary without receiving an invented tile number. Record source/edition
-provenance for catalog entries.
+provenance for catalog entries in design documentation, without research-source
+references in implementation or test code.
 
 **Scope:** implement the primitives and an initial specimen set needed for both
 titles; consider broader gauge/lane/terminal/paired-face variations before choosing
@@ -173,7 +178,9 @@ two tile numbers establish a universally permitted upgrade.
 ## T2. Build a lasting SVG tile renderer and inspection gallery
 
 **Outcome:** inspect catalog tiles in all rotations, at board/thumbnail/detail
-sizes, using the same reusable renderer intended for the eventual games.
+sizes, using the same reusable renderer intended for the eventual games. Export a
+lasting tile-library viewer from `@tabletop/18xx-ui`, usable as a standalone
+development gallery or embedded in a game's interface.
 
 **Shared work:** SVG track geometry, cities/towns, station spots, revenue values,
 labels, tile numbers, and the relevant special markings. Common supplies hex
@@ -183,17 +190,34 @@ Allow layout adjustments for complex tiles without changing their rule meaning.
 Board-specific location names, current tokens, route highlights, and previews
 compose with the tile view rather than mutating shared catalog entries.
 
-**Acceptance:** a gallery exposes supported tiles, rotations, and title variants
-for visual review. Validate visible edge connections against model endpoints,
+The viewer accepts the catalog or a caller-selected title subset, without needing
+a Game Session. Provide identifier/label search, color and track/stop filters,
+rotation controls, and enlarged inspection. Show catalog identity and title/edition
+context where printed numbers collide. Optional caller-supplied inventory counts
+arrive with T3; distinguish browsing definitions from browsing available pieces,
+including paired faces and unlimited supply where supported. Keep search and
+inspection state local. An embedded host may consume a selected catalog reference
+and rotation; the host owns staging any gameplay Action and querying legality.
+
+**Acceptance:** the same exported viewer works in a standalone gallery and an
+embedded view, exposing supported tiles, rotations, and title variants for visual
+review. Search finds same-number variants without collapsing them; browsing never
+mutates definitions or requires live game state. Validate visible edge connections against model endpoints,
 distinguish a crossing from a junction, and inspect city/slot/track/label collisions
-on complex specimens. Check small-screen thumbnails and enlarged detail views on
+on complex specimens. Include TOP's T, X, and CX city tiles as labeled specimens
+before assessing renderer coverage; T1's initial TOP selection contains only PEI1
+and shared examples. The supplied TOP rulebook's section 12.3 (page 20) identifies
+X/T cities and the special gray CX tile for Charlottetown. Check small-screen
+thumbnails and enlarged detail views on
 both flat and pointy layouts covered by the supported renderer. Automated geometry
 checks plus targeted visual examples protect semantics and legibility. A screenshot
 alone cannot certify the track graph.
 
-**Scope:** this renderer earns careful visual design now. The gallery is a library
-inspection tool; it does not choose the final game's screen layout. Rules queries
-use the model and never infer connectivity from SVG intersections.
+**Scope:** both renderer and viewer earn careful visual design now, including
+small-screen browsing. The thin development page hosting the viewer may be
+disposable; the exported component is a lasting asset. Its design does not choose
+the final game's screen layout. Rules queries use the model and never infer
+connectivity from SVG intersections.
 
 **Depends on:** T1.
 

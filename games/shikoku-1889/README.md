@@ -4,7 +4,10 @@
 It depends on `@tabletop/18xx` and `@tabletop/common`; its companion Game Client
 package is `@tabletop/shikoku-1889-ui`.
 
-The public entry point is currently empty. There is no Game State, initializer,
+The public entry point exports `Shikoku1889TileSpecimens`: an initial selection
+of shared catalog definitions, including standard #611. See the
+[T1 tile foundation](../../libs/18xx/tiles.md). This is not the complete tile set
+or an inventory manifest. There is no Game State, initializer,
 Action registration, or `GameDefinition` yet, and the title is not registered in
 the site catalog. Shared mechanisms will be developed against both Shikoku 1889
 and TOP before composing their title runtimes.

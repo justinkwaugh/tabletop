@@ -16,14 +16,18 @@
     "scripts": {
         "clean": "rimraf esm",
         "build": "tsgo",
-        "check": "tsgo --noEmit"
+        "check": "tsgo --noEmit",
+        "test": "vitest run"
     },
     "dependencies": {
-        "@tabletop/common": "workspace:*"
+        "@tabletop/common": "workspace:*",
+        "typebox": "^1.0.79"
     },
     "devDependencies": {
         "@typescript/native-preview": "7.0.0-dev.20260203.1",
         "rimraf": "^6.1.0",
-        "typescript": "5.9.3"
+        "typescript": "5.9.3",
+        "@tabletop/vitest-config": "workspace:*",
+        "vitest": "^4.0.12"
     }
 }

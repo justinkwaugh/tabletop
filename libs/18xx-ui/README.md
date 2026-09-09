@@ -9,6 +9,13 @@ The shared SVG tile renderer is a lasting library asset from the start. It consu
 the family tile catalog/model and serves board tiles, inventory thumbnails,
 placement previews, and detailed inspection. See the [tile development slices](../../research/18xx/development-slices.md#t2-build-a-lasting-svg-tile-renderer-and-inspection-gallery).
 
+T2 also plans an exported, reusable tile-library viewer using that renderer. It
+will browse the catalog or a title's selected set with search, filters, rotation,
+and enlarged inspection, preserving same-number variants. It can serve a standalone
+development gallery or an embedded game view without requiring a Game Session.
+Optional caller-supplied inventory counts follow in T3. The viewer is a lasting
+component; its development host page may be disposable.
+
 Shared map rendering is also lasting library work: physical-board artwork with
 tile overlays, and a generic boardless presentation of the same semantic map.
 Both share tile rendering, live overlays, and map-object interaction. Titles

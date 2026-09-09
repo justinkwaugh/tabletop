@@ -33,7 +33,15 @@ Representative primary checks: [18ESP map][esp] explicitly has dual-gauge parall
 
 ## Recommended durable deliverable
 
-**Design inference:** make the reusable tile model, initial numbered catalog and SVG rendering library deliberate early assets in `18xx`/`18xx-ui`. Use Common hex geometry underneath. Build a tile gallery that shows TOP/1889 inventories, identifiers, rotations and overlay examples, with representative family fixtures for lanes, paired faces and same-number variants. Keep the gallery shell disposable; retain the verified definitions, renderer and semantic-to-visual correspondence checks.
+**Design inference:** make the reusable tile model, initial numbered catalog and SVG rendering library deliberate early assets in `18xx`/`18xx-ui`. Use Common hex geometry underneath. Build a tile gallery that shows TOP/1889 inventories, identifiers, rotations and overlay examples, with representative family fixtures for lanes, paired faces and same-number variants.
+
+**Project decision:** export the tile-library viewer itself as a lasting component
+from `@tabletop/18xx-ui`, usable for standalone catalog inspection and embedded title
+tile browsing. Only the thin development host page may be disposable. Retain the
+viewer, verified definitions, renderer and semantic-to-visual correspondence checks.
+Catalog inspection does not require game state; title subsets and optional inventory
+are supplied by the caller. T2 establishes the viewer; T3 adds verified title sets
+and supply information.
 
 Acceptance should demonstrate all six rotations, matching path endpoints/hit targets, readable identifier/value/label placement, shared definitions with independent stock, #611 variant isolation, and state-free catalog reuse. Cosmetic redraws must not change route legality; semantically distinct paths must remain selectable even where curves cross. Construction legality, game-specific upgrades, inventory mutation, and route policies remain consumers of the foundation. Responsive final game-screen composition can be designed later without replacing this tile library.
 

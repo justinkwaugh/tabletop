@@ -1933,6 +1933,9 @@ importers:
         specifier: workspace:*
         version: link:../../libs/common
     devDependencies:
+      '@tabletop/vitest-config':
+        specifier: workspace:*
+        version: link:../../config/config-vitest
       '@typescript/native-preview':
         specifier: 7.0.0-dev.20260203.1
         version: 7.0.0-dev.20260203.1
@@ -1942,6 +1945,9 @@ importers:
       typescript:
         specifier: 5.9.3
         version: 5.9.3
+      vitest:
+        specifier: ^4.0.12
+        version: 4.0.17(@opentelemetry/api@1.9.0)(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)
 
   games/shikoku-1889-ui:
     dependencies:
@@ -2162,6 +2168,9 @@ importers:
         specifier: workspace:*
         version: link:../../libs/common
     devDependencies:
+      '@tabletop/vitest-config':
+        specifier: workspace:*
+        version: link:../../config/config-vitest
       '@typescript/native-preview':
         specifier: 7.0.0-dev.20260203.1
         version: 7.0.0-dev.20260203.1
@@ -2171,6 +2180,9 @@ importers:
       typescript:
         specifier: 5.9.3
         version: 5.9.3
+      vitest:
+        specifier: ^4.0.12
+        version: 4.0.17(@opentelemetry/api@1.9.0)(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)
 
   games/the-old-prince-ui:
     dependencies:
@@ -2375,7 +2387,13 @@ importers:
       '@tabletop/common':
         specifier: workspace:*
         version: link:../common
+      typebox:
+        specifier: ^1.0.79
+        version: 1.0.79
     devDependencies:
+      '@tabletop/vitest-config':
+        specifier: workspace:*
+        version: link:../../config/config-vitest
       '@typescript/native-preview':
         specifier: 7.0.0-dev.20260203.1
         version: 7.0.0-dev.20260203.1
@@ -2385,6 +2403,9 @@ importers:
       typescript:
         specifier: 5.9.3
         version: 5.9.3
+      vitest:
+        specifier: ^4.0.12
+        version: 4.0.17(@opentelemetry/api@1.9.0)(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)
 
   libs/18xx-ui:
     dependencies:

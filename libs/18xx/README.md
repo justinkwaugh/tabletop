@@ -1,8 +1,10 @@
 # @tabletop/18xx
 
 Shared deterministic logic for the 18xx family, built on `@tabletop/common`.
-This package starts with an empty public interface. Models, calculations, Actions,
-and reusable decision procedures will be developed alongside TOP and Shikoku 1889.
+The first implemented module is the [tile foundation](tiles.md): serializable
+faces and catalog definitions, explicit variants, rotation, and topology queries.
+Further models, calculations, Actions, and reusable decision procedures will be
+developed alongside TOP and Shikoku 1889.
 
 The first lasting asset is the shared tile model and catalog: reusable definitions,
 printed identifiers and explicit variants, composed into independent title tile
@@ -19,6 +21,7 @@ serialized Game State and Actions remain JSON-compatible.
 
 Run `pnpm --filter @tabletop/18xx build` to emit JavaScript and declarations into `esm`,
 or `pnpm --filter @tabletop/18xx check` to check types without emitting files.
+Run `pnpm --filter @tabletop/18xx test` for the tile conformance tests.
 
 ## Initial title pair
 

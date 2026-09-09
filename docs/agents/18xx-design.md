@@ -10,6 +10,18 @@ TOP and Shikoku 1889 are the first executable consumers. Their agreement alone
 does not establish a family-wide invariant; their differences do not exhaust the
 family's variation.
 
+Use the research source code to understand game rules, definitions, and variation.
+Do not copy or mechanically translate its implementation into this repository.
+Design every asset for this repository's architecture, domain model, runtime,
+UI contracts, and coding conventions, reusing this repository's existing modules
+where appropriate. Research behavior supplies evidence for requirements; its
+classes, APIs, algorithms, and internal representations are not implementation
+templates.
+
+Do not reference the research source in checked-in implementation or test code.
+Keep research citations and provenance in design/research documentation; runtime
+data uses game-facing identities and values.
+
 ## UI, tile-library, and map-rendering priorities
 
 Early logic slices may use disposable prototype screens and controls. Use them to
@@ -17,13 +29,17 @@ exercise real Game Session and runtime behavior; treat their layout as temporary
 Design the eventual desktop and mobile experience separately around the complete
 information and interaction demands of these games.
 
-The shared tile model, catalog, rendered tiles, and map renderer are intended lasting assets.
+The shared tile model, catalog, rendered tiles, tile-library viewer, and map
+renderer are intended lasting assets.
 Develop them early in the family libraries, considering tile variations across
 all researched titles. Share verified tile definitions and renderer behavior
 between games. Keep printed identifiers distinct from catalog identity, physical
 inventory, and map placement; preserve title/edition-specific variants explicitly.
 Use Common's hex geometry. Verify that visual track connections match the logical
 topology and that tiles remain legible in small board and tile-picker views.
+Export the tile-library viewer from `@tabletop/18xx-ui` for standalone inspection
+and embedding in title interfaces. Catalog browsing must work without a Game
+Session; title subsets and optional inventory information come from the caller.
 
 Design map rendering around one authoritative semantic map and two presentations:
 physical-board artwork with placed tiles overlaid, and a generic boardless view.
@@ -42,7 +58,8 @@ record missing or mismatched assets before claiming that title's physical view.
 
 Keep prototype-only panels in the development harness or title UI. Promote visual
 modules into `@tabletop/18xx-ui` when they have demonstrated reusable value; shared
-tile and map rendering are explicit priorities from the start. Disposable presentation
+tile rendering, tile-library viewing, and map rendering are explicit priorities
+from the start. Disposable presentation
 still follows the repository's action, authorization, and Back/Undo contracts.
 
 ## Before settling an interface
