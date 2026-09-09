@@ -1,0 +1,30 @@
+{
+    "name": "@tabletop/shikoku-1889",
+    "version": "0.0.1",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": {
+            "types": "./esm/index.d.ts",
+            "import": "./esm/index.js"
+        }
+    },
+    "sideEffects": false,
+    "files": [
+        "esm"
+    ],
+    "scripts": {
+        "clean": "rimraf esm",
+        "build": "tsgo",
+        "check": "tsgo --noEmit"
+    },
+    "dependencies": {
+        "@tabletop/18xx": "workspace:*",
+        "@tabletop/common": "workspace:*"
+    },
+    "devDependencies": {
+        "@typescript/native-preview": "7.0.0-dev.20260203.1",
+        "rimraf": "^6.1.0",
+        "typescript": "5.9.3"
+    }
+}
