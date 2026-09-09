@@ -1,0 +1,21 @@
+{
+    "indexes": [
+        {
+            "collectionGroup": "tournaments",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "rules.titleId", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "tournaments",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "rules.registration.closesAt", "order": "ASCENDING" }
+            ]
+        }
+    ],
+    "fieldOverrides": []
+}

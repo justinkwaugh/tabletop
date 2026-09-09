@@ -30,7 +30,9 @@ import {
     FirestoreChatStore,
     ResendEmailService,
     PubSubTransport,
-    EnvService
+    EnvService,
+    TournamentService,
+    FirestoreTournamentStore
 } from '@tabletop/backend-services'
 import type { GameDefinition } from '@tabletop/common'
 
@@ -52,6 +54,7 @@ declare module 'fastify' {
         chatService: ChatService
         cacheService: RedisCacheService
         libraryService: LibraryService
+        tournamentService: TournamentService
     }
 }
 
@@ -142,6 +145,35 @@ export default fp(async (fastify: FastifyInstance) => {
     )
 
     fastify.decorate('taskService', taskService)
+    const tournamentService = new TournamentService(
+        new FirestoreTournamentStore(fastify.firestore),
+        userService,
+        availableTitles,
+        notificationService
+    )
+    fastify.decorate('tournamentService', tournamentService)
+    if (EnvService.isLocal()) {
+        let reconciling = false
+        const reconcile = async () => {
+            if (reconciling) return
+            reconciling = true
+            try {
+                await tournamentService.reconcileDue()
+            } catch (error) {
+                fastify.log.error(error, 'Tournament registration reconciliation failed')
+            } finally {
+                reconciling = false
+            }
+        }
+        const timer = setInterval(() => {
+            void reconcile()
+        }, 30_000)
+        timer.unref()
+        fastify.addHook('onReady', reconcile)
+        fastify.addHook('onClose', async () => {
+            clearInterval(timer)
+        })
+    }
     fastify.decorate('tokenService', tokenService)
     fastify.decorate('userService', userService)
     fastify.decorate('emailService', emailService)

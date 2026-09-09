@@ -10,6 +10,12 @@ A site-organized competition in one Game Title whose Entrants accumulate results
 **Mini Tournament**:
 A Tournament with one Stage in which Entrants accumulate points across several Tables to determine final standings.
 
+**Tournament Format**:
+The structure of one Tournament, such as Mini or Multi-stage. A League contains Tournaments through its Seasons and Groups rather than being a Tournament Format.
+
+**Stage Plan**:
+The declared sequence of Stages and participation commitment for a Tournament. A planned Stage exists before its play begins; the number of planned Stages is determined by this plan.
+
 **Stage**:
 A portion of a Tournament with a defined field of Entrants and a set of Tables whose results determine standings and any advancement. Tables within a Stage may start and finish at different times.
 _Avoid_: Round when referring to a synchronized batch of Game Instances
@@ -20,6 +26,9 @@ _Avoid_: Player when referring to participation in the Tournament as a whole
 
 **Roster Lock**:
 The point after which an event's registration closes and its Entrants are fixed for scheduling. Joining an open event does not permit entering one whose roster has already locked.
+
+**Registration Policy**:
+The published conditions for closing registration. A fill-based Tournament locks when its fixed roster is full, with no required deadline. A dated Tournament closes at its deadline with its actual roster, subject to a minimum and an optional maximum; falling below its minimum cancels the event before play.
 
 ## Tables and participation
 
@@ -44,4 +53,4 @@ A recurring competition in which Entrants compete in Groups over successive Seas
 One cycle of League competition ending in Group standings and the determination of promotion and relegation for the next cycle.
 
 **Group**:
-A field of Entrants competing together in a Mini Tournament within a League Season.
+A field of Entrants at a division level competing together in a Mini Tournament within a League Season. The Group associates that Tournament with its League and Season.

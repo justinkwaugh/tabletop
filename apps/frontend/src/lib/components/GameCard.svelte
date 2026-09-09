@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Card, Hr, Button, Modal } from 'flowbite-svelte'
-    import { Game, GameStatus, PlayerStatus, GameResult, ConfigOptionType } from '@tabletop/common'
+    import { Game, GameStatus, PlayerStatus, GameResult } from '@tabletop/common'
+    import { gameCardOptions } from '$lib/utils/gameOptions'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
     import { goto } from '$app/navigation'
     import { fade, slide } from 'svelte/transition'
@@ -222,40 +223,9 @@
     }
 
     let title = $derived.by(() => titlesById[game.typeId])
-    let displayableConfigs: Record<string, string> = $derived.by(() => {
-        if (!title || !game.config) {
-            return {}
-        }
-        if (
-            title.info.configurator?.options.length === 0 ||
-            Object.keys(game.config).length === 0
-        ) {
-            return {}
-        }
-        const configs: Record<string, string> = {}
-        if (game.config) {
-            for (const [key, value] of Object.entries(game.config)) {
-                const option = title.info.configurator?.options.find((opt) => opt.id === key)
-                if (!option) {
-                    continue
-                }
-                if (value === option.default && !option.alwaysShow) {
-                    continue
-                }
-
-                let displayValue = value
-                if (option.type === ConfigOptionType.Boolean) {
-                    displayValue = value ? 'Yes' : 'No'
-                } else if (option.type === ConfigOptionType.List) {
-                    const matchedOption = option.options.find((opt) => opt.value === value)
-                    displayValue = matchedOption ? matchedOption.name : value
-                }
-
-                configs[option.name] = String(displayValue)
-            }
-        }
-        return configs
-    })
+    let displayableConfigs = $derived(
+        gameCardOptions(game.config ?? {}, title?.info.configurator?.options ?? [])
+    )
 </script>
 
 <Card
@@ -266,11 +236,7 @@
     <div class="flex flex-col">
         <div class="flex flex-row">
             <div class="shrink-0">
-                <img
-                    class="h-[80px]"
-                    alt="cover thumbnail"
-                    src={title?.info.thumbnailUrl ?? ''}
-                />
+                <img class="h-[80px]" alt="cover thumbnail" src={title?.info.thumbnailUrl ?? ''} />
             </div>
             <div class="pl-4 pr-2 py-0 w-full">
                 <div class="flex flex-col justify-between h-full">
@@ -426,13 +392,13 @@
                 </div>
             </div>
         </div>
-        {#if Object.keys(displayableConfigs).length > 0}
+        {#if displayableConfigs.length > 0}
             <div class="p-2 flex flex-col text-xs text-gray-400">
                 <Hr class="mt-1 mb-1" />
-                {#each Object.entries(displayableConfigs) as [key, value]}
+                {#each displayableConfigs as option}
                     <div class="flex flex-row justify-between">
-                        <div>{key}</div>
-                        <div>{value}</div>
+                        <div>{option.name}</div>
+                        <div>{option.value}</div>
                     </div>
                 {/each}
                 <Hr class="mt-1 mb-1" />
