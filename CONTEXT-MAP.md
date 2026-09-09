@@ -16,6 +16,12 @@ Implementation contradictions, defects, deferred decisions, and disproved concer
 
 - **Individual Game Titles**: title-specific contexts are deferred
 
+## Planned contexts
+
+- [Competitions](./docs/contexts/competitions/CONTEXT.md): governs site-organized Tournaments, registration, scheduled Tables, standings, advancement, and League Seasons; implementation is planned
+
+Delivery is tracked in the [tournaments and leagues roadmap](https://github.com/justinkwaugh/tabletop/issues/57).
+
 ## Relationships
 
 - **Game Distribution → Game Lifecycle**: supplies the Game Title and runtime associated with a Game Instance

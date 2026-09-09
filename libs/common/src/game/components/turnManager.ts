@@ -7,6 +7,10 @@ import { PlayerState } from '../model/playerState.js'
 import { shuffle } from '../../util/shuffle.js'
 import type { RandomFunction } from '../../util/prng.js'
 import { assert } from '../../util/assertions.js'
+import {
+    validateStartingPositionAssignment,
+    type StartingPositionAssignment
+} from '../model/startingPositionAssignment.js'
 
 export type TurnManager = Type.Static<typeof TurnManager>
 export const TurnManager = Type.Object({
@@ -26,7 +30,11 @@ export class HydratedTurnManager extends Hydratable<typeof TurnManager> implemen
         super(data, TurnManagerValidator)
     }
 
-    static generate(players: PlayerState[], random: RandomFunction) {
+    static generate(
+        players: PlayerState[],
+        random: RandomFunction,
+        assignment?: StartingPositionAssignment
+    ) {
         const turnOrder = players.map((player) => player.playerId)
         const turnCounts = <Record<string, number>>{}
         players.forEach((player) => {
@@ -34,6 +42,10 @@ export class HydratedTurnManager extends Hydratable<typeof TurnManager> implemen
         })
 
         shuffle(turnOrder, random)
+        if (assignment !== undefined) {
+            validateStartingPositionAssignment(turnOrder, assignment)
+            turnOrder.splice(0, turnOrder.length, ...assignment.playerIds)
+        }
         return new HydratedTurnManager({
             series: [],
             turnOrder: turnOrder,

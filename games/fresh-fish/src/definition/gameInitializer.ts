@@ -5,6 +5,7 @@ import {
     type GameInitializer,
     Prng,
     type RandomFunction,
+    type StartingPositionAssignment,
     type UninitializedGameState
 } from '@tabletop/common'
 import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
@@ -23,7 +24,13 @@ export class FreshFishGameInitializer
     extends BaseGameInitializer<FreshFishGameState, HydratedFreshFishGameState>
     implements GameInitializer<FreshFishGameState, HydratedFreshFishGameState>
 {
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedFreshFishGameState {
+    readonly supportsStartingPositions = true
+
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState,
+        assignment?: StartingPositionAssignment
+    ): HydratedFreshFishGameState {
         const prng = new Prng(state.prng)
         const config = game.config as FreshFishGameConfig
 
@@ -32,7 +39,7 @@ export class FreshFishGameInitializer
         const { board, numMarketTiles } = generateBoard(game.players.length, boardPrng.random)
 
         const players = this.initializePlayers(game, prng.random)
-        const turnManager = HydratedTurnManager.generate(players, prng.random)
+        const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
         const finalStalls = Object.values(GoodsType).map(
             (goodsType) => <StallTile>{ type: TileType.Stall, goodsType }
         )

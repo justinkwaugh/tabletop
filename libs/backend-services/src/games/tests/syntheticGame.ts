@@ -20,7 +20,8 @@ import {
     type Game,
     type GameRuntime,
     type MachineContext,
-    type UninitializedGameState
+    type UninitializedGameState,
+    type StartingPositionAssignment
 } from '@tabletop/common'
 
 const Token = Type.Object({ id: Type.String() })
@@ -126,8 +127,13 @@ class BidAction extends HydratableAction<typeof PlaceBid> {
 }
 
 class Initializer extends BaseGameInitializer<ProjectedState, SyntheticState> {
-    initializeGameState(game: Game, state: UninitializedGameState): SyntheticState {
-        const colors = [Color.Red, Color.Blue, Color.Green]
+    readonly supportsStartingPositions = true
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState,
+        assignment?: StartingPositionAssignment
+    ): SyntheticState {
+        const colors = [Color.Red, Color.Blue, Color.Green, Color.Yellow]
         const players = game.players.map((player, index) => ({
             playerId: player.id,
             color: colors[index]
@@ -137,7 +143,11 @@ class Initializer extends BaseGameInitializer<ProjectedState, SyntheticState> {
             players,
             machineState: 'playing',
             board: [],
-            turnManager: HydratedTurnManager.generate(players, new Prng(state.prng).random),
+            turnManager: HydratedTurnManager.generate(
+                players,
+                new Prng(state.prng).random,
+                assignment
+            ),
             drawPile: { items: [{ id: 'hidden-one' }, { id: 'hidden-two' }], remaining: 2 }
         })
     }

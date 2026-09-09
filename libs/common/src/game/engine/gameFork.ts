@@ -82,6 +82,7 @@ export function createGameFork<T extends GameState, U extends HydratedGameState<
         fork.updatedAt = fork.createdAt
         fork.startedAt = fork.createdAt
         fork.status = GameStatus.Started
+        delete fork.tournament
         delete fork.state
         delete fork.finishedAt
         delete fork.result
