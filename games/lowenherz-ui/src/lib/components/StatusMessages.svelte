@@ -29,6 +29,7 @@
         type SubmitDuelBidMetadata
     } from '@tabletop/lowenherz'
     import PlayerPill from './PlayerPill.svelte'
+    import EasedHeight from './EasedHeight.svelte'
     import ActionDescription from './ActionDescription.svelte'
     import { playerName } from '$lib/model/actionCardHelpers.js'
     import type { KnightPlan } from '$lib/model/session.svelte.js'
@@ -327,6 +328,8 @@
     // and when rewound past the very first action, so it doubles as "are we in history".
     const historyAction = $derived(gameSession.history.currentAction)
 
+    const RESERVED_STATUS_HEIGHT = 77
+
     // Forming or breaking an alliance leaves little trace on the board - hearts appear or vanish -
     // so the status window announces the latest such event to everyone until the actor's turn
     // passes: the message survives their own later actions and disappears once they are no longer
@@ -423,6 +426,11 @@
      starting at its left edge; text-center on the boxes themselves handles the
      wrapping lines within them. -->
 
+<!-- Two lines are always reserved: the prompt (text-[18px] leading-loose, 36px) plus the gap-2 (8px)
+     and the alliance/history line (27px + pb-1 + border-b-2, 33px). A lone line is centred in that
+     box, so the board never moves for the common one/two-line cases; only taller content
+     (negotiation, duel controls, wrapped prompts, history entries) eases the height. -->
+<EasedHeight minHeight={RESERVED_STATUS_HEIGHT} centerContent clip>
 <!-- items-center so each message box is centred over the board rather than starting at its left
      edge; text-center on the boxes themselves handles the wrapping lines within them. -->
 <div class="flex flex-col gap-2 items-center">
@@ -978,4 +986,5 @@
         </div>
     {/if}
 </div>
+</EasedHeight>
 

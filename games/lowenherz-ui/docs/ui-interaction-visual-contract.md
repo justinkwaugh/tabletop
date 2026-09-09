@@ -46,3 +46,29 @@ With Public Money off, player panels show the owner’s balance and question mar
 Negotiation amount controls cap only publicly displayed balances or the acting player’s own balance. A demand against an opponent’s private balance has no balance-derived cap; the payer must afford any amount they personally propose or accept. Duel controls and knight/alliance costs use the acting player’s known money.
 
 The session disables Exploration when Game configuration or the recorded state flag makes money private. This includes Host View and legacy Games. Public-money Exploration keeps the existing card population behavior.
+
+# Breaking an alliance
+
+## Visual intents
+
+- **Alliance markers:** two small drawn hearts on every wall along an allied border. Hearts beat slowly only for a viewer who could break that alliance right now (participant, active, in a state that accepts `CancelAlliance`, holding 10 ducats); otherwise they sit still.
+- **Offer:** a pink "Break alliance?" pill, in the town-name pill's style, appears just off the border after the board's hover-intent delay while the pointer rests within half a cell of any of the alliance's walls. Tapping or focusing the hearts arms the same offer immediately, for touch and keyboard. Hovering the pill itself holds it open.
+- **Break:** one click on the pill submits `CancelAlliance`; the hearts burst. Once the burst has finished and the visible state has settled, the status window announces "[breaker] broke an alliance with [other] and paid 10 ducats." to every viewer until the breaker is no longer an active player; the breaker's own later actions do not clear it.
+- **Form:** playing an Alliance card is announced the same way - "[player] played an Alliance card on [other]." - once the hearts have bounced in, including when the play was auto-selected because only one target was legal. Both sentences are the history feed's own `ActionDescription`, so status and history never disagree.
+
+## Coexistence and precedence
+
+Only cancellable alliances are offered. When several are within radius the nearest wall wins. The pill sits above the hearts and other overlay glyphs. The offer never stages anything: `Back` has nothing to clear and `Undo` reverses the committed action as usual.
+
+## Shared visual state
+
+The offered alliance is local to the board: derived from the tracked pointer position, the pill's own hover, and an armed id written by tapping or focusing the hearts. The armed id is a writable derived that returns to nothing whenever `updatingVisibleState` flips, and is also cleared when focus leaves the alliance's controls or a pointer press lands outside them. Nothing about the offer enters game state or history.
+
+The status column reserves two lines (77 px: the prompt line, the column gap, and the alliance/history line) and centres a lone line in that box, so forming or breaking an alliance never moves the board. Content taller than two lines (negotiation, duel controls, wrapped prompts, history entries, errors) still eases the column's measured height over 200 ms. Below the column, the politics deck chooser and pile reveal share one eased slot that holds a card row for the whole of the taker's politics turn, so the board slides down once when the decks appear, stays still through the chooser-to-reveal handoff and the choice, and slides back once the taken card is away. That easing (`EasedHeight.svelte`) is local layout settling with no coordination contract: nothing waits on it, it depicts no action, and the first measurement (mount, silent restore) snaps because browsers do not interpolate from `height: auto`. One known residual: a mid-session silent swap (a representation switch, or the history replay-range flow's silent jump and return) can still ease these containers over 200 ms if their content height changes at that instant, because the shared session keeps the history animation intent private and clears it before publishing state. Accepted as-is; closing it would need a read-only intent signal on `GameSession` in `frontend-components`.
+
+## Verification scenarios
+
+1. With a cancellable alliance, rest the pointer near its border and verify the pill appears after the delay, stays open while hovered, and breaks the alliance on click with the burst and status message.
+2. Sweep the pointer across the border without resting and verify nothing appears.
+3. Tab to the hearts and verify the pill appears at once and can be reached with the next Tab; tabbing away hides it.
+4. As the other participant or a spectator, verify the hearts are inert and the status message still reads correctly after the break.
