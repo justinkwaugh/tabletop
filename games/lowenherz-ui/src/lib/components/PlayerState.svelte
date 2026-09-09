@@ -15,6 +15,7 @@
     import knightLines from '$lib/images/pieces/knight-lines.png'
     import PoliticsCardView from './PoliticsCard.svelte'
     import CardMagnifier from './CardMagnifier.svelte'
+    import PoliticsCardFace from './PoliticsCard.svelte'
     import FlagBorder from './FlagBorder.svelte'
 
     let gameSession = getGameSession()
@@ -417,7 +418,13 @@
                                         : '0 2px 4px rgba(0, 0, 0, 0.4)'};
                                     "
                                 >
-                                    <CardMagnifier {card} />
+                                    <!-- No magnifier while the card is ACTIVE: the enlarged copy
+                                         hid the stripe, which is the way to take the card back. -->
+                                    {#if active}
+                                        <PoliticsCardFace {card} />
+                                    {:else}
+                                        <CardMagnifier {card} />
+                                    {/if}
                                     {#if active}
                                         <!-- border border-transparent: same 1px the APPLY pill's own
                                              border adds, purely so the two are the same height -
