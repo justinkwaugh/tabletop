@@ -1,104 +1,57 @@
 <script lang="ts">
-    import JSONTree from 'svelte-json-tree'
+    import JsonInspector from './JsonInspector.svelte'
     import { Tabs, TabItem } from 'flowbite-svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.js'
     import PrivilegedGameViewControl from './PrivilegedGameViewControl.svelte'
 
     let gameSession = getGameSession()
     const { myPlayer, privilegedGameView } = gameSession.bridge
-    let copiedState = false
-    let copiedActions = false
-    let stateCopyTimeout: ReturnType<typeof setTimeout> | undefined
-    let actionsCopyTimeout: ReturnType<typeof setTimeout> | undefined
 
-    async function copyTextToClipboard(text: string): Promise<void> {
-        if (navigator.clipboard?.writeText) {
-            await navigator.clipboard.writeText(text)
-            return
-        }
-
-        const textarea = document.createElement('textarea')
-        textarea.value = text
-        textarea.setAttribute('readonly', '')
-        textarea.style.position = 'fixed'
-        textarea.style.top = '-9999px'
-        document.body.appendChild(textarea)
-        textarea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textarea)
+    const tabClasses = {
+        button: 'px-2.5 py-1.5 text-xs leading-4 font-medium rounded-none border-b-2 bg-transparent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400'
     }
-
-    function markCopied(target: 'state' | 'actions'): void {
-        if (target === 'state') {
-            copiedState = true
-            if (stateCopyTimeout) {
-                clearTimeout(stateCopyTimeout)
-            }
-            stateCopyTimeout = setTimeout(() => {
-                copiedState = false
-            }, 1200)
-            return
-        }
-
-        copiedActions = true
-        if (actionsCopyTimeout) {
-            clearTimeout(actionsCopyTimeout)
-        }
-        actionsCopyTimeout = setTimeout(() => {
-            copiedActions = false
-        }, 1200)
-    }
-
-    async function copyStateToClipboard(): Promise<void> {
-        const stateJson = JSON.stringify(gameSession.gameState.dehydrate(), null, 2)
-        await copyTextToClipboard(stateJson)
-        markCopied('state')
-    }
-
-    async function copyActionsToClipboard(): Promise<void> {
-        const actionsJson = JSON.stringify(gameSession.actions.toReversed(), null, 2)
-        await copyTextToClipboard(actionsJson)
-        markCopied('actions')
-    }
+    const activeTabClass =
+        'text-slate-900 border-slate-500 dark:text-slate-100 dark:border-slate-300'
+    const inactiveTabClass =
+        'text-slate-500 border-transparent hover:text-slate-800 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:border-slate-600'
 </script>
 
-<div
-    class="rounded-lg dark:bg-black space-y-2 text-left ms-2 p-4 sm:h-[calc(100dvh-84px)] h-[calc(100dvh-116px)] overflow-auto"
->
-    <div class="flex items-center gap-2">
-        {#if privilegedGameView}
+<div class="space-y-2 text-left ms-2 sm:h-[calc(100dvh-84px)] h-[calc(100dvh-116px)] overflow-auto">
+    {#if privilegedGameView}
+        <div class="flex items-center gap-2">
             <PrivilegedGameViewControl view={privilegedGameView} actingPlayer={myPlayer} />
-        {/if}
-        <button
-            type="button"
-            class="rounded border border-zinc-500 bg-zinc-900 px-2 py-1 text-xs font-medium text-zinc-100 hover:bg-zinc-800"
-            onclick={copyStateToClipboard}
+        </div>
+    {/if}
+    <Tabs
+        tabStyle="underline"
+        divider={false}
+        class="space-x-1 border-b border-slate-200 dark:border-slate-800"
+        classes={{ content: 'p-0 mt-2 rounded-none bg-transparent dark:bg-transparent' }}
+    >
+        <TabItem
+            open
+            title="Game"
+            classes={tabClasses}
+            activeClass={activeTabClass}
+            inactiveClass={inactiveTabClass}
         >
-            {copiedState ? 'State copied' : 'Copy state'}
-        </button>
-        <button
-            type="button"
-            class="rounded border border-zinc-500 bg-zinc-900 px-2 py-1 text-xs font-medium text-zinc-100 hover:bg-zinc-800"
-            onclick={copyActionsToClipboard}
+            <JsonInspector label="Game" value={gameSession.game} />
+        </TabItem>
+        <TabItem
+            title="State"
+            classes={tabClasses}
+            activeClass={activeTabClass}
+            inactiveClass={inactiveTabClass}
         >
-            {copiedActions ? 'Actions copied' : 'Copy actions'}
-        </button>
-    </div>
-    <Tabs tabStyle="pill" divider={false} classes={{ content: 'dark:bg-gray-200 rounded-lg p-2' }}>
-        <TabItem open title="Game">
-            <div style="--json-tree-font-size: 14px;">
-                <JSONTree value={gameSession.game} />
-            </div>
+            <JsonInspector label="State" value={gameSession.gameState.dehydrate()} />
         </TabItem>
-        <TabItem title="State">
-            <div style="--json-tree-font-size: 14px;">
-                <JSONTree value={gameSession.gameState.dehydrate()} />
-            </div>
-        </TabItem>
-        <TabItem title="Actions">
-            <div style="--json-tree-font-size: 14px;">
-                <JSONTree value={gameSession.actions.toReversed()} />
-            </div>
+        <TabItem
+            title="Actions"
+            classes={tabClasses}
+            activeClass={activeTabClass}
+            inactiveClass={inactiveTabClass}
+        >
+            <JsonInspector label="Actions" value={gameSession.actions.toReversed()} />
         </TabItem>
     </Tabs>
 </div>
