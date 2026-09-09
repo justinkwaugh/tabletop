@@ -1,9 +1,9 @@
-# Finances (slice 1)
+# Finances (slices 1–2)
 
 The shared model separates companies, the bank, asset ownership, certificate pools,
 cash, and company management. Both title packages supply reduced example positions
-through the Common Game Runtime and Game Session. These are inspection examples,
-not complete game setup or playable variants.
+through the Common Game Runtime and Game Session. Each example offers one prepared stock purchase, not complete game setup or a
+full stock round.
 
 ## Model and interfaces
 
@@ -89,21 +89,25 @@ the title README.
 
 ## Runtime and presentation
 
-`FinanceExampleState` is an inspection example built on Common Game State with a
-financial fields at the root. Its initializer requires three players, uses their stable
-IDs, and authors deterministic asset IDs. `InspectFinances` is a terminal machine
-state without Actions, active players, or results. Each title exports a Definition
-and UiDefinition using the standard Game Session; no shared host contract changed.
+`FinanceExampleState` is built on Common Game State with financial fields at the
+root. Its initializer requires three players, uses their stable IDs, and authors
+deterministic asset IDs. `BuyingShares` offers one purchase for the first player;
+`InspectFinances` then stops gameplay. It retains the acting player's identity for
+Common's hotseat Undo, but its terminal handler accepts no further Actions. There
+is no game result or automatic turn progression in this example. Each title exports a Definition
+and UiDefinition using a shared finance example Game Session subclass. The shared
+host contract is unchanged.
 
 `Portfolio` renders owned certificates grouped into their owner's certificate pools.
 `FinanceInspector` arranges player portfolios, company treasuries, and Bank cash
 and certificates. Companies show their President or private Owner and their
 Controlling Owner. TOP adds PEIR's dividend entitlement through a snippet. These
-are provisional layouts, with no purchase Actions or other financial mutations.
+are provisional layouts. A shared purchase panel submits Actions through the
+Game Session and renders payment previews and committed history.
 
 The Finances page at the existing `/economy` route uses the existing local harness to persist examples.
 The host identifies this schema's examples with the versioned name
-`Finances example · 2`. Earlier inspection examples are preserved, and a new
+`Finances example · 3`. Earlier inspection examples are preserved, and a new
 example is created for this version. Current examples are reused on reload and
 when switching titles. This is fixture versioning, not a saved-game migration.
 
@@ -137,7 +141,7 @@ and 15 provide the title rules. TOP remains a prototype with the discrepancies
 already recorded in its title README.
 
 The current slice excludes debt, shorts, preferred dividends, scoring aggregation,
-ownership caps, presidency exchanges, company formation, full setup, and payments.
+presidency exchanges, company formation, full setup, and full stock-round progression.
 Those rules remain title-owned as they are added.
 
 ## Verification
@@ -149,3 +153,51 @@ Both title examples run through `GameEngine.startGame` and retain their ownershi
 when players are reordered or recolored. TOP verifies the changing PEIR denominator
 and presidency. Browser checks cover desktop/mobile presentation, title switching,
 current-example reload, and preserving earlier examples while creating a current one.
+
+## Existing share purchases
+
+`StockRound` defines the shared stock-round schema and type. Game State declares
+`stockRound: StockRound` directly, and purchase logic consumes that model. Its
+current fields record prior sales and companies that have purchased this round;
+round progression remains deferred to its own slice.
+
+`BuyShares` records the acting Player ID, buying Owner, certificate identity, and
+expected price. The title supplies eligible buyers, source restrictions, price,
+payment recipients, ordered payers, and ownership/certificate limits. Shared code
+reevaluates the purchase at application, settles cash atomically, transfers the certificate,
+clears its previous pool, and records the actual payment legs in Action metadata.
+The buyer is an Owner; buying does not imply holding a presidency. Rules remain
+runtime dependencies, outside serialized state and Actions.
+
+The three-player 1889 example uses 19 certificates and 60% ownership, IPO at par,
+and Market at market price. TOP uses 20 certificates and 60%, current market
+price, and Bank or issuing-company treasury sources. Union Bank pays from its
+own cash first, then its private Owner supplies the balance; Union Bank receives
+the certificate. A purchase for Union Bank consumes its once-per-stock-round
+opportunity. Prior sales are recorded against the buying Owner, independently of
+the player directing that Owner.
+
+The first purchase examples restrict companies to floated majors and preserve the
+incumbent president. Price cells with special limit or multi-buy rules, presidency
+changes, and flotation require later slices. PEIR's variable interest and reserved
+exchange certificates are not ordinary purchase options.
+
+The family review for purchase evaluation, payments, Action/state flow, and shared confirmation
+covers the same full catalog and ownership/finance profiles above, plus the study's
+stock-round/action-order and capitalization variations. Company investors require
+separate actor/buyer identities; different capitalization schemes require an explicit
+recipient rather than inferring one from an IPO label. Different share denominations
+require title pricing of a certificate; limits use share units and weighted certificate
+counts. Ordered payers exercise TOP's required contribution without conflating
+control with liability. Full-round sequencing, shorts, escrow, and unusual multi-buy
+procedures remain separate future work. The one-purchase handler delegates the
+next decision and its active-player changes to the next state.
+
+Engine tests verify exact payment and certificate ownership for both Bank and
+treasury sales, Union Bank contributions, reserved/unavailable certificates,
+unaffordable purchases, actor/buyer authorization, prior sales, limits, stale prices,
+and deferred flotation/presidency cases. Hydration accepts serialized and already
+hydrated input while preserving strict validation at the serialized boundary.
+Undo and processed replay reproduce cash, certificates, round facts, and turn state.
+Desktop/mobile browser checks exercise manual selection, Back, confirmation,
+purchase history, reload, Undo, and title switching.

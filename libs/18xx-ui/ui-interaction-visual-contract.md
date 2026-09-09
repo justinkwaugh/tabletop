@@ -185,7 +185,10 @@ Bank's cash and certificates. Each certificate shows its shares or private
 ownership, president's-certificate status, and certificate-limit contribution.
 Numbered shares retain their numbers. Company details identify the President or
 private Owner and the Controlling Owner. Titles may add share-specific details.
-All content is read-only.
+The portfolio inspector is read-only. A purchase panel above it offers existing
+shares for the active player or a company that player may act for. Selecting one
+shows the buyer, seller, price, and each cash payment before confirmation.
+Native buttons support keyboard, pointer, and touch input.
 
 ### Coexistence and precedence
 
@@ -203,14 +206,26 @@ owns no selection, Action Draft, hover, or financial mutations. Switching titles
 disposes the previous Game Session. Revisiting restores the saved local example
 for the current fixture version. The host preserves earlier versions and creates
 a current example when needed. Loading and failure states belong to the host.
-There are no game Actions, Back/Undo controls, or history transitions in this scenario.
+The Game Session owns one manual purchase selection. It drives only the payment
+preview; it never changes cash or certificate ownership. Back clears that selection.
+Undo clears a manual selection first, otherwise it undoes the committed purchase.
+There are no automatic selections. A selection is hidden while visible state is
+updating and cleared before the next state is published. History view is read-only.
+Title switching and reload discard uncommitted selection.
+
+Confirmation submits a BuyShares Action through the Game Session. The engine
+rechecks eligibility and price before settling payments. While busy, purchase and
+Undo controls are disabled. The prepared turn ends after one purchase, displaying
+its payment history and updated portfolios; Undo restores the turn. Saved purchases
+and their history survive reload. The example does not expose history navigation.
 
 ### Render ownership
 
 The shared Portfolio renders certificates grouped by pool and optional cash.
 FinanceInspector arranges owners and displays private ownership, presidency, and
 controlling ownership. Titles supply share-specific explanations; the host supplies
-title choice and Game Session lifetime. These are prototype layouts.
+title choice and Game Session lifetime. The shared purchase panel renders session
+choices, confirmation, and committed payment history. These are prototype layouts.
 
 ### Verification scenarios
 
@@ -220,3 +235,11 @@ and Souris's President from its Controlling Owner. They verify PEIR's numbered
 shares and payout fraction, company-owned privates, Bank-owned IPO/Market pools,
 title switching, current-example reload, and preservation of older examples.
 Screens must have no horizontal overflow or page errors.
+
+Purchase checks at desktop/mobile widths select a Union Bank purchase, cancel with
+Back, cancel with Undo, confirm, reload, and undo the saved purchase. They verify
+Union Bank pays 40 and Alex pays 52, while Union Bank receives the certificate.
+Reserved shares are disabled. 1889 displays IPO price 65 and Market price 90;
+confirming the IPO purchase pays the Bank and moves the certificate to Alex.
+Switching titles clears a pending selection. Engine tests verify exact processed
+replay and Undo, rejection without mutation, and authoritative payment metadata.

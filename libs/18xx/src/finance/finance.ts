@@ -27,6 +27,9 @@ export const Company = Type.Object(
         name: Id,
         kind: Id,
         shareCount: Type.Optional(Type.Integer({ minimum: 1 })),
+        parPrice: Type.Optional(Type.Integer({ minimum: 1 })),
+        marketPrice: Type.Optional(Type.Integer({ minimum: 1 })),
+        floated: Type.Optional(Type.Boolean()),
         president: Type.Optional(President),
         privateRevenue: Type.Optional(Type.Integer({ minimum: 0 }))
     },

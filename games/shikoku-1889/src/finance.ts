@@ -18,8 +18,26 @@ export function createShikoku1889FinanceExample(players: readonly PlayerState[])
     return {
         bank: { name: 'Bank' },
         companies: [
-            { id: 'AR', name: 'Awa Railroad', kind: 'major', shareCount: 10, president: alex },
-            { id: 'IR', name: 'Iyo Railway', kind: 'major', shareCount: 10, president: blair },
+            {
+                id: 'AR',
+                name: 'Awa Railroad',
+                kind: 'major',
+                shareCount: 10,
+                parPrice: 65,
+                marketPrice: 90,
+                floated: true,
+                president: alex
+            },
+            {
+                id: 'IR',
+                name: 'Iyo Railway',
+                kind: 'major',
+                shareCount: 10,
+                parPrice: 70,
+                marketPrice: 100,
+                floated: true,
+                president: blair
+            },
             { id: 'MF', name: 'Mitsubishi Ferry', kind: 'private', privateRevenue: 5 },
             { id: 'ER', name: 'Ehime Railroad', kind: 'private', privateRevenue: 10 }
         ],

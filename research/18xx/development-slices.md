@@ -376,6 +376,22 @@ generic transfer button or claimed complete initialization.
 
 ## 2. Buy an existing share and settle its actual cost
 
+**Implemented:** shared purchase evaluation, payment settlement, BuyShares Action,
+stock-purchase handler, and Game Session selection/confirmation with payment
+history and Undo. Both title examples offer one prepared active turn. TOP includes
+Bank and treasury sources and Union Bank's treasury-first contribution; 1889
+uses IPO par and Market prices. Engine tests cover settlement, rejection, hydration,
+Undo, and processed replay; browser tests cover desktop/mobile interaction.
+
+**Current boundary:** three-player examples, ordinary market spaces, floated
+companies, and purchases that retain the incumbent president. Colored-market
+exceptions and presidency changes arrive with slice 3; flotation with slice 4;
+full stock-round progression with slice 5. The title rules supply permitted buyers,
+purchase sources/prices, payers/recipients, and limits; shared code settles the
+result without game imports. Broader-family corporate buyers, certificate sizes,
+and capitalization recipients informed that boundary without adding unexercised
+short-sale, escrow, or multi-buy machinery.
+
 **Outcome:** execute a stock purchase through the Game Session in both title examples.
 
 **Shared work:** purchase eligibility, cash settlement and ownership transfer;

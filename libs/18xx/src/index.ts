@@ -8,3 +8,8 @@ export * from './map/map.js'
 export { parseTileFace, parseTileDefinition } from './tiles/validation.js'
 export * from './finance/finance.js'
 export * from './examples/financeExample.js'
+
+export * from './stock/sharePurchase.js'
+export * from './stock/stockRound.js'
+export * from './stock/buyShares.js'
+export * from './stock/buyingShares.js'

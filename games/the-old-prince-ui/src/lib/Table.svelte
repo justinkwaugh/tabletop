@@ -2,11 +2,18 @@
     import type { GameSession } from '@tabletop/frontend-components'
     import { requireFinanceExampleState } from '@tabletop/18xx'
     import type { GameState, HydratedGameState } from '@tabletop/common'
-    import { FinanceInspector } from '@tabletop/18xx-ui'
+    import {
+        FinanceInspector,
+        SharePurchase,
+        requireFinanceExampleSession
+    } from '@tabletop/18xx-ui'
     import { peirShares, peirPresident } from '@tabletop/the-old-prince'
     let { gameSession }: { gameSession: GameSession<GameState, HydratedGameState> } = $props()
+    const session = $derived(requireFinanceExampleSession(gameSession))
     const state = $derived(requireFinanceExampleState(gameSession.gameState))
 </script>
+
+<SharePurchase {session} />
 
 <p class="peir-summary">
     PEIR: {peirShares(state).length} outstanding shares. President: {gameSession.game.players.find(

@@ -1,9 +1,10 @@
-# Shikoku 1889 finance inspection
+# Shikoku 1889 finances
 
 The finance example follows the shared
 [finance inspection contract](../../../libs/18xx-ui/ui-interaction-visual-contract.md#finance-inspection).
-The Game Session exposes the title's illustrative position; the screen has no
-Action Draft or gameplay mutations. Switching away disposes this Game Session,
+The Game Session exposes an illustrative position with one prepared stock turn.
+Share selection, payment confirmation, purchase history, and Undo follow the shared
+contract. Switching away disposes this Game Session,
 and revisiting restores its local example.
 
 IPO and Market appear as separate pools of Bank-owned certificates. A president
@@ -13,4 +14,8 @@ Controlling Owner identifies the player in control without changing ownership.
 
 Browser checks cover those distinctions, title switching, and reload at desktop
 and mobile widths. Runtime tests verify hydration and player identity stability.
-No history behavior is claimed for this action-free scenario.
+Purchase, reload, and Undo are checked in the browser; processed-action replay is
+checked through the engine.
+
+IPO purchases display the par price; Market purchases display the market price.
+Both pay the Bank. The prepared position uses ordinary market spaces.

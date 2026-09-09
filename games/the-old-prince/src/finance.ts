@@ -26,14 +26,32 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
                 name: 'Charlottetown · Mainline',
                 kind: 'major',
                 shareCount: 10,
+                marketPrice: 92,
+                floated: true,
                 president: alex
             },
-            { id: 'So', name: 'Souris', kind: 'major', shareCount: 10, president: union },
+            {
+                id: 'So',
+                name: 'Souris',
+                kind: 'major',
+                shareCount: 10,
+                marketPrice: 86,
+                floated: true,
+                president: union
+            },
             { id: 'PEIR', name: 'Prince Edward Island Railway', kind: 'major', president: blair },
             { id: 'VR', name: 'Vernon River Bridge', kind: 'private', privateRevenue: 10 },
             { id: 'KM', name: 'The King’s Mail', kind: 'private', privateRevenue: 60 }
         ],
-        certificatePools: [{ id: 'market', name: 'Market', owner: bank }],
+        certificatePools: [
+            { id: 'market', name: 'Market', owner: bank },
+            {
+                id: 'treasury:ML',
+                name: 'Treasury shares',
+                owner: { kind: 'company', companyId: 'ML' }
+            },
+            { id: 'reserved', name: 'Reserved exchanges', owner: bank }
+        ],
         cash: [
             ...players.map((player, index) => ({
                 owner: { kind: 'player', playerId: player.playerId } as const,
@@ -55,8 +73,8 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
                     { owner: blair },
                     market,
                     market,
-                    market,
-                    market
+                    { owner: { kind: 'company', companyId: 'ML' }, poolId: 'treasury:ML' },
+                    { owner: bank, poolId: 'reserved' }
                 ],
                 alex
             ),

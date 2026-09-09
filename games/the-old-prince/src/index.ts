@@ -3,3 +3,5 @@ export { TheOldPrincePreprintedTiles } from './preprintedTiles.js'
 export { TheOldPrinceMap } from './map.js'
 export * from './finance.js'
 export { Definition } from './definition.js'
+
+export * from './sharePurchase.js'

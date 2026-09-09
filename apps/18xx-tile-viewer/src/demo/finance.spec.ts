@@ -32,6 +32,10 @@ it.each([Top, Shikoku])(
             JSON.parse(JSON.stringify(initialState))
         )
         const before = state.dehydrate()
+        expect(definition.runtime.hydrator.hydrateState(state).dehydrate()).toEqual(before)
+        expect(
+            new GameEngine(definition.runtime).getValidActionTypesForPlayer(game, state, 'alex')
+        ).toEqual(['BuyShares'])
         state.players.reverse()
         state.players.forEach((player) => (player.color = Color.Purple))
         const restored = definition.runtime.hydrator.hydrateState(
@@ -56,8 +60,8 @@ it.each([Top, Shikoku])(
         expect(president.shares).toBe(2)
         expect(president.certificateLimitCount).toBe(1)
         expect(getCompany(restored, president.companyId).shareCount).toBe(10)
-        expect(restored.activePlayerIds).toEqual([])
-        expect(Object.keys(definition.runtime.apiActions)).toEqual([])
+        expect(restored.activePlayerIds).toEqual(['alex'])
+        expect(Object.keys(definition.runtime.apiActions)).toEqual(['BuyShares'])
         expect(() =>
             definition.runtime.hydrator.hydrateState({
                 ...initialState,

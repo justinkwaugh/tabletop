@@ -1,3 +1,4 @@
+import { Shikoku1889SharePurchaseRules } from './sharePurchase.js'
 import { type GameDefinition } from '@tabletop/common'
 import {
     createFinanceExampleRuntime,
@@ -22,5 +23,8 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
             beta: true
         }
     },
-    runtime: createFinanceExampleRuntime(createShikoku1889FinanceExample)
+    runtime: createFinanceExampleRuntime(
+        createShikoku1889FinanceExample,
+        Shikoku1889SharePurchaseRules
+    )
 }
