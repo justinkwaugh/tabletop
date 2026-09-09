@@ -3,6 +3,8 @@
 Shared deterministic logic for the 18xx family, built on `@tabletop/common`.
 The first implemented module is the [tile foundation](tiles.md): serializable
 faces and catalog definitions, explicit variants, rotation, and topology queries.
+The [physical supply module](inventory.md) adds complete title manifests,
+independent inventories, paired faces, and prepared tile replacements.
 Further models, calculations, Actions, and reusable decision procedures will be
 developed alongside TOP and Shikoku 1889.
 

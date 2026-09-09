@@ -162,7 +162,7 @@ copying it; a verified same-number variant can coexist without overwriting that
 definition. Use shared #7/#8/#9 in TOP and 1889 as reuse cases, and the standard
 #611 versus 1832's Y-labeled #611 as a variant case. Round-trip schemas preserve topology; all six rotations transform
 edge references consistently; crossing paths do not connect unless the definition
-contains an appropriate shared node. Printed map hexes can use the same semantic
+contains an appropriate shared node. Preprinted tilees can use the same semantic
 vocabulary without receiving an invented tile number. Record source/edition
 provenance for catalog entries in design documentation, without research-source
 references in implementation or test code.
@@ -177,13 +177,21 @@ two tile numbers establish a universally permitted upgrade.
 
 ## T2. Build a lasting SVG tile renderer and inspection gallery
 
+**Implemented:** [T2 interface, design review, and verification](../../libs/18xx-ui/tiles.md).
+Includes Classic/Muted appearances and a standalone development gallery in
+[`apps/18xx-tile-viewer`](../../apps/18xx-tile-viewer/README.md). Only the app
+depends on game packages; the shared libraries do not, even for development or tests.
+Game tile-selection UI will be designed in an actual game context. Complete title
+inventories remain T3 work.
+
 **Outcome:** inspect catalog tiles in all rotations, at board/thumbnail/detail
 sizes, using the same reusable renderer intended for the eventual games. Export a
 lasting tile-library viewer from `@tabletop/18xx-ui`, usable as a standalone
 development gallery or embedded in a game's interface.
 
 **Shared work:** SVG track geometry, cities/towns, station spots, revenue values,
-labels, tile numbers, and the relevant special markings. Common supplies hex
+labels, and the relevant special markings. Tile numbers remain catalog metadata
+shown in the surrounding viewer, rather than printed on the artwork. Common supplies hex
 geometry; the tile renderer derives connections from T1's semantic paths and uses
 separate layout information for curves, label placement, and visual clarity.
 Allow layout adjustments for complex tiles without changing their rule meaning.
@@ -199,8 +207,7 @@ including paired faces and unlimited supply where supported. Keep search and
 inspection state local. An embedded host may consume a selected catalog reference
 and rotation; the host owns staging any gameplay Action and querying legality.
 
-**Acceptance:** the same exported viewer works in a standalone gallery and an
-embedded view, exposing supported tiles, rotations, and title variants for visual
+**Acceptance:** the exported viewer exposes supported tiles, rotations, and title variants for visual
 review. Search finds same-number variants without collapsing them; browsing never
 mutates definitions or requires live game state. Validate visible edge connections against model endpoints,
 distinguish a crossing from a junction, and inspect city/slot/track/label collisions
@@ -222,6 +229,12 @@ connectivity from SVG intersections.
 **Depends on:** T1.
 
 ## T3. Compose title tile sets and verify physical inventory
+
+**Implemented:** [T3 inventory design, title reconciliation, and verification](../../libs/18xx/inventory.md).
+Complete TOP (58 definitions/164 pieces), 1889 standard (40/63), and 1889 beginner
+(40/71) manifests; finite single/paired physical supply; prepared return/retire
+replacement; viewer counts; representative preprinted tiles. Unlimited and conditional
+supply remain explicit later extensions.
 
 **Outcome:** TOP and 1889 select shared catalog entries plus explicit special
 definitions, with independent counts, and can display their complete selected

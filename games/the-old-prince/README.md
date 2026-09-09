@@ -4,10 +4,10 @@
 on `@tabletop/18xx` and `@tabletop/common`; its companion Game Client package is
 `@tabletop/the-old-prince-ui`.
 
-The public entry point exports `TheOldPrinceTileSpecimens`: an initial selection
-of shared catalog definitions plus the title-owned PEI1 definition. See the
-[T1 tile foundation](../../libs/18xx/tiles.md). This is not the complete tile set
-or an inventory manifest. There is no Game State, initializer,
+The public entry point exports `TheOldPrinceTileSet` and `TheOldPrinceTiles`:
+58 definitions and 164 physical pieces, including all sixteen PEI specials.
+`TheOldPrincePreprintedTiles` supplies representative preprinted tiles. See the
+[T3 inventory design and evidence](../../libs/18xx/inventory.md). There is no Game State, initializer,
 Action registration, or `GameDefinition` yet, and the title is not registered in
 the site catalog. Shared mechanisms will be developed against both TOP and
 Shikoku 1889 before composing their title runtimes.

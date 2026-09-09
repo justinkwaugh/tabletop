@@ -21,7 +21,8 @@
         "clean": "rimraf .svelte-kit dist",
         "build": "pnpm run package",
         "package": "svelte-kit sync && svelte-package",
-        "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
+        "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+        "test": "vitest run"
     },
     "peerDependencies": {
         "@sveltejs/kit": "^2.48.4",
@@ -40,6 +41,9 @@
         "svelte": "^5.0.0",
         "svelte-check": "^4.3.5",
         "typescript": "5.9.3",
-        "vite": "^7.3.1"
+        "vite": "^7.3.1",
+        "@tabletop/vitest-config": "workspace:*",
+        "vitest": "^4.0.12",
+        "prettier-plugin-svelte": "^3.4.1"
     }
 }

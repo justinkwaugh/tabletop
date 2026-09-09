@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 
-type ImmutableTileData<T> = { readonly [K in keyof T]: ImmutableTileData<T[K]> }
+export type ImmutableTileData<T> = { readonly [K in keyof T]: ImmutableTileData<T[K]> }
 
 const Identifier = Type.String({ minLength: 1 })
 
@@ -77,7 +77,9 @@ export const TileFace = Type.Object(
         color: Identifier,
         nodes: Type.Array(TileNode),
         paths: Type.Array(TilePath),
-        labels: Type.Array(Identifier, { uniqueItems: true })
+        labels: Type.Array(Identifier, { uniqueItems: true }),
+        symbols: Type.Optional(Type.Array(Identifier, { uniqueItems: true })),
+        upgradeCost: Type.Optional(Type.Integer({ minimum: 0 }))
     },
     { additionalProperties: false }
 )

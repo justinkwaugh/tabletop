@@ -2,8 +2,11 @@
 
 The tile library supplies semantic faces, a catalog of numbered definitions, and
 rotation/endpoint queries. It has no rendering or Game Session dependency.
-TOP and 1889 export initial specimen selections referencing the shared definitions;
-these are intentionally incomplete tile sets, not supply manifests.
+T1 introduced specimen selections. [T3](inventory.md) now supplies complete TOP
+and 1889 title manifests, physical inventory, and representative preprinted tiles.
+
+[Preprinted tiles](CONTEXT.md) belong to map locations. Their content uses the
+same `TileFace` model as supply tiles, without a physical supply-piece identity.
 
 The implementation follows this repository's TypeBox schemas, immutable catalog
 data, explicit endpoint records, and Common hex types/utilities. Research informed
@@ -30,7 +33,7 @@ track, station, routing, and resource comparisons inform every asset here:
 This work implements the first five rows and preserves the distinctions needed by
 the last two without adding unused rule engines. Halts, gauges, lanes, terminals,
 future labels, revenue modifiers, borders, partitions, and special markings remain
-unsupported. Closed schemas reject extra properties instead of silently discarding
+unsupported except for T3's port symbol and scalar face-upgrade cost. Closed schemas reject extra properties instead of silently discarding
 them. The face schema can express the topology of a printed map hex; it does not
 claim to describe the whole location. M1 must add map-owned facts and extend the
 supported face vocabulary as needed.
@@ -97,7 +100,8 @@ they must not derive track connectivity from drawn intersections.
 ## Specimens and verification
 
 `StandardTileCatalog` currently includes 3, 5, 6, 7, 8, 9, 14, 16, 81, and 611.
-TOP adds PEI1 in its own package. Shared #81 exercises explicit junctions, while
+TOP adds PEI1 in its own package, with T/X/CX specimens added for T2 rendering.
+Shared #81 exercises explicit junctions, while
 the 1832 #611 variant is a test fixture rather than a new title implementation.
 The tests also exercise an unnumbered TOP G11 topology/revenue example and
 synthetic separate-city and invalid-input cases.

@@ -106,7 +106,7 @@ describe('tile topology', () => {
         expect(city.nodes[0]).toMatchObject({ kind: 'city', stationSlots: 2 })
     })
 
-    it('supports unnumbered printed faces, separate cities, and title-owned revenue stages', () => {
+    it('supports unnumbered preprinted tiles, separate cities, and title-owned revenue stages', () => {
         const printed: TileFace = {
             color: 'gray',
             nodes: [
