@@ -11,6 +11,7 @@
     } from '$lib/utils/tournamentPresentation'
     import TournamentScheduleView from './TournamentScheduleView.svelte'
     import TournamentForm from './TournamentForm.svelte'
+    import TournamentResultCorrection from './TournamentResultCorrection.svelte'
     import TournamentGameOptions from './TournamentGameOptions.svelte'
 
     let { id }: { id: string } = $props()
@@ -20,7 +21,26 @@
     let now = $state(Date.now())
     let detail = $state<TournamentDetail>()
     let tournament = $derived(detail?.tournament)
-    let showStandings = $derived(tournament?.status === 'inProgress')
+    let showStandings = $derived(
+        tournament?.status === 'inProgress' || tournament?.status === 'finished'
+    )
+    let standingByUser = $derived(
+        new Map((detail?.standings ?? []).map((row) => [row.userId, row]))
+    )
+    let entrants = $derived(
+        detail?.standings?.length
+            ? [...(tournament?.entrants ?? [])].sort(
+                  (a, b) =>
+                      (standingByUser.get(a.userId)?.rank ?? 0) -
+                      (standingByUser.get(b.userId)?.rank ?? 0)
+              )
+            : (tournament?.entrants ?? [])
+    )
+    let winners = $derived(
+        tournament?.status === 'finished'
+            ? (detail?.standings?.filter((row) => row.rank === 1) ?? [])
+            : []
+    )
     let scheduleFirst = $derived(Boolean(tournament?.stages[0]?.scheduleId))
     let title = $derived(
         tournament ? libraryService.titlesById[tournament.rules.titleId] : undefined
@@ -39,6 +59,7 @@
             ? tournament.entrants.length >= (tournament.rules.registration.capacity ?? 256)
             : false
     )
+    let correcting = $state(false)
     let editingDraft = $state(false)
     let error = $state('')
     let busy = $state(false)
@@ -65,6 +86,19 @@
             else await api.actOnTournament(id, operation)
         } catch (failure) {
             error = failure instanceof Error ? failure.message : 'Could not update tournament'
+        } finally {
+            await refresh()
+            busy = false
+        }
+    }
+    async function rebuildStandings() {
+        if (!tournament) return
+        busy = true
+        error = ''
+        try {
+            await api.rebuildTournamentStandings(id, tournament.revision)
+        } catch (failure) {
+            error = failure instanceof Error ? failure.message : 'Could not rebuild standings'
         } finally {
             await refresh()
             busy = false
@@ -194,7 +228,20 @@
                                         >
                                     {/if}
                                 {/if}
-                                {#if tournament.status !== 'inProgress'}
+                                {#if showStandings}
+                                    <button
+                                        class="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        disabled={busy}
+                                        onclick={() => (correcting = !correcting)}
+                                        >Correct result</button
+                                    >
+                                    <button
+                                        class="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        disabled={busy}
+                                        onclick={rebuildStandings}>Rebuild standings</button
+                                    >
+                                {/if}
+                                {#if tournament.status !== 'inProgress' && tournament.status !== 'finished'}
                                     <button
                                         class="w-full rounded px-2 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-300 dark:hover:bg-red-950/30"
                                         disabled={busy}
@@ -211,6 +258,20 @@
                 >
                     {tournament.description}
                 </p>{/if}
+            {#if tournament.status === 'finished'}
+                <p class="mt-3 text-sm text-gray-600 dark:text-gray-300">
+                    {winners.length === 1 ? 'Winner' : 'Shared winners'}:
+                    {#each winners as winner, index}
+                        {#if index > 0},
+                        {/if}<span
+                            class={winner.userId === user?.id
+                                ? 'text-orange-700 dark:text-orange-300'
+                                : ''}
+                            >{detail.usernames[winner.userId] ?? 'Unavailable account'}</span
+                        >
+                    {/each}
+                </p>
+            {/if}
             <p class="mt-3 text-xs text-gray-500">
                 {#if tournament.paused}
                     New games are paused. Games already started can continue.
@@ -225,6 +286,9 @@
                 {/if}
             </p>
         </header>
+        {#if isAdmin && correcting && showStandings}
+            <TournamentResultCorrection {detail} onchanged={() => void refresh()} />
+        {/if}
         {#if isAdmin && tournament.status === 'draft' && editingDraft}
             <section
                 aria-label="Edit tournament draft"
@@ -289,10 +353,15 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200/60 dark:divide-gray-700/40">
-                            {#each detail.tournament.entrants as entrant (entrant.userId)}
+                            {#each entrants as entrant (entrant.userId)}
+                                {@const standing = standingByUser.get(entrant.userId)}
                                 <tr>
                                     <td class="py-2.5 pr-3">
                                         <div class="flex min-w-0 items-center gap-2">
+                                            {#if standing}<span
+                                                    class="w-4 shrink-0 text-xs tabular-nums text-gray-500"
+                                                    >{standing.rank}</span
+                                                >{/if}
                                             <span
                                                 class="truncate {entrant.userId === user?.id
                                                     ? 'text-orange-700 dark:text-orange-300'
@@ -303,16 +372,28 @@
                                                 {detail.usernames[entrant.userId] ??
                                                     'Unavailable account'}
                                             </span>
+                                            {#if winners.some((winner) => winner.userId === entrant.userId)}<span
+                                                    class="shrink-0 text-amber-600 dark:text-amber-400"
+                                                    aria-label="Tournament winner"
+                                                    title="Tournament winner">★</span
+                                                >{/if}
                                         </div>
+                                        {#if standing}<p class="mt-1 text-[11px] text-gray-500">
+                                                {standing.completed} finished · {standing.active} active
+                                                · {standing.remaining - standing.active} waiting
+                                            </p>{/if}
                                     </td>
                                     {#if showStandings}
                                         <td
                                             class="py-2.5 text-right tabular-nums text-gray-400"
-                                            aria-label="Wins unavailable">—</td
+                                            aria-label="Wins">{standing?.wins ?? '—'}</td
                                         >
                                         <td
                                             class="py-2.5 text-right tabular-nums text-gray-400"
-                                            aria-label="Score unavailable">—</td
+                                            aria-label="Score"
+                                            >{standing?.score.toLocaleString(undefined, {
+                                                maximumFractionDigits: 3
+                                            }) ?? '—'}</td
                                         >
                                     {:else if joined && canLeave}
                                         <td class="py-2.5 text-right">
@@ -382,6 +463,26 @@
                 </section>
             </aside>
         </div>
+        {#if tournament.stages[0]?.corrections?.length}
+            <details class="mt-5 text-xs text-gray-500">
+                <summary class="cursor-pointer"
+                    >Result corrections ({tournament.stages[0].corrections.length})</summary
+                >
+                <ul class="mt-2 space-y-2">
+                    {#each tournament.stages[0].corrections as correction}
+                        <li>
+                            Table {correction.tableId}: {correction.winningUserIds
+                                .map((id) => detail?.usernames[id] ?? id)
+                                .join(', ')} — {correction.reason}<br />
+                            {detail.usernames[correction.administratorId] ??
+                                correction.administratorId} · {new Date(
+                                correction.createdAt
+                            ).toLocaleString()}
+                        </li>
+                    {/each}
+                </ul>
+            </details>
+        {/if}
         {#if !scheduleFirst}{@render scheduleSection(detail)}{/if}
     {/if}
 </main>

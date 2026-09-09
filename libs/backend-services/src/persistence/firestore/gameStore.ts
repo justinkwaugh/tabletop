@@ -1,3 +1,8 @@
+import {
+    applyTournamentGameScore,
+    createTournamentStandings,
+    finalizeTournament
+} from '../../competitions/tournamentScoring.js'
 import { Timed, measure, countTiming } from '../../diagnostics/requestTimings.js'
 import {
     CollectionReference,
@@ -791,19 +796,19 @@ export class FirestoreGameStore implements GameStore {
                 }
             }
 
+            Object.assign(updatedGame, gameUpdates)
+            updatedGame.state = state
             if (!existingState.result && state.result && existingGame.tournament) {
                 validateGameResult(state)
                 if (state.result !== GameResult.Abandoned)
                     await this.finishTournamentTable(
                         transaction,
                         locks,
-                        existingGame.tournament,
+                        updatedGame,
                         updateDate.getTime()
                     )
             }
 
-            Object.assign(updatedGame, gameUpdates)
-            updatedGame.state = state
             await this.protectChangedLists(locks, existingGame, updatedGame)
 
             storedActions.forEach((action) => {
@@ -848,28 +853,42 @@ export class FirestoreGameStore implements GameStore {
     private async finishTournamentTable(
         transaction: Transaction,
         locks: CacheWriteLocks,
-        reference: NonNullable<Game['tournament']>,
+        game: Game,
         now: number
     ): Promise<void> {
+        const reference = game.tournament
+        assertExists(reference, 'Tournament reference is required')
         const ref = this.firestore.collection('tournaments').doc(reference.tournamentId)
         const data = await this.readTournament(transaction, reference.tournamentId)
         const stage = data.stages.find((stage) => stage.id === reference.stageId)
         assert(stage?.scheduleId === reference.scheduleId, 'Tournament schedule changed')
         if (!stage.dispatch || stage.dispatch.finished.includes(reference.tableId)) return
+        const listKeys = this.tournamentCacheKeys.lists(data)
+        stage.standings ??= createTournamentStandings(data)
+        applyTournamentGameScore(data, stage.standings, game)
         stage.dispatch.active = stage.dispatch.active.filter((id) => id !== reference.tableId)
         stage.dispatch.reserved = stage.dispatch.reserved.filter((id) => id !== reference.tableId)
         stage.dispatch.finished.push(reference.tableId)
+        finalizeTournament(data, now)
         data.revision++
         data.updatedAt = now
         await locks.addKeys([
             this.tournamentCacheKeys.key('event', data.id),
+            this.tournamentCacheKeys.key('games', data.id),
+            ...listKeys,
             ...this.tournamentCacheKeys.lists(data)
         ])
         transaction.update(ref, {
             stages: data.stages,
             revision: data.revision,
             updatedAt: now,
-            ...(!data.paused ? { nextTaskAt: now } : {})
+            status: data.status,
+            ...(data.finishedAt !== undefined ? { finishedAt: data.finishedAt } : {}),
+            ...(data.status === 'finished'
+                ? { nextTaskAt: FieldValue.delete(), paused: FieldValue.delete() }
+                : !data.paused
+                  ? { nextTaskAt: now }
+                  : {})
         })
     }
 

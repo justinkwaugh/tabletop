@@ -19,6 +19,7 @@ import {
     Visibility,
     Tournament,
     TournamentDetail,
+    type CorrectTournamentResultRequest,
     TournamentList,
     TournamentSchedule,
     type CommitTournamentScheduleRequest,
@@ -313,6 +314,12 @@ export class TabletopApi {
 
     getTournament(id: string) {
         return this.requestTournament(`/tournaments/${encodeURIComponent(id)}`, TournamentDetail)
+    }
+    correctTournamentResult(id: string, request: CorrectTournamentResultRequest) {
+        return this.requestTournament(`/tournaments/${encodeURIComponent(id)}/results/correct`, Tournament, 'POST', request)
+    }
+    rebuildTournamentStandings(id: string, revision: number) {
+        return this.requestTournament(`/tournaments/${encodeURIComponent(id)}/standings/rebuild`, Tournament, 'POST', { revision })
     }
     getTournamentSchedule(id: string) {
         return this.requestTournament(

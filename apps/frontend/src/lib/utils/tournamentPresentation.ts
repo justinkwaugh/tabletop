@@ -33,6 +33,8 @@ export function tournamentStatusText(tournament: Tournament, now = Date.now()): 
             return 'Draft'
         case 'open':
             return 'Registration open'
+        case 'finished':
+            return 'Finished'
         case 'inProgress':
             return 'In progress'
         case 'locked':

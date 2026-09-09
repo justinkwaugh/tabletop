@@ -15,8 +15,8 @@ export function validateGameResult(state: GameState): void {
         winners.every((id) => state.players.some((player) => player.playerId === id)),
         'Game winners must be players in the game'
     )
-    if (state.result === GameResult.Win) {
-        assert(winners.length > 0, 'Winning game must declare winners')
+    if (state.result === GameResult.Win || state.result === GameResult.Draw) {
+        assert(winners.length > 0, 'Finished game must declare winners')
     } else if (state.result === GameResult.Abandoned) {
         assert(winners.length === 0, 'Abandoned game cannot declare winners')
     }

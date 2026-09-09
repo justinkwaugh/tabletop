@@ -1,4 +1,5 @@
 import * as Type from 'typebox'
+import { GameResult } from '../game/model/gameResult.js'
 import { GameConfig } from '../game/model/gameConfig.js'
 import { TournamentGameReference } from './tournamentGameReference.js'
 
@@ -103,6 +104,43 @@ export const TournamentDispatch = Type.Object({
 })
 export type TournamentDispatch = Type.Static<typeof TournamentDispatch>
 
+export const TournamentScore = Type.Object({
+    wins: Type.Integer({ minimum: 0 }),
+    score: Type.Number({ minimum: 0 }),
+    completed: Type.Integer({ minimum: 0 })
+})
+export type TournamentScore = Type.Static<typeof TournamentScore>
+
+export const TournamentStanding = Type.Object({
+    ...TournamentScore.properties,
+    userId: Type.String(),
+    rank: Type.Integer({ minimum: 1 }),
+    active: Type.Integer({ minimum: 0 }),
+    remaining: Type.Integer({ minimum: 0 })
+})
+export type TournamentStanding = Type.Static<typeof TournamentStanding>
+
+export const TournamentResultCorrection = Type.Object({
+    tableId: TournamentId,
+    winningUserIds: Type.Array(Type.String(), { minItems: 1, maxItems: 16 }),
+    administratorId: Type.String(),
+    reason: Type.String({ minLength: 1, maxLength: 1000 }),
+    createdAt: Type.Integer(),
+    gameActionCount: Type.Integer({ minimum: 0 })
+})
+export type TournamentResultCorrection = Type.Static<typeof TournamentResultCorrection>
+
+export const CorrectTournamentResultRequest = Type.Object(
+    {
+        revision: Type.Integer({ minimum: 1 }),
+        tableId: TournamentId,
+        winningUserIds: Type.Array(Type.String(), { minItems: 1, maxItems: 16 }),
+        reason: Type.String({ minLength: 1, maxLength: 1000 })
+    },
+    { additionalProperties: false }
+)
+export type CorrectTournamentResultRequest = Type.Static<typeof CorrectTournamentResultRequest>
+
 export const TournamentStage = Type.Object(
     {
         id: TournamentId,
@@ -110,6 +148,8 @@ export const TournamentStage = Type.Object(
         scheduleId: Type.Optional(Type.String()),
         scheduledAt: Type.Optional(Type.Integer()),
         dispatch: Type.Optional(TournamentDispatch),
+        corrections: Type.Optional(Type.Array(TournamentResultCorrection)),
+        standings: Type.Optional(Type.Array(TournamentScore, { maxItems: 256 })),
         rosterRevision: Type.Integer(),
         createdAt: Type.Integer()
     },
@@ -127,6 +167,7 @@ export const Tournament = Type.Object(
             Type.Literal('open'),
             Type.Literal('locked'),
             Type.Literal('inProgress'),
+            Type.Literal('finished'),
             Type.Literal('cancelled')
         ]),
         revision: Type.Integer({ minimum: 1 }),
@@ -140,6 +181,7 @@ export const Tournament = Type.Object(
         startId: Type.Optional(Type.String()),
         nextTaskAt: Type.Optional(Type.Integer()),
         paused: Type.Optional(Type.Boolean()),
+        finishedAt: Type.Optional(Type.Integer()),
         cancelledAt: Type.Optional(Type.Integer()),
         cancellationReason: Type.Optional(
             Type.Union([Type.Literal('undersubscribed'), Type.Literal('administrator')])
@@ -151,14 +193,17 @@ export type Tournament = Type.Static<typeof Tournament>
 
 export const TournamentGameLink = Type.Object({
     ...Type.Pick(TournamentGameReference, ['stageId', 'tableId']).properties,
-    gameId: Type.String()
+    gameId: Type.String(),
+    result: Type.Optional(Type.Enum(GameResult)),
+    winningUserIds: Type.Optional(Type.Array(Type.String()))
 })
 export type TournamentGameLink = Type.Static<typeof TournamentGameLink>
 
 export const TournamentDetail = Type.Object({
     tournament: Tournament,
     usernames: Type.Record(Type.String(), Type.String()),
-    games: Type.Optional(Type.Array(TournamentGameLink))
+    games: Type.Optional(Type.Array(TournamentGameLink)),
+    standings: Type.Optional(Type.Array(TournamentStanding))
 })
 export type TournamentDetail = Type.Static<typeof TournamentDetail>
 
@@ -174,6 +219,7 @@ export const TournamentListQuery = Type.Object(
             Type.Literal('open'),
             Type.Literal('mine'),
             Type.Literal('inProgress'),
+            Type.Literal('finished'),
             Type.Literal('draft')
         ]),
         after: Type.Optional(TournamentId),

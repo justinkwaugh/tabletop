@@ -11,7 +11,6 @@ describe('game result validation', () => {
         { result: GameResult.Win, winners: ['p1'] },
         { result: GameResult.Win, winners: ['p1', 'p2'] },
         { result: GameResult.Draw, winners: ['p1', 'p2'] },
-        { result: GameResult.Draw, winners: [] },
         { result: GameResult.Abandoned, winners: [] }
     ])(
         'accepts $result with declared winners $winners without changing the state',
@@ -25,6 +24,7 @@ describe('game result validation', () => {
 
     it.each([
         { result: GameResult.Win, winners: [] },
+        { result: GameResult.Draw, winners: [] },
         { result: GameResult.Win, winners: ['p1', 'p1'] },
         { result: GameResult.Win, winners: ['outsider'] },
         { result: GameResult.Abandoned, winners: ['p1'] }

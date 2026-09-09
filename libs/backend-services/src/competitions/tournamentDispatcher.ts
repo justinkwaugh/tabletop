@@ -38,13 +38,12 @@ export class TournamentDispatcher {
 
     async run(task: TournamentTask): Promise<void> {
         let tournament = await this.store.read(task.tournamentId)
-        if (
-            !tournament ||
-            tournament.paused ||
-            tournament.status === 'cancelled' ||
-            tournament.status === 'draft'
-        )
+        if (!tournament || tournament.status === 'cancelled' || tournament.status === 'draft')
             return
+        if (tournament.status === 'finished' || tournament.paused) {
+            await this.notify(tournament)
+            return
+        }
         if (tournament.nextTaskAt === undefined || tournament.nextTaskAt > this.now()) return
         if (task.startId && tournament.status === 'open' && tournament.startId !== task.startId)
             return

@@ -32,6 +32,7 @@ async function setup(roles: Role[]) {
     Reflect.set(server, 'userService', { getUser: async () => user })
     const change = vi.fn(async () => ({ id: 'event' }))
     Reflect.set(server, 'tournamentService', {
+        list: change,
         create: change,
         update: change,
         publish: change,
@@ -39,6 +40,8 @@ async function setup(roles: Role[]) {
         control: change,
         lock: change,
         previewSchedule: change,
+        correctResult: change,
+        rebuildStandings: change,
         commitSchedule: change
     })
     await server.register(authorization)
@@ -68,6 +71,16 @@ const draft: TournamentDraft = {
 }
 
 describe('tournament administrator authorization', () => {
+    it('accepts the completed tournament filter', async () => {
+        const { server, user, cookies, change } = await setup([Role.User])
+        const response = await server.inject({
+            method: 'GET',
+            url: '/tournaments/?scope=finished',
+            cookies
+        })
+        expect(response.statusCode).toBe(200)
+        expect(change).toHaveBeenCalledWith(user, { scope: 'finished' })
+    })
     it.each([true, false])(
         'uses the existing session, with administrator role %s',
         async (admin) => {
@@ -86,6 +99,21 @@ describe('tournament administrator authorization', () => {
                     method: 'POST',
                     url: '/tournaments/event/schedule',
                     payload: { revision: 1, seed: 42, version: 1, scheduleId: 'a'.repeat(64) }
+                },
+                {
+                    method: 'POST',
+                    url: '/tournaments/event/results/correct',
+                    payload: {
+                        revision: 1,
+                        tableId: '1',
+                        winningUserIds: ['player'],
+                        reason: 'Correction'
+                    }
+                },
+                {
+                    method: 'POST',
+                    url: '/tournaments/event/standings/rebuild',
+                    payload: { revision: 1 }
                 },
                 ...['publish', 'cancel', 'lock', 'pause', 'resume', 'retry'].map((operation) => ({
                     method: 'POST',

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { Select } from 'flowbite-svelte'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import {
         defaultGameConfig,
@@ -157,13 +158,15 @@
             ></textarea></label
         >
         <label
-            >Game<select
+            >Game<Select
+                size="sm"
+                placeholder=""
                 value={titleId}
                 onchange={(event) => selectTitle(event.currentTarget.value)}
                 required
                 ><option value="">Choose a game</option>{#each titles as item (item.info.id)}<option
                         value={item.info.id}>{item.info.metadata.name}</option
-                    >{/each}</select
+                    >{/each}</Select
             ></label
         >
         {#if libraryService.loading}<p>Loading game titles…</p>{:else if !titles.length}<p
@@ -203,10 +206,10 @@
             >
         </div>
         <label
-            >Registration closes<select bind:value={registrationKind}
+            >Registration closes<Select size="sm" placeholder="" bind:value={registrationKind}
                 ><option value="whenFull">When the tournament fills</option><option value="deadline"
                     >On a specified date</option
-                ></select
+                ></Select
             ></label
         >
         {#if registrationKind === 'whenFull'}
@@ -273,13 +276,15 @@
                                     updateOption(option, event.currentTarget.checked)}
                             />
                         {:else if option.type === ConfigOptionType.List}
-                            <select
+                            <Select
+                                size="sm"
+                                placeholder=""
                                 value={String(config[option.id] ?? '')}
                                 onchange={(event) =>
                                     updateOption(option, event.currentTarget.value)}
                                 >{#each option.options as choice (choice.value)}<option
                                         value={choice.value}>{choice.name}</option
-                                    >{/each}</select
+                                    >{/each}</Select
                             >
                         {:else if option.type === ConfigOptionType.NumberInput}
                             <input
@@ -329,7 +334,6 @@
         font-weight: 500;
     }
     input:not([type='checkbox']),
-    select,
     textarea {
         width: 100%;
         border: 1px solid #6b7280;

@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { type Static } from 'typebox'
+import { Type, type Static } from 'typebox'
 import {
     assertExists,
     CreateTournamentRequest,
@@ -8,6 +8,7 @@ import {
     TournamentListQuery,
     TournamentScheduleRequest,
     CommitTournamentScheduleRequest,
+    CorrectTournamentResultRequest,
     TournamentParams
 } from '@tabletop/common'
 import { TournamentError } from '@tabletop/backend-services'
@@ -73,6 +74,51 @@ export default async function (fastify: FastifyInstance) {
                 status: 'ok',
                 payload: await fastify.tournamentService.getSchedule(
                     request.params.id,
+                    request.user
+                )
+            }
+        }
+    )
+    fastify.post<{ Params: Static<typeof TournamentParams>; Body: CorrectTournamentResultRequest }>(
+        '/:id/results/correct',
+        {
+            schema: { params: TournamentParams, body: CorrectTournamentResultRequest },
+            preHandler: fastify.verifyRoleAdmin
+        },
+        async (request) => {
+            assertExists(request.user, 'Authenticated administrator required')
+            return {
+                status: 'ok',
+                payload: await fastify.tournamentService.correctResult(
+                    request.params.id,
+                    request.body,
+                    request.user
+                )
+            }
+        }
+    )
+    fastify.post<{
+        Params: Static<typeof TournamentParams>
+        Body: Pick<Static<typeof UpdateTournamentRequest>, 'revision'>
+    }>(
+        '/:id/standings/rebuild',
+        {
+            schema: {
+                params: TournamentParams,
+                body: Type.Object(
+                    { revision: Type.Integer({ minimum: 1 }) },
+                    { additionalProperties: false }
+                )
+            },
+            preHandler: fastify.verifyRoleAdmin
+        },
+        async (request) => {
+            assertExists(request.user, 'Authenticated administrator required')
+            return {
+                status: 'ok',
+                payload: await fastify.tournamentService.rebuildStandings(
+                    request.params.id,
+                    request.body.revision,
                     request.user
                 )
             }

@@ -1,5 +1,6 @@
 import {
     defaultGameConfig,
+    type CorrectTournamentResultRequest,
     NotificationCategory,
     Role,
     TournamentDraft,
@@ -143,7 +144,7 @@ export class TournamentService {
         this.requireAdmin(user)
         const result = await this.store.update(id, user, true, (tournament) => {
             if (tournament.status === 'cancelled') return
-            if (tournament.status === 'inProgress')
+            if (tournament.status === 'inProgress' || tournament.status === 'finished')
                 throw new TournamentError(
                     'A running tournament requires the game recovery workflow'
                 )
@@ -221,8 +222,58 @@ export class TournamentService {
                     usernames[userId] = account.username
             })
         )
-        const games = tournament.status === 'inProgress' ? await this.store.readGameLinks(id) : []
-        return { tournament, usernames, games }
+        const games = ['inProgress', 'finished'].includes(tournament.status)
+            ? await this.store.readGameLinks(id)
+            : []
+        const stage = tournament.stages[0]
+        for (const game of games) {
+            const correction = stage?.corrections?.findLast(
+                (value) => value.tableId === game.tableId
+            )
+            if (correction) game.winningUserIds = [...correction.winningUserIds]
+        }
+        await Promise.all(
+            [...new Set((stage?.corrections ?? []).map((value) => value.administratorId))].map(
+                async (id) => {
+                    const account = await this.users.getUser(id)
+                    if (account?.username) usernames[id] = account.username
+                }
+            )
+        )
+        const schedule =
+            stage?.standings && stage.scheduleId
+                ? await this.store.readSchedule(id, stage.id)
+                : undefined
+        const ordered = (stage?.standings ?? [])
+            .map((row, index) => ({ ...row, userId: tournament.entrants[index].userId }))
+            .sort((a, b) => b.score - a.score || a.userId.localeCompare(b.userId))
+        const activeTables = new Set(stage?.dispatch?.active ?? [])
+        const activeCounts = new Map<string, number>()
+        for (const table of schedule?.tables ?? []) {
+            if (!activeTables.has(table.id)) continue
+            for (const id of table.entrantIds) activeCounts.set(id, (activeCounts.get(id) ?? 0) + 1)
+        }
+        const standings = ordered.map((row) => ({
+            ...row,
+            rank: ordered.findIndex((other) => other.score === row.score) + 1,
+            active: activeCounts.get(row.userId) ?? 0,
+            remaining: (tournament.format.stages[0]?.gamesPerEntrant ?? 0) - row.completed
+        }))
+        return { tournament, usernames, games, ...(stage?.standings ? { standings } : {}) }
+    }
+
+    async correctResult(id: string, request: CorrectTournamentResultRequest, user: User) {
+        this.requireAdmin(user)
+        const tournament = await this.store.correctResult(id, request, user, this.now())
+        await this.notify(tournament)
+        return tournament
+    }
+
+    async rebuildStandings(id: string, revision: number, user: User) {
+        this.requireAdmin(user)
+        const tournament = await this.store.rebuildStandings(id, revision, user, this.now())
+        await this.notify(tournament)
+        return tournament
     }
 
     async provisionTable({

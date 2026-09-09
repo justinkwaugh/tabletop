@@ -93,6 +93,12 @@
         <h2 id="schedule-heading" class="font-tournament text-lg font-semibold">
             Schedule{schedule && !saved ? ' preview' : ''}
         </h2>
+        {#if detail.tournament.stages[0]?.standings && schedule}
+            <p class="text-xs text-gray-500">
+                {detail.tournament.stages[0].dispatch?.finished.length ?? 0} / {schedule.tables
+                    .length} games finished
+            </p>
+        {/if}
         {#if isAdmin && !detail.tournament.stages[0]?.scheduleId && detail.tournament.status === 'locked'}
             <div class="flex gap-2">
                 <button class="schedule-action" disabled={busy} onclick={generate}
@@ -112,7 +118,7 @@
     </div>
     {#if error}<p role="alert" class="mt-2 text-xs text-red-600 dark:text-red-300">{error}</p>{/if}
     {#if schedule}
-        <div class="mt-3 overflow-x-auto rounded-md bg-gray-50 dark:bg-gray-800">
+        <div class="relative mt-3 overflow-x-auto rounded-md bg-gray-50 dark:bg-gray-800">
             <table class="w-full text-left text-xs">
                 <thead class="text-gray-500 dark:text-gray-400"
                     ><tr>
@@ -130,6 +136,9 @@
                     >{#each visibleTables as table, index (table.id)}
                         {@const isMine = table.entrantIds.some((id) => id === user?.id)}
                         {@const game = gamesByTable.get(table.id)}
+                        {@const finished = detail.tournament.stages[0]?.dispatch?.finished.includes(
+                            table.id
+                        )}
                         {@const href = game ? `/game/${game.gameId}` : undefined}
                         {@const dispatch = detail.tournament.stages[0]?.dispatch}
                         {@const waiting = detail.tournament.paused
@@ -171,6 +180,11 @@
                                             : ''}"
                                         title={names.get(entrant)}>{names.get(entrant)}</span
                                     >
+                                    {#if game?.winningUserIds?.includes(entrant)}<span
+                                            class="text-amber-600 dark:text-amber-400"
+                                            aria-label="Tournament win"
+                                            title="Tournament win">★</span
+                                        >{/if}
                                 {/snippet}
                                 <td>
                                     {#if href}<a
@@ -189,8 +203,8 @@
                                             ? 'bg-[color-mix(in_srgb,var(--color-gray-50),black_5%)] text-orange-700 dark:bg-[color-mix(in_srgb,var(--color-gray-800),black_20%)] dark:text-orange-300'
                                             : 'bg-gray-50 text-green-700 dark:bg-gray-800 dark:text-green-400'}"
                                         href={`/game/${game.gameId}`}
-                                        aria-label={`${isMine ? 'Play' : 'View'} table ${page * 20 + index + 1}`}
-                                        >{isMine ? 'Play' : 'View'}
+                                        aria-label={`${isMine && !finished ? 'Play' : 'View'} table ${page * 20 + index + 1}`}
+                                        >{isMine && !finished ? 'Play' : 'View'}
                                         <span aria-hidden="true">→</span></a
                                     >{/if}
                             </td>

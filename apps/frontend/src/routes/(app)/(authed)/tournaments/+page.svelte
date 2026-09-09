@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte'
-    import { Hr } from 'flowbite-svelte'
+    import { Hr, Dropdown, DropdownGroup, DropdownItem } from 'flowbite-svelte'
     import { Role, type Tournament, type TournamentListQuery } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { listenForTournamentChanges } from '$lib/services/tournamentUpdates'
@@ -17,6 +17,7 @@
     let scope = $state<TournamentListQuery['scope']>('mine')
     let chooseInitialScope = true
     let titleId = $state('')
+    let gameMenuOpen = $state(false)
     let titles = $derived.by(() => {
         const user = authorizationService.getSessionUser()
         return user ? libraryService.getTitles(user) : []
@@ -25,12 +26,14 @@
         mine: 'border-orange-500 text-orange-700 dark:text-orange-400',
         open: 'border-green-500 text-green-700 dark:text-green-400',
         inProgress: 'border-blue-500 text-blue-700 dark:text-blue-400',
+        finished: 'border-red-500 text-red-700 dark:text-red-400',
         draft: 'border-red-500 text-red-700 dark:text-red-400'
     }
     const standardTabs: { scope: TournamentListQuery['scope']; label: string }[] = [
         { scope: 'mine', label: 'Mine' },
         { scope: 'open', label: 'Open' },
-        { scope: 'inProgress', label: 'In progress' }
+        { scope: 'inProgress', label: 'In progress' },
+        { scope: 'finished', label: 'Completed' }
     ]
     let tabs = $derived(
         isAdmin ? [...standardTabs, { scope: 'draft' as const, label: 'Drafts' }] : standardTabs
@@ -51,7 +54,9 @@
                 ? 'No tournaments are open for registration right now.'
                 : scope === 'inProgress'
                   ? 'No tournaments are in progress right now.'
-                  : 'No drafts. Create a tournament to get started.'
+                  : scope === 'finished'
+                    ? 'No completed tournaments yet.'
+                    : 'No drafts. Create a tournament to get started.'
     )
 
     async function refresh(after = pageStart) {
@@ -177,20 +182,50 @@
                 >
             {/each}
         </div>
-        <select
+        <button
+            id="tournament-game-filter"
+            type="button"
             aria-label="Filter by game"
-            value={titleId}
-            onchange={(event) => {
-                titleId = event.currentTarget.value
-                resetResults()
-            }}
-            class="order-1 w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-600 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 sm:order-2 sm:w-52"
+            aria-expanded={gameMenuOpen}
+            class="order-1 flex w-full items-center justify-between gap-3 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 sm:order-2 sm:w-52"
         >
-            <option value="">All games</option>
-            {#each titles as title (title.info.id)}
-                <option value={title.info.id}>{title.info.metadata.name}</option>
-            {/each}
-        </select>
+            <span class="truncate"
+                >{titles.find((title) => title.info.id === titleId)?.info.metadata.name ??
+                    'All games'}</span
+            >
+            <svg
+                class="size-3 shrink-0"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                aria-hidden="true"
+                ><path d="m4 6 4 4 4-4" stroke-linecap="round" stroke-linejoin="round"></path></svg
+            >
+        </button>
+        <Dropdown
+            triggeredBy="#tournament-game-filter"
+            bind:isOpen={gameMenuOpen}
+            placement="bottom-end"
+            class="max-h-80 w-60 overflow-y-auto"
+        >
+            <DropdownGroup class="py-1">
+                {#each [{ id: '', name: 'All games' }, ...titles.map( (title) => ({ id: title.info.id, name: title.info.metadata.name }) )] as option (option.id)}
+                    <DropdownItem
+                        class="flex w-full items-center justify-between gap-3 text-left text-xs"
+                        onclick={() => {
+                            titleId = option.id
+                            gameMenuOpen = false
+                            resetResults()
+                        }}
+                    >
+                        {option.name}<span aria-hidden="true"
+                            >{titleId === option.id ? '✓' : ''}</span
+                        >
+                    </DropdownItem>
+                {/each}
+            </DropdownGroup>
+        </Dropdown>
     </div>
     <div
         id="tournament-results"
@@ -305,7 +340,18 @@
                         </div>
                     {/if}
                     <p class="text-xs leading-4 text-gray-500 {options.length ? 'mt-1' : 'mt-2'}">
-                        {tournamentRegistrationText(tournament)}
+                        {#if tournament.status === 'finished'}
+                            Completed {tournament.finishedAt
+                                ? new Date(tournament.finishedAt).toLocaleDateString(undefined, {
+                                      day: 'numeric',
+                                      month: 'short'
+                                  })
+                                : ''}
+                        {:else if tournament.status === 'inProgress'}
+                            {tournament.stages[0]?.dispatch?.finished.length ?? 0} games finished
+                        {:else}
+                            {tournamentRegistrationText(tournament)}
+                        {/if}
                     </p>
                 </a>
             {/each}

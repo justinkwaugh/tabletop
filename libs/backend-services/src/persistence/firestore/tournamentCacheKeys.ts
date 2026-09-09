@@ -15,7 +15,8 @@ export class TournamentCacheKeys {
         if (!tournament) return []
         const keys = tournament.entrants.map((entrant) => this.listFamily('mine', entrant.userId))
         const status = tournament.status
-        if (status === 'draft' || status === 'open') keys.push(this.listFamily(status))
+        if (status === 'draft' || status === 'open' || status === 'finished')
+            keys.push(this.listFamily(status))
         else if (status === 'locked' || status === 'inProgress')
             keys.push(this.listFamily('inProgress'))
         return keys

@@ -1,6 +1,6 @@
 # Tournament dispatch
 
-Slice 6 of [the tournament roadmap](https://github.com/justinkwaugh/tabletop/issues/57) starts Mini Tournaments automatically and dispatches their saved Tables as player capacity permits. Scoring and final Tournament results remain slice 7; dropout resolution remains slice 8.
+Slice 6 of [the tournament roadmap](https://github.com/justinkwaugh/tabletop/issues/57) starts Mini Tournaments automatically and dispatches their saved Tables as player capacity permits. Normal scoring and final results are supplied by [slice 7](tournament-scoring.md); dropout resolution remains slice 8.
 
 ## Automatic start
 

@@ -251,13 +251,16 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(await tournaments.readGameLinks(id)).toHaveLength(7)
         })
 
-        async function finish(gameId: string, result = GameResult.Win) {
+        async function finish(gameId: string, result = GameResult.Win, winners = [0]) {
             const game = await store.findGameById(gameId, true)
             assertExists(game?.state)
             const state = {
                 ...game.state,
                 result,
-                winningPlayerIds: result === GameResult.Win ? [game.players[0].id] : []
+                winningPlayerIds:
+                    result === GameResult.Abandoned
+                        ? []
+                        : winners.map((index) => game.players[index].id)
             }
             return store.addActionsToGame({
                 game,
@@ -375,6 +378,153 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(await tournaments.readGameLinks(tournament.id)).toEqual(links)
         })
 
+        it('rejects a draw without declared winners before committing completion', async () => {
+            const { tournament } = await fixture()
+            await service.runTask({ tournamentId: tournament.id })
+            const [link] = await tournaments.readGameLinks(tournament.id)
+            const before = await tournaments.read(tournament.id)
+            const gameBefore = await store.findGameById(link.gameId, true)
+            await expect(finish(link.gameId, GameResult.Draw, [])).rejects.toMatchObject({
+                cause: expect.objectContaining({ message: 'Finished game must declare winners' })
+            })
+            expect(await store.findGameById(link.gameId, true)).toEqual(gameBefore)
+            expect(await tournaments.read(tournament.id)).toEqual(before)
+        })
+
+        it('scores simultaneous finishes once and finalizes with the last game transaction', async () => {
+            const { tournament, schedule } = await fixture()
+            await service.runTask({ tournamentId: tournament.id })
+            await tournaments.list(users[0], { scope: 'inProgress' })
+            await tournaments.list(users[0], { scope: 'finished' })
+            const links = await tournaments.readGameLinks(tournament.id)
+            await Promise.all([
+                finish(links[0].gameId, GameResult.Win, [0, 1]),
+                finish(links[1].gameId, GameResult.Draw, [0, 1])
+            ])
+            const partial = await service.get(tournament.id, users[0])
+            expect(partial.tournament.status).toBe('inProgress')
+            expect(partial.standings?.reduce((sum, row) => sum + row.score, 0)).toBe(2)
+            expect(partial.standings?.reduce((sum, row) => sum + row.wins, 0)).toBe(4)
+            expect(partial.standings?.reduce((sum, row) => sum + row.completed, 0)).toBe(6)
+            await service.runTask({ tournamentId: tournament.id })
+            expect((await service.get(tournament.id, users[0])).standings).toEqual(
+                partial.standings
+            )
+            for (const link of links.slice(2, -1))
+                await finish(link.gameId, GameResult.Draw, [0, 1, 2])
+            const transactions = vi.spyOn(db, 'runTransaction')
+            const last = links.at(-1)
+            assertExists(last)
+            await finish(last.gameId, GameResult.Draw, [0, 1, 2])
+            expect(transactions).toHaveBeenCalledTimes(1)
+            const final = await service.get(tournament.id, users[0])
+            expect(final.tournament.status).toBe('finished')
+            expect(final.tournament.finishedAt).toBeDefined()
+            expect(final.tournament.nextTaskAt).toBeUndefined()
+            expect(final.games).toHaveLength(schedule.tables.length)
+            expect(final.standings?.reduce((sum, row) => sum + row.score, 0)).toBeCloseTo(7)
+            expect(final.standings?.some((row) => row.rank === 1)).toBe(true)
+            expect(
+                final.standings?.every(
+                    (row) => row.completed === 3 && row.active === 0 && row.remaining === 0
+                )
+            ).toBe(true)
+            expect(
+                (await tournaments.list(users[0], { scope: 'inProgress' })).tournaments.map(
+                    (item) => item.id
+                )
+            ).not.toContain(tournament.id)
+            expect(
+                (await tournaments.list(users[0], { scope: 'finished' })).tournaments.map(
+                    (item) => item.id
+                )
+            ).toContain(tournament.id)
+            transactions.mockClear()
+            await service.runTask({ tournamentId: tournament.id })
+            expect(transactions).not.toHaveBeenCalled()
+        })
+
+        it('audits credit corrections, preserves game history, and rebuilds the same standings', async () => {
+            const { tournament } = await fixture()
+            await service.runTask({ tournamentId: tournament.id })
+            const links = await tournaments.readGameLinks(tournament.id)
+            await Promise.all(links.map((link) => finish(link.gameId, GameResult.Draw, [0, 1, 2])))
+            const originalGame = await store.findGameById(links[0].gameId, true)
+            assertExists(originalGame)
+            const winner = originalGame.players[1].userId
+            assertExists(winner)
+            const finished = await service.get(tournament.id, admin)
+            expect(finished.standings?.every((row) => row.rank === 1 && row.score === 1)).toBe(true)
+            const request = {
+                revision: finished.tournament.revision,
+                tableId: links[0].tableId,
+                winningUserIds: [winner],
+                reason: 'Corrected tournament credit'
+            }
+            await expect(service.correctResult(tournament.id, request, users[0])).rejects.toThrow(
+                'Administrator'
+            )
+            await expect(
+                service.correctResult(
+                    tournament.id,
+                    { ...request, winningUserIds: [admin.id] },
+                    admin
+                )
+            ).rejects.toThrow('distinct players')
+            await expect(
+                service.correctResult(
+                    tournament.id,
+                    { ...request, winningUserIds: [winner, winner] },
+                    admin
+                )
+            ).rejects.toThrow('distinct players')
+            await expect(
+                service.correctResult(tournament.id, { ...request, winningUserIds: [] }, admin)
+            ).rejects.toThrow('distinct players')
+            const corrected = await service.correctResult(tournament.id, request, admin)
+            await expect(service.correctResult(tournament.id, request, admin)).rejects.toThrow(
+                'changed'
+            )
+            expect(corrected.status).toBe('finished')
+            expect(corrected.finishedAt).toBe(finished.tournament.finishedAt)
+            expect(corrected.stages[0].corrections).toEqual([
+                expect.objectContaining({
+                    administratorId: admin.id,
+                    reason: request.reason,
+                    gameActionCount: originalGame.state?.actionCount
+                })
+            ])
+            expect(await store.findGameById(links[0].gameId, true)).toEqual(originalGame)
+            const credited = await service.get(tournament.id, admin)
+            expect(
+                credited.standings?.filter((row) => row.rank === 1).map((row) => row.userId)
+            ).toEqual([winner])
+            expect(
+                credited.games?.find((game) => game.tableId === request.tableId)?.winningUserIds
+            ).toEqual([winner])
+            const rebuilt = await service.rebuildStandings(tournament.id, corrected.revision, admin)
+            expect(rebuilt.stages[0].standings).toEqual(corrected.stages[0].standings)
+            const restored = await service.correctResult(
+                tournament.id,
+                {
+                    ...request,
+                    revision: rebuilt.revision,
+                    winningUserIds: originalGame.players.map((player) => {
+                        assertExists(player.userId)
+                        return player.userId
+                    }),
+                    reason: 'Restore shared tournament credit'
+                },
+                admin
+            )
+            expect(
+                restored.stages[0].standings?.every(
+                    (row) => row.score === 1 && row.wins === 3 && row.completed === 3
+                )
+            ).toBe(true)
+            expect(restored.stages[0].corrections).toHaveLength(2)
+        })
+
         it.each([
             [3, 7, 2],
             [4, 8, 1],
@@ -407,7 +557,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                     const completed = await tournaments.read(tournament.id)
                     expect(completed?.stages[0].dispatch?.active).not.toContain(tableId)
                     expect(completed?.stages[0].dispatch?.finished).toContain(tableId)
-                    expect(completed?.nextTaskAt).toBeDefined()
+                    if (completed?.status === 'finished')
+                        expect(completed.nextTaskAt).toBeUndefined()
+                    else expect(completed?.nextTaskAt).toBeDefined()
                 }
                 await service.runTask({ tournamentId: tournament.id })
                 expect((await tournaments.read(tournament.id))?.nextTaskAt).toBeUndefined()
@@ -664,6 +816,10 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             const current = await tournaments.read(tournament.id)
             expect(current?.stages[0].dispatch?.active).toContain(links[0].tableId)
             expect(current?.stages[0].dispatch?.finished).toEqual([])
+            for (const link of links.slice(1)) await finish(link.gameId, GameResult.Draw, [0, 1, 2])
+            const unresolved = await tournaments.read(tournament.id)
+            expect(unresolved?.status).toBe('inProgress')
+            expect(unresolved?.finishedAt).toBeUndefined()
         })
 
         it('starts the assigned game once with no invitations, private initialization data and spectator projections', async () => {

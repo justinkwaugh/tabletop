@@ -21,12 +21,12 @@ Initialization is deterministic for the same configuration, player identities, a
 Tournament scoring will consume the authoritative Game State's existing `result` and `winningPlayerIds` directly:
 
 - `GameResult.Win` or `GameResult.Draw` with winner IDs identifies a single or shared victory.
-- `GameResult.Draw` with no winner IDs represents a no-winner draw.
+- Shared winners split one tournament point, including when the result is `GameResult.Draw`. Both Win and Draw require declared winner IDs.
 - `GameResult.Abandoned` represents abandonment, not a sporting victory. Dropout resolution remains #65.
 
-`validateGameResult(state)` checks those existing fields without returning another result object or modifying the state. It rejects a missing result, a Win without winners, duplicate or foreign winner IDs, and abandoned results with winners. The later settlement service must load authoritative canonical state and validate it before scoring; this helper does not establish provenance or finality. No new result endpoint is introduced, and titles do not need a capability to expose results they already record.
+`validateGameResult(state)` checks those existing fields without returning another result object or modifying the state. It rejects a missing result, a Win or Draw without winners, duplicate or foreign winner IDs, and abandoned results with winners. The later settlement service must load authoritative canonical state and validate it before scoring; this helper does not establish provenance or finality. No new result endpoint is introduced, and titles do not need a capability to expose results they already record.
 
-Sol records shared victories as Draw with winner IDs; Urbino can use Win with multiple winner IDs. Both declare the winners directly. Indonesia contains a defensive Draw branch with no winner IDs; that must not be interpreted as all players winning. Its normal ties already resolve through its title-owned turn-order tiebreak. If a title records an incorrect result, fix its terminal handler rather than introducing another interpretation layer.
+Sol records shared victories as Draw with winner IDs; Urbino can use Win with multiple winner IDs. Both declare the winners directly. Indonesia contains a defensive Draw branch with no winner IDs; tournament validation rejects it as an invalid result, and its terminal handler requires review during catalog adoption. Its normal ties already resolve through its title-owned turn-order tiebreak. If a title records an incorrect result, fix its terminal handler rather than introducing another interpretation layer.
 
 The frozen tournament scoring policy remains `splitWinsV1`. Game results are sporting facts; points, settlement and standings belong to the tournament service. Complete finishing positions are not required, and the existing tournament schema rejects placement policies. A future optional placement capability must be validated before opening registration and must not be inferred from scores.
 
