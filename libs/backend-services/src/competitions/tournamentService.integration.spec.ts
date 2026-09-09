@@ -131,6 +131,42 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
             })
         })
 
+        it('validates table sizes and options through the existing title definition', async () => {
+            const constrainedService = new TournamentService(
+                store,
+                { getUser: async (id) => users.find((user) => user.id === id) },
+                {
+                    test: {
+                        info: {
+                            ...title.info,
+                            metadata: { ...title.info.metadata, minPlayers: 3, maxPlayers: 4 }
+                        }
+                    }
+                },
+                notifications,
+                () => now
+            )
+            for (const tableSize of [2, 5]) {
+                const input = draft()
+                input.rules.tableSize = tableSize
+                await expect(
+                    constrainedService.create(`event-${sequence++}`, input, admin)
+                ).rejects.toThrow('This game does not support that table size')
+            }
+            const input = draft()
+            input.rules.tableSize = 3
+            input.rules.registration = { kind: 'whenFull', capacity: 3 }
+            input.format.stages[0].gamesPerEntrant = 3
+            input.rules.gameConfig = { expert: 'yes' }
+            await expect(
+                constrainedService.create(`event-${sequence++}`, input, admin)
+            ).rejects.toThrow('Invalid game configuration')
+            input.rules.gameConfig = { expert: true }
+            const created = await constrainedService.create(`event-${sequence++}`, input, admin)
+            expect(created.rules.tableSize).toBe(3)
+            expect(created.rules.gameConfig).toEqual({ expert: true })
+        })
+
         it('serializes competing joins for the last place and creates one locked stage', async () => {
             const id = await open()
             await service.join(id, users[1])

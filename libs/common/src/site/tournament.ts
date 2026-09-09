@@ -16,6 +16,7 @@ export function getMiniTournamentDefaults(tableSize: number) {
         case 5:
             return miniTournamentDefaults[tableSize]
     }
+    return undefined
 }
 
 export const TournamentId = Type.String({ pattern: '^[a-zA-Z0-9_-]{1,128}$' })

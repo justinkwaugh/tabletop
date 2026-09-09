@@ -16,6 +16,7 @@ This document is the architectural map for implementing a new game title or maki
 Read these before changing their corresponding contracts:
 
 - [Game definition](../libs/common/src/game/definition/gameDefinition.ts): logic-package registration and runtime composition.
+- [Competition capability](tournament-game-capabilities.md): assigned starting positions, authoritative outcomes, title adoption and Publication compatibility.
 - [Game action](../libs/common/src/game/engine/gameAction.ts): action identity, source, metadata, and hydrated behavior.
 - [Machine state handler](../libs/common/src/game/engine/machineStateHandler.ts): action availability, state entry, and transitions.
 - [Machine context](../libs/common/src/game/engine/machineContext.ts): deterministic creation and scheduling of system actions.
