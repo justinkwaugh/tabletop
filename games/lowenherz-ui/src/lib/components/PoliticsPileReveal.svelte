@@ -27,11 +27,9 @@
     // reads as that same deck flying open in place.
     const pile = $derived(gameSession.selectedPoliticsPile)
     const cards = $derived(
-        pile === 'A'
-            ? gameSession.gameState.politicsCardPileA
-            : pile === 'B'
-              ? gameSession.gameState.politicsCardPileB
-              : []
+        gameSession.myPlayer
+            ? (gameSession.gameState.inspectedPoliticsCards(gameSession.myPlayer.id) ?? [])
+            : []
     )
 
     // measuredWidth is this component's OWN live measurement - the authority once it has one FOR
@@ -96,16 +94,21 @@
     const slotRows = $derived(buildSlotRows(cards, rowWidth, cardWidth))
 
     // Set the moment a card is clicked - disables further clicks until the action resolves.
-    let takingCardId: string | undefined = $state(undefined)
+    let takingCardIndex: number | undefined = $state(undefined)
 
     // Dispatches immediately; the collapse-and-focus choreography plays off the committed
     // action via takeAnimator, not beforehand (see politicsPileTakeAnimator.svelte.ts).
-    async function chooseCard(card: PoliticsCardData) {
+    async function chooseCard(card: PoliticsCardData, index: number) {
         const takingPile = pile
-        if (takingCardId || !takingPile) return
-        takingCardId = card.id
-        await gameSession.takePoliticsCard(takingPile, card.id)
-        takingCardId = undefined
+        if (takingCardIndex !== undefined || gameSession.busy || !takingPile) return
+        takingCardIndex = index
+        takeAnimator.selectedIndex = index
+        try {
+            await gameSession.takePoliticsCard(takingPile, card)
+        } finally {
+            takingCardIndex = undefined
+            takeAnimator.selectedIndex = undefined
+        }
     }
 </script>
 
@@ -147,7 +150,7 @@
                      been assigned) lands in the exact same positions with nothing to jump. -->
                 {#each dealAnimator.slotRows as row, rowIndex (rowIndex)}
                     <div class="flex items-start justify-center gap-2">
-                        {#each row as slot (slot.kind === 'deck' ? 'deck' : slot.card.id)}
+                        {#each row as slot (slot.kind === 'deck' ? 'deck' : String(slot.index))}
                             {#if slot.kind === 'deck'}
                                 <div
                                     style="width: {cardWidthCss};"
@@ -162,8 +165,9 @@
                                 <div
                                     style="width: {cardWidthCss};"
                                     {@attach (el) => {
-                                        dealAnimator.setNode(slot.card.id, el)
-                                        return () => dealAnimator.setNode(slot.card.id, undefined)
+                                        dealAnimator.setNode(String(slot.index), el)
+                                        return () =>
+                                            dealAnimator.setNode(String(slot.index), undefined)
                                     }}
                                 >
                                     <PoliticsCard card={slot.card} />
@@ -183,7 +187,7 @@
                      created once, already in its final row. -->
                 {#each slotRows as row, rowIndex (rowIndex)}
                     <div class="flex items-start justify-center gap-2">
-                        {#each row as slot (slot.kind === 'deck' ? 'deck' : slot.card.id)}
+                        {#each row as slot (slot.kind === 'deck' ? 'deck' : String(slot.index))}
                             {#if slot.kind === 'deck'}
                                 <!-- Always the dashed placeholder once the deal has landed - the
                                      deck's own face-down stand-in only exists during the transient
@@ -197,13 +201,14 @@
                             {:else}
                                 <button
                                     type="button"
-                                    disabled={takingCardId !== undefined}
+                                    disabled={takingCardIndex !== undefined || gameSession.busy}
                                     class="cursor-pointer opacity-90 hover:opacity-100"
                                     style="width: {cardWidthCss};"
-                                    onclick={() => chooseCard(slot.card)}
+                                    onclick={() => chooseCard(slot.card, slot.index)}
                                     {@attach (el) => {
-                                        takeAnimator.setNode(slot.card.id, el)
-                                        return () => takeAnimator.setNode(slot.card.id, undefined)
+                                        takeAnimator.setNode(String(slot.index), el)
+                                        return () =>
+                                            takeAnimator.setNode(String(slot.index), undefined)
                                     }}
                                 >
                                     <CardMagnifier card={slot.card} />

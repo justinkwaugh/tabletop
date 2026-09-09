@@ -25,7 +25,10 @@ export default async function (fastify: FastifyInstance) {
                 throw Error('No user found for token request')
             }
 
-            const checkResult = await fastify.gameService.checkSync(request.body)
+            const checkResult = await fastify.gameService.checkSync({
+                ...request.body,
+                user: request.user
+            })
             return { status: 'ok', payload: checkResult }
         }
     )

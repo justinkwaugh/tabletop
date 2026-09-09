@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+    import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { MachineState, PhaseName } from '@tabletop/kaivai'
     import { flip } from 'svelte/animate'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
@@ -50,8 +50,7 @@ import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     const round = $derived(gameSession.gameState.rounds.currentRound?.number)
 
     async function undo() {
-        gameSession.resetAction()
-        const response = await gameSession.undo()
+        await gameSession.undo()
     }
 
     const playersByScore = $derived.by(() => {
@@ -106,8 +105,9 @@ import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
             {/each}
         </div>
 
-        {#if gameSession.undoableAction}
+        {#if gameSession.canUndo}
             <button
+                disabled={gameSession.busy}
                 onclick={() => undo()}
                 class="ms-2 px-2 uppercase bg-transparent border-2 border-white rounded-lg text-white kaivai-font"
                 >Undo</button

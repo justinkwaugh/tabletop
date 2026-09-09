@@ -1,4 +1,10 @@
-import { GameState, RunMode, type GameAction, type HydratedGameState } from '@tabletop/common'
+import {
+    ExplorationHistory,
+    getActionCascadeEndIndex,
+    GameState,
+    type GameAction,
+    type HydratedGameState
+} from '@tabletop/common'
 import type { GameContext } from './gameContext.svelte.js'
 
 export type StepDirection = 'forward' | 'backward'
@@ -19,6 +25,11 @@ export type HistoryCallbacks = {
     shouldAutoStepAction?: HistoryShouldAutoStepCallback
     onHistoryExit?: HistoryExitCallback
     waitForTransitionSettled?: HistoryWaitForTransitionSettledCallback
+}
+
+export interface HistoryPosition<T extends GameState, U extends HydratedGameState<T> & T> {
+    context: GameContext<T, U>
+    actionIndex: number
 }
 
 export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T> {
@@ -51,8 +62,15 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         return this.historyContext.actions[this.actionIndex]
     })
 
+    private earliestActionIndex: number = $derived.by(() =>
+        (this.historyContext ?? this.gameContext).actions.findLastIndex(
+            (action) => action.undoPatch === undefined
+        )
+    )
+
     hasPreviousAction: boolean = $derived.by(() => {
-        return this.inHistory ? this.actionIndex >= 0 : this.gameContext.actions.length > 0
+        const index = this.inHistory ? this.actionIndex : this.gameContext.actions.length - 1
+        return index > this.earliestActionIndex
     })
 
     hasNextAction: boolean = $derived.by(() => {
@@ -87,7 +105,48 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         }
     }
 
+    capturePosition(): HistoryPosition<T, U> | undefined {
+        if (!this.historyContext) return undefined
+        const context = this.visibleContext.clone()
+        context.addActions(
+            this.historyContext.actions
+                .slice(this.actionIndex + 1)
+                .map((action) => structuredClone(action))
+        )
+        return { context, actionIndex: this.actionIndex }
+    }
+
+    restorePosition(gameContext: GameContext<T, U>, position?: HistoryPosition<T, U>): void {
+        this.updateSourceGameContext(gameContext)
+        if (!position) return
+        this.historyContext = position.context
+        this.actionIndex = position.actionIndex
+        this.onHistoryEnter()
+        this.onHistoryAction(this.currentAction, 'silent-swap')
+    }
+
+    createExplorationSource(): GameContext<T, U> {
+        const source = this.visibleContext.clone()
+        if (!this.historyContext) return source
+        const end = getActionCascadeEndIndex(this.historyContext.actions, this.actionIndex)
+        const history = new ExplorationHistory(source.engine)
+        for (const action of this.historyContext.actions.slice(this.actionIndex + 1, end + 1)) {
+            source.updateGameState(
+                history.forward(
+                    source.state,
+                    action,
+                    source.game,
+                    this.gameContext.state.explorationState
+                )
+            )
+            source.addAction(structuredClone(action))
+        }
+        source.verifyFullChecksum()
+        return source
+    }
+
     updateSourceGameContext(gameContext: GameContext<T, U>) {
+        this.stopHistoryPlayback()
         this.exitHistory()
         this.gameContext = gameContext
     }
@@ -176,7 +235,16 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         }
     }
 
-    public async goToActionIndex(actionIndex: number) {
+    public async goToActionIndex(
+        actionIndex: number,
+        {
+            exact = false,
+            animationIntent = 'state-only'
+        }: {
+            exact?: boolean
+            animationIntent?: HistoryAnimationIntent
+        } = {}
+    ) {
         if (this.stepping || this.disabled || !Number.isFinite(actionIndex)) {
             return
         }
@@ -184,7 +252,8 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         try {
             await this.gotoAction(Math.trunc(actionIndex), {
                 ensureHistory: true,
-                animationIntent: 'state-only'
+                animationIntent,
+                exact
             })
         } finally {
             setTimeout(() => {
@@ -218,7 +287,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         try {
             const actions = this.historyContext?.actions ?? this.gameContext.actions
             const lastAvailableActionIndex = actions.length - 1
-            if (lastAvailableActionIndex < 0) {
+            if (lastAvailableActionIndex <= this.earliestActionIndex) {
                 return
             }
 
@@ -231,7 +300,10 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
                 ]
             }
 
-            normalizedStartIndex = Math.max(0, Math.min(normalizedStartIndex, lastAvailableActionIndex))
+            normalizedStartIndex = Math.max(
+                this.earliestActionIndex + 1,
+                Math.min(normalizedStartIndex, lastAvailableActionIndex)
+            )
             normalizedEndIndex = Math.max(
                 normalizedStartIndex,
                 Math.min(normalizedEndIndex, lastAvailableActionIndex)
@@ -294,8 +366,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         exact?: boolean
     } = {}) {
         if (
-            (this.inHistory && this.actionIndex < 0) ||
-            (!this.inHistory && this.gameContext.actions.length === 0) ||
+            !this.hasPreviousAction ||
             (toActionIndex !== undefined && toActionIndex >= this.actionIndex)
         ) {
             return
@@ -311,18 +382,22 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         let lastAction: GameAction | undefined
         do {
             lastAction = this.historyContext.actions[this.actionIndex]
-            const updatedState = this.historyContext.engine.undoAction(stateSnapshot, lastAction)
+            const updatedState = new ExplorationHistory(this.historyContext.engine).backward(
+                stateSnapshot,
+                lastAction,
+                this.gameContext.state.explorationState
+            )
             this.actionIndex -= 1
             stateSnapshot = updatedState
         } while (
-            (this.actionIndex >= 0 &&
-                ((toActionIndex !== undefined && (lastAction.index ?? 0) > toActionIndex + 1) ||
-                    (!exact &&
-                        this.shouldAutoStepAction(
-                            this.historyContext.actions[this.actionIndex],
-                            this.historyContext.actions.at(this.actionIndex + 1)
-                        )))) ||
-            (predicate && predicate() === false)
+            this.actionIndex > this.earliestActionIndex &&
+            ((toActionIndex !== undefined && (lastAction.index ?? 0) > toActionIndex + 1) ||
+                (!exact &&
+                    this.shouldAutoStepAction(
+                        this.historyContext.actions[this.actionIndex],
+                        this.historyContext.actions.at(this.actionIndex + 1)
+                    )) ||
+                (predicate && predicate() === false))
         )
         this.onHistoryAction(
             this.actionIndex >= 0 ? this.historyContext.actions[this.actionIndex] : undefined,
@@ -371,23 +446,22 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         do {
             const nextActionIndex = this.actionIndex + 1
             nextAction = this.historyContext.actions[nextActionIndex] as GameAction
-            const { updatedState } = this.historyContext.engine.run(
-                nextAction,
+            stateSnapshot = new ExplorationHistory(this.historyContext.engine).forward(
                 stateSnapshot,
+                nextAction,
                 gameSnapshot,
-                RunMode.Single
+                this.gameContext.state.explorationState
             )
-            stateSnapshot = updatedState
             this.actionIndex = nextActionIndex
         } while (
-            (this.actionIndex < this.historyContext.actions.length - 1 &&
-                ((toActionIndex !== undefined && (nextAction.index ?? 0) < toActionIndex) ||
-                    (!exact &&
-                        this.shouldAutoStepAction(
-                            nextAction,
-                            this.historyContext.actions.at(this.actionIndex + 1)
-                        )))) ||
-            (predicate && predicate() === false)
+            this.actionIndex < this.historyContext.actions.length - 1 &&
+            ((toActionIndex !== undefined && (nextAction.index ?? 0) < toActionIndex) ||
+                (!exact &&
+                    this.shouldAutoStepAction(
+                        nextAction,
+                        this.historyContext.actions.at(this.actionIndex + 1)
+                    )) ||
+                (predicate && predicate() === false))
         )
         this.onHistoryAction(this.historyContext.actions[this.actionIndex], animationIntent)
         this.historyContext.updateGameState(stateSnapshot)
@@ -417,6 +491,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
             exact?: boolean
         } = {}
     ) {
+        actionIndex = Math.max(actionIndex, this.earliestActionIndex)
         if (!this.historyContext) {
             if (this.gameContext.actions.length === 0) {
                 return
@@ -425,10 +500,6 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
                 return
             }
             this.enterHistory()
-        }
-
-        if (actionIndex < -1) {
-            actionIndex = -1
         }
 
         if (this.historyContext && actionIndex > this.historyContext.actions.length - 1) {
@@ -443,7 +514,11 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     public async playHistory() {
-        if (this.disabled || this.playing || this.gameContext.actions.length === 0) {
+        if (
+            this.disabled ||
+            this.playing ||
+            this.gameContext.actions.length - 1 <= this.earliestActionIndex
+        ) {
             return
         }
 
@@ -542,7 +617,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
             ? this.actionIndex
             : this.gameContext.actions.length - 1
 
-        for (let i = startIndex; i >= 0; i--) {
+        for (let i = startIndex; i > this.earliestActionIndex; i--) {
             const action = contextToSearch.actions[i]
             if (action.playerId === playerId) {
                 return true
@@ -591,6 +666,12 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
             return
         }
         this.historyContext = this.gameContext.clone()
+        this.historyContext.updateGameState(
+            new ExplorationHistory(this.historyContext.engine).recordedState(
+                this.historyContext.state,
+                this.gameContext.state.explorationState
+            )
+        )
         this.actionIndex = this.historyContext.actions.length - 1
 
         this.onHistoryEnter()

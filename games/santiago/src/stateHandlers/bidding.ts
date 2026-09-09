@@ -22,7 +22,7 @@ export class BiddingStateHandler
         const state = context.gameState
         const currentBidder = state.biddingOrder[state.currentBidderIndex]
         if (action.playerId !== currentBidder) return false
-        if (action.amount > state.getPlayerState(action.playerId).money) return false
+        if (action.amount > state.getPlayerState(action.playerId).getMoney()) return false
 
         // Non-zero bids must be unique among bids already placed this round
         if (action.amount > 0) {

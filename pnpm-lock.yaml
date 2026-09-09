@@ -187,9 +187,6 @@ importers:
       nanoid:
         specifier: ^5.1.6
         version: 5.1.6
-      svelte-json-tree:
-        specifier: github:justinkwaugh/svelte-json-tree
-        version: https://codeload.github.com/justinkwaugh/svelte-json-tree/tar.gz/f741e5a34b1b7fd13a42a9afbd1fcca3ea8b1641(svelte@5.49.0)
       svelte-sonner:
         specifier: ^0.3.27
         version: 0.3.28(svelte@5.49.0)
@@ -904,11 +901,11 @@ importers:
         specifier: workspace:*
         version: link:../../libs/frontend-components
       '@threlte/core':
-        specifier: 8.3.1
-        version: 8.3.1(svelte@5.49.0)(three@0.182.0)
+        specifier: 8.6.0
+        version: 8.6.0(svelte@5.49.0)(three@0.182.0)
       '@threlte/extras':
-        specifier: 9.7.1
-        version: 9.7.1(@types/three@0.182.0)(svelte@5.49.0)(three@0.182.0)
+        specifier: 9.21.1
+        version: 9.21.1(@types/three@0.182.0)(svelte@5.49.0)(three@0.182.0)
       '@types/three':
         specifier: 0.182.0
         version: 0.182.0
@@ -1203,6 +1200,9 @@ importers:
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
+      typebox:
+        specifier: ^1.0.79
+        version: 1.0.79
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2333,6 +2333,12 @@ importers:
 
   libs/common:
     dependencies:
+      '@noble/ciphers':
+        specifier: 2.4.0
+        version: 2.4.0
+      '@noble/hashes':
+        specifier: 2.4.0
+        version: 2.4.0
       fast-json-patch:
         specifier: https://github.com/justinkwaugh/fast-json-patch.git
         version: https://codeload.github.com/justinkwaugh/fast-json-patch/tar.gz/cd3677146f4543287076bd4595f88deee14587b8
@@ -2422,6 +2428,9 @@ importers:
       es-iterator-helpers:
         specifier: ^1.2.2
         version: 1.2.2
+      fast-json-patch:
+        specifier: https://github.com/justinkwaugh/fast-json-patch.git
+        version: https://codeload.github.com/justinkwaugh/fast-json-patch/tar.gz/cd3677146f4543287076bd4595f88deee14587b8
       gsap:
         specifier: ^3.14.2
         version: 3.14.2
@@ -2437,9 +2446,6 @@ importers:
       runed:
         specifier: ^0.37.1
         version: 0.37.1(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)))(svelte@5.49.0)(zod@4.3.6)
-      svelte-json-tree:
-        specifier: github:justinkwaugh/svelte-json-tree
-        version: https://codeload.github.com/justinkwaugh/svelte-json-tree/tar.gz/f741e5a34b1b7fd13a42a9afbd1fcca3ea8b1641(svelte@5.49.0)
       svelte-sonner:
         specifier: ^0.3.27
         version: 0.3.28(svelte@5.49.0)
@@ -2528,12 +2534,30 @@ importers:
       '@dotenvx/dotenvx':
         specifier: ^1.51.4
         version: 1.51.4
+      '@google-cloud/firestore':
+        specifier: ^7.11.6
+        version: 7.11.6
+      '@playwright/test':
+        specifier: ^1.58.0
+        version: 1.58.0
       '@tabletop/backend-services':
         specifier: workspace:*
         version: link:../backend-services
+      '@tabletop/common':
+        specifier: workspace:*
+        version: link:../common
+      bcrypt:
+        specifier: ^6.0.0
+        version: 6.0.0
       discord.js:
         specifier: ^14.15.3
         version: 14.25.1
+      fast-json-patch:
+        specifier: ^3.1.1
+        version: 3.1.1
+      redis:
+        specifier: ^5.10.0
+        version: 5.10.0
       web-push:
         specifier: 3.6.7
         version: 3.6.7
@@ -2544,6 +2568,9 @@ importers:
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
+      '@types/bcrypt':
+        specifier: ^5.0.2
+        version: 5.0.2
       rimraf:
         specifier: ^6.1.0
         version: 6.1.2
@@ -3964,6 +3991,10 @@ packages:
     resolution: {integrity: sha512-2I0gnIVPtfnMw9ee9h1dJG7tp81+8Ob3OJb3Mv37rx5L40/b0i7djjCVvGOVqc9AEIQyvyu1i6ypKdFw8R8gQw==}
     engines: {node: ^14.21.3 || >=16}
 
+  '@noble/ciphers@2.4.0':
+    resolution: {integrity: sha512-AnjFn0Jv92laAkvMrghlFZq4qQCIN/4DxFV/eooqtC2YTjB7kBeLMS2T9KJX4Dn+ZVXLOwK0lSgqDtx9gvxtiw==}
+    engines: {node: '>= 20.19.0'}
+
   '@noble/curves@1.9.7':
     resolution: {integrity: sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==}
     engines: {node: ^14.21.3 || >=16}
@@ -3971,6 +4002,10 @@ packages:
   '@noble/hashes@1.8.0':
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
     engines: {node: ^14.21.3 || >=16}
+
+  '@noble/hashes@2.4.0':
+    resolution: {integrity: sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==}
+    engines: {node: '>= 20.19.0'}
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -4799,14 +4834,14 @@ packages:
     peerDependencies:
       three: '>=0.170.0'
 
-  '@threlte/core@8.3.1':
-    resolution: {integrity: sha512-qKjjNCQ+40hyeBcfOMh/8ef5x/j5PG5Wmo/L9Ye0aDCcdD6fCewWxfp7tV/J3CxPzX1dEp1JGK7sjyc7ntZSrg==}
+  '@threlte/core@8.6.0':
+    resolution: {integrity: sha512-WzXjUAy6FW4T2M6cXgrP4WP0UlagU2C20t3h/0QJmCGALgWMct/yAG2xR8FIH3UAi4MGWQ5HkpQ8eQrp0NEHSg==}
     peerDependencies:
       svelte: '>=5'
       three: '>=0.160'
 
-  '@threlte/extras@9.7.1':
-    resolution: {integrity: sha512-SGm59HDCdHxADFHuweHfFDknwubkCPodyK0pbfsVtOWWOX26gE2xfK7aKolh6YFDiPAjWjGxN0jIgkNbbr1ohg==}
+  '@threlte/extras@9.21.1':
+    resolution: {integrity: sha512-vSX9uXFqDVlA/xT5EHQN3YwWZvvcva6RKHQs6K39qa7w2nO+WV8TJvIR++SFpv3PjjED/F/mthj+KmkIkuL5Pw==}
     peerDependencies:
       svelte: '>=5'
       three: '>=0.160'
@@ -6204,6 +6239,9 @@ packages:
     resolution: {integrity: sha512-7MptL8U0cqcFdzIzwOTHoilX9x5BrNqye7Z/LuC7kCMRio1EMSyqRK3BEAUD7sXRq4iT4AzTVuZdhgQ2TCvYLg==}
     engines: {node: '>=8.6.0'}
 
+  fast-json-patch@3.1.1:
+    resolution: {integrity: sha512-vf6IHUX2SBcA+5/+4883dsIjpBTqmfBjmYiWK1savxQmFk4JfBMLa7ynTYOs1Rolp/T1betJxHiGD3g1Mn8lUQ==}
+
   fast-json-patch@https://codeload.github.com/justinkwaugh/fast-json-patch/tar.gz/cd3677146f4543287076bd4595f88deee14587b8:
     resolution: {tarball: https://codeload.github.com/justinkwaugh/fast-json-patch/tar.gz/cd3677146f4543287076bd4595f88deee14587b8}
     version: 3.1.1
@@ -7343,9 +7381,6 @@ packages:
   minipass@7.1.2:
     resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
     engines: {node: '>=16 || 14 >=14.17'}
-
-  mitt@3.0.1:
-    resolution: {integrity: sha512-vKivATfr97l2/QBCYAkXYDbrIWPM2IIKEl7YPhjCvKlG3kE2gm+uBo6nEXK3M5/Ffh/FLpKExzOQ3JJoJGFKBw==}
 
   mkdirp@0.5.6:
     resolution: {integrity: sha512-FP+p8RB8OWpF3YZBCrP5gtADmtXApB5AMLn+vdyA+PyxCjrCs00mjyUozssO33cwDeT3wNGdLxJ5M//YqtHAJw==}
@@ -8583,12 +8618,6 @@ packages:
     peerDependenciesMeta:
       svelte:
         optional: true
-
-  svelte-json-tree@https://codeload.github.com/justinkwaugh/svelte-json-tree/tar.gz/f741e5a34b1b7fd13a42a9afbd1fcca3ea8b1641:
-    resolution: {tarball: https://codeload.github.com/justinkwaugh/svelte-json-tree/tar.gz/f741e5a34b1b7fd13a42a9afbd1fcca3ea8b1641}
-    version: 2.2.0
-    peerDependencies:
-      svelte: ^5.0.0
 
   svelte-persisted-store@0.12.0:
     resolution: {integrity: sha512-BdBQr2SGSJ+rDWH8/aEV5GthBJDapVP0GP3fuUCA7TjYG5ctcB+O9Mj9ZC0+Jo1oJMfZUd1y9H68NFRR5MyIJA==}
@@ -10699,11 +10728,15 @@ snapshots:
 
   '@noble/ciphers@1.3.0': {}
 
+  '@noble/ciphers@2.4.0': {}
+
   '@noble/curves@1.9.7':
     dependencies:
       '@noble/hashes': 1.8.0
 
   '@noble/hashes@1.8.0': {}
+
+  '@noble/hashes@2.4.0': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
@@ -11390,13 +11423,12 @@ snapshots:
     transitivePeerDependencies:
       - '@types/three'
 
-  '@threlte/core@8.3.1(svelte@5.49.0)(three@0.182.0)':
+  '@threlte/core@8.6.0(svelte@5.49.0)(three@0.182.0)':
     dependencies:
-      mitt: 3.0.1
       svelte: 5.49.0
       three: 0.182.0
 
-  '@threlte/extras@9.7.1(@types/three@0.182.0)(svelte@5.49.0)(three@0.182.0)':
+  '@threlte/extras@9.21.1(@types/three@0.182.0)(svelte@5.49.0)(three@0.182.0)':
     dependencies:
       '@threejs-kit/instanced-sprite-mesh': 2.5.1(@types/three@0.182.0)(three@0.182.0)
       camera-controls: 3.1.2(three@0.182.0)
@@ -13035,6 +13067,8 @@ snapshots:
       merge2: 1.4.1
       micromatch: 4.0.8
 
+  fast-json-patch@3.1.1: {}
+
   fast-json-patch@https://codeload.github.com/justinkwaugh/fast-json-patch/tar.gz/cd3677146f4543287076bd4595f88deee14587b8: {}
 
   fast-json-stable-stringify@2.1.0: {}
@@ -14275,8 +14309,6 @@ snapshots:
   minimist@1.2.8: {}
 
   minipass@7.1.2: {}
-
-  mitt@3.0.1: {}
 
   mkdirp@0.5.6:
     dependencies:
@@ -15644,10 +15676,6 @@ snapshots:
       postcss-scss: 4.0.9(postcss@8.5.6)
       postcss-selector-parser: 7.1.1
     optionalDependencies:
-      svelte: 5.49.0
-
-  svelte-json-tree@https://codeload.github.com/justinkwaugh/svelte-json-tree/tar.gz/f741e5a34b1b7fd13a42a9afbd1fcca3ea8b1641(svelte@5.49.0):
-    dependencies:
       svelte: 5.49.0
 
   svelte-persisted-store@0.12.0(svelte@5.49.0):

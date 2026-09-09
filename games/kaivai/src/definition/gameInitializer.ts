@@ -14,7 +14,11 @@ import {
     distanceAxial
 } from '@tabletop/common'
 import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
-import { HydratedKaivaiGameState, KaivaiGameState } from '../model/gameState.js'
+import {
+    HydratedKaivaiGameState,
+    KaivaiGameState,
+    type KaivaiProjectedState
+} from '../model/gameState.js'
 import { KaivaiPlayerState } from '../model/playerState.js'
 
 import { MachineState } from './states.js'
@@ -25,13 +29,9 @@ import { Island } from '../components/island.js'
 import { KaivaiGameConfig, Ruleset } from './gameConfig.js'
 
 export class KaivaiGameInitializer
-    extends BaseGameInitializer<KaivaiGameState, HydratedKaivaiGameState>
-    implements GameInitializer<KaivaiGameState, HydratedKaivaiGameState>
+    extends BaseGameInitializer<KaivaiProjectedState, HydratedKaivaiGameState>
+    implements GameInitializer<KaivaiProjectedState, HydratedKaivaiGameState>
 {
-    initializeExplorationState(state: KaivaiGameState): KaivaiGameState {
-        return state
-    }
-
     initializeGameState(game: Game, state: UninitializedGameState): HydratedKaivaiGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng)
@@ -49,6 +49,7 @@ export class KaivaiGameInitializer
             influence: {},
             bidders: [],
             bids: {},
+            scoringBids: [],
             cultTiles: game.config.ruleset === Ruleset.FirstEdition ? 10 : 8,
             passedPlayers: [],
             hutsScored: false,

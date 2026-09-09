@@ -15,11 +15,10 @@
         PassReason
     } from '@tabletop/kaivai'
     import type { GameAction } from '@tabletop/common'
-    import TimeAgo from 'javascript-time-ago'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
     import { getHistoryDescriptionForAction } from '$lib/utils/historyDescriptions'
     import FishingResults from './FishingResults.svelte'
     import IslandScoringResults from './IslandScoringResults.svelte'
@@ -36,7 +35,7 @@
         type RoundStartHistoryItem
     } from '$lib/model/HistoryItem.svelte.js'
 
-    const timeAgo = new TimeAgo('en-US')
+    const timeAgo = createTimeAgo()
 
     let gameSession = getGameSession() as KaivaiGameSession
 
@@ -158,11 +157,7 @@
                     {/if}
                     <TimelineItem
                         timeClass="dark:text-[#8d794d]"
-                        classes={{
-                            div: historyItem.date
-                                ? 'dark:bg-[#cabb7a] border-[#cabb7a]'
-                                : 'dark:bg-transparent border-0'
-                        }}
+                        defaultDivClass="hidden"
                         title=""
                         class="mb-5"
                         date={historyItem.date ? timeAgo.format(historyItem.date) : ''}

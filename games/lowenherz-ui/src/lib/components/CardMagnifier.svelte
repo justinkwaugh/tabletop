@@ -1,5 +1,5 @@
 <script lang="ts">
-    // A politics card that grows to double size, centred where it sits, after the pointer has
+    // A politics card that grows to four times its size, centred where it sits, after the pointer has
     // rested on it for a moment (mouse) or the finger has held it (touch). Hover feedback only,
     // so it stays local to this component and outside the shared animation timeline.
     //
@@ -14,31 +14,40 @@
     import { scale } from 'svelte/transition'
     import type { PoliticsCard as PoliticsCardModel } from '@tabletop/lowenherz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { HOVER_INTENT_MS } from '$lib/model/hoverIntent.js'
     import PoliticsCard from './PoliticsCard.svelte'
 
     let { card }: { card: PoliticsCardModel } = $props()
 
     const gameSession = getGameSession()
 
-    const HOLD_MS = 200
-    const GROWTH = 2
+    const GROWTH = 4
     const CARD_ASPECT = 534 / 832
     const VIEWPORT_MARGIN = 16
 
     let anchor: HTMLElement | undefined = $state(undefined)
-    let enlarged: { centerX: number; centerY: number; width: number } | undefined = $state(undefined)
+    let enlarged: { centerX: number; centerY: number; width: number } | undefined =
+        $state(undefined)
     let holdTimer: ReturnType<typeof setTimeout> | undefined
     let suppressNextClick = false
 
     const showingCopy = $derived(
-        enlarged !== undefined && gameSession.magnifiedPoliticsCard?.cardId === card.id
+        enlarged !== undefined && gameSession.magnifiedPoliticsCard?.element === anchor
     )
 
+    // Centred on the card, then nudged only as far as needed to keep the whole copy inside the
+    // viewport - at this growth a card near an edge would otherwise hang off the screen.
     function enlargedGeometry(rect: DOMRect) {
-        const maxWidth = window.innerWidth - VIEWPORT_MARGIN
-        const maxHeight = window.innerHeight - VIEWPORT_MARGIN
+        const maxWidth = window.innerWidth - 2 * VIEWPORT_MARGIN
+        const maxHeight = window.innerHeight - 2 * VIEWPORT_MARGIN
         const width = Math.min(rect.width * GROWTH, maxWidth, maxHeight * CARD_ASPECT)
-        return { centerX: rect.left + rect.width / 2, centerY: rect.top + rect.height / 2, width }
+        const height = width / CARD_ASPECT
+        const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max)
+        return {
+            centerX: clamp(rect.left + rect.width / 2, VIEWPORT_MARGIN + width / 2, window.innerWidth - VIEWPORT_MARGIN - width / 2),
+            centerY: clamp(rect.top + rect.height / 2, VIEWPORT_MARGIN + height / 2, window.innerHeight - VIEWPORT_MARGIN - height / 2),
+            width
+        }
     }
 
     function beginHold(fromTouch: boolean) {
@@ -48,11 +57,14 @@
             if (!anchor) return
             const rect = anchor.getBoundingClientRect()
             enlarged = enlargedGeometry(rect)
-            gameSession.magnifiedPoliticsCard = { cardId: card.id, scale: enlarged.width / rect.width }
+            gameSession.magnifiedPoliticsCard = {
+                element: anchor,
+                scale: enlarged.width / rect.width
+            }
             // A press that turned into a preview is not a choice: swallow the click the release
             // is about to produce so the card underneath is not taken or applied by accident.
             if (fromTouch) suppressNextClick = true
-        }, HOLD_MS)
+        }, HOVER_INTENT_MS)
     }
 
     function cancelHold() {
@@ -63,13 +75,20 @@
     function release() {
         cancelHold()
         enlarged = undefined
-        if (gameSession.magnifiedPoliticsCard?.cardId === card.id) {
+        if (gameSession.magnifiedPoliticsCard?.element === anchor) {
             gameSession.magnifiedPoliticsCard = undefined
         }
     }
 
-    function onPointerEnter(event: PointerEvent) {
-        if (event.pointerType === 'mouse') beginHold(false)
+    // Hover means the pointer moving over the card, so the hold starts on pointer movement, not
+    // on pointerenter. Enter also fires when the DOM changes under a stationary pointer - for
+    // example when a clicked ACTIVE strip is replaced by an APPLY pill that bounces in from
+    // nothing - which briefly exposed the card beneath and grew a copy the player never asked
+    // for, only to shrink it again as the pill grew back under the pointer.
+    function onPointerMove(event: PointerEvent) {
+        if (event.pointerType !== 'mouse') return
+        if (holdTimer !== undefined || enlarged) return
+        beginHold(false)
     }
 
     function onPointerDown(event: PointerEvent) {
@@ -90,8 +109,12 @@
     }
 
     function portalToBody(el: HTMLElement) {
-        document.body.appendChild(el)
-        return () => el.remove()
+        // Game CSS only applies beneath its scope, including when rendered outside GameUI.
+        const layer = document.createElement('div')
+        layer.dataset.gameUi = 'lowenherz'
+        document.body.appendChild(layer)
+        layer.appendChild(el)
+        return () => layer.remove()
     }
 
     function clearOnUnmount() {
@@ -104,7 +127,7 @@
     {@attach clearOnUnmount}
     role="presentation"
     class="block w-full select-none [-webkit-touch-callout:none]"
-    onpointerenter={onPointerEnter}
+    onpointermove={onPointerMove}
     onpointerleave={release}
     onpointerdown={onPointerDown}
     onpointerup={onPointerUp}
@@ -127,7 +150,11 @@
              entry is gone while this magnifier still holds its geometry), and a shrink otherwise. -->
         <div
             in:scale={{ start: 1 / GROWTH, duration: 150, opacity: 1 }}
-            out:scale={{ start: 1 / GROWTH, duration: enlarged !== undefined ? 0 : 150, opacity: 1 }}
+            out:scale={{
+                start: 1 / GROWTH,
+                duration: enlarged !== undefined ? 0 : 150,
+                opacity: 1
+            }}
             class="drop-shadow-2xl"
         >
             <PoliticsCard {card} />

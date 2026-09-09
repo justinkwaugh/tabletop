@@ -9,7 +9,7 @@
 </script>
 
 <div class="relative w-full h-full">
-    <Canvas>
+    <Canvas renderMode="on-demand" autoRender={false}>
         <Renderer />
         <Scene />
     </Canvas>

@@ -20,6 +20,7 @@
     let gameSession = getGameSession()
 
     let forkRequested = $state(false)
+    const explorationDisabled = $derived(!gameSession.isExploring && !gameSession.canExplore)
 
     function requestFork() {
         if (gameSession.isExploring) {
@@ -68,7 +69,7 @@
 
 <div class="shrink-0 grow-0 w-full p-2 {height} {borderClass} {bgClass}">
     <div class="w-full flex flex-row justify-between items-center">
-        <button aria-label="start exploring" onclick={requestFork}>
+        <button aria-label="fork game" onclick={requestFork}>
             <svg
                 class="w-[22px] h-[22px] {!gameSession.isExploring ? enabledColor : disabledColor}"
                 aria-hidden="true"
@@ -280,6 +281,10 @@
         </button>
         <button
             aria-label="start exploring"
+            disabled={explorationDisabled}
+            title={explorationDisabled
+                ? 'Exploration is unavailable for this view'
+                : undefined}
             onclick={async () =>
                 gameSession.isExploring
                     ? gameSession.explorations.endExploring()
@@ -304,7 +309,9 @@
             </svg>
 
             <svg
-                class="w-[22px] h-[22px] {enabledColor} {gameSession.isExploring ? 'hidden' : ''}"
+                class="w-[22px] h-[22px] {explorationDisabled
+                    ? disabledColor
+                    : enabledColor} {gameSession.isExploring ? 'hidden' : ''}"
                 aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"

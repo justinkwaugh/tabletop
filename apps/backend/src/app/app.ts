@@ -1,3 +1,5 @@
+import RequestTimingsPlugin from './plugins/requestTimings.js'
+import { measure } from '@tabletop/backend-services/diagnostics'
 import * as path from 'path'
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import AutoLoad from '@fastify/autoload'
@@ -17,6 +19,7 @@ import FirestorePlugin from './plugins/firestore.js'
 import SensiblePlugin from './plugins/sensible.js'
 import ServicesPlugin from './plugins/services.js'
 import GamesPlugin from './plugins/games.js'
+import { routeAutoloadOptions } from './lib/routeAutoload.js'
 
 const __dirname = import.meta.dirname
 
@@ -45,6 +48,7 @@ export interface AppOptions {
 }
 
 export async function app(fastify: FastifyInstance, opts: AppOptions) {
+    await fastify.register(RequestTimingsPlugin)
     await fastify.register(fastifyPrintRoutes)
     fastify.addHook('onSend', async (request, reply, payload) => {
         if (typeof payload !== 'string' && !(payload instanceof String)) {
@@ -55,7 +59,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     })
 
     await fastify.register(fastifyRateLimit, {
-        global: true,
+        global: service !== 'local',
         max: (request: FastifyRequest, key: string) => {
             if (key.startsWith('user:')) {
                 return 500
@@ -103,7 +107,9 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         let frontendVersion = FRONTEND_VERSION_OVERRIDE
         if (!frontendVersion) {
             try {
-                const manifest = await fastify.libraryService.getManifest()
+                const manifest = await measure('manifest.get', () =>
+                    fastify.libraryService.getManifest()
+                )
                 frontendVersion = manifest.frontend?.version ?? null
             } catch (error) {
                 console.warn('Unable to resolve frontend version for response header', error)
@@ -171,7 +177,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
                 return
             }
             try {
-                await fastify.libraryService.refreshManifest()
+                await measure('manifest.refresh', () => fastify.libraryService.refreshManifest())
             } catch (error) {
                 console.warn('Unable to refresh manifest', error)
             }
@@ -196,6 +202,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         console.log('Registering API routes')
         // This loads all API routes
         await fastify.register(AutoLoad, {
+            ...routeAutoloadOptions,
             dir: path.join(__dirname, 'routes/api'),
             options: { ...opts, prefix: API_PREFIX }
         })
@@ -261,15 +268,24 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             frontendStaticReady = true
         }
 
+        const gameAssetsAreImmutable = service !== 'local'
+
         // Serve assets from GCS as static files
         await fastify.register(fastifyStatic, {
             root: path.join(STATIC_ROOT, 'games'),
             prefix: '/games/',
             decorateReply: false, // avoid reply.sendFile collisions
             preCompressed: true,
-            immutable: true,
-            maxAge: '365d',
+            cacheControl: gameAssetsAreImmutable,
+            immutable: gameAssetsAreImmutable,
+            maxAge: gameAssetsAreImmutable ? '365d' : 0,
             setHeaders: (res, pathName) => {
+                if (!gameAssetsAreImmutable) {
+                    res.setHeader('Cache-Control', 'no-store, max-age=0')
+                    res.setHeader('Pragma', 'no-cache')
+                    res.setHeader('Expires', '0')
+                }
+
                 if (pathName.endsWith('.br')) {
                     res.setHeader('Content-Encoding', 'br')
                     if (pathName.endsWith('.js.br')) {
@@ -291,7 +307,9 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
 
             if (!frontendVersion) {
                 try {
-                    const manifest = await fastify.libraryService.getManifest()
+                    const manifest = await measure('manifest.get', () =>
+                        fastify.libraryService.getManifest()
+                    )
                     frontendVersion = manifest.frontend?.version ?? null
                 } catch (error) {
                     console.warn('Unable to resolve frontend version from manifest', error)
@@ -363,6 +381,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     if (service === 'local' || service === 'tasks') {
         console.log('Registering Task routes')
         await fastify.register(AutoLoad, {
+            ...routeAutoloadOptions,
             dir: path.join(__dirname, 'routes/tasks'),
             options: { ...opts, prefix: TASKS_PREFIX }
         })

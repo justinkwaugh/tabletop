@@ -100,3 +100,55 @@ The current visual verification method is manual exercise unless a focused autom
 ## Maintenance
 
 Update this contract whenever perspective intent, Acting Player precedence, shared-state lifecycle, History or Exploration behavior, render ownership, or banner composition changes. Keep Game UI artifact isolation and cross-version bridge compatibility in [ADR 0004](../../../docs/adr/0004-game-ui-host-bridge-contract.md).
+
+## Exploration and recorded History
+
+Ordinary projected Exploration is available when the title supplies state population. Its control is disabled with an explanatory title when that capability is absent. Authorized Debug/Admin Host View retains Exploration availability independently of projected-state population. An Acting Player inspection uses that Player's projected capability.
+
+Starting Exploration from inside a cascade advances only a copied context through its remaining recorded System Actions, stopping before the next User Action. The displayed source does not advance or animate. Its exact return snapshot is retained across new/saved branch switches and restored with `silent-swap` on closing; failed creation leaves the source view unchanged.
+
+Compatible source History is read-only and remains navigable in both directions through the selected source position. At that position it displays the original permitted source state. Continuing into simulated Actions uses the populated Exploration checkpoint; returning to Live restores the same hypothetical world. Existing `state-only`, `full-action`, and silent restoration intents retain their animation lifecycle and ownership.
+
+Playable inherited Undo stops at the first forward-patched or non-optimistic cascade, or where reconstruction against the hypothetical world cannot be verified. That barrier does not disable recorded History. Exploration-generated Actions retain local Undo. Saving/loading and switching Explorations preserve each branch's sampled information, History source, and Undo eligibility.
+
+A primary representation refresh while Exploration is open updates the primary context without replacing the Exploration's History or displayed state. Ending Exploration restores the exact original History snapshot/index when entered from History, or the latest primary state when entered from Live. A changed primary Perspective invalidates the old return snapshot, so closing uses the current permitted representation. Transient action selections continue to reset through the existing visible-state transition lifecycle.
+
+A Game Session owns its notification subscription. Repeated listen/stop calls do not duplicate subscriptions, and disposing the Game Session stops listening even when its host has not explicitly stopped it.
+
+Primary recovery continues during Exploration without changing the sample or its History source. A notification arriving during a representation load retains a recovery request after that representation replaces the old context. Both legacy and projected Undo wait for processing/presentation to settle before publication.
+
+A Game UI requests hosted canonical inspection only when the injected API explicitly advertises Host View support. An older Site Frontend keeps ordinary play available and reports that a site reload is needed for Host View; a projected response cannot become the retained Host Context.
+
+## Unavailable historical schemas
+
+A supported current position remains playable when older projected History cannot be reconstructed. Unavailable Action records retain their public identities and indexes but have no title payload or patches. History controls stop at the newest such record; beginning, previous-turn navigation, and animated ranges cannot cross it. With no compatible recent Actions, backward navigation and playback are unavailable. New Actions extend the navigable suffix normally.
+
+Undo cannot cross an unavailable record, including during Exploration. The backend enforces the same limit for projected Games before persistence. A replacement requiring unavailable replay uses current-state reload recovery. Existing transition animation intents and publication ownership remain unchanged.
+
+A projected Exploration population hook receives only available source knowledge. If unavailable historical records remove facts required to construct a valid sample, the title must decline population; it must not use canonical secrets or silently ignore missing constraints. Authorized Host View can still explore its complete current state.
+
+## Canonical Fork
+
+The Fork control requests a real continuation from the selected primary History position. A position inside an automatic Action sequence includes its remaining consequences through the next player decision. Fork is unavailable while exploring; saved local Forks appear as Games, separately from saved Explorations. The accessible control name is `fork game`.
+
+The host resolves Hosted Fork positions from canonical history independently of the client's projected History or Undo restrictions. Hotseat resolves from full local state and history. An unsupported position reports `This game cannot be forked from that position.` through the shared toast after the name dialog closes. The source position remains displayed. Hosted Forks enter the existing player-reservation lobby; local Forks are saved as playable Games.
+
+## Protected harness perspectives
+
+Protected mode is opt-in for runtimes with visibility. The navbar identifies the selected Player, Spectator, or Host View. Player views show only that Player's permitted information and allow actions only for that Player; the banner distinguishes their turn from waiting. Spectator has no player actions. Host View retains ordinary hotseat/Admin Acting Player controls.
+
+Switching mode or perspective replaces the table and session, clears staged selections and animations through teardown, and reconstructs history from the new representation. The old table is removed while loading. The same historical index is selected where the new representation permits it; no old-perspective snapshot is restored. A failed load shows its error and offers ordinary hotseat recovery.
+
+Protected Player/Spectator views suppress Admin authority and Non-active view. Debug remains available on projected data and cannot implicitly request Host View. Host View is an explicit selector choice. Color preferences continue to apply after replacement.
+
+The mode and perspective selectors are unavailable while processing or exploring. Projected Exploration uses hypothetical population; Host View Exploration uses complete state. Closing Exploration restores the selected representation and its source history according to the existing Exploration contract. Canonical local persistence belongs to the harness host, while branch persistence belongs to Exploration.
+
+## Optimistic Undo
+
+An eligible live Undo immediately attempts reversal and simultaneous-action replay from the client's available state, including projected forward patches. The attempt is built separately and published only if it can be hydrated. Host View uses its complete displayed state; an acting-player view retains its projection. Existing reveal and Exploration Undo boundaries still determine eligibility.
+
+The session keeps action controls blocked until the host request and visible transition settle. Undo and authoritative correction use actionless state transitions through the existing animation lifecycle, with the existing 200ms limit. Acceptance and rejection wait for an in-flight optimistic transition to settle before publishing their result. The server response is replayed from the saved pre-Undo context even when the speculative checksum matches; it replaces speculative state and history together. Host View reloads its canonical representation after acceptance. A perspective change during the request reloads the selected representation instead of applying an obsolete response.
+
+If local replay fails, the displayed state stays unchanged while the host processes Undo. Rejection restores the prior state and invokes synchronization. A concurrent representation replacement must never be overwritten by that rollback.
+
+Browser regression scenarios in `tests/privateHandSession.spec.ts` hold acceptance pending and verify visible reversal, retained-action ordering, equal-checksum state correction, replay failure, rejection, canonical Admin Undo of a reveal, acting-player privacy, perspective changes, queued notifications, subsequent history navigation, v2 public games, and a response arriving during an optimistic animation.

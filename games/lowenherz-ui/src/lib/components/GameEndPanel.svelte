@@ -1,7 +1,7 @@
 <script lang="ts">
     import { fade } from 'svelte/transition'
     import { GameResult } from '@tabletop/common'
-    import { PoliticsCardType, type LowenherzPlayerState } from '@tabletop/lowenherz'
+    import { PoliticsCardType, type LowenherzProjectedPlayerState } from '@tabletop/lowenherz'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import Numeral from './Numeral.svelte'
@@ -13,8 +13,13 @@
     // Parchment cards were folded into powerPoints already (see EndOfGameStateHandler)
     // - this just re-derives the per-player breakdown from what's still in each hand,
     // so the final score doesn't look like it came from nowhere.
-    function parchmentBonus(playerState: LowenherzPlayerState): number {
-        return playerState.politicsCards
+    function parchmentBonus(playerState: LowenherzProjectedPlayerState): number {
+        return (
+            gameSession.gameState.finalHands?.find((hand) => hand.playerId === playerState.playerId)
+                ?.cards ??
+            playerState.politicsCards ??
+            []
+        )
             .filter((c) => c.type === PoliticsCardType.Parchment)
             .reduce((sum, c) => sum + (c.value ?? 0), 0)
     }
@@ -53,12 +58,17 @@
     const anyParchment = $derived(standings.some((row) => row.parchment > 0))
 </script>
 
-<div transition:fade={{ duration: 75 }} class="mb-2 rounded-lg bg-black/10 px-2 pt-2 pb-3 text-center">
+<div
+    transition:fade={{ duration: 75 }}
+    class="mb-2 rounded-lg bg-black/10 px-2 pt-2 pb-3 text-center"
+>
     <h1 class="text-lg sm:text-xl font-semibold text-black">
         {#if isDraw}
             The King is dead, and the crown is shared between
             {#each winnerIds as id, i (id)}
-                {i === 0 ? '' : i === winnerIds.length - 1 ? ' and ' : ', '}<PlayerName playerId={id} />
+                {i === 0 ? '' : i === winnerIds.length - 1 ? ' and ' : ', '}<PlayerName
+                    playerId={id}
+                />
             {/each}
             — tied at {gameSession.gameState.getPlayerState(winnerIds[0]).powerPoints} power points.
         {:else}

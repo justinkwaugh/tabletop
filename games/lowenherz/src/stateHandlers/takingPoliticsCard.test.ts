@@ -4,7 +4,7 @@ import { HydratedLowenherzGameState, LowenherzGameState } from '../model/gameSta
 import { BOARD_COLS, BOARD_ROWS, BoardSquare, SquareType } from '../model/board.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
-import { PoliticsCardType } from '../definition/politicsCards.js'
+import { PoliticsCardType, type PoliticsCard } from '../definition/politicsCards.js'
 import { HydratedLookAtPoliticsPile } from '../actions/lookAtPoliticsPile.js'
 import { HydratedTakePoliticsCard } from '../actions/takePoliticsCard.js'
 import { TakingPoliticsCardStateHandler } from './takingPoliticsCard.js'
@@ -51,7 +51,7 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         decisions: [],
         resolvedSlots: [],
         politicsTakingPlayerId: 'p1',
-        politicsCardPileA: [{ id: 'card-alliance', type: PoliticsCardType.Alliance }],
+        politicsCardPileA: [{ type: PoliticsCardType.Alliance }],
         politicsCardPileB: [],
         ...overrides
     }
@@ -73,7 +73,9 @@ describe('TakingPoliticsCardStateHandler', () => {
         const context = new MachineContext({ gameConfig: {}, gameState: state })
         const handler = new TakingPoliticsCardStateHandler()
 
-        expect(handler.validActionsForPlayer('p1', context)).toEqual([ActionType.LookAtPoliticsPile])
+        expect(handler.validActionsForPlayer('p1', context)).toEqual([
+            ActionType.LookAtPoliticsPile
+        ])
         expect(handler.validActionsForPlayer('p2', context)).toEqual([])
     })
 
@@ -142,7 +144,7 @@ describe('TakingPoliticsCardStateHandler', () => {
             type: ActionType.TakePoliticsCard,
             playerId: 'p1',
             pile: 'A',
-            cardId: 'card-alliance'
+            card: { type: PoliticsCardType.Alliance }
         })
         expect(handler.isValidAction(action, context)).toBe(true)
         action.apply(state, context)

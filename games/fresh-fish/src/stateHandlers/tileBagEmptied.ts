@@ -1,24 +1,28 @@
-import {
-    type HydratedAction,
-    type MachineStateHandler,
-    ActionSource,
-    MachineContext
-} from '@tabletop/common'
+import { queueStallWithoutDisk } from '../util/automaticActions.js'
+import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { HydratedFreshFishGameState } from '../model/gameState.js'
 import { MachineState } from '../definition/states.js'
-import { HydratedPlaceStall, PlaceStall } from '../actions/placeStall.js'
+import { HydratedPlaceStall } from '../actions/placeStall.js'
 import { ActionType } from '../definition/actions.js'
 import { CellType, isDiskCell, isEmptyCell } from '../components/cells.js'
-import { nanoid } from 'nanoid'
 
 // Transition from TileBagEmptiedStateHandler(PlaceStall) -> TileBagEmptiedStateHandler (for next player)
 //                 TileBagEmptiedStateHandler(PlaceStall) -> GameEnded (when all stalls are placed)
-export class TileBagEmptiedStateHandler implements MachineStateHandler<HydratedPlaceStall, HydratedFreshFishGameState> {
-    isValidAction(action: HydratedAction, _context: MachineContext<HydratedFreshFishGameState>): action is HydratedPlaceStall {
+export class TileBagEmptiedStateHandler implements MachineStateHandler<
+    HydratedPlaceStall,
+    HydratedFreshFishGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedFreshFishGameState>
+    ): action is HydratedPlaceStall {
         return action.type === ActionType.PlaceStall
     }
 
-    validActionsForPlayer(_playerId: string, _context: MachineContext<HydratedFreshFishGameState>): string[] {
+    validActionsForPlayer(
+        _playerId: string,
+        _context: MachineContext<HydratedFreshFishGameState>
+    ): string[] {
         return [ActionType.PlaceStall]
     }
 
@@ -27,7 +31,10 @@ export class TileBagEmptiedStateHandler implements MachineStateHandler<HydratedP
         this.selectNextFinalStallAndPlayer(gameState, context)
     }
 
-    onAction(action: HydratedPlaceStall, context: MachineContext<HydratedFreshFishGameState>): MachineState {
+    onAction(
+        action: HydratedPlaceStall,
+        context: MachineContext<HydratedFreshFishGameState>
+    ): MachineState {
         const gameState = context.gameState
 
         // Remove placed stall from final stalls list
@@ -50,7 +57,10 @@ export class TileBagEmptiedStateHandler implements MachineStateHandler<HydratedP
         }
     }
 
-    selectNextFinalStallAndPlayer(gameState: HydratedFreshFishGameState, context: MachineContext<HydratedFreshFishGameState>) {
+    selectNextFinalStallAndPlayer(
+        gameState: HydratedFreshFishGameState,
+        context: MachineContext<HydratedFreshFishGameState>
+    ) {
         if (gameState.finalStalls.length === 0) {
             throw Error('No more final stalls to place')
         }
@@ -69,12 +79,6 @@ export class TileBagEmptiedStateHandler implements MachineStateHandler<HydratedP
         gameState.chosenTile = structuredClone(nextFinalStall)
         gameState.activePlayerIds = [nextPlayer.playerId]
 
-        // Place into the void if player has no disks on the board
-        if (!nextPlayer.hasDiskOnBoard()) {
-            context.addSystemAction(PlaceStall, {
-                playerId: nextPlayer.playerId,
-                goodsType: nextFinalStall.goodsType
-            })
-        }
+        queueStallWithoutDisk(context)
     }
 }

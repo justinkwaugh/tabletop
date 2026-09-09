@@ -1,7 +1,7 @@
 <script lang="ts">
     import { tick } from 'svelte'
     import { Timeline, TimelineItem } from 'flowbite-svelte'
-    import TimeAgo from 'javascript-time-ago'
+    import { createTimeAgo } from '@tabletop/frontend-components'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
@@ -19,7 +19,7 @@
     import ActionDescription from './ActionDescription.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    const timeAgo = new TimeAgo('en-US')
+    const timeAgo = createTimeAgo()
 
     let gameSession = getGameSession()
     let scrollContainer: HTMLDivElement | undefined = $state()

@@ -1,26 +1,20 @@
 <script lang="ts">
     import { Timeline, TimelineItem } from 'flowbite-svelte'
-    import TimeAgo from 'javascript-time-ago'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
     import ActionDescription from './ActionDescription.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    const timeAgo = new TimeAgo('en-US')
+    const timeAgo = createTimeAgo()
 
     let gameSession = getGameSession()
 
-    let reversedActions = $derived.by(() => {
-        const reversed = gameSession.actions
-            .toReversed()
-            .toSorted(
-                (a, b) =>
-                    (b.createdAt?.getTime() ?? Date.now()) - (a.createdAt?.getTime() ?? Date.now())
-            )
-        return reversed
-    })
+    // Newest first, in the order the engine assigned (index), not by timestamp. Timestamps come
+    // from different clocks - the acting player's browser until the server's copy replaces it, the
+    // server for everyone else's - so sorting by them let an older entry surface above a newer one.
+    let reversedActions = $derived(gameSession.actions.toReversed())
 </script>
 
 <div

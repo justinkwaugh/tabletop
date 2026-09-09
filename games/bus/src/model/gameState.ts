@@ -43,7 +43,7 @@ export const BusGameState = Type.Evaluate(
     ])
 )
 
-const BusGameStateValidator = Compile(BusGameState)
+export const BusGameStateValidator = Compile(BusGameState)
 
 export class HydratedBusGameState
     extends HydratableGameState<typeof BusGameState, HydratedBusPlayerState>

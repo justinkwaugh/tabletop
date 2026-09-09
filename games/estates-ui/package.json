@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/estates-ui",
-    "version": "3.0.1",
+    "version": "3.4.0",
     "private": true,
     "type": "module",
     "svelte": "./dist/index.js",
@@ -40,8 +40,8 @@
         "@tabletop/common": "workspace:*",
         "@tabletop/estates": "workspace:*",
         "@tabletop/frontend-components": "workspace:*",
-        "@threlte/core": "8.3.1",
-        "@threlte/extras": "9.7.1",
+        "@threlte/core": "8.6.0",
+        "@threlte/extras": "9.21.1",
         "@types/three": "0.182.0",
         "camera-controls": "github:justinkwaugh/camera-controls",
         "gsap": "^3.14.2",

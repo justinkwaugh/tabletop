@@ -1,36 +1,37 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    assertExists,
+    type HydratedAction,
+    type MachineStateHandler,
+    MachineContext
+} from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { Duel, HydratedLowenherzGameState } from '../model/gameState.js'
 import { HydratedSubmitDuelBid } from '../actions/submitDuelBid.js'
+import { PoliticsCardType, removePoliticsCard } from '../definition/politicsCards.js'
 import { routeAfterSlotResolved } from '../util/resolutionHelpers.js'
 
 type DuelingAction = HydratedSubmitDuelBid
 
-// A bid's actual strength includes any Treasure cards added on top of the ducat
-// amount - "it can be used during a duel together with other money cards, or on its
-// own," and nothing in the rulebook caps it at one. Looked up fresh each time rather
-// than stored, since the cards are still sitting untouched in the bidder's hand until
-// (and unless) this bid wins.
-function effectiveBidAmount(state: HydratedLowenherzGameState, bid: Duel['bids'][number]): number {
-    const treasureIds = bid.treasureCardIds ?? []
-    if (treasureIds.length === 0) return bid.amount
-    const myCards = state.getPlayerState(bid.playerId).politicsCards
-    const treasureValue = treasureIds.reduce((sum, id) => {
-        const card = myCards.find((c) => c.id === id)
-        return sum + (card?.value ?? 0)
-    }, 0)
-    return bid.amount + treasureValue
+function effectiveBidAmount(
+    bid: NonNullable<HydratedLowenherzGameState['duel']>['bids'][number]
+): number {
+    assertExists(bid.amount, 'Duel bid is unavailable')
+    return bid.amount + (bid.treasureValues ?? []).reduce((sum, value) => sum + value, 0)
 }
 
-export class DuelingStateHandler
-    implements MachineStateHandler<DuelingAction, HydratedLowenherzGameState>
-{
+export class DuelingStateHandler implements MachineStateHandler<
+    DuelingAction,
+    HydratedLowenherzGameState
+> {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedLowenherzGameState>
     ): action is DuelingAction {
-        return action instanceof HydratedSubmitDuelBid && action.isValidSubmitDuelBid(context.gameState)
+        return (
+            action instanceof HydratedSubmitDuelBid &&
+            action.isValidSubmitDuelBid(context.gameState)
+        )
     }
 
     validActionsForPlayer(
@@ -55,7 +56,9 @@ export class DuelingStateHandler
         // handler, so this enter() doesn't run again for it) or replaces it with a fresh re-duel
         // object whose bids start empty - so this is never asked to filter down to nothing.
         context.gameState.activePlayerIds = duel
-            ? duel.playerIds.filter((playerId) => !duel.bids.some((bid) => bid.playerId === playerId))
+            ? duel.playerIds.filter(
+                  (playerId) => !duel.bids.some((bid) => bid.playerId === playerId)
+              )
             : []
     }
 
@@ -77,9 +80,23 @@ export class DuelingStateHandler
         // refuses to cross any action flagged revealsInfo).
         action.revealsInfo = true
 
-        const maxBid = Math.max(...duel.bids.map((b) => effectiveBidAmount(gameState, b)))
+        action.metadata = {
+            ...action.metadata,
+            roundResult: {
+                slot: duel.slot,
+                bids: duel.bids.map((bid) => {
+                    assertExists(bid.amount, 'Duel bid is unavailable')
+                    return {
+                        playerId: bid.playerId,
+                        amount: bid.amount,
+                        treasureValues: bid.treasureValues ?? []
+                    }
+                })
+            }
+        }
+        const maxBid = Math.max(...duel.bids.map((b) => effectiveBidAmount(b)))
         const topBidders = duel.bids
-            .filter((b) => effectiveBidAmount(gameState, b) === maxBid)
+            .filter((b) => effectiveBidAmount(b) === maxBid)
             .map((b) => b.playerId)
 
         if (topBidders.length === 1) {
@@ -88,11 +105,15 @@ export class DuelingStateHandler
             const winnerState = gameState.getPlayerState(winnerId)
             // Only the ducat portion comes out of money - any Treasure cards are paid
             // to the bank as themselves, discarded rather than converted to cash.
-            winnerState.money -= winningBid.amount
-            if (winningBid.treasureCardIds && winningBid.treasureCardIds.length > 0) {
-                const spentIds = new Set(winningBid.treasureCardIds)
-                winnerState.politicsCards = winnerState.politicsCards.filter((c) => !spentIds.has(c.id))
+            assertExists(winningBid.amount, 'Winning bid is unavailable')
+            winnerState.adjustMoney(-winningBid.amount)
+            for (const value of winningBid.treasureValues ?? []) {
+                removePoliticsCard(winnerState.getPoliticsCards(), {
+                    type: PoliticsCardType.Treasure,
+                    value
+                })
             }
+            winnerState.syncPoliticsCardCount()
             action.metadata = { ...action.metadata, duelResult: 'win', winnerId }
             gameState.resolvedSlots.push({ slot: duel.slot, winnerPlayerId: winnerId })
             gameState.duel = undefined
@@ -101,7 +122,11 @@ export class DuelingStateHandler
 
         // A second consecutive tie: give up entirely, no one performs the action.
         if (duel.tieCount >= 1) {
-            action.metadata = { ...action.metadata, duelResult: 'giveUp', reduelPlayerIds: topBidders }
+            action.metadata = {
+                ...action.metadata,
+                duelResult: 'giveUp',
+                reduelPlayerIds: topBidders
+            }
             gameState.resolvedSlots.push({ slot: duel.slot, winnerPlayerId: undefined })
             gameState.duel = undefined
             return routeAfterSlotResolved(gameState).nextState
@@ -110,7 +135,12 @@ export class DuelingStateHandler
         // First tie: re-duel among just the tied bidders (any lower bidders are
         // dropped and don't participate in the second duel).
         action.metadata = { ...action.metadata, duelResult: 'reduel', reduelPlayerIds: topBidders }
-        gameState.duel = { slot: duel.slot, playerIds: topBidders, bids: [], tieCount: duel.tieCount + 1 }
+        gameState.duel = {
+            slot: duel.slot,
+            playerIds: topBidders,
+            bids: [],
+            tieCount: duel.tieCount + 1
+        }
         return MachineState.Dueling
     }
 }

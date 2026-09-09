@@ -24,7 +24,7 @@ export const BridgesGameState = Type.Evaluate(
     ])
 )
 
-const BridgesGameStateValidator = Compile(BridgesGameState)
+export const BridgesGameStateValidator = Compile(BridgesGameState)
 
 export class HydratedBridgesGameState
     extends HydratableGameState<typeof BridgesGameState, HydratedBridgesPlayerState>

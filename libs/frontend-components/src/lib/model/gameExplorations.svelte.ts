@@ -1,8 +1,12 @@
 import {
-    ExplorationState,
+    ExplorationHistory,
+    getPrng,
+    assertExists,
+    type Visibility,
     GameAction,
     GameCategory,
     GameStorage,
+    GameStatus,
     type Game,
     type GameState,
     type HydratedGameState,
@@ -15,17 +19,11 @@ import { nanoid } from 'nanoid'
 import type { GameUIRuntime } from '$lib/definition/gameUiDefinition.js'
 import { fromStore } from 'svelte/store'
 
-export type ExplorationStartCallback<
-    T extends GameState,
-    U extends HydratedGameState<T> & T
-> = (
+export type ExplorationStartCallback<T extends GameState, U extends HydratedGameState<T> & T> = (
     context: GameContext<T, U>
 ) => void
 export type ExplorationEndCallback = () => void
-export type ExplorationSwitchCallback<
-    T extends GameState,
-    U extends HydratedGameState<T> & T
-> = (
+export type ExplorationSwitchCallback<T extends GameState, U extends HydratedGameState<T> & T> = (
     context: GameContext<T, U>
 ) => void
 
@@ -38,6 +36,7 @@ export type ExplorationCallbacks<T extends GameState, U extends HydratedGameStat
 export class GameExplorations<T extends GameState, U extends HydratedGameState<T> & T> {
     private sourceContext?: GameContext<T, U> = undefined
     explorationContext?: GameContext<T, U> = $state(undefined)
+    private sourcePerspective?: Visibility.Perspective
     private initialChecksum: number | undefined = undefined
     private sessionUserStore: { current: User | undefined }
 
@@ -50,11 +49,18 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
         this.sessionUserStore = fromStore(this.authorizationBridge.user)
     }
 
-    async startExploring(gameContext: GameContext<T, U>): Promise<void> {
-        const explorationContext = await this.getNextExplorationContext(gameContext)
+    async startExploring(
+        gameContext: GameContext<T, U>,
+        perspective?: Visibility.Perspective,
+        fromHistory = false
+    ): Promise<void> {
+        this.sourcePerspective = perspective
+        const explorationContext = fromHistory
+            ? this.createExploration(gameContext)
+            : await this.getNextExplorationContext(gameContext)
 
         if (explorationContext) {
-            this.sourceContext = gameContext
+            this.sourceContext = gameContext.clone()
             await this.setExplorationContext(explorationContext)
 
             if (this.callbacks?.onExplorationEnter) {
@@ -89,6 +95,7 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
         if (!context) {
             return
         }
+        context.engine.validateCanonicalState(context.state)
         const game = structuredClone(context.game)
         game.name = gameName
         game.storage = GameStorage.Local
@@ -137,14 +144,12 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
 
     private createExploration(originalContext: GameContext<T, U>): GameContext<T, U> | undefined {
         const myUserId = this.sessionUserStore.current?.id
-        if (!myUserId) {
-            return
-        }
+        if (!myUserId) return
 
         const newGameId = nanoid()
-
-        const newExplorationContext = originalContext.clone({
-            interceptGame: (game: Game) => {
+        const source = originalContext.clone({
+            interceptGame: (game) => {
+                delete game.state
                 game.id = newGameId
                 game.name = 'New Exploration'
                 game.category = GameCategory.Exploration
@@ -152,48 +157,58 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
                 game.ownerId = myUserId
                 game.storage = GameStorage.None
                 game.parentId = originalContext.game.id
+                game.result = originalContext.state.result
+                game.status = game.result === undefined ? GameStatus.Started : GameStatus.Finished
+                game.winningPlayerIds = [...originalContext.state.winningPlayerIds]
+                game.activePlayerIds = [...originalContext.state.activePlayerIds]
+                game.lastActionPlayerId = originalContext.actions.at(-1)?.playerId
+                game.lastActionAt = originalContext.actions.at(-1)?.createdAt
+                if (game.result === undefined) delete game.finishedAt
                 for (const player of game.players) {
-                    if (player.userId !== myUserId) {
-                        player.userId = undefined
-                    }
+                    if (player.userId !== myUserId) player.userId = undefined
                 }
             },
-            interceptState: (state: T) => {
+            interceptState: (state) => {
                 state.id = nanoid()
                 state.gameId = newGameId
-
-                // Allow the game to address any random initialization it needs
-                const initializedState = this.runtime.initializer.initializeExplorationState(
-                    state
-                ) as T
-                Object.assign(state, initializedState)
-
-                // Set our state so we can adjust the prng
-                const explorationState: ExplorationState = {
-                    actionCount: state.actionCount,
-                    invocations: Math.floor(Math.random() * 500)
-                }
-                state.explorationState = explorationState
-                state.prng.invocations = explorationState.invocations
             },
-            interceptActions: (actions: GameAction[]) => {
-                for (const action of actions) {
-                    action.gameId = newGameId
-                }
+            interceptActions: (actions) => {
+                for (const action of actions) action.gameId = newGameId
             }
         })
-
-        // Sometimes when given a context with a history of actions, we are given as our last action an action that produces
-        // additional actions, like drawing a stall tile in Fresh Fish produces a Start Auction action.
-        // This leaves us in a weird state where we are missing those follow-up actions.
-
-        // This maybe should be done in the history itself, but we will just do it here for now.
-        const lastAction = newExplorationContext.undoLastAction()
-        if (lastAction) {
-            newExplorationContext.applyAction(lastAction)
+        const history = new ExplorationHistory(source.engine)
+        const state = history.prepareState(source.state)
+        const exploration = this.runtime.exploration
+        let hypothetical: T
+        if (this.sourcePerspective !== undefined) {
+            assertExists(
+                exploration?.createFromProjectedState,
+                'This game does not support projected exploration'
+            )
+            hypothetical = exploration.createFromProjectedState({
+                game: source.game,
+                state,
+                actions: source.actions,
+                perspective: this.sourcePerspective,
+                random: getPrng()
+            })
+        } else {
+            hypothetical = exploration ? exploration.createFromCanonicalState(state) : state
         }
-
-        return newExplorationContext
+        source.engine.validateCanonicalState(hypothetical)
+        hypothetical.explorationState = history.checkpoint(
+            source.state,
+            hypothetical,
+            source.actions,
+            source.game,
+            this.sourcePerspective === undefined ? 'canonical' : 'projected'
+        )
+        return new GameContext({
+            runtime: this.runtime,
+            game: source.game,
+            state: hypothetical,
+            actions: source.actions
+        })
     }
 
     private async getExplorationContextForId(
@@ -214,6 +229,7 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
             state: state as T,
             actions
         })
+        explorationContext.engine.validateCanonicalState(explorationContext.state)
         return explorationContext
     }
 

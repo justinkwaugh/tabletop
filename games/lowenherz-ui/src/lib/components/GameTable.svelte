@@ -28,12 +28,12 @@
     import UnifrakturMaguntiaFont from '$lib/fonts/UnifrakturMaguntia-Book.woff2'
 
     import type { LowenherzGameSession } from '$lib/model/session.svelte'
-    import type { HydratedLowenherzGameState, LowenherzGameState } from '@tabletop/lowenherz'
+    import type { HydratedLowenherzGameState, LowenherzProjectedState } from '@tabletop/lowenherz'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
 
     let {
         gameSession
-    }: { gameSession: GameSession<LowenherzGameState, HydratedLowenherzGameState> } = $props()
+    }: { gameSession: GameSession<LowenherzProjectedState, HydratedLowenherzGameState> } = $props()
     const lowenherzSession = gameSession as LowenherzGameSession
     setGameSession(lowenherzSession)
 

@@ -122,9 +122,9 @@ export class HydratedActivateEffect
                     break
             }
         } else if (this.effect === EffectType.Cluster) {
-            state.getEffectTracking().clustersRemaining = 2
+            state.ensureEffectTracking().clustersRemaining = 2
         } else if (this.effect === EffectType.Squeeze) {
-            state.getEffectTracking().squeezed = true
+            state.ensureEffectTracking().squeezed = true
             const station = state.getActivatingStation(this.playerId)
 
             if (station.coords!.row >= Ring.Inner) {
@@ -136,7 +136,7 @@ export class HydratedActivateEffect
             playerState.movementPoints *= 2
         } else if (this.effect === EffectType.Procreate) {
             for (const cell of state.board) {
-                state.getEffectTracking().preEffectState = state.machineState
+                state.ensureEffectTracking().preEffectState = state.machineState
                 const sundiversInCell = state.board.sundiversForPlayerAt(this.playerId, cell.coords)
                 if (
                     sundiversInCell.length >= 2 &&
@@ -158,9 +158,9 @@ export class HydratedActivateEffect
             this.effect === EffectType.Tribute ||
             this.effect === EffectType.Chain
         ) {
-            state.getEffectTracking().preEffectState = state.machineState
+            state.ensureEffectTracking().preEffectState = state.machineState
         } else if (this.effect === EffectType.Fuel) {
-            state.getEffectTracking().fuelRemaining = 3
+            state.ensureEffectTracking().fuelRemaining = 3
         }
     }
 

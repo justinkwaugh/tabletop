@@ -33,7 +33,7 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         money: 12,
         powerPoints: 0,
         knightsInStock: 5,
-        politicsCards: [{ id: 'card-alliance', type: PoliticsCardType.Alliance }]
+        politicsCards: [{ type: PoliticsCardType.Alliance }]
     }))
 
     const data: LowenherzGameState = {
@@ -67,7 +67,7 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
 
 function makePlayAllianceCard(
     playerId: string,
-    overrides: Partial<{ cardId: string; ownRegionId: string; enemyRegionId: string }> = {}
+    overrides: Partial<{ ownRegionId: string; enemyRegionId: string }> = {}
 ): HydratedPlayAllianceCard {
     return new HydratedPlayAllianceCard({
         id: 'alliance-1',
@@ -75,7 +75,6 @@ function makePlayAllianceCard(
         source: ActionSource.User,
         type: ActionType.PlayAllianceCard,
         playerId,
-        cardId: 'card-alliance',
         ownRegionId: 'own',
         enemyRegionId: 'enemy',
         ...overrides
@@ -83,6 +82,18 @@ function makePlayAllianceCard(
 }
 
 describe('HydratedPlayAllianceCard', () => {
+    it('discards only one identical copy when played', () => {
+        const state = buildState()
+        state.getPlayerState('p1').politicsCards = [
+            { type: PoliticsCardType.Alliance },
+            { type: PoliticsCardType.Alliance }
+        ]
+        makePlayAllianceCard('p1').apply(state)
+        expect(state.getPlayerState('p1').politicsCards).toEqual([
+            { type: PoliticsCardType.Alliance }
+        ])
+    })
+
     it('creates an alliance between the two chosen regions and discards the card', () => {
         const state = buildState()
         const action = makePlayAllianceCard('p1')
@@ -90,7 +101,9 @@ describe('HydratedPlayAllianceCard', () => {
         expect(action.isValidPlayAllianceCard(state)).toBe(true)
         action.apply(state)
 
-        expect(state.alliances).toEqual([{ id: 'alliance-1', regionAId: 'own', regionBId: 'enemy' }])
+        expect(state.alliances).toEqual([
+            { id: 'alliance-1', regionAId: 'own', regionBId: 'enemy' }
+        ])
         expect(state.getPlayerState('p1').politicsCards).toEqual([])
         expect(action.metadata).toEqual({ allianceId: 'alliance-1', enemyOwner: 'p2' })
     })
@@ -109,7 +122,10 @@ describe('HydratedPlayAllianceCard', () => {
     it("rejects when the chosen 'own' region doesn't belong to the player", () => {
         const state = buildState()
         expect(
-            makePlayAllianceCard('p1', { ownRegionId: 'enemy', enemyRegionId: 'own' }).isValidPlayAllianceCard(state)
+            makePlayAllianceCard('p1', {
+                ownRegionId: 'enemy',
+                enemyRegionId: 'own'
+            }).isValidPlayAllianceCard(state)
         ).toBe(false)
     })
 
@@ -119,14 +135,21 @@ describe('HydratedPlayAllianceCard', () => {
     })
 
     it("rejects when the two regions don't border each other", () => {
-        const farEnemy: Region = { id: 'enemy', owner: 'p2', squareKeys: ['9,9'], castleSquareKey: '9,9' }
+        const farEnemy: Region = {
+            id: 'enemy',
+            owner: 'p2',
+            squareKeys: ['9,9'],
+            castleSquareKey: '9,9'
+        }
         const state = buildState({ regions: [ownRegion(), farEnemy] })
 
         expect(makePlayAllianceCard('p1').isValidPlayAllianceCard(state)).toBe(false)
     })
 
     it('rejects re-allying a pair of regions that are already allied', () => {
-        const state = buildState({ alliances: [{ id: 'existing', regionAId: 'own', regionBId: 'enemy' }] })
+        const state = buildState({
+            alliances: [{ id: 'existing', regionAId: 'own', regionBId: 'enemy' }]
+        })
         expect(makePlayAllianceCard('p1').isValidPlayAllianceCard(state)).toBe(false)
     })
 
@@ -138,7 +161,9 @@ describe('HydratedPlayAllianceCard', () => {
         })
 
         expect(
-            makePlayAllianceCard('p1', { enemyRegionId: 'other-enemy' }).isValidPlayAllianceCard(state)
+            makePlayAllianceCard('p1', { enemyRegionId: 'other-enemy' }).isValidPlayAllianceCard(
+                state
+            )
         ).toBe(true)
     })
 })

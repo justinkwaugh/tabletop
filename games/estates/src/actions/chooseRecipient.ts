@@ -56,12 +56,12 @@ export class HydratedChooseRecipient
             : undefined
 
         if (this.recipient === AuctionRecipient.Auctioneer) {
-            if (playerState.money < (state.auction.highBid ?? 0)) {
+            if (playerState.getMoney() < (state.auction.highBid ?? 0)) {
                 throw Error('Auctioneer must have enough money to pay the highest bid')
             }
-            playerState.money -= state.auction.highBid ?? 0
+            playerState.adjustMoney(-(state.auction.highBid ?? 0))
             if (winningPlayer) {
-                winningPlayer.money += state.auction.highBid ?? 0
+                winningPlayer.adjustMoney(state.auction.highBid ?? 0)
             }
             state.recipient = this.playerId
         } else {
@@ -71,11 +71,11 @@ export class HydratedChooseRecipient
                 )
             }
 
-            if (winningPlayer.money < (state.auction.highBid ?? 0)) {
+            if (winningPlayer.getMoney() < (state.auction.highBid ?? 0)) {
                 throw Error('Highest bidder must have enough money to pay the highest bid')
             }
-            winningPlayer.money -= state.auction.highBid ?? 0
-            playerState.money += state.auction.highBid ?? 0
+            winningPlayer.adjustMoney(-(state.auction.highBid ?? 0))
+            playerState.adjustMoney(state.auction.highBid ?? 0)
             state.recipient = state.auction.winnerId
         }
 

@@ -18,18 +18,18 @@ export const UrbinoGameState = Type.Evaluate(
         Type.Object({
             players: Type.Array(UrbinoPlayerState),
             machineState: Type.Enum(MachineState),
-            board: Type.Array(BoardSquare),        // 81 squares (9×9 grid), index = row*9 + col
+            board: Type.Array(BoardSquare), // 81 squares (9×9 grid), index = row*9 + col
             architects: Type.Array(Type.Number()), // [pos0, pos1], -1 if not yet placed
-            architectsPlaced: Type.Number(),       // 0, 1, or 2
+            architectsPlaced: Type.Number(), // 0, 1, or 2
             consecutivePasses: Type.Number(),
             hasRepositionedThisTurn: Type.Boolean(),
             monumentsVariant: Type.Boolean(),
-            concededByPlayerId: Type.Optional(Type.String()),
+            concededByPlayerId: Type.Optional(Type.String())
         })
     ])
 )
 
-const UrbinoGameStateValidator = Compile(UrbinoGameState)
+export const UrbinoGameStateValidator = Compile(UrbinoGameState)
 
 export class HydratedUrbinoGameState
     extends HydratableGameState<typeof UrbinoGameState, HydratedUrbinoPlayerState>

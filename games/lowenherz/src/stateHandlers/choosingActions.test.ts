@@ -109,7 +109,9 @@ function runFullRound(state: HydratedLowenherzGameState) {
         const nextState = handler.onAction(action, context)
 
         const expectedDone = i === plan.length - 1
-        expect(nextState).toBe(expectedDone ? MachineState.ResolvingActions : MachineState.ChoosingActions)
+        expect(nextState).toBe(
+            expectedDone ? MachineState.ResolvingActions : MachineState.ChoosingActions
+        )
 
         if (!expectedDone) {
             handler.enter(context)
@@ -135,7 +137,7 @@ describe('ChoosingActionsStateHandler', () => {
 
     it('offers PlayRenegadeCard alongside ChooseAction when the player holds one and has knights in stock', () => {
         const state = buildState(['p1', 'p2'])
-        state.getPlayerState('p1').politicsCards = [{ id: 'card-renegade', type: PoliticsCardType.Renegade }]
+        state.getPlayerState('p1').politicsCards = [{ type: PoliticsCardType.Renegade }]
         const handler = new ChoosingActionsStateHandler()
         const context = new MachineContext({ gameConfig: {}, gameState: state })
 
@@ -155,7 +157,7 @@ describe('ChoosingActionsStateHandler', () => {
 
     it('does not offer PlayRenegadeCard when the player has no knights left in stock', () => {
         const state = buildState(['p1', 'p2'])
-        state.getPlayerState('p1').politicsCards = [{ id: 'card-renegade', type: PoliticsCardType.Renegade }]
+        state.getPlayerState('p1').politicsCards = [{ type: PoliticsCardType.Renegade }]
         state.getPlayerState('p1').knightsInStock = 0
         const handler = new ChoosingActionsStateHandler()
         const context = new MachineContext({ gameConfig: {}, gameState: state })
@@ -174,7 +176,7 @@ describe('ChoosingActionsStateHandler', () => {
             source: ActionSource.User,
             type: ActionType.PlayRenegadeCard,
             playerId: 'p1',
-            cardId: 'card-renegade',
+
             ownRegionId: 'own',
             enemyRegionId: 'enemy',
             removedCol: 0,
@@ -189,7 +191,7 @@ describe('ChoosingActionsStateHandler', () => {
 
     it('offers PlayAllianceCard alongside ChooseAction when the player holds an Alliance card', () => {
         const state = buildState(['p1', 'p2'])
-        state.getPlayerState('p1').politicsCards = [{ id: 'card-alliance', type: PoliticsCardType.Alliance }]
+        state.getPlayerState('p1').politicsCards = [{ type: PoliticsCardType.Alliance }]
         const handler = new ChoosingActionsStateHandler()
         const context = new MachineContext({ gameConfig: {}, gameState: state })
 
@@ -256,7 +258,7 @@ describe('ChoosingActionsStateHandler', () => {
             source: ActionSource.User,
             type: ActionType.PlayAllianceCard,
             playerId: 'p1',
-            cardId: 'card-alliance',
+
             ownRegionId: 'own',
             enemyRegionId: 'enemy'
         })

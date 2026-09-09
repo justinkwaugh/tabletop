@@ -5,15 +5,21 @@ import { dealPoliticsCardPiles } from './politicsCardAssembly.js'
 
 describe('dealPoliticsCardPiles', () => {
     it('deals every card in the deck across the two piles exactly once', () => {
-        const { politicsCardPileA, politicsCardPileB } = dealPoliticsCardPiles(new Prng({ seed: 1, invocations: 0 }))
+        const { politicsCardPileA, politicsCardPileB } = dealPoliticsCardPiles(
+            new Prng({ seed: 1, invocations: 0 })
+        )
 
-        const allIds = [...politicsCardPileA, ...politicsCardPileB].map((c) => c.id)
-        expect(allIds.length).toBe(PoliticsCardDeck.length)
-        expect(new Set(allIds)).toEqual(new Set(PoliticsCardDeck.map((c) => c.id)))
+        const allCards = [...politicsCardPileA, ...politicsCardPileB]
+            .map((c) => JSON.stringify(c))
+            .sort()
+        expect(allCards.length).toBe(PoliticsCardDeck.length)
+        expect(allCards).toEqual(PoliticsCardDeck.map((c) => JSON.stringify(c)).sort())
     })
 
     it('splits the odd-sized deck into piles of 6 and 7, in either order', () => {
-        const { politicsCardPileA, politicsCardPileB } = dealPoliticsCardPiles(new Prng({ seed: 1, invocations: 0 }))
+        const { politicsCardPileA, politicsCardPileB } = dealPoliticsCardPiles(
+            new Prng({ seed: 1, invocations: 0 })
+        )
 
         const sizes = [politicsCardPileA.length, politicsCardPileB.length].sort()
         expect(sizes).toEqual([6, 7])

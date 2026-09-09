@@ -1,8 +1,8 @@
 import type { GameUiDefinition } from '@tabletop/frontend-components/definition/gameUiDefinition'
 import { EstatesInfo } from '@tabletop/estates'
-import type { EstatesGameState, HydratedEstatesGameState } from '@tabletop/estates'
+import type { EstatesProjectedState, HydratedEstatesGameState } from '@tabletop/estates'
 
-export const UiDefinition: GameUiDefinition<EstatesGameState, HydratedEstatesGameState> = {
+export const UiDefinition: GameUiDefinition<EstatesProjectedState, HydratedEstatesGameState> = {
     info: {
         ...EstatesInfo,
         thumbnailUrl:

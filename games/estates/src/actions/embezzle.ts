@@ -35,12 +35,12 @@ export class HydratedEmbezzle extends HydratableAction<typeof Embezzle> implemen
         if (!HydratedEmbezzle.canEmbezzle(this.playerId, state)) {
             throw Error(`Player ${this.playerId} does not have the money to embezzle`)
         }
-        playerState.money--
-        playerState.stolen++
+        playerState.adjustMoney(-1)
+        playerState.stolen = playerState.getStolenMoney() + 1
         state.embezzled = true
     }
 
     static canEmbezzle(playerId: string, state: HydratedEstatesGameState): boolean {
-        return !state.embezzled && state.getPlayerState(playerId).money > 0
+        return !state.embezzled && state.getPlayerState(playerId).getMoney() > 0
     }
 }

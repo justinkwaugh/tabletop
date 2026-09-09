@@ -9,7 +9,7 @@ export class SantiagoStateLogger implements GameStateLogger {
             chalk.bold(`\nRound ${state.round} — ${state.machineState}`) +
                 (state.canalOverseerId ? `  Canal overseer: ${state.canalOverseerId}` : '')
         )
-        console.log(chalk.grey(`Tile bag: ${state.tileBag.length} remaining`))
+        console.log(chalk.grey(`Tile bag: ${state.getRemainingTileCount()} remaining`))
         logBoard(state)
         for (const p of state.players) {
             console.log(`  ${p.playerId}  money=${p.money}  score=${p.score}`)

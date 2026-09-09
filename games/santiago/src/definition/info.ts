@@ -9,7 +9,7 @@ export const SantiagoInfo: GameInfo = {
         designer: 'Claudia Hempel & Michael Hempel',
         description:
             'Santiago is a bidding and placement game in which players compete to irrigate their plantations. ' +
-            'Each round, players secretly bid to become the ditch master — the player who controls ' +
+            'Each round, players bid openly for planting priority. The lowest bidder becomes the ditch master, who controls ' +
             'the new canal segment. Unirrigated plantations wither and dry out, so the canal network ' +
             'is crucial. Build the most prosperous irrigated plantations to win.',
         year: '2003',

@@ -86,7 +86,7 @@ describe('HydratedDrawActionCard', () => {
         action.apply(state)
 
         expect(state.currentActionCard).toEqual(standardCard)
-        expect(state.actionDeck.length).toBe(0)
+        expect(state.getActionDeck().length).toBe(0)
     })
 
     it('rejects anyone other than the first player', () => {

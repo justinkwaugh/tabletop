@@ -1,10 +1,9 @@
 <script lang="ts">
-import { isBarrier, isCancelCube, isCube, isMayor, isRoof } from '@tabletop/estates'
+    import { isBarrier, isCancelCube, isCube, isMayor, isRoof } from '@tabletop/estates'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { MachineState } from '@tabletop/estates'
 
     import { PlayerName } from '@tabletop/frontend-components'
-    import { fadeIn, fadeOut } from '$lib/utils/animations'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let { hidden }: { hidden?: boolean } = $props()
@@ -15,7 +14,6 @@ import { isBarrier, isCancelCube, isCube, isMayor, isRoof } from '@tabletop/esta
         }
         return undefined
     })
-    let ref: HTMLDivElement
     const instructions = $derived.by(() => {
         if (gameSession.gameState.machineState === MachineState.StartOfTurn) {
             return 'to start an auction'
@@ -40,20 +38,12 @@ import { isBarrier, isCancelCube, isCube, isMayor, isRoof } from '@tabletop/esta
             }
         }
     })
-
-    $effect(() => {
-        if (hidden) {
-            fadeOut({ object: ref, duration: 0.2 })
-        } else {
-            fadeIn({ object: ref, duration: 0.2 })
-        }
-    })
 </script>
 
 <div
-    bind:this={ref}
+    class:hud-hidden={hidden}
     class="py-2 px-4 bg-gray-900
-             rounded-lg gap-y-2 text-center border-2 border-gray-700 opacity-0 text-center"
+             rounded-lg gap-y-2 text-center border-2 border-gray-700 hud-fade text-center"
 >
     <h1 class="text-lg text-gray-200">
         Waiting for <PlayerName playerId={activePlayerId} />

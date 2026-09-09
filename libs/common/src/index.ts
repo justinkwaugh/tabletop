@@ -1,6 +1,7 @@
 export * from './game/engine/gameAction.js'
 export * from './game/engine/canonicalActionReplay.js'
 export * from './game/engine/gameEngine.js'
+export * from './game/engine/gameFork.js'
 export * from './game/engine/machineStateHandler.js'
 export * from './game/engine/machineContext.js'
 
@@ -13,12 +14,14 @@ export * from './game/components/turnManager.js'
 export * from './game/components/roundManager.js'
 export * from './game/components/phaseManager.js'
 export * from './game/components/prng.js'
+export * as Visibility from './game/visibility/index.js'
 
 export * from './game/definition/gameDefinition.js'
 export * from './game/model/gameConfig.js'
 export * from './game/definition/gameConfigurator.js'
 export * from './game/definition/gameHydrator.js'
 export * from './game/definition/gameInitializer.js'
+export * from './game/definition/gameExploration.js'
 export * from './game/definition/gameStateLogger.js'
 
 export * from './game/model/gameState.js'
@@ -80,3 +83,9 @@ export * from './util/prng.js'
 export * from './util/checksum.js'
 export * from './util/pairing.js'
 export * from './util/typebox.js'
+
+export * from './game/engine/explorationHistory.js'
+
+export * from './game/engine/actionHistory.js'
+
+export * from './util/gameSeeds.js'

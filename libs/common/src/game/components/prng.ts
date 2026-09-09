@@ -1,6 +1,8 @@
 import * as Type from 'typebox'
+import { getChaChaPrng } from '../../util/chachaPrng.js'
 import { getPrng, type RandomFunction } from '../../util/prng.js'
 import { customRandom } from 'nanoid'
+import { NeutralPrngAdapter, Policy, protect, redaction } from '../visibility/visibilitySchema.js'
 
 export type PrngState = Type.Static<typeof PrngState>
 export const PrngState = Type.Object({
@@ -8,15 +10,35 @@ export const PrngState = Type.Object({
     invocations: Type.Number()
 })
 
+export const ChaChaPrngState = Type.Object({
+    algorithm: Type.Literal('chacha20-v1'),
+    seed: Type.String({ pattern: '^[0-9a-f]{64}$' }),
+    invocations: Type.Integer({ minimum: 0, maximum: 0xffffffff * 16 })
+})
+export type ChaChaPrngState = Type.Static<typeof ChaChaPrngState>
+export const RandomState = Type.Union([
+    Type.Object({ ...PrngState.properties, algorithm: Type.Optional(Type.Never()) }),
+    ChaChaPrngState
+])
+export type RandomState = Type.Static<typeof RandomState>
+
+export const ProtectedPrngState = protect(RandomState, {
+    policy: Policy.HostOnly,
+    redaction: redaction.replaceWith(
+        NeutralPrngAdapter,
+        Type.Object({ seed: Type.Literal(0), invocations: Type.Literal(0) })
+    )
+})
+
 export class Prng {
     private prng: RandomFunction
     private nanoid: () => string
 
-    constructor(private state: PrngState) {
-        this.prng = getPrng(state.seed)
-        for (let i = 0; i < state.invocations; i++) {
-            this.prng()
-        }
+    constructor(private state: RandomState) {
+        this.prng =
+            state.algorithm === 'chacha20-v1'
+                ? getChaChaPrng(state.seed, state.invocations)
+                : getPrng(state.seed, state.invocations)
 
         this.nanoid = customRandom(
             'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
@@ -28,8 +50,9 @@ export class Prng {
     }
 
     random = (): number => {
+        const value = this.prng()
         this.state.invocations += 1
-        return this.prng()
+        return value
     }
 
     randInt = (max: number): number => {

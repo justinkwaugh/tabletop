@@ -97,9 +97,9 @@ describe('EndOfGameStateHandler', () => {
         // p1's hand: 4 + 3 = 7 bonus power points, bringing them to 17 - enough to
         // overtake p2's 12 (which has no politics cards, so no bonus).
         state.getPlayerState('p1').politicsCards = [
-            { id: 'parch-4', type: PoliticsCardType.Parchment, value: 4 },
-            { id: 'parch-3', type: PoliticsCardType.Parchment, value: 3 },
-            { id: 'alliance-1', type: PoliticsCardType.Alliance } // non-Parchment, ignored
+            { type: PoliticsCardType.Parchment, value: 4 },
+            { type: PoliticsCardType.Parchment, value: 3 },
+            { type: PoliticsCardType.Alliance } // non-Parchment, ignored
         ]
         const context = new MachineContext({ gameConfig: {}, gameState: state })
 
@@ -118,9 +118,7 @@ describe('EndOfGameStateHandler', () => {
             { playerId: 'p1', color: Color.Pink, money: 5, powerPoints: 40 },
             { playerId: 'p2', color: Color.Yellow, money: 3, powerPoints: 40 }
         ])
-        state.getPlayerState('p2').politicsCards = [
-            { id: 'treasure-15', type: PoliticsCardType.Treasure, value: 15 }
-        ]
+        state.getPlayerState('p2').politicsCards = [{ type: PoliticsCardType.Treasure, value: 15 }]
         const context = new MachineContext({ gameConfig: {}, gameState: state })
 
         new EndOfGameStateHandler().enter(context)
@@ -135,9 +133,7 @@ describe('EndOfGameStateHandler', () => {
             { playerId: 'p1', color: Color.Pink, money: 12, powerPoints: 40 },
             { playerId: 'p2', color: Color.Yellow, money: 4, powerPoints: 40 }
         ])
-        state.getPlayerState('p2').politicsCards = [
-            { id: 'treasure-8', type: PoliticsCardType.Treasure, value: 8 }
-        ]
+        state.getPlayerState('p2').politicsCards = [{ type: PoliticsCardType.Treasure, value: 8 }]
         const context = new MachineContext({ gameConfig: {}, gameState: state })
 
         new EndOfGameStateHandler().enter(context)

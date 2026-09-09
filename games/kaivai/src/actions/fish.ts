@@ -130,7 +130,7 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
             }
         } else if (config?.ruleset === Ruleset.FirstEdition) {
             // God adds a die roll
-            const prng = new Prng(state.prng)
+            const prng = state.getProtectedPrng()
             const bestIsland = fishingData.reduce((best, current) => {
                 const bestTotal = best.numHuts + (best.hasGod ? 1 : 0)
                 const currentTotal = current.numHuts + (current.hasGod ? 1 : 0)
@@ -152,7 +152,7 @@ export class HydratedFish extends HydratableAction<typeof Fish> implements Fish 
             this.revealsInfo = true
         } else if (config?.ruleset === Ruleset.SecondEdition) {
             // God gives a guaranteed fish
-            const prng = new Prng(state.prng)
+            const prng = state.getProtectedPrng()
             const bestIsland = fishingData.reduce((best, current) => {
                 const bestTotal = best.numHuts + (best.hasGod ? 1 : 0)
                 const currentTotal = current.numHuts + (current.hasGod ? 1 : 0)

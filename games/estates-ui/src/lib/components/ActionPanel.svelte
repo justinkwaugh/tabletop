@@ -1,20 +1,20 @@
 <script lang="ts">
-import { ActionType } from '@tabletop/estates'
+    import { ActionType } from '@tabletop/estates'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { AuctionRecipient, MachineState } from '@tabletop/estates'
     import { Button } from 'flowbite-svelte'
-    import { slide, fade } from 'svelte/transition'
+    import { slide } from 'svelte/transition'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let gameSession = getGameSession() as EstatesGameSession
 
-    async function chooseAction(action: string) {
-        switch (action) {
-            default:
-                gameSession.chosenAction = action
-                break
-        }
-    }
+    const selectedAction = $derived(
+        gameSession.validActionTypes.length === 1
+            ? gameSession.validActionTypes[0]
+            : gameSession.validActionTypes.length > 0
+              ? gameSession.chosenAction
+              : undefined
+    )
 
     const instructions = $derived.by(() => {
         if (gameSession.gameState.machineState === MachineState.StartOfTurn) {
@@ -23,7 +23,7 @@ import { ActionType } from '@tabletop/estates'
             return 'Buy out the winner?'
         }
 
-        switch (gameSession.chosenAction) {
+        switch (selectedAction) {
             case ActionType.PlaceBid:
                 return 'Place your bid'
             case ActionType.PlaceCube:
@@ -38,15 +38,6 @@ import { ActionType } from '@tabletop/estates'
                 return 'Choose a barrier to remove'
             default:
                 return ''
-        }
-    })
-
-    $effect(() => {
-        if (gameSession.validActionTypes.length === 1) {
-            const singleAction = gameSession.validActionTypes[0]
-            chooseAction(singleAction)
-        } else if (gameSession.validActionTypes.length === 0) {
-            gameSession.resetAction()
         }
     })
 

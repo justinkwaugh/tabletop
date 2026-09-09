@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/frontend",
-    "version": "17.0.0",
+    "version": "17.1.0",
     "private": true,
     "type": "module",
     "scripts": {
@@ -24,7 +24,6 @@
         "idb": "^8.0.3",
         "javascript-time-ago": "^2.5.10",
         "nanoid": "^5.1.6",
-        "svelte-json-tree": "github:justinkwaugh/svelte-json-tree",
         "svelte-sonner": "^0.3.27",
         "typebox": "^1.0.79",
         "wretch": "^2.9.0",

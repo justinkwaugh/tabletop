@@ -1,15 +1,21 @@
 import * as Type from 'typebox'
 import { Notification, NotificationCategory } from './notification.js'
-import { Game } from '../../game/model/game.js'
+import { Game, GameWithoutState } from '../../game/model/game.js'
 import { GameAction } from '../../game/engine/gameAction.js'
-import { CanonicalActionReplayManifest } from '../../game/engine/canonicalActionReplay.js'
+import {
+    CanonicalActionReplayManifest,
+    ProcessedActionReplay
+} from '../../game/engine/canonicalActionReplay.js'
 import { GameChatMessage } from '../chat/gameChatMessage.js'
+import { Perspective } from '../../game/visibility/valueProjector.js'
 
 export enum GameNotificationAction {
     Create = 'create',
     Update = 'update',
     Delete = 'delete',
     AddActions = 'addActions',
+    AddProjectedActions = 'addProjectedActions',
+    ReplaceProjectedActions = 'replaceProjectedActions',
     UndoAction = 'undoAction',
     Chat = 'chat'
 }
@@ -35,15 +41,34 @@ export const GameNotificationAddActionsData = Type.Object({
     actions: Type.Array(GameAction)
 })
 
+export type GameNotificationAddProjectedActionsData = Type.Static<
+    typeof GameNotificationAddProjectedActionsData
+>
+export const GameNotificationAddProjectedActionsData = Type.Object({
+    game: GameWithoutState,
+    actions: Type.Array(GameAction),
+    perspective: Perspective
+})
+
+export type GameNotificationReplaceProjectedActionsData = Type.Static<
+    typeof GameNotificationReplaceProjectedActionsData
+>
+export const GameNotificationReplaceProjectedActionsData = Type.Object({
+    game: GameWithoutState,
+    actionReplay: ProcessedActionReplay,
+    checksum: Type.Number(),
+    perspective: Perspective
+})
+
 export type GameNotificationUndoActionData = Type.Static<typeof GameNotificationUndoActionData>
 export const GameNotificationUndoActionData = Type.Object({
     game: Game,
+    redoneActions: Type.Array(GameAction),
+    canonicalReplay: CanonicalActionReplayManifest,
+    checksum: Type.Number(),
     // Compatibility for clients deployed before the compact replay manifest.
     action: GameAction,
-    redoneActions: Type.Array(GameAction),
-    undoneActionId: Type.String(),
-    canonicalReplay: CanonicalActionReplayManifest,
-    checksum: Type.Number()
+    undoneActionId: Type.String()
 })
 
 export type GameNotificationChatData = Type.Static<typeof GameNotificationChatData>
@@ -101,6 +126,34 @@ export const GameAddActionsNotification = Type.Evaluate(
     ])
 )
 
+export type GameAddProjectedActionsNotification = Type.Static<
+    typeof GameAddProjectedActionsNotification
+>
+export const GameAddProjectedActionsNotification = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(Notification, ['type', 'action', 'data']),
+        Type.Object({
+            type: Type.Literal(NotificationCategory.Game),
+            action: Type.Literal(GameNotificationAction.AddProjectedActions),
+            data: GameNotificationAddProjectedActionsData
+        })
+    ])
+)
+
+export type GameReplaceProjectedActionsNotification = Type.Static<
+    typeof GameReplaceProjectedActionsNotification
+>
+export const GameReplaceProjectedActionsNotification = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(Notification, ['type', 'action', 'data']),
+        Type.Object({
+            type: Type.Literal(NotificationCategory.Game),
+            action: Type.Literal(GameNotificationAction.ReplaceProjectedActions),
+            data: GameNotificationReplaceProjectedActionsData
+        })
+    ])
+)
+
 export type GameUndoActionNotification = Type.Static<typeof GameUndoActionNotification>
 export const GameUndoActionNotification = Type.Evaluate(
     Type.Intersect([
@@ -130,6 +183,8 @@ export type GameNotificationData =
     | GameNotificationUpdateData
     | GameNotificationDeleteData
     | GameNotificationAddActionsData
+    | GameNotificationAddProjectedActionsData
+    | GameNotificationReplaceProjectedActionsData
     | GameNotificationUndoActionData
     | GameNotificationChatData
 
@@ -138,5 +193,7 @@ export type GameNotification =
     | GameUpdateNotification
     | GameDeleteNotification
     | GameAddActionsNotification
+    | GameAddProjectedActionsNotification
+    | GameReplaceProjectedActionsNotification
     | GameUndoActionNotification
     | GameChatNotification

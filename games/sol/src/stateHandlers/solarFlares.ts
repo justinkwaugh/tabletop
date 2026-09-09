@@ -15,7 +15,8 @@ import { HydratedActivate, isActivate } from '../actions/activate.js'
 import { Ring } from '../utils/solGraph.js'
 import { nanoid } from 'nanoid'
 import { Activation } from '../model/activation.js'
-import { HydratedPass, isPass, Pass } from '../actions/pass.js'
+import { HydratedPass, isPass } from '../actions/pass.js'
+import { queueCardChoicePass } from '../utils/automaticActions.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 import { EffectType } from '../components/effects.js'
 import { onActivateEffect } from './postActionHelper.js'
@@ -172,10 +173,7 @@ export class SolarFlaresStateHandler implements MachineStateHandler<
             assertExists(currentPlayerId, 'No current turn player found')
 
             state.activePlayerIds = [currentPlayerId]
-            const currentPlayerState = state.getPlayerState(currentPlayerId)
-            if (!currentPlayerState.hasCardChoice()) {
-                context.addSystemAction(Pass, { playerId: currentPlayerId })
-            }
+            queueCardChoicePass(context, currentPlayerId)
             return MachineState.ChoosingCard
         }
     }

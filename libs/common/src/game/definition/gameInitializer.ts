@@ -11,16 +11,13 @@ export interface GameInitializer<
 > {
     initializeGame(game: Partial<Game>, definition: GameDefinition<T, U>): Game
     initializeGameState(game: Game, state: UninitializedGameState): U
-    initializeExplorationState(state: T): T
 }
 
 export abstract class BaseGameInitializer<
     T extends GameState = GameState,
     U extends HydratedGameState<T> = HydratedGameState<T>
-> implements GameInitializer<T, U>
-{
+> implements GameInitializer<T, U> {
     abstract initializeGameState(game: Game, state: UninitializedGameState): U
-    abstract initializeExplorationState(state: T): T
 
     initializeGame(game: Partial<Game>, definition: GameDefinition<T, U>): Game {
         if (Object.keys(game.config ?? {}).length > 0) {
