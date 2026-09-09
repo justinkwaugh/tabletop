@@ -65,7 +65,6 @@
         "javascript-time-ago": "^2.5.10",
         "nanoid": "^5.1.6",
         "runed": "^0.37.1",
-        "svelte-json-tree": "github:justinkwaugh/svelte-json-tree",
         "svelte-sonner": "^0.3.27",
         "typebox": "^1.0.79",
         "wretch": "^2.9.0"
