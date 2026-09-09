@@ -1,6 +1,10 @@
-import { createRectangularStockMarket, placeStockMarker } from '@tabletop/18xx'
+import {
+    createRectangularStockMarket,
+    placeStockMarker,
+    type FinanceExamplePosition
+} from '@tabletop/18xx'
 
-export function createTheOldPrinceStockMarket() {
+export function createTheOldPrinceStockMarket(position: FinanceExamplePosition = 'trading') {
     const market = createRectangularStockMarket(
         [
             [null, null, 111, 122, 136, 152, 170, 190, 215, 240, 270, 300, 330, 360, 400],
@@ -27,5 +31,6 @@ export function createTheOldPrinceStockMarket() {
     )
     placeStockMarker(market, 'ML', '1:1')
     placeStockMarker(market, 'So', '2:1')
+    if (position === 'flotation') placeStockMarker(market, 'A', '3:1')
     return market
 }

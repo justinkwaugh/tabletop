@@ -17,6 +17,8 @@
 <StockMarket market={state.stockMarket} companies={state.companies} />
 
 <FinanceInspector
+    stations={state.stations}
+    stationReservations={state.stationReservations}
     certificateWeight={session.certificateWeight}
     {state}
     players={gameSession.game.players}

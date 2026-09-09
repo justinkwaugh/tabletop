@@ -1,9 +1,11 @@
 <script lang="ts">
     import { UiDefinition as TopDefinition } from '@tabletop/the-old-prince-ui'
     import { UiDefinition as ShikokuDefinition } from '@tabletop/shikoku-1889-ui'
+    import type { FinanceExamplePosition } from '@tabletop/18xx'
     import FinanceExampleHost from '../../demo/FinanceExampleHost.svelte'
     import '../../map.css'
     let title = $state<'TOP' | '1889'>('TOP')
+    let position = $state<FinanceExamplePosition>('trading')
 </script>
 
 <svelte:head><title>18xx finances</title></svelte:head>
@@ -19,9 +21,17 @@
                 >Shikoku 1889</button
             >
         </div>
-        <span class="example">Example position</span>
+        <label class="example"
+            >Example position
+            <select bind:value={position}>
+                <option value="trading">Share trading</option>
+                <option value="starting">Starting companies</option>
+                <option value="flotation">Flotation</option>
+            </select>
+        </label>
     </header>
-    {#key title}<FinanceExampleHost
+    {#key `${title}:${position}`}<FinanceExampleHost
+            {position}
             definition={title === 'TOP' ? TopDefinition : ShikokuDefinition}
         />{/key}
 </main>
@@ -77,6 +87,15 @@
         background: #315d4f;
         color: white;
         border-color: #315d4f;
+    }
+    select {
+        margin-left: 8px;
+        padding: 10px 32px 10px 12px;
+        background: #fffefa;
+        border: 1px solid #aebfb4;
+        border-radius: 6px;
+        font: inherit;
+        color: inherit;
     }
     .example {
         font-size: 12px;

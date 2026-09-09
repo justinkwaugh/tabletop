@@ -5,14 +5,11 @@ import {
     PlayerAction,
     HydratableAction,
     assert,
-    assertExists,
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
 import { Owner } from '../finance/finance.js'
-import { evaluateSharePurchase, SharePurchaseDetails } from './sharePurchase.js'
-import { settleCashPayments } from '../finance/cashPayments.js'
-import { applyPresidencyChange } from './presidency.js'
+import { evaluateSharePurchase, SharePurchaseDetails, applySharePurchase } from './sharePurchase.js'
 import type { StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
 
@@ -53,19 +50,7 @@ export class HydratedBuyShares extends HydratableAction<typeof BuyShares> implem
         const result = evaluateSharePurchase(state, this, this.#rules)
         assert(result.details, result.reason ?? 'Invalid purchase')
         assert(this.expectedPrice === result.details.price, 'The purchase price has changed')
-        const certificate = state.certificates.find(
-            (certificate) => certificate.id === this.certificateId
-        )
-        assertExists(certificate, 'Missing purchased certificate')
-        assert(!certificate.retired, 'Cannot buy a retired certificate')
-        settleCashPayments(state, result.details.payments)
-        certificate.owner = this.buyer
-        delete certificate.poolId
-        if (this.buyer.kind === 'company')
-            state.stockRound.companyPurchases.push(this.buyer.companyId)
-        if (result.details.presidency) applyPresidencyChange(state, result.details.presidency)
-        state.stockRound.turn.soldBeforeBuying = state.stockRound.turn.companiesSold.length > 0
-        state.stockRound.turn.bought = true
+        applySharePurchase(state, result.details)
         this.metadata = result.details
     }
 }

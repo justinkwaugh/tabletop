@@ -24,6 +24,8 @@ export function createShikoku1889FinanceExample(players: readonly PlayerState[])
                 kind: 'major',
                 shareCount: 10,
                 parPrice: 65,
+                started: true,
+                funded: true,
                 operated: true,
                 floated: true,
                 president: alex
@@ -34,6 +36,8 @@ export function createShikoku1889FinanceExample(players: readonly PlayerState[])
                 kind: 'major',
                 shareCount: 10,
                 parPrice: 70,
+                started: true,
+                funded: true,
                 operated: true,
                 floated: true,
                 president: blair

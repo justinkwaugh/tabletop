@@ -12,6 +12,7 @@ import {
     type HexGridNode
 } from '@tabletop/common'
 import { TileEdge, TileFace, type ImmutableTileData } from '../tiles/tile.js'
+import { CityReservation } from './station.js'
 import { assertTileTopology } from '../tiles/validation.js'
 import { tileEdgeDirection } from '../tiles/topology.js'
 
@@ -49,17 +50,7 @@ export const MapLocation = Type.Object(
                 )
             )
         ),
-        reservations: Type.Optional(
-            Type.Array(
-                Type.Object(
-                    {
-                        companyId: Identifier,
-                        nodeId: Identifier
-                    },
-                    { additionalProperties: false }
-                )
-            )
-        ),
+        reservations: Type.Optional(Type.Array(CityReservation)),
         upgradeLabels: Type.Optional(
             Type.Array(
                 Type.Object(

@@ -24,3 +24,9 @@ Sales follow the shared contract: preview and cancellation leave the market and
 portfolios unchanged; confirmation updates proceeds, presidency, and market
 position. Undo restores the full trade. Effective certificate counts come from
 the title rules for the current displayed market position.
+
+Company starts and flotation follow the shared staged-selection contract. Sanuki
+can be started by selecting its par price, and its separate flotation example
+shows the qualifying purchase and capital grant. Its home remains reserved and
+its station available after flotation, awaiting the operating round. Undo reverses
+the purchase and automatic grant together.

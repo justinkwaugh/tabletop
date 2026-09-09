@@ -1,8 +1,11 @@
 import { ActionSource, GameEngine, GameStorage, PlayerStatus } from '@tabletop/common'
 import { Definition as Top } from '@tabletop/the-old-prince'
-import type { BuyShares, President } from '@tabletop/18xx'
+import type { BuyShares, President, FinanceExamplePosition } from '@tabletop/18xx'
 const alex = { kind: 'player', playerId: 'alex' } as const
-export function example(definition: typeof Top) {
+export function example(
+    definition: typeof Top,
+    examplePosition: FinanceExamplePosition = 'trading'
+) {
     const game = definition.runtime.initializer.initializeGame(
         {
             id: 'purchase-example',
@@ -12,6 +15,7 @@ export function example(definition: typeof Top) {
             storage: GameStorage.Local,
             hotseat: true,
             seed: 5,
+            config: { examplePosition },
             players: ['alex', 'blair', 'casey'].map((id) => ({
                 id,
                 name: id,

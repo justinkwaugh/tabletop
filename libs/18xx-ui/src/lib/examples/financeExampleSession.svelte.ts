@@ -1,6 +1,20 @@
+import {
+    chooseStartCompany,
+    chooseStartPrice,
+    backFromCompanyStart,
+    companyStartRequest,
+    type CompanyStartSelection
+} from './companyStartSelection.js'
 import { GameSession } from '@tabletop/frontend-components'
 import { assert, assertExists, type GameState, type HydratedGameState } from '@tabletop/common'
 import {
+    StartCompany,
+    isStartCompany,
+    isFloatCompany,
+    evaluateCompanyStart,
+    flotationAfterPurchase,
+    type CompanyRules,
+    type CompanyStartRequest,
     BuyShares,
     SellShares,
     FinishStockTurn,
@@ -25,15 +39,116 @@ type SessionOptions = ConstructorParameters<typeof GameSession<GameState, Hydrat
 type Selection =
     | { kind: 'purchase'; request: PurchaseRequest }
     | { kind: 'sale'; request: SaleRequest }
+    | { kind: 'start'; stages: CompanyStartSelection }
 export class FinanceExampleSession extends GameSession<GameState, HydratedGameState> {
     selection: Selection | undefined = $state()
     constructor(
         options: SessionOptions,
-        private readonly stockRules: StockRules
+        private readonly stockRules: StockRules,
+        private readonly companyRules: CompanyRules
     ) {
         super(options)
     }
     financialState = $derived(requireFinanceExampleState(this.gameState))
+    startChoices = $derived.by(() => {
+        const state = this.financialState
+        const playerId = this.myPlayer?.id
+        if (
+            !playerId ||
+            this.updatingVisibleState ||
+            this.isViewingHistory ||
+            state.machineState !== 'TradingShares' ||
+            state.stockRound.turn.bought
+        )
+            return []
+        return this.stockRules.buyers(state, playerId).flatMap((buyer) =>
+            state.companies
+                .filter((company) => !company.started && !company.closed && company.shareCount)
+                .map((company) => {
+                    const request = { playerId, buyer, companyId: company.id }
+                    const prices = this.companyRules
+                        .startMarketSpaces(state, company.id)
+                        .map((marketSpaceId) => ({
+                            marketSpaceId,
+                            result: evaluateCompanyStart(
+                                state,
+                                { ...request, marketSpaceId },
+                                this.stockRules,
+                                this.companyRules
+                            )
+                        }))
+                    return { request, prices }
+                })
+                .filter((choice) => choice.prices.length > 0)
+        )
+    })
+    selectedStartCompany = $derived(
+        this.selection?.kind === 'start' && !this.updatingVisibleState && !this.isViewingHistory
+            ? this.selection.stages.company?.value
+            : undefined
+    )
+    selectedStartRequest = $derived(
+        this.selection?.kind === 'start' && !this.updatingVisibleState && !this.isViewingHistory
+            ? companyStartRequest(this.selection.stages)
+            : undefined
+    )
+    selectedStartPrices = $derived(
+        this.startChoices.find(
+            (choice) =>
+                this.selectedStartCompany &&
+                choice.request.companyId === this.selectedStartCompany.companyId &&
+                sameOwner(choice.request.buyer, this.selectedStartCompany.buyer)
+        )?.prices ?? []
+    )
+    selectedStartResult = $derived.by(() =>
+        this.selectedStartRequest
+            ? evaluateCompanyStart(
+                  this.financialState,
+                  this.selectedStartRequest,
+                  this.stockRules,
+                  this.companyRules
+              )
+            : undefined
+    )
+    selectedPurchaseFlotation = $derived.by(() =>
+        this.selectedPurchaseDetails
+            ? flotationAfterPurchase(
+                  this.financialState,
+                  this.selectedPurchaseDetails,
+                  this.companyRules
+              )
+            : undefined
+    )
+    selectCompanyStart(request: Omit<CompanyStartRequest, 'marketSpaceId'>) {
+        this.assertSelectionAvailable(request.playerId)
+        this.selection = { kind: 'start', stages: chooseStartCompany(request) }
+    }
+    selectStartPrice(marketSpaceId: string) {
+        this.assertSelectionAvailable(this.myPlayer?.id)
+        assert(this.selection?.kind === 'start', 'Choose a company before its starting price')
+        this.selection = {
+            kind: 'start',
+            stages: chooseStartPrice(this.selection.stages, marketSpaceId)
+        }
+    }
+    backFromStart() {
+        assert(this.selection?.kind === 'start', 'No company start selected')
+        const stages = backFromCompanyStart(this.selection.stages)
+        this.selection = stages.company ? { kind: 'start', stages } : undefined
+    }
+    async confirmStart() {
+        this.assertSelectionAvailable(this.myPlayer?.id)
+        const details = this.selectedStartResult?.details
+        assertExists(details, 'Choose an available company and starting price')
+        await this.applyAction(
+            this.createPlayerAction(StartCompany, {
+                buyer: details.buyer,
+                companyId: details.companyId,
+                marketSpaceId: details.marketSpaceId,
+                expectedPrice: details.price
+            })
+        )
+    }
     purchaseChoices = $derived.by(() => {
         const state = this.financialState
         const playerId = this.myPlayer?.id
@@ -110,7 +225,13 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     trades = $derived(
         this.actions
             .slice(0, this.gameState.actionCount)
-            .filter((action) => isBuyShares(action) || isSellShares(action))
+            .filter(
+                (action) =>
+                    isBuyShares(action) ||
+                    isSellShares(action) ||
+                    isStartCompany(action) ||
+                    isFloatCompany(action)
+            )
     )
     mustSell = $derived.by(() =>
         this.myPlayer
@@ -232,11 +353,12 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     }
 }
 export function createFinanceExampleSessionClass(
-    rules: StockRules
+    rules: StockRules,
+    companyRules: CompanyRules
 ): new (options: SessionOptions) => FinanceExampleSession {
     return class extends FinanceExampleSession {
         constructor(options: SessionOptions) {
-            super(options, rules)
+            super(options, rules, companyRules)
         }
     }
 }

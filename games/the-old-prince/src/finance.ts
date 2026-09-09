@@ -26,6 +26,8 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
                 name: 'Charlottetown · Mainline',
                 kind: 'major',
                 shareCount: 10,
+                started: true,
+                funded: true,
                 operated: true,
                 floated: true,
                 president: alex
@@ -35,6 +37,8 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
                 name: 'Souris',
                 kind: 'major',
                 shareCount: 10,
+                started: true,
+                funded: true,
                 operated: true,
                 floated: true,
                 president: union

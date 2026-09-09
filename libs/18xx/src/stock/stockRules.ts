@@ -1,4 +1,5 @@
 import {
+    sameOwner,
     certificatesOwnedBy,
     sharesOwned,
     type Owner,
@@ -44,7 +45,16 @@ export function exceedsStockLimits(state: StockState, owner: Owner, rules: Stock
             if (!company.shareCount) return false
             return (
                 sharesOwned(state, company.id, owner) * 100 >
-                rules.ownershipLimit(state, company.id, owner) * company.shareCount
+                Math.max(
+                    rules.ownershipLimit(state, company.id, owner) * company.shareCount,
+                    ...state.ownershipLimitExemptions
+                        .filter(
+                            (exemption) =>
+                                exemption.companyId === company.id &&
+                                sameOwner(exemption.owner, owner)
+                        )
+                        .map((exemption) => exemption.maximumShares * 100)
+                )
             )
         })
     )

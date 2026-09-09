@@ -107,3 +107,26 @@ A token identifying a company's current stock-market position.
 **Marker Stack**:
 The ordered markers sharing one stock-market space, whose relative order may
 determine company priority.
+
+**Company Formation**:
+The process that establishes a company under the title's rules, including its
+initial ownership and any required starting price or rights.
+
+**Capitalization**:
+The rules and payments through which a company receives its capital.
+
+**Flotation**:
+The event that makes a started company eligible to operate under the title's rules.
+
+**Company Tranche**:
+A group of spaces for starting companies, released in a prescribed order under
+the title's rules.
+
+**Station**:
+A company's token that establishes the location-based rights specified by the title.
+
+**Station Reservation**:
+A company's entitlement to a station location, independently of placing its token.
+
+**Ownership Limit Exemption**:
+Permission to retain specified shares above the ordinary ownership limit.

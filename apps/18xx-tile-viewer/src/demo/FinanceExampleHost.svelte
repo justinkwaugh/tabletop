@@ -7,7 +7,7 @@
         type GameState,
         type HydratedGameState
     } from '@tabletop/common'
-    import { FinanceExampleValidator } from '@tabletop/18xx'
+    import { FinanceExampleValidator, type FinanceExamplePosition } from '@tabletop/18xx'
     import {
         createHarnessAppContext,
         setAppContext,
@@ -17,14 +17,20 @@
         type GameUiDefinition
     } from '@tabletop/frontend-components'
 
-    let { definition }: { definition: GameUiDefinition<GameState, HydratedGameState> } = $props()
+    let {
+        definition,
+        position = 'trading'
+    }: {
+        definition: GameUiDefinition<GameState, HydratedGameState>
+        position?: FinanceExamplePosition
+    } = $props()
     const app = untrack(() => createHarnessAppContext(definition))
     setAppContext(app)
     let session: GameSession<GameState, HydratedGameState> | undefined = $state.raw()
     let error = $state<string>()
     let bridge: BridgedContext | undefined
     let disposed = false
-    const exampleName = 'Finances example · 5'
+    const exampleName = untrack(() => `Finances example · 6 · ${position}`)
 
     onMount(() => {
         void load()
@@ -57,7 +63,7 @@
                         isHuman: true,
                         status: PlayerStatus.Joined
                     })),
-                    config: {},
+                    config: { examplePosition: position },
                     seed: 1889
                 }))
             const { game, actions } = await app.gameService.loadGame(created.id)

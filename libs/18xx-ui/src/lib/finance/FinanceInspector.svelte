@@ -7,7 +7,13 @@
         controllingOwner
     } from '@tabletop/18xx'
     import { assertExists, type Player, type PlayerState } from '@tabletop/common'
-    import type { Certificate, Owner, FinancialState } from '@tabletop/18xx'
+    import type {
+        Certificate,
+        Owner,
+        FinancialState,
+        Station,
+        StationReservation
+    } from '@tabletop/18xx'
     import type { Portfolio as PortfolioModel } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
     import Portfolio from './Portfolio.svelte'
@@ -16,13 +22,17 @@
         players,
         playerStates,
         certificateDetail,
-        certificateWeight
+        certificateWeight,
+        stations = [],
+        stationReservations = []
     }: {
         state: FinancialState
         players: readonly Player[]
         playerStates: readonly PlayerState[]
         certificateDetail?: Snippet<[Certificate]>
         certificateWeight?: (certificate: PortfolioModel[number]) => number
+        stations?: readonly Station[]
+        stationReservations?: readonly StationReservation[]
     } = $props()
     function playerName(playerId: string) {
         const player = players.find((player) => player.id === playerId)
@@ -76,6 +86,27 @@
                         {certificateDetail}
                         {certificateWeight}
                     />
+                    {#if company.closed}<p class="authority">Closed</p>
+                    {:else if company.started !== undefined}
+                        <p class="authority" data-company-lifecycle={company.id}>
+                            {company.started ? 'Started' : 'Not started'} · {company.funded
+                                ? 'Funded'
+                                : 'Not funded'} · {company.floated ? 'Floated' : 'Not floated'} · {company.operated
+                                ? 'Operated'
+                                : 'Not operated'}
+                        </p>
+                    {/if}
+                    {#each stationReservations.filter((reservation) => reservation.companyId === company.id) as reservation}
+                        <p class="authority">Reserved home: {reservation.locationId}</p>
+                    {/each}
+                    {#each stations.filter((station) => station.companyId === company.id && station.status === 'placed') as station (station.id)}
+                        {#if station.status === 'placed'}<p
+                                class="authority"
+                                data-station-id={station.id}
+                            >
+                                Station: {station.position.locationId}
+                            </p>{/if}
+                    {/each}
                     {#if company.kind === 'private'}
                         <p class="authority">Owner: {owner ? ownerName(owner) : 'None'}</p>
                     {:else}

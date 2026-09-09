@@ -11,7 +11,7 @@ export const Shikoku1889StockRules: StockRules = {
     sellers: (_state, playerId) => [{ kind: 'player', playerId }],
     purchaseTerms(state, certificate, buyer) {
         const company = getCompany(state, certificate.companyId)
-        if (!company.floated) return 'Only floated companies are available in this example.'
+        if (!company.started || company.closed) return 'This company has not started or is closed.'
         if (certificate.president) return 'Starting a company is not available in this example.'
         if (
             certificate.owner.kind !== 'bank' ||
@@ -41,6 +41,8 @@ export const Shikoku1889StockRules: StockRules = {
     certificateLimit: () => 19,
     certificateWeight(state, certificate) {
         if (certificate.kind === 'share') {
+            if (!getCompany(state, certificate.companyId).started)
+                return certificate.certificateLimitCount
             const color = companyMarketSpace(state.stockMarket, certificate.companyId).color
             if (color === 'yellow' || color === 'orange') return 0
         }
@@ -48,7 +50,7 @@ export const Shikoku1889StockRules: StockRules = {
     },
     ownershipLimit(state, companyId) {
         const company = getCompany(state, companyId)
-        if (!company.shareCount) return 100
+        if (!company.shareCount || !company.started) return 100
         return companyMarketSpace(state.stockMarket, companyId).color === 'orange' ? 100 : 60
     },
     presidencyCandidates: (state, companyId) =>

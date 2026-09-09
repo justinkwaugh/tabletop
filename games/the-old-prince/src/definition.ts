@@ -1,22 +1,25 @@
+import { TheOldPrinceCompanyRules } from './companyRules.js'
 import { createTheOldPrinceStockMarket } from './stockMarket.js'
 import { TheOldPrinceStockRules } from './stockRules.js'
 import { type GameDefinition } from '@tabletop/common'
 import {
     createFinanceExampleRuntime,
+    FinanceExampleConfigurator,
     type FinanceExampleState,
     type HydratedFinanceExampleState
 } from '@tabletop/18xx'
-import { createTheOldPrinceFinanceExample } from './finance.js'
+import { createTheOldPrinceCompanyExample } from './companyExamples.js'
 
 export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExampleState> = {
     info: {
+        configurator: new FinanceExampleConfigurator(),
         id: 'the-old-prince',
         metadata: {
             name: 'The Old Prince 1871 · finance example',
             designer: 'Lucas Boyd',
             year: '',
             description:
-                'A three-player example position for inspecting cash, certificates, and control.',
+                'Prepared three-player positions for stock trading, company formation, and flotation.',
             minPlayers: 3,
             maxPlayers: 3,
             defaultPlayerCount: 3,
@@ -25,8 +28,9 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
         }
     },
     runtime: createFinanceExampleRuntime(
-        createTheOldPrinceFinanceExample,
+        createTheOldPrinceCompanyExample,
         TheOldPrinceStockRules,
-        createTheOldPrinceStockMarket
+        createTheOldPrinceStockMarket,
+        TheOldPrinceCompanyRules
     )
 }

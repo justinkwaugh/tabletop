@@ -1,4 +1,4 @@
-# Finances (slices 1–3)
+# Finances (slices 1–4)
 
 The shared model separates companies, the bank, asset ownership, certificate pools,
 cash, and company management. Both title packages supply reduced example positions
@@ -91,7 +91,7 @@ the title README.
 
 `FinanceExampleState` is built on Common Game State with financial fields at the
 root. Its initializer requires three players, uses their stable IDs, and authors
-deterministic asset IDs. `TradingShares` offers purchases and sales for the first player;
+deterministic asset IDs. `StockRoundHandler` offers purchases, sales, and company starts for the first player;
 `FinishStockTurn` then enters `InspectFinances` to stop gameplay. It retains the acting player's identity for
 Common's hotseat Undo, but its terminal handler accepts no further Actions. There
 is no game result or automatic turn progression in this example. Each title exports a Definition
@@ -107,7 +107,7 @@ Game Session and renders payment previews and committed history.
 
 The Finances page at the existing `/economy` route uses the existing local harness to persist examples.
 The host identifies this schema's examples with the versioned name
-`Finances example · 5`. Earlier inspection examples are preserved, and a new
+`Finances example · 6 · <position>`. Earlier inspection examples are preserved, and a new
 example is created for this version. Current examples are reused on reload and
 when switching titles. This is fixture versioning, not a saved-game migration.
 
@@ -141,7 +141,7 @@ and 15 provide the title rules. TOP remains a prototype with the discrepancies
 already recorded in its title README.
 
 The current slice excludes debt, shorts, preferred dividends, scoring aggregation,
-company formation, full setup, and full stock-round progression.
+full setup, and full stock-round progression.
 Those rules remain title-owned as they are added.
 
 ## Verification
@@ -177,9 +177,9 @@ the certificate. A purchase for Union Bank consumes its once-per-stock-round
 opportunity. Prior sales are recorded against the buying Owner, independently of
 the player directing that Owner.
 
-The purchase examples use floated majors. Purchases and sales now settle presidency
+The original purchase examples use floated majors. The formation positions also permit purchases in started companies before they float. Purchases and sales now settle presidency
 exchanges, and 1889 market zones affect certificate and ownership limits. Company
-formation and flotation require later slices. PEIR's variable interest and reserved
+formation and flotation are implemented in slice 4. PEIR's variable interest and reserved
 exchange certificates are not ordinary purchase options.
 
 The family review for purchase evaluation, payments, Action/state flow, and shared confirmation
@@ -225,3 +225,28 @@ preview can include multiple companies.
 
 See the [slice 3 design and research review](../../research/18xx/stock-trading-slice-design.md)
 for the full-catalog survey, interface choices, verification, and remaining scope.
+
+
+## Company formation and flotation
+
+The shared `StartCompany` action establishes presidency and starting market price
+through the same share-acquisition/payment settlement used by `BuyShares`.
+`FloatCompany` is a System Action scheduled by the stock handler after a qualifying
+trade; its title rules supply initial capital and any inseparable exchange effects.
+Company facts separately record starting, initial funding, flotation, operation and
+closure. TOP branches can be funded before flotation and receive no second grant.
+
+TOP uses tranches, phase-dependent starting prices, and player-owned PEIR shares as
+start eligibility. Flotation exchanges the PEIR share, replaces its station,
+resolves presidencies and permits any forced ownership-limit excess. The final
+exchange closes PEIR and the King's Mail and discards PEIR cash. Train holdings do
+not exist in these examples; train disposal must join this closure in the train slice.
+1889 floats at 50% outside its IPO, grants ten times par, and keeps its home reserved
+until the operating round. Station placement and reservation are separate facts.
+
+The harness offers Share trading, Starting companies, and Flotation positions,
+each persisted separately. Company and price choices are manual stages; Back
+unwinds them and Undo reverses the triggering purchase together with flotation.
+Reload defaults to the trading position; selecting a saved position restores its
+committed state. Earlier fixture versions remain preserved. Full round progression
+is the next slice. See the [formation design and evidence](../../research/18xx/company-formation-slice-design.md).

@@ -1,7 +1,10 @@
 <script lang="ts">
+    import CompanyStarting from './CompanyStarting.svelte'
     import {
         getCompany,
         isBuyShares,
+        isStartCompany,
+        isFloatCompany,
         isSellShares,
         stockMarketSpace,
         type PresidencyChange
@@ -39,7 +42,9 @@
     {#if session.mustSell}<p role="status">
             Sell down to the stock limits before buying or finishing.
         </p>{/if}
-    {#if session.selectedPurchaseDetails}
+    {#if session.selectedStartCompany}
+        <CompanyStarting {session} />
+    {:else if session.selectedPurchaseDetails}
         {@const details = session.selectedPurchaseDetails}
         <div aria-label="Confirm share purchase">
             <p>
@@ -55,6 +60,16 @@
                     </li>{/each}
             </ul>
             {#if details.presidency}{@render presidency(details.presidency)}{/if}
+            {#if session.selectedPurchaseFlotation}
+                <div aria-label="Flotation preview">
+                    <p>{getCompany(state, details.companyId).name} will float.</p>
+                    {#each session.selectedPurchaseFlotation.payments as payment}<p>
+                            {session.ownerName(payment.from)} pays {payment.amount} to {session.ownerName(
+                                payment.to
+                            )} as initial capital.
+                        </p>{/each}
+                </div>
+            {/if}
             <div class="buttons">
                 <button onclick={() => session.cancelSelection()} disabled={session.busy}
                     >Back</button
@@ -124,6 +139,7 @@
                 </div>
             </div>
         {/if}
+        {#if !session.selection}<CompanyStarting {session} />{/if}
         <details open>
             <summary>Sell shares</summary>
             <div class="choices">
@@ -183,7 +199,24 @@
     {#if session.trades.length}
         <ol aria-label="Stock history">
             {#each session.trades as trade (trade.id)}
-                {#if isBuyShares(trade) && trade.metadata}
+                {#if isStartCompany(trade) && trade.metadata}
+                    <li>
+                        {session.ownerName(trade.metadata.buyer)} started {getCompany(
+                            state,
+                            trade.companyId
+                        ).name} at {trade.metadata.parPrice}, paying {trade.metadata.price} for the president’s
+                        certificate.
+                    </li>
+                {:else if isFloatCompany(trade) && trade.metadata}
+                    <li>
+                        {getCompany(state, trade.companyId).name} floated.
+                        {#each trade.metadata.payments as payment}<span
+                                >{session.ownerName(payment.from)} paid {payment.amount} to {session.ownerName(
+                                    payment.to
+                                )} as initial capital.</span
+                            >{/each}
+                    </li>
+                {:else if isBuyShares(trade) && trade.metadata}
                     {@const details = trade.metadata}
                     <li>
                         {session.ownerName(details.buyer)} bought {getCompany(
@@ -203,8 +236,10 @@
                         {session.ownerName(details.seller)} sold shares for {details.proceeds}.
                         {#each details.sales as sale}<span
                                 >{getCompany(state, sale.companyId).name}: {sale.shares} shares at {sale.price};
-                                market price {stockMarketSpace(state.stockMarket, sale.toMarketSpaceId)
-                                    .price}.</span
+                                market price {stockMarketSpace(
+                                    state.stockMarket,
+                                    sale.toMarketSpaceId
+                                ).price}.</span
                             >
                             {#if sale.presidency}{@render presidency(sale.presidency)}{/if}
                         {/each}

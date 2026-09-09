@@ -184,7 +184,7 @@ Portfolios show cash, certificate pools, share units, effective certificate-limi
 weights, and private ownership. Company details identify the President and
 Controlling Owner. Title-specific numbered-share explanations remain visible.
 
-The prepared stock turn supports purchasing, selling, and finishing. A manual
+The prepared stock turn supports purchasing, selling, company starts, and finishing. A manual
 purchase selection replaces the choices with the price, payer contributions, and
 any presidency exchange. A sale selection shows quantities, total proceeds,
 resulting market prices, and presidency exchanges. Additional companies may join
@@ -198,8 +198,9 @@ spaces and stack identities. Previewing a trade does not move markers.
 
 ### Coexistence and precedence
 
-Only one manual purchase or sale selection exists at a time. A sale may contain
-several ordered company blocks. Back cancels the entire manual selection. Undo
+Only one manual purchase, sale, or company-start selection exists at a time. A sale may contain
+several ordered company blocks. Back cancels an entire purchase or sale selection;
+company starts unwind the stages described below. Undo
 clears a manual selection first, otherwise it undoes committed history, including
 Finish turn. There are no automatic selections. While processing or in History
 View, selections do not render and trade controls are unavailable.
@@ -242,3 +243,25 @@ market position. 1889 checks an Iyo purchase that changes president and a subseq
 Awa sale; both undo exactly. Engine tests cover multi-company arrival order, market
 exemptions, rejection, and processed replay. Screens have no page errors or document
 horizontal overflow.
+
+### Company formation and flotation
+
+Starting companies adds a third exclusive manual selection alongside purchases
+and sales. Selecting a company/buyer opens its starting-price choices; selecting a
+price opens the payment confirmation. These use Common's staged selection helpers.
+Back from confirmation clears the price; Back from price choice clears the company.
+Undo clears the entire manual selection before committed history. Neither stage
+auto-selects. Processing, History View, state publication, and disposal use the
+same visibility/lifetime rules as other stock selections.
+
+A purchase preview identifies flotation and initial capital when it reaches the
+threshold. Confirmation records the purchase and its automatic FloatCompany action.
+One gameplay Undo reverses the triggering purchase and its system consequences.
+History records the start or flotation and payments. Company details show separate
+started/funded/floated/operated facts and reserved or placed home locations.
+
+The harness selects Share trading, Starting companies, or Flotation. Each has its
+own persisted example; switching disposes the session and discards drafts. Reload
+restores committed state. These controls select examples, not game-rule actions.
+Desktop/mobile checks cover both Back stages, confirmation, reload, position/title
+switching, market/cash/ownership results and complete Undo of flotation.

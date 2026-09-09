@@ -1,0 +1,54 @@
+import * as Type from 'typebox'
+import { assert } from '@tabletop/common'
+import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
+import { copyFinances, getCompany } from '../finance/finance.js'
+import { applyPresidencyChange } from '../stock/presidency.js'
+import type { SharePurchaseDetails } from '../stock/sharePurchase.js'
+import type { StockState } from '../stock/stockState.js'
+import type { CompanyRules } from './companyRules.js'
+
+export const CompanyFlotationDetails = Type.Object(
+    {
+        companyId: Type.String(),
+        payments: Type.Array(CashPayment)
+    },
+    { additionalProperties: false }
+)
+export type CompanyFlotationDetails = Type.Static<typeof CompanyFlotationDetails>
+
+export function evaluateCompanyFlotation(
+    state: StockState,
+    companyId: string,
+    rules: CompanyRules
+): CompanyFlotationDetails | undefined {
+    const company = getCompany(state, companyId)
+    if (!company.started || company.floated || company.closed) return undefined
+    const payments = rules.flotationPayments(state, companyId)
+    if (!payments) return undefined
+    assert(!company.funded || payments.length === 0, 'Initial capital cannot be granted twice')
+    return { companyId, payments }
+}
+export function nextCompanyToFloat(
+    state: StockState,
+    rules: CompanyRules
+): CompanyFlotationDetails | undefined {
+    for (const company of state.companies) {
+        const details = evaluateCompanyFlotation(state, company.id, rules)
+        if (details) return details
+    }
+    return undefined
+}
+export function flotationAfterPurchase(
+    state: StockState,
+    purchase: SharePurchaseDetails,
+    rules: CompanyRules
+): CompanyFlotationDetails | undefined {
+    const projected: StockState = { ...state, ...copyFinances(state) }
+    const certificate = projected.certificates.find((item) => item.id === purchase.certificateId)
+    assert(certificate && !certificate.retired, 'Missing purchased certificate')
+    certificate.owner = purchase.buyer
+    delete certificate.poolId
+    settleCashPayments(projected, purchase.payments)
+    if (purchase.presidency) applyPresidencyChange(projected, purchase.presidency)
+    return evaluateCompanyFlotation(projected, purchase.companyId, rules)
+}

@@ -159,9 +159,9 @@ describe('purchase rejection', () => {
             }
         },
         {
-            name: 'unfloated company',
+            name: 'unstarted company',
             change: (state) => {
-                getCompany(state, 'AR').floated = false
+                getCompany(state, 'AR').started = false
             }
         },
         {

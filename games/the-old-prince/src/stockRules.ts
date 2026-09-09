@@ -6,6 +6,7 @@ import {
     privateOwner,
     sameOwner,
     type Owner,
+    type StockState,
     type StockRules
 } from '@tabletop/18xx'
 
@@ -21,7 +22,7 @@ export const TheOldPrinceStockRules: StockRules = {
     sellers: (_state, playerId) => [{ kind: 'player', playerId }],
     purchaseTerms(state, certificate, buyer) {
         const company = getCompany(state, certificate.companyId)
-        if (!company.floated) return 'Only floated companies are available in this example.'
+        if (!company.started || company.closed) return 'This company has not started or is closed.'
         if (certificate.president) return 'Starting a company is not available in this example.'
         if (certificate.shares !== 1) return 'Only one ordinary share can be bought on this turn.'
         const market = certificate.owner.kind === 'bank' && certificate.poolId === 'market'
@@ -30,17 +31,10 @@ export const TheOldPrinceStockRules: StockRules = {
             certificate.owner.companyId === company.id &&
             certificate.poolId === `treasury:${company.id}`
         if (!market && !treasury) return 'This certificate is not available for purchase.'
-        const payers: Owner[] = [buyer]
-        if (buyer.kind === 'company') {
-            const owner = privateOwner(state, buyer.companyId)
-            assertExists(owner, 'Union Bank requires an owner')
-            if (owner.kind !== 'player') return 'Union Bank requires a player owner.'
-            payers.push(owner)
-        }
         return {
             price: companyMarketSpace(state.stockMarket, company.id).price,
             recipient: certificate.owner,
-            payers
+            payers: theOldPrincePurchasePayers(state, buyer)
         }
     },
     saleTerms(state, companyId) {
@@ -67,4 +61,11 @@ export const TheOldPrinceStockRules: StockRules = {
         ]
     },
     sellAfterBuying: false
+}
+
+export function theOldPrincePurchasePayers(state: StockState, buyer: Owner): Owner[] {
+    if (buyer.kind !== 'company') return [buyer]
+    const owner = privateOwner(state, buyer.companyId)
+    assertExists(owner, 'Union Bank requires an owner')
+    return [buyer, owner]
 }

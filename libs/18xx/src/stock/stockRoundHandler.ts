@@ -5,6 +5,11 @@ import {
     type MachineContext,
     type MachineStateHandler
 } from '@tabletop/common'
+import { FloatCompany, isFloatCompany, type HydratedFloatCompany } from '../company/floatCompany.js'
+import { isStartCompany, type HydratedStartCompany } from '../company/startCompany.js'
+import { evaluateCompanyStart } from '../company/companyStart.js'
+import { nextCompanyToFloat } from '../company/companyFlotation.js'
+import type { CompanyRules } from '../company/companyRules.js'
 import { sharesOwned } from '../finance/finance.js'
 import { isBuyShares, type HydratedBuyShares } from './buyShares.js'
 import { isSellShares, type HydratedSellShares } from './sellShares.js'
@@ -15,20 +20,37 @@ import { exceedsStockLimits, type StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
 
 type State = HydratedGameState & StockState
-type Action = HydratedBuyShares | HydratedSellShares | HydratedFinishStockTurn
-export class TradingShares implements MachineStateHandler<Action, State> {
+type Action =
+    | HydratedBuyShares
+    | HydratedSellShares
+    | HydratedFinishStockTurn
+    | HydratedStartCompany
+    | HydratedFloatCompany
+export class StockRoundHandler implements MachineStateHandler<Action, State> {
     constructor(
         private readonly rules: StockRules,
-        private readonly nextState: string
+        private readonly nextState: string,
+        private readonly companyRules: CompanyRules
     ) {}
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         const state = context.gameState
+        if (isFloatCompany(action))
+            return (
+                action.source === ActionSource.System &&
+                nextCompanyToFloat(state, this.companyRules)?.companyId === action.companyId
+            )
+        if (nextCompanyToFloat(state, this.companyRules)) return false
         if (
             action.source !== ActionSource.User ||
             !action.playerId ||
             !state.activePlayerIds.includes(action.playerId)
         )
             return false
+        if (isStartCompany(action))
+            return (
+                action.expectedPrice ===
+                evaluateCompanyStart(state, action, this.rules, this.companyRules).details?.price
+            )
         if (isBuyShares(action))
             return (
                 action.expectedPrice ===
@@ -46,8 +68,39 @@ export class TradingShares implements MachineStateHandler<Action, State> {
     }
     validActionsForPlayer(playerId: string, context: MachineContext<State>): string[] {
         const state = context.gameState
-        if (!state.activePlayerIds.includes(playerId)) return []
+        if (
+            !state.activePlayerIds.includes(playerId) ||
+            nextCompanyToFloat(state, this.companyRules)
+        )
+            return []
         const actions: string[] = []
+        if (
+            this.rules
+                .buyers(state, playerId)
+                .some((buyer) =>
+                    state.companies.some(
+                        (company) =>
+                            !company.started &&
+                            this.companyRules
+                                .startMarketSpaces(state, company.id)
+                                .some(
+                                    (marketSpaceId) =>
+                                        evaluateCompanyStart(
+                                            state,
+                                            {
+                                                playerId,
+                                                buyer,
+                                                companyId: company.id,
+                                                marketSpaceId
+                                            },
+                                            this.rules,
+                                            this.companyRules
+                                        ).details
+                                )
+                    )
+                )
+        )
+            actions.push('StartCompany')
         if (
             this.rules
                 .buyers(state, playerId)
@@ -89,7 +142,14 @@ export class TradingShares implements MachineStateHandler<Action, State> {
             actions.push('FinishStockTurn')
         return actions
     }
-    enter(_context: MachineContext<State>): void {}
+    enter(context: MachineContext<State>): void {
+        const details = nextCompanyToFloat(context.gameState, this.companyRules)
+        if (details)
+            context.addSystemAction(FloatCompany, {
+                companyId: details.companyId,
+                playerId: context.gameState.activePlayerIds[0]
+            })
+    }
     onAction(action: Action, context: MachineContext<State>): string {
         return isFinishStockTurn(action) ? this.nextState : context.gameState.machineState
     }

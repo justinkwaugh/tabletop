@@ -26,3 +26,10 @@ Sales follow the shared contract: preview and cancellation leave the market and
 portfolios unchanged; confirmation updates proceeds, presidency, and market
 position. Undo restores the full trade. Effective certificate counts come from
 the title rules for the current displayed market position.
+
+Company starts and flotation follow the shared staged-selection contract. The
+starting example supports player and Union Bank starts and displays tranche
+occupancy. The flotation example exchanges a numbered PEIR share, replaces its
+station, updates certificates and capital, and restores all of those through Undo.
+The title's home positions come from its existing map definition. The finance
+inspector displays station locations; integration into the board view is deferred.

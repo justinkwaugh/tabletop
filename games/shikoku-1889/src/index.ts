@@ -6,3 +6,6 @@ export { Definition } from './definition.js'
 
 export * from './stockRules.js'
 export * from './stockMarket.js'
+
+export * from './companyRules.js'
+export * from './companyExamples.js'

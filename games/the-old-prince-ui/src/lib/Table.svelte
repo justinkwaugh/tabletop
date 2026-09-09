@@ -17,12 +17,21 @@
 <StockTrading {session} />
 <StockMarket market={state.stockMarket} companies={state.companies} />
 
+{#if state.tranches.length}<section class="tranches" aria-label="Company tranches">
+        {#each state.tranches as tranche (tranche.id)}<p>
+                {tranche.name}: {tranche.companyIds.join(' · ') || 'Empty'} ({tranche.companyIds
+                    .length}/{tranche.capacity})
+            </p>{/each}
+    </section>{/if}
 <p class="peir-summary">
-    PEIR: {peirShares(state).length} outstanding shares. President: {gameSession.game.players.find(
+    PEIR: {state.companies.find((company) => company.id === 'PEIR')?.closed ? 'Closed.' : ''}
+    {peirShares(state).length} outstanding shares. President: {gameSession.game.players.find(
         (player) => player.id === peirPresident(state)
     )?.name}. Largest shareholding wins; ties go to the lowest numbered share.
 </p>
 <FinanceInspector
+    stations={state.stations}
+    stationReservations={state.stationReservations}
     certificateWeight={session.certificateWeight}
     {state}
     players={gameSession.game.players}
@@ -38,6 +47,10 @@
 </FinanceInspector>
 
 <style>
+    .tranches {
+        margin-bottom: 16px;
+        font-size: 13px;
+    }
     .peir-summary {
         margin: 0 0 20px;
         color: #3e5c50;

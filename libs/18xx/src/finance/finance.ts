@@ -28,6 +28,9 @@ export const Company = Type.Object(
         kind: Id,
         shareCount: Type.Optional(Type.Integer({ minimum: 1 })),
         parPrice: Type.Optional(Type.Integer({ minimum: 1 })),
+        started: Type.Optional(Type.Boolean()),
+        funded: Type.Optional(Type.Boolean()),
+        closed: Type.Optional(Type.Boolean()),
         operated: Type.Optional(Type.Boolean()),
         floated: Type.Optional(Type.Boolean()),
         president: Type.Optional(President),
@@ -251,7 +254,7 @@ type CertificateAllocation = Pick<Portfolio[number], 'owner' | 'poolId'>
 export function createOrdinaryShareCertificates(
     companyId: string,
     ordinary: readonly CertificateAllocation[],
-    president: President
+    president: President | CertificateAllocation
 ): Certificate[] {
     return [
         {
@@ -262,7 +265,7 @@ export function createOrdinaryShareCertificates(
             president: true,
             certificateLimitCount: 1,
             retired: false,
-            owner: president
+            ...('owner' in president ? president : { owner: president })
         },
         ...ordinary.map(
             (allocation, index): Certificate => ({

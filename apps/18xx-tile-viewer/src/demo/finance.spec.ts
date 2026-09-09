@@ -64,7 +64,9 @@ it.each([Top, Shikoku])(
         expect(Object.keys(definition.runtime.apiActions)).toEqual([
             'BuyShares',
             'SellShares',
-            'FinishStockTurn'
+            'FinishStockTurn',
+            'StartCompany',
+            'FloatCompany'
         ])
         expect(() =>
             definition.runtime.hydrator.hydrateState({

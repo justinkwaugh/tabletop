@@ -447,6 +447,14 @@ required choice of marker order. Both buy and sell now exercise control changes.
 
 ## 4. Start and float a corporation, including PEIR consequences
 
+**Implemented:** shared StartCompany and automatic FloatCompany actions, distinct
+company milestones, title-owned eligibility and capitalization, station/reservation
+models, TOP tranche and phase restrictions, Union Bank starts, and PEIR exchanges
+and closure for the currently modeled assets. Three example positions provide
+staged price selection, flotation previews, saved results, and Undo. Train disposal
+joins PEIR closure with the train model. See the
+[slice design and family review](company-formation-slice-design.md).
+
 **Outcome:** buy a presidency, fund a corporation, and see its operating rights
 and ownership change when its flotation condition is met.
 

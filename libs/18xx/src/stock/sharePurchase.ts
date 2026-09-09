@@ -10,8 +10,8 @@ import {
     type Portfolio
 } from '../finance/finance.js'
 import type { StockState } from './stockState.js'
-import { CashPayment } from '../finance/cashPayments.js'
-import { PresidencyChange, evaluatePresidency } from './presidency.js'
+import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
+import { PresidencyChange, evaluatePresidency, applyPresidencyChange } from './presidency.js'
 import { stockCertificateCount, exceedsStockLimits, type StockRules } from './stockRules.js'
 
 export type ShareCertificate = Extract<Portfolio[number], { kind: 'share' }>
@@ -38,6 +38,23 @@ export function evaluateSharePurchase(
     request: PurchaseRequest,
     rules: StockRules
 ): SharePurchaseResult {
+    const certificate = state.certificates.find((item) => item.id === request.certificateId)
+    if (!certificate || certificate.retired || certificate.kind !== 'share')
+        return { reason: 'This is not an available share certificate.' }
+    return evaluateShareAcquisition(
+        state,
+        request,
+        rules,
+        rules.purchaseTerms(state, certificate, request.buyer)
+    )
+}
+
+export function evaluateShareAcquisition(
+    state: StockState,
+    request: PurchaseRequest,
+    rules: StockRules,
+    terms: SharePurchaseTerms | string
+): SharePurchaseResult {
     const { playerId, buyer, certificateId } = request
     if (state.stockRound.turn.bought) return { reason: 'Only one purchase is allowed this turn.' }
     if (exceedsStockLimits(state, { kind: 'player', playerId }, rules))
@@ -57,7 +74,6 @@ export function evaluateSharePurchase(
         )
     )
         return { reason: 'The buyer sold shares in this company this stock round.' }
-    const terms = rules.purchaseTerms(state, certificate, buyer)
     if (typeof terms === 'string') return { reason: terms }
     const company = getCompany(state, certificate.companyId)
     assertExists(company.shareCount, 'Priced shares require a share count')
@@ -112,4 +128,19 @@ export function evaluateSharePurchase(
             ...(presidency.change ? { presidency: presidency.change } : {})
         }
     }
+}
+
+export function applySharePurchase(state: StockState, details: SharePurchaseDetails): void {
+    const certificate = state.certificates.find(
+        (certificate) => certificate.id === details.certificateId
+    )
+    assert(certificate && !certificate.retired, 'Missing purchased certificate')
+    settleCashPayments(state, details.payments)
+    certificate.owner = details.buyer
+    delete certificate.poolId
+    if (details.buyer.kind === 'company')
+        state.stockRound.companyPurchases.push(details.buyer.companyId)
+    if (details.presidency) applyPresidencyChange(state, details.presidency)
+    state.stockRound.turn.soldBeforeBuying = state.stockRound.turn.companiesSold.length > 0
+    state.stockRound.turn.bought = true
 }

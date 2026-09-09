@@ -1,3 +1,9 @@
+import { CompanyFields, type CompanyState } from '../company/companyState.js'
+import { validateStations } from '../map/station.js'
+import { StartCompany, HydratedStartCompany, isStartCompany } from '../company/startCompany.js'
+import { FloatCompany, HydratedFloatCompany, isFloatCompany } from '../company/floatCompany.js'
+import { FinanceExamplePosition } from './financeExamplePosition.js'
+import type { CompanyRules } from '../company/companyRules.js'
 import * as Type from 'typebox'
 import { Compile, type Validator } from 'typebox/compile'
 import {
@@ -15,7 +21,7 @@ import {
     type UninitializedGameState
 } from '@tabletop/common'
 import { BuyShares, HydratedBuyShares, isBuyShares } from '../stock/buyShares.js'
-import { TradingShares } from '../stock/tradingShares.js'
+import { StockRoundHandler } from '../stock/stockRoundHandler.js'
 import { SellShares, HydratedSellShares, isSellShares } from '../stock/sellShares.js'
 import {
     FinishStockTurn,
@@ -32,7 +38,8 @@ const ExampleFields = Type.Object({
     machineState: Type.Union([Type.Literal('TradingShares'), Type.Literal('InspectFinances')]),
     stockRound: StockRound,
     stockMarket: StockMarket,
-    ...FinanceFields
+    ...FinanceFields,
+    ...CompanyFields
 })
 export const FinanceExampleState: Type.TObject<
     Omit<typeof GameState.properties, 'machineState'> & typeof ExampleFields.properties
@@ -50,6 +57,11 @@ export class HydratedFinanceExampleState
     extends HydratableGameState<typeof FinanceExampleState, PlayerState>
     implements FinanceExampleState
 {
+    declare phaseId: string
+    declare tranches: CompanyState['tranches']
+    declare ownershipLimitExemptions: CompanyState['ownershipLimitExemptions']
+    declare stations: CompanyState['stations']
+    declare stationReservations: CompanyState['stationReservations']
     declare example: 'finances'
     declare machineState: 'TradingShares' | 'InspectFinances'
     declare stockRound: StockRound
@@ -68,6 +80,10 @@ export class HydratedFinanceExampleState
             new Set(this.players.map((player) => player.playerId)).size === this.players.length,
             'Duplicate player identity'
         )
+        validateStations(
+            this,
+            this.companies.map((company) => company.id)
+        )
         validateStockMarket(
             this.stockMarket,
             this.companies.map((company) => company.id)
@@ -79,15 +95,19 @@ export class HydratedFinanceExampleState
     }
 }
 
+const PositionValidator = Compile(FinanceExamplePosition)
 const ExampleColors = [Color.Blue, Color.Red, Color.Green]
-type CreateFinances = (players: readonly PlayerState[]) => FinancialState
+type CreateFinances = (
+    players: readonly PlayerState[],
+    position: FinanceExamplePosition
+) => CompanyState
 class FinanceExampleInitializer extends BaseGameInitializer<
     FinanceExampleState,
     HydratedFinanceExampleState
 > {
     constructor(
         private readonly createFinances: CreateFinances,
-        private readonly createMarket: () => StockMarket
+        private readonly createMarket: (position: FinanceExamplePosition) => StockMarket
     ) {
         super()
     }
@@ -97,6 +117,8 @@ class FinanceExampleInitializer extends BaseGameInitializer<
             playerId: player.id,
             color: ExampleColors[index]
         }))
+        const position = game.config?.examplePosition ?? 'trading'
+        assert(PositionValidator.Check(position), 'Unknown finance example position')
         return new HydratedFinanceExampleState({
             ...state,
             players,
@@ -109,26 +131,30 @@ class FinanceExampleInitializer extends BaseGameInitializer<
                 sales: [],
                 companyPurchases: []
             },
-            stockMarket: this.createMarket(),
+            stockMarket: this.createMarket(position),
             turnManager: new HydratedTurnManager({
                 series: [{ type: 'turn', playerId: players[0].playerId, start: 0 }],
                 turnOrder: players.map((player) => player.playerId),
                 turnCounts: Object.fromEntries(players.map((player) => [player.playerId, 0]))
             }),
-            ...this.createFinances(players)
+            ...this.createFinances(players, position)
         })
     }
 }
 export function createFinanceExampleRuntime(
     createFinances: CreateFinances,
     rules: StockRules,
-    createMarket: () => StockMarket
+    createMarket: (position: FinanceExamplePosition) => StockMarket,
+    companyRules: CompanyRules
 ): GameRuntime<FinanceExampleState, HydratedFinanceExampleState> {
     return {
         initializer: new FinanceExampleInitializer(createFinances, createMarket),
         hydrator: {
             hydrateState: (state) => new HydratedFinanceExampleState(state),
             hydrateAction: (action) => {
+                if (isStartCompany(action))
+                    return new HydratedStartCompany(action, rules, companyRules)
+                if (isFloatCompany(action)) return new HydratedFloatCompany(action, companyRules)
                 if (isBuyShares(action)) return new HydratedBuyShares(action, rules)
                 if (isSellShares(action)) return new HydratedSellShares(action, rules)
                 if (isFinishStockTurn(action)) return new HydratedFinishStockTurn(action, rules)
@@ -137,9 +163,9 @@ export function createFinanceExampleRuntime(
         },
         canonicalStateValidator: FinanceExampleValidator,
         playerColors: ExampleColors,
-        apiActions: { BuyShares, SellShares, FinishStockTurn },
+        apiActions: { BuyShares, SellShares, FinishStockTurn, StartCompany, FloatCompany },
         stateHandlers: {
-            TradingShares: new TradingShares(rules, 'InspectFinances'),
+            TradingShares: new StockRoundHandler(rules, 'InspectFinances', companyRules),
             InspectFinances: new TerminalStateHandler()
         }
     }
