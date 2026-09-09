@@ -8,7 +8,7 @@ Slice 2 of [the tournament roadmap](https://github.com/justinkwaugh/tabletop/iss
 
 Registration has two modes:
 
-- `whenFull`: a required capacity, without a deadline. The current registration-only implementation locks on the final join. The confirmed automatic-start behavior below replaces that immediate lock in slice 6.
+- `whenFull`: a required capacity, without a deadline. The final join starts a one-minute withdrawal window, followed by automatic scheduling and Game creation.
 - `deadline`: a required closing timestamp and minimum entrants, with optional capacity. Reaching capacity prevents additional joins but does not close early. At the deadline the actual roster locks if the minimum is met; otherwise the event cancels. Uncapped events currently share the implementation limit of 256 entrants.
 
 Active Users may join and leave before lock. There is no separate rules-acceptance step. The event detail displays game options, including explicit default values, before and after enrollment. Publishing freezes configuration and format; material changes require a replacement event. Draft edits use optimistic revisions. Repeated joins, leaves, publication, and closure are idempotent. A retried creation ID may only refer to the same organizer and settings.
@@ -43,28 +43,27 @@ The In progress tab includes `locked` events awaiting scheduling and the explici
 
 ## Automatic start after filling the roster
 
-Confirmed for the provisioning/dispatch work in [slice 5](https://github.com/justinkwaugh/tabletop/issues/62) and [slice 6](https://github.com/justinkwaugh/tabletop/issues/63): filling a `whenFull` roster begins a one-minute withdrawal window. Cards and detail show “Starts in 1 minute” with the start time/countdown, and the roster row keeps Leave available until that deadline. A departure cancels the pending start; filling the vacancy starts a new full minute. Repeated joins and reads do not extend it.
+Confirmed for the provisioning/dispatch work in [slice 5](https://github.com/justinkwaugh/tabletop/issues/62) and [slice 6](https://github.com/justinkwaugh/tabletop/issues/63): filling a `whenFull` roster begins a one-minute withdrawal window. Cards and detail show “Starts in 1 minute” with the start time/countdown, and the roster row keeps Leave available until that deadline. A departure invalidates the pending start identity without deleting its task; filling the vacancy starts a new full minute. Repeated joins and reads do not extend it.
 
-After the minute, the backend atomically rechecks the full roster and deadline, locks registration, generates and saves the schedule, and automatically launches eligible Games. There is no administrator approval/start step in normal operation. New Mini defaults allow all assigned games to launch together; a deliberately lower concurrency limit is still honored. The current schedule preview/save controls are administrator tools, not a prerequisite for normal automatic starts.
+After the minute, the task generates the schedule in memory, then atomically rechecks the roster and deadline, locks registration, saves the schedule and selects the first games. It then creates those games. There is no administrator approval/start step in normal operation. New Mini defaults allow all assigned games to launch together; a deliberately lower concurrency limit is still honored. The current schedule preview/save controls are administrator tools, not a prerequisite for normal automatic starts.
 
-Persist `startsAt` and schedule a backend task through the existing TaskService/Cloud Tasks for that time. The UI only displays remaining time; it never triggers the start. The start deadline and work intent must survive restarts. Delayed tasks recheck the current deadline and roster, so tasks from cancelled countdowns cannot start an event early. Reconciliation recovers missed task delivery without browser visits or database polling for unchanged data. Leave/start races at the deadline serialize in the transaction; at or after the deadline, registration is closed. Deadline-based registration retains its published closure behavior; the extra minute is specified here for fill-based events.
+Persist `startsAt` and schedule a backend task through the existing TaskService/Cloud Tasks for that time. The UI only displays remaining time; it never triggers the start. The start deadline and work intent must survive restarts. Delayed tasks recheck the current deadline and roster, so tasks from cancelled countdowns cannot start an event early. The task queue retries failed executions. Failed enqueueing is reported by the Tournament operation; no periodic sweep replaces missing tasks. Leave/start races at the deadline serialize in the transaction; at or after the deadline, registration is closed. Deadline-based registration retains its published closure behavior; the extra minute is specified here for fill-based events.
 
-This behavior is planned, not implemented in the current registration/scheduling slice. Do not display an active start countdown before the provisioning and dispatch path is available.
+This behavior is implemented by the provisioning and dispatch slice.
 
-## Deadline reconciliation and deployment
+## Scheduled tasks and deployment
 
-The shared Redis cache serves unchanged Tournament objects and list pages without Firestore reads. Writes invalidate affected entries. Deadline reconciliation uses a cached queue of dated open events and compares timestamps locally, so unchanged checks do not issue database queries. See [scheduling persistence](tournament-scheduling.md#api-and-persistence) for cache behavior and read costs.
+The shared Redis cache serves unchanged Tournament objects and list pages without Firestore reads. Writes invalidate affected entries. See [scheduling persistence](tournament-scheduling.md#api-and-persistence) for cache behavior and read costs.
 
-Local development reconciles expired events on startup and every thirty seconds. Event detail reads, list reads, joins and leaves also reconcile relevant deadlines; production must have a periodic job so closure does not depend on visits. Full-roster closure is currently immediate in every environment; slice 6 replaces it with the confirmed one-minute automatic-start window above.
+Registration changes enqueue the dated closure or one-minute start task. The queue owns delayed delivery and execution retries. There is no reconciliation endpoint, periodic timer, startup scan or overdue-tournament query. Tournament-operation enqueue failures propagate to callers; retrying the operation keeps the existing countdown. See [dispatch](tournament-dispatch.md) for reservations and partial-execution retries.
 
 Before deploying this slice:
 
-1. Deploy `firebase/firestore.indexes.json` to the target project and wait for its closure (`status` / `rules.registration.closesAt`) and game-filter (`status` / `rules.titleId`) and Mine game-filter (`entrantIds` / `rules.titleId`) composite indexes to become ready.
-2. Configure `TOURNAMENT_SCHEDULER_EMAIL` as the dedicated scheduler service account email and `TOURNAMENT_SCHEDULER_AUDIENCE` as the exact OIDC audience chosen for the task service.
-3. Configure Cloud Scheduler to POST `/tasks/tournaments/reconcile` on the task service every minute, using an OIDC token for that service account and the matching audience. Grant only the invocation permission required by that deployment. The task service hosts this endpoint; the public backend deployment does not host task routes.
-4. Verify an expired open event locks or cancels without a page visit. Verify missing or incorrect OIDC identities cannot invoke the endpoint.
+1. Deploy `firebase/firestore.indexes.json` to the target project and wait for its closure (`status` / `rules.registration.closesAt`), game-filter (`status` / `rules.titleId`) and Mine game-filter (`entrantIds` / `rules.titleId`) composite indexes to become ready.
+2. Use the existing internal tasks service and `TASKS_HOST`. In production, the public backend does not host task routes. Calls within the existing VPC deployment require no additional request credentials.
+3. Verify a scheduled task locks or cancels an expired event without a page visit, and failed task executions are retried by the queue.
 
-The endpoint processes up to 100 due events per invocation, is safe to retry, and leaves remaining events for subsequent invocations. Monitor errors and overdue open events. Production scheduler configuration and deployment are separate from local verification; neither is performed by this slice's development checks.
+No production deployment or scheduler changes are performed by local development checks. The combined local development server is unchanged. Local queued tasks use in-process delayed delivery and do not survive a process restart; they are not reconstructed by a sweep.
 
 ## Verification
 

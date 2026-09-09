@@ -133,7 +133,7 @@ class Initializer extends BaseGameInitializer<ProjectedState, SyntheticState> {
         state: UninitializedGameState,
         assignment?: StartingPositionAssignment
     ): SyntheticState {
-        const colors = [Color.Red, Color.Blue, Color.Green]
+        const colors = [Color.Red, Color.Blue, Color.Green, Color.Yellow]
         const players = game.players.map((player, index) => ({
             playerId: player.id,
             color: colors[index]

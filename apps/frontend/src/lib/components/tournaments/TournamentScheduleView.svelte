@@ -116,15 +116,14 @@
             <table class="w-full text-left text-xs">
                 <thead class="text-gray-500 dark:text-gray-400"
                     ><tr>
-                        <th class="px-3 py-2 font-normal">Table</th>
-                        {#each Array.from({ length: schedule.tableSize }, (_, index) => index + 1) as position}<th
-                                class="px-3 py-2 font-normal whitespace-nowrap"
-                                >Position {position}</th
-                            >{/each}
                         <th
-                            class="sticky right-0 z-10 bg-gray-50 px-3 py-2 font-normal dark:bg-gray-800"
-                            ><span class="sr-only">Game</span></th
+                            class="sticky left-0 z-10 bg-gray-50 px-3 py-2 font-normal dark:bg-gray-800"
+                            >Table</th
                         >
+                        {#each Array.from({ length: schedule.tableSize }, (_, index) => index + 1) as position}<th
+                                class="px-3 py-2 font-normal whitespace-nowrap">Seat {position}</th
+                            >{/each}
+                        <th class="w-0 p-0"><span class="sr-only">Game</span></th>
                     </tr></thead
                 >
                 <tbody
@@ -132,12 +131,29 @@
                         {@const isMine = table.entrantIds.some((id) => id === user?.id)}
                         {@const game = gamesByTable.get(table.id)}
                         {@const href = game ? `/game/${game.gameId}` : undefined}
+                        {@const dispatch = detail.tournament.stages[0]?.dispatch}
+                        {@const waiting = detail.tournament.paused
+                            ? 'Scheduling paused'
+                            : dispatch?.reserved.includes(table.id)
+                              ? 'Starting this game'
+                              : table.entrantIds.some((id) => !detail.usernames[id])
+                                ? 'Waiting for active accounts'
+                                : detail.tournament.nextTaskAt !== undefined || !dispatch
+                                  ? 'Waiting to be scheduled'
+                                  : 'Waiting for player capacity'}
                         <tr
-                            class="border-t border-gray-200/60 dark:border-gray-700/50 {isMine
+                            title={game ? undefined : waiting}
+                            class="group border-t border-gray-200/60 dark:border-gray-700/50 {game
+                                ? 'game-row'
+                                : ''} {isMine ? 'own-game' : ''} {isMine
                                 ? 'bg-black/5 dark:bg-black/20'
                                 : ''}"
                         >
-                            <td class="tabular-nums {isMine ? 'my-table' : ''}">
+                            <td
+                                class="sticky left-0 z-10 tabular-nums {isMine
+                                    ? 'my-table bg-[color-mix(in_srgb,var(--color-gray-50),black_5%)] dark:bg-[color-mix(in_srgb,var(--color-gray-800),black_20%)]'
+                                    : 'bg-gray-50 dark:bg-gray-800'}"
+                            >
                                 {#if href}<a
                                         class="block px-3 py-2"
                                         {href}
@@ -149,13 +165,12 @@
                             </td>
                             {#each table.entrantIds as entrant}
                                 {#snippet playerName()}
-                                    <span class="truncate" title={names.get(entrant)}
-                                        >{names.get(entrant)}</span
+                                    <span
+                                        class="truncate {entrant === user?.id
+                                            ? 'text-orange-700 dark:text-orange-300'
+                                            : ''}"
+                                        title={names.get(entrant)}>{names.get(entrant)}</span
                                     >
-                                    {#if entrant === user?.id}<span
-                                            class="shrink-0 text-[0.65rem] font-medium text-orange-700 dark:text-orange-300"
-                                            >You</span
-                                        >{/if}
                                 {/snippet}
                                 <td>
                                     {#if href}<a
@@ -168,15 +183,11 @@
                                             >{@render playerName()}</span
                                         >{/if}
                                 </td>{/each}
-                            <td
-                                class="sticky right-0 z-10 px-3 py-2 text-right whitespace-nowrap shadow-[-1px_0_0_0_var(--color-gray-200)] dark:shadow-[-1px_0_0_0_var(--color-gray-700)] {isMine
-                                    ? 'bg-[color-mix(in_srgb,var(--color-gray-50),black_5%)] dark:bg-[color-mix(in_srgb,var(--color-gray-800),black_20%)]'
-                                    : 'bg-gray-50 dark:bg-gray-800'}"
-                            >
+                            <td class="sticky right-0 z-20 w-0 p-0">
                                 {#if game}<a
-                                        class="font-medium hover:underline {isMine
-                                            ? 'text-orange-700 dark:text-orange-300'
-                                            : 'text-green-700 dark:text-green-400'}"
+                                        class="game-action absolute inset-y-px right-px flex items-center gap-1 px-3 font-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 {isMine
+                                            ? 'bg-[color-mix(in_srgb,var(--color-gray-50),black_5%)] text-orange-700 dark:bg-[color-mix(in_srgb,var(--color-gray-800),black_20%)] dark:text-orange-300'
+                                            : 'bg-gray-50 text-green-700 dark:bg-gray-800 dark:text-green-400'}"
                                         href={`/game/${game.gameId}`}
                                         aria-label={`${isMine ? 'Play' : 'View'} table ${page * 20 + index + 1}`}
                                         >{isMine ? 'Play' : 'View'}
@@ -193,7 +204,7 @@
                 {schedule.gamesPerEntrant}
             </p>
             <p>
-                <span class="text-gray-500 dark:text-gray-400">Each starting position</span>
+                <span class="text-gray-500 dark:text-gray-400">Each seat</span>
                 {schedule.gamesPerEntrant / schedule.tableSize}×
             </p>
             <p>
@@ -237,6 +248,32 @@
 </section>
 
 <style>
+    .game-row {
+        --row-outline: var(--color-blue-400);
+    }
+    .game-row.own-game {
+        --row-outline: var(--color-orange-400);
+    }
+    .game-row:hover > td,
+    .game-row:focus-within > td {
+        box-shadow:
+            inset 0 1px var(--row-outline),
+            inset 0 -1px var(--row-outline);
+    }
+    .game-row.own-game:hover > td:first-child,
+    .game-row.own-game:focus-within > td:first-child {
+        box-shadow:
+            inset 2px 0 var(--color-orange-400),
+            inset 0 1px var(--row-outline),
+            inset 0 -1px var(--row-outline);
+    }
+    .game-action {
+        box-shadow: -8px 0 8px -4px var(--color-gray-50);
+    }
+    :global(.dark) .game-action {
+        box-shadow: -8px 0 8px -4px var(--color-gray-800);
+    }
+
     .my-table {
         box-shadow: inset 2px 0 var(--color-orange-400);
     }

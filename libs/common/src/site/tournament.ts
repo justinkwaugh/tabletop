@@ -95,12 +95,21 @@ export const TournamentEntrant = Type.Object(
 )
 export type TournamentEntrant = Type.Static<typeof TournamentEntrant>
 
+export const TournamentDispatch = Type.Object({
+    reserved: Type.Array(Type.String(), { maxItems: 32768 }),
+    active: Type.Array(Type.String(), { maxItems: 32768 }),
+    finished: Type.Array(Type.String(), { maxItems: 32768 }),
+    error: Type.Optional(Type.String({ maxLength: 512 }))
+})
+export type TournamentDispatch = Type.Static<typeof TournamentDispatch>
+
 export const TournamentStage = Type.Object(
     {
         id: TournamentId,
         status: Type.Union([Type.Literal('awaitingSchedule'), Type.Literal('scheduled')]),
         scheduleId: Type.Optional(Type.String()),
         scheduledAt: Type.Optional(Type.Integer()),
+        dispatch: Type.Optional(TournamentDispatch),
         rosterRevision: Type.Integer(),
         createdAt: Type.Integer()
     },
@@ -127,6 +136,10 @@ export const Tournament = Type.Object(
         updatedAt: Type.Integer(),
         publishedAt: Type.Optional(Type.Integer()),
         lockedAt: Type.Optional(Type.Integer()),
+        startsAt: Type.Optional(Type.Integer()),
+        startId: Type.Optional(Type.String()),
+        nextTaskAt: Type.Optional(Type.Integer()),
+        paused: Type.Optional(Type.Boolean()),
         cancelledAt: Type.Optional(Type.Integer()),
         cancellationReason: Type.Optional(
             Type.Union([Type.Literal('undersubscribed'), Type.Literal('administrator')])

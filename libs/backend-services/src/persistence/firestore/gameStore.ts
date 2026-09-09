@@ -25,6 +25,8 @@ import {
     BaseError,
     PlayerStatus,
     GameStatus,
+    GameResult,
+    validateGameResult,
     generateSeed,
     GameStatusCategory,
     getGameStatusesForCategory,
@@ -128,28 +130,32 @@ export class FirestoreGameStore implements GameStore {
                                 Value.Equal(existing.tournament, game.tournament),
                                 'Game identity belongs to a different tournament table'
                             )
+                            const tournament = await this.readTournament(
+                                transaction,
+                                game.tournament.tournamentId
+                            )
+                            await this.recordTournamentGame(
+                                transaction,
+                                locks,
+                                existing,
+                                tournament,
+                                date.getTime()
+                            )
                             return existing
                         }
-                        const { tournament, ref } = await this.validateTournamentGame(
-                            transaction,
-                            game
-                        )
+                        const tournament = await this.validateTournamentGame(transaction, game)
                         assertExists(state, 'Tournament game must be initialized before creation')
                         assert(
                             game.status === GameStatus.Started && state.gameId === game.id,
                             'Tournament game must start atomically'
                         )
-                        if (tournament.status === 'locked') {
-                            await locks.addKeys(tournamentKeys.lists(tournament))
-                            tournament.status = 'inProgress'
-                            tournament.revision++
-                            tournament.updatedAt = date.getTime()
-                            transaction.update(ref, {
-                                status: tournament.status,
-                                revision: tournament.revision,
-                                updatedAt: tournament.updatedAt
-                            })
-                        }
+                        await this.recordTournamentGame(
+                            transaction,
+                            locks,
+                            game,
+                            tournament,
+                            date.getTime()
+                        )
                     }
                     transaction.create(this.games.doc(game.id), structuredClone(storedGame))
                     if (state)
@@ -170,15 +176,59 @@ export class FirestoreGameStore implements GameStore {
         }
     }
 
-    private async validateTournamentGame(transaction: Transaction, game: Game) {
-        const reference = game.tournament
-        assertExists(reference, 'Tournament reference is required')
-        const ref = this.firestore.collection('tournaments').doc(reference.tournamentId)
-        const data = (await transaction.get(ref)).data()
+    private async readTournament(transaction: Transaction, id: string): Promise<Tournament> {
+        const data = (
+            await transaction.get(this.firestore.collection('tournaments').doc(id))
+        ).data()
         assertExists(data, 'Tournament not found')
         delete data.entrantIds
         Value.Assert(Tournament, data)
-        const tournament = data
+        return data
+    }
+
+    private async recordTournamentGame(
+        transaction: Transaction,
+        locks: CacheWriteLocks,
+        game: Game,
+        tournament: Tournament,
+        now: number
+    ): Promise<void> {
+        const reference = game.tournament
+        assertExists(reference, 'Tournament reference is required')
+        const stage = tournament.stages.find((stage) => stage.id === reference.stageId)
+        assert(stage?.scheduleId === reference.scheduleId, 'Tournament schedule changed')
+        const dispatch = (stage.dispatch ??= { reserved: [], active: [], finished: [] })
+        if (
+            dispatch.active.includes(reference.tableId) ||
+            dispatch.finished.includes(reference.tableId)
+        )
+            return
+        dispatch.reserved = dispatch.reserved.filter((id) => id !== reference.tableId)
+        if (
+            game.status === GameStatus.Finished &&
+            game.result &&
+            game.result !== GameResult.Abandoned
+        )
+            dispatch.finished.push(reference.tableId)
+        else dispatch.active.push(reference.tableId)
+        if (!dispatch.reserved.length) delete dispatch.error
+        if (tournament.status === 'locked') tournament.status = 'inProgress'
+        tournament.revision++
+        tournament.updatedAt = now
+        await locks.addKeys(this.tournamentCacheKeys.lists(tournament))
+        transaction.update(this.firestore.collection('tournaments').doc(tournament.id), {
+            status: tournament.status,
+            stages: tournament.stages,
+            revision: tournament.revision,
+            updatedAt: now,
+            ...(!dispatch.reserved.length ? { nextTaskAt: FieldValue.delete() } : {})
+        })
+    }
+
+    private async validateTournamentGame(transaction: Transaction, game: Game) {
+        const reference = game.tournament
+        assertExists(reference, 'Tournament reference is required')
+        const tournament = await this.readTournament(transaction, reference.tournamentId)
         const stage = tournament.stages.find((stage) => stage.id === reference.stageId)
         if (
             (tournament.status !== 'locked' && tournament.status !== 'inProgress') ||
@@ -186,8 +236,21 @@ export class FirestoreGameStore implements GameStore {
             stage.scheduleId !== reference.scheduleId
         )
             throw new TournamentGameError('The tournament is not available to start this table.')
+        if (
+            tournament.paused ||
+            (stage.dispatch && !stage.dispatch.reserved.includes(reference.tableId))
+        )
+            throw new TournamentGameError(
+                'This table reservation is unavailable or the tournament is paused.'
+            )
         const stored = (
-            await transaction.get(ref.collection('schedules').doc(reference.stageId))
+            await transaction.get(
+                this.firestore
+                    .collection('tournaments')
+                    .doc(reference.tournamentId)
+                    .collection('schedules')
+                    .doc(reference.stageId)
+            )
         ).data()
         Value.Assert(StoredTournamentSchedule, stored)
         const schedule = loadTournamentSchedule(stored)
@@ -231,7 +294,7 @@ export class FirestoreGameStore implements GameStore {
             throw new TournamentGameError(
                 'All assigned tournament players must have active accounts.'
             )
-        return { tournament, ref }
+        return tournament
     }
 
     async getMasterSeed(gameId: string): Promise<string | undefined> {
@@ -728,6 +791,17 @@ export class FirestoreGameStore implements GameStore {
                 }
             }
 
+            if (!existingState.result && state.result && existingGame.tournament) {
+                validateGameResult(state)
+                if (state.result !== GameResult.Abandoned)
+                    await this.finishTournamentTable(
+                        transaction,
+                        locks,
+                        existingGame.tournament,
+                        updateDate.getTime()
+                    )
+            }
+
             Object.assign(updatedGame, gameUpdates)
             updatedGame.state = state
             await this.protectChangedLists(locks, existingGame, updatedGame)
@@ -769,6 +843,34 @@ export class FirestoreGameStore implements GameStore {
             this.handleError(error, gameId)
             throw Error('unreachable')
         }
+    }
+
+    private async finishTournamentTable(
+        transaction: Transaction,
+        locks: CacheWriteLocks,
+        reference: NonNullable<Game['tournament']>,
+        now: number
+    ): Promise<void> {
+        const ref = this.firestore.collection('tournaments').doc(reference.tournamentId)
+        const data = await this.readTournament(transaction, reference.tournamentId)
+        const stage = data.stages.find((stage) => stage.id === reference.stageId)
+        assert(stage?.scheduleId === reference.scheduleId, 'Tournament schedule changed')
+        if (!stage.dispatch || stage.dispatch.finished.includes(reference.tableId)) return
+        stage.dispatch.active = stage.dispatch.active.filter((id) => id !== reference.tableId)
+        stage.dispatch.reserved = stage.dispatch.reserved.filter((id) => id !== reference.tableId)
+        stage.dispatch.finished.push(reference.tableId)
+        data.revision++
+        data.updatedAt = now
+        await locks.addKeys([
+            this.tournamentCacheKeys.key('event', data.id),
+            ...this.tournamentCacheKeys.lists(data)
+        ])
+        transaction.update(ref, {
+            stages: data.stages,
+            revision: data.revision,
+            updatedAt: now,
+            ...(!data.paused ? { nextTaskAt: now } : {})
+        })
     }
 
     private chunkIdForChunkNumber(chunkNumber: number, gameId: string): string {

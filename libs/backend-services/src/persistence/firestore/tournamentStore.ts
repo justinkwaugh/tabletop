@@ -22,6 +22,8 @@ import {
     loadTournamentSchedule
 } from '../model/storedTournamentSchedule.js'
 import { TournamentError } from '../../competitions/tournamentError.js'
+import { updateTournamentRegistration } from '../../competitions/tournamentRegistration.js'
+import { reserveTournamentTables } from '../../competitions/tournamentDispatch.js'
 
 import { TournamentCacheKeys } from './tournamentCacheKeys.js'
 
@@ -177,7 +179,7 @@ export class FirestoreTournamentStore implements TournamentStore {
     async commitSchedule(
         schedule: TournamentSchedule,
         revision: number,
-        user: User,
+        user: User | undefined,
         now: number
     ): Promise<Tournament> {
         const stored = storeTournamentSchedule(schedule)
@@ -188,26 +190,42 @@ export class FirestoreTournamentStore implements TournamentStore {
             ],
             (locks) =>
                 this.firestore.runTransaction(async (transaction) => {
-                    await this.authorize(transaction, user, true)
+                    if (user) await this.authorize(transaction, user, true)
                     const ref = this.document(schedule.tournamentId)
                     const tournament = this.parse((await transaction.get(ref)).data())
                     if (!tournament) throw new TournamentError('Tournament not found', 404)
-                    const stage = tournament.stages.find((stage) => stage.id === schedule.stageId)
-                    if (stage?.scheduleId === schedule.id) return tournament
                     if (
+                        tournament.stages.find((stage) => stage.id === schedule.stageId)
+                            ?.scheduleId === schedule.id
+                    )
+                        return tournament
+                    if (tournament.revision !== revision)
+                        throw new TournamentError(
+                            'The tournament changed. Preview its schedule again before saving.'
+                        )
+                    const before = structuredClone(tournament)
+                    if (tournament.status === 'open') updateTournamentRegistration(tournament, now)
+                    const stage = tournament.stages.find((stage) => stage.id === schedule.stageId)
+                    if (
+                        tournament.paused ||
                         tournament.status !== 'locked' ||
                         !stage ||
                         stage.status !== 'awaitingSchedule' ||
-                        tournament.revision !== revision ||
                         stage.rosterRevision !== schedule.rosterRevision
                     )
                         throw new TournamentError(
                             'The tournament changed. Preview its schedule again before saving.'
                         )
-                    await this.protectLists(locks, tournament, tournament)
+                    const dispatch = { reserved: [], active: [], finished: [] }
+                    stage.dispatch = {
+                        ...dispatch,
+                        reserved: reserveTournamentTables(tournament, schedule, dispatch)
+                    }
+                    await this.protectLists(locks, before, tournament)
                     stage.status = 'scheduled'
                     stage.scheduleId = schedule.id
                     stage.scheduledAt = now
+                    tournament.nextTaskAt = now
                     tournament.revision++
                     tournament.updatedAt = now
                     transaction.create(ref.collection('schedules').doc(stage.id), stored)
@@ -215,30 +233,6 @@ export class FirestoreTournamentStore implements TournamentStore {
                     return tournament
                 })
         )
-    }
-
-    async due(now: number): Promise<string[]> {
-        const deadlines = await this.cache.cachingGet<{ id: string; closesAt: number }[]>(
-            this.cacheKeys.key('deadlines'),
-            async () => {
-                const documents = await this.firestore
-                    .collection('tournaments')
-                    .where('status', '==', 'open')
-                    .orderBy('rules.registration.closesAt')
-                    .limit(100)
-                    .get()
-                return documents.docs.map((document) => {
-                    const tournament = this.parse(document.data())
-                    assertExists(tournament, 'Tournament disappeared from deadline query')
-                    const policy = tournament.rules.registration
-                    if (policy.kind !== 'deadline')
-                        throw new Error('Deadline query returned an undated tournament')
-                    return { id: tournament.id, closesAt: policy.closesAt }
-                })
-            }
-        )
-        assertExists(deadlines, 'Tournament deadlines are missing')
-        return deadlines.filter((event) => event.closesAt <= now).map((event) => event.id)
     }
 
     async administratorIds(): Promise<string[]> {
@@ -251,21 +245,12 @@ export class FirestoreTournamentStore implements TournamentStore {
             .map((account) => account.id)
     }
 
-    private deadline(tournament: Tournament | undefined): number | undefined {
-        const policy = tournament?.rules.registration
-        return tournament?.status === 'open' && policy?.kind === 'deadline'
-            ? policy.closesAt
-            : undefined
-    }
-
     private async protectLists(
         locks: CacheWriteLocks,
         before: Tournament | undefined,
         after: Tournament
     ): Promise<void> {
         const keys = new Set([...this.cacheKeys.lists(before), ...this.cacheKeys.lists(after)])
-        if (this.deadline(before) !== this.deadline(after))
-            keys.add(this.cacheKeys.key('deadlines'))
         if (keys.size) await locks.addKeys([...keys])
     }
 

@@ -36,6 +36,7 @@ async function setup(roles: Role[]) {
         update: change,
         publish: change,
         cancel: change,
+        control: change,
         lock: change,
         previewSchedule: change,
         commitSchedule: change
@@ -86,7 +87,7 @@ describe('tournament administrator authorization', () => {
                     url: '/tournaments/event/schedule',
                     payload: { revision: 1, seed: 42, version: 1, scheduleId: 'a'.repeat(64) }
                 },
-                ...['publish', 'cancel', 'lock'].map((operation) => ({
+                ...['publish', 'cancel', 'lock', 'pause', 'resume', 'retry'].map((operation) => ({
                     method: 'POST',
                     url: `/tournaments/event/${operation}`,
                     payload: {}
@@ -100,7 +101,7 @@ describe('tournament administrator authorization', () => {
                 })
                 expect(response.statusCode).toBe(admin ? 200 : 403)
             }
-            expect(change).toHaveBeenCalledTimes(admin ? 7 : 0)
+            expect(change).toHaveBeenCalledTimes(admin ? requests.length : 0)
         }
     )
     it.each([

@@ -41,6 +41,7 @@
     let busy = $state(true)
     let error = $state('')
     let request = 0
+    let now = $state(Date.now())
     let emptyText = $derived(
         titleId
             ? 'No tournaments match this game in this tab.'
@@ -55,6 +56,10 @@
 
     async function refresh(after = pageStart) {
         const current = ++request
+        if (after !== pageStart) {
+            tournaments = []
+            cursor = undefined
+        }
         pageStart = after
         busy = true
         error = ''
@@ -88,6 +93,7 @@
 
     function resetResults() {
         chooseInitialScope = false
+        tournaments = []
         pageStart = undefined
         cursor = undefined
         void refresh()
@@ -106,9 +112,13 @@
     }
 
     onMount(() => {
+        const clock = setInterval(() => {
+            now = Date.now()
+        }, 1000)
         const unsubscribe = listenForTournamentChanges(notificationService, () => refresh())
         void refresh()
         return () => {
+            clearInterval(clock)
             request++
             unsubscribe()
         }
@@ -193,6 +203,15 @@
         {#if error}<p role="alert" class="mb-4 text-sm text-red-600 dark:text-red-300">
                 {error}
             </p>{/if}
+        {#if busy && !tournaments.length}
+            <div class="pending-results flex justify-center py-10" role="status">
+                <span class="sr-only">Loading tournaments</span>
+                <span
+                    aria-hidden="true"
+                    class="size-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600 dark:border-gray-700 dark:border-t-gray-400 motion-reduce:animate-none"
+                ></span>
+            </div>
+        {/if}
         {#if !busy && !error && !tournaments.length}
             <div class="rounded-xl bg-gray-50 px-6 py-14 text-center dark:bg-gray-800/30">
                 <p class="text-sm text-gray-500 dark:text-gray-400">{emptyText}</p>
@@ -221,7 +240,7 @@
                                 tournament.status
                             )}"
                             ><span class="size-1.5 rounded-full bg-current"
-                            ></span>{tournamentStatusText(tournament)}</span
+                            ></span>{tournamentStatusText(tournament, now)}</span
                         >
                         <span class="text-gray-500 dark:text-gray-400"
                             >{tournament.entrants.length}{tournament.rules.registration.capacity
@@ -298,3 +317,16 @@
             >{/if}
     </div>
 </main>
+
+<style>
+    .pending-results {
+        opacity: 0;
+        animation: show-pending 0s 400ms forwards;
+    }
+
+    @keyframes show-pending {
+        to {
+            opacity: 1;
+        }
+    }
+</style>

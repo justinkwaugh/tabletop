@@ -17,14 +17,22 @@
     const { api, authorizationService, libraryService, notificationService } = getAppContext()
     let user = $derived(authorizationService.getSessionUser())
     let isAdmin = $derived(user?.roles.includes(Role.Admin))
+    let now = $state(Date.now())
     let detail = $state<TournamentDetail>()
     let tournament = $derived(detail?.tournament)
-    let scheduleFirst = $derived(tournament?.status === 'inProgress')
+    let showStandings = $derived(tournament?.status === 'inProgress')
+    let scheduleFirst = $derived(Boolean(tournament?.stages[0]?.scheduleId))
     let title = $derived(
         tournament ? libraryService.titlesById[tournament.rules.titleId] : undefined
     )
     let joined = $derived(
         detail?.tournament.entrants.some((entrant) => entrant.userId === user?.id)
+    )
+    let canLeave = $derived(
+        tournament?.status === 'open' &&
+            (tournament.startsAt === undefined || now < tournament.startsAt) &&
+            (tournament.rules.registration.kind !== 'deadline' ||
+                now < tournament.rules.registration.closesAt)
     )
     let full = $derived(
         tournament
@@ -46,7 +54,9 @@
                 error = failure instanceof Error ? failure.message : 'Could not load tournament'
         }
     }
-    async function act(operation: 'join' | 'leave' | 'publish' | 'cancel' | 'lock') {
+    async function act(
+        operation: 'join' | 'leave' | 'publish' | 'cancel' | 'lock' | 'pause' | 'resume' | 'retry'
+    ) {
         if (!tournament) return
         busy = true
         error = ''
@@ -61,9 +71,13 @@
         }
     }
     onMount(() => {
+        const clock = setInterval(() => {
+            now = Date.now()
+        }, 1000)
         const unsubscribe = listenForTournamentChanges(notificationService, refresh, id)
         void refresh()
         return () => {
+            clearInterval(clock)
             request++
             unsubscribe()
         }
@@ -116,7 +130,7 @@
                         >
                             <span class="size-1.5 rounded-full bg-current" aria-hidden="true"
                             ></span>
-                            {tournamentStatusText(tournament)}
+                            {tournamentStatusText(tournament, now)}
                         </p>
                     </div>
                 </div>
@@ -142,7 +156,7 @@
                             onclick={() => act('publish')}>Open registration</button
                         >
                     {/if}
-                    {#if isAdmin && tournament.status !== 'cancelled' && tournament.status !== 'inProgress'}
+                    {#if isAdmin && tournament.status !== 'cancelled'}
                         <details class="relative">
                             <summary class="secondary-action cursor-pointer list-none"
                                 >Manage <svg
@@ -162,11 +176,31 @@
                             <div
                                 class="absolute right-0 z-10 mt-1 w-40 rounded-md border border-gray-200 bg-white p-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
                             >
-                                <button
-                                    class="w-full rounded px-2 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-300 dark:hover:bg-red-950/30"
-                                    disabled={busy}
-                                    onclick={() => act('cancel')}>Cancel tournament</button
-                                >
+                                {#if tournament.status === 'locked' || tournament.status === 'inProgress'}
+                                    <button
+                                        class="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        disabled={busy}
+                                        onclick={() => act(tournament.paused ? 'resume' : 'pause')}
+                                    >
+                                        {tournament.paused
+                                            ? 'Resume scheduling'
+                                            : 'Pause scheduling'}
+                                    </button>
+                                    {#if !tournament.paused && tournament.stages.some((stage) => stage.dispatch?.error)}
+                                        <button
+                                            class="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-gray-100 dark:hover:bg-gray-700"
+                                            disabled={busy}
+                                            onclick={() => act('retry')}>Retry scheduling</button
+                                        >
+                                    {/if}
+                                {/if}
+                                {#if tournament.status !== 'inProgress'}
+                                    <button
+                                        class="w-full rounded px-2 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-300 dark:hover:bg-red-950/30"
+                                        disabled={busy}
+                                        onclick={() => act('cancel')}>Cancel tournament</button
+                                    >
+                                {/if}
                             </div>
                         </details>
                     {/if}
@@ -178,7 +212,11 @@
                     {tournament.description}
                 </p>{/if}
             <p class="mt-3 text-xs text-gray-500">
-                {#if tournament.status === 'open' || tournament.status === 'draft'}
+                {#if tournament.paused}
+                    New games are paused. Games already started can continue.
+                {:else if tournament.stages.some((stage) => stage.dispatch?.error)}
+                    Some games are waiting to start. Scheduling will retry automatically.
+                {:else if tournament.status === 'open' || tournament.status === 'draft'}
                     {tournamentRegistrationText(tournament)}
                 {:else if tournament.status === 'locked'}
                     {detail.tournament.stages[0]?.scheduleId
@@ -242,10 +280,10 @@
                         >
                             <tr>
                                 <th class="pb-2 font-normal">Name</th>
-                                {#if scheduleFirst}
+                                {#if showStandings}
                                     <th class="w-16 pb-2 text-right font-normal">Wins</th>
                                     <th class="w-20 pb-2 text-right font-normal">Score</th>
-                                {:else if joined && tournament.status === 'open'}
+                                {:else if joined && canLeave}
                                     <th class="w-16 pb-2"><span class="sr-only">Action</span></th>
                                 {/if}
                             </tr>
@@ -256,20 +294,18 @@
                                     <td class="py-2.5 pr-3">
                                         <div class="flex min-w-0 items-center gap-2">
                                             <span
-                                                class="truncate"
+                                                class="truncate {entrant.userId === user?.id
+                                                    ? 'text-orange-700 dark:text-orange-300'
+                                                    : ''}"
                                                 title={detail.usernames[entrant.userId] ??
                                                     'Unavailable account'}
                                             >
                                                 {detail.usernames[entrant.userId] ??
                                                     'Unavailable account'}
                                             </span>
-                                            {#if entrant.userId === user?.id}<span
-                                                    class="shrink-0 text-[0.65rem] font-medium text-orange-700 dark:text-orange-300"
-                                                    >You</span
-                                                >{/if}
                                         </div>
                                     </td>
-                                    {#if scheduleFirst}
+                                    {#if showStandings}
                                         <td
                                             class="py-2.5 text-right tabular-nums text-gray-400"
                                             aria-label="Wins unavailable">—</td
@@ -278,7 +314,7 @@
                                             class="py-2.5 text-right tabular-nums text-gray-400"
                                             aria-label="Score unavailable">—</td
                                         >
-                                    {:else if joined && tournament.status === 'open'}
+                                    {:else if joined && canLeave}
                                         <td class="py-2.5 text-right">
                                             {#if entrant.userId === user?.id}
                                                 <button
@@ -341,8 +377,7 @@
                 >
                     <h2 id="scoring-heading" class="mb-1 text-sm font-medium">Scoring</h2>
                     <p class="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-                        A win earns 1 point; joint winners split it. Starting positions are balanced
-                        across your games.
+                        A win earns 1 point; joint winners split it.
                     </p>
                 </section>
             </aside>

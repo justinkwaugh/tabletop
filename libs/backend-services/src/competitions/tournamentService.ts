@@ -25,17 +25,57 @@ import {
     type NotificationService
 } from '../notifications/notificationService.js'
 
+import { TournamentDispatcher } from './tournamentDispatcher.js'
+import { updateTournamentRegistration } from './tournamentRegistration.js'
+import type { TournamentTask } from './tournamentTasks.js'
+import type { TaskService } from '../tasks/taskService.js'
+
 import type { GameService } from '../games/gameService.js'
 
 export class TournamentService {
+    private readonly dispatcher: TournamentDispatcher
     constructor(
         private readonly store: TournamentStore,
         private readonly users: Pick<UserService, 'getUser'>,
         private readonly titles: Record<string, Pick<GameDefinition, 'info'>>,
         private readonly notifications: Pick<NotificationService, 'sendNotification'>,
         private readonly games: Pick<GameService, 'provisionTournamentGame'>,
+        tasks: Pick<TaskService, 'createPushTask'>,
         private readonly now: () => number = Date.now
-    ) {}
+    ) {
+        this.dispatcher = new TournamentDispatcher(
+            store,
+            tasks,
+            async (tournamentId, stageId, tableId) => {
+                await this.provisionTable({ tournamentId, stageId, tableId })
+            },
+            (tournament) => this.notify(tournament),
+            now
+        )
+    }
+
+    async runTask(task: TournamentTask): Promise<void> {
+        await this.dispatcher.run(task)
+    }
+
+    async control(
+        id: string,
+        operation: 'pause' | 'resume' | 'retry',
+        user: User
+    ): Promise<Tournament> {
+        this.requireAdmin(user)
+        const tournament = await this.store.update(id, user, true, (current) => {
+            if (!['locked', 'inProgress'].includes(current.status))
+                throw new TournamentError('The tournament has not reached scheduling')
+            current.paused = operation === 'pause'
+            if (current.paused) delete current.nextTaskAt
+            else current.nextTaskAt = this.now()
+            this.touch(current)
+        })
+        await this.notify(tournament)
+        await this.dispatcher.enqueue(tournament)
+        return tournament
+    }
 
     async create(id: string, input: TournamentDraft, user: User): Promise<Tournament> {
         this.requireAdmin(user)
@@ -78,6 +118,7 @@ export class TournamentService {
             this.touch(tournament)
         })
         await this.notify(result)
+        await this.dispatcher.enqueue(result)
         return result
     }
 
@@ -90,9 +131,11 @@ export class TournamentService {
             this.validateDraft(tournament)
             tournament.status = 'open'
             tournament.publishedAt = this.now()
+            updateTournamentRegistration(tournament, this.now())
             this.touch(tournament)
         })
         await this.notify(result)
+        await this.dispatcher.enqueue(result)
         return result
     }
 
@@ -107,9 +150,13 @@ export class TournamentService {
             tournament.status = 'cancelled'
             tournament.cancelledAt = this.now()
             tournament.cancellationReason = 'administrator'
+            delete tournament.startsAt
+            delete tournament.startId
+            delete tournament.nextTaskAt
             this.touch(tournament)
         })
         await this.notify(result)
+        await this.dispatcher.enqueue(result)
         return result
     }
 
@@ -123,6 +170,7 @@ export class TournamentService {
                 )
         })
         await this.notify(result)
+        await this.dispatcher.enqueue(result)
         return result
     }
 
@@ -139,6 +187,7 @@ export class TournamentService {
             this.closeRegistration(tournament)
         })
         await this.notify(result)
+        await this.dispatcher.enqueue(result)
         if (!result.entrants.some((entrant) => entrant.userId === user.id))
             throw new TournamentError('Registration is closed')
         return result
@@ -152,9 +201,11 @@ export class TournamentService {
             const entrants = registration.entrants.filter((entrant) => entrant.userId !== user.id)
             if (entrants.length === registration.entrants.length) return
             registration.entrants = entrants
+            updateTournamentRegistration(registration, this.now())
             this.touch(registration)
         })
         await this.notify(result)
+        await this.dispatcher.enqueue(result)
         if (result.entrants.some((entrant) => entrant.userId === user.id))
             throw new TournamentError('You can only leave before registration locks')
         return result
@@ -188,11 +239,7 @@ export class TournamentService {
         )
             throw new TournamentError('The tournament has no saved schedule available for play')
         const schedule = await this.store.readSchedule(tournamentId, stageId)
-        const game = await this.games.provisionTournamentGame(tournament, schedule, tableId)
-        const updated = await this.store.read(tournamentId)
-        assertExists(updated, 'Tournament disappeared after provisioning')
-        await this.notify(updated)
-        return game
+        return this.games.provisionTournamentGame(tournament, schedule, tableId)
     }
 
     async getSchedule(id: string, user: User) {
@@ -227,6 +274,7 @@ export class TournamentService {
             throw new TournamentError('The schedule changed. Preview it again before saving.')
         const result = await this.store.commitSchedule(schedule, request.revision, user, this.now())
         await this.notify(result)
+        await this.dispatcher.enqueue(result)
         return schedule
     }
 
@@ -245,6 +293,7 @@ export class TournamentService {
                 this.closeRegistration(current)
             })
             await this.notify(tournament)
+            await this.dispatcher.enqueue(tournament)
         }
         return tournament
     }
@@ -252,19 +301,7 @@ export class TournamentService {
     async list(user: User, query: TournamentListQuery) {
         this.requireActive(user)
         if (query.scope === 'draft') this.requireAdmin(user)
-        await this.reconcileDue()
         return this.store.list(user, query)
-    }
-
-    async reconcileDue(): Promise<number> {
-        const ids = await this.store.due(this.now())
-        for (const id of ids) {
-            const registration = await this.store.update(id, undefined, false, (current) => {
-                this.closeRegistration(current)
-            })
-            await this.notify(registration)
-        }
-        return ids.length
     }
 
     private async notify(tournament: Tournament): Promise<void> {
@@ -288,28 +325,7 @@ export class TournamentService {
     }
 
     private closeRegistration(tournament: Tournament): boolean {
-        if (tournament.status !== 'open') return false
-        const policy = tournament.rules.registration
-        if (policy.kind === 'whenFull' && tournament.entrants.length < policy.capacity) return false
-        if (policy.kind === 'deadline' && policy.closesAt > this.now()) return false
-        if (policy.kind === 'deadline' && tournament.entrants.length < policy.minimumEntrants) {
-            tournament.status = 'cancelled'
-            tournament.cancelledAt = this.now()
-            tournament.cancellationReason = 'undersubscribed'
-        } else {
-            tournament.status = 'locked'
-            tournament.lockedAt = this.now()
-            tournament.stages = [
-                {
-                    id: tournament.format.stages[0].id,
-                    status: 'awaitingSchedule',
-                    rosterRevision: tournament.revision + 1,
-                    createdAt: this.now()
-                }
-            ]
-        }
-        this.touch(tournament)
-        return true
+        return updateTournamentRegistration(tournament, this.now())
     }
 
     private validateDraft(input: TournamentDraft): TournamentDraft {

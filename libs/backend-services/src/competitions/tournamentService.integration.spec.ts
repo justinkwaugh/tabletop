@@ -82,6 +82,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             { test: title },
             notifications,
             GameService.prototype,
+            { createPushTask: async () => undefined },
             () => now
         )
         let sequence = 0
@@ -140,7 +141,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 { getUser: async () => undefined },
                 { test: title },
                 notifications,
-                GameService.prototype
+                GameService.prototype,
+                { createPushTask: async () => undefined }
             )
             expect((await reload.get(tournament.id, admin)).tournament).toEqual(tournament)
             expect(await service.create(tournament.id, draft(), admin)).toEqual(tournament)
@@ -166,6 +168,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 },
                 notifications,
                 GameService.prototype,
+                { createPushTask: async () => undefined },
                 () => now
             )
             for (const tableSize of [2, 5]) {
@@ -195,6 +198,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             input.format.stages[0].gamesPerEntrant = games
             const id = await open(input)
             await Promise.all(users.slice(0, capacity).map((user) => service.join(id, user)))
+            now += 60_000
+            await service.lock(id, admin)
             const detail = await service.get(id, admin)
             return {
                 id,
@@ -335,6 +340,13 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             await store.commitSchedule(schedule, tournament.revision, admin, now)
             const reloaded = await store.readSchedule(id, 'opening')
             expect(reloaded).toEqual(schedule)
+            await store.update(id, undefined, false, (current) => {
+                current.stages[0].dispatch = {
+                    reserved: [],
+                    active: [],
+                    finished: schedule.tables.map((table) => table.id)
+                }
+            })
             expect((await ref.collection('schedules').get()).size).toBe(1)
         })
 
@@ -381,7 +393,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             )
         })
 
-        it('serializes competing joins for the last place and creates one locked stage', async () => {
+        it('serializes competing joins for the last place and locks after the grace period', async () => {
             const id = await open()
             await service.join(id, users[1])
             const results = await Promise.allSettled([
@@ -389,6 +401,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 service.join(id, users[3])
             ])
             expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
+            expect((await service.get(id, admin)).tournament.startsAt).toBe(now + 60_000)
+            now += 60_000
+            await service.lock(id, admin)
             const detail = await service.get(id, admin)
             expect(detail.tournament.status).toBe('locked')
             expect(detail.tournament.entrants).toHaveLength(2)
@@ -424,7 +439,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             ).not.toContain(id)
             await expect(service.lock(id, admin)).rejects.toMatchObject({ statusCode: 409 })
             now += 1001
-            await service.reconcileDue()
+            await service.lock(id, admin)
             const detail = await service.get(id, admin)
             expect(detail.tournament.status).toBe('locked')
             expect(detail.tournament.entrants.length).toBe(2)
@@ -441,7 +456,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             const indefinite = await open()
             await service.join(dated, users[1])
             now += 365 * 86_400_000
-            await service.reconcileDue()
+            await service.runTask({ tournamentId: dated })
             expect((await service.get(dated, admin)).tournament.cancellationReason).toBe(
                 'undersubscribed'
             )
@@ -627,6 +642,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             const id = await open()
             await service.join(id, users[1])
             await service.join(id, users[2])
+            now += 60_000
+            await service.lock(id, admin)
             expect(
                 (await service.list(users[1], { scope: 'inProgress' })).tournaments.map(
                     (event) => event.id

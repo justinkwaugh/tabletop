@@ -42,3 +42,5 @@ export * from './competitions/tournamentService.js'
 export * from './competitions/tournamentError.js'
 export * from './persistence/firestore/tournamentStore.js'
 export * from './persistence/stores/tournamentStore.js'
+
+export { TournamentTask } from './competitions/tournamentTasks.js'

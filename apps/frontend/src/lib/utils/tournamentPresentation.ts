@@ -5,6 +5,7 @@ export function tournamentFormatText(format: Tournament['format']): string {
 }
 
 export function tournamentRegistrationText(tournament: Tournament): string {
+    if (tournament.startsAt !== undefined) return 'Registration closes when the tournament starts.'
     const policy = tournament.rules.registration
     return policy.kind === 'whenFull'
         ? `Starts when ${policy.capacity} players have joined`
@@ -21,7 +22,12 @@ export function tournamentStatusColor(status: Tournament['status']): string {
         : 'text-blue-700 dark:text-blue-300'
 }
 
-export function tournamentStatusText(tournament: Tournament): string {
+export function tournamentStatusText(tournament: Tournament, now = Date.now()): string {
+    if (tournament.startsAt !== undefined) {
+        const seconds = Math.max(0, Math.ceil((tournament.startsAt - now) / 1000))
+        return seconds > 0 ? `Starting in ${seconds}s` : 'Starting…'
+    }
+    if (tournament.paused) return 'Scheduling paused'
     switch (tournament.status) {
         case 'draft':
             return 'Draft'
@@ -30,7 +36,8 @@ export function tournamentStatusText(tournament: Tournament): string {
         case 'inProgress':
             return 'In progress'
         case 'locked':
-            return 'Roster locked'
+            if (tournament.stages.some((stage) => stage.dispatch?.error)) return 'Start delayed'
+            return tournament.nextTaskAt !== undefined ? 'Starting…' : 'Roster locked'
         case 'cancelled':
             return tournament.cancellationReason === 'undersubscribed'
                 ? 'Cancelled — minimum roster not met'

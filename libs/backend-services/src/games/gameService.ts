@@ -1,3 +1,4 @@
+import { enqueueTournamentTask } from '../competitions/tournamentTasks.js'
 import { Timed, measure, measureSync, countTiming } from '../diagnostics/requestTimings.js'
 import {
     GameCreationOptions,
@@ -216,7 +217,12 @@ export class GameService {
                 Value.Equal(existing.tournament, reference),
                 'Game identity belongs to another tournament table'
             )
-            return existing
+            const dispatch = tournament.stages.find(
+                (stage) => stage.id === schedule.stageId
+            )?.dispatch
+            if (dispatch?.active.includes(tableId) || dispatch?.finished.includes(tableId))
+                return existing
+            return this.gameStore.createGame(existing)
         }
         const definition = this.getTitle(tournament.rules.titleId)
         if (!definition?.runtime.initializer.supportsStartingPositions)
@@ -999,6 +1005,16 @@ export class GameService {
                     return UpdateValidationResult.Proceed
                 }
             })
+
+        if (!priorState.result && updatedGame.result && updatedGame.tournament) {
+            try {
+                await enqueueTournamentTask(this.taskService, {
+                    tournamentId: updatedGame.tournament.tournamentId
+                })
+            } catch (error) {
+                console.error('Failed to enqueue tournament completion task', error)
+            }
+        }
 
         const representation = measureSync('projection.response.action', () =>
             createActionResultsRepresentation({

@@ -85,10 +85,9 @@ export default fp(async (fastify: FastifyInstance) => {
         console.warn('Unable to load game definitions from manifest', error)
     }
 
-    const taskService: TaskService =
-        service === 'local'
-            ? new LocalTaskService(TASKS_HOST)
-            : new CloudTasksTaskService(TASKS_HOST)
+    const taskService: TaskService = EnvService.isLocal()
+        ? new LocalTaskService(TASKS_HOST)
+        : new CloudTasksTaskService(TASKS_HOST)
     const tokenService = new TokenService(new FirestoreTokenStore(fastify.firestore))
     const userService = new UserService(
         new FirestoreUserStore(redisCacheService, fastify.firestore, service === 'local'),
@@ -150,31 +149,13 @@ export default fp(async (fastify: FastifyInstance) => {
         userService,
         availableTitles,
         notificationService,
-        gameService
+        gameService,
+        taskService
     )
     fastify.decorate('tournamentService', tournamentService)
-    if (EnvService.isLocal()) {
-        let reconciling = false
-        const reconcile = async () => {
-            if (reconciling) return
-            reconciling = true
-            try {
-                await tournamentService.reconcileDue()
-            } catch (error) {
-                fastify.log.error(error, 'Tournament registration reconciliation failed')
-            } finally {
-                reconciling = false
-            }
-        }
-        const timer = setInterval(() => {
-            void reconcile()
-        }, 30_000)
-        timer.unref()
-        fastify.addHook('onReady', reconcile)
-        fastify.addHook('onClose', async () => {
-            clearInterval(timer)
-        })
-    }
+    fastify.addHook('onClose', async () => {
+        if (taskService instanceof LocalTaskService) taskService.close()
+    })
     fastify.decorate('tokenService', tokenService)
     fastify.decorate('userService', userService)
     fastify.decorate('emailService', emailService)

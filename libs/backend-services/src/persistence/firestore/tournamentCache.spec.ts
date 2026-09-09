@@ -123,7 +123,6 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 await store.readSchedule(tournament.id, 'main')
                 await store.list(admin, { scope: 'mine' })
                 await store.list(admin, { scope: 'inProgress', titleId: 'sol' })
-                await store.due(100)
             })
             clearReads()
             const result = await other.read(tournament.id)
@@ -133,7 +132,6 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             expect(
                 (await other.list(admin, { scope: 'inProgress', titleId: 'sol' })).tournaments
             ).toHaveLength(1)
-            expect(await other.due(10000)).toEqual([])
             expectNoReads()
         })
 
@@ -243,26 +241,6 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             expect((await reading).tournaments).toEqual([])
             expect((await store.list(newcomer, { scope: 'mine' })).tournaments).toHaveLength(1)
             await warm(() => store.list(newcomer, { scope: 'mine' }))
-        })
-
-        it('reuses cached deadlines as time passes and invalidates them when events close or open', async () => {
-            const tournament = event()
-            tournament.rules.registration = { kind: 'deadline', minimumEntrants: 2, closesAt: 1000 }
-            await store.create(tournament, admin)
-            await warm(() => store.due(900))
-            clearReads()
-            expect(await other.due(999)).toEqual([])
-            expect(await other.due(1000)).toEqual(['event'])
-            expectNoReads()
-            await store.update('event', admin, true, (tournament) => {
-                tournament.status = 'cancelled'
-                tournament.revision++
-            })
-            expect(await other.due(1000)).toEqual([])
-            const next = event('next')
-            next.rules.registration = { kind: 'deadline', minimumEntrants: 2, closesAt: 2000 }
-            await store.create(next, admin)
-            expect(await other.due(2000)).toEqual(['next'])
         })
     }
 )

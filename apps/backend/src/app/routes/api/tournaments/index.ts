@@ -20,12 +20,10 @@ export default async function (fastify: FastifyInstance) {
     })
     fastify.setErrorHandler((error, _request, reply) => {
         if (error instanceof TournamentError)
-            return reply
-                .code(error.statusCode)
-                .send({
-                    status: 'error',
-                    error: { name: 'TournamentError', message: error.message }
-                })
+            return reply.code(error.statusCode).send({
+                status: 'error',
+                error: { name: 'TournamentError', message: error.message }
+            })
         return reply.send(error)
     })
 
@@ -144,6 +142,23 @@ export default async function (fastify: FastifyInstance) {
             }
         }
     )
+    for (const operation of ['pause', 'resume', 'retry'] as const) {
+        fastify.post<{ Params: Static<typeof TournamentParams> }>(
+            `/:id/${operation}`,
+            { schema: { params: TournamentParams }, preHandler: fastify.verifyRoleAdmin },
+            async (request) => {
+                assertExists(request.user, 'Authenticated administrator required')
+                return {
+                    status: 'ok',
+                    payload: await fastify.tournamentService.control(
+                        request.params.id,
+                        operation,
+                        request.user
+                    )
+                }
+            }
+        )
+    }
     for (const operation of ['publish', 'cancel', 'lock'] as const) {
         fastify.post<{ Params: Static<typeof TournamentParams> }>(
             `/:id/${operation}`,

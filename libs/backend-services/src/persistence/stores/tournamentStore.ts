@@ -22,9 +22,8 @@ export interface TournamentStore {
     commitSchedule(
         schedule: TournamentSchedule,
         revision: number,
-        user: User,
+        user: User | undefined,
         now: number
     ): Promise<Tournament>
-    due(now: number): Promise<string[]>
     administratorIds(): Promise<string[]>
 }
