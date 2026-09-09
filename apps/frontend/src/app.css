@@ -3,7 +3,24 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@font-face {
+    font-family: 'Source Sans 3';
+    src: url('/fonts/source-sans-3/SourceSans3-Regular.woff2') format('woff2');
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Source Sans 3';
+    src: url('/fonts/source-sans-3/SourceSans3-Semibold.woff2') format('woff2');
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+}
+
 @theme {
+    --font-tournament: 'Source Sans 3', sans-serif;
     --color-primary-50: #fff5f2;
     --color-primary-100: #fff1ee;
     --color-primary-200: #ffe4de;

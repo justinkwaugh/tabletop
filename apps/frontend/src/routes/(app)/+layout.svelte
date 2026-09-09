@@ -326,6 +326,11 @@
                                 class="me-4 h-[30px]"
                                 onclick={gotoDashboard}>My Games</Button
                             >
+                            <a
+                                href="/tournaments"
+                                class="hidden sm:inline-flex me-4 text-sm text-blue-700 dark:text-blue-300"
+                                >Tournaments</a
+                            >
                         {/if}
 
                         <Avatar id="user-drop" class="cursor-pointer" />
@@ -337,6 +342,12 @@
                                     >
                                 </DropdownHeader>
                                 <DropdownDivider />
+                                {#if sessionUser.status === UserStatus.Active}
+                                    <DropdownItem
+                                        href="/tournaments"
+                                        class="sm:hidden w-full text-left">Tournaments</DropdownItem
+                                    >
+                                {/if}
                                 <DropdownItem class="w-full text-left" onclick={gotoProfile}
                                     >Profile</DropdownItem
                                 >

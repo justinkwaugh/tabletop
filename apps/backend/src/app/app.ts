@@ -12,7 +12,7 @@ import FastifyFormbody from '@fastify/formbody'
 import fastifyPrintRoutes from 'fastify-print-routes'
 import fastifyStatic from '@fastify/static'
 import fastifyRateLimit from '@fastify/rate-limit'
-import { BaseError, ErrorCategory } from '@tabletop/common'
+import { errorStatusCode } from './lib/errorStatusCode.js'
 import { FastifySSEPlugin } from 'fastify-sse-v2'
 import AuthorizationPlugin from './plugins/authorization.js'
 import FirestorePlugin from './plugins/firestore.js'
@@ -82,12 +82,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
 
     fastify.setErrorHandler(async function (error, req, rep) {
         if (!rep.statusCode || rep.statusCode < 400) {
-            if (error instanceof BaseError && error.category === ErrorCategory.Application) {
-                void rep.code(400)
-            } else {
-                console.log('setting 500 due to error', error)
-                void rep.code(500)
-            }
+            void rep.code(errorStatusCode(error))
         }
 
         if (!rep.sent) {

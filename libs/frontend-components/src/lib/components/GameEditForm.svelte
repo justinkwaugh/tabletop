@@ -12,6 +12,8 @@
     } from 'flowbite-svelte'
     import {
         normalizeMasterSeed,
+        defaultGameConfig,
+        normalizeGameConfig,
         type GameCreationOptions,
         assertExists,
         BooleanConfigOption,
@@ -117,11 +119,7 @@
     let maxPlayers: number = $derived(gameTitle?.info.metadata.maxPlayers ?? 1)
 
     function generateDefaultOptions() {
-        const defaultConfig: GameConfig = {}
-        for (const option of gameTitle.info.configurator?.options ?? []) {
-            defaultConfig[option.id] = option.default ?? null
-        }
-        return defaultConfig
+        return defaultGameConfig(gameTitle.info.configurator?.options ?? [])
     }
 
     function onOptionChange(option: ConfigOption, event: Event) {
@@ -194,14 +192,7 @@
 
         const chosenConfig = $state.snapshot(config)
         const defaultConfig = generateDefaultOptions()
-        const mergedConfig = Object.assign(defaultConfig, chosenConfig)
-
-        // Remove null values from config
-        for (const key of Object.keys(mergedConfig)) {
-            if (mergedConfig[key] === null) {
-                delete mergedConfig[key]
-            }
-        }
+        const mergedConfig = normalizeGameConfig({ ...defaultConfig, ...chosenConfig })
 
         const gameData = <Partial<Game>>{
             id: editedGame.id,

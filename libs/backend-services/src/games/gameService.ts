@@ -1,3 +1,4 @@
+import { enqueueTournamentTask } from '../competitions/tournamentTasks.js'
 import { Timed, measure, measureSync, countTiming } from '../diagnostics/requestTimings.js'
 import {
     GameCreationOptions,
@@ -36,7 +37,9 @@ import {
     UserStatus,
     WasInvitedNotification,
     Visibility,
-    assertExists
+    assertExists,
+    type Tournament,
+    type TournamentSchedule
 } from '@tabletop/common'
 import { TaskService } from '../tasks/taskService.js'
 import { TokenService, TokenType } from '../tokens/tokenService.js'
@@ -90,6 +93,14 @@ import {
     publishUndoResults
 } from './gameNotifications.js'
 
+import {
+    assertOrdinaryGame,
+    assertTournamentUndoAllowed,
+    tournamentGameId,
+    TournamentGameError
+} from './tournamentGames.js'
+import * as Value from 'typebox/value'
+
 export class GameService {
     constructor(
         private readonly gameStore: GameStore,
@@ -120,6 +131,8 @@ export class GameService {
         owner: User
         options?: GameCreationOptions
     }): Promise<Game> {
+        if (Object.hasOwn(game, 'tournament'))
+            throw new TournamentGameError('Tournament membership cannot be supplied by clients')
         assertExists(game.id, 'Game id is required')
         if (options?.masterSeed !== undefined && !owner.roles.includes(Role.Admin)) {
             throw new UnauthorizedAccessError({ user: owner, gameId: game.id })
@@ -144,18 +157,7 @@ export class GameService {
 
         this.checkForDuplicatePlayers(newGame.players)
 
-        // Validate player count
-        if (
-            newGame.players.length < definition.info.metadata.minPlayers ||
-            newGame.players.length > definition.info.metadata.maxPlayers
-        ) {
-            throw new GamePlayerCountInvalidError({
-                id: newGame.id,
-                playerCount: newGame.players.length,
-                minPlayers: definition.info.metadata.minPlayers,
-                maxPlayers: definition.info.metadata.maxPlayers
-            })
-        }
+        this.validatePlayerCount(newGame.id, newGame.players, definition)
 
         // Private games have to be full
         if (!newGame.isPublic && Object.keys(usersByPlayerId).length !== newGame.players.length) {
@@ -195,11 +197,86 @@ export class GameService {
         return createdGame
     }
 
+    async provisionTournamentGame(
+        tournament: Tournament,
+        schedule: TournamentSchedule,
+        tableId: string
+    ): Promise<Game> {
+        const table = schedule.tables.find((table) => table.id === tableId)
+        assertExists(table, 'Scheduled tournament table not found')
+        const reference = {
+            tournamentId: tournament.id,
+            stageId: schedule.stageId,
+            tableId,
+            scheduleId: schedule.id
+        }
+        const gameId = tournamentGameId(reference)
+        const existing = await this.gameStore.findGameById(gameId, false)
+        if (existing) {
+            assert(
+                Value.Equal(existing.tournament, reference),
+                'Game identity belongs to another tournament table'
+            )
+            const dispatch = tournament.stages.find(
+                (stage) => stage.id === schedule.stageId
+            )?.dispatch
+            if (dispatch?.active.includes(tableId) || dispatch?.finished.includes(tableId))
+                return existing
+            return this.gameStore.createGame(existing)
+        }
+        const definition = this.getTitle(tournament.rules.titleId)
+        if (!definition?.runtime.initializer.supportsStartingPositions)
+            throw new TournamentGameError(
+                'This game title is not currently available for assigned tournament setup.'
+            )
+        const masterSeed =
+            definition.runtime.randomnessVersion === 1 ? generateMasterSeed() : undefined
+        const game = definition.runtime.initializer.initializeGame(
+            {
+                id: gameId,
+                typeId: definition.info.id,
+                ownerId: tournament.organizerId,
+                name: `${tournament.name} · Table ${Number(tableId)}`,
+                isPublic: true,
+                storage: GameStorage.Remote,
+                hotseat: false,
+                config: structuredClone(tournament.rules.gameConfig),
+                ...(masterSeed ? { seed: deriveGameSeeds(masterSeed).publicSeed } : {}),
+                players: table.entrantIds.map((userId, index) => ({
+                    id: `player-${index + 1}`,
+                    userId,
+                    name: '',
+                    isHuman: true,
+                    status: PlayerStatus.Joined
+                }))
+            },
+            definition
+        )
+        game.tournament = reference
+        this.validatePlayerCount(game.id, game.players, definition)
+        this.checkForDuplicatePlayers(game.players)
+        await this.validateAndPopulatePlayers(game.players)
+        const { startedGame, initialState } = new GameEngine(definition.runtime).startGame(game, {
+            startingPositions: { playerIds: game.players.map((player) => player.id) },
+            ...(masterSeed ? { masterSeed } : {})
+        })
+        startedGame.state = initialState
+        startedGame.activePlayerIds = initialState.activePlayerIds
+        const created = await this.gameStore.createGame(
+            startedGame,
+            masterSeed ? { masterSeed } : undefined
+        )
+        await this.notifyGamePlayers(GameNotificationAction.Create, { game: created })
+        await this.notifyGameStarted(created)
+        return created
+    }
+
     async deleteGame(user: User, gameId: string): Promise<void> {
         const game = await this.getGame({ gameId })
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
         }
+        assertOrdinaryGame(game)
 
         if (game.ownerId !== user.id && !user.roles.includes(Role.Admin)) {
             throw new UnauthorizedAccessError({ user, gameId })
@@ -367,6 +444,7 @@ export class GameService {
         if (!game) {
             throw new GameNotFoundError({ id: state.gameId })
         }
+        assertOrdinaryGame(game)
         new GameEngine(this.getRequiredTitle(game).runtime).validateCanonicalState(state)
         await this.gameStore.setGameState({ gameId: state.gameId, state })
     }
@@ -459,11 +537,14 @@ export class GameService {
         fields: Partial<Game>
         owner: User
     }): Promise<Game> {
+        if (Object.hasOwn(fields, 'tournament'))
+            throw new TournamentGameError('Tournament membership cannot be changed')
         assert(!Object.hasOwn(fields, 'protectedInformation'), 'Game protection cannot be changed')
         const game = await this.getGame({ gameId })
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
         }
+        assertOrdinaryGame(game)
 
         if (fields.name !== undefined) {
             fields.name = fields.name.trim()
@@ -480,17 +561,7 @@ export class GameService {
                 throw new GameNotFoundError({ id: gameId })
             }
 
-            if (
-                fields.players.length < definition.info.metadata.minPlayers ||
-                fields.players.length > definition.info.metadata.maxPlayers
-            ) {
-                throw new GamePlayerCountInvalidError({
-                    id: gameId,
-                    playerCount: fields.players.length,
-                    minPlayers: definition.info.metadata.minPlayers,
-                    maxPlayers: definition.info.metadata.maxPlayers
-                })
-            }
+            this.validatePlayerCount(gameId, fields.players, definition)
 
             usersByPlayerId = await this.validateAndPopulatePlayers(fields.players, owner)
             if (fields.isPublic === false) {
@@ -600,6 +671,7 @@ export class GameService {
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
         }
+        assertOrdinaryGame(game)
 
         const [updatedGame, updatedFields] = await this.gameStore.updateGame({
             game,
@@ -654,6 +726,7 @@ export class GameService {
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
         }
+        assertOrdinaryGame(game)
 
         const [updatedGame, , existingGame] = await this.gameStore.updateGame({
             game,
@@ -708,6 +781,7 @@ export class GameService {
         game: Game
         user: User
     }): Promise<void> {
+        assertOrdinaryGame(game)
         if (!user.email || user.status !== UserStatus.Active) {
             throw new InvalidPlayerUserError({ user })
         }
@@ -740,6 +814,7 @@ export class GameService {
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
         }
+        assertOrdinaryGame(game)
 
         if (game.ownerId !== user.id && !user.roles.includes(Role.Admin)) {
             throw new UnauthorizedAccessError({ user, gameId })
@@ -931,6 +1006,16 @@ export class GameService {
                 }
             })
 
+        if (!priorState.result && updatedGame.result && updatedGame.tournament) {
+            try {
+                await enqueueTournamentTask(this.taskService, {
+                    tournamentId: updatedGame.tournament.tournamentId
+                })
+            } catch (error) {
+                console.error('Failed to enqueue tournament completion task', error)
+            }
+        }
+
         const representation = measureSync('projection.response.action', () =>
             createActionResultsRepresentation({
                 game: updatedGame,
@@ -999,6 +1084,7 @@ export class GameService {
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
         }
+        assertTournamentUndoAllowed(game)
         let userPlayer: Player | undefined
 
         if (!user.roles.includes(Role.Admin)) {
@@ -1269,6 +1355,17 @@ export class GameService {
         return definition
     }
 
+    private validatePlayerCount(id: string, players: Player[], definition: GameDefinition): void {
+        const { minPlayers, maxPlayers } = definition.info.metadata
+        if (players.length < minPlayers || players.length > maxPlayers)
+            throw new GamePlayerCountInvalidError({
+                id,
+                playerCount: players.length,
+                minPlayers,
+                maxPlayers
+            })
+    }
+
     private checkForDuplicatePlayers(players: Player[]): void {
         const userIds = new Set<string>()
         for (const player of players) {
@@ -1293,7 +1390,7 @@ export class GameService {
 
     private async validateAndPopulatePlayers(
         players: Player[],
-        owner: User
+        owner?: User
     ): Promise<Record<string, User>> {
         const missingPlayers: Player[] = []
         const usersByPlayerId: Record<string, User> = {}
@@ -1302,7 +1399,7 @@ export class GameService {
                 continue
             }
 
-            const user = player.userId === owner.id ? owner : await this.getPlayerUser(player)
+            const user = player.userId === owner?.id ? owner : await this.getPlayerUser(player)
             if (!user || user.status !== UserStatus.Active) {
                 missingPlayers.push(player)
                 continue
