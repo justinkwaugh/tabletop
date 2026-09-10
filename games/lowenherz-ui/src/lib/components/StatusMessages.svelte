@@ -31,7 +31,6 @@
     import PlayerPill from './PlayerPill.svelte'
     import EasedHeight from './EasedHeight.svelte'
     import ActionDescription from './ActionDescription.svelte'
-    import { playerName } from '$lib/model/actionCardHelpers.js'
     import type { KnightPlan } from '$lib/model/session.svelte.js'
 
     const gameSession = getGameSession()
@@ -280,8 +279,8 @@
     // Once the deal is settled, its winner has somewhere else to be: the wall/knight/politics
     // prompt above (isPlayingAllianceCard / canPlaceWall / canPlaceKnight / canTakePoliticsCard)
     // already tells them what to do with what they just won, so re-reading the offer they signed
-    // moments ago is only in their way. Everyone else has nothing to act on right now, so the
-    // frozen offer and both signatures are exactly what they should be looking at.
+    // moments ago is only in their way. Everyone else has nothing to act on right now, so who paid
+    // whom (settledNegotiation below) is exactly what they should be looking at.
     //
     // Scoped to the frozen hold, not live negotiation: gameState.negotiation is only undefined
     // once the deal has resolved, and canPlaceWall/etc. are only ever true once a slot's winner
@@ -292,6 +291,15 @@
             (gameSession.canPlaceWall ||
                 gameSession.canPlaceKnight ||
                 gameSession.canTakePoliticsCard)
+    )
+
+    // The completed hold (see the onMount listener above): the deal is done and nothing is left to
+    // sign or decline, so only the struck terms show - as a status line above the prompt, for a
+    // beat before the next thing takes over.
+    const settledNegotiation = $derived(
+        displayNegotiation && !gameSession.gameState.negotiation && !negotiationHoldHidesForMe
+            ? displayNegotiation
+            : undefined
     )
 
     const negotiationOtherPlayerId = $derived.by(() => {
@@ -472,6 +480,17 @@
             {@render bidList(lastDuelOutcome.bids)} — tied again, so no one performs the{lastDuelOutcome.actionNoun
                 ? ` ${lastDuelOutcome.actionNoun}`
                 : ''} action.
+        </div>
+    {/if}
+    {#if settledNegotiation?.offer}
+        {@const offer = settledNegotiation.offer}
+        {@const toPlayerId = settledNegotiation.playerIds.find((id) => id !== offer.fromPlayerId)}
+        <div class="text-black text-[18px] text-center border-b-2 border-black/15 pb-1">
+            {@render playerPill(offer.fromPlayerId)} pays
+            {#if toPlayerId}
+                {@render playerPill(toPlayerId)}
+            {/if}
+            {offer.amount} ducat{offer.amount === 1 ? '' : 's'}.
         </div>
     {/if}
     <div class="text-black text-[18px] text-center leading-loose">
@@ -771,8 +790,8 @@
          put beside the thing it acts on instead of appearing in a status area whose other
          messages are turn-scoped. -->
 
-    {#if displayNegotiation && !negotiationHoldHidesForMe}
-        {@const negotiation = displayNegotiation}
+    {#if gameSession.gameState.negotiation}
+        {@const negotiation = gameSession.gameState.negotiation}
         <!-- items-center on the column, justify-center on each row: the column is only as wide as
              its widest row (the terms), so without the latter the shorter signing row sat flush
              left under it - centred as a block, but not centred on the board the panel sits above.
@@ -874,19 +893,6 @@
                     >
                         Force a duel
                     </button>
-                </div>
-            {:else if negotiation.offer}
-                {@const toPlayerId = negotiation.playerIds.find(
-                    (id) => id !== negotiation.offer!.fromPlayerId
-                )}
-                <!-- The completed hold (see the onMount listener above): the deal is done, so
-                     there is nothing left to sign or decline - just the struck terms, on screen
-                     for a beat before the next thing takes over. -->
-                <div class="pb-4 text-[16px]">
-                    {playerName(gameSession, negotiation.offer.fromPlayerId)} pays {toPlayerId
-                        ? playerName(gameSession, toPlayerId)
-                        : ''}
-                    {negotiation.offer.amount} ducat{negotiation.offer.amount === 1 ? '' : 's'}.
                 </div>
             {/if}
         </div>
