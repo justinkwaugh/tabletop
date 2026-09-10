@@ -355,6 +355,7 @@
     // they'd moved. Undefined whenever the cursor isn't over the board at all, which is
     // exactly when the ghost wall preview should show nothing.
     let hoverPoint: { x: number; y: number } | undefined = $state(undefined)
+    let boardElement: HTMLElement | undefined = $state(undefined)
 
     // The scale ScalingWrapper is currently applying, read off the element itself
     // (getBoundingClientRect is post-transform, offsetWidth is pre-transform layout)
@@ -373,22 +374,23 @@
     // place a wall the pointer is not near.
     const GHOST_WALL_REACH = CELL_SIZE
 
-    const nearestWallEdge = $derived.by(() => {
-        if (!hoverPoint) return undefined
+    function wallEdgeNear(point: { x: number; y: number }) {
         let best: (typeof legalWallEdges)[number] | undefined
         let bestDistSq = GHOST_WALL_REACH ** 2
         for (const edge of legalWallEdges) {
             const sameRow = edge.row1 === edge.row2
             const cx = sameRow ? edge.col2 * CELL_SIZE : edge.col1 * CELL_SIZE + CELL_SIZE / 2
             const cy = sameRow ? edge.row1 * CELL_SIZE + CELL_SIZE / 2 : edge.row2 * CELL_SIZE
-            const distSq = (cx - hoverPoint.x) ** 2 + (cy - hoverPoint.y) ** 2
+            const distSq = (cx - point.x) ** 2 + (cy - point.y) ** 2
             if (distSq <= bestDistSq) {
                 bestDistSq = distSq
                 best = edge
             }
         }
         return best
-    })
+    }
+
+    const nearestWallEdge = $derived(hoverPoint ? wallEdgeNear(hoverPoint) : undefined)
 
     // The canonical col/row/edge form (matching how real placed walls are stored and
     // rendered) for whichever edge is currently nearest the mouse.
@@ -812,7 +814,7 @@
         return gameSession.uiColorForOwner(region.owner)
     }
 
-    async function onSquareClick(col: number, row: number) {
+    async function onSquareClick(col: number, row: number, event?: MouseEvent) {
         if (gameSession.isPlayingAllianceCard) {
             if (!gameSession.allianceOwnRegionId) {
                 if (isOwnSelectableAllianceRegion(col, row)) {
@@ -855,10 +857,13 @@
             return
         }
 
-        // The ghost wall is the affordance, so a click anywhere places it - not only a click on
-        // the thin edge itself. The per-edge buttons below stay for keyboard users.
+        // The ghost wall is the affordance, so a pointer click anywhere places the edge nearest
+        // the click itself - read from the click, not from hover state, so it cannot be stale.
+        // A keyboard activation (detail 0) carries no position; the per-edge buttons are the
+        // keyboard path.
         if (gameSession.canPlaceWall) {
-            const edge = nearestWallEdge
+            if (!event || event.detail === 0 || !boardElement) return
+            const edge = wallEdgeNear(boardPointFromEvent(boardElement, event.clientX, event.clientY))
             if (edge) await gameSession.placeWallBetween(edge.col1, edge.row1, edge.col2, edge.row2)
             return
         }
@@ -979,6 +984,7 @@
             class="relative"
             style="width: fit-content;"
             role="presentation"
+            bind:this={boardElement}
             onmousemove={(e) => {
                 hoverPoint = boardPointFromEvent(e.currentTarget, e.clientX, e.clientY)
             }}
@@ -1023,7 +1029,7 @@
                     {@const tint = regionTint(col, row)}
                     <button
                         type="button"
-                        onclick={() => onSquareClick(col, row)}
+                        onclick={(event) => onSquareClick(col, row, event)}
                         onmouseenter={() => (hoveredSquare = { col, row })}
                         onmouseleave={() => {
                             // Guarded so that moving between two squares cannot blank the

@@ -75,4 +75,4 @@ The status column reserves two lines (77 px: the prompt line, the column gap, an
 
 # Placing walls
 
-While the player may place a wall, the legal edge nearest the pointer is ghosted when its centre is within one cell of the pointer, and a click on the board places that ghosted edge - the ghost is the affordance, so the click target is not narrower than it. One invisible focusable line per legal edge remains for keyboard placement. `Undo` reverses a misplaced wall as before.
+While the player may place a wall, the legal edge nearest the pointer is ghosted when its centre is within one cell of the pointer, and a pointer click on the board places the legal edge nearest the click (the same capped lookup, read from the click's own position rather than hover state) - the ghost is the affordance, so the click target is not narrower than it. Keyboard activation of a square places nothing; one invisible focusable line per legal edge remains for keyboard placement. `Undo` reverses a misplaced wall as before.
