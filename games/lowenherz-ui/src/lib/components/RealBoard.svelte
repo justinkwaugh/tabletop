@@ -185,12 +185,24 @@
         allianceMarkers.filter((marker) => marker.id !== allianceBurst.burstingAllianceId)
     )
 
+    const allianceBreakingPayment = $derived(gameSession.allianceBreakingPayment)
+
+    // The pill's second line, naming a Treasure payment - nothing when it is plain ducats.
+    const allianceBreakingDetail = $derived.by(() => {
+        const payment = allianceBreakingPayment
+        if (!payment || payment.treasureValue === undefined) return undefined
+        const topUp =
+            payment.ducats > 0 ? ` + ${payment.ducats} ducat${payment.ducats === 1 ? '' : 's'}` : ''
+        return `Treasure ${payment.treasureValue}${topUp}`
+    })
+
     function breakAllianceLabel(marker: { otherOwner?: PieceOwner }): string {
         const other =
             marker.otherOwner && !isNeutralOwner(marker.otherOwner)
                 ? playerName(gameSession, marker.otherOwner)
                 : 'a neutral prince'
-        return `Break your alliance with ${other} for ${ALLIANCE_CANCELLATION_COST} ducats`
+        const payment = allianceBreakingDetail ?? `${ALLIANCE_CANCELLATION_COST} ducats`
+        return `Break your alliance with ${other} for ${payment}`
     }
 
     const tileImages: Record<BoardTileId, string> = {
@@ -422,7 +434,11 @@
         let nearestDistance = BREAK_ALLIANCE_HOVER_RADIUS
         for (const marker of visibleAllianceMarkers) {
             if (!marker.cancellable) continue
-            const distance = breakAllianceOfferDistance(hoverPoint, marker.walls)
+            const distance = breakAllianceOfferDistance(
+                hoverPoint,
+                marker.walls,
+                allianceBreakingDetail !== undefined
+            )
             if (distance <= nearestDistance) {
                 nearestDistance = distance
                 nearestId = marker.id
@@ -1276,7 +1292,7 @@
                 {/each}
 
                 {#if marker.cancellable && offeredAllianceId === marker.id}
-                    {@const anchor = breakAlliancePillAnchor(marker.walls)}
+                    {@const anchor = breakAlliancePillAnchor(marker.walls, allianceBreakingDetail !== undefined)}
                     <button
                         type="button"
                         title={breakAllianceLabel(marker)}
@@ -1294,6 +1310,9 @@
                         }}
                     >
                         Break alliance?
+                        {#if allianceBreakingDetail}
+                            <span class="block break-alliance-pill-detail">{allianceBreakingDetail}</span>
+                        {/if}
                     </button>
                 {/if}
             </div>
@@ -1614,5 +1633,11 @@
 
     .break-alliance-pill-immediate {
         animation-delay: 0ms;
+    }
+
+    .break-alliance-pill-detail {
+        font-size: calc(var(--cell) * 0.24);
+        font-weight: 600;
+        line-height: 1.2;
     }
 </style>
