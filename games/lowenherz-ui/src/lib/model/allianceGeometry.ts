@@ -38,18 +38,42 @@ export function allianceWalls(
     })
 }
 
+export type HeartPosition = { left: number; top: number }
+
+export const HEART_BOX = scaled(12)
+
+const HEART_OFFSETS_ALONG_WALL = [0.3, 0.7]
+
 /**
- * Where an alliance's heart sits for one of its boundary walls: centred on the wall, offset by half
- * the glyph box. Shared by the hearts themselves and by the burst animator, so a burst cannot start
- * anywhere but exactly where its heart was.
- *
- * scaled(12) is half of the glyph's scaled(24) box. It was a bare 12 until the board grew, which
- * left every heart 6px off centre.
+ * Where an alliance's hearts sit along one of its boundary walls. Shared by the hearts themselves
+ * and by the form/burst animators, so a burst cannot start anywhere but exactly where its heart was.
  */
-export function heartPosition(wall: AllianceWall) {
-    const half = scaled(12)
+export function heartPositions(wall: AllianceWall): HeartPosition[] {
+    const half = HEART_BOX / 2
+    return HEART_OFFSETS_ALONG_WALL.map((offset) => ({
+        left: (wall.edge === 'west' ? wall.col : wall.col + offset) * CELL_SIZE - half,
+        top: (wall.edge === 'west' ? wall.row + offset : wall.row) * CELL_SIZE - half
+    }))
+}
+
+export type HeartSpan = {
+    left: number
+    top: number
+    width: number
+    height: number
+    hearts: HeartPosition[]
+}
+
+/** The box enclosing a wall's hearts, with the hearts placed relative to it. */
+export function heartSpan(wall: AllianceWall): HeartSpan {
+    const positions = heartPositions(wall)
+    const left = Math.min(...positions.map((position) => position.left))
+    const top = Math.min(...positions.map((position) => position.top))
     return {
-        left: (wall.edge === 'west' ? wall.col : wall.col + 0.5) * CELL_SIZE - half,
-        top: (wall.edge === 'west' ? wall.row + 0.5 : wall.row) * CELL_SIZE - half
+        left,
+        top,
+        width: Math.max(...positions.map((position) => position.left)) - left + HEART_BOX,
+        height: Math.max(...positions.map((position) => position.top)) - top + HEART_BOX,
+        hearts: positions.map((position) => ({ left: position.left - left, top: position.top - top }))
     }
 }
