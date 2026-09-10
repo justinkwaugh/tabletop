@@ -1,3 +1,5 @@
+import { Shikoku1889Majors } from './majors.js'
+import { createShikoku1889Opening } from './openingAuction.js'
 import { prepareShikoku1889Privates } from './privateExamples.js'
 import { Shikoku1889TrainDepot } from './trains.js'
 import { Shikoku1889StationCounts } from './stationRules.js'
@@ -19,6 +21,7 @@ export function createShikoku1889CompanyExample(
     players: readonly PlayerState[],
     position: FinanceExamplePosition
 ): CompanyState & MapStateData & TrainState {
+    if (position === 'opening') return createShikoku1889Opening(players)
     const state: CompanyState & MapStateData & TrainState = {
         ...createShikoku1889FinanceExample(players),
         trainInventory: Shikoku1889TrainDepot.createInventory(),
@@ -33,8 +36,7 @@ export function createShikoku1889CompanyExample(
     }
     if (position === 'starting' || position === 'flotation') {
         state.companies.push({
-            id: 'SR',
-            name: 'Sanuki Railway',
+            ...Shikoku1889Majors.SR,
             kind: 'major',
             shareCount: 10,
             started: false,

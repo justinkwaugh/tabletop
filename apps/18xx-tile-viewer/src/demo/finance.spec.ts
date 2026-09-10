@@ -17,6 +17,7 @@ it.each([Top, Shikoku])(
                 storage: GameStorage.Local,
                 hotseat: true,
                 seed: 5,
+                config: { examplePosition: 'trading' },
                 players: ['alex', 'blair', 'casey'].map((id) => ({
                     id,
                     name: id,
@@ -62,6 +63,15 @@ it.each([Top, Shikoku])(
         expect(getCompany(restored, president.companyId).shareCount).toBe(10)
         expect(restored.activePlayerIds[0]).toBe('alex')
         expect(Object.keys(definition.runtime.apiActions)).toEqual([
+            ...(definition === Shikoku
+                ? [
+                      'ReserveBid',
+                      'RaiseAuctionBid',
+                      'BuyAuctionLot',
+                      'PassAuction',
+                      'ResolveAuction'
+                  ]
+                : []),
             'FundTrain',
             'IssueTreasuryShares',
             'SellFundingShares',

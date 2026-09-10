@@ -1,3 +1,4 @@
+import { createStockRound } from './stockRound.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -45,14 +46,7 @@ export class HydratedStartStockRound
             'The operating set is not complete'
         )
         state.operatingSet!.completed = true
-        state.stockRound = {
-            number: state.stockRound.number + 1,
-            completed: false,
-            passedPlayerIds: [],
-            turn: { acted: false, bought: false, soldBeforeBuying: false, companiesSold: [] },
-            sales: [],
-            companyPurchases: []
-        }
+        state.stockRound = createStockRound(state.stockRound.number + 1)
         const playerId = state.turnManager.turnOrder[0]
         assert(playerId, 'Stock round requires a priority player')
         state.activePlayerIds = [playerId]

@@ -89,3 +89,4 @@ export * from './game/engine/explorationHistory.js'
 export * from './game/engine/actionHistory.js'
 
 export * from './util/gameSeeds.js'
+export * from './game/components/auctions/bidCommitment.js'

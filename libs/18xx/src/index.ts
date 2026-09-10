@@ -100,3 +100,7 @@ export * from './privates/betweenCompaniesHandler.js'
 export * from './funding/trainFunding.js'
 export * from './funding/fundingActions.js'
 export * from './funding/fundingTrainHandler.js'
+
+export * from './auctions/waterfallAuction.js'
+export * from './auctions/auctionActions.js'
+export * from './auctions/awardPrivate.js'

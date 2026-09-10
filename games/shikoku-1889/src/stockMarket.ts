@@ -25,6 +25,7 @@ export function createShikoku1889StockMarket(position: FinanceExamplePosition = 
             return row <= 5 && column === 3 ? 'pink' : 'white'
         }
     )
+    if (position === 'opening') return market
     placeStockMarker(market, 'AR', '1:3')
     placeStockMarker(market, 'IR', '0:3')
     if (position === 'flotation') placeStockMarker(market, 'SR', '5:3')

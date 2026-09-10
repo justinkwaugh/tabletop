@@ -19,10 +19,12 @@
 
     let {
         definition,
-        position = 'trading'
+        position = 'trading',
+        playerCount
     }: {
         definition: GameUiDefinition<GameState, HydratedGameState>
         position?: FinanceExamplePosition
+        playerCount?: number
     } = $props()
     const app = untrack(() => createHarnessAppContext(definition))
     setAppContext(app)
@@ -30,7 +32,9 @@
     let error = $state<string>()
     let bridge: BridgedContext | undefined
     let disposed = false
-    const exampleName = untrack(() => `Finances example · 22 · ${position}`)
+    const exampleName = untrack(
+        () => `Finances example · 23 · ${position} · ${playerCount ?? 'default'}`
+    )
 
     onMount(() => {
         void load()
@@ -73,11 +77,11 @@
                     ownerId: owner.id,
                     storage: GameStorage.Local,
                     hotseat: true,
-                    players: (['privates', 'private-events', 'transfers', 'powers'].includes(
-                        position
-                    )
-                        ? ['Alex', 'Blair', 'Casey', 'Drew']
-                        : ['Alex', 'Blair', 'Casey']
+                    players: (playerCount
+                        ? ['Alex', 'Blair', 'Casey', 'Drew', 'Elliot', 'Fran'].slice(0, playerCount)
+                        : ['privates', 'private-events', 'transfers', 'powers'].includes(position)
+                          ? ['Alex', 'Blair', 'Casey', 'Drew']
+                          : ['Alex', 'Blair', 'Casey']
                     ).map((name) => ({
                         id: crypto.randomUUID(),
                         name,

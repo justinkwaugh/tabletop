@@ -1,3 +1,4 @@
+import { Shikoku1889AuctionRules } from './openingAuction.js'
 import { Shikoku1889TrainFundingRules } from './trainFundingRules.js'
 import { Shikoku1889TransferRules } from './transferRules.js'
 import { Shikoku1889PrivatePowerRules } from './privatePowerRules.js'
@@ -32,15 +33,17 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
             designer: 'Yasutaka Ikeda',
             year: '',
             description:
-                'Prepared positions for stock trading, company formation, and private exchanges.',
-            minPlayers: 3,
-            maxPlayers: 4,
+                'Standard opening auction and prepared positions for developing game logic.',
+            minPlayers: 2,
+            maxPlayers: 6,
             defaultPlayerCount: 3,
             version: '0.0.1',
             beta: true
         }
     },
     runtime: createFinanceExampleRuntime({
+        auctionRules: Shikoku1889AuctionRules,
+        defaultPosition: 'opening',
         trainFundingRules: Shikoku1889TrainFundingRules,
         transferRules: Shikoku1889TransferRules,
         privatePowerRules: Shikoku1889PrivatePowerRules,

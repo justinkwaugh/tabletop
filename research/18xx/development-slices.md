@@ -807,14 +807,19 @@ immediate when required funding is impossible; scoring is completed in 19.
 
 ## 16A. Play the complete 1889 opening auction
 
+**Status:** implemented for the 2–6 player Standard Game using the shared
+reserved-bid waterfall procedure.
+
 **Outcome:** initialize the Standard Game for supported player counts, auction all
 privates, and reach the real first SR.
 
 **Shared work:** reusable bid commitments, affordability, award/settlement and
-auction UI where semantics match existing Common mechanisms. The 1889 procedure
-owns reservation bids, ordered lots, restricted-participant auctions, cascaded
-awards, discount/income behavior, and priority-deal continuation. Candidate
-purchase/reserve-bid/raise/pass Actions and explicit auction substates.
+auction UI where semantics match existing Common mechanisms. The shared reserved-bid
+waterfall procedure owns reservation bids, ordered lots, restricted-participant
+auctions, cascaded awards, discount/income behavior, and priority-deal continuation.
+1889 supplies setup, lots, and rule choices. Shared purchase/reserve-bid/raise/pass
+Actions and explicit auction substates. See the
+[implementation design](opening-auction-slice-design.md).
 
 **Acceptance:** multiple outstanding bids reserve the correct funds; a pending
 auction survives reload; multiple automatic awards resume the proper outer

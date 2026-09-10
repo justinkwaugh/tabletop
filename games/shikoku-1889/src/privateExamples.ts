@@ -1,3 +1,4 @@
+import { Shikoku1889Privates } from './privates.js'
 import { assert, type PlayerState } from '@tabletop/common'
 import type { CompanyState } from '@tabletop/18xx'
 export function prepareShikoku1889Privates(
@@ -5,13 +6,16 @@ export function prepareShikoku1889Privates(
     players: readonly PlayerState[]
 ): void {
     assert(players.length === 4, 'Private examples include the four-player Uno-Takamatsu Ferry')
-    for (const [id, name, revenue, playerIndex] of [
-        ['DR', 'Dôgo Railway', 15, 0],
-        ['UTF', 'Uno-Takamatsu Ferry', 30, 3],
-        ['TE', 'Takamatsu Electric Track', 5, 1],
-        ['SRR', 'Sumitomo Besshi Mine Railroad', 15, 2],
-        ['PR', 'Pilgrimage Railway', 20, 2]
+    for (const [id, playerIndex] of [
+        ['DR', 0],
+        ['UTF', 3],
+        ['TE', 1],
+        ['SRR', 2],
+        ['PR', 2]
     ] as const) {
+        const definition = Shikoku1889Privates.find((item) => item.id === id)
+        assert(definition, 'Missing private definition')
+        const { name, revenue } = definition
         state.companies.push({ id, name, kind: 'private', privateRevenue: revenue })
         state.certificates.push({
             id: `${id}:charter`,

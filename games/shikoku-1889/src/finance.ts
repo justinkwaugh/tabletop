@@ -1,3 +1,5 @@
+import { Shikoku1889Majors } from './majors.js'
+import { Shikoku1889Privates } from './privates.js'
 import { assert, type PlayerState } from '@tabletop/common'
 import {
     createOrdinaryShareCertificates,
@@ -22,8 +24,7 @@ export function createShikoku1889FinanceExample(players: readonly PlayerState[])
         bank: { name: 'Bank' },
         companies: [
             {
-                id: 'AR',
-                name: 'Awa Railroad',
+                ...Shikoku1889Majors.AR,
                 kind: 'major',
                 shareCount: 10,
                 parPrice: 65,
@@ -34,8 +35,7 @@ export function createShikoku1889FinanceExample(players: readonly PlayerState[])
                 president: alex
             },
             {
-                id: 'IR',
-                name: 'Iyo Railway',
+                ...Shikoku1889Majors.IR,
                 kind: 'major',
                 shareCount: 10,
                 parPrice: 70,
@@ -45,8 +45,14 @@ export function createShikoku1889FinanceExample(players: readonly PlayerState[])
                 floated: true,
                 president: blair
             },
-            { id: 'MF', name: 'Mitsubishi Ferry', kind: 'private', privateRevenue: 5 },
-            { id: 'ER', name: 'Ehime Railroad', kind: 'private', privateRevenue: 10 }
+            ...Shikoku1889Privates.filter((company) => ['MF', 'ER'].includes(company.id)).map(
+                (company) => ({
+                    id: company.id,
+                    name: company.name,
+                    kind: 'private',
+                    privateRevenue: company.revenue
+                })
+            )
         ],
         certificatePools: [
             { id: 'initial-offering', name: 'IPO', owner: bank },

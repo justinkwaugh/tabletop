@@ -6,6 +6,7 @@
     import '../../map.css'
     let title = $state<'TOP' | '1889'>('TOP')
     let position = $state<FinanceExamplePosition>('trading')
+    let playerCount = $state(3)
 </script>
 
 <svelte:head><title>18xx finances</title></svelte:head>
@@ -14,8 +15,12 @@
     <header>
         <h1>Finances</h1>
         <div class="titles" role="group" aria-label="Game">
-            <button aria-pressed={title === 'TOP'} onclick={() => (title = 'TOP')}
-                >The Old Prince 1871</button
+            <button
+                aria-pressed={title === 'TOP'}
+                onclick={() => {
+                    title = 'TOP'
+                    if (position === 'opening') position = 'trading'
+                }}>The Old Prince 1871</button
             >
             <button aria-pressed={title === '1889'} onclick={() => (title = '1889')}
                 >Shikoku 1889</button
@@ -24,6 +29,7 @@
         <label class="example"
             >Example position
             <select bind:value={position}>
+                {#if title === '1889'}<option value="opening">Opening auction</option>{/if}
                 <option value="trading">Share trading</option>
                 <option value="starting">Starting companies</option>
                 <option value="flotation">Flotation</option>
@@ -43,9 +49,15 @@
                 <option value="bankruptcy">Bankruptcy</option>
             </select>
         </label>
+        {#if position === 'opening'}<label class="example"
+                >Players<select bind:value={playerCount}>
+                    {#each [2, 3, 4, 5, 6] as count}<option value={count}>{count}</option>{/each}
+                </select></label
+            >{/if}
     </header>
-    {#key `${title}:${position}`}<FinanceExampleHost
+    {#key `${title}:${position}:${playerCount}`}<FinanceExampleHost
             {position}
+            playerCount={position === 'opening' ? playerCount : undefined}
             definition={title === 'TOP' ? TopDefinition : ShikokuDefinition}
         />{/key}
 </main>

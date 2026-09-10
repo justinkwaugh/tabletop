@@ -1,17 +1,9 @@
+import { Shikoku1889Privates } from './privates.js'
 import { privateOwner, type TransferRules } from '@tabletop/18xx'
-const PrivateValues: Record<string, number> = {
-    TE: 20,
-    MF: 30,
-    ER: 40,
-    SRR: 50,
-    DR: 60,
-    PR: 80,
-    UTF: 150
-}
 export const Shikoku1889TransferRules: TransferRules = {
     priceRange(state, _companyId, asset) {
         if (asset.kind === 'train') return { minimum: 1 }
-        const value = PrivateValues[asset.privateCompanyId]
+        const value = Shikoku1889Privates.find((item) => item.id === asset.privateCompanyId)?.price
         return ['3', '4'].includes(state.phaseId) &&
             value &&
             privateOwner(state, asset.privateCompanyId)?.kind === 'player'

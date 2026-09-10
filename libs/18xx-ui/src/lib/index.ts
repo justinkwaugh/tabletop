@@ -34,3 +34,6 @@ export { default as TrainBuying } from './examples/TrainBuying.svelte'
 export { default as PrivateCompanies } from './examples/PrivateCompanies.svelte'
 
 export { default as CompanyDecisions } from './examples/CompanyDecisions.svelte'
+export { default as WaterfallAuctionPanel } from './auctions/WaterfallAuctionPanel.svelte'
+
+export type { AuctionSelection } from './auctions/auctionSelection.js'

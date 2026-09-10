@@ -1,4 +1,19 @@
 import {
+    AuctionFields,
+    type WaterfallAuction,
+    type WaterfallAuctionRules
+} from '../auctions/waterfallAuction.js'
+import {
+    ReserveBid,
+    RaiseAuctionBid,
+    BuyAuctionLot,
+    PassAuction,
+    ResolveAuction,
+    HydratedWaterfallAction,
+    isWaterfallAction,
+    WaterfallAuctionHandler
+} from '../auctions/auctionActions.js'
+import {
     FundingFields,
     type TrainFunding,
     type Bankruptcy,
@@ -202,7 +217,7 @@ import {
 } from '../stock/finishStockTurn.js'
 import { StockMarket, validateStockMarket } from '../stock/stockMarket.js'
 import type { StockRules } from '../stock/stockRules.js'
-import { StockRound } from '../stock/stockRound.js'
+import { StockRound, createStockRound } from '../stock/stockRound.js'
 import {
     FinanceFields,
     validateFinances,
@@ -214,6 +229,8 @@ const ExampleFields = Type.Object({
     example: Type.Literal('finances'),
     machineState: Type.Union([
         Type.Literal('StockRound'),
+        Type.Literal('WaterfallAuction'),
+        Type.Literal('AuctionBidding'),
         Type.Literal('StartingOperatingSet'),
         Type.Literal('OperatingSet'),
         Type.Literal('LayingTrack'),
@@ -235,6 +252,7 @@ const ExampleFields = Type.Object({
     stockMarket: StockMarket,
     ...FinanceFields,
     ...FundingFields,
+    ...AuctionFields,
     ...CompanyFields,
     ...MapFields,
     ...TrainFields,
@@ -259,6 +277,7 @@ export class HydratedFinanceExampleState
     extends HydratableGameState<typeof FinanceExampleState, PlayerState>
     implements FinanceExampleState
 {
+    declare openingAuction?: WaterfallAuction
     declare trainFunding?: TrainFunding
     declare bankruptcy?: Bankruptcy
     declare privatePowerWindow?: PrivatePowerWindow
@@ -281,6 +300,8 @@ export class HydratedFinanceExampleState
     declare example: 'finances'
     declare machineState:
         | 'StockRound'
+        | 'WaterfallAuction'
+        | 'AuctionBidding'
         | 'StartingOperatingSet'
         | 'OperatingSet'
         | 'LayingTrack'
@@ -354,6 +375,41 @@ export class HydratedFinanceExampleState
             assert(
                 this.stationStep.completed === (this.machineState === 'StationsComplete'),
                 'Station completion does not match the machine state'
+            )
+        }
+        if (this.openingAuction) {
+            const auction = this.openingAuction
+            assert(
+                auction.completed !==
+                    ['WaterfallAuction', 'AuctionBidding'].includes(this.machineState),
+                'Opening auction progress must match its state'
+            )
+            assert(
+                this.players.some((player) => player.playerId === auction.nextPlayerId),
+                'Unknown outer auction player'
+            )
+            assert(
+                new Set(auction.remainingLotIds).size === auction.remainingLotIds.length,
+                'Duplicate auction lot'
+            )
+            assert(
+                auction.remainingLotIds.every((id) =>
+                    this.companies.some((company) => company.id === id)
+                ),
+                'Unknown auction lot'
+            )
+            assert(
+                new Set(auction.reservations.map((bid) => `${bid.playerId}:${bid.lotId}`)).size ===
+                    auction.reservations.length,
+                'Duplicate bid commitment'
+            )
+            assert(
+                auction.reservations.every(
+                    (bid) =>
+                        auction.remainingLotIds.includes(bid.lotId) &&
+                        this.players.some((player) => player.playerId === bid.playerId)
+                ),
+                'Invalid reservation'
             )
         }
         if (this.trainFunding) {
@@ -506,7 +562,7 @@ export class HydratedFinanceExampleState
 }
 
 const PositionValidator = Compile(FinanceExamplePosition)
-const ExampleColors = [Color.Blue, Color.Red, Color.Green, Color.Yellow]
+const ExampleColors = [Color.Blue, Color.Red, Color.Green, Color.Yellow, Color.Purple, Color.Orange]
 type CreateFinances = (
     players: readonly PlayerState[],
     position: FinanceExamplePosition
@@ -519,6 +575,8 @@ class FinanceExampleInitializer extends BaseGameInitializer<
         private readonly options: Pick<
             FinanceExampleOptions,
             | 'createFinances'
+            | 'auctionRules'
+            | 'defaultPosition'
             | 'createMarket'
             | 'map'
             | 'tileSet'
@@ -532,16 +590,18 @@ class FinanceExampleInitializer extends BaseGameInitializer<
         super()
     }
     initializeGameState(game: Game, state: UninitializedGameState): HydratedFinanceExampleState {
+        const position = game.config?.examplePosition ?? this.options.defaultPosition ?? 'trading'
+        assert(PositionValidator.Check(position), 'Unknown finance example position')
         assert(
-            game.players.length === 3 || game.players.length === 4,
-            'The finance example requires three or four players'
+            position === 'opening'
+                ? this.options.auctionRules && game.players.length >= 2 && game.players.length <= 6
+                : game.players.length === 3 || game.players.length === 4,
+            'Unsupported player count or opening'
         )
         const players = game.players.map((player, index) => ({
             playerId: player.id,
             color: ExampleColors[index]
         }))
-        const position = game.config?.examplePosition ?? 'trading'
-        assert(PositionValidator.Check(position), 'Unknown finance example position')
         const initialized = new HydratedFinanceExampleState(
             {
                 ...state,
@@ -551,19 +611,7 @@ class FinanceExampleInitializer extends BaseGameInitializer<
                 phaseEvents: [],
                 usedPrivatePowerIds: [],
                 machineState: 'StockRound',
-                stockRound: {
-                    number: 2,
-                    completed: false,
-                    passedPlayerIds: [],
-                    turn: {
-                        acted: false,
-                        bought: false,
-                        soldBeforeBuying: false,
-                        companiesSold: []
-                    },
-                    sales: [],
-                    companyPurchases: []
-                },
+                stockRound: createStockRound(position === 'opening' ? 1 : 2),
                 stockMarket: this.options.createMarket(position),
                 turnManager: new HydratedTurnManager({
                     series: [{ type: 'turn', playerId: players[0].playerId, start: 0 }],
@@ -576,6 +624,24 @@ class FinanceExampleInitializer extends BaseGameInitializer<
             this.options.tileSet,
             this.options.trainRules.depot
         )
+        if (position === 'opening') {
+            assert(this.options.auctionRules, 'Opening auction requires its rules')
+            const order = initialized.turnManager.turnOrder
+            const first = initialized.getPublicPrng().randInt(order.length)
+            initialized.turnManager.newFirstPlayer(order[first])
+            initialized.turnManager.series = [{ type: 'turn', playerId: order[0], start: 0 }]
+            initialized.activePlayerIds = [order[0]]
+            initialized.openingAuction = {
+                remainingLotIds: this.options.auctionRules.lots(initialized).map((lot) => lot.id),
+                reservations: [],
+                nextPlayerId: order[0],
+                passedPlayerIds: [],
+                discount: 0,
+                awards: [],
+                completed: false
+            }
+            initialized.machineState = 'WaterfallAuction'
+        }
         applyPrivateEffects(
             initialized,
             this.options.privateRules.phaseEffects(initialized),
@@ -649,6 +715,8 @@ class FinanceExampleInitializer extends BaseGameInitializer<
     }
 }
 export interface FinanceExampleOptions {
+    auctionRules?: WaterfallAuctionRules
+    defaultPosition?: FinanceExamplePosition
     trainFundingRules: TrainFundingRules
     createFinances: CreateFinances
     stockRules: StockRules
@@ -733,6 +801,10 @@ export function createFinanceExampleRuntime(
                 if (isFinishOperatingTurn(action))
                     return new HydratedFinishOperatingTurn(action, options.trainRules)
                 if (isStartStockRound(action)) return new HydratedStartStockRound(action)
+                if (isWaterfallAction(action)) {
+                    assert(options.auctionRules, 'Auction actions require auction rules')
+                    return new HydratedWaterfallAction(action, options.auctionRules)
+                }
                 if (isFundingAction(action))
                     return new HydratedFundingAction(
                         action,
@@ -766,6 +838,9 @@ export function createFinanceExampleRuntime(
         canonicalStateValidator: FinanceExampleValidator,
         playerColors: ExampleColors,
         apiActions: {
+            ...(options.auctionRules
+                ? { ReserveBid, RaiseAuctionBid, BuyAuctionLot, PassAuction, ResolveAuction }
+                : {}),
             FundTrain,
             IssueTreasuryShares,
             SellFundingShares,
@@ -805,6 +880,17 @@ export function createFinanceExampleRuntime(
         },
         stateHandlers: Object.fromEntries(
             Object.entries({
+                ...(options.auctionRules
+                    ? {
+                          WaterfallAuction:
+                              new WaterfallAuctionHandler<HydratedFinanceExampleState>(
+                                  options.auctionRules
+                              ),
+                          AuctionBidding: new WaterfallAuctionHandler<HydratedFinanceExampleState>(
+                              options.auctionRules
+                          )
+                      }
+                    : {}),
                 FundingTrain: new FundingTrainHandler<HydratedFinanceExampleState>(
                     options.trainFundingRules,
                     rules,

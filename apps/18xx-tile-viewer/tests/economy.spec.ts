@@ -91,7 +91,7 @@ test('preserves earlier examples and reuses the current fixture on reload', asyn
     await page.goto('/economy')
     const union = page.getByRole('article', { name: 'Union Bank treasury', exact: true })
     await expect(union).toContainText('Cash 40')
-    const previousId = await page.evaluate(async () => {
+    const previous = await page.evaluate(async () => {
         const db = await new Promise<IDBDatabase>((resolve, reject) => {
             const request = indexedDB.open('tabletop-local')
             request.onsuccess = () => resolve(request.result)
@@ -99,18 +99,19 @@ test('preserves earlier examples and reuses the current fixture on reload', asyn
         })
         const tx = db.transaction('games', 'readwrite')
         const request = tx.objectStore('games').getAll()
-        const previousId = await new Promise<string>((resolve, reject) => {
+        const previous = await new Promise<{ id: string; name: string }>((resolve, reject) => {
             request.onsuccess = () => {
                 const game = request.result.find((game) => game.typeId === 'the-old-prince')
+                const original = { id: game.id, name: game.name }
                 game.name = 'Finances example · 2'
                 tx.objectStore('games').put(game)
-                tx.oncomplete = () => resolve(game.id)
+                tx.oncomplete = () => resolve(original)
             }
             request.onerror = () => reject(request.error)
             tx.onabort = () => reject(tx.error)
         })
         db.close()
-        return previousId
+        return previous
     })
     await page.reload()
     await expect(union).toContainText('Cash 40')
@@ -139,8 +140,8 @@ test('preserves earlier examples and reuses the current fixture on reload', asyn
         })
     const saved = await examples()
     expect(saved).toHaveLength(2)
-    expect(saved).toContainEqual({ id: previousId, name: 'Finances example · 2' })
-    expect(saved.filter((game) => game.name === 'Finances example · 15 · trading')).toHaveLength(1)
+    expect(saved).toContainEqual({ id: previous.id, name: 'Finances example · 2' })
+    expect(saved.filter((game) => game.name === previous.name)).toHaveLength(1)
     await page.reload()
     await expect(union).toContainText('Cash 40')
     expect(await examples()).toEqual(saved)

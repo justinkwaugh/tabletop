@@ -40,7 +40,11 @@ export const Shikoku1889StockRules: StockRules = {
             movement: shares
         }
     },
-    certificateLimit: (state) => (state.players.length === 4 ? 14 : 19),
+    certificateLimit(state) {
+        const limit = [0, 0, 25, 19, 14, 12, 11][state.players.length]
+        assertExists(limit, 'Unsupported 1889 player count')
+        return limit
+    },
     certificateWeight(state, certificate) {
         if (certificate.kind === 'share') {
             if (!getCompany(state, certificate.companyId).started)

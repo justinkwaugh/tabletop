@@ -171,3 +171,20 @@ legal funding sources; the panel shows the company, player, and remaining
 shortfall. It offers no further gameplay actions. Engine Undo restores the funding
 state, including the contribution that triggered bankruptcy. Final scoring is a
 later slice. Prototype save identity is version 22.
+
+### Opening waterfall auction
+
+The shared auction panel shows ordered lots, public standing bids, cash commitments,
+the acting bidder, and awarded privates. Other trading and operating controls are
+hidden until the opening is complete; the financial inspector remains available.
+The Standard Game supports 2–6 players. The opening example offers that player count
+and uses a separate local save for each count (prototype save identity version 23).
+
+Purchases and bids have explicit manual drafts owned by the Game Session. Back
+clears only the draft; Undo clears a draft first, otherwise reversing a committed
+Action and its automatic cascade. Drafts hide during updatingVisibleState and
+History View and clear in beforeNewState. Pass is an immediate explicit Action.
+Components call session methods and never construct Actions. Public reservations,
+restricted bidding, and automatic awards survive reload in canonical state.
+Completion shows the first stock round with the saved priority player. Undo can
+restore the last opening turn, including reversing automatic awards and completion.

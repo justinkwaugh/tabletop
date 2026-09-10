@@ -16,3 +16,14 @@ export const StockRound = Type.Object(
     { additionalProperties: false }
 )
 export type StockRound = Type.Static<typeof StockRound>
+
+export function createStockRound(number: number): StockRound {
+    return {
+        number,
+        completed: false,
+        passedPlayerIds: [],
+        turn: { acted: false, bought: false, soldBeforeBuying: false, companiesSold: [] },
+        sales: [],
+        companyPurchases: []
+    }
+}

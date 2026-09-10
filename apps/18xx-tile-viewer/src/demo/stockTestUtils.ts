@@ -4,7 +4,8 @@ import type { BuyShares, President, FinanceExamplePosition } from '@tabletop/18x
 const alex = { kind: 'player', playerId: 'alex' } as const
 export function example(
     definition: typeof Top,
-    examplePosition: FinanceExamplePosition = 'trading'
+    examplePosition: FinanceExamplePosition = 'trading',
+    playerCount?: number
 ) {
     const game = definition.runtime.initializer.initializeGame(
         {
@@ -16,11 +17,11 @@ export function example(
             hotseat: true,
             seed: 5,
             config: { examplePosition },
-            players: (['privates', 'private-events', 'transfers', 'powers'].includes(
-                examplePosition
-            )
-                ? ['alex', 'blair', 'casey', 'drew']
-                : ['alex', 'blair', 'casey']
+            players: (playerCount
+                ? ['alex', 'blair', 'casey', 'drew', 'elliot', 'fran'].slice(0, playerCount)
+                : ['privates', 'private-events', 'transfers', 'powers'].includes(examplePosition)
+                  ? ['alex', 'blair', 'casey', 'drew']
+                  : ['alex', 'blair', 'casey']
             ).map((id) => ({
                 id,
                 name: id,
