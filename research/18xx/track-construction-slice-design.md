@@ -74,10 +74,10 @@ provides their consent; another owner's consent flow is still deferred.
 
 ## Runtime and prototype
 
-LayTile and FinishTrack are player Actions in LayingTrack. StartConstruction is a
+LayTile and FinishTrack are player Actions in LayingTrack. StartOperatingTurn is a
 system consequence after operating-set initialization and assigns the first
-company's controlling player. This slice finishes at TrackComplete, ready for the
-station step in slice 8; it does not skip missing operating steps or claim complete
+company's controlling player. FinishTrack completes construction and now enters the
+station step added in slice 8; it does not skip missing operating steps or claim complete
 operating rounds. Empty operating orders remain at the operating-set boundary.
 
 The Track construction fixture starts directly in that step, with green available

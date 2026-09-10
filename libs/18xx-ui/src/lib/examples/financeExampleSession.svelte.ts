@@ -1,4 +1,21 @@
 import {
+    StationPlacement,
+    PlaceStation,
+    FinishStations,
+    isPlaceStation,
+    TrackNetwork,
+    RailwayMapState,
+    applyStationPlacement,
+    type StationRules,
+    type StationRequest
+} from '@tabletop/18xx'
+import {
+    chooseStation,
+    chooseStationPosition,
+    backFromStation,
+    type StationSelection
+} from './stationSelection.js'
+import {
     TrackConstruction,
     LayTile,
     FinishTrack,
@@ -68,9 +85,163 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         private readonly stockRules: StockRules,
         private readonly companyRules: CompanyRules,
         readonly mapView: MapViewDefinition,
-        private readonly trackRules: TrackRules
+        private readonly trackRules: TrackRules,
+        private readonly stationRules: StationRules
     ) {
         super(options)
+    }
+    private stationDraft: StationSelection = $state({})
+    stationSelection = $derived.by(() =>
+        !this.updatingVisibleState &&
+        !this.isViewingHistory &&
+        this.financialState.machineState === 'PlacingStation'
+            ? this.stationDraft
+            : {}
+    )
+    stationPlacement = $derived.by(
+        () => new StationPlacement(this.financialState, this.stationRules)
+    )
+    canPlaceStation = $derived(
+        !this.busy &&
+            !this.updatingVisibleState &&
+            !this.isViewingHistory &&
+            this.validActionTypes.includes('FinishStations')
+    )
+    availableStations = $derived.by(() =>
+        this.financialState.stations.filter(
+            (station) =>
+                station.companyId === this.financialState.stationStep?.companyId &&
+                station.status === 'available'
+        )
+    )
+    stationChoices = $derived(
+        this.canPlaceStation && this.stationSelection.stationId
+            ? this.stationPlacement.choices(this.stationSelection.stationId.value)
+            : []
+    )
+    stationLocationIds = $derived([
+        ...new Set(this.stationChoices.map((choice) => choice.position.locationId))
+    ])
+    stationPreview = $derived(
+        this.stationSelection.placement
+            ? this.stationPlacement.evaluate(this.stationSelection.placement.value).details
+            : undefined
+    )
+    stationDisplayState = $derived.by(() => {
+        if (!this.stationPreview) return this.financialState
+        const state = {
+            ...this.financialState,
+            stations: [...this.financialState.stations],
+            stationReservations: [...this.financialState.stationReservations]
+        }
+        applyStationPlacement(state, this.stationPreview)
+        return state
+    })
+    stationActions = $derived(
+        this.actions.slice(0, this.gameState.actionCount).filter(isPlaceStation)
+    )
+    showTrackAccess = $state(true)
+    private inspectedCompanyId: string | undefined = $state()
+    networkCompanies = $derived.by(() =>
+        this.financialState.companies.filter((company) =>
+            this.financialState.stations.some(
+                (station) => station.companyId === company.id && station.status === 'placed'
+            )
+        )
+    )
+    networkCompanyId = $derived.by(
+        () =>
+            this.inspectedCompanyId ??
+            this.financialState.stationStep?.companyId ??
+            this.financialState.trackStep?.companyId ??
+            this.networkCompanies[0]?.id
+    )
+    network = $derived.by(() =>
+        this.networkCompanyId
+            ? new TrackNetwork(
+                  new RailwayMapState(
+                      this.mapView.map,
+                      this.mapView.tileSet,
+                      this.financialState.tileInventory
+                  ),
+                  this.stationDisplayState,
+                  this.networkCompanyId
+              )
+            : undefined
+    )
+    networkRoutes = $derived.by(() =>
+        this.showTrackAccess && !this.updatingVisibleState && !this.trackPreview && this.network
+            ? [
+                  {
+                      id: 'track-access',
+                      color: '#168da8',
+                      segments: this.mapScene.locations.flatMap((entry) =>
+                          entry.face.paths
+                              .filter((path) => this.network?.usesPath(entry.location.id, path.id))
+                              .map((path) => ({ locationId: entry.location.id, pathId: path.id }))
+                      )
+                  }
+              ]
+            : []
+    )
+    blockedCities = $derived.by(() =>
+        this.mapScene.locations.flatMap((entry) =>
+            entry.face.nodes
+                .filter((node) => this.network?.isBlocked(entry.location.id, node.id))
+                .map((node) => ({
+                    locationId: entry.location.id,
+                    nodeId: node.id,
+                    name: entry.location.name
+                }))
+        )
+    )
+    inspectCompanyNetwork(companyId: string) {
+        assert(
+            this.networkCompanies.some((company) => company.id === companyId),
+            'Choose a company with a station'
+        )
+        this.inspectedCompanyId = companyId
+    }
+    selectStation(stationId: string) {
+        assert(
+            this.canPlaceStation &&
+                this.availableStations.some((station) => station.id === stationId),
+            'Choose an available station'
+        )
+        this.stationDraft = chooseStation(stationId)
+    }
+    selectStationPosition(request: StationRequest) {
+        assert(
+            this.canPlaceStation &&
+                this.stationSelection.stationId?.value === request.stationId &&
+                this.stationPlacement.evaluate(request).details,
+            'Choose a legal station position'
+        )
+        this.stationDraft = chooseStationPosition(this.stationDraft, request)
+        this.inspectMap({ kind: 'slot', ...request.position })
+    }
+    backStation() {
+        this.stationDraft = backFromStation(this.stationDraft)
+    }
+    async confirmStation() {
+        const preview = this.stationPreview
+        assert(this.canPlaceStation && preview, 'Choose a legal station position')
+        await this.applyAction(
+            this.createPlayerAction(PlaceStation, {
+                companyId: preview.companyId,
+                stationId: preview.stationId,
+                position: preview.position,
+                expectedCost: preview.cost
+            })
+        )
+    }
+    async finishStations() {
+        const companyId = this.financialState.stationStep?.companyId
+        assert(
+            companyId && this.canPlaceStation && !this.stationSelection.stationId,
+            'Finish or cancel the station selection'
+        )
+        await this.applyAction(this.createPlayerAction(FinishStations, { companyId }))
     }
     constructionActions = $derived(
         this.actions.slice(0, this.gameState.actionCount).filter(isLayTile)
@@ -139,7 +310,9 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     displayedMapTokens = $derived.by(() =>
         this.trackPreview
             ? stationMapTokens(this.trackPreview, this.mapView.stations)
-            : this.mapTokens
+            : this.stationPreview
+              ? stationMapTokens(this.stationDisplayState, this.mapView.stations)
+              : this.mapTokens
     )
     selectTrackLocation(locationId: string) {
         assert(
@@ -524,11 +697,16 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         await this.applyAction(this.createPlayerAction(FinishStockTurn, {}))
     }
     override beforeNewState() {
+        this.stationDraft = {}
         this.trackDraft = {}
         this.cancelSelection()
     }
     override async undo() {
         if (this.busy || this.isViewingHistory) return
+        if (this.stationDraft.stationId) {
+            this.stationDraft = {}
+            return
+        }
         if (this.trackDraft.locationId) {
             this.trackDraft = {}
             return
@@ -554,11 +732,12 @@ export function createFinanceExampleSessionClass(
     rules: StockRules,
     companyRules: CompanyRules,
     mapView: MapViewDefinition,
-    trackRules: TrackRules
+    trackRules: TrackRules,
+    stationRules: StationRules
 ): new (options: SessionOptions) => FinanceExampleSession {
     return class extends FinanceExampleSession {
         constructor(options: SessionOptions) {
-            super(options, rules, companyRules, mapView, trackRules)
+            super(options, rules, companyRules, mapView, trackRules, stationRules)
         }
     }
 }

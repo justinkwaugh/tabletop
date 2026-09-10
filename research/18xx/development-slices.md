@@ -546,7 +546,7 @@ from 4 when available. Physical mode's live acceptance requires its title artwor
 **Status:** implemented for ordinary TOP and 1889 construction. Shared evaluation,
 Actions, track-step state, and map preview/selection cover costs, preservation,
 finite/paired inventory, reservations, Back/Undo and history. The first operating
-company reaches TrackComplete; station placement continues in slice 8. Explicit
+company finishes track and continues into the station placement added in slice 8. Explicit
 private-power decision flows remain in 13–14. See the
 [construction design and evidence](track-construction-slice-design.md).
 
@@ -573,10 +573,14 @@ preview/highlight ownership when it crosses UI layers.
 
 ## 8. Place stations and enforce network access
 
+Implemented for the first operating company's ordinary station step in TOP and
+1889, with automatic 1889 homes before construction. The example stops after
+station placement. See [design and evidence](station-placement-slice-design.md).
+
 **Outcome:** place a station and observe the change in route access and blocking.
 
-**Shared work:** candidate `PlaceToken` Action; station supply, reserved capacity,
-cost and connection legality; graph access queries scoped to a corporation. Add
+**Shared work:** `PlaceStation` Action; station supply, reserved capacity,
+cost and connection legality; graph access queries scoped to a company. Add
 station selection and access/blocking visualization.
 
 **Paired evidence:** 1889 places all newly floated corporations' free homes at OR

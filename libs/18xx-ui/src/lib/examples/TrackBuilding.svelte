@@ -8,7 +8,7 @@
     const preview = $derived(session.trackPreview)
 </script>
 
-{#if turn}
+{#if turn && !session.financialState.stationStep}
     <section aria-label="Track construction">
         <header>
             <strong>{getCompany(session.financialState, turn.companyId).name} · Track</strong>
@@ -32,7 +32,7 @@
                 >
             {/if}
         </header>
-        {#if turn.completed}<p>Track complete. Station placement is the next operating step.</p>
+        {#if turn.completed}<p>Track complete.</p>
         {:else if session.isViewingHistory}<p>History view</p>
         {:else if !selection.locationId}
             <label

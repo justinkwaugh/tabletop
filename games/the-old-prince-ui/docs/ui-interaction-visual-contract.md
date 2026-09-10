@@ -54,4 +54,7 @@ contract. The new Track construction example starts directly in the first
 operating company's track step. Normal stock examples reach that step through
 system Actions. The map shows legal locations and candidate tile artwork before
 confirmation; payment, supply and station changes occur only in LayTile.
-Finish track currently reaches the boundary before station placement.
+Finish track continues into station placement under the shared station-selection,
+preview, access, Back/Undo and history contract. Finish stations currently ends
+the implemented operating steps. The Station placement example supplies connected
+track and available stations.

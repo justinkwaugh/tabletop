@@ -1,4 +1,5 @@
 <script lang="ts">
+    import StationBuilding from './StationBuilding.svelte'
     import TrackBuilding from './TrackBuilding.svelte'
     import MapViewer from '../maps/MapViewer.svelte'
     import TileLibraryViewer from '../tiles/TileLibraryViewer.svelte'
@@ -49,19 +50,63 @@
         >
     </header>
     <TrackBuilding {session} />
+    <StationBuilding {session} />
+    <div class="network" aria-label="Network access">
+        <label
+            ><input type="checkbox" bind:checked={session.showTrackAccess} /> Show reachable track</label
+        >
+        <label
+            >Company <select
+                aria-label="Network company"
+                value={session.networkCompanyId ?? ''}
+                onchange={(event) => session.inspectCompanyNetwork(event.currentTarget.value)}
+            >
+                {#each session.networkCompanies as company}<option value={company.id}
+                        >{company.name}</option
+                    >{/each}
+            </select></label
+        >
+        {#if session.showTrackAccess}<span
+                >Blue: reachable track{session.stationPreview ? ' (preview)' : ''}</span
+            >
+            {#if session.blockedCities.length}<span
+                    >Blocked cities: {session.blockedCities
+                        .map((city) => `${city.locationId} ${city.name ?? ''}`)
+                        .join(', ')}</span
+                >{/if}
+        {/if}
+    </div>
     <MapViewer
         scene={session.displayedMapScene}
-        legalLocationIds={session.trackLocationIds}
-        previewLocationId={session.trackPreview?.locationId}
+        legalLocationIds={session.canPlaceStation
+            ? session.stationLocationIds
+            : session.trackLocationIds}
+        routes={session.networkRoutes}
+        previewLocationId={session.trackPreview?.locationId ??
+            session.stationPreview?.position.locationId}
         selection={session.mapSelection}
         tokens={session.displayedMapTokens}
         reservations={session.trackPreview?.stationReservations ??
-            session.financialState.stationReservations}
+            session.stationDisplayState.stationReservations}
         appearance={session.mapStyle === 'muted' ? MutedTileAppearance : ClassicTileAppearance}
         onselect={(selection) => {
             if (session.canBuildTrack && session.trackLocationIds.includes(selection.locationId))
                 session.selectTrackLocation(selection.locationId)
-            else session.inspectMap(selection)
+            else if (
+                session.canPlaceStation &&
+                session.stationLocationIds.includes(selection.locationId)
+            ) {
+                const choices = session.stationChoices.filter(
+                    (choice) =>
+                        choice.position.locationId === selection.locationId &&
+                        (selection.kind !== 'slot' ||
+                            (choice.position.nodeId === selection.nodeId &&
+                                choice.position.slot === selection.slot)) &&
+                        (selection.kind !== 'node' || choice.position.nodeId === selection.nodeId)
+                )
+                if (choices.length === 1) session.selectStationPosition(choices[0])
+                else session.inspectMap(selection)
+            } else session.inspectMap(selection)
         }}
     />
     <details bind:open={showTiles}>
@@ -87,6 +132,7 @@
             sans-serif;
     }
     header,
+    .network,
     .history {
         display: flex;
         gap: 8px;

@@ -1,7 +1,12 @@
 import { expect, it } from 'vitest'
 import { Definition as Top, TheOldPrinceMap, TheOldPrinceTileSet } from '@tabletop/the-old-prince'
 import { Definition as Shikoku, Shikoku1889Map, Shikoku1889TileSet } from '@tabletop/shikoku-1889'
-import { RailwayMapState } from '@tabletop/18xx'
+import {
+    RailwayMapState,
+    TrackNetwork,
+    cashOwnedBy,
+    type FinanceExampleState
+} from '@tabletop/18xx'
 import {
     createMapDrawing,
     stationMapTokens,
@@ -57,6 +62,17 @@ it('projects TOP flotation, replay and Undo onto live stations and reservations'
     const appearances = Object.fromEntries(
         state.companies.map((company) => [company.id, { label: company.id, color: '#234567' }])
     )
+    const reachesHome = (current: FinanceExampleState, companyId: string) =>
+        new TrackNetwork(
+            new RailwayMapState(TheOldPrinceMap, TheOldPrinceTileSet, current.tileInventory),
+            current,
+            companyId
+        ).reaches('D6', { kind: 'node', nodeId: 'city' })
+    expect(reachesHome(state, 'PEIR')).toBe(true)
+    expect(reachesHome(state, 'A')).toBe(false)
+    expect(reachesHome(result.updatedState, 'A')).toBe(true)
+    expect(reachesHome(result.updatedState, 'PEIR')).toBe(false)
+    expect(cashOwnedBy(result.updatedState, { kind: 'company', companyId: 'A' })).toBe(800)
     const before = stationMapTokens(state, appearances)
     const after = stationMapTokens(result.updatedState, appearances)
     expect(before.find((token) => token.id === 'PEIR:A')).toMatchObject({ locationId: 'D6' })
@@ -79,8 +95,11 @@ it('projects TOP flotation, replay and Undo onto live stations and reservations'
     for (const action of result.processedActions)
         replay = engine.applyProcessedAction({ game, state: replay, action })
     expect(stationMapTokens(replay, appearances)).toEqual(after)
+    expect(reachesHome(replay, 'A')).toBe(true)
     for (const action of [...result.processedActions].reverse())
         replay = engine.undoProcessedAction({ state: replay, action })
     expect(replay).toEqual(state)
     expect(stationMapTokens(replay, appearances)).toEqual(before)
+    expect(reachesHome(replay, 'PEIR')).toBe(true)
+    expect(reachesHome(replay, 'A')).toBe(false)
 })

@@ -148,6 +148,9 @@ The right to act first in the next stock round.
 **Operating Round**:
 A round in which eligible companies perform their operating turns.
 
+**Operating Turn**:
+One company’s turn to perform its operating steps in the order required by the title.
+
 **Operating Set**:
 A scheduled sequence of operating rounds with a count established by the title's rules.
 

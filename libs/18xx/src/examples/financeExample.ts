@@ -1,13 +1,31 @@
+import {
+    StationStep,
+    type StationRules,
+    StationPlacement,
+    applyStationPlacement
+} from '../stations/stationPlacement.js'
+import { PlaceStation, HydratedPlaceStation, isPlaceStation } from '../stations/placeStation.js'
+import {
+    FinishStations,
+    HydratedFinishStations,
+    isFinishStations
+} from '../stations/finishStations.js'
+import {
+    PlaceHomeStations,
+    HydratedPlaceHomeStations,
+    isPlaceHomeStations
+} from '../stations/placeHomeStations.js'
+import { PlacingStationHandler } from '../stations/placingStationHandler.js'
 import { TrackStep, type TrackRules } from '../construction/trackConstruction.js'
 import { LayTile, HydratedLayTile, isLayTile } from '../construction/layTile.js'
 import { FinishTrack, HydratedFinishTrack, isFinishTrack } from '../construction/finishTrack.js'
 import { LayingTrackHandler } from '../construction/layingTrackHandler.js'
 import {
-    StartConstruction,
-    HydratedStartConstruction,
-    isStartConstruction,
-    StartConstructionHandler
-} from '../operating/startConstruction.js'
+    StartOperatingTurn,
+    HydratedStartOperatingTurn,
+    isStartOperatingTurn,
+    StartOperatingTurnHandler
+} from '../operating/startOperatingTurn.js'
 import { controllingOwner } from '../finance/finance.js'
 import { MapFields, RailwayMapState, type MapStateData } from '../map/mapState.js'
 import type { RailwayMap } from '../map/map.js'
@@ -66,11 +84,13 @@ const ExampleFields = Type.Object({
         Type.Literal('StartingOperatingSet'),
         Type.Literal('OperatingSet'),
         Type.Literal('LayingTrack'),
-        Type.Literal('TrackComplete')
+        Type.Literal('PlacingStation'),
+        Type.Literal('StationsComplete')
     ]),
     stockRound: StockRound,
     operatingSet: Type.Optional(OperatingSet),
     trackStep: Type.Optional(TrackStep),
+    stationStep: Type.Optional(StationStep),
     stockMarket: StockMarket,
     ...FinanceFields,
     ...CompanyFields,
@@ -104,8 +124,10 @@ export class HydratedFinanceExampleState
         | 'StartingOperatingSet'
         | 'OperatingSet'
         | 'LayingTrack'
-        | 'TrackComplete'
+        | 'PlacingStation'
+        | 'StationsComplete'
     declare operatingSet?: OperatingSet
+    declare stationStep?: StationStep
     declare trackStep?: TrackStep
     declare stockRound: StockRound
     declare stockMarket: StockMarket
@@ -139,15 +161,25 @@ export class HydratedFinanceExampleState
                 'Unknown operating company'
             )
         }
-        if (this.machineState === 'LayingTrack' || this.machineState === 'TrackComplete') {
+        if (['LayingTrack', 'PlacingStation', 'StationsComplete'].includes(this.machineState)) {
             assert(
                 this.trackStep &&
                     this.operatingSet?.companyOrder.includes(this.trackStep.companyId),
                 'Track step requires an operating company'
             )
             assert(
-                this.trackStep.completed === (this.machineState === 'TrackComplete'),
+                this.trackStep.completed === (this.machineState !== 'LayingTrack'),
                 'Track completion does not match the machine state'
+            )
+        }
+        if (this.machineState === 'PlacingStation' || this.machineState === 'StationsComplete') {
+            assert(
+                this.stationStep?.companyId === this.trackStep?.companyId && this.stationStep,
+                'Station step requires the operating company'
+            )
+            assert(
+                this.stationStep.completed === (this.machineState === 'StationsComplete'),
+                'Station completion does not match the machine state'
             )
         }
         new RailwayMapState(map, tileSet, this.tileInventory).validateStations(this)
@@ -179,7 +211,12 @@ class FinanceExampleInitializer extends BaseGameInitializer<
     constructor(
         private readonly options: Pick<
             FinanceExampleOptions,
-            'createFinances' | 'createMarket' | 'map' | 'tileSet' | 'operatingRules'
+            | 'createFinances'
+            | 'createMarket'
+            | 'map'
+            | 'tileSet'
+            | 'operatingRules'
+            | 'stationRules'
         >
     ) {
         super()
@@ -223,7 +260,7 @@ class FinanceExampleInitializer extends BaseGameInitializer<
             this.options.map,
             this.options.tileSet
         )
-        if (position === 'construction') {
+        if (position === 'construction' || position === 'stations') {
             const companyOrder = this.options.operatingRules.companyOrder(initialized)
             const companyId = companyOrder[0]
             const owner = controllingOwner(initialized, companyId)
@@ -237,6 +274,16 @@ class FinanceExampleInitializer extends BaseGameInitializer<
             }
             initialized.trackStep = { companyId, lays: [], completed: false }
             initialized.machineState = 'LayingTrack'
+            for (const home of new StationPlacement(
+                initialized,
+                this.options.stationRules
+            ).homePlacements())
+                applyStationPlacement(initialized, home)
+            if (position === 'stations') {
+                initialized.trackStep.completed = true
+                initialized.stationStep = { companyId, placedStationIds: [], completed: false }
+                initialized.machineState = 'PlacingStation'
+            }
             initialized.activePlayerIds = [owner.playerId]
             initialized.turnManager.series = [{ type: 'turn', playerId: owner.playerId, start: 0 }]
         }
@@ -251,6 +298,7 @@ export interface FinanceExampleOptions {
     operatingRules: OperatingRules
     map: RailwayMap
     tileSet: TileSet
+    stationRules: StationRules
     trackRules: TrackRules
 }
 export function createFinanceExampleRuntime(
@@ -262,9 +310,14 @@ export function createFinanceExampleRuntime(
         hydrator: {
             hydrateState: (state) => new HydratedFinanceExampleState(state, map, tileSet),
             hydrateAction: (action) => {
+                if (isPlaceStation(action))
+                    return new HydratedPlaceStation(action, options.stationRules)
+                if (isFinishStations(action)) return new HydratedFinishStations(action)
+                if (isPlaceHomeStations(action))
+                    return new HydratedPlaceHomeStations(action, options.stationRules)
                 if (isLayTile(action)) return new HydratedLayTile(action, options.trackRules)
                 if (isFinishTrack(action)) return new HydratedFinishTrack(action)
-                if (isStartConstruction(action)) return new HydratedStartConstruction(action)
+                if (isStartOperatingTurn(action)) return new HydratedStartOperatingTurn(action)
                 if (isCompleteStockRound(action))
                     return new HydratedCompleteStockRound(action, rules.round)
                 if (isStartOperatingSet(action))
@@ -290,14 +343,18 @@ export function createFinanceExampleRuntime(
             StartOperatingSet,
             LayTile,
             FinishTrack,
-            StartConstruction
+            StartOperatingTurn,
+            PlaceStation,
+            FinishStations,
+            PlaceHomeStations
         },
         stateHandlers: {
             StockRound: new StockRoundHandler(rules, 'StartingOperatingSet', companyRules),
             StartingOperatingSet: new StartOperatingSetHandler('OperatingSet'),
-            OperatingSet: new StartConstructionHandler(),
-            LayingTrack: new LayingTrackHandler(options.trackRules, 'TrackComplete'),
-            TrackComplete: new TerminalStateHandler()
+            OperatingSet: new StartOperatingTurnHandler(options.stationRules),
+            LayingTrack: new LayingTrackHandler(options.trackRules, 'PlacingStation'),
+            PlacingStation: new PlacingStationHandler(options.stationRules, 'StationsComplete'),
+            StationsComplete: new TerminalStateHandler()
         }
     }
 }

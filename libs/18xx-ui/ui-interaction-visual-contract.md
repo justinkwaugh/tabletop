@@ -286,7 +286,7 @@ turn finishes, round completion, market movements, and operating-set start.
 Undo across an ordinary turn finish returns control to the previous player. Undo
 after completion reverses the final pass and both system actions together. No new
 UI effects initiate actions. Reload restores the same stage and facts. Fixture
-version 9 preserves previous example versions. Desktop checks cover these flows;
+version 12 preserves previous example versions. Desktop checks cover these flows;
 mobile refinement is deferred because this finance UI will be replaced.
 
 Saved example selection requires successful canonical loading, not just a matching
@@ -354,11 +354,44 @@ Drafts and targets are hidden in History View and while updatingVisibleState.
 beforeNewState clears the draft. Back, Undo and history restoration redraw the
 committed tiles and stations. Fit/focus, pan/zoom and player style do not change
 the draft. Confirmation calls the session's LayTile method; Finish track calls its
-FinishTrack method and leads to TrackComplete. The prototype ends there pending
-the station step. Each committed lay appears in construction history with hex,
+FinishTrack method, which initializes the station step and transitions directly
+to PlacingStation.
+The prototype continues into station placement. Each committed lay appears in construction history with hex,
 tile, rotation and cost.
 
 Desktop checks cover TOP's manual rotation, Back, draft-clearing Undo, two lays,
 second-lay cost, history, reload, and full Undo; and 1889's single auto placement,
 Back skipping it, station-preserving upgrade, Finish track and Undo. Shared
 semantic preview/target rendering is lasting; the control panel remains provisional.
+
+
+### Station placement and track access
+
+The session owns manual station → city-slot selections. An explicit click on a
+hex or city with exactly one legal slot chooses that position; multiple legal
+slots require a slot click or dropdown choice. No station is auto-selected.
+Back removes the position before the station; Undo clears a manual draft before
+undoing a committed action and its cascade. Drafts are hidden during History View
+and updatingVisibleState, and cleared by beforeNewState. Only session methods
+create PlaceStation and FinishStations Actions.
+
+The preview reuses station tokens and reservation overlays, plus the inset amber
+hex outline. Legal station hexes use the existing green target outlines. Selection
+and focus stay above those outlines; slot hit precedence remains unchanged.
+The inspector sees the hypothetical token; treasury, supply and history remain
+committed until Confirm station. Finish stations reaches StationsComplete pending
+later operating steps. Finish track initializes station progress in the same Action; Undo restores
+the unfinished track step and removes that station progress. 1889 homes appear through PlaceHomeStations before the
+first company operates; their placement is individually visible in history.
+
+The Company access selector and Show reachable track checkbox are local inspection
+state. Blue paths reuse MapViewer's semantic segment overlay below stop artwork
+and selection. They identify ordinary reachable track, not a validated train run.
+The blocked-city list names reachable rival-filled cities where traversal stops.
+Station previews recompute access for the inspected company; cancelling, committing,
+Undo and history recompute from their corresponding displayed stations. Access
+paths are hidden during tile previews and visible-state updates. Viewport and
+style changes do not commit gameplay or consume staged choices.
+
+The Station placement example is prepared and uses fixture version 12. Desktop
+controls are provisional; no mobile layout work is part of this slice.

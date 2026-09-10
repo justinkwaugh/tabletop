@@ -203,8 +203,17 @@ it.each(Titles)(
             companyId: state.trackStep!.companyId
         }
         const result = engine.executeCanonicalAction({ game, state, action })
-        expect(result.updatedState.machineState).toBe('TrackComplete')
+        expect(result.updatedState.machineState).toBe('PlacingStation')
+        expect(result.processedActions.map((action) => action.type)).toEqual(['FinishTrack'])
+        expect(result.updatedState.stationStep).toEqual({
+            companyId: state.trackStep!.companyId,
+            placedStationIds: [],
+            completed: false
+        })
         expect(result.updatedState.tileInventory).toEqual(state.tileInventory)
+        expect(
+            engine.applyProcessedAction({ game, state, action: result.processedActions[0] })
+        ).toEqual(result.updatedState)
         expect(
             engine.undoProcessedAction({
                 state: result.updatedState,

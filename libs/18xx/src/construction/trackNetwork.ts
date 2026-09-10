@@ -4,6 +4,7 @@ import type { TileEndpoint, TileFace } from '../tiles/tile.js'
 import { rotateTileEdge, rotateTileFace, sameTileEndpoint } from '../tiles/topology.js'
 
 export class TrackNetwork {
+    private readonly blocked = new Map<string, Set<string>>()
     private readonly reached = new Map<string, TileEndpoint[]>()
     private readonly paths = new Map<string, Set<string>>()
     constructor(
@@ -57,8 +58,12 @@ export class TrackNetwork {
                     node.stationSlots > 0 &&
                     stations.length >= node.stationSlots &&
                     !stations.some((station) => station.companyId === companyId)
-                )
+                ) {
+                    const blocked = this.blocked.get(locationId) ?? new Set<string>()
+                    blocked.add(node.id)
+                    this.blocked.set(locationId, blocked)
                     continue
+                }
             }
             const paths = this.paths.get(locationId) ?? new Set<string>()
             for (const path of face.paths) {
@@ -92,6 +97,9 @@ export class TrackNetwork {
             )
                 pending.push({ locationId: neighbor.id, endpoint: other })
         }
+    }
+    isBlocked(locationId: string, nodeId: string): boolean {
+        return this.blocked.get(locationId)?.has(nodeId) ?? false
     }
     reaches(locationId: string, endpoint: TileEndpoint): boolean {
         return this.reached.get(locationId)?.some((end) => sameTileEndpoint(end, endpoint)) ?? false

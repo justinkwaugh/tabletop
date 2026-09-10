@@ -1,7 +1,9 @@
+import { Shikoku1889StationCounts } from './stationRules.js'
 import { Shikoku1889TileSet } from './tiles.js'
 import { assert, type PlayerState } from '@tabletop/common'
 import {
     createOrdinaryShareCertificates,
+    applyStationPlacement,
     getCompany,
     type CompanyState,
     type MapStateData,
@@ -80,10 +82,32 @@ export function createShikoku1889CompanyExample(
                 state.stationReservations.push({ ...reservation, locationId: location.id })
         }
     }
-    if (position === 'construction') {
+    for (const company of state.companies) {
+        const count = Shikoku1889StationCounts[company.id] ?? 0
+        for (let index = 1; index < count; index++)
+            state.stations.push({
+                id: `${company.id}:station:${index}`,
+                companyId: company.id,
+                status: 'available'
+            })
+    }
+    if (position === 'construction' || position === 'stations') {
         state.phaseId = '3'
         state.tileInventory = Shikoku1889TileSet.createInventory([
             { locationId: 'E2', definitionId: '18xx:5', rotation: 0 }
+        ])
+    }
+    if (position === 'stations') {
+        applyStationPlacement(state, {
+            companyId: 'AR',
+            stationId: 'AR:station:1',
+            position: { locationId: 'G4', nodeId: 'city', slot: 0 },
+            cost: 0
+        })
+        state.tileInventory = Shikoku1889TileSet.createInventory([
+            { locationId: 'E2', definitionId: '18xx:5', rotation: 4 },
+            { locationId: 'F3', definitionId: '18xx:57', rotation: 2 },
+            { locationId: 'G4', definitionId: '18xx:6', rotation: 0 }
         ])
     }
     return state

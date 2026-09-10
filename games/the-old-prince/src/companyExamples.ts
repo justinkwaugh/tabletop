@@ -103,6 +103,21 @@ export function createTheOldPrinceCompanyExample(
             }
         }
     }
-    if (position === 'construction') state.phaseId = '4H'
+    for (const company of state.companies) {
+        const count = company.kind === 'major' && company.id !== 'PEIR' ? 4 : 0
+        for (let index = 1; index < count; index++)
+            state.stations.push({
+                id: `${company.id}:station:${index}`,
+                companyId: company.id,
+                status: 'available'
+            })
+    }
+    if (position === 'construction' || position === 'stations') state.phaseId = '4H'
+    if (position === 'stations') {
+        state.tileInventory = TheOldPrinceTileSet.createInventory([
+            { locationId: 'K17', definitionId: '18xx:8', rotation: 4 },
+            { locationId: 'K19', definitionId: '18xx:6', rotation: 1 }
+        ])
+    }
     return state
 }

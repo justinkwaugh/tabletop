@@ -28,6 +28,7 @@
                 <option value="starting">Starting companies</option>
                 <option value="flotation">Flotation</option>
                 <option value="construction">Track construction</option>
+                <option value="stations">Station placement</option>
             </select>
         </label>
     </header>

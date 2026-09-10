@@ -30,7 +30,7 @@
     let error = $state<string>()
     let bridge: BridgedContext | undefined
     let disposed = false
-    const exampleName = untrack(() => `Finances example · 9 · ${position}`)
+    const exampleName = untrack(() => `Finances example · 12 · ${position}`)
 
     onMount(() => {
         void load()
