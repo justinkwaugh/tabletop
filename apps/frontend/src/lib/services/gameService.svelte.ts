@@ -127,44 +127,36 @@ export class GameService implements GameServiceInterface {
         return this.api.hasActiveGames()
     }
 
-    // Only allow a single async load at a time
     async loadGames() {
-        await this.libraryService.whenReady()
-        await this.loadLocalGames()
-
         if (!this.loadingPromise) {
             this.loading = true
-            this.loadingPromise = this.api
-                .getMyGames('current')
-                .then((games) => {
-                    const ids = games.map((game) => game.id)
-                    games.forEach((game) => {
-                        this.gamesById.set(game.id, game)
-                    })
-                    this.gamesById.forEach((game, id) => {
-                        if (!ids.includes(id)) {
-                            this.gamesById.delete(id)
-                        }
-                    })
-                })
-                .finally(() => {
-                    this.loading = false
-                    this.loadingPromise = null
-                })
+            this.loadingPromise = this.loadCurrentGames().finally(() => {
+                this.loading = false
+                this.loadingPromise = null
+            })
         }
         return this.loadingPromise
     }
 
-    async loadLocalGames() {
+    private async loadCurrentGames() {
+        await this.libraryService.whenReady()
         const sessionUser = this.authorizationService.getSessionUser()
-        if (!sessionUser) {
-            console.log('No session user, clearing hotseat games')
-            this.localGamesById.clear()
-            return
-        }
+        const [games, localGames] = await Promise.all([
+            this.api.getMyGames('current'),
+            sessionUser ? this.localGameStore.findGamesForUser(sessionUser) : []
+        ])
 
-        const games = await this.localGameStore.findGamesForUser(sessionUser)
+        const ids = new Set(games.map((game) => game.id))
         games.forEach((game) => {
+            this.gamesById.set(game.id, game)
+        })
+        this.gamesById.forEach((game, id) => {
+            if (!ids.has(id)) {
+                this.gamesById.delete(id)
+            }
+        })
+        this.localGamesById.clear()
+        localGames.forEach((game) => {
             this.localGamesById.set(game.id, game)
         })
     }

@@ -127,3 +127,127 @@ for (const width of [360, 390, 768, 1280]) {
         expect(tournamentsPadding).toEqual(dashboardPadding)
     })
 }
+
+test('loads local and hosted games together before showing the initial sorted list', async ({
+    page
+}) => {
+    const requested = Promise.withResolvers<void>()
+    const released = Promise.withResolvers<void>()
+    await page.route('**/api/v1/games/mine*', async (route) => {
+        requested.resolve()
+        await released.promise
+        await route.fulfill({ json: { payload: { games: [game(0)] } } })
+    })
+    await page.goto('/about')
+    await page.evaluate(
+        async (localGame) => {
+            const request = indexedDB.open('tabletop-local', 1)
+            request.onupgradeneeded = () => {
+                const db = request.result
+                const games = db.createObjectStore('games', { keyPath: 'id' })
+                games.createIndex('by-owner', 'ownerId', { multiEntry: true })
+                games.createIndex('by-status', 'status')
+                const actions = db.createObjectStore('actions', { keyPath: 'gameId' })
+                actions.createIndex('by-game', 'gameId')
+                db.createObjectStore('states', { keyPath: 'gameId' })
+            }
+            const db = await new Promise<IDBDatabase>((resolve, reject) => {
+                request.onsuccess = () => resolve(request.result)
+                request.onerror = () => reject(request.error)
+            })
+            try {
+                const tx = db.transaction('games', 'readwrite')
+                tx.objectStore('games').put(localGame)
+                await new Promise<void>((resolve, reject) => {
+                    tx.oncomplete = () => resolve()
+                    tx.onerror = () => reject(tx.error)
+                })
+            } finally {
+                db.close()
+            }
+        },
+        { ...game(99), hotseat: true, activePlayerIds: [] }
+    )
+    await page.getByRole('button', { name: 'My Games', exact: true }).click()
+    await requested.promise
+    try {
+        await expect(page.locator('.dashboard-game-list li')).toHaveCount(0)
+    } finally {
+        released.resolve()
+    }
+    await expect(page.locator('.dashboard-game-list h1')).toHaveText(['Table 00', 'Table 99'])
+})
+
+test('library navigation waits for the catalog without showing loading text', async ({ page }) => {
+    const requested = Promise.withResolvers<void>()
+    const released = Promise.withResolvers<void>()
+    await page.route('**/api/v1/catalog', async (route) => {
+        requested.resolve()
+        await released.promise
+        await route.fallback()
+    })
+    await page.goto('/dashboard')
+    await expect(page.locator('.dashboard-game-list li')).toHaveCount(12)
+    const navigation = page.getByRole('link', { name: 'Go to the library' }).click()
+    await requested.promise
+    try {
+        await expect(page.getByRole('heading', { name: 'Your games.', exact: true })).toBeVisible()
+        await expect(page.getByText('Setting out the games…')).toHaveCount(0)
+    } finally {
+        released.resolve()
+        await navigation
+    }
+    await expect(page.locator('.game-shelf li')).toHaveCount(12)
+})
+
+test('dashboard card positions stay fixed when cover images arrive', async ({ page }) => {
+    const released = Promise.withResolvers<void>()
+    await page.setViewportSize({ width: 390, height: 900 })
+    await page.route('**/favicon-32x32.png', async (route) => {
+        await released.promise
+        await route.fulfill({
+            contentType: 'image/svg+xml',
+            body: '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="blue"/></svg>'
+        })
+    })
+    await page.route('**/api/v1/games/mine*', (route) =>
+        route.fulfill({
+            json: {
+                payload: {
+                    games: Array.from({ length: 4 }, (_, index) => ({
+                        ...game(index),
+                        name: `A long game name that needs several lines ${index}`
+                    }))
+                }
+            }
+        })
+    )
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' })
+    const cards = page.locator('.dashboard-game-list > li')
+    await expect(cards).toHaveCount(4)
+    await page.evaluate(() => document.fonts.ready)
+    const positions = () =>
+        cards.evaluateAll((elements) =>
+            elements.map((element) => ({
+                top: element.getBoundingClientRect().top,
+                height: element.getBoundingClientRect().height
+            }))
+        )
+    const before = await positions()
+    released.resolve()
+    await expect
+        .poll(() =>
+            cards
+                .locator('img')
+                .evaluateAll((images) =>
+                    images.every(
+                        (image) =>
+                            image instanceof HTMLImageElement &&
+                            image.complete &&
+                            image.naturalWidth > 0
+                    )
+                )
+        )
+        .toBe(true)
+    expect(await positions()).toEqual(before)
+})

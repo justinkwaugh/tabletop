@@ -12,7 +12,7 @@
 </script>
 
 <script lang="ts">
-    import { Button, Hr, P } from 'flowbite-svelte'
+    import { Button, P } from 'flowbite-svelte'
     import GoogleSignIn from '$lib/components/GoogleSignIn.svelte'
     import DiscordSignIn from '$lib/components/DiscordSignIn.svelte'
     import UsernameLoginForm from '$lib/components/UsernameLoginForm.svelte'
@@ -35,14 +35,18 @@
         onsignup={() => (view = 'signup')}
     />
 {:else}
-    <div class="flex flex-col gap-3">
+    <div class="mx-auto flex w-full max-w-[400px] flex-col gap-3">
         {#if isGoogleLoginEnabled}
             <GoogleSignIn mode="login" />
         {/if}
         {#if isDiscordLoginEnabled}
             <DiscordSignIn mode="login" />
         {/if}
-        <Hr class="my-4" innerDivClass="dark:bg-gray-800 dark:text-gray-300">or</Hr>
+        <div class="my-2 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+            <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
+            <span>or</span>
+            <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
+        </div>
         <Button color="blue" class="w-full" onclick={() => (showUsernameLogin = true)} pill>
             Use Username / Password
         </Button>

@@ -12,7 +12,7 @@
             <GameCard
                 {game}
                 {ondelete}
-                class="mx-0 mb-0 w-full min-w-0 max-w-none p-4 border border-gray-700/60 dark:border-gray-700/60 rounded-xl bg-gray-800/50 dark:bg-gray-800/50"
+                class="mx-0 mb-0 w-full min-w-0 max-w-none px-4 pt-4 pb-2 border border-gray-700/60 dark:border-gray-700/60 rounded-xl bg-gray-800/50 dark:bg-gray-800/50"
             />
         </li>
     {/each}
