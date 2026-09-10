@@ -2,6 +2,7 @@ import path from 'node:path'
 import {
     GameService,
     LibraryService,
+    CatalogService,
     CloudTasksTaskService,
     EmailService,
     FirestoreTokenStore,
@@ -54,6 +55,7 @@ declare module 'fastify' {
         chatService: ChatService
         cacheService: RedisCacheService
         libraryService: LibraryService
+        catalogService: CatalogService
         tournamentService: TournamentService
     }
 }
@@ -162,6 +164,7 @@ export default fp(async (fastify: FastifyInstance) => {
     fastify.decorate('secretsService', secretsService)
     fastify.decorate('gameService', gameService)
     fastify.decorate('libraryService', libraryService)
+    fastify.decorate('catalogService', new CatalogService(path.join(STATIC_ROOT, 'games')))
     fastify.decorate('pubSubService', pubSubService)
     fastify.decorate('notificationService', notificationService)
     fastify.decorate('discordService', discordService)

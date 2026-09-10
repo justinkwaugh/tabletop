@@ -5,6 +5,7 @@ import { NotificationService } from '$lib/services/notificationService.svelte'
 import { GameService } from '$lib/services/gameService.svelte'
 import { LibraryService } from '$lib/services/libraryService.svelte'
 import { ManifestService } from '$lib/services/manifestService'
+import { CatalogService } from '$lib/services/catalogService.svelte'
 import { FRONTEND_VERSION } from '$lib/version'
 import { AblyConnection } from '$lib/network/ablyConnection.svelte'
 import { ChatService } from '$lib/services/chatService.svelte'
@@ -32,7 +33,8 @@ const notificationService = new NotificationService(
 )
 const chatService = new ChatService(authorizationService, notificationService, api)
 
-const appContext: AppContext = {
+const appContext: AppContext & { catalogService: CatalogService } = {
+    catalogService: new CatalogService(api),
     manifestService,
     libraryService,
     authorizationService,
@@ -43,6 +45,6 @@ const appContext: AppContext = {
     api
 }
 
-export function getAppContext(): AppContext {
+export function getAppContext(): typeof appContext {
     return appContext
 }

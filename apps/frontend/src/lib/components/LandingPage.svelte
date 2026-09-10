@@ -1,16 +1,17 @@
 <script lang="ts">
     import { getAppContext } from '$lib/stores/appContext.svelte'
-    import { availableLibraryTitles } from '$lib/utils/libraryTitles'
+    import { availableCatalogEntries } from '$lib/utils/libraryTitles'
     import { getLoginModal } from '$lib/stores/loginModal'
     import { ArrowRightOutline, ArrowDownOutline, UsersOutline } from 'flowbite-svelte-icons'
 
     let { signedIn = false, scrollTop = $bindable(0) }: { signedIn?: boolean; scrollTop?: number } =
         $props()
-    const { libraryService, authorizationService } = getAppContext()
+    const { catalogService, authorizationService } = getAppContext()
     const openLoginModal = getLoginModal()
+    void catalogService.whenReady()
     let titles = $derived(
-        availableLibraryTitles(
-            libraryService.titlesById,
+        availableCatalogEntries(
+            catalogService.entries,
             signedIn ? authorizationService.getSessionUser() : undefined
         )
     )
@@ -19,7 +20,7 @@
     let shelfTitles = $derived(signedIn || showAllGames ? titles : titles.slice(0, shelfSize))
     const featuredIds = ['bus', 'indonesia', 'sol']
     let featuredTitles = $derived(
-        featuredIds.flatMap((id) => titles.filter((title) => title.info.id === id))
+        featuredIds.flatMap((id) => titles.filter((title) => title.id === id))
     )
 </script>
 
@@ -44,9 +45,9 @@
 
             <div class="showcase" aria-hidden="true">
                 <div class="table-ring"></div>
-                {#each featuredTitles as title (title.info.id)}
-                    <div class="featured-cover" data-game={title.info.id}>
-                        <img src={title.info.thumbnailUrl} alt="" fetchpriority="high" />
+                {#each featuredTitles as title (title.id)}
+                    <div class="featured-cover" data-game={title.id}>
+                        <img src={title.thumbnailUrl} alt="" fetchpriority="high" />
                     </div>
                 {/each}
             </div>
@@ -57,7 +58,7 @@
         id="games"
         class="games"
         aria-labelledby="games-heading"
-        aria-busy={libraryService.loading}
+        aria-busy={catalogService.loading}
     >
         <div class="collection-content">
             <div class="section-heading collection-header">
@@ -70,7 +71,7 @@
                         {signedIn ? 'What would you like to play?' : 'Find your next game.'}
                     </svelte:element>
                 </div>
-                {#if !libraryService.loading && titles.length > 0}
+                {#if !catalogService.loading && titles.length > 0}
                     <span class="library-note" aria-live="polite"
                         >{titles.length}
                         {titles.length === 1 ? 'game' : 'games'}
@@ -86,7 +87,7 @@
                     element.scrollTop = scrollTop
                 }}
             >
-                {#if libraryService.loading}
+                {#if catalogService.loading}
                     <p role="status" class="library-status">Setting out the games…</p>
                 {:else if titles.length === 0}
                     <p role="status" class="library-status">
@@ -94,33 +95,33 @@
                     </p>
                 {:else}
                     <ul id="game-shelf" class="game-shelf">
-                        {#each shelfTitles as title (title.info.id)}
+                        {#each shelfTitles as title (title.id)}
                             <li>
                                 {#snippet cover()}
                                     <div class="cover-stage">
                                         <img
-                                            src={title.info.thumbnailUrl}
+                                            src={title.thumbnailUrl}
                                             alt=""
                                             loading="lazy"
-                                            data-game-cover={title.info.id}
+                                            data-game-cover={title.id}
                                         />
                                         <span class="play-arrow"
                                             ><ArrowRightOutline class="h-5 w-5" /></span
                                         >
                                     </div>
-                                    <h3>{title.info.metadata.name}</h3>
+                                    <h3>{title.metadata.name}</h3>
                                     <p class="player-count">
                                         <UsersOutline class="h-3.5 w-3.5" />
-                                        {title.info.metadata
-                                            .minPlayers}{#if title.info.metadata.maxPlayers !== title.info.metadata.minPlayers}–{title
-                                                .info.metadata.maxPlayers}{/if} players
+                                        {title.metadata
+                                            .minPlayers}{#if title.metadata.maxPlayers !== title.metadata.minPlayers}–{title
+                                                .metadata.maxPlayers}{/if} players
                                     </p>
                                 {/snippet}
                                 {#if signedIn}
                                     <a
                                         class="game"
-                                        href={`/library/${title.info.id}`}
-                                        aria-label={`View ${title.info.metadata.name}`}
+                                        href={`/library/${title.id}`}
+                                        aria-label={`View ${title.metadata.name}`}
                                     >
                                         {@render cover()}
                                     </a>
@@ -128,7 +129,7 @@
                                     <button
                                         class="game"
                                         onclick={openLoginModal}
-                                        aria-label={`Sign in to play ${title.info.metadata.name}`}
+                                        aria-label={`Sign in to play ${title.metadata.name}`}
                                     >
                                         {@render cover()}
                                     </button>

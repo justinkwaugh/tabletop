@@ -17,6 +17,7 @@ export * from './game/components/prng.js'
 export * as Visibility from './game/visibility/index.js'
 
 export * from './game/definition/gameDefinition.js'
+export * from './game/definition/gameCatalogEntry.js'
 export * from './game/model/gameConfig.js'
 export * from './game/definition/gameConfigurator.js'
 export * from './game/definition/gameHydrator.js'

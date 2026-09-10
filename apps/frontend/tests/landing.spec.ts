@@ -5,6 +5,22 @@ test.beforeEach(async ({ page }) => {
     await mockLibrary(page)
 })
 
+test('public browsing and authentication forms do not request any game JavaScript', async ({
+    page
+}) => {
+    const gameScripts: string[] = []
+    page.on('request', (request) => {
+        if (/\/games\/.*\.js(?:\?|$)/.test(request.url())) gameScripts.push(request.url())
+    })
+    await page.goto('/')
+    await expect(page.locator('.game-shelf > li')).toHaveCount(10)
+    await page.getByRole('button', { name: 'See all 12 games' }).click()
+    await expect(page.locator('.game-shelf > li')).toHaveCount(12)
+    await page.getByRole('button', { name: 'Take a seat' }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+    expect(gameScripts).toEqual([])
+})
+
 test('visitors can browse an expanding public collection before signing in', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByRole('heading', { name: 'Care to play a game?' })).toBeVisible()
@@ -59,8 +75,8 @@ test('signup and sign-in switch within the same modal on a narrow screen', async
 })
 
 test('an unavailable collection leaves the visitor a usable entrance', async ({ page }) => {
-    await page.route('**/api/v1/manifest', (route) =>
-        route.fulfill({ json: { payload: { frontend: { version: '18.0.0' }, games: [] } } })
+    await page.route('**/api/v1/catalog', (route) =>
+        route.fulfill({ status: 503, json: { status: 'error', message: 'Catalog unavailable' } })
     )
     await page.goto('/')
     await expect(page.getByRole('status')).toContainText('The game shelf couldn’t load')

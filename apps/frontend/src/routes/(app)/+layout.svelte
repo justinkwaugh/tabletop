@@ -51,6 +51,10 @@
     let { children } = $props()
 
     let sessionUser = $derived(authorizationService.getSessionUser())
+    $effect(() => {
+        if (sessionUser) void libraryService.whenReady()
+    })
+
     let showCreateGameModel = $state(false)
     let showCancelPrompt = $state(false)
     let showLoginModal = $state(false)
@@ -82,7 +86,8 @@
             !libraryMove ||
             !document.startViewTransition ||
             window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        ) return
+        )
+            return
 
         const titleId = navigation.to?.params?.titleId ?? navigation.from?.params?.titleId
         selectTransitionCover(titleId)

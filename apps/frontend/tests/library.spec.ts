@@ -445,6 +445,7 @@ test('creating a game refreshes the game page without sending you away', async (
     await page.getByRole('button', { name: 'Start a game', exact: true }).click()
     const dialog = page.getByRole('dialog')
     await dialog.getByPlaceholder('choose a name for your game').fill('A new table')
+    await dialog.getByText('Public', { exact: true }).click()
     await dialog.getByRole('button', { name: 'Create Game', exact: true }).click()
     await expect(dialog).toHaveCount(0)
     await expect(

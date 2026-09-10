@@ -64,6 +64,41 @@ rollback-backend <revision>  Shift traffic to a backend revision
 
 ## Configuration
 
+### Public game catalog
+
+Every UI bundle build writes `bundle/catalog.json` from the built `UiDefinition.info`, retaining
+only the title ID, metadata, and resolved cover URL. The build evaluates the UI entry in Node;
+the entry must keep browser-dependent UI initialization inside its lazy `runtime()` loader.
+Configuration and runtime code are not included in the JSON. The existing bundle upload and
+local staging commands include this file automatically.
+
+The public `/api/v1/catalog` endpoint reads the files selected by the current manifest at
+`$STATIC_ROOT/games/<packageId>/ui/<uiVersion>/catalog.json`. Successful entries and complete
+catalogs are cached in backend memory. Manifest changes select a new catalog, reusing unchanged
+entries; this path makes no Firestore reads. Complete HTTP responses may be cached for 60 seconds.
+Missing or invalid JSON affects only that title, is retried on the next request, and prevents
+HTTP caching of the partial result.
+
+For the initial rollout:
+
+1. Publish a new UI version containing `catalog.json` for every currently listed title, using
+   the existing UI-only publication flow. Retain the selected logic versions.
+2. Deploy the backend with `/api/v1/catalog` and verify that its response includes every
+   manifest title with working cover URLs.
+3. Deploy the Site Frontend. Anonymous pages use the catalog; game UI imports start after sign-in.
+
+Older Site Frontends continue to use the unchanged UI entry points. The shared LibraryService
+methods and UI host bridge remain compatible with existing UI Artifacts. Rolling a title back
+to a UI version without `catalog.json` removes it from discovery until a catalog-bearing version
+is selected. Do not roll out the new frontend before the initial catalog publication is complete.
+
+Subsequent game publications update discovery through the normal manifest publication and cache
+invalidation flow; no Site Frontend deployment is needed. Browser caching can delay visibility by
+up to 60 seconds. For local artifacts already staged before this change, generate just the missing
+JSON with `node config/config-rollup/write-game-catalog.mjs <staged-ui-version-directory>`.
+
+### Deployment settings
+
 Create `tools/deploy/deploy.config.json` (see `tools/deploy/deploy.config.example.json`).
 
 ```json

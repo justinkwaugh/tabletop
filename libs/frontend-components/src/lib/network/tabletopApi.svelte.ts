@@ -3,6 +3,7 @@ import * as Value from 'typebox/value'
 import { Type, type Static, type TSchema } from 'typebox'
 import {
     type GameCreationOptions,
+    type GameCatalogEntry,
     assertExists,
     Bookmark,
     CanonicalActionReplay,
@@ -101,6 +102,11 @@ export class TabletopApi {
             .url(this.baseUrl)
             .middlewares([versionCheckerMiddleware, gameUiVersionChecker])
             .options({ credentials: 'include' })
+    }
+
+    async getGameCatalog(): Promise<GameCatalogEntry[]> {
+        const response = await this.wretch.get('/catalog').json<{ payload: GameCatalogEntry[] }>()
+        return response.payload
     }
 
     async manifest<T = unknown>(): Promise<T> {
