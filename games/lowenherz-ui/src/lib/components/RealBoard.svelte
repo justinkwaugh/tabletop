@@ -852,6 +852,14 @@
             return
         }
 
+        // The ghost wall is the affordance, so a click anywhere places it - not only a click on
+        // the thin edge itself. The per-edge buttons below stay for keyboard users.
+        if (gameSession.canPlaceWall) {
+            const edge = nearestWallEdge
+            if (edge) await gameSession.placeWallBetween(edge.col1, edge.row1, edge.col2, edge.row2)
+            return
+        }
+
         if (gameSession.canPlaceSetupKnight) {
             // Ignored too, for consistency within one flow. The ring marks the squares that
             // will work, and Undo takes the castle back off the board.
@@ -1393,10 +1401,10 @@
             </div>
         {/each}
 
-        <!-- Clickable lines for legal wall placements - one click directly on the
-             boundary between two squares places the wall there. Invisible - the
-             ghost wall above is the only visual cue - but every legal edge stays
-             independently clickable, not just whichever one is currently ghosted. -->
+        <!-- Focusable lines for legal wall placements, one per edge, so walls can be placed
+             from the keyboard. Invisible: the ghost wall above is the visual cue, and with the
+             mouse a click anywhere on the board places whichever edge is ghosted (see
+             onSquareClick). -->
         {#each legalWallEdges as edge (edge.col1 + ',' + edge.row1 + '-' + edge.col2 + ',' + edge.row2)}
             {@const sameRow = edge.row1 === edge.row2}
             <button

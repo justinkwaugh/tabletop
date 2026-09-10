@@ -72,3 +72,7 @@ The status column reserves two lines (77 px: the prompt line, the column gap, an
 2. Sweep the pointer across the border without resting and verify nothing appears.
 3. Tab to the hearts and verify the pill appears at once and can be reached with the next Tab; tabbing away hides it.
 4. As the other participant or a spectator, verify the hearts are inert and the status message still reads correctly after the break.
+
+# Placing walls
+
+While the player may place a wall, the legal edge nearest the pointer is ghosted, and a click anywhere on the board places that ghosted edge - the ghost is the affordance, so the click target is not narrower than it. One invisible focusable line per legal edge remains for keyboard placement. `Undo` reverses a misplaced wall as before.
