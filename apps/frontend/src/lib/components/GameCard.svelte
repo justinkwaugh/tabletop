@@ -238,7 +238,11 @@
     <div class="flex flex-col">
         <div class="flex flex-row">
             <div class="shrink-0">
-                <img class="h-[80px]" alt="cover thumbnail" src={title?.info.thumbnailUrl ?? ''} />
+                <img
+                    class="h-[80px] w-[80px] object-contain"
+                    alt="cover thumbnail"
+                    src={title?.info.thumbnailUrl ?? ''}
+                />
             </div>
             <div class="pl-4 pr-2 py-0 w-full">
                 <div class="flex flex-col justify-between h-full">

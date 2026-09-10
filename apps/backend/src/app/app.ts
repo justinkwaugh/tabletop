@@ -85,6 +85,10 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             void rep.code(errorStatusCode(error))
         }
 
+        if (rep.statusCode >= 500) {
+            req.log.error({ err: error }, 'Request failed')
+        }
+
         if (!rep.sent) {
             const anyError = error as any
             const outError = {
