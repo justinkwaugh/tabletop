@@ -103,6 +103,70 @@ test('loads multiplayer history without runtime errors and reuses loaded pages w
     expect(errors).toEqual([])
 })
 
+for (const tab of ['Current', 'History']) {
+    test(`${tab} cards stack independently on desktop and in order on mobile`, async ({ page }) => {
+        await page.setViewportSize({ width: 1280, height: 900 })
+        await page.route('**/api/v1/games/history*', (route) =>
+            route.fulfill({
+                json: {
+                    payload: {
+                        games: Array.from({ length: 4 }, (_, index) =>
+                            game(index, GameStatus.Finished)
+                        )
+                    }
+                }
+            })
+        )
+        await page.goto('/dashboard')
+        await page.getByRole('tab', { name: tab }).click()
+        const cards = page.locator('.panel:visible .dashboard-game-list > li')
+        await expect(cards).toHaveCount(tab === 'Current' ? 12 : 4)
+        const positions = () =>
+            cards.evaluateAll((elements) =>
+                elements.map((element) => {
+                    const { x, y, bottom, height } = element.getBoundingClientRect()
+                    return { x, y, bottom, height }
+                })
+            )
+        await page.evaluate(() => document.fonts.ready)
+        const before = await positions()
+        await cards.first().getByRole('heading', { name: 'Table 00' }).click()
+        await expect
+            .poll(async () => (await positions())[0].height)
+            .toBeGreaterThan(before[0].height + 50)
+        await expect
+            .poll(async () => {
+                const boxes = await positions()
+                return boxes[2].y - boxes[0].bottom
+            })
+            .toBeGreaterThanOrEqual(16)
+        await expect
+            .poll(async () => {
+                const boxes = await positions()
+                return boxes[2].y - boxes[0].bottom
+            })
+            .toBeLessThan(17)
+        const expanded = await positions()
+        expect(expanded[1]).toEqual(before[1])
+        expect(expanded[3]).toEqual(before[3])
+        expect(expanded[2].x).toBe(expanded[0].x)
+        expect(expanded[3].x).toBe(expanded[1].x)
+        await page.screenshot({ path: `/tmp/dashboard-columns-${tab}.png` })
+
+        await page.setViewportSize({ width: 390, height: 900 })
+        await expect
+            .poll(async () => {
+                const boxes = await positions()
+                return boxes.every(
+                    (box, index) =>
+                        box.x === boxes[0].x &&
+                        (index === 0 || Math.abs(box.y - boxes[index - 1].bottom - 16) < 1)
+                )
+            })
+            .toBe(true)
+    })
+}
+
 for (const width of [360, 390, 768, 1280]) {
     test(`keeps controls fixed and shares tournaments padding at ${width}px`, async ({ page }) => {
         await page.setViewportSize({ width, height: 800 })
