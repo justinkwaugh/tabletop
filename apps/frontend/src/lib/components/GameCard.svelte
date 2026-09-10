@@ -3,6 +3,7 @@
     import { Game, GameStatus, PlayerStatus, GameResult } from '@tabletop/common'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
+    import { hasPendingGameInvitation } from '$lib/utils/gameInvitation'
     import { goto } from '$app/navigation'
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
@@ -16,7 +17,8 @@
         onstart,
         onjoin,
         ondelete,
-        expanded = false
+        expanded = false,
+        class: className = ''
     }: {
         game: Game
         ondecline?: (game: Game) => void
@@ -24,6 +26,7 @@
         onstart?: (game: Game) => void
         ondelete?: (game: Game) => void
         expanded?: boolean | 'always'
+        class?: string
     } = $props()
 
     let { libraryService, authorizationService, gameService } = getAppContext()
@@ -51,7 +54,7 @@
             return false
         }
 
-        if (isMine && myPlayer?.status === PlayerStatus.Reserved) {
+        if (hasPendingGameInvitation(game, sessionUser?.id)) {
             return true
         }
 
@@ -63,14 +66,7 @@
         )
     })
 
-    let canDecline = $derived(
-        !game.tournament &&
-            (game.status === GameStatus.WaitingForPlayers ||
-                game.status === GameStatus.WaitingToStart) &&
-            !isOwnedByMe &&
-            isMine &&
-            myPlayer?.status === PlayerStatus.Reserved
-    )
+    let canDecline = $derived(hasPendingGameInvitation(game, sessionUser?.id))
 
     let canLeave = $derived(
         !game.tournament &&
@@ -236,7 +232,7 @@
 
 <Card
     onclick={toggleExpand}
-    class="min-w-[310px] mx-2 mb-1 bg-[#0d56ad] dark:border-gray-800 border-4 rounded-md overflow-hidden shadow-none"
+    class={`min-w-[310px] mx-2 mb-1 bg-[#0d56ad] dark:border-gray-800 border-4 rounded-md overflow-hidden shadow-none ${className}`}
     size="sm"
 >
     <div class="flex flex-col">

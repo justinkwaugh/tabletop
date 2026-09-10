@@ -4,6 +4,14 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @font-face {
+    font-family: 'Inter';
+    src: url('/fonts/inter/InterVariable.woff2') format('woff2');
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+}
+
+@font-face {
     font-family: 'Source Sans 3';
     src: url('/fonts/source-sans-3/SourceSans3-Regular.woff2') format('woff2');
     font-style: normal;
@@ -20,6 +28,7 @@
 }
 
 @theme {
+    --color-highlight-border: #6496df80;
     --font-tournament: 'Source Sans 3', sans-serif;
     --color-primary-50: #fff5f2;
     --color-primary-100: #fff1ee;
@@ -54,8 +63,100 @@
 @source "./**/*.{html,js,svelte,ts}";
 
 @layer base {
+    ::view-transition-group(*) {
+        z-index: 1;
+        animation-duration: 450ms;
+        animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    ::view-transition-group(root),
+    ::view-transition-group(game-collection) {
+        z-index: 0;
+    }
+
+    html:has(dialog:modal) {
+        overflow: hidden;
+    }
+
+    .dark input.auth-input:autofill {
+        /* Browser autofill colors override background-color. */
+        box-shadow:
+            inset 0 0 0 1000px var(--color-gray-700),
+            var(--tw-ring-shadow, 0 0 #0000);
+        -webkit-text-fill-color: var(--color-white);
+        caret-color: var(--color-white);
+    }
+
     /* disable chrome cancel button */
     input[type='search']::-webkit-search-cancel-button {
         display: none;
+    }
+}
+
+.collection-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-top: 32px;
+    padding-inline: 48px;
+}
+
+@media (max-width: 700px) {
+    .collection-page {
+        padding-top: 24px;
+        padding-inline: 24px;
+    }
+}
+
+@media (max-width: 360px) {
+    .collection-page {
+        padding-inline: 16px;
+    }
+}
+
+.collection-header {
+    margin-bottom: 16px;
+}
+
+.collection-heading {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    line-height: 1.2;
+}
+
+.collection-tabs {
+    display: flex;
+    gap: 20px;
+}
+
+.collection-tab {
+    position: relative;
+    margin-bottom: -1px;
+    white-space: nowrap;
+    border-bottom-width: 2px;
+    border-bottom-style: solid;
+    padding: 4px 2px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    transition:
+        color 150ms,
+        background-color 150ms,
+        border-color 150ms;
+}
+
+.collection-tab:focus-visible {
+    border-radius: 4px 4px 0 0;
+    outline: 2px solid var(--color-blue-400);
+    outline-offset: 2px;
+}
+
+@media (min-width: 640px) {
+    .collection-heading {
+        font-size: 36px;
+    }
+    .collection-tabs {
+        gap: 28px;
     }
 }

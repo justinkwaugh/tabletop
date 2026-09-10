@@ -16,6 +16,7 @@
 
     let mounted = $state(false)
     let initialized = $state(false)
+    let buttonElement: HTMLDivElement | undefined = $state()
     async function setupGoogleSignin() {
         if (initialized) {
             return
@@ -38,11 +39,9 @@
             callback: handleCredentialResponse
         })
 
-        const buttonElement = document.getElementById('google-sign-in-button')
         if (buttonElement) {
             const measuredWidth = Math.floor(buttonElement.getBoundingClientRect().width)
-            const targetWidth =
-                mode === 'login' ? (measuredWidth > 0 ? measuredWidth : 334) : 100
+            const targetWidth = mode === 'login' ? (measuredWidth > 0 ? measuredWidth : 334) : 100
             buttonElement.innerHTML = ''
             google.accounts.id.renderButton(
                 buttonElement,
@@ -77,7 +76,7 @@
 </script>
 
 <div class={mode === 'login' ? 'google-signin-wrapper login' : 'google-signin-wrapper'}>
-    <div id="google-sign-in-button"><div><div></div></div></div>
+    <div bind:this={buttonElement} class="google-sign-in-button"><div><div></div></div></div>
     <script
         src="https://accounts.google.com/gsi/client"
         onload={onGoogleLibraryLoaded}
@@ -87,16 +86,16 @@
 </div>
 
 <style>
-    #google-sign-in-button {
+    .google-sign-in-button {
         height: 44px;
         width: auto;
     }
 
-    #google-sign-in-button > div > div:first-child {
+    .google-sign-in-button > div > div:first-child {
         display: none;
     }
 
-    .google-signin-wrapper.login #google-sign-in-button {
+    .google-signin-wrapper.login .google-sign-in-button {
         width: 100%;
     }
 </style>

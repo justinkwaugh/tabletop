@@ -27,6 +27,28 @@
                     "order": "ASCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "games",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "userIds",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "finishedAt",
+                    "order": "DESCENDING"
+                },
+                {
+                    "fieldPath": "__name__",
+                    "order": "DESCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": [

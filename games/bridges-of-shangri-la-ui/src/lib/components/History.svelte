@@ -65,6 +65,7 @@
                     class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
                 ></div>
                 <TimelineItem
+                    defaultDivClass="hidden"
                     title=""
                     class="mb-5 text-left"
                     date={timeAgo.format(gameSession.game.finishedAt)}
@@ -90,6 +91,7 @@
                         class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
                     ></div>
                     <TimelineItem
+                        defaultDivClass="hidden"
                         title=""
                         class="mb-5 text-left"
                         date={action.createdAt ? timeAgo.format(action.createdAt) : 'sometime'}
@@ -107,6 +109,7 @@
                 class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
             ></div>
             <TimelineItem
+                defaultDivClass="hidden"
                 title=""
                 class="mb-5 text-left"
                 date={timeAgo.format(gameSession.game.createdAt)}

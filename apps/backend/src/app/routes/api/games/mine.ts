@@ -1,9 +1,16 @@
 import { FastifyInstance } from 'fastify'
+import * as Type from 'typebox'
+
+const Query = Type.Object(
+    { scope: Type.Optional(Type.Literal('current')) },
+    { additionalProperties: false }
+)
 
 export default async function (fastify: FastifyInstance) {
-    fastify.get(
+    fastify.get<{ Querystring: Type.Static<typeof Query> }>(
         `/mine`,
         {
+            schema: { querystring: Query },
             onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyRoleUser], {
                 relation: 'and'
             })
@@ -11,6 +18,15 @@ export default async function (fastify: FastifyInstance) {
         async function (request) {
             if (!request.user) {
                 throw Error('No user found for create request')
+            }
+
+            if (request.query.scope === 'current') {
+                return {
+                    status: 'ok',
+                    payload: {
+                        games: await fastify.gameService.getActiveGamesForUser(request.user)
+                    }
+                }
             }
 
             const results = await Promise.all([
