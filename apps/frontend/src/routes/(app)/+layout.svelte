@@ -51,10 +51,6 @@
     let { children } = $props()
 
     let sessionUser = $derived(authorizationService.getSessionUser())
-    $effect(() => {
-        if (sessionUser) void libraryService.whenReady()
-    })
-
     let showCreateGameModel = $state(false)
     let showCancelPrompt = $state(false)
     let showLoginModal = $state(false)

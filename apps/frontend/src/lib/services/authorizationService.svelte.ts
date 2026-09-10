@@ -41,7 +41,10 @@ export class AuthorizationService {
     showDebug: boolean = $derived(this.canUseDeveloperTools && this.debugViewEnabled)
     actAsAdmin: boolean = $derived(this.isAdmin && this.adminCapabilitiesEnabled)
 
-    constructor(private api: TabletopApi) {}
+    constructor(
+        private api: TabletopApi,
+        private readonly onSessionUserSet: () => void
+    ) {}
 
     public async initialize(): Promise<void> {
         if (this.initialized) {
@@ -99,6 +102,7 @@ export class AuthorizationService {
 
     public setSessionUser(user: User) {
         this.sessionUser = user
+        this.onSessionUserSet()
     }
 
     public clearSessionUser() {

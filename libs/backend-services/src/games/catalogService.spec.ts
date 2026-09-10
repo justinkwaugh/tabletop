@@ -9,11 +9,13 @@ import { CatalogService } from './catalogService.js'
 describe('publication catalog', () => {
     let root: string
     let service: CatalogService
-    const publication = {
+    const publication: SiteManifest['games'][number] = {
         gameId: 'example',
         packageId: 'example-package',
         logicVersion: '1.0.0',
-        uiVersion: '1.0.0'
+        uiVersion: '1.0.0',
+        priorLogicVersions: [],
+        priorUiVersions: []
     }
     const manifest: SiteManifest = { ...SiteManifest, games: [publication] }
     const entry: GameCatalogEntry = {
@@ -105,8 +107,42 @@ describe('publication catalog', () => {
         }
     )
 
+    it.each([
+        ['missing metadata', { metadata: undefined }],
+        ['null metadata', { metadata: null }],
+        ['missing name', { metadata: { ...entry.metadata, name: undefined } }],
+        ['non-string name', { metadata: { ...entry.metadata, name: 123 } }],
+        ['non-numeric player count', { metadata: { ...entry.metadata, minPlayers: 'two' } }],
+        ['non-boolean beta', { metadata: { ...entry.metadata, beta: 'false' } }],
+        ['missing cover', { thumbnailUrl: undefined }],
+        ['empty cover', { thumbnailUrl: '' }]
+    ])('isolates and retries a catalog with %s', async (_label, invalidFields) => {
+        const broken = { ...publication, gameId: 'broken', packageId: 'broken-package' }
+        await publish(publication)
+        await publish(broken, JSON.stringify({ ...entry, id: broken.gameId, ...invalidFields }))
+        const partial = { ...manifest, games: [publication, broken] }
+        expect(await service.getCatalog(partial)).toEqual([entry])
+        await rm(path.join(root, publication.packageId), { recursive: true })
+        const repaired = { ...entry, id: broken.gameId }
+        await publish(broken, repaired)
+        expect(await service.getCatalog(partial)).toEqual([entry, repaired])
+    })
+
+    it('checks identity when a manifest assigns a cached artifact to a different title', async () => {
+        await publish(publication)
+        expect(await service.getCatalog(manifest)).toEqual([entry])
+        expect(
+            await service.getCatalog({
+                ...manifest,
+                games: [{ ...publication, gameId: 'wrong-title' }]
+            })
+        ).toEqual([])
+    })
+
     it('does not list an artifact under the wrong game identity', async () => {
         await publish(publication, { ...entry, id: 'wrong' })
         expect(await service.getCatalog(manifest)).toEqual([])
+        await publish(publication)
+        expect(await service.getCatalog(manifest)).toEqual([entry])
     })
 })

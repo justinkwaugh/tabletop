@@ -76,7 +76,8 @@ The public `/api/v1/catalog` endpoint reads the files selected by the current ma
 `$STATIC_ROOT/games/<packageId>/ui/<uiVersion>/catalog.json`. Successful entries and complete
 catalogs are cached in backend memory. Manifest changes select a new catalog, reusing unchanged
 entries; this path makes no Firestore reads. Complete HTTP responses may be cached for 60 seconds.
-Missing or invalid JSON affects only that title, is retried on the next request, and prevents
+Entries are checked against the shared catalog schema and expected game ID before caching.
+Missing or invalid entries affect only that title, are retried on the next request, and prevent
 HTTP caching of the partial result.
 
 For the initial rollout:

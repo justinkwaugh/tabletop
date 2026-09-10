@@ -1,7 +1,8 @@
 import path from 'node:path'
 import { readFile } from 'node:fs/promises'
-import type { GameCatalogEntry } from '@tabletop/common'
+import { GameCatalogEntry } from '@tabletop/common'
 import type { SiteManifest } from '@tabletop/games-config'
+import * as Value from 'typebox/value'
 
 type Publication = SiteManifest['games'][number]
 
@@ -13,9 +14,7 @@ export class CatalogService {
     constructor(private readonly gamesRoot: string) {}
 
     async getCatalog(manifest: SiteManifest): Promise<GameCatalogEntry[]> {
-        const key = JSON.stringify(
-            manifest.games.map((game) => [game.gameId, this.catalogPath(game)])
-        )
+        const key = JSON.stringify(manifest.games.map((game) => this.entryKey(game)))
         if (this.catalog?.key === key) return this.catalog.entries
         const entries = this.loadCatalog(manifest)
         this.catalog = { key, entries }
@@ -27,20 +26,12 @@ export class CatalogService {
     }
 
     private async loadCatalog(manifest: SiteManifest): Promise<GameCatalogEntry[]> {
-        const currentPaths = new Set(manifest.games.map((game) => this.catalogPath(game)))
+        const currentKeys = new Set(manifest.games.map((game) => this.entryKey(game)))
         for (const key of this.entries.keys()) {
-            if (!currentPaths.has(key)) this.entries.delete(key)
+            if (!currentKeys.has(key)) this.entries.delete(key)
         }
 
-        const results = await Promise.allSettled(
-            manifest.games.map(async (game) => {
-                const entry = await this.getEntry(game)
-                if (entry.id !== game.gameId) {
-                    throw new Error(`Catalog identity mismatch for ${game.packageId}`)
-                }
-                return entry
-            })
-        )
+        const results = await Promise.allSettled(manifest.games.map((game) => this.getEntry(game)))
         return results.flatMap((result, index) => {
             if (result.status === 'fulfilled') return [result.value]
             console.warn(`Catalog unavailable for ${manifest.games[index].gameId}`, result.reason)
@@ -49,20 +40,31 @@ export class CatalogService {
     }
 
     private getEntry(game: Publication): Promise<GameCatalogEntry> {
-        const catalogPath = this.catalogPath(game)
-        let entry = this.entries.get(catalogPath)
+        const key = this.entryKey(game)
+        let entry = this.entries.get(key)
         if (!entry) {
-            entry = this.readEntry(catalogPath).catch((error: unknown) => {
-                this.entries.delete(catalogPath)
+            entry = this.readEntry(this.catalogPath(game), game.gameId).catch((error: unknown) => {
+                this.entries.delete(key)
                 throw error
             })
-            this.entries.set(catalogPath, entry)
+            this.entries.set(key, entry)
         }
         return entry
     }
 
-    private async readEntry(catalogPath: string): Promise<GameCatalogEntry> {
-        return JSON.parse(await readFile(catalogPath, 'utf8'))
+    private async readEntry(catalogPath: string, gameId: string): Promise<GameCatalogEntry> {
+        const entry: unknown = JSON.parse(await readFile(catalogPath, 'utf8'))
+        if (!Value.Check(GameCatalogEntry, entry)) {
+            throw new Error(`Invalid catalog entry for ${gameId}`)
+        }
+        if (entry.id !== gameId) {
+            throw new Error(`Catalog identity mismatch for ${gameId}`)
+        }
+        return entry
+    }
+
+    private entryKey(game: Publication): string {
+        return JSON.stringify([game.gameId, this.catalogPath(game)])
     }
 
     private catalogPath(game: Publication): string {

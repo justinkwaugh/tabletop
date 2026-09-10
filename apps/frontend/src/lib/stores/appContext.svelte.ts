@@ -15,7 +15,9 @@ console.log('Initialized API with frontend version:', FRONTEND_VERSION)
 const manifestService = new ManifestService(api)
 api.setGameVersionProvider(manifestService)
 const libraryService = new LibraryService(manifestService)
-const authorizationService = new AuthorizationService(api)
+const authorizationService = new AuthorizationService(api, () => {
+    void libraryService.whenReady()
+})
 
 const visibilityService = new VisibilityService()
 let realtimeConnection
