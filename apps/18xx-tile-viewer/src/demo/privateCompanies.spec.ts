@@ -209,7 +209,7 @@ it('1889 exchanges during another stock turn without changing passes, purchases 
         state,
         action: action(state, 'FinishStockTurn')
     }).updatedState
-    expect(passed.activePlayerIds).toEqual(['blair', 'alex'])
+    expect(passed.activePlayerIds).toEqual(['blair', 'alex', 'casey'])
     expect(engine.getValidActionTypesForPlayer(game, passed, 'alex')).toEqual(['ExchangePrivate'])
     expect(() =>
         engine.executeCanonicalAction({
@@ -225,7 +225,7 @@ it('1889 exchanges during another stock turn without changing passes, purchases 
     }).updatedState
     expect(result.stockRound).toEqual(passed.stockRound)
     expect(result.turnManager).toEqual(passed.turnManager)
-    expect(result.activePlayerIds).toEqual(['blair'])
+    expect(result.activePlayerIds).toEqual(['blair', 'casey'])
 })
 it('1889 Dôgo respects ownership limits and requires an IPO share, but can exchange before Iyo starts', () => {
     const { state } = example(Shikoku, 'privates')

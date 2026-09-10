@@ -1,3 +1,5 @@
+import { Shikoku1889TransferRules } from './transferRules.js'
+import { Shikoku1889PrivatePowerRules } from './privatePowerRules.js'
 import { Shikoku1889PrivateRules } from './privateRules.js'
 import { Shikoku1889PhaseRules } from './phaseRules.js'
 import { Shikoku1889EarningsRules } from './earningsRules.js'
@@ -38,6 +40,8 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
         }
     },
     runtime: createFinanceExampleRuntime({
+        transferRules: Shikoku1889TransferRules,
+        privatePowerRules: Shikoku1889PrivatePowerRules,
         createFinances: createShikoku1889CompanyExample,
         stockRules: Shikoku1889StockRules,
         createMarket: createShikoku1889StockMarket,

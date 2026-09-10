@@ -68,7 +68,7 @@ export function createShikoku1889CompanyExample(
             delete certificate.poolId
         }
     }
-    if (position === 'privates' || position === 'private-events')
+    if (['privates', 'private-events', 'transfers', 'powers'].includes(position))
         prepareShikoku1889Privates(state, players)
     for (const location of Shikoku1889Map.definition.locations) {
         for (const reservation of location.reservations ?? []) {
@@ -176,6 +176,31 @@ export function createShikoku1889CompanyExample(
         )
         assert(treasury, 'Phase example requires a treasury')
         treasury.amount = 1400
+    }
+    if (position === 'transfers' || position === 'powers') {
+        const ehime = state.certificates.find((item) => item.companyId === 'ER')
+        assert(ehime && !ehime.retired, 'The example requires Ehime')
+        ehime.owner = { kind: 'player', playerId: players[0].playerId }
+        if (position === 'powers') {
+            const ferry = state.certificates.find((item) => item.companyId === 'MF')
+            assert(ferry && !ferry.retired, 'The example requires Mitsubishi Ferry')
+            ferry.owner = { kind: 'player', playerId: players[1].playerId }
+        }
+        state.phaseId = '3'
+        for (const companyId of ['IR', 'AR']) {
+            const train = Shikoku1889TrainDepot.nextTrain(state.trainInventory, '2')
+            assert(train, 'Transfer example requires owned trains')
+            Shikoku1889TrainDepot.purchase(state.trainInventory, train.id, train.definitionId, {
+                kind: 'company',
+                companyId
+            })
+        }
+        const ranks = Shikoku1889TrainDepot.definition.supply.map((entry) => entry.definitionId)
+        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
+            train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf('3')
+                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
+                : train
+        )
     }
     return state
 }

@@ -1,3 +1,4 @@
+import type { MapStateData } from '../map/mapState.js'
 import { PrivateEffect } from '../privates/privateRules.js'
 import type { StockState } from '../stock/stockState.js'
 import * as Type from 'typebox'
@@ -46,7 +47,7 @@ export const PhaseFields = {
     phaseChange: Type.Optional(PhaseChange)
 }
 export type PhaseState = Type.Static<Type.TObject<typeof PhaseFields>> & { phaseId: string }
-export type PhaseChangeState = StockState & TrainState & PhaseState
+export type PhaseChangeState = StockState & TrainState & PhaseState & MapStateData
 export interface PhaseRules {
     rustTiming(state: TrainPurchaseState, train: Train): 'immediate' | 'after-operation' | undefined
     discardOrder(state: PhaseChangeState, companyId: string): string[]

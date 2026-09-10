@@ -1,3 +1,4 @@
+import type { MapStateData } from '../map/mapState.js'
 import { PrivateEffect, type PrivateRules } from '../privates/privateRules.js'
 import { applyPrivateEffects } from '../privates/privateLifecycle.js'
 import type { StockRules } from '../stock/stockRules.js'
@@ -68,7 +69,7 @@ export class HydratedDistributeEarnings
         this.#privateRules = privateRules
         this.#stockRules = stockRules
     }
-    apply(state: HydratedGameState & DistributionState & StockState): void {
+    apply(state: HydratedGameState & DistributionState & StockState & MapStateData): void {
         const distribution = new EarningsDistribution(state, this.#rules)
         assert(
             this.source === ActionSource.User &&

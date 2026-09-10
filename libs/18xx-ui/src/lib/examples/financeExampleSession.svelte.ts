@@ -1,4 +1,31 @@
 import {
+    isLayPrivateTile,
+    isRespondToTrackConsent,
+    ContinueOperatingRound,
+    purchaseChoices,
+    evaluatePurchaseOffer,
+    OfferPurchase,
+    RespondToPurchaseOffer,
+    RequestTrackConsent,
+    RespondToTrackConsent,
+    LayPrivateTile,
+    DeclinePrivateTile,
+    BuyPrivateTrain,
+    privateTrackConstruction,
+    privateTrainPurchase,
+    pendingCompanyDecision,
+    evaluatePrivateTrack,
+    type TransferRules,
+    type PrivatePowerRules,
+    type PurchaseOfferRequest,
+    type TrackLayDetails,
+    type TrainPurchaseDetails
+} from '@tabletop/18xx'
+type CompanyDecisionDraft =
+    | { kind: 'purchase'; request: PurchaseOfferRequest }
+    | { kind: 'tile'; privateCompanyId: string; playerId: string; details: TrackLayDetails }
+    | { kind: 'train'; privateCompanyId: string; details: TrainPurchaseDetails }
+import {
     ExchangePrivate,
     nextCompanyToFloat,
     evaluatePrivateExchange,
@@ -118,13 +145,243 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         private readonly trainRules: TrainRules,
         private readonly routeRules: RouteRules,
         private readonly earningsRules: EarningsRules,
-        private readonly privateRules: PrivateRules
+        private readonly privateRules: PrivateRules,
+        private readonly transferRules: TransferRules,
+        private readonly privatePowerRules: PrivatePowerRules
     ) {
         super(options)
     }
     protected override getActivePlayers() {
         return this.gameState.activePlayerIds.flatMap((id) =>
             this.game.players.filter((player) => player.id === id)
+        )
+    }
+    private companyDraft: CompanyDecisionDraft | undefined = $state()
+    companyDecisionSelection = $derived(
+        !this.updatingVisibleState && !this.isViewingHistory ? this.companyDraft : undefined
+    )
+    canResolveCompanyDecision = $derived(
+        !this.busy && !this.updatingVisibleState && !this.isViewingHistory
+    )
+    purchaseOptions = $derived.by(() =>
+        this.canResolveCompanyDecision &&
+        this.myPlayer &&
+        this.validActionTypes.includes('OfferPurchase')
+            ? purchaseChoices(
+                  this.financialState,
+                  this.myPlayer.id,
+                  this.transferRules,
+                  this.trainRules
+              )
+            : []
+    )
+    companyDecisionPlayers = $derived.by(() =>
+        !this.canResolveCompanyDecision
+            ? []
+            : this.game.hotseat && this.game.storage === GameStorage.Local
+              ? this.financialState.activePlayerIds
+              : this.myPlayer
+                ? [this.myPlayer.id]
+                : []
+    )
+    privateTileOptions = $derived.by(() => {
+        const state = this.financialState
+        if (state.purchaseOffer || state.trackConsent) return []
+        return this.companyDecisionPlayers.flatMap((playerId) =>
+            state.companies
+                .filter(
+                    (company) =>
+                        company.kind === 'private' &&
+                        !company.closed &&
+                        !state.usedPrivatePowerIds.includes(company.id)
+                )
+                .flatMap((company) => {
+                    const terms = this.privatePowerRules.trackTerms(state, company.id, playerId)
+                    if (!terms) return []
+                    const construction = privateTrackConstruction(state, terms, this.trackRules)
+                    return terms.locationIds.flatMap((locationId) =>
+                        construction
+                            .choices(locationId)
+                            .map((details) => ({ privateCompanyId: company.id, playerId, details }))
+                    )
+                })
+        )
+    })
+    privateTrainOptions = $derived.by(() => {
+        if (
+            !this.canResolveCompanyDecision ||
+            !this.myPlayer ||
+            pendingCompanyDecision(this.financialState)
+        )
+            return []
+        return this.financialState.companies.flatMap((company) => {
+            const companyId = this.privatePowerRules.earlyTrainCompany(
+                this.financialState,
+                company.id,
+                this.myPlayer!.id
+            )
+            return companyId
+                ? privateTrainPurchase(this.financialState, companyId, this.trainRules)
+                      .offers()
+                      .flatMap((offer) =>
+                          offer.evaluation.details
+                              ? [
+                                    {
+                                        privateCompanyId: company.id,
+                                        details: offer.evaluation.details
+                                    }
+                                ]
+                              : []
+                      )
+                : []
+        })
+    })
+    purchaseOfferEvaluation = $derived.by(() =>
+        this.companyDecisionSelection?.kind === 'purchase'
+            ? evaluatePurchaseOffer(
+                  this.financialState,
+                  this.companyDecisionSelection.request,
+                  this.transferRules,
+                  this.trainRules
+              )
+            : undefined
+    )
+    selectPurchaseOffer(request: PurchaseOfferRequest) {
+        assert(
+            this.canResolveCompanyDecision && this.validActionTypes.includes('OfferPurchase'),
+            'Purchasing is unavailable'
+        )
+        this.companyDraft = { kind: 'purchase', request: { ...request } }
+    }
+    setPurchasePrice(price: number) {
+        assert(this.companyDraft?.kind === 'purchase', 'Select an asset first')
+        this.companyDraft.request.price = price
+    }
+    selectPrivateTile(option: {
+        privateCompanyId: string
+        playerId: string
+        details: TrackLayDetails
+    }) {
+        assert(
+            this.companyDecisionPlayers.includes(option.playerId) &&
+                evaluatePrivateTrack(
+                    this.financialState,
+                    option.privateCompanyId,
+                    option.playerId,
+                    option.details,
+                    this.privatePowerRules,
+                    this.trackRules
+                ).details,
+            'Choose an available private tile lay'
+        )
+        this.companyDraft = { kind: 'tile', ...option }
+    }
+    selectPrivateTrain(option: { privateCompanyId: string; details: TrainPurchaseDetails }) {
+        assert(
+            this.privateTrainOptions.some(
+                (item) =>
+                    item.privateCompanyId === option.privateCompanyId &&
+                    item.details.trainId === option.details.trainId
+            ),
+            'Choose an available private train purchase'
+        )
+        this.companyDraft = { kind: 'train', ...option }
+    }
+    backCompanyDecision() {
+        this.companyDraft = undefined
+    }
+    async confirmCompanyDecision() {
+        const draft = this.companyDecisionSelection
+        assert(this.canResolveCompanyDecision && draft, 'Choose a company decision')
+        if (draft.kind === 'purchase') {
+            assert(
+                this.purchaseOfferEvaluation && !this.purchaseOfferEvaluation.reason,
+                'This offer is unavailable'
+            )
+            await this.applyAction(this.createPlayerAction(OfferPurchase, draft.request))
+        } else if (draft.kind === 'tile') {
+            const { companyId, locationId, definitionId, rotation, nodeMapping, cost } =
+                draft.details
+            assert(
+                this.companyDecisionPlayers.includes(draft.playerId),
+                'Only the entitled player may lay this tile'
+            )
+            const action = this.createPlayerAction(LayPrivateTile, {
+                privateCompanyId: draft.privateCompanyId,
+                companyId,
+                locationId,
+                definitionId,
+                rotation,
+                nodeMapping,
+                expectedCost: cost
+            })
+            action.playerId = draft.playerId
+            await this.applyAction(action)
+        } else {
+            const { companyId, trainId, definitionId, price } = draft.details
+            await this.applyAction(
+                this.createPlayerAction(BuyPrivateTrain, {
+                    privateCompanyId: draft.privateCompanyId,
+                    companyId,
+                    trainId,
+                    definitionId,
+                    expectedPrice: price
+                })
+            )
+        }
+    }
+    async respondToPurchaseOffer(accept: boolean) {
+        assert(
+            this.canResolveCompanyDecision &&
+                this.validActionTypes.includes('RespondToPurchaseOffer') &&
+                this.financialState.purchaseOffer,
+            'No offer is awaiting this player'
+        )
+        await this.applyAction(
+            this.createPlayerAction(RespondToPurchaseOffer, {
+                offerId: this.financialState.purchaseOffer.id,
+                accept
+            })
+        )
+    }
+    async respondToTrackConsent(accept: boolean) {
+        assert(
+            this.canResolveCompanyDecision &&
+                this.validActionTypes.includes('RespondToTrackConsent') &&
+                this.financialState.trackConsent,
+            'No permission request is awaiting this player'
+        )
+        await this.applyAction(
+            this.createPlayerAction(RespondToTrackConsent, {
+                requestId: this.financialState.trackConsent.id,
+                accept
+            })
+        )
+    }
+    async continueOperatingRound() {
+        assert(
+            this.canResolveCompanyDecision &&
+                this.validActionTypes.includes('ContinueOperatingRound') &&
+                this.financialState.privatePowerWindow,
+            'No private power window awaits this player'
+        )
+        await this.applyAction(
+            this.createPlayerAction(ContinueOperatingRound, {
+                companyId: this.financialState.privatePowerWindow.companyId
+            })
+        )
+    }
+    async declinePrivateTile() {
+        assert(
+            this.canResolveCompanyDecision &&
+                this.validActionTypes.includes('DeclinePrivateTile') &&
+                this.financialState.privateTrackLay,
+            'No private tile lay is awaiting this player'
+        )
+        await this.applyAction(
+            this.createPlayerAction(DeclinePrivateTile, {
+                privateCompanyId: this.financialState.privateTrackLay.privateCompanyId
+            })
         )
     }
     private privateDraft: PrivateExchangeRequest | undefined = $state()
@@ -142,7 +399,13 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             : undefined
     )
     privateExchangeOffers = $derived.by(() => {
-        if (this.busy || this.updatingVisibleState || this.isViewingHistory) return []
+        if (
+            this.busy ||
+            this.updatingVisibleState ||
+            this.isViewingHistory ||
+            pendingCompanyDecision(this.financialState)
+        )
+            return []
         const players =
             this.game.hotseat && this.game.storage === GameStorage.Local
                 ? this.financialState.activePlayerIds
@@ -618,8 +881,26 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         )
         await this.applyAction(this.createPlayerAction(FinishStations, { companyId }))
     }
-    constructionActions = $derived(
-        this.actions.slice(0, this.gameState.actionCount).filter(isLayTile)
+    constructionActions = $derived.by(() =>
+        this.actions.slice(0, this.gameState.actionCount).flatMap((action) => {
+            const details =
+                isLayTile(action) || isLayPrivateTile(action)
+                    ? action.metadata
+                    : isRespondToTrackConsent(action) && action.metadata?.accepted
+                      ? action.metadata.request.details
+                      : undefined
+            return details
+                ? [
+                      {
+                          id: action.id,
+                          locationId: details.locationId,
+                          definitionId: details.definitionId,
+                          rotation: details.rotation,
+                          cost: details.cost
+                      }
+                  ]
+                : []
+        })
     )
     private trackDraft: TrackSelection = $state({})
     trackSelection = $derived.by(() =>
@@ -723,14 +1004,19 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         assert(this.canBuildTrack && preview, 'Choose a legal track placement')
         const { companyId, locationId, definitionId, rotation, nodeMapping, cost } = preview
         await this.applyAction(
-            this.createPlayerAction(LayTile, {
-                companyId,
-                locationId,
-                definitionId,
-                rotation,
-                nodeMapping,
-                expectedCost: cost
-            })
+            this.createPlayerAction(
+                preview.consentPlayerId && preview.consentPlayerId !== this.myPlayer?.id
+                    ? RequestTrackConsent
+                    : LayTile,
+                {
+                    companyId,
+                    locationId,
+                    definitionId,
+                    rotation,
+                    nodeMapping,
+                    expectedCost: cost
+                }
+            )
         )
     }
     async finishTrack() {
@@ -1072,6 +1358,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         await this.applyAction(this.createPlayerAction(FinishStockTurn, {}))
     }
     override beforeNewState() {
+        this.companyDraft = undefined
         this.privateDraft = undefined
         this.discardDraft = undefined
         this.earningsDraft = undefined
@@ -1083,6 +1370,10 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     }
     override async undo() {
         if (this.busy || this.isViewingHistory) return
+        if (this.companyDraft) {
+            this.companyDraft = undefined
+            return
+        }
         if (this.privateDraft) {
             this.privateDraft = undefined
             return
@@ -1137,7 +1428,9 @@ export function createFinanceExampleSessionClass(
     trainRules: TrainRules,
     routeRules: RouteRules,
     earningsRules: EarningsRules,
-    privateRules: PrivateRules
+    privateRules: PrivateRules,
+    transferRules: TransferRules,
+    privatePowerRules: PrivatePowerRules
 ): new (options: SessionOptions) => FinanceExampleSession {
     return class extends FinanceExampleSession {
         constructor(options: SessionOptions) {
@@ -1151,7 +1444,9 @@ export function createFinanceExampleSessionClass(
                 trainRules,
                 routeRules,
                 earningsRules,
-                privateRules
+                privateRules,
+                transferRules,
+                privatePowerRules
             )
         }
     }

@@ -60,27 +60,36 @@ export class HydratedBuyTrain extends HydratableAction<typeof BuyTrain> implemen
         const result = purchase.evaluate(this)
         assert(result.details, result.reason ?? 'Invalid train purchase')
         assert(result.details.price === this.expectedPrice, 'Train price has changed')
-        settleCashPayments(state, [
-            {
-                from: { kind: 'company', companyId: this.companyId },
-                to: { kind: 'bank' },
-                amount: result.details.price
-            }
-        ])
-        if (this.exchangeTrainId)
-            state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-                train.id === this.exchangeTrainId ? unownedTrain(train, 'market') : train
-            )
-        const toPhaseId = this.#rules.phaseAfterPurchase(state, this.definitionId)
-        this.#rules.depot.purchase(state.trainInventory, this.trainId, this.definitionId, {
-            kind: 'company',
-            companyId: this.companyId
-        })
-        state.trainPurchaseStep!.purchasedTrainIds.push(this.trainId)
-        preparePhaseChange(state, this.trainId, this.definitionId, toPhaseId, {
-            machineState: state.machineState,
-            companyId: this.companyId
-        })
+        applyTrainPurchase(state, result.details, this.#rules)
         this.metadata = result.details
     }
+}
+
+export function applyTrainPurchase(
+    state: TrainPurchaseState & PhaseState & { machineState: string },
+    details: TrainPurchaseDetails,
+    rules: TrainRules
+): void {
+    settleCashPayments(state, [
+        {
+            from: { kind: 'company', companyId: details.companyId },
+            to: { kind: 'bank' },
+            amount: details.price
+        }
+    ])
+    if (details.exchangeTrainId)
+        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
+            train.id === details.exchangeTrainId ? unownedTrain(train, 'market') : train
+        )
+    const toPhaseId = rules.phaseAfterPurchase(state, details.definitionId)
+    rules.depot.purchase(state.trainInventory, details.trainId, details.definitionId, {
+        kind: 'company',
+        companyId: details.companyId
+    })
+    if (state.trainPurchaseStep?.companyId === details.companyId)
+        state.trainPurchaseStep.purchasedTrainIds.push(details.trainId)
+    preparePhaseChange(state, details.trainId, details.definitionId, toPhaseId, {
+        machineState: state.machineState,
+        companyId: details.companyId
+    })
 }

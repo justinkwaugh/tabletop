@@ -1,5 +1,5 @@
 import * as Type from 'typebox'
-import { cashOwnedBy, controllingOwner } from '../finance/finance.js'
+import { cashOwnedBy, controllingOwner, type Owner } from '../finance/finance.js'
 import type { CompanyState } from '../company/companyState.js'
 import { RailwayMapState, type MapStateData } from '../map/mapState.js'
 import type { RailwayMap } from '../map/map.js'
@@ -51,6 +51,7 @@ export const TrackLayDetails = Type.Object(
         placement: TilePlacement,
         previous: Type.Optional(TilePlacement),
         cost: Type.Integer({ minimum: 0 }),
+        consentPlayerId: Type.Optional(Type.String()),
         terrainCost: Type.Integer({ minimum: 0 }),
         allowanceCost: Type.Integer({ minimum: 0 }),
         stations: Type.Array(Station),
@@ -72,6 +73,8 @@ export interface TrackRules {
     restriction(state: ConstructionState, request: TrackRequest): string | undefined
     useful(change: { home: boolean; newTrack: boolean; increasedCityRevenue: boolean }): boolean
     homeLocations(companyId: string): readonly string[]
+    consentPlayerId?(state: ConstructionState, request: TrackRequest): string | undefined
+    terrainCost?(state: ConstructionState, request: TrackRequest, cost: number): number
 }
 const Rotations: readonly TileRotation[] = [0, 1, 2, 3, 4, 5]
 
@@ -79,7 +82,8 @@ export class TrackConstruction {
     readonly mapState: RailwayMapState
     constructor(
         readonly state: ConstructionState,
-        readonly rules: TrackRules
+        readonly rules: TrackRules,
+        readonly payer?: Owner
     ) {
         this.mapState = new RailwayMapState(rules.map, rules.tileSet, state.tileInventory)
     }
@@ -224,12 +228,15 @@ export class TrackConstruction {
             return {
                 reason: 'Construction must add connected track or increase a connected city’s revenue'
             }
-        const terrainCost =
+        const printedTerrainCost =
             (!previous.placement ? (location.terrain?.cost ?? 0) : 0) +
             (before.upgradeCost ?? 0) +
             borderCost
+        const terrainCost =
+            this.rules.terrainCost?.(this.state, request, printedTerrainCost) ?? printedTerrainCost
+        const consentPlayerId = this.rules.consentPlayerId?.(this.state, request)
         const cost = terrainCost + allowance.cost
-        const cash = cashOwnedBy(this.state, { kind: 'company', companyId })
+        const cash = cashOwnedBy(this.state, this.payer ?? { kind: 'company', companyId })
         if (cash === undefined || (cash !== 'unlimited' && cash < cost))
             return { reason: 'The company cannot afford construction' }
         return {
@@ -243,6 +250,7 @@ export class TrackConstruction {
                 ...(previous.placement ? { previous: previous.placement } : {}),
                 cost,
                 terrainCost,
+                ...(consentPlayerId ? { consentPlayerId } : {}),
                 allowanceCost: allowance.cost,
                 stations: migrated.stations,
                 stationReservations: migrated.stationReservations

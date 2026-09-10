@@ -1,3 +1,41 @@
+import { isContinueOperatingRound } from '../privates/betweenCompaniesHandler.js'
+import { isBuyPrivateTrain } from '../privates/buyPrivateTrain.js'
+import { isLayPrivateTile, isDeclinePrivateTile } from '../privates/layPrivateTile.js'
+import { isRequestTrackConsent, isRespondToTrackConsent } from '../construction/trackConsent.js'
+import { isOfferPurchase, isRespondToPurchaseOffer } from '../transfers/offerPurchase.js'
+import {
+    BetweenCompaniesHandler,
+    ContinueOperatingRound,
+    HydratedContinueOperatingRound
+} from '../privates/betweenCompaniesHandler.js'
+import {
+    CompanyDecisionFields,
+    type PrivateTrackLay,
+    type TrackConsent,
+    type PrivatePowerWindow
+} from '../privates/companyDecision.js'
+import { type PurchaseOffer, type TransferRules } from '../transfers/purchaseOffer.js'
+import { type PrivatePowerRules } from '../privates/privatePowers.js'
+import { CompanyDecisionsHandler } from '../privates/companyDecisionsHandler.js'
+import {
+    OfferPurchase,
+    HydratedOfferPurchase,
+    RespondToPurchaseOffer,
+    HydratedRespondToPurchaseOffer
+} from '../transfers/offerPurchase.js'
+import {
+    RequestTrackConsent,
+    HydratedRequestTrackConsent,
+    RespondToTrackConsent,
+    HydratedRespondToTrackConsent
+} from '../construction/trackConsent.js'
+import {
+    LayPrivateTile,
+    HydratedLayPrivateTile,
+    DeclinePrivateTile,
+    HydratedDeclinePrivateTile
+} from '../privates/layPrivateTile.js'
+import { BuyPrivateTrain, HydratedBuyPrivateTrain } from '../privates/buyPrivateTrain.js'
 import {
     ExchangePrivate,
     HydratedExchangePrivate,
@@ -178,6 +216,7 @@ const ExampleFields = Type.Object({
     ...TrainFields,
     ...PhaseFields,
     ...EarningsFields,
+    ...CompanyDecisionFields,
     ...RouteFields
 })
 export const FinanceExampleState: Type.TObject<
@@ -196,6 +235,11 @@ export class HydratedFinanceExampleState
     extends HydratableGameState<typeof FinanceExampleState, PlayerState>
     implements FinanceExampleState
 {
+    declare privatePowerWindow?: PrivatePowerWindow
+    declare purchaseOffer?: PurchaseOffer
+    declare privateTrackLay?: PrivateTrackLay
+    declare trackConsent?: TrackConsent
+    declare usedPrivatePowerIds: string[]
     declare earningsDistribution?: EarningsDetails
     declare phaseEvents: PhaseEvent[]
     declare phaseChange?: PhaseChange
@@ -284,6 +328,40 @@ export class HydratedFinanceExampleState
                 'Station completion does not match the machine state'
             )
         }
+        if (this.privatePowerWindow)
+            assert(
+                this.machineState === 'OperatingSet',
+                'The private power window belongs between companies'
+            )
+        const pendingDecisions = [
+            this.purchaseOffer,
+            this.privateTrackLay,
+            this.trackConsent
+        ].filter(Boolean)
+        assert(
+            pendingDecisions.length <= 1,
+            'Resolve the current company decision before starting another'
+        )
+        if (pendingDecisions.length) {
+            assert(
+                [
+                    'LayingTrack',
+                    'PlacingStation',
+                    'RunningTrains',
+                    'DistributingEarnings',
+                    'BuyingTrains'
+                ].includes(this.machineState),
+                'A company decision requires an operating decision window'
+            )
+            const playerId =
+                this.purchaseOffer?.sellerPlayerId ??
+                this.privateTrackLay?.playerId ??
+                this.trackConsent?.details.consentPlayerId
+            assert(
+                this.players.some((player) => player.playerId === playerId),
+                'Unknown player for the pending decision'
+            )
+        }
         new RailwayMapState(map, tileSet, this.tileInventory).validateStations(this)
         depot.validateInventory(
             this.trainInventory,
@@ -312,7 +390,11 @@ export class HydratedFinanceExampleState
                 'Pending phase change requires its decision state'
             )
             assert(
-                change.continuation.companyId === this.trainPurchaseStep?.companyId,
+                change.continuation.companyId ===
+                    (this.trainPurchaseStep?.companyId ??
+                        this.trackStep?.companyId ??
+                        this.stationStep?.companyId ??
+                        this.routeStep?.companyId),
                 'Phase continuation must preserve the operating company'
             )
             assert(
@@ -412,6 +494,7 @@ class FinanceExampleInitializer extends BaseGameInitializer<
                 activePlayerIds: [players[0].playerId],
                 example: 'finances',
                 phaseEvents: [],
+                usedPrivatePowerIds: [],
                 machineState: 'StockRound',
                 stockRound: {
                     number: 2,
@@ -451,7 +534,9 @@ class FinanceExampleInitializer extends BaseGameInitializer<
             position === 'operations' ||
             position === 'phases' ||
             position === 'diesel' ||
-            position === 'private-events'
+            position === 'private-events' ||
+            position === 'transfers' ||
+            position === 'powers'
         ) {
             const companyOrder = this.options.operatingRules.companyOrder(initialized)
             const companyId = companyOrder[0]
@@ -483,7 +568,8 @@ class FinanceExampleInitializer extends BaseGameInitializer<
                 position === 'trains' ||
                 position === 'phases' ||
                 position === 'diesel' ||
-                position === 'private-events'
+                position === 'private-events' ||
+                position === 'transfers'
             ) {
                 delete initialized.trackStep
                 initialized.trainPurchaseStep = { companyId, purchasedTrainIds: [] }
@@ -517,6 +603,8 @@ export interface FinanceExampleOptions {
     trainRules: TrainRules
     phaseRules: PhaseRules
     privateRules: PrivateRules
+    transferRules: TransferRules
+    privatePowerRules: PrivatePowerRules
     trackRules: TrackRules
 }
 export function createFinanceExampleRuntime(
@@ -529,6 +617,37 @@ export function createFinanceExampleRuntime(
             hydrateState: (state) =>
                 new HydratedFinanceExampleState(state, map, tileSet, options.trainRules.depot),
             hydrateAction: (action) => {
+                if (isContinueOperatingRound(action))
+                    return new HydratedContinueOperatingRound(action)
+                if (isBuyPrivateTrain(action))
+                    return new HydratedBuyPrivateTrain(
+                        action,
+                        options.privatePowerRules,
+                        options.trainRules
+                    )
+                if (isDeclinePrivateTile(action)) return new HydratedDeclinePrivateTile(action)
+                if (isLayPrivateTile(action))
+                    return new HydratedLayPrivateTile(
+                        action,
+                        options.privatePowerRules,
+                        options.trackRules
+                    )
+                if (isRespondToTrackConsent(action))
+                    return new HydratedRespondToTrackConsent(action, options.trackRules)
+                if (isRequestTrackConsent(action))
+                    return new HydratedRequestTrackConsent(action, options.trackRules)
+                if (isRespondToPurchaseOffer(action))
+                    return new HydratedRespondToPurchaseOffer(
+                        action,
+                        options.transferRules,
+                        options.trainRules
+                    )
+                if (isOfferPurchase(action))
+                    return new HydratedOfferPurchase(
+                        action,
+                        options.transferRules,
+                        options.trainRules
+                    )
                 if (isExchangePrivate(action))
                     return new HydratedExchangePrivate(action, options.privateRules, rules)
                 if (isAdvancePhase(action))
@@ -580,6 +699,14 @@ export function createFinanceExampleRuntime(
         canonicalStateValidator: FinanceExampleValidator,
         playerColors: ExampleColors,
         apiActions: {
+            ContinueOperatingRound,
+            BuyPrivateTrain,
+            DeclinePrivateTile,
+            LayPrivateTile,
+            RespondToTrackConsent,
+            RequestTrackConsent,
+            RespondToPurchaseOffer,
+            OfferPurchase,
             ExchangePrivate,
             BuyShares,
             SellShares,
@@ -604,50 +731,76 @@ export function createFinanceExampleRuntime(
             DiscardTrain,
             RustTrains
         },
-        stateHandlers: {
-            AdvancingPhase: new AdvancingPhaseHandler(),
-            DiscardingTrains: new DiscardingTrainsHandler(options.trainRules),
-            RustingTrains: new RustingTrainsHandler('DistributingEarnings'),
-            StockRound: new PrivateExchangeHandler<HydratedFinanceExampleState>(
-                new StockRoundHandler(rules, 'StartingOperatingSet', companyRules),
-                options.privateRules,
-                rules,
-                companyRules
-            ),
-            StartingOperatingSet: new StartOperatingSetHandler('OperatingSet'),
-            OperatingSet: new StartOperatingTurnHandler(options.stationRules),
-            LayingTrack: new PrivateExchangeHandler<HydratedFinanceExampleState>(
-                new LayingTrackHandler(options.trackRules, 'PlacingStation'),
-                options.privateRules,
-                rules,
-                companyRules
-            ),
-            PlacingStation: new PrivateExchangeHandler<HydratedFinanceExampleState>(
-                new PlacingStationHandler(options.stationRules, 'RunningTrains'),
-                options.privateRules,
-                rules,
-                companyRules
-            ),
-            StationsComplete: new TerminalStateHandler(),
-            RunningTrains: new PrivateExchangeHandler<HydratedFinanceExampleState>(
-                new RunningTrainsHandler(options.routeRules, 'DistributingEarnings'),
-                options.privateRules,
-                rules,
-                companyRules
-            ),
-            DistributingEarnings: new PrivateExchangeHandler<HydratedFinanceExampleState>(
-                new DistributingEarningsHandler(options.earningsRules),
-                options.privateRules,
-                rules,
-                companyRules
-            ),
-            BuyingTrains: new PrivateExchangeHandler<HydratedFinanceExampleState>(
-                new BuyingTrainsHandler(options.trainRules),
-                options.privateRules,
-                rules,
-                companyRules
-            )
-        }
+        stateHandlers: Object.fromEntries(
+            Object.entries({
+                AdvancingPhase: new AdvancingPhaseHandler(),
+                DiscardingTrains: new DiscardingTrainsHandler(options.trainRules),
+                RustingTrains: new RustingTrainsHandler('DistributingEarnings'),
+                StockRound: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                    new StockRoundHandler(rules, 'StartingOperatingSet', companyRules),
+                    options.privateRules,
+                    rules,
+                    companyRules
+                ),
+                StartingOperatingSet: new StartOperatingSetHandler('OperatingSet'),
+                OperatingSet: new BetweenCompaniesHandler<HydratedFinanceExampleState>(
+                    new StartOperatingTurnHandler(options.stationRules),
+                    options.privatePowerRules,
+                    options.trackRules,
+                    options.stationRules
+                ),
+                LayingTrack: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                    new LayingTrackHandler(options.trackRules, 'PlacingStation'),
+                    options.privateRules,
+                    rules,
+                    companyRules
+                ),
+                PlacingStation: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                    new PlacingStationHandler(options.stationRules, 'RunningTrains'),
+                    options.privateRules,
+                    rules,
+                    companyRules
+                ),
+                StationsComplete: new TerminalStateHandler(),
+                RunningTrains: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                    new RunningTrainsHandler(options.routeRules, 'DistributingEarnings'),
+                    options.privateRules,
+                    rules,
+                    companyRules
+                ),
+                DistributingEarnings: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                    new DistributingEarningsHandler(options.earningsRules),
+                    options.privateRules,
+                    rules,
+                    companyRules
+                ),
+                BuyingTrains: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                    new BuyingTrainsHandler(options.trainRules),
+                    options.privateRules,
+                    rules,
+                    companyRules
+                )
+            }).map(([name, handler]) => [
+                name,
+                [
+                    'StockRound',
+                    'LayingTrack',
+                    'PlacingStation',
+                    'RunningTrains',
+                    'DistributingEarnings',
+                    'BuyingTrains'
+                ].includes(name)
+                    ? new CompanyDecisionsHandler<HydratedFinanceExampleState>(
+                          handler,
+                          options.transferRules,
+                          options.privatePowerRules,
+                          options.trainRules,
+                          companyRules,
+                          options.trackRules
+                      )
+                    : handler
+            ])
+        )
     }
 }
 

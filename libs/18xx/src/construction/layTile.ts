@@ -8,6 +8,7 @@ import {
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
+import type { Owner } from '../finance/finance.js'
 import { settleCashPayments } from '../finance/cashPayments.js'
 import {
     TrackRequest,
@@ -61,21 +62,38 @@ export class HydratedLayTile extends HydratableAction<typeof LayTile> implements
         assert(result.details, result.reason ?? 'Invalid track lay')
         const details = result.details
         assert(details.cost === this.expectedCost, 'Construction cost has changed')
-        const inventory = construction.inventoryAfter(details)
-        if (details.cost)
-            settleCashPayments(state, [
-                {
-                    from: { kind: 'company', companyId: this.companyId },
-                    to: { kind: 'bank' },
-                    amount: details.cost
-                }
-            ])
-        state.tileInventory = inventory
-        state.stations = details.stations
-        state.stationReservations = details.stationReservations
-        const color = this.#rules.tileSet.definitions.find((tile) => tile.id === this.definitionId)!
-            .face.color
-        state.trackStep!.lays.push({ locationId: this.locationId, color, cost: details.cost })
+        assert(
+            !details.consentPlayerId || details.consentPlayerId === this.playerId,
+            'Track requires the private owner’s consent'
+        )
+        applyTrackLay(
+            state,
+            this.#rules,
+            details,
+            { kind: 'company', companyId: this.companyId },
+            true
+        )
         this.metadata = details
+    }
+}
+
+export function applyTrackLay(
+    state: ConstructionState,
+    rules: TrackRules,
+    details: TrackLayDetails,
+    payer: Owner,
+    countsAsOrdinaryLay: boolean
+): void {
+    const inventory = new TrackConstruction(state, rules, payer).inventoryAfter(details)
+    if (details.cost)
+        settleCashPayments(state, [{ from: payer, to: { kind: 'bank' }, amount: details.cost }])
+    state.tileInventory = inventory
+    state.stations = details.stations
+    state.stationReservations = details.stationReservations
+    if (countsAsOrdinaryLay) {
+        assert(state.trackStep, 'An ordinary lay requires a track step')
+        const color = rules.tileSet.definitions.find((tile) => tile.id === details.definitionId)!
+            .face.color
+        state.trackStep.lays.push({ locationId: details.locationId, color, cost: details.cost })
     }
 }

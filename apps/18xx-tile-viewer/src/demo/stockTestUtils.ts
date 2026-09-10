@@ -16,7 +16,9 @@ export function example(
             hotseat: true,
             seed: 5,
             config: { examplePosition },
-            players: (examplePosition === 'privates' || examplePosition === 'private-events'
+            players: (['privates', 'private-events', 'transfers', 'powers'].includes(
+                examplePosition
+            )
                 ? ['alex', 'blair', 'casey', 'drew']
                 : ['alex', 'blair', 'casey']
             ).map((id) => ({

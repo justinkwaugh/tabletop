@@ -1,3 +1,4 @@
+import type { MapStateData } from '../map/mapState.js'
 import type { OperatingState } from '../operating/operatingSet.js'
 import * as Type from 'typebox'
 import type { StockState } from '../stock/stockState.js'
@@ -11,7 +12,11 @@ export type PrivateExchangeTerms = {
 }
 export const PrivateEffect = Type.Union([
     Type.Object(
-        { kind: Type.Literal('close'), privateCompanyId: Type.String() },
+        {
+            kind: Type.Literal('close'),
+            privateCompanyId: Type.String(),
+            retireUnplacedPieceIds: Type.Optional(Type.Array(Type.String(), { uniqueItems: true }))
+        },
         { additionalProperties: false }
     ),
     Type.Object(
@@ -35,7 +40,7 @@ export const PrivateEffect = Type.Union([
 export type PrivateEffect = Type.Static<typeof PrivateEffect>
 export interface PrivateRules {
     exchangeTerms(state: PrivateState, privateCompanyId: string): PrivateExchangeTerms | undefined
-    phaseEffects(state: StockState): PrivateEffect[]
+    phaseEffects(state: StockState & MapStateData): PrivateEffect[]
     operationEffects(state: StockState, companyId: string): PrivateEffect[]
     description(state: StockState, privateCompanyId: string): string
 }

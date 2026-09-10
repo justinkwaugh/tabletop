@@ -32,3 +32,5 @@ export { default as FinanceMap } from './examples/FinanceMap.svelte'
 export { default as TrainBuying } from './examples/TrainBuying.svelte'
 
 export { default as PrivateCompanies } from './examples/PrivateCompanies.svelte'
+
+export { default as CompanyDecisions } from './examples/CompanyDecisions.svelte'

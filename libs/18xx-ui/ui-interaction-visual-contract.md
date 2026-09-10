@@ -511,3 +511,25 @@ Phase history lists private closures, forced exchanges, and income changes.
 Concession closure occurs with the company's earnings distribution. Prototype
 version 20 adds four-player Private exchanges and Private phase effects examples;
 ordinary game setup and negotiated powers remain later slices.
+
+
+### Negotiated purchases and private powers
+
+The disposable company-decisions panel is session-owned. Asset/price selection,
+private tile placement, and early train selection are manual local drafts. Back
+clears the draft; Undo clears a manual draft first, then uses engine history.
+Drafts hide during updatingVisibleState and History View and clear in beforeNewState.
+Committed offers, seller tile choices, and track-permission requests remain in
+Game State across reload. Their entitled player decides before ordinary play resumes.
+Other stock, construction, route, and train controls remain unavailable meanwhile.
+Same-player purchases settle with one explicit confirmation. Another player's
+private lay is selectable only through explicit Local Hotseat input; Hosted clients
+remain limited to their associated player. All Actions are constructed by the
+Game Session. Tile previews reuse the shared tile renderer, and committed changes
+appear on the authoritative map. Track requiring another owner's consent says
+Request track permission before submission and shows the proposed tile to that owner.
+
+Between operating companies, an eligible private owner may act or Continue operating
+round. Continuing declines only that window, retaining the unused power. The choice
+and resulting automatic company start form a normal Undo history step. Automatic
+private income and required home stations resolve before this optional window.

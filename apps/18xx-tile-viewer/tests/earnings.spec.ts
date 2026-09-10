@@ -65,8 +65,16 @@ for (const title of ['TOP', '1889']) {
         await trains.getByRole('button', { name: 'Finish operating turn', exact: true }).click()
         await expect(earnings).toHaveCount(0)
         const track = page.getByRole('region', { name: 'Track construction', exact: true })
-        await expect(track).toBeVisible()
-        await track.getByRole('button', { name: 'Undo', exact: true }).click()
+        if (title === '1889') {
+            const decisions = page.getByRole('region', { name: 'Company decisions', exact: true })
+            await expect(
+                decisions.getByRole('button', { name: 'Continue operating round', exact: true })
+            ).toBeVisible()
+            await decisions.getByRole('button', { name: 'Undo', exact: true }).click()
+        } else {
+            await expect(track).toBeVisible()
+            await track.getByRole('button', { name: 'Undo', exact: true }).click()
+        }
         await expect(trains).toBeVisible()
         await expect(earnings).toContainText('Distributed · Pay dividends')
         await trains.getByRole('button', { name: 'Undo', exact: true }).click()
@@ -83,6 +91,10 @@ for (const title of ['TOP', '1889']) {
         await page.getByLabel('Example position').selectOption('operations')
         const count = title === 'TOP' ? 6 : 4
         for (let turn = 0; turn < count; turn++) {
+            if (title === '1889' && turn > 0)
+                await page
+                    .getByRole('button', { name: 'Continue operating round', exact: true })
+                    .click()
             await page.getByRole('button', { name: 'Finish track', exact: true }).click()
             await page.getByRole('button', { name: 'Finish stations', exact: true }).click()
             await page.getByRole('button', { name: 'Confirm routes', exact: true }).click()

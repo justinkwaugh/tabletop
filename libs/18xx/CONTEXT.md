@@ -187,3 +187,7 @@ visits to revenue centers.
 
 **Operating Result**:
 The itemized revenue earned by a company's submitted train runs in an operating turn.
+
+**Purchase Offer**:
+A proposed asset purchase identifying the buyer, seller, asset, and price, awaiting
+the agreement required by the title's rules.

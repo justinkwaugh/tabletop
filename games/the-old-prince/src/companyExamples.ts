@@ -44,7 +44,9 @@ export function createTheOldPrinceCompanyExample(
         position === 'starting' ||
         position === 'flotation' ||
         position === 'privates' ||
-        position === 'private-events'
+        position === 'private-events' ||
+        position === 'transfers' ||
+        position === 'powers'
     ) {
         const market = { owner: { kind: 'bank' } as const, poolId: 'market' }
         for (const { companyId, name } of PeirCompanies) {
@@ -86,7 +88,7 @@ export function createTheOldPrinceCompanyExample(
             delete certificate.poolId
         }
     }
-    if (position === 'privates' || position === 'private-events')
+    if (['privates', 'private-events', 'transfers', 'powers'].includes(position))
         prepareTheOldPrincePrivates(state, players)
     for (const location of TheOldPrinceMap.definition.locations) {
         for (const reservation of location.reservations ?? []) {
@@ -204,6 +206,30 @@ export function createTheOldPrinceCompanyExample(
             assert(used, 'Diesel example requires a used 4+')
             used.hasRun = true
         }
+    }
+    if (position === 'transfers' || position === 'powers') {
+        getCompany(state, 'So').president = { kind: 'player', playerId: players[1].playerId }
+        const shortlinePresident = state.certificates.find((item) => item.id === 'So:president')
+        assert(
+            shortlinePresident && !shortlinePresident.retired,
+            'The example requires Shortline presidency'
+        )
+        shortlinePresident.owner = { kind: 'player', playerId: players[1].playerId }
+        state.phaseId = '4H'
+        for (const companyId of ['ML', 'So']) {
+            const train = TheOldPrinceTrainDepot.nextTrain(state.trainInventory, '3H')
+            assert(train, 'Transfer example requires owned trains')
+            TheOldPrinceTrainDepot.purchase(state.trainInventory, train.id, train.definitionId, {
+                kind: 'company',
+                companyId
+            })
+        }
+        const ranks = TheOldPrinceTrainDepot.definition.supply.map((entry) => entry.definitionId)
+        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
+            train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf('4H')
+                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
+                : train
+        )
     }
     return state
 }

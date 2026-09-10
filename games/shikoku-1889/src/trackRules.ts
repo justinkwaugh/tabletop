@@ -29,6 +29,21 @@ export const Shikoku1889TrackRules: TrackRules = {
                 location.reservations?.some((reservation) => reservation.companyId === companyId)
             )
             .map((location) => location.id),
+    terrainCost(state, request, cost) {
+        const privateCompany = state.companies.find((company) => company.id === 'SRR')
+        const owner =
+            privateCompany && !privateCompany.closed ? privateOwner(state, 'SRR') : undefined
+        const terrain = Shikoku1889Map.location(request.locationId).terrain
+        return privateCompany &&
+            !privateCompany.closed &&
+            owner?.kind === 'company' &&
+            owner.companyId === request.companyId &&
+            terrain?.kinds.includes('mountain') &&
+            !terrain.kinds.includes('water') &&
+            !state.tileInventory.placements[request.locationId]
+            ? cost - terrain.cost
+            : cost
+    },
     restriction(state, request) {
         if (request.definitionId === '18xx:437')
             return 'The port tile requires Mitsubishi Ferry’s special lay'

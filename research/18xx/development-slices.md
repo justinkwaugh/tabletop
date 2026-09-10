@@ -722,7 +722,7 @@ mechanism in slices 13–14 before the full game is considered complete.
 phase closures and income changes, concession closures, out-of-turn Dôgo decisions,
 presidency/flotation, pass history, and prototype controls. Four-player examples
 include Ice Boats and Uno-Takamatsu. Power execution, consent, and construction
-supply cleanup remain in slice 14. See [design and evidence](private-lifecycle-slice-design.md).
+supply cleanup are covered by slice 14. See [design and evidence](private-lifecycle-slice-design.md).
 
 **Outcome:** exchange an owned private for a share, exercise its precise turn
 permissions, and close/expire rights through phase events.
@@ -746,6 +746,13 @@ cascade and that stock-round pass history remains correct.
 **Depends on:** 4–5, 12.
 
 ## 14. Negotiate transfers and resolve interrupting powers
+
+**Status:** implemented for both prepared titles: negotiated train/private purchases,
+owner consent, same-player settlement, Ehime's seller lay, Mitsubishi's stock and
+operating windows, Sumitomo terrain relief, Hunslet's early purchase through phase
+and discard effects, and TOP construction entitlement/bridge permission. Prototype
+positions are Negotiated purchases and Private powers. See
+[design and evidence](negotiated-transfers-slice-design.md).
 
 **Outcome:** complete an agreed asset purchase and any resulting decision by its
 seller or another player, then resume normal operation.

@@ -39,6 +39,12 @@ export const Shikoku1889PrivateRules: PrivateRules = {
     },
     operationEffects: () => [],
     description(state, id) {
+        if (id === 'MF')
+            return 'Player owner may place the port once on an eligible coastal town, outside a rival railway’s operation. Stays open after use; closes at phase 5.'
+        if (id === 'ER')
+            return 'Blocks Ohzu while player-owned. On sale to a railway, the seller may immediately upgrade Ohzu in addition to ordinary construction. Closes at phase 5.'
+        if (id === 'SRR')
+            return 'The owning railway ignores mountain-only terrain costs. Combined river and mountain costs still apply. Closes at phase 5.'
         if (id === 'DR')
             return 'The owning player may exchange for a 10% Iyo IPO share, including during another player’s turn. Does not consume a purchase or change passes. Closes at phase 5.'
         if (id === 'UTF')

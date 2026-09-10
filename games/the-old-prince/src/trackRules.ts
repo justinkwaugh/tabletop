@@ -46,6 +46,11 @@ export const TheOldPrinceTrackRules: TrackRules = {
             )
             .map((location) => location.id)
     },
+    consentPlayerId(state, request) {
+        const bridge = state.companies.find((company) => company.id === 'VR')
+        if (request.locationId !== 'N18' || !bridge || bridge.closed) return undefined
+        return controllingOwner(state, 'VR')?.playerId
+    },
     restriction(state, request) {
         const controller = controllingOwner(state, request.companyId)
         if (request.definitionId === '18xx:9') {
@@ -54,12 +59,6 @@ export const TheOldPrinceTrackRules: TrackRules = {
                 privateCompany && !privateCompany.closed ? privateOwner(state, 'SBC') : undefined
             if (!controller || !owner || !sameOwner(controller, owner))
                 return 'The straight yellow tile requires Schreiber and Burpee Construction'
-        }
-        if (request.locationId === 'N18') {
-            const bridge = state.companies.find((company) => company.id === 'VR')
-            const owner = bridge ? privateOwner(state, 'VR') : undefined
-            if (!bridge?.closed && (!controller || !owner || !sameOwner(controller, owner)))
-                return 'Vernon River Bridge owner consent is required'
         }
         return undefined
     }

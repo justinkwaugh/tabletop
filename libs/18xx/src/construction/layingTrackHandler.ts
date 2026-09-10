@@ -29,9 +29,11 @@ export class LayingTrackHandler implements MachineStateHandler<
         if (!isLayTile(action) && !isFinishTrack(action)) return false
         const construction = new TrackConstruction(state, this.rules)
         if (!construction.canAct(action.playerId, action.companyId)) return false
+        if (isFinishTrack(action)) return true
+        const details = construction.evaluate(action).details
         return (
-            isFinishTrack(action) ||
-            construction.evaluate(action).details?.cost === action.expectedCost
+            details?.cost === action.expectedCost &&
+            (!details.consentPlayerId || details.consentPlayerId === action.playerId)
         )
     }
     validActionsForPlayer(playerId: string, context: MachineContext<State>): string[] {
@@ -44,8 +46,10 @@ export class LayingTrackHandler implements MachineStateHandler<
         )
             return []
         const construction = new TrackConstruction(state, this.rules)
-        return this.rules.map.definition.locations.some(
-            (location) => construction.choices(location.id).length
+        return this.rules.map.definition.locations.some((location) =>
+            construction
+                .choices(location.id)
+                .some((choice) => !choice.consentPlayerId || choice.consentPlayerId === playerId)
         )
             ? ['LayTile', 'FinishTrack']
             : ['FinishTrack']

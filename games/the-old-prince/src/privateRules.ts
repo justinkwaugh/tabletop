@@ -1,3 +1,4 @@
+import { TheOldPrinceTileSet } from './tiles.js'
 import { assertExists } from '@tabletop/common'
 import { type PrivateRules, type PrivateEffect } from '@tabletop/18xx'
 import { TheOldPrincePhases } from './trains.js'
@@ -60,7 +61,19 @@ export const TheOldPrincePrivateRules: PrivateRules = {
             ...open.filter((company) => !ShortlineExchanges[company.id])
         ].map((company): PrivateEffect => {
             const certificateId = ShortlineExchanges[company.id]
-            if (!certificateId) return { kind: 'close', privateCompanyId: company.id }
+            if (!certificateId)
+                return {
+                    kind: 'close',
+                    privateCompanyId: company.id,
+                    ...(company.id === 'SBC'
+                        ? {
+                              retireUnplacedPieceIds: TheOldPrinceTileSet.availablePieces(
+                                  state.tileInventory,
+                                  '18xx:9'
+                              ).map((piece) => piece.id)
+                          }
+                        : {})
+                }
             const share = state.certificates.find(
                 (item) =>
                     item.id === certificateId &&
@@ -84,8 +97,17 @@ export const TheOldPrincePrivateRules: PrivateRules = {
             .map((company) => ({ kind: 'close', privateCompanyId: company.id }))
     },
     description(_state, id) {
+        if (id === 'HS')
+            return 'From 4H, may be sold to a railway other than PEIR for $1–200. Its railway may close it to buy one depot train during its turn, paying the normal price. Closes unused at 4+.'
+        if (id === 'SBC')
+            return 'The owning player’s railways may lay the single straight yellow tile using ordinary track rules and costs. Closes at 4+; the unused tile is removed.'
         if (ShortlineExchanges[id])
-            return 'Exchange for a reserved Shortline share during your stock turn, in addition to selling and buying. Cancels your pass. Forced exchange at 4+; ownership limit exemption applies.'
+            return (
+                (id === 'VR'
+                    ? 'The owner’s permission is required to build on N18 while this private is open. '
+                    : '') +
+                'Exchange for a reserved Shortline share during your stock turn, in addition to selling and buying. Cancels your pass. Forced exchange at 4+; ownership limit exemption applies.'
+            )
         if (id === 'IB')
             return 'Exchange during your stock turn for a Bank share in another started railway. Closes unused at 4+.'
         if (id === 'UB') return 'Remains open throughout the game.'

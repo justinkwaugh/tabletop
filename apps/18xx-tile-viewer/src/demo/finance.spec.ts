@@ -60,8 +60,16 @@ it.each([Top, Shikoku])(
         expect(president.shares).toBe(2)
         expect(president.certificateLimitCount).toBe(1)
         expect(getCompany(restored, president.companyId).shareCount).toBe(10)
-        expect(restored.activePlayerIds).toEqual(['alex'])
+        expect(restored.activePlayerIds[0]).toBe('alex')
         expect(Object.keys(definition.runtime.apiActions)).toEqual([
+            'ContinueOperatingRound',
+            'BuyPrivateTrain',
+            'DeclinePrivateTile',
+            'LayPrivateTile',
+            'RespondToTrackConsent',
+            'RequestTrackConsent',
+            'RespondToPurchaseOffer',
+            'OfferPurchase',
             'ExchangePrivate',
             'BuyShares',
             'SellShares',

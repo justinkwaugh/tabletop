@@ -92,7 +92,13 @@ it('charges TOP’s optional second yellow lay and rejects a third or an upgrade
     expect(next.choices('L16')).toEqual([])
     const secondLay = first(
         TheOldPrinceTrackRules.map.definition.locations.flatMap((location) =>
-            next.choices(location.id)
+            next
+                .choices(location.id)
+                .filter(
+                    (choice) =>
+                        !choice.consentPlayerId ||
+                        choice.consentPlayerId === state.activePlayerIds[0]
+                )
         )
     )
     expect(secondLay.allowanceCost).toBe(20)
@@ -234,7 +240,7 @@ it('respects private rights independently of ordinary topology checks', () => {
         rotation: 0 as const,
         nodeMapping: {}
     }
-    expect(TheOldPrinceTrackRules.restriction(state, request)).toContain('consent')
+    expect(TheOldPrinceTrackRules.consentPlayerId!(state, request)).toBe('casey')
     expect(
         TheOldPrinceTrackRules.restriction(state, {
             ...request,
@@ -243,7 +249,7 @@ it('respects private rights independently of ordinary topology checks', () => {
         })
     ).toContain('Schreiber')
     state.companies.find((company) => company.id === 'VR')!.closed = true
-    expect(TheOldPrinceTrackRules.restriction(state, request)).toBeUndefined()
+    expect(TheOldPrinceTrackRules.consentPlayerId!(state, request)).toBeUndefined()
     const { state: s } = example(Shikoku, 'construction')
     expect(
         Shikoku1889TrackRules.restriction(s, { ...request, companyId: 'IR', locationId: 'K4' })

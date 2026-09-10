@@ -302,7 +302,7 @@ it('applies yellow/orange exemptions dynamically and requires sales when an exem
     expect(exceedsStockLimits(sold, alex, Shikoku1889StockRules)).toBe(false)
     const done = engine.executeCanonicalAction({ game, state: sold, action: finish })
     expect(done.updatedState.machineState).toBe('StockRound')
-    expect(done.updatedState.activePlayerIds).toEqual(['blair'])
+    expect(done.updatedState.activePlayerIds[0]).toBe('blair')
     expect(
         engine.undoProcessedAction({ state: done.updatedState, action: done.processedActions[0] })
     ).toEqual(sold)

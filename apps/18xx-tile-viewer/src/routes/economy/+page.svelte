@@ -37,6 +37,8 @@
                 >
                 <option value="privates">Private exchanges</option>
                 <option value="private-events">Private phase effects</option>
+                <option value="transfers">Negotiated purchases</option>
+                <option value="powers">Private powers</option>
             </select>
         </label>
     </header>

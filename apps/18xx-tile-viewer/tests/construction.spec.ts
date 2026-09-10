@@ -29,7 +29,7 @@ test('TOP stages track, pays for its second lay, and undoes through history and 
     await expect(panel).toContainText('1 placed')
     const second = await page
         .getByLabel('Construction hex')
-        .locator('option')
+        .locator('option:not([value="N18"])')
         .nth(1)
         .getAttribute('value')
     if (!second) throw new Error('Missing second lay')

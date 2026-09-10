@@ -7,6 +7,7 @@
         FinanceMap,
         TrainBuying,
         PrivateCompanies,
+        CompanyDecisions,
         StockTrading,
         StockMarket,
         requireFinanceExampleSession
@@ -16,6 +17,7 @@
     const state = $derived(requireFinanceExampleState(gameSession.gameState))
 </script>
 
+<CompanyDecisions {session} />
 <PrivateCompanies {session} />
 <TrainBuying {session} />
 <FinanceMap {session} />

@@ -97,7 +97,10 @@
                         Cost: ${preview.cost} (terrain ${preview.terrainCost}, lay ${preview.allowanceCost})
                     </p>
                     <button onclick={() => session.confirmTrack()} disabled={!session.canBuildTrack}
-                        >Confirm track</button
+                        >{preview.consentPlayerId &&
+                        preview.consentPlayerId !== session.myPlayer?.id
+                            ? 'Request track permission'
+                            : 'Confirm track'}</button
                     >
                 {:else}<p>Choose a rotation to preview.</p>{/if}
             {/if}
@@ -107,8 +110,7 @@
                     <li>
                         {action.locationId}: tile {session.mapView.tileSet.definitions.find(
                             (tile) => tile.id === action.definitionId
-                        )?.printedNumber}, {action.rotation * 60}°, ${action.metadata?.cost ??
-                            action.expectedCost}
+                        )?.printedNumber}, {action.rotation * 60}°, ${action.cost}
                     </li>
                 {/each}
             </ol>{/if}

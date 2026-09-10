@@ -12,7 +12,9 @@ export const FinanceExamplePosition = Type.Union([
     Type.Literal('phases'),
     Type.Literal('diesel'),
     Type.Literal('privates'),
-    Type.Literal('private-events')
+    Type.Literal('private-events'),
+    Type.Literal('transfers'),
+    Type.Literal('powers')
 ])
 export type FinanceExamplePosition = Type.Static<typeof FinanceExamplePosition>
 

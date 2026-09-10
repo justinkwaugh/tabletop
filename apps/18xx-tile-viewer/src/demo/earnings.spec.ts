@@ -194,23 +194,25 @@ it.each(Titles)(
         const seen: string[] = []
         for (
             let count = 0;
-            count < expectedTurns * 6 && current.machineState !== 'StockRound';
+            count < expectedTurns * 7 && current.machineState !== 'StockRound';
             count++
         ) {
             const id =
+                current.privatePowerWindow?.companyId ??
                 current.trackStep?.companyId ??
                 current.routeStep?.companyId ??
                 current.trainPurchaseStep!.companyId
-            const type =
-                current.machineState === 'LayingTrack'
-                    ? 'FinishTrack'
-                    : current.machineState === 'PlacingStation'
-                      ? 'FinishStations'
-                      : current.machineState === 'RunningTrains'
-                        ? 'RunTrains'
-                        : current.machineState === 'DistributingEarnings'
-                          ? 'DistributeEarnings'
-                          : 'FinishOperatingTurn'
+            const type = current.privatePowerWindow
+                ? 'ContinueOperatingRound'
+                : current.machineState === 'LayingTrack'
+                  ? 'FinishTrack'
+                  : current.machineState === 'PlacingStation'
+                    ? 'FinishStations'
+                    : current.machineState === 'RunningTrains'
+                      ? 'RunTrains'
+                      : current.machineState === 'DistributingEarnings'
+                        ? 'DistributeEarnings'
+                        : 'FinishOperatingTurn'
             const fields =
                 type === 'RunTrains'
                     ? { companyId: id, routes: [] }
@@ -244,7 +246,7 @@ it.each(Titles)(
         })
         expect(current.operatingSet?.completed).toBe(true)
         expect(current.turnManager.turnOrder).toEqual(order)
-        expect(current.activePlayerIds).toEqual([order[0]])
+        expect(current.activePlayerIds[0]).toBe(order[0])
         expect(cashOwnedBy(current, { kind: 'company', companyId: recipient })).toBe(
             Number(initialCash) + (rounds - 1) * privateRevenue
         )

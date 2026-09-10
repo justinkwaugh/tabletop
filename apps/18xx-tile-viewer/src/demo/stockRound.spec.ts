@@ -58,7 +58,7 @@ it.each([Top, Shikoku])(
         const { game, engine, state } = example(definition)
         let current = state
         for (const playerId of ['alex', 'blair']) {
-            expect(current.activePlayerIds).toEqual([playerId])
+            expect(current.activePlayerIds[0]).toBe(playerId)
             const result = engine.executeCanonicalAction({
                 game,
                 state: current,
@@ -79,9 +79,11 @@ it.each([Top, Shikoku])(
             'CompleteStockRound',
             'StartOperatingSet',
             'StartOperatingRound',
-            'StartOperatingTurn'
+            ...(definition === Top ? ['StartOperatingTurn'] : [])
         ])
-        expect(result.updatedState.machineState).toBe('LayingTrack')
+        expect(result.updatedState.machineState).toBe(
+            definition === Top ? 'LayingTrack' : 'OperatingSet'
+        )
         expect(result.updatedState.stockRound.completed).toBe(true)
         expect(result.updatedState.turnManager.turnOrder).toEqual(['alex', 'blair', 'casey'])
         expect(result.updatedState.operatingSet).toMatchObject({
@@ -92,7 +94,9 @@ it.each([Top, Shikoku])(
         expect(result.updatedState.operatingSet?.companyOrder).toEqual(
             definition === Top ? ['ML', 'So', 'PEIR'] : ['IR', 'AR']
         )
-        expect(engine.getValidActionTypesForPlayer(game, result.updatedState, 'casey')).toEqual([])
+        expect(engine.getValidActionTypesForPlayer(game, result.updatedState, 'casey')).toEqual(
+            definition === Top ? [] : ['LayPrivateTile', 'ContinueOperatingRound']
+        )
         const repeated = engine.executeCanonicalAction({ game, state: current, action })
         expect(repeated.updatedState).toEqual(result.updatedState)
         expect(repeated.processedActions.map(({ id, type }) => ({ id, type }))).toEqual(
@@ -137,7 +141,7 @@ it.each([Top, Shikoku])(
             state: current,
             action: finish(current)
         }).updatedState
-        expect(current.activePlayerIds).toEqual(['blair'])
+        expect(current.activePlayerIds[0]).toBe('blair')
         expect(current.stockRound.passedPlayerIds).toEqual([])
         expect(current.stockRound.turn).toEqual({
             acted: false,
@@ -185,7 +189,7 @@ it.each([Top, Shikoku])(
             state: current,
             action: finish(current)
         }).updatedState
-        expect(current.activePlayerIds).toEqual(['alex'])
+        expect(current.activePlayerIds[0]).toBe('alex')
         current = engine.executeCanonicalAction({
             game,
             state: current,
@@ -240,7 +244,7 @@ it('keeps Union Bank usage and sale restrictions across TOP turns while resettin
             state: current,
             action: finish(current)
         }).updatedState
-    expect(current.activePlayerIds).toEqual(['alex'])
+    expect(current.activePlayerIds[0]).toBe('alex')
     expect(current.stockRound.turn.bought).toBe(false)
     expect(current.stockRound.companyPurchases).toEqual(['UB'])
     expect(TheOldPrinceStockRules.buyers(current, 'alex')).toEqual([
@@ -284,7 +288,7 @@ it.each([Top, Shikoku])(
                 state: current,
                 action: finish(current)
             }).updatedState
-        expect(current.activePlayerIds).toEqual(['alex'])
+        expect(current.activePlayerIds[0]).toBe('alex')
         expect(current.stockRound.turn.companiesSold).toEqual([])
         expect(current.stockRound.sales).toContainEqual({ owner: request.seller, companyId })
         expect(
