@@ -1,5 +1,7 @@
 <script lang="ts">
     import GameCard from '$lib/components/GameCard.svelte'
+    import { flip } from 'svelte/animate'
+    import { prefersReducedMotion } from 'svelte/motion'
     import type { Game } from '@tabletop/common'
     import { getAppContext } from '@tabletop/frontend-components'
 
@@ -52,7 +54,12 @@
                         </div>
                     {/if}
                     {#each games as game (game.id)}
-                        <GameCard {game} />
+                        <div
+                            class="w-full flex justify-center"
+                            animate:flip={{ duration: prefersReducedMotion.current ? 0 : 250 }}
+                        >
+                            <GameCard {game} />
+                        </div>
                     {/each}
                 </div>
             </div>

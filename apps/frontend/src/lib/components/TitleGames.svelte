@@ -1,5 +1,8 @@
 <script lang="ts">
     import { onMount } from 'svelte'
+    import { flip } from 'svelte/animate'
+    import { prefersReducedMotion } from 'svelte/motion'
+    import { compareGameInvitations } from '$lib/utils/gameInvitation'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import GameCard from '$lib/components/GameCard.svelte'
     import TitleSection from '$lib/components/TitleSection.svelte'
@@ -12,9 +15,11 @@
         open: 'loading'
     })
     let myGames = $derived(
-        [...gameService.activeGames, ...gameService.waitingGames].filter(
-            (game) => game.typeId === titleId
-        )
+        [...gameService.activeGames, ...gameService.waitingGames]
+            .filter((game) => game.typeId === titleId)
+            .toSorted((a, b) =>
+                compareGameInvitations(a, b, authorizationService.getSessionUser()?.id)
+            )
     )
     let openGames = $derived(
         (gameService.openGamesByTitleId.get(titleId) ?? []).filter((game) => {
@@ -77,10 +82,15 @@
             {:else}
                 <div class="game-list">
                     {#each games as game (game.id)}
-                        <GameCard
-                            {game}
-                            class="mx-0 mb-0 p-4 min-w-0 w-full max-w-none border border-gray-700/60 dark:border-gray-700/60 bg-gray-800/50 dark:bg-gray-800/50 rounded-xl"
-                        />
+                        <div
+                            class="min-w-0"
+                            animate:flip={{ duration: prefersReducedMotion.current ? 0 : 250 }}
+                        >
+                            <GameCard
+                                {game}
+                                class="mx-0 mb-0 p-4 min-w-0 w-full max-w-none border border-gray-700/60 dark:border-gray-700/60 bg-gray-800/50 dark:bg-gray-800/50 rounded-xl"
+                            />
+                        </div>
                     {/each}
                 </div>
             {/if}

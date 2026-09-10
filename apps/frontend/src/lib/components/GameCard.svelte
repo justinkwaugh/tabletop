@@ -3,6 +3,7 @@
     import { Game, GameStatus, PlayerStatus, GameResult } from '@tabletop/common'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
+    import { hasPendingGameInvitation } from '$lib/utils/gameInvitation'
     import { goto } from '$app/navigation'
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
@@ -53,7 +54,7 @@
             return false
         }
 
-        if (isMine && myPlayer?.status === PlayerStatus.Reserved) {
+        if (hasPendingGameInvitation(game, sessionUser?.id)) {
             return true
         }
 
@@ -65,14 +66,7 @@
         )
     })
 
-    let canDecline = $derived(
-        !game.tournament &&
-            (game.status === GameStatus.WaitingForPlayers ||
-                game.status === GameStatus.WaitingToStart) &&
-            !isOwnedByMe &&
-            isMine &&
-            myPlayer?.status === PlayerStatus.Reserved
-    )
+    let canDecline = $derived(hasPendingGameInvitation(game, sessionUser?.id))
 
     let canLeave = $derived(
         !game.tournament &&

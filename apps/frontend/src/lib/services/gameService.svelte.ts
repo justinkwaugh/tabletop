@@ -33,6 +33,7 @@ import {
 import * as Value from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
 import { NotificationService } from './notificationService.svelte'
+import { compareGameInvitations } from '$lib/utils/gameInvitation'
 
 import type { LibraryService } from './libraryService.svelte'
 
@@ -88,7 +89,11 @@ export class GameService implements GameServiceInterface {
                         game.status === GameStatus.WaitingToStart) &&
                     game.category !== GameCategory.Exploration
             )
-            .toSorted((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+            .toSorted(
+                (a, b) =>
+                    compareGameInvitations(a, b, this.authorizationService.getSessionUser()?.id) ||
+                    b.createdAt.getTime() - a.createdAt.getTime()
+            )
     )
 
     finishedGames: Game[] = $derived(
@@ -129,20 +134,23 @@ export class GameService implements GameServiceInterface {
 
         if (!this.loadingPromise) {
             this.loading = true
-            this.loadingPromise = this.api.getMyGames().then((games) => {
-                const ids = games.map((game) => game.id)
-                games.forEach((game) => {
-                    this.gamesById.set(game.id, game)
+            this.loadingPromise = this.api
+                .getMyGames()
+                .then((games) => {
+                    const ids = games.map((game) => game.id)
+                    games.forEach((game) => {
+                        this.gamesById.set(game.id, game)
+                    })
+                    this.gamesById.forEach((game, id) => {
+                        if (!ids.includes(id)) {
+                            this.gamesById.delete(id)
+                        }
+                    })
                 })
-                this.gamesById.forEach((game, id) => {
-                    if (!ids.includes(id)) {
-                        this.gamesById.delete(id)
-                    }
+                .finally(() => {
+                    this.loading = false
+                    this.loadingPromise = null
                 })
-            }).finally(() => {
-                this.loading = false
-                this.loadingPromise = null
-            })
         }
         return this.loadingPromise
     }

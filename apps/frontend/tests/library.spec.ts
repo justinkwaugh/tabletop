@@ -514,3 +514,79 @@ test('a filtered tournaments link keeps its game when defaulting from empty Mine
     await expect(page.locator('#tournament-game-filter')).toContainText('Game 01')
     await expect(page.getByRole('heading', { name: 'Tournament open', exact: true })).toBeVisible()
 })
+
+for (const path of ['/library/landing-0', '/dashboard']) {
+    for (const reducedMotion of ['no-preference', 'reduce'] as const) {
+        test(`pending invitations move down after joining with ${reducedMotion} motion on ${path}`, async ({
+            page
+        }) => {
+            await page.emulateMedia({ reducedMotion })
+            await page.addInitScript(() => {
+                const animate = Element.prototype.animate
+                Element.prototype.animate = function (keyframes, options) {
+                    const animation = animate.call(this, keyframes, options)
+                    const duration = typeof options === 'number' ? options : options?.duration
+                    if (this.querySelector('h1') && typeof duration === 'number' && duration > 0) {
+                        document.documentElement.dataset.listAnimated = 'true'
+                    }
+                    return animation
+                }
+            })
+            const invitation = game('invitation', 'Invitation', false)
+            invitation.createdAt = new Date('2026-09-02')
+            invitation.players[1] = {
+                id: 'invitee',
+                isHuman: true,
+                userId: player.id,
+                name: 'Player',
+                status: PlayerStatus.Reserved
+            }
+            const accepted: Game = {
+                ...invitation,
+                status: GameStatus.WaitingToStart,
+                players: invitation.players.map((seat) =>
+                    seat.userId === player.id ? { ...seat, status: PlayerStatus.Joined } : seat
+                )
+            }
+            const games: Game[] = [
+                {
+                    ...game('joined-waiting', 'Joined waiting', true),
+                    status: GameStatus.WaitingToStart,
+                    createdAt: new Date('2026-09-09')
+                },
+                game('turn', 'Your turn', true),
+                invitation,
+                { ...game('started', 'Started', true), activePlayerIds: [] }
+            ]
+            await page.route('**/api/v1/games/mine', (route) =>
+                route.fulfill({ json: { payload: { games } } })
+            )
+            await page.route('**/api/v1/game/join', (route) => {
+                expect(route.request().postDataJSON()).toEqual({ gameId: invitation.id })
+                return route.fulfill({ json: { payload: { game: accepted } } })
+            })
+            await page.goto(path)
+            const titles =
+                path === '/dashboard'
+                    ? page.locator('h1')
+                    : page.getByRole('region', { name: 'Your games' }).locator('.game-list h1')
+            await expect(titles).toHaveText(
+                path === '/dashboard'
+                    ? ['Your turn', 'Started', 'Invitation', 'Joined waiting']
+                    : ['Invitation', 'Your turn', 'Started', 'Joined waiting']
+            )
+            await page.getByRole('button', { name: 'Join', exact: true }).click()
+            await expect(titles).toHaveText([
+                'Your turn',
+                'Started',
+                'Joined waiting',
+                'Invitation'
+            ])
+            if (reducedMotion === 'reduce') {
+                await expect(page.locator('html')).not.toHaveAttribute('data-list-animated', 'true')
+            } else {
+                await expect(page.locator('html')).toHaveAttribute('data-list-animated', 'true')
+            }
+        })
+    }
+}
