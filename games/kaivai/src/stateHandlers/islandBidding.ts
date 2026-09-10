@@ -13,7 +13,10 @@ import { ActionType } from '../definition/actions.js'
 import { ScoreIsland } from '../actions/scoreIsland.js'
 
 // Transition from IslandBidding(PlaceBid) -> IslandBidding | FinalScoring
-export class IslandBiddingStateHandler implements MachineStateHandler<HydratedPlaceScoringBid, HydratedKaivaiGameState> {
+export class IslandBiddingStateHandler implements MachineStateHandler<
+    HydratedPlaceScoringBid,
+    HydratedKaivaiGameState
+> {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedKaivaiGameState>
@@ -31,19 +34,25 @@ export class IslandBiddingStateHandler implements MachineStateHandler<HydratedPl
         return true
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedKaivaiGameState>): string[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedKaivaiGameState>
+    ): string[] {
         const gameState = context.gameState
         return gameState.bidders.includes(playerId) ? [ActionType.PlaceScoringBid] : []
     }
 
     enter(context: MachineContext<HydratedKaivaiGameState>) {
         const gameState = context.gameState
-        if (Object.keys(gameState.bids).length === 0) {
+        if ((gameState.scoringBids?.length ?? Object.keys(gameState.bids).length) === 0) {
             gameState.activePlayerIds = structuredClone(gameState.bidders)
         }
     }
 
-    onAction(action: HydratedPlaceScoringBid, context: MachineContext<HydratedKaivaiGameState>): MachineState {
+    onAction(
+        action: HydratedPlaceScoringBid,
+        context: MachineContext<HydratedKaivaiGameState>
+    ): MachineState {
         const gameState = context.gameState
 
         if (!gameState.chosenIsland) {

@@ -9,12 +9,7 @@ import { assertExists } from '../../util/assertions.js'
 import { MasterSeed } from '../../util/gameSeeds.js'
 import { protect, Policy } from '../visibility/visibilitySchema.js'
 import { Validator } from 'typebox/compile'
-
-export enum GameResult {
-    Abandoned = 'Abandoned',
-    Draw = 'Draw',
-    Win = 'Win'
-}
+import { GameResult } from './gameResult.js'
 
 export type ExplorationState = Type.Static<typeof ExplorationState>
 export const ExplorationState = Type.Object({

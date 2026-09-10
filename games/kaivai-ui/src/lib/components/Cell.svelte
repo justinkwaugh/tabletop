@@ -31,14 +31,16 @@
         isChooseScoringIsland,
         isBoatBuildingCell
     } from '@tabletop/kaivai'
-    import { fadeScale } from '@tabletop/frontend-components'
-    import { flipIn, flipInterest, flipKey, flipOut, saveFlipState } from '$lib/utils/transition'
     import { fade } from 'svelte/transition'
     import { KaivaiHexDefinition, KaivaiHexGeometry } from '$lib/utils/hexDefinition.js'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let gameSession = getGameSession() as KaivaiGameSession
-    let { coords, origin }: { coords: AxialCoordinates; origin: Point } = $props()
+    let {
+        coords,
+        origin,
+        layer = 'tiles'
+    }: { coords: AxialCoordinates; origin: Point; layer?: 'tiles' | 'pieces' | 'raised' } = $props()
 
     const cellGeometry = calculateHexGeometry(KaivaiHexDefinition, coords)
     const pointsString = KaivaiHexGeometry.vertices
@@ -46,17 +48,18 @@
         .join(' ')
 
     let cell = $derived(gameSession.gameState.board.cells[coordinatesToNumber(coords)])
+    const renderedCell = $derived(gameSession.boardAnimator.cellAt(coords))
     let cellImage = $derived.by(() => {
-        if (cell) {
-            switch (cell.type) {
+        if (renderedCell) {
+            switch (renderedCell.type) {
                 case CellType.Cult:
                     return cultTile
                 case CellType.Meeting:
-                    return gameSession.getHutImage(HutType.Meeting, cell.owner)
+                    return gameSession.getHutImage(HutType.Meeting, renderedCell.owner)
                 case CellType.Fishing:
-                    return gameSession.getHutImage(HutType.Fishing, cell.owner)
+                    return gameSession.getHutImage(HutType.Fishing, renderedCell.owner)
                 case CellType.BoatBuilding:
-                    return gameSession.getHutImage(HutType.BoatBuilding, cell.owner)
+                    return gameSession.getHutImage(HutType.BoatBuilding, renderedCell.owner)
                 case CellType.Water:
                 default:
                     return undefined
@@ -65,56 +68,31 @@
         return undefined
     })
 
-    let hasFisherman = $derived(isFishingCell(cell))
-    let hasBoat = $derived.by(() => {
-        if (isBoatCell(cell) && cell.boat) {
-            return (
-                gameSession.chosenBoat !== cell.boat.id ||
-                !gameSession.chosenBoatLocation ||
-                sameCoordinates(gameSession.chosenBoatLocation, coords)
+    let hasFisherman = $derived(isFishingCell(renderedCell))
+    const boats = $derived(
+        gameSession.boardAnimator
+            .boatsAt(coords)
+            .filter(
+                (boat) => gameSession.boardAnimator.isAboveMask(boat.id) === (layer === 'raised')
             )
-        } else {
-            return sameCoordinates(gameSession.chosenBoatLocation, coords)
-        }
-    })
+    )
 
-    let boat = $derived.by(() => {
-        if (isBoatCell(cell) && cell.boat) {
-            return cell.boat
-        } else if (sameCoordinates(gameSession.chosenBoatLocation, coords)) {
-            return { id: gameSession.chosenBoat, owner: gameSession.myPlayer?.id }
-        }
-        return undefined
-    })
+    function attachBoat(node: SVGGraphicsElement, id: string) {
+        return gameSession.boardAnimator.attachBoat(node, id)
+    }
 
-    let boatNode: Element | undefined = $state()
+    function attachTile(node: SVGElement) {
+        return gameSession.boardAnimator.attachTile(node, coords)
+    }
 
-    // This is required to make the boatId live long enough to be used in the flip transitions
-    let boatId: string | undefined = $state()
-    $effect(() => {
-        const newBoatId = boat?.id
-        // On a boatId change we have to manually intiate parts of the flip because the in/out transitions
-        // will not be triggered
-        if (newBoatId && boatId && newBoatId !== boatId) {
-            if (boatNode) {
-                // To allow the corresponding in to be triggered (unsink the boat)
-                saveFlipState(boatNode, boatId)
+    function attachGod(node: SVGGraphicsElement) {
+        return gameSession.boardAnimator.attachGod(node)
+    }
 
-                // To flip the boat in (sink the boat)
-                flipInterest(newBoatId) // Make sure the out will store the flip state
-
-                // Flip after the out transition has a chance to store the state
-                setTimeout(() => {
-                    flipKey(newBoatId, { targets: boatNode, duration: 0.2 })
-                }, 0)
-            }
-            boatId = newBoatId
-        } else {
-            boatId = newBoatId
-        }
-    })
-
-    let hasGod = $derived(sameCoordinates(coords, gameSession.gameState.godLocation?.coords))
+    let hasGod = $derived(
+        gameSession.boardAnimator.hasGodAt(coords) &&
+            gameSession.boardAnimator.isAboveMask('god') === (layer === 'raised')
+    )
 
     let numFish = $derived.by(() => {
         return isDeliveryCell(cell) ? cell.fish : 0
@@ -131,8 +109,8 @@
     let playerColor = $derived.by(() => {
         if (isBoatCell(cell) && cell.boat) {
             return gameSession.colors.getPlayerUiColor(cell.boat.owner)
-        } else if (isFishingCell(cell)) {
-            return gameSession.colors.getPlayerUiColor(cell.owner)
+        } else if (isFishingCell(renderedCell)) {
+            return gameSession.colors.getPlayerUiColor(renderedCell.owner)
         } else {
             return gameSession.colors.getPlayerUiColor(gameSession.myPlayer?.id)
         }
@@ -418,32 +396,6 @@
         await gameSession.applyAction(action)
     }
 
-    async function fish() {
-        if (!gameSession.chosenBoat || !gameSession.chosenBoatLocation) {
-            return
-        }
-
-        const action = gameSession.createFishAction({
-            boatId: gameSession.chosenBoat,
-            boatCoords: gameSession.chosenBoatLocation
-        })
-        // gameSession.resetAction()
-        await gameSession.applyAction(action)
-    }
-
-    async function move() {
-        if (!gameSession.chosenBoat || !gameSession.chosenBoatLocation) {
-            return
-        }
-
-        const action = gameSession.createMoveAction({
-            boatId: gameSession.chosenBoat,
-            boatCoords: gameSession.chosenBoatLocation
-        })
-        // gameSession.resetAction()
-        await gameSession.applyAction(action)
-    }
-
     async function celebrate() {
         if (!isIslandCell(cell)) {
             return
@@ -469,7 +421,7 @@
     }
 
     async function onClick() {
-        if (!interactable) {
+        if (!interactable || gameSession.busy) {
             return
         }
 
@@ -508,8 +460,7 @@
                 gameSession.chosenBoat = boat.id
                 return
             } else if (!gameSession.chosenBoatLocation) {
-                gameSession.chosenBoatLocation = { q: coords.q, r: coords.r }
-                await fish()
+                await gameSession.fishAt(coords)
                 return
             }
         } else if (gameSession.chosenAction === ActionType.Deliver) {
@@ -536,8 +487,7 @@
                 gameSession.chosenBoat = boat.id
                 return
             } else if (!gameSession.chosenBoatLocation) {
-                gameSession.chosenBoatLocation = { q: coords.q, r: coords.r }
-                await move()
+                await gameSession.moveBoatTo(coords)
                 return
             }
         } else if (gameSession.chosenAction === ActionType.Celebrate) {
@@ -561,185 +511,189 @@
 </script>
 
 <g
-    role="button"
+    data-cell-id={layer === 'tiles' ? coordinatesToNumber(coords) : undefined}
+    role={layer === 'tiles' ? 'button' : undefined}
     onkeypress={() => onClick()}
     onclick={() => onClick()}
-    pointer-events="visible"
+    pointer-events={layer === 'tiles' ? 'visible' : 'none'}
     stroke="none"
     stroke-width="2"
     transform="translate({cellGeometry.center.x + origin.x}, {cellGeometry.center.y + origin.y})"
 >
     {#if !hidden}
-        <polygon points={pointsString} fill="none" stroke="none" opacity="1"></polygon>
-        {#if cellImage}
-            <g pointer-events="none" transform="rotate(30)">
-                <image
-                    in:fadeScale={{ baseScale: 0.1, duration: 100 }}
-                    out:fadeScale={{ baseScale: 0.1, duration: 100 }}
-                    href={cellImage}
-                    x={KaivaiHexGeometry.boundingBox.y}
-                    y={KaivaiHexGeometry.boundingBox.x}
-                    width={KaivaiHexGeometry.boundingBox.height}
-                    height={KaivaiHexGeometry.boundingBox.width}
-                ></image>
-            </g>
-        {/if}
+        {#if layer === 'tiles'}
+            <polygon points={pointsString} fill="none" stroke="none" opacity="1"></polygon>
+            {#if cellImage}
+                <g pointer-events="none" use:attachTile data-tile-id={coordinatesToNumber(coords)}>
+                    <g transform="rotate(30)">
+                        <image
+                            href={cellImage}
+                            x={KaivaiHexGeometry.boundingBox.y}
+                            y={KaivaiHexGeometry.boundingBox.x}
+                            width={KaivaiHexGeometry.boundingBox.height}
+                            height={KaivaiHexGeometry.boundingBox.width}
+                        ></image>
+                    </g>
 
-        {#if hasFisherman}
-            <g
-                in:fadeScale={{ baseScale: 0.1, duration: 100 }}
-                out:fadeScale={{ baseScale: 0.1, duration: 100 }}
-            >
-                <svg
-                    width="87px"
-                    height="100px"
-                    x={-43.5}
-                    y={-50}
-                    viewBox="-9.5 -5 31 31"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    ><path
-                        fill-rule="evenodd"
-                        clip-rule="evenodd"
-                        d="M2.88138 8.90846C1.73464 7.99226 1 6.58192 1 5C1 2.23858 3.23858 0 6 0C8.7614 0 11 2.23858 11 5C11 6.5814 10.2658 7.99133 9.1198 8.90755L11.0777 13.8831C11.6866 15.4306 12.0015 17.1081 12.0015 18.8049V21C12.0015 21.5523 11.5538 22 11.0015 22H1C0.44772 22 0 21.5523 0 21L0 18.8049C0 17.1081 0.31487 15.4306 0.92382 13.8831L2.88138 8.90846z"
-                        fill={playerColor}
+                    {#if hasFisherman}
+                        <g>
+                            <svg
+                                width="87px"
+                                height="100px"
+                                x={-43.5}
+                                y={-50}
+                                viewBox="-9.5 -5 31 31"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                ><path
+                                    fill-rule="evenodd"
+                                    clip-rule="evenodd"
+                                    d="M2.88138 8.90846C1.73464 7.99226 1 6.58192 1 5C1 2.23858 3.23858 0 6 0C8.7614 0 11 2.23858 11 5C11 6.5814 10.2658 7.99133 9.1198 8.90755L11.0777 13.8831C11.6866 15.4306 12.0015 17.1081 12.0015 18.8049V21C12.0015 21.5523 11.5538 22 11.0015 22H1C0.44772 22 0 21.5523 0 21L0 18.8049C0 17.1081 0.31487 15.4306 0.92382 13.8831L2.88138 8.90846z"
+                                    fill={playerColor}
+                                    stroke="#000000"
+                                    stroke-width="1"
+                                ></path></svg
+                            >
+                        </g>
+                    {/if}
+                </g>
+            {/if}
+        {:else}
+            {#each boats as renderedBoat (renderedBoat.id)}
+                <g
+                    class="z-40"
+                    use:attachBoat={renderedBoat.id}
+                    data-flip-id={renderedBoat.id}
+                    data-boat-id={renderedBoat.id}
+                >
+                    <svg
+                        version="1.1"
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="60px"
+                        height="60px"
+                        x={-30}
+                        y={-30}
+                        viewBox="0 0 512 512"
+                        xmlns:xlink="http://www.w3.org/1999/xlink"
+                        fill={gameSession.colors.getPlayerUiColor(renderedBoat.owner)}
                         stroke="#000000"
-                        stroke-width="1"
-                    ></path></svg
-                >
-            </g>
-        {/if}
-        {#if hasBoat && boatId}
-            <g
-                class="z-40"
-                bind:this={boatNode}
-                in:flipIn={{ key: boatId, duration: 200 }}
-                out:flipOut={{ key: boatId }}
-                data-flip-id={boatId}
-            >
-                <svg
-                    version="1.1"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="60px"
-                    height="60px"
-                    x={-30}
-                    y={-30}
-                    viewBox="0 0 512 512"
-                    xmlns:xlink="http://www.w3.org/1999/xlink"
-                    fill={playerColor}
-                    stroke="#000000"
-                    stroke-width="15"
-                >
-                    <path
-                        d="M333.5,31.6c0-6.2-4.7-24.2-24.8-19.9C114.5,53.5,81.8,257.9,76.3,323.4h257.3V31.6z"
-                    ></path>
-                    <path
-                        d="M19.7,364.3L94.6,491c3.7,6.2,10.4,10,17.6,10h287.7c7.2,0,13.9-3.8,17.6-10l74.9-126.7H19.7z"
-                    ></path>
-                </svg>
-            </g>
-        {/if}
-
-        {#if hasGod}
-            <g
-                in:flipIn={{ key: 'god', duration: 200 }}
-                out:flipOut={{ key: 'god' }}
-                data-flip-id="god"
-            >
-                <FishGod x={-40} y={-40} width={80} height={80} />
-            </g>
-        {/if}
-
-        {#if hasFish}
-            <text
-                class="kaivai-font select-none"
-                style="filter: url(#textshadow); fill: black"
-                x="-4"
-                y="0"
-                text-anchor="end"
-                dominant-baseline="middle"
-                font-size="50"
-                font-weight="bold"
-                stroke-width="1"
-                stroke="#000000"
-                opacity=".5"
-                fill="black">{numFish}</text
-            >
-            <text
-                class="kaivai-font select-none"
-                x="-4"
-                y="5"
-                text-anchor="end"
-                dominant-baseline="middle"
-                font-size="50"
-                font-weight="bold"
-                stroke-width="1"
-                stroke="#FFFFFF"
-                fill="white"
-                >{numFish}
-            </text>
-
-            <g transform="rotate(90)">
-                <svg
-                    x={-19}
-                    y={-33}
-                    height="38px"
-                    width="38px"
-                    version="1.1"
-                    id="_x32_"
-                    xmlns="http://www.w3.org/2000/svg"
-                    xmlns:xlink="http://www.w3.org/1999/xlink"
-                    viewBox="0 0 512 512"
-                    xml:space="preserve"
-                    filter="url(#dropshadow)"
-                    fill="#FFFFFF"
-                >
-                    <g>
+                        stroke-width="15"
+                    >
                         <path
-                            class="st0"
-                            d="M508.727,159.883c-14.908-8.942-74.31,45.732-91.456,68.595c-57.163-34.302-108.602-57.164-108.602-57.164
+                            d="M333.5,31.6c0-6.2-4.7-24.2-24.8-19.9C114.5,53.5,81.8,257.9,76.3,323.4h257.3V31.6z"
+                        ></path>
+                        <path
+                            d="M19.7,364.3L94.6,491c3.7,6.2,10.4,10,17.6,10h287.7c7.2,0,13.9-3.8,17.6-10l74.9-126.7H19.7z"
+                        ></path>
+                    </svg>
+                </g>
+            {/each}
+
+            {#if hasGod}
+                <g use:attachGod data-flip-id="god" data-god>
+                    <FishGod x={-40} y={-40} width={80} height={80} />
+                </g>
+            {/if}
+
+            {#if layer === 'pieces' && hasFish}
+                <text
+                    class="kaivai-font select-none"
+                    style="filter: url(#textshadow); fill: black"
+                    x="-4"
+                    y="0"
+                    text-anchor="end"
+                    dominant-baseline="middle"
+                    font-size="50"
+                    font-weight="bold"
+                    stroke-width="1"
+                    stroke="#000000"
+                    opacity=".5"
+                    fill="black">{numFish}</text
+                >
+                <text
+                    class="kaivai-font select-none"
+                    x="-4"
+                    y="5"
+                    text-anchor="end"
+                    dominant-baseline="middle"
+                    font-size="50"
+                    font-weight="bold"
+                    stroke-width="1"
+                    stroke="#FFFFFF"
+                    fill="white"
+                    >{numFish}
+                </text>
+
+                <g transform="rotate(90)">
+                    <svg
+                        x={-19}
+                        y={-33}
+                        height="38px"
+                        width="38px"
+                        version="1.1"
+                        id="_x32_"
+                        xmlns="http://www.w3.org/2000/svg"
+                        xmlns:xlink="http://www.w3.org/1999/xlink"
+                        viewBox="0 0 512 512"
+                        xml:space="preserve"
+                        filter="url(#dropshadow)"
+                        fill="#FFFFFF"
+                    >
+                        <g>
+                            <path
+                                class="st0"
+                                d="M508.727,159.883c-14.908-8.942-74.31,45.732-91.456,68.595c-57.163-34.302-108.602-57.164-108.602-57.164
 		s22.862-100.025-8.578-94.318c-28.638,5.212-81.664,42.558-125.749,77.172C100.033,174.176,10.164,225.086,0,274.201
 		c28.577,94.318,191.489,140.042,288.66,160.05c47.831,9.852,20.009-57.155,20.009-57.155s51.439-22.87,108.602-57.163
 		c17.147,22.862,76.548,77.536,91.456,68.594c14.293-8.577-22.862-114.326-22.862-114.326S523.02,168.461,508.727,159.883z"
-                        ></path>
-                    </g>
-                </svg>
-            </g>
-        {/if}
+                            ></path>
+                        </g>
+                    </svg>
+                </g>
+            {/if}
 
-        {#if hasFishToken}
-            <image href={fishtoken} x={-25} y={-25} width="50px" height="50px"></image>
-            <circle cx="0" cy="0" r="25" fill="black" stroke="black" opacity=".1" stroke-width="2"
-            ></circle>
-            <text
-                class="kaivai-font select-none"
-                style="filter: url(#textshadow); fill: black"
-                y="0"
-                text-anchor="middle"
-                dominant-baseline="middle"
-                font-size="50"
-                font-weight="bold"
-                stroke-width="1"
-                stroke="#000000"
-                opacity=".5"
-                fill="black">{numDeliveredFish}</text
-            >
-            <text
-                class="kaivai-font select-none"
-                y="5"
-                text-anchor="middle"
-                dominant-baseline="middle"
-                font-size="50"
-                font-weight="bold"
-                stroke-width="1"
-                stroke="#FFFFFF"
-                fill="white"
-                >{numDeliveredFish}
-            </text>
+            {#if layer === 'pieces' && hasFishToken}
+                <image href={fishtoken} x={-25} y={-25} width="50px" height="50px"></image>
+                <circle
+                    cx="0"
+                    cy="0"
+                    r="25"
+                    fill="black"
+                    stroke="black"
+                    opacity=".1"
+                    stroke-width="2"
+                ></circle>
+                <text
+                    class="kaivai-font select-none"
+                    style="filter: url(#textshadow); fill: black"
+                    y="0"
+                    text-anchor="middle"
+                    dominant-baseline="middle"
+                    font-size="50"
+                    font-weight="bold"
+                    stroke-width="1"
+                    stroke="#000000"
+                    opacity=".5"
+                    fill="black">{numDeliveredFish}</text
+                >
+                <text
+                    class="kaivai-font select-none"
+                    y="5"
+                    text-anchor="middle"
+                    dominant-baseline="middle"
+                    font-size="50"
+                    font-weight="bold"
+                    stroke-width="1"
+                    stroke="#FFFFFF"
+                    fill="white"
+                    >{numDeliveredFish}
+                </text>
+            {/if}
         {/if}
     {/if}
-    {#if disabled}
+    {#if layer === 'pieces' && disabled}
         <polygon
+            data-cell-mask
             in:fade={{ duration: 150 }}
             out:fade={{ duration: 150 }}
             points={pointsString}

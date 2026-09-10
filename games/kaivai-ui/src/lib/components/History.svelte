@@ -157,11 +157,7 @@
                     {/if}
                     <TimelineItem
                         timeClass="dark:text-[#8d794d]"
-                        classes={{
-                            div: historyItem.date
-                                ? 'dark:bg-[#cabb7a] border-[#cabb7a]'
-                                : 'dark:bg-transparent border-0'
-                        }}
+                        defaultDivClass="hidden"
                         title=""
                         class="mb-5"
                         date={historyItem.date ? timeAgo.format(historyItem.date) : ''}

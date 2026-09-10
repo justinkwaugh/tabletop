@@ -6,6 +6,8 @@ Private money displays a question mark for other players during play and a numer
 
 Private-money Games disable entry into Exploration in every perspective and phase, including ordinary hotseat, Host View, and legacy Games with the configuration option. Public-money Games can enter projected Exploration and return to their source.
 
+History uses 12-pixel outlined dots centered on the timeline, including action and game boundary entries. Player names designated white render at full brightness in panels, bidding, history, and status text.
+
 ## Coexistence and precedence
 
 EndOfGame disclosure takes precedence over private-money presentation. History uses the displayed state's phase, so navigating back before the end restores private presentation. Perspective changes replace the permitted state; values learned through Host View must not remain in a subsequent Player or Spectator representation.
@@ -18,9 +20,13 @@ These behaviors derive from displayed Game State, persisted configuration, and t
 
 The players panel owns balance presentation. The table owns the tile-supply count and reads the public count through the hydrated state. The shared control owns the disabled Exploration button. Changing visibility does not change board hit targets or layer ordering.
 
+Paper texture paints behind content within an isolated stacking context. It may texture a panel background, but must not darken player names or other foreground content. The history panel owns its custom dots and suppresses Flowbite’s default markers only within that panel.
+
 ## Verification scenarios
 
 - Start a private-money protected Game and select the acting player: exactly their balance is delivered, three opponent badges show question marks in a four-player Game, the public tile count remains visible, and a submitted bid reduces the owner's money. Automated browser test, at desktop and narrow viewport sizes.
 - Switch to Host View and then Spectator: canonical bag and balances are available only in Host View; Spectator restores an empty bag representation and four question marks. Exploration stays disabled. Automated browser test.
 - Start a Public Money protected Game as Spectator: all balances are delivered, the bag remains concealed, and Exploration samples a playable complete bag. Submit a bid there and exit: the original action count and concealed bag return. Automated browser test.
 - Complete a private-money Game, navigate backward and forward through history: end-game money is public, earlier opponent balances remain omitted, and tile order never enters projected history. Automated logic conformance test.
+
+- Create a Game and place a bid: panel and inline names retain full-white text; History shows one 12-pixel dot per entry aligned with the timeline. Verified in Chromium with rendered-pixel and geometry checks.

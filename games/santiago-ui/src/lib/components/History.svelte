@@ -25,11 +25,24 @@
     )
 </script>
 
-<div class="paper-texture rounded-lg border border-stone-700 bg-stone-900/80 p-3 min-w-52">
+{#snippet timelineDot()}
+    <div
+        aria-hidden="true"
+        class="absolute w-3 h-3 bg-stone-800 rounded-full mt-1.5 -start-1.5 border border-stone-500"
+    ></div>
+{/snippet}
+
+<div class="santiago-history paper-texture rounded-lg border border-stone-700 bg-stone-900/80 p-3 min-w-52">
     <p class="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-2">History</p>
-    <Timeline class="ms-1 text-left">
+    <Timeline class="ms-2 text-left border-stone-500 dark:border-stone-500">
         {#if session.game?.finishedAt}
-            <TimelineItem title="" class="mb-4" date={timeAgo.format(session.game.finishedAt)}>
+            {@render timelineDot()}
+            <TimelineItem
+                title=""
+                class="timeline-item mb-4"
+                timeClass="text-stone-400 dark:text-stone-400"
+                date={timeAgo.format(session.game.finishedAt)}
+            >
                 <p class="text-sm text-stone-200">The game ended.</p>
             </TimelineItem>
         {/if}
@@ -39,7 +52,13 @@
                 out:fade={{ duration: 50 }}
                 animate:flip={{ duration: 100 }}
             >
-                <TimelineItem title="" class="mb-4" date={action.createdAt ? timeAgo.format(action.createdAt) : ''}>
+                {@render timelineDot()}
+                <TimelineItem
+                    title=""
+                    class="timeline-item mb-4"
+                    timeClass="text-stone-400 dark:text-stone-400"
+                    date={action.createdAt ? timeAgo.format(action.createdAt) : ''}
+                >
                     <p class="text-sm text-stone-200">
                         {#if action.playerId}
                             <PlayerNameChip playerId={action.playerId} />
@@ -55,8 +74,20 @@
                 </TimelineItem>
             </div>
         {/each}
-        <TimelineItem title="" class="mb-4" date={session.game?.createdAt ? timeAgo.format(session.game.createdAt) : ''}>
+        {@render timelineDot()}
+        <TimelineItem
+            title=""
+            class="timeline-item mb-4"
+            timeClass="text-stone-400 dark:text-stone-400"
+            date={session.game?.createdAt ? timeAgo.format(session.game.createdAt) : ''}
+        >
             <p class="text-sm text-stone-200">The game started.</p>
         </TimelineItem>
     </Timeline>
 </div>
+
+<style>
+    .santiago-history :global(.timeline-item > div) {
+        display: none;
+    }
+</style>

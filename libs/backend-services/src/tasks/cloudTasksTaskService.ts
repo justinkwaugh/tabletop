@@ -15,7 +15,7 @@ export class CloudTasksTaskService extends BaseTaskService {
         const url = `${this.host}/tasks${options.path}`
         const parent = client.queuePath(project, location, options.queue)
 
-        const httpRequest = <protos.google.cloud.tasks.v2.IHttpRequest>{
+        const httpRequest: protos.google.cloud.tasks.v2.IHttpRequest = {
             headers: {
                 'Content-Type': 'application/json'
             },
@@ -27,17 +27,15 @@ export class CloudTasksTaskService extends BaseTaskService {
             httpRequest.body = Buffer.from(JSON.stringify(options.payload)).toString('base64')
         }
 
-        const task = {
-            httpRequest
-        } as protos.google.cloud.tasks.v2.ITask
+        const task: protos.google.cloud.tasks.v2.ITask = { httpRequest }
 
         if (options.inSeconds) {
             task.scheduleTime = {
-                seconds: options.inSeconds + Date.now() / 1000
+                seconds: Math.ceil(options.inSeconds + Date.now() / 1000)
             }
         }
 
-        const request = <protos.google.cloud.tasks.v2.CreateTaskRequest>{
+        const request: protos.google.cloud.tasks.v2.ICreateTaskRequest = {
             parent: parent,
             task: task
         }
