@@ -2,7 +2,7 @@
     import { setLibraryView } from '$lib/stores/libraryView'
 
     let { children } = $props()
-    const view = $state({ search: '', scrollTop: 0 })
+    const view = $state({ scrollTop: 0 })
     setLibraryView(view)
 </script>
 

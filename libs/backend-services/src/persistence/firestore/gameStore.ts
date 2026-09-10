@@ -15,6 +15,7 @@ import {
     Transaction,
     Filter,
     FieldValue,
+    FieldPath,
     DocumentData,
     type DocumentSnapshot,
     type ReadOnlyTransactionOptions,
@@ -39,7 +40,9 @@ import {
     Tournament,
     UserStatus,
     assert,
-    assertExists
+    assertExists,
+    type GameHistoryPage,
+    type GameHistoryCursor
 } from '@tabletop/common'
 import {
     AlreadyExistsError,
@@ -623,6 +626,69 @@ export class FirestoreGameStore implements GameStore {
         const cacheKey = GameCacheKeys.userList(user.id, category)
         const { value, cached } = await this.cacheService.cacheGet(cacheKey)
         return cached && (value as string[]).length > 0
+    }
+
+    async findGameHistory(user: User, before?: GameHistoryCursor): Promise<GameHistoryPage> {
+        const guard = GameCacheKeys.history(user.id, before !== undefined)
+        const generation = await this.historyGeneration(guard)
+        return this.cacheService.readConsistently({
+            keys: [guard],
+            read: async () => {
+                const current = await this.cacheService.get<string>(guard)
+                if (!current.cached || current.value !== generation)
+                    return this.queryGameHistory(user, before)
+                const key = GameCacheKeys.historyPage(user.id, JSON.stringify(before ?? null))
+                const cached = await this.cacheService.get<{
+                    generation: string
+                    page: GameHistoryPage
+                }>(key)
+                if (cached.cached && cached.value?.generation === generation) {
+                    return {
+                        ...cached.value.page,
+                        games: cached.value.page.games.map((game) => this.normalizeGame(game))
+                    }
+                }
+                const page = await this.queryGameHistory(user, before)
+                await this.cacheService.set(key, { generation, page }, 86400).catch((error) => {
+                    console.error('Game history cache fill failed', error)
+                })
+                return page
+            },
+            fallback: () => this.queryGameHistory(user, before)
+        })
+    }
+
+    private async historyGeneration(key: string): Promise<string> {
+        const cached = await this.cacheService.get<string>(key)
+        if (cached.cached && cached.value) return cached.value
+        const lock = await this.cacheService.acquireReadLock({ key, value: cached.value })
+        const generation = nanoid()
+        await this.cacheService.cacheSet(key, generation, lock)
+        return generation
+    }
+
+    private async queryGameHistory(
+        user: User,
+        before?: GameHistoryCursor
+    ): Promise<GameHistoryPage> {
+        let query = this.games
+            .where('userIds', 'array-contains', user.id)
+            .where('status', '==', GameStatus.Finished)
+            .orderBy('finishedAt', 'desc')
+            .orderBy(FieldPath.documentId(), 'desc')
+        if (before) query = query.startAfter(new Date(before.time), before.id)
+        const snapshot = await this.readQuery(query.limit(26))
+        this.recordRead('game', Math.max(1, snapshot.size))
+        const games = snapshot.docs
+            .slice(0, 25)
+            .map((document) => this.normalizeGame(document.data()))
+        const last = games.at(-1)
+        if (snapshot.size <= 25 || !last) return { games }
+        assertExists(last.finishedAt, 'Finished games require a completion timestamp')
+        return {
+            games,
+            nextCursor: JSON.stringify({ time: last.finishedAt.getTime(), id: last.id })
+        }
     }
 
     // It would be nice to make the caching a little less manual here

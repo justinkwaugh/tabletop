@@ -5,7 +5,6 @@
     export const snapshot = {
         capture: () => ({ ...view }),
         restore: (value: LibraryView) => {
-            view.search = value.search
             view.scrollTop = value.scrollTop
         }
     }
@@ -13,4 +12,4 @@
 
 <svelte:head><title>Game library — Board Together</title></svelte:head>
 
-<LandingPage signedIn bind:search={view.search} bind:scrollTop={view.scrollTop} />
+<LandingPage signedIn bind:scrollTop={view.scrollTop} />

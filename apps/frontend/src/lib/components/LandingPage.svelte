@@ -2,18 +2,10 @@
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { availableLibraryTitles } from '$lib/utils/libraryTitles'
     import { getLoginModal } from '$lib/stores/loginModal'
-    import {
-        ArrowRightOutline,
-        ArrowDownOutline,
-        UsersOutline,
-        SearchOutline
-    } from 'flowbite-svelte-icons'
+    import { ArrowRightOutline, ArrowDownOutline, UsersOutline } from 'flowbite-svelte-icons'
 
-    let {
-        signedIn = false,
-        search = $bindable(''),
-        scrollTop = $bindable(0)
-    }: { signedIn?: boolean; search?: string; scrollTop?: number } = $props()
+    let { signedIn = false, scrollTop = $bindable(0) }: { signedIn?: boolean; scrollTop?: number } =
+        $props()
     const { libraryService, authorizationService } = getAppContext()
     const openLoginModal = getLoginModal()
     let titles = $derived(
@@ -22,23 +14,16 @@
             signedIn ? authorizationService.getSessionUser() : undefined
         )
     )
-    let matchingTitles = $derived(
-        titles.filter((title) =>
-            title.info.metadata.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())
-        )
-    )
     let showAllGames = $state(false)
     const shelfSize = 10
-    let shelfTitles = $derived(
-        signedIn ? matchingTitles : showAllGames ? titles : titles.slice(0, shelfSize)
-    )
+    let shelfTitles = $derived(signedIn || showAllGames ? titles : titles.slice(0, shelfSize))
     const featuredIds = ['bus', 'indonesia', 'sol']
     let featuredTitles = $derived(
         featuredIds.flatMap((id) => titles.filter((title) => title.info.id === id))
     )
 </script>
 
-<main class="landing" class:signed-in={signedIn}>
+<main class="landing collection-page" class:signed-in={signedIn}>
     {#if !signedIn}
         <section class="hero" aria-labelledby="welcome-heading">
             <div class="introduction">
@@ -74,114 +59,98 @@
         aria-labelledby="games-heading"
         aria-busy={libraryService.loading}
     >
-        <div class="section-heading">
-            <div>
-                {#if !signedIn}
-                    <p class="eyebrow">In the library</p>
-                {/if}
-                <svelte:element
-                    this={signedIn ? 'h1' : 'h2'}
-                    id="games-heading"
-                    class="collection-title"
-                >
-                    {signedIn ? 'What would you like to play?' : 'Find your next game.'}
-                </svelte:element>
-            </div>
-            {#if !signedIn && !libraryService.loading && titles.length > 0}
-                <span class="library-note">{titles.length} games to explore</span>
-            {/if}
-        </div>
-
-        {#if signedIn}
-            <div class="library-toolbar">
-                <span class="library-note" aria-live="polite"
-                    >{matchingTitles.length}
-                    {matchingTitles.length === 1 ? 'game' : 'games'}{search.trim()
-                        ? ' found'
-                        : ' in the library'}</span
-                >
-                <label class="library-search">
-                    <SearchOutline class="h-4 w-4" />
-                    <span class="sr-only">Find a game</span>
-                    <input type="search" bind:value={search} placeholder="Find a game" />
-                </label>
-            </div>
-        {/if}
-
-        <div
-            class="library-results"
-            onscroll={(event) => (scrollTop = event.currentTarget.scrollTop)}
-            {@attach (element) => {
-                element.scrollTop = scrollTop
-            }}
-        >
-            {#if libraryService.loading}
-                <p role="status" class="library-status">Setting out the games…</p>
-            {:else if titles.length === 0}
-                <p role="status" class="library-status">
-                    The game shelf couldn’t load. Please refresh to try again.
-                </p>
-            {:else if shelfTitles.length === 0}
-                <p role="status" class="library-status">
-                    No games match “{search}”.
-                    <button class="clear-search" onclick={() => (search = '')}>Clear search</button>
-                </p>
-            {:else}
-                <ul id="game-shelf" class="game-shelf">
-                    {#each shelfTitles as title (title.info.id)}
-                        <li>
-                            {#snippet cover()}
-                                <div class="cover-stage">
-                                    <img
-                                        src={title.info.thumbnailUrl}
-                                        alt=""
-                                        loading="lazy"
-                                        data-game-cover={title.info.id}
-                                    />
-                                    <span class="play-arrow"
-                                        ><ArrowRightOutline class="h-5 w-5" /></span
-                                    >
-                                </div>
-                                <h3>{title.info.metadata.name}</h3>
-                                <p class="player-count">
-                                    <UsersOutline class="h-3.5 w-3.5" />
-                                    {title.info.metadata
-                                        .minPlayers}{#if title.info.metadata.maxPlayers !== title.info.metadata.minPlayers}–{title
-                                            .info.metadata.maxPlayers}{/if} players
-                                </p>
-                            {/snippet}
-                            {#if signedIn}
-                                <a
-                                    class="game"
-                                    href={`/library/${title.info.id}`}
-                                    aria-label={`View ${title.info.metadata.name}`}
-                                >
-                                    {@render cover()}
-                                </a>
-                            {:else}
-                                <button
-                                    class="game"
-                                    onclick={openLoginModal}
-                                    aria-label={`Sign in to play ${title.info.metadata.name}`}
-                                >
-                                    {@render cover()}
-                                </button>
-                            {/if}
-                        </li>
-                    {/each}
-                </ul>
-                {#if !signedIn && titles.length > shelfSize}
-                    <button
-                        class="expand-shelf"
-                        aria-expanded={showAllGames}
-                        aria-controls="game-shelf"
-                        onclick={() => (showAllGames = !showAllGames)}
+        <div class="collection-content">
+            <div class="section-heading collection-header">
+                <div>
+                    <svelte:element
+                        this={signedIn ? 'h1' : 'h2'}
+                        id="games-heading"
+                        class="collection-heading"
                     >
-                        {showAllGames ? 'Show fewer games' : `See all ${titles.length} games`}
-                        <ArrowDownOutline class={showAllGames ? 'h-4 w-4 rotate-180' : 'h-4 w-4'} />
-                    </button>
+                        {signedIn ? 'What would you like to play?' : 'Find your next game.'}
+                    </svelte:element>
+                </div>
+                {#if !libraryService.loading && titles.length > 0}
+                    <span class="library-note" aria-live="polite"
+                        >{titles.length}
+                        {titles.length === 1 ? 'game' : 'games'}
+                        in the library</span
+                    >
                 {/if}
-            {/if}
+            </div>
+
+            <div
+                class="library-results"
+                onscroll={(event) => (scrollTop = event.currentTarget.scrollTop)}
+                {@attach (element) => {
+                    element.scrollTop = scrollTop
+                }}
+            >
+                {#if libraryService.loading}
+                    <p role="status" class="library-status">Setting out the games…</p>
+                {:else if titles.length === 0}
+                    <p role="status" class="library-status">
+                        The game shelf couldn’t load. Please refresh to try again.
+                    </p>
+                {:else}
+                    <ul id="game-shelf" class="game-shelf">
+                        {#each shelfTitles as title (title.info.id)}
+                            <li>
+                                {#snippet cover()}
+                                    <div class="cover-stage">
+                                        <img
+                                            src={title.info.thumbnailUrl}
+                                            alt=""
+                                            loading="lazy"
+                                            data-game-cover={title.info.id}
+                                        />
+                                        <span class="play-arrow"
+                                            ><ArrowRightOutline class="h-5 w-5" /></span
+                                        >
+                                    </div>
+                                    <h3>{title.info.metadata.name}</h3>
+                                    <p class="player-count">
+                                        <UsersOutline class="h-3.5 w-3.5" />
+                                        {title.info.metadata
+                                            .minPlayers}{#if title.info.metadata.maxPlayers !== title.info.metadata.minPlayers}–{title
+                                                .info.metadata.maxPlayers}{/if} players
+                                    </p>
+                                {/snippet}
+                                {#if signedIn}
+                                    <a
+                                        class="game"
+                                        href={`/library/${title.info.id}`}
+                                        aria-label={`View ${title.info.metadata.name}`}
+                                    >
+                                        {@render cover()}
+                                    </a>
+                                {:else}
+                                    <button
+                                        class="game"
+                                        onclick={openLoginModal}
+                                        aria-label={`Sign in to play ${title.info.metadata.name}`}
+                                    >
+                                        {@render cover()}
+                                    </button>
+                                {/if}
+                            </li>
+                        {/each}
+                    </ul>
+                    {#if !signedIn && titles.length > shelfSize}
+                        <button
+                            class="expand-shelf"
+                            aria-expanded={showAllGames}
+                            aria-controls="game-shelf"
+                            onclick={() => (showAllGames = !showAllGames)}
+                        >
+                            {showAllGames ? 'Show fewer games' : `See all ${titles.length} games`}
+                            <ArrowDownOutline
+                                class={showAllGames ? 'h-4 w-4 rotate-180' : 'h-4 w-4'}
+                            />
+                        </button>
+                    {/if}
+                {/if}
+            </div>
         </div>
     </section>
 </main>
@@ -194,10 +163,10 @@
     }
 
     .landing {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 48px;
         color: var(--color-gray-200);
+    }
+    .landing:not(.signed-in) {
+        padding-top: 0;
     }
 
     .hero {
@@ -209,15 +178,7 @@
         padding: 32px 40px 12px 0;
     }
 
-    .eyebrow {
-        color: var(--color-blue-300);
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-    }
-
-    h1 {
+    .hero h1 {
         margin: 20px 0 32px;
         font-size: clamp(48px, 5.6vw, 76px);
         font-weight: 750;
@@ -225,7 +186,7 @@
         line-height: 1.04;
     }
 
-    h1 span {
+    .hero h1 span {
         color: #6496df;
     }
 
@@ -355,8 +316,10 @@
         transform: rotate(17deg);
     }
 
-    .games {
+    .collection-content {
         view-transition-name: game-collection;
+    }
+    .games {
         padding-top: 32px;
         padding-bottom: 48px;
         border-top: 1px solid var(--color-gray-700);
@@ -371,8 +334,14 @@
         flex-direction: column;
         height: 100%;
         border-top: 0;
-        padding-top: 40px;
+        padding-top: 0;
         padding-bottom: 0;
+    }
+    .signed-in .collection-content {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
     }
     .signed-in .library-results {
         flex: 1;
@@ -382,73 +351,17 @@
         margin: -4px -16px 0 -4px;
         padding: 4px 16px 48px 4px;
     }
-    .signed-in .section-heading,
-    .signed-in .library-toolbar {
-        flex-shrink: 0;
-    }
-    .signed-in .collection-title {
-        margin: 0;
-        font-size: clamp(32px, 4.3vw, 52px);
-        line-height: 1.2;
-    }
-    .signed-in .section-heading {
-        margin-bottom: 0;
-    }
-    .library-toolbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 20px;
-        margin: 28px 0;
-    }
-    .library-search {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        width: 260px;
-        max-width: 65%;
-        padding: 10px 14px;
-        border: 1px solid var(--color-gray-700);
-        border-radius: 8px;
-        color: var(--color-gray-400);
-        background: var(--color-gray-800);
-    }
-    .library-search:focus-within {
-        border-color: var(--color-blue-400);
-    }
-    .library-search input {
-        width: 100%;
-        min-width: 0;
-        padding: 0;
-        border: 0;
-        outline: none;
-        box-shadow: none;
-        background: transparent;
-        color: var(--color-gray-200);
-        font-size: 16px;
-    }
-    .clear-search {
-        color: var(--color-blue-300);
-        text-decoration: underline;
-    }
-
     .section-heading {
+        flex-shrink: 0;
+        padding-bottom: 8px;
         display: flex;
         align-items: end;
         justify-content: space-between;
         gap: 16px;
-        margin-bottom: 28px;
     }
-
-    .collection-title {
-        font-family: 'Inter', sans-serif;
-        margin-top: 8px;
-        font-size: 28px;
-        font-weight: 600;
-        letter-spacing: -0.035em;
-    }
-
     .library-note {
+        text-align: right;
+        flex-shrink: 0;
         padding-bottom: 4px;
         color: var(--color-gray-400);
         font-size: 13px;
@@ -579,9 +492,6 @@
     }
 
     @media (max-width: 1000px) {
-        .landing {
-            padding: 0 32px;
-        }
         .showcase {
             height: 300px;
         }
@@ -597,9 +507,6 @@
     }
 
     @media (max-width: 700px) {
-        .landing {
-            padding: 0 24px;
-        }
         .hero {
             grid-template-columns: 1fr;
             padding-right: 0;
@@ -608,7 +515,7 @@
         .introduction {
             text-align: center;
         }
-        h1 {
+        .hero h1 {
             font-size: clamp(42px, 11.5vw, 60px);
         }
         .intro-copy {
@@ -625,53 +532,11 @@
         .showcase {
             display: none;
         }
-        .library-toolbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
-            margin: 28px 0;
-        }
-        .library-search {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            width: 260px;
-            max-width: 65%;
-            padding: 10px 14px;
-            border: 1px solid var(--color-gray-700);
-            border-radius: 8px;
-            color: var(--color-gray-400);
-            background: var(--color-gray-800);
-        }
-        .library-search:focus-within {
-            border-color: var(--color-blue-400);
-        }
-        .library-search input {
-            width: 100%;
-            min-width: 0;
-            padding: 0;
-            border: 0;
-            outline: none;
-            box-shadow: none;
-            background: transparent;
-            color: var(--color-gray-200);
-            font-size: 16px;
-        }
-        .clear-search {
-            color: var(--color-blue-300);
-            text-decoration: underline;
-        }
-
         .section-heading {
             align-items: start;
-            margin-bottom: 24px;
         }
         .library-note {
-            display: none;
-        }
-        .collection-title {
-            font-size: 26px;
+            max-width: 96px;
         }
         .game-shelf {
             grid-template-columns: repeat(2, minmax(0, 1fr));

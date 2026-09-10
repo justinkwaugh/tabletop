@@ -4,7 +4,9 @@ import {
     Game,
     GameState,
     User,
-    GameStatusCategory
+    GameStatusCategory,
+    GameHistoryPage,
+    GameHistoryCursor
 } from '@tabletop/common'
 import { UpdateValidationResult, UpdateValidator } from './validator.js'
 
@@ -61,6 +63,7 @@ export interface GameStore {
     getGameEtag(gameId: string): Promise<string | undefined>
     hasCachedActiveGames(user: User): Promise<boolean>
     findGamesForUser(user: User, category: GameStatusCategory): Promise<Game[]>
+    findGameHistory(user: User, before?: GameHistoryCursor): Promise<GameHistoryPage>
     findOpenGamesForTitle(titleId: string): Promise<Game[]>
     findGameById(gameId: string, includeState: boolean): Promise<Game | undefined>
     findUndoActionWindow({

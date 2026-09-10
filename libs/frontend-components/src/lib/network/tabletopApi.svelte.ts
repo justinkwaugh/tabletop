@@ -14,6 +14,7 @@ import {
     GameState,
     GameSyncStatus,
     GameValidator,
+    GameHistoryPage,
     User,
     UserPreferences,
     Visibility,
@@ -285,14 +286,28 @@ export class TabletopApi {
         return response.payload.hasActive
     }
 
-    async getMyGames(): Promise<Game[]> {
+    async getMyGames(scope?: 'current'): Promise<Game[]> {
         const response = await this.wretch
-            .get('/games/mine')
+            .get(scope ? `/games/mine?scope=${scope}` : '/games/mine')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GamesResponse>()
 
         return response.payload.games.map((game) => this.validateGame(game))
+    }
+
+    async getMyGameHistory(before?: string): Promise<GameHistoryPage> {
+        const params = new URLSearchParams()
+        if (before) params.set('before', before)
+        const response = await this.wretch
+            .get(`/games/history?${params}`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<unknown>()
+        Value.Assert(Type.Object({ payload: Type.Unknown() }), response)
+        Value.Convert(GameHistoryPage, response.payload)
+        Value.Assert(GameHistoryPage, response.payload)
+        return response.payload
     }
 
     async getOpenGames(titleId: string): Promise<Game[]> {
@@ -316,10 +331,20 @@ export class TabletopApi {
         return this.requestTournament(`/tournaments/${encodeURIComponent(id)}`, TournamentDetail)
     }
     correctTournamentResult(id: string, request: CorrectTournamentResultRequest) {
-        return this.requestTournament(`/tournaments/${encodeURIComponent(id)}/results/correct`, Tournament, 'POST', request)
+        return this.requestTournament(
+            `/tournaments/${encodeURIComponent(id)}/results/correct`,
+            Tournament,
+            'POST',
+            request
+        )
     }
     rebuildTournamentStandings(id: string, revision: number) {
-        return this.requestTournament(`/tournaments/${encodeURIComponent(id)}/standings/rebuild`, Tournament, 'POST', { revision })
+        return this.requestTournament(
+            `/tournaments/${encodeURIComponent(id)}/standings/rebuild`,
+            Tournament,
+            'POST',
+            { revision }
+        )
     }
     getTournamentSchedule(id: string) {
         return this.requestTournament(

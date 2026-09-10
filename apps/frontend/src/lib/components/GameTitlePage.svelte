@@ -32,7 +32,7 @@
 
 <svelte:head><title>{metadata.name} — Board Together</title></svelte:head>
 
-<main class="title-page">
+<main class="title-page collection-page">
     <a class="back-link" href="/library"><ArrowLeftOutline class="h-4 w-4" /> All games</a>
     <section class="title-intro" aria-labelledby="title-heading">
         <div class="title-cover">
@@ -87,9 +87,7 @@
 
 <style>
     .title-page {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 32px 48px 64px;
+        padding-bottom: 64px;
         color: var(--color-gray-200);
     }
     .back-link {
@@ -201,10 +199,6 @@
         font-size: 14px;
     }
     @media (max-width: 1000px) {
-        .title-page {
-            padding-right: 32px;
-            padding-left: 32px;
-        }
         .title-intro {
             gap: 32px;
         }
@@ -214,7 +208,7 @@
     }
     @media (max-width: 700px) {
         .title-page {
-            padding: 24px 24px 48px;
+            padding-bottom: 48px;
         }
         .title-intro {
             grid-template-columns: 1fr;

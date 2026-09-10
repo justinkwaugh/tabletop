@@ -135,13 +135,9 @@
 </script>
 
 <svelte:head><title>Tournaments · Tabletop</title></svelte:head>
-<main class="mx-auto max-w-6xl px-4 pb-10 pt-4 text-gray-900 dark:text-gray-100 sm:px-6 sm:pt-5">
-    <header class="flex items-center gap-3">
-        <h1
-            class="font-tournament text-3xl font-semibold leading-tight tracking-normal sm:text-4xl"
-        >
-            Tournaments
-        </h1>
+<main class="collection-page pb-10 text-gray-900 dark:text-gray-100">
+    <header class="collection-header flex items-center gap-3">
+        <h1 class="collection-heading">Tournaments</h1>
         {#if isAdmin}
             <button
                 onclick={() => (creating = true)}
@@ -162,12 +158,12 @@
         {/if}
     </header>
     <div
-        class="mt-4 flex flex-wrap items-start justify-between gap-x-5 gap-y-3 border-b border-gray-200 dark:border-gray-700/60"
+        class="flex flex-wrap items-start justify-between gap-x-5 gap-y-3 border-b border-gray-200 dark:border-gray-700/60"
     >
         <div
             role="tablist"
             aria-label="Tournaments"
-            class="order-2 flex w-full gap-5 sm:order-1 sm:w-auto sm:gap-7"
+            class="collection-tabs order-2 w-full sm:order-1 sm:w-auto"
         >
             {#each tabs as tab, index (tab.scope)}
                 <button
@@ -178,8 +174,7 @@
                     tabindex={scope === tab.scope ? 0 : -1}
                     onclick={() => selectTab(tab.scope)}
                     onkeydown={(event) => moveTab(event, index)}
-                    class="relative -mb-px whitespace-nowrap border-b-2 px-0.5 pb-3 pt-1 text-sm font-medium transition-colors focus-visible:rounded-t focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 {scope ===
-                    tab.scope
+                    class="collection-tab {scope === tab.scope
                         ? selectedTabClasses[tab.scope]
                         : 'border-transparent text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'}"
                     >{tab.label}</button

@@ -92,3 +92,71 @@
         display: none;
     }
 }
+
+.collection-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-top: 32px;
+    padding-inline: 48px;
+}
+
+@media (max-width: 700px) {
+    .collection-page {
+        padding-top: 24px;
+        padding-inline: 24px;
+    }
+}
+
+@media (max-width: 360px) {
+    .collection-page {
+        padding-inline: 16px;
+    }
+}
+
+.collection-header {
+    margin-bottom: 16px;
+}
+
+.collection-heading {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    line-height: 1.2;
+}
+
+.collection-tabs {
+    display: flex;
+    gap: 20px;
+}
+
+.collection-tab {
+    position: relative;
+    margin-bottom: -1px;
+    white-space: nowrap;
+    border-bottom-width: 2px;
+    border-bottom-style: solid;
+    padding: 4px 2px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    transition:
+        color 150ms,
+        background-color 150ms,
+        border-color 150ms;
+}
+
+.collection-tab:focus-visible {
+    border-radius: 4px 4px 0 0;
+    outline: 2px solid var(--color-blue-400);
+    outline-offset: 2px;
+}
+
+@media (min-width: 640px) {
+    .collection-heading {
+        font-size: 36px;
+    }
+    .collection-tabs {
+        gap: 28px;
+    }
+}

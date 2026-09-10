@@ -1,7 +1,6 @@
 import { createContext } from 'svelte'
 
 export type LibraryView = {
-    search: string
     scrollTop: number
 }
 

@@ -2,7 +2,7 @@
     import { onMount } from 'svelte'
     import { flip } from 'svelte/animate'
     import { prefersReducedMotion } from 'svelte/motion'
-    import { compareGameInvitations } from '$lib/utils/gameInvitation'
+    import { currentDashboardGames } from '$lib/utils/dashboardGames'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import GameCard from '$lib/components/GameCard.svelte'
     import TitleSection from '$lib/components/TitleSection.svelte'
@@ -15,11 +15,11 @@
         open: 'loading'
     })
     let myGames = $derived(
-        [...gameService.activeGames, ...gameService.waitingGames]
-            .filter((game) => game.typeId === titleId)
-            .toSorted((a, b) =>
-                compareGameInvitations(a, b, authorizationService.getSessionUser()?.id)
-            )
+        currentDashboardGames(
+            gameService.activeGames,
+            gameService.waitingGames,
+            authorizationService.getSessionUser()?.id
+        ).filter((game) => game.typeId === titleId)
     )
     let openGames = $derived(
         (gameService.openGamesByTitleId.get(titleId) ?? []).filter((game) => {

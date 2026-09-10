@@ -135,7 +135,7 @@ export class GameService implements GameServiceInterface {
         if (!this.loadingPromise) {
             this.loading = true
             this.loadingPromise = this.api
-                .getMyGames()
+                .getMyGames('current')
                 .then((games) => {
                     const ids = games.map((game) => game.id)
                     games.forEach((game) => {

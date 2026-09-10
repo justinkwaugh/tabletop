@@ -9,7 +9,7 @@ test('visitors can browse an expanding public collection before signing in', asy
     await page.goto('/')
     await expect(page.getByRole('heading', { name: 'Care to play a game?' })).toBeVisible()
     await expect(page.locator('.game-shelf > li')).toHaveCount(10)
-    await expect(page.getByText('12 games to explore')).toBeVisible()
+    await expect(page.getByText('12 games in the library')).toBeVisible()
 
     const expand = page.getByRole('button', { name: 'See all 12 games' })
     await expand.click()
@@ -90,7 +90,7 @@ for (const hasActive of [true, false]) {
         await page.route('**/api/v1/games/hasActive', (route) =>
             route.fulfill({ json: { payload: { hasActive } } })
         )
-        await page.route('**/api/v1/games/mine', (route) =>
+        await page.route('**/api/v1/games/mine*', (route) =>
             route.fulfill({ json: { payload: { games: [] } } })
         )
         await page.goto('/')
@@ -222,7 +222,7 @@ test('emailed links reset the password in a modal with validation and retry', as
             }
         })
     })
-    await page.route('**/api/v1/games/mine', (route) =>
+    await page.route('**/api/v1/games/mine*', (route) =>
         route.fulfill({ json: { payload: { games: [] } } })
     )
     await page.route('**/api/v1/user/setPassword', async (route) => {

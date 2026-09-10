@@ -68,7 +68,7 @@ test.beforeEach(async ({ page }) => {
     await page.route('**/api/v1/user/self', (route) =>
         route.fulfill({ json: { payload: { user: player } } })
     )
-    await page.route('**/api/v1/games/mine', (route) =>
+    await page.route('**/api/v1/games/mine*', (route) =>
         route.fulfill({ json: { payload: { games: [] } } })
     )
     await page.route('**/api/v1/games/open/*', (route) =>
@@ -168,7 +168,7 @@ test('Your games prioritizes overdue turns, recent activity, then newly created 
         },
         game('turn-no-action', 'Your turn no actions yet', true)
     ]
-    await page.route('**/api/v1/games/mine', (route) =>
+    await page.route('**/api/v1/games/mine*', (route) =>
         route.fulfill({ json: { payload: { games } } })
     )
     await page.goto('/library/landing-0')
@@ -203,15 +203,17 @@ test('the All games link restores the scrolled library', async ({ page }) => {
         .toBeCloseTo(position, 0)
 })
 
-test('the library shares the collection, supports search, and remembers it on Back', async ({
+test('the library shows its count beside the heading and returns from game details', async ({
     page
 }) => {
     await page.goto('/library')
     await expect(page.getByRole('heading', { name: 'What would you like to play?' })).toBeVisible()
     await expect(page.locator('.hero')).toHaveCount(0)
     await expect(page.locator('.game-shelf > li')).toHaveCount(12)
-    await page.getByRole('searchbox', { name: 'Find a game' }).fill('Game 01')
-    await expect(page.locator('.game-shelf > li')).toHaveCount(1)
+    await expect(page.getByRole('searchbox')).toHaveCount(0)
+    await expect(page.locator('.section-heading .library-note')).toHaveText(
+        '12 games in the library'
+    )
     await page.getByRole('link', { name: 'View Game 01' }).click()
     await expect(page).toHaveURL(/\/library\/landing-0$/)
     await expect(page.getByRole('heading', { name: 'Game 01', exact: true })).toBeVisible()
@@ -221,10 +223,6 @@ test('the library shares the collection, supports search, and remembers it on Ba
     await expect(page.getByRole('heading', { name: 'Open games' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Tournaments', exact: true })).toBeVisible()
     await page.goBack()
-    await expect(page.getByRole('searchbox')).toHaveValue('Game 01')
-    await page.getByRole('searchbox').fill('no matching title')
-    await expect(page.getByRole('status')).toContainText('No games match')
-    await page.getByRole('button', { name: 'Clear search' }).click()
     await expect(page.locator('.game-shelf > li')).toHaveCount(12)
 })
 
@@ -233,7 +231,7 @@ test('the game page shows current games, joinable tables and paginated tournamen
 }) => {
     const mine = game('mine', 'Friday game', true)
     const open = game('open', 'Everyone welcome', false)
-    await page.route('**/api/v1/games/mine', (route) =>
+    await page.route('**/api/v1/games/mine*', (route) =>
         route.fulfill({
             json: {
                 payload: {
@@ -293,7 +291,7 @@ test('the game page shows current games, joinable tables and paginated tournamen
 
 test('each activity section can recover from a request failure', async ({ page }) => {
     let attempts = 0
-    await page.route('**/api/v1/games/mine', (route) => {
+    await page.route('**/api/v1/games/mine*', (route) => {
         attempts++
         return route.fulfill(
             attempts === 1
@@ -318,10 +316,13 @@ test('unavailable and hidden beta titles do not open a game page', async ({ page
     }
 })
 
-for (const reducedMotion of [false, true]) {
-    test(`login brings the collection up with ${reducedMotion ? 'reduced' : 'normal'} motion`, async ({
+for (const { width, reducedMotion } of [390, 768, 1280].flatMap((width) =>
+    [false, true].map((reducedMotion) => ({ width, reducedMotion }))
+)) {
+    test(`login brings the collection up with ${reducedMotion ? 'reduced' : 'normal'} motion at ${width}px`, async ({
         page
     }) => {
+        await page.setViewportSize({ width, height: 900 })
         await page.emulateMedia({ reducedMotion: reducedMotion ? 'reduce' : 'no-preference' })
         await page.addInitScript(() => {
             const start = document.startViewTransition
@@ -337,7 +338,26 @@ for (const reducedMotion of [false, true]) {
         await page.route('**/api/v1/games/hasActive', (route) =>
             route.fulfill({ json: { payload: { hasActive: true } } })
         )
+        const geometry = () =>
+            page.locator('.collection-content').evaluate((element) => {
+                const heading = element.querySelector('#games-heading')
+                const cover = element.querySelector('.cover-stage')
+                if (!heading || !cover) throw new Error('Collection content is missing')
+                const style = getComputedStyle(heading)
+                return {
+                    left: element.getBoundingClientRect().left,
+                    width: element.getBoundingClientRect().width,
+                    font: style.fontFamily,
+                    size: style.fontSize,
+                    weight: style.fontWeight,
+                    gap: cover.getBoundingClientRect().top - heading.getBoundingClientRect().bottom,
+                    coverWidth: cover.getBoundingClientRect().width
+                }
+            })
         await page.goto('/')
+        await expect(page.locator('.cover-stage').first()).toBeAttached()
+        await page.evaluate(() => document.fonts.ready)
+        const before = await geometry()
         await page.getByRole('button', { name: 'Take a seat' }).click()
         await page.getByLabel('Username', { exact: true }).fill('Player')
         await page.getByLabel('Password', { exact: true }).fill('a-valid-password')
@@ -346,6 +366,7 @@ for (const reducedMotion of [false, true]) {
         await expect(
             page.getByRole('heading', { name: 'What would you like to play?' })
         ).toBeVisible()
+        await expect.poll(geometry).toEqual(before)
         expect(await page.evaluate(() => document.documentElement.dataset.libraryTransitions)).toBe(
             reducedMotion ? undefined : 'started'
         )
@@ -410,7 +431,7 @@ test('creating a game refreshes the game page without sending you away', async (
         ...game('created', 'A new table', true),
         status: GameStatus.WaitingForPlayers
     }
-    await page.route('**/api/v1/games/mine', (route) =>
+    await page.route('**/api/v1/games/mine*', (route) =>
         route.fulfill({ json: { payload: { games: created ? [newGame] : [] } } })
     )
     await page.route('**/api/v1/game/landing-0/create', (route) => {
@@ -558,7 +579,7 @@ for (const path of ['/library/landing-0', '/dashboard']) {
                 invitation,
                 { ...game('started', 'Started', true), activePlayerIds: [] }
             ]
-            await page.route('**/api/v1/games/mine', (route) =>
+            await page.route('**/api/v1/games/mine*', (route) =>
                 route.fulfill({ json: { payload: { games } } })
             )
             await page.route('**/api/v1/game/join', (route) => {
@@ -568,11 +589,11 @@ for (const path of ['/library/landing-0', '/dashboard']) {
             await page.goto(path)
             const titles =
                 path === '/dashboard'
-                    ? page.locator('h1')
+                    ? page.locator('.dashboard-game-list h1')
                     : page.getByRole('region', { name: 'Your games' }).locator('.game-list h1')
             await expect(titles).toHaveText(
                 path === '/dashboard'
-                    ? ['Your turn', 'Started', 'Invitation', 'Joined waiting']
+                    ? ['Invitation', 'Your turn', 'Started', 'Joined waiting']
                     : ['Invitation', 'Your turn', 'Started', 'Joined waiting']
             )
             await page.getByRole('button', { name: 'Join', exact: true }).click()
