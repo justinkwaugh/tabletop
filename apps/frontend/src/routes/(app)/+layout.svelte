@@ -19,7 +19,7 @@
         DropdownGroup
     } from 'flowbite-svelte'
     import darkLogo from '$lib/components/images/dark-logo.png'
-    import { afterNavigate, goto } from '$app/navigation'
+    import { afterNavigate, goto, onNavigate } from '$app/navigation'
     import LoginPanel, { loginViewTitles, type LoginView } from '$lib/components/LoginPanel.svelte'
     import AuthModal from '$lib/components/AuthModal.svelte'
     import { setLoginModal } from '$lib/stores/loginModal'
@@ -63,6 +63,37 @@
 
     afterNavigate(() => {
         showLoginModal = false
+    })
+
+    function selectTransitionCover(titleId: string | undefined) {
+        for (const cover of document.querySelectorAll<HTMLImageElement>('img[data-game-cover]')) {
+            cover.style.viewTransitionName =
+                cover.dataset.gameCover === titleId ? `game-cover-${titleId}` : 'none'
+        }
+    }
+
+    onNavigate((navigation) => {
+        const from = navigation.from?.url.pathname
+        const to = navigation.to?.url.pathname
+        const libraryMove =
+            (from === '/' && to === '/library') ||
+            (from?.startsWith('/library') && to?.startsWith('/library'))
+        if (
+            !libraryMove ||
+            !document.startViewTransition ||
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ) return
+
+        const titleId = navigation.to?.params?.titleId ?? navigation.from?.params?.titleId
+        selectTransitionCover(titleId)
+        return new Promise<void>((resolve) => {
+            const transition = document.startViewTransition(async () => {
+                resolve()
+                await navigation.complete
+                selectTransitionCover(titleId)
+            })
+            void transition.finished.catch(() => {})
+        })
     })
 
     let currentGameState = $derived.by(() => {

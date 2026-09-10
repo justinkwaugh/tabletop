@@ -9,16 +9,17 @@
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import {
         tournamentFormatText,
-        tournamentRegistrationText,
+        tournamentSummaryText,
         tournamentStatusText,
         tournamentStatusColor
     } from '$lib/utils/tournamentPresentation'
 
+    let { data } = $props()
     const { api, authorizationService, libraryService, notificationService } = getAppContext()
     let isAdmin = $derived(authorizationService.getSessionUser()?.roles.includes(Role.Admin))
     let scope = $state<TournamentListQuery['scope']>('mine')
     let chooseInitialScope = true
-    let titleId = $state('')
+    let titleId = $derived(data.titleId)
     let gameMenuOpen = $state(false)
     let creating = $state(false)
     let titles = $derived.by(() => {
@@ -78,7 +79,7 @@
                 chooseInitialScope = false
                 if (!result.tournaments.length) {
                     scope = 'open'
-                    result = await api.listTournaments({ scope })
+                    result = await api.listTournaments({ scope, titleId: titleId || undefined })
                     if (current !== request) return
                 }
             }
@@ -344,18 +345,7 @@
                         </div>
                     {/if}
                     <p class="text-xs leading-4 text-gray-500 {options.length ? 'mt-1' : 'mt-2'}">
-                        {#if tournament.status === 'finished'}
-                            Completed {tournament.finishedAt
-                                ? new Date(tournament.finishedAt).toLocaleDateString(undefined, {
-                                      day: 'numeric',
-                                      month: 'short'
-                                  })
-                                : ''}
-                        {:else if tournament.status === 'inProgress'}
-                            {tournament.stages[0]?.dispatch?.finished.length ?? 0} games finished
-                        {:else}
-                            {tournamentRegistrationText(tournament, now)}
-                        {/if}
+                        {tournamentSummaryText(tournament, now)}
                     </p>
                 </a>
             {/each}

@@ -16,7 +16,8 @@
         onstart,
         onjoin,
         ondelete,
-        expanded = false
+        expanded = false,
+        class: className = ''
     }: {
         game: Game
         ondecline?: (game: Game) => void
@@ -24,6 +25,7 @@
         onstart?: (game: Game) => void
         ondelete?: (game: Game) => void
         expanded?: boolean | 'always'
+        class?: string
     } = $props()
 
     let { libraryService, authorizationService, gameService } = getAppContext()
@@ -236,7 +238,7 @@
 
 <Card
     onclick={toggleExpand}
-    class="min-w-[310px] mx-2 mb-1 bg-[#0d56ad] dark:border-gray-800 border-4 rounded-md overflow-hidden shadow-none"
+    class={`min-w-[310px] mx-2 mb-1 bg-[#0d56ad] dark:border-gray-800 border-4 rounded-md overflow-hidden shadow-none ${className}`}
     size="sm"
 >
     <div class="flex flex-col">

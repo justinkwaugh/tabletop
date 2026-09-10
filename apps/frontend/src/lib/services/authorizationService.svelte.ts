@@ -112,13 +112,13 @@ export class AuthorizationService {
             await goto(this.continueUrl)
             this.continueUrl = undefined
         } else {
-            await goto('/activeGamesCheck')
+            await goto('/library')
         }
     }
 
     public async onLogout() {
         this.clearSessionUser()
-        await goto('/login')
+        await goto('/')
     }
 
     private async loadSessionUser() {
@@ -131,7 +131,7 @@ export class AuthorizationService {
             ) {
                 this.setSessionUser(sessionUser)
             }
-        } catch (e) {
+        } catch {
             // do nothing
         }
     }

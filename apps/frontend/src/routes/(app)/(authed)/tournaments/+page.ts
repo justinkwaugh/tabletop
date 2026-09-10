@@ -7,4 +7,5 @@ export const load: PageLoad = async ({ url }) => {
         category: AuthorizationCategory.ActiveUser,
         intendedUrl: url
     })
+    return { titleId: url.searchParams.get('titleId') ?? '' }
 }

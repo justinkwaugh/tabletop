@@ -1,42 +1,8 @@
 import { expect, test } from '@playwright/test'
+import { mockLibrary } from './fixtures/library'
 
 test.beforeEach(async ({ page }) => {
-    await page.route('**/api/v1/**', (route) => route.fulfill({ json: { payload: {} } }))
-    const games = Array.from({ length: 13 }, (_, index) => ({
-        gameId: `landing-${index}`,
-        packageId: `landing-${index}`,
-        logicVersion: '1.0.0',
-        uiVersion: '1.0.0'
-    }))
-
-    await page.route('**/api/v1/manifest', (route) =>
-        route.fulfill({ json: { payload: { frontend: { version: '18.0.0' }, games } } })
-    )
-    await page.route('**/api/v1/user/self', (route) => route.fulfill({ json: { payload: {} } }))
-    await page.route('**/games/landing-*/ui/1.0.0/index.js', (route) => {
-        const index = Number(
-            route
-                .request()
-                .url()
-                .match(/landing-(\d+)/)?.[1]
-        )
-        const definition = {
-            info: {
-                id: `landing-${index}`,
-                thumbnailUrl: '/favicon-32x32.png',
-                metadata: {
-                    name: `Game ${String(index + 1).padStart(2, '0')}`,
-                    minPlayers: 2,
-                    maxPlayers: 4,
-                    beta: index === 12
-                }
-            }
-        }
-        return route.fulfill({
-            contentType: 'text/javascript',
-            body: `export const UiDefinition = ${JSON.stringify(definition)}`
-        })
-    })
+    await mockLibrary(page)
 })
 
 test('visitors can browse an expanding public collection before signing in', async ({ page }) => {

@@ -70,10 +70,12 @@ export class GameService implements GameServiceInterface {
                 )?.id
                 const isMyBTurn = myBPlayerId ? b.activePlayerIds?.includes(myBPlayerId) : false
                 const isMyATurn = myAPlayerId ? a.activePlayerIds?.includes(myAPlayerId) : false
+                const activityOrder =
+                    (a.lastActionAt ?? a.createdAt).getTime() -
+                    (b.lastActionAt ?? b.createdAt).getTime()
                 return (
                     (isMyBTurn ? 1 : 0) - (isMyATurn ? 1 : 0) ||
-                    (b.lastActionAt ?? b.createdAt).getTime() -
-                        (a.lastActionAt ?? a.createdAt).getTime()
+                    (isMyATurn ? activityOrder : -activityOrder)
                 )
             })
     })
@@ -137,6 +139,7 @@ export class GameService implements GameServiceInterface {
                         this.gamesById.delete(id)
                     }
                 })
+            }).finally(() => {
                 this.loading = false
                 this.loadingPromise = null
             })
@@ -371,6 +374,8 @@ export class GameService implements GameServiceInterface {
 
             if (!mine && game.ownerId !== myUserId) {
                 this.removeFromPrivateCache(game.id)
+            } else {
+                this.gamesById.set(game.id, game)
             }
         }
     }
