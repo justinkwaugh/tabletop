@@ -102,8 +102,15 @@ export function distanceToWall(point: Point, wall: AllianceWall): number {
 type Rect = { left: number; top: number; right: number; bottom: number }
 
 // "Break alliance?" at the pill's cell-relative font, with a little slack: the text is fixed and
-// the font scales with the cell, so its footprint in cells is constant.
-const PILL_SIZE = { width: 3.3 * CELL_SIZE, height: 0.65 * CELL_SIZE }
+// the font scales with the cell, so its footprint in cells is constant. A second, smaller line
+// names a Treasure payment when there is one.
+const PILL_WIDTH = 3.3 * CELL_SIZE
+const PILL_HEIGHT = 0.65 * CELL_SIZE
+const PILL_HEIGHT_WITH_DETAIL = 0.95 * CELL_SIZE
+
+function pillSize(withDetail: boolean) {
+    return { width: PILL_WIDTH, height: withDetail ? PILL_HEIGHT_WITH_DETAIL : PILL_HEIGHT }
+}
 const PILL_GAP_FROM_WALL = 0.3 * CELL_SIZE
 const PILL_SEARCH_STEP = 0.25 * CELL_SIZE
 const PILL_SEARCH_STEPS = 4
@@ -126,12 +133,13 @@ function heartRects(walls: AllianceWall[]): Rect[] {
     )
 }
 
-function pillRectAround(centre: Point): Rect {
+function pillRectAround(centre: Point, withDetail: boolean): Rect {
+    const { width, height } = pillSize(withDetail)
     return {
-        left: centre.x - PILL_SIZE.width / 2,
-        top: centre.y - PILL_SIZE.height / 2,
-        right: centre.x + PILL_SIZE.width / 2,
-        bottom: centre.y + PILL_SIZE.height / 2
+        left: centre.x - width / 2,
+        top: centre.y - height / 2,
+        right: centre.x + width / 2,
+        bottom: centre.y + height / 2
     }
 }
 
@@ -149,19 +157,23 @@ function withinBoard(rect: Rect): boolean {
 }
 
 /** Spots off each face of the wall and past each of its ends, nearest first. */
-function pillCandidatesAround(wall: AllianceWall): { centre: Point; reach: number }[] {
+function pillCandidatesAround(
+    wall: AllianceWall,
+    withDetail: boolean
+): { centre: Point; reach: number }[] {
     const mid = wallMidpoint(wall)
     const vertical = wall.edge === 'west'
+    const { width, height } = pillSize(withDetail)
     const candidates: { centre: Point; reach: number }[] = []
     for (let step = 0; step < PILL_SEARCH_STEPS; step++) {
         const reach = PILL_GAP_FROM_WALL + step * PILL_SEARCH_STEP
         for (const sign of [-1, 1]) {
             const offFace = vertical
-                ? { x: mid.x + sign * (PILL_SIZE.width / 2 + reach), y: mid.y }
-                : { x: mid.x, y: mid.y + sign * (PILL_SIZE.height / 2 + reach) }
+                ? { x: mid.x + sign * (width / 2 + reach), y: mid.y }
+                : { x: mid.x, y: mid.y + sign * (height / 2 + reach) }
             const pastEnd = vertical
-                ? { x: mid.x, y: mid.y + sign * (CELL_SIZE / 2 + PILL_SIZE.height / 2 + reach) }
-                : { x: mid.x + sign * (CELL_SIZE / 2 + PILL_SIZE.width / 2 + reach), y: mid.y }
+                ? { x: mid.x, y: mid.y + sign * (CELL_SIZE / 2 + height / 2 + reach) }
+                : { x: mid.x + sign * (CELL_SIZE / 2 + width / 2 + reach), y: mid.y }
             candidates.push({ centre: offFace, reach }, { centre: pastEnd, reach })
         }
     }
@@ -183,13 +195,13 @@ function borderCentre(walls: AllianceWall[]): Point {
  * its walls, clear of every heart along the border, and inside the board - together with the wall
  * it was placed off, which anchors the hover corridor leading to it.
  */
-function breakAlliancePillPlacement(walls: AllianceWall[]): PillPlacement {
+function breakAlliancePillPlacement(walls: AllianceWall[], withDetail: boolean): PillPlacement {
     const hearts = heartRects(walls)
     const centre = borderCentre(walls)
     let best: { placement: PillPlacement; score: number } | undefined
     for (const wall of walls) {
-        for (const candidate of pillCandidatesAround(wall)) {
-            const rect = pillRectAround(candidate.centre)
+        for (const candidate of pillCandidatesAround(wall, withDetail)) {
+            const rect = pillRectAround(candidate.centre, withDetail)
             if (!withinBoard(rect) || hearts.some((heart) => intersects(rect, heart))) continue
             const score =
                 Math.hypot(candidate.centre.x - centre.x, candidate.centre.y - centre.y) + candidate.reach
@@ -201,8 +213,8 @@ function breakAlliancePillPlacement(walls: AllianceWall[]): PillPlacement {
     return best?.placement ?? { anchor: centre, fromWall: walls[0] }
 }
 
-export function breakAlliancePillAnchor(walls: AllianceWall[]): Point {
-    return breakAlliancePillPlacement(walls).anchor
+export function breakAlliancePillAnchor(walls: AllianceWall[], withDetail: boolean): Point {
+    return breakAlliancePillPlacement(walls, withDetail).anchor
 }
 
 /**
@@ -211,9 +223,13 @@ export function breakAlliancePillAnchor(walls: AllianceWall[]): Point {
  * placed off to the pill - so the pointer can travel from the hearts to the pill without the
  * offer lapsing on the way.
  */
-export function breakAllianceOfferDistance(point: Point, walls: AllianceWall[]): number {
-    const { anchor, fromWall } = breakAlliancePillPlacement(walls)
-    const pill = pillRectAround(anchor)
+export function breakAllianceOfferDistance(
+    point: Point,
+    walls: AllianceWall[],
+    withDetail: boolean
+): number {
+    const { anchor, fromWall } = breakAlliancePillPlacement(walls, withDetail)
+    const pill = pillRectAround(anchor, withDetail)
     if (
         point.x >= pill.left - PILL_HOVER_PADDING &&
         point.x <= pill.right + PILL_HOVER_PADDING &&

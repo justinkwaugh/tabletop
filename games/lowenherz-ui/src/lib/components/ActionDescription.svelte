@@ -346,13 +346,21 @@
     {/if}
 {:else if isCancelAlliance(action)}
     {@const otherId = playerIdForOwner(action.metadata?.otherOwner)}
+    {@const treasure = action.metadata?.paidWithTreasureCard}
+    {@const ducatsPaid = action.metadata?.ducatsPaid ?? 10}
     broke an alliance with
     {#if otherId}
         <PlayerName playerId={otherId} />
     {:else}
         a neutral prince
     {/if}
-    and paid 10 ducats.
+    {#if treasure}
+        and paid with Treasure ({treasure.value}){ducatsPaid > 0
+            ? ` and ${ducatsPaid} ducat${ducatsPaid === 1 ? '' : 's'}`
+            : ''}.
+    {:else}
+        and paid {ducatsPaid} ducats.
+    {/if}
 {:else if isPass(action)}
     {#if action.metadata?.noLegalPlacement}
         stopped — there was nowhere legal left to place a wall.

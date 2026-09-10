@@ -6,6 +6,7 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { Region } from '../model/region.js'
 import { HydratedCancelAlliance } from './cancelAlliance.js'
+import { PoliticsCardType } from '../definition/politicsCards.js'
 
 function blankBoard(): { squares: BoardSquare[][]; walls: [] } {
     return {
@@ -64,15 +65,24 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
     return new HydratedLowenherzGameState(data)
 }
 
-function makeCancelAlliance(playerId: string, allianceId = 'alliance-1'): HydratedCancelAlliance {
+function makeCancelAlliance(
+    playerId: string,
+    allianceId = 'alliance-1',
+    treasureValue?: number
+): HydratedCancelAlliance {
     return new HydratedCancelAlliance({
         id: 'cancel-1',
         gameId: 'game-1',
         source: ActionSource.User,
         type: ActionType.CancelAlliance,
         playerId,
-        allianceId
+        allianceId,
+        ...(treasureValue === undefined ? {} : { treasureValue })
     })
+}
+
+function treasure(value: number) {
+    return { type: PoliticsCardType.Treasure, value }
 }
 
 describe('HydratedCancelAlliance', () => {
@@ -85,7 +95,56 @@ describe('HydratedCancelAlliance', () => {
 
         expect(state.alliances).toEqual([])
         expect(state.getPlayerState('p1').money).toBe(2)
-        expect(action.metadata).toEqual({ otherOwner: 'p2' })
+        expect(action.metadata).toEqual({ otherOwner: 'p2', ducatsPaid: 10 })
+    })
+
+    it('lets a Treasure card worth the cost or more pay it, with the excess lost', () => {
+        const state = buildState()
+        state.getPlayerState('p1').politicsCards = [treasure(12), treasure(8)]
+        const action = makeCancelAlliance('p1', 'alliance-1', 12)
+
+        expect(action.isValidCancelAlliance(state)).toBe(true)
+        action.apply(state)
+
+        expect(state.alliances).toEqual([])
+        expect(state.getPlayerState('p1').money).toBe(12)
+        expect(state.getPlayerState('p1').politicsCards).toEqual([treasure(8)])
+        expect(action.metadata).toEqual({
+            otherOwner: 'p2',
+            ducatsPaid: 0,
+            paidWithTreasureCard: treasure(12)
+        })
+    })
+
+    it('tops up a Treasure card worth less than the cost from the player\'s ducats', () => {
+        const state = buildState()
+        state.getPlayerState('p1').politicsCards = [treasure(8)]
+        state.getPlayerState('p1').money = 2
+        const action = makeCancelAlliance('p1', 'alliance-1', 8)
+
+        expect(action.isValidCancelAlliance(state)).toBe(true)
+        action.apply(state)
+
+        expect(state.getPlayerState('p1').money).toBe(0)
+        expect(state.getPlayerState('p1').politicsCards).toEqual([])
+        expect(action.metadata).toEqual({
+            otherOwner: 'p2',
+            ducatsPaid: 2,
+            paidWithTreasureCard: treasure(8)
+        })
+    })
+
+    it('rejects a Treasure top-up the player cannot afford', () => {
+        const state = buildState()
+        state.getPlayerState('p1').politicsCards = [treasure(8)]
+        state.getPlayerState('p1').money = 1
+        expect(makeCancelAlliance('p1', 'alliance-1', 8).isValidCancelAlliance(state)).toBe(false)
+    })
+
+    it("rejects paying with a Treasure card that isn't in the player's hand", () => {
+        const state = buildState()
+        state.getPlayerState('p1').politicsCards = [treasure(8)]
+        expect(makeCancelAlliance('p1', 'alliance-1', 12).isValidCancelAlliance(state)).toBe(false)
     })
 
     it('can be cancelled by the OTHER participant instead, at their own turn', () => {
@@ -100,7 +159,7 @@ describe('HydratedCancelAlliance', () => {
 
         expect(state.alliances).toEqual([])
         expect(state.getPlayerState('p2').money).toBe(2)
-        expect(action.metadata).toEqual({ otherOwner: 'p1' })
+        expect(action.metadata).toEqual({ otherOwner: 'p1', ducatsPaid: 10 })
     })
 
     it("rejects cancellation while it isn't the player's turn to act at all", () => {
