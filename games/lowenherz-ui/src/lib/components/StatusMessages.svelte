@@ -17,6 +17,7 @@
     import {
         isAdvanceResolution,
         isCancelAlliance,
+        isPlayAllianceCard,
         isDrawActionCard,
         isNegotiationMove,
         isNeutralOwner,
@@ -28,6 +29,7 @@
         type SubmitDuelBidMetadata
     } from '@tabletop/lowenherz'
     import PlayerPill from './PlayerPill.svelte'
+    import EasedHeight from './EasedHeight.svelte'
     import ActionDescription from './ActionDescription.svelte'
     import { playerName } from '$lib/model/actionCardHelpers.js'
     import type { KnightPlan } from '$lib/model/session.svelte.js'
@@ -326,12 +328,41 @@
     // and when rewound past the very first action, so it doubles as "are we in history".
     const historyAction = $derived(gameSession.history.currentAction)
 
-    // An alliance just ended by clicking its heart leaves no other trace on the board - the
-    // heart is simply gone - so the status window repeats the history's own sentence for it
-    // until the next action of any kind arrives.
-    const latestAllianceCancellation = $derived.by(() => {
-        const latest = gameSession.actions.at(-1)
-        return latest && isCancelAlliance(latest) ? latest : undefined
+    const RESERVED_STATUS_HEIGHT = 77
+
+    // Forming or breaking an alliance leaves little trace on the board - hearts appear or vanish -
+    // so the status window announces the latest such event to everyone until the actor's turn
+    // passes: the message survives their own later actions and disappears once they are no longer
+    // active. It waits for the hearts' animation to finish (the actions list runs ahead of the
+    // visible state) so the board holds still while they form or break.
+    //
+    // "Turn passes" is read off the actions rather than off activePlayerIds alone, because the
+    // latest alliance event may be many turns old and its actor active again: another player's
+    // action since the event means the turn moved on - except duel bids and negotiation moves,
+    // the two phases where several players are active at once and the actor still is.
+    function isConcurrentPhaseAction(action: GameAction): boolean {
+        return isSubmitDuelBid(action) || isNegotiationMove(action)
+    }
+
+    const currentAllianceEvent = $derived.by(() => {
+        if (gameSession.updatingVisibleState) return undefined
+        const actions = gameSession.actions
+        const index = actions.findLastIndex(
+            (action) => isPlayAllianceCard(action) || isCancelAlliance(action)
+        )
+        if (index < 0) return undefined
+        const event = actions[index]
+        const turnHasNotPassed = actions
+            .slice(index + 1)
+            .every(
+                (action) =>
+                    action.source === ActionSource.System ||
+                    action.playerId === event.playerId ||
+                    isConcurrentPhaseAction(action)
+            )
+        const actorStillActive =
+            event.playerId !== undefined && gameSession.gameState.activePlayerIds.includes(event.playerId)
+        return turnHasNotPassed && actorStillActive ? event : undefined
     })
 
     // One label per thing a single sword can buy. The composite labels are gone with the
@@ -409,6 +440,11 @@
      starting at its left edge; text-center on the boxes themselves handles the
      wrapping lines within them. -->
 
+<!-- Two lines are always reserved: the prompt (text-[18px] leading-loose, 36px) plus the gap-2 (8px)
+     and the alliance/history line (27px + pb-1 + border-b-2, 33px). A lone line is centred in that
+     box, so the board never moves for the common one/two-line cases; only taller content
+     (negotiation, duel controls, wrapped prompts, history entries) eases the height. -->
+<EasedHeight minHeight={RESERVED_STATUS_HEIGHT} centerContent clip>
 <!-- items-center so each message box is centred over the board rather than starting at its left
      edge; text-center on the boxes themselves handles the wrapping lines within them. -->
 <div class="flex flex-col gap-2 items-center">
@@ -425,10 +461,10 @@
             {/if}
             <ActionDescription action={historyAction} justify="start" history={false} />
         </div>
-    {:else if latestAllianceCancellation}
+    {:else if currentAllianceEvent?.playerId}
         <div class="text-black text-[18px] text-center border-b-2 border-black/15 pb-1">
-            {@render playerPill(latestAllianceCancellation.playerId)}
-            <ActionDescription action={latestAllianceCancellation} justify="start" history={false} />
+            {@render playerPill(currentAllianceEvent.playerId)}
+            <ActionDescription action={currentAllianceEvent} justify="start" history={false} />
         </div>
     {/if}
     {#if lastDuelOutcome?.type === 'giveUp'}
@@ -730,10 +766,10 @@
         {/if}
     </div>
 
-    <!-- Cancelling an alliance used to be offered as a sentence-with-a-button here. It's
-         the beating heart on the shared boundary wall now (see allianceMarkers) - the price
-         and the consequence both show on hover, and the affordance stays put on the board
-         instead of appearing in a status area whose other messages are turn-scoped. -->
+    <!-- Cancelling an alliance is not offered here: the board shows a "Break alliance?" pill
+         near the allied border (see RealBoard's offeredAllianceId), so the affordance stays
+         put beside the thing it acts on instead of appearing in a status area whose other
+         messages are turn-scoped. -->
 
     {#if displayNegotiation && !negotiationHoldHidesForMe}
         {@const negotiation = displayNegotiation}
@@ -964,3 +1000,5 @@
         </div>
     {/if}
 </div>
+</EasedHeight>
+

@@ -338,21 +338,21 @@
         paying {action.metadata.placementWoodedCostPaid} ducats to place into the woods{/if}.
 {:else if isPlayAllianceCard(action)}
     {@const enemyId = playerIdForOwner(action.metadata?.enemyOwner)}
-    played an Alliance card — allied one of their regions with
+    played an Alliance card on
     {#if enemyId}
-        <PlayerName playerId={enemyId} />'s
-    {:else}
-        a neutral prince's
-    {/if}
-    neighboring region; neither can be expanded into the other while it lasts.
-{:else if isCancelAlliance(action)}
-    {@const otherId = playerIdForOwner(action.metadata?.otherOwner)}
-    paid 10 ducats to end an alliance with
-    {#if otherId}
-        <PlayerName playerId={otherId} />.
+        <PlayerName playerId={enemyId} />.
     {:else}
         a neutral prince.
     {/if}
+{:else if isCancelAlliance(action)}
+    {@const otherId = playerIdForOwner(action.metadata?.otherOwner)}
+    broke an alliance with
+    {#if otherId}
+        <PlayerName playerId={otherId} />
+    {:else}
+        a neutral prince
+    {/if}
+    and paid 10 ducats.
 {:else if isPass(action)}
     {#if action.metadata?.noLegalPlacement}
         stopped — there was nowhere legal left to place a wall.

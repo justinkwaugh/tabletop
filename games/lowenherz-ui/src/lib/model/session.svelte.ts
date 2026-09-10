@@ -1571,13 +1571,16 @@ export class LowenherzGameSession extends GameSession<
         await this.applyAction(action)
     }
 
-    get canTakePoliticsCard(): boolean {
-        if (!this.canActNow) return false
-        if (!this.myPlayer) return false
+    get isMyPoliticsCardTurn(): boolean {
         return (
+            this.myPlayer !== undefined &&
             this.gameState.machineState === MachineState.TakingPoliticsCard &&
             this.gameState.politicsTakingPlayerId === this.myPlayer.id
         )
+    }
+
+    get canTakePoliticsCard(): boolean {
+        return this.canActNow && this.isMyPoliticsCardTurn
     }
 
     // Which pile (if either) the current player has committed to looking through -
@@ -1596,10 +1599,7 @@ export class LowenherzGameSession extends GameSession<
     // LowenherzProjectedPlayerState.politicsCards' own comment); this at least keeps the client from
     // actively rendering what it already has on hand for someone it doesn't belong to.
     get selectedPoliticsPile(): 'A' | 'B' | undefined {
-        if (!this.myPlayer || this.gameState.politicsTakingPlayerId !== this.myPlayer.id) {
-            return undefined
-        }
-        return this.gameState.openedPoliticsPile
+        return this.isMyPoliticsCardTurn ? this.gameState.openedPoliticsPile : undefined
     }
 
     // Viewport-space center point of wherever the player last clicked - either to peek at their

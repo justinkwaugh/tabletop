@@ -6,7 +6,12 @@
     import { AllianceFormAnimator } from '$lib/animators/allianceFormAnimator.svelte.js'
     import { ScorePopupAnimator } from '$lib/animators/scorePopupAnimator.svelte.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
-    import { HEART_BOX, heartSpan } from '$lib/model/allianceGeometry.js'
+    import {
+        breakAllianceOfferDistance,
+        breakAlliancePillAnchor,
+        HEART_BOX,
+        heartSpan
+    } from '$lib/model/allianceGeometry.js'
     import { CELL_SIZE, RAMPART_THICKNESS, scaled } from '$lib/model/boardMetrics.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { BOARD_HOVER_INTENT_MS } from '$lib/model/hoverIntent.js'
@@ -41,8 +46,6 @@
     import knightLines from '$lib/images/pieces/knight-lines.png'
     import castleFill from '$lib/images/pieces/castle-fill.png'
     import castleLines from '$lib/images/pieces/castle-lines.png'
-    import iconMoneybagFill from '$lib/images/action-cards/icons/icon-moneybag-transparent.png'
-    import iconMoneybagLines from '$lib/images/action-cards/icons/icon-moneybag-lines.png'
     import { playerName } from '$lib/model/actionCardHelpers.js'
     import type { KnightPlan } from '$lib/model/session.svelte.js'
 
@@ -182,19 +185,12 @@
         allianceMarkers.filter((marker) => marker.id !== allianceBurst.burstingAllianceId)
     )
 
-    // Cancelling costs 10 ducats and is legal at any time, so the affordance lives on the
-    // board rather than in the turn-scoped status text. One click does it: the hover state
-    // (broken heart, the wall sweeping back, the -10 medallion) is the confirmation step,
-    // so a second click would only ask a question already answered - and Undo covers a
-    // genuine misclick.
-    let hoveredAllianceId: string | undefined = $state(undefined)
-
-    function allianceCancelLabel(marker: { otherOwner?: PieceOwner }): string {
+    function breakAllianceLabel(marker: { otherOwner?: PieceOwner }): string {
         const other =
             marker.otherOwner && !isNeutralOwner(marker.otherOwner)
                 ? playerName(gameSession, marker.otherOwner)
                 : 'a neutral prince'
-        return `Cancel your alliance with ${other} for ${ALLIANCE_CANCELLATION_COST} ducats`
+        return `Break your alliance with ${other} for ${ALLIANCE_CANCELLATION_COST} ducats`
     }
 
     const tileImages: Record<BoardTileId, string> = {
@@ -341,8 +337,6 @@
     const px = (atCell44: number) => `${scaled(atCell44)}px`
     const GLYPH_BOX = px(24)      // expansion arrow box
     const PIECE_INSET = px(3)     // piece art inset within its square
-    const PRICE_FONT = px(14)
-    const MEDALLION = px(20)
     const POPUP_FONT = px(14)     // was Tailwind's text-sm
     const TILE_PX = TILE_SIZE * CELL_SIZE
     // +4 accounts for the squares grid's own border-2 (2px on each side) - explicit
@@ -361,6 +355,7 @@
     // they'd moved. Undefined whenever the cursor isn't over the board at all, which is
     // exactly when the ghost wall preview should show nothing.
     let hoverPoint: { x: number; y: number } | undefined = $state(undefined)
+    let boardElement: HTMLElement | undefined = $state(undefined)
 
     // The scale ScalingWrapper is currently applying, read off the element itself
     // (getBoundingClientRect is post-transform, offsetWidth is pre-transform layout)
@@ -373,25 +368,29 @@
         return { x: (clientX - rect.left) / safeScale, y: (clientY - rect.top) / safeScale }
     }
 
-    // Whichever legal wall edge's clickable hit-box center is closest to the mouse -
-    // the one spot that gets the pulsing ghost preview, rather than glowing every
-    // legal spot at once.
-    const nearestWallEdge = $derived.by(() => {
-        if (!hoverPoint) return undefined
+    // Whichever legal wall edge's clickable hit-box center is closest to the mouse, within one
+    // cell of it - the one spot that gets the pulsing ghost preview, rather than glowing every
+    // legal spot at once. Both the ghost and the place-on-click read this, so a click can never
+    // place a wall the pointer is not near.
+    const GHOST_WALL_REACH = CELL_SIZE
+
+    function wallEdgeNear(point: { x: number; y: number }) {
         let best: (typeof legalWallEdges)[number] | undefined
-        let bestDistSq = Infinity
+        let bestDistSq = GHOST_WALL_REACH ** 2
         for (const edge of legalWallEdges) {
             const sameRow = edge.row1 === edge.row2
             const cx = sameRow ? edge.col2 * CELL_SIZE : edge.col1 * CELL_SIZE + CELL_SIZE / 2
             const cy = sameRow ? edge.row1 * CELL_SIZE + CELL_SIZE / 2 : edge.row2 * CELL_SIZE
-            const distSq = (cx - hoverPoint.x) ** 2 + (cy - hoverPoint.y) ** 2
-            if (distSq < bestDistSq) {
+            const distSq = (cx - point.x) ** 2 + (cy - point.y) ** 2
+            if (distSq <= bestDistSq) {
                 bestDistSq = distSq
                 best = edge
             }
         }
         return best
-    })
+    }
+
+    const nearestWallEdge = $derived(hoverPoint ? wallEdgeNear(hoverPoint) : undefined)
 
     // The canonical col/row/edge form (matching how real placed walls are stored and
     // rendered) for whichever edge is currently nearest the mouse.
@@ -411,6 +410,50 @@
         if (!isOnBoard(col, row)) return false
         return board.squares[row]?.[col]?.type === SquareType.Village
     })
+
+    // Breaking an alliance is offered by a "Break alliance?" pill rather than by the hearts
+    // themselves: resting the pointer near the shared border shows it, and one click on it pays
+    // the 10 ducats. Tapping or focusing the hearts arms the same offer for touch and keyboard.
+    const BREAK_ALLIANCE_HOVER_RADIUS = CELL_SIZE / 2
+
+    const allianceNearPointer = $derived.by(() => {
+        if (!hoverPoint) return undefined
+        let nearestId: string | undefined
+        let nearestDistance = BREAK_ALLIANCE_HOVER_RADIUS
+        for (const marker of visibleAllianceMarkers) {
+            if (!marker.cancellable) continue
+            const distance = breakAllianceOfferDistance(hoverPoint, marker.walls)
+            if (distance <= nearestDistance) {
+                nearestDistance = distance
+                nearestId = marker.id
+            }
+        }
+        return nearestId
+    })
+
+    // The pill sits outside the hover radius, so hovering the pill itself has to hold it open.
+    let pillHeldOpenFor: string | undefined = $state(undefined)
+
+    // Manual local selection. Returns to "nothing armed" whenever the visible state is about to
+    // change, so an offer never outlives the state it was made in.
+    let armedAllianceId: string | undefined = $derived.by(() => {
+        gameSession.updatingVisibleState
+        return undefined
+    })
+
+    const offeredAllianceId = $derived(allianceNearPointer ?? pillHeldOpenFor ?? armedAllianceId)
+
+    function disarmUnlessFocusStaysWithin(event: FocusEvent) {
+        const container = event.currentTarget
+        const next = event.relatedTarget
+        if (container instanceof Node && next instanceof Node && container.contains(next)) return
+        armedAllianceId = undefined
+    }
+
+    function disarmUnlessPressingAllianceControl(event: PointerEvent) {
+        if (event.target instanceof Element && event.target.closest('[data-alliance-control]')) return
+        armedAllianceId = undefined
+    }
 
     // Löwenherz is Teuber's, and its princes compete to succeed a King while paying in
     // ducats - Holy Roman Empire rather than England, whose coin was the pound. These are
@@ -771,7 +814,7 @@
         return gameSession.uiColorForOwner(region.owner)
     }
 
-    async function onSquareClick(col: number, row: number) {
+    async function onSquareClick(col: number, row: number, event?: MouseEvent) {
         if (gameSession.isPlayingAllianceCard) {
             if (!gameSession.allianceOwnRegionId) {
                 if (isOwnSelectableAllianceRegion(col, row)) {
@@ -811,6 +854,17 @@
             if (isLegalRenegadePlacementSquare(col, row)) {
                 await gameSession.confirmRenegadePlacement(col, row)
             }
+            return
+        }
+
+        // The ghost wall is the affordance, so a pointer click anywhere places the edge nearest
+        // the click itself - read from the click, not from hover state, so it cannot be stale.
+        // A keyboard activation (detail 0) carries no position; the per-edge buttons are the
+        // keyboard path.
+        if (gameSession.canPlaceWall) {
+            if (!event || event.detail === 0 || !boardElement) return
+            const edge = wallEdgeNear(boardPointFromEvent(boardElement, event.clientX, event.clientY))
+            if (edge) await gameSession.placeWallBetween(edge.col1, edge.row1, edge.col2, edge.row2)
             return
         }
 
@@ -903,32 +957,6 @@
     </div>
 {/snippet}
 
-{#snippet ducatMedallion()}
-    <!-- The same embossed-parchment coin the player panels mint their ducat count on
-         (see PlayerState's tintedIcon), reused here so a price on the board reads in the
-         game's own currency iconography. Tinted in my own color - it's my money. -->
-    <div
-        class="absolute inset-0 rounded-full"
-        style="
-            background: radial-gradient(circle at 38% 30%, #fdfaf0 0%, #efe6d0 58%, #d3c3a0 100%);
-            border: 1px solid rgba(94, 73, 42, 0.5);
-            box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.75), 0 1px 2px rgba(0, 0, 0, 0.4);
-        "
-    ></div>
-    <div class="absolute inset-[16%]" style="filter: drop-shadow(0 0.5px 1px rgba(0, 0, 0, 0.45));">
-        <div
-            class="absolute inset-0"
-            style="
-                background-color:{myOwner ? gameSession.uiColorForOwner(myOwner) : '#d4af37'};
-                mask-image:url({iconMoneybagFill}); mask-size:contain; mask-repeat:no-repeat; mask-position:center;
-                -webkit-mask-image:url({iconMoneybagFill}); -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat; -webkit-mask-position:center;
-                filter: saturate(1.7) brightness(1.18);
-            "
-        ></div>
-        <img src={iconMoneybagLines} alt="" class="absolute inset-0 w-full h-full object-contain" />
-    </div>
-{/snippet}
-
 <div class="flex flex-col gap-2 items-center" style="--cell: {CELL_SIZE}px;">
     <!-- Registration hosts: each animator subscribes for as long as its host is mounted (see
          attachAnimator), the way bus-ui binds its animators to a <g> in the board. -->
@@ -956,10 +984,12 @@
             class="relative"
             style="width: fit-content;"
             role="presentation"
+            bind:this={boardElement}
             onmousemove={(e) => {
                 hoverPoint = boardPointFromEvent(e.currentTarget, e.clientX, e.clientY)
             }}
             onmouseleave={() => (hoverPoint = undefined)}
+            onpointerdown={disarmUnlessPressingAllianceControl}
         >
         {#if tileLayout.length > 0}
             <!-- The 6 physical board tiles, positioned and rotated exactly as this game
@@ -999,7 +1029,7 @@
                     {@const tint = regionTint(col, row)}
                     <button
                         type="button"
-                        onclick={() => onSquareClick(col, row)}
+                        onclick={(event) => onSquareClick(col, row, event)}
                         onmouseenter={() => (hoveredSquare = { col, row })}
                         onmouseleave={() => {
                             // Guarded so that moving between two squares cannot blank the
@@ -1193,97 +1223,80 @@
         {/each}
 
         <!-- Alliance markers: two small hearts on every boundary wall between two allied
-             regions - the only on-board sign an alliance exists, and (when I'm a
-             participant who can afford the 10 ducats) the control for ending it. -->
+             regions - the only on-board sign an alliance exists. When I'm a participant who
+             can afford the 10 ducats, the "Break alliance?" pill is offered near the border
+             (see offeredAllianceId); the hearts themselves only arm it. -->
         {#each visibleAllianceMarkers as marker (marker.id)}
-            {@const previewing = hoveredAllianceId === marker.id}
+            <div class="contents" data-alliance-control onfocusout={disarmUnlessFocusStaysWithin}>
+                {#each marker.walls as wall, wallIndex (wall.col + ',' + wall.row + ',' + wall.edge + '-heart')}
+                    {@const span = heartSpan(wall)}
+                    {#if marker.cancellable}
+                        <!-- A heart's own idle animation is a heartbeat, which is exactly the
+                             "alive, touchable" cue this needs - it beats only while cancelling
+                             is actually open to this player, and sits dead still otherwise.
+                             One Tab stop per alliance (its first wall); the other walls' hearts
+                             stay clickable but are skipped, so Tab goes hearts, pill, next. -->
+                        <button
+                            type="button"
+                            aria-label={breakAllianceLabel(marker)}
+                            title={breakAllianceLabel(marker)}
+                            tabindex={wallIndex === 0 ? 0 : -1}
+                            class="absolute z-40 cursor-pointer alliance-heartbeat"
+                            style="left: {span.left}px; top: {span.top}px; width: {span.width}px; height: {span.height}px;"
+                            onfocus={() => (armedAllianceId = marker.id)}
+                            onclick={(e) => {
+                                e.stopPropagation()
+                                armedAllianceId = marker.id
+                            }}
+                        >
+                            {#each span.hearts as heart, index (index)}
+                                <span
+                                    class="absolute"
+                                    style="left: {heart.left}px; top: {heart.top}px; width: {HEART_BOX}px; height: {HEART_BOX}px;"
+                                >
+                                    <AllianceHeart />
+                                </span>
+                            {/each}
+                        </button>
+                    {:else}
+                        <div
+                            class="absolute pointer-events-none z-40"
+                            style="left: {span.left}px; top: {span.top}px; width: {span.width}px; height: {span.height}px;"
+                        >
+                            {#each span.hearts as heart, index (index)}
+                                <span
+                                    class="absolute"
+                                    style="left: {heart.left}px; top: {heart.top}px; width: {HEART_BOX}px; height: {HEART_BOX}px;"
+                                >
+                                    <AllianceHeart />
+                                </span>
+                            {/each}
+                        </div>
+                    {/if}
+                {/each}
 
-            <!-- No ghost-wall restoration here any more. The rulebook marks an alliance by
-                 turning one shared wall 90 degrees, and cancelling puts it back in line -
-                 but this board draws allied walls flush at all times and shows the alliance
-                 with hearts instead, so animating a wall "back" into an orientation it
-                 already has was undoing something the player had never seen. The hover
-                 preview is now the hearts themselves. -->
-            {#each marker.walls as wall (wall.col + ',' + wall.row + ',' + wall.edge + '-heart')}
-                {@const span = heartSpan(wall)}
-                {#if marker.cancellable}
-                    <!-- A heart's own idle animation is a heartbeat, which is exactly the
-                         "alive, touchable" cue this needs - it beats only while cancelling
-                         is actually open to this player, and sits dead still otherwise.
-                         The words live in aria-label rather than on screen. -->
+                {#if marker.cancellable && offeredAllianceId === marker.id}
+                    {@const anchor = breakAlliancePillAnchor(marker.walls)}
                     <button
                         type="button"
-                        aria-label={allianceCancelLabel(marker)}
-                        title={allianceCancelLabel(marker)}
-                        class="absolute z-40 cursor-pointer {previewing
-                            ? ''
-                            : 'alliance-heartbeat'}"
-                        style="left: {span.left}px; top: {span.top}px; width: {span.width}px; height: {span.height}px;"
-                        onmouseenter={() => (hoveredAllianceId = marker.id)}
-                        onmouseleave={() => (hoveredAllianceId = undefined)}
-                        onfocus={() => (hoveredAllianceId = marker.id)}
-                        onblur={() => (hoveredAllianceId = undefined)}
+                        title={breakAllianceLabel(marker)}
+                        class="absolute z-50 cursor-pointer break-alliance-pill {armedAllianceId === marker.id
+                            ? 'break-alliance-pill-immediate'
+                            : ''}"
+                        style="left: {anchor.x}px; top: {anchor.y}px; --hover-intent: {BOARD_HOVER_INTENT_MS}ms;"
+                        onmouseenter={() => (pillHeldOpenFor = marker.id)}
+                        onmouseleave={() => (pillHeldOpenFor = undefined)}
                         onclick={(e) => {
                             e.stopPropagation()
-                            hoveredAllianceId = undefined
+                            armedAllianceId = undefined
+                            pillHeldOpenFor = undefined
                             gameSession.cancelAlliance(marker.id)
                         }}
                     >
-                        <!-- The shiver is on the glyphs, not the button, so the pair of hearts
-                             trembles in place. -->
-                        {#each span.hearts as heart, index (index)}
-                            <span
-                                class="absolute {previewing ? 'alliance-heart-shiver' : ''}"
-                                style="left: {heart.left}px; top: {heart.top}px; width: {HEART_BOX}px; height: {HEART_BOX}px;"
-                            >
-                                <AllianceHeart broken={previewing} />
-                            </span>
-                        {/each}
+                        Break alliance?
                     </button>
-                {:else}
-                    <div
-                        class="absolute pointer-events-none z-40"
-                        style="left: {span.left}px; top: {span.top}px; width: {span.width}px; height: {span.height}px;"
-                    >
-                        {#each span.hearts as heart, index (index)}
-                            <span
-                                class="absolute"
-                                style="left: {heart.left}px; top: {heart.top}px; width: {HEART_BOX}px; height: {HEART_BOX}px;"
-                            >
-                                <AllianceHeart />
-                            </span>
-                        {/each}
-                    </div>
                 {/if}
-            {/each}
-
-            <!-- The price, shown once per alliance (on its first heart) while previewing -
-                 the same minted-ducat medallion the player panels use, so the cost reads
-                 in the game's own currency iconography instead of a sentence. -->
-            {#if previewing}
-                {@const wall = marker.walls[0]}
-                <div
-                    class="absolute pointer-events-none z-50 flex items-center gap-0.5 alliance-price-rise"
-                    style="
-                        left: {(wall.edge === 'west'
-                        ? wall.col * CELL_SIZE
-                        : wall.col * CELL_SIZE + CELL_SIZE / 2) + scaled(12)}px;
-                        top: {(wall.edge === 'west'
-                        ? wall.row * CELL_SIZE + CELL_SIZE / 2
-                        : wall.row * CELL_SIZE) - scaled(30)}px;
-                    "
-                >
-                    <span
-                        class="font-bold leading-none"
-                        style="font-size: {PRICE_FONT}; color: #7a2e2e; text-shadow: 0 1px 0 rgba(255,255,255,0.8);"
-                    >
-                        −{ALLIANCE_CANCELLATION_COST}
-                    </span>
-                    <span class="relative shrink-0" style="width: {MEDALLION}; height: {MEDALLION};">
-                        {@render ducatMedallion()}
-                    </span>
-                </div>
-            {/if}
+            </div>
         {/each}
 
         <!-- Village names, in the overlay layer rather than inside each square button: a
@@ -1397,10 +1410,10 @@
             </div>
         {/each}
 
-        <!-- Clickable lines for legal wall placements - one click directly on the
-             boundary between two squares places the wall there. Invisible - the
-             ghost wall above is the only visual cue - but every legal edge stays
-             independently clickable, not just whichever one is currently ghosted. -->
+        <!-- Focusable lines for legal wall placements, one per edge, so walls can be placed
+             from the keyboard. Invisible: the ghost wall above is the visual cue, and with the
+             mouse a click anywhere on the board places whichever edge is ghosted (see
+             onSquareClick). -->
         {#each legalWallEdges as edge (edge.col1 + ',' + edge.row1 + '-' + edge.col2 + ',' + edge.row2)}
             {@const sameRow = edge.row1 === edge.row2}
             <button
@@ -1568,44 +1581,38 @@
        Scaling up at the apex and back down on landing does the rest of the 3D read - a
        piece nearer the eye is bigger - and the drop shadow stretching and softening at the
        same moment says the same thing a second way. */
-    /* The broken heart trembling while you hover it - the alliance is about to give. Fast
-       and small (a couple of pixels, a few degrees) so it reads as a shiver rather than a
-       wobble, and it runs only during the hover preview, where the heartbeat has stopped. */
-    @keyframes alliance-heart-shiver-frames {
-        0%,
-        100% {
-            transform: translate(0, 0) rotate(0deg);
-        }
-        20% {
-            transform: translate(-0.6px, 0.2px) rotate(-2.5deg);
-        }
-        40% {
-            transform: translate(0.6px, -0.2px) rotate(2.5deg);
-        }
-        60% {
-            transform: translate(-0.45px, -0.3px) rotate(-1.75deg);
-        }
-        80% {
-            transform: translate(0.45px, 0.3px) rotate(1.75deg);
-        }
-    }
-
-    .alliance-heart-shiver {
-        animation: alliance-heart-shiver-frames 240ms linear infinite;
-    }
-
-    @keyframes alliance-price-rise-frames {
-        0% {
-            transform: translateY(6px);
+    /* The town-name pill a size up and in the hearts' pink. Mounts hidden and shows after the
+       board's hover-intent beat, so sweeping across a border offers nothing; an armed (tapped or
+       focused) offer skips the wait. */
+    @keyframes break-alliance-pill-show {
+        from {
+            visibility: visible;
             opacity: 0;
         }
-        100% {
-            transform: translateY(0);
+        to {
+            visibility: visible;
             opacity: 1;
         }
     }
 
-    .alliance-price-rise {
-        animation: alliance-price-rise-frames 220ms ease-out forwards;
+    .break-alliance-pill {
+        transform: translate(-50%, -50%);
+        white-space: nowrap;
+        padding: calc(var(--cell) * 0.06) calc(var(--cell) * 0.2) calc(var(--cell) * 0.08);
+        border-radius: 9999px;
+        font-size: calc(var(--cell) * 0.33);
+        line-height: 1.25;
+        font-weight: 700;
+        color: #4a0f26;
+        background-color: #ff8fc9;
+        border: 1.5px solid #7a1f3d;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45);
+        visibility: hidden;
+        opacity: 0;
+        animation: break-alliance-pill-show 160ms ease-in var(--hover-intent) forwards;
+    }
+
+    .break-alliance-pill-immediate {
+        animation-delay: 0ms;
     }
 </style>
