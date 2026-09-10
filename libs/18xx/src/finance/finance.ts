@@ -40,7 +40,14 @@ export const Company = Type.Object(
     { additionalProperties: false }
 )
 export type Company = Type.Static<typeof Company>
-export const Bank = Type.Object({ name: Id }, { additionalProperties: false })
+export const Bank = Type.Object(
+    {
+        name: Id,
+        unlimitedAfterExhaustion: Type.Optional(Type.Boolean()),
+        broken: Type.Optional(Type.Boolean())
+    },
+    { additionalProperties: false }
+)
 export type Bank = Type.Static<typeof Bank>
 export const Cash = Type.Object(
     {

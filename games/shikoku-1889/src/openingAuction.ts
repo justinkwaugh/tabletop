@@ -39,7 +39,7 @@ export function createShikoku1889Opening(
     const capital = players.length <= 4 ? 420 : 390
     const ipo = { owner: { kind: 'bank' } as const, poolId: 'initial-offering' }
     return {
-        bank: { name: 'Bank' },
+        bank: { name: 'Bank', unlimitedAfterExhaustion: true },
         companies: [
             ...majors.map((company) => ({
                 ...company,

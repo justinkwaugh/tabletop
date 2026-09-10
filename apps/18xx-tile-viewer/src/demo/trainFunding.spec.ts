@@ -156,12 +156,14 @@ it.each(Titles)(
                 expectedPrice: purchase.price
             })
         })
-        expect(result.updatedState.machineState).toBe('Bankrupt')
+        expect(result.updatedState.machineState).toBe('GameOver')
         expect(result.updatedState.bankruptcy?.shortfall).toBe(purchase.price)
         expect(result.updatedState.activePlayerIds).toEqual([])
         expect(result.processedActions.map((action) => action.type)).toEqual([
             'FundTrain',
-            'DeclareBankruptcy'
+            'DeclareBankruptcy',
+            'ScheduleGameEnd',
+            'EndGame'
         ])
         expect(
             engine.getValidActionTypesForPlayer(game, result.updatedState, state.activePlayerIds[0])
@@ -507,7 +509,9 @@ it.each(Titles)(
         })
         expect(result.processedActions.map((action) => action.type)).toEqual([
             'ContributeTrainFunds',
-            'DeclareBankruptcy'
+            'DeclareBankruptcy',
+            'ScheduleGameEnd',
+            'EndGame'
         ])
         expect(result.updatedState.bankruptcy?.shortfall).toBe(purchase.price - 9)
         expect(cashOwnedBy(result.updatedState, { kind: 'player', playerId: owner })).toBe(0)

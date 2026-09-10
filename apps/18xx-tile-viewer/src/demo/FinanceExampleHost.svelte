@@ -33,7 +33,7 @@
     let bridge: BridgedContext | undefined
     let disposed = false
     const exampleName = untrack(
-        () => `Finances example · 25 · ${position} · ${playerCount ?? 'default'}`
+        () => `Finances example · 26 · ${position} · ${playerCount ?? 'default'}`
     )
 
     onMount(() => {
@@ -46,9 +46,10 @@
     })
 
     async function loadCompatibleExample() {
-        for (const game of app.gameService.activeGames.filter(
-            (game) => game.name === exampleName
-        )) {
+        for (const game of [
+            ...app.gameService.activeGames,
+            ...app.gameService.finishedGames
+        ].filter((game) => game.name === exampleName)) {
             try {
                 return await app.gameService.loadGame(game.id)
             } catch (cause) {

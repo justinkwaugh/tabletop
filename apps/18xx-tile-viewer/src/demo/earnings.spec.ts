@@ -339,13 +339,28 @@ it.each(Titles)(
         ).toThrow()
     }
 )
-it('reports insufficient Bank cash without mutating the proposed distribution', () => {
-    const { state } = example(Shikoku, 'routes')
+it('previews a bank-breaking payment without mutation, then pays in full and schedules the ending', () => {
+    const { game, engine, state } = example(Shikoku, 'routes')
     earnings(state, 'IR', 100)
     state.cash.find((cash) => cash.owner.kind === 'bank')!.amount = 0
     const before = structuredClone(state)
     expect(
-        new EarningsDistribution(state, Shikoku1889EarningsRules).evaluate('IR', 'withhold').reason
-    ).toContain('bank-exhaustion')
+        new EarningsDistribution(state, Shikoku1889EarningsRules).evaluate('IR', 'withhold').details
+    ).toBeDefined()
     expect(state).toEqual(before)
+    const result = engine.executeCanonicalAction({
+        game,
+        state,
+        action: action(state, 'DistributeEarnings', { companyId: 'IR', choice: 'withhold' })
+    })
+    expect(result.processedActions.map((action) => action.type)).toEqual([
+        'DistributeEarnings',
+        'ScheduleGameEnd'
+    ])
+    expect(result.updatedState.bank.broken).toBe(true)
+    expect(result.updatedState.gameEnding?.finalOperatingSet).toBe(1)
+    expect(result.updatedState.machineState).toBe('BuyingTrains')
+    expect(cashOwnedBy(result.updatedState, { kind: 'company', companyId: 'IR' })).toBe(
+        Number(cashOwnedBy(state, { kind: 'company', companyId: 'IR' })) + 100
+    )
 })

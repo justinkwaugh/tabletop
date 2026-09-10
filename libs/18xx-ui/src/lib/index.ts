@@ -39,3 +39,5 @@ export { default as WaterfallAuctionPanel } from './auctions/WaterfallAuctionPan
 export type { AuctionSelection } from './auctions/auctionSelection.js'
 
 export { default as OfferAuctionPanel } from './auctions/OfferAuctionPanel.svelte'
+
+export { default as GameEnding } from './examples/GameEnding.svelte'

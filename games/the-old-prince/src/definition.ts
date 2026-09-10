@@ -1,3 +1,5 @@
+import { prepareTheOldPrinceEnding } from './endingExample.js'
+import { TheOldPrinceEndingRules } from './endingRules.js'
 import { TheOldPrinceStockRoundHandler } from './stockRoundHandler.js'
 import { SplitCompany, HydratedSplitCompany, isSplitCompany } from './splitCompany.js'
 import { TheOldPrinceAuctionRules } from './openingAuction.js'
@@ -27,6 +29,8 @@ import {
 import { createTheOldPrinceCompanyExample } from './companyExamples.js'
 
 const FinanceRuntime = createFinanceExampleRuntime({
+    endingRules: TheOldPrinceEndingRules,
+    prepareEndingExample: prepareTheOldPrinceEnding,
     stockRoundHandler: new TheOldPrinceStockRoundHandler(),
     offerAuctionRules: TheOldPrinceAuctionRules,
     defaultPosition: 'opening',

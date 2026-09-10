@@ -1,3 +1,12 @@
+import { GameEnding, type EndingRules } from '../ending/gameEnding.js'
+import { EndingFields, type PlayerWealth } from '../ending/finalWealth.js'
+import {
+    ScheduleGameEnd,
+    HydratedScheduleGameEnd,
+    isScheduleGameEnd
+} from '../ending/scheduleGameEnd.js'
+import { EndGame, HydratedEndGame, isEndGame } from '../ending/endGame.js'
+import { GameEndingHandler } from '../ending/gameEndingHandler.js'
 import type { MachineStateHandler, HydratedAction } from '@tabletop/common'
 import { Prng } from '@tabletop/common'
 import {
@@ -276,6 +285,7 @@ const ExampleFields = Type.Object({
         Type.Literal('BuyingTrains'),
         Type.Literal('FundingTrain'),
         Type.Literal('Bankrupt'),
+        Type.Literal('GameOver'),
         Type.Literal('AdvancingPhase'),
         Type.Literal('DiscardingTrains'),
         Type.Literal('RustingTrains'),
@@ -288,6 +298,8 @@ const ExampleFields = Type.Object({
     stationStep: Type.Optional(StationStep),
     stockMarket: StockMarket,
     ...FinanceFields,
+    ...EndingFields,
+    gameEnding: Type.Optional(GameEnding),
     ...FundingFields,
     ...AuctionFields,
     ...OfferPileFields,
@@ -319,6 +331,8 @@ export class HydratedFinanceExampleState
     declare openingAuction?: WaterfallAuction
     declare trainFunding?: TrainFunding
     declare bankruptcy?: Bankruptcy
+    declare gameEnding?: GameEnding
+    declare finalWealth?: PlayerWealth[]
     declare privatePowerWindow?: PrivatePowerWindow
     declare purchaseOffer?: PurchaseOffer
     declare privateTrackLay?: PrivateTrackLay
@@ -351,6 +365,7 @@ export class HydratedFinanceExampleState
         | 'BuyingTrains'
         | 'FundingTrain'
         | 'Bankrupt'
+        | 'GameOver'
         | 'AdvancingPhase'
         | 'DiscardingTrains'
         | 'RustingTrains'
@@ -455,7 +470,7 @@ export class HydratedFinanceExampleState
         }
         if (this.trainFunding) {
             assert(
-                ['FundingTrain', 'Bankrupt'].includes(this.machineState) &&
+                ['FundingTrain', 'Bankrupt', 'GameOver'].includes(this.machineState) &&
                     this.trainFunding.purchase.companyId === this.trainPurchaseStep?.companyId,
                 'Funding must belong to the operating train purchase'
             )
@@ -472,8 +487,13 @@ export class HydratedFinanceExampleState
             )
         }
         assert(
-            (this.machineState === 'Bankrupt') === Boolean(this.bankruptcy),
+            this.machineState === 'GameOver' ||
+                (this.machineState === 'Bankrupt') === Boolean(this.bankruptcy),
             'Bankruptcy must match the terminal state'
+        )
+        assert(
+            (this.machineState === 'GameOver') === Boolean(this.finalWealth && this.result),
+            'Final results must match the terminal state'
         )
         assert(this.machineState !== 'FundingTrain' || this.trainFunding, 'Missing train funding')
         if (this.privatePowerWindow)
@@ -571,6 +591,7 @@ export class HydratedFinanceExampleState
                     'BuyingTrains',
                     'FundingTrain',
                     'Bankrupt',
+                    'GameOver',
                     'AdvancingPhase',
                     'DiscardingTrains'
                 ].includes(this.machineState) &&
@@ -617,6 +638,7 @@ class FinanceExampleInitializer extends BaseGameInitializer<
         private readonly options: Pick<
             FinanceExampleOptions,
             | 'createFinances'
+            | 'prepareEndingExample'
             | 'offerAuctionRules'
             | 'auctionRules'
             | 'defaultPosition'
@@ -633,7 +655,9 @@ class FinanceExampleInitializer extends BaseGameInitializer<
         super()
     }
     initializeGameState(game: Game, state: UninitializedGameState): HydratedFinanceExampleState {
-        const position = game.config?.examplePosition ?? this.options.defaultPosition ?? 'trading'
+        const requestedPosition =
+            game.config?.examplePosition ?? this.options.defaultPosition ?? 'trading'
+        const position = requestedPosition === 'ending' ? 'trains' : requestedPosition
         assert(PositionValidator.Check(position), 'Unknown finance example position')
         assert(
             position === 'opening'
@@ -762,10 +786,20 @@ class FinanceExampleInitializer extends BaseGameInitializer<
             initialized.activePlayerIds = [owner.playerId]
             initialized.turnManager.series = [{ type: 'turn', playerId: owner.playerId, start: 0 }]
         }
+        if (requestedPosition === 'ending') {
+            this.options.prepareEndingExample(initialized)
+            applyPrivateEffects(
+                initialized,
+                this.options.privateRules.phaseEffects(initialized),
+                this.options.stockRules
+            )
+        }
         return initialized
     }
 }
 export interface FinanceExampleOptions {
+    endingRules: EndingRules
+    prepareEndingExample: (state: HydratedFinanceExampleState) => void
     stockRoundHandler?: MachineStateHandler<HydratedAction, HydratedFinanceExampleState>
     offerAuctionRules?: OfferPileAuctionRules
     auctionRules?: WaterfallAuctionRules
@@ -798,6 +832,9 @@ export function createFinanceExampleRuntime(
             hydrateState: (state) =>
                 new HydratedFinanceExampleState(state, map, tileSet, options.trainRules.depot),
             hydrateAction: (action) => {
+                if (isScheduleGameEnd(action))
+                    return new HydratedScheduleGameEnd(action, options.endingRules)
+                if (isEndGame(action)) return new HydratedEndGame(action, options.endingRules)
                 if (isContinueOperatingRound(action))
                     return new HydratedContinueOperatingRound(action)
                 if (isBuyPrivateTrain(action))
@@ -950,6 +987,8 @@ export function createFinanceExampleRuntime(
         canonicalStateValidator: FinanceExampleValidator,
         playerColors: ExampleColors,
         apiActions: {
+            ScheduleGameEnd,
+            EndGame,
             ...(options.offerAuctionRules
                 ? { OfferAuctionLot, BidOnAuctionLot, PassAuction, ResolveAuction }
                 : {}),
@@ -1021,6 +1060,7 @@ export function createFinanceExampleRuntime(
                     rules,
                     options.trainRules
                 ),
+                GameOver: new TerminalStateHandler(),
                 Bankrupt: new BankruptHandler<HydratedFinanceExampleState>(),
                 AdvancingPhase: new AdvancingPhaseHandler(),
                 DiscardingTrains: new DiscardingTrainsHandler(options.trainRules),
@@ -1072,23 +1112,28 @@ export function createFinanceExampleRuntime(
                 )
             }).map(([name, handler]) => [
                 name,
-                [
-                    'StockRound',
-                    'LayingTrack',
-                    'PlacingStation',
-                    'RunningTrains',
-                    'DistributingEarnings',
-                    'BuyingTrains'
-                ].includes(name)
-                    ? new CompanyDecisionsHandler<HydratedFinanceExampleState>(
-                          handler,
-                          options.transferRules,
-                          options.privatePowerRules,
-                          options.trainRules,
-                          companyRules,
-                          options.trackRules
+                name === 'GameOver'
+                    ? handler
+                    : new GameEndingHandler<HydratedFinanceExampleState>(
+                          [
+                              'StockRound',
+                              'LayingTrack',
+                              'PlacingStation',
+                              'RunningTrains',
+                              'DistributingEarnings',
+                              'BuyingTrains'
+                          ].includes(name)
+                              ? new CompanyDecisionsHandler<HydratedFinanceExampleState>(
+                                    handler,
+                                    options.transferRules,
+                                    options.privatePowerRules,
+                                    options.trainRules,
+                                    companyRules,
+                                    options.trackRules
+                                )
+                              : handler,
+                          options.endingRules
                       )
-                    : handler
             ])
         )
     }

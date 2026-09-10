@@ -21,7 +21,7 @@ export function createShikoku1889FinanceExample(players: readonly PlayerState[])
     const offering = { owner: bank, poolId: 'initial-offering' }
     const market = { owner: bank, poolId: 'open-market' }
     return {
-        bank: { name: 'Bank' },
+        bank: { name: 'Bank', unlimitedAfterExhaustion: true },
         companies: [
             {
                 ...Shikoku1889Majors.AR,

@@ -63,6 +63,8 @@ it.each([Top, Shikoku])(
         expect(getCompany(restored, president.companyId).shareCount).toBe(10)
         expect(restored.activePlayerIds[0]).toBe('alex')
         expect(Object.keys(definition.runtime.apiActions)).toEqual([
+            'ScheduleGameEnd',
+            'EndGame',
             ...(definition === Shikoku
                 ? [
                       'ReserveBid',

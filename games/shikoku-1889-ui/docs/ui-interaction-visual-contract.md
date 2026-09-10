@@ -188,3 +188,13 @@ Components call session methods and never construct Actions. Public reservations
 restricted bidding, and automatic awards survive reload in canonical state.
 Completion shows the first stock round with the saved priority player. Undo can
 restore the last opening turn, including reversing automatic awards and completion.
+
+## Game ending and final wealth
+
+The ending panel renders the canonical ending schedule and final wealth from the
+Session's displayed state, including history. It owns no draft or gameplay
+mutation. Its Undo control invokes the existing Session Undo method and is disabled
+during state publication, busy processing, and History View. Undo reverses the
+triggering user Action and its System Action cascade together, restoring the ending
+schedule, results, Bank state, and ordinary play. GameOver exposes no game Actions.
+The prototype harness reloads completed games as well as active ones.

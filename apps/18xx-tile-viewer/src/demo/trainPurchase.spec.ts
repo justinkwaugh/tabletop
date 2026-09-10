@@ -152,6 +152,7 @@ it.each(Titles)(
     ({ definition, rules, companyId }) => {
         const { game, engine, state } = example(definition, 'trains')
         state.phaseId = 'D'
+        if (definition === Top) state.gameEnding = { reason: 'First diesel', finalOperatingSet: 2 }
         state.trainInventory.trains = state.trainInventory.trains.map((train) => ({
             id: train.id,
             definitionId: train.definitionId,

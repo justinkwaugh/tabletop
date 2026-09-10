@@ -33,3 +33,5 @@ export * from './trainFundingRules.js'
 
 export * from './openingAuction.js'
 export * from './privates.js'
+
+export * from './endingRules.js'

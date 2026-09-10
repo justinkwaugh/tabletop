@@ -4,6 +4,7 @@
     import type { GameState, HydratedGameState } from '@tabletop/common'
     import {
         WaterfallAuctionPanel,
+        GameEnding,
         FinanceInspector,
         FinanceMap,
         TrainBuying,
@@ -17,6 +18,8 @@
     const session = $derived(requireFinanceExampleSession(gameSession))
     const state = $derived(requireFinanceExampleState(gameSession.gameState))
 </script>
+
+<GameEnding {session} />
 
 {#if session.auction && !session.auction.auction.completed}
     <WaterfallAuctionPanel

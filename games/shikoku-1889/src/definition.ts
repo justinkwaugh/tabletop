@@ -1,3 +1,5 @@
+import { prepareShikoku1889Ending } from './endingExample.js'
+import { Shikoku1889EndingRules } from './endingRules.js'
 import { Shikoku1889AuctionRules } from './openingAuction.js'
 import { Shikoku1889TrainFundingRules } from './trainFundingRules.js'
 import { Shikoku1889TransferRules } from './transferRules.js'
@@ -42,6 +44,8 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
         }
     },
     runtime: createFinanceExampleRuntime({
+        endingRules: Shikoku1889EndingRules,
+        prepareEndingExample: prepareShikoku1889Ending,
         auctionRules: Shikoku1889AuctionRules,
         defaultPosition: 'opening',
         trainFundingRules: Shikoku1889TrainFundingRules,

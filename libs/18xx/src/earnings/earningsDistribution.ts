@@ -126,9 +126,13 @@ export class EarningsDistribution {
             this.addPayment(payments, entitlement.owner, entitlement.shares * dividendPerShare)
         const total = payments.reduce((sum, payment) => sum + payment.amount, 0),
             bank = cashOwnedBy(this.state, { kind: 'bank' })
-        if (bank !== 'unlimited' && (bank === undefined || bank < total))
+        if (
+            bank !== 'unlimited' &&
+            !this.state.bank.unlimitedAfterExhaustion &&
+            (bank === undefined || bank < total)
+        )
             return {
-                reason: 'This payment requires bank-exhaustion rules, which are not implemented yet.'
+                reason: 'The Bank cannot fund this payment.'
             }
         return {
             details: {

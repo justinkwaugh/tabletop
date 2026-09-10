@@ -40,3 +40,5 @@ export * from './branchSplit.js'
 
 export * from './branchSplitAllocation.js'
 export * from './splitCompany.js'
+
+export * from './endingRules.js'

@@ -104,7 +104,7 @@ encoding the full trait catalog as mandatory configuration.
 | Railway operation         | 6–11   | Both can construct track and operate companies through an ordinary OR in prepared scenarios.                              |
 | Connected rules           | 12–15  | Phase changes, powers, negotiations, and emergency obligations integrate with that operation.                             |
 | Complete title procedures | 16–17  | Real openings for both games and TOP's branch splits connect to the existing mechanisms.                                  |
-| Complete game logic       | 18–19  | Client route suggestions, full ending rules, and final valuation are covered.                                             |
+| Complete game logic       | 19     | Full ending rules and final valuation are covered.                                                                        |
 | Verified game logic       | 20     | Both complete games through prototype clients, including persistence, history, and hosted multi-client behavior.          |
 | Designed game clients     | U1–U2  | Deliberately designed desktop and mobile experiences using the validated logic and shared tile library.                   |
 
@@ -112,7 +112,8 @@ Begin with T1–T3 and M1–M2, then follow the numbered logic slices. The tile/
 has no dependency on corporate finance; slice 6 later connects live game state to
 the established map renderer. Physical-artwork availability may defer a title's
 M2 visual acceptance while boardless rendering and logic continue. Slices 16 and
-17 have explicit independently reviewable parts.
+17 have explicit independently reviewable parts. Slice 18 is deferred as a client UI
+optimization; proceed from 17B to 19 and 20 using manually selected routes.
 U1 can begin when representative stock and operating scenarios exist and be
 challenged again by later complex procedures. Do not treat a milestone as proof
 of rules completeness before the later rules and conformance slices are finished.
@@ -903,6 +904,10 @@ not a reason to introduce a universal reorganization framework.
 
 ## 18. Suggest routes with a client-side optimizer
 
+**Status:** deferred as a client UI optimization. It is not a prerequisite for
+game endings, final valuation, or complete-game logic verification. Players continue
+to select routes manually through the existing route editor and `RunTrains` Action.
+
 **Outcome:** a client-only helper proposes a best legal fleet route set for the
 route editor. TOP's maximum-revenue rule guides its suggestions; 1889 can use
 optional route suggestions. Automatic search is never part of authoritative
@@ -927,6 +932,8 @@ is local draft state until the player confirms it.
 
 ## 19. End games at the correct time and calculate final wealth
 
+**Status:** implemented. See the [design and verification](game-ending-slice-design.md).
+
 **Outcome:** both titles stop on the correct decision boundary, reject subsequent
 Actions, and display an auditable final valuation.
 
@@ -946,7 +953,7 @@ finish the diesel's OR set, a final SR, and three final ORs, subject to resolvin
 the documented conflicting summary. Value every asset once, including Union Bank
 holdings through its owner, and reproduce totals after replay.
 
-**Depends on:** 11–18. **Milestone:** both complete rule flows exist.
+**Depends on:** 11–17. **Milestone:** both complete rule flows exist.
 
 ## 20. Verify complete game logic through prototype clients
 
@@ -980,7 +987,8 @@ powers, phase events, unusual stock restrictions, TOP splits/PEIR lifecycle, and
 the selected rules-baseline exceptions. Do not label a title complete with an
 unimplemented required power or unresolved rule-critical shortcut.
 
-**Depends on:** T1–T3, M1–M2, and numbered slices 1–19. Acceptance for both map modes
+**Depends on:** T1–T3, M1–M2, and numbered slices 1–17 and 19. Slice 18 remains
+optional client work. Acceptance for both map modes
 requires matching artwork; record any unavailable physical mode explicitly.
 Beginner variants and broader
 18xx-family mechanisms can follow as their own work. The complete logic can be

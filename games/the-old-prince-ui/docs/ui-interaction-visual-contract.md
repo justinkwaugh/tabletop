@@ -224,3 +224,13 @@ active with its buy/start allowance used; the player can use remaining permitted
 private exchanges or Finish turn. Reload restores a completed split, and ordinary
 Undo restores the entire pre-split state. Pending company decisions and flotations
 retain their shared handler precedence.
+
+## Game ending and final wealth
+
+The ending panel renders the canonical ending schedule and final wealth from the
+Session's displayed state, including history. It owns no draft or gameplay
+mutation. Its Undo control invokes the existing Session Undo method and is disabled
+during state publication, busy processing, and History View. Undo reverses the
+triggering user Action and its System Action cascade together, restoring the ending
+schedule, results, Bank state, and ordinary play. GameOver exposes no game Actions.
+The prototype harness reloads completed games as well as active ones.

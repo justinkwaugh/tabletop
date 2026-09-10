@@ -6,6 +6,7 @@
     import type { GameState, HydratedGameState } from '@tabletop/common'
     import {
         OfferAuctionPanel,
+        GameEnding,
         FinanceInspector,
         FinanceMap,
         TrainBuying,
@@ -19,6 +20,8 @@
     const session = $derived(requireTheOldPrinceSession(gameSession))
     const state = $derived(requireFinanceExampleState(gameSession.gameState))
 </script>
+
+<GameEnding {session} />
 
 {#if session.offerAuction && !session.offerAuction.auction.completed}
     <p class="company-roles">

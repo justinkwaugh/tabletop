@@ -52,6 +52,7 @@
                 <option value="powers">Private powers</option>
                 <option value="funding">Compulsory train funding</option>
                 <option value="bankruptcy">Bankruptcy</option>
+                <option value="ending">Final operating turn</option>
             </select>
         </label>
         {#if position === 'opening'}<label class="example"
