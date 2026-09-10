@@ -115,9 +115,14 @@ export function createTheOldPrinceCompanyExample(
                 status: 'available'
             })
     }
-    if (position === 'construction' || position === 'stations' || position === 'routes')
+    if (
+        position === 'construction' ||
+        position === 'stations' ||
+        position === 'routes' ||
+        position === 'operations'
+    )
         state.phaseId = '4H'
-    if (position === 'stations' || position === 'routes') {
+    if (position === 'stations' || position === 'routes' || position === 'operations') {
         state.tileInventory = TheOldPrinceTileSet.createInventory([
             { locationId: 'K17', definitionId: '18xx:8', rotation: 4 },
             { locationId: 'K19', definitionId: '18xx:6', rotation: 1 }
@@ -132,7 +137,7 @@ export function createTheOldPrinceCompanyExample(
             companyId: 'ML'
         })
     }
-    if (position === 'routes') {
+    if (position === 'routes' || position === 'operations') {
         for (let index = 0; index < 2; index++) {
             const train = TheOldPrinceTrainDepot.nextTrain(state.trainInventory, '2H')
             assert(train, 'Route example requires a train')
@@ -141,6 +146,14 @@ export function createTheOldPrinceCompanyExample(
                 companyId: 'ML'
             })
         }
+    }
+    if (position === 'operations') {
+        const train = TheOldPrinceTrainDepot.nextTrain(state.trainInventory, '2H')
+        assert(train, 'Operating example requires another company train')
+        TheOldPrinceTrainDepot.purchase(state.trainInventory, train.id, train.definitionId, {
+            kind: 'company',
+            companyId: 'So'
+        })
     }
     return state
 }

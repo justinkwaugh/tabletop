@@ -104,7 +104,7 @@ encoding the full trait catalog as mandatory configuration.
 | Railway operation         | 6–11   | Both can construct track and operate companies through an ordinary OR in prepared scenarios.                              |
 | Connected rules           | 12–15  | Phase changes, powers, negotiations, and emergency obligations integrate with that operation.                             |
 | Complete title procedures | 16–17  | Real openings for both games and TOP's branch splits connect to the existing mechanisms.                                  |
-| Complete game logic       | 18–19  | Client route suggestions, full ending rules, and final valuation are covered.                                     |
+| Complete game logic       | 18–19  | Client route suggestions, full ending rules, and final valuation are covered.                                             |
 | Verified game logic       | 20     | Both complete games through prototype clients, including persistence, history, and hosted multi-client behavior.          |
 | Designed game clients     | U1–U2  | Deliberately designed desktop and mobile experiences using the validated logic and shared tile library.                   |
 
@@ -422,7 +422,6 @@ permitted sales around a purchase, ordered sale blocks, previews, market renderi
 portfolio counts, saved history, and Undo. See the
 [slice design and family review](stock-trading-slice-design.md).
 
-
 **Outcome:** an investment decision changes cash, market position, and who controls
 a corporation, visibly and consistently.
 
@@ -651,6 +650,13 @@ revenue. Benchmark candidate enumeration on a late TOP position now to expose th
 performance risk for slice 18 while the route interface is still easy to revise.
 
 ## 11. Distribute earnings and complete ordinary operating rounds
+
+**Status:** implemented for both prepared titles. Shared earnings evaluation and
+settlement, private income, operating progress, train-ownership requirements,
+and stock-round restart are wired through the runtime and prototype controls.
+King's Mail uses the supplied rulebook's $60 baseline. The Operating rounds
+example exercises full sets; phase changes and emergency funding remain later
+slices. See [design and evidence](earnings-operating-rounds-slice-design.md).
 
 **Outcome:** operate successive corporations, pay or retain earnings, and return
 to the next OR or SR in prepared scenarios.

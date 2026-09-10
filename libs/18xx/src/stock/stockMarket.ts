@@ -132,3 +132,19 @@ export function validateStockMarket(market: StockMarket, companyIds: readonly st
     for (const space of market.spaces)
         for (const next of Object.values(space.moves)) stockMarketSpace(market, next)
 }
+
+export const StockMarketMove = Type.Object(
+    { companyId: Type.String(), fromMarketSpaceId: Type.String(), toMarketSpaceId: Type.String() },
+    { additionalProperties: false }
+)
+export type StockMarketMove = Type.Static<typeof StockMarketMove>
+export function dividendMarketMove(
+    market: StockMarket,
+    companyId: string,
+    paying: boolean
+): StockMarketMove {
+    const from = companyMarketSpace(market, companyId)
+    const direction = paying ? 'right' : 'left'
+    const to = from.moves[direction] ?? from.moves[paying ? 'up' : 'down'] ?? from.id
+    return { companyId, fromMarketSpaceId: from.id, toMarketSpaceId: to }
+}

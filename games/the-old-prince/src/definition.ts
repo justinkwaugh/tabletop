@@ -1,3 +1,4 @@
+import { TheOldPrinceEarningsRules } from './earningsRules.js'
 import { TheOldPrinceRouteRules } from './routeRules.js'
 import { TheOldPrinceTrainRules } from './trains.js'
 import { TheOldPrinceStationRules } from './stationRules.js'
@@ -44,6 +45,7 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
         tileSet: TheOldPrinceTileSet,
         trackRules: TheOldPrinceTrackRules,
         stationRules: TheOldPrinceStationRules,
+        earningsRules: TheOldPrinceEarningsRules,
         routeRules: TheOldPrinceRouteRules,
         trainRules: TheOldPrinceTrainRules
     })

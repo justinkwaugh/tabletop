@@ -47,7 +47,7 @@ it.each(Titles)(
         const result = engine.executeCanonicalAction({ game, state, action: action(state, routes) })
         expect(state).toEqual(before)
         expect(result.processedActions.map((action) => action.type)).toEqual(['RunTrains'])
-        expect(result.updatedState.machineState).toBe('TrainsRun')
+        expect(result.updatedState.machineState).toBe('DistributingEarnings')
         expect(result.updatedState.routeStep?.result?.revenue).toBe(expected)
         expect(result.updatedState.cash).toEqual(state.cash)
         expect(

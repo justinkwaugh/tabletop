@@ -38,14 +38,12 @@ operating company order after sold-out adjustments.
 Round completion and Undo follow the shared full-stock-round contract. The finance
 UI remains disposable; this slice requires desktop interaction verification only.
 
-
 The map follows the shared live-map contract. Its current tiles, stations,
 reservations, and inventory counts come from the session's visible state. Map
 inspection is independent of stock drafts and survives station exchange, history,
 and Undo when its target remains valid. Each hotseat player has a local map style.
 Fit/focus/pan/zoom and tile browsing create no actions. This remains a prepared
 position; legal track construction follows the shared track-construction contract.
-
 
 Track construction follows the shared draft, preview, target, Back/Undo and history
 contract. The new Track construction example starts directly in the first
@@ -57,16 +55,36 @@ preview, access, Back/Undo and history contract. Finish stations currently ends
 the implemented operating steps. The Station placement example supplies connected
 track and available stations.
 
-
 The Train purchases example follows the shared depot-selection, confirmation,
 Back/Undo and history contract. It starts directly in same-phase train buying,
-with a prepared owned train. Existing operating examples still stop before the
-route and dividend steps; phase changes and emergency financing remain later work.
-
+with a prepared owned train. Operating examples continue through running trains and distributing earnings;
+phase changes and emergency financing remain later work.
 
 The Routes example uses the shared route editor and interaction contract. Map
 path clicks and extension controls stage routes for two trains; only Confirm
 routes commits. Title RouteRules supplies train distance requirements and revenue
-stages. FinishStations now enters RunningTrains; RunTrains ends at TrainsRun
-until earnings distribution is implemented. Route overlays, Back/Undo, history
-and reload follow the shared contract (fixture version 15).
+stages. FinishStations now enters RunningTrains; RunTrains enters DistributingEarnings
+for payout selection. Route overlays, Back/Undo, history
+and reload follow the shared contract (fixture version 16).
+
+### Earnings and round progression (slice 11)
+
+Payout choice is manual session-owned local selection. Its preview uses the same
+EarningsDistribution evaluator as DistributeEarnings. Back clears the choice;
+Undo clears a manual choice before undoing a committed action. History and
+updatingVisibleState hide the draft; beforeNewState clears it. Reload restores
+only committed earnings. Confirmation shows recipient amounts, retained revenue,
+rounding/bonus supplements and share-price movement; it never changes route
+geometry. Committed payment details remain visible during train purchasing.
+
+DistributeEarnings enters BuyingTrains. Finish operating turn is disabled while a
+train purchase is drafted or a compulsory train is missing. The rules own company
+completion, the next operator, private income at OR entry and the return to stock
+trading. The operating-step strip and company order reflect canonical state.
+Undo across a turn boundary also restores automatic round and income changes.
+
+The Operating rounds fixture (version 16) starts at the first company's track
+step, with first-round private income already included and trains prepared for
+both majors. Subsequent private income is recorded by StartOperatingRound.
+The Routes fixture now continues into earnings and train purchasing. Phase changes,
+emergency funding, and game-ending obligations remain explicitly outside this slice.

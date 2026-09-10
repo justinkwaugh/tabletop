@@ -1,3 +1,6 @@
+import { TheOldPrinceMap } from './map.js'
+import { TheOldPrinceTileSet } from './tiles.js'
+import { hasStationRoute, RailwayMapState } from '@tabletop/18xx'
 import { assertExists } from '@tabletop/common'
 import { TrainDepot, type TrainRules } from '@tabletop/18xx'
 export const TheOldPrinceTrainDepot = new TrainDepot({
@@ -62,6 +65,13 @@ const Limits: Record<string, number> = {
 }
 export const TheOldPrinceTrainRules: TrainRules = {
     depot: TheOldPrinceTrainDepot,
+    requiresTrain: (state, companyId) =>
+        companyId !== 'PEIR' &&
+        hasStationRoute(
+            new RailwayMapState(TheOldPrinceMap, TheOldPrinceTileSet, state.tileInventory),
+            state,
+            companyId
+        ),
     availableDefinitions(state) {
         const next = TheOldPrinceTrainDepot.nextDefinitionId(state.trainInventory)
         return next ? [next] : []

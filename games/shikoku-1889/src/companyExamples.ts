@@ -94,13 +94,18 @@ export function createShikoku1889CompanyExample(
                 status: 'available'
             })
     }
-    if (position === 'construction' || position === 'stations' || position === 'routes') {
+    if (
+        position === 'construction' ||
+        position === 'stations' ||
+        position === 'routes' ||
+        position === 'operations'
+    ) {
         state.phaseId = '3'
         state.tileInventory = Shikoku1889TileSet.createInventory([
             { locationId: 'E2', definitionId: '18xx:5', rotation: 0 }
         ])
     }
-    if (position === 'stations' || position === 'routes') {
+    if (position === 'stations' || position === 'routes' || position === 'operations') {
         applyStationPlacement(state, {
             companyId: 'AR',
             stationId: 'AR:station:1',
@@ -122,7 +127,7 @@ export function createShikoku1889CompanyExample(
             companyId: 'IR'
         })
     }
-    if (position === 'routes') {
+    if (position === 'routes' || position === 'operations') {
         for (let index = 0; index < 2; index++) {
             const train = Shikoku1889TrainDepot.nextTrain(state.trainInventory, '2')
             assert(train, 'Route example requires a train')
@@ -131,6 +136,14 @@ export function createShikoku1889CompanyExample(
                 companyId: 'IR'
             })
         }
+    }
+    if (position === 'operations') {
+        const train = Shikoku1889TrainDepot.nextTrain(state.trainInventory, '2')
+        assert(train, 'Operating example requires another company train')
+        Shikoku1889TrainDepot.purchase(state.trainInventory, train.id, train.definitionId, {
+            kind: 'company',
+            companyId: 'AR'
+        })
     }
     return state
 }

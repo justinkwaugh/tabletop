@@ -1,3 +1,6 @@
+import { Shikoku1889Map } from './map.js'
+import { Shikoku1889TileSet } from './tiles.js'
+import { hasStationRoute, RailwayMapState } from '@tabletop/18xx'
 import { assertExists } from '@tabletop/common'
 import { TrainDepot, type TrainRules } from '@tabletop/18xx'
 export const Shikoku1889TrainDepot = new TrainDepot({
@@ -28,6 +31,12 @@ const Phases = ['2', '3', '4', '5', '6', 'D']
 const Limits: Record<string, number> = { '2': 4, '3': 4, '4': 3, '5': 2, '6': 2, D: 2 }
 export const Shikoku1889TrainRules: TrainRules = {
     depot: Shikoku1889TrainDepot,
+    requiresTrain: (state, companyId) =>
+        hasStationRoute(
+            new RailwayMapState(Shikoku1889Map, Shikoku1889TileSet, state.tileInventory),
+            state,
+            companyId
+        ),
     availableDefinitions(state) {
         const next = Shikoku1889TrainDepot.nextDefinitionId(state.trainInventory)
         return [

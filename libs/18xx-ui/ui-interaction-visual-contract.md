@@ -296,7 +296,6 @@ still surface. A browser regression seeds the old stock-state shape under the
 current fixture name, verifies recovery, and checks that the old data remains
 unchanged and subsequent reloads reuse the new example.
 
-
 ### Live maps in finance examples
 
 The session derives map drawings, placed stations, current reservations, and tile
@@ -326,7 +325,6 @@ Desktop browser checks cover TOP station exchange and its reservation through
 purchase, flotation, history stepping, Live, and Undo; 1889's retained reservation,
 placed tile and inventory count through flotation and reload; and independent
 hotseat styles without extra actions. Shared map tests retain fit/zoom/pan coverage.
-
 
 ### Track construction
 
@@ -364,7 +362,6 @@ second-lay cost, history, reload, and full Undo; and 1889's single auto placemen
 Back skipping it, station-preserving upgrade, Finish track and Undo. Shared
 semantic preview/target rendering is lasting; the control panel remains provisional.
 
-
 ### Station placement and track access
 
 The session owns manual station → city-slot selections. An explicit click on a
@@ -395,7 +392,6 @@ style changes do not commit gameplay or consume staged choices.
 The Station placement example is prepared and uses fixture version 15. Desktop
 controls are provisional; no mobile layout work is part of this slice.
 
-
 ### Depot train purchases
 
 The Train purchases example enters BuyingTrains directly. The title's TrainRules
@@ -416,11 +412,9 @@ rosters and purchase history remain canonical until confirmation. History restor
 those values, and returning Live does not restore a cleared draft. Map inspection,
 styles and viewport controls remain independent. No map overlay represents an
 uncommitted train purchase. Existing station/track examples do not skip the missing
-route and dividend steps to enter BuyingTrains. The prototype has no finish control
-that could bypass compulsory train funding.
+route and dividend steps to enter BuyingTrains. Finish operating turn checks compulsory train ownership before advancing.
 
 Fixture version 13 preserves old saves. Train purchase controls remain provisional.
-
 
 ### Routes and operating results
 
@@ -448,8 +442,29 @@ the existing layer ordering below node artwork and selection. History renders
 committed route overlays and itemized results for the viewed state.
 
 FinishStations initializes RouteStep and advances directly into RunningTrains.
-RunTrains stores OperatingResult and reaches TrainsRun pending earnings
-settlement. The Routes fixture (version 15) supplies two trains and connected track
+RunTrains stores OperatingResult and enters DistributingEarnings. The Routes fixture (version 15) supplies two trains and connected track
 for each title. Zero/suboptimal submissions are permitted during this slice;
 client-only automatic route suggestions belong to slice 18. No payout or market movement is
 implied by a displayed route total. The route panel remains disposable.
+
+### Earnings and round progression (slice 11)
+
+Payout choice is manual session-owned local selection. Its preview uses the same
+EarningsDistribution evaluator as DistributeEarnings. Back clears the choice;
+Undo clears a manual choice before undoing a committed action. History and
+updatingVisibleState hide the draft; beforeNewState clears it. Reload restores
+only committed earnings. Confirmation shows recipient amounts, retained revenue,
+rounding/bonus supplements and share-price movement; it never changes route
+geometry. Committed payment details remain visible during train purchasing.
+
+DistributeEarnings enters BuyingTrains. Finish operating turn is disabled while a
+train purchase is drafted or a compulsory train is missing. The rules own company
+completion, the next operator, private income at OR entry and the return to stock
+trading. The operating-step strip and company order reflect canonical state.
+Undo across a turn boundary also restores automatic round and income changes.
+
+The Operating rounds fixture (version 16) starts at the first company's track
+step, with first-round private income already included and trains prepared for
+both majors. Subsequent private income is recorded by StartOperatingRound.
+The Routes fixture now continues into earnings and train purchasing. Phase changes,
+emergency funding, and game-ending obligations remain explicitly outside this slice.

@@ -1,3 +1,4 @@
+import type { RevenueCenter } from '../routes/route.js'
 import type { RailwayMapState } from '../map/mapState.js'
 import { cityIsBlocked, type StationState } from '../map/station.js'
 import type { TileEndpoint, TileFace } from '../tiles/tile.js'
@@ -11,7 +12,8 @@ export class TrackNetwork {
         mapState: RailwayMapState,
         state: StationState,
         companyId: string,
-        replacement?: { locationId: string; face: TileFace }
+        replacement?: { locationId: string; face: TileFace },
+        origin?: RevenueCenter
     ) {
         const faces = new Map(
             mapState.map.definition.locations.map(({ id }) => {
@@ -25,7 +27,11 @@ export class TrackNetwork {
             })
         )
         const queue = state.stations.flatMap((station) =>
-            station.status === 'placed' && station.companyId === companyId
+            station.status === 'placed' &&
+            station.companyId === companyId &&
+            (!origin ||
+                (origin.locationId === station.position.locationId &&
+                    origin.nodeId === station.position.nodeId))
                 ? [
                       {
                           locationId: station.position.locationId,

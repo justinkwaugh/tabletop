@@ -1,3 +1,4 @@
+import type { MapStateData } from '../map/mapState.js'
 import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
 import { cashOwnedBy, controllingOwner, getCompany } from '../finance/finance.js'
@@ -5,6 +6,7 @@ import { trainsOwnedBy, type TrainPurchaseState } from './train.js'
 import type { TrainDepot } from './trainDepot.js'
 export interface TrainRules {
     depot: TrainDepot
+    requiresTrain(state: TrainPurchaseState & MapStateData, companyId: string): boolean
     availableDefinitions(state: TrainPurchaseState): string[]
     phaseAfterPurchase(state: TrainPurchaseState, definitionId: string): string
     trainLimit(state: TrainPurchaseState, companyId: string): number

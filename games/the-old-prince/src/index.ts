@@ -19,3 +19,5 @@ export * from './stationRules.js'
 export * from './trains.js'
 
 export * from './routeRules.js'
+
+export * from './earningsRules.js'

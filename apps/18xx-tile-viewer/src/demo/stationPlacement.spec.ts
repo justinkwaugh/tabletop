@@ -175,6 +175,7 @@ it('places all newly floated 1889 homes before construction, without payment or 
     const result = engine.executeCanonicalAction({ game, state, action: start })
     expect(result.processedActions.map((action) => action.type)).toEqual([
         'StartOperatingSet',
+        'StartOperatingRound',
         'PlaceHomeStations',
         'StartOperatingTurn'
     ])
@@ -182,7 +183,12 @@ it('places all newly floated 1889 homes before construction, without payment or 
         result.updatedState.stations.filter((station) => station.status === 'placed')
     ).toHaveLength(2)
     expect(result.updatedState.stationReservations).toEqual([])
-    expect(result.updatedState.cash).toEqual(state.cash)
+    const afterIncome = engine.applyProcessedAction({
+        game,
+        state: engine.applyProcessedAction({ game, state, action: result.processedActions[0] }),
+        action: result.processedActions[1]
+    })
+    expect(result.updatedState.cash).toEqual(afterIncome.cash)
     expect(result.updatedState.machineState).toBe('LayingTrack')
     expect(result.updatedState.stationStep).toBeUndefined()
     let replay = state

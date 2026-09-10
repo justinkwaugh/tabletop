@@ -1,3 +1,4 @@
+import { Shikoku1889EarningsRules } from '@tabletop/shikoku-1889'
 import { Shikoku1889RouteRules } from '@tabletop/shikoku-1889'
 import { Shikoku1889TrainRules } from '@tabletop/shikoku-1889'
 import { Shikoku1889StationRules } from '@tabletop/shikoku-1889'
@@ -27,7 +28,8 @@ export const UiRuntime: GameUIRuntime<GameState, HydratedGameState> = {
         Shikoku1889TrackRules,
         Shikoku1889StationRules,
         Shikoku1889TrainRules,
-        Shikoku1889RouteRules
+        Shikoku1889RouteRules,
+        Shikoku1889EarningsRules
     ),
     colorizer: new DefaultColorizer()
 }

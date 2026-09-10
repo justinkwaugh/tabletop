@@ -1,4 +1,5 @@
 <script lang="ts">
+    import EarningsDistribution from './EarningsDistribution.svelte'
     import RouteBuilding from './RouteBuilding.svelte'
     import StationBuilding from './StationBuilding.svelte'
     import TrackBuilding from './TrackBuilding.svelte'
@@ -51,6 +52,7 @@
         >
     </header>
     <RouteBuilding {session} />
+    <EarningsDistribution {session} />
     <TrackBuilding {session} />
     <StationBuilding {session} />
     {#if !session.routeOverlays.length}

@@ -27,6 +27,11 @@
             >
         </header>
         {#if session.isViewingHistory}<p>History view</p>{/if}
+        <button
+            onclick={() => session.finishOperatingTurn()}
+            disabled={!session.canFinishOperatingTurn}>Finish operating turn</button
+        >
+        {#if session.finishOperatingReason}<p>{session.finishOperatingReason}</p>{/if}
         <h3>Depot</h3>
         <div class="trains">
             {#each session.trainOffers as offer (offer.definitionId)}

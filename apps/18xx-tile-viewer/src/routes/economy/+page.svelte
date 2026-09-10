@@ -31,6 +31,7 @@
                 <option value="stations">Station placement</option>
                 <option value="trains">Train purchases</option><option value="routes">Routes</option
                 >
+                <option value="operations">Operating rounds</option>
             </select>
         </label>
     </header>

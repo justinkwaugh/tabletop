@@ -22,13 +22,23 @@
                 : 'None'}
         </p>
     {:else if state.operatingSet}
-        <p>Round {state.operatingSet.roundNumber} of {state.operatingSet.roundCount}</p>
+        <p>
+            Operating set {state.operatingSet.number} · Round {state.operatingSet.roundNumber} of {state
+                .operatingSet.roundCount}
+        </p>
+        <ol class="steps" aria-label="Operating steps">
+            {#each [['LayingTrack', 'Track'], ['PlacingStation', 'Stations'], ['RunningTrains', 'Run trains'], ['DistributingEarnings', 'Distribute earnings'], ['BuyingTrains', 'Buy trains']] as [step, label]}
+                <li aria-current={state.machineState === step ? 'step' : undefined}>{label}</li>
+            {/each}
+        </ol>
         <ol aria-label="Operating order">
             {#each state.operatingSet.companyOrder as companyId}
                 {@const owner = controllingOwner(state, companyId)}
                 <li>
                     {getCompany(state, companyId).name}{#if owner}
                         · {session.ownerName(owner)}{/if}
+                    {#if state.operatingSet.completedCompanyIds.includes(companyId)}
+                        · Done{/if}
                 </li>
             {/each}
         </ol>
@@ -41,6 +51,21 @@
 </section>
 
 <style>
+    .steps {
+        display: flex;
+        gap: 24px;
+        list-style: none;
+        padding: 0;
+    }
+    .steps li {
+        color: #607268;
+    }
+    .steps li[aria-current='step'] {
+        color: #253b35;
+        font-weight: 700;
+        text-decoration: underline;
+        text-underline-offset: 5px;
+    }
     p {
         margin: 8px 0;
     }

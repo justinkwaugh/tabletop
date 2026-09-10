@@ -1,4 +1,17 @@
 import {
+    StartOperatingRound,
+    isStartOperatingRound,
+    canStartOperatingRound,
+    type HydratedStartOperatingRound
+} from './startOperatingRound.js'
+import {
+    StartStockRound,
+    isStartStockRound,
+    canStartStockRound,
+    type HydratedStartStockRound
+} from '../stock/startStockRound.js'
+import { nextOperatingCompany } from './operatingSet.js'
+import {
     PlaceHomeStations,
     isPlaceHomeStations,
     type HydratedPlaceHomeStations
@@ -52,8 +65,10 @@ export class HydratedStartOperatingTurn
     apply(state: State): void {
         assert(
             this.source === ActionSource.System &&
-                state.operatingSet?.companyOrder[0] === this.companyId,
-            'The first operating turn belongs to the first company in operating order'
+                state.operatingSet?.privateIncomePaid &&
+                !state.operatingSet.completed &&
+                nextOperatingCompany(state) === this.companyId,
+            'The operating turn belongs to the next company in operating order'
         )
         const owner = controllingOwner(state, this.companyId)
         assertExists(owner, 'The operating company requires a controlling owner')
@@ -63,38 +78,67 @@ export class HydratedStartOperatingTurn
     }
 }
 export class StartOperatingTurnHandler implements MachineStateHandler<
-    HydratedStartOperatingTurn | HydratedPlaceHomeStations,
+    | HydratedStartOperatingTurn
+    | HydratedPlaceHomeStations
+    | HydratedStartOperatingRound
+    | HydratedStartStockRound,
     State
 > {
     constructor(private readonly stationRules: StationRules) {}
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         return (
             action.source === ActionSource.System &&
-            ((isPlaceHomeStations(action) &&
-                !!this.stationRules.pendingHomes(context.gameState).length) ||
+            ((isStartOperatingRound(action) && canStartOperatingRound(context.gameState)) ||
+                (isStartStockRound(action) && canStartStockRound(context.gameState)) ||
+                (!canStartOperatingRound(context.gameState) &&
+                    isPlaceHomeStations(action) &&
+                    !!this.stationRules.pendingHomes(context.gameState).length) ||
                 (isStartOperatingTurn(action) &&
+                    !canStartOperatingRound(context.gameState) &&
                     !this.stationRules.pendingHomes(context.gameState).length &&
-                    action.companyId === context.gameState.operatingSet?.companyOrder[0]))
+                    action.companyId === nextOperatingCompany(context.gameState)))
         )
     }
     validActionsForPlayer(): string[] {
         return []
     }
     enter(context: MachineContext<State>): void {
+        if (canStartOperatingRound(context.gameState)) {
+            context.addSystemAction(StartOperatingRound, {
+                playerId: context.gameState.activePlayerIds[0]
+            })
+            return
+        }
+        if (canStartStockRound(context.gameState)) {
+            context.addSystemAction(StartStockRound, {
+                playerId: context.gameState.activePlayerIds[0]
+            })
+            return
+        }
         if (this.stationRules.pendingHomes(context.gameState).length) {
             context.addSystemAction(PlaceHomeStations, {
                 playerId: context.gameState.activePlayerIds[0]
             })
             return
         }
-        const companyId = context.gameState.operatingSet?.companyOrder[0]
+        const companyId = nextOperatingCompany(context.gameState)
         if (companyId)
             context.addSystemAction(StartOperatingTurn, {
                 companyId,
                 playerId: context.gameState.activePlayerIds[0]
             })
     }
-    onAction(action: HydratedStartOperatingTurn | HydratedPlaceHomeStations): string {
-        return isPlaceHomeStations(action) ? 'OperatingSet' : 'LayingTrack'
+    onAction(
+        action:
+            | HydratedStartOperatingTurn
+            | HydratedPlaceHomeStations
+            | HydratedStartOperatingRound
+            | HydratedStartStockRound
+    ): string {
+        return isStartStockRound(action)
+            ? 'StockRound'
+            : isStartOperatingTurn(action)
+              ? 'LayingTrack'
+              : 'OperatingSet'
     }
 }

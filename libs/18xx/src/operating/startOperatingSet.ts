@@ -57,7 +57,10 @@ export class HydratedStartOperatingSet
             number: (state.operatingSet?.number ?? 0) + 1,
             roundNumber: 1,
             roundCount,
-            companyOrder: [...companyOrder]
+            companyOrder: [...companyOrder],
+            completedCompanyIds: [],
+            privateIncomePaid: false,
+            completed: false
         }
         this.metadata = structuredClone(state.operatingSet)
     }

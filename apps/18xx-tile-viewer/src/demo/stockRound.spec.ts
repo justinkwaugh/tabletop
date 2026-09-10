@@ -78,6 +78,7 @@ it.each([Top, Shikoku])(
             'FinishStockTurn',
             'CompleteStockRound',
             'StartOperatingSet',
+            'StartOperatingRound',
             'StartOperatingTurn'
         ])
         expect(result.updatedState.machineState).toBe('LayingTrack')

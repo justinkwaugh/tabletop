@@ -1,3 +1,11 @@
+import {
+    EarningsDistribution,
+    DistributeEarnings,
+    FinishOperatingTurn,
+    finishOperatingTurnReason,
+    type EarningsChoice,
+    type EarningsRules
+} from '@tabletop/18xx'
 import { RouteEditor } from './routeEditor.svelte.js'
 import { RunTrains, type RouteRules, type RevenueCenter, type RoutePath } from '@tabletop/18xx'
 import {
@@ -98,9 +106,80 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         private readonly trackRules: TrackRules,
         private readonly stationRules: StationRules,
         private readonly trainRules: TrainRules,
-        private readonly routeRules: RouteRules
+        private readonly routeRules: RouteRules,
+        private readonly earningsRules: EarningsRules
     ) {
         super(options)
+    }
+    earnings = $derived.by(() => new EarningsDistribution(this.financialState, this.earningsRules))
+    canDistributeEarnings = $derived(
+        !this.busy &&
+            !this.updatingVisibleState &&
+            !this.isViewingHistory &&
+            this.validActionTypes.includes('DistributeEarnings')
+    )
+    private earningsDraft: EarningsChoice | undefined = $state()
+    earningsSelection = $derived.by(() =>
+        !this.updatingVisibleState &&
+        !this.isViewingHistory &&
+        this.financialState.machineState === 'DistributingEarnings'
+            ? this.earningsDraft
+            : undefined
+    )
+    earningsChoices = $derived.by(() => {
+        const companyId = this.financialState.routeStep?.companyId
+        return companyId && this.financialState.machineState === 'DistributingEarnings'
+            ? this.earningsRules.choices(this.financialState, companyId).map((choice) => ({
+                  choice,
+                  evaluation: this.earnings.evaluate(companyId, choice)
+              }))
+            : []
+    })
+    earningsPreview = $derived(
+        this.earningsChoices.find((entry) => entry.choice === this.earningsSelection)?.evaluation
+            .details
+    )
+    selectEarnings(choice: EarningsChoice) {
+        assert(
+            this.canDistributeEarnings &&
+                this.earningsChoices.some(
+                    (entry) => entry.choice === choice && entry.evaluation.details
+                ),
+            'Choose an available distribution'
+        )
+        this.earningsDraft = choice
+    }
+    backEarnings() {
+        this.earningsDraft = undefined
+    }
+    async confirmEarnings() {
+        const details = this.earningsPreview
+        assert(this.canDistributeEarnings && details, 'Choose an available distribution')
+        await this.applyAction(
+            this.createPlayerAction(DistributeEarnings, {
+                companyId: details.companyId,
+                choice: details.choice
+            })
+        )
+    }
+    finishOperatingReason = $derived.by(() => {
+        const companyId = this.financialState.trainPurchaseStep?.companyId
+        return companyId
+            ? finishOperatingTurnReason(this.financialState, this.trainRules, companyId)
+            : undefined
+    })
+    canFinishOperatingTurn = $derived.by(
+        () =>
+            !this.busy &&
+            !this.updatingVisibleState &&
+            !this.isViewingHistory &&
+            !this.trainSelection &&
+            this.validActionTypes.includes('FinishOperatingTurn')
+    )
+    async finishOperatingTurn() {
+        const companyId = this.financialState.trainPurchaseStep?.companyId
+        assert(this.canFinishOperatingTurn && companyId, 'The operating turn cannot finish yet')
+        await this.applyAction(this.createPlayerAction(FinishOperatingTurn, { companyId }))
     }
     routeEditor = $derived.by(() => new RouteEditor(this.financialState, this.routeRules))
     canRunTrains = $derived(
@@ -844,6 +923,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         await this.applyAction(this.createPlayerAction(FinishStockTurn, {}))
     }
     override beforeNewState() {
+        this.earningsDraft = undefined
         this.routeEditor.clear()
         this.trainDraft = undefined
         this.stationDraft = {}
@@ -852,6 +932,10 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     }
     override async undo() {
         if (this.busy || this.isViewingHistory) return
+        if (this.earningsDraft) {
+            this.earningsDraft = undefined
+            return
+        }
         if (this.routeEditor.hasDraft) {
             this.routeEditor.clear()
             return
@@ -892,7 +976,8 @@ export function createFinanceExampleSessionClass(
     trackRules: TrackRules,
     stationRules: StationRules,
     trainRules: TrainRules,
-    routeRules: RouteRules
+    routeRules: RouteRules,
+    earningsRules: EarningsRules
 ): new (options: SessionOptions) => FinanceExampleSession {
     return class extends FinanceExampleSession {
         constructor(options: SessionOptions) {
@@ -904,7 +989,8 @@ export function createFinanceExampleSessionClass(
                 trackRules,
                 stationRules,
                 trainRules,
-                routeRules
+                routeRules,
+                earningsRules
             )
         }
     }

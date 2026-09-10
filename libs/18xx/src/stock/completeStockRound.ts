@@ -9,6 +9,7 @@ import {
 } from '@tabletop/common'
 import { allPlayersPassed, type StockRoundRules } from './stockRoundRules.js'
 import {
+    StockMarketMove,
     companyMarketSpace,
     moveMarketSpace,
     placeStockMarker,
@@ -22,16 +23,7 @@ const CompletionFields = Type.Object({
         Type.Object(
             {
                 nextPlayerOrder: Type.Array(Type.String()),
-                marketMoves: Type.Array(
-                    Type.Object(
-                        {
-                            companyId: Type.String(),
-                            fromMarketSpaceId: Type.String(),
-                            toMarketSpaceId: Type.String()
-                        },
-                        { additionalProperties: false }
-                    )
-                )
+                marketMoves: Type.Array(StockMarketMove)
             },
             { additionalProperties: false }
         )
