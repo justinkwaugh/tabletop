@@ -19,7 +19,10 @@
         DropdownGroup
     } from 'flowbite-svelte'
     import darkLogo from '$lib/components/images/dark-logo.png'
-    import { goto } from '$app/navigation'
+    import { afterNavigate, goto } from '$app/navigation'
+    import LoginPanel, { loginViewTitles, type LoginView } from '$lib/components/LoginPanel.svelte'
+    import AuthModal from '$lib/components/AuthModal.svelte'
+    import { setLoginModal } from '$lib/stores/loginModal'
     import { onMount } from 'svelte'
     import { fromStore } from 'svelte/store'
     import { UserStatus } from '@tabletop/common'
@@ -50,6 +53,17 @@
     let sessionUser = $derived(authorizationService.getSessionUser())
     let showCreateGameModel = $state(false)
     let showCancelPrompt = $state(false)
+    let showLoginModal = $state(false)
+    let loginView = $state<LoginView>('signin')
+
+    const openLoginModal = setLoginModal(() => {
+        loginView = 'signin'
+        showLoginModal = true
+    })
+
+    afterNavigate(() => {
+        showLoginModal = false
+    })
 
     let currentGameState = $derived.by(() => {
         const state = gameService.currentGameSession?.bridge.gameState
@@ -259,7 +273,7 @@
         <div class="flex flex-col w-full">
             <div class="flex flex-row justify-between items-center w-full">
                 <div class="flex justify-center items-center">
-                    <NavBrand href="/library" class="shrink-0 cursor-pointer">
+                    <NavBrand href={sessionUser ? '/library' : '/'} class="shrink-0 cursor-pointer">
                         <img src={darkLogo} alt="Board Together" class="h-8 w-auto" />
                     </NavBrand>
 
@@ -411,6 +425,8 @@
                                 {/if}
                             </DropdownGroup>
                         </Dropdown>
+                    {:else}
+                        <Button onclick={openLoginModal} size="sm" color="blue">Sign in</Button>
                     {/if}
                 </div>
             </div>
@@ -420,6 +436,16 @@
         </div>
     </Navbar>
 </div>
+{#if !sessionUser}
+    <AuthModal
+        bind:open={showLoginModal}
+        title={loginViewTitles[loginView]}
+        label={loginView === 'signin' ? 'Sign in' : loginViewTitles[loginView]}
+        variant={loginView === 'signin' ? 'welcome' : 'form'}
+    >
+        <LoginPanel bind:view={loginView} />
+    </AuthModal>
+{/if}
 <Modal
     bind:open={showCreateGameModel}
     size="xs"

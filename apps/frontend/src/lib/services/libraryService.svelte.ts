@@ -1,6 +1,7 @@
 import { type GameUiDefinition } from '@tabletop/frontend-components'
-import { GameState, Role, User, type HydratedGameState } from '@tabletop/common'
+import { GameState, User, type HydratedGameState } from '@tabletop/common'
 import type { ManifestService } from './manifestService.js'
+import { availableLibraryTitles } from '$lib/utils/libraryTitles.js'
 
 export class LibraryService {
     titlesById: Record<string, GameUiDefinition<GameState, HydratedGameState>> = $state({})
@@ -16,14 +17,7 @@ export class LibraryService {
     }
 
     getTitles(user: User): GameUiDefinition<GameState, HydratedGameState>[] {
-        return Object.values(this.titlesById)
-            .filter(
-                (title) =>
-                    !title.info.metadata.beta ||
-                    (user &&
-                        (user.roles.includes(Role.Admin) || user.roles.includes(Role.BetaTester)))
-            )
-            .sort((a, b) => a.info.metadata.name.localeCompare(b.info.metadata.name))
+        return availableLibraryTitles(this.titlesById, user)
     }
 
     getTitle(id: string): GameUiDefinition<GameState, HydratedGameState> | undefined {
@@ -54,9 +48,9 @@ export class LibraryService {
                         import.meta.url
                     )
                     const gameModule = await import(url.href)
-                    const gameDefinition = gameModule[
-                        `UiDefinition` as keyof typeof gameModule
-                    ] as GameUiDefinition<GameState, HydratedGameState> | undefined
+                    const gameDefinition = gameModule[`UiDefinition` as keyof typeof gameModule] as
+                        | GameUiDefinition<GameState, HydratedGameState>
+                        | undefined
                     if (!gameDefinition) {
                         throw new Error('Missing UiDefinition export')
                     }

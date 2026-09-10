@@ -4,28 +4,15 @@
     import { Heading } from 'flowbite-svelte'
     import { type GameUiDefinition, getAppContext } from '@tabletop/frontend-components'
     import { fade } from 'svelte/transition'
-    import { Role, type Game, type GameState, type HydratedGameState } from '@tabletop/common'
+    import { type Game, type GameState, type HydratedGameState } from '@tabletop/common'
     import GameCard from '$lib/components/GameCard.svelte'
 
     let { libraryService, gameService, authorizationService } = getAppContext()
-    let titlesById = $derived(libraryService.titlesById)
     let loading = $derived(libraryService.loading)
 
     let selectedTitle: GameUiDefinition<GameState, HydratedGameState> | undefined = $state()
     let user = $derived(authorizationService.getSessionUser())
-    let availableTitles = $derived.by(() => {
-        if (!user) {
-            return []
-        }
-        return Object.values(titlesById)
-            .filter(
-                (title) =>
-                    !title.info.metadata.beta ||
-                    user.roles.includes(Role.Admin) ||
-                    user.roles.includes(Role.BetaTester)
-            )
-            .sort((a, b) => a.info.metadata.name.localeCompare(b.info.metadata.name))
-    })
+    let availableTitles = $derived(user ? libraryService.getTitles(user) : [])
 
     function selectTitle(title: GameUiDefinition<GameState, HydratedGameState>) {
         if (title.info.id !== selectedTitle?.info.id) {

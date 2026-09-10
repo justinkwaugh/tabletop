@@ -4,6 +4,14 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @font-face {
+    font-family: 'Inter';
+    src: url('/fonts/inter/InterVariable.woff2') format('woff2');
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+}
+
+@font-face {
     font-family: 'Source Sans 3';
     src: url('/fonts/source-sans-3/SourceSans3-Regular.woff2') format('woff2');
     font-style: normal;
@@ -20,6 +28,7 @@
 }
 
 @theme {
+    --color-highlight-border: #6496df80;
     --font-tournament: 'Source Sans 3', sans-serif;
     --color-primary-50: #fff5f2;
     --color-primary-100: #fff1ee;
@@ -54,6 +63,19 @@
 @source "./**/*.{html,js,svelte,ts}";
 
 @layer base {
+    html:has(dialog:modal) {
+        overflow: hidden;
+    }
+
+    .dark input.auth-input:autofill {
+        /* Browser autofill colors override background-color. */
+        box-shadow:
+            inset 0 0 0 1000px var(--color-gray-700),
+            var(--tw-ring-shadow, 0 0 #0000);
+        -webkit-text-fill-color: var(--color-white);
+        caret-color: var(--color-white);
+    }
+
     /* disable chrome cancel button */
     input[type='search']::-webkit-search-cancel-button {
         display: none;
