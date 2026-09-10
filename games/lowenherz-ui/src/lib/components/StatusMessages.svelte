@@ -335,6 +335,15 @@
     // passes: the message survives their own later actions and disappears once they are no longer
     // active. It waits for the hearts' animation to finish (the actions list runs ahead of the
     // visible state) so the board holds still while they form or break.
+    //
+    // "Turn passes" is read off the actions rather than off activePlayerIds alone, because the
+    // latest alliance event may be many turns old and its actor active again: another player's
+    // action since the event means the turn moved on - except duel bids and negotiation moves,
+    // the two phases where several players are active at once and the actor still is.
+    function isConcurrentPhaseAction(action: GameAction): boolean {
+        return isSubmitDuelBid(action) || isNegotiationMove(action)
+    }
+
     const currentAllianceEvent = $derived.by(() => {
         if (gameSession.updatingVisibleState) return undefined
         const actions = gameSession.actions
@@ -343,12 +352,17 @@
         )
         if (index < 0) return undefined
         const event = actions[index]
-        const onlyActorActedSince = actions
+        const turnHasNotPassed = actions
             .slice(index + 1)
-            .every((action) => action.source === ActionSource.System || action.playerId === event.playerId)
+            .every(
+                (action) =>
+                    action.source === ActionSource.System ||
+                    action.playerId === event.playerId ||
+                    isConcurrentPhaseAction(action)
+            )
         const actorStillActive =
             event.playerId !== undefined && gameSession.gameState.activePlayerIds.includes(event.playerId)
-        return onlyActorActedSince && actorStillActive ? event : undefined
+        return turnHasNotPassed && actorStillActive ? event : undefined
     })
 
     // One label per thing a single sword can buy. The composite labels are gone with the
