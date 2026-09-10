@@ -94,8 +94,9 @@ export class LowenherzGameSession extends GameSession<
 > {
     override get canExplore(): boolean {
         return (
-            this.game.config?.publicMoney !== false &&
-            this.gameState.publicMoney !== false &&
+            (((this.showDebug || this.isActingAdmin || this.isViewingHost) &&
+                this.explorationPerspective() === undefined) ||
+                (this.game.config?.publicMoney !== false && this.gameState.publicMoney !== false)) &&
             super.canExplore
         )
     }
