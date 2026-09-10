@@ -332,7 +332,8 @@ export function playAllianceCardReason(
 export function cancelAllianceReason(
     state: HydratedLowenherzGameState,
     playerId: string,
-    allianceId: string
+    allianceId: string,
+    treasureValue?: number
 ): string | undefined {
     return new HydratedCancelAlliance({
         id: 'candidate',
@@ -340,6 +341,7 @@ export function cancelAllianceReason(
         source: ActionSource.User,
         type: ActionType.CancelAlliance,
         playerId,
-        allianceId
+        allianceId,
+        ...(treasureValue === undefined ? {} : { treasureValue })
     }).invalidCancelAllianceReason(state)
 }
