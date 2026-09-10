@@ -1,3 +1,4 @@
+import { peirCompanies } from './companies.js'
 import { TheOldPrincePhases } from './trains.js'
 import { assert, assertExists } from '@tabletop/common'
 import {
@@ -9,6 +10,7 @@ import {
     applyPresidencyChange,
     getCompany,
     replaceStation,
+    applyStationPlacement,
     sameOwner,
     stockMarketSpace,
     type CompanyRules,
@@ -16,14 +18,6 @@ import {
 } from '@tabletop/18xx'
 import { peirPresident } from './finance.js'
 import { TheOldPrinceStockRules, theOldPrincePurchasePayers } from './stockRules.js'
-
-export const PeirCompanies = [
-    { companyId: 'A', name: 'Alberton', peirCertificateId: 'PEIR:share:1' },
-    { companyId: 'MS', name: 'Mount Stewart', peirCertificateId: 'PEIR:share:2' },
-    { companyId: 'MR', name: 'Murray River', peirCertificateId: 'PEIR:share:3' },
-    { companyId: 'S', name: 'Summerside', peirCertificateId: 'PEIR:share:4' },
-    { companyId: 'Gt', name: 'Georgetown', peirCertificateId: 'PEIR:share:5' }
-] as const
 
 export function availableTheOldPrinceTranche(state: StockState) {
     return availableCompanyTranche(state.tranches, (companyId) => {
@@ -44,7 +38,7 @@ export function availableTheOldPrinceTranche(state: StockState) {
 }
 export const TheOldPrinceCompanyRules: CompanyRules = {
     startMarketSpaces(state, companyId) {
-        if (!PeirCompanies.some((item) => item.companyId === companyId)) return []
+        if (!peirCompanies(state).some((item) => item.companyId === companyId)) return []
         const phases = TheOldPrincePhases
         const phase = phases.indexOf(state.phaseId)
         assert(phase >= 0, 'Unknown TOP phase')
@@ -62,7 +56,7 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
     },
     startTerms(state, companyId, buyer, marketSpaceId) {
         if (!availableTheOldPrinceTranche(state)) return 'No company tranche is available.'
-        const association = PeirCompanies.find((item) => item.companyId === companyId)
+        const association = peirCompanies(state).find((item) => item.companyId === companyId)
         if (!association) return 'This company requires a different formation procedure.'
         const peir = state.certificates.find(
             (certificate) => certificate.id === association.peirCertificateId
@@ -122,8 +116,24 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
               ]
     },
     onFloat(state, companyId) {
-        const association = PeirCompanies.find((item) => item.companyId === companyId)
-        if (!association) return
+        const association = peirCompanies(state).find((item) => item.companyId === companyId)
+        if (!association) {
+            if (getCompany(state, companyId).role === 'shortline') {
+                const reservation = state.stationReservations.find((r) => r.companyId === companyId)
+                assertExists(reservation, 'Shortline requires its reserved home')
+                applyStationPlacement(state, {
+                    stationId: `${companyId}:home`,
+                    companyId,
+                    position: {
+                        locationId: reservation.locationId,
+                        nodeId: reservation.nodeId,
+                        slot: 0
+                    },
+                    cost: 0
+                })
+            }
+            return
+        }
         const replacement = state.certificates.find(
             (certificate) =>
                 !certificate.retired &&

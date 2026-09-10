@@ -3,7 +3,7 @@ import {
     type FundingState,
     type TrainFundingRules
 } from '../funding/trainFunding.js'
-import { HydratedFundingAction } from '../funding/fundingActions.js'
+import { HydratedFundTrain } from '../funding/fundTrain.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { PhaseState } from '../phases/phaseChange.js'
 import {
@@ -23,7 +23,7 @@ import { isBuyTrain, type HydratedBuyTrain } from './buyTrain.js'
 import { TrainPurchase, type TrainRules } from './trainPurchase.js'
 type State = HydratedGameState & OperatingTurnState & PhaseState & FundingState
 export class BuyingTrainsHandler implements MachineStateHandler<
-    HydratedBuyTrain | HydratedFinishOperatingTurn | HydratedFundingAction,
+    HydratedBuyTrain | HydratedFinishOperatingTurn | HydratedFundTrain,
     State
 > {
     constructor(
@@ -33,7 +33,7 @@ export class BuyingTrainsHandler implements MachineStateHandler<
     ) {}
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         const state = context.gameState
-        if (action instanceof HydratedFundingAction) return action.isValid(state)
+        if (action instanceof HydratedFundTrain) return action.isValid(state)
         if (
             action.source !== ActionSource.User ||
             !action.playerId ||
@@ -81,10 +81,10 @@ export class BuyingTrainsHandler implements MachineStateHandler<
 
     enter(): void {}
     onAction(
-        action: HydratedBuyTrain | HydratedFinishOperatingTurn | HydratedFundingAction,
+        action: HydratedBuyTrain | HydratedFinishOperatingTurn | HydratedFundTrain,
         context: MachineContext<State>
     ): string {
-        if (action instanceof HydratedFundingAction) return 'FundingTrain'
+        if (action instanceof HydratedFundTrain) return 'FundingTrain'
         return isFinishOperatingTurn(action)
             ? 'OperatingSet'
             : context.gameState.phaseChange

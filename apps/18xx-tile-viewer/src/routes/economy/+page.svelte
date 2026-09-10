@@ -19,7 +19,7 @@
                 aria-pressed={title === 'TOP'}
                 onclick={() => {
                     title = 'TOP'
-                    if (position === 'opening') position = 'trading'
+                    if (playerCount !== 3 && playerCount !== 4) playerCount = 3
                 }}>The Old Prince 1871</button
             >
             <button aria-pressed={title === '1889'} onclick={() => (title = '1889')}
@@ -29,7 +29,7 @@
         <label class="example"
             >Example position
             <select bind:value={position}>
-                {#if title === '1889'}<option value="opening">Opening auction</option>{/if}
+                <option value="opening">Opening auction</option>
                 <option value="trading">Share trading</option>
                 <option value="starting">Starting companies</option>
                 <option value="flotation">Flotation</option>
@@ -51,7 +51,9 @@
         </label>
         {#if position === 'opening'}<label class="example"
                 >Players<select bind:value={playerCount}>
-                    {#each [2, 3, 4, 5, 6] as count}<option value={count}>{count}</option>{/each}
+                    {#each title === 'TOP' ? [3, 4] : [2, 3, 4, 5, 6] as count}<option value={count}
+                            >{count}</option
+                        >{/each}
                 </select></label
             >{/if}
     </header>

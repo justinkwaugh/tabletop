@@ -5,6 +5,7 @@ export const TheOldPrinceMapView: MapViewDefinition = {
     map: TheOldPrinceMap,
     tileSet: TheOldPrinceTileSet,
     stations: {
+        C: { color: '#ad3539', label: 'C' },
         ML: { color: '#ad3539', label: 'ML' },
         So: { color: '#3b62a3', label: 'So' },
         PEIR: { color: '#333333', label: 'PEIR' },

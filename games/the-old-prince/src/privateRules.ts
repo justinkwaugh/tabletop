@@ -1,17 +1,19 @@
+import { theOldPrinceRole } from './companies.js'
 import { TheOldPrinceTileSet } from './tiles.js'
 import { assertExists } from '@tabletop/common'
-import { type PrivateRules, type PrivateEffect } from '@tabletop/18xx'
+import { type PrivateRules, type PrivateEffect, type FinancialState } from '@tabletop/18xx'
 import { TheOldPrincePhases } from './trains.js'
-export const ShortlineExchanges: Record<string, string> = {
-    MC: 'So:share:6',
-    SB: 'So:share:7',
-    VR: 'So:share:8'
+const ShortlineExchanges: Record<string, number> = { MC: 6, SB: 7, VR: 8 }
+function shortlineExchange(state: FinancialState, id: string) {
+    return ShortlineExchanges[id]
+        ? `${theOldPrinceRole(state, 'shortline')}:share:${ShortlineExchanges[id]}`
+        : undefined
 }
 export const TheOldPrincePrivateRules: PrivateRules = {
     exchangeTerms(state, privateCompanyId) {
         if (TheOldPrincePhases.indexOf(state.phaseId) >= TheOldPrincePhases.indexOf('4+'))
             return undefined
-        const reservedId = ShortlineExchanges[privateCompanyId]
+        const reservedId = shortlineExchange(state, privateCompanyId)
         if (reservedId)
             return {
                 certificateIds: state.certificates
@@ -38,7 +40,11 @@ export const TheOldPrincePrivateRules: PrivateRules = {
                         item.shares === 1 &&
                         item.owner.kind === 'bank' &&
                         item.poolId === 'market' &&
-                        !['ML', 'So', 'PEIR'].includes(item.companyId) &&
+                        ![
+                            theOldPrinceRole(state, 'mainline'),
+                            theOldPrinceRole(state, 'shortline'),
+                            'PEIR'
+                        ].includes(item.companyId) &&
                         state.companies.some(
                             (company) =>
                                 company.id === item.companyId && company.started && !company.closed
@@ -60,7 +66,7 @@ export const TheOldPrincePrivateRules: PrivateRules = {
             ...['MC', 'VR', 'SB'].flatMap((id) => open.filter((company) => company.id === id)),
             ...open.filter((company) => !ShortlineExchanges[company.id])
         ].map((company): PrivateEffect => {
-            const certificateId = ShortlineExchanges[company.id]
+            const certificateId = shortlineExchange(state, company.id)
             if (!certificateId)
                 return {
                     kind: 'close',
@@ -91,7 +97,12 @@ export const TheOldPrincePrivateRules: PrivateRules = {
         })
     },
     operationEffects(state, companyId) {
-        const id = companyId === 'ML' ? 'MLC' : companyId === 'So' ? 'SLC' : undefined
+        const id =
+            companyId === theOldPrinceRole(state, 'mainline')
+                ? 'MLC'
+                : companyId === theOldPrinceRole(state, 'shortline')
+                  ? 'SLC'
+                  : undefined
         return state.companies
             .filter((company) => company.id === id && !company.closed)
             .map((company) => ({ kind: 'close', privateCompanyId: company.id }))

@@ -154,7 +154,7 @@ for (const [definition, companyId, marketSpaceId, parPrice] of [
         } else {
             expect(
                 result.updatedState.certificates.find(
-                    (certificate) => certificate.id === 'PEIR:share:1'
+                    (certificate) => certificate.id === 'PEIR:share:2'
                 )
             ).toMatchObject({ retired: true })
             expect(sharesOwned(result.updatedState, 'A', alex)).toBe(5)
@@ -205,7 +205,7 @@ it('rejects invalid starts without mutation', () => {
     ])
         expect(() => engine.executeCanonicalAction({ game, state, action })).toThrow()
     expect(state).toEqual(before)
-    give(state, 'PEIR:share:1', { kind: 'bank' })
+    give(state, 'PEIR:share:2', { kind: 'bank' })
     expect(
         evaluateCompanyStart(
             state,
@@ -329,7 +329,7 @@ it('closes PEIR and the King’s Mail and discards PEIR cash on its final exchan
         if (
             certificate.retired ||
             certificate.companyId !== 'PEIR' ||
-            certificate.id === 'PEIR:share:1'
+            certificate.id === 'PEIR:share:2'
         )
             return certificate
         const { owner: _owner, poolId: _poolId, ...interest } = certificate

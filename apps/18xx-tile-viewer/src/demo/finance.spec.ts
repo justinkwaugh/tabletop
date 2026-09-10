@@ -71,7 +71,7 @@ it.each([Top, Shikoku])(
                       'PassAuction',
                       'ResolveAuction'
                   ]
-                : []),
+                : ['OfferAuctionLot', 'BidOnAuctionLot', 'PassAuction', 'ResolveAuction']),
             'FundTrain',
             'IssueTreasuryShares',
             'SellFundingShares',

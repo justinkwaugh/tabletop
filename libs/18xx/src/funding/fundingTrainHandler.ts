@@ -10,7 +10,10 @@ import { HydratedBuyTrain } from '../trains/buyTrain.js'
 import { TrainPurchase, type TrainRules } from '../trains/trainPurchase.js'
 import type { StockRules } from '../stock/stockRules.js'
 import { EmergencyTrainFunding, type FundingState, type TrainFundingRules } from './trainFunding.js'
-import { DeclareBankruptcy, HydratedFundingAction } from './fundingActions.js'
+import { HydratedIssueTreasuryShares } from './issueTreasuryShares.js'
+import { HydratedSellFundingShares } from './sellFundingShares.js'
+import { HydratedContributeTrainFunds } from './contributeTrainFunds.js'
+import { HydratedDeclareBankruptcy, DeclareBankruptcy } from './declareBankruptcy.js'
 export class FundingTrainHandler<
     State extends HydratedGameState & FundingState
 > implements MachineStateHandler<HydratedAction, State> {
@@ -21,7 +24,13 @@ export class FundingTrainHandler<
     ) {}
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         const state = context.gameState
-        if (action instanceof HydratedFundingAction) return action.isValid(state)
+        if (
+            action instanceof HydratedIssueTreasuryShares ||
+            action instanceof HydratedSellFundingShares ||
+            action instanceof HydratedContributeTrainFunds ||
+            action instanceof HydratedDeclareBankruptcy
+        )
+            return action.isValid(state)
         const next = new EmergencyTrainFunding(state, this.rules, this.stocks, this.trains).next()
         return (
             action instanceof HydratedBuyTrain &&
@@ -74,21 +83,5 @@ export class FundingTrainHandler<
             return state.phaseChange ? 'AdvancingPhase' : 'BuyingTrains'
         }
         return 'FundingTrain'
-    }
-}
-export class BankruptHandler<
-    State extends HydratedGameState & FundingState
-> implements MachineStateHandler<HydratedAction, State> {
-    isValidAction(): boolean {
-        return false
-    }
-    validActionsForPlayer(): string[] {
-        return []
-    }
-    enter(context: MachineContext<State>): void {
-        context.gameState.activePlayerIds = []
-    }
-    onAction(): string {
-        return 'Bankrupt'
     }
 }

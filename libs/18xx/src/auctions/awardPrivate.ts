@@ -1,5 +1,5 @@
 import { assert } from '@tabletop/common'
-import { settleCashPayments } from '../finance/cashPayments.js'
+import { awardCertificates } from './awardCertificates.js'
 import type { FinancialState } from '../finance/finance.js'
 import type { AuctionAward } from './waterfallAuction.js'
 export function awardPrivate(state: FinancialState, award: AuctionAward): void {
@@ -10,14 +10,5 @@ export function awardPrivate(state: FinancialState, award: AuctionAward): void {
         certificate && !certificate.retired && certificate.owner.kind === 'bank',
         'The private must be available from the bank'
     )
-    if (award.price)
-        settleCashPayments(state, [
-            {
-                from: { kind: 'player', playerId: award.playerId },
-                to: { kind: 'bank' },
-                amount: award.price
-            }
-        ])
-    certificate.owner = { kind: 'player', playerId: award.playerId }
-    delete certificate.poolId
+    awardCertificates(state, award, [certificate.id])
 }

@@ -5,7 +5,8 @@ const alex = { kind: 'player', playerId: 'alex' } as const
 export function example(
     definition: typeof Top,
     examplePosition: FinanceExamplePosition = 'trading',
-    playerCount?: number
+    playerCount?: number,
+    seed = 5
 ) {
     const game = definition.runtime.initializer.initializeGame(
         {
@@ -15,7 +16,7 @@ export function example(
             ownerId: 'user',
             storage: GameStorage.Local,
             hotseat: true,
-            seed: 5,
+            seed,
             config: { examplePosition },
             players: (playerCount
                 ? ['alex', 'blair', 'casey', 'drew', 'elliot', 'fran'].slice(0, playerCount)

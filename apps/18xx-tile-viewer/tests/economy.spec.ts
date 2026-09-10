@@ -52,7 +52,7 @@ for (const width of [1280, 390]) {
         await expect(page.locator('[data-company-id="So"]')).toContainText(
             'Controlling owner: Alex'
         )
-        await expect(page.locator('[data-certificate-id="PEIR:share:1"]')).toContainText('1/5')
+        await expect(page.locator('[data-certificate-id="PEIR:share:2"]')).toContainText('1/5')
         await expect(page.getByText('PEIR: 5 outstanding shares.', { exact: false })).toContainText(
             'President: Blair'
         )

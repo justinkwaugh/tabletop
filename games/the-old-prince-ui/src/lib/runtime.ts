@@ -1,3 +1,4 @@
+import { TheOldPrinceAuctionRules } from '@tabletop/the-old-prince'
 import { TheOldPrinceTrainFundingRules } from '@tabletop/the-old-prince'
 import { TheOldPrinceTransferRules, TheOldPrincePrivatePowerRules } from '@tabletop/the-old-prince'
 import { TheOldPrincePrivateRules } from '@tabletop/the-old-prince'
@@ -36,7 +37,9 @@ export const UiRuntime: GameUIRuntime<GameState, HydratedGameState> = {
         TheOldPrincePrivateRules,
         TheOldPrinceTransferRules,
         TheOldPrincePrivatePowerRules,
-        TheOldPrinceTrainFundingRules
+        TheOldPrinceTrainFundingRules,
+        undefined,
+        TheOldPrinceAuctionRules
     ),
     colorizer: new DefaultColorizer()
 }

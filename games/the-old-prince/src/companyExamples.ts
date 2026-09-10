@@ -1,7 +1,8 @@
+import { createTheOldPrinceOpening } from './openingAuction.js'
 import { prepareTheOldPrincePrivates } from './privateExamples.js'
 import { TheOldPrinceTrainDepot } from './trains.js'
 import { TheOldPrinceTileSet } from './tiles.js'
-import { assert, type PlayerState } from '@tabletop/common'
+import { assert, type Prng, type PlayerState } from '@tabletop/common'
 import {
     createOrdinaryShareCertificates,
     getCompany,
@@ -11,13 +12,18 @@ import {
     type FinanceExamplePosition
 } from '@tabletop/18xx'
 import { createTheOldPrinceFinanceExample } from './finance.js'
-import { PeirCompanies } from './companyRules.js'
+import { peirCompanies } from './companies.js'
 import { TheOldPrinceMap } from './map.js'
 
 export function createTheOldPrinceCompanyExample(
     players: readonly PlayerState[],
-    position: FinanceExamplePosition
+    position: FinanceExamplePosition,
+    prng?: Prng
 ): CompanyState & MapStateData & TrainState {
+    if (position === 'opening') {
+        assert(prng, 'Opening setup requires seeded randomness')
+        return createTheOldPrinceOpening(players, prng)
+    }
     const state: CompanyState & MapStateData & TrainState = {
         ...createTheOldPrinceFinanceExample(players),
         trainInventory: TheOldPrinceTrainDepot.createInventory(),
@@ -49,7 +55,7 @@ export function createTheOldPrinceCompanyExample(
         position === 'powers'
     ) {
         const market = { owner: { kind: 'bank' } as const, poolId: 'market' }
-        for (const { companyId, name } of PeirCompanies) {
+        for (const { companyId, name } of peirCompanies(state)) {
             state.companies.push({
                 id: companyId,
                 name,

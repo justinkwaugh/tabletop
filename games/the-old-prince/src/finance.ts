@@ -27,6 +27,7 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
             {
                 id: 'ML',
                 name: 'Charlottetown · Mainline',
+                role: 'mainline',
                 kind: 'major',
                 shareCount: 10,
                 started: true,
@@ -38,6 +39,7 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
             {
                 id: 'So',
                 name: 'Souris',
+                role: 'shortline',
                 kind: 'major',
                 shareCount: 10,
                 started: true,
@@ -125,12 +127,12 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
             },
             ...[alex, blair, casey, blair, casey].map(
                 (owner, index): Certificate => ({
-                    id: `PEIR:share:${index + 1}`,
+                    id: `PEIR:share:${index + 2}`,
                     companyId: 'PEIR',
                     kind: 'share',
                     shares: 1,
                     president: false,
-                    number: index + 1,
+                    number: index + 2,
                     certificateLimitCount: 1,
                     retired: false,
                     owner
@@ -161,7 +163,7 @@ export function peirEntitlement(
 export function peirPresident(state: FinancialState): string | undefined {
     const ownership = new Map<string, { count: number; lowest: number }>()
     for (const certificate of peirShares(state)) {
-        assert(certificate.owner.kind === 'player', 'Outstanding PEIR shares require player owners')
+        if (certificate.owner.kind !== 'player') continue
         assertExists(certificate.number, 'PEIR shares require a number')
         const previous = ownership.get(certificate.owner.playerId)
         ownership.set(certificate.owner.playerId, {

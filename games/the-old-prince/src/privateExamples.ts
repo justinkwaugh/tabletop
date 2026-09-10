@@ -1,3 +1,4 @@
+import { TheOldPrincePrivates } from './privates.js'
 import { assert, type PlayerState } from '@tabletop/common'
 import { getCompany, type CompanyState } from '@tabletop/18xx'
 export function prepareTheOldPrincePrivates(
@@ -5,17 +6,20 @@ export function prepareTheOldPrincePrivates(
     players: readonly PlayerState[]
 ): void {
     assert(players.length === 4, 'Private examples include the four-player Ice Boats')
-    for (const [id, name, revenue, playerIndex] of [
-        ['MC', 'Merchants and Co.', 5, 0],
-        ['SB', 'Shipbuilding', 15, 3],
-        ['IB', 'Ice Boats', 5, 3],
-        ['RA', 'Royal Agricultural Society', 10, 1],
-        ['RF', 'Railcar Ferry', 15, 2],
-        ['HS', 'Hunslet Steam Engine', 20, 1],
-        ['SBC', 'Schreiber and Burpee Construction', 30, 2],
-        ['MLC', 'Mainline Concession', 20, 0],
-        ['SLC', 'Shortline Concession', 30, 1]
+    for (const [id, playerIndex] of [
+        ['MC', 0],
+        ['SB', 3],
+        ['IB', 3],
+        ['RA', 1],
+        ['RF', 2],
+        ['HS', 1],
+        ['SBC', 2],
+        ['MLC', 0],
+        ['SLC', 1]
     ] as const) {
+        const definition = TheOldPrincePrivates.find((privateCompany) => privateCompany.id === id)
+        assert(definition, 'Missing private definition')
+        const { name, revenue } = definition
         state.companies.push({ id, name, kind: 'private', privateRevenue: revenue })
         state.certificates.push({
             id: `${id}:charter`,

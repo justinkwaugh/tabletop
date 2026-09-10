@@ -37,3 +37,5 @@ export { default as CompanyDecisions } from './examples/CompanyDecisions.svelte'
 export { default as WaterfallAuctionPanel } from './auctions/WaterfallAuctionPanel.svelte'
 
 export type { AuctionSelection } from './auctions/auctionSelection.js'
+
+export { default as OfferAuctionPanel } from './auctions/OfferAuctionPanel.svelte'

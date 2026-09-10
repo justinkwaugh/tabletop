@@ -51,7 +51,7 @@ it('uses numbered shares for PEIR and derives entitlement and presidency from ou
     const alex = { kind: 'player', playerId: 'alex' } as const
     expect(peirPresident(state)).toBe('blair')
     expect(peirEntitlement(state, alex)).toEqual({ owned: 1, outstanding: 5 })
-    const index = state.certificates.findIndex((certificate) => certificate.id === 'PEIR:share:4')
+    const index = state.certificates.findIndex((certificate) => certificate.id === 'PEIR:share:5')
     const certificate = state.certificates[index]
     assert(!certificate.retired, 'Expected an outstanding share')
     const { owner, poolId, ...retired } = certificate
@@ -60,7 +60,7 @@ it('uses numbered shares for PEIR and derives entitlement and presidency from ou
     expect(peirEntitlement(state, alex)).toEqual({ owned: 1, outstanding: 4 })
     expect(peirPresident(state)).toBe('casey')
     expect(state.certificates[index]).toMatchObject({
-        id: 'PEIR:share:4',
+        id: 'PEIR:share:5',
         kind: 'share',
         retired: true
     })

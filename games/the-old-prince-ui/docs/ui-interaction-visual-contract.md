@@ -173,3 +173,21 @@ legal funding sources; the panel shows the company, player, and remaining
 shortfall. It offers no further gameplay actions. Engine Undo restores the funding
 state, including the contribution that triggered bankruptcy. Final scoring is a
 later slice. Prototype save identity is version 22.
+
+### Opening offer-pile auction
+
+TOP's opening shows the randomly assigned Mainline and Shortline, all public offer
+piles, the auctioneer, two eligible bidders, current bids, designated forced
+purchaser, and completed awards. Ordinary trading/operating panels appear after the
+auction completes. Player counts are three or four; save identity is version 24.
+
+Offer and bid choices are manual Game Session drafts. Back clears the draft; Undo
+clears a manual draft first, then reverses committed engine history and its system
+consequences. Drafts hide during updatingVisibleState and History View and clear
+in beforeNewState. Pass is an explicit Action. Components use session methods;
+no reactive UI behavior commits an offer, bid, pass, or automatic award.
+
+Current bidding and offer piles survive reload. Completion displays the real first
+stock round in remaining-cash order, and Undo can restore the last auction turn.
+An unaffordable forced purchase with no player-private income stays visible with
+an explanation and Undo; the supplied rules provide no further resolution.

@@ -67,6 +67,23 @@ export class EmergencyTrainFunding {
         private readonly stocks: StockRules,
         private readonly trains: TrainRules
     ) {}
+    canAct(playerId: string): boolean {
+        return (
+            this.state.machineState === 'FundingTrain' &&
+            this.state.trainFunding?.playerId === playerId &&
+            this.state.activePlayerIds.includes(playerId)
+        )
+    }
+    applySale(details: ShareSaleDetails): void {
+        assertExists(this.state.trainFunding, 'Funding sale requires active train funding')
+        applyShareSale(this.state, details)
+        for (const sale of details.sales)
+            this.state.trainFunding.sales.push({
+                seller: details.seller,
+                companyId: sale.companyId,
+                shares: sale.shares
+            })
+    }
     purchases(): TrainPurchaseDetails[] {
         const companyId = this.state.trainPurchaseStep?.companyId
         if (

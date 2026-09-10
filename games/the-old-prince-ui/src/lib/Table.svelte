@@ -3,6 +3,7 @@
     import { requireFinanceExampleState } from '@tabletop/18xx'
     import type { GameState, HydratedGameState } from '@tabletop/common'
     import {
+        OfferAuctionPanel,
         FinanceInspector,
         FinanceMap,
         TrainBuying,
@@ -18,25 +19,53 @@
     const state = $derived(requireFinanceExampleState(gameSession.gameState))
 </script>
 
-<CompanyDecisions {session} />
-<PrivateCompanies {session} />
-<TrainBuying {session} />
-<FinanceMap {session} />
-<StockTrading {session} />
-<StockMarket market={state.stockMarket} companies={state.companies} />
+{#if session.offerAuction && !session.offerAuction.auction.completed}
+    <p class="company-roles">
+        {#each state.companies.filter((company) => company.role) as company}
+            <span>
+                {company.role === 'mainline' ? 'Mainline' : 'Shortline'}:
+                <strong>{company.name}</strong>
+            </span>
+        {/each}
+    </p>
+    <OfferAuctionPanel
+        model={session.offerAuction}
+        playerId={session.myPlayer?.id}
+        playerName={(id) => session.getPlayerName(id)}
+        draft={session.offerSelection}
+        disabled={!session.canOfferAuction}
+        onChoose={(id) => session.selectOffer(id)}
+        onBidChange={(amount) => session.setOfferBid(amount)}
+        onConfirm={() => session.confirmOffer()}
+        onBack={() => session.backOffer()}
+        onPass={() => session.passOffer()}
+        onUndo={() => session.undo()}
+        canUndo={!session.busy &&
+            !session.isViewingHistory &&
+            Boolean(session.offerSelection || session.undoableAction)}
+    />
+{:else}
+    <CompanyDecisions {session} />
+    <PrivateCompanies {session} />
+    <TrainBuying {session} />
+    <FinanceMap {session} />
+    <StockTrading {session} />
+    <StockMarket market={state.stockMarket} companies={state.companies} />
 
-{#if state.tranches.length}<section class="tranches" aria-label="Company tranches">
-        {#each state.tranches as tranche (tranche.id)}<p>
-                {tranche.name}: {tranche.companyIds.join(' · ') || 'Empty'} ({tranche.companyIds
-                    .length}/{tranche.capacity})
-            </p>{/each}
-    </section>{/if}
-<p class="peir-summary">
-    PEIR: {state.companies.find((company) => company.id === 'PEIR')?.closed ? 'Closed.' : ''}
-    {peirShares(state).length} outstanding shares. President: {gameSession.game.players.find(
-        (player) => player.id === peirPresident(state)
-    )?.name}. Largest shareholding wins; ties go to the lowest numbered share.
-</p>
+    {#if state.tranches.length}<section class="tranches" aria-label="Company tranches">
+            {#each state.tranches as tranche (tranche.id)}<p>
+                    {tranche.name}: {tranche.companyIds.join(' · ') || 'Empty'} ({tranche.companyIds
+                        .length}/{tranche.capacity})
+                </p>{/each}
+        </section>{/if}
+    <p class="peir-summary">
+        PEIR: {state.companies.find((company) => company.id === 'PEIR')?.closed ? 'Closed.' : ''}
+        {peirShares(state).length} outstanding shares. President: {gameSession.game.players.find(
+            (player) => player.id === peirPresident(state)
+        )?.name}. Largest shareholding wins; ties go to the lowest numbered share.
+    </p>
+{/if}
+
 <FinanceInspector
     stations={state.stations}
     stationReservations={state.stationReservations}
@@ -55,6 +84,10 @@
 </FinanceInspector>
 
 <style>
+    .company-roles {
+        display: flex;
+        gap: 24px;
+    }
     .tranches {
         margin-bottom: 16px;
         font-size: 13px;

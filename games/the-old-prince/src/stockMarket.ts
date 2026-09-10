@@ -29,6 +29,7 @@ export function createTheOldPrinceStockMarket(position: FinanceExamplePosition =
                       : 'white'
         }
     )
+    if (position === 'opening') return market
     placeStockMarker(market, 'ML', '1:1')
     placeStockMarker(market, 'So', '2:1')
     if (

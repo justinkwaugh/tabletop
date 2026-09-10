@@ -26,6 +26,7 @@ export const Company = Type.Object(
         id: Id,
         name: Id,
         kind: Id,
+        role: Type.Optional(Id),
         shareCount: Type.Optional(Type.Integer({ minimum: 1 })),
         parPrice: Type.Optional(Type.Integer({ minimum: 1 })),
         started: Type.Optional(Type.Boolean()),

@@ -833,6 +833,10 @@ priority; the financial scenarios do not depend on it.
 
 ## 16B. Play the complete TOP opening auction
 
+**Status:** implemented for three and four players. The unresolved zero-income
+forced-purchase edge case is preserved with Undo; see the
+[design and rule evidence](top-opening-auction-slice-design.md).
+
 **Outcome:** perform seeded role/offer setup and the actual TOP auction for three
 and four players, then reach the proper first SR.
 

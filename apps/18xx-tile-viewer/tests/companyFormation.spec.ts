@@ -82,7 +82,7 @@ for (const width of [1280, 390]) {
             page.getByRole('article', { name: 'Alberton treasury', exact: true })
         ).toContainText('Cash 800')
         await expect(page.locator('[data-station-id="A:home"]')).toContainText('D6')
-        await expect(alex.locator('[data-certificate-id="PEIR:share:1"]')).toHaveCount(0)
+        await expect(alex.locator('[data-certificate-id="PEIR:share:2"]')).toHaveCount(0)
         await expect(alex).toContainText('Cash 160')
         await expect(page.getByRole('list', { name: 'Stock history' })).toContainText(
             'Alberton floated.'
@@ -95,7 +95,7 @@ for (const width of [1280, 390]) {
             'Not funded · Not floated'
         )
         await expect(alex).toContainText('Cash 240')
-        await expect(alex.locator('[data-certificate-id="PEIR:share:1"]')).toBeVisible()
+        await expect(alex.locator('[data-certificate-id="PEIR:share:2"]')).toBeVisible()
         await expect(page.locator('[data-station-id="PEIR:A"]')).toContainText('D6')
         await page.getByRole('button', { name: 'Shikoku 1889', exact: true }).click()
         await page.locator('[data-purchase-certificate="SR:share:3"]').click()

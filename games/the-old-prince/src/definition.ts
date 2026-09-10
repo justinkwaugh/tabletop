@@ -1,3 +1,4 @@
+import { TheOldPrinceAuctionRules } from './openingAuction.js'
 import { TheOldPrinceTrainFundingRules } from './trainFundingRules.js'
 import { TheOldPrinceTransferRules } from './transferRules.js'
 import { TheOldPrincePrivatePowerRules } from './privatePowerRules.js'
@@ -41,6 +42,8 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
         }
     },
     runtime: createFinanceExampleRuntime({
+        offerAuctionRules: TheOldPrinceAuctionRules,
+        defaultPosition: 'opening',
         trainFundingRules: TheOldPrinceTrainFundingRules,
         transferRules: TheOldPrinceTransferRules,
         privatePowerRules: TheOldPrincePrivatePowerRules,

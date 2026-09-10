@@ -1,3 +1,10 @@
+import {
+    OfferAuction,
+    OfferAuctionLot,
+    BidOnAuctionLot,
+    type OfferPileAuctionRules
+} from '@tabletop/18xx'
+import type { OfferAuctionSelection } from '../auctions/auctionSelection.js'
 import type { AuctionSelection } from '../auctions/auctionSelection.js'
 import {
     ReserveBidAuction,
@@ -167,9 +174,61 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         private readonly transferRules: TransferRules,
         private readonly privatePowerRules: PrivatePowerRules,
         private readonly trainFundingRules: TrainFundingRules,
-        private readonly auctionRules?: WaterfallAuctionRules
+        private readonly auctionRules?: WaterfallAuctionRules,
+        private readonly offerAuctionRules?: OfferPileAuctionRules
     ) {
         super(options)
+    }
+    offerAuction = $derived.by(() =>
+        this.financialState.offerAuction && this.offerAuctionRules
+            ? new OfferAuction(this.financialState, this.offerAuctionRules)
+            : undefined
+    )
+    private offerDraft: OfferAuctionSelection | undefined = $state()
+    offerSelection = $derived.by(() =>
+        this.updatingVisibleState || this.isViewingHistory || this.offerAuction?.auction.completed
+            ? undefined
+            : this.offerDraft
+    )
+    canOfferAuction = $derived.by(
+        () =>
+            !this.busy &&
+            !this.updatingVisibleState &&
+            !this.isViewingHistory &&
+            (this.validActionTypes.includes('OfferAuctionLot') ||
+                this.validActionTypes.includes('PassAuction'))
+    )
+    selectOffer(lotId: string) {
+        assert(this.canOfferAuction && this.offerAuction, 'Auction selection is unavailable')
+        this.offerDraft = {
+            lotId,
+            ...(this.offerAuction.auction.bidding ? { amount: this.offerAuction.minimumBid } : {})
+        }
+    }
+    setOfferBid(amount: number) {
+        assert(this.offerDraft && this.canOfferAuction, 'Select a bid')
+        this.offerDraft = { ...this.offerDraft, amount }
+    }
+    backOffer() {
+        this.offerDraft = undefined
+    }
+    async confirmOffer() {
+        const draft = this.offerSelection
+        assert(this.canOfferAuction && draft && this.offerAuction, 'Select an offer or bid')
+        if (this.offerAuction.auction.bidding) {
+            assert(draft.amount !== undefined, 'Enter a bid')
+            await this.applyAction(
+                this.createPlayerAction(BidOnAuctionLot, {
+                    lotId: draft.lotId,
+                    amount: draft.amount
+                })
+            )
+        } else
+            await this.applyAction(this.createPlayerAction(OfferAuctionLot, { lotId: draft.lotId }))
+    }
+    async passOffer() {
+        assert(this.canOfferAuction && !this.offerSelection, 'Finish the auction selection')
+        await this.applyAction(this.createPlayerAction(PassAuction, {}))
     }
     auction = $derived.by(() =>
         this.financialState.openingAuction && this.auctionRules
@@ -1532,6 +1591,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         await this.applyAction(this.createPlayerAction(FinishStockTurn, {}))
     }
     override beforeNewState() {
+        this.offerDraft = undefined
         this.auctionDraft = undefined
         this.fundingDraft = undefined
         this.companyDraft = undefined
@@ -1546,6 +1606,10 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     }
     override async undo() {
         if (this.busy || this.isViewingHistory) return
+        if (this.offerDraft) {
+            this.offerDraft = undefined
+            return
+        }
         if (this.auctionDraft) {
             this.auctionDraft = undefined
             return
@@ -1616,7 +1680,8 @@ export function createFinanceExampleSessionClass(
     transferRules: TransferRules,
     privatePowerRules: PrivatePowerRules,
     trainFundingRules: TrainFundingRules,
-    auctionRules?: WaterfallAuctionRules
+    auctionRules?: WaterfallAuctionRules,
+    offerAuctionRules?: OfferPileAuctionRules
 ): new (options: SessionOptions) => FinanceExampleSession {
     return class extends FinanceExampleSession {
         constructor(options: SessionOptions) {
@@ -1634,7 +1699,8 @@ export function createFinanceExampleSessionClass(
                 transferRules,
                 privatePowerRules,
                 trainFundingRules,
-                auctionRules
+                auctionRules,
+                offerAuctionRules
             )
         }
     }

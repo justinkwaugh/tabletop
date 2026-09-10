@@ -33,7 +33,7 @@
     let bridge: BridgedContext | undefined
     let disposed = false
     const exampleName = untrack(
-        () => `Finances example · 23 · ${position} · ${playerCount ?? 'default'}`
+        () => `Finances example · 24 · ${position} · ${playerCount ?? 'default'}`
     )
 
     onMount(() => {
