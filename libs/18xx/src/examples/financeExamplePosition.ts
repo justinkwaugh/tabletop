@@ -2,6 +2,7 @@ import { BaseConfigurator } from '@tabletop/common'
 import * as Type from 'typebox'
 export const FinanceExamplePosition = Type.Union([
     Type.Literal('trading'),
+    Type.Literal('split'),
     Type.Literal('opening'),
     Type.Literal('starting'),
     Type.Literal('flotation'),

@@ -191,3 +191,36 @@ Current bidding and offer piles survive reload. Completion displays the real fir
 stock round in remaining-cash order, and Undo can restore the last auction turn.
 An unaffordable forced purchase with no player-private income stays visible with
 an explanation and Undo; the supplied rules provide no further resolution.
+
+## Branch-split preview
+
+The TOP Game Session owns a manual parent, branch, and starting-price draft.
+The panel renders the authoritative TOP calculation without committing an Action.
+Every stage requires explicit input. Changing parent or branch clears dependent
+stages. Back and Undo clear the latest manual stage; once the draft is empty,
+Undo follows ordinary game history. No preview selection consumes a stock action.
+
+Selections and results hide during `updatingVisibleState` and History View, and
+`beforeNewState` clears all split stages. They do not persist across reload. A
+canonical stock action therefore invalidates the old preview before the resulting
+state is displayed. Station and train lists describe assets available for allocation; the map remains
+canonical. Split commitment follows the allocation contract below. Shared UI and 1889 do not
+own TOP preview state.
+
+## Branch-split commitment
+
+An explicit Allocate assets button adds a fourth manual stage to the split draft.
+Station and train checkboxes, the branch home choice, cash, and Hunslet stay within
+that stage. Back and draft-first Undo remove the allocation stage together; changing
+parent, branch, or starting price clears it. Selecting a single available station
+does not automatically choose the branch home. Confirm split is enabled only when
+the same title model used by the Action accepts the complete allocation.
+
+Confirm split sends one `SplitCompany` through the Game Session. The resulting
+canonical state contains all share, station, train, cash, company, tranche, and
+stock-turn changes. No intermediate authoritative split exists. The branch map
+stations appear only with that committed state. The original stock turn remains
+active with its buy/start allowance used; the player can use remaining permitted
+private exchanges or Finish turn. Reload restores a completed split, and ordinary
+Undo restores the entire pre-split state. Pending company decisions and flotations
+retain their shared handler precedence.

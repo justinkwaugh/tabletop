@@ -1,3 +1,4 @@
+import { addTheOldPrinceBranches } from './branches.js'
 import { assert, shuffle, type PlayerState, type Prng } from '@tabletop/common'
 import {
     awardCertificates,
@@ -145,7 +146,7 @@ export function createTheOldPrinceOpening(
                 position
             })
     }
-    return {
+    const state: ReturnType<typeof createTheOldPrinceOpening> = {
         bank: { name: 'Bank' },
         companies: [
             ...TheOldPrinceCompanies.map((c) => ({
@@ -274,4 +275,6 @@ export function createTheOldPrinceOpening(
             completed: false
         }
     }
+    addTheOldPrinceBranches(state)
+    return state
 }

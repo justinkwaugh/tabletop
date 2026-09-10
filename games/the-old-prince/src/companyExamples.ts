@@ -1,3 +1,4 @@
+import { prepareTheOldPrinceBranchSplit } from './branchSplitExample.js'
 import { createTheOldPrinceOpening } from './openingAuction.js'
 import { prepareTheOldPrincePrivates } from './privateExamples.js'
 import { TheOldPrinceTrainDepot } from './trains.js'
@@ -269,5 +270,6 @@ export function createTheOldPrinceCompanyExample(
                 }
             }
     }
+    if (position === 'split') prepareTheOldPrinceBranchSplit(state, players)
     return state
 }

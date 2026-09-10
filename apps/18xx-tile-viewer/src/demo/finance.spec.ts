@@ -107,7 +107,8 @@ it.each([Top, Shikoku])(
             'StartStockRound',
             'AdvancePhase',
             'DiscardTrain',
-            'RustTrains'
+            'RustTrains',
+            ...(definition === Top ? ['SplitCompany'] : [])
         ])
         expect(() =>
             definition.runtime.hydrator.hydrateState({

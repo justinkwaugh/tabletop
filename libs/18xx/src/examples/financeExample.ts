@@ -1,3 +1,4 @@
+import type { MachineStateHandler, HydratedAction } from '@tabletop/common'
 import { Prng } from '@tabletop/common'
 import {
     OfferPileFields,
@@ -765,6 +766,7 @@ class FinanceExampleInitializer extends BaseGameInitializer<
     }
 }
 export interface FinanceExampleOptions {
+    stockRoundHandler?: MachineStateHandler<HydratedAction, HydratedFinanceExampleState>
     offerAuctionRules?: OfferPileAuctionRules
     auctionRules?: WaterfallAuctionRules
     defaultPosition?: FinanceExamplePosition
@@ -1024,7 +1026,8 @@ export function createFinanceExampleRuntime(
                 DiscardingTrains: new DiscardingTrainsHandler(options.trainRules),
                 RustingTrains: new RustingTrainsHandler('DistributingEarnings'),
                 StockRound: new PrivateExchangeHandler<HydratedFinanceExampleState>(
-                    new StockRoundHandler(rules, 'StartingOperatingSet', companyRules),
+                    options.stockRoundHandler ??
+                        new StockRoundHandler(rules, 'StartingOperatingSet', companyRules),
                     options.privateRules,
                     rules,
                     companyRules

@@ -1,4 +1,6 @@
 <script lang="ts">
+    import BranchSplitPreview from './BranchSplitPreview.svelte'
+    import { requireTheOldPrinceSession } from './session.svelte.js'
     import type { GameSession } from '@tabletop/frontend-components'
     import { requireFinanceExampleState } from '@tabletop/18xx'
     import type { GameState, HydratedGameState } from '@tabletop/common'
@@ -10,12 +12,11 @@
         PrivateCompanies,
         CompanyDecisions,
         StockTrading,
-        StockMarket,
-        requireFinanceExampleSession
+        StockMarket
     } from '@tabletop/18xx-ui'
     import { peirShares, peirPresident } from '@tabletop/the-old-prince'
     let { gameSession }: { gameSession: GameSession<GameState, HydratedGameState> } = $props()
-    const session = $derived(requireFinanceExampleSession(gameSession))
+    const session = $derived(requireTheOldPrinceSession(gameSession))
     const state = $derived(requireFinanceExampleState(gameSession.gameState))
 </script>
 
@@ -45,6 +46,7 @@
             Boolean(session.offerSelection || session.undoableAction)}
     />
 {:else}
+    <BranchSplitPreview {session} />
     <CompanyDecisions {session} />
     <PrivateCompanies {session} />
     <TrainBuying {session} />

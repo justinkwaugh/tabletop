@@ -63,7 +63,7 @@ it.each([3, 4])('sets up and completes TOP for %i players', (count) => {
     const main = theOldPrinceRole(state, 'mainline'),
         short = theOldPrinceRole(state, 'shortline')
     expect(main).not.toBe(short)
-    expect(state.companies.filter((c) => c.kind === 'major')).toHaveLength(8)
+    expect(state.companies.filter((c) => c.kind === 'major')).toHaveLength(14)
     expect(state.stations.filter((s) => s.companyId === 'PEIR')).toHaveLength(5)
     expect(state.certificates.filter((c) => c.companyId === 'PEIR')).toHaveLength(5)
     expect(
@@ -236,7 +236,7 @@ it('assigns distinct roles without changing the seven company identities across 
         mainlines.add(theOldPrinceRole(run.state, 'mainline'))
         expect(
             run.state.companies
-                .filter((c) => c.kind === 'major' && c.id !== 'PEIR')
+                .filter((c) => c.kind === 'major' && c.id !== 'PEIR' && !c.id.startsWith('branch:'))
                 .map((c) => c.id)
                 .sort()
         ).toEqual(['A', 'C', 'Gt', 'MR', 'MS', 'S', 'So'])

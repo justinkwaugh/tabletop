@@ -22,8 +22,12 @@
                     if (playerCount !== 3 && playerCount !== 4) playerCount = 3
                 }}>The Old Prince 1871</button
             >
-            <button aria-pressed={title === '1889'} onclick={() => (title = '1889')}
-                >Shikoku 1889</button
+            <button
+                aria-pressed={title === '1889'}
+                onclick={() => {
+                    title = '1889'
+                    if (position === 'split') position = 'trading'
+                }}>Shikoku 1889</button
             >
         </div>
         <label class="example"
@@ -32,6 +36,7 @@
                 <option value="opening">Opening auction</option>
                 <option value="trading">Share trading</option>
                 <option value="starting">Starting companies</option>
+                {#if title === 'TOP'}<option value="split">Branch split</option>{/if}
                 <option value="flotation">Flotation</option>
                 <option value="construction">Track construction</option>
                 <option value="stations">Station placement</option>

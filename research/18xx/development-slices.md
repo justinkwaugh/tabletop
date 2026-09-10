@@ -858,6 +858,9 @@ the two different auction procedures.
 
 ## 17A. Preview a TOP branch split with exact entitlement arithmetic
 
+**Status:** implemented as a local draft and pure calculation. See the
+[design and verification](branch-split-preview-slice-design.md).
+
 **Outcome:** select an eligible parent/branch and inspect the financial effects of
 a proposed split without changing Game State.
 
@@ -876,6 +879,9 @@ certificate. Child funding and child flotation stay separate. [T §6.7.4]
 calculations; it gains no split fields, Actions, or states.
 
 ## 17B. Commit a split and resume the stock procedure
+
+**Status:** implemented with a complete manual allocation and one canonical split
+Action. See the [design and verification](branch-split-commit-slice-design.md).
 
 **Outcome:** allocate parent/child stations, cash, trains, and Hunslet; commit the
 split and continue the interrupted stock turn legally.

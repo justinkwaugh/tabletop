@@ -2237,6 +2237,9 @@ importers:
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
+      typebox:
+        specifier: ^1.0.79
+        version: 1.0.79
     devDependencies:
       '@tabletop/vitest-config':
         specifier: workspace:*
