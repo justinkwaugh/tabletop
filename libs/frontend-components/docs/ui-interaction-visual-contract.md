@@ -152,3 +152,18 @@ The session keeps action controls blocked until the host request and visible tra
 If local replay fails, the displayed state stays unchanged while the host processes Undo. Rejection restores the prior state and invokes synchronization. A concurrent representation replacement must never be overwritten by that rollback.
 
 Browser regression scenarios in `tests/privateHandSession.spec.ts` hold acceptance pending and verify visible reversal, retained-action ordering, equal-checksum state correction, replay failure, rejection, canonical Admin Undo of a reveal, acting-player privacy, perspective changes, queued notifications, subsequent history navigation, v2 public games, and a response arriving during an optimistic animation.
+
+## Local hotseat Undo after the last decision
+
+Local hotseat Undo remains available when a terminal Game State has no active
+players. The local hotseat authorization rule applies before the spectator check
+as well as when selecting the latest User Action. No active-player identity is
+invented for a terminal state. History, information-reveal barriers, unavailable
+records, and non-active-player views retain their existing restrictions. Hosted
+execution and networked spectator authorization are unchanged.
+
+The paired 18xx bankruptcy browser cases exercise this through the real Game
+Session, including reload, the final System Action, and restoration of the prior
+state. The fix is bundled with each newly published UI Artifact; existing UI
+Artifacts retain their previous Game Session implementation. No host bridge fields
+or injected capabilities change.

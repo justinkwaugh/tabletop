@@ -2,14 +2,13 @@ import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import {
     Owner,
-    copyFinances,
     cashOwnedBy,
     certificatesOwnedBy,
     getCompany,
     sameOwner,
     sharesOwned
 } from '../finance/finance.js'
-import { CashPayment } from '../finance/cashPayments.js'
+import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import {
     PresidencyChange,
     evaluatePresidency,
@@ -17,7 +16,7 @@ import {
     certificatesForShares
 } from './presidency.js'
 import { companyMarketSpace, moveMarketSpace, placeStockMarker } from './stockMarket.js'
-import type { StockState } from './stockState.js'
+import { copyStockState, type StockState } from './stockState.js'
 import type { StockRules } from './stockRules.js'
 
 export const ShareSale = Type.Object(
@@ -67,19 +66,20 @@ export function evaluateShareSale(
     const turn = state.stockRound.turn
     if (turn.bought && (!rules.sellAfterBuying || turn.soldBeforeBuying))
         return { reason: 'Selling is not allowed after this purchase.' }
+    if (sales.some((sale) => turn.companiesSold.includes(sale.companyId)))
+        return { reason: 'Sell a company’s shares in one block per turn.' }
+    return evaluateShareDisposal(state, seller, sales, rules)
+}
+
+export function evaluateShareDisposal(
+    state: StockState,
+    seller: Owner,
+    sales: ShareSale[],
+    rules: Pick<StockRules, 'saleTerms' | 'presidencyCandidates'>
+): ShareSaleResult {
     if (!sales.length || new Set(sales.map((sale) => sale.companyId)).size !== sales.length)
         return { reason: 'Choose one sale block for each company.' }
-    const projected: StockState = {
-        ...state,
-        ...copyFinances(state),
-        stockMarket: {
-            spaces: state.stockMarket.spaces,
-            stacks: state.stockMarket.stacks.map((stack) => ({
-                spaceId: stack.spaceId,
-                companyIds: [...stack.companyIds]
-            }))
-        }
-    }
+    const projected = copyStockState(state)
     const settlements: ShareSaleSettlement[] = []
     const payments: CashPayment[] = []
     for (const sale of sales) {
@@ -87,8 +87,6 @@ export function evaluateShareSale(
             return { reason: 'Choose a positive number of shares.' }
         if (!state.companies.some((company) => company.id === sale.companyId))
             return { reason: 'Unknown company.' }
-        if (turn.companiesSold.includes(sale.companyId))
-            return { reason: 'Sell a company’s shares in one block per turn.' }
         const terms = rules.saleTerms(projected, sale.companyId, sale.shares)
         if (typeof terms === 'string') return { reason: terms }
         if (sale.shares > terms.maximumShares)
@@ -167,5 +165,14 @@ export function transferSaleCertificates(state: StockState, sale: ShareSaleSettl
         assert(certificate && !certificate.retired, 'Missing sold certificate')
         certificate.owner = pool.owner
         certificate.poolId = pool.id
+    }
+}
+
+export function applyShareSale(state: StockState, details: ShareSaleDetails): void {
+    settleCashPayments(state, details.payments)
+    for (const sale of details.sales) {
+        if (sale.presidency) applyPresidencyChange(state, sale.presidency)
+        transferSaleCertificates(state, sale)
+        placeStockMarker(state.stockMarket, sale.companyId, sale.toMarketSpaceId)
     }
 }

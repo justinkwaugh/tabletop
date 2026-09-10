@@ -1,0 +1,218 @@
+import { copyStockState } from '../stock/stockState.js'
+import * as Type from 'typebox'
+import { assert, assertExists } from '@tabletop/common'
+import {
+    Owner,
+    cashOwnedBy,
+    controllingOwner,
+    getCompany,
+    sameOwner,
+    sharesOwned
+} from '../finance/finance.js'
+import { TrainPurchase, TrainPurchaseDetails, type TrainRules } from '../trains/trainPurchase.js'
+import { trainsOwnedBy } from '../trains/train.js'
+import { evaluateShareDisposal, applyShareSale, type ShareSaleDetails } from '../stock/shareSale.js'
+import type { StockRules, ShareSaleTerms } from '../stock/stockRules.js'
+import type { CompanyDecisionState } from '../privates/companyDecision.js'
+
+export const TrainFunding = Type.Object(
+    {
+        purchase: TrainPurchaseDetails,
+        playerId: Type.String(),
+        contributors: Type.Array(Owner),
+        sales: Type.Array(
+            Type.Object({
+                seller: Owner,
+                companyId: Type.String(),
+                shares: Type.Integer({ minimum: 1 })
+            })
+        )
+    },
+    { additionalProperties: false }
+)
+export type TrainFunding = Type.Static<typeof TrainFunding>
+export const Bankruptcy = Type.Object(
+    { companyId: Type.String(), playerId: Type.String(), shortfall: Type.Integer({ minimum: 1 }) },
+    { additionalProperties: false }
+)
+export type Bankruptcy = Type.Static<typeof Bankruptcy>
+export const FundingFields = {
+    trainFunding: Type.Optional(TrainFunding),
+    bankruptcy: Type.Optional(Bankruptcy)
+}
+export type FundingState = CompanyDecisionState & Type.Static<Type.TObject<typeof FundingFields>>
+export interface TrainFundingRules {
+    includeMarketTrains: boolean
+    contributors(state: FundingState, companyId: string): Owner[]
+    issuanceTerms(
+        state: FundingState,
+        companyId: string,
+        shares: number
+    ): ShareSaleTerms | undefined
+    saleTerms(state: FundingState, companyId: string, shares: number): ShareSaleTerms | string
+    protectsPresidency(companyId: string, operatingCompanyId: string): boolean
+    requiredSaleShares(state: FundingState, seller: Owner, companyId: string): number
+}
+export type FundingChoice =
+    | { kind: 'issue'; details: ShareSaleDetails }
+    | { kind: 'contribute'; owner: Owner; amount: number }
+    | { kind: 'sell'; owner: Owner; sales: ShareSaleDetails[] }
+    | { kind: 'buy'; purchase: TrainPurchaseDetails }
+    | { kind: 'bankrupt'; shortfall: number }
+
+export class EmergencyTrainFunding {
+    constructor(
+        private readonly state: FundingState,
+        private readonly rules: TrainFundingRules,
+        private readonly stocks: StockRules,
+        private readonly trains: TrainRules
+    ) {}
+    purchases(): TrainPurchaseDetails[] {
+        const companyId = this.state.trainPurchaseStep?.companyId
+        if (
+            !companyId ||
+            getCompany(this.state, companyId).closed ||
+            trainsOwnedBy(this.state, { kind: 'company', companyId }).length ||
+            !this.trains.requiresTrain(this.state, companyId)
+        )
+            return []
+        const projected = {
+            ...this.state,
+            cash: this.state.cash.map((cash) =>
+                sameOwner(cash.owner, { kind: 'company', companyId })
+                    ? { ...cash, amount: 'unlimited' as const }
+                    : cash
+            )
+        }
+        const purchase = new TrainPurchase(projected, this.trains)
+        const offers = [
+            ...purchase
+                .offers()
+                .flatMap((offer) => (offer.evaluation.details ? [offer.evaluation.details] : [])),
+            ...(this.rules.includeMarketTrains
+                ? purchase.marketOffers().flatMap((offer) => (offer.details ? [offer.details] : []))
+                : [])
+        ]
+        const price = Math.min(...offers.map((offer) => offer.price))
+        if (this.cash({ kind: 'company', companyId }) >= price) return []
+        return offers.filter((offer) => offer.price === price)
+    }
+    begin(purchase: TrainPurchaseDetails): TrainFunding {
+        const player = controllingOwner(this.state, purchase.companyId)
+        assertExists(player, 'Train funding requires a controlling owner')
+        const contributors = this.rules.contributors(this.state, purchase.companyId)
+        assert(
+            contributors.length > 0 &&
+                contributors.every(
+                    (owner, index) =>
+                        owner.kind !== 'bank' &&
+                        !sameOwner(owner, { kind: 'company', companyId: purchase.companyId }) &&
+                        !contributors.slice(0, index).some((other) => sameOwner(owner, other))
+                ),
+            'Funding owners must be distinct'
+        )
+        return { purchase, playerId: player.playerId, contributors, sales: [] }
+    }
+    shortfall(): number {
+        const funding = this.state.trainFunding
+        assertExists(funding, 'Train funding is not active')
+        return Math.max(
+            0,
+            funding.purchase.price -
+                this.cash({ kind: 'company', companyId: funding.purchase.companyId })
+        )
+    }
+    next(): FundingChoice {
+        const funding = this.state.trainFunding
+        assertExists(funding, 'Train funding is not active')
+        const companyId = funding.purchase.companyId
+        const treasury: Owner = { kind: 'company', companyId }
+        const shortfall = this.shortfall()
+        if (shortfall) {
+            const shares = sharesOwned(this.state, companyId, treasury)
+            const terms = shares
+                ? this.rules.issuanceTerms(this.state, companyId, shares)
+                : undefined
+            if (terms) {
+                const result = evaluateShareDisposal(
+                    this.state,
+                    treasury,
+                    [{ companyId, shares }],
+                    { ...this.stocks, saleTerms: () => terms }
+                )
+                assert(result.details, result.reason ?? 'Required treasury issuance is unavailable')
+                return { kind: 'issue', details: result.details }
+            }
+        }
+        for (const owner of funding.contributors) {
+            const required = this.sales(owner, true)
+            if (required.length) return { kind: 'sell', owner, sales: required }
+            if (!shortfall) continue
+            const amount = Math.min(shortfall, this.cash(owner))
+            if (amount) return { kind: 'contribute', owner, amount }
+            const sales = this.sales(owner, false)
+            if (sales.length) return { kind: 'sell', owner, sales }
+        }
+        return shortfall
+            ? { kind: 'bankrupt', shortfall }
+            : { kind: 'buy', purchase: funding.purchase }
+    }
+    private cash(owner: Owner): number {
+        const amount = cashOwnedBy(this.state, owner)
+        assert(typeof amount === 'number', 'Funding requires a finite balance sheet')
+        return amount
+    }
+    private sales(owner: Owner, requiredOnly: boolean): ShareSaleDetails[] {
+        const funding = this.state.trainFunding!
+        const shortfall = this.shortfall()
+        return this.state.companies.flatMap((company) => {
+            const required = this.rules.requiredSaleShares(this.state, owner, company.id)
+            if (requiredOnly && !required) return []
+            if (
+                funding.sales.some(
+                    (sale) => sameOwner(sale.seller, owner) && sale.companyId === company.id
+                )
+            )
+                return []
+            const owned = sharesOwned(this.state, company.id, owner)
+            const results: ShareSaleDetails[] = []
+            for (let shares = 1; shares <= owned; shares++) {
+                const result = evaluateShareDisposal(
+                    this.state,
+                    owner,
+                    [{ companyId: company.id, shares }],
+                    {
+                        presidencyCandidates: this.stocks.presidencyCandidates,
+                        saleTerms: (_state, id, count) =>
+                            this.rules.saleTerms(this.state, id, count)
+                    }
+                )
+                if (
+                    !result.details ||
+                    result.details.sales.some(
+                        (sale) =>
+                            sale.presidency &&
+                            this.rules.protectsPresidency(
+                                sale.companyId,
+                                funding.purchase.companyId
+                            )
+                    )
+                )
+                    continue
+                if (required) {
+                    const projected = { ...this.state, ...copyStockState(this.state) }
+                    applyShareSale(projected, result.details)
+                    if (this.rules.requiredSaleShares(projected, owner, company.id)) continue
+                }
+                if (
+                    results.some(
+                        (smaller) => smaller.proceeds >= Math.max(0, shortfall - this.cash(owner))
+                    )
+                )
+                    continue
+                results.push(result.details)
+            }
+            return results
+        })
+    }
+}

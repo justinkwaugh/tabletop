@@ -10,15 +10,7 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import { Owner } from '../finance/finance.js'
-import { settleCashPayments } from '../finance/cashPayments.js'
-import { applyPresidencyChange } from './presidency.js'
-import { placeStockMarker } from './stockMarket.js'
-import {
-    ShareSale,
-    ShareSaleDetails,
-    evaluateShareSale,
-    transferSaleCertificates
-} from './shareSale.js'
+import { ShareSale, ShareSaleDetails, evaluateShareSale, applyShareSale } from './shareSale.js'
 import type { StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
 
@@ -58,11 +50,8 @@ export class HydratedSellShares extends HydratableAction<typeof SellShares> impl
         const result = evaluateShareSale(state, this, this.#rules)
         assert(result.details, result.reason ?? 'Invalid sale')
         assert(this.expectedProceeds === result.details.proceeds, 'Sale proceeds have changed')
-        settleCashPayments(state, result.details.payments)
+        applyShareSale(state, result.details)
         for (const sale of result.details.sales) {
-            if (sale.presidency) applyPresidencyChange(state, sale.presidency)
-            transferSaleCertificates(state, sale)
-            placeStockMarker(state.stockMarket, sale.companyId, sale.toMarketSpaceId)
             state.stockRound.sales.push({ owner: this.seller, companyId: sale.companyId })
             state.stockRound.turn.companiesSold.push(sale.companyId)
         }

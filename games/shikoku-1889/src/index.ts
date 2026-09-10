@@ -28,3 +28,5 @@ export * from './privateRules.js'
 
 export * from './transferRules.js'
 export * from './privatePowerRules.js'
+
+export * from './trainFundingRules.js'

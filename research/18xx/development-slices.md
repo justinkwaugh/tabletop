@@ -781,6 +781,9 @@ two title-specific power integrations next, sharing the same response mechanism.
 
 ## 15. Resolve compulsory train funding and bankruptcy
 
+**Status:** implemented for TOP and Shikoku 1889. See the
+[funding design and evidence](train-funding-slice-design.md).
+
 **Outcome:** an operator lacking a required train must satisfy the actual funding
 procedure or reach bankruptcy; optional actions cannot bypass the obligation.
 

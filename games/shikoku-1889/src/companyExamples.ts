@@ -202,5 +202,48 @@ export function createShikoku1889CompanyExample(
                 : train
         )
     }
+    if (position === 'funding' || position === 'bankruptcy') {
+        state.phaseId = '3'
+        state.tileInventory = Shikoku1889TileSet.createInventory([
+            { locationId: 'E2', definitionId: '18xx:5', rotation: 4 },
+            { locationId: 'F3', definitionId: '18xx:57', rotation: 2 },
+            { locationId: 'G4', definitionId: '18xx:6', rotation: 0 }
+        ])
+        const ranks = Shikoku1889TrainDepot.definition.supply.map((entry) => entry.definitionId)
+        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
+            ranks.indexOf(train.definitionId) < ranks.indexOf('4')
+                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
+                : train
+        )
+        const treasury = state.cash.find(
+            (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'IR'
+        )
+        assert(treasury, 'Funding example requires its treasury')
+        treasury.amount = position === 'funding' ? 70 : 0
+        for (const cash of state.cash)
+            if (cash.owner.kind === 'player') cash.amount = position === 'funding' ? 40 : 0
+        if (position === 'funding')
+            for (const id of ['IR:share:5', 'IR:share:6']) {
+                const certificate = state.certificates.find((item) => item.id === id)
+                assert(
+                    certificate && !certificate.retired,
+                    'Funding example requires ordinary shares'
+                )
+                certificate.owner = { kind: 'player', playerId: players[1].playerId }
+                delete certificate.poolId
+            }
+        if (position === 'bankruptcy')
+            for (const certificate of state.certificates) {
+                if (
+                    !certificate.retired &&
+                    certificate.kind === 'share' &&
+                    !certificate.president &&
+                    certificate.companyId !== 'PEIR'
+                ) {
+                    certificate.owner = { kind: 'bank' }
+                    certificate.poolId = 'initial-offering'
+                }
+            }
+    }
     return state
 }

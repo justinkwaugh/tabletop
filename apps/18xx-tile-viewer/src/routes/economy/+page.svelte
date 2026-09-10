@@ -39,6 +39,8 @@
                 <option value="private-events">Private phase effects</option>
                 <option value="transfers">Negotiated purchases</option>
                 <option value="powers">Private powers</option>
+                <option value="funding">Compulsory train funding</option>
+                <option value="bankruptcy">Bankruptcy</option>
             </select>
         </label>
     </header>

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TrainFunding from './TrainFunding.svelte'
     import PhaseChanges from './PhaseChanges.svelte'
     import { getCompany, cashOwnedBy } from '@tabletop/18xx'
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
@@ -8,6 +9,7 @@
 </script>
 
 <PhaseChanges {session} />
+<TrainFunding {session} />
 
 {#if step}
     <section aria-label="Train purchases">

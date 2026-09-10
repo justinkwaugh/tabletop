@@ -96,3 +96,7 @@ export * from './privates/buyPrivateTrain.js'
 export * from './construction/trackConsent.js'
 export * from './transfers/purchaseChoices.js'
 export * from './privates/betweenCompaniesHandler.js'
+
+export * from './funding/trainFunding.js'
+export * from './funding/fundingActions.js'
+export * from './funding/fundingTrainHandler.js'

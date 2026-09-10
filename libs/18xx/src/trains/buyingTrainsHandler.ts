@@ -1,3 +1,10 @@
+import {
+    EmergencyTrainFunding,
+    type FundingState,
+    type TrainFundingRules
+} from '../funding/trainFunding.js'
+import { HydratedFundingAction } from '../funding/fundingActions.js'
+import type { StockRules } from '../stock/stockRules.js'
 import type { PhaseState } from '../phases/phaseChange.js'
 import {
     isFinishOperatingTurn,
@@ -14,14 +21,19 @@ import {
 } from '@tabletop/common'
 import { isBuyTrain, type HydratedBuyTrain } from './buyTrain.js'
 import { TrainPurchase, type TrainRules } from './trainPurchase.js'
-type State = HydratedGameState & OperatingTurnState & PhaseState
+type State = HydratedGameState & OperatingTurnState & PhaseState & FundingState
 export class BuyingTrainsHandler implements MachineStateHandler<
-    HydratedBuyTrain | HydratedFinishOperatingTurn,
+    HydratedBuyTrain | HydratedFinishOperatingTurn | HydratedFundingAction,
     State
 > {
-    constructor(private readonly rules: TrainRules) {}
+    constructor(
+        private readonly rules: TrainRules,
+        private readonly fundingRules: TrainFundingRules,
+        private readonly stocks: StockRules
+    ) {}
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         const state = context.gameState
+        if (action instanceof HydratedFundingAction) return action.isValid(state)
         if (
             action.source !== ActionSource.User ||
             !action.playerId ||
@@ -48,6 +60,14 @@ export class BuyingTrainsHandler implements MachineStateHandler<
         )
             return []
         return [
+            ...(new EmergencyTrainFunding(
+                state,
+                this.fundingRules,
+                this.stocks,
+                this.rules
+            ).purchases().length
+                ? ['FundTrain']
+                : []),
             ...(purchase.offers().some((offer) => offer.evaluation.details) ||
             purchase.marketOffers().some((offer) => offer.details) ||
             purchase.exchanges().length
@@ -61,9 +81,10 @@ export class BuyingTrainsHandler implements MachineStateHandler<
 
     enter(): void {}
     onAction(
-        action: HydratedBuyTrain | HydratedFinishOperatingTurn,
+        action: HydratedBuyTrain | HydratedFinishOperatingTurn | HydratedFundingAction,
         context: MachineContext<State>
     ): string {
+        if (action instanceof HydratedFundingAction) return 'FundingTrain'
         return isFinishOperatingTurn(action)
             ? 'OperatingSet'
             : context.gameState.phaseChange

@@ -1,4 +1,13 @@
 import {
+    EmergencyTrainFunding,
+    FundTrain,
+    IssueTreasuryShares,
+    SellFundingShares,
+    ContributeTrainFunds,
+    type TrainFundingRules,
+    type ShareSaleDetails
+} from '@tabletop/18xx'
+import {
     isLayPrivateTile,
     isRespondToTrackConsent,
     ContinueOperatingRound,
@@ -147,7 +156,8 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         private readonly earningsRules: EarningsRules,
         private readonly privateRules: PrivateRules,
         private readonly transferRules: TransferRules,
-        private readonly privatePowerRules: PrivatePowerRules
+        private readonly privatePowerRules: PrivatePowerRules,
+        private readonly trainFundingRules: TrainFundingRules
     ) {
         super(options)
     }
@@ -653,6 +663,102 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         assert(this.canDiscardTrain && companyId && trainId, 'Select a train to discard')
         await this.applyAction(this.createPlayerAction(DiscardTrain, { companyId, trainId }))
     }
+    funding = $derived.by(
+        () =>
+            new EmergencyTrainFunding(
+                this.financialState,
+                this.trainFundingRules,
+                this.stockRules,
+                this.trainRules
+            )
+    )
+    fundingPurchases = $derived.by(() =>
+        this.financialState.machineState === 'BuyingTrains' ? this.funding.purchases() : []
+    )
+    fundingChoice = $derived.by(() =>
+        this.financialState.machineState === 'FundingTrain' ? this.funding.next() : undefined
+    )
+    canFundTrain = $derived(
+        !this.busy &&
+            !this.updatingVisibleState &&
+            !this.isViewingHistory &&
+            this.validActionTypes.includes('FundTrain')
+    )
+    canResolveFunding = $derived.by(
+        () =>
+            !this.busy &&
+            !this.updatingVisibleState &&
+            !this.isViewingHistory &&
+            this.financialState.machineState === 'FundingTrain' &&
+            this.validActionTypes.length > 0
+    )
+    private fundingDraft: ShareSaleDetails | undefined = $state.raw()
+    fundingSale = $derived(this.canResolveFunding ? this.fundingDraft : undefined)
+    selectFundingSale(sale: ShareSaleDetails) {
+        assert(
+            this.canResolveFunding && this.fundingChoice?.kind === 'sell',
+            'Funding sales are unavailable'
+        )
+        this.fundingDraft = sale
+    }
+    backFundingSale() {
+        this.fundingDraft = undefined
+    }
+    async fundTrain(purchase: TrainPurchaseDetails) {
+        assert(this.canFundTrain, 'Train funding is unavailable')
+        await this.applyAction(
+            this.createPlayerAction(FundTrain, {
+                companyId: purchase.companyId,
+                trainId: purchase.trainId,
+                definitionId: purchase.definitionId,
+                expectedPrice: purchase.price
+            })
+        )
+    }
+    async resolveTrainFunding() {
+        assert(this.canResolveFunding && this.fundingChoice, 'Train funding is unavailable')
+        const choice = this.fundingChoice
+        switch (choice.kind) {
+            case 'issue':
+                await this.applyAction(
+                    this.createPlayerAction(IssueTreasuryShares, {
+                        expectedProceeds: choice.details.proceeds
+                    })
+                )
+                break
+            case 'contribute':
+                await this.applyAction(
+                    this.createPlayerAction(ContributeTrainFunds, {
+                        owner: choice.owner,
+                        amount: choice.amount
+                    })
+                )
+                break
+            case 'sell': {
+                const sale = this.fundingSale
+                assert(sale, 'Choose shares to sell')
+                await this.applyAction(
+                    this.createPlayerAction(SellFundingShares, {
+                        seller: sale.seller,
+                        companyId: sale.sales[0].companyId,
+                        shares: sale.sales[0].shares,
+                        expectedProceeds: sale.proceeds
+                    })
+                )
+                break
+            }
+            case 'buy':
+                await this.applyAction(
+                    this.createPlayerAction(BuyTrain, {
+                        companyId: choice.purchase.companyId,
+                        trainId: choice.purchase.trainId,
+                        definitionId: choice.purchase.definitionId,
+                        expectedPrice: choice.purchase.price
+                    })
+                )
+                break
+        }
+    }
     private trainDraft: TrainPurchaseRequest | undefined = $state.raw()
     trainSelection = $derived.by(() =>
         !this.updatingVisibleState &&
@@ -676,10 +782,12 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     trainPreview = $derived(
         this.trainSelection ? this.trainPurchase.evaluate(this.trainSelection).details : undefined
     )
-    canBuyTrain = $derived(
-        !this.busy &&
+    canBuyTrain = $derived.by(
+        () =>
+            !this.busy &&
             !this.updatingVisibleState &&
             !this.isViewingHistory &&
+            this.financialState.machineState === 'BuyingTrains' &&
             this.validActionTypes.includes('BuyTrain')
     )
     trainPurchases = $derived(this.actions.slice(0, this.gameState.actionCount).filter(isBuyTrain))
@@ -1358,6 +1466,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         await this.applyAction(this.createPlayerAction(FinishStockTurn, {}))
     }
     override beforeNewState() {
+        this.fundingDraft = undefined
         this.companyDraft = undefined
         this.privateDraft = undefined
         this.discardDraft = undefined
@@ -1370,6 +1479,10 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     }
     override async undo() {
         if (this.busy || this.isViewingHistory) return
+        if (this.fundingDraft) {
+            this.fundingDraft = undefined
+            return
+        }
         if (this.companyDraft) {
             this.companyDraft = undefined
             return
@@ -1430,7 +1543,8 @@ export function createFinanceExampleSessionClass(
     earningsRules: EarningsRules,
     privateRules: PrivateRules,
     transferRules: TransferRules,
-    privatePowerRules: PrivatePowerRules
+    privatePowerRules: PrivatePowerRules,
+    trainFundingRules: TrainFundingRules
 ): new (options: SessionOptions) => FinanceExampleSession {
     return class extends FinanceExampleSession {
         constructor(options: SessionOptions) {
@@ -1446,7 +1560,8 @@ export function createFinanceExampleSessionClass(
                 earningsRules,
                 privateRules,
                 transferRules,
-                privatePowerRules
+                privatePowerRules,
+                trainFundingRules
             )
         }
     }

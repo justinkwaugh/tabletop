@@ -1,3 +1,19 @@
+import {
+    FundingFields,
+    type TrainFunding,
+    type Bankruptcy,
+    type TrainFundingRules
+} from '../funding/trainFunding.js'
+import { FundingTrainHandler, BankruptHandler } from '../funding/fundingTrainHandler.js'
+import {
+    FundTrain,
+    IssueTreasuryShares,
+    SellFundingShares,
+    ContributeTrainFunds,
+    DeclareBankruptcy,
+    HydratedFundingAction,
+    isFundingAction
+} from '../funding/fundingActions.js'
 import { isContinueOperatingRound } from '../privates/betweenCompaniesHandler.js'
 import { isBuyPrivateTrain } from '../privates/buyPrivateTrain.js'
 import { isLayPrivateTile, isDeclinePrivateTile } from '../privates/layPrivateTile.js'
@@ -187,7 +203,12 @@ import {
 import { StockMarket, validateStockMarket } from '../stock/stockMarket.js'
 import type { StockRules } from '../stock/stockRules.js'
 import { StockRound } from '../stock/stockRound.js'
-import { FinanceFields, validateFinances, type FinancialState } from '../finance/finance.js'
+import {
+    FinanceFields,
+    validateFinances,
+    sameOwner,
+    type FinancialState
+} from '../finance/finance.js'
 
 const ExampleFields = Type.Object({
     example: Type.Literal('finances'),
@@ -199,6 +220,8 @@ const ExampleFields = Type.Object({
         Type.Literal('PlacingStation'),
         Type.Literal('StationsComplete'),
         Type.Literal('BuyingTrains'),
+        Type.Literal('FundingTrain'),
+        Type.Literal('Bankrupt'),
         Type.Literal('AdvancingPhase'),
         Type.Literal('DiscardingTrains'),
         Type.Literal('RustingTrains'),
@@ -211,6 +234,7 @@ const ExampleFields = Type.Object({
     stationStep: Type.Optional(StationStep),
     stockMarket: StockMarket,
     ...FinanceFields,
+    ...FundingFields,
     ...CompanyFields,
     ...MapFields,
     ...TrainFields,
@@ -235,6 +259,8 @@ export class HydratedFinanceExampleState
     extends HydratableGameState<typeof FinanceExampleState, PlayerState>
     implements FinanceExampleState
 {
+    declare trainFunding?: TrainFunding
+    declare bankruptcy?: Bankruptcy
     declare privatePowerWindow?: PrivatePowerWindow
     declare purchaseOffer?: PurchaseOffer
     declare privateTrackLay?: PrivateTrackLay
@@ -261,6 +287,8 @@ export class HydratedFinanceExampleState
         | 'PlacingStation'
         | 'StationsComplete'
         | 'BuyingTrains'
+        | 'FundingTrain'
+        | 'Bankrupt'
         | 'AdvancingPhase'
         | 'DiscardingTrains'
         | 'RustingTrains'
@@ -328,6 +356,29 @@ export class HydratedFinanceExampleState
                 'Station completion does not match the machine state'
             )
         }
+        if (this.trainFunding) {
+            assert(
+                ['FundingTrain', 'Bankrupt'].includes(this.machineState) &&
+                    this.trainFunding.purchase.companyId === this.trainPurchaseStep?.companyId,
+                'Funding must belong to the operating train purchase'
+            )
+            assert(
+                this.players.some((player) => player.playerId === this.trainFunding!.playerId),
+                'Unknown funding player'
+            )
+            assert(
+                this.trainFunding.contributors.every(
+                    (owner, index, owners) =>
+                        !owners.slice(0, index).some((other) => sameOwner(owner, other))
+                ),
+                'Duplicate funding owner'
+            )
+        }
+        assert(
+            (this.machineState === 'Bankrupt') === Boolean(this.bankruptcy),
+            'Bankruptcy must match the terminal state'
+        )
+        assert(this.machineState !== 'FundingTrain' || this.trainFunding, 'Missing train funding')
         if (this.privatePowerWindow)
             assert(
                 this.machineState === 'OperatingSet',
@@ -419,9 +470,13 @@ export class HydratedFinanceExampleState
             )
         if (this.earningsDistribution) {
             assert(
-                ['BuyingTrains', 'AdvancingPhase', 'DiscardingTrains'].includes(
-                    this.machineState
-                ) &&
+                [
+                    'BuyingTrains',
+                    'FundingTrain',
+                    'Bankrupt',
+                    'AdvancingPhase',
+                    'DiscardingTrains'
+                ].includes(this.machineState) &&
                     this.earningsDistribution.companyId === this.routeStep?.result?.companyId &&
                     this.earningsDistribution.revenue === this.routeStep.result.revenue &&
                     this.trainPurchaseStep?.companyId === this.earningsDistribution.companyId,
@@ -536,7 +591,9 @@ class FinanceExampleInitializer extends BaseGameInitializer<
             position === 'diesel' ||
             position === 'private-events' ||
             position === 'transfers' ||
-            position === 'powers'
+            position === 'powers' ||
+            position === 'funding' ||
+            position === 'bankruptcy'
         ) {
             const companyOrder = this.options.operatingRules.companyOrder(initialized)
             const companyId = companyOrder[0]
@@ -569,7 +626,9 @@ class FinanceExampleInitializer extends BaseGameInitializer<
                 position === 'phases' ||
                 position === 'diesel' ||
                 position === 'private-events' ||
-                position === 'transfers'
+                position === 'transfers' ||
+                position === 'funding' ||
+                position === 'bankruptcy'
             ) {
                 delete initialized.trackStep
                 initialized.trainPurchaseStep = { companyId, purchasedTrainIds: [] }
@@ -590,6 +649,7 @@ class FinanceExampleInitializer extends BaseGameInitializer<
     }
 }
 export interface FinanceExampleOptions {
+    trainFundingRules: TrainFundingRules
     createFinances: CreateFinances
     stockRules: StockRules
     createMarket: (position: FinanceExamplePosition) => StockMarket
@@ -673,6 +733,13 @@ export function createFinanceExampleRuntime(
                 if (isFinishOperatingTurn(action))
                     return new HydratedFinishOperatingTurn(action, options.trainRules)
                 if (isStartStockRound(action)) return new HydratedStartStockRound(action)
+                if (isFundingAction(action))
+                    return new HydratedFundingAction(
+                        action,
+                        options.trainFundingRules,
+                        rules,
+                        options.trainRules
+                    )
                 if (isRunTrains(action)) return new HydratedRunTrains(action, options.routeRules)
                 if (isBuyTrain(action)) return new HydratedBuyTrain(action, options.trainRules)
                 if (isPlaceStation(action))
@@ -699,6 +766,11 @@ export function createFinanceExampleRuntime(
         canonicalStateValidator: FinanceExampleValidator,
         playerColors: ExampleColors,
         apiActions: {
+            FundTrain,
+            IssueTreasuryShares,
+            SellFundingShares,
+            ContributeTrainFunds,
+            DeclareBankruptcy,
             ContinueOperatingRound,
             BuyPrivateTrain,
             DeclinePrivateTile,
@@ -733,6 +805,12 @@ export function createFinanceExampleRuntime(
         },
         stateHandlers: Object.fromEntries(
             Object.entries({
+                FundingTrain: new FundingTrainHandler<HydratedFinanceExampleState>(
+                    options.trainFundingRules,
+                    rules,
+                    options.trainRules
+                ),
+                Bankrupt: new BankruptHandler<HydratedFinanceExampleState>(),
                 AdvancingPhase: new AdvancingPhaseHandler(),
                 DiscardingTrains: new DiscardingTrainsHandler(options.trainRules),
                 RustingTrains: new RustingTrainsHandler('DistributingEarnings'),
@@ -775,7 +853,7 @@ export function createFinanceExampleRuntime(
                     companyRules
                 ),
                 BuyingTrains: new PrivateExchangeHandler<HydratedFinanceExampleState>(
-                    new BuyingTrainsHandler(options.trainRules),
+                    new BuyingTrainsHandler(options.trainRules, options.trainFundingRules, rules),
                     options.privateRules,
                     rules,
                     companyRules

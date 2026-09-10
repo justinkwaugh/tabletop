@@ -1,0 +1,33 @@
+import { assertExists } from '@tabletop/common'
+import {
+    companyMarketSpace,
+    getCompany,
+    privateOwner,
+    type TrainFundingRules
+} from '@tabletop/18xx'
+import { TheOldPrinceStockRules } from './stockRules.js'
+export const TheOldPrinceTrainFundingRules: TrainFundingRules = {
+    includeMarketTrains: false,
+    contributors(state, companyId) {
+        const president = getCompany(state, companyId).president
+        assertExists(president, 'A railway requires its president')
+        if (president.kind === 'player') return [president]
+        const owner = privateOwner(state, president.companyId)
+        assertExists(owner, 'Union Bank requires its owner')
+        return [president, owner]
+    },
+    issuanceTerms(state, companyId, shares) {
+        return {
+            payer: { kind: 'bank' },
+            price: companyMarketSpace(state.stockMarket, companyId).price,
+            destinationPoolId: 'market',
+            marketLimit: 100,
+            maximumShares: shares,
+            movement: 1
+        }
+    },
+    saleTerms: (state, companyId, shares) =>
+        TheOldPrinceStockRules.saleTerms(state, companyId, shares),
+    protectsPresidency: (companyId, operatingCompanyId) => companyId === operatingCompanyId,
+    requiredSaleShares: () => 0
+}

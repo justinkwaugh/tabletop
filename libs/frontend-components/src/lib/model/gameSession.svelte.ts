@@ -197,11 +197,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     undoableAction: GameAction | undefined = $derived.by(() => {
         const superUserAccess =
             (this.isActingAdmin || this.isExploring) && !this.isViewingAsNonActivePlayer
+        const localHotseatAccess =
+            this.game.hotseat &&
+            !this.usesHostExecution(this.currentModifiableContext) &&
+            !this.isViewingAsNonActivePlayer
 
         // No spectators, must have actions, not viewing history
         if (
             this.history.inHistory ||
-            (!superUserAccess && !this.myPlayer) ||
+            (!superUserAccess && !localHotseatAccess && !this.myPlayer) ||
             this.actions.length === 0
         ) {
             return undefined
@@ -226,12 +230,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 continue
             }
 
-            if (
-                superUserAccess ||
-                (this.game.hotseat &&
-                    !this.usesHostExecution(this.currentModifiableContext) &&
-                    !this.isViewingAsNonActivePlayer)
-            ) {
+            if (superUserAccess || localHotseatAccess) {
                 undoableUserAction = action
                 break
             }

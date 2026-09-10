@@ -231,5 +231,37 @@ export function createTheOldPrinceCompanyExample(
                 : train
         )
     }
+    if (position === 'funding' || position === 'bankruptcy') {
+        state.phaseId = '4H'
+        state.tileInventory = TheOldPrinceTileSet.createInventory([
+            { locationId: 'K17', definitionId: '18xx:8', rotation: 4 },
+            { locationId: 'K19', definitionId: '18xx:6', rotation: 1 }
+        ])
+        const ranks = TheOldPrinceTrainDepot.definition.supply.map((entry) => entry.definitionId)
+        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
+            ranks.indexOf(train.definitionId) < ranks.indexOf('5H')
+                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
+                : train
+        )
+        const treasury = state.cash.find(
+            (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'ML'
+        )
+        assert(treasury, 'Funding example requires its treasury')
+        treasury.amount = position === 'funding' ? 20 : 0
+        for (const cash of state.cash)
+            if (cash.owner.kind === 'player') cash.amount = position === 'funding' ? 40 : 0
+        if (position === 'bankruptcy')
+            for (const certificate of state.certificates) {
+                if (
+                    !certificate.retired &&
+                    certificate.kind === 'share' &&
+                    !certificate.president &&
+                    certificate.companyId !== 'PEIR'
+                ) {
+                    certificate.owner = { kind: 'bank' }
+                    certificate.poolId = 'market'
+                }
+            }
+    }
     return state
 }

@@ -1,3 +1,4 @@
+import { TheOldPrinceTrainFundingRules } from './trainFundingRules.js'
 import { TheOldPrinceTransferRules } from './transferRules.js'
 import { TheOldPrincePrivatePowerRules } from './privatePowerRules.js'
 import { TheOldPrincePrivateRules } from './privateRules.js'
@@ -40,6 +41,7 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
         }
     },
     runtime: createFinanceExampleRuntime({
+        trainFundingRules: TheOldPrinceTrainFundingRules,
         transferRules: TheOldPrinceTransferRules,
         privatePowerRules: TheOldPrincePrivatePowerRules,
         createFinances: createTheOldPrinceCompanyExample,

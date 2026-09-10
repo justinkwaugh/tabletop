@@ -134,7 +134,6 @@ Concession closure occurs with the company's earnings distribution. Prototype
 version 20 adds four-player Private exchanges and Private phase effects examples;
 ordinary game setup and negotiated powers remain later slices.
 
-
 ### Negotiated purchases and private powers
 
 The disposable company-decisions panel is session-owned. Asset/price selection,
@@ -155,3 +154,22 @@ Between operating companies, an eligible private owner may act or Continue opera
 round. Continuing declines only that window, retaining the unused power. The choice
 and resulting automatic company start form a normal Undo history step. Automatic
 private income and required home stations resolve before this optional window.
+
+### Compulsory train funding
+
+The prototype funding panel shows the selected train, remaining shortfall,
+ordered liable owners, and only the current legal funding choices. FundTrain is
+an explicit committed decision; its funding record persists across reload.
+Issuance and contributions require explicit confirmation of the displayed amount.
+A share-sale selection is a manual Game Session draft: Back clears it, and Undo
+clears it before reversing a committed Action. Drafts hide in History View and
+while updatingVisibleState, and clear in beforeNewState. Components call session
+methods for every Action. Other operating, private, and stock actions are
+unavailable during funding. Only the responsible player may act.
+
+The selected train purchase uses existing phase-change and discard handling and
+returns to ordinary train buying. Bankruptcy is a system consequence of exhausted
+legal funding sources; the panel shows the company, player, and remaining
+shortfall. It offers no further gameplay actions. Engine Undo restores the funding
+state, including the contribution that triggered bankruptcy. Final scoring is a
+later slice. Prototype save identity is version 22.
