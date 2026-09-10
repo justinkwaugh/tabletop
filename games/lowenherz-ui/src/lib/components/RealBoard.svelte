@@ -1213,16 +1213,19 @@
              (see offeredAllianceId); the hearts themselves only arm it. -->
         {#each visibleAllianceMarkers as marker (marker.id)}
             <div class="contents" data-alliance-control onfocusout={disarmUnlessFocusStaysWithin}>
-                {#each marker.walls as wall (wall.col + ',' + wall.row + ',' + wall.edge + '-heart')}
+                {#each marker.walls as wall, wallIndex (wall.col + ',' + wall.row + ',' + wall.edge + '-heart')}
                     {@const span = heartSpan(wall)}
                     {#if marker.cancellable}
                         <!-- A heart's own idle animation is a heartbeat, which is exactly the
                              "alive, touchable" cue this needs - it beats only while cancelling
-                             is actually open to this player, and sits dead still otherwise. -->
+                             is actually open to this player, and sits dead still otherwise.
+                             One Tab stop per alliance (its first wall); the other walls' hearts
+                             stay clickable but are skipped, so Tab goes hearts, pill, next. -->
                         <button
                             type="button"
                             aria-label={breakAllianceLabel(marker)}
                             title={breakAllianceLabel(marker)}
+                            tabindex={wallIndex === 0 ? 0 : -1}
                             class="absolute z-40 cursor-pointer alliance-heartbeat"
                             style="left: {span.left}px; top: {span.top}px; width: {span.width}px; height: {span.height}px;"
                             onfocus={() => (armedAllianceId = marker.id)}
