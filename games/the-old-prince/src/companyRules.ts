@@ -1,3 +1,4 @@
+import { TheOldPrincePhases } from './trains.js'
 import { assert, assertExists } from '@tabletop/common'
 import {
     availableCompanyTranche,
@@ -43,7 +44,7 @@ export function availableTheOldPrinceTranche(state: StockState) {
 export const TheOldPrinceCompanyRules: CompanyRules = {
     startMarketSpaces(state, companyId) {
         if (!PeirCompanies.some((item) => item.companyId === companyId)) return []
-        const phases = ['2H', '3H', '4H', '5H', '6H', '2+', '3+', '4+', '7', 'D']
+        const phases = TheOldPrincePhases
         const phase = phases.indexOf(state.phaseId)
         assert(phase >= 0, 'Unknown TOP phase')
         const minimumRow =

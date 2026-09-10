@@ -106,7 +106,7 @@ it.each(Titles)(
     }
 )
 it.each(Titles)(
-    'enforces $definition.info.id affordability, current limits and phase boundaries',
+    'enforces $definition.info.id affordability and current limits before a phase change',
     ({ definition, rules, companyId, firstRank, nextRank }) => {
         const { state } = example(definition, 'trains')
         const details = firstPurchase(state, rules)
@@ -131,7 +131,7 @@ it.each(Titles)(
                 ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
                 : train
         )
-        expect(new TrainPurchase(state, rules).evaluate(request).reason).toContain('phase changes')
+        expect(new TrainPurchase(state, rules).evaluate(request).details).toBeDefined()
     }
 )
 it('limits PEIR to one depot purchase per operating round', () => {
@@ -177,9 +177,12 @@ it.each(Titles)(
         ).toEqual(result.updatedState)
     }
 )
-it('makes 1889 diesels available alongside remaining 6 trains, while preserving the phase-change boundary', () => {
+it('makes 1889 diesels available alongside remaining 6 trains, at their ordinary price', () => {
     const { state } = example(Shikoku, 'trains')
     state.phaseId = '6'
+    state.cash.find(
+        (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'IR'
+    )!.amount = 1500
     state.trainInventory.trains = state.trainInventory.trains.map((train) =>
         ['2', '3', '4', '5'].includes(train.definitionId)
             ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
@@ -189,8 +192,8 @@ it('makes 1889 diesels available alongside remaining 6 trains, while preserving 
     expect(
         new TrainPurchase(state, Shikoku1889TrainRules)
             .offers()
-            .find((offer) => offer.definitionId === 'D')?.evaluation.reason
-    ).toContain('phase changes')
+            .find((offer) => offer.definitionId === 'D')?.evaluation.details?.price
+    ).toBe(1100)
 })
 it('distinguishes TOP hex-edge and city/offboard limits from 1889 revenue-center limits', () => {
     expect(TheOldPrinceTrainRules.depot.trainDefinition('6H').distance).toEqual({

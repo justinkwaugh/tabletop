@@ -1,3 +1,4 @@
+import { DiscardTrain, discardableTrains } from '@tabletop/18xx'
 import {
     EarningsDistribution,
     DistributeEarnings,
@@ -252,6 +253,48 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             })
         )
     }
+    private discardDraft: string | undefined = $state()
+    discardSelection = $derived.by(() =>
+        !this.updatingVisibleState &&
+        !this.isViewingHistory &&
+        this.financialState.machineState === 'DiscardingTrains'
+            ? this.discardDraft
+            : undefined
+    )
+    discardCompanyId = $derived.by(() => this.financialState.phaseChange?.discardCompanyIds[0])
+    discardTrains = $derived.by(() =>
+        this.discardCompanyId
+            ? discardableTrains(this.financialState, this.discardCompanyId, this.trainRules)
+            : []
+    )
+    discardCount = $derived.by(() =>
+        this.discardCompanyId
+            ? this.discardTrains.length -
+              this.trainRules.trainLimit(this.financialState, this.discardCompanyId)
+            : 0
+    )
+    canDiscardTrain = $derived(
+        !this.busy &&
+            !this.updatingVisibleState &&
+            !this.isViewingHistory &&
+            this.validActionTypes.includes('DiscardTrain')
+    )
+    selectDiscard(trainId: string) {
+        assert(
+            this.canDiscardTrain && this.discardTrains.some((train) => train.id === trainId),
+            'Choose a train for compulsory discard'
+        )
+        this.discardDraft = trainId
+    }
+    backDiscard() {
+        this.discardDraft = undefined
+    }
+    async confirmDiscard() {
+        const companyId = this.discardCompanyId,
+            trainId = this.discardSelection
+        assert(this.canDiscardTrain && companyId && trainId, 'Select a train to discard')
+        await this.applyAction(this.createPlayerAction(DiscardTrain, { companyId, trainId }))
+    }
     private trainDraft: TrainPurchaseRequest | undefined = $state.raw()
     trainSelection = $derived.by(() =>
         !this.updatingVisibleState &&
@@ -262,6 +305,16 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     )
     trainPurchase = $derived.by(() => new TrainPurchase(this.financialState, this.trainRules))
     trainOffers = $derived(this.trainPurchase.offers())
+    marketTrainOffers = $derived(this.trainPurchase.marketOffers())
+    trainExchanges = $derived(this.trainPurchase.exchanges())
+    trainNextPhase = $derived.by(() =>
+        this.trainPreview
+            ? this.trainRules.phaseAfterPurchase(
+                  this.financialState,
+                  this.trainPreview.definitionId
+              )
+            : undefined
+    )
     trainPreview = $derived(
         this.trainSelection ? this.trainPurchase.evaluate(this.trainSelection).details : undefined
     )
@@ -312,7 +365,8 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
                 companyId: preview.companyId,
                 trainId: preview.trainId,
                 definitionId: preview.definitionId,
-                expectedPrice: preview.price
+                expectedPrice: preview.price,
+                ...(preview.exchangeTrainId ? { exchangeTrainId: preview.exchangeTrainId } : {})
             })
         )
     }
@@ -923,6 +977,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         await this.applyAction(this.createPlayerAction(FinishStockTurn, {}))
     }
     override beforeNewState() {
+        this.discardDraft = undefined
         this.earningsDraft = undefined
         this.routeEditor.clear()
         this.trainDraft = undefined
@@ -932,6 +987,10 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     }
     override async undo() {
         if (this.busy || this.isViewingHistory) return
+        if (this.discardDraft) {
+            this.discardDraft = undefined
+            return
+        }
         if (this.earningsDraft) {
             this.earningsDraft = undefined
             return

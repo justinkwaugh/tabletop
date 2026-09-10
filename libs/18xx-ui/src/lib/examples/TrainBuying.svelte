@@ -1,10 +1,13 @@
 <script lang="ts">
+    import PhaseChanges from './PhaseChanges.svelte'
     import { getCompany, cashOwnedBy } from '@tabletop/18xx'
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
     let { session }: { session: FinanceExampleSession } = $props()
     const step = $derived(session.financialState.trainPurchaseStep)
     const preview = $derived(session.trainPreview)
 </script>
+
+<PhaseChanges {session} />
 
 {#if step}
     <section aria-label="Train purchases">
@@ -59,11 +62,38 @@
                 </article>
             {/each}
         </div>
+        {#if session.marketTrainOffers.length}<h3>Market trains</h3>
+            <div class="trains">
+                {#each session.marketTrainOffers as offer}
+                    {#if offer.details}<button
+                            disabled={!session.canBuyTrain}
+                            onclick={() => {
+                                if (offer.details) session.selectTrain(offer.details)
+                            }}
+                            >Buy Market {session.trainDepot.trainDefinition(
+                                offer.details.definitionId
+                            ).name} · ${offer.details.price}</button
+                        >
+                    {:else}<p>{offer.reason}</p>{/if}
+                {/each}
+            </div>{/if}
+        {#if session.trainExchanges.length}<h3>Diesel exchange</h3>
+            <div class="trains">
+                {#each session.trainExchanges as exchange}<button
+                        disabled={!session.canBuyTrain}
+                        onclick={() => session.selectTrain(exchange)}
+                        >Exchange {exchange.exchangeTrainId} for Diesel · ${exchange.price}</button
+                    >{/each}
+            </div>{/if}
         {#if preview}
             <div class="purchase" aria-label="Train purchase preview">
                 <strong
                     >{session.trainDepot.trainDefinition(preview.definitionId).name} · ${preview.price}</strong
                 >
+                {#if preview.exchangeTrainId}<span>Trade in {preview.exchangeTrainId}</span>{/if}
+                {#if session.trainNextPhase !== session.financialState.phaseId}<span
+                        >Phase {session.financialState.phaseId} → {session.trainNextPhase}</span
+                    >{/if}
                 <button onclick={() => session.backTrain()}>Back</button>
                 <button
                     onclick={() => session.confirmTrainPurchase()}
@@ -79,6 +109,8 @@
                     <ul>
                         {#each trains as train (train.id)}<li data-owned-train={train.id}>
                                 {session.trainDepot.trainDefinition(train.definitionId).name}
+                                {#if train.status === 'owned' && train.rustsAfterOperation}
+                                    · Rusts after this operation; cannot trade{/if}
                             </li>{/each}
                     </ul>
                 </div>

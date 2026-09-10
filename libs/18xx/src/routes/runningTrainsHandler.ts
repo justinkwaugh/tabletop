@@ -1,3 +1,4 @@
+import { trainsRustingAfterOperation } from '../trains/rustTrains.js'
 import {
     ActionSource,
     type HydratedAction,
@@ -39,7 +40,9 @@ export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrai
             : []
     }
     enter(): void {}
-    onAction(): string {
-        return this.nextState
+    onAction(action: HydratedRunTrains, context: MachineContext<State>): string {
+        return trainsRustingAfterOperation(context.gameState, action.companyId).length
+            ? 'RustingTrains'
+            : this.nextState
     }
 }

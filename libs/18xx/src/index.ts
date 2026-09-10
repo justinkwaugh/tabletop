@@ -73,3 +73,8 @@ export * from './operating/startOperatingRound.js'
 export * from './operating/finishOperatingTurn.js'
 export * from './stock/startStockRound.js'
 export * from './trains/trainRequirement.js'
+
+export * from './phases/phaseChange.js'
+export * from './phases/advancePhase.js'
+export * from './trains/discardTrain.js'
+export * from './trains/rustTrains.js'

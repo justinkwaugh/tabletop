@@ -1,3 +1,4 @@
+import type { PhaseState } from '../phases/phaseChange.js'
 import {
     isFinishOperatingTurn,
     finishOperatingTurnReason,
@@ -13,7 +14,7 @@ import {
 } from '@tabletop/common'
 import { isBuyTrain, type HydratedBuyTrain } from './buyTrain.js'
 import { TrainPurchase, type TrainRules } from './trainPurchase.js'
-type State = HydratedGameState & OperatingTurnState
+type State = HydratedGameState & OperatingTurnState & PhaseState
 export class BuyingTrainsHandler implements MachineStateHandler<
     HydratedBuyTrain | HydratedFinishOperatingTurn,
     State
@@ -47,7 +48,11 @@ export class BuyingTrainsHandler implements MachineStateHandler<
         )
             return []
         return [
-            ...(purchase.offers().some((offer) => offer.evaluation.details) ? ['BuyTrain'] : []),
+            ...(purchase.offers().some((offer) => offer.evaluation.details) ||
+            purchase.marketOffers().some((offer) => offer.details) ||
+            purchase.exchanges().length
+                ? ['BuyTrain']
+                : []),
             ...(!finishOperatingTurnReason(state, this.rules, companyId)
                 ? ['FinishOperatingTurn']
                 : [])
@@ -59,6 +64,10 @@ export class BuyingTrainsHandler implements MachineStateHandler<
         action: HydratedBuyTrain | HydratedFinishOperatingTurn,
         context: MachineContext<State>
     ): string {
-        return isFinishOperatingTurn(action) ? 'OperatingSet' : context.gameState.machineState
+        return isFinishOperatingTurn(action)
+            ? 'OperatingSet'
+            : context.gameState.phaseChange
+              ? 'AdvancingPhase'
+              : context.gameState.machineState
     }
 }

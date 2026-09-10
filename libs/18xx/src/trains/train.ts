@@ -26,8 +26,14 @@ export type TrainDefinition = Type.Static<typeof TrainDefinition>
 const Identity = { id: Id, definitionId: Id, hasRun: Type.Optional(Type.Boolean()) }
 export const Train = Type.Union([
     Type.Object({ ...Identity, status: Type.Literal('depot') }, { additionalProperties: false }),
+    Type.Object({ ...Identity, status: Type.Literal('market') }, { additionalProperties: false }),
     Type.Object(
-        { ...Identity, status: Type.Literal('owned'), owner: Owner },
+        {
+            ...Identity,
+            status: Type.Literal('owned'),
+            owner: Owner,
+            rustsAfterOperation: Type.Optional(Type.Literal(true))
+        },
         { additionalProperties: false }
     ),
     Type.Object({ ...Identity, status: Type.Literal('removed') }, { additionalProperties: false })
@@ -57,4 +63,17 @@ export function trainsOwnedBy(state: TrainState, owner: Owner): Train[] {
     return state.trainInventory.trains.filter(
         (train) => train.status === 'owned' && sameOwner(train.owner, owner)
     )
+}
+
+export function trainCanBeTraded(train: Train): boolean {
+    return train.status === 'owned' && !train.rustsAfterOperation
+}
+
+export function unownedTrain(train: Train, status: 'market' | 'removed'): Train {
+    return {
+        id: train.id,
+        definitionId: train.definitionId,
+        status,
+        ...(train.hasRun === undefined ? {} : { hasRun: train.hasRun })
+    }
 }

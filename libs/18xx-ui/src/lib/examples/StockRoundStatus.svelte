@@ -28,7 +28,14 @@
         </p>
         <ol class="steps" aria-label="Operating steps">
             {#each [['LayingTrack', 'Track'], ['PlacingStation', 'Stations'], ['RunningTrains', 'Run trains'], ['DistributingEarnings', 'Distribute earnings'], ['BuyingTrains', 'Buy trains']] as [step, label]}
-                <li aria-current={state.machineState === step ? 'step' : undefined}>{label}</li>
+                <li
+                    aria-current={state.machineState === step ||
+                    state.phaseChange?.continuation.machineState === step
+                        ? 'step'
+                        : undefined}
+                >
+                    {label}
+                </li>
             {/each}
         </ol>
         <ol aria-label="Operating order">

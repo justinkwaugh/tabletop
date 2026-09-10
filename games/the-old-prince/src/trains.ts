@@ -50,7 +50,7 @@ export const TheOldPrinceTrainDepot = new TrainDepot({
         { definitionId: 'D', count: 'unlimited' }
     ]
 })
-const Phases = ['2H', '3H', '4H', '5H', '6H', '2+', '3+', '4+', '7', 'D']
+export const TheOldPrincePhases = ['2H', '3H', '4H', '5H', '6H', '2+', '3+', '4+', '7', 'D']
 const Limits: Record<string, number> = {
     '2H': 4,
     '3H': 4,
@@ -65,6 +65,7 @@ const Limits: Record<string, number> = {
 }
 export const TheOldPrinceTrainRules: TrainRules = {
     depot: TheOldPrinceTrainDepot,
+    exchangePrice: () => undefined,
     requiresTrain: (state, companyId) =>
         companyId !== 'PEIR' &&
         hasStationRoute(
@@ -77,7 +78,12 @@ export const TheOldPrinceTrainRules: TrainRules = {
         return next ? [next] : []
     },
     phaseAfterPurchase(state, definitionId) {
-        return Phases[Math.max(Phases.indexOf(state.phaseId), Phases.indexOf(definitionId))]
+        return TheOldPrincePhases[
+            Math.max(
+                TheOldPrincePhases.indexOf(state.phaseId),
+                TheOldPrincePhases.indexOf(definitionId)
+            )
+        ]
     },
     trainLimit(state) {
         const limit = Limits[state.phaseId]

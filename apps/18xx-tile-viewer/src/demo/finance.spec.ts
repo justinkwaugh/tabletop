@@ -80,7 +80,10 @@ it.each([Top, Shikoku])(
             'DistributeEarnings',
             'StartOperatingRound',
             'FinishOperatingTurn',
-            'StartStockRound'
+            'StartStockRound',
+            'AdvancePhase',
+            'DiscardTrain',
+            'RustTrains'
         ])
         expect(() =>
             definition.runtime.hydrator.hydrateState({

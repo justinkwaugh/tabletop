@@ -397,8 +397,8 @@ controls are provisional; no mobile layout work is part of this slice.
 The Train purchases example enters BuyingTrains directly. The title's TrainRules
 supplies the depot and policies to the session. The session derives offers,
 company rosters, allowance usage and the current train limit from exposed gameState.
-Unavailable offers state the rule or implementation boundary; future phase changes
-are blocked until their complete effects exist.
+Unavailable offers state the rule or implementation boundary. Purchases that
+advance a phase use the phase-change and compulsory-discard flow below.
 
 Train selection is one manual local draft, with no automatic selection. It names
 an actual finite train or the next deterministic unlimited identity. Back clears
@@ -466,5 +466,29 @@ Undo across a turn boundary also restores automatic round and income changes.
 The Operating rounds fixture (version 16) starts at the first company's track
 step, with first-round private income already included and trains prepared for
 both majors. Subsequent private income is recorded by StartOperatingRound.
-The Routes fixture now continues into earnings and train purchasing. Phase changes,
-emergency funding, and game-ending obligations remain explicitly outside this slice.
+The Routes fixture now continues into earnings and train purchasing. Phase changes follow the interruption contract below; emergency funding and
+game-ending obligations remain in later slices.
+
+### Phase changes and compulsory train discards (slice 12)
+
+Phase changes keep the operating company and its turn open. PhaseChanges displays
+the current deciding company and controlling owner, excess count, and the saved
+continuation. Buy/finish controls are unavailable until every compulsory discard
+is resolved. The step strip continues to mark the interrupted operating step.
+Completed events show rusted and deferred train identities in phase history.
+
+Discard selection is manual session state; Back clears it, Undo clears it before
+committed Undo. History/updatingVisibleState hide the selection and beforeNewState
+clears it. Reload restores the pending company and continuation without restoring
+a draft. No automatic selection consumes an Undo. Confirming the final discard
+resumes the original company automatically without starting another player turn.
+
+Diesel exchanges reuse the manual train-purchase draft and confirmation, including
+its exchangeTrainId. Preview shows the trade-in, price, and resulting phase.
+Market trains appear separately from depot supply. TOP's retained 4+ trains are
+marked as awaiting a final operation and unavailable for trade. Their rusting
+is an automatic consequence of completing the next RunTrains action.
+
+Fixture version 18 adds Phase changes and Diesel arrival examples. These exercise
+phase/rusting decisions; phase-triggered private powers and game-ending effects
+are integrated in their planned later slices.

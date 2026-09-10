@@ -21,3 +21,5 @@ export * from './trains.js'
 export * from './routeRules.js'
 
 export * from './earningsRules.js'
+
+export * from './phaseRules.js'

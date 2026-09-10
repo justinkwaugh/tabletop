@@ -1,3 +1,4 @@
+import { preparePhaseChange, type PhaseState } from '../phases/phaseChange.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -15,7 +16,7 @@ import {
     TrainPurchaseDetails,
     type TrainRules
 } from './trainPurchase.js'
-import type { TrainPurchaseState } from './train.js'
+import { unownedTrain, type TrainPurchaseState } from './train.js'
 export const BuyTrain = Type.Object(
     {
         ...PlayerAction.properties,
@@ -40,6 +41,7 @@ export class HydratedBuyTrain extends HydratableAction<typeof BuyTrain> implemen
     declare companyId: string
     declare trainId: string
     declare definitionId: string
+    declare exchangeTrainId?: string
     declare expectedPrice: number
     declare metadata?: TrainPurchaseDetails
     readonly #rules: TrainRules
@@ -47,7 +49,7 @@ export class HydratedBuyTrain extends HydratableAction<typeof BuyTrain> implemen
         super(data instanceof HydratedBuyTrain ? data.dehydrate() : data, Validator)
         this.#rules = rules
     }
-    apply(state: HydratedGameState & TrainPurchaseState): void {
+    apply(state: HydratedGameState & TrainPurchaseState & PhaseState): void {
         const purchase = new TrainPurchase(state, this.#rules)
         assert(
             this.source === ActionSource.User &&
@@ -65,11 +67,20 @@ export class HydratedBuyTrain extends HydratableAction<typeof BuyTrain> implemen
                 amount: result.details.price
             }
         ])
+        if (this.exchangeTrainId)
+            state.trainInventory.trains = state.trainInventory.trains.map((train) =>
+                train.id === this.exchangeTrainId ? unownedTrain(train, 'market') : train
+            )
+        const toPhaseId = this.#rules.phaseAfterPurchase(state, this.definitionId)
         this.#rules.depot.purchase(state.trainInventory, this.trainId, this.definitionId, {
             kind: 'company',
             companyId: this.companyId
         })
         state.trainPurchaseStep!.purchasedTrainIds.push(this.trainId)
+        preparePhaseChange(state, this.trainId, this.definitionId, toPhaseId, {
+            machineState: state.machineState,
+            companyId: this.companyId
+        })
         this.metadata = result.details
     }
 }

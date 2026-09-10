@@ -157,7 +157,6 @@ A scheduled sequence of operating rounds with a count established by the title's
 **Operating Order**:
 The order in which companies take their turns in an operating round.
 
-
 **Revenue Center**:
 A city, town, or offboard location whose revenue can contribute to a train's run.
 _Avoid_: Stop as a general name for the map feature
@@ -169,6 +168,10 @@ Whether that visit counts toward distance or earns revenue depends on the rules.
 **Train**:
 An individually identified railway asset with a defined operating capability.
 Ownership, permission to run, and inclusion in a train limit are separate questions.
+
+**Rusting**:
+Permanent removal of a train from service when it becomes obsolete under the title’s rules.
+_Avoid_: Retirement for this process
 
 **Depot**:
 The supply of new trains available for purchase under the title's ordering and

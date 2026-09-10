@@ -77,3 +77,24 @@ it('rejects corrupt supply, duplicate identities, unknown owners and reused issu
         'Invalid unlimited train'
     )
 })
+
+it('keeps Market returns separate from new supply, including unlimited train identities', () => {
+    const inventory = depot.createInventory()
+    const train = depot.nextTrain(inventory, 'express')!
+    depot.purchase(inventory, train.id, 'express', { kind: 'company', companyId: 'A' })
+    const cursor = inventory.nextTrainNumber
+    inventory.trains = inventory.trains.map((entry) =>
+        entry.id === train.id
+            ? { id: entry.id, definitionId: entry.definitionId, status: 'market', hasRun: true }
+            : entry
+    )
+    depot.purchase(inventory, train.id, 'express', { kind: 'company', companyId: 'B' })
+    expect(inventory.nextTrainNumber).toBe(cursor)
+    expect(inventory.trains.find((entry) => entry.id === train.id)).toMatchObject({
+        status: 'owned',
+        hasRun: true,
+        owner: { kind: 'company', companyId: 'B' }
+    })
+    expect(depot.nextTrain(inventory, 'express')!.id).not.toBe(train.id)
+    depot.validateInventory(inventory, ['A', 'B'], [])
+})

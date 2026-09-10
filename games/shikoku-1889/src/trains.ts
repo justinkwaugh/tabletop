@@ -27,10 +27,16 @@ export const Shikoku1889TrainDepot = new TrainDepot({
         { definitionId: 'D', count: 'unlimited' }
     ]
 })
-const Phases = ['2', '3', '4', '5', '6', 'D']
+export const Shikoku1889Phases = ['2', '3', '4', '5', '6', 'D']
 const Limits: Record<string, number> = { '2': 4, '3': 4, '4': 3, '5': 2, '6': 2, D: 2 }
 export const Shikoku1889TrainRules: TrainRules = {
     depot: Shikoku1889TrainDepot,
+    exchangePrice: (state, _companyId, definitionId, train) =>
+        ['6', 'D'].includes(state.phaseId) &&
+        definitionId === 'D' &&
+        ['4', '5', '6'].includes(train.definitionId)
+            ? 800
+            : undefined,
     requiresTrain: (state, companyId) =>
         hasStationRoute(
             new RailwayMapState(Shikoku1889Map, Shikoku1889TileSet, state.tileInventory),
@@ -47,7 +53,12 @@ export const Shikoku1889TrainRules: TrainRules = {
         ]
     },
     phaseAfterPurchase(state, definitionId) {
-        return Phases[Math.max(Phases.indexOf(state.phaseId), Phases.indexOf(definitionId))]
+        return Shikoku1889Phases[
+            Math.max(
+                Shikoku1889Phases.indexOf(state.phaseId),
+                Shikoku1889Phases.indexOf(definitionId)
+            )
+        ]
     },
     trainLimit(state) {
         const limit = Limits[state.phaseId]

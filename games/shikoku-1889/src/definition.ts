@@ -1,3 +1,4 @@
+import { Shikoku1889PhaseRules } from './phaseRules.js'
 import { Shikoku1889EarningsRules } from './earningsRules.js'
 import { Shikoku1889RouteRules } from './routeRules.js'
 import { Shikoku1889TrainRules } from './trains.js'
@@ -47,6 +48,7 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
         stationRules: Shikoku1889StationRules,
         earningsRules: Shikoku1889EarningsRules,
         routeRules: Shikoku1889RouteRules,
+        phaseRules: Shikoku1889PhaseRules,
         trainRules: Shikoku1889TrainRules
     })
 }

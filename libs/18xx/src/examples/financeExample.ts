@@ -1,3 +1,27 @@
+import {
+    PhaseFields,
+    type PhaseEvent,
+    type PhaseChange,
+    type PhaseRules
+} from '../phases/phaseChange.js'
+import {
+    AdvancePhase,
+    HydratedAdvancePhase,
+    isAdvancePhase,
+    AdvancingPhaseHandler
+} from '../phases/advancePhase.js'
+import {
+    DiscardTrain,
+    HydratedDiscardTrain,
+    isDiscardTrain,
+    DiscardingTrainsHandler
+} from '../trains/discardTrain.js'
+import {
+    RustTrains,
+    HydratedRustTrains,
+    isRustTrains,
+    RustingTrainsHandler
+} from '../trains/rustTrains.js'
 import { settleCashPayments } from '../finance/cashPayments.js'
 import {
     EarningsFields,
@@ -129,6 +153,9 @@ const ExampleFields = Type.Object({
         Type.Literal('PlacingStation'),
         Type.Literal('StationsComplete'),
         Type.Literal('BuyingTrains'),
+        Type.Literal('AdvancingPhase'),
+        Type.Literal('DiscardingTrains'),
+        Type.Literal('RustingTrains'),
         Type.Literal('RunningTrains'),
         Type.Literal('DistributingEarnings')
     ]),
@@ -141,6 +168,7 @@ const ExampleFields = Type.Object({
     ...CompanyFields,
     ...MapFields,
     ...TrainFields,
+    ...PhaseFields,
     ...EarningsFields,
     ...RouteFields
 })
@@ -161,6 +189,8 @@ export class HydratedFinanceExampleState
     implements FinanceExampleState
 {
     declare earningsDistribution?: EarningsDetails
+    declare phaseEvents: PhaseEvent[]
+    declare phaseChange?: PhaseChange
     declare routeStep?: RouteStep
     declare trainInventory: TrainInventory
     declare trainPurchaseStep?: TrainPurchaseStep
@@ -179,6 +209,9 @@ export class HydratedFinanceExampleState
         | 'PlacingStation'
         | 'StationsComplete'
         | 'BuyingTrains'
+        | 'AdvancingPhase'
+        | 'DiscardingTrains'
+        | 'RustingTrains'
         | 'RunningTrains'
         | 'DistributingEarnings'
     declare operatingSet?: OperatingSet
@@ -260,9 +293,45 @@ export class HydratedFinanceExampleState
                 'Route result must match operation progress'
             )
         }
+        assert(
+            new Set(this.phaseEvents.map((event) => event.id)).size === this.phaseEvents.length,
+            'Duplicate phase occurrence'
+        )
+        if (this.phaseChange) {
+            const change = this.phaseChange
+            assert(
+                ['AdvancingPhase', 'DiscardingTrains'].includes(this.machineState),
+                'Pending phase change requires its decision state'
+            )
+            assert(
+                change.continuation.companyId === this.trainPurchaseStep?.companyId,
+                'Phase continuation must preserve the operating company'
+            )
+            assert(
+                change.discardCompanyIds.every((id) =>
+                    this.companies.some((company) => company.id === id)
+                ),
+                'Unknown company in discard order'
+            )
+            assert(
+                this.machineState === 'AdvancingPhase'
+                    ? this.phaseId === change.event.fromPhaseId &&
+                          !this.phaseEvents.some((event) => event.id === change.event.id)
+                    : this.phaseId === change.event.toPhaseId &&
+                          change.discardCompanyIds.length > 0 &&
+                          this.phaseEvents.some((event) => event.id === change.event.id),
+                'Phase effects must match pending decisions'
+            )
+        } else
+            assert(
+                !['AdvancingPhase', 'DiscardingTrains'].includes(this.machineState),
+                'Missing phase change'
+            )
         if (this.earningsDistribution) {
             assert(
-                this.machineState === 'BuyingTrains' &&
+                ['BuyingTrains', 'AdvancingPhase', 'DiscardingTrains'].includes(
+                    this.machineState
+                ) &&
                     this.earningsDistribution.companyId === this.routeStep?.result?.companyId &&
                     this.earningsDistribution.revenue === this.routeStep.result.revenue &&
                     this.trainPurchaseStep?.companyId === this.earningsDistribution.companyId,
@@ -329,6 +398,7 @@ class FinanceExampleInitializer extends BaseGameInitializer<
                 players,
                 activePlayerIds: [players[0].playerId],
                 example: 'finances',
+                phaseEvents: [],
                 machineState: 'StockRound',
                 stockRound: {
                     number: 2,
@@ -360,7 +430,9 @@ class FinanceExampleInitializer extends BaseGameInitializer<
             position === 'stations' ||
             position === 'trains' ||
             position === 'routes' ||
-            position === 'operations'
+            position === 'operations' ||
+            position === 'phases' ||
+            position === 'diesel'
         ) {
             const companyOrder = this.options.operatingRules.companyOrder(initialized)
             const companyId = companyOrder[0]
@@ -388,7 +460,7 @@ class FinanceExampleInitializer extends BaseGameInitializer<
                 initialized.stationStep = { companyId, placedStationIds: [], completed: false }
                 initialized.machineState = 'PlacingStation'
             }
-            if (position === 'trains') {
+            if (position === 'trains' || position === 'phases' || position === 'diesel') {
                 delete initialized.trackStep
                 initialized.trainPurchaseStep = { companyId, purchasedTrainIds: [] }
                 initialized.machineState = 'BuyingTrains'
@@ -419,6 +491,7 @@ export interface FinanceExampleOptions {
     earningsRules: EarningsRules
     routeRules: RouteRules
     trainRules: TrainRules
+    phaseRules: PhaseRules
     trackRules: TrackRules
 }
 export function createFinanceExampleRuntime(
@@ -431,6 +504,11 @@ export function createFinanceExampleRuntime(
             hydrateState: (state) =>
                 new HydratedFinanceExampleState(state, map, tileSet, options.trainRules.depot),
             hydrateAction: (action) => {
+                if (isAdvancePhase(action))
+                    return new HydratedAdvancePhase(action, options.phaseRules, options.trainRules)
+                if (isDiscardTrain(action))
+                    return new HydratedDiscardTrain(action, options.trainRules, options.phaseRules)
+                if (isRustTrains(action)) return new HydratedRustTrains(action)
                 if (isDistributeEarnings(action))
                     return new HydratedDistributeEarnings(action, options.earningsRules)
                 if (isStartOperatingRound(action))
@@ -482,9 +560,15 @@ export function createFinanceExampleRuntime(
             DistributeEarnings,
             StartOperatingRound,
             FinishOperatingTurn,
-            StartStockRound
+            StartStockRound,
+            AdvancePhase,
+            DiscardTrain,
+            RustTrains
         },
         stateHandlers: {
+            AdvancingPhase: new AdvancingPhaseHandler(),
+            DiscardingTrains: new DiscardingTrainsHandler(options.trainRules),
+            RustingTrains: new RustingTrainsHandler('DistributingEarnings'),
             StockRound: new StockRoundHandler(rules, 'StartingOperatingSet', companyRules),
             StartingOperatingSet: new StartOperatingSetHandler('OperatingSet'),
             OperatingSet: new StartOperatingTurnHandler(options.stationRules),

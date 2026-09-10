@@ -155,5 +155,45 @@ export function createTheOldPrinceCompanyExample(
             companyId: 'So'
         })
     }
+    if (position === 'phases' || position === 'diesel') {
+        state.phaseId = position === 'phases' ? '6H' : '7'
+        state.trainInventory = TheOldPrinceTrainDepot.createInventory()
+        const rosters: Record<string, string[]> =
+            position === 'phases'
+                ? { ML: ['6H'], So: ['4H'], PEIR: ['5H', '5H', '5H', '6H'] }
+                : { ML: ['4+'], So: ['4+'] }
+        for (const [companyId, ranks] of Object.entries(rosters))
+            for (const rank of ranks) {
+                const train = TheOldPrinceTrainDepot.nextTrain(state.trainInventory, rank)
+                assert(train, 'Phase example requires its specified train')
+                TheOldPrinceTrainDepot.purchase(state.trainInventory, train.id, rank, {
+                    kind: 'company',
+                    companyId
+                })
+            }
+        const next = position === 'phases' ? '2+' : 'D'
+        const ranks = TheOldPrinceTrainDepot.definition.supply.map((entry) => entry.definitionId)
+        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
+            train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf(next)
+                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
+                : train
+        )
+        const treasury = state.cash.find(
+            (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'ML'
+        )
+        assert(treasury, 'Phase example requires a treasury')
+        treasury.amount = 1400
+        if (position === 'diesel') {
+            const used = state.trainInventory.trains.find(
+                (train) =>
+                    train.status === 'owned' &&
+                    train.owner.kind === 'company' &&
+                    train.owner.companyId === 'So' &&
+                    train.definitionId === '4+'
+            )
+            assert(used, 'Diesel example requires a used 4+')
+            used.hasRun = true
+        }
+    }
     return state
 }

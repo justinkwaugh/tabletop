@@ -89,9 +89,15 @@ export class TrainDepot {
               )
     }
     purchase(inventory: TrainInventory, trainId: string, definitionId: string, owner: Owner): void {
-        const train = this.nextTrain(inventory, definitionId)
+        const train =
+            inventory.trains.find(
+                (train) =>
+                    train.id === trainId &&
+                    train.definitionId === definitionId &&
+                    train.status === 'market'
+            ) ?? this.nextTrain(inventory, definitionId)
         assert(train?.id === trainId, 'This depot train is no longer available')
-        const owned: Train = { id: train.id, definitionId, status: 'owned', owner: { ...owner } }
+        const owned: Train = { ...train, status: 'owned', owner: { ...owner } }
         const index = inventory.trains.findIndex((entry) => entry.id === trainId)
         if (index < 0) {
             inventory.trains.push(owned)

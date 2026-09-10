@@ -32,6 +32,9 @@
                 <option value="trains">Train purchases</option><option value="routes">Routes</option
                 >
                 <option value="operations">Operating rounds</option>
+                <option value="phases">Phase changes</option><option value="diesel"
+                    >Diesel arrival</option
+                >
             </select>
         </label>
     </header>

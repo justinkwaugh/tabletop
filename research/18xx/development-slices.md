@@ -682,12 +682,19 @@ and operator completion happen once even when a handler is re-entered.
 **Depends on:** 5, 9–10. **Milestone:** ordinary ORs through the UI for both games,
 within prepared scenarios that avoid unsupported special events and obligations.
 
-## 12. Advance phases, retire trains, and interrupt operations
+## 12. Advance phases, rust trains, and interrupt operations
+
+**Status:** implemented for both prepared titles. Purchases advance phases through
+recorded System Actions; excess-train decisions preserve and resume the operator.
+TOP final-operation rusting, 1889 Market returns and diesel exchanges, and
+history/reload/Undo are wired through the runtime and prototype controls.
+Phase-triggered private effects remain in slices 13–14 and endings in slice 19.
+See [design and evidence](phase-changes-slice-design.md).
 
 **Outcome:** a train purchase changes the rules immediately, may require another
 president to discard, and then resumes the interrupted decision correctly.
 
-**Shared work:** event occurrence history, phase effects, train retirement,
+**Shared work:** event occurrence history, phase effects, train rusting,
 pending obligations and saved continuation. Candidate `DiscardTrain` and automatic
 event Actions; explicit decision-owner UI and an explanation of what resumes.
 Use the existing engine's System Action lifecycle, not a second event engine.

@@ -145,5 +145,34 @@ export function createShikoku1889CompanyExample(
             companyId: 'AR'
         })
     }
+    if (position === 'phases' || position === 'diesel') {
+        state.phaseId = position === 'phases' ? '4' : '6'
+        state.trainInventory = Shikoku1889TrainDepot.createInventory()
+        const rosters: Record<string, string[]> =
+            position === 'phases'
+                ? { IR: ['3', '4'], AR: ['3', '4', '4'] }
+                : { IR: ['4', '5'], AR: ['5', '6'] }
+        for (const [companyId, ranks] of Object.entries(rosters))
+            for (const rank of ranks) {
+                const train = Shikoku1889TrainDepot.nextTrain(state.trainInventory, rank)
+                assert(train, 'Phase example requires its specified train')
+                Shikoku1889TrainDepot.purchase(state.trainInventory, train.id, rank, {
+                    kind: 'company',
+                    companyId
+                })
+            }
+        const next = position === 'phases' ? '5' : 'D'
+        const ranks = Shikoku1889TrainDepot.definition.supply.map((entry) => entry.definitionId)
+        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
+            train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf(next)
+                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
+                : train
+        )
+        const treasury = state.cash.find(
+            (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'IR'
+        )
+        assert(treasury, 'Phase example requires a treasury')
+        treasury.amount = 1400
+    }
     return state
 }
