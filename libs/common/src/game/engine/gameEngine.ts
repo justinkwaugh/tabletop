@@ -1,3 +1,8 @@
+import type { GameCreationOptions } from '../../util/gameSeeds.js'
+import {
+    validateStartingPositionAssignment,
+    type StartingPositionAssignment
+} from '../model/startingPositionAssignment.js'
 import { getGameVisibility } from '../visibility/gameVisibility.js'
 import { deriveGameSeeds, generateMasterSeed, normalizeMasterSeed } from '../../util/gameSeeds.js'
 import jsonpatch from 'fast-json-patch'
@@ -36,6 +41,10 @@ export interface CanonicalActionCascade<T extends GameState = GameState> {
 
 export type ActionCascadeResult<T extends GameState = GameState> = ActionResult<T> & {
     actionCascade: CanonicalActionCascade<T>
+}
+
+export interface GameStartOptions extends GameCreationOptions {
+    startingPositions?: StartingPositionAssignment
 }
 
 export interface ActionAvailabilityOptions {
@@ -100,9 +109,26 @@ export class GameEngine<
         }
     }
 
-    startGame(game: Game, masterSeed?: string): { startedGame: Game; initialState: T } {
+    startGame(
+        game: Game,
+        options: GameStartOptions | string = {}
+    ): { startedGame: Game; initialState: T } {
+        const { masterSeed, startingPositions: assignment } =
+            typeof options === 'string' ? { masterSeed: options } : options
         if (game.startedAt !== null && game.startedAt !== undefined) {
             throw Error('Game is already started')
+        }
+
+        const initializer = this.runtime.initializer
+        if (assignment !== undefined) {
+            assert(
+                initializer.supportsStartingPositions === true,
+                'This initializer does not support assigned starting positions'
+            )
+            validateStartingPositionAssignment(
+                game.players.map((player) => player.id),
+                assignment
+            )
         }
 
         const startedGame = structuredClone(game)
@@ -113,9 +139,11 @@ export class GameEngine<
 
         const uninitializedState = this.generateUninitializedState(game, masterSeed)
         startedGame.seed = uninitializedState.prng.seed
-        const initialState = this.runtime.initializer.initializeGameState(
-            { ...game, seed: startedGame.seed },
-            uninitializedState
+        const seededGame = { ...game, seed: startedGame.seed }
+        const initialState = initializer.initializeGameState(
+            seededGame,
+            uninitializedState,
+            assignment
         )
 
         const machineContext = new MachineContext({

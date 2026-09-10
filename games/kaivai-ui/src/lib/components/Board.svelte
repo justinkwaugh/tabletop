@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+    import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import board from '$lib/images/board.png'
     import Cell from './Cell.svelte'
     import buildImg from '$lib/images/build.png'
@@ -43,6 +43,10 @@ import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     }
 
     let gameSession = getGameSession() as KaivaiGameSession
+
+    function attachBoard(node: SVGGraphicsElement) {
+        return gameSession.boardAnimator.attachBoard(node)
+    }
 
     const grid = new HexGrid({
         hexDefinition: KaivaiHexDefinition
@@ -92,6 +96,7 @@ import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
 
     async function chooseAction(action: ActionType) {
         if (
+            !gameSession.busy &&
             gameSession.isMyTurn &&
             gameSession.validActionTypes.includes(action) &&
             (!gameSession.chosenAction || action === ActionType.Pass)
@@ -310,7 +315,7 @@ import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
                         <feOffset dx="3" dy="9"></feOffset>
                     </filter>
                 </defs>
-                <g transform="translate(8,1) scale(1,.980)">
+                <g transform="translate(8,1) scale(1,.980)" use:attachBoard>
                     {@render actionDisk(ActionType.Move, 5, 150)}
                     {@render actionDisk(ActionType.Build, 85, 5)}
                     {@render actionDisk(ActionType.Increase, 250, 5)}
@@ -328,20 +333,31 @@ import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
                     {#each grid as hex (coordinatesToNumber(hex.coords))}
                         <Cell coords={hex.coords} {origin} />
                     {/each}
-                    {#each outlineBorders as border (`${border.center.x}-${border.center.y}-${border.index}`)}
-                        <line
-                            class="z-50"
-                            x1={origin.x + border.center.x + borders[border.index].x1}
-                            y1={origin.y + border.center.y + borders[border.index].y1}
-                            x2={origin.x + border.center.x + borders[border.index].x2}
-                            y2={origin.y + border.center.y + borders[border.index].y2}
-                            fill="none"
-                            stroke="white"
-                            stroke-width="6"
-                            opacity="1"
-                            stroke-linecap="round"
-                        ></line>
-                    {/each}
+                    <g data-piece-layer>
+                        {#each grid as hex (coordinatesToNumber(hex.coords))}
+                            <Cell coords={hex.coords} {origin} layer="pieces" />
+                        {/each}
+                    </g>
+                    <g data-island-outline pointer-events="none">
+                        {#each outlineBorders as border (`${border.center.x}-${border.center.y}-${border.index}`)}
+                            <line
+                                x1={origin.x + border.center.x + borders[border.index].x1}
+                                y1={origin.y + border.center.y + borders[border.index].y1}
+                                x2={origin.x + border.center.x + borders[border.index].x2}
+                                y2={origin.y + border.center.y + borders[border.index].y2}
+                                fill="none"
+                                stroke="white"
+                                stroke-width="6"
+                                opacity="1"
+                                stroke-linecap="round"
+                            ></line>
+                        {/each}
+                    </g>
+                    <g data-raised-piece-layer>
+                        {#each gameSession.boardAnimator.raisedCoordinates as coords (coordinatesToNumber(coords))}
+                            <Cell {coords} {origin} layer="raised" />
+                        {/each}
+                    </g>
                 </g>
             </svg>
         </div>

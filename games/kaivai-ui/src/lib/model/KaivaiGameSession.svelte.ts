@@ -17,8 +17,9 @@ import redHutCb from '$lib/images/redhut-cb.png'
 import redHut2Cb from '$lib/images/redhut2-cb.png'
 import {
     ActionType,
+    MachineState,
     HutType,
-    KaivaiGameState,
+    KaivaiProjectedState,
     PlaceBid,
     Build,
     HydratedBuild,
@@ -41,21 +42,124 @@ import {
     Sacrifice
 } from '@tabletop/kaivai'
 import {
+    assertExists,
     coordinatesToNumber,
     GameAction,
     Color,
     sameCoordinates,
     type AxialCoordinates
 } from '@tabletop/common'
-import { SvelteSet } from 'svelte/reactivity'
+import { BoardAnimator } from '../animations/boardAnimator.svelte.js'
+import {
+    hasManualKaivaiSelection,
+    popKaivaiSelection,
+    setKaivaiSelection,
+    type KaivaiSelection,
+    type KaivaiSelectionValues
+} from './stagedSelection.js'
 
-export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaivaiGameState> {
-    chosenAction: string | undefined = $state(undefined)
-    chosenBoat: string | undefined = $state(undefined)
-    chosenHutType: HutType | undefined = $state(undefined)
-    chosenBoatLocation: AxialCoordinates | undefined = $state(undefined)
-    chosenDeliveries: Delivery[] = $state([])
-    currentDeliveryLocation: AxialCoordinates | undefined = $state(undefined)
+export class KaivaiGameSession extends GameSession<KaivaiProjectedState, HydratedKaivaiGameState> {
+    readonly boardAnimator = new BoardAnimator(this)
+    private selection: KaivaiSelection = $state({})
+    readonly hasManualSelection = $derived(hasManualKaivaiSelection(this.selection))
+    readonly canUndo = $derived(
+        this.isPlayable &&
+            !this.isViewingHistory &&
+            (this.hasManualSelection || Boolean(this.undoableAction))
+    )
+    private automaticAction: string | undefined = $derived.by(() => {
+        if (!this.isPlayable || this.isViewingHistory || !this.isMyTurn) return undefined
+        if (this.validActionTypes.length === 1) {
+            const action = this.validActionTypes[0]
+            return action === ActionType.Increase ? undefined : action
+        }
+        let action: ActionType | undefined
+        switch (this.gameState.machineState) {
+            case MachineState.Building:
+                action = ActionType.Build
+                break
+            case MachineState.Moving:
+                action = ActionType.Move
+                break
+            case MachineState.Delivering:
+                action = ActionType.Deliver
+                break
+            case MachineState.Fishing:
+                action = ActionType.Fish
+                break
+        }
+        return action && this.validActionTypes.includes(action) ? action : undefined
+    })
+
+    get chosenAction(): string | undefined {
+        return this.selection.action?.value ?? this.automaticAction
+    }
+
+    set chosenAction(action: string | undefined) {
+        this.setSelection('action', action)
+    }
+
+    get chosenActionSource(): 'manual' | 'auto' | undefined {
+        if (!this.chosenAction) return undefined
+        return this.selection.action?.source ?? 'auto'
+    }
+
+    get chosenBoat(): string | undefined {
+        return this.selection.boat?.value
+    }
+    set chosenBoat(boat: string | undefined) {
+        this.setSelection('boat', boat)
+    }
+
+    get chosenHutType(): HutType | undefined {
+        return this.selection.hut?.value
+    }
+    set chosenHutType(hut: HutType | undefined) {
+        this.setSelection('hut', hut)
+    }
+
+    get chosenBoatLocation(): AxialCoordinates | undefined {
+        return this.selection.destination?.value
+    }
+
+    set chosenBoatLocation(coords: AxialCoordinates | undefined) {
+        if (coords === this.chosenBoatLocation || sameCoordinates(coords, this.chosenBoatLocation))
+            return
+        this.setSelection('destination', coords)
+    }
+
+    get chosenDeliveries(): Delivery[] {
+        return this.selection.deliveries?.value ?? []
+    }
+    set chosenDeliveries(deliveries: Delivery[]) {
+        this.setSelection('deliveries', deliveries.length ? deliveries : undefined)
+    }
+
+    get currentDeliveryLocation(): AxialCoordinates | undefined {
+        return this.selection.deliveryLocation?.value
+    }
+    set currentDeliveryLocation(coords: AxialCoordinates | undefined) {
+        this.setSelection('deliveryLocation', coords)
+    }
+
+    private setSelection<TStage extends keyof KaivaiSelectionValues>(
+        stage: TStage,
+        value: KaivaiSelectionValues[TStage] | undefined
+    ) {
+        this.applySelection(setKaivaiSelection(this.selection, stage, value))
+    }
+
+    private applySelection(selection: KaivaiSelection) {
+        const from = this.chosenBoatLocation
+        const to = selection.destination?.value
+        if (from === to || sameCoordinates(from, to)) {
+            this.selection = selection
+        } else {
+            void this.boardAnimator.preview(() => {
+                this.selection = selection
+            })
+        }
+    }
 
     // Not really needed now
     lastAction = $derived(this.currentAction)
@@ -242,7 +346,17 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
         action?: GameAction
         animationContext: AnimationContext
     }) {
+        if (from) await this.boardAnimator.animate(from, to, animationContext)
+    }
+
+    override beforeNewState() {
+        this.boardAnimator.beforeStateSwap()
         this.resetAction()
+    }
+
+    override dispose() {
+        this.boardAnimator.dispose()
+        super.dispose()
     }
 
     getPlayerSvgColor(playerId?: string) {
@@ -280,36 +394,17 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
         }
     }
 
-    cancel() {
-        if (this.chosenHutType) {
-            this.chosenHutType = undefined
-        } else if (this.currentDeliveryLocation) {
-            this.currentDeliveryLocation = undefined
-        } else if (this.chosenDeliveries.length > 0) {
-            this.chosenDeliveries = []
-            this.chosenBoatLocation = undefined
-        } else if (this.chosenBoatLocation) {
-            this.chosenBoatLocation = undefined
-        } else if (this.chosenBoat) {
-            this.chosenBoat = undefined
-        } else {
-            this.chosenAction = undefined
+    override async undo() {
+        if (!this.canUndo || this.busy) return
+        if (this.hasManualSelection) {
+            this.applySelection(popKaivaiSelection(this.selection))
+            return
         }
+        await super.undo()
     }
 
     resetAction() {
-        this.chosenAction = undefined
-        this.chosenHutType = undefined
-
-        this.chosenDeliveries = []
-        this.currentDeliveryLocation = undefined
-
-        // These break the boat animations if not delayed.
-        // Not sure if svelte bug or not.
-        setTimeout(() => {
-            this.chosenBoat = undefined
-            this.chosenBoatLocation = undefined
-        })
+        this.selection = {}
     }
 
     setDeliveryLocation(coords: AxialCoordinates) {
@@ -326,9 +421,11 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
             sameCoordinates(d.coords, coords)
         )
         if (existingIndex !== -1) {
-            this.chosenDeliveries[existingIndex].amount = amount
+            this.chosenDeliveries = this.chosenDeliveries.map((delivery, index) =>
+                index === existingIndex ? { ...delivery, amount } : delivery
+            )
         } else {
-            this.chosenDeliveries.push({ coords, amount })
+            this.chosenDeliveries = [...this.chosenDeliveries, { coords, amount }]
         }
 
         this.currentDeliveryLocation = undefined
@@ -369,6 +466,18 @@ export class KaivaiGameSession extends GameSession<KaivaiGameState, HydratedKaiv
             boatCoords: $state.snapshot(boatCoords),
             revealsInfo: !this.game.config.lucklessFishing
         })
+    }
+
+    async fishAt(boatCoords: AxialCoordinates) {
+        const boatId = this.chosenBoat
+        assertExists(boatId, 'Expected a selected boat for fishing')
+        await this.applyAction(this.createFishAction({ boatId, boatCoords }))
+    }
+
+    async moveBoatTo(boatCoords: AxialCoordinates) {
+        const boatId = this.chosenBoat
+        assertExists(boatId, 'Expected a selected boat to move')
+        await this.applyAction(this.createMoveAction({ boatId, boatCoords }))
     }
 
     createDeliverAction({

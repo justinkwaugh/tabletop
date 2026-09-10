@@ -1,7 +1,9 @@
 import * as Type from 'typebox'
+import { TournamentGameReference } from '../../site/tournamentGameReference.js'
 import { DateType } from '../../util/typebox.js'
 import { Player } from './player.js'
-import { GameResult, GameState } from './gameState.js'
+import { GameState } from './gameState.js'
+import { GameResult } from './gameResult.js'
 import { GameConfig } from './gameConfig.js'
 import { Compile } from 'typebox/compile'
 import * as Value from 'typebox/value'
@@ -60,6 +62,7 @@ export const Game = Type.Object({
     deleted: Type.Boolean(),
     deletedAt: Type.Optional(DateType()),
     ownerId: Type.String(),
+    tournament: Type.Optional(TournamentGameReference),
     name: Type.String(),
     players: Type.Array(Player),
     config: GameConfig,

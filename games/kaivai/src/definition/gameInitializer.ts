@@ -8,13 +8,18 @@ import {
     HydratedRoundManager,
     HydratedPhaseManager,
     Prng,
+    type StartingPositionAssignment,
     type UninitializedGameState,
     HexOrientation,
     hexRingPattern,
     distanceAxial
 } from '@tabletop/common'
 import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
-import { HydratedKaivaiGameState, KaivaiGameState } from '../model/gameState.js'
+import {
+    HydratedKaivaiGameState,
+    KaivaiGameState,
+    type KaivaiProjectedState
+} from '../model/gameState.js'
 import { KaivaiPlayerState } from '../model/playerState.js'
 
 import { MachineState } from './states.js'
@@ -25,10 +30,16 @@ import { Island } from '../components/island.js'
 import { KaivaiGameConfig, Ruleset } from './gameConfig.js'
 
 export class KaivaiGameInitializer
-    extends BaseGameInitializer<KaivaiGameState, HydratedKaivaiGameState>
-    implements GameInitializer<KaivaiGameState, HydratedKaivaiGameState>
+    extends BaseGameInitializer<KaivaiProjectedState, HydratedKaivaiGameState>
+    implements GameInitializer<KaivaiProjectedState, HydratedKaivaiGameState>
 {
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedKaivaiGameState {
+    readonly supportsStartingPositions = true
+
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState,
+        assignment?: StartingPositionAssignment
+    ): HydratedKaivaiGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng)
         const numPlayers = game.players.length
@@ -38,13 +49,14 @@ export class KaivaiGameInitializer
         const kaivaiState: KaivaiGameState = Object.assign(state, {
             players: players,
             machineState: MachineState.Bidding,
-            turnManager: HydratedTurnManager.generate(players, prng.random),
+            turnManager: HydratedTurnManager.generate(players, prng.random, assignment),
             rounds: HydratedRoundManager.generate(),
             phases: HydratedPhaseManager.generate(),
             board,
             influence: {},
             bidders: [],
             bids: {},
+            scoringBids: [],
             cultTiles: game.config.ruleset === Ruleset.FirstEdition ? 10 : 8,
             passedPlayers: [],
             hutsScored: false,
