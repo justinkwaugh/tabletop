@@ -28,3 +28,5 @@ export { default as StockMarket } from './stock/StockMarket.svelte'
 export * from './maps/stationPresentation.js'
 export { default as MapViewer } from './maps/MapViewer.svelte'
 export { default as FinanceMap } from './examples/FinanceMap.svelte'
+
+export { default as TrainBuying } from './examples/TrainBuying.svelte'

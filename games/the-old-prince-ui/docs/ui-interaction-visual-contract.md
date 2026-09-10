@@ -58,3 +58,9 @@ Finish track continues into station placement under the shared station-selection
 preview, access, Back/Undo and history contract. Finish stations currently ends
 the implemented operating steps. The Station placement example supplies connected
 track and available stations.
+
+
+The Train purchases example follows the shared depot-selection, confirmation,
+Back/Undo and history contract. It starts directly in same-phase train buying,
+with a prepared owned train. Existing operating examples still stop before the
+route and dividend steps; phase changes and emergency financing remain later work.

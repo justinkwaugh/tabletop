@@ -1,3 +1,4 @@
+import { Shikoku1889TrainRules } from '@tabletop/shikoku-1889'
 import { Shikoku1889StationRules } from '@tabletop/shikoku-1889'
 import { Shikoku1889MapView } from './mapView.js'
 import { createFinanceExampleSessionClass } from '@tabletop/18xx-ui'
@@ -23,7 +24,8 @@ export const UiRuntime: GameUIRuntime<GameState, HydratedGameState> = {
         Shikoku1889CompanyRules,
         Shikoku1889MapView,
         Shikoku1889TrackRules,
-        Shikoku1889StationRules
+        Shikoku1889StationRules,
+        Shikoku1889TrainRules
     ),
     colorizer: new DefaultColorizer()
 }

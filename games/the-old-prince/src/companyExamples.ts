@@ -1,9 +1,11 @@
+import { TheOldPrinceTrainDepot } from './trains.js'
 import { TheOldPrinceTileSet } from './tiles.js'
 import { assert, type PlayerState } from '@tabletop/common'
 import {
     createOrdinaryShareCertificates,
     getCompany,
     type CompanyState,
+    type TrainState,
     type MapStateData,
     type FinanceExamplePosition
 } from '@tabletop/18xx'
@@ -14,9 +16,10 @@ import { TheOldPrinceMap } from './map.js'
 export function createTheOldPrinceCompanyExample(
     players: readonly PlayerState[],
     position: FinanceExamplePosition
-): CompanyState & MapStateData {
-    const state: CompanyState & MapStateData = {
+): CompanyState & MapStateData & TrainState {
+    const state: CompanyState & MapStateData & TrainState = {
         ...createTheOldPrinceFinanceExample(players),
+        trainInventory: TheOldPrinceTrainDepot.createInventory(),
         phaseId: '3H',
         tranches: [
             {
@@ -118,6 +121,15 @@ export function createTheOldPrinceCompanyExample(
             { locationId: 'K17', definitionId: '18xx:8', rotation: 4 },
             { locationId: 'K19', definitionId: '18xx:6', rotation: 1 }
         ])
+    }
+    if (position === 'trains') {
+        state.phaseId = '2H'
+        const train = TheOldPrinceTrainDepot.nextTrain(state.trainInventory, '2H')
+        assert(train, 'Train example requires a starting train')
+        TheOldPrinceTrainDepot.purchase(state.trainInventory, train.id, train.definitionId, {
+            kind: 'company',
+            companyId: 'ML'
+        })
     }
     return state
 }

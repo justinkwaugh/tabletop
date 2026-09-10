@@ -29,6 +29,7 @@
                 <option value="flotation">Flotation</option>
                 <option value="construction">Track construction</option>
                 <option value="stations">Station placement</option>
+                <option value="trains">Train purchases</option>
             </select>
         </label>
     </header>

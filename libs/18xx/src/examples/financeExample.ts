@@ -1,4 +1,14 @@
 import {
+    TrainFields,
+    type TrainInventory,
+    type TrainPurchaseStep,
+    type TrainState
+} from '../trains/train.js'
+import { BuyTrain, HydratedBuyTrain, isBuyTrain } from '../trains/buyTrain.js'
+import { BuyingTrainsHandler } from '../trains/buyingTrainsHandler.js'
+import type { TrainRules } from '../trains/trainPurchase.js'
+import type { TrainDepot } from '../trains/trainDepot.js'
+import {
     StationStep,
     type StationRules,
     StationPlacement,
@@ -85,7 +95,8 @@ const ExampleFields = Type.Object({
         Type.Literal('OperatingSet'),
         Type.Literal('LayingTrack'),
         Type.Literal('PlacingStation'),
-        Type.Literal('StationsComplete')
+        Type.Literal('StationsComplete'),
+        Type.Literal('BuyingTrains')
     ]),
     stockRound: StockRound,
     operatingSet: Type.Optional(OperatingSet),
@@ -94,7 +105,8 @@ const ExampleFields = Type.Object({
     stockMarket: StockMarket,
     ...FinanceFields,
     ...CompanyFields,
-    ...MapFields
+    ...MapFields,
+    ...TrainFields
 })
 export const FinanceExampleState: Type.TObject<
     Omit<typeof GameState.properties, 'machineState'> & typeof ExampleFields.properties
@@ -112,6 +124,8 @@ export class HydratedFinanceExampleState
     extends HydratableGameState<typeof FinanceExampleState, PlayerState>
     implements FinanceExampleState
 {
+    declare trainInventory: TrainInventory
+    declare trainPurchaseStep?: TrainPurchaseStep
     declare tileInventory: TileInventory
     declare phaseId: string
     declare tranches: CompanyState['tranches']
@@ -126,6 +140,7 @@ export class HydratedFinanceExampleState
         | 'LayingTrack'
         | 'PlacingStation'
         | 'StationsComplete'
+        | 'BuyingTrains'
     declare operatingSet?: OperatingSet
     declare stationStep?: StationStep
     declare trackStep?: TrackStep
@@ -136,7 +151,7 @@ export class HydratedFinanceExampleState
     declare certificatePools: FinancialState['certificatePools']
     declare cash: FinancialState['cash']
     declare certificates: FinancialState['certificates']
-    constructor(data: FinanceExampleState, map: RailwayMap, tileSet: TileSet) {
+    constructor(data: FinanceExampleState, map: RailwayMap, tileSet: TileSet, depot: TrainDepot) {
         super(
             data instanceof HydratedFinanceExampleState ? data.dehydrate() : data,
             FinanceExampleValidator
@@ -183,6 +198,18 @@ export class HydratedFinanceExampleState
             )
         }
         new RailwayMapState(map, tileSet, this.tileInventory).validateStations(this)
+        depot.validateInventory(
+            this.trainInventory,
+            this.companies.map((company) => company.id),
+            this.players.map((player) => player.playerId)
+        )
+        if (this.machineState === 'BuyingTrains') {
+            assert(
+                this.trainPurchaseStep &&
+                    this.operatingSet?.companyOrder.includes(this.trainPurchaseStep.companyId),
+                'Train purchases require an operating company'
+            )
+        }
         validateStations(
             this,
             this.companies.map((company) => company.id)
@@ -203,7 +230,7 @@ const ExampleColors = [Color.Blue, Color.Red, Color.Green]
 type CreateFinances = (
     players: readonly PlayerState[],
     position: FinanceExamplePosition
-) => CompanyState & MapStateData
+) => CompanyState & MapStateData & TrainState
 class FinanceExampleInitializer extends BaseGameInitializer<
     FinanceExampleState,
     HydratedFinanceExampleState
@@ -217,6 +244,7 @@ class FinanceExampleInitializer extends BaseGameInitializer<
             | 'tileSet'
             | 'operatingRules'
             | 'stationRules'
+            | 'trainRules'
         >
     ) {
         super()
@@ -258,9 +286,10 @@ class FinanceExampleInitializer extends BaseGameInitializer<
                 ...this.options.createFinances(players, position)
             },
             this.options.map,
-            this.options.tileSet
+            this.options.tileSet,
+            this.options.trainRules.depot
         )
-        if (position === 'construction' || position === 'stations') {
+        if (position === 'construction' || position === 'stations' || position === 'trains') {
             const companyOrder = this.options.operatingRules.companyOrder(initialized)
             const companyId = companyOrder[0]
             const owner = controllingOwner(initialized, companyId)
@@ -284,6 +313,11 @@ class FinanceExampleInitializer extends BaseGameInitializer<
                 initialized.stationStep = { companyId, placedStationIds: [], completed: false }
                 initialized.machineState = 'PlacingStation'
             }
+            if (position === 'trains') {
+                delete initialized.trackStep
+                initialized.trainPurchaseStep = { companyId, purchasedTrainIds: [] }
+                initialized.machineState = 'BuyingTrains'
+            }
             initialized.activePlayerIds = [owner.playerId]
             initialized.turnManager.series = [{ type: 'turn', playerId: owner.playerId, start: 0 }]
         }
@@ -299,6 +333,7 @@ export interface FinanceExampleOptions {
     map: RailwayMap
     tileSet: TileSet
     stationRules: StationRules
+    trainRules: TrainRules
     trackRules: TrackRules
 }
 export function createFinanceExampleRuntime(
@@ -308,8 +343,10 @@ export function createFinanceExampleRuntime(
     return {
         initializer: new FinanceExampleInitializer(options),
         hydrator: {
-            hydrateState: (state) => new HydratedFinanceExampleState(state, map, tileSet),
+            hydrateState: (state) =>
+                new HydratedFinanceExampleState(state, map, tileSet, options.trainRules.depot),
             hydrateAction: (action) => {
+                if (isBuyTrain(action)) return new HydratedBuyTrain(action, options.trainRules)
                 if (isPlaceStation(action))
                     return new HydratedPlaceStation(action, options.stationRules)
                 if (isFinishStations(action)) return new HydratedFinishStations(action)
@@ -346,7 +383,8 @@ export function createFinanceExampleRuntime(
             StartOperatingTurn,
             PlaceStation,
             FinishStations,
-            PlaceHomeStations
+            PlaceHomeStations,
+            BuyTrain
         },
         stateHandlers: {
             StockRound: new StockRoundHandler(rules, 'StartingOperatingSet', companyRules),
@@ -354,7 +392,8 @@ export function createFinanceExampleRuntime(
             OperatingSet: new StartOperatingTurnHandler(options.stationRules),
             LayingTrack: new LayingTrackHandler(options.trackRules, 'PlacingStation'),
             PlacingStation: new PlacingStationHandler(options.stationRules, 'StationsComplete'),
-            StationsComplete: new TerminalStateHandler()
+            StationsComplete: new TerminalStateHandler(),
+            BuyingTrains: new BuyingTrainsHandler(options.trainRules)
         }
     }
 }

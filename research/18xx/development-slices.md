@@ -598,6 +598,10 @@ map and ensure graph queries see the new station owner after replay/undo.
 
 ## 9. Buy a train from the depot
 
+Implemented for same-phase depot purchases in prepared TOP and 1889 positions.
+Normal operating progression waits for routes and dividends; phase-triggering
+purchases remain blocked until slice 12. See [design and evidence](train-purchase-slice-design.md).
+
 **Outcome:** purchase an available train with corporation cash, view it in the
 roster, and reproduce the transaction through history.
 

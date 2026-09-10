@@ -5,6 +5,7 @@
     import {
         FinanceInspector,
         FinanceMap,
+        TrainBuying,
         StockTrading,
         StockMarket,
         requireFinanceExampleSession
@@ -15,6 +16,7 @@
     const state = $derived(requireFinanceExampleState(gameSession.gameState))
 </script>
 
+<TrainBuying {session} />
 <FinanceMap {session} />
 <StockTrading {session} />
 <StockMarket market={state.stockMarket} companies={state.companies} />

@@ -1,3 +1,4 @@
+import { Shikoku1889TrainDepot } from './trains.js'
 import { Shikoku1889StationCounts } from './stationRules.js'
 import { Shikoku1889TileSet } from './tiles.js'
 import { assert, type PlayerState } from '@tabletop/common'
@@ -6,6 +7,7 @@ import {
     applyStationPlacement,
     getCompany,
     type CompanyState,
+    type TrainState,
     type MapStateData,
     type FinanceExamplePosition
 } from '@tabletop/18xx'
@@ -15,9 +17,10 @@ import { Shikoku1889Map } from './map.js'
 export function createShikoku1889CompanyExample(
     players: readonly PlayerState[],
     position: FinanceExamplePosition
-): CompanyState & MapStateData {
-    const state: CompanyState & MapStateData = {
+): CompanyState & MapStateData & TrainState {
+    const state: CompanyState & MapStateData & TrainState = {
         ...createShikoku1889FinanceExample(players),
+        trainInventory: Shikoku1889TrainDepot.createInventory(),
         phaseId: '2',
         tranches: [],
         ownershipLimitExemptions: [],
@@ -109,6 +112,15 @@ export function createShikoku1889CompanyExample(
             { locationId: 'F3', definitionId: '18xx:57', rotation: 2 },
             { locationId: 'G4', definitionId: '18xx:6', rotation: 0 }
         ])
+    }
+    if (position === 'trains') {
+        state.phaseId = '2'
+        const train = Shikoku1889TrainDepot.nextTrain(state.trainInventory, '2')
+        assert(train, 'Train example requires a starting train')
+        Shikoku1889TrainDepot.purchase(state.trainInventory, train.id, train.definitionId, {
+            kind: 'company',
+            companyId: 'IR'
+        })
     }
     return state
 }

@@ -286,7 +286,7 @@ turn finishes, round completion, market movements, and operating-set start.
 Undo across an ordinary turn finish returns control to the previous player. Undo
 after completion reverses the final pass and both system actions together. No new
 UI effects initiate actions. Reload restores the same stage and facts. Fixture
-version 12 preserves previous example versions. Desktop checks cover these flows;
+version 13 preserves previous example versions. Desktop checks cover these flows;
 mobile refinement is deferred because this finance UI will be replaced.
 
 Saved example selection requires successful canonical loading, not just a matching
@@ -393,5 +393,31 @@ Undo and history recompute from their corresponding displayed stations. Access
 paths are hidden during tile previews and visible-state updates. Viewport and
 style changes do not commit gameplay or consume staged choices.
 
-The Station placement example is prepared and uses fixture version 12. Desktop
+The Station placement example is prepared and uses fixture version 13. Desktop
 controls are provisional; no mobile layout work is part of this slice.
+
+
+### Depot train purchases
+
+The Train purchases example enters BuyingTrains directly. The title's TrainRules
+supplies the depot and policies to the session. The session derives offers,
+company rosters, allowance usage and the current train limit from exposed gameState.
+Unavailable offers state the rule or implementation boundary; future phase changes
+are blocked until their complete effects exist.
+
+Train selection is one manual local draft, with no automatic selection. It names
+an actual finite train or the next deterministic unlimited identity. Back clears
+that choice. Undo clears a manual draft before undoing a committed purchase.
+History and updatingVisibleState hide the draft; beforeNewState clears it. A stale
+choice cannot confirm without passing the same evaluator as the BuyTrain Action.
+The component calls session methods; only explicit confirmation buys the train.
+
+The preview highlights a selected depot rank and states its price. Money, supply,
+rosters and purchase history remain canonical until confirmation. History restores
+those values, and returning Live does not restore a cleared draft. Map inspection,
+styles and viewport controls remain independent. No map overlay represents an
+uncommitted train purchase. Existing station/track examples do not skip the missing
+route and dividend steps to enter BuyingTrains. The prototype has no finish control
+that could bypass compulsory train funding.
+
+Fixture version 13 preserves old saves. Train purchase controls remain provisional.

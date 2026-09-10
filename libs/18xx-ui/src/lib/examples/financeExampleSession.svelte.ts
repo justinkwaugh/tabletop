@@ -1,4 +1,12 @@
 import {
+    BuyTrain,
+    TrainPurchase,
+    isBuyTrain,
+    trainsOwnedBy,
+    type TrainRules,
+    type TrainPurchaseRequest
+} from '@tabletop/18xx'
+import {
     StationPlacement,
     PlaceStation,
     FinishStations,
@@ -86,9 +94,74 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         private readonly companyRules: CompanyRules,
         readonly mapView: MapViewDefinition,
         private readonly trackRules: TrackRules,
-        private readonly stationRules: StationRules
+        private readonly stationRules: StationRules,
+        private readonly trainRules: TrainRules
     ) {
         super(options)
+    }
+    private trainDraft: TrainPurchaseRequest | undefined = $state.raw()
+    trainSelection = $derived.by(() =>
+        !this.updatingVisibleState &&
+        !this.isViewingHistory &&
+        this.financialState.machineState === 'BuyingTrains'
+            ? this.trainDraft
+            : undefined
+    )
+    trainPurchase = $derived.by(() => new TrainPurchase(this.financialState, this.trainRules))
+    trainOffers = $derived(this.trainPurchase.offers())
+    trainPreview = $derived(
+        this.trainSelection ? this.trainPurchase.evaluate(this.trainSelection).details : undefined
+    )
+    canBuyTrain = $derived(
+        !this.busy &&
+            !this.updatingVisibleState &&
+            !this.isViewingHistory &&
+            this.validActionTypes.includes('BuyTrain')
+    )
+    trainPurchases = $derived(this.actions.slice(0, this.gameState.actionCount).filter(isBuyTrain))
+    trainRosters = $derived.by(() =>
+        this.financialState.companies
+            .map((company) => ({
+                company,
+                trains: trainsOwnedBy(this.financialState, {
+                    kind: 'company',
+                    companyId: company.id
+                })
+            }))
+            .filter((entry) => entry.trains.length)
+    )
+    get trainDepot() {
+        return this.trainRules.depot
+    }
+    trainLimit = $derived.by(() =>
+        this.financialState.trainPurchaseStep
+            ? this.trainRules.trainLimit(
+                  this.financialState,
+                  this.financialState.trainPurchaseStep.companyId
+              )
+            : undefined
+    )
+    selectTrain(request: TrainPurchaseRequest) {
+        assert(
+            this.canBuyTrain && this.trainPurchase.evaluate(request).details,
+            'Choose a legal train purchase'
+        )
+        this.trainDraft = request
+    }
+    backTrain() {
+        this.trainDraft = undefined
+    }
+    async confirmTrainPurchase() {
+        const preview = this.trainPreview
+        assert(this.canBuyTrain && preview, 'Choose a legal train purchase')
+        await this.applyAction(
+            this.createPlayerAction(BuyTrain, {
+                companyId: preview.companyId,
+                trainId: preview.trainId,
+                definitionId: preview.definitionId,
+                expectedPrice: preview.price
+            })
+        )
     }
     private stationDraft: StationSelection = $state({})
     stationSelection = $derived.by(() =>
@@ -697,12 +770,17 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         await this.applyAction(this.createPlayerAction(FinishStockTurn, {}))
     }
     override beforeNewState() {
+        this.trainDraft = undefined
         this.stationDraft = {}
         this.trackDraft = {}
         this.cancelSelection()
     }
     override async undo() {
         if (this.busy || this.isViewingHistory) return
+        if (this.trainDraft) {
+            this.trainDraft = undefined
+            return
+        }
         if (this.stationDraft.stationId) {
             this.stationDraft = {}
             return
@@ -733,11 +811,12 @@ export function createFinanceExampleSessionClass(
     companyRules: CompanyRules,
     mapView: MapViewDefinition,
     trackRules: TrackRules,
-    stationRules: StationRules
+    stationRules: StationRules,
+    trainRules: TrainRules
 ): new (options: SessionOptions) => FinanceExampleSession {
     return class extends FinanceExampleSession {
         constructor(options: SessionOptions) {
-            super(options, rules, companyRules, mapView, trackRules, stationRules)
+            super(options, rules, companyRules, mapView, trackRules, stationRules, trainRules)
         }
     }
 }

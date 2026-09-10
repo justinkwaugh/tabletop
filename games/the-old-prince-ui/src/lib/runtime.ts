@@ -1,3 +1,4 @@
+import { TheOldPrinceTrainRules } from '@tabletop/the-old-prince'
 import { TheOldPrinceStationRules } from '@tabletop/the-old-prince'
 import { TheOldPrinceMapView } from './mapView.js'
 import { createFinanceExampleSessionClass } from '@tabletop/18xx-ui'
@@ -23,7 +24,8 @@ export const UiRuntime: GameUIRuntime<GameState, HydratedGameState> = {
         TheOldPrinceCompanyRules,
         TheOldPrinceMapView,
         TheOldPrinceTrackRules,
-        TheOldPrinceStationRules
+        TheOldPrinceStationRules,
+        TheOldPrinceTrainRules
     ),
     colorizer: new DefaultColorizer()
 }
