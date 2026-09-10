@@ -27,6 +27,13 @@ function game(index: number, status = GameStatus.Started): Game {
         activePlayerIds: ['p1'],
         players: [
             {
+                id: 'p2',
+                userId: 'opponent',
+                name: 'Opponent',
+                status: PlayerStatus.Joined,
+                isHuman: true
+            },
+            {
                 id: 'p1',
                 userId: user.id,
                 name: 'Player',
@@ -50,9 +57,11 @@ test.beforeEach(async ({ page }) => {
     })
 })
 
-test('loads all history on demand and reuses loaded pages when switching tabs ', async ({
+test('loads multiplayer history without runtime errors and reuses loaded pages when switching tabs', async ({
     page
 }) => {
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
     const requests: string[] = []
     const games = Array.from({ length: 47 }, (_, index) => game(index, GameStatus.Finished))
     games[46].name = 'Hidden treasure'
@@ -74,7 +83,13 @@ test('loads all history on demand and reuses loaded pages when switching tabs ',
     expect(requests).toEqual([])
     await page.getByRole('tab', { name: 'History' }).click()
     const history = page.locator('#dashboard-panel-history')
-    await expect(history.locator('li')).toHaveCount(20)
+    await expect
+        .poll(async () => ({ errors, cards: await history.locator('li').count() }))
+        .toEqual({ errors: [], cards: 20 })
+    await expect(history.getByRole('button', { name: 'Revisit', exact: true })).toHaveCount(20)
+    const firstCard = history.locator('li').first()
+    await firstCard.getByRole('heading', { name: 'Table 00' }).click()
+    await expect(firstCard.getByText(/^(Player|Opponent)$/)).toHaveText(['Player', 'Opponent'])
     expect(requests).toEqual(['first'])
     await page.getByRole('button', { name: 'Load more games' }).click()
     await expect(history.locator('li')).toHaveCount(40)
@@ -85,6 +100,7 @@ test('loads all history on demand and reuses loaded pages when switching tabs ',
     await page.getByRole('tab', { name: 'History' }).click()
     await expect(history.locator('li')).toHaveCount(47)
     expect(requests).toEqual(['first', 'older'])
+    expect(errors).toEqual([])
 })
 
 for (const width of [360, 390, 768, 1280]) {
