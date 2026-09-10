@@ -62,6 +62,7 @@ it.each([Top, Shikoku])(
         expect(getCompany(restored, president.companyId).shareCount).toBe(10)
         expect(restored.activePlayerIds).toEqual(['alex'])
         expect(Object.keys(definition.runtime.apiActions)).toEqual([
+            'ExchangePrivate',
             'BuyShares',
             'SellShares',
             'FinishStockTurn',

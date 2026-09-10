@@ -1,3 +1,4 @@
+import { prepareShikoku1889Privates } from './privateExamples.js'
 import { Shikoku1889TrainDepot } from './trains.js'
 import { Shikoku1889StationCounts } from './stationRules.js'
 import { Shikoku1889TileSet } from './tiles.js'
@@ -67,6 +68,8 @@ export function createShikoku1889CompanyExample(
             delete certificate.poolId
         }
     }
+    if (position === 'privates' || position === 'private-events')
+        prepareShikoku1889Privates(state, players)
     for (const location of Shikoku1889Map.definition.locations) {
         for (const reservation of location.reservations ?? []) {
             const company = state.companies.find((company) => company.id === reservation.companyId)
@@ -145,11 +148,11 @@ export function createShikoku1889CompanyExample(
             companyId: 'AR'
         })
     }
-    if (position === 'phases' || position === 'diesel') {
-        state.phaseId = position === 'phases' ? '4' : '6'
+    if (position === 'phases' || position === 'diesel' || position === 'private-events') {
+        state.phaseId = position !== 'diesel' ? '4' : '6'
         state.trainInventory = Shikoku1889TrainDepot.createInventory()
         const rosters: Record<string, string[]> =
-            position === 'phases'
+            position !== 'diesel'
                 ? { IR: ['3', '4'], AR: ['3', '4', '4'] }
                 : { IR: ['4', '5'], AR: ['5', '6'] }
         for (const [companyId, ranks] of Object.entries(rosters))
@@ -161,7 +164,7 @@ export function createShikoku1889CompanyExample(
                     companyId
                 })
             }
-        const next = position === 'phases' ? '5' : 'D'
+        const next = position !== 'diesel' ? '5' : 'D'
         const ranks = Shikoku1889TrainDepot.definition.supply.map((entry) => entry.definitionId)
         state.trainInventory.trains = state.trainInventory.trains.map((train) =>
             train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf(next)

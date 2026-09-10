@@ -53,7 +53,7 @@ export const TheOldPrinceStockRules: StockRules = {
             movement: 1
         }
     },
-    certificateLimit: () => 20,
+    certificateLimit: (state) => (state.players.length === 4 ? 16 : 20),
     certificateWeight: (_state, certificate) => certificate.certificateLimitCount,
     ownershipLimit: () => 60,
     presidencyCandidates(state, companyId) {

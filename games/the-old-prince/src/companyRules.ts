@@ -3,12 +3,13 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     availableCompanyTranche,
     exchangeCertificate,
+    grantOwnershipLimitExemption,
+    closePrivate,
     evaluatePresidency,
     applyPresidencyChange,
     getCompany,
     replaceStation,
     sameOwner,
-    sharesOwned,
     stockMarketSpace,
     type CompanyRules,
     type StockState
@@ -135,15 +136,7 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
         )
         assertExists(replacement, 'PEIR exchange requires an ordinary Bank share')
         const owner = exchangeCertificate(state, association.peirCertificateId, replacement.id)
-        const owned = sharesOwned(state, companyId, owner)
-        const company = getCompany(state, companyId)
-        assertExists(company.shareCount, 'PEIR company requires shares')
-        if (owned * 100 > company.shareCount * 60) {
-            state.ownershipLimitExemptions = state.ownershipLimitExemptions.filter(
-                (entry) => !(entry.companyId === companyId && sameOwner(entry.owner, owner))
-            )
-            state.ownershipLimitExemptions.push({ owner, companyId, maximumShares: owned })
-        }
+        grantOwnershipLimitExemption(state, companyId, owner)
         const presidency = evaluatePresidency(
             state,
             companyId,
@@ -166,13 +159,7 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
             )
             assertExists(cash, 'PEIR requires a treasury')
             cash.amount = 0
-            getCompany(state, 'KM').closed = true
-            getCompany(state, 'KM').privateRevenue = 0
-            state.certificates = state.certificates.map((certificate) => {
-                if (certificate.retired || certificate.companyId !== 'KM') return certificate
-                const { owner: _owner, poolId: _poolId, ...interest } = certificate
-                return { ...interest, retired: true }
-            })
+            closePrivate(state, 'KM')
         }
     }
 }

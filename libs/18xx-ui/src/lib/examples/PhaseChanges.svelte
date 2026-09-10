@@ -54,6 +54,14 @@
                         · Rusts after its next operation: {event.pendingRustTrainIds.join(
                             ', '
                         )}{/if}
+                    {#each event.privateEffects as effect}
+                        <div>
+                            {#if effect.kind === 'close'}Closed {effect.privateCompanyId}
+                            {:else if effect.kind === 'income'}{effect.privateCompanyId} revenue becomes
+                                {effect.revenue}
+                            {:else}Exchanged {effect.privateCompanyId} for {effect.certificateId}{/if}
+                        </div>
+                    {/each}
                 </li>{/each}
         </ol>{/if}
 </section>

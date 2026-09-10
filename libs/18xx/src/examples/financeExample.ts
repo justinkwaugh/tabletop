@@ -1,4 +1,12 @@
 import {
+    ExchangePrivate,
+    HydratedExchangePrivate,
+    isExchangePrivate
+} from '../privates/exchangePrivate.js'
+import { PrivateExchangeHandler } from '../privates/privateExchangeHandler.js'
+import { applyPrivateEffects } from '../privates/privateLifecycle.js'
+import type { PrivateRules } from '../privates/privateRules.js'
+import {
     PhaseFields,
     type PhaseEvent,
     type PhaseChange,
@@ -361,7 +369,7 @@ export class HydratedFinanceExampleState
 }
 
 const PositionValidator = Compile(FinanceExamplePosition)
-const ExampleColors = [Color.Blue, Color.Red, Color.Green]
+const ExampleColors = [Color.Blue, Color.Red, Color.Green, Color.Yellow]
 type CreateFinances = (
     players: readonly PlayerState[],
     position: FinanceExamplePosition
@@ -380,12 +388,17 @@ class FinanceExampleInitializer extends BaseGameInitializer<
             | 'operatingRules'
             | 'stationRules'
             | 'trainRules'
+            | 'privateRules'
+            | 'stockRules'
         >
     ) {
         super()
     }
     initializeGameState(game: Game, state: UninitializedGameState): HydratedFinanceExampleState {
-        assert(game.players.length === 3, 'The finance example requires three players')
+        assert(
+            game.players.length === 3 || game.players.length === 4,
+            'The finance example requires three or four players'
+        )
         const players = game.players.map((player, index) => ({
             playerId: player.id,
             color: ExampleColors[index]
@@ -425,6 +438,11 @@ class FinanceExampleInitializer extends BaseGameInitializer<
             this.options.tileSet,
             this.options.trainRules.depot
         )
+        applyPrivateEffects(
+            initialized,
+            this.options.privateRules.phaseEffects(initialized),
+            this.options.stockRules
+        )
         if (
             position === 'construction' ||
             position === 'stations' ||
@@ -432,7 +450,8 @@ class FinanceExampleInitializer extends BaseGameInitializer<
             position === 'routes' ||
             position === 'operations' ||
             position === 'phases' ||
-            position === 'diesel'
+            position === 'diesel' ||
+            position === 'private-events'
         ) {
             const companyOrder = this.options.operatingRules.companyOrder(initialized)
             const companyId = companyOrder[0]
@@ -460,7 +479,12 @@ class FinanceExampleInitializer extends BaseGameInitializer<
                 initialized.stationStep = { companyId, placedStationIds: [], completed: false }
                 initialized.machineState = 'PlacingStation'
             }
-            if (position === 'trains' || position === 'phases' || position === 'diesel') {
+            if (
+                position === 'trains' ||
+                position === 'phases' ||
+                position === 'diesel' ||
+                position === 'private-events'
+            ) {
                 delete initialized.trackStep
                 initialized.trainPurchaseStep = { companyId, purchasedTrainIds: [] }
                 initialized.machineState = 'BuyingTrains'
@@ -492,6 +516,7 @@ export interface FinanceExampleOptions {
     routeRules: RouteRules
     trainRules: TrainRules
     phaseRules: PhaseRules
+    privateRules: PrivateRules
     trackRules: TrackRules
 }
 export function createFinanceExampleRuntime(
@@ -504,13 +529,26 @@ export function createFinanceExampleRuntime(
             hydrateState: (state) =>
                 new HydratedFinanceExampleState(state, map, tileSet, options.trainRules.depot),
             hydrateAction: (action) => {
+                if (isExchangePrivate(action))
+                    return new HydratedExchangePrivate(action, options.privateRules, rules)
                 if (isAdvancePhase(action))
-                    return new HydratedAdvancePhase(action, options.phaseRules, options.trainRules)
+                    return new HydratedAdvancePhase(
+                        action,
+                        options.phaseRules,
+                        options.trainRules,
+                        options.privateRules,
+                        rules
+                    )
                 if (isDiscardTrain(action))
                     return new HydratedDiscardTrain(action, options.trainRules, options.phaseRules)
                 if (isRustTrains(action)) return new HydratedRustTrains(action)
                 if (isDistributeEarnings(action))
-                    return new HydratedDistributeEarnings(action, options.earningsRules)
+                    return new HydratedDistributeEarnings(
+                        action,
+                        options.earningsRules,
+                        options.privateRules,
+                        rules
+                    )
                 if (isStartOperatingRound(action))
                     return new HydratedStartOperatingRound(action, operatingRules)
                 if (isFinishOperatingTurn(action))
@@ -542,6 +580,7 @@ export function createFinanceExampleRuntime(
         canonicalStateValidator: FinanceExampleValidator,
         playerColors: ExampleColors,
         apiActions: {
+            ExchangePrivate,
             BuyShares,
             SellShares,
             FinishStockTurn,
@@ -569,15 +608,45 @@ export function createFinanceExampleRuntime(
             AdvancingPhase: new AdvancingPhaseHandler(),
             DiscardingTrains: new DiscardingTrainsHandler(options.trainRules),
             RustingTrains: new RustingTrainsHandler('DistributingEarnings'),
-            StockRound: new StockRoundHandler(rules, 'StartingOperatingSet', companyRules),
+            StockRound: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                new StockRoundHandler(rules, 'StartingOperatingSet', companyRules),
+                options.privateRules,
+                rules,
+                companyRules
+            ),
             StartingOperatingSet: new StartOperatingSetHandler('OperatingSet'),
             OperatingSet: new StartOperatingTurnHandler(options.stationRules),
-            LayingTrack: new LayingTrackHandler(options.trackRules, 'PlacingStation'),
-            PlacingStation: new PlacingStationHandler(options.stationRules, 'RunningTrains'),
+            LayingTrack: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                new LayingTrackHandler(options.trackRules, 'PlacingStation'),
+                options.privateRules,
+                rules,
+                companyRules
+            ),
+            PlacingStation: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                new PlacingStationHandler(options.stationRules, 'RunningTrains'),
+                options.privateRules,
+                rules,
+                companyRules
+            ),
             StationsComplete: new TerminalStateHandler(),
-            RunningTrains: new RunningTrainsHandler(options.routeRules, 'DistributingEarnings'),
-            DistributingEarnings: new DistributingEarningsHandler(options.earningsRules),
-            BuyingTrains: new BuyingTrainsHandler(options.trainRules)
+            RunningTrains: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                new RunningTrainsHandler(options.routeRules, 'DistributingEarnings'),
+                options.privateRules,
+                rules,
+                companyRules
+            ),
+            DistributingEarnings: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                new DistributingEarningsHandler(options.earningsRules),
+                options.privateRules,
+                rules,
+                companyRules
+            ),
+            BuyingTrains: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                new BuyingTrainsHandler(options.trainRules),
+                options.privateRules,
+                rules,
+                companyRules
+            )
         }
     }
 }

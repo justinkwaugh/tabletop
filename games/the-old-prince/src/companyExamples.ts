@@ -1,3 +1,4 @@
+import { prepareTheOldPrincePrivates } from './privateExamples.js'
 import { TheOldPrinceTrainDepot } from './trains.js'
 import { TheOldPrinceTileSet } from './tiles.js'
 import { assert, type PlayerState } from '@tabletop/common'
@@ -39,7 +40,12 @@ export function createTheOldPrinceCompanyExample(
             { locationId: 'K19', definitionId: '18xx:5', rotation: 0 }
         ])
     }
-    if (position === 'starting' || position === 'flotation') {
+    if (
+        position === 'starting' ||
+        position === 'flotation' ||
+        position === 'privates' ||
+        position === 'private-events'
+    ) {
         const market = { owner: { kind: 'bank' } as const, poolId: 'market' }
         for (const { companyId, name } of PeirCompanies) {
             state.companies.push({
@@ -80,6 +86,8 @@ export function createTheOldPrinceCompanyExample(
             delete certificate.poolId
         }
     }
+    if (position === 'privates' || position === 'private-events')
+        prepareTheOldPrincePrivates(state, players)
     for (const location of TheOldPrinceMap.definition.locations) {
         for (const reservation of location.reservations ?? []) {
             const companyId = reservation.companyId === 'C' ? 'ML' : reservation.companyId
@@ -155,13 +163,15 @@ export function createTheOldPrinceCompanyExample(
             companyId: 'So'
         })
     }
-    if (position === 'phases' || position === 'diesel') {
-        state.phaseId = position === 'phases' ? '6H' : '7'
+    if (position === 'phases' || position === 'diesel' || position === 'private-events') {
+        state.phaseId = position === 'private-events' ? '3+' : position === 'phases' ? '6H' : '7'
         state.trainInventory = TheOldPrinceTrainDepot.createInventory()
         const rosters: Record<string, string[]> =
-            position === 'phases'
-                ? { ML: ['6H'], So: ['4H'], PEIR: ['5H', '5H', '5H', '6H'] }
-                : { ML: ['4+'], So: ['4+'] }
+            position === 'private-events'
+                ? { ML: ['6H'], So: ['3+'], PEIR: ['3+'] }
+                : position === 'phases'
+                  ? { ML: ['6H'], So: ['4H'], PEIR: ['5H', '5H', '5H', '6H'] }
+                  : { ML: ['4+'], So: ['4+'] }
         for (const [companyId, ranks] of Object.entries(rosters))
             for (const rank of ranks) {
                 const train = TheOldPrinceTrainDepot.nextTrain(state.trainInventory, rank)
@@ -171,7 +181,7 @@ export function createTheOldPrinceCompanyExample(
                     companyId
                 })
             }
-        const next = position === 'phases' ? '2+' : 'D'
+        const next = position === 'private-events' ? '4+' : position === 'phases' ? '2+' : 'D'
         const ranks = TheOldPrinceTrainDepot.definition.supply.map((entry) => entry.definitionId)
         state.trainInventory.trains = state.trainInventory.trains.map((train) =>
             train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf(next)

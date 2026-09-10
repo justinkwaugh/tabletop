@@ -1,3 +1,4 @@
+import { Shikoku1889PrivateRules } from './privateRules.js'
 import { Shikoku1889PhaseRules } from './phaseRules.js'
 import { Shikoku1889EarningsRules } from './earningsRules.js'
 import { Shikoku1889RouteRules } from './routeRules.js'
@@ -28,9 +29,9 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
             designer: 'Yasutaka Ikeda',
             year: '',
             description:
-                'Prepared three-player positions for stock trading, company formation, and flotation.',
+                'Prepared positions for stock trading, company formation, and private exchanges.',
             minPlayers: 3,
-            maxPlayers: 3,
+            maxPlayers: 4,
             defaultPlayerCount: 3,
             version: '0.0.1',
             beta: true
@@ -48,6 +49,7 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
         stationRules: Shikoku1889StationRules,
         earningsRules: Shikoku1889EarningsRules,
         routeRules: Shikoku1889RouteRules,
+        privateRules: Shikoku1889PrivateRules,
         phaseRules: Shikoku1889PhaseRules,
         trainRules: Shikoku1889TrainRules
     })

@@ -7,7 +7,10 @@ import {
 } from '@tabletop/18xx'
 
 export function createShikoku1889FinanceExample(players: readonly PlayerState[]): FinancialState {
-    assert(players.length === 3, '1889 finance example requires three players')
+    assert(
+        players.length === 3 || players.length === 4,
+        '1889 finance example requires three or four players'
+    )
     const [alex, blair, casey]: President[] = players.map((player) => ({
         kind: 'player',
         playerId: player.playerId
@@ -52,7 +55,7 @@ export function createShikoku1889FinanceExample(players: readonly PlayerState[])
         cash: [
             ...players.map((player, index) => ({
                 owner: { kind: 'player', playerId: player.playerId } as const,
-                amount: [240, 180, 260][index]
+                amount: [240, 180, 260, 200][index]
             })),
             { owner: bank, amount: 6120 },
             { owner: { kind: 'company', companyId: 'AR' }, amount: 600 },

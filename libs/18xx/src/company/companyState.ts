@@ -1,3 +1,5 @@
+import { assertExists } from '@tabletop/common'
+import { getCompany, sameOwner, sharesOwned } from '../finance/finance.js'
 import * as Type from 'typebox'
 import { Owner, type FinancialState } from '../finance/finance.js'
 import { StationFields } from '../map/station.js'
@@ -40,4 +42,19 @@ export function availableCompanyTranche(
         if (!tranche.companyIds.every(completed)) return undefined
     }
     return undefined
+}
+
+export function grantOwnershipLimitExemption(
+    state: CompanyState,
+    companyId: string,
+    owner: Owner
+): void {
+    const company = getCompany(state, companyId)
+    assertExists(company.shareCount, 'Ownership exemptions require shares')
+    const maximumShares = sharesOwned(state, companyId, owner)
+    const existing = state.ownershipLimitExemptions.find(
+        (entry) => entry.companyId === companyId && sameOwner(entry.owner, owner)
+    )
+    if (existing) existing.maximumShares = Math.max(existing.maximumShares, maximumShares)
+    else state.ownershipLimitExemptions.push({ companyId, owner, maximumShares })
 }

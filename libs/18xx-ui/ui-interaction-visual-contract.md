@@ -492,3 +492,22 @@ is an automatic consequence of completing the next RunTrains action.
 Fixture version 18 adds Phase changes and Diesel arrival examples. These exercise
 phase/rusting decisions; phase-triggered private powers and game-ending effects
 are integrated in their planned later slices.
+
+## Private exchanges and lifecycle
+
+Private-company cards show ownership, income, closure, and eligible exchanges.
+Selecting an exchange creates a manual session draft naming its owner and target.
+Back clears that draft; Undo clears it before undoing committed history. History
+and updatingVisibleState hide the draft; beforeNewState clears it.
+
+An optional Dôgo exchange can belong to a different player than the ordinary turn.
+The first active identity remains the ordinary decision owner; additional active
+players may only exercise their own exchange. The example session preserves this
+order for ordinary hotseat controls. Local hotseat exchange confirmation explicitly
+names the private's owner; other clients only submit their own player's choice.
+Components invoke session methods, never construct actions.
+
+Phase history lists private closures, forced exchanges, and income changes.
+Concession closure occurs with the company's earnings distribution. Prototype
+version 20 adds four-player Private exchanges and Private phase effects examples;
+ordinary game setup and negotiated powers remain later slices.

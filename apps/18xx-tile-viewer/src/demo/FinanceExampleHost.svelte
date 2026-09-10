@@ -30,7 +30,7 @@
     let error = $state<string>()
     let bridge: BridgedContext | undefined
     let disposed = false
-    const exampleName = untrack(() => `Finances example · 18 · ${position}`)
+    const exampleName = untrack(() => `Finances example · 20 · ${position}`)
 
     onMount(() => {
         void load()
@@ -73,7 +73,10 @@
                     ownerId: owner.id,
                     storage: GameStorage.Local,
                     hotseat: true,
-                    players: ['Alex', 'Blair', 'Casey'].map((name) => ({
+                    players: (position === 'privates' || position === 'private-events'
+                        ? ['Alex', 'Blair', 'Casey', 'Drew']
+                        : ['Alex', 'Blair', 'Casey']
+                    ).map((name) => ({
                         id: crypto.randomUUID(),
                         name,
                         isHuman: true,

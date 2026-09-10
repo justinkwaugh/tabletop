@@ -1,3 +1,12 @@
+import {
+    ExchangePrivate,
+    nextCompanyToFloat,
+    evaluatePrivateExchange,
+    privateExchangeOffers,
+    type PrivateRules,
+    type PrivateExchangeRequest
+} from '@tabletop/18xx'
+import { GameStorage } from '@tabletop/common'
 import { DiscardTrain, discardableTrains } from '@tabletop/18xx'
 import {
     EarningsDistribution,
@@ -108,9 +117,95 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         private readonly stationRules: StationRules,
         private readonly trainRules: TrainRules,
         private readonly routeRules: RouteRules,
-        private readonly earningsRules: EarningsRules
+        private readonly earningsRules: EarningsRules,
+        private readonly privateRules: PrivateRules
     ) {
         super(options)
+    }
+    protected override getActivePlayers() {
+        return this.gameState.activePlayerIds.flatMap((id) =>
+            this.game.players.filter((player) => player.id === id)
+        )
+    }
+    private privateDraft: PrivateExchangeRequest | undefined = $state()
+    privateExchangeSelection = $derived.by(() =>
+        !this.updatingVisibleState &&
+        !this.isViewingHistory &&
+        this.privateDraft &&
+        this.privateExchangeOffers.some(
+            (offer) =>
+                offer.playerId === this.privateDraft?.playerId &&
+                offer.privateCompanyId === this.privateDraft.privateCompanyId &&
+                offer.certificateId === this.privateDraft.certificateId
+        )
+            ? this.privateDraft
+            : undefined
+    )
+    privateExchangeOffers = $derived.by(() => {
+        if (this.busy || this.updatingVisibleState || this.isViewingHistory) return []
+        const players =
+            this.game.hotseat && this.game.storage === GameStorage.Local
+                ? this.financialState.activePlayerIds
+                : this.myPlayer
+                  ? [this.myPlayer.id]
+                  : []
+        return players.flatMap((playerId) =>
+            !nextCompanyToFloat(this.financialState, this.companyRules)
+                ? privateExchangeOffers(
+                      this.financialState,
+                      playerId,
+                      this.privateRules,
+                      this.stockRules
+                  )
+                : []
+        )
+    })
+    privateCompanies = $derived.by(() =>
+        this.financialState.companies
+            .filter((company) => company.kind === 'private')
+            .map((company) => ({
+                ...company,
+                description: this.privateRules.description(this.financialState, company.id)
+            }))
+    )
+    selectPrivateExchange(request: PrivateExchangeRequest) {
+        assert(
+            this.privateExchangeOffers.some(
+                (offer) =>
+                    offer.playerId === request.playerId &&
+                    offer.privateCompanyId === request.privateCompanyId &&
+                    offer.certificateId === request.certificateId
+            ),
+            'Choose an available private exchange'
+        )
+        this.privateDraft = request
+    }
+    backPrivateExchange() {
+        this.privateDraft = undefined
+    }
+    async confirmPrivateExchange() {
+        const request = this.privateExchangeSelection
+        assert(request, 'Choose an available private exchange')
+        assert(
+            (this.game.hotseat && this.game.storage === GameStorage.Local) ||
+                this.myPlayer?.id === request.playerId,
+            'Only the owning player can confirm this exchange'
+        )
+        assert(
+            evaluatePrivateExchange(
+                this.financialState,
+                request,
+                this.privateRules,
+                this.stockRules
+            ).details,
+            'This private exchange is unavailable'
+        )
+        const action = this.createPlayerAction(ExchangePrivate, {
+            privateCompanyId: request.privateCompanyId,
+            certificateId: request.certificateId
+        })
+        action.playerId = request.playerId
+        await this.applyAction(action)
     }
     earnings = $derived.by(() => new EarningsDistribution(this.financialState, this.earningsRules))
     canDistributeEarnings = $derived(
@@ -977,6 +1072,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         await this.applyAction(this.createPlayerAction(FinishStockTurn, {}))
     }
     override beforeNewState() {
+        this.privateDraft = undefined
         this.discardDraft = undefined
         this.earningsDraft = undefined
         this.routeEditor.clear()
@@ -987,6 +1083,10 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     }
     override async undo() {
         if (this.busy || this.isViewingHistory) return
+        if (this.privateDraft) {
+            this.privateDraft = undefined
+            return
+        }
         if (this.discardDraft) {
             this.discardDraft = undefined
             return
@@ -1036,7 +1136,8 @@ export function createFinanceExampleSessionClass(
     stationRules: StationRules,
     trainRules: TrainRules,
     routeRules: RouteRules,
-    earningsRules: EarningsRules
+    earningsRules: EarningsRules,
+    privateRules: PrivateRules
 ): new (options: SessionOptions) => FinanceExampleSession {
     return class extends FinanceExampleSession {
         constructor(options: SessionOptions) {
@@ -1049,7 +1150,8 @@ export function createFinanceExampleSessionClass(
                 stationRules,
                 trainRules,
                 routeRules,
-                earningsRules
+                earningsRules,
+                privateRules
             )
         }
     }

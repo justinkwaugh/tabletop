@@ -718,6 +718,12 @@ mechanism in slices 13–14 before the full game is considered complete.
 
 ## 13. Exchange private rights and apply their lifecycle
 
+**Status:** implemented for both prepared titles: private exchanges, reserved shares,
+phase closures and income changes, concession closures, out-of-turn Dôgo decisions,
+presidency/flotation, pass history, and prototype controls. Four-player examples
+include Ice Boats and Uno-Takamatsu. Power execution, consent, and construction
+supply cleanup remain in slice 14. See [design and evidence](private-lifecycle-slice-design.md).
+
 **Outcome:** exchange an owned private for a share, exercise its precise turn
 permissions, and close/expire rights through phase events.
 

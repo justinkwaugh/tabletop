@@ -299,11 +299,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         new Map(this.game.players.map((player) => [player.id, player.name]))
     )
 
-    activePlayers: Player[] = $derived.by(() => {
+    activePlayers: Player[] = $derived.by(() => this.getActivePlayers())
+
+    protected getActivePlayers(): Player[] {
         return this.game.players.filter((player) =>
             this.gameState.activePlayerIds.includes(player.id)
         )
-    })
+    }
 
     private nonActivePlayer: Player | undefined = $derived.by(() =>
         this.findNonActivePlayer(this.gameState)

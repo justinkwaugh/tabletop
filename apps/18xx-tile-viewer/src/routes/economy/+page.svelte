@@ -35,6 +35,8 @@
                 <option value="phases">Phase changes</option><option value="diesel"
                     >Diesel arrival</option
                 >
+                <option value="privates">Private exchanges</option>
+                <option value="private-events">Private phase effects</option>
             </select>
         </label>
     </header>

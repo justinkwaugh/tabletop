@@ -1,3 +1,6 @@
+import { applyPrivateEffects } from '../privates/privateLifecycle.js'
+import type { PrivateRules } from '../privates/privateRules.js'
+import type { StockRules } from '../stock/stockRules.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -46,14 +49,26 @@ export class HydratedAdvancePhase
     declare metadata?: AdvancePhase['metadata']
     readonly #rules: PhaseRules
     readonly #trainRules: TrainRules
-    constructor(data: AdvancePhase, rules: PhaseRules, trainRules: TrainRules) {
+    readonly #privateRules: PrivateRules
+    readonly #stockRules: StockRules
+    constructor(
+        data: AdvancePhase,
+        rules: PhaseRules,
+        trainRules: TrainRules,
+        privateRules: PrivateRules,
+        stockRules: StockRules
+    ) {
         super(data instanceof HydratedAdvancePhase ? data.dehydrate() : data, Validator)
         this.#rules = rules
         this.#trainRules = trainRules
+        this.#privateRules = privateRules
+        this.#stockRules = stockRules
     }
     apply(state: HydratedGameState & PhaseChangeState): void {
         assert(this.source === ActionSource.System, 'Phase advancement requires a system action')
         const event = advancePhase(state, this.#rules, this.#trainRules)
+        event.privateEffects = this.#privateRules.phaseEffects(state)
+        applyPrivateEffects(state, event.privateEffects, this.#stockRules)
         this.metadata = { event, nextState: continuePhaseChange(state) }
     }
 }

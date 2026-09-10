@@ -9,7 +9,10 @@ import {
 } from '@tabletop/18xx'
 
 export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]): FinancialState {
-    assert(players.length === 3, 'TOP finance example requires three players')
+    assert(
+        players.length === 3 || players.length === 4,
+        'TOP finance example requires three or four players'
+    )
     const [alex, blair, casey]: President[] = players.map((player) => ({
         kind: 'player',
         playerId: player.playerId
@@ -59,7 +62,7 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
         cash: [
             ...players.map((player, index) => ({
                 owner: { kind: 'player', playerId: player.playerId } as const,
-                amount: [240, 180, 160][index]
+                amount: [240, 180, 160, 200][index]
             })),
             { owner: bank, amount: 'unlimited' },
             { owner: union, amount: 40 },
@@ -92,7 +95,7 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
                     market,
                     market,
                     market,
-                    market
+                    { owner: bank, poolId: 'reserved' }
                 ],
                 union
             ),

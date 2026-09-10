@@ -40,7 +40,7 @@ export const Shikoku1889StockRules: StockRules = {
             movement: shares
         }
     },
-    certificateLimit: () => 19,
+    certificateLimit: (state) => (state.players.length === 4 ? 14 : 19),
     certificateWeight(state, certificate) {
         if (certificate.kind === 'share') {
             if (!getCompany(state, certificate.companyId).started)

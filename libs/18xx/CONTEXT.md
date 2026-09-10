@@ -21,6 +21,10 @@ railway. Being a minor does not prescribe a particular ownership or share struct
 A company owned as a whole rather than through separately held shares.
 Its income, abilities, assets, and permitted owners depend on the title.
 
+**Private Exchange**:
+Surrendering a private company in return for a share or other entitlement specified
+by that private's rules, consuming its exchange right.
+
 **Bank**:
 The game's central source and recipient of money, governed by the title's banking rules.
 

@@ -31,6 +31,7 @@ export function createTheOldPrinceStockMarket(position: FinanceExamplePosition =
     )
     placeStockMarker(market, 'ML', '1:1')
     placeStockMarker(market, 'So', '2:1')
-    if (position === 'flotation') placeStockMarker(market, 'A', '3:1')
+    if (position === 'flotation' || position === 'privates' || position === 'private-events')
+        placeStockMarker(market, 'A', '3:1')
     return market
 }

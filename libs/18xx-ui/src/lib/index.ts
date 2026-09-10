@@ -30,3 +30,5 @@ export { default as MapViewer } from './maps/MapViewer.svelte'
 export { default as FinanceMap } from './examples/FinanceMap.svelte'
 
 export { default as TrainBuying } from './examples/TrainBuying.svelte'
+
+export { default as PrivateCompanies } from './examples/PrivateCompanies.svelte'

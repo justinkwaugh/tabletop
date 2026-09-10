@@ -16,7 +16,10 @@ export function example(
             hotseat: true,
             seed: 5,
             config: { examplePosition },
-            players: ['alex', 'blair', 'casey'].map((id) => ({
+            players: (examplePosition === 'privates' || examplePosition === 'private-events'
+                ? ['alex', 'blair', 'casey', 'drew']
+                : ['alex', 'blair', 'casey']
+            ).map((id) => ({
                 id,
                 name: id,
                 isHuman: true,

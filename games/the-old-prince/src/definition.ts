@@ -1,3 +1,4 @@
+import { TheOldPrincePrivateRules } from './privateRules.js'
 import { TheOldPrincePhaseRules } from './phaseRules.js'
 import { TheOldPrinceEarningsRules } from './earningsRules.js'
 import { TheOldPrinceRouteRules } from './routeRules.js'
@@ -28,9 +29,9 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
             designer: 'Lucas Boyd',
             year: '',
             description:
-                'Prepared three-player positions for stock trading, company formation, and flotation.',
+                'Prepared positions for stock trading, company formation, and private exchanges.',
             minPlayers: 3,
-            maxPlayers: 3,
+            maxPlayers: 4,
             defaultPlayerCount: 3,
             version: '0.0.1',
             beta: true
@@ -48,6 +49,7 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
         stationRules: TheOldPrinceStationRules,
         earningsRules: TheOldPrinceEarningsRules,
         routeRules: TheOldPrinceRouteRules,
+        privateRules: TheOldPrincePrivateRules,
         phaseRules: TheOldPrincePhaseRules,
         trainRules: TheOldPrinceTrainRules
     })

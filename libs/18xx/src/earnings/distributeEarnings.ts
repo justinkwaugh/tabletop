@@ -1,3 +1,7 @@
+import { PrivateEffect, type PrivateRules } from '../privates/privateRules.js'
+import { applyPrivateEffects } from '../privates/privateLifecycle.js'
+import type { StockRules } from '../stock/stockRules.js'
+import type { StockState } from '../stock/stockState.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -24,7 +28,12 @@ export const DistributeEarnings = Type.Object(
         type: Type.Literal('DistributeEarnings'),
         companyId: Type.String(),
         choice: EarningsChoice,
-        metadata: Type.Optional(EarningsDetails)
+        metadata: Type.Optional(
+            Type.Object(
+                { ...EarningsDetails.properties, privateEffects: Type.Array(PrivateEffect) },
+                { additionalProperties: false }
+            )
+        )
     },
     { additionalProperties: false }
 )
@@ -44,13 +53,22 @@ export class HydratedDistributeEarnings
     declare playerId: string
     declare companyId: string
     declare choice: EarningsChoice
-    declare metadata?: EarningsDetails
+    declare metadata?: DistributeEarnings['metadata']
     readonly #rules: EarningsRules
-    constructor(data: DistributeEarnings, rules: EarningsRules) {
+    readonly #privateRules: PrivateRules
+    readonly #stockRules: StockRules
+    constructor(
+        data: DistributeEarnings,
+        rules: EarningsRules,
+        privateRules: PrivateRules,
+        stockRules: StockRules
+    ) {
         super(data instanceof HydratedDistributeEarnings ? data.dehydrate() : data, Validator)
         this.#rules = rules
+        this.#privateRules = privateRules
+        this.#stockRules = stockRules
     }
-    apply(state: HydratedGameState & DistributionState): void {
+    apply(state: HydratedGameState & DistributionState & StockState): void {
         const distribution = new EarningsDistribution(state, this.#rules)
         assert(
             this.source === ActionSource.User &&
@@ -70,6 +88,8 @@ export class HydratedDistributeEarnings
         getCompany(state, this.companyId).operated = true
         state.earningsDistribution = result.details
         state.trainPurchaseStep = { companyId: this.companyId, purchasedTrainIds: [] }
-        this.metadata = result.details
+        const privateEffects = this.#privateRules.operationEffects(state, this.companyId)
+        applyPrivateEffects(state, privateEffects, this.#stockRules)
+        this.metadata = { ...result.details, privateEffects }
     }
 }

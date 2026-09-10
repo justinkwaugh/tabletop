@@ -1,6 +1,8 @@
+import { PrivateEffect } from '../privates/privateRules.js'
+import type { StockState } from '../stock/stockState.js'
 import * as Type from 'typebox'
-import { assert, assertExists, type GameState } from '@tabletop/common'
-import { controllingOwner, type FinancialState } from '../finance/finance.js'
+import { assert, assertExists } from '@tabletop/common'
+import { controllingOwner } from '../finance/finance.js'
 import {
     trainsOwnedBy,
     unownedTrain,
@@ -9,7 +11,6 @@ import {
     type TrainPurchaseState
 } from '../trains/train.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
-import type { StockMarket } from '../stock/stockMarket.js'
 const Id = Type.String({ minLength: 1 })
 export const PhaseOccurrence = Type.Object(
     { id: Id, trainId: Id, definitionId: Id, fromPhaseId: Id, toPhaseId: Id },
@@ -19,6 +20,7 @@ export type PhaseOccurrence = Type.Static<typeof PhaseOccurrence>
 export const PhaseEvent = Type.Object(
     {
         ...PhaseOccurrence.properties,
+        privateEffects: Type.Array(PrivateEffect),
         rustedTrainIds: Type.Array(Id),
         pendingRustTrainIds: Type.Array(Id)
     },
@@ -44,10 +46,7 @@ export const PhaseFields = {
     phaseChange: Type.Optional(PhaseChange)
 }
 export type PhaseState = Type.Static<Type.TObject<typeof PhaseFields>> & { phaseId: string }
-export type PhaseChangeState = FinancialState &
-    TrainState &
-    PhaseState &
-    Pick<GameState, 'activePlayerIds'> & { stockMarket: StockMarket }
+export type PhaseChangeState = StockState & TrainState & PhaseState
 export interface PhaseRules {
     rustTiming(state: TrainPurchaseState, train: Train): 'immediate' | 'after-operation' | undefined
     discardOrder(state: PhaseChangeState, companyId: string): string[]
@@ -87,7 +86,12 @@ export function advancePhase(
         'This phase occurrence was already applied'
     )
     state.phaseId = change.event.toPhaseId
-    const event: PhaseEvent = { ...change.event, rustedTrainIds: [], pendingRustTrainIds: [] }
+    const event: PhaseEvent = {
+        ...change.event,
+        privateEffects: [],
+        rustedTrainIds: [],
+        pendingRustTrainIds: []
+    }
     state.trainInventory.trains = state.trainInventory.trains.map((train) => {
         if (train.status === 'removed') return train
         const rustTiming = rules.rustTiming(state, train)
