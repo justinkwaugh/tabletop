@@ -108,3 +108,36 @@ and shared/title UI plus harness Svelte checks passed. Visual inspection covered
 TOP's yellow-track preview and 1889's enlarged city-upgrade preview. Paired-face
 replacement also verifies one-piece conservation and migration to renamed city
 nodes. No research-source references were introduced into implementation or tests.
+
+## Hex-edge traversal correction
+
+Reviewing the slice 20 TOP end map exposed an illegal O17 upgrade from #7 to #30:
+PEIR could reach the existing curve, but using the added branch required reversing
+at their shared hex edge. TrackNetwork treated every reached endpoint as a place
+from which to explore all incident paths, incorrectly making that edge a junction.
+Traversal now distinguishes entering a tile from leaving it. An exit crosses to
+the neighboring tile; it cannot turn onto another path in the same tile. Entering
+through a shared edge still permits either branch, and cities and explicit
+junctions still connect their incident paths. Incoming and outgoing visits are
+tracked separately so an independently reachable approach is not lost.
+
+The construction-usefulness, construction-connectivity, network-types and
+station-blocking assignments were surveyed again across all 128 covered profiles
+of the 131-title corpus. Permissive, semi-restrictive, restrictive, city-specific,
+and station-specific usefulness policies remain separate from this topology fix.
+1858's purpose-specific connectivity, 1849's gauges, the lane variants and 18Cuba's
+station policy retain the boundaries described above; this correction adds no
+new gauge, lane, concession or routing policy. Both initial consumers share the
+single-rail traversal correction. Profiles without construction do not acquire
+this requirement.
+
+Regression checks cover a branch that can only be reached by reversing at an
+edge, a valid approach through the shared edge, existing crossing isolation and
+city blocking, and rejection of the O17 upgrade by TOP's construction choices
+and authoritative LayTile Action. The captured pre-upgrade state from processed
+action 311 also rejects the original request after the correction. The earlier
+end-map screenshot represents the run before this fix.
+
+After the correction, all 146 shared family tests, 280 harness tests (including
+both normal full-game runs with replay and Undo), and six construction/station/route
+browser tests passed. Family TypeScript and harness Svelte/TypeScript checks passed.

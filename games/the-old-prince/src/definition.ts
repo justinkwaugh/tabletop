@@ -58,11 +58,10 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
         configurator: new FinanceExampleConfigurator(),
         id: 'the-old-prince',
         metadata: {
-            name: 'The Old Prince 1871 · finance example',
+            name: 'The Old Prince 1871',
             designer: 'Lucas Boyd',
             year: '',
-            description:
-                'Prepared positions for stock trading, company formation, and private exchanges.',
+            description: 'Railway companies on Prince Edward Island, with a prototype interface.',
             minPlayers: 3,
             maxPlayers: 4,
             defaultPlayerCount: 3,

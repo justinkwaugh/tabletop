@@ -8,11 +8,12 @@
         "dev": "vite --host 0.0.0.0 --port 4188 --strictPort",
         "build": "vite build",
         "preview": "vite preview",
-        "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+        "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.hosted.json",
         "test:unit": "vitest run",
         "test:browser": "playwright test",
         "test": "pnpm run test:unit && pnpm run test:browser",
-        "benchmark:routes": "node scripts/benchmark-routes.mjs"
+        "benchmark:routes": "node scripts/benchmark-routes.mjs",
+        "test:hosted": "playwright test --config playwright.hosted.config.ts"
     },
     "dependencies": {
         "@tabletop/18xx": "workspace:*",
@@ -38,6 +39,8 @@
         "@sveltejs/adapter-static": "^3.0.10",
         "@playwright/test": "^1.42.1",
         "tailwindcss": "^4.1.18",
-        "@tailwindcss/postcss": "^4.1.18"
+        "@tailwindcss/postcss": "^4.1.18",
+        "typebox": "^1.0.79",
+        "@types/node": "^25.0.9"
     }
 }

@@ -957,6 +957,13 @@ holdings through its owner, and reproduce totals after replay.
 
 ## 20. Verify complete game logic through prototype clients
 
+**Verification implemented:** complete normal games, bankruptcy, every supported
+opening player count, persisted replay/Undo, regenerated System cascades, matched
+Logic/UI bundles, and hosted multi-client consent/reconnect checks. See the
+[coverage matrix and remaining rule question](complete-game-verification.md).
+The TOP opening auction’s zero-income stalemate remains a rule-baseline question;
+this does not establish unrestricted title completeness.
+
 **Outcome:** both titles run from real initialization through final scoring, with
 their shared modules exercised in ordinary and difficult positions.
 

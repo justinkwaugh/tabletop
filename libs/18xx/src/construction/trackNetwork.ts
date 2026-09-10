@@ -35,6 +35,7 @@ export class TrackNetwork {
                 ? [
                       {
                           locationId: station.position.locationId,
+                          exiting: false,
                           endpoint: {
                               kind: 'node',
                               nodeId: station.position.nodeId
@@ -43,12 +44,20 @@ export class TrackNetwork {
                   ]
                 : []
         )
-        const pending: { locationId: string; endpoint: TileEndpoint }[] = [...queue]
+        const pending: { locationId: string; endpoint: TileEndpoint; exiting: boolean }[] = [
+            ...queue
+        ]
+        const entered = new Map<string, TileEndpoint[]>()
+        const exited = new Map<string, TileEndpoint[]>()
         while (pending.length) {
-            const { locationId, endpoint } = pending.shift()!
+            const { locationId, endpoint, exiting } = pending.shift()!
+            const visited = exiting ? exited : entered
+            const visitedEnds = visited.get(locationId) ?? []
+            if (visitedEnds.some((end) => sameTileEndpoint(end, endpoint))) continue
+            visitedEnds.push(endpoint)
+            visited.set(locationId, visitedEnds)
             const ends = this.reached.get(locationId) ?? []
-            if (ends.some((end) => sameTileEndpoint(end, endpoint))) continue
-            ends.push(endpoint)
+            if (!ends.some((end) => sameTileEndpoint(end, endpoint))) ends.push(endpoint)
             this.reached.set(locationId, ends)
             const face = faces.get(locationId)!
             if (endpoint.kind === 'node') {
@@ -61,13 +70,18 @@ export class TrackNetwork {
                 }
             }
             const paths = this.paths.get(locationId) ?? new Set<string>()
-            for (const path of face.paths) {
-                if (!path.endpoints.some((end) => sameTileEndpoint(end, endpoint))) continue
-                paths.add(path.id)
-                for (const end of path.endpoints) pending.push({ locationId, endpoint: end })
+            if (!exiting) {
+                for (const path of face.paths) {
+                    if (!path.endpoints.some((end) => sameTileEndpoint(end, endpoint))) continue
+                    paths.add(path.id)
+                    for (const end of path.endpoints) {
+                        if (sameTileEndpoint(end, endpoint)) continue
+                        pending.push({ locationId, endpoint: end, exiting: end.kind === 'edge' })
+                    }
+                }
             }
             this.paths.set(locationId, paths)
-            if (endpoint.kind !== 'edge') continue
+            if (!exiting || endpoint.kind !== 'edge') continue
             const neighbor = mapState.map.neighbor(locationId, endpoint.edge)
             if (!neighbor) continue
             const opposite = rotateTileEdge(endpoint.edge, 3)
@@ -90,7 +104,7 @@ export class TrackNetwork {
                         path.endpoints.some((end) => sameTileEndpoint(end, other))
                     )
             )
-                pending.push({ locationId: neighbor.id, endpoint: other })
+                pending.push({ locationId: neighbor.id, endpoint: other, exiting: false })
         }
     }
     isBlocked(locationId: string, nodeId: string): boolean {

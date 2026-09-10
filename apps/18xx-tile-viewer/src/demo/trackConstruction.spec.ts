@@ -313,3 +313,43 @@ it('flips paired faces as one physical piece and migrates renamed stations and r
     expect(Object.values(after.placements)).toHaveLength(1)
     expect(tileSet.counts(after).every((count) => count.available === 0)).toBe(true)
 })
+it('rejects TOP’s O17 upgrade when its new branch requires reversing at the hex edge', () => {
+    const { game, engine, state } = example(Top, 'construction')
+    state.tileInventory = TheOldPrinceTrackRules.tileSet.createInventory([
+        ...Object.entries(state.tileInventory.placements).map(([locationId, tile]) => ({
+            locationId,
+            definitionId: tile.definitionId,
+            rotation: tile.rotation
+        })),
+        { locationId: 'N18', definitionId: '18xx:29', rotation: 2 },
+        { locationId: 'O17', definitionId: '18xx:7', rotation: 0 }
+    ])
+    const request = {
+        companyId: 'ML',
+        locationId: 'O17',
+        definitionId: '18xx:30',
+        rotation: 0,
+        nodeMapping: {}
+    } as const
+    const construction = new TrackConstruction(state, TheOldPrinceTrackRules)
+    expect(construction.evaluate(request).reason).toContain('connected track')
+    expect(
+        construction
+            .choices('O17')
+            .some(
+                (choice) =>
+                    choice.definitionId === request.definitionId &&
+                    choice.rotation === request.rotation
+            )
+    ).toBe(false)
+    const action: LayTile = {
+        ...request,
+        id: 'invalid-o17-upgrade',
+        type: 'LayTile',
+        source: ActionSource.User,
+        playerId: state.activePlayerIds[0],
+        gameId: state.gameId,
+        expectedCost: 0
+    }
+    expect(() => engine.executeCanonicalAction({ game, state, action })).toThrow()
+})

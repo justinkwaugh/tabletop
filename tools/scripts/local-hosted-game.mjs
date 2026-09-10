@@ -26,6 +26,10 @@ Options:
   --game <game>    Game package ID or game ID (for example, fresh-fish)
   --prepare-only   Build and stage the game without checking or starting services
   --help           Show this help
+
+Environment:
+  LOCAL_HOSTED_FRONTEND_PORT  Site port (default 5173)
+  PORT                        Backend port (default 3000)
 `
 
 const parseArguments = (arguments_) => {
@@ -305,10 +309,10 @@ const ensureInfrastructure = async (configuredServices) => {
     return services
 }
 
-const assertApplicationsAreStopped = async (backendPort) => {
+const assertApplicationsAreStopped = async (backendPort, frontendPort) => {
     const applications = [
         { name: 'backend', port: backendPort },
-        { name: 'Site Frontend', port: 5173 }
+        { name: 'Site Frontend', port: frontendPort }
     ]
     const running = []
 
@@ -365,13 +369,22 @@ const waitForApplications = async (applications, child, timeoutMilliseconds) => 
     )
 }
 
-const runApplications = async (backendPort, game, infrastructure) => {
+const runApplications = async (backendPort, frontendPort, game, infrastructure) => {
     const firestore = infrastructure.find((service) => service.name === 'Firestore')
     const redis = infrastructure.find((service) => service.name === 'Redis')
     const applicationEnvironment = {
         ...commandEnvironment,
         FIRESTORE_EMULATOR_HOST: `${firestore.host}:${firestore.port}`,
         HOST: '0.0.0.0',
+        PORT: String(backendPort),
+        LOCAL_HOSTED_FRONTEND_PORT: String(frontendPort),
+        ...(process.env.LOCAL_HOSTED_FRONTEND_PORT
+            ? {
+                  PUBLIC_API_HOST: process.env.PUBLIC_API_HOST ?? `http://localhost:${backendPort}`,
+                  PUBLIC_SSE_HOST: process.env.PUBLIC_SSE_HOST ?? `http://localhost:${backendPort}`,
+                  FRONTEND_HOST: process.env.FRONTEND_HOST ?? `http://localhost:${frontendPort}`
+              }
+            : {}),
         REDIS_HOST: redis.host,
         REDIS_PORT: String(redis.port)
     }
@@ -425,13 +438,13 @@ const runApplications = async (backendPort, game, infrastructure) => {
                     },
                     {
                         name: 'Site Frontend',
-                        urls: ['http://127.0.0.1:5173/', 'http://[::1]:5173/']
+                        urls: [`http://127.0.0.1:${frontendPort}/`, `http://[::1]:${frontendPort}/`]
                     },
                     {
                         name: `${game.packageId} UI Artifact`,
                         urls: [
-                            `http://127.0.0.1:5173/games/${game.packageId}/ui/${game.uiVersion}/index.js`,
-                            `http://[::1]:5173/games/${game.packageId}/ui/${game.uiVersion}/index.js`
+                            `http://127.0.0.1:${frontendPort}/games/${game.packageId}/ui/${game.uiVersion}/index.js`,
+                            `http://[::1]:${frontendPort}/games/${game.packageId}/ui/${game.uiVersion}/index.js`
                         ]
                     }
                 ],
@@ -447,7 +460,7 @@ const runApplications = async (backendPort, game, infrastructure) => {
 
         console.log('')
         console.log(`Local hosted game ready: ${game.packageId}`)
-        console.log('Site: http://localhost:5173')
+        console.log(`Site: http://localhost:${frontendPort}`)
         console.log(`Backend: http://localhost:${backendPort}`)
         console.log('Firestore emulator: http://localhost:4000')
         console.log('Stop all local app processes with Ctrl-C.')
@@ -516,9 +529,11 @@ const main = async () => {
     }
     const backendPort = Number(configuredEnvironment.PORT ?? 3000)
 
+    const frontendPort = Number(process.env.LOCAL_HOSTED_FRONTEND_PORT ?? 5173)
+
     let infrastructure
     if (!options.prepareOnly) {
-        await assertApplicationsAreStopped(backendPort)
+        await assertApplicationsAreStopped(backendPort, frontendPort)
         infrastructure = await ensureInfrastructure([
             { name: 'Firestore', composeHost: 'firebase', ...firestore },
             { name: 'Redis', composeHost: 'cache', ...redis }
@@ -531,7 +546,20 @@ const main = async () => {
     )
     await runCommand('turbo', ['stage-ui', `--filter=${uiPackage.name}`, '--ui=stream'])
 
-    const logicEntry = path.join(repoRoot, 'games', game.packageId, 'esm/index.js')
+    await runCommand('turbo', ['bundle', `--filter=${logicPackage.name}`, '--ui=stream'])
+    const logicDirectory = path.join(
+        repoRoot,
+        '.local-static/games',
+        game.packageId,
+        'logic',
+        game.logicVersion
+    )
+    await fs.rm(logicDirectory, { recursive: true, force: true })
+    await fs.mkdir(logicDirectory, { recursive: true })
+    await fs.cp(path.join(repoRoot, 'games', game.packageId, 'bundle'), logicDirectory, {
+        recursive: true
+    })
+    const logicEntry = path.join(logicDirectory, 'index.js')
     const stagedUiEntry = path.join(
         repoRoot,
         '.local-static/games',
@@ -550,7 +578,7 @@ const main = async () => {
         return
     }
 
-    await runApplications(backendPort, game, infrastructure)
+    await runApplications(backendPort, frontendPort, game, infrastructure)
 }
 
 try {

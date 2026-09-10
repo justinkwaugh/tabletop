@@ -31,11 +31,10 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
         configurator: new FinanceExampleConfigurator(),
         id: 'shikoku-1889',
         metadata: {
-            name: 'Shikoku 1889 · finance example',
+            name: 'Shikoku 1889',
             designer: 'Yasutaka Ikeda',
             year: '',
-            description:
-                'Standard opening auction and prepared positions for developing game logic.',
+            description: 'Railway companies on Shikoku, with a prototype interface.',
             minPlayers: 2,
             maxPlayers: 6,
             defaultPlayerCount: 3,

@@ -67,10 +67,30 @@ it('does not join crossing tracks or treat an untokenable city as a station barr
     expect(network.usesPath('1', crossing.paths[0].id)).toBe(true)
     expect(network.usesPath('1', crossing.paths[1].id)).toBe(false)
     expect(
-        new TrackNetwork(
-            map(createCityTileFace('gray', [3, 0], 20, 0)),
-            ownOnly,
-            'A'
-        ).reaches('2', { kind: 'edge', edge: 3 })
+        new TrackNetwork(map(createCityTileFace('gray', [3, 0], 20, 0)), ownOnly, 'A').reaches(
+            '2',
+            { kind: 'edge', edge: 3 }
+        )
     ).toBe(true)
+})
+it('cannot reverse at a shared hex edge to reach a different track branch', () => {
+    const branching = createTrackTileFace('green', [
+        [3, 0],
+        [0, 1]
+    ])
+    const ownOnly = { ...stations, stations: stations.stations.slice(0, 1) }
+    const network = new TrackNetwork(map(branching), ownOnly, 'A')
+    expect(network.usesPath('1', branching.paths[0].id)).toBe(true)
+    expect(network.usesPath('1', branching.paths[1].id)).toBe(false)
+    expect(network.reaches('1', { kind: 'edge', edge: 1 })).toBe(false)
+})
+it('can choose either branch when entering their shared hex edge', () => {
+    const branching = createTrackTileFace('green', [
+        [3, 0],
+        [3, 1]
+    ])
+    const ownOnly = { ...stations, stations: stations.stations.slice(0, 1) }
+    const network = new TrackNetwork(map(branching), ownOnly, 'A')
+    expect(network.usesPath('1', branching.paths[0].id)).toBe(true)
+    expect(network.usesPath('1', branching.paths[1].id)).toBe(true)
 })
