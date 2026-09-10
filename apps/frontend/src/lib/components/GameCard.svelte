@@ -40,7 +40,7 @@
     let sessionUser = authorizationService.getSessionUser()
     let isOwnedByMe = $derived(sessionUser?.id === game.ownerId)
     let sortedPlayers = $derived(
-        game.players.sort(
+        game.players.toSorted(
             (a, b) => playerSortValue(a, game.ownerId) - playerSortValue(b, game.ownerId)
         )
     )
