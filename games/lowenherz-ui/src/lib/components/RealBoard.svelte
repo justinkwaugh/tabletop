@@ -7,8 +7,8 @@
     import { ScorePopupAnimator } from '$lib/animators/scorePopupAnimator.svelte.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import {
+        breakAllianceOfferDistance,
         breakAlliancePillAnchor,
-        distanceToWall,
         HEART_BOX,
         heartSpan
     } from '$lib/model/allianceGeometry.js'
@@ -417,12 +417,10 @@
         let nearestDistance = BREAK_ALLIANCE_HOVER_RADIUS
         for (const marker of visibleAllianceMarkers) {
             if (!marker.cancellable) continue
-            for (const wall of marker.walls) {
-                const distance = distanceToWall(hoverPoint, wall)
-                if (distance <= nearestDistance) {
-                    nearestDistance = distance
-                    nearestId = marker.id
-                }
+            const distance = breakAllianceOfferDistance(hoverPoint, marker.walls)
+            if (distance <= nearestDistance) {
+                nearestDistance = distance
+                nearestId = marker.id
             }
         }
         return nearestId
