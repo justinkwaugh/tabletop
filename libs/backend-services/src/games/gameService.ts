@@ -22,6 +22,7 @@ import {
     GameState,
     GameStatus,
     GameStatusCategory,
+    type GameHistoryCursor,
     GameStorage,
     GameSyncStatus,
     IsYourTurnNotification,
@@ -437,6 +438,10 @@ export class GameService {
 
     async getCompletedGamesForUser(user: User): Promise<Game[]> {
         return await this.gameStore.findGamesForUser(user, GameStatusCategory.Completed)
+    }
+
+    async getGameHistoryForUser(user: User, before?: GameHistoryCursor) {
+        return this.gameStore.findGameHistory(user, before)
     }
 
     async setGameState(state: GameState): Promise<void> {

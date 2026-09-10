@@ -120,11 +120,11 @@ Populate hands first, incorporating any known pending treasure values from the e
 
 Missing required observations, unknown card definitions, contradictory evidence, or no complete assignment should produce a specific unsupported/inconsistent Exploration error. Never substitute the real hidden piles or relax constraints to obtain a sample.
 
-Once populated, use the shared hypothetical checkpoint and saved Exploration machinery. Save/load and Undo should retain that sampled world, not solve the assignment again. Source History continues to display the original permitted observations. With Public Money enabled, Host/Admin Exploration retains an authorized complete-state path independently of ordinary population support. Private-money games disable Exploration, including Host/Admin entry.
+Once populated, use the shared hypothetical checkpoint and saved Exploration machinery. Save/load and Undo should retain that sampled world, not solve the assignment again. Source History continues to display the original permitted observations. Host/Admin Exploration retains an authorized complete-state path independently of ordinary population support and the Public Money option. Private-money games require canonical state and Debug/Admin inspection or explicit Host View for Exploration.
 
 ## Existing games and money
 
-Add public counts and other continuation facts at canonical normalization/initialization and update them with the owning rule operations. Never manufacture them from redacted arrays in hydrated constructors. Added historical metadata must remain optional for old Action hydration; new executions always write it. Legacy v1/v2 games retain complete-state Exploration when Public Money is enabled. Older v3 games without the new observation records may not support ordinary historical Exploration; forward play remains available, as does Host/Admin Exploration with Public Money enabled.
+Add public counts and other continuation facts at canonical normalization/initialization and update them with the owning rule operations. Never manufacture them from redacted arrays in hydrated constructors. Added historical metadata must remain optional for old Action hydration; new executions always write it. Legacy v1/v2 games retain complete-state Exploration when Public Money is enabled. Older v3 games without the new observation records may not support ordinary historical Exploration; forward play remains available, as does authorized canonical Host/Admin Exploration.
 
 Preserve existing v1/v2 deterministic behavior and do not upgrade their privacy. Games initialized by older public-randomness logic cannot gain retroactive secrecy merely by hiding their current fields, even if their system version is already 3. Limit new privacy guarantees to correctly initialized games; do not reconstruct historical private observations from today's canonical piles.
 
@@ -132,7 +132,7 @@ Turning off `publicMoney` now omits other players’ balances from protected del
 
 New system-v3 initialization records `publicMoney` in state. Private-money negotiation demands do not test the other player’s funds: the payer must afford the amount when personally proposing or accepting it. This prevents amount controls and rejected demands from probing another balance. Public-money and legacy states without the new flag retain existing validation. Payments remain public, with ordinary host fallback when local execution needs another player’s protected balance.
 
-Exploration is unavailable when Public Money is off, matching Estates. The session checks Game configuration and the recorded state flag; projected population checks both, and canonical population checks the state flag. The session restriction also covers legacy Games and Host View. Public-money card population remains unchanged. Supporting private-money Exploration later would require an explicit decision about reconstructing balances from complete permitted financial records, including treasure payments.
+With Public Money off, the session requires canonical state and Debug/Admin inspection or explicit Host View for Exploration. The canonical check uses the same source Perspective decision as Exploration itself: unmarked hosted Games and ordinary local Games already have canonical state and need no separate Host View context. Debug alone in the protected harness and the acting Player's projection do not qualify. Projected population still checks both Game configuration and the recorded state flag, including for legacy Games. Canonical population preserves known balances and retains its existing card reshuffling. Public-money card population remains unchanged. Supporting projected private-money Exploration later would require an explicit decision about reconstructing balances from complete permitted financial records, including treasure payments.
 
 This change requires matching Löwenherz Logic and UI publication with a major-version boundary for older clients that require every money field. It changes no shared Game UI Host Bridge members and requires no other title to republish. Deployment remains pending; existing unmarked Games retain canonical delivery.
 
@@ -148,12 +148,12 @@ Implemented together:
 
 - Public deck backs and hand/pile counts; owner inspection snapshots; immutable actor-private inspection/choice history; complete public draw and duel-round results; public final hands.
 - Host-only remaining piles/deck, owner hands and pending bids, actor-private submissions, projected hydrated types, and projected UI rendering with unknown card backs.
-- Thirteen-slot constrained politics population, action-deck reconstruction by back group, legal hypothetical pending bids, with source selection after recorded resolution cascades. Host/Admin retains complete-state Exploration with Public Money enabled.
+- Thirteen-slot constrained politics population, action-deck reconstruction by back group, legal hypothetical pending bids, with source selection after recorded resolution cascades. Host/Admin retains complete-state Exploration with either money option.
 - Current-save normalization before projection, legacy deterministic initialization, and focused projection, history, rule, migration, and Exploration tests.
 
 The local manifest selects matching 2.0.0 Logic/UI artifacts. Production publication remains a separate action. The shared host bridge contract is unchanged. A shared execution-guard correction permits absent public optional unions while still denying protected optional fields; UI artifacts need republishing to adopt that correction. Lowenherz's new artifact includes it.
 
-Public plays disclose the visible card face; identical-copy IDs no longer exist in the new state model. The money option now controls protected delivery and disables Exploration when private. Neither needs a general persistent belief model. The core recommendation is immutable observation history plus title-owned constrained population.
+Public plays disclose the visible card face; identical-copy IDs no longer exist in the new state model. The money option controls protected delivery and restricts private-money Exploration to canonical Debug/Admin inspection or explicit Host View. Neither needs a general persistent belief model. The core recommendation is immutable observation history plus title-owned constrained population.
 
 ## Validation
 

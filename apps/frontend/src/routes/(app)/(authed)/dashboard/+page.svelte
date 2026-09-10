@@ -1,69 +1,211 @@
 <script lang="ts">
-    import GameCard from '$lib/components/GameCard.svelte'
-    import type { Game } from '@tabletop/common'
-    import { getAppContext } from '@tabletop/frontend-components'
+    import { getAppContext } from '$lib/stores/appContext.svelte'
+    import DashboardGameList from '$lib/components/DashboardGameList.svelte'
+    import DashboardHistory from '$lib/components/DashboardHistory.svelte'
+    import { currentDashboardGames, isUsersGameTurn } from '$lib/utils/dashboardGames'
 
-    let { gameService } = getAppContext()
+    const { gameService, authorizationService } = getAppContext()
+    let tab = $state<'current' | 'history'>('current')
+    let historyOpened = $state(false)
+    let onlyMyTurn = $state(false)
+    const userId = $derived(authorizationService.getSessionUser()?.id)
+    const games = $derived(
+        currentDashboardGames(gameService.activeGames, gameService.waitingGames, userId)
+    )
+    const turnCount = $derived(games.filter((game) => isUsersGameTurn(game, userId)).length)
+    const visible = $derived(games.filter((game) => !onlyMyTurn || isUsersGameTurn(game, userId)))
 
-    const wait = () => new Promise((res) => setTimeout(res, 1000))
+    function selectTab(selected: 'current' | 'history') {
+        tab = selected
+        if (selected === 'history') historyOpened = true
+    }
+    function moveTab(event: KeyboardEvent) {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+        event.preventDefault()
+        selectTab(
+            event.key === 'Home'
+                ? 'current'
+                : event.key === 'End'
+                  ? 'history'
+                  : tab === 'current'
+                    ? 'history'
+                    : 'current'
+        )
+        document.getElementById(`dashboard-tab-${tab}`)?.focus()
+    }
 </script>
 
-{#snippet gameColumn(games: Game[], title: string)}
+<svelte:head><title>My games — Board Together</title></svelte:head>
+<main class="dashboard collection-page">
+    <header class="page-heading collection-header">
+        <h1 class="collection-heading">Your games.</h1>
+        <a href="/library" class="find-game">Go to the library <span aria-hidden="true">→</span></a>
+    </header>
+    <div class="navigation">
+        <div class="collection-tabs" role="tablist" aria-label="My games">
+            {#each ['current', 'history'] as choice}
+                {@const selected = choice === 'current' ? 'current' : 'history'}
+                <button
+                    class="collection-tab"
+                    id={`dashboard-tab-${selected}`}
+                    role="tab"
+                    aria-selected={tab === selected}
+                    aria-controls={`dashboard-panel-${selected}`}
+                    tabindex={tab === selected ? 0 : -1}
+                    onclick={() => selectTab(selected)}
+                    onkeydown={moveTab}
+                >
+                    {selected === 'current' ? 'Current' : 'History'}
+                    {#if selected === 'current'}<span class="count">{games.length}</span>{/if}
+                </button>
+            {/each}
+        </div>
+        {#if tab === 'current'}
+            <button
+                class="turn-filter rounded-md px-2 py-1.5 text-xs"
+                class:enabled={onlyMyTurn}
+                aria-pressed={onlyMyTurn}
+                onclick={() => (onlyMyTurn = !onlyMyTurn)}
+            >
+                Your turn <span>{turnCount}</span>
+            </button>
+        {/if}
+    </div>
     <div
-        class="p-2 grow shrink min-w-[90vw] sm:min-w-[340px] w-full h-full max-h-[calc(100dvh-70px)] overflow-hidden"
+        class="panel"
+        role="tabpanel"
+        tabindex="0"
+        id="dashboard-panel-current"
+        aria-labelledby="dashboard-tab-current"
+        hidden={tab !== 'current'}
     >
-        <div class="text-center h-full">
-            <div class="shrink-0 grow-0 dark:text-gray-200 text-2xl mx-2 mb-2 relative">
-                {title}
-
-                {#if gameService.loading}
-                    {#await wait() then a}
-                        {#if gameService.loading}
-                            <div class="absolute top-0 right-0" role="status">
-                                <svg
-                                    aria-hidden="true"
-                                    class="inline w-6 h-6 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
-                                    viewBox="0 0 100 101"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
-                                        fill="currentColor"
-                                    ></path>
-                                    <path
-                                        d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
-                                        fill="currentFill"
-                                    ></path>
-                                </svg>
-                                <span class="sr-only">Loading...</span>
-                            </div>
-                        {/if}
-                    {/await}
-                {/if}
-            </div>
-            <div class="h-[calc(100%-32px)] overflow-y-auto">
-                <div class="flex flex-col justify-center items-center">
-                    {#if games.length === 0}
-                        <div
-                            class="text-md dark:text-gray-500 w-full border-dashed border-2 border-gray-700 rounded-lg p-8"
-                        >
-                            <p>No games</p>
-                        </div>
-                    {/if}
-                    {#each games as game (game.id)}
-                        <GameCard {game} />
-                    {/each}
+        <div class="current-results" aria-busy={gameService.loading}>
+            {#if visible.length}
+                <DashboardGameList games={visible} />
+            {:else if gameService.loading}
+                <p class="empty" role="status">Loading your games…</p>
+            {:else}
+                <div class="empty">
+                    <p>
+                        {onlyMyTurn ? 'You’re all caught up.' : 'Ready for a game?'}
+                    </p>
+                    {#if !games.length}<a href="/library">Explore the library →</a>{/if}
                 </div>
-            </div>
+            {/if}
         </div>
     </div>
-{/snippet}
-
-<div class="flex flex-row overflow-x-auto w-full h-[calc(100dvh-70px)]">
-    <div class="flex flex-row mx-auto">
-        {@render gameColumn(gameService.activeGames, 'Active Games')}
-        {@render gameColumn(gameService.waitingGames, 'Waiting Games')}
-        {@render gameColumn(gameService.finishedGames, 'Finished Games')}
+    <div
+        class="panel"
+        role="tabpanel"
+        tabindex="0"
+        id="dashboard-panel-history"
+        aria-labelledby="dashboard-tab-history"
+        hidden={tab !== 'history'}
+    >
+        {#if historyOpened}<DashboardHistory />{/if}
     </div>
-</div>
+</main>
+
+<style>
+    .dashboard {
+        height: calc(100dvh - var(--app-navbar-height, 0px) - var(--app-banner-height, 0px));
+        display: flex;
+        flex-direction: column;
+        color: var(--color-gray-200);
+    }
+    .page-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        flex-shrink: 0;
+    }
+    .find-game {
+        color: var(--color-blue-300);
+        font-size: 14px;
+        white-space: nowrap;
+    }
+    .find-game:hover {
+        text-decoration: underline;
+    }
+    .navigation {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        border-bottom: 1px solid var(--color-gray-700);
+        flex-shrink: 0;
+    }
+    .collection-tab {
+        color: var(--color-gray-400);
+        border-color: transparent;
+    }
+    .collection-tab:hover {
+        color: var(--color-gray-100);
+    }
+    [role='tab'][aria-selected='true'] {
+        color: var(--color-gray-100);
+        border-color: var(--color-blue-400);
+    }
+    .count {
+        margin-left: 6px;
+        font-size: 12px;
+        color: var(--color-gray-400);
+    }
+    .turn-filter {
+        border: 1px solid var(--color-gray-700);
+        color: var(--color-gray-300);
+        white-space: nowrap;
+    }
+    .turn-filter span {
+        margin-left: 8px;
+        color: var(--color-blue-300);
+    }
+    .turn-filter.enabled {
+        background: var(--color-blue-950);
+        border-color: var(--color-blue-400);
+    }
+    .panel {
+        padding-top: 24px;
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    .panel[hidden] {
+        display: none;
+    }
+    .current-results {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 2px 4px 48px;
+        margin: -2px -4px 0;
+    }
+    .empty {
+        border: 1px solid var(--color-gray-800);
+        border-radius: 12px;
+        padding: 28px;
+        color: var(--color-gray-400);
+        font-size: 14px;
+    }
+    .empty a {
+        display: inline-block;
+        margin-top: 12px;
+        color: var(--color-blue-300);
+    }
+    button:not([role='tab']):focus-visible,
+    a:focus-visible {
+        outline: 2px solid var(--color-blue-400);
+        outline-offset: 4px;
+    }
+    @media (max-width: 700px) {
+        .page-heading {
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .navigation {
+            gap: 10px;
+        }
+    }
+</style>

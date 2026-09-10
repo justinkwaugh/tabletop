@@ -37,7 +37,7 @@ Browser checks use the local harness and controlled complete states:
 
 Rule tests separately verify one-copy consumption for taking, Alliance/Renegade plays, bid ownership, and forward continuation from legacy saves.
 
-Hosted checks additionally use separate owner, opponent, and spectator accounts. Inspection faces and their history appear only for the inspector; reload preserves the snapshot, taking adds one card, Undo restores selection, and ordinary Exploration populates a complete hypothetical state. Admin Host View retains complete-state access. Exploration is unavailable with Public Money off, including from Host View and legacy Games.
+Hosted checks additionally use separate owner, opponent, and spectator accounts. Inspection faces and their history appear only for the inspector; reload preserves the snapshot, taking adds one card, Undo restores selection, and ordinary Exploration populates a complete hypothetical state. With Public Money off, Exploration requires canonical state and Debug/Admin inspection or explicit Host View. Browser coverage verifies Host View entry, already-canonical local and unmarked hosted Games, local play and Undo, source restoration, and disabled Exploration after returning to a projection or leaving inspection.
 
 ## Private money
 
@@ -45,7 +45,7 @@ With Public Money off, player panels show the owner’s balance and question mar
 
 Negotiation amount controls cap only publicly displayed balances or the acting player’s own balance. A demand against an opponent’s private balance has no balance-derived cap; the payer must afford any amount they personally propose or accept. Duel controls and knight/alliance costs use the acting player’s known money.
 
-The session disables Exploration when Game configuration or the recorded state flag makes money private. This includes Host View and legacy Games. Public-money Exploration keeps the existing card population behavior.
+The session disables Exploration when Game configuration or the recorded state flag makes money private, unless Debug/Admin inspection or explicit Host View is active and the source uses the canonical Exploration path. Older unmarked hosted Games and ordinary local Games already have canonical state and need no separate Host View context. Debug alone in the protected harness and inspecting the acting Player's projection do not unlock Exploration. Canonical Exploration preserves balances and retains its existing card reshuffling; projected Exploration still rejects private money, including legacy Games. Public-money Exploration keeps the existing card population behavior.
 
 # Breaking an alliance
 

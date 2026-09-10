@@ -16,7 +16,7 @@
         'text-slate-500 border-transparent hover:text-slate-800 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:border-slate-600'
 </script>
 
-<div class="space-y-2 text-left ms-2 sm:h-[calc(100dvh-84px)] h-[calc(100dvh-116px)] overflow-auto">
+<div class="bg-slate-950 space-y-2 text-left ms-2 sm:h-[calc(100dvh-84px)] h-[calc(100dvh-116px)] overflow-auto">
     {#if privilegedGameView}
         <div class="flex items-center gap-2">
             <PrivilegedGameViewControl view={privilegedGameView} actingPlayer={myPlayer} />

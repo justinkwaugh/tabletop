@@ -53,6 +53,7 @@
                     class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
                 ></div>
                 <TimelineItem
+                    defaultDivClass="hidden"
                     timeClass="dark:text-[#ad9c80]"
                     title=""
                     class="text-left mb-5"
@@ -79,6 +80,7 @@
                         class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
                     ></div>
                     <TimelineItem
+                        defaultDivClass="hidden"
                         timeClass="dark:text-[#ad9c80]"
                         title=""
                         class="text-left mb-5"
@@ -97,6 +99,7 @@
                 class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
             ></div>
             <TimelineItem
+                defaultDivClass="hidden"
                 timeClass="dark:text-[#ad9c80]"
                 title=""
                 class="text-left mb-5"
