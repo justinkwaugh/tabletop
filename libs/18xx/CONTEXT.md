@@ -173,3 +173,10 @@ Ownership, permission to run, and inclusion in a train limit are separate questi
 **Depot**:
 The supply of new trains available for purchase under the title's ordering and
 availability rules.
+
+**Route**:
+The connected sequence of track traversed by a train during a run, including its
+visits to revenue centers.
+
+**Operating Result**:
+The itemized revenue earned by a company's submitted train runs in an operating turn.

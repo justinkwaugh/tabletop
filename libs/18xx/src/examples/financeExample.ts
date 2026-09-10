@@ -1,3 +1,7 @@
+import { RouteFields, type RouteStep } from '../routes/route.js'
+import { RunTrains, HydratedRunTrains, isRunTrains } from '../routes/runTrains.js'
+import { RunningTrainsHandler } from '../routes/runningTrainsHandler.js'
+import type { RouteRules } from '../routes/routeEvaluation.js'
 import {
     TrainFields,
     type TrainInventory,
@@ -96,7 +100,9 @@ const ExampleFields = Type.Object({
         Type.Literal('LayingTrack'),
         Type.Literal('PlacingStation'),
         Type.Literal('StationsComplete'),
-        Type.Literal('BuyingTrains')
+        Type.Literal('BuyingTrains'),
+        Type.Literal('RunningTrains'),
+        Type.Literal('TrainsRun')
     ]),
     stockRound: StockRound,
     operatingSet: Type.Optional(OperatingSet),
@@ -106,7 +112,8 @@ const ExampleFields = Type.Object({
     ...FinanceFields,
     ...CompanyFields,
     ...MapFields,
-    ...TrainFields
+    ...TrainFields,
+    ...RouteFields
 })
 export const FinanceExampleState: Type.TObject<
     Omit<typeof GameState.properties, 'machineState'> & typeof ExampleFields.properties
@@ -124,6 +131,7 @@ export class HydratedFinanceExampleState
     extends HydratableGameState<typeof FinanceExampleState, PlayerState>
     implements FinanceExampleState
 {
+    declare routeStep?: RouteStep
     declare trainInventory: TrainInventory
     declare trainPurchaseStep?: TrainPurchaseStep
     declare tileInventory: TileInventory
@@ -141,6 +149,8 @@ export class HydratedFinanceExampleState
         | 'PlacingStation'
         | 'StationsComplete'
         | 'BuyingTrains'
+        | 'RunningTrains'
+        | 'TrainsRun'
     declare operatingSet?: OperatingSet
     declare stationStep?: StationStep
     declare trackStep?: TrackStep
@@ -203,6 +213,17 @@ export class HydratedFinanceExampleState
             this.companies.map((company) => company.id),
             this.players.map((player) => player.playerId)
         )
+        if (this.machineState === 'RunningTrains' || this.machineState === 'TrainsRun') {
+            assert(
+                this.routeStep &&
+                    this.operatingSet?.companyOrder.includes(this.routeStep.companyId),
+                'Routes require an operating company'
+            )
+            assert(
+                (this.machineState === 'TrainsRun') === Boolean(this.routeStep.result),
+                'Route result must match operation progress'
+            )
+        }
         if (this.machineState === 'BuyingTrains') {
             assert(
                 this.trainPurchaseStep &&
@@ -289,7 +310,12 @@ class FinanceExampleInitializer extends BaseGameInitializer<
             this.options.tileSet,
             this.options.trainRules.depot
         )
-        if (position === 'construction' || position === 'stations' || position === 'trains') {
+        if (
+            position === 'construction' ||
+            position === 'stations' ||
+            position === 'trains' ||
+            position === 'routes'
+        ) {
             const companyOrder = this.options.operatingRules.companyOrder(initialized)
             const companyId = companyOrder[0]
             const owner = controllingOwner(initialized, companyId)
@@ -318,6 +344,11 @@ class FinanceExampleInitializer extends BaseGameInitializer<
                 initialized.trainPurchaseStep = { companyId, purchasedTrainIds: [] }
                 initialized.machineState = 'BuyingTrains'
             }
+            if (position === 'routes') {
+                delete initialized.trackStep
+                initialized.routeStep = { companyId }
+                initialized.machineState = 'RunningTrains'
+            }
             initialized.activePlayerIds = [owner.playerId]
             initialized.turnManager.series = [{ type: 'turn', playerId: owner.playerId, start: 0 }]
         }
@@ -333,6 +364,7 @@ export interface FinanceExampleOptions {
     map: RailwayMap
     tileSet: TileSet
     stationRules: StationRules
+    routeRules: RouteRules
     trainRules: TrainRules
     trackRules: TrackRules
 }
@@ -346,6 +378,7 @@ export function createFinanceExampleRuntime(
             hydrateState: (state) =>
                 new HydratedFinanceExampleState(state, map, tileSet, options.trainRules.depot),
             hydrateAction: (action) => {
+                if (isRunTrains(action)) return new HydratedRunTrains(action, options.routeRules)
                 if (isBuyTrain(action)) return new HydratedBuyTrain(action, options.trainRules)
                 if (isPlaceStation(action))
                     return new HydratedPlaceStation(action, options.stationRules)
@@ -384,15 +417,18 @@ export function createFinanceExampleRuntime(
             PlaceStation,
             FinishStations,
             PlaceHomeStations,
-            BuyTrain
+            BuyTrain,
+            RunTrains
         },
         stateHandlers: {
             StockRound: new StockRoundHandler(rules, 'StartingOperatingSet', companyRules),
             StartingOperatingSet: new StartOperatingSetHandler('OperatingSet'),
             OperatingSet: new StartOperatingTurnHandler(options.stationRules),
             LayingTrack: new LayingTrackHandler(options.trackRules, 'PlacingStation'),
-            PlacingStation: new PlacingStationHandler(options.stationRules, 'StationsComplete'),
+            PlacingStation: new PlacingStationHandler(options.stationRules, 'RunningTrains'),
             StationsComplete: new TerminalStateHandler(),
+            RunningTrains: new RunningTrainsHandler(options.routeRules, 'TrainsRun'),
+            TrainsRun: new TerminalStateHandler(),
             BuyingTrains: new BuyingTrainsHandler(options.trainRules)
         }
     }

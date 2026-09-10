@@ -17,3 +17,5 @@ export * from './trackRules.js'
 export * from './stationRules.js'
 
 export * from './trains.js'
+
+export * from './routeRules.js'

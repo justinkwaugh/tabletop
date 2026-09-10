@@ -1,3 +1,5 @@
+import { RouteEditor } from './routeEditor.svelte.js'
+import { RunTrains, type RouteRules, type RevenueCenter, type RoutePath } from '@tabletop/18xx'
 import {
     BuyTrain,
     TrainPurchase,
@@ -95,9 +97,81 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         readonly mapView: MapViewDefinition,
         private readonly trackRules: TrackRules,
         private readonly stationRules: StationRules,
-        private readonly trainRules: TrainRules
+        private readonly trainRules: TrainRules,
+        private readonly routeRules: RouteRules
     ) {
         super(options)
+    }
+    routeEditor = $derived.by(() => new RouteEditor(this.financialState, this.routeRules))
+    canRunTrains = $derived(
+        !this.busy &&
+            !this.updatingVisibleState &&
+            !this.isViewingHistory &&
+            this.validActionTypes.includes('RunTrains')
+    )
+    routeDraftVisible = $derived.by(
+        () =>
+            !this.updatingVisibleState &&
+            !this.isViewingHistory &&
+            this.financialState.machineState === 'RunningTrains'
+    )
+    routeOverlays = $derived.by(() => {
+        if (this.updatingVisibleState) return []
+        const result = this.financialState.routeStep?.result
+        const routes = this.routeDraftVisible ? this.routeEditor.routes : (result?.routes ?? [])
+        const overlays = routes.map((route, index) => ({
+            id: route.trainId,
+            color: ['#b24bce', '#15784e', '#d34b38', '#325aba'][index % 4],
+            segments: route.paths
+        }))
+        if (this.routeDraftVisible && this.routeEditor.route)
+            overlays.push({ id: 'route-draft', color: '#d58400', segments: this.routeEditor.paths })
+        return overlays
+    })
+    displayedRoutes = $derived.by(() =>
+        this.routeOverlays.length ? this.routeOverlays : this.networkRoutes
+    )
+    selectRouteTrain(trainId: string) {
+        assert(this.canRunTrains, 'Routes are not active')
+        this.routeEditor.selectTrain(trainId)
+    }
+    selectRouteStart(start: RevenueCenter) {
+        assert(this.canRunTrains, 'Routes are not active')
+        this.routeEditor.selectStart(start)
+        this.inspectMap({ kind: 'node', ...start })
+    }
+    appendRoutePath(path: RoutePath) {
+        assert(this.canRunTrains, 'Routes are not active')
+        this.routeEditor.append(path)
+        this.inspectMap({ kind: 'path', ...path })
+    }
+    saveRoute() {
+        assert(this.canRunTrains, 'Routes are not active')
+        this.routeEditor.save()
+    }
+    editRoute(trainId: string) {
+        assert(this.canRunTrains, 'Routes are not active')
+        this.routeEditor.edit(trainId)
+    }
+    removeRoute(trainId: string) {
+        assert(this.canRunTrains, 'Routes are not active')
+        this.routeEditor.remove(trainId)
+    }
+    backRoute() {
+        this.routeEditor.back()
+    }
+    async confirmRoutes() {
+        const editor = this.routeEditor
+        assert(
+            this.canRunTrains && editor.companyId && !editor.trainId && editor.submission?.result,
+            'Finish the route draft before submitting'
+        )
+        await this.applyAction(
+            this.createPlayerAction(RunTrains, {
+                companyId: editor.companyId,
+                routes: editor.routes
+            })
+        )
     }
     private trainDraft: TrainPurchaseRequest | undefined = $state.raw()
     trainSelection = $derived.by(() =>
@@ -770,6 +844,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         await this.applyAction(this.createPlayerAction(FinishStockTurn, {}))
     }
     override beforeNewState() {
+        this.routeEditor.clear()
         this.trainDraft = undefined
         this.stationDraft = {}
         this.trackDraft = {}
@@ -777,6 +852,10 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     }
     override async undo() {
         if (this.busy || this.isViewingHistory) return
+        if (this.routeEditor.hasDraft) {
+            this.routeEditor.clear()
+            return
+        }
         if (this.trainDraft) {
             this.trainDraft = undefined
             return
@@ -812,11 +891,21 @@ export function createFinanceExampleSessionClass(
     mapView: MapViewDefinition,
     trackRules: TrackRules,
     stationRules: StationRules,
-    trainRules: TrainRules
+    trainRules: TrainRules,
+    routeRules: RouteRules
 ): new (options: SessionOptions) => FinanceExampleSession {
     return class extends FinanceExampleSession {
         constructor(options: SessionOptions) {
-            super(options, rules, companyRules, mapView, trackRules, stationRules, trainRules)
+            super(
+                options,
+                rules,
+                companyRules,
+                mapView,
+                trackRules,
+                stationRules,
+                trainRules,
+                routeRules
+            )
         }
     }
 }

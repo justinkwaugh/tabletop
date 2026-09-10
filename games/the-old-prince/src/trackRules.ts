@@ -8,7 +8,7 @@ import {
 } from '@tabletop/18xx'
 import { TheOldPrinceMap } from './map.js'
 import { TheOldPrinceTileSet } from './tiles.js'
-const Colors: Record<string, readonly string[]> = {
+export const TheOldPrinceTrackColors: Record<string, readonly string[]> = {
     '2H': ['yellow'],
     '3H': ['yellow'],
     '4H': ['yellow', 'green'],
@@ -25,7 +25,7 @@ export const TheOldPrinceTrackRules: TrackRules = {
     tileSet: TheOldPrinceTileSet,
     colorOrder: ['white', 'yellow', 'green', 'brown', 'gray'],
     availableColors(state) {
-        const colors = Colors[state.phaseId]
+        const colors = TheOldPrinceTrackColors[state.phaseId]
         assertExists(colors, 'Unknown phase')
         return colors
     },

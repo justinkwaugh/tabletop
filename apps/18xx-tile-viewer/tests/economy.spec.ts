@@ -140,7 +140,7 @@ test('preserves earlier examples and reuses the current fixture on reload', asyn
     const saved = await examples()
     expect(saved).toHaveLength(2)
     expect(saved).toContainEqual({ id: previousId, name: 'Finances example · 2' })
-    expect(saved.filter((game) => game.name === 'Finances example · 13 · trading')).toHaveLength(1)
+    expect(saved.filter((game) => game.name === 'Finances example · 15 · trading')).toHaveLength(1)
     await page.reload()
     await expect(union).toContainText('Cash 40')
     expect(await examples()).toEqual(saved)

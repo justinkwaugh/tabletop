@@ -1,4 +1,5 @@
 import * as Type from 'typebox'
+import type { TileNode } from '../tiles/tile.js'
 import { assert } from '@tabletop/common'
 
 const Id = Type.String({ minLength: 1 })
@@ -71,4 +72,23 @@ export function validateStations(state: StationState, companyIds: readonly strin
     }
     for (const reservation of state.stationReservations)
         assert(companyIds.includes(reservation.companyId), 'Unknown reservation company')
+}
+
+export function cityIsBlocked(
+    state: StationState,
+    companyId: string,
+    locationId: string,
+    node: TileNode
+): boolean {
+    if (node.kind !== 'city' || node.stationSlots === 0) return false
+    const stations = state.stations.filter(
+        (station) =>
+            station.status === 'placed' &&
+            station.position.locationId === locationId &&
+            station.position.nodeId === node.id
+    )
+    return (
+        stations.length >= node.stationSlots &&
+        !stations.some((station) => station.companyId === companyId)
+    )
 }

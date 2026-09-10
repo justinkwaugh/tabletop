@@ -1,3 +1,4 @@
+import { TheOldPrinceRouteRules } from '@tabletop/the-old-prince'
 import { TheOldPrinceTrainRules } from '@tabletop/the-old-prince'
 import { TheOldPrinceStationRules } from '@tabletop/the-old-prince'
 import { TheOldPrinceMapView } from './mapView.js'
@@ -25,7 +26,8 @@ export const UiRuntime: GameUIRuntime<GameState, HydratedGameState> = {
         TheOldPrinceMapView,
         TheOldPrinceTrackRules,
         TheOldPrinceStationRules,
-        TheOldPrinceTrainRules
+        TheOldPrinceTrainRules,
+        TheOldPrinceRouteRules
     ),
     colorizer: new DefaultColorizer()
 }

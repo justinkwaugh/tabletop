@@ -64,3 +64,11 @@ The Train purchases example follows the shared depot-selection, confirmation,
 Back/Undo and history contract. It starts directly in same-phase train buying,
 with a prepared owned train. Existing operating examples still stop before the
 route and dividend steps; phase changes and emergency financing remain later work.
+
+
+The Routes example uses the shared route editor and interaction contract. Map
+path clicks and extension controls stage routes for two trains; only Confirm
+routes commits. Title RouteRules supplies train distance requirements and revenue
+stages. FinishStations now enters RunningTrains; RunTrains ends at TrainsRun
+until earnings distribution is implemented. Route overlays, Back/Undo, history
+and reload follow the shared contract (fixture version 15).

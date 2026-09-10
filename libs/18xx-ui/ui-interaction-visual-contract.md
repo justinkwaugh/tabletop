@@ -379,8 +379,7 @@ The preview reuses station tokens and reservation overlays, plus the inset amber
 hex outline. Legal station hexes use the existing green target outlines. Selection
 and focus stay above those outlines; slot hit precedence remains unchanged.
 The inspector sees the hypothetical token; treasury, supply and history remain
-committed until Confirm station. Finish stations reaches StationsComplete pending
-later operating steps. Finish track initializes station progress in the same Action; Undo restores
+committed until Confirm station. Finish stations initializes RouteStep and reaches RunningTrains. Finish track initializes station progress in the same Action; Undo restores
 the unfinished track step and removes that station progress. 1889 homes appear through PlaceHomeStations before the
 first company operates; their placement is individually visible in history.
 
@@ -393,7 +392,7 @@ Undo and history recompute from their corresponding displayed stations. Access
 paths are hidden during tile previews and visible-state updates. Viewport and
 style changes do not commit gameplay or consume staged choices.
 
-The Station placement example is prepared and uses fixture version 13. Desktop
+The Station placement example is prepared and uses fixture version 15. Desktop
 controls are provisional; no mobile layout work is part of this slice.
 
 
@@ -421,3 +420,36 @@ route and dividend steps to enter BuyingTrains. The prototype has no finish cont
 that could bypass compulsory train funding.
 
 Fixture version 13 preserves old saves. Train purchase controls remain provisional.
+
+
+### Routes and operating results
+
+RouteEditor owns the manual selected train, starting revenue center, ordered path
+segments, and saved uncommitted routes. Session methods gate edits and construct
+RunTrains. Save route stages a completed route; Confirm routes submits the full
+set. The same authoritative evaluator produces per-center payments, per-train
+revenue, distance and set-level track-conflict feedback. Invalid sets cannot be
+confirmed. No optimizer or automatic route selection runs in the editor.
+
+Back removes one path, then the start, then train selection. Undo clears all manual
+route drafts before committed Undo. Draft overlays/controls are hidden in history
+and during updatingVisibleState; beforeNewState clears them. The editor is rebuilt
+from the next exposed game state. Reload restores committed results only. Map
+style and viewport changes preserve drafts. Save/edit/remove controls do not
+mutate canonical state or generate Actions.
+
+A selected train can start at a map revenue-center/slot click or the center
+selector. Connected path clicks and Next track buttons append semantic path IDs.
+Other hits retain map inspection. Draft paths are amber; saved routes have distinct
+colors. Route drafts retain only canonical location/node/path IDs, excluding
+presentation fields from map selections. While route overlays are present, the reachability controls and blue
+legend are hidden. Route overlays replace reachable-track overlays, retaining
+the existing layer ordering below node artwork and selection. History renders
+committed route overlays and itemized results for the viewed state.
+
+FinishStations initializes RouteStep and advances directly into RunningTrains.
+RunTrains stores OperatingResult and reaches TrainsRun pending earnings
+settlement. The Routes fixture (version 15) supplies two trains and connected track
+for each title. Zero/suboptimal submissions are permitted during this slice;
+client-only automatic route suggestions belong to slice 18. No payout or market movement is
+implied by a displayed route total. The route panel remains disposable.

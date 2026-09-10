@@ -2,7 +2,7 @@ import { assertExists } from '@tabletop/common'
 import { sameStopCounts, privateOwner, type TrackRules } from '@tabletop/18xx'
 import { Shikoku1889Map } from './map.js'
 import { Shikoku1889TileSet } from './tiles.js'
-const Colors: Record<string, readonly string[]> = {
+export const Shikoku1889TrackColors: Record<string, readonly string[]> = {
     '2': ['yellow'],
     '3': ['yellow', 'green'],
     '4': ['yellow', 'green'],
@@ -15,7 +15,7 @@ export const Shikoku1889TrackRules: TrackRules = {
     tileSet: Shikoku1889TileSet,
     colorOrder: ['white', 'yellow', 'green', 'brown'],
     availableColors(state) {
-        const colors = Colors[state.phaseId]
+        const colors = Shikoku1889TrackColors[state.phaseId]
         assertExists(colors, 'Unknown phase')
         return colors
     },

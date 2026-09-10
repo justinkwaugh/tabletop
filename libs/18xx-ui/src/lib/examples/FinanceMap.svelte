@@ -1,4 +1,5 @@
 <script lang="ts">
+    import RouteBuilding from './RouteBuilding.svelte'
     import StationBuilding from './StationBuilding.svelte'
     import TrackBuilding from './TrackBuilding.svelte'
     import MapViewer from '../maps/MapViewer.svelte'
@@ -49,39 +50,42 @@
             >{session.isViewingHistory ? 'History' : 'Live'} · {session.financialState.actionCount} actions</span
         >
     </header>
+    <RouteBuilding {session} />
     <TrackBuilding {session} />
     <StationBuilding {session} />
-    <div class="network" aria-label="Network access">
-        <label
-            ><input type="checkbox" bind:checked={session.showTrackAccess} /> Show reachable track</label
-        >
-        <label
-            >Company <select
-                aria-label="Network company"
-                value={session.networkCompanyId ?? ''}
-                onchange={(event) => session.inspectCompanyNetwork(event.currentTarget.value)}
+    {#if !session.routeOverlays.length}
+        <div class="network" aria-label="Network access">
+            <label
+                ><input type="checkbox" bind:checked={session.showTrackAccess} /> Show reachable track</label
             >
-                {#each session.networkCompanies as company}<option value={company.id}
-                        >{company.name}</option
-                    >{/each}
-            </select></label
-        >
-        {#if session.showTrackAccess}<span
-                >Blue: reachable track{session.stationPreview ? ' (preview)' : ''}</span
+            <label
+                >Company <select
+                    aria-label="Network company"
+                    value={session.networkCompanyId ?? ''}
+                    onchange={(event) => session.inspectCompanyNetwork(event.currentTarget.value)}
+                >
+                    {#each session.networkCompanies as company}<option value={company.id}
+                            >{company.name}</option
+                        >{/each}
+                </select></label
             >
-            {#if session.blockedCities.length}<span
-                    >Blocked cities: {session.blockedCities
-                        .map((city) => `${city.locationId} ${city.name ?? ''}`)
-                        .join(', ')}</span
-                >{/if}
-        {/if}
-    </div>
+            {#if session.showTrackAccess}<span
+                    >Blue: reachable track{session.stationPreview ? ' (preview)' : ''}</span
+                >
+                {#if session.blockedCities.length}<span
+                        >Blocked cities: {session.blockedCities
+                            .map((city) => `${city.locationId} ${city.name ?? ''}`)
+                            .join(', ')}</span
+                    >{/if}
+            {/if}
+        </div>
+    {/if}
     <MapViewer
         scene={session.displayedMapScene}
         legalLocationIds={session.canPlaceStation
             ? session.stationLocationIds
             : session.trackLocationIds}
-        routes={session.networkRoutes}
+        routes={session.displayedRoutes}
         previewLocationId={session.trackPreview?.locationId ??
             session.stationPreview?.position.locationId}
         selection={session.mapSelection}
@@ -90,7 +94,35 @@
             session.stationDisplayState.stationReservations}
         appearance={session.mapStyle === 'muted' ? MutedTileAppearance : ClassicTileAppearance}
         onselect={(selection) => {
-            if (session.canBuildTrack && session.trackLocationIds.includes(selection.locationId))
+            if (
+                session.canRunTrains &&
+                session.routeEditor.trainId &&
+                selection.kind === 'path' &&
+                session.routeEditor.extensions.some(
+                    (path) =>
+                        path.locationId === selection.locationId && path.pathId === selection.pathId
+                )
+            )
+                session.appendRoutePath(selection)
+            else if (
+                session.canRunTrains &&
+                session.routeEditor.trainId &&
+                !session.routeEditor.start &&
+                (selection.kind === 'node' || selection.kind === 'slot') &&
+                session.routeEditor.centers.some(
+                    (center) =>
+                        center.locationId === selection.locationId &&
+                        center.nodeId === selection.nodeId
+                )
+            )
+                session.selectRouteStart({
+                    locationId: selection.locationId,
+                    nodeId: selection.nodeId
+                })
+            else if (
+                session.canBuildTrack &&
+                session.trackLocationIds.includes(selection.locationId)
+            )
                 session.selectTrackLocation(selection.locationId)
             else if (
                 session.canPlaceStation &&

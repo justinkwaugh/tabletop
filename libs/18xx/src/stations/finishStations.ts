@@ -1,3 +1,4 @@
+import type { RouteState } from '../routes/route.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -32,7 +33,7 @@ export class HydratedFinishStations
     constructor(data: FinishStations) {
         super(data instanceof HydratedFinishStations ? data.dehydrate() : data, Validator)
     }
-    apply(state: HydratedGameState & StationPlacementState): void {
+    apply(state: HydratedGameState & StationPlacementState & RouteState): void {
         const step = state.stationStep
         assert(
             this.source === ActionSource.User &&
@@ -43,5 +44,6 @@ export class HydratedFinishStations
             'Only the controlling owner may finish station placement'
         )
         step.completed = true
+        state.routeStep = { companyId: this.companyId }
     }
 }

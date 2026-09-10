@@ -11,7 +11,8 @@
         "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
         "test:unit": "vitest run",
         "test:browser": "playwright test",
-        "test": "pnpm run test:unit && pnpm run test:browser"
+        "test": "pnpm run test:unit && pnpm run test:browser",
+        "benchmark:routes": "node scripts/benchmark-routes.mjs"
     },
     "dependencies": {
         "@tabletop/18xx": "workspace:*",

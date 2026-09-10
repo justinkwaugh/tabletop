@@ -1,5 +1,5 @@
 import type { RailwayMapState } from '../map/mapState.js'
-import type { StationState } from '../map/station.js'
+import { cityIsBlocked, type StationState } from '../map/station.js'
 import type { TileEndpoint, TileFace } from '../tiles/tile.js'
 import { rotateTileEdge, rotateTileFace, sameTileEndpoint } from '../tiles/topology.js'
 
@@ -47,18 +47,7 @@ export class TrackNetwork {
             const face = faces.get(locationId)!
             if (endpoint.kind === 'node') {
                 const node = face.nodes.find((node) => node.id === endpoint.nodeId)!
-                const stations = state.stations.filter(
-                    (station) =>
-                        station.status === 'placed' &&
-                        station.position.locationId === locationId &&
-                        station.position.nodeId === endpoint.nodeId
-                )
-                if (
-                    node.kind === 'city' &&
-                    node.stationSlots > 0 &&
-                    stations.length >= node.stationSlots &&
-                    !stations.some((station) => station.companyId === companyId)
-                ) {
+                if (cityIsBlocked(state, companyId, locationId, node)) {
                     const blocked = this.blocked.get(locationId) ?? new Set<string>()
                     blocked.add(node.id)
                     this.blocked.set(locationId, blocked)

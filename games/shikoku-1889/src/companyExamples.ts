@@ -94,13 +94,13 @@ export function createShikoku1889CompanyExample(
                 status: 'available'
             })
     }
-    if (position === 'construction' || position === 'stations') {
+    if (position === 'construction' || position === 'stations' || position === 'routes') {
         state.phaseId = '3'
         state.tileInventory = Shikoku1889TileSet.createInventory([
             { locationId: 'E2', definitionId: '18xx:5', rotation: 0 }
         ])
     }
-    if (position === 'stations') {
+    if (position === 'stations' || position === 'routes') {
         applyStationPlacement(state, {
             companyId: 'AR',
             stationId: 'AR:station:1',
@@ -121,6 +121,16 @@ export function createShikoku1889CompanyExample(
             kind: 'company',
             companyId: 'IR'
         })
+    }
+    if (position === 'routes') {
+        for (let index = 0; index < 2; index++) {
+            const train = Shikoku1889TrainDepot.nextTrain(state.trainInventory, '2')
+            assert(train, 'Route example requires a train')
+            Shikoku1889TrainDepot.purchase(state.trainInventory, train.id, train.definitionId, {
+                kind: 'company',
+                companyId: 'IR'
+            })
+        }
     }
     return state
 }

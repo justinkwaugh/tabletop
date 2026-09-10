@@ -11,6 +11,7 @@ import {
 import {
     tileEdgeDirection,
     RailwayMapState,
+    type RoutePath,
     type StationPosition,
     type StationReservation,
     type RailwayMap,
@@ -38,7 +39,7 @@ export type MapToken = StationPosition & {
 export type MapRoute = {
     id: string
     color: string
-    segments: readonly { locationId: string; pathId: string }[]
+    segments: readonly RoutePath[]
 }
 export type MapDrawnLocation = {
     location: MapLocation

@@ -23,7 +23,7 @@ export const TrainDefinition = Type.Object(
     { additionalProperties: false }
 )
 export type TrainDefinition = Type.Static<typeof TrainDefinition>
-const Identity = { id: Id, definitionId: Id }
+const Identity = { id: Id, definitionId: Id, hasRun: Type.Optional(Type.Boolean()) }
 export const Train = Type.Union([
     Type.Object({ ...Identity, status: Type.Literal('depot') }, { additionalProperties: false }),
     Type.Object(

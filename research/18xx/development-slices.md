@@ -104,7 +104,7 @@ encoding the full trait catalog as mandatory configuration.
 | Railway operation         | 6–11   | Both can construct track and operate companies through an ordinary OR in prepared scenarios.                              |
 | Connected rules           | 12–15  | Phase changes, powers, negotiations, and emergency obligations integrate with that operation.                             |
 | Complete title procedures | 16–17  | Real openings for both games and TOP's branch splits connect to the existing mechanisms.                                  |
-| Complete game logic       | 18–19  | TOP's maximum-revenue obligation, full ending rules, and final valuation are covered.                                     |
+| Complete game logic       | 18–19  | Client route suggestions, full ending rules, and final valuation are covered.                                     |
 | Verified game logic       | 20     | Both complete games through prototype clients, including persistence, history, and hosted multi-client behavior.          |
 | Designed game clients     | U1–U2  | Deliberately designed desktop and mobile experiences using the validated logic and shared tile library.                   |
 
@@ -624,15 +624,19 @@ emergency purchases follow in 14–15.
 
 ## 10. Submit routes and calculate an operating result
 
-**Outcome:** select routes for a corporation's trains, validate the whole submitted
-set, and display an itemized revenue result through a candidate `RunRoutes` Action.
+Implemented for TOP and 1889 with shared path traversal, whole-set validation,
+authoritative revenue, RunTrains, and a staged prototype route editor. See
+[design and evidence](route-running-slice-design.md). Payout follows in slice 11;
+client-only auto-routing remains in slice 18.
 
-**Shared work:** railway path traversal, route-set legality, visited and paying
-stops, per-train distance policies, and revenue calculation. Add a route editor,
+**Outcome:** select routes for a corporation's trains, validate the whole submitted
+set, and display an itemized revenue result through a candidate `RunTrains` Action.
+
+**Shared work:** railway path traversal, route-set legality, visits and revenue-center payments, per-train distance policies, and revenue calculation. Add a route editor,
 train assignment, shared-track conflict feedback, and per-train totals. Revenue
 is calculated by authoritative logic from chosen paths, not trusted client totals.
 
-**Paired evidence:** 1889's stop counts, no skipped stops, shared-track prohibition,
+**Paired evidence:** 1889's revenue-center counts, no skipped centers, shared-track prohibition,
 and diesel-specific offboard values; TOP's boundary-counting H trains, + trains
 with trailing towns, 7 and diesel rules. Enforce whole-set track usage rather than
 validating each train independently. [S §8.5; T §§7.4, 13]
@@ -853,25 +857,27 @@ committed decision preserves a legal resumable state. [T §6.7.4; R-T]
 **Depends on:** 17A, 12, 15. This is a TOP procedure composed from shared modules,
 not a reason to introduce a universal reorganization framework.
 
-## 18. Satisfy TOP's maximum-revenue rule
+## 18. Suggest routes with a client-side optimizer
 
-**Outcome:** calculate a best legal fleet route set and make it available in the
-route editor. TOP's authoritative run validation can establish compliance with
-the rule that its trains operate for maximum revenue. [T §7.4]
+**Outcome:** a client-only helper proposes a best legal fleet route set for the
+route editor. TOP's maximum-revenue rule guides its suggestions; 1889 can use
+optional route suggestions. Automatic search is never part of authoritative
+Action processing. [T §7.4]
 
-**Shared work:** candidate enumeration and joint route-set optimization using the
-same legality/revenue evaluator from slice 10. 1889 can consume it as a route
-suggestion; do not impose TOP's stronger rule on 1889 without supporting evidence.
-Include preview of selected paths and an understandable calculation state.
+**Shared client work:** candidate enumeration and joint route-set optimization,
+reusing the deterministic path legality/revenue evaluator from slice 10. Include
+previews, cancellation and visible calculation progress. Search executes in the
+client, using workers where needed. The player confirms the chosen paths through
+RunTrains; shared game logic validates those paths and calculates their revenue.
+It does not search for a better set or certify that submitted revenue is maximal.
 
-**Acceptance:** exhaustive small-map comparison proves correctness; examples
-show why independently selecting each train's best route can be wrong. Exercise
-TOP H/+ trains, shared-track conflicts, and large late-game/diesel positions with
-measured performance. Cache keys must account for all relevant topology,
-stations, trains, phase values, and powers. A timeout or heuristic result must
-not be represented as a proven maximum. If exact enforcement is not feasible,
-bring a concrete product/rules decision to the user before claiming complete TOP
-logic; the default target here is exact compliance.
+**Acceptance:** exhaustive small-map comparison proves optimizer correctness;
+examples show why independently selecting each train's best route can be wrong.
+Exercise TOP H/+ trains, shared-track conflicts and late-game/diesel positions with
+measured performance. Cache keys account for topology, stations, trains, phase
+values and powers. A timeout or heuristic suggestion must not be represented as
+a proven maximum. Cancel/restart search when relevant state changes; a suggestion
+is local draft state until the player confirms it.
 
 **Depends on:** 10, 12, 14; accepts split-created positions after 17.
 

@@ -143,7 +143,7 @@ it.each(Titles)(
             companyId: state.stationStep!.companyId
         }
         const result = engine.executeCanonicalAction({ game, state, action: finish })
-        expect(result.updatedState.machineState).toBe('StationsComplete')
+        expect(result.updatedState.machineState).toBe('RunningTrains')
         expect(result.updatedState.stations).toEqual(state.stations)
         expect(
             engine.undoProcessedAction({
@@ -194,9 +194,9 @@ it('places all newly floated 1889 homes before construction, without payment or 
     expect(replay).toEqual(state)
     const repeated = engine.executeCanonicalAction({ game, state, action: start })
     expect(repeated.updatedState).toEqual(result.updatedState)
-    expect(
-        repeated.processedActions.map(({ createdAt: _createdAt, ...record }) => record)
-    ).toEqual(result.processedActions.map(({ createdAt: _createdAt, ...record }) => record))
+    expect(repeated.processedActions.map(({ createdAt: _createdAt, ...record }) => record)).toEqual(
+        result.processedActions.map(({ createdAt: _createdAt, ...record }) => record)
+    )
 })
 it('does not grant PEIR an extra station even if one is supplied', () => {
     const { state } = example(Top, 'stations')
