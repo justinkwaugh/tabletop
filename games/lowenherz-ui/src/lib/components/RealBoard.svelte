@@ -367,19 +367,22 @@
         return { x: (clientX - rect.left) / safeScale, y: (clientY - rect.top) / safeScale }
     }
 
-    // Whichever legal wall edge's clickable hit-box center is closest to the mouse -
-    // the one spot that gets the pulsing ghost preview, rather than glowing every
-    // legal spot at once.
+    // Whichever legal wall edge's clickable hit-box center is closest to the mouse, within one
+    // cell of it - the one spot that gets the pulsing ghost preview, rather than glowing every
+    // legal spot at once. Both the ghost and the place-on-click read this, so a click can never
+    // place a wall the pointer is not near.
+    const GHOST_WALL_REACH = CELL_SIZE
+
     const nearestWallEdge = $derived.by(() => {
         if (!hoverPoint) return undefined
         let best: (typeof legalWallEdges)[number] | undefined
-        let bestDistSq = Infinity
+        let bestDistSq = GHOST_WALL_REACH ** 2
         for (const edge of legalWallEdges) {
             const sameRow = edge.row1 === edge.row2
             const cx = sameRow ? edge.col2 * CELL_SIZE : edge.col1 * CELL_SIZE + CELL_SIZE / 2
             const cy = sameRow ? edge.row1 * CELL_SIZE + CELL_SIZE / 2 : edge.row2 * CELL_SIZE
             const distSq = (cx - hoverPoint.x) ** 2 + (cy - hoverPoint.y) ** 2
-            if (distSq < bestDistSq) {
+            if (distSq <= bestDistSq) {
                 bestDistSq = distSq
                 best = edge
             }
