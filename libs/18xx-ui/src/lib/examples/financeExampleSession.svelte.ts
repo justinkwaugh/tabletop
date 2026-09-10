@@ -1,3 +1,18 @@
+import {
+    TrackConstruction,
+    LayTile,
+    FinishTrack,
+    isLayTile,
+    type TrackRules,
+    type TrackRequest
+} from '@tabletop/18xx'
+import {
+    chooseTrackLocation,
+    chooseTrackTile,
+    chooseTrackPlacement,
+    backFromTrack,
+    type TrackSelection
+} from './trackSelection.js'
 import { createMapDrawing, isMapSelectionValid, type MapSelection } from '../maps/mapDrawing.js'
 import { stationMapTokens, type MapViewDefinition } from '../maps/stationPresentation.js'
 import {
@@ -52,9 +67,135 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         options: SessionOptions,
         private readonly stockRules: StockRules,
         private readonly companyRules: CompanyRules,
-        readonly mapView: MapViewDefinition
+        readonly mapView: MapViewDefinition,
+        private readonly trackRules: TrackRules
     ) {
         super(options)
+    }
+    constructionActions = $derived(
+        this.actions.slice(0, this.gameState.actionCount).filter(isLayTile)
+    )
+    private trackDraft: TrackSelection = $state({})
+    trackSelection = $derived.by(() =>
+        !this.updatingVisibleState &&
+        !this.isViewingHistory &&
+        this.financialState.machineState === 'LayingTrack'
+            ? this.trackDraft
+            : {}
+    )
+    construction = $derived.by(() => new TrackConstruction(this.financialState, this.trackRules))
+    canBuildTrack = $derived(
+        !this.busy &&
+            !this.updatingVisibleState &&
+            !this.isViewingHistory &&
+            this.validActionTypes.includes('FinishTrack')
+    )
+    trackChoicesByLocation = $derived.by(
+        () =>
+            new Map(
+                this.canBuildTrack
+                    ? this.mapView.map.definition.locations.map(
+                          (location) =>
+                              [location.id, this.construction.choices(location.id)] as const
+                      )
+                    : []
+            )
+    )
+    trackLocationIds = $derived(
+        [...this.trackChoicesByLocation].filter(([, choices]) => choices.length).map(([id]) => id)
+    )
+    trackChoices = $derived(
+        this.trackSelection.locationId
+            ? (this.trackChoicesByLocation.get(this.trackSelection.locationId.value) ?? [])
+            : []
+    )
+    trackTiles = $derived.by(() =>
+        this.mapView.tileSet.definitions.filter((tile) =>
+            this.trackChoices.some((choice) => choice.definitionId === tile.id)
+        )
+    )
+    trackPlacements = $derived(
+        this.trackChoices.filter(
+            (choice) => choice.definitionId === this.trackSelection.definitionId?.value
+        )
+    )
+    trackPreview = $derived(
+        this.trackSelection.placement
+            ? this.construction.evaluate(this.trackSelection.placement.value).details
+            : undefined
+    )
+    displayedMapScene = $derived.by(() =>
+        this.trackPreview
+            ? createMapDrawing(
+                  this.mapView.map,
+                  {
+                      tileSet: this.mapView.tileSet,
+                      inventory: this.construction.inventoryAfter(this.trackPreview)
+                  },
+                  this.mapView.layouts
+              )
+            : this.mapScene
+    )
+    displayedMapTokens = $derived.by(() =>
+        this.trackPreview
+            ? stationMapTokens(this.trackPreview, this.mapView.stations)
+            : this.mapTokens
+    )
+    selectTrackLocation(locationId: string) {
+        assert(
+            this.canBuildTrack && this.trackLocationIds.includes(locationId),
+            'No legal construction at this location'
+        )
+        this.trackDraft = chooseTrackLocation(locationId)
+        this.inspectMap({ kind: 'hex', locationId })
+    }
+    selectTrackTile(definitionId: string) {
+        assert(
+            this.canBuildTrack && this.trackSelection.locationId,
+            'Choose a construction location'
+        )
+        const choices = this.trackChoices.filter((choice) => choice.definitionId === definitionId)
+        assert(choices.length, 'No legal placement for this tile')
+        this.trackDraft = chooseTrackTile(this.trackDraft, definitionId, choices)
+    }
+    selectTrackPlacement(request: TrackRequest) {
+        assert(
+            this.canBuildTrack &&
+                this.trackSelection.definitionId?.value === request.definitionId &&
+                this.construction.evaluate(request).details,
+            'Choose a legal tile rotation'
+        )
+        this.trackDraft = chooseTrackPlacement(this.trackDraft, request)
+    }
+    backTrack() {
+        this.trackDraft = backFromTrack(this.trackDraft)
+    }
+    async confirmTrack() {
+        const preview = this.trackPreview
+        assert(this.canBuildTrack && preview, 'Choose a legal track placement')
+        const { companyId, locationId, definitionId, rotation, nodeMapping, cost } = preview
+        await this.applyAction(
+            this.createPlayerAction(LayTile, {
+                companyId,
+                locationId,
+                definitionId,
+                rotation,
+                nodeMapping,
+                expectedCost: cost
+            })
+        )
+    }
+    async finishTrack() {
+        const companyId = this.financialState.trackStep?.companyId
+        assert(
+            companyId &&
+                !this.trackSelection.locationId &&
+                this.validActionTypes.includes('FinishTrack') &&
+                !this.busy &&
+                !this.isViewingHistory,
+            'Finish or cancel the construction selection'
+        )
+        await this.applyAction(this.createPlayerAction(FinishTrack, { companyId }))
     }
     get passing() {
         return this.stockRules.round.passing
@@ -383,10 +524,15 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         await this.applyAction(this.createPlayerAction(FinishStockTurn, {}))
     }
     override beforeNewState() {
+        this.trackDraft = {}
         this.cancelSelection()
     }
     override async undo() {
         if (this.busy || this.isViewingHistory) return
+        if (this.trackDraft.locationId) {
+            this.trackDraft = {}
+            return
+        }
         if (this.selection) {
             this.cancelSelection()
             return
@@ -407,11 +553,12 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
 export function createFinanceExampleSessionClass(
     rules: StockRules,
     companyRules: CompanyRules,
-    mapView: MapViewDefinition
+    mapView: MapViewDefinition,
+    trackRules: TrackRules
 ): new (options: SessionOptions) => FinanceExampleSession {
     return class extends FinanceExampleSession {
         constructor(options: SessionOptions) {
-            super(options, rules, companyRules, mapView)
+            super(options, rules, companyRules, mapView, trackRules)
         }
     }
 }

@@ -280,13 +280,13 @@ purchase/start/sale updates that status through runtime processing.
 The final pass automatically completes the round, adjusts sold-out markers,
 updates player priority, and starts the operating set. The terminal prototype
 shows the first operating order, controlling owners, fixed set length, and next
-stock-round order. It accepts no operating decisions yet. History includes passes,
+stock-round order. It advances to the first company’s track step; later operating steps remain deferred. History includes passes,
 turn finishes, round completion, market movements, and operating-set start.
 
 Undo across an ordinary turn finish returns control to the previous player. Undo
 after completion reverses the final pass and both system actions together. No new
 UI effects initiate actions. Reload restores the same stage and facts. Fixture
-version 8 preserves previous example versions. Desktop checks cover these flows;
+version 9 preserves previous example versions. Desktop checks cover these flows;
 mobile refinement is deferred because this finance UI will be replaced.
 
 Saved example selection requires successful canonical loading, not just a matching
@@ -326,3 +326,39 @@ Desktop browser checks cover TOP station exchange and its reservation through
 purchase, flotation, history stepping, Live, and Undo; 1889's retained reservation,
 placed tile and inventory count through flotation and reload; and independent
 hotseat styles without extra actions. Shared map tests retain fit/zoom/pan coverage.
+
+
+### Track construction
+
+The session owns a manual location → tile → placement draft. Placement includes
+rotation and the mapping of old stop IDs to the new tile. A single remaining
+placement is auto-selected only when choosing the tile; no reactive loop chooses
+or commits Actions. Back pops the last manual stage, skipping any auto placement.
+Undo clears a manual draft before invoking committed history Undo. Reselecting a
+location or tile removes downstream choices.
+
+Legal target IDs come from the same TrackConstruction evaluator used by LayTile.
+The scene draws dashed green target outlines above ordinary borders and below
+selection/focus. Activating a legal target stages its location; other hexes retain
+ordinary inspection. Slot/track hit precedence remains unchanged, and construction
+uses the containing location regardless of the hit's subtype.
+
+Selecting a placement supplies a hypothetical drawing and migrated station and
+reservation overlays to MapViewer. The candidate hex gets an inset dashed amber outline;
+inspection/focus remains above it. The selected location is inspected as a whole
+hex, so old path/slot identities never highlight the wrong preview object.
+The inspector describes that preview. Inventory counts, treasury, action history
+and the actual game state remain committed values until Confirm track.
+
+Drafts and targets are hidden in History View and while updatingVisibleState.
+beforeNewState clears the draft. Back, Undo and history restoration redraw the
+committed tiles and stations. Fit/focus, pan/zoom and player style do not change
+the draft. Confirmation calls the session's LayTile method; Finish track calls its
+FinishTrack method and leads to TrackComplete. The prototype ends there pending
+the station step. Each committed lay appears in construction history with hex,
+tile, rotation and cost.
+
+Desktop checks cover TOP's manual rotation, Back, draft-clearing Undo, two lays,
+second-lay cost, history, reload, and full Undo; and 1889's single auto placement,
+Back skipping it, station-preserving upgrade, Finish track and Undo. Shared
+semantic preview/target rendering is lasting; the control panel remains provisional.

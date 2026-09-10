@@ -46,4 +46,12 @@ reservations, and inventory counts come from the session's visible state. Map
 inspection is independent of stock drafts and survives station exchange, history,
 and Undo when its target remains valid. Each hotseat player has a local map style.
 Fit/focus/pan/zoom and tile browsing create no actions. This remains a prepared
-position; legal track construction is the next slice.
+position; legal track construction follows the shared track-construction contract.
+
+
+Track construction follows the shared draft, preview, target, Back/Undo and history
+contract. The new Track construction example starts directly in the first
+operating company's track step. Normal stock examples reach that step through
+system Actions. The map shows legal locations and candidate tile artwork before
+confirmation; payment, supply and station changes occur only in LayTile.
+Finish track currently reaches the boundary before station placement.

@@ -27,6 +27,7 @@
                 <option value="trading">Share trading</option>
                 <option value="starting">Starting companies</option>
                 <option value="flotation">Flotation</option>
+                <option value="construction">Track construction</option>
             </select>
         </label>
     </header>

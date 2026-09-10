@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TrackBuilding from './TrackBuilding.svelte'
     import MapViewer from '../maps/MapViewer.svelte'
     import TileLibraryViewer from '../tiles/TileLibraryViewer.svelte'
     import { ClassicTileAppearance, MutedTileAppearance } from '../tiles/tileAppearance.js'
@@ -47,13 +48,21 @@
             >{session.isViewingHistory ? 'History' : 'Live'} · {session.financialState.actionCount} actions</span
         >
     </header>
+    <TrackBuilding {session} />
     <MapViewer
-        scene={session.mapScene}
+        scene={session.displayedMapScene}
+        legalLocationIds={session.trackLocationIds}
+        previewLocationId={session.trackPreview?.locationId}
         selection={session.mapSelection}
-        tokens={session.mapTokens}
-        reservations={session.financialState.stationReservations}
+        tokens={session.displayedMapTokens}
+        reservations={session.trackPreview?.stationReservations ??
+            session.financialState.stationReservations}
         appearance={session.mapStyle === 'muted' ? MutedTileAppearance : ClassicTileAppearance}
-        onselect={(selection) => session.inspectMap(selection)}
+        onselect={(selection) => {
+            if (session.canBuildTrack && session.trackLocationIds.includes(selection.locationId))
+                session.selectTrackLocation(selection.locationId)
+            else session.inspectMap(selection)
+        }}
     />
     <details bind:open={showTiles}>
         <summary>Available tiles</summary>

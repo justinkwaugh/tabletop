@@ -36,7 +36,7 @@ export function createTheOldPrinceCompanyExample(
             { locationId: 'K19', definitionId: '18xx:5', rotation: 0 }
         ])
     }
-    if (position !== 'trading') {
+    if (position === 'starting' || position === 'flotation') {
         const market = { owner: { kind: 'bank' } as const, poolId: 'market' }
         for (const { companyId, name } of PeirCompanies) {
             state.companies.push({
@@ -103,5 +103,6 @@ export function createTheOldPrinceCompanyExample(
             }
         }
     }
+    if (position === 'construction') state.phaseId = '4H'
     return state
 }

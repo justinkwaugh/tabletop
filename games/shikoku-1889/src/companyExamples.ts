@@ -25,7 +25,7 @@ export function createShikoku1889CompanyExample(
             { locationId: 'I2', definitionId: '18xx:5', rotation: 2 }
         ])
     }
-    if (position !== 'trading') {
+    if (position === 'starting' || position === 'flotation') {
         state.companies.push({
             id: 'SR',
             name: 'Sanuki Railway',
@@ -79,6 +79,12 @@ export function createShikoku1889CompanyExample(
             if (!company.operated)
                 state.stationReservations.push({ ...reservation, locationId: location.id })
         }
+    }
+    if (position === 'construction') {
+        state.phaseId = '3'
+        state.tileInventory = Shikoku1889TileSet.createInventory([
+            { locationId: 'E2', definitionId: '18xx:5', rotation: 0 }
+        ])
     }
     return state
 }

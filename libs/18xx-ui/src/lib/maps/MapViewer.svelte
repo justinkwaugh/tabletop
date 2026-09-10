@@ -13,6 +13,8 @@
     import { ClassicTileAppearance, type TileAppearance } from '../tiles/tileAppearance.js'
     let {
         scene,
+        legalLocationIds = [],
+        previewLocationId,
         selection,
         tokens = [],
         routes = [],
@@ -21,6 +23,8 @@
         onselect
     }: {
         scene: MapDrawing
+        legalLocationIds?: readonly string[]
+        previewLocationId?: string
         selection?: MapSelection
         tokens?: readonly MapToken[]
         routes?: readonly MapRoute[]
@@ -61,6 +65,8 @@
             >
                 <MapScene
                     {scene}
+                    {legalLocationIds}
+                    {previewLocationId}
                     {selection}
                     {tokens}
                     {routes}

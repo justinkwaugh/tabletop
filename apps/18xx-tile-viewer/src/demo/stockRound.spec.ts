@@ -77,9 +77,10 @@ it.each([Top, Shikoku])(
         expect(result.processedActions.map((action) => action.type)).toEqual([
             'FinishStockTurn',
             'CompleteStockRound',
-            'StartOperatingSet'
+            'StartOperatingSet',
+            'StartConstruction'
         ])
-        expect(result.updatedState.machineState).toBe('OperatingSet')
+        expect(result.updatedState.machineState).toBe('LayingTrack')
         expect(result.updatedState.stockRound.completed).toBe(true)
         expect(result.updatedState.turnManager.turnOrder).toEqual(['alex', 'blair', 'casey'])
         expect(result.updatedState.operatingSet).toMatchObject({

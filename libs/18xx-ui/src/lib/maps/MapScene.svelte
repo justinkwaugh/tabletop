@@ -13,6 +13,8 @@
 
     let {
         scene,
+        legalLocationIds = [],
+        previewLocationId,
         selection,
         tokens = [],
         reservations,
@@ -22,6 +24,8 @@
         onselect
     }: {
         scene: MapDrawing
+        legalLocationIds?: readonly string[]
+        previewLocationId?: string
         selection?: MapSelection
         tokens?: readonly MapToken[]
         reservations?: readonly StationReservation[]
@@ -291,6 +295,21 @@
                     />
                 {/each}
             </g>
+        {/each}
+    </g>
+    <g data-map-layer="construction" fill="none" pointer-events="none" aria-hidden="true">
+        {#each entries.filter((entry) => legalLocationIds.includes(entry.location.id) || entry.location.id === previewLocationId) as entry (entry.location.id)}
+            <polygon
+                data-track-target={entry.location.id}
+                data-track-preview={entry.location.id === previewLocationId
+                    ? entry.location.id
+                    : undefined}
+                transform={`translate(${entry.center.x} ${entry.center.y}) scale(${entry.location.id === previewLocationId ? 0.93 : 1})`}
+                points={entry.drawing.polygon}
+                stroke={entry.location.id === previewLocationId ? '#d67910' : '#278249'}
+                stroke-width="2"
+                stroke-dasharray="4 2"
+            />
         {/each}
     </g>
     <g

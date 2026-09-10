@@ -1,3 +1,4 @@
+import { Shikoku1889TrackRules } from './trackRules.js'
 import { Shikoku1889Map } from './map.js'
 import { Shikoku1889TileSet } from './tiles.js'
 import { Shikoku1889OperatingRules } from './roundRules.js'
@@ -37,6 +38,7 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
         companyRules: Shikoku1889CompanyRules,
         operatingRules: Shikoku1889OperatingRules,
         map: Shikoku1889Map,
-        tileSet: Shikoku1889TileSet
+        tileSet: Shikoku1889TileSet,
+        trackRules: Shikoku1889TrackRules
     })
 }

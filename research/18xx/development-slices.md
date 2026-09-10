@@ -543,6 +543,13 @@ from 4 when available. Physical mode's live acceptance requires its title artwor
 
 ## 7. Lay and upgrade track legally
 
+**Status:** implemented for ordinary TOP and 1889 construction. Shared evaluation,
+Actions, track-step state, and map preview/selection cover costs, preservation,
+finite/paired inventory, reservations, Back/Undo and history. The first operating
+company reaches TrackComplete; station placement continues in slice 8. Explicit
+private-power decision flows remain in 13–14. See the
+[construction design and evidence](track-construction-slice-design.md).
+
 **Outcome:** select a hex, tile, and rotation; preview cost/connectivity; commit a
 legal lay or upgrade through a candidate `LayTile` Action.
 

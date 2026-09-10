@@ -1,6 +1,11 @@
 import { Shikoku1889MapView } from './mapView.js'
 import { createFinanceExampleSessionClass } from '@tabletop/18xx-ui'
-import { Definition, Shikoku1889StockRules, Shikoku1889CompanyRules } from '@tabletop/shikoku-1889'
+import {
+    Definition,
+    Shikoku1889StockRules,
+    Shikoku1889CompanyRules,
+    Shikoku1889TrackRules
+} from '@tabletop/shikoku-1889'
 import {
     DefaultColorizer,
     mountDynamicComponent,
@@ -15,7 +20,8 @@ export const UiRuntime: GameUIRuntime<GameState, HydratedGameState> = {
     sessionClass: createFinanceExampleSessionClass(
         Shikoku1889StockRules,
         Shikoku1889CompanyRules,
-        Shikoku1889MapView
+        Shikoku1889MapView,
+        Shikoku1889TrackRules
     ),
     colorizer: new DefaultColorizer()
 }

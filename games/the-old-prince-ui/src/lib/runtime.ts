@@ -3,7 +3,8 @@ import { createFinanceExampleSessionClass } from '@tabletop/18xx-ui'
 import {
     Definition,
     TheOldPrinceStockRules,
-    TheOldPrinceCompanyRules
+    TheOldPrinceCompanyRules,
+    TheOldPrinceTrackRules
 } from '@tabletop/the-old-prince'
 import {
     DefaultColorizer,
@@ -19,7 +20,8 @@ export const UiRuntime: GameUIRuntime<GameState, HydratedGameState> = {
     sessionClass: createFinanceExampleSessionClass(
         TheOldPrinceStockRules,
         TheOldPrinceCompanyRules,
-        TheOldPrinceMapView
+        TheOldPrinceMapView,
+        TheOldPrinceTrackRules
     ),
     colorizer: new DefaultColorizer()
 }

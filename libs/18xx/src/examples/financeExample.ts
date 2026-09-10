@@ -1,3 +1,14 @@
+import { TrackStep, type TrackRules } from '../construction/trackConstruction.js'
+import { LayTile, HydratedLayTile, isLayTile } from '../construction/layTile.js'
+import { FinishTrack, HydratedFinishTrack, isFinishTrack } from '../construction/finishTrack.js'
+import { LayingTrackHandler } from '../construction/layingTrackHandler.js'
+import {
+    StartConstruction,
+    HydratedStartConstruction,
+    isStartConstruction,
+    StartConstructionHandler
+} from '../operating/startConstruction.js'
+import { controllingOwner } from '../finance/finance.js'
 import { MapFields, RailwayMapState, type MapStateData } from '../map/mapState.js'
 import type { RailwayMap } from '../map/map.js'
 import type { TileSet, TileInventory } from '../tiles/inventory.js'
@@ -53,10 +64,13 @@ const ExampleFields = Type.Object({
     machineState: Type.Union([
         Type.Literal('StockRound'),
         Type.Literal('StartingOperatingSet'),
-        Type.Literal('OperatingSet')
+        Type.Literal('OperatingSet'),
+        Type.Literal('LayingTrack'),
+        Type.Literal('TrackComplete')
     ]),
     stockRound: StockRound,
     operatingSet: Type.Optional(OperatingSet),
+    trackStep: Type.Optional(TrackStep),
     stockMarket: StockMarket,
     ...FinanceFields,
     ...CompanyFields,
@@ -85,8 +99,14 @@ export class HydratedFinanceExampleState
     declare stations: CompanyState['stations']
     declare stationReservations: CompanyState['stationReservations']
     declare example: 'finances'
-    declare machineState: 'StockRound' | 'StartingOperatingSet' | 'OperatingSet'
+    declare machineState:
+        | 'StockRound'
+        | 'StartingOperatingSet'
+        | 'OperatingSet'
+        | 'LayingTrack'
+        | 'TrackComplete'
     declare operatingSet?: OperatingSet
+    declare trackStep?: TrackStep
     declare stockRound: StockRound
     declare stockMarket: StockMarket
     declare companies: FinancialState['companies']
@@ -119,6 +139,17 @@ export class HydratedFinanceExampleState
                 'Unknown operating company'
             )
         }
+        if (this.machineState === 'LayingTrack' || this.machineState === 'TrackComplete') {
+            assert(
+                this.trackStep &&
+                    this.operatingSet?.companyOrder.includes(this.trackStep.companyId),
+                'Track step requires an operating company'
+            )
+            assert(
+                this.trackStep.completed === (this.machineState === 'TrackComplete'),
+                'Track completion does not match the machine state'
+            )
+        }
         new RailwayMapState(map, tileSet, this.tileInventory).validateStations(this)
         validateStations(
             this,
@@ -148,7 +179,7 @@ class FinanceExampleInitializer extends BaseGameInitializer<
     constructor(
         private readonly options: Pick<
             FinanceExampleOptions,
-            'createFinances' | 'createMarket' | 'map' | 'tileSet'
+            'createFinances' | 'createMarket' | 'map' | 'tileSet' | 'operatingRules'
         >
     ) {
         super()
@@ -161,7 +192,7 @@ class FinanceExampleInitializer extends BaseGameInitializer<
         }))
         const position = game.config?.examplePosition ?? 'trading'
         assert(PositionValidator.Check(position), 'Unknown finance example position')
-        return new HydratedFinanceExampleState(
+        const initialized = new HydratedFinanceExampleState(
             {
                 ...state,
                 players,
@@ -192,6 +223,24 @@ class FinanceExampleInitializer extends BaseGameInitializer<
             this.options.map,
             this.options.tileSet
         )
+        if (position === 'construction') {
+            const companyOrder = this.options.operatingRules.companyOrder(initialized)
+            const companyId = companyOrder[0]
+            const owner = controllingOwner(initialized, companyId)
+            assert(owner, 'Construction example requires a controlling owner')
+            initialized.stockRound.completed = true
+            initialized.operatingSet = {
+                number: 1,
+                roundNumber: 1,
+                roundCount: this.options.operatingRules.roundCount(initialized),
+                companyOrder
+            }
+            initialized.trackStep = { companyId, lays: [], completed: false }
+            initialized.machineState = 'LayingTrack'
+            initialized.activePlayerIds = [owner.playerId]
+            initialized.turnManager.series = [{ type: 'turn', playerId: owner.playerId, start: 0 }]
+        }
+        return initialized
     }
 }
 export interface FinanceExampleOptions {
@@ -202,6 +251,7 @@ export interface FinanceExampleOptions {
     operatingRules: OperatingRules
     map: RailwayMap
     tileSet: TileSet
+    trackRules: TrackRules
 }
 export function createFinanceExampleRuntime(
     options: FinanceExampleOptions
@@ -212,6 +262,9 @@ export function createFinanceExampleRuntime(
         hydrator: {
             hydrateState: (state) => new HydratedFinanceExampleState(state, map, tileSet),
             hydrateAction: (action) => {
+                if (isLayTile(action)) return new HydratedLayTile(action, options.trackRules)
+                if (isFinishTrack(action)) return new HydratedFinishTrack(action)
+                if (isStartConstruction(action)) return new HydratedStartConstruction(action)
                 if (isCompleteStockRound(action))
                     return new HydratedCompleteStockRound(action, rules.round)
                 if (isStartOperatingSet(action))
@@ -234,12 +287,17 @@ export function createFinanceExampleRuntime(
             StartCompany,
             FloatCompany,
             CompleteStockRound,
-            StartOperatingSet
+            StartOperatingSet,
+            LayTile,
+            FinishTrack,
+            StartConstruction
         },
         stateHandlers: {
             StockRound: new StockRoundHandler(rules, 'StartingOperatingSet', companyRules),
             StartingOperatingSet: new StartOperatingSetHandler('OperatingSet'),
-            OperatingSet: new TerminalStateHandler()
+            OperatingSet: new StartConstructionHandler(),
+            LayingTrack: new LayingTrackHandler(options.trackRules, 'TrackComplete'),
+            TrackComplete: new TerminalStateHandler()
         }
     }
 }

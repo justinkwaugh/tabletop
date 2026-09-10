@@ -3,7 +3,8 @@ import * as Type from 'typebox'
 export const FinanceExamplePosition = Type.Union([
     Type.Literal('trading'),
     Type.Literal('starting'),
-    Type.Literal('flotation')
+    Type.Literal('flotation'),
+    Type.Literal('construction')
 ])
 export type FinanceExamplePosition = Type.Static<typeof FinanceExamplePosition>
 

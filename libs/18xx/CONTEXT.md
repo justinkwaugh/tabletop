@@ -125,6 +125,10 @@ the title's rules.
 **Station**:
 A company's token that establishes the location-based rights specified by the title.
 
+**Track Network**:
+The track reachable by a company from its placed stations, subject to connections
+and station blocking under the title's rules.
+
 **Station Reservation**:
 A company's entitlement to a station location, independently of placing its token.
 
