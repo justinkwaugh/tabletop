@@ -6,7 +6,7 @@
         'Once every one of your castles is inside a region, you may not place any more walls.',
         'The politics deck contains four Treasures (8, 10, 12, and 15 ducats), three Parchments (3, 4, and 5 points), and three each of Alliance and Renegade cards.',
         'Alliance and Renegade cards are played just before choosing an action. You may play more than one such card at a time.',
-        'Treasure cards may only be spent in a duel, or to pay for a wooded space when placing a knight.'
+        'Treasure cards may only be spent in a duel, to pay for a wooded space when placing a knight, or to pay the 10 ducats for breaking an alliance. The 8 treasure may be used to break an alliance if 2 ducats are also available.'
     ]
 </script>
 

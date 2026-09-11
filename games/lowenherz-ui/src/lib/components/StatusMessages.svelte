@@ -104,11 +104,10 @@
 
     // The most recent completed negotiation this round - substitutes "X won a Y
     // action" with "X paid Y N ducats for the Z action" for whoever's now placing
-    // walls/knights/taking a politics card as a result. Guarded by fromPlayerId
-    // matching the current placer so an earlier slot's (already-resolved) negotiation
-    // this same round can't leak into a later, unrelated solo-win placement phase.
-    // Also bounded by the current action card's own draw (see lastMineReveal) so an
-    // earlier card's negotiation in the same round can't leak into a later one.
+    // walls/knights/taking a politics card as a result. Bounded by the current action
+    // card's own draw (see lastMineReveal) so an earlier card's negotiation in the same
+    // round can't leak into a later one; negotiationPaidFor below keeps it to the slot it
+    // was actually struck over.
     const lastNegotiationPayment = $derived.by(() => {
         const actions = gameSession.actions
         let roundBoundariesSeen = 0
@@ -128,6 +127,17 @@
         }
         return undefined
     })
+
+    // Whether the latest negotiation payment bought the placement phase now in progress. The
+    // deal's slot is the reliable test: the same player can win one slot by negotiation and the
+    // next one alone, and matching on the player narrated the first payment as buying the
+    // second. Deals recorded before the slot was kept fall back to the player check.
+    function negotiationPaidFor(placerId: string | undefined): boolean {
+        const payment = lastNegotiationPayment
+        if (!payment || !placerId) return false
+        if (payment.slot !== undefined) return gameSession.isFreshestResolvedSlot(payment.slot)
+        return payment.fromPlayerId === placerId
+    }
 
     type RevealedBid = NonNullable<SubmitDuelBidMetadata['roundResult']>['bids'][number]
     function effectiveBidAmount(bid: RevealedBid): number {
@@ -515,7 +525,7 @@
                 Place a castle on the board.
             {/if}
         {:else if gameSession.canPlaceWall}
-            {#if lastNegotiationPayment && lastNegotiationPayment.fromPlayerId === gameSession.gameState.wallPlacingPlayerId}
+            {#if lastNegotiationPayment && negotiationPaidFor(gameSession.gameState.wallPlacingPlayerId)}
                 {@render playerPill(lastNegotiationPayment.fromPlayerId)} paid {@render playerPill(
                     lastNegotiationPayment.toPlayerId
                 )}
@@ -619,7 +629,7 @@
                  the second question, where the player has already spent a sword on it - so it is
                  shown only while nothing has been spent yet. -->
             {#if knightSwordsLeft >= gameSession.knightActionSwords}
-                {#if lastNegotiationPayment && lastNegotiationPayment.fromPlayerId === gameSession.gameState.knightPlacingPlayerId}
+                {#if lastNegotiationPayment && negotiationPaidFor(gameSession.gameState.knightPlacingPlayerId)}
                     {@render playerPill(lastNegotiationPayment.fromPlayerId)} paid {@render playerPill(
                         lastNegotiationPayment.toPlayerId
                     )}
@@ -738,7 +748,7 @@
                 Tied last round: {@render bidList(previousTiedRoundBids)}.
             {/if}
         {:else if gameSession.canTakePoliticsCard && !gameSession.selectedPoliticsPile}
-            {#if lastNegotiationPayment && lastNegotiationPayment.fromPlayerId === gameSession.gameState.politicsTakingPlayerId}
+            {#if lastNegotiationPayment && negotiationPaidFor(gameSession.gameState.politicsTakingPlayerId)}
                 {@render playerPill(lastNegotiationPayment.fromPlayerId)} paid {@render playerPill(
                     lastNegotiationPayment.toPlayerId
                 )}

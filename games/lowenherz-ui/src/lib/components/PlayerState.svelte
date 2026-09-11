@@ -406,7 +406,13 @@
                             style="width: {groupWidth(group.cards.length)}px;"
                         >
                             {#each group.cards as card, i (i)}
-                                {@const active = gameSession.isPoliticsCardActive(card, i)}
+                                <!-- Occurrences count down from the top of the stack: later cards
+                                     render on top, and applying a card should light the one the
+                                     player can see, not the one underneath. -->
+                                {@const active = gameSession.isPoliticsCardActive(
+                                    card,
+                                    group.cards.length - 1 - i
+                                )}
                                 <div
                                     class="absolute top-0 rounded-md"
                                     style="

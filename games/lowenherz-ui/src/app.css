@@ -55,12 +55,3 @@
     }
 }
 
-/* The pack letter in "N until C" on the draw pile. Small/simple enough that a flash of
-   the fallback cursive font on first use isn't a practical concern, unlike Tangerine
-   (see git history) which needed a warmup element to avoid exactly that. */
-.pack-letter {
-    font-family: 'UnifrakturMaguntia', cursive;
-    /* Fixed, not em-relative - so bumping the surrounding "N until" text size doesn't
-       inflate this too. */
-    font-size: 28px;
-}

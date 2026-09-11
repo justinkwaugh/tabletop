@@ -2,9 +2,9 @@
     import { fade } from 'svelte/transition'
     import { GameResult } from '@tabletop/common'
     import { PoliticsCardType, type LowenherzProjectedPlayerState } from '@tabletop/lowenherz'
-    import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import Numeral from './Numeral.svelte'
+    import PlayerPill from './PlayerPill.svelte'
 
     const gameSession = getGameSession()
     const isDraw = $derived(gameSession.gameState.result === GameResult.Draw)
@@ -66,13 +66,14 @@
         {#if isDraw}
             The King is dead, and the crown is shared between
             {#each winnerIds as id, i (id)}
-                {i === 0 ? '' : i === winnerIds.length - 1 ? ' and ' : ', '}<PlayerName
+                {i === 0 ? '' : i === winnerIds.length - 1 ? ' and ' : ', '}<PlayerPill
                     playerId={id}
                 />
             {/each}
             — tied at {gameSession.gameState.getPlayerState(winnerIds[0]).powerPoints} power points.
         {:else}
-            <PlayerName playerId={winnerIds[0]} /> is the new ruler, with {gameSession.gameState.getPlayerState(
+            <!-- The winner's own name even on their screen: "You is the new ruler" is not a sentence. -->
+            <PlayerPill playerId={winnerIds[0]} showAsYou={false} /> is the new ruler, with {gameSession.gameState.getPlayerState(
                 winnerIds[0]
             ).powerPoints} power points!
         {/if}
@@ -100,7 +101,7 @@
                         <Numeral value={row.place} />.
                     </td>
                     <td class="px-2 py-[3px] text-left whitespace-nowrap">
-                        <PlayerName playerId={row.playerId} />
+                        <PlayerPill playerId={row.playerId} />
                     </td>
                     <td class="px-2 py-[3px] text-center tabular-nums">
                         <Numeral value={row.earned} />

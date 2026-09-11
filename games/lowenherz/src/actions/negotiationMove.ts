@@ -26,7 +26,10 @@ export const NegotiationMoveMetadata = Type.Object({
         Type.Object({
             fromPlayerId: Type.String(),
             toPlayerId: Type.String(),
-            amount: Type.Number()
+            amount: Type.Number(),
+            // The slot the deal was struck over, so the status window can tell this payment from
+            // the same player's later solo win. Optional for deals recorded before it existed.
+            slot: Type.Optional(Type.Union([Type.Literal(1), Type.Literal(2), Type.Literal(3)]))
         })
     )
 })
@@ -79,7 +82,7 @@ export class HydratedNegotiationMove
         super(data, NegotiationMoveValidator)
     }
 
-    apply(state: HydratedLowenherzGameState, context?: MachineContext) {
+    apply(state: HydratedLowenherzGameState, _context?: MachineContext) {
         if (!this.isValidNegotiationMove(state)) {
             throw Error('Invalid NegotiationMove action')
         }
@@ -116,7 +119,12 @@ export class HydratedNegotiationMove
                     state.resolvedSlots.push({ slot: negotiation.slot, winnerPlayerId: standing.fromPlayerId })
                     state.negotiation = undefined
                     this.metadata = {
-                        executedOffer: { fromPlayerId: standing.fromPlayerId, toPlayerId, amount: standing.amount }
+                        executedOffer: {
+                            fromPlayerId: standing.fromPlayerId,
+                            toPlayerId,
+                            amount: standing.amount,
+                            slot: negotiation.slot
+                        }
                     }
                     return
                 }

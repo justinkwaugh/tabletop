@@ -71,7 +71,7 @@ export class HydratedPlaceWall extends HydratableAction<typeof PlaceWall> implem
         super(data, PlaceWallValidator)
     }
 
-    apply(state: HydratedLowenherzGameState, context?: MachineContext) {
+    apply(state: HydratedLowenherzGameState, _context?: MachineContext) {
         if (!this.isValidPlaceWall(state)) {
             throw Error('Invalid PlaceWall action')
         }
@@ -93,13 +93,9 @@ export class HydratedPlaceWall extends HydratableAction<typeof PlaceWall> implem
         // someone else's play created it). Awarding them to the enclosing player instead
         // would be a house rule, and a significant change to 2-player balance.
         for (const region of newRegions) {
-            const points = region.owner ? scoreRegion(region, state.board) : 0
-            if (region.owner) {
-                const player = state.players.find((p) => p.playerId === region.owner)
-                if (player) {
-                    player.powerPoints += points
-                }
-            }
+            const player = state.players.find((p) => p.playerId === region.owner)
+            const points = player ? scoreRegion(region, state.board) : 0
+            if (player) player.powerPoints += points
             completedRegions.push({
                 owner: region.owner,
                 spaceCount: region.squareKeys.length,
