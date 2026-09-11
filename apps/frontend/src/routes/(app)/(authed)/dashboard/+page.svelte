@@ -74,7 +74,6 @@
     <div
         class="panel"
         role="tabpanel"
-        tabindex="0"
         id="dashboard-panel-current"
         aria-labelledby="dashboard-tab-current"
         hidden={tab !== 'current'}
@@ -97,7 +96,6 @@
     <div
         class="panel"
         role="tabpanel"
-        tabindex="0"
         id="dashboard-panel-history"
         aria-labelledby="dashboard-tab-history"
         hidden={tab !== 'history'}

@@ -79,6 +79,55 @@ test.beforeEach(async ({ page }) => {
     )
 })
 
+for (const scenario of [
+    { name: 'portrait', viewport: 390, width: 300, height: 400 },
+    { name: 'square', viewport: 320, width: 640, height: 640 },
+    { name: 'landscape', viewport: 390, width: 640, height: 400 }
+]) {
+    test(`Safari ${scenario.name} cover has its final dimensions before the navigation snapshot`, async ({
+        page,
+        browserName
+    }) => {
+        test.skip(browserName !== 'webkit', 'Exercises Safari transition capture sizing')
+        await page.setViewportSize({ width: scenario.viewport, height: 844 })
+        await page.route('**/favicon-32x32.png', (route) =>
+            route.fulfill({
+                contentType: 'image/svg+xml',
+                body: `<svg xmlns="http://www.w3.org/2000/svg" width="${scenario.width}" height="${scenario.height}"><rect width="100%" height="100%" fill="teal"/></svg>`
+            })
+        )
+        await page.addInitScript(() => {
+            const start = document.startViewTransition.bind(document)
+            document.startViewTransition = (update) => {
+                const root = document.documentElement
+                delete root.dataset.coverFinished
+                const transition = start(update)
+                void transition.ready.then(() => {
+                    const cover = document.querySelector('img[data-game-cover="landing-0"]')
+                    const box = cover?.getBoundingClientRect()
+                    root.dataset.snapshotCoverSize = JSON.stringify({
+                        width: box?.width,
+                        height: box?.height
+                    })
+                })
+                void transition.finished.then(() => {
+                    root.dataset.coverFinished = 'true'
+                })
+                return transition
+            }
+        })
+        await page.goto('/library')
+        await page.getByRole('link', { name: 'View Game 01', exact: true }).click()
+        await expect(page.locator('html')).toHaveAttribute('data-cover-finished', 'true')
+        const cover = page.locator('img[data-game-cover="landing-0"]')
+        const finalSize = await cover.evaluate((image) => {
+            const { width, height } = image.getBoundingClientRect()
+            return JSON.stringify({ width, height })
+        })
+        await expect(page.locator('html')).toHaveAttribute('data-snapshot-cover-size', finalSize)
+    })
+}
+
 test('portrait covers preserve their proportions through navigation and Back', async ({ page }) => {
     await page.addInitScript(() => {
         const startViewTransition = document.startViewTransition.bind(document)

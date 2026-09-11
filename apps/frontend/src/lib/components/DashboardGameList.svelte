@@ -52,6 +52,7 @@
         .dashboard-game-list {
             display: flex;
             flex-direction: column;
+            align-items: stretch;
             gap: 16px;
         }
     }
