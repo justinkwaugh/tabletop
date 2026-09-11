@@ -57,6 +57,28 @@ test.beforeEach(async ({ page }) => {
     })
 })
 
+for (const entry of ['/', '/login']) {
+    for (const hasActive of [false, true]) {
+        test(`returning user entering ${entry} with active games ${hasActive} reaches the right page`, async ({
+            page
+        }) => {
+            let checks = 0
+            await page.route('**/api/v1/games/hasActive', (route) => {
+                checks += 1
+                return route.fulfill({ json: { payload: { hasActive } } })
+            })
+            await page.goto(entry)
+            await expect(page).toHaveURL(hasActive ? /\/dashboard$/ : /\/library$/)
+            await expect(
+                page.getByRole('heading', {
+                    name: hasActive ? 'Your games.' : 'What would you like to play?'
+                })
+            ).toBeVisible()
+            expect(checks).toBe(1)
+        })
+    }
+}
+
 test('loads multiplayer history without runtime errors and reuses loaded pages when switching tabs', async ({
     page
 }) => {
@@ -164,6 +186,15 @@ for (const tab of ['Current', 'History']) {
                 )
             })
             .toBe(true)
+        const listWidth = await cards
+            .locator('..')
+            .first()
+            .evaluate((list) => list.getBoundingClientRect().width)
+        for (const card of await cards.all()) {
+            expect(await card.evaluate((element) => element.getBoundingClientRect().width)).toBe(
+                listWidth
+            )
+        }
     })
 }
 
@@ -331,3 +362,37 @@ test('dashboard card positions stay fixed when cover images arrive', async ({ pa
         .toBe(true)
     expect(await positions()).toEqual(before)
 })
+
+for (const tab of ['Current', 'History']) {
+    test(`${tab} keyboard navigation focuses game controls instead of outlining the entire panel`, async ({
+        page
+    }) => {
+        await page.route('**/api/v1/games/history*', (route) =>
+            route.fulfill({
+                json: { payload: { games: [game(0, GameStatus.Finished)] } }
+            })
+        )
+        await page.goto('/dashboard')
+        await page.getByRole('tab', { name: tab }).click()
+        const panel = page.getByRole('tabpanel', { name: tab })
+        await expect(panel.locator('li').first()).toBeVisible()
+        if (tab === 'Current') {
+            await page.route('**/api/v1/game/delete', (route) =>
+                route.fulfill({ json: { status: 'ok' } })
+            )
+            await panel.getByRole('heading', { name: 'Table 00', exact: true }).click()
+            await panel.getByRole('button', { name: 'Delete', exact: true }).click()
+            await page.getByRole('button', { name: "Yes, I'm sure", exact: true }).click()
+            await expect(page.getByRole('dialog')).toHaveCount(0)
+            await expect(panel.locator('li')).toHaveCount(11)
+            await expect(panel).not.toBeFocused()
+            await page.getByRole('button', { name: 'Your turn 11', exact: true }).focus()
+        } else {
+            await page.getByRole('tab', { name: tab }).focus()
+        }
+        await page.keyboard.press('Tab')
+        await expect(panel).not.toBeFocused()
+        await expect(panel.locator('button').first()).toBeFocused()
+        await expect(panel.locator('button').first()).not.toHaveCSS('box-shadow', 'none')
+    })
+}

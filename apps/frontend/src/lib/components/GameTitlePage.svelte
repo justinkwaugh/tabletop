@@ -109,14 +109,15 @@
         border-bottom: 1px solid var(--color-gray-800);
     }
     .title-cover {
+        --cover-height: 390px;
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 390px;
+        height: var(--cover-height);
     }
     .title-cover img {
         max-width: 100%;
-        max-height: 100%;
+        max-height: var(--cover-height);
         border-radius: 5px;
         object-fit: contain;
         filter: drop-shadow(0 16px 18px #0005);
@@ -203,7 +204,7 @@
             gap: 32px;
         }
         .title-cover {
-            height: 340px;
+            --cover-height: 340px;
         }
     }
     @media (max-width: 700px) {
@@ -216,7 +217,7 @@
             padding-top: 16px;
         }
         .title-cover {
-            height: 280px;
+            --cover-height: 280px;
         }
         h1 {
             font-size: 34px;
