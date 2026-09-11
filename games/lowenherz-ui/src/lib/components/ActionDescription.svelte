@@ -334,7 +334,7 @@
     {@const victimId = playerIdForOwner(action.metadata?.victimOwner)}
     played a Renegade card — removed a knight from
     {#if victimId}
-        <PlayerName playerId={victimId} />'s
+        <PlayerName playerId={victimId} possessive />
     {:else}
         a neutral prince's
     {/if}
