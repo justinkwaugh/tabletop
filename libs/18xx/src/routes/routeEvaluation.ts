@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { routeRevenue } from './routeRevenue.js'
 import { controllingOwner, getCompany, sameOwner } from '../finance/finance.js'
 import { RailwayMapState } from '../map/mapState.js'
 import { cityIsBlocked } from '../map/station.js'
@@ -152,14 +152,6 @@ export class RouteEvaluation {
         ).length
     }
     private revenue(visit: RouteVisit, train: TrainDefinition): number {
-        const revenue = visit.node.revenue
-        if (revenue.kind === 'fixed') return revenue.amount
-        const stages = this.rules.revenueStage(this.state, train)
-        const value = [...stages]
-            .reverse()
-            .map((stage) => revenue.values.find((value) => value.stage === stage))
-            .find((value) => value !== undefined)
-        assertExists(value, 'No applicable revenue value')
-        return value.amount
+        return routeRevenue(visit.node.revenue, this.rules.revenueStage(this.state, train))
     }
 }

@@ -129,3 +129,6 @@ export * from './ending/scheduleGameEnd.js'
 export * from './ending/endGame.js'
 export * from './ending/gameEndingHandler.js'
 export * from './examples/endingExample.js'
+
+export * from './routes/routeResources.js'
+export * from './routes/routeRevenue.js'

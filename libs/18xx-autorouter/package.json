@@ -1,5 +1,5 @@
 {
-    "name": "@tabletop/the-old-prince",
+    "name": "@tabletop/18xx-autorouter",
     "version": "0.0.1",
     "private": true,
     "type": "module",
@@ -7,33 +7,31 @@
         ".": {
             "types": "./esm/index.d.ts",
             "import": "./esm/index.js"
-        }
+        },
+        "./solver.wasm": "./esm/solver.wasm"
     },
     "sideEffects": false,
     "files": [
         "esm"
     ],
     "scripts": {
-        "clean": "rimraf esm",
-        "build": "tsgo",
+        "clean": "rimraf esm rust/target",
+        "build": "node build.mjs && tsgo",
         "check": "tsgo --noEmit",
         "test": "vitest run",
-        "bundle": "rimraf bundle && rollup -c ./rollup.config.ts"
+        "build:native": "cargo build --manifest-path rust/Cargo.toml --release --locked",
+        "test:rust": "cargo test --manifest-path rust/Cargo.toml --locked"
     },
     "dependencies": {
-        "@tabletop/18xx": "workspace:*",
         "@tabletop/common": "workspace:*",
-        "typebox": "^1.0.79"
+        "typebox": "^1.0.79",
+        "@tabletop/18xx": "workspace:*"
     },
     "devDependencies": {
-        "@tabletop/vitest-config": "workspace:*",
         "@typescript/native-preview": "7.0.0-dev.20260203.1",
         "rimraf": "^6.1.0",
         "typescript": "5.9.3",
-        "vitest": "^4.0.12",
-        "@tabletop/rollup-config": "workspace:*",
-        "rollup": "4.55.2",
-        "tslib": "^2.8.1",
-        "@tabletop/18xx-autorouter": "workspace:*"
+        "@tabletop/vitest-config": "workspace:*",
+        "vitest": "^4.0.12"
     }
 }

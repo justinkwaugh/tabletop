@@ -1,3 +1,5 @@
+import { assertExists } from '@tabletop/common'
+import { routePathResources } from './routeResources.js'
 import type { TileEndpoint, TileFace, TileNode } from '../tiles/tile.js'
 import { rotateTileFace, sameTileEndpoint } from '../tiles/topology.js'
 import type { RailwayMapState } from '../map/mapState.js'
@@ -21,6 +23,11 @@ export class RouteNetwork {
                 return [id, rotateTileFace(tile.face, tile.rotation)]
             })
         )
+    }
+    face(locationId: string): TileFace {
+        const face = this.faces.get(locationId)
+        assertExists(face, 'Unknown route location')
+        return face
     }
     centers(): RevenueCenter[] {
         return [...this.faces].flatMap(([locationId, face]) =>
@@ -64,12 +71,7 @@ export class RouteNetwork {
                 ?.paths.find((path) => path.id === segment.pathId)
             if (!path || !path.endpoints.some((end) => sameTileEndpoint(end, endpoint)))
                 return { reason: 'The route is disconnected.' }
-            const resources = [
-                JSON.stringify([locationId, 'path', path.id]),
-                ...path.endpoints.flatMap((end) =>
-                    end.kind === 'edge' ? [JSON.stringify([locationId, 'edge', end.edge])] : []
-                )
-            ]
+            const resources = routePathResources(locationId, path)
             if (resources.some((key) => used.has(key)))
                 return { reason: 'A route cannot reuse track or a hex border.' }
             for (const key of resources) {

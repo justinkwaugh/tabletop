@@ -2009,6 +2009,9 @@ importers:
         specifier: workspace:*
         version: link:../../libs/common
     devDependencies:
+      '@tabletop/18xx-autorouter':
+        specifier: workspace:*
+        version: link:../../libs/18xx-autorouter
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -2265,6 +2268,9 @@ importers:
         specifier: ^1.0.79
         version: 1.0.79
     devDependencies:
+      '@tabletop/18xx-autorouter':
+        specifier: workspace:*
+        version: link:../../libs/18xx-autorouter
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -2499,6 +2505,34 @@ importers:
 
   libs/18xx:
     dependencies:
+      '@tabletop/common':
+        specifier: workspace:*
+        version: link:../common
+      typebox:
+        specifier: ^1.0.79
+        version: 1.0.79
+    devDependencies:
+      '@tabletop/vitest-config':
+        specifier: workspace:*
+        version: link:../../config/config-vitest
+      '@typescript/native-preview':
+        specifier: 7.0.0-dev.20260203.1
+        version: 7.0.0-dev.20260203.1
+      rimraf:
+        specifier: ^6.1.0
+        version: 6.1.2
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.12
+        version: 4.0.17(@opentelemetry/api@1.9.0)(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)
+
+  libs/18xx-autorouter:
+    dependencies:
+      '@tabletop/18xx':
+        specifier: workspace:*
+        version: link:../18xx
       '@tabletop/common':
         specifier: workspace:*
         version: link:../common
