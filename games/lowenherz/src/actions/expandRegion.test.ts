@@ -4,7 +4,6 @@ import { HydratedLowenherzGameState, LowenherzGameState } from '../model/gameSta
 import { BOARD_COLS, BOARD_ROWS, BoardSquare, SquareType, WallEdge } from '../model/board.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
-import { Region } from '../model/region.js'
 import { HydratedExpandRegion } from './expandRegion.js'
 import { isWalledBetween } from '../model/board.js'
 import { isKnightSafeToRemove } from '../util/knightConnectivity.js'
@@ -170,6 +169,32 @@ describe('HydratedExpandRegion', () => {
                 { owner: 'p2', spaceCount: 2, townCount: 0, points: 3, anchorSquareKey: '2,0.5' }
             ]
         })
+    })
+
+    it('records zero points when the collateral completion belongs to the neutral prince', () => {
+        const board = blankBoard()
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
+        board.squares[0][2] = { type: SquareType.Blank, castleOwner: 'neutral' }
+        board.squares[1][2] = { type: SquareType.Blank, knightOwner: 'neutral' }
+        board.walls = [
+            { col: 3, row: 0, edge: WallEdge.West },
+            { col: 3, row: 1, edge: WallEdge.West },
+            { col: 2, row: 2, edge: WallEdge.North }
+        ]
+        const state = buildState({
+            board,
+            regions: [{ id: 'r1', owner: 'p1', squareKeys: ['0,0'], castleSquareKey: '0,0' }]
+        })
+
+        makeExpandRegion('p1', 'r1', { col: 1, row: 0 }).apply(state)
+        const second = makeExpandRegion('p1', 'r1', { col: 1, row: 1 })
+        second.apply(state)
+
+        expect(state.regions.find((r) => r.owner === 'neutral')).toBeDefined()
+        expect(state.players.map((p) => p.powerPoints)).toEqual([2, 0])
+        expect(second.metadata?.completedRegions).toEqual([
+            { owner: 'neutral', spaceCount: 2, townCount: 0, points: 0, anchorSquareKey: '2,0.5' }
+        ])
     })
 
     it('expands into one open adjacent space, scoring 1 point and spending one sword', () => {
