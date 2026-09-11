@@ -121,7 +121,7 @@ export class HydratedExpandRegion
         super(data, ExpandRegionValidator)
     }
 
-    apply(state: HydratedLowenherzGameState, context?: MachineContext) {
+    apply(state: HydratedLowenherzGameState, _context?: MachineContext) {
         if (!this.isValidExpandRegion(state)) {
             throw Error('Invalid ExpandRegion action')
         }
@@ -292,13 +292,9 @@ export class HydratedExpandRegion
         // Same rule as PlaceWall: a region owned by the neutral prince scores for nobody.
         // See the note there for why that's deliberate.
         for (const newRegion of newRegions) {
-            const points = newRegion.owner ? scoreRegion(newRegion, state.board) : 0
-            if (newRegion.owner) {
-                const player = state.players.find((p) => p.playerId === newRegion.owner)
-                if (player) {
-                    player.powerPoints += points
-                }
-            }
+            const player = state.players.find((p) => p.playerId === newRegion.owner)
+            const points = player ? scoreRegion(newRegion, state.board) : 0
+            if (player) player.powerPoints += points
             completedRegions.push({
                 owner: newRegion.owner,
                 spaceCount: newRegion.squareKeys.length,
