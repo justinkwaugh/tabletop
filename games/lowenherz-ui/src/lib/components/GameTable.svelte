@@ -66,6 +66,17 @@
 <!-- Full Height and Width with 8px padding-->
 <div style="background-image: url({parchmentTexture}); background-repeat: repeat;">
     <DefaultTableLayout>
+        <!-- On phones the layout draws the history controls itself, in the shared default
+             colours (white icons) unless given this snippet - which on parchment made them all
+             but invisible. Same colours as the desktop copy in sideContent below. -->
+        {#snippet mobileControlsContent()}
+            <HistoryControls
+                borderClass="border-b-2 border-black/20"
+                bgClass="bg-transparent"
+                enabledColor="text-black"
+                disabledColor="text-black/30"
+            />
+        {/snippet}
         {#snippet sideContent()}
             <div class="max-sm:hidden">
                 <HistoryControls
