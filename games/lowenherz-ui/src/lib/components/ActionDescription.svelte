@@ -446,9 +446,10 @@
                 {playerId}
             />
         {/each}
-        tied for the {slotLabel(meta.slot!, meta.slotKind)} action and {meta.tieWentToDuel
-            ? 'duel for it'
-            : 'enter negotiations'}.
+        {meta.tiedPlayerIds.length === 2 ? 'both' : 'all'} chose the {slotLabel(
+            meta.slot!,
+            meta.slotKind
+        )} action and {meta.tieWentToDuel ? 'duel for it' : 'enter negotiations'}.
     {:else if meta?.roundAdvanced}
         {@const newFirstIsMe = gameSession.myPlayer?.id === meta.newFirstPlayerId}
         <span class="text-gray-500">
