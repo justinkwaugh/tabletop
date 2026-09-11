@@ -167,6 +167,43 @@ function propose(playerId: string, amount: number): HydratedNegotiationMove {
     })
 }
 
+describe('completing a deal', () => {
+    it('records who paid whom, how much, and over which slot', () => {
+        const state = buildState({
+            negotiation: {
+                slot: 1,
+                playerIds: ['p1', 'p2'],
+                offer: { fromPlayerId: 'p2', amount: 6 },
+                lastProposedBy: 'p2'
+            }
+        })
+        const accept = new HydratedNegotiationMove({
+            id: 'accept',
+            gameId: 'game-1',
+            source: ActionSource.User,
+            type: ActionType.NegotiationMove,
+            playerId: 'p1',
+            kind: NegotiationMoveKind.Propose,
+            fromPlayerId: 'p2',
+            amount: 6
+        })
+
+        expect(accept.isValidNegotiationMove(state)).toBe(true)
+        accept.apply(state)
+
+        expect(state.negotiation).toBeUndefined()
+        expect(state.resolvedSlots).toEqual([{ slot: 1, winnerPlayerId: 'p2' }])
+        expect(state.getPlayerState('p2').money).toBe(6)
+        expect(state.getPlayerState('p1').money).toBe(18)
+        expect(accept.metadata?.executedOffer).toEqual({
+            fromPlayerId: 'p2',
+            toPlayerId: 'p1',
+            amount: 6,
+            slot: 1
+        })
+    })
+})
+
 describe('the minimumOneDucat option', () => {
     it('rejects a zero-ducat offer while the rule is on', () => {
         const state = buildState({ minimumOneDucat: true })
