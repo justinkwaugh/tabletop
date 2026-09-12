@@ -1,9 +1,15 @@
 <script lang="ts">
     import { flip, shift, offset, hide } from '@floating-ui/dom'
     import { assertExists } from '@tabletop/common'
+    import PrivateCard from './PrivateCard.svelte'
     import { Floater } from '@tabletop/frontend-components'
 
-    let { name, description }: { name: string; description: string } = $props()
+    let {
+        name,
+        description,
+        value,
+        income
+    }: { name: string; description: string; value?: number; income?: number } = $props()
     const id = $props.id()
     let open = $state(false)
     let triggerEvent: Event | undefined
@@ -61,8 +67,7 @@
         }}
     >
         <div id={`${id}-description`} class="description" role="tooltip">
-            <strong>{name}</strong>
-            <p>{description}</p>
+            <PrivateCard {name} {description} {value} {income} />
         </div>
     </Floater>
 {/if}
@@ -90,8 +95,7 @@
         max-width: calc(100vw - 24px);
         max-height: calc(100dvh - 24px);
         overflow-y: auto;
-        padding: 10px 12px;
-        border: 1px solid #d2c5b7;
+        padding: 0;
         border-radius: 7px;
         background: #faf7f1;
         color: #514538;
@@ -117,11 +121,5 @@
         .description {
             animation: none;
         }
-    }
-    strong {
-        font-weight: 650;
-    }
-    p {
-        margin: 4px 0 0;
     }
 </style>

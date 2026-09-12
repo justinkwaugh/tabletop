@@ -145,6 +145,8 @@
                                     <th scope="row"
                                         ><PrivateDescription
                                             name={entry.company.name}
+                                            value={entry.value}
+                                            income={entry.income}
                                             description={session.privateCompanies.find(
                                                 (company) => company.id === entry.company.id
                                             )?.description ?? ''}

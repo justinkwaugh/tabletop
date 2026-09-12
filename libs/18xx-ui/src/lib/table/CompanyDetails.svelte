@@ -224,7 +224,7 @@
     {@const description = privateOperationDescription(item.id, company.id)}
     <article class="private" data-private-description-row>
         <div class="private-heading">
-            <div class="private-name"><PrivateDescription name={item.name} description={item.description} /></div
+            <div class="private-name"><PrivateDescription name={item.name} description={item.description} income={item.closed ? undefined : item.privateRevenue} /></div
             ><span
                 >{purchasePrice ??
                     (item.closed ? 'Closed' : `$${item.privateRevenue ?? 0} / OR`)}</span
@@ -290,7 +290,7 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 0;
+        gap: 2px;
         font-size: 11px;
         line-height: 11px;
         font-variant-numeric: tabular-nums;

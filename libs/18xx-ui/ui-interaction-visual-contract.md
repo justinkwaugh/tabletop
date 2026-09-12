@@ -723,3 +723,33 @@ Each mounted scene registers one GameSession listener. Market tokens retain comp
 ### Tile manifest
 
 Tiles follows Spreadsheet in the table tabs. Colored filter pills select one color or All; remaining tile faces render in an unframed grid with their available count, omitting exhausted faces. The filter is local browsing state and persists across tab switches and visible game-state updates. Counts follow the displayed canonical inventory in live play, history, Undo and restoration; an uncommitted tile preview does not consume stock. The manifest includes future-phase tiles and does not imply that a displayed tile is currently legal to lay. Layout and orientation come from the title's map presentation. It creates no actions and does not affect map selection.
+
+### Ownership spreadsheet
+
+Spreadsheet shows open share companies against players in priority order, with direct share counts at each intersection and subdued zeros. Counts follow the displayed state through actions, history and Undo. It is read-only and does not aggregate a controlled company's shares into a player's holdings.
+
+After players, the spreadsheet includes title-selected corporate owners, then Treasury and Market. Treasury shows each row company's own shares; Market counts shares in the title-supplied market pool only. Union Bank remains a separate owner in TOP.
+
+The spreadsheet uses compact row spacing and container-responsive company names: full above 800px, title-supplied short names through 800px, initials through 560px. Accessible row headers retain full company names at every width; resizing changes no ownership or selection.
+
+A Company / Player toggle transposes the same ownership matrix. Player view uses companies as columns and players, corporate owners, Treasury and Market as rows, preserving their order and counts. The chosen view is local browsing state, persists across tab switches and state updates, and creates no game action.
+
+Cash, net worth, shares and certs/limit appear after ownership, as rows in Company view and columns in Player view. They use the same displayed-state valuation and certificate rules as player panels. Union Bank has cash, net worth and shares; certificate limits do not apply to it. Treasury and Market show dashes for these owner-level statistics.
+
+### Operating-round financial history
+
+Spreadsheet's Current / Income toggle switches to chronological OR columns. Company view shows finalized train revenue before distribution; Player view shows actual dividend/private-income receipts and OR-end net worth. The current unfinished round is marked In progress and uses its latest displayed valuation. Missing OR-entry records produce a Partial label, not invented earlier income. Historical company names remain available after closure. Stock-round trades never rewrite a completed OR's valuation. The data comes from recorded action metadata and independently reconstructed snapshots, without moving the session's history cursor. Undo, exploration and history navigation use only the current visible action prefix. The history projection is built only while its view is mounted.
+
+State and action records are taken together from the same visible history context. The delayed rendered gameState must not be paired with a newer/truncated actions array during transitions, since its undo patches would then target a different snapshot.
+
+Current ownership cells show the shared President badge for the company's canonical president in either orientation. Corporate presidencies are marked in that company's cell (such as Union Bank), never its controlling player's cell. Share numbers stay centered independently of the badge.
+
+Where a title has a reserved exchange pool, Exchange appears immediately before Treasury in either orientation. The owners/pools divider precedes Exchange, and its financial-summary cells are dashes. Counts come from the supplied exchange pool and follow visible state and Undo.
+
+Operating order offers Tokens only / Detailed chips icons beside its heading, separated by a slash. Detailed chips remain the default. Tokens-only retains company order, completion status and the same click-to-toggle company details. Switching style preserves the expanded card; overflow and the miniature visible-window overview remeasure the changed chip widths. This local display preference creates no game action.
+
+Company cash follows Market, separated by the same stronger divider as the ownership pools. It is a column in Company view and a row in Player view, sourced from displayed company cash accounts. Intersections with owner statistics are not applicable and show dashes.
+
+During TOP offer bidding the action panel shows the lot/value, current bid if present, next bidder, a minus/amount/plus control, Bid and Pass. Increment and affordability come from the auction model; disabled controls prevent stepping below the legal minimum or above available cash. Initial amount is the minimum without a staged selection. Amount changes use the session draft; Bid commits through the session and Pass clears the draft before passing. The next turn resets to its legal minimum through the normal session lifecycle. The bidding controls replace the prototype pile/award summaries in the table only.
+
+PrivateCard is the shared name/value/income/description presentation for private popovers and the auctioned lot on the action panel's left. Numeric facts are supplied by callers, omitted when inapplicable, and never inferred from descriptions. Popover placement, dismissal and animation remain owned by PrivateDescription.

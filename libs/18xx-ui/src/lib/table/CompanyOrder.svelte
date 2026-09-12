@@ -37,6 +37,7 @@
         companyDetails: Snippet<[Company]>
     } = $props()
     let scrollArea: HTMLOListElement | undefined = $state()
+    let showDetails = $state(true)
     let overflowing = $state(false)
     let firstVisible = $state(-1)
     let lastVisible = $state(-1)
@@ -52,7 +53,10 @@
             const bounds = area.getBoundingClientRect()
             const visible = [...area.children].flatMap((child, index) => {
                 const rect = child.getBoundingClientRect()
-                return rect.left >= bounds.left - 0.5 && rect.right <= bounds.left + area.clientWidth + 0.5 ? [index] : []
+                return rect.left >= bounds.left - 0.5 &&
+                    rect.right <= bounds.left + area.clientWidth + 0.5
+                    ? [index]
+                    : []
             })
             firstVisible = visible[0] ?? -1
             lastVisible = visible.at(-1) ?? -1
@@ -101,13 +105,47 @@
 <section aria-label="Company order" class="company-order">
     <div class="order-heading">
         <span class="heading">{prospective ? 'Next operating order' : 'Operating order'}</span>
+        <div class="chip-style" role="group" aria-label="Operating order chip style">
+            <button
+                aria-label="Tokens only"
+                aria-pressed={!showDetails}
+                onclick={() => (showDetails = false)}
+            >
+                <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                    <circle cx="8" cy="8" r="7" fill="currentColor" />
+                </svg>
+            </button>
+            <span class="separator" aria-hidden="true">/</span>
+            <button
+                aria-label="Detailed chips"
+                aria-pressed={showDetails}
+                onclick={() => (showDetails = true)}
+            >
+                <svg width="29" height="16" viewBox="0 0 29 16" aria-hidden="true">
+                    <path
+                        d="M8 1.5H24Q27.5 1.5 27.5 5V11Q27.5 14.5 24 14.5H8A6.5 6.5 0 0 1 8 1.5Z"
+                        fill="none"
+                        stroke="currentColor"
+                    />
+                    <circle cx="8" cy="8" r="7" fill="currentColor" />
+                </svg>
+            </button>
+        </div>
         {#if overflowing}
             <div class="overview" aria-hidden="true">
                 {#if firstVisible >= 0}
-                    <span class="visible-window" style:transform={`translateX(${firstVisible * 18}px)`} style:width={`${(lastVisible - firstVisible + 1) * 18 + 2}px`}></span>
+                    <span
+                        class="visible-window"
+                        style:transform={`translateX(${firstVisible * 18}px)`}
+                        style:width={`${(lastVisible - firstVisible + 1) * 18 + 2}px`}
+                    ></span>
                 {/if}
                 {#each entries as { company, appearance }, index (company.id)}
-                    <span class="mini-token" class:fully-visible={index >= firstVisible && index <= lastVisible} data-overview-company={company.id}>
+                    <span
+                        class="mini-token"
+                        class:fully-visible={index >= firstVisible && index <= lastVisible}
+                        data-overview-company={company.id}
+                    >
                         <CompanyToken {appearance} size={14} />
                     </span>
                 {/each}
@@ -127,6 +165,7 @@
                 <button
                     id={`${detailsId}-${company.id}`}
                     class="pill"
+                    class:token-only={!showDetails}
                     aria-label={company.name}
                     aria-expanded={expandedCompanyId === company.id}
                     aria-controls={`${detailsId}-panel`}
@@ -135,38 +174,38 @@
                             expandedCompanyId === company.id ? undefined : company.id)}
                 >
                     <CompanyToken {appearance} size={38} />
-                    <div class="details">
-                        <div class="summary">
-                            <span class="cash"
-                                >{amount === undefined
-                                    ? '—'
-                                    : amount === 'unlimited'
-                                      ? '$∞'
-                                      : `$${amount.toLocaleString('en-US')}`}</span
-                            >
-                            <span
-                                class="tokens"
-                                class:empty-tokens={remainingTokens.length === 0}
-                                title={`${remainingTokens.length} station tokens remaining`}
-                            >
-                                <span>{remainingTokens.length}</span>
-                                <CompanyToken {appearance} size={14} />
-                            </span>
-                        </div>
-                        <div class="trains">
-                            {#each trains as train (train.id)}
-                                <TrainBadge name={train.name} color={train.color} />
-                            {:else}
-                                <span
-                                    class="no-trains"
-                                    class:train-required={requiresTrain(company.id)}
-                                    title={requiresTrain(company.id)
-                                        ? 'Must buy a train when operating'
-                                        : undefined}>No trains</span
+                    {#if showDetails}<div class="details">
+                            <div class="summary">
+                                <span class="cash"
+                                    >{amount === undefined
+                                        ? '—'
+                                        : amount === 'unlimited'
+                                          ? '$∞'
+                                          : `$${amount.toLocaleString('en-US')}`}</span
                                 >
-                            {/each}
-                        </div>
-                    </div>
+                                <span
+                                    class="tokens"
+                                    class:empty-tokens={remainingTokens.length === 0}
+                                    title={`${remainingTokens.length} station tokens remaining`}
+                                >
+                                    <span>{remainingTokens.length}</span>
+                                    <CompanyToken {appearance} size={14} />
+                                </span>
+                            </div>
+                            <div class="trains">
+                                {#each trains as train (train.id)}
+                                    <TrainBadge name={train.name} color={train.color} />
+                                {:else}
+                                    <span
+                                        class="no-trains"
+                                        class:train-required={requiresTrain(company.id)}
+                                        title={requiresTrain(company.id)
+                                            ? 'Must buy a train when operating'
+                                            : undefined}>No trains</span
+                                    >
+                                {/each}
+                            </div>
+                        </div>{/if}
                     {#if completed}<span class="done" aria-hidden="true">✓</span>{/if}
                 </button>
             </li>
@@ -195,6 +234,36 @@
         gap: 10px;
         max-width: 100%;
     }
+    .chip-style {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        flex-shrink: 0;
+        color: #34312d;
+    }
+    .chip-style button {
+        display: flex;
+        align-items: center;
+        padding: 1px 2px;
+        border: 0;
+        border-radius: 3px;
+        background: transparent;
+        color: inherit;
+        opacity: 0.4;
+        cursor: pointer;
+    }
+    .chip-style button[aria-pressed='true'],
+    .chip-style button:hover {
+        opacity: 1;
+    }
+    .chip-style button:focus-visible {
+        outline: 2px solid #796047;
+        outline-offset: 1px;
+    }
+    .separator {
+        color: #a79888;
+        font-size: 12px;
+    }
     .overview {
         position: relative;
         display: flex;
@@ -211,7 +280,9 @@
         border: 1px solid #a99983;
         border-radius: 6px;
         background: #d9ccba;
-        transition: transform 100ms ease-out, width 100ms ease-out;
+        transition:
+            transform 100ms ease-out,
+            width 100ms ease-out;
         pointer-events: none;
     }
     .mini-token {
@@ -219,9 +290,13 @@
         display: flex;
         opacity: 0.45;
     }
-    .mini-token.fully-visible { opacity: 1; }
+    .mini-token.fully-visible {
+        opacity: 1;
+    }
     @media (prefers-reduced-motion: reduce) {
-        .visible-window { transition: none; }
+        .visible-window {
+            transition: none;
+        }
     }
     .heading {
         flex-shrink: 0;
@@ -266,6 +341,12 @@
     .pill:hover {
         background: #fffaf3;
         border-color: #ae9983;
+    }
+    .pill.token-only {
+        padding: 0;
+        border-radius: 50%;
+        background: transparent;
+        border-color: transparent;
     }
     .pill:focus-visible {
         outline: 2px solid #796047;

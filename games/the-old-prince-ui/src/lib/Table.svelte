@@ -1,11 +1,12 @@
 <script lang="ts">
+    import { TheOldPrinceCompanyNames } from './companyPresentation.js'
     import { TheOldPrinceEndingRules, TheOldPrinceCompanies, TheOldPrinceMap } from '@tabletop/the-old-prince'
     import { TheOldPrinceTrainColors } from './trainPresentation.js'
     import { TheOldPrinceOperatingRules } from '@tabletop/the-old-prince'
     import OpeningAuction from './OpeningAuction.svelte'
     import type { GameSession } from '@tabletop/frontend-components'
     import type { GameState, HydratedGameState } from '@tabletop/common'
-    import { GameTable, OperatingActions, AuctionOffers } from '@tabletop/18xx-ui'
+    import { GameTable, OperatingActions, AuctionOffers, OfferAuctionBidding } from '@tabletop/18xx-ui'
     import { requireTheOldPrinceSession } from './session.svelte.js'
     import BranchSplitPreview from './BranchSplitPreview.svelte'
     let { gameSession }: { gameSession: GameSession<GameState, HydratedGameState> } = $props()
@@ -21,6 +22,9 @@
 </script>
 
 <GameTable
+    companyNames={TheOldPrinceCompanyNames}
+    marketPoolId="market"
+    exchangePoolId="reserved"
     {session}
     portfolioCompanyIds={['UB']}
     valuationRules={TheOldPrinceEndingRules}
@@ -41,6 +45,8 @@
         {#if session.offerAuction && !session.offerAuction.auction.completed}
             {#if !session.offerAuction.auction.bidding && !session.offerAuction.auction.stalled}
                 <AuctionOffers {session} {lotInfo} onFocus={focusLocation} />
+            {:else if session.offerAuction.auction.bidding}
+                <OfferAuctionBidding {session} {lotInfo} />
             {:else}
                 <OpeningAuction {session} showUndo={false} />
             {/if}

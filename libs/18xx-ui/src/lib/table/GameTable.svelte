@@ -22,6 +22,8 @@
     import MapScene from '../maps/MapScene.svelte'
     import StockMarketScene from '../stock/StockMarketScene.svelte'
     import TileManifest from '../tiles/TileManifest.svelte'
+    import type { CompanyNameVariants } from './companyPresentation.js'
+    import OwnershipSpreadsheet from './OwnershipSpreadsheet.svelte'
     import { ClassicTileAppearance, MutedTileAppearance } from '../tiles/tileAppearance.js'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
@@ -29,6 +31,9 @@
     import TableHeader from './TableHeader.svelte'
     let {
         session,
+        marketPoolId,
+        exchangePoolId,
+        companyNames,
         actions,
         operatingRules,
         poolName,
@@ -38,6 +43,9 @@
         privateOperationDescription
     }: {
         session: FinanceExampleSession
+        marketPoolId: string
+        exchangePoolId?: string
+        companyNames?: Readonly<Record<string, CompanyNameVariants>>
         actions: Snippet<[(locationId: string) => void]>
         operatingRules: OperatingRules
         portfolioCompanyIds?: readonly string[]
@@ -245,7 +253,14 @@
                     inert={view !== 'Spreadsheet'}
                     tabindex="0"
                 >
-                    <p class="placeholder">Spreadsheet coming later.</p>
+                    <OwnershipSpreadsheet
+                        {valuationRules}
+                        {session}
+                        {companyNames}
+                        {marketPoolId}
+                        {exchangePoolId}
+                        {portfolioCompanyIds}
+                    />
                 </div>
                 <div
                     class="view-panel"
@@ -354,10 +369,5 @@
     .inactive {
         visibility: hidden;
         pointer-events: none;
-    }
-    .placeholder {
-        margin: 24px 0;
-        color: #8b7b6b;
-        font-size: 13px;
     }
 </style>

@@ -1,0 +1,103 @@
+<script lang="ts">
+    import { assertExists } from '@tabletop/common'
+    import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
+    import PrivateCard from '../privates/PrivateCard.svelte'
+    import AuctionBidControl from './AuctionBidControl.svelte'
+
+    let {
+        session,
+        lotInfo
+    }: { session: FinanceExampleSession; lotInfo: (id: string) => { description: string } } =
+        $props()
+    const model = $derived.by(() => {
+        assertExists(session.offerAuction, 'Bidding requires an offer auction')
+        return session.offerAuction
+    })
+    const bidding = $derived.by(() => {
+        assertExists(model.auction.bidding, 'Bidding requires an offered lot')
+        return model.auction.bidding
+    })
+    const lot = $derived.by(() => {
+        const lot = model.lots.find((lot) => lot.id === bidding.lotId)
+        assertExists(lot, 'Bidding requires a known lot')
+        return lot
+    })
+    const amount = $derived(session.offerSelection?.amount ?? model.minimumBid)
+    function canBid(amount: number) {
+        return (
+            session.canOfferAuction &&
+            !!session.myPlayer &&
+            model.canBid(session.myPlayer.id, bidding.lotId, amount)
+        )
+    }
+    function changeBid(amount: number) {
+        if (!session.offerSelection) session.selectOffer(bidding.lotId)
+        session.setOfferBid(amount)
+    }
+    function bid() {
+        changeBid(amount)
+        void session.confirmOffer()
+    }
+    function pass() {
+        session.backOffer()
+        void session.passOffer()
+    }
+</script>
+
+<article aria-label="Current auction">
+    <div class="lot">
+        <PrivateCard
+            name={lot.name}
+            description={lotInfo(lot.id).description}
+            value={lot.price}
+            income={session.privateCompanies.find((company) => company.id === lot.id)
+                ?.privateRevenue}
+        />
+    </div>
+    <div class="turn">
+        {#if bidding.auction.highBid !== undefined}<span class="value"
+                >Current bid <strong>${bidding.auction.highBid.toLocaleString('en-US')}</strong
+                ></span
+            >{/if}
+        <span class="player">{session.getPlayerName(model.playerId)}</span>
+        <AuctionBidControl
+            {amount}
+            increment={model.rules.increment}
+            canBid={canBid(amount)}
+            canDecrease={canBid(amount - model.rules.increment)}
+            canIncrease={canBid(amount + model.rules.increment)}
+            canPass={session.canOfferAuction}
+            onChange={changeBid}
+            onBid={bid}
+            onPass={pass}
+        />
+    </div>
+</article>
+
+<style>
+    article {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px 28px;
+        padding: 4px 0;
+    }
+    .lot {
+        width: 300px;
+        max-width: 100%;
+    }
+    .value {
+        font-size: 12px;
+        color: #786550;
+    }
+    .turn {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .player {
+        font-size: 13px;
+        font-weight: 600;
+    }
+</style>

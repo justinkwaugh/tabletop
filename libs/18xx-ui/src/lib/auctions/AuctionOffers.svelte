@@ -71,7 +71,12 @@
                                 {:else}<span class="private-icon" aria-hidden="true">{lot.id}</span
                                     >{/if}
                             </button>
-                            <PrivateDescription name={lot.name} description={info.description} />
+                            <PrivateDescription
+                                name={lot.name}
+                                description={info.description}
+                                value={lot.price}
+                                income={lot.company?.privateRevenue}
+                            />
                         </div></th
                     >
                     <td class="amount income"

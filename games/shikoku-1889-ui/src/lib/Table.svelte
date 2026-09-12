@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { Shikoku1889CompanyNames } from './companyPresentation.js'
     import { Shikoku1889EndingRules } from '@tabletop/shikoku-1889'
     import { Shikoku1889TrainColors } from './trainPresentation.js'
     import { Shikoku1889OperatingRules } from '@tabletop/shikoku-1889'
@@ -11,6 +12,8 @@
 </script>
 
 <GameTable
+    companyNames={Shikoku1889CompanyNames}
+    marketPoolId="open-market"
     {session}
     valuationRules={Shikoku1889EndingRules}
     trainColors={Shikoku1889TrainColors}
