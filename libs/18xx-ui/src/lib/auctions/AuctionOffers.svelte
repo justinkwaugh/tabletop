@@ -1,6 +1,7 @@
 <script lang="ts">
     import { assertExists } from '@tabletop/common'
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
+    import { auctionLotDetails } from './auctionLotDetails.js'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
 
@@ -17,32 +18,12 @@
         assertExists(session.offerAuction, 'Auction offers require an offer auction')
         return session.offerAuction
     })
-    const lots = $derived(
-        model.offerIds
-            .map((id) => {
-                const lot = model.lots.find((item) => item.id === id)
-                assertExists(lot, 'Offer pile requires an auction lot')
-                const company = session.privateCompanies.find((item) => item.id === id)
-                const share = session.financialState.certificates.find(
-                    (item) => item.id === id && item.kind === 'share'
-                )
-                return { ...lot, company, share }
-            })
-            .sort((a, b) => {
-                if (a.price !== b.price) return a.price - b.price
-                if (a.share?.kind === 'share' && b.share?.kind === 'share') {
-                    return (
-                        a.share.companyId.localeCompare(b.share.companyId) ||
-                        (a.share.number ?? 0) - (b.share.number ?? 0)
-                    )
-                }
-                return Number(!!a.share) - Number(!!b.share) || a.name.localeCompare(b.name)
-            })
-    )
+    const lots = $derived(auctionLotDetails(session, model.offerIds))
+
 </script>
 
 <section aria-label="Auction offers">
-    <header><h2>{session.getPlayerName(model.playerId)} <span>· Choose an offer</span></h2></header>
+    <header><h2>{session.getPlayerName(model.playerId)} <span>· Offer an item</span></h2></header>
     <table>
         <thead
             ><tr

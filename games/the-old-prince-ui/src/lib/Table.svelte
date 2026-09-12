@@ -15,13 +15,24 @@
         if (privateCompany) return { description: privateCompany.description, ...(id === 'VR' ? { locationId: 'N18' } : {}) }
         const share = session.financialState.certificates.find((certificate) => certificate.id === id)
         const company = share?.kind === 'share' ? TheOldPrinceCompanies.find((company) => company.number === share.number) : undefined
-        const locationId = TheOldPrinceMap.definition.locations.find((location) => location.reservations?.some((reservation) => reservation.companyId === company?.companyId))?.id
+        const locationId = company ? numberedShareLocation('PEIR', company.number) : undefined
         return { locationId, description: `A numbered PEIR share associated with ${company?.name}. Receives a share of PEIR dividends while outstanding. It may be exchanged when the associated railway is formed and is worth $80 at game end.` }
+    }
+    function numberedShareLocation(companyId: string, number: number) {
+        if (companyId !== 'PEIR') return undefined
+        const company = TheOldPrinceCompanies.find((company) => company.number === number)
+        return TheOldPrinceMap.definition.locations.find((location) =>
+            location.reservations?.some((reservation) => reservation.companyId === company?.companyId)
+        )?.id
     }
     const session = $derived(requireTheOldPrinceSession(gameSession))
 </script>
 
 <GameTable
+    {numberedShareLocation}
+    mapFocusExcludedCompanyIds={['PEIR']}
+    numberedShareNames={{ PEIR: Object.fromEntries(TheOldPrinceCompanies.map((company) => [company.number, company.name])) }}
+    auctionLotDescription={(id) => lotInfo(id).description}
     companyNames={TheOldPrinceCompanyNames}
     marketPoolId="market"
     exchangePoolId="reserved"
@@ -51,8 +62,11 @@
                 <OpeningAuction {session} showUndo={false} />
             {/if}
         {:else}
-            <OperatingActions {session} />
-            <BranchSplitPreview {session} showUndo={false} />
+            {#if session.hasSplitDraft}
+                <BranchSplitPreview {session} showUndo={false} />
+            {:else}
+                <OperatingActions {session} additionalStockActions={session.canPreviewSplit && session.myPlayer && session.splitModel.branches().length && session.splitModel.parents(session.myPlayer.id).some((parent) => !parent.reason) ? [{ label: 'Split', onSelect: () => session.chooseSplit() }] : []} />
+            {/if}
         {/if}
     {/snippet}
 </GameTable>

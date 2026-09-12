@@ -54,11 +54,13 @@
 
     let {
         children,
+        overlay,
         justify = 'center',
         controls = 'top-left',
         expandable = false
     }: {
         children: Snippet
+        overlay?: Snippet<[HTMLDivElement]>
         justify?: 'center' | 'left' | 'right'
         controls: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'none'
         expandable?: boolean
@@ -75,7 +77,7 @@
     let contentHeight = $state(0)
 
     let scroller: HTMLElement
-    let viewport: HTMLElement
+    let viewport: HTMLDivElement | undefined = $state()
     let content: HTMLElement
     let measuredContent: HTMLElement
 
@@ -1133,6 +1135,7 @@
                     {@render children()}
                 </div>
             </div>
+            {#if viewport && overlay}{@render overlay(viewport)}{/if}
         </div>
     </div>
     <div

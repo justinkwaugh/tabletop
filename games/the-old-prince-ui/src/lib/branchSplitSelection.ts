@@ -7,12 +7,14 @@ import {
 import type { BranchSplitRequest, BranchSplitAllocation } from '@tabletop/the-old-prince'
 
 type SplitStages = {
+    action: true
     parentId: string
     branchId: string
     marketSpaceId: string
     allocation: BranchSplitAllocation
 }
 const Stages = [
+    'action',
     'parentId',
     'branchId',
     'marketSpaceId',
@@ -22,6 +24,9 @@ const CompleteStages: Exclude<keyof SplitStages, (typeof Stages)[number]> extend
     ? true
     : never = true
 export type BranchSplitSelection = StagedSelectionState<SplitStages>
+export function chooseSplitAction(): BranchSplitSelection {
+    return setStagedSelectionValue<SplitStages, 'action'>({}, Stages, 'action', true, 'manual')
+}
 export function chooseSplitParent(
     selection: BranchSplitSelection,
     parentId: string

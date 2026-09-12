@@ -1,30 +1,54 @@
 <script lang="ts">
-    import { ActionSource } from '@tabletop/common'
+    import { assertExists, type GameAction } from '@tabletop/common'
+    import { auctionHistory } from './auctionHistory.js'
+    import AuctionHistoryCard from './AuctionHistoryCard.svelte'
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
     let { session }: { session: FinanceExampleSession } = $props()
-    const actions = $derived(
-        session.actions.filter((action) => action.source === ActionSource.User).toReversed()
+    const entries = $derived(
+        auctionHistory(session.actions, session.financialState.offerAuction?.awards ?? [])
     )
+    function select(action: GameAction) {
+        if (action.index !== undefined) session.history.goToActionIndex(action.index)
+    }
+    function lot(lotId: string) {
+        const lot = session.offerAuction?.lots.find((lot) => lot.id === lotId)
+        assertExists(lot, 'Auction history requires a known offered lot')
+        return lot
+    }
 </script>
 
 <ol aria-label="Action history">
-    {#each actions as action (action.id)}
-        <li>
-            <button
-                disabled={session.busy ||
-                    session.updatingVisibleState ||
-                    action.index === undefined}
-                onclick={() => {
-                    if (action.index !== undefined) session.history.goToActionIndex(action.index)
-                }}
-            >
-                <span>{session.getPlayerName(action.playerId)}</span>
-                <strong>{action.type.replace(/([a-z])([A-Z])/g, '$1 $2')}</strong>
-                {#if 'locationId' in action && typeof action.locationId === 'string'}<small
-                        >{action.locationId}</small
-                    >{/if}
-            </button>
-        </li>
+    {#each entries as entry (entry.id)}
+        {#if entry.kind === 'auction'}
+            <li class="auction">
+                <AuctionHistoryCard
+                    card={entry}
+                    lot={lot(entry.offer.lotId)}
+                    playerName={(id) => session.getPlayerName(id)}
+                    disabled={session.busy || session.updatingVisibleState}
+                    onSelect={select}
+                />
+            </li>
+        {:else}
+            {@const action = entry.action}
+            <li>
+                <button
+                    disabled={session.busy ||
+                        session.updatingVisibleState ||
+                        action.index === undefined}
+                    onclick={() => {
+                        if (action.index !== undefined)
+                            session.history.goToActionIndex(action.index)
+                    }}
+                >
+                    <span>{session.getPlayerName(action.playerId)}</span>
+                    <strong>{action.type.replace(/([a-z])([A-Z])/g, '$1 $2')}</strong>
+                    {#if 'locationId' in action && typeof action.locationId === 'string'}<small
+                            >{action.locationId}</small
+                        >{/if}
+                </button>
+            </li>
+        {/if}
     {:else}<li class="empty">No actions yet.</li>{/each}
 </ol>
 
@@ -36,6 +60,9 @@
     }
     li {
         border-bottom: 1px solid #d4c9bc;
+    }
+    li.auction {
+        border-bottom: 0;
     }
     button {
         width: 100%;

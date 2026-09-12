@@ -1,3 +1,4 @@
+import { chooseStockAction, chooseSaleCompany, backFromStockAction, type StockAction, type StockActionSelection } from '../stock/stockActionSelection.js'
 import { cashOwnedBy, shareSaleValue, priorityOrder, stockCertificateCount } from '@tabletop/18xx'
 import {
     OfferAuction,
@@ -1418,6 +1419,21 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         assertExists(this.myPlayer, 'A map preference requires a player')
         this.mapStyles[this.myPlayer.id] = style
     }
+    private stockActionDraft: StockActionSelection = $state({})
+    stockMenu = $derived(this.updatingVisibleState || this.isViewingHistory ? undefined : this.stockActionDraft.action?.value)
+    selectedSaleCompany = $derived(this.stockActionDraft.saleCompany?.value)
+    chooseStockMenu(menu: StockAction | undefined) {
+        this.assertSelectionAvailable(this.myPlayer?.id)
+        this.cancelSelection()
+        this.stockActionDraft = menu ? chooseStockAction(menu) : {}
+    }
+    chooseStockSaleCompany(companyId: string) {
+        this.assertSelectionAvailable(this.myPlayer?.id)
+        this.stockActionDraft = chooseSaleCompany(this.stockActionDraft, companyId)
+    }
+    backFromStockMenu() {
+        this.stockActionDraft = backFromStockAction(this.stockActionDraft)
+    }
     startChoices = $derived.by(() => {
         const state = this.financialState
         const playerId = this.myPlayer?.id
@@ -1709,6 +1725,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         await this.applyAction(this.createPlayerAction(FinishStockTurn, {}))
     }
     override beforeNewState() {
+        this.stockActionDraft = {};
         this.offerDraft = undefined
         this.auctionDraft = undefined
         this.fundingDraft = undefined
@@ -1724,6 +1741,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     }
     get hasActionDraft(): boolean {
         return Boolean(
+            this.stockMenu ||
             this.offerDraft ||
             this.auctionDraft ||
             this.fundingDraft ||
@@ -1785,7 +1803,12 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             return
         }
         if (this.selection) {
-            this.cancelSelection()
+            if (this.selection.kind === 'start') this.backFromStart()
+            else this.cancelSelection()
+            return
+        }
+        if (this.stockMenu) {
+            this.backFromStockMenu()
             return
         }
         await super.undo()

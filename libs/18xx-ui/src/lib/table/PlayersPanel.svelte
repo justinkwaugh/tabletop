@@ -1,5 +1,9 @@
 <script lang="ts">
-    import { controllingOwner, getCompany, type ValuationRules } from '@tabletop/18xx'
+    import { companyFocusLocations } from '../maps/companyFocusLocations.js'
+    import { certificatesOwnedBy, controllingOwner, getCompany, type Owner, type ValuationRules } from '@tabletop/18xx'
+    import { auctionLotDetails } from '../auctions/auctionLotDetails.js'
+    import { assertExists } from '@tabletop/common'
+    import type { NumberedShareNames } from './companyPresentation.js'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PresidentBadge from '../finance/PresidentBadge.svelte'
@@ -9,15 +13,28 @@
     let {
         session,
         valuationRules,
+        auctionLotDescription,
+        numberedShareNames = {},
+        numberedShareLocation,
+        onFocusLocation,
+        mapFocusExcludedCompanyIds = [],
+        onFocusCompany,
         portfolioCompanyIds = []
     }: {
         session: FinanceExampleSession
         valuationRules: ValuationRules
+        auctionLotDescription?: (id: string) => string
+        numberedShareNames?: NumberedShareNames
+        numberedShareLocation?: (companyId: string, number: number) => string | undefined
+        onFocusLocation: (locationId: string) => void
+        mapFocusExcludedCompanyIds?: readonly string[]
+        onFocusCompany: (companyId: string) => void
         portfolioCompanyIds?: readonly string[]
     } = $props()
     const players = $derived([
         ...session.playerPriorityOrder.map((playerId) => ({
             id: `player:${playerId}`,
+            owner: { kind: 'player', playerId } as const,
             controller: undefined,
             description: undefined,
             playerId,
@@ -30,6 +47,7 @@
             const controller = controllingOwner(session.financialState, companyId)
             return {
                 id: `company:${companyId}`,
+                owner: { kind: 'company', companyId } as const,
                 playerId: undefined,
                 description: session.privateCompanies.find((company) => company.id === companyId)
                     ?.description,
@@ -45,6 +63,32 @@
             }
         })
     ])
+    const auctionActive = $derived(
+        (session.offerAuction !== undefined && !session.offerAuction.auction.completed) ||
+        (session.auction !== undefined && !session.auction.auction.completed)
+    )
+    const auctionPiles = $derived(new Map(
+        session.offerAuction && !session.offerAuction.auction.completed
+            ? session.offerAuction.auction.piles.map((pile) => [pile.playerId, auctionLotDetails(session, pile.lotIds)])
+            : []
+    ))
+    const focusableCompanyIds = $derived(new Set(session.financialState.companies
+        .filter((company) => !mapFocusExcludedCompanyIds.includes(company.id) && companyFocusLocations(session.stationDisplayState, company.id).length > 0)
+        .map((company) => company.id)))
+    function numberedShares(owner: Owner, companyId: string) {
+        const names = numberedShareNames[companyId]
+        if (!names) return []
+        return certificatesOwnedBy(session.financialState, owner)
+            .filter((certificate) => certificate.kind === 'share')
+            .filter((certificate) => certificate.companyId === companyId)
+            .map((certificate) => {
+                assertExists(certificate.number, 'Numbered shares require a number')
+                const name = names[certificate.number]
+                assertExists(name, 'Numbered share requires a title-supplied name')
+                return { number: certificate.number, name }
+            })
+            .sort((a, b) => a.number - b.number)
+    }
     const money = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
     const percent = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
 </script>
@@ -106,33 +150,63 @@
                     <dd>${money.format(player.netWorth)}</dd>
                 </dl>
             </div>
+            {#if player.playerId && auctionPiles.has(player.playerId)}
+                <section class="auction-lot" aria-label={`${player.name} auction lot`}>
+                    <h4>Auction lot</h4>
+                    <table>
+                        <tbody>
+                            {#each auctionPiles.get(player.playerId) ?? [] as lot (lot.id)}
+                                {@const description = auctionLotDescription?.(lot.id) ?? lot.company?.description}
+                                <tr data-private-description-row>
+                                    <th scope="row">
+                                        {#if description}<PrivateDescription name={lot.name} {description} value={lot.price} income={lot.company?.privateRevenue} />{:else}{lot.name}{/if}
+                                    </th>
+                                    <td class="amount">${money.format(lot.price)}</td>
+                                </tr>
+                            {:else}<tr><td class="empty">None</td></tr>{/each}
+                        </tbody>
+                    </table>
+                </section>
+            {/if}
+            {#if !auctionActive || player.ownership.length}
             <section>
                 <h4>Ownership</h4>
                 {#if player.ownership.length}
                     <table class="ownership" aria-label={`${player.name} company ownership`}>
                         <tbody>
-                            {#each player.ownership as entry (entry.company.id)}
+                            {#each player.ownership.toSorted((a, b) => Number(!!numberedShareNames[a.company.id]) - Number(!!numberedShareNames[b.company.id])) as entry (entry.company.id)}
                                 <tr
+                                    class:has-numbered-shares={!!numberedShareNames[entry.company.id]}
                                     class:president={entry.president}
                                     title={entry.president ? 'President' : undefined}
                                 >
                                     <td class="token"
-                                        ><CompanyToken
+                                        ><button class="company-focus" aria-label={`Show ${entry.company.name} stations`} disabled={!focusableCompanyIds.has(entry.company.id)} onclick={() => onFocusCompany(entry.company.id)}><CompanyToken
                                             appearance={session.mapView.stations[entry.company.id]}
                                             size={22}
-                                        /></td
+                                        /></button></td
                                     >
                                     <th scope="row"
-                                        >{entry.company.name}{#if entry.president}<PresidentBadge
+                                        ><button class="company-focus" disabled={!focusableCompanyIds.has(entry.company.id)} onclick={() => onFocusCompany(entry.company.id)}>{entry.company.name}</button>{#if entry.president}<PresidentBadge
                                             />{/if}</th
                                     >
                                     <td class="amount">{percent.format(entry.percentage)}%</td>
                                 </tr>
+                                {#each numberedShares(player.owner, entry.company.id) as share (share.number)}
+                                    {@const locationId = numberedShareLocation?.(entry.company.id, share.number)}
+                                    <tr class="numbered-share">
+                                        <td></td>
+                                        <td colspan="2">
+                                            {#if locationId}<button class="company-focus" onclick={() => onFocusLocation(locationId)}><span class="share-number">{share.number}</span> - {share.name}</button>{:else}<span class="share-number">{share.number}</span> - {share.name}{/if}
+                                        </td>
+                                    </tr>
+                                {/each}
                             {/each}
                         </tbody>
                     </table>
                 {:else}<p class="empty">None</p>{/if}
             </section>
+            {/if}
             {#if player.privates.length}<section class="privates">
                     <div class="private-head">
                         <h4>Privates</h4>
@@ -275,6 +349,18 @@
         padding: 3px 0;
         vertical-align: middle;
     }
+    .company-focus {
+        padding: 0;
+        border: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+    }
+    .company-focus:disabled { cursor: default; }
+    .company-focus:focus-visible { outline: 1px solid #796047; outline-offset: 2px; border-radius: 2px; }
+    .token .company-focus { display: block; }
     .token {
         width: 28px;
     }
@@ -287,6 +373,18 @@
         white-space: nowrap;
         font-variant-numeric: tabular-nums;
     }
+    .has-numbered-shares > th,
+    .has-numbered-shares > td {
+        padding-bottom: 0;
+    }
+    .numbered-share td {
+        padding-top: 0;
+        padding-bottom: 0;
+        line-height: 1.2;
+        font-size: 12px;
+        color: #786550;
+    }
+    .share-number { font-variant-numeric: tabular-nums; }
     .ownership .amount {
         width: 42px;
     }
@@ -294,6 +392,7 @@
     .president .amount {
         font-weight: 700;
     }
+    .auction-lot + section,
     .privates {
         border-top: 1px solid #e3d9cd;
     }
@@ -307,6 +406,12 @@
         text-align: right;
         color: #887664;
         font-size: 10px;
+    }
+    .privates th,
+    .privates td {
+        padding-top: 1px;
+        padding-bottom: 1px;
+        line-height: 1.3;
     }
     .privates tr {
         cursor: pointer;

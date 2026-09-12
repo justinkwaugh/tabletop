@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { companyFocusLocations } from '../maps/companyFocusLocations.js'
     import {
         getCompany,
         nextOperatingCompany,
@@ -22,7 +23,7 @@
     import MapScene from '../maps/MapScene.svelte'
     import StockMarketScene from '../stock/StockMarketScene.svelte'
     import TileManifest from '../tiles/TileManifest.svelte'
-    import type { CompanyNameVariants } from './companyPresentation.js'
+    import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
     import OwnershipSpreadsheet from './OwnershipSpreadsheet.svelte'
     import { ClassicTileAppearance, MutedTileAppearance } from '../tiles/tileAppearance.js'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
@@ -34,6 +35,10 @@
         marketPoolId,
         exchangePoolId,
         companyNames,
+        auctionLotDescription,
+        numberedShareNames,
+        numberedShareLocation,
+        mapFocusExcludedCompanyIds = [],
         actions,
         operatingRules,
         poolName,
@@ -46,6 +51,10 @@
         marketPoolId: string
         exchangePoolId?: string
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
+        auctionLotDescription?: (id: string) => string
+        numberedShareNames?: NumberedShareNames
+        numberedShareLocation?: (companyId: string, number: number) => string | undefined
+        mapFocusExcludedCompanyIds?: readonly string[]
         actions: Snippet<[(locationId: string) => void]>
         operatingRules: OperatingRules
         portfolioCompanyIds?: readonly string[]
@@ -63,6 +72,7 @@
         return undefined
     })
     async function focusLocation(locationId: string) {
+        focusedCompany = undefined
         const restore = focusedLocation === locationId
         focusedLocation = restore ? undefined : locationId
         view = 'Map'
@@ -73,11 +83,35 @@
             return
         }
         const scene = session.displayedMapScene
-        mapWrapper?.focusRect(mapSelectionRect(scene, { kind: 'hex', locationId }, 140, 150), {
+        mapWrapper?.focusRect(mapSelectionRect(scene, { kind: 'hex', locationId }, 140, 220), {
             animate: true
         })
     }
-    let mapViewport: HTMLDivElement | undefined = $state()
+    let focusedCompany: string | undefined = $derived.by(() => {
+        session.financialState
+        return undefined
+    })
+    async function focusCompany(companyId: string) {
+        const restore = focusedCompany === companyId
+        focusedCompany = restore ? undefined : companyId
+        focusedLocation = undefined
+        view = 'Map'
+        await tick()
+        if (restore) {
+            mapWrapper?.fitToContent({ animate: true })
+            return
+        }
+        const locations = companyFocusLocations(session.stationDisplayState, companyId)
+        if (!locations.length) return
+        const rectangles = locations.map((locationId) => mapSelectionRect(
+            session.displayedMapScene, { kind: 'hex', locationId }, 140, 220
+        ))
+        const x = Math.min(...rectangles.map((rect) => rect.x))
+        const y = Math.min(...rectangles.map((rect) => rect.y))
+        const right = Math.max(...rectangles.map((rect) => rect.x + rect.width))
+        const bottom = Math.max(...rectangles.map((rect) => rect.y + rect.height))
+        mapWrapper?.focusRect({ x, y, width: right - x, height: bottom - y }, { animate: true })
+    }
     const financialState = $derived(session.financialState)
     const operating = $derived(financialState.stockRound.completed && !!financialState.operatingSet)
     const companyOrder = $derived(
@@ -123,6 +157,12 @@
                 {#snippet playersPanel()}<PlayersPanel
                         {session}
                         {valuationRules}
+                        {auctionLotDescription}
+                        {numberedShareNames}
+                        {numberedShareLocation}
+                        onFocusLocation={focusLocation}
+                        {mapFocusExcludedCompanyIds}
+                        onFocusCompany={focusCompany}
                         {portfolioCompanyIds}
                     />{/snippet}
                 {#snippet history()}<History {session} />{/snippet}
@@ -144,6 +184,7 @@
             <section class="action-panel" aria-label="Current action">
                 {@render actions(focusLocation)}
             </section>
+            {#if companyOrder.length}
             <CompanyOrder
                 companies={companyOrder}
                 state={financialState}
@@ -169,6 +210,7 @@
                     />
                 {/snippet}
             </CompanyOrder>
+            {/if}
             <div class="view-tabs" role="tablist" aria-label="Table views">
                 {#each views as name, index}
                     <button
@@ -184,7 +226,6 @@
             </div>
             <div class="view-area">
                 <div
-                    bind:this={mapViewport}
                     class="view-panel map-area"
                     class:inactive={view !== 'Map'}
                     role="tabpanel"
@@ -218,10 +259,12 @@
                             hexDiameter={140}
                             onselect={(selection) => session.selectMap(selection, false)}
                         />
+                        {#snippet overlay(viewport)}
+                            {#if view === 'Map' && session.canBuildTrack && session.trackSelection.locationId}
+                                <TrackTilePicker {session} {viewport} />
+                            {/if}
+                        {/snippet}
                     </ScalingWrapper>
-                    {#if mapViewport && view === 'Map' && session.canBuildTrack && session.trackSelection.locationId}
-                        <TrackTilePicker {session} viewport={mapViewport} />
-                    {/if}
                 </div>
                 <div
                     class="view-panel market-area"

@@ -22,6 +22,14 @@
         assertExists(lot, 'Bidding requires a known lot')
         return lot
     })
+    const highBidderId = $derived.by(() => {
+        if (bidding.auction.highBid === undefined) return model.forcedBuyerId
+        const bidder = bidding.auction.participants.find(
+            (participant) => participant.bid === bidding.auction.highBid
+        )
+        assertExists(bidder, 'High bid requires a bidder')
+        return bidder.playerId
+    })
     const amount = $derived(session.offerSelection?.amount ?? model.minimumBid)
     function canBid(amount: number) {
         return (
@@ -55,11 +63,10 @@
         />
     </div>
     <div class="turn">
-        {#if bidding.auction.highBid !== undefined}<span class="value"
-                >Current bid <strong>${bidding.auction.highBid.toLocaleString('en-US')}</strong
-                ></span
-            >{/if}
-        <span class="player">{session.getPlayerName(model.playerId)}</span>
+        <div class="bid-summary">
+            <span class="value">High bid: <strong>{session.getPlayerName(highBidderId)}</strong></span>
+            <span class="value">Current bid <strong>${(bidding.auction.highBid ?? lot.price).toLocaleString('en-US')}</strong></span>
+        </div>
         <AuctionBidControl
             {amount}
             increment={model.rules.increment}
@@ -77,6 +84,7 @@
 <style>
     article {
         display: flex;
+        justify-content: center;
         align-items: center;
         flex-wrap: wrap;
         gap: 12px 28px;
@@ -85,6 +93,12 @@
     .lot {
         width: 300px;
         max-width: 100%;
+    }
+    .bid-summary {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        line-height: 1.3;
     }
     .value {
         font-size: 12px;
@@ -95,9 +109,5 @@
         flex-direction: column;
         align-items: flex-start;
         gap: 8px;
-    }
-    .player {
-        font-size: 13px;
-        font-weight: 600;
     }
 </style>

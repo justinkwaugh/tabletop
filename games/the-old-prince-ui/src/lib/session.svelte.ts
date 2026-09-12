@@ -29,6 +29,7 @@ import {
     chooseSplitPrice,
     chooseSplitAllocation,
     backSplitSelection,
+    chooseSplitAction,
     hasSplitSelection,
     splitRequest,
     type BranchSplitSelection
@@ -113,6 +114,11 @@ export class TheOldPrinceSession extends BaseSession {
                 expectedFunding: preview.childFunding
             })
         )
+    }
+    chooseSplit() {
+        assert(this.canPreviewSplit, 'Split selection is unavailable')
+        this.chooseStockMenu(undefined)
+        this.splitDraft = chooseSplitAction()
     }
     selectSplitParent(parentId: string) {
         assert(this.canPreviewSplit && this.myPlayer, 'Split selection is unavailable')

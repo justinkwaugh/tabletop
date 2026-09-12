@@ -17,13 +17,13 @@
         <h3>{name}</h3>
         {#if value !== undefined || income !== undefined}
             <div class="values">
-                {#if value !== undefined}<span
-                        >Value <strong>${value.toLocaleString('en-US')}</strong></span
-                    >{/if}
                 {#if income !== undefined}<span
                         >Income <strong
                             >${income.toLocaleString('en-US')}<small> / OR</small></strong
                         ></span
+                    >{/if}
+                {#if value !== undefined}<span class="value"
+                        >Value <strong>${value.toLocaleString('en-US')}</strong></span
                     >{/if}
             </div>
         {/if}
@@ -51,6 +51,10 @@
         font-size: 14px;
         font-weight: 650;
         line-height: 1.3;
+    }
+    .value {
+        margin-left: auto;
+        text-align: right;
     }
     .values {
         display: flex;

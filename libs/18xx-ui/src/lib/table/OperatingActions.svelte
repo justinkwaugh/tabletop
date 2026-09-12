@@ -1,15 +1,15 @@
 <script lang="ts">
+    import type { StockMenuOption } from '../stock/stockActionSelection.js'
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
     import GameEnding from '../examples/GameEnding.svelte'
     import TrackBuilding from '../examples/TrackBuilding.svelte'
     import StationBuilding from '../examples/StationBuilding.svelte'
     import RouteBuilding from '../examples/RouteBuilding.svelte'
     import EarningsDistribution from '../examples/EarningsDistribution.svelte'
-    import StockTrading from '../examples/StockTrading.svelte'
+    import StockRoundActions from './StockRoundActions.svelte'
     import TrainBuying from '../examples/TrainBuying.svelte'
     import CompanyDecisions from '../examples/CompanyDecisions.svelte'
-    import PrivateCompanies from '../examples/PrivateCompanies.svelte'
-    let { session }: { session: FinanceExampleSession } = $props()
+    let { session, additionalStockActions = [] }: { session: FinanceExampleSession; additionalStockActions?: readonly StockMenuOption[] } = $props()
     const state = $derived(session.financialState)
 </script>
 
@@ -19,8 +19,7 @@
         <CompanyDecisions {session} showUndo={false} />
     {/if}
     {#if state.machineState === 'StockRound'}
-        <StockTrading {session} showUndo={false} />
-        <PrivateCompanies {session} showUndo={false} />
+        <StockRoundActions {session} additionalActions={additionalStockActions} />
     {:else if state.machineState === 'LayingTrack'}<TrackBuilding
             {session}
             showUndo={false}

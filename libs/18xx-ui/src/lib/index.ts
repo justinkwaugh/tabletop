@@ -44,7 +44,7 @@ export { default as OfferAuctionPanel } from './auctions/OfferAuctionPanel.svelt
 export { default as GameEnding } from './examples/GameEnding.svelte'
 
 export { default as GameTable } from './table/GameTable.svelte'
-export type { CompanyNameVariants } from './table/companyPresentation.js'
+export type { CompanyNameVariants, NumberedShareNames } from './table/companyPresentation.js'
 export { default as OperatingActions } from './table/OperatingActions.svelte'
 
 export { default as StockMarketScene } from './stock/StockMarketScene.svelte'
