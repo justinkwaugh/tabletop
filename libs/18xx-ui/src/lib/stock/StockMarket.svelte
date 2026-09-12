@@ -5,15 +5,26 @@
         type StockMarket as StockMarketModel,
         type Company
     } from '@tabletop/18xx'
-    let { market, companies }: { market: StockMarketModel; companies: readonly Company[] } =
-        $props()
+    import type { StationAppearance } from '../maps/stationPresentation.js'
+    import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
+    let {
+        market,
+        companies,
+        appearances,
+        session
+    }: {
+        market: StockMarketModel
+        companies: readonly Company[]
+        appearances: Readonly<Record<string, StationAppearance>>
+        session?: FinanceExampleSession
+    } = $props()
 </script>
 
 <section aria-label="Stock market">
     <h2>Stock market</h2>
     <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus the scrollable market.) -->
     <div class="scroll" tabindex="0" role="region" aria-label="Stock market spaces">
-        <StockMarketScene {market} {companies} />
+        <StockMarketScene {market} {companies} {appearances} {session} />
     </div>
     <p class="order">Market order: {stockMarketOrder(market).join(' · ')}</p>
 </section>

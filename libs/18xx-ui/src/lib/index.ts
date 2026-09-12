@@ -1,6 +1,7 @@
 export { default as Tile } from './tiles/Tile.svelte'
 export { default as TileArtwork } from './tiles/TileArtwork.svelte'
 export { default as TileLibraryViewer } from './tiles/TileLibraryViewer.svelte'
+export { default as TileManifest } from './tiles/TileManifest.svelte'
 export {
     createTileDrawing,
     type TileDrawing,

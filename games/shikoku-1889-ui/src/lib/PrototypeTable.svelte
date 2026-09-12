@@ -29,7 +29,7 @@
     <TrainBuying {session} />
     <FinanceMap {session} />
     <StockTrading {session} />
-    <StockMarket market={state.stockMarket} companies={state.companies} />
+    <StockMarket {session} appearances={session.mapView.stations} market={state.stockMarket} companies={state.companies} />
 {/if}
 
 <FinanceInspector

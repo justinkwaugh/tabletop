@@ -32,7 +32,7 @@
     <TrainBuying {session} />
     <FinanceMap {session} />
     <StockTrading {session} />
-    <StockMarket market={state.stockMarket} companies={state.companies} />
+    <StockMarket {session} appearances={session.mapView.stations} market={state.stockMarket} companies={state.companies} />
 
     {#if state.tranches.length}<section class="tranches" aria-label="Company tranches">
             {#each state.tranches as tranche (tranche.id)}<p>

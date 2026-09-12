@@ -21,6 +21,7 @@
     import { mapSelectionRect } from '../maps/mapDrawing.js'
     import MapScene from '../maps/MapScene.svelte'
     import StockMarketScene from '../stock/StockMarketScene.svelte'
+    import TileManifest from '../tiles/TileManifest.svelte'
     import { ClassicTileAppearance, MutedTileAppearance } from '../tiles/tileAppearance.js'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
@@ -78,7 +79,7 @@
         ).map((id) => getCompany(financialState, id))
     )
     setGameSession(untrack(() => session))
-    const views = ['Map', 'Market', 'Spreadsheet'] as const
+    const views = ['Map', 'Market', 'Spreadsheet', 'Tiles'] as const
     const tabsId = $props.id()
     let view = $state<(typeof views)[number]>('Map')
 
@@ -226,6 +227,8 @@
                 >
                     <ScalingWrapper justify="center" controls="bottom-left" expandable={true}>
                         <StockMarketScene
+                            {session}
+                            appearances={session.mapView.stations}
                             renderScale={2}
                             market={session.financialState.stockMarket}
                             companies={session.financialState.companies}
@@ -243,6 +246,26 @@
                     tabindex="0"
                 >
                     <p class="placeholder">Spreadsheet coming later.</p>
+                </div>
+                <div
+                    class="view-panel"
+                    class:inactive={view !== 'Tiles'}
+                    role="tabpanel"
+                    id={`${tabsId}-panel-Tiles`}
+                    aria-labelledby={`${tabsId}-tab-Tiles`}
+                    aria-hidden={view !== 'Tiles'}
+                    inert={view !== 'Tiles'}
+                    tabindex="0"
+                >
+                    <TileManifest
+                        tiles={session.mapView.tileSet.definitions}
+                        inventory={session.tileCounts}
+                        layouts={session.mapView.layouts}
+                        orientation={session.mapView.map.definition.orientation}
+                        appearance={session.mapStyle === 'muted'
+                            ? MutedTileAppearance
+                            : ClassicTileAppearance}
+                    />
                 </div>
             </div>
         {/snippet}

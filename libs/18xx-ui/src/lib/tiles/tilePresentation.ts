@@ -22,6 +22,29 @@ export type TileLibraryFilter = {
     stop: 'all' | 'city' | 'town' | 'offboard' | 'junction'
 }
 
+export function compareTileSimplicity(a: TileDefinition, b: TileDefinition): number {
+    const citiesA = a.face.nodes.filter((node) => node.kind === 'city')
+    const citiesB = b.face.nodes.filter((node) => node.kind === 'city')
+    return (
+        Number(citiesA.length > 0) - Number(citiesB.length > 0) ||
+        a.face.nodes.length - b.face.nodes.length ||
+        a.face.paths.length - b.face.paths.length ||
+        citiesA.reduce((sum, city) => sum + city.stationSlots, 0) -
+            citiesB.reduce((sum, city) => sum + city.stationSlots, 0) ||
+        tileTrackBend(a) - tileTrackBend(b) ||
+        a.printedNumber.localeCompare(b.printedNumber, undefined, { numeric: true })
+    )
+}
+
+function tileTrackBend(tile: TileDefinition): number {
+    return tile.face.paths.reduce((sum, path) => {
+        const [a, b] = path.endpoints
+        if (a.kind !== 'edge' || b.kind !== 'edge') return sum
+        const distance = Math.abs(a.edge - b.edge)
+        return sum + 3 - Math.min(distance, 6 - distance)
+    }, 0)
+}
+
 export function filterTileDefinitions(
     tiles: readonly TileDefinition[],
     filter: TileLibraryFilter
