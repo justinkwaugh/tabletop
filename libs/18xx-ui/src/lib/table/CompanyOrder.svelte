@@ -36,6 +36,41 @@
         prospective?: boolean
         companyDetails: Snippet<[Company]>
     } = $props()
+    let scrollArea: HTMLOListElement | undefined = $state()
+    let overflowing = $state(false)
+    let firstVisible = $state(-1)
+    let lastVisible = $state(-1)
+    $effect(() => {
+        const area = scrollArea
+        entries
+        if (!area) return
+        let frame: number | undefined
+        function measure() {
+            frame = undefined
+            if (!area) return
+            overflowing = area.scrollWidth > area.clientWidth + 1
+            const bounds = area.getBoundingClientRect()
+            const visible = [...area.children].flatMap((child, index) => {
+                const rect = child.getBoundingClientRect()
+                return rect.left >= bounds.left - 0.5 && rect.right <= bounds.left + area.clientWidth + 0.5 ? [index] : []
+            })
+            firstVisible = visible[0] ?? -1
+            lastVisible = visible.at(-1) ?? -1
+        }
+        function scheduleMeasure() {
+            if (frame === undefined) frame = requestAnimationFrame(measure)
+        }
+        const observer = new ResizeObserver(scheduleMeasure)
+        observer.observe(area)
+        for (const child of area.children) observer.observe(child)
+        area.addEventListener('scroll', scheduleMeasure, { passive: true })
+        scheduleMeasure()
+        return () => {
+            observer.disconnect()
+            area.removeEventListener('scroll', scheduleMeasure)
+            if (frame !== undefined) cancelAnimationFrame(frame)
+        }
+    })
     const detailsId = $props.id()
     let expandedCompanyId = $state<string>()
     const expandedCompany = $derived(companies.find((company) => company.id === expandedCompanyId))
@@ -64,8 +99,22 @@
 </script>
 
 <section aria-label="Company order" class="company-order">
-    <span class="heading">{prospective ? 'Next operating order' : 'Operating order'}</span>
-    <ol>
+    <div class="order-heading">
+        <span class="heading">{prospective ? 'Next operating order' : 'Operating order'}</span>
+        {#if overflowing}
+            <div class="overview" aria-hidden="true">
+                {#if firstVisible >= 0}
+                    <span class="visible-window" style:transform={`translateX(${firstVisible * 18}px)`} style:width={`${(lastVisible - firstVisible + 1) * 18 + 2}px`}></span>
+                {/if}
+                {#each entries as { company, appearance }, index (company.id)}
+                    <span class="mini-token" class:fully-visible={index >= firstVisible && index <= lastVisible} data-overview-company={company.id}>
+                        <CompanyToken {appearance} size={14} />
+                    </span>
+                {/each}
+            </div>
+        {/if}
+    </div>
+    <ol bind:this={scrollArea}>
         {#each entries as { company, appearance, amount, trains, remainingTokens } (company.id)}
             {@const completed = completedCompanyIds.includes(company.id)}
             <li
@@ -139,6 +188,40 @@
         padding: 8px 16px 2px;
         min-height: 52px;
         min-width: 0;
+    }
+    .order-heading {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        max-width: 100%;
+    }
+    .overview {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px;
+        height: 20px;
+    }
+    .visible-window {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 20px;
+        border: 1px solid #a99983;
+        border-radius: 6px;
+        background: #d9ccba;
+        transition: transform 100ms ease-out, width 100ms ease-out;
+        pointer-events: none;
+    }
+    .mini-token {
+        position: relative;
+        display: flex;
+        opacity: 0.45;
+    }
+    .mini-token.fully-visible { opacity: 1; }
+    @media (prefers-reduced-motion: reduce) {
+        .visible-window { transition: none; }
     }
     .heading {
         flex-shrink: 0;

@@ -656,6 +656,27 @@
         zoomToScaleKeepingCenter(targetScale, true)
     }
 
+    function handleFullscreenKey(event: KeyboardEvent) {
+        if (event.defaultPrevented || event.repeat) return
+        if (event.key === 'Escape' && isExpanded) {
+            event.preventDefault()
+            collapse()
+            return
+        }
+        if (
+            event.key.toLowerCase() !== 'f' || !expandable ||
+            event.ctrlKey || event.metaKey || event.altKey ||
+            !viewport || viewport.getBoundingClientRect().width === 0 ||
+            getComputedStyle(viewport).visibility !== 'visible'
+        ) return
+        const target = event.target
+        if (target instanceof HTMLElement && (
+            target.isContentEditable || target.closest('input, textarea, select, [role="textbox"]')
+        )) return
+        event.preventDefault()
+        toggleExpanded()
+    }
+
     function setExpanded(nextExpanded: boolean) {
         isExpanded = nextExpanded
         requestAnimationFrame(() => {
@@ -1078,6 +1099,8 @@
         }
     })
 </script>
+
+<svelte:window onkeydown={handleFullscreenKey} />
 
 <div
     class="relative overflow-hidden"
