@@ -1,3 +1,4 @@
+import { cashOwnedBy, shareSaleValue, priorityOrder, stockCertificateCount } from '@tabletop/18xx'
 import {
     OfferAuction,
     OfferAuctionLot,
@@ -198,6 +199,10 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             (this.validActionTypes.includes('OfferAuctionLot') ||
                 this.validActionTypes.includes('PassAuction'))
     )
+    async offerAuctionLot(lotId: string) {
+        this.selectOffer(lotId)
+        await this.confirmOffer()
+    }
     selectOffer(lotId: string) {
         assert(this.canOfferAuction && this.offerAuction, 'Auction selection is unavailable')
         this.offerDraft = {
@@ -566,6 +571,12 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
                 description: this.privateRules.description(this.financialState, company.id)
             }))
     )
+    privatePurchasePriceRange(companyId: string, privateCompanyId: string) {
+        return this.transferRules.priceRange(this.financialState, companyId, {
+            kind: 'private',
+            privateCompanyId
+        })
+    }
     selectPrivateExchange(request: PrivateExchangeRequest) {
         assert(
             this.privateExchangeOffers.some(
@@ -927,6 +938,23 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             }))
             .filter((entry) => entry.trains.length)
     )
+    playerPriorityOrder = $derived.by(() =>
+        this.financialState.machineState === 'StockRound'
+            ? priorityOrder(this.financialState, this.stockRules.round)
+            : this.financialState.turnManager.turnOrder
+    )
+    playerLiquidity(playerId: string): number {
+        const owner = { kind: 'player', playerId } as const
+        const cash = cashOwnedBy(this.financialState, owner)
+        assert(typeof cash === 'number', 'Player liquidity requires finite cash')
+        return cash + shareSaleValue(this.financialState, owner, this.stockRules)
+    }
+    companyRequiresTrain(companyId: string): boolean {
+        return (
+            !getCompany(this.financialState, companyId).closed &&
+            this.trainRules.requiresTrain(this.financialState, companyId)
+        )
+    }
     get trainDepot() {
         return this.trainRules.depot
     }
@@ -985,6 +1013,15 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
                 station.status === 'available'
         )
     )
+    stationPlacementCost(stationId: string): number {
+        const station = this.financialState.stations.find((entry) => entry.id === stationId)
+        assert(station?.status === 'available', 'Station cost requires an available token')
+        return this.stationRules
+            .pendingHomes(this.financialState)
+            .some((home) => home.stationId === stationId)
+            ? 0
+            : this.stationRules.placementCost(this.financialState, stationId)
+    }
     stationChoices = $derived(
         this.canPlaceStation && this.stationSelection.stationId
             ? this.stationPlacement.choices(this.stationSelection.stationId.value)
@@ -1150,10 +1187,13 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             !this.isViewingHistory &&
             this.validActionTypes.includes('FinishTrack')
     )
+    showTrackChoices = $derived.by(
+        () => this.financialState.machineState === 'LayingTrack' && !this.isViewingHistory
+    )
     trackChoicesByLocation = $derived.by(
         () =>
             new Map(
-                this.canBuildTrack
+                this.showTrackChoices
                     ? this.mapView.map.definition.locations.map(
                           (location) =>
                               [location.id, this.construction.choices(location.id)] as const
@@ -1184,8 +1224,12 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             ? this.construction.evaluate(this.trackSelection.placement.value).details
             : undefined
     )
+    trackTileInFlight = $derived.by(() => {
+        this.trackSelection
+        return false
+    })
     displayedMapScene = $derived.by(() =>
-        this.trackPreview
+        this.trackPreview && !this.trackTileInFlight
             ? createMapDrawing(
                   this.mapView.map,
                   {
@@ -1197,7 +1241,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             : this.mapScene
     )
     displayedMapTokens = $derived.by(() =>
-        this.trackPreview
+        this.trackPreview && !this.trackTileInFlight
             ? stationMapTokens(this.trackPreview, this.mapView.stations)
             : this.stationPreview
               ? stationMapTokens(this.stationDisplayState, this.mapView.stations)
@@ -1219,6 +1263,31 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         const choices = this.trackChoices.filter((choice) => choice.definitionId === definitionId)
         assert(choices.length, 'No legal placement for this tile')
         this.trackDraft = chooseTrackTile(this.trackDraft, definitionId, choices)
+    }
+    previewTrackTile(definitionId: string) {
+        this.selectTrackTile(definitionId)
+        this.trackDraft = chooseTrackTile(
+            this.trackDraft,
+            definitionId,
+            this.trackPlacements.slice(0, 1)
+        )
+    }
+    rotateTrackPreview() {
+        assert(this.canBuildTrack && this.trackPreview, 'Choose a track tile to rotate')
+        const preview = this.trackPreview
+        const index = this.trackPlacements.findIndex(
+            (choice) =>
+                choice.rotation === preview.rotation &&
+                JSON.stringify(choice.nodeMapping) === JSON.stringify(preview.nodeMapping)
+        )
+        const next = [
+            ...this.trackPlacements.slice(index + 1),
+            ...this.trackPlacements.slice(0, index + 1)
+        ].find((choice) => choice.rotation !== preview.rotation)
+        if (next) this.selectTrackPlacement(next)
+    }
+    cancelTrack() {
+        this.trackDraft = {}
     }
     selectTrackPlacement(request: TrackRequest) {
         assert(
@@ -1275,6 +1344,48 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             this.mapView.layouts
         )
     )
+    selectMap(selection: MapSelection, allowInspection = true) {
+        if (this.showTrackChoices && (!this.canBuildTrack || !this.trackLocationIds.includes(selection.locationId))) return
+        if (
+            this.canRunTrains &&
+            this.routeEditor.trainId &&
+            selection.kind === 'path' &&
+            this.routeEditor.extensions.some(
+                (path) =>
+                    path.locationId === selection.locationId && path.pathId === selection.pathId
+            )
+        )
+            this.appendRoutePath(selection)
+        else if (
+            this.canRunTrains &&
+            this.routeEditor.trainId &&
+            !this.routeEditor.start &&
+            (selection.kind === 'node' || selection.kind === 'slot') &&
+            this.routeEditor.centers.some(
+                (center) =>
+                    center.locationId === selection.locationId && center.nodeId === selection.nodeId
+            )
+        )
+            this.selectRouteStart({
+                locationId: selection.locationId,
+                nodeId: selection.nodeId
+            })
+        else if (this.canBuildTrack && this.trackLocationIds.includes(selection.locationId)) {
+            if (this.trackPreview?.locationId === selection.locationId) this.rotateTrackPreview()
+            else this.selectTrackLocation(selection.locationId)
+        } else if (this.canPlaceStation && this.stationLocationIds.includes(selection.locationId)) {
+            const choices = this.stationChoices.filter(
+                (choice) =>
+                    choice.position.locationId === selection.locationId &&
+                    (selection.kind !== 'slot' ||
+                        (choice.position.nodeId === selection.nodeId &&
+                            choice.position.slot === selection.slot)) &&
+                    (selection.kind !== 'node' || choice.position.nodeId === selection.nodeId)
+            )
+            if (choices.length === 1) this.selectStationPosition(choices[0])
+            else this.inspectMap(selection)
+        } else if (allowInspection) this.inspectMap(selection)
+    }
     mapTokens = $derived.by(() => stationMapTokens(this.financialState, this.mapView.stations))
     tileCounts = $derived.by(() => this.mapView.tileSet.counts(this.financialState.tileInventory))
     private mapInspection: { selection: MapSelection; face: TileFace } | undefined = $state.raw()
@@ -1504,6 +1615,13 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     )
     certificateWeight = (certificate: Portfolio[number]) =>
         this.stockRules.certificateWeight(this.financialState, certificate)
+    playerCertificates(playerId: string) {
+        const owner = { kind: 'player', playerId } as const
+        return {
+            count: stockCertificateCount(this.financialState, owner, this.stockRules),
+            limit: this.stockRules.certificateLimit(this.financialState, owner)
+        }
+    }
     ownerName(owner: Owner): string {
         if (owner.kind === 'player') return this.getPlayerName(owner.playerId)
         return owner.kind === 'bank'
@@ -1603,6 +1721,22 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         this.stationDraft = {}
         this.trackDraft = {}
         this.cancelSelection()
+    }
+    get hasActionDraft(): boolean {
+        return Boolean(
+            this.offerDraft ||
+            this.auctionDraft ||
+            this.fundingDraft ||
+            this.companyDraft ||
+            this.privateDraft ||
+            this.discardDraft ||
+            this.earningsDraft ||
+            this.routeEditor.hasDraft ||
+            this.trainDraft ||
+            this.stationDraft.stationId ||
+            this.trackDraft.locationId ||
+            this.selection
+        )
     }
     override async undo() {
         if (this.busy || this.isViewingHistory) return

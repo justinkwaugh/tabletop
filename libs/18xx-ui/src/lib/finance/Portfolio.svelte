@@ -18,6 +18,7 @@
         cash,
         color,
         label = 'portfolio',
+        compact = false,
         certificateDetail,
         certificateWeight = (certificate) => certificate.certificateLimitCount
     }: {
@@ -26,6 +27,7 @@
         name: string
         cash?: Cash['amount']
         color?: string
+        compact?: boolean
         label?: string
         certificateDetail?: Snippet<[Certificate]>
         certificateWeight?: (certificate: PortfolioModel[number]) => number
@@ -55,20 +57,7 @@
     }
 </script>
 
-<article aria-label={`${name} ${label}`} style:border-top-color={color ?? '#45685e'}>
-    <header>
-        <h3>{name}</h3>
-        {#if cash !== undefined}<span class="cash"
-                >{cash === 'unlimited' ? 'Unlimited bank funds' : `Cash ${cash}`}</span
-            >{/if}
-    </header>
-    <p class="counts">
-        {certificates.length}
-        {certificates.length === 1 ? 'certificate' : 'certificates'} · Limit count {certificates.reduce(
-            (sum, certificate) => sum + certificateWeight(certificate),
-            0
-        )}
-    </p>
+{#snippet holdings()}
     {#each groups as group (group.id)}
         {#if group.name || group.certificates.length}
             <div data-pool-id={group.id}>
@@ -97,9 +86,45 @@
         {/if}
     {/each}
     {#if !certificates.length && groups.length === 1}<p class="empty">No certificates</p>{/if}
+{/snippet}
+
+<article aria-label={`${name} ${label}`} style:border-top-color={color ?? '#45685e'}>
+    <header>
+        <h3>{name}</h3>
+        {#if cash !== undefined}<span class="cash"
+                >{cash === 'unlimited' ? 'Unlimited bank funds' : `Cash ${cash}`}</span
+            >{/if}
+    </header>
+    {#if compact}
+        <details>
+            <summary
+                >{certificates.length}
+                {certificates.length === 1 ? 'certificate' : 'certificates'} · Limit count {certificates.reduce(
+                    (sum, certificate) => sum + certificateWeight(certificate),
+                    0
+                )}</summary
+            >{@render holdings()}
+        </details>
+    {:else}
+        <p class="counts">
+            {certificates.length}
+            {certificates.length === 1 ? 'certificate' : 'certificates'} · Limit count {certificates.reduce(
+                (sum, certificate) => sum + certificateWeight(certificate),
+                0
+            )}
+        </p>
+        {@render holdings()}
+    {/if}
 </article>
 
 <style>
+    summary {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #576763;
+        cursor: pointer;
+    }
+
     h4 {
         margin: 16px 0 8px;
         font-size: 13px;

@@ -234,3 +234,14 @@ during state publication, busy processing, and History View. Undo reverses the
 triggering user Action and its System Action cascade together, restoring the ending
 schedule, results, Bank state, and ordinary play. GameOver exposes no game Actions.
 The prototype harness reloads completed games as well as active ones.
+
+The initial game table follows the shared game-table-shell contract. The title's
+normal UiDefinition uses that shell, while PrototypeUiDefinition retains the
+logic-workbench layout. The table supplies title-specific auction/action content,
+uses canonical active player ids and the existing title Session for all decisions,
+and renders the same semantic map and previews. This is the first desktop layout
+increment; the old workbench remains available for detailed rule inspection.
+
+The company-order row and token artwork follow the shared game-table-shell
+contract. This title supplies its existing OperatingRules and packaged token
+artwork; order and token identities remain canonical during history and Undo.

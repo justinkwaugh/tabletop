@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { UiDefinition as TopDefinition } from '@tabletop/the-old-prince-ui'
-    import { UiDefinition as ShikokuDefinition } from '@tabletop/shikoku-1889-ui'
+    import { PrototypeUiDefinition as TopDefinition } from '@tabletop/the-old-prince-ui'
+    import { PrototypeUiDefinition as ShikokuDefinition } from '@tabletop/shikoku-1889-ui'
     import type { FinanceExamplePosition } from '@tabletop/18xx'
     import FinanceExampleHost from '../../demo/FinanceExampleHost.svelte'
     import '../../map.css'

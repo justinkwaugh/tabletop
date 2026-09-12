@@ -13,6 +13,7 @@
         onBack,
         onPass,
         onUndo,
+        showUndo = true,
         canUndo
     }: {
         model: OfferAuction
@@ -26,6 +27,7 @@
         onBack: () => void
         onPass: () => void
         onUndo: () => void
+        showUndo?: boolean
         canUndo: boolean
     } = $props()
     const bidding = $derived(model.auction.bidding)
@@ -113,7 +115,7 @@
                 >{bidding ? 'Confirm bid' : 'Confirm offer'}</button
             >
         </div>{/if}
-    <button onclick={onUndo} disabled={!canUndo}>Undo</button>
+    {#if showUndo}<button onclick={onUndo} disabled={!canUndo}>Undo</button>{/if}
     {#if model.auction.awards.length}<h3>Awarded</h3>
         <ul>
             {#each model.auction.awards as award}<li>

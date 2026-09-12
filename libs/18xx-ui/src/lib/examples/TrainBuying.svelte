@@ -3,13 +3,14 @@
     import PhaseChanges from './PhaseChanges.svelte'
     import { getCompany, cashOwnedBy } from '@tabletop/18xx'
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session }: { session: FinanceExampleSession } = $props()
+    let { session, showUndo = true }: { showUndo?: boolean; session: FinanceExampleSession } =
+        $props()
     const step = $derived(session.financialState.trainPurchaseStep)
     const preview = $derived(session.trainPreview)
 </script>
 
-<PhaseChanges {session} />
-<TrainFunding {session} />
+<PhaseChanges {session} {showUndo} />
+<TrainFunding {session} {showUndo} />
 
 {#if step}
     <section aria-label="Train purchases">
@@ -23,13 +24,13 @@
             >
             <span>Train limit: {session.trainLimit}</span>
             <span>{step.purchasedTrainIds.length} purchased this turn</span>
-            <button
-                onclick={() => session.undo()}
-                disabled={session.busy ||
-                    session.updatingVisibleState ||
-                    session.isViewingHistory ||
-                    (!session.trainSelection && !session.actions.length)}>Undo</button
-            >
+            {#if showUndo}<button
+                    onclick={() => session.undo()}
+                    disabled={session.busy ||
+                        session.updatingVisibleState ||
+                        session.isViewingHistory ||
+                        (!session.trainSelection && !session.actions.length)}>Undo</button
+                >{/if}
         </header>
         {#if session.isViewingHistory}<p>History view</p>{/if}
         <button

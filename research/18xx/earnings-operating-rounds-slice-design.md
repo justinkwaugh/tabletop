@@ -12,8 +12,8 @@ these distinctions. No source implementation is copied.
 TOP prototype §§7.1,7.5,7.7,10.2 specifies bank/treasury shares paying the company,
 PEIR surviving player rights, rounded-up per-right payments, rounded-up retained
 half, PEIR last, and $40 extra per share when a paying marker already at 400 would
-move right. King's Mail uses the existing $60 rulebook baseline (§7.7 and its card),
-not the differing research implementation value. 1889 §§8.1,8.6,8.7.5 specifies
+move right. King's Mail pays $80 per OR. Justin relayed the designer's correction on
+2026-09-12: the $60 printed in §7.7 and on the card is incorrect. 1889 §§8.1,8.6,8.7.5 specifies
 private income at OR entry, no IPO payment, Market shares paying the company,
 right/up and left/down arrows, and a train requirement only with station access
 to another revenue center. TOP exempts PEIR from that requirement.

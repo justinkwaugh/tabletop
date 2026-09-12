@@ -1,7 +1,8 @@
 <script lang="ts">
     import { getCompany } from '@tabletop/18xx'
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session }: { session: FinanceExampleSession } = $props()
+    let { session, showUndo = true }: { showUndo?: boolean; session: FinanceExampleSession } =
+        $props()
     const funding = $derived(session.financialState.trainFunding)
     const choice = $derived(session.fundingChoice)
     const bankruptcy = $derived(session.financialState.bankruptcy)
@@ -11,13 +12,13 @@
     <section aria-label="Compulsory train funding">
         <header>
             <h2>{bankruptcy ? 'Bankruptcy' : 'Compulsory train funding'}</h2>
-            <button
-                onclick={() => session.undo()}
-                disabled={session.busy ||
-                    session.updatingVisibleState ||
-                    session.isViewingHistory ||
-                    !session.actions.length}>Undo</button
-            >
+            {#if showUndo}<button
+                    onclick={() => session.undo()}
+                    disabled={session.busy ||
+                        session.updatingVisibleState ||
+                        session.isViewingHistory ||
+                        !session.actions.length}>Undo</button
+                >{/if}
         </header>
         {#if bankruptcy}
             <p>

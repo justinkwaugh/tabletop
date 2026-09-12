@@ -1,7 +1,8 @@
 <script lang="ts">
     import { getCompany, stockMarketSpace, type EarningsChoice } from '@tabletop/18xx'
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session }: { session: FinanceExampleSession } = $props()
+    let { session, showUndo = true }: { showUndo?: boolean; session: FinanceExampleSession } =
+        $props()
     const result = $derived(session.financialState.routeStep?.result)
     const preview = $derived(session.earningsPreview ?? session.financialState.earningsDistribution)
     const names: Record<EarningsChoice, string> = {
@@ -28,13 +29,13 @@
                         {#if evaluation.reason}<p>{evaluation.reason}</p>{/if}
                     </div>
                 {/each}
-                <button
-                    disabled={session.busy ||
-                        session.updatingVisibleState ||
-                        session.isViewingHistory ||
-                        !session.actions.length}
-                    onclick={() => session.undo()}>Undo</button
-                >
+                {#if showUndo}<button
+                        disabled={session.busy ||
+                            session.updatingVisibleState ||
+                            session.isViewingHistory ||
+                            !session.actions.length}
+                        onclick={() => session.undo()}>Undo</button
+                    >{/if}
             </div>
         {/if}
         {#if preview}

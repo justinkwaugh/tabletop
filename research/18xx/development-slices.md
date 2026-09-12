@@ -655,7 +655,7 @@ performance risk for slice 18 while the route interface is still easy to revise.
 **Status:** implemented for both prepared titles. Shared earnings evaluation and
 settlement, private income, operating progress, train-ownership requirements,
 and stock-round restart are wired through the runtime and prototype controls.
-King's Mail uses the supplied rulebook's $60 baseline. The Operating rounds
+King's Mail pays $80 per OR, following the designer correction relayed by Justin on 2026-09-12; the printed $60 is incorrect. The Operating rounds
 example exercises full sets; phase changes and emergency funding remain later
 slices. See [design and evidence](earnings-operating-rounds-slice-design.md).
 
@@ -1002,6 +1002,12 @@ Beginner variants and broader
 used through the prototype UI while the final game clients are designed.
 
 ## U1. Design the desktop and mobile game experience
+
+**Started:** the requested desktop table shell is available for both titles at
+`/table` in the development harness. It uses the standard sidebar/history/chat,
+phase header with Undo, light bounded action area and a directly scaled map.
+See [scope and family review](game-table-shell-design.md). Full information design
+and mobile acceptance remain subsequent U1 work.
 
 **Outcome:** review task-based desktop and phone prototypes that account for the
 whole game's information density, using the lasting tile/map renderers and realistic

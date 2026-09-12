@@ -551,3 +551,161 @@ legal funding sources; the panel shows the company, player, and remaining
 shortfall. It offers no further gameplay actions. Engine Undo restores the funding
 state, including the contribution that triggered bankruptcy. Final scoring is a
 later slice. Prototype save identity is version 22.
+
+## Game table shell
+
+The table shell owns the two-column layout, sidebar tabs, phase header, single
+header Undo control, action-area boundaries and map viewport. It uses the existing
+HistoryControls, DefaultTabs, GameChat and ScalingWrapper. Portfolio details can
+be collapsed locally; neither expansion nor tab selection changes Game State.
+MapScene renders directly in ScalingWrapper without a map card or inspector.
+
+FinanceExampleSession.selectMap is the common map-intent entry point for both the
+table and the logic workbench. Route extension/start takes precedence, followed by
+track selection, station selection and ordinary inspection. The existing session
+owns all drafts and invalidates them through beforeNewState/updatingVisibleState.
+The shell does not create another selection state or publish Actions itself.
+
+Header Undo delegates to the title session's existing undo method and is disabled
+while busy, changing visible state or viewing history. hasActionDraft reports the
+same drafts consumed by that method, including TOP's split draft. Embedded action
+controls suppress their duplicate Undo buttons only in the table composition;
+Back remains local to the active flow. History controls and history rows use the
+existing History interface. The action list shows processed player Actions; system
+consequences remain in canonical history and are navigable with HistoryControls.
+
+Map, Market and Spreadsheet tabs sit between the action panel and the content
+viewport, outside ScalingWrapper. Selection is local to the table and does not
+clear an Action Draft or change Game State/history. The map stays mounted with
+its viewport dimensions intact while inactive, preserving pan/zoom and inspection;
+inactive panels are hidden from assistive technology and inert. Market renders
+canonical visible-state prices and company markers. Spreadsheet is a placeholder.
+Arrow keys, Home and End navigate the tabs; tab selection never scales with the map.
+
+The Market panel now renders StockMarketScene directly in its own ScalingWrapper,
+with no market heading, order summary or nested scroll frame. The scene owns only
+the market spaces and company markers; the prototype StockMarket view composes
+that same scene with its existing inspection chrome. Map and Market retain separate
+pan/zoom positions while mounted; their shared tab strip remains outside both.
+Market cells share single-width borders with values at the upper left. Small
+lower-right up and lower-left down arrows indicate the current titles' dividend
+edge turns; these are static annotations, not controls or staged movement.
+
+
+Company order sits between the action area and view tabs, outside ScalingWrapper.
+Its ordered token list follows the displayed OperatingSet, including completed
+companies, with checks on completed turns. The current company uses the ordinary
+pill styling; its operating status remains available through accessible semantics.
+Pills sit below the operating-order heading. Each places a 38px company token filling the rounded left end
+beside two compact lines: the available station-token count and tiny token icon
+alongside dollar-prefixed cash above the owned train names. The token count and
+icon are grayed out at zero. These summaries follow the displayed state, not Action Drafts.
+During stock rounds it shows the prospective order supplied by the title's rules.
+The strip owns no selection or Action; artwork has full company names available
+as tooltips and accessible list labels. Interruptions do not substitute the deciding
+company for the operator. Undo, history and reload derive the row from displayed
+state. The same CompanyToken renderer uses title-provided artwork on map stations.
+
+Company pills toggle one detail panel below the row. This inspection choice is
+local to CompanyOrder and never initiates an Action or participates in Back/Undo.
+Opening another company switches the panel; clicking the open pill collapses it.
+The pill is the sole toggle; there is no close button in the card. The selected identity persists through visible
+state updates and history; it is hidden while absent from the displayed order.
+The panel always reads the displayed financial state, not staged purchases, routes
+or station placements. Opening/closing it preserves map and market selections and
+uses layout space above the tabs. The map viewport yields height without adding a
+second scaling wrapper. Ownership rows distinguish owners and certificate pools;
+private powers distinguish company ownership from the controlling player's privates.
+Purchasable privates includes only open privates eligible for purchase by the inspected
+company under the title's current transfer terms. It shows the maximum purchase
+price, not operating revenue; the heading and divider disappear when empty.
+Inspection does not depend on the active player or create a purchase offer.
+
+The expanded card shows compact train badges directly beneath the company name,
+with distance details in tooltips and an explicit No trains state. The header also
+displays remaining station tokens with their current
+placement cost under each. Costs come from title StationRules, with pending free
+homes shown as $0. These are inspection graphics, not station-selection controls.
+
+The president's ownership row is bold. A corporate president also shows a compact
+“controlled by” line for its controlling player; direct player presidents need no
+separate line. This is presentation of existing control, not a new control rule.
+
+Private descriptions in company details are supplied by the title UI and limited
+to powers affecting that railway’s operation, including powers gained on purchase.
+Income, closure and share-exchange text is omitted. TOP describes Hunslet’s early
+train purchase; 1889 describes Ehime’s unused sale-triggered upgrade and Sumitomo’s
+terrain discount. Player-only powers are not implied to transfer with ownership.
+
+No trains is red in both pill and expanded header when the inspected open company
+requires a train under the title’s TrainRules for the displayed map. Trainless
+exempt companies (including TOP PEIR) stay neutral. The signal is independent of
+the active player and current operation step; it updates with displayed state.
+
+The operating-order row stays on one line and scrolls horizontally within its
+available width. Its heading and expanded company detail remain outside that
+scroll area. Pills retain their natural size and the row uses a thin scrollbar.
+
+Train badges in the company strip and expanded header share TrainBadge. Backgrounds
+use the train's title-provided phase color from the existing tile palette, with
+contrasting dark text. They retain the train's own color as the game advances.
+
+Player panels use priority order, with a Priority deal marker on the first player
+and a subtle border for the currently acting player. Cash, liquidity, shares, Certs (weighted count/limit), and current net worth precede the ownership table (company token, name, percentage; president
+bold) and private-company table (income per OR and value). Liquidity is cash plus
+one legal stock-sale block per company at current terms, excluding corporate cash
+and negotiated private sales. Valuation is title-owned. All values follow the
+displayed state, including Undo/history; no local draft affects them.
+
+Shares totals directly owned share units, including multi-share president
+certificates and numbered PEIR interests; it excludes privates and company-owned
+assets. It is separate from the weighted certificate-limit count.
+
+President ownership rows in player panels and company details share a small muted
+P badge with an accessible President label, alongside bold text. The marker follows
+the canonical president owner, including corporate presidents, rather than simply
+the largest holding or the controlling player.
+
+Title-selected company portfolio cards follow all priority-ordered player cards. They show direct company cash, shares, ownership, and net worth, with the controlling player identified separately; they receive neither a player priority marker nor player certificate-limit or liquidity statistics. TOP selects Union Bank; 1889 selects none.
+
+During actionable track construction, all locations absent from the session’s legal track choices receive a translucent dark mask above map content. Legal locations remain clear without dashed target outlines; a preview uses the same single red outline as selection and hover. The mask follows the displayed construction state, including while accept or Undo is busy; it clears when leaving construction or entering history. Interaction eligibility remains separate. Masked spaces cannot be clicked or keyboard-selected during construction. The table ignores inspection-only clicks outside an actionable selection; the diagnostic workbench retains explicit inspection.
+
+Hovering a legal track-lay location uses the same solid red outline as selection, without stacking a second outline. Masked locations receive no hover outline. Pointer exit, scene changes, and construction-availability changes clear this local presentation state; hover never selects or commits an action.
+
+### Map track picker
+
+Selecting a legal construction hex opens tile choices on a compact, evenly spaced circular arc around it. The arc prefers directly above the hex and rotates only as far as needed to clear viewport edges, without snapping to cardinal directions. It adjusts radius/size when rotation alone cannot fit. Choices match the map hex scale, shrinking only when needed to fit the viewport. Icon controls scale with the map. Both render outside the scaling wrapper and follow the hex through pan, zoom, and layout changes. Existing shared tile artwork and title layouts render each choice in a legal rotation.
+
+Choosing a tile previews its first legal placement. Clicking that same map hex advances to the next distinct legal rotation, using its first legal station mapping; choosing another legal hex replaces the draft. Before tile choice, clicking away dismisses the picker and no cancel icon appears. After tile choice, cancel collapses the visible choices into the hex before clearing the draft and closing the picker. The accept icon calls the existing session confirmation, including consent when required. Neither tile choice nor rotation commits an action. Back/Undo retain source-tagged staged behavior; lifecycle invalidation and history suppress the picker with the existing track selection. Clicking away from the initial tile choices, including another tab, clears that draft; a selected tile preview remains staged when switching tabs.
+
+The table action area keeps construction status, cost and Finish Track, with selection controls on the map. The economy workbench retains its existing explicit controls. Verification covers both titles, on-screen arc bounds, preview/rotation/cancel, acceptance, history, reload, Undo, and tab preservation.
+
+The map construction header reserves inline space for the pending cost. Choosing, rotating, cancelling, or accepting a tile must not add a cost row or resize the map viewport.
+
+### Draft tile motion
+
+The map picker owns local, cancellable 220ms DOM motion triggered by a tile-choice or cancel gesture, not by committed game actions. On opening, choices fly and scale out from the selected hex into the arc. The selected choice moves to the hex; other choices remain selectable in their original arc positions, leaving a gap for the chosen tile. Selecting a replacement returns the previous choice to the arc. Cancel interrupts the current motion, shrinks all visible tiles into the hex over 160ms, then clears the draft and closes the picker. Clicking away from the initial choices uses the same collapse. Reduced-motion preference skips the flight.
+
+A session-owned, draft-scoped in-flight flag keeps the map on its current committed artwork until the moving tile lands, avoiding duplicate preview artwork. The picker is the sole writer during the motion; selection replacement, teardown, and visible-state invalidation clear it. Accept interrupts and finishes the preview before invoking the existing action. New gestures retarget from current DOM positions. No animation frame writes interpolated motion into reactive state. History, replay, and silent restore do not create draft motion; teardown cancels outstanding DOM animations. The masking projection remains based on displayed construction state throughout busy updates.
+
+Draft cancel/accept controls use a local 120ms opacity fade on entry and exit. On cancel, the fade begins alongside the tile collapse. This is non-blocking presentation, including picker teardown, with no opacity transition under reduced motion.
+
+Tile text uses geometric-precision SVG rendering so revenue baselines remain centered during small-scale picker animations without waiting for pointer-triggered repaint.
+
+Printed location names are visible only until a tile is laid on that hex; the location name remains available in its accessible label.
+
+Hovering a picker tile enlarges its inner artwork by 10% over 120ms, replacing the colored glow. This local hover feedback is independent of the outer flight transform; reduced motion removes its transition.
+
+Viewport-driven picker repositioning settles with a 100ms CSS translate transition. Browser interpolation handles motion without per-frame reactive tween writes. Explicit opening, selection, and collapse motion disables this settling transition so the two mechanisms do not compete; reduced motion also disables it.
+
+Private-company rows in player panels and company cards (including purchasable privates) open title-owned descriptions on click or keyboard activation of the name. The shared floating layer centers above the row, flips or shifts against viewport boundaries, and locally rises 6px into place over 140ms (suppressed with reduced motion). The next click anywhere, Escape, or row removal dismisses it. This local information affordance neither stages nor commits game actions.
+
+Accepting a track lay fades unchosen picker tiles in place over 120ms as the draft picker disappears. This non-blocking local exit does not delay confirmation or animate the committed tile. Cancel retains its collapse; reduced motion skips the exit.
+
+A company portfolio header can expose its title-owned private description using the same click popover as private rows. TOP uses this for Union Bank; player headers remain ordinary headings.
+
+During the opening auction's offer stage, the table shows the current auctioneer's legal lots, their face values and private income. Each Offer button commits through the session; no second confirmation is required. Buttons follow session authorization and busy/history eligibility. Undo remains the table's committed-action control. Bidding and stalled auctions retain the existing panel for now.
+
+Offer-list location icons focus the Map tab using ScalingWrapper and select the referenced hex for inspection, without creating a game action. Clicking other row content opens its supplied description. Location icons and Offer buttons are excluded from description interactions. Company cards and player panels use the same click descriptions. TOP supplies PEIR numbered home locations and Vernon River Bridge's blocked hex; the shared UI does not infer geography from names.
+
+Location focus frames a wider neighborhood around the hex. Repeating the same location-icon click fits the full map; a different icon focuses its location. The local focus toggle resets when the displayed financial state changes.

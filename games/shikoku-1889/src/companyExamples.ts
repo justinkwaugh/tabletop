@@ -132,9 +132,10 @@ export function createShikoku1889CompanyExample(
             companyId: 'IR'
         })
     }
-    if (position === 'routes' || position === 'operations') {
-        for (let index = 0; index < 2; index++) {
-            const train = Shikoku1889TrainDepot.nextTrain(state.trainInventory, '2')
+    if (position === 'construction' || position === 'routes' || position === 'operations') {
+        const ranks = position === 'construction' ? ['2', '3'] : ['2', '2']
+        for (const rank of ranks) {
+            const train = Shikoku1889TrainDepot.nextTrain(state.trainInventory, rank)
             assert(train, 'Route example requires a train')
             Shikoku1889TrainDepot.purchase(state.trainInventory, train.id, train.definitionId, {
                 kind: 'company',

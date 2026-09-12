@@ -1,57 +1,32 @@
 <script lang="ts">
+    import { Shikoku1889EndingRules } from '@tabletop/shikoku-1889'
+    import { Shikoku1889TrainColors } from './trainPresentation.js'
+    import { Shikoku1889OperatingRules } from '@tabletop/shikoku-1889'
+    import OpeningAuction from './OpeningAuction.svelte'
     import type { GameSession } from '@tabletop/frontend-components'
-    import { requireFinanceExampleState } from '@tabletop/18xx'
     import type { GameState, HydratedGameState } from '@tabletop/common'
-    import {
-        WaterfallAuctionPanel,
-        GameEnding,
-        FinanceInspector,
-        FinanceMap,
-        TrainBuying,
-        PrivateCompanies,
-        CompanyDecisions,
-        StockTrading,
-        StockMarket,
-        requireFinanceExampleSession
-    } from '@tabletop/18xx-ui'
+    import { GameTable, OperatingActions, requireFinanceExampleSession } from '@tabletop/18xx-ui'
     let { gameSession }: { gameSession: GameSession<GameState, HydratedGameState> } = $props()
     const session = $derived(requireFinanceExampleSession(gameSession))
-    const state = $derived(requireFinanceExampleState(gameSession.gameState))
 </script>
 
-<GameEnding {session} />
-
-{#if session.auction && !session.auction.auction.completed}
-    <WaterfallAuctionPanel
-        model={session.auction}
-        playerId={session.myPlayer?.id}
-        playerName={(id) => session.getPlayerName(id)}
-        disabled={!session.canAuction}
-        draft={session.auctionSelection}
-        onChoose={(kind, lotId) => session.selectAuctionLot(kind, lotId)}
-        onBidChange={(amount) => session.setAuctionBid(amount)}
-        onConfirm={() => session.confirmAuction()}
-        onBack={() => session.backAuction()}
-        onPass={() => session.passAuction()}
-        onUndo={() => session.undo()}
-        canUndo={!session.busy &&
-            !session.isViewingHistory &&
-            Boolean(session.auctionSelection || session.undoableAction)}
-    />
-{:else}
-    <CompanyDecisions {session} />
-    <PrivateCompanies {session} />
-    <TrainBuying {session} />
-    <FinanceMap {session} />
-    <StockTrading {session} />
-    <StockMarket market={state.stockMarket} companies={state.companies} />
-{/if}
-
-<FinanceInspector
-    stations={state.stations}
-    stationReservations={state.stationReservations}
-    certificateWeight={session.certificateWeight}
-    {state}
-    players={gameSession.game.players}
-    playerStates={state.players}
-/>
+<GameTable
+    {session}
+    valuationRules={Shikoku1889EndingRules}
+    trainColors={Shikoku1889TrainColors}
+    operatingRules={Shikoku1889OperatingRules}
+    privateOperationDescription={(id) =>
+        id === 'SRR'
+            ? 'Ignores mountain-only terrain costs. Combined river and mountain costs still apply.'
+            : id === 'ER' && !session.financialState.usedPrivatePowerIds.includes(id)
+              ? 'On purchase, the seller may immediately upgrade Ohzu in addition to ordinary construction.'
+              : undefined}
+>
+    {#snippet actions()}
+        {#if session.auction && !session.auction.auction.completed}
+            <OpeningAuction {session} showUndo={false} />
+        {:else}
+            <OperatingActions {session} />
+        {/if}
+    {/snippet}
+</GameTable>

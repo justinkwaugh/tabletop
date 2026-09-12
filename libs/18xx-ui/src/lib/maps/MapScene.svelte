@@ -1,4 +1,5 @@
 <script lang="ts">
+    import CompanyToken from '../tokens/CompanyToken.svelte'
     import type { StationReservation } from '@tabletop/18xx'
     import TileArtwork from '../tiles/TileArtwork.svelte'
     import { ClassicTileAppearance, type TileAppearance } from '../tiles/tileAppearance.js'
@@ -14,6 +15,7 @@
     let {
         scene,
         legalLocationIds = [],
+        maskUnavailableLocations = false,
         previewLocationId,
         selection,
         tokens = [],
@@ -25,6 +27,7 @@
     }: {
         scene: MapDrawing
         legalLocationIds?: readonly string[]
+        maskUnavailableLocations?: boolean
         previewLocationId?: string
         selection?: MapSelection
         tokens?: readonly MapToken[]
@@ -43,12 +46,19 @@
         scene
         return undefined
     })
+    let hoveredLocationId = $derived.by((): string | undefined => {
+        scene
+        maskUnavailableLocations
+        legalLocationIds
+        return undefined
+    })
     const selectedPath = $derived(selection?.kind === 'path' ? selection.pathId : undefined)
 
     function select(event: MouseEvent | KeyboardEvent, target: MapSelection) {
         if (event instanceof KeyboardEvent && event.key !== 'Enter' && event.key !== ' ') return
         event.stopPropagation()
         event.preventDefault()
+        if (maskUnavailableLocations && !legalLocationIds.includes(target.locationId)) return
         onselect?.(target)
     }
 </script>
@@ -64,14 +74,17 @@
 >
     {#each entries as entry (entry.location.id)}
         {@const id = entry.location.id}
+        {@const available = !maskUnavailableLocations || legalLocationIds.includes(id)}
         {@const selected = selection?.locationId === id}
         {@const target: MapSelection = { kind: 'hex', locationId: id }}
         <g
             transform={`translate(${entry.center.x} ${entry.center.y})`}
             data-map-location={id}
             data-placed={entry.placed}
+            class:unavailable={!available}
+            aria-disabled={!available}
             role="button"
-            tabindex="0"
+            tabindex={available ? 0 : -1}
             aria-label={`${id}${entry.location.name ? ` ${entry.location.name}` : ''}`}
             aria-pressed={selected}
             onfocus={(event) =>
@@ -79,10 +92,11 @@
                     ? id
                     : undefined)}
             onblur={() => (focusedLocationId = undefined)}
+            onpointerenter={() => (hoveredLocationId = id)}
+            onpointerleave={() => (hoveredLocationId = undefined)}
             onclick={(event) => select(event, target)}
             onkeydown={(event) => select(event, target)}
         >
-            <title>{id} {entry.location.name ?? ''}</title>
             <TileArtwork
                 face={entry.face}
                 drawing={entry.drawing}
@@ -126,22 +140,12 @@
                             )}
                             {#if token}
                                 <g data-map-token={token.id}>
-                                    <circle
-                                        cx={point.x}
-                                        cy={point.y}
-                                        r="9"
-                                        fill={token.color}
-                                        stroke="white"
-                                        stroke-width="0.7"
+                                    <CompanyToken
+                                        appearance={token}
+                                        size={18}
+                                        x={point.x - 9}
+                                        y={point.y - 9}
                                     />
-                                    <text
-                                        x={point.x}
-                                        y={point.y}
-                                        text-anchor="middle"
-                                        dominant-baseline="central"
-                                        font-size="6"
-                                        fill="white">{token.label}</text
-                                    >
                                 </g>
                             {/if}
                             {#if slot === 0 && reservationLabel}
@@ -170,7 +174,7 @@
                 stroke={appearance.colors[entry.face.color]}
                 stroke-width="1.7"
             >
-                {#if entry.location.name}
+                {#if entry.location.name && !entry.placed}
                     <text y="-35" font-size="5" font-weight="650"
                         >{entry.location.name.length > 23
                             ? `${entry.location.name.slice(0, 22)}…`
@@ -216,7 +220,7 @@
                     stroke="transparent"
                     stroke-width="12"
                     role="button"
-                    tabindex="0"
+                    tabindex={available ? 0 : -1}
                     aria-label={`${id} path ${path.id}`}
                     class="hit-path"
                     onclick={(event) => select(event, pathTarget)}
@@ -233,7 +237,7 @@
                         r="9"
                         fill="transparent"
                         role="button"
-                        tabindex="0"
+                        tabindex={available ? 0 : -1}
                         aria-label={`${id} ${node.node.kind} ${node.node.id}`}
                         class="hit-node"
                         onclick={(event) => select(event, nodeTarget)}
@@ -256,7 +260,7 @@
                             : 'none'}
                         stroke-width="2"
                         role="button"
-                        tabindex="0"
+                        tabindex={available ? 0 : -1}
                         aria-label={`${id} ${node.node.id} slot ${slot + 1}`}
                         class="hit-node"
                         onclick={(event) => select(event, slotTarget)}
@@ -297,8 +301,25 @@
             </g>
         {/each}
     </g>
+    {#if maskUnavailableLocations}
+        <g
+            data-map-layer="unavailable"
+            fill="#24272b"
+            fill-opacity="0.45"
+            pointer-events="none"
+            aria-hidden="true"
+        >
+            {#each entries.filter((entry) => !legalLocationIds.includes(entry.location.id)) as entry (entry.location.id)}
+                <polygon
+                    data-map-masked={entry.location.id}
+                    transform={`translate(${entry.center.x} ${entry.center.y})`}
+                    points={entry.drawing.polygon}
+                />
+            {/each}
+        </g>
+    {/if}
     <g data-map-layer="construction" fill="none" pointer-events="none" aria-hidden="true">
-        {#each entries.filter((entry) => legalLocationIds.includes(entry.location.id) || entry.location.id === previewLocationId) as entry (entry.location.id)}
+        {#each entries.filter((entry) => !maskUnavailableLocations && (legalLocationIds.includes(entry.location.id) || entry.location.id === previewLocationId)) as entry (entry.location.id)}
             <polygon
                 data-track-target={entry.location.id}
                 data-track-preview={entry.location.id === previewLocationId
@@ -308,7 +329,7 @@
                 points={entry.drawing.polygon}
                 stroke={entry.location.id === previewLocationId ? '#d67910' : '#278249'}
                 stroke-width="2"
-                stroke-dasharray="4 2"
+                stroke-dasharray={maskUnavailableLocations ? undefined : '4 2'}
             />
         {/each}
     </g>
@@ -319,9 +340,14 @@
         pointer-events="none"
         aria-hidden="true"
     >
-        {#each entries.filter((entry) => entry.location.id === selection?.locationId || entry.location.id === focusedLocationId) as entry (entry.location.id)}
+        {#each entries.filter((entry) => entry.location.id === selection?.locationId || entry.location.id === focusedLocationId || (maskUnavailableLocations && (entry.location.id === previewLocationId || (entry.location.id === hoveredLocationId && legalLocationIds.includes(entry.location.id))))) as entry (entry.location.id)}
             <polygon
                 data-map-highlight={entry.location.id}
+                data-map-hover={maskUnavailableLocations &&
+                entry.location.id === hoveredLocationId &&
+                legalLocationIds.includes(entry.location.id)
+                    ? entry.location.id
+                    : undefined}
                 transform={`translate(${entry.center.x} ${entry.center.y})`}
                 points={entry.drawing.polygon}
                 stroke-width={entry.location.id === focusedLocationId ? 3 : 2.5}
@@ -338,6 +364,7 @@
     .map-annotations {
         pointer-events: none;
     }
+    .unavailable { pointer-events: none; }
     [role='button'] {
         cursor: pointer;
         outline: none;

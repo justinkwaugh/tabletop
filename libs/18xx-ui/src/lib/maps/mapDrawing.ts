@@ -1,3 +1,4 @@
+import type { StationAppearance } from './stationPresentation.js'
 import {
     assert,
     assertExists,
@@ -31,11 +32,7 @@ export type MapSelection =
     | { kind: 'node'; locationId: string; nodeId: string }
     | { kind: 'slot'; locationId: string; nodeId: string; slot: number }
 
-export type MapToken = StationPosition & {
-    id: string
-    label: string
-    color: string
-}
+export type MapToken = StationPosition & StationAppearance & { id: string }
 export type MapRoute = {
     id: string
     color: string
@@ -94,9 +91,9 @@ export function createMapDrawing(
             ...tileLayout,
             annotationExclusions: [
                 ...(tileLayout.annotationExclusions ?? []),
-                { x: -18, y: -38 },
-                { x: 0, y: -38 },
-                { x: 18, y: -38 },
+                ...(!placement && location.name
+                    ? [{ x: -18, y: -38 }, { x: 0, y: -38 }, { x: 18, y: -38 }]
+                    : []),
                 ...(!placement && location.terrain
                     ? [{ x: 0, y: face.nodes.length || face.paths.length ? 23 : 4 }]
                     : []),
@@ -214,4 +211,10 @@ export function printedMapReservations(scene: MapDrawing): StationReservation[] 
             locationId: location.id
         }))
     )
+}
+
+export function mapSelectionRect(scene: MapDrawing, selection: MapSelection, hexDiameter: number, radius = 60) {
+    const point = mapSelectionPoint(scene, selection)
+    const scale = hexDiameter / 100
+    return { x: (point.x - scene.bounds.x - radius) * scale, y: (point.y - scene.bounds.y - radius) * scale, width: radius * 2 * scale, height: radius * 2 * scale }
 }

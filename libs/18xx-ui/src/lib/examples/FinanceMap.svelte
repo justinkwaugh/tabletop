@@ -84,6 +84,7 @@
     {/if}
     <MapViewer
         scene={session.displayedMapScene}
+        maskUnavailableLocations={session.showTrackChoices}
         legalLocationIds={session.canPlaceStation
             ? session.stationLocationIds
             : session.trackLocationIds}
@@ -95,53 +96,7 @@
         reservations={session.trackPreview?.stationReservations ??
             session.stationDisplayState.stationReservations}
         appearance={session.mapStyle === 'muted' ? MutedTileAppearance : ClassicTileAppearance}
-        onselect={(selection) => {
-            if (
-                session.canRunTrains &&
-                session.routeEditor.trainId &&
-                selection.kind === 'path' &&
-                session.routeEditor.extensions.some(
-                    (path) =>
-                        path.locationId === selection.locationId && path.pathId === selection.pathId
-                )
-            )
-                session.appendRoutePath(selection)
-            else if (
-                session.canRunTrains &&
-                session.routeEditor.trainId &&
-                !session.routeEditor.start &&
-                (selection.kind === 'node' || selection.kind === 'slot') &&
-                session.routeEditor.centers.some(
-                    (center) =>
-                        center.locationId === selection.locationId &&
-                        center.nodeId === selection.nodeId
-                )
-            )
-                session.selectRouteStart({
-                    locationId: selection.locationId,
-                    nodeId: selection.nodeId
-                })
-            else if (
-                session.canBuildTrack &&
-                session.trackLocationIds.includes(selection.locationId)
-            )
-                session.selectTrackLocation(selection.locationId)
-            else if (
-                session.canPlaceStation &&
-                session.stationLocationIds.includes(selection.locationId)
-            ) {
-                const choices = session.stationChoices.filter(
-                    (choice) =>
-                        choice.position.locationId === selection.locationId &&
-                        (selection.kind !== 'slot' ||
-                            (choice.position.nodeId === selection.nodeId &&
-                                choice.position.slot === selection.slot)) &&
-                        (selection.kind !== 'node' || choice.position.nodeId === selection.nodeId)
-                )
-                if (choices.length === 1) session.selectStationPosition(choices[0])
-                else session.inspectMap(selection)
-            } else session.inspectMap(selection)
-        }}
+        onselect={(selection) => session.selectMap(selection)}
     />
     <details bind:open={showTiles}>
         <summary>Available tiles</summary>

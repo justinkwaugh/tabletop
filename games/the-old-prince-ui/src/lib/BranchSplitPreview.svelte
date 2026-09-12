@@ -3,7 +3,8 @@
     import { getCompany } from '@tabletop/18xx'
     import { TheOldPrinceMap } from '@tabletop/the-old-prince'
     import type { TheOldPrinceSession } from './session.svelte.js'
-    let { session }: { session: TheOldPrinceSession } = $props()
+    let { session, showUndo = true }: { showUndo?: boolean; session: TheOldPrinceSession } =
+        $props()
     const state = $derived(session.financialState)
     const selection = $derived(session.splitSelection)
     const preview = $derived(session.splitPreview?.details)
@@ -71,11 +72,11 @@
                 onclick={() => session.backSplit()}
                 disabled={!session.hasSplitDraft || !session.canPreviewSplit}>Back</button
             >
-            <button
-                onclick={() => session.undo()}
-                disabled={session.busy || (!session.hasSplitDraft && !session.undoableAction)}
-                >Undo</button
-            >
+            {#if showUndo}<button
+                    onclick={() => session.undo()}
+                    disabled={session.busy || (!session.hasSplitDraft && !session.undoableAction)}
+                    >Undo</button
+                >{/if}
         </div>
         {#if session.splitPreview?.reason}<p role="status">{session.splitPreview.reason}</p>{/if}
         {#if preview}

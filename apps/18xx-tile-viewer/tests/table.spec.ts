@@ -1,0 +1,341 @@
+import { expect, test } from '@playwright/test'
+
+for (const title of ['TOP', '1889']) {
+    test(`${title} table keeps the sidebar and actions above an unframed scaling map`, async ({
+        page
+    }) => {
+        const errors: string[] = []
+        page.on('pageerror', (error) => errors.push(error.message))
+        await page.setViewportSize({ width: 1100, height: 960 })
+        await page.goto('/table')
+        await page.getByLabel('Game', { exact: true }).selectOption(title)
+        const header = page.getByRole('banner', { name: 'Game phase' })
+        const action = page.getByRole('region', { name: 'Current action' })
+        await expect(page.locator('[data-map-location]')).toHaveCount(title === 'TOP' ? 110 : 52)
+        await expect(page.getByRole('article', { name: 'Casey portfolio' })).toBeVisible()
+        await expect(page.getByRole('button', { name: 'Undo', exact: true })).toHaveCount(1)
+        await expect(header).toContainText('Operating round 1.1')
+        await expect(action).toContainText('Finish track')
+        const order = page.getByRole('region', { name: 'Company order', exact: true })
+        await expect(order).toBeVisible()
+        await expect(order.locator('[aria-current="step"]')).toHaveAttribute(
+            'data-company-id',
+            title === 'TOP' ? 'ML' : 'IR'
+        )
+        await expect(order.locator('li')).toHaveCount(title === 'TOP' ? 3 : 2)
+        await expect(order.locator('.pill > svg image')).toHaveCount(title === 'TOP' ? 3 : 2)
+        const rowBounds = await order.boundingBox()
+        const tabBounds = await page.getByRole('tablist', { name: 'Table views' }).boundingBox()
+        if (!rowBounds || !tabBounds) throw new Error('Missing company order or tabs')
+        expect(rowBounds.y + rowBounds.height).toBeLessThanOrEqual(tabBounds.y + 1)
+
+        const mapBounds = await page.locator('.map-area').boundingBox()
+        const actionBounds = await action.boundingBox()
+        expect(mapBounds).not.toBeNull()
+        expect(actionBounds).not.toBeNull()
+        if (!mapBounds || !actionBounds) throw new Error('Missing table regions')
+        expect(mapBounds.y).toBeGreaterThanOrEqual(actionBounds.y + actionBounds.height - 1)
+        expect(mapBounds.y + mapBounds.height).toBeLessThanOrEqual(962)
+        await expect(page.locator('.map-viewport')).toHaveCount(0)
+        await page.getByRole('tab', { name: 'Chat' }).click()
+        await expect(page.getByRole('textbox')).toBeVisible()
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(page.getByText('No actions yet.', { exact: true })).toBeVisible()
+        await page.getByRole('tab', { name: 'Players' }).click()
+        await page.locator(`[data-map-location="${title === 'TOP' ? 'K17' : 'E2'}"]`).click()
+        await expect(page.locator('[data-map-tile-choice]')).not.toHaveCount(0)
+        await expect(header.getByRole('button', { name: 'Undo' })).toBeEnabled()
+        const views = page.getByRole('tablist', { name: 'Table views' })
+        const scene = page.locator('.map-scene')
+        const transform = () =>
+            scene.evaluate((element) => element.parentElement?.parentElement?.style.transform)
+        const initialView = await transform()
+        await page
+            .getByRole('tabpanel', { name: 'Map', exact: true })
+            .getByRole('button', { name: 'Zoom in', exact: true })
+            .click()
+        await expect.poll(transform).not.toBe(initialView)
+        await page.waitForTimeout(300)
+        const zoomedView = await transform()
+        await views.getByRole('tab', { name: 'Market', exact: true }).click()
+        await expect(page.getByRole('tabpanel', { name: 'Market', exact: true })).toBeVisible()
+        await expect(
+            page.getByRole('region', { name: 'Stock market board', exact: true })
+        ).toBeVisible()
+        const marketPanel = page.getByRole('tabpanel', { name: 'Market', exact: true })
+        const marketBoard = marketPanel.getByRole('region', { name: 'Stock market board' })
+        const marketTransform = () =>
+            marketBoard.evaluate((element) => element.parentElement?.parentElement?.style.transform)
+        const initialMarketView = await marketTransform()
+        await marketPanel.getByRole('button', { name: 'Zoom in', exact: true }).click()
+        await expect.poll(marketTransform).not.toBe(initialMarketView)
+        await expect(marketPanel.locator('.scroll')).toHaveCount(0)
+        await expect(scene).toBeHidden()
+        await expect(page.locator('[data-map-tile-choice]')).toHaveCount(0)
+        await views.getByRole('tab', { name: 'Spreadsheet', exact: true }).click()
+        await expect(page.getByText('Spreadsheet coming later.', { exact: true })).toBeVisible()
+        await views.getByRole('tab', { name: 'Spreadsheet', exact: true }).press('ArrowRight')
+        await expect(views.getByRole('tab', { name: 'Map', exact: true })).toBeFocused()
+        await expect(scene).toBeVisible()
+        expect(await transform()).toBe(zoomedView)
+
+        await page.locator(`[data-map-location="${title === 'TOP' ? 'K17' : 'E2'}"]`).click()
+        await header.getByRole('button', { name: 'Undo' }).click()
+        await expect(page.locator('[data-map-tile-choice]')).toHaveCount(0)
+        await page.getByLabel('Position', { exact: true }).selectOption('opening')
+        await expect(
+            page.getByRole('region', { name: title === 'TOP' ? 'Auction offers' : 'Opening auction', exact: true })
+        ).toBeVisible()
+        await expect(page.getByRole('button', { name: 'Undo', exact: true })).toHaveCount(1)
+        expect(errors).toEqual([])
+    })
+}
+
+test('table commits a lay and restores map, portfolio and controls through history, reload and Undo', async ({
+    page
+}) => {
+    await page.goto('/table')
+    const actions = page.getByRole('region', { name: 'Current action' })
+    const undo = page.getByRole('button', { name: 'Undo', exact: true })
+    await page.locator('[data-map-location="K17"]').click()
+    const mapBounds = await page.locator('.map-area').boundingBox()
+    await page.locator('[data-map-tile-choice="18xx:8"]').click()
+    await expect.poll(() => page.locator('.map-area').boundingBox()).toEqual(mapBounds)
+    await page.getByRole('button', { name: 'Accept track lay', exact: true }).click()
+    await expect(actions).toContainText('1 placed')
+    await expect.poll(() => page.locator('.map-area').boundingBox()).toEqual(mapBounds)
+    await expect(page.locator('[data-map-location="K17"]')).toHaveAttribute('data-placed', 'true')
+    await page.getByRole('tab', { name: 'History' }).click()
+    await expect(page.getByRole('list', { name: 'Action history' })).toContainText('Lay Tile')
+    await page.getByRole('button', { name: 'step backwards', exact: true }).click()
+    await expect(page.locator('[data-map-location="K17"]')).toHaveAttribute('data-placed', 'false')
+    await expect(undo).toBeDisabled()
+    await page.getByRole('button', { name: 'go to current', exact: true }).click()
+    await page.reload()
+    await expect(actions).toContainText('1 placed')
+    await undo.click()
+    await expect(actions).toContainText('0 placed')
+    await expect(page.locator('[data-map-location="K17"]')).toHaveAttribute('data-placed', 'false')
+})
+
+for (const title of ['TOP', '1889']) {
+    test(`${title} company details preserve drafts and distinguish ownership`, async ({ page }) => {
+        const errors: string[] = []
+        page.on('pageerror', (error) => errors.push(error.message))
+        await page.goto('/table')
+        await page.getByLabel('Game', { exact: true }).selectOption(title)
+        const order = page.getByRole('region', { name: 'Company order', exact: true })
+        const pills = order.locator('.pill')
+        await page.locator(`[data-map-location="${title === 'TOP' ? 'K17' : 'E2'}"]`).click()
+        await pills.first().focus()
+        await pills.first().press('Enter')
+        const details = page.locator('.company-detail')
+        await expect(details).toHaveCount(1)
+        await expect(pills.first()).toHaveAttribute('aria-expanded', 'true')
+        const ownership = details.getByRole('table')
+        await expect(ownership.getByRole('row', { name: /Alex(?: President)? 3$/ })).toBeVisible()
+        await expect(details.locator('tr.president')).toContainText(
+            title === 'TOP' ? 'Alex' : 'Blair'
+        )
+        await expect(details.locator('.control')).toHaveCount(0)
+        await expect(
+            ownership.getByRole('row', {
+                name: title === 'TOP' ? /Market 2$/ : /IPO 4$/
+            })
+        ).toBeVisible()
+        if (title === 'TOP') {
+            await expect(ownership.getByRole('row', { name: /Treasury 1$/ })).toBeVisible()
+            await pills.nth(1).click()
+            await expect(details.locator('tr.president')).toContainText('Union Bank')
+            await expect(details).toContainText('(Controlled by Alex)')
+            await pills.nth(2).click()
+            await expect(details.locator('td[title="Certificate numbers"]').first()).toBeVisible()
+            await expect(details.getByRole('columnheader', { name: '%', exact: true })).toHaveCount(
+                0
+            )
+            await expect(details).toContainText('The King’s Mail')
+            await expect(details).not.toContainText('Pays PEIR')
+        } else {
+            await expect(details).toContainText('Ehime Railroad')
+            await expect(details).toContainText('upgrade Ohzu')
+            await pills.nth(1).click()
+        }
+        await expect(details).toHaveCount(1)
+        await expect(page.locator('[data-map-tile-choice]')).toHaveCount(0)
+        await pills.nth(title === 'TOP' ? 2 : 1).click()
+        await expect(details).toHaveCount(0)
+        await expect(pills.nth(title === 'TOP' ? 2 : 1)).toBeFocused()
+        await pills.first().click()
+        await pills.first().click()
+        await expect(details).toHaveCount(0)
+        expect(errors).toEqual([])
+    })
+}
+
+for (const title of ['TOP', '1889']) {
+    test(`${title} player panels show ownership, valuation and personal liquidity`, async ({
+        page
+    }) => {
+        await page.goto('/table')
+        await page.getByLabel('Game', { exact: true }).selectOption(title)
+        const alex = page.getByRole('article', { name: 'Alex portfolio' })
+        const casey = page.getByRole('article', { name: 'Casey portfolio' })
+        await expect(alex.locator('dt')).toHaveText([
+            'Cash',
+            'Liquidity',
+            'Shares',
+            'Certs',
+            'Net worth'
+        ])
+        await expect(alex.locator('dd').nth(2)).toHaveText(title === 'TOP' ? '5' : '6')
+        await expect(alex.locator('dd').filter({ hasText: '$' })).toHaveText(
+            title === 'TOP' ? ['$240', '$602', '$1,072'] : ['$240', '$630', '$810']
+        )
+        await expect(alex.getByText('Priority deal', { exact: true })).toBeVisible()
+        await expect(page.locator('.players article h3')).toHaveText(
+            title === 'TOP' ? ['Alex', 'Blair', 'Casey', 'Union Bank'] : ['Alex', 'Blair', 'Casey']
+        )
+        await expect(alex.locator('.ownership .token svg')).toHaveCount(title === 'TOP' ? 3 : 2)
+        await expect(alex.locator('.ownership .amount')).toHaveText(
+            title === 'TOP' ? ['30%', '20%', '10%'] : ['30%', '30%']
+        )
+        await expect(casey.getByRole('table', { name: 'Casey private companies' })).toContainText(
+            title === 'TOP' ? 'Vernon River Bridge' : 'Mitsubishi Ferry'
+        )
+        await expect(casey.locator('.privates td')).toHaveText(
+            title === 'TOP' ? ['$10', '$40'] : ['$5', '$30']
+        )
+    })
+}
+
+for (const title of ['TOP', '1889']) {
+    test(`${title} map tile picker previews, rotates and cancels without committing`, async ({
+        page
+    }) => {
+        await page.setViewportSize({ width: 1100, height: 900 })
+        await page.goto('/table')
+        await page.getByLabel('Game', { exact: true }).selectOption(title)
+        const hex = page.locator(`[data-map-location="${title === 'TOP' ? 'K17' : 'E2'}"]`)
+        const wasPlaced = await hex.getAttribute('data-placed')
+        await hex.click()
+        const choices = page.locator('[data-map-tile-choice]')
+        await expect(choices.first()).toBeVisible()
+        await expect(page.getByRole('button', { name: 'Cancel track lay' })).toHaveCount(0)
+        await page.getByRole('banner', { name: 'Game phase' }).click()
+        await expect(choices).toHaveCount(0)
+        await hex.click()
+        await expect(choices.first()).toBeVisible()
+        const bounds = await page.locator('.map-area').boundingBox()
+        if (!bounds) throw new Error('Missing viewport')
+        for (const choice of await choices.all()) {
+            const box = await choice.boundingBox()
+            if (!box) throw new Error('Missing tile choice')
+            expect(box.x).toBeGreaterThanOrEqual(bounds.x)
+            expect(box.y).toBeGreaterThanOrEqual(bounds.y)
+            expect(box.x + box.width).toBeLessThanOrEqual(bounds.x + bounds.width)
+            expect(box.y + box.height).toBeLessThanOrEqual(bounds.y + bounds.height)
+        }
+        await page
+            .locator(`[data-map-tile-choice="${title === 'TOP' ? '18xx:8' : '18xx:15'}"]`)
+            .click()
+        await expect(page.getByRole('button', { name: 'Accept track lay' })).toBeVisible()
+        await expect(page.locator('.picker')).toHaveAttribute('data-track-motion', 'false')
+        const paths = () =>
+            hex
+                .locator('path[d]')
+                .evaluateAll((elements) => elements.map((element) => element.getAttribute('d')))
+        const first = await paths()
+        await hex.click()
+        if (title === 'TOP') await expect.poll(paths).not.toEqual(first)
+        else await expect.poll(paths).toEqual(first)
+        await expect(page.getByRole('region', { name: 'Current action' })).toContainText('0 placed')
+        await page.getByRole('button', { name: 'Cancel track lay' }).click()
+        await expect(hex).toHaveAttribute('data-placed', wasPlaced ?? 'false')
+        await expect(page.locator('.picker')).toHaveCount(0)
+    })
+}
+
+test('draft tile motion keeps alternatives, closes on cancel, and preserves the mask through accept and Undo', async ({ page }) => {
+    await page.goto('/table')
+    const hex = page.locator('[data-map-location="K17"]')
+    await hex.click()
+    const count = await page.locator('[data-map-tile-choice]').count()
+    await page.locator('[data-map-tile-choice="18xx:8"]').click()
+    await expect(page.locator('[data-map-tile-choice]')).toHaveCount(count - 1)
+    await expect(page.locator('.picker')).toHaveAttribute('data-track-motion', 'false')
+    await page.locator('[data-map-tile-choice]').first().click()
+    await expect(page.locator('.picker')).toHaveAttribute('data-track-motion', 'false')
+    await expect(page.locator('[data-map-tile-choice="18xx:8"]')).toBeVisible()
+    await page.getByRole('button', { name: 'Cancel track lay' }).click()
+    await expect(page.locator('.picker')).toHaveCount(0)
+    await expect(hex).toHaveAttribute('data-placed', 'false')
+    await page.locator('.map-area').evaluate((area) => {
+        new MutationObserver(() => {
+            if (!area.querySelector('[data-map-layer="unavailable"]'))
+                document.documentElement.dataset.maskMissing = 'true'
+        }).observe(area, { childList: true, subtree: true })
+    })
+    await hex.click()
+    await page.locator('[data-map-tile-choice="18xx:8"]').click()
+    await page.getByRole('button', { name: 'Accept track lay' }).click()
+    await expect(page.getByRole('region', { name: 'Current action' })).toContainText('1 placed')
+    await page.getByRole('button', { name: 'Undo', exact: true }).click()
+    await expect(hex).toHaveAttribute('data-placed', 'false')
+    await expect(page.locator('html')).not.toHaveAttribute('data-mask-missing', 'true')
+})
+
+test('double-town tile rotates on each click and revenue stays centered after opening', async ({ page }) => {
+    await page.goto('/table')
+    await page.locator('[data-map-location="L16"]').click()
+    const revenue = page.locator('[data-map-tile-choice] [data-revenue-for]')
+    await expect(revenue.first()).toBeVisible()
+    await expect.poll(() => page.locator('[data-map-tile-choice]').evaluateAll((elements) => elements.flatMap((element) => element.getAnimations()).length)).toBe(0)
+    const offsets = () => revenue.evaluateAll((elements) => elements.map((element) => {
+        const circle = element.querySelector('circle')?.getBoundingClientRect()
+        const text = element.querySelector('text')?.getBoundingClientRect()
+        if (!circle || !text) throw new Error('Missing revenue')
+        return text.y + text.height / 2 - circle.y - circle.height / 2
+    }))
+    for (const offset of await offsets()) expect(Math.abs(offset)).toBeLessThan(0.2)
+    await page.mouse.move(20, 20)
+    for (const offset of await offsets()) expect(Math.abs(offset)).toBeLessThan(0.2)
+    await page.locator('[data-map-location="K17"]').click()
+    await page.locator('[data-map-tile-choice="18xx:7"]').click()
+    await page.getByRole('button', { name: 'Accept track lay' }).click()
+    await page.locator('[data-map-location="K15"]').click()
+    await page.locator('[data-map-tile-choice="18xx:56"]').click()
+    await expect(page.locator('.picker')).toHaveAttribute('data-track-motion', 'false')
+    for (let index = 0; index < 5; index++) {
+        const rotation = await page.locator('.chosen svg').getAttribute('data-tile-rotation')
+        await page.locator('[data-map-location="K15"]').click()
+        await expect(page.locator('.chosen svg')).not.toHaveAttribute('data-tile-rotation', rotation ?? '')
+    }
+})
+
+
+test('auction offers separate map focus, descriptions and committed offers', async ({ page }) => {
+    await page.setViewportSize({ width: 1400, height: 950 })
+    await page.goto('/table')
+    await page.getByLabel('Position', { exact: true }).selectOption('opening')
+    const offers = page.getByRole('region', { name: 'Auction offers' })
+    const icon = offers.getByRole('button', { name: /Show PEIR/ }).first()
+    await expect(icon).toBeVisible()
+    const scene = page.locator('svg.map-scene')
+    const mapWidth = () => scene.evaluate((element) => element.getBoundingClientRect().width)
+    const initialWidth = await mapWidth()
+    await icon.click()
+    await expect.poll(mapWidth).toBeGreaterThan(initialWidth + 10)
+    await expect(page.locator('.description')).toHaveCount(0)
+    await icon.click()
+    await expect.poll(async () => Math.abs(await mapWidth() - initialWidth)).toBeLessThan(1)
+    const row = offers.locator('tbody tr').filter({ has: page.getByRole('button', { name: /Show PEIR 2/ }) })
+    await row.locator('.value').click()
+    await expect(page.locator('.description')).toContainText('numbered PEIR share')
+    await page.locator('.description').click()
+    await expect(page.locator('.description')).toHaveCount(0)
+    await row.getByRole('button', { name: /^Offer / }).click()
+    await expect(page.getByRole('article', { name: 'Current auction' })).toBeVisible()
+    await expect(page.locator('.description')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Undo', exact: true }).click()
+    await expect(offers).toBeVisible()
+})

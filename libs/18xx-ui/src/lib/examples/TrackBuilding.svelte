@@ -2,7 +2,11 @@
     import { getCompany, cashOwnedBy } from '@tabletop/18xx'
     import Tile from '../tiles/Tile.svelte'
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session }: { session: FinanceExampleSession } = $props()
+    let {
+        session,
+        showUndo = true,
+        mapControls = false
+    }: { showUndo?: boolean; mapControls?: boolean; session: FinanceExampleSession } = $props()
     const turn = $derived(session.financialState.trackStep)
     const selection = $derived(session.trackSelection)
     const preview = $derived(session.trackPreview)
@@ -19,22 +23,25 @@
                 })}</span
             >
             <span>{turn.lays.length} placed</span>
-            <button
-                onclick={() => session.undo()}
-                disabled={session.busy ||
-                    session.isViewingHistory ||
-                    (!selection.locationId && !session.actions.length)}>Undo</button
-            >
+            {#if showUndo}<button
+                    onclick={() => session.undo()}
+                    disabled={session.busy ||
+                        session.isViewingHistory ||
+                        (!selection.locationId && !session.actions.length)}>Undo</button
+                >{/if}
             {#if !turn.completed}
                 <button
                     onclick={() => session.finishTrack()}
                     disabled={!session.canBuildTrack || !!selection.locationId}>Finish track</button
                 >
             {/if}
+            {#if mapControls}
+                <span class="cost" class:inactive-cost={!preview}>Cost: ${preview?.cost ?? 0}</span>
+            {/if}
         </header>
         {#if turn.completed}<p>Track complete.</p>
         {:else if session.isViewingHistory}<p>History view</p>
-        {:else if !selection.locationId}
+        {:else if !mapControls && !selection.locationId}
             <label
                 >Build on <select
                     aria-label="Construction hex"
@@ -54,7 +61,7 @@
             {#if session.canBuildTrack && !session.trackLocationIds.length}<p>
                     No legal construction is available.
                 </p>{/if}
-        {:else}
+        {:else if !mapControls && selection.locationId}
             <div class="selection">
                 <strong>{selection.locationId.value}</strong><button
                     onclick={() => session.backTrack()}>Back</button
@@ -105,7 +112,9 @@
                 {:else}<p>Choose a rotation to preview.</p>{/if}
             {/if}
         {/if}
-        {#if session.constructionActions.length}<ol aria-label="Construction history">
+        {#if !mapControls && session.constructionActions.length}<ol
+                aria-label="Construction history"
+            >
                 {#each session.constructionActions as action (action.id)}
                     <li>
                         {action.locationId}: tile {session.mapView.tileSet.definitions.find(
@@ -118,6 +127,13 @@
 {/if}
 
 <style>
+    .cost {
+        min-width: 8ch;
+        white-space: nowrap;
+    }
+    .inactive-cost {
+        visibility: hidden;
+    }
     section {
         margin: 12px 0;
         padding: 12px;

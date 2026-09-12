@@ -132,3 +132,6 @@ export * from './examples/endingExample.js'
 
 export * from './routes/routeResources.js'
 export * from './routes/routeRevenue.js'
+
+export * from './stock/shareSaleValue.js'
+export * from './stock/priorityOrder.js'

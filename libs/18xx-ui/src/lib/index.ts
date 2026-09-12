@@ -41,3 +41,17 @@ export type { AuctionSelection } from './auctions/auctionSelection.js'
 export { default as OfferAuctionPanel } from './auctions/OfferAuctionPanel.svelte'
 
 export { default as GameEnding } from './examples/GameEnding.svelte'
+
+export { default as GameTable } from './table/GameTable.svelte'
+export { default as OperatingActions } from './table/OperatingActions.svelte'
+
+export { default as StockMarketScene } from './stock/StockMarketScene.svelte'
+
+export { default as CompanyToken } from './tokens/CompanyToken.svelte'
+export { default as CompanyOrder } from './table/CompanyOrder.svelte'
+
+export { default as CompanyDetails } from './table/CompanyDetails.svelte'
+
+export { default as TrainBadge } from './trains/TrainBadge.svelte'
+
+export { default as AuctionOffers } from './auctions/AuctionOffers.svelte'

@@ -14,6 +14,7 @@
         onBack,
         onPass,
         onUndo,
+        showUndo = true,
         canUndo
     }: {
         model: ReserveBidAuction
@@ -27,6 +28,7 @@
         onBack: () => void
         onPass: () => void
         onUndo: () => void
+        showUndo?: boolean
         canUndo: boolean
     } = $props()
     const commitments = $derived(model.commitments())
@@ -110,7 +112,7 @@
             >
         </div>
     {:else}<button onclick={onPass} {disabled}>Pass auction</button>{/if}
-    <button onclick={onUndo} disabled={!canUndo}>Undo</button>
+    {#if showUndo}<button onclick={onUndo} disabled={!canUndo}>Undo</button>{/if}
     {#if model.auction.awards.length}
         <h3>Awarded</h3>
         <ul>

@@ -12,7 +12,8 @@ The supplied `/workspace/TOP71_RULES_PROTOTYPE.pdf`, §§3, 5, 6.3, 6.7 and 11.3
 is the baseline. The comparison in
 `/workspace/research/18xx-2026-09-08/top-rulebook-comparison.md` identifies conflicts
 with the contextual implementation. This slice selects the book's $460 starting
-cash for four players, $160 Union Bank face value, and $60 King's Mail income.
+cash for four players, $160 Union Bank face value, and $80 King's Mail income. The latter follows the designer correction relayed
+by Justin on 2026-09-12, superseding the book's incorrect $60.
 Three players start with $580. Ice Boats is four-player-only, following the detailed
 setup and private description rather than the contradictory final cheat sheet.
 Shortline's home remains reserved until flotation; detailed setup explicitly places

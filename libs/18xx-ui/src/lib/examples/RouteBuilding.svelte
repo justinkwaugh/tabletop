@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session }: { session: FinanceExampleSession } = $props()
+    let { session, showUndo = true }: { showUndo?: boolean; session: FinanceExampleSession } =
+        $props()
     const editor = $derived(session.routeEditor)
     const step = $derived(session.financialState.routeStep)
     const visible = $derived(session.routeDraftVisible)
@@ -25,10 +26,10 @@
                 {session.financialState.companies.find((company) => company.id === step.companyId)
                     ?.name} · Routes
             </h3>
-            <button
-                onclick={() => session.undo()}
-                disabled={session.busy || session.isViewingHistory}>Undo</button
-            >
+            {#if showUndo}<button
+                    onclick={() => session.undo()}
+                    disabled={session.busy || session.isViewingHistory}>Undo</button
+                >{/if}
             {#if step.result}<strong>Revenue: ${step.result.revenue}</strong>{/if}
         </header>
         {#if !step.result}

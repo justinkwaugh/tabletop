@@ -4,7 +4,7 @@
     import MapScene from './MapScene.svelte'
     import MapInspector from './MapInspector.svelte'
     import {
-        mapSelectionPoint,
+        mapSelectionRect,
         type MapDrawing,
         type MapSelection,
         type MapToken,
@@ -14,6 +14,7 @@
     let {
         scene,
         legalLocationIds = [],
+        maskUnavailableLocations = false,
         previewLocationId,
         selection,
         tokens = [],
@@ -24,6 +25,7 @@
     }: {
         scene: MapDrawing
         legalLocationIds?: readonly string[]
+        maskUnavailableLocations?: boolean
         previewLocationId?: string
         selection?: MapSelection
         tokens?: readonly MapToken[]
@@ -36,17 +38,7 @@
     const hexDiameter = 180
     function focusSelection() {
         if (!selection) return
-        const point = mapSelectionPoint(scene, selection)
-        const scale = hexDiameter / 100
-        wrapper?.focusRect(
-            {
-                x: (point.x - scene.bounds.x - 60) * scale,
-                y: (point.y - scene.bounds.y - 60) * scale,
-                width: 120 * scale,
-                height: 120 * scale
-            },
-            { animate: true }
-        )
+        wrapper?.focusRect(mapSelectionRect(scene, selection, hexDiameter), { animate: true })
     }
 </script>
 
@@ -66,6 +58,7 @@
                 <MapScene
                     {scene}
                     {legalLocationIds}
+                    {maskUnavailableLocations}
                     {previewLocationId}
                     {selection}
                     {tokens}

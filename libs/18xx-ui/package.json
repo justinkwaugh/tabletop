@@ -29,6 +29,7 @@
         "svelte": "^5.0.0"
     },
     "dependencies": {
+        "@floating-ui/dom": "^1.7.4",
         "@tabletop/18xx": "workspace:*",
         "@tabletop/common": "workspace:*",
         "@tabletop/frontend-components": "workspace:*"
@@ -37,13 +38,13 @@
         "@sveltejs/kit": "^2.48.4",
         "@sveltejs/package": "^2.5.7",
         "@sveltejs/vite-plugin-svelte": "^6.2.4",
+        "@tabletop/vitest-config": "workspace:*",
+        "prettier-plugin-svelte": "^3.4.1",
         "rimraf": "^6.1.0",
         "svelte": "^5.0.0",
         "svelte-check": "^4.3.5",
         "typescript": "5.9.3",
         "vite": "^7.3.1",
-        "@tabletop/vitest-config": "workspace:*",
-        "vitest": "^4.0.12",
-        "prettier-plugin-svelte": "^3.4.1"
+        "vitest": "^4.0.12"
     }
 }

@@ -14,7 +14,8 @@
         type PresidencyChange
     } from '@tabletop/18xx'
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session }: { session: FinanceExampleSession } = $props()
+    let { session, showUndo = true }: { showUndo?: boolean; session: FinanceExampleSession } =
+        $props()
     const state = $derived(session.financialState)
 </script>
 
@@ -42,12 +43,12 @@
                         !session.validActionTypes.includes('FinishStockTurn')}
                     >{state.stockRound.turn.acted ? 'Finish turn' : 'Pass'}</button
                 >{/if}
-            <button
-                onclick={() => session.undo()}
-                disabled={session.busy ||
-                    session.isViewingHistory ||
-                    (!session.selection && !session.undoableAction)}>Undo</button
-            >
+            {#if showUndo}<button
+                    onclick={() => session.undo()}
+                    disabled={session.busy ||
+                        session.isViewingHistory ||
+                        (!session.selection && !session.undoableAction)}>Undo</button
+                >{/if}
         </div>
     </header>
     <StockRoundStatus {session} />

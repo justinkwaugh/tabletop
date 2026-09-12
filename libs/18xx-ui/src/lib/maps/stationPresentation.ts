@@ -3,7 +3,7 @@ import type { StationState, RailwayMap, TileSet } from '@tabletop/18xx'
 import type { MapToken } from './mapDrawing.js'
 import type { TileLayout } from '../tiles/tileDrawing.js'
 
-export type StationAppearance = { label: string; color: string }
+export type StationAppearance = { label: string; color: string; imageUrl?: string }
 export type MapViewDefinition = {
     map: RailwayMap
     tileSet: TileSet

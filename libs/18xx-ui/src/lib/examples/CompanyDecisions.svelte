@@ -1,7 +1,8 @@
 <script lang="ts">
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
     import Tile from '../tiles/Tile.svelte'
-    let { session }: { session: FinanceExampleSession } = $props()
+    let { session, showUndo = true }: { showUndo?: boolean; session: FinanceExampleSession } =
+        $props()
     const state = $derived(session.financialState)
     const draft = $derived(session.companyDecisionSelection)
 </script>
@@ -199,10 +200,12 @@
             >
         </div>
     {/if}
-    <button
-        disabled={session.busy || session.isViewingHistory || (!draft && !session.actions.length)}
-        onclick={() => session.undo()}>Undo</button
-    >
+    {#if showUndo}<button
+            disabled={session.busy ||
+                session.isViewingHistory ||
+                (!draft && !session.actions.length)}
+            onclick={() => session.undo()}>Undo</button
+        >{/if}
 </section>
 
 <style>

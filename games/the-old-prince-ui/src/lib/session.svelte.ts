@@ -145,6 +145,9 @@ export class TheOldPrinceSession extends BaseSession {
         this.splitDraft = {}
         super.beforeNewState()
     }
+    override get hasActionDraft(): boolean {
+        return hasSplitSelection(this.splitDraft) || super.hasActionDraft
+    }
     override async undo() {
         if (this.busy || this.updatingVisibleState || this.isViewingHistory) return
         if (hasSplitSelection(this.splitDraft)) {

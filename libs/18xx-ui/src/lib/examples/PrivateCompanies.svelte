@@ -1,7 +1,8 @@
 <script lang="ts">
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
     import { privateOwner } from '@tabletop/18xx'
-    let { session }: { session: FinanceExampleSession } = $props()
+    let { session, showUndo = true }: { showUndo?: boolean; session: FinanceExampleSession } =
+        $props()
     const selection = $derived(session.privateExchangeSelection)
 </script>
 
@@ -39,12 +40,12 @@
             >
         </div>
     {/if}
-    <button
-        disabled={session.busy ||
-            session.isViewingHistory ||
-            (!selection && !session.actions.length)}
-        onclick={() => session.undo()}>Undo</button
-    >
+    {#if showUndo}<button
+            disabled={session.busy ||
+                session.isViewingHistory ||
+                (!selection && !session.actions.length)}
+            onclick={() => session.undo()}>Undo</button
+        >{/if}
 </section>
 
 <style>

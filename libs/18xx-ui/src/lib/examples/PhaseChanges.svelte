@@ -1,7 +1,8 @@
 <script lang="ts">
     import { getCompany, controllingOwner } from '@tabletop/18xx'
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session }: { session: FinanceExampleSession } = $props()
+    let { session, showUndo = true }: { showUndo?: boolean; session: FinanceExampleSession } =
+        $props()
     const state = $derived(session.financialState)
     const change = $derived(state.phaseChange)
     const companyId = $derived(session.discardCompanyId)
@@ -39,10 +40,12 @@
                     disabled={!session.canDiscardTrain}
                     onclick={() => session.confirmDiscard()}>Confirm discard</button
                 >{/if}
-            <button
-                disabled={session.busy || session.updatingVisibleState || session.isViewingHistory}
-                onclick={() => session.undo()}>Undo</button
-            >
+            {#if showUndo}<button
+                    disabled={session.busy ||
+                        session.updatingVisibleState ||
+                        session.isViewingHistory}
+                    onclick={() => session.undo()}>Undo</button
+                >{/if}
         </div>
     {/if}
     {#if state.phaseEvents.length}<ol aria-label="Phase history">

@@ -133,7 +133,6 @@
                 data-tile-upgrade-cost
                 transform={`translate(${drawing.upgradeCostPosition.x} ${drawing.upgradeCostPosition.y})`}
             >
-                <title>Cost to upgrade: {face.upgradeCost}</title>
                 <rect
                     x="-9"
                     y="-5"
@@ -211,6 +210,7 @@
 
 <style>
     .tile-artwork {
+        text-rendering: geometricPrecision;
         font-family: var(--tile-font-family, ui-sans-serif, system-ui, sans-serif);
     }
     .annotations {

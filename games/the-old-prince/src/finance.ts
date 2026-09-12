@@ -1,3 +1,4 @@
+import { TheOldPrinceKingsMail } from './privates.js'
 import { assert, assertExists, type PlayerState } from '@tabletop/common'
 import {
     createOrdinaryShareCertificates,
@@ -50,7 +51,12 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
             },
             { id: 'PEIR', name: 'Prince Edward Island Railway', kind: 'major', president: blair },
             { id: 'VR', name: 'Vernon River Bridge', kind: 'private', privateRevenue: 10 },
-            { id: 'KM', name: 'The King’s Mail', kind: 'private', privateRevenue: 60 }
+            {
+                id: TheOldPrinceKingsMail.id,
+                name: TheOldPrinceKingsMail.name,
+                kind: 'private',
+                privateRevenue: TheOldPrinceKingsMail.revenue
+            }
         ],
         certificatePools: [
             { id: 'market', name: 'Market', owner: bank },

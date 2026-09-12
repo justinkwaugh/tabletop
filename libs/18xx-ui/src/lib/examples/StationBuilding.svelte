@@ -1,7 +1,8 @@
 <script lang="ts">
     import { getCompany, cashOwnedBy } from '@tabletop/18xx'
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session }: { session: FinanceExampleSession } = $props()
+    let { session, showUndo = true }: { showUndo?: boolean; session: FinanceExampleSession } =
+        $props()
     const step = $derived(session.financialState.stationStep)
     const selection = $derived(session.stationSelection)
     const preview = $derived(session.stationPreview)
@@ -21,12 +22,12 @@
                 >{session.availableStations.length} available · {step.placedStationIds.length} placed
                 this turn</span
             >
-            <button
-                onclick={() => session.undo()}
-                disabled={session.busy ||
-                    session.isViewingHistory ||
-                    (!selection.stationId && !session.actions.length)}>Undo</button
-            >
+            {#if showUndo}<button
+                    onclick={() => session.undo()}
+                    disabled={session.busy ||
+                        session.isViewingHistory ||
+                        (!selection.stationId && !session.actions.length)}>Undo</button
+                >{/if}
             {#if !step.completed}<button
                     onclick={() => session.finishStations()}
                     disabled={!session.canPlaceStation || !!selection.stationId}

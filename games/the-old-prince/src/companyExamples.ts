@@ -154,9 +154,10 @@ export function createTheOldPrinceCompanyExample(
             companyId: 'ML'
         })
     }
-    if (position === 'routes' || position === 'operations') {
-        for (let index = 0; index < 2; index++) {
-            const train = TheOldPrinceTrainDepot.nextTrain(state.trainInventory, '2H')
+    if (position === 'construction' || position === 'routes' || position === 'operations') {
+        const ranks = position === 'construction' ? ['2H', '3H'] : ['2H', '2H']
+        for (const rank of ranks) {
+            const train = TheOldPrinceTrainDepot.nextTrain(state.trainInventory, rank)
             assert(train, 'Route example requires a train')
             TheOldPrinceTrainDepot.purchase(state.trainInventory, train.id, train.definitionId, {
                 kind: 'company',
@@ -164,8 +165,9 @@ export function createTheOldPrinceCompanyExample(
             })
         }
     }
-    if (position === 'operations') {
-        const train = TheOldPrinceTrainDepot.nextTrain(state.trainInventory, '2H')
+    if (position === 'construction' || position === 'operations') {
+        const rank = position === 'construction' ? '4H' : '2H'
+        const train = TheOldPrinceTrainDepot.nextTrain(state.trainInventory, rank)
         assert(train, 'Operating example requires another company train')
         TheOldPrinceTrainDepot.purchase(state.trainInventory, train.id, train.definitionId, {
             kind: 'company',
