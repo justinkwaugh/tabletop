@@ -8,10 +8,13 @@
     import OperatingOrderHistory from './OperatingOrderHistory.svelte'
     import type { HistoryCash } from './historyCash.js'
     import type { HistoryOperatingOrder } from './historyOperatingOrder.js'
+    import { isMapHistoryAction } from '../maps/historicalMap.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     let {
         group,
+        onPreviewMap,
+        previewActionId,
         appearance,
         playerName,
         describe,
@@ -25,6 +28,8 @@
         stations,
         cash
     }: {
+        onPreviewMap: (action: GameAction) => void
+        previewActionId?: string
         cash: ReadonlyMap<string, HistoryCash>
         orderChanges: ReadonlyMap<string, HistoryOperatingOrder>
         stations: Readonly<Record<string, StationAppearance>>
@@ -145,7 +150,13 @@
                     {#if row.action.playerId && row.action.playerId !== group.playerId}<small
                             >{playerName(row.action.playerId)}</small
                         >{/if}
-                    <span>{startingCash !== undefined ? row.ledgerText ?? row.text : row.text}{#if row.trainDefinitionIds?.length}<span class="run-trains">{#each row.trainDefinitionIds as id}<TrainBadge name={trainName(id)} color={trainColors[id]} />{/each}</span>{/if}{#if row.phase}<span class="phase-colors">{row.phase.label}</span>{/if}{#if row.ledgerValue}<span class="ledger-note">{row.ledgerValue}</span>{/if}</span><strong class:debit={row.delta < 0} class:credit={row.delta > 0}>{startingCash !== undefined ? row.delta ? `${row.delta > 0 ? '+' : '−'}${money(Math.abs(row.delta))}` : '' : row.value ?? ''}</strong>
+                    <span>{#snippet actionSummary()}{startingCash !== undefined ? row.ledgerText ?? row.text : row.text}{#if row.trainDefinitionIds?.length}<span class="run-trains">{#each row.trainDefinitionIds as id}<TrainBadge name={trainName(id)} color={trainColors[id]} />{/each}</span>{/if}{/snippet}
+                    {#if isMapHistoryAction(row.action)}<button
+                        class="map-history-link"
+                        aria-label={`Preview historical map: ${row.text}`}
+                        aria-pressed={previewActionId === row.action.id}
+                        onclick={() => onPreviewMap(row.action)}
+                    >{@render actionSummary()}</button>{:else}{@render actionSummary()}{/if}{#if row.phase}<span class="phase-colors">{row.phase.label}</span>{/if}{#if row.ledgerValue}<span class="ledger-note">{row.ledgerValue}</span>{/if}</span><strong class:debit={row.delta < 0} class:credit={row.delta > 0}>{startingCash !== undefined ? row.delta ? `${row.delta > 0 ? '+' : '−'}${money(Math.abs(row.delta))}` : '' : row.value ?? ''}</strong>
                     {#if row.detail}<small>{row.detail}</small>{/if}
                     {#if row.order}<OperatingOrderHistory order={row.order} {stations} {companyName} />{/if}
                 </div>
@@ -154,9 +165,11 @@
                     >No further actions</div
                 >{/if}
         </div>
-        <footer>
-            {#if endingCash !== undefined}<span class="end-cash"><span>End cash</span><strong>{money(endingCash)}</strong></span>{/if}
-        </footer>
+        {#if endingCash !== undefined && rows.some((row) => row.delta !== 0)}
+            <footer>
+                <span class="end-cash"><strong>{money(endingCash)}</strong></span>
+            </footer>
+        {/if}
     {/if}
 </article>
 
@@ -290,6 +303,23 @@
         font-weight: 500;
         text-transform: none;
     }
+    .map-history-link {
+        border: 0;
+        padding: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+        border-radius: 4px;
+    }
+    .map-history-link:hover, .map-history-link[aria-pressed='true'] {
+        background: #ffffff66;
+    }
+    .map-history-link:focus-visible {
+        outline: 2px solid #865320;
+        outline-offset: 2px;
+    }
     .run-trains { display: inline-flex; gap: 3px; margin-left: 5px; vertical-align: baseline; }
     .funding-obligation { padding: 2px 0; line-height: 16px; font-weight: 600; }
     .cash-balance { display: flex; flex-direction: column; text-align: right; line-height: 14px; }
@@ -300,7 +330,6 @@
     footer { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
     .end-cash { display: flex; gap: 12px; flex: 1; justify-content: flex-end; padding-top: 3px; }
     .end-cash strong { min-width: 48px; text-align: right; border-top: 1px solid #b9ac9970; padding-top: 3px; }
-    .end-cash > span { padding-top: 4px; }
     .cash-balance strong, .end-cash strong { font-variant-numeric: tabular-nums; }
     .routine {
         color: #918575;

@@ -1,0 +1,71 @@
+import { expect, test } from '@playwright/test'
+
+test('finished-game map inspection shows past track and routes without changing the table', async ({ page }) => {
+    test.setTimeout(90000)
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await page.goto('/table')
+    await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+    await page.getByLabel('Position', { exact: true }).selectOption('finished')
+    await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+    await page.getByRole('tab', { name: 'History', exact: true }).click()
+    const header = page.locator('header[aria-label="Game phase"]')
+    const currentHeader = await header.innerText()
+    const placed = page.locator('[data-map-location][data-placed="true"]')
+    const currentTiles = await placed.count()
+    const lay = page.getByRole('button', { name: /Preview historical map: Laid track/ }).last()
+    await lay.evaluate((element) => element.click())
+    await expect(page.getByText('Historical map', { exact: true })).toBeVisible()
+    expect(await placed.count()).toBeLessThan(currentTiles)
+    await expect(header).toHaveText(currentHeader, { useInnerText: true })
+    await expect(page.locator('[data-map-location][tabindex="0"]')).toHaveCount(0)
+    await expect(page.locator('[data-map-layer="unavailable"]')).toHaveCount(0)
+    await expect(page.locator('[data-map-route]')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Return to current map' }).click()
+    await expect(placed).toHaveCount(currentTiles)
+    await expect(page.getByText('Historical map', { exact: true })).toHaveCount(0)
+
+    const run = page.getByRole('button', { name: /Preview historical map: Ran/ }).last()
+    await run.evaluate((element) => element.click())
+    await expect(page.getByText('Historical map', { exact: true })).toBeVisible()
+    expect(await page.locator('[data-map-route]').count()).toBeGreaterThan(0)
+    await expect(header).toHaveText(currentHeader, { useInnerText: true })
+    await expect.poll(async () => page.locator('.map-area').evaluate((area) => {
+        const viewport = area.getBoundingClientRect()
+        const banner = area.querySelector('.historical-map-banner')!.getBoundingClientRect()
+        return [...area.querySelectorAll('[data-map-route]')].every((route) => {
+            const bounds = route.getBoundingClientRect()
+            return bounds.top >= banner.bottom && bounds.bottom <= viewport.bottom &&
+                bounds.left >= viewport.left && bounds.right <= viewport.right
+        })
+    })).toBe(true)
+    await page.locator('.map-area').click({ position: { x: 100, y: 200 } })
+    await page.keyboard.press('f')
+    await expect(page.getByRole('button', { name: 'Return to current map' })).toBeVisible()
+    await page.getByRole('button', { name: 'Return to current map' }).click()
+    await expect(placed).toHaveCount(currentTiles)
+    await page.keyboard.press('Escape')
+    await run.evaluate((element) => element.click())
+    await expect(page.getByText('Historical map', { exact: true })).toBeVisible()
+    await run.evaluate((element) => element.click())
+    await expect(page.getByText('Historical map', { exact: true })).toHaveCount(0)
+    expect(errors).toEqual([])
+})
+
+for (const title of ['TOP', '1889'] as const) {
+    test(`${title} clears a map preview when Undo changes the live state`, async ({ page }) => {
+        await page.goto('/table')
+        await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+        await page.getByLabel('Game', { exact: true }).selectOption(title)
+        await page.getByLabel('Position', { exact: true }).selectOption('routes')
+        const run = page.getByRole('button', { name: 'Run trains', exact: true })
+        await expect(run).toBeEnabled()
+        await run.click()
+        await page.getByRole('tab', { name: 'History', exact: true }).click()
+        await page.getByRole('button', { name: /Preview historical map: Ran/ }).evaluate((element) => element.click())
+        await expect(page.getByText('Historical map', { exact: true })).toBeVisible()
+        await page.getByRole('button', { name: 'Undo', exact: true }).click()
+        await expect(page.getByText('Historical map', { exact: true })).toHaveCount(0)
+        await expect(run).toBeEnabled()
+    })
+}

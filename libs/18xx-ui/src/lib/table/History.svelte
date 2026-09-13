@@ -13,12 +13,14 @@
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
     let {
         session,
+        onPreviewMap,
         phaseColors,
         phaseTileColors,
         trainColors,
         describeAction,
         companyNames
     }: {
+        onPreviewMap: (action: GameAction) => void
         session: FinanceExampleSession
         trainColors: Readonly<Record<string, string>>
         phaseColors: Readonly<Record<string, string>>
@@ -89,6 +91,8 @@
                     <li>
                         <HistoryGroup
                             group={entry}
+                            {onPreviewMap}
+                            previewActionId={session.historicalMap?.actionId}
                             appearance={entry.companyId
                                 ? session.mapView.stations[entry.companyId]
                                 : undefined}

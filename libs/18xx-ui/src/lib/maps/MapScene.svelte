@@ -55,6 +55,7 @@
     const selectedPath = $derived(selection?.kind === 'path' ? selection.pathId : undefined)
 
     function select(event: MouseEvent | KeyboardEvent, target: MapSelection) {
+        if (!onselect) return
         if (event instanceof KeyboardEvent && event.key !== 'Enter' && event.key !== ' ') return
         event.stopPropagation()
         event.preventDefault()
@@ -74,7 +75,7 @@
 >
     {#each entries as entry (entry.location.id)}
         {@const id = entry.location.id}
-        {@const available = !maskUnavailableLocations || legalLocationIds.includes(id)}
+        {@const available = !!onselect && (!maskUnavailableLocations || legalLocationIds.includes(id))}
         {@const selected = selection?.locationId === id}
         {@const target: MapSelection = { kind: 'hex', locationId: id }}
         <g

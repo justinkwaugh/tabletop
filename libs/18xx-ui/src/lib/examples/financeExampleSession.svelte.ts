@@ -1,3 +1,6 @@
+import { FinanceExampleValidator } from '@tabletop/18xx'
+import type { GameAction } from '@tabletop/common'
+import { HistoricalMaps, type HistoricalMap } from '../maps/historicalMap.js'
 import {
     chooseStockAction,
     chooseSaleCompany,
@@ -195,6 +198,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         private readonly offerAuctionRules?: OfferPileAuctionRules
     ) {
         super(options)
+        this.historicalMaps = new HistoricalMaps(mapView)
     }
     offerAuction = $derived.by(() =>
         this.financialState.offerAuction && this.offerAuctionRules
@@ -1390,6 +1394,27 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     }
     get passing() {
         return this.stockRules.round.passing
+    }
+    private readonly historicalMaps: HistoricalMaps
+    historicalMap: HistoricalMap | undefined = $derived.by(() => {
+        this.financialState
+        this.updatingVisibleState
+        return undefined
+    })
+    previewHistoryMap(action: GameAction) {
+        if (this.busy || this.updatingVisibleState) return
+        if (this.historicalMap?.actionId === action.id) {
+            this.historicalMap = undefined
+            return
+        }
+        const context = this.history.visibleContext
+        assert(FinanceExampleValidator.Check(context.state), 'Historical map requires financial state')
+        this.historicalMap = this.historicalMaps.preview(
+            context.state, context.actions, action
+        )
+    }
+    closeHistoricalMap() {
+        this.historicalMap = undefined
     }
     financialState = $derived(requireFinanceExampleState(this.gameState))
     mapScene = $derived.by(() =>

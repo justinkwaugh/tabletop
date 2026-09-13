@@ -99,7 +99,7 @@ export function historyDescription(
                     ? 'Withheld'
                     : action.choice === 'half-pay'
                       ? 'Half paid'
-                      : 'Paid dividends',
+                      : 'Paid out',
             value:
                 action.choice === 'withhold'
                     ? details.retained ? money(details.retained) : undefined

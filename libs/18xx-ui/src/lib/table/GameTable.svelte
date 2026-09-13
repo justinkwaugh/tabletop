@@ -83,6 +83,7 @@
         return undefined
     })
     async function focusLocation(locationId: string) {
+        session.closeHistoricalMap()
         focusedRoute = undefined
         focusedCompany = undefined
         const restore = focusedLocation === locationId
@@ -104,6 +105,7 @@
         return undefined
     })
     async function focusCompany(companyId: string) {
+        session.closeHistoricalMap()
         focusedRoute = undefined
         const restore = focusedCompany === companyId
         focusedCompany = restore ? undefined : companyId
@@ -124,6 +126,7 @@
         return undefined
     })
     async function focusRoute(trainId: string) {
+        session.closeHistoricalMap()
         const route = session.automaticRouteResult?.result.routes.find((route) => route.trainId === trainId)
         if (!route) return
         const restore = focusedRoute === trainId
@@ -138,9 +141,27 @@
         }
         focusLocations([...new Set(route.paths.map((path) => path.locationId))])
     }
+    async function previewHistoryMap(action: GameAction) {
+        focusedLocation = undefined
+        focusedCompany = undefined
+        focusedRoute = undefined
+        session.previewHistoryMap(action)
+        view = 'Map'
+        const preview = session.historicalMap
+        await tick()
+        if (session.historicalMap !== preview) return
+        if (preview?.locations.length) focusLocations(preview.locations)
+        else mapWrapper?.fitToContent({ animate: true })
+    }
+    async function closeHistoricalMap() {
+        session.closeHistoricalMap()
+        await tick()
+        if (!session.historicalMap) mapWrapper?.fitToContent({ animate: true })
+    }
+    const displayedScene = $derived(session.historicalMap?.scene ?? session.displayedMapScene)
     function focusLocations(locations: readonly string[]) {
         const rectangles = locations.map((locationId) => mapSelectionRect(
-            session.displayedMapScene, { kind: 'hex', locationId }, 140, 220
+            displayedScene, { kind: 'hex', locationId }, 140, 220
         ))
         const x = Math.min(...rectangles.map((rect) => rect.x))
         const y = Math.min(...rectangles.map((rect) => rect.y))
@@ -220,7 +241,7 @@
                         onFocusCompany={focusCompany}
                         {portfolioCompanyIds}
                     />{/snippet}
-                {#snippet history()}<History {session} {trainColors} {phaseColors} {phaseTileColors} {companyNames} describeAction={historyDescription} />{/snippet}
+                {#snippet history()}<History onPreviewMap={previewHistoryMap} {session} {trainColors} {phaseColors} {phaseTileColors} {companyNames} describeAction={historyDescription} />{/snippet}
                 {#snippet chat()}
                     <GameChat
                         timeColor="text-[#887969]"
@@ -282,6 +303,7 @@
             <div class="view-area">
                 <div
                     class="view-panel map-area"
+                    class:historical={!!session.historicalMap}
                     class:inactive={view !== 'Map'}
                     role="tabpanel"
                     id={`${tabsId}-panel-Map`}
@@ -296,26 +318,34 @@
                         expandable={true}
                     >
                         <MapScene
-                            scene={session.displayedMapScene}
-                            tokens={session.displayedMapTokens}
-                            reservations={session.trackPreview?.stationReservations ??
+                            scene={displayedScene}
+                            tokens={session.historicalMap?.tokens ?? session.displayedMapTokens}
+                            reservations={session.historicalMap?.reservations ?? session.trackPreview?.stationReservations ??
                                 session.stationDisplayState.stationReservations}
-                            routes={session.displayedRoutes}
-                            selection={session.mapSelection}
-                            maskUnavailableLocations={session.showTrackChoices}
-                            legalLocationIds={session.canPlaceStation
+                            routes={session.historicalMap?.routes ?? session.displayedRoutes}
+                            selection={session.historicalMap ? session.historicalMap.selection : session.mapSelection}
+                            maskUnavailableLocations={!session.historicalMap && session.showTrackChoices}
+                            legalLocationIds={session.historicalMap ? [] : session.canPlaceStation
                                 ? session.stationLocationIds
                                 : session.trackLocationIds}
-                            previewLocationId={session.trackPreview?.locationId ??
+                            previewLocationId={session.historicalMap ? undefined : session.trackPreview?.locationId ??
                                 session.stationPreview?.position.locationId}
                             appearance={session.mapStyle === 'muted'
                                 ? MutedTileAppearance
                                 : ClassicTileAppearance}
                             hexDiameter={140}
-                            onselect={(selection) => session.selectMap(selection, false)}
+                            onselect={session.historicalMap ? undefined : (selection) => session.selectMap(selection, false)}
                         />
+                        {#snippet toolbar()}
+                            {#if session.historicalMap}<div class="historical-map-toolbar">
+                                <div class="historical-map-banner" role="status">
+                                    <span><strong>Historical map</strong> · {session.historicalMap.label}</span>
+                                    <button onclick={closeHistoricalMap}>Return to current map</button>
+                                </div>
+                            </div>{/if}
+                        {/snippet}
                         {#snippet overlay(viewport)}
-                            {#if view === 'Map' && session.canBuildTrack && session.trackSelection.locationId}
+                            {#if !session.historicalMap && view === 'Map' && session.canBuildTrack && session.trackSelection.locationId}
                                 <TrackTilePicker {session} {viewport} />
                             {/if}
                         {/snippet}
@@ -440,6 +470,31 @@
     }
     .view-tabs button:hover {
         color: #5e4937;
+    }
+    .historical { background: #dfd8ca; }
+    .historical-map-toolbar { padding: 8px 12px; }
+    .historical-map-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 12px;
+        border: 1px solid #715638;
+        border-radius: 5px;
+        background: #493b2bee;
+        color: #fff8e9;
+        box-shadow: 0 2px 8px #30271f33;
+        font-size: 12px;
+    }
+    .historical-map-banner button {
+        flex-shrink: 0;
+        border: 1px solid #c3b394;
+        border-radius: 4px;
+        padding: 4px 8px;
+        background: #faf5e8;
+        color: #493b2b;
+        font: inherit;
+        cursor: pointer;
     }
     .map-area {
         position: relative;

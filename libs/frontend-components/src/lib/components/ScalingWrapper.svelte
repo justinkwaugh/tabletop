@@ -55,12 +55,14 @@
     let {
         children,
         overlay,
+        toolbar,
         justify = 'center',
         controls = 'top-left',
         expandable = false
     }: {
         children: Snippet
         overlay?: Snippet<[HTMLDivElement]>
+        toolbar?: Snippet
         justify?: 'center' | 'left' | 'right'
         controls: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'none'
         expandable?: boolean
@@ -72,6 +74,7 @@
 
     let wrapperWidth = $state(0)
     let wrapperHeight = $state(0)
+    let toolbarHeight = $state(0)
 
     let contentWidth = $state(0)
     let contentHeight = $state(0)
@@ -1112,12 +1115,13 @@
         ? 'position: fixed; inset: 0; z-index: 9999; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(1px);'
         : undefined}
 >
+    {#if toolbar}<div bind:clientHeight={toolbarHeight}>{@render toolbar()}</div>{/if}
     <div
         bind:this={scroller}
         class="overflow-hidden box-border"
         class:w-full={!isExpanded}
         class:h-full={!isExpanded}
-        style={`${isExpanded ? 'width: 100%; height: 100%; padding: 8px;' : ''} touch-action: none;`}
+        style={`${isExpanded ? 'width: 100%; padding: 8px;' : ''} height: calc(100% - ${toolbar ? toolbarHeight : 0}px); touch-action: none;`}
         onwheel={handleWheel}
     >
         <div bind:this={viewport} bind:clientWidth={wrapperWidth} bind:clientHeight={wrapperHeight} class="relative w-full h-full">

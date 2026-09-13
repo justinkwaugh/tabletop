@@ -870,7 +870,7 @@ Company operation headers use a subtle contrasting background behind the token, 
 
 SR/OR interstitial backgrounds use the active phase’s train-color mapping, including split backgrounds for changes within the round. Phase-change entries separately compare the title’s available tile colors and explicitly announce newly unlocked colors (“green tiles now available”). These are distinct inputs even when their colors coincide in TOP and 1889.
 
-Train palettes use title-owned hex colors, separate from tile colors. TOP uses its ten train-roster colors (including blue 2+, cyan 3+, and red 7); badges select contrasting text and SR/OR bands tint those same colors. End cash uses a single-line label beside the amount, with a short rule above the amount.
+Train palettes use title-owned hex colors, separate from tile colors. TOP uses its ten train-roster colors (including blue 2+, cyan 3+, and red 7); badges select contrasting text and SR/OR bands tint those same colors. The final company cash balance appears as an amount only, with a short rule above it, when at least one action adjusted company cash. Operations with no cash adjustments omit both; offsetting adjustments still show the final balance. Full dividend distributions are labeled “Paid out”.
 
 During a live, actionable RunningTrains step, the table starts client-side
 autorouting in a title-owned Web Worker. Its state-tagged result is an automatic
@@ -933,10 +933,43 @@ DefaultTableLayout consumers retain the default 8px top inset.
 
 History train-run entries show train badges and total revenue without listing route stops.
 
-History action rows and group headers are read-only; clicking them does not move the history cursor. Navigation remains in the history controls and round interstitials.
+History action rows and group headers do not move the history cursor. Track-lay and train-run labels can open a separate historical map preview. Navigation remains in the history controls and round interstitials.
 
 Round interstitials moving through the history use a stronger full-width divider band and bolder labels to separate rounds clearly. Docked stacks retain their compact styling and phase colors. This treatment follows scroll layout locally and does not alter header positions or row heights.
 
 System-action history groups omit an actor heading; their events appear directly without a “Game” label or empty header space.
 
 Each OR starts with one “Operating order” entry showing the entire ordered token list, even when unchanged. The set-start bookkeeping action is hidden. This order entry has no bottom divider or movement arrows; later order changes retain their movement diagrams.
+
+Historical map inspection is an explicit, session-owned manual preview, independent of
+the history cursor. Only track-lay and train-run labels are buttons; other history
+text stays read-only. Clicking one shows the map immediately after that action,
+including its tiles, stations and reservations, with recorded routes for train runs.
+A prominent Historical map banner includes the OR and company and a Return to
+current map button. It lives in ScalingWrapper's unscaled toolbar, including in
+fullscreen. The toolbar reserves its measured height so route fitting cannot place
+track underneath the banner. Tile placement controls and map selection are unavailable in this mode.
+The rest of the table continues to show its existing state.
+
+Clicking the same action closes the preview. Choosing another replaces it; return
+restores the current map and fits it. Company/location/current-route focus also
+closes the historical preview. Visible-state transitions invalidate it before the
+state swap, including Undo, replay, new actions and history navigation. The session
+owns preview presence; camera focus is local inspection feedback using the existing
+ScalingWrapper helper, with post-tick identity checks against stale requests.
+
+Historical map reconstruction applies only map, station, company and round undo
+patches after the selected action to a detached projection. It never mutates live
+state, moves the history cursor or invokes the autorouter. A three-entry cache is
+scoped to the source history state and replaced when that source changes. The
+shared projection accommodates title-specific tile sets, station artwork, private
+track lays and train route paths without inferring rules from map appearance.
+
+Verification: the finished TOP game's earliest lay/run previews reconstructed
+synchronously in about 14 ms and appeared within about 39 ms in a desktop Chromium
+check; cached reconstruction took about 1 ms. These are local measurements, not a
+device-independent guarantee, and exclude the subsequent camera easing. Browser
+checks cover past placements, recorded routes, unchanged table state, read-only
+map interaction, fullscreen return, repeat-click closing and Undo invalidation for
+both titles. The projection test also verifies action-boundary accuracy and that
+neither the source state nor recorded undo patches are mutated.
