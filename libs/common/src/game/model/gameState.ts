@@ -41,6 +41,7 @@ export const GameState = Type.Object({
     machineState: Type.String(),
     turnManager: TurnManager,
     result: Type.Optional(Type.Enum(GameResult)),
+    canContinue: Type.Optional(Type.Boolean()),
     winningPlayerIds: Type.Array(Type.String()),
     explorationState: Type.Optional(ExplorationState)
 })
@@ -80,6 +81,7 @@ export abstract class HydratableGameState<T extends Type.TSchema, P extends Play
     declare masterSeed?: string
     declare machineState: string
     declare turnManager: HydratedTurnManager
+    declare canContinue?: boolean
     declare result?: GameResult
     declare winningPlayerIds: string[]
 

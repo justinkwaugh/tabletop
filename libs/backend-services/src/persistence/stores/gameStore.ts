@@ -43,7 +43,22 @@ export interface GameDataReader {
     undoWindow(actionId: string): Promise<UndoActionWindow | undefined>
 }
 
+export type ContinuationPreparation = {
+    game: Game
+    options?: GameCreationOptions
+}
+
+export type CreateContinuationOptions = {
+    sourceGameId: string
+    validateSource: (source: Game) => void
+    prepare: (source: Game, state: GameState) => Promise<ContinuationPreparation>
+}
+
 export interface GameStore {
+    createContinuation(
+        options: CreateContinuationOptions
+    ): Promise<{ game: Game; created: boolean }>
+    getContinuationState(gameId: string): Promise<GameState | undefined>
     loadGameData(gameId: string): Promise<GameData | undefined>
     readGameData<T>(
         gameId: string,

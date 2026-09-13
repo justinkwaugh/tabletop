@@ -1,4 +1,12 @@
-import type { Game, GameAction, GameState, User } from '@tabletop/common'
+import {
+    Game,
+    GameState,
+    GameStatus,
+    assertExists,
+    type GameAction,
+    type User
+} from '@tabletop/common'
+import * as Value from 'typebox/value'
 import { type GameStore } from '$lib/persistence/gameStore.js'
 import { openDB, type IDBPDatabase } from 'idb'
 
@@ -87,6 +95,42 @@ export class IndexedDbGameStore implements GameStore {
         return gameData
     }
 
+    async continueGame(
+        sourceGameId: string,
+        initialize: (source: Game, state: GameState) => { game: Game; state: GameState }
+    ): Promise<Game> {
+        const db = await this.getDatabase()
+        const tx = db.transaction(['games', 'states'], 'readwrite')
+        try {
+            const source: unknown = await tx.objectStore('games').get(sourceGameId)
+            Value.Assert(Game, source)
+            if (source.continuedToGameId) {
+                const existing: unknown = await tx
+                    .objectStore('games')
+                    .get(source.continuedToGameId)
+                assertExists(existing, 'The continuation has been deleted')
+                Value.Assert(Game, existing)
+                await tx.done
+                return existing
+            }
+            const state: unknown = await tx.objectStore('states').get(sourceGameId)
+            Value.Assert(GameState, state)
+            const next = initialize(source, state)
+            delete next.game.state
+            source.continuedToGameId = next.game.id
+            source.updatedAt = new Date()
+            await tx.objectStore('games').add(next.game)
+            await tx.objectStore('states').add(next.state)
+            await tx.objectStore('games').put(source)
+            await tx.done
+            return next.game
+        } catch (error) {
+            tx.abort()
+            await tx.done.catch(() => {})
+            throw error
+        }
+    }
+
     async findGamesForUser(user: User): Promise<Game[]> {
         const db = await this.getDatabase()
         const tx = db.transaction(IndexedDbGameStore.GAME_STORE_NAME, 'readonly')
@@ -143,6 +187,17 @@ export class IndexedDbGameStore implements GameStore {
             ],
             'readwrite'
         )
+
+        const existing: Game | undefined = await tx
+            .objectStore(IndexedDbGameStore.GAME_STORE_NAME)
+            .get(game.id)
+        if (existing?.continuedToGameId) gameData.continuedToGameId = existing.continuedToGameId
+        gameData.canContinue = state.result !== undefined && state.canContinue === true
+        gameData.result = state.result
+        gameData.winningPlayerIds = [...state.winningPlayerIds]
+        gameData.status = state.result === undefined ? GameStatus.Started : GameStatus.Finished
+        gameData.finishedAt =
+            state.result === undefined ? undefined : (gameData.finishedAt ?? new Date())
 
         const gameActions: GameActions = {
             id: game.id,

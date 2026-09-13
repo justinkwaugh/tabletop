@@ -520,6 +520,22 @@ export class TabletopApi {
         return this.validateGame(response.payload.game)
     }
 
+    async continueGame(game: Game): Promise<Game> {
+        const logicVersion = this.getGameLogicVersion(game.typeId)
+        const uiVersion = this.getGameUiVersion(game.typeId)
+        const response = await this.wretch
+            .headers({
+                'X-TABLETOP-GAME-LOGIC-VERSION': logicVersion,
+                'X-TABLETOP-GAME-UI-VERSION': uiVersion
+            })
+            .post({ gameId: game.id }, `/game/${game.typeId}/continue`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<GameResponse>()
+
+        return this.validateGame(response.payload.game)
+    }
+
     async startGame(game: Game): Promise<Game> {
         const logicVersion = this.getGameLogicVersion(game.typeId!)
         const uiVersion = this.getGameUiVersion(game.typeId!)
@@ -871,7 +887,8 @@ export class TabletopApi {
     }
 }
 
-export type TabletopApiPublic = Pick<TabletopApi, keyof TabletopApi>
+export type TabletopApiPublic = Omit<Pick<TabletopApi, keyof TabletopApi>, 'continueGame'> &
+    Partial<Pick<TabletopApi, 'continueGame'>>
 
 export type GameVersionProvider = {
     getLogicVersion(gameId: string): string | undefined

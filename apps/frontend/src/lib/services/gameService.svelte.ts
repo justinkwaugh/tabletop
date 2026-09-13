@@ -25,6 +25,8 @@ import {
     type HydratedGameState,
     GameEngine,
     createGameFork,
+    initializeContinuationGame,
+    assertExists,
     GameForkError,
     GameStorage,
     GameCategory,
@@ -248,6 +250,35 @@ export class GameService implements GameServiceInterface {
         return newGame
     }
 
+    async continueGame(game: Game): Promise<Game> {
+        await this.libraryService.whenReady()
+        let next: Game
+        if (game.storage === GameStorage.Local) {
+            const definition = this.libraryService.getTitle(game.typeId)
+            assertExists(definition, 'Game Title was not found')
+            const runtime = await definition.runtime()
+            next = await this.localGameStore.continueGame(game.id, (source, state) => {
+                const continuation = initializeContinuationGame(source, state, {
+                    info: definition.info,
+                    runtime
+                })
+                const { startedGame, initialState } = new GameEngine(runtime).startGame(
+                    continuation,
+                    { previousState: state }
+                )
+                startedGame.activePlayerIds = initialState.activePlayerIds
+                return { game: startedGame, state: initialState }
+            })
+            this.localGamesById.set(game.id, { ...game, continuedToGameId: next.id })
+            this.localGamesById.set(next.id, next)
+        } else {
+            next = await this.api.continueGame(game)
+            this.gamesById.set(game.id, { ...game, continuedToGameId: next.id })
+            this.gamesById.set(next.id, next)
+        }
+        return next
+    }
+
     async forkGame(game: Partial<Game>, actionIndex: number, name: string): Promise<Game> {
         if (game.storage === GameStorage.Local) {
             if (!game.id) {
@@ -313,7 +344,9 @@ export class GameService implements GameServiceInterface {
             actions: actionsData,
             state: stateData
         })
-        this.localGamesById.set(gameData.id, gameData)
+        const saved = await this.localGameStore.findGameById(gameData.id)
+        assertExists(saved, 'Saved game was not found')
+        this.localGamesById.set(saved.id, saved)
     }
 
     async deleteGame(gameId: string): Promise<void> {

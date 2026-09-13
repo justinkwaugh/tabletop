@@ -1,22 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Firestore, Transaction } from '@google-cloud/firestore'
+import { Transaction } from '@google-cloud/firestore'
 import {
     deriveGameSeeds,
     GameEngine,
     GameStatus,
-    PlayerStatus,
     Role,
     UserStatus,
     type User
 } from '@tabletop/common'
 import { SyntheticDefinition, SyntheticRuntime } from './tests/syntheticGame.js'
-import { GameService } from './gameService.js'
-import { FirestoreGameStore } from '../persistence/firestore/gameStore.js'
-import { RedisCacheService } from '../cache/cacheService.js'
-import { UserService } from '../users/userService.js'
-import { TokenService } from '../tokens/tokenService.js'
-import type { TaskService } from '../tasks/taskService.js'
-import type { NotificationService } from '../notifications/notificationService.js'
+import { gameServiceFixture } from './tests/gameServiceFixture.js'
 
 const masterSeed = '0123456789abcdef0123456789abcdef'
 const definition = {
@@ -27,57 +20,7 @@ const admin: User = { id: 'admin', status: UserStatus.Active, roles: [Role.Admin
 afterEach(() => vi.restoreAllMocks())
 
 function fixture() {
-    const firestore = new Firestore({ projectId: 'seeding-unit-test' })
-    const cache: RedisCacheService = Object.create(RedisCacheService.prototype)
-    const store = new FirestoreGameStore(cache, firestore)
-    const unused = vi.fn(async () => {
-        throw Error('Unexpected dependency call')
-    })
-    const tasks: TaskService = {
-        createPushTask: unused,
-        sendVerificationEmail: unused,
-        sendPasswordResetEmail: unused,
-        sendAuthVerificationEmail: unused,
-        sendAccountChangeNotificationEmail: unused,
-        sendGameInvitationEmail: unused,
-        sendTurnNotification: unused,
-        sendGameEndEmail: unused
-    }
-    const notifications: NotificationService = {
-        addTopicTransport: vi.fn(),
-        addTopicListener: unused,
-        removeTopicListener: unused,
-        addTransport: vi.fn(),
-        registerNotificationSubscription: unused,
-        unregisterNotificationSubscription: unused,
-        sendNotification: vi.fn(async () => {})
-    }
-    const service = new GameService(
-        store,
-        UserService.prototype,
-        TokenService.prototype,
-        tasks,
-        notifications,
-        cache,
-        { synthetic: definition }
-    )
-    const game = SyntheticRuntime.initializer.initializeGame(
-        {
-            id: 'seeded-game',
-            typeId: definition.info.id,
-            ownerId: admin.id,
-            isPublic: true,
-            config: {},
-            players: ['p1', 'p2', 'p3'].map((id) => ({
-                id,
-                name: '',
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        definition
-    )
-    return { service, store, firestore, cache, notifications, game }
+    return gameServiceFixture(definition, admin)
 }
 
 describe('hosted reproduction seeds', () => {

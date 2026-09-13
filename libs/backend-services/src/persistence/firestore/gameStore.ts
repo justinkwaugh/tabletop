@@ -23,6 +23,7 @@ import {
 } from '@google-cloud/firestore'
 import {
     GameCreationOptions,
+    assertContinuationAllowed,
     MasterSeed,
     GameAction,
     Game,
@@ -56,6 +57,7 @@ import { StoredState } from '../model/storedState.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
 import {
+    type CreateContinuationOptions,
     ActionUndoValidator,
     ActionUpdateValidator,
     GameStore,
@@ -103,18 +105,11 @@ export class FirestoreGameStore implements GameStore {
 
     async createGame(game: Game, options?: GameCreationOptions): Promise<Game> {
         const date = new Date()
-        const storedGame = {
-            ...structuredClone(game),
-            actionChunkSize: ACTION_CHUNK_SIZE,
-            createdAt: date,
-            updatedAt: date
-        }
-        const state = storedGame.state
-        delete storedGame.state
+        const state = game.state
         const tournamentKeys = this.tournamentCacheKeys
         const cacheKeys = [
             ...GameCacheKeys.gameWrite(game.id),
-            ...GameCacheKeys.changedLists(undefined, storedGame),
+            ...GameCacheKeys.changedLists(undefined, game),
             ...(game.tournament
                 ? [
                       tournamentKeys.key('event', game.tournament.tournamentId),
@@ -165,23 +160,115 @@ export class FirestoreGameStore implements GameStore {
                             date.getTime()
                         )
                     }
-                    transaction.create(this.games.doc(game.id), structuredClone(storedGame))
-                    if (state)
-                        transaction.create(this.getStateCollection(game.id).doc(game.id), state)
-                    if (options?.masterSeed !== undefined) {
-                        Value.Assert(MasterSeed, options.masterSeed)
-                        transaction.create(
-                            this.games.doc(game.id).collection('private').doc('initialization'),
-                            { masterSeed: options.masterSeed }
-                        )
-                    }
-                    return state ? { ...storedGame, state } : storedGame
+                    return this.writeNewGame(transaction, game, options, date)
                 })
             )
         } catch (error) {
             this.handleError(error, game.id)
             throw Error('unreachable')
         }
+    }
+
+    private writeNewGame(
+        transaction: Transaction,
+        game: Game,
+        options: GameCreationOptions | undefined,
+        date: Date
+    ): Game {
+        const storedGame = {
+            ...structuredClone(game),
+            actionChunkSize: ACTION_CHUNK_SIZE,
+            createdAt: date,
+            updatedAt: date
+        }
+        const state = storedGame.state
+        delete storedGame.state
+        transaction.create(this.games.doc(game.id), storedGame)
+        if (state) transaction.create(this.getStateCollection(game.id).doc(game.id), state)
+        if (options?.masterSeed !== undefined) {
+            Value.Assert(MasterSeed, options.masterSeed)
+            transaction.create(
+                this.games.doc(game.id).collection('private').doc('initialization'),
+                {
+                    masterSeed: options.masterSeed
+                }
+            )
+        }
+        return state ? { ...storedGame, state } : storedGame
+    }
+
+    async createContinuation({
+        sourceGameId,
+        validateSource,
+        prepare
+    }: CreateContinuationOptions): Promise<{ game: Game; created: boolean }> {
+        return this.cacheService.lockWhileWriting(
+            GameCacheKeys.gameWrite(sourceGameId),
+            async (locks) =>
+                this.runTransaction(async (transaction) => {
+                    const source = (
+                        await this.readDocument(this.games.doc(sourceGameId), transaction)
+                    ).data()
+                    assertContinuationAllowed(
+                        source !== undefined,
+                        'Continuation source was not found'
+                    )
+                    validateSource(source)
+                    if (source.continuedToGameId) {
+                        const game = (
+                            await this.readDocument(
+                                this.games.doc(source.continuedToGameId),
+                                transaction
+                            )
+                        ).data()
+                        assertContinuationAllowed(
+                            game !== undefined,
+                            'The continuation has been deleted'
+                        )
+                        return { game, created: false }
+                    }
+                    const state = (
+                        await this.readDocument(
+                            this.getStateCollection(sourceGameId).doc(sourceGameId),
+                            transaction
+                        )
+                    ).data()
+                    assertExists(state, 'Continuation source has no state')
+                    const { game, options } = await prepare(source, state)
+                    assert(
+                        game.continuedFromGameId === sourceGameId,
+                        'Continuation source does not match'
+                    )
+                    await locks.addKeys([
+                        ...GameCacheKeys.gameWrite(game.id),
+                        ...GameCacheKeys.changedLists(undefined, game),
+                        ...GameCacheKeys.changedLists(source, {
+                            ...source,
+                            continuedToGameId: game.id
+                        })
+                    ])
+                    const date = new Date()
+                    const created = this.writeNewGame(transaction, game, options, date)
+                    transaction.create(this.continuationStateDocument(game.id), state)
+                    transaction.update(this.games.doc(sourceGameId), {
+                        continuedToGameId: game.id,
+                        updatedAt: date
+                    })
+                    return { game: created, created: true }
+                })
+        )
+    }
+
+    async getContinuationState(gameId: string): Promise<GameState | undefined> {
+        return (await this.continuationStateDocument(gameId).get()).data()
+    }
+
+    private continuationStateDocument(gameId: string): DocumentReference<GameState> {
+        return this.games
+            .doc(gameId)
+            .collection('private')
+            .doc('continuation')
+            .withConverter(stateConverter)
     }
 
     private async readTournament(transaction: Transaction, id: string): Promise<Tournament> {
@@ -849,6 +936,7 @@ export class FirestoreGameStore implements GameStore {
             const updatedGame = structuredClone(existingGame)
             gameUpdates.updatedAt = updateDate
             gameUpdates.lastActionAt = gameUpdates.updatedAt
+            gameUpdates.canContinue = state.result !== undefined && state.canContinue === true
 
             if (existingState.result !== state.result) {
                 if (state.result) {
@@ -1178,6 +1266,7 @@ export class FirestoreGameStore implements GameStore {
             const updatedGame = structuredClone(existingGame) as Game
             gameUpdates.updatedAt = new Date()
             gameUpdates.lastActionAt = gameUpdates.updatedAt
+            gameUpdates.canContinue = state.result !== undefined && state.canContinue === true
 
             if (existingState.result !== state.result && !state.result) {
                 gameUpdates.status = GameStatus.Started
@@ -1582,8 +1671,8 @@ export class FirestoreGameStore implements GameStore {
         const stateCollection = this.getStateCollection(gameId)
         try {
             return await this.cacheService.lockWhileWriting(
-                GameCacheKeys.stateWrite(gameId),
-                async () =>
+                GameCacheKeys.gameWrite(gameId),
+                async (locks) =>
                     await this.runTransaction(async (transaction) => {
                         const game = (
                             await this.readDocument(this.games.doc(gameId), transaction)
@@ -1595,6 +1684,13 @@ export class FirestoreGameStore implements GameStore {
                         if (!existingState) {
                             throw new NotFoundError({ type: 'GameState', id: gameId })
                         }
+                        assertExists(game, 'Game was not found')
+                        const canContinue = state.result !== undefined && state.canContinue === true
+                        await this.protectChangedLists(locks, game, { ...game, canContinue })
+                        transaction.update(this.games.doc(gameId), {
+                            canContinue,
+                            updatedAt: new Date()
+                        })
                         transaction.set(stateCollection.doc(gameId), state)
                     })
             )

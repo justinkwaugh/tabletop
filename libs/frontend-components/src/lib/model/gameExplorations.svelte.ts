@@ -150,6 +150,9 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
         const source = originalContext.clone({
             interceptGame: (game) => {
                 delete game.state
+                delete game.canContinue
+                delete game.continuedFromGameId
+                delete game.continuedToGameId
                 game.id = newGameId
                 game.name = 'New Exploration'
                 game.category = GameCategory.Exploration

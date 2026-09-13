@@ -4,6 +4,7 @@ import { GameDefinition } from '@tabletop/common'
 
 import CreateGame from '../routes/titleSpecific/create.js'
 import StartGame from '../routes/titleSpecific/start.js'
+import ContinueGame from '../routes/titleSpecific/continue.js'
 import ApplyAction from '../routes/titleSpecific/action.js'
 import UndoAction from '../routes/titleSpecific/undo.js'
 import ForkGame from '../routes/titleSpecific/fork.js'
@@ -28,11 +29,7 @@ async function registerGame(
                     : requestHeader
                 const serverMajor = parseMajorVersion(logicVersion)
                 const requestMajor = parseMajorVersion(requestVersion)
-                if (
-                    serverMajor != null &&
-                    requestMajor != null &&
-                    serverMajor !== requestMajor
-                ) {
+                if (serverMajor != null && requestMajor != null && serverMajor !== requestMajor) {
                     console.warn(
                         `Game logic major version mismatch for ${definition.info.id}: server=${logicVersion} client=${requestVersion}`
                     )
@@ -66,6 +63,7 @@ async function registerGame(
 
             await instance.register(CreateGame.bind(null, definition))
             await instance.register(StartGame.bind(null, definition))
+            await instance.register(ContinueGame.bind(null, definition))
             await instance.register(UndoAction.bind(null, definition))
             await instance.register(ForkGame.bind(null, definition))
 
