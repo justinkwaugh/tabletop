@@ -887,6 +887,9 @@ precedence over company-network focus, including an empty route result. Only
 Run trains commits a Game Action. Undo skips this automatic preview and undoes
 the last committed action; returning to RunningTrains calculates a new preview.
 Recorded route results continue to render after submission and during history.
+The game table never substitutes reachable-track overlays when there is no train
+run to display, including on the finished map. Reachable-track inspection remains
+a separate control in the prototype logic workbench.
 The logic workbench retains its independent manual editor.
 
 Automatic run income uses a compact two-column train/income table with a total

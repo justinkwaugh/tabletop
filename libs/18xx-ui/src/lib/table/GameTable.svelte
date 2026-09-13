@@ -328,7 +328,7 @@
                             tokens={session.historicalMap?.tokens ?? session.displayedMapTokens}
                             reservations={session.historicalMap?.reservations ?? session.trackPreview?.stationReservations ??
                                 session.stationDisplayState.stationReservations}
-                            routes={session.historicalMap?.routes ?? session.displayedRoutes}
+                            routes={session.historicalMap?.routes ?? session.routeOverlays}
                             selection={session.historicalMap ? session.historicalMap.selection : session.mapSelection}
                             maskUnavailableLocations={!session.historicalMap && session.showTrackChoices}
                             legalLocationIds={session.historicalMap ? [] : session.canPlaceStation

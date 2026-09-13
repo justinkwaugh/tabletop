@@ -13,6 +13,7 @@ test('finished-game map inspection shows past track and routes without changing 
     const currentHeader = await header.innerText()
     const placed = page.locator('[data-map-location][data-placed="true"]')
     const currentTiles = await placed.count()
+    await expect(page.locator('[data-map-route]')).toHaveCount(0)
     const lay = page.getByRole('button', { name: /Preview historical map: Laid track/ }).last()
     await lay.evaluate((element: HTMLButtonElement) => element.click())
     await expect(page.getByText('Historical map', { exact: true })).toBeVisible()
