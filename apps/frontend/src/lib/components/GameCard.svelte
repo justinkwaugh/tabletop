@@ -322,7 +322,7 @@
                                 {:else if canContinue}
                                     <Button
                                         size="xs"
-                                        color="primary"
+                                        color="blue"
                                         class="h-[20px]"
                                         disabled={continuing}
                                         onclick={continueGame}>Continue</Button
@@ -538,7 +538,7 @@
                             {#if canContinue}
                                 <Button
                                     size="xs"
-                                    color="primary"
+                                    color="blue"
                                     class="mx-2"
                                     disabled={continuing}
                                     onclick={continueGame}>Continue</Button
