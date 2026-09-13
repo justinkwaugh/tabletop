@@ -11,6 +11,6 @@ export const TheOldPrincePrivates = [
     { id: 'MLC', name: 'Mainline Concession', price: 160, revenue: 20 },
     { id: 'SBC', name: 'Schreiber and Burpee Construction', price: 100, revenue: 30 },
     { id: 'SLC', name: 'Shortline Concession', price: 160, revenue: 30 },
-    { id: 'UB', name: 'Union Bank', price: 160, revenue: 0 },
+    { id: 'UB', name: 'Union Bank', price: 120, revenue: 0 },
     TheOldPrinceKingsMail
 ]

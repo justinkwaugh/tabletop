@@ -1,12 +1,71 @@
 <script lang="ts">
-    import { assertExists, type GameAction } from '@tabletop/common'
-    import { auctionHistory } from './auctionHistory.js'
+    import { ActionSource, assert, assertExists, type GameAction } from '@tabletop/common'
+    import { FinanceExampleValidator } from '@tabletop/18xx'
+    import { historyCash } from './historyCash.js'
+    import { historyOperatingOrder } from './historyOperatingOrder.js'
+    import { historyRounds } from './historyRounds.js'
+    import type { CompanyNameVariants } from './companyPresentation.js'
+    import { historyGroups } from './historyGroups.js'
+    import { historyDescription, type HistoryDescription } from './historyDescription.js'
+    import HistoryGroup from './HistoryGroup.svelte'
+    import RoundHistory from './RoundHistory.svelte'
     import AuctionHistoryCard from './AuctionHistoryCard.svelte'
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
-    let { session }: { session: FinanceExampleSession } = $props()
-    const entries = $derived(
-        auctionHistory(session.actions, session.financialState.offerAuction?.awards ?? [])
+    let {
+        session,
+        phaseColors,
+        phaseTileColors,
+        trainColors,
+        describeAction,
+        companyNames
+    }: {
+        session: FinanceExampleSession
+        trainColors: Readonly<Record<string, string>>
+        phaseColors: Readonly<Record<string, string>>
+        phaseTileColors: Readonly<Record<string, readonly string[]>>
+        companyNames?: Readonly<Record<string, CompanyNameVariants>>
+        describeAction?: (action: GameAction) => HistoryDescription | undefined
+    } = $props()
+    const orderChanges = $derived.by(() => {
+        const context = session.history.visibleContext
+        assert(FinanceExampleValidator.Check(context.state), 'History requires financial state')
+        return historyOperatingOrder(context.actions, context.state)
+    })
+    const cash = $derived.by(() => {
+        const context = session.history.visibleContext
+        assert(FinanceExampleValidator.Check(context.state), 'Cash history requires financial state')
+        return historyCash(context.actions, context.state)
+    })
+    const rounds = $derived.by(() => {
+        const context = session.history.visibleContext
+        assert(
+            FinanceExampleValidator.Check(context.state),
+            'Round history requires financial state'
+        )
+        return historyRounds(context.actions, context.state, orderChanges, cash)
+    })
+    const lastOwnActionId = $derived(
+        session.history.visibleContext.actions.findLast(
+            (action) =>
+                action.source === ActionSource.User && action.playerId === session.myPlayer?.id
+        )?.id
     )
+    function companyName(id: string) {
+        return (
+            companyNames?.[id]?.short ??
+            session.financialState.companies.find((company) => company.id === id)?.name ??
+            id
+        )
+    }
+    function describe(action: GameAction) {
+        const description =
+            describeAction?.(action) ??
+            historyDescription(action, session.financialState, companyName, (id) =>
+                session.getPlayerName(id)
+            )
+        return orderChanges.has(action.id) ? { ...description, important: true } : description
+    }
+
     function select(action: GameAction) {
         if (action.index !== undefined) session.history.goToActionIndex(action.index)
     }
@@ -17,84 +76,56 @@
     }
 </script>
 
-<ol aria-label="Action history">
-    {#each entries as entry (entry.id)}
-        {#if entry.kind === 'auction'}
-            <li class="auction">
-                <AuctionHistoryCard
-                    card={entry}
-                    lot={lot(entry.offer.lotId)}
-                    playerName={(id) => session.getPlayerName(id)}
-                    disabled={session.busy || session.updatingVisibleState}
-                    onSelect={select}
-                />
-            </li>
-        {:else}
-            {@const action = entry.action}
-            <li>
-                <button
-                    disabled={session.busy ||
-                        session.updatingVisibleState ||
-                        action.index === undefined}
-                    onclick={() => {
-                        if (action.index !== undefined)
-                            session.history.goToActionIndex(action.index)
-                    }}
-                >
-                    <span>{session.getPlayerName(action.playerId)}</span>
-                    <strong>{action.type.replace(/([a-z])([A-Z])/g, '$1 $2')}</strong>
-                    {#if 'locationId' in action && typeof action.locationId === 'string'}<small
-                            >{action.locationId}</small
-                        >{/if}
-                </button>
-            </li>
-        {/if}
-    {:else}<li class="empty">No actions yet.</li>{/each}
-</ol>
+<RoundHistory {rounds} {phaseColors}>
+    {#snippet children(round)}
+        <ol aria-label={`${round.label} actions`}>
+            {#each historyGroups(round.entries, round.label.startsWith('OR ')) as entry (entry.id)}
+                {#if entry.kind === 'auction'}
+                    <li class="auction">
+                        <AuctionHistoryCard
+                            card={entry}
+                            lot={lot(entry.offer.lotId)}
+                            playerName={(id) => session.getPlayerName(id)}
+                            disabled={session.busy || session.updatingVisibleState}
+                            onSelect={select}
+                        />
+                    </li>
+                {:else}
+                    <li>
+                        <HistoryGroup
+                            group={entry}
+                            appearance={entry.companyId
+                                ? session.mapView.stations[entry.companyId]
+                                : undefined}
+                            playerName={(id) => session.getPlayerName(id)}
+                            {phaseColors}
+                            {phaseTileColors}
+                            {trainColors}
+                            trainName={(id) => session.trainDepot.trainDefinition(id).name}
+                            {orderChanges}
+                            {cash}
+                            stations={session.mapView.stations}
+                            {describe}
+                            {companyName}
+                            {lastOwnActionId}
+                            disabled={session.busy || session.updatingVisibleState}
+                            onSelect={select}
+                        />
+                    </li>
+                {/if}
+            {/each}
+        </ol>
+    {/snippet}
+</RoundHistory>
 
 <style>
     ol {
         list-style: none;
-        padding: 8px 0;
+        padding: 2px 0;
         margin: 0;
     }
     li {
-        border-bottom: 1px solid #d4c9bc;
-    }
-    li.auction {
-        border-bottom: 0;
-    }
-    button {
-        width: 100%;
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 4px;
-        padding: 12px 8px;
-        text-align: left;
-        background: none;
-        border: 0;
-        color: #3e3933;
-        cursor: pointer;
-        font: inherit;
-    }
-    button:hover {
-        background: #ffffff55;
-    }
-    span {
-        grid-column: 1 / -1;
-        font-size: 11px;
-        color: #7d7266;
-    }
-    strong {
-        font-size: 13px;
-        font-weight: 500;
-    }
-    small {
-        font-size: 12px;
-    }
-    .empty {
-        padding: 20px 8px;
-        color: #7d7266;
-        font-size: 13px;
+        margin: 0;
+        padding: 0;
     }
 </style>

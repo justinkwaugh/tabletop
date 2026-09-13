@@ -42,6 +42,7 @@ export const FundingFields = {
 }
 export type FundingState = CompanyDecisionState & Type.Static<Type.TObject<typeof FundingFields>>
 export interface TrainFundingRules {
+    afterShareSale?(state: FundingState): void
     includeMarketTrains: boolean
     contributors(state: FundingState, companyId: string): Owner[]
     issuanceTerms(
@@ -77,6 +78,7 @@ export class EmergencyTrainFunding {
     applySale(details: ShareSaleDetails): void {
         assertExists(this.state.trainFunding, 'Funding sale requires active train funding')
         applyShareSale(this.state, details)
+        this.rules.afterShareSale?.(this.state)
         for (const sale of details.sales)
             this.state.trainFunding.sales.push({
                 seller: details.seller,
@@ -165,10 +167,13 @@ export class EmergencyTrainFunding {
             const required = this.sales(owner, true)
             if (required.length) return { kind: 'sell', owner, sales: required }
             if (!shortfall) continue
-            const amount = Math.min(shortfall, this.cash(owner))
+            const cash = this.cash(owner)
+            if (cash < shortfall) {
+                const sales = this.sales(owner, false)
+                if (sales.length) return { kind: 'sell', owner, sales }
+            }
+            const amount = Math.min(shortfall, cash)
             if (amount) return { kind: 'contribute', owner, amount }
-            const sales = this.sales(owner, false)
-            if (sales.length) return { kind: 'sell', owner, sales }
         }
         return shortfall
             ? { kind: 'bankrupt', shortfall }

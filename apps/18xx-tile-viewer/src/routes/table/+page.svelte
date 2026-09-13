@@ -5,14 +5,20 @@
     import FinanceExampleHost from '../../demo/FinanceExampleHost.svelte'
     import '../../table.css'
     let title = $state('TOP')
-    let position = $state<FinanceExamplePosition>('construction')
+    let position = $state<FinanceExamplePosition | 'finished'>('construction')
 </script>
 
 <svelte:head><title>18xx table</title></svelte:head>
 <div class="table-harness">
     <nav aria-label="Development harness">
         <a href="/">18xx</a>
-        <select aria-label="Game" bind:value={title}
+        <select
+            aria-label="Game"
+            bind:value={title}
+            onchange={(event) => {
+                if (event.currentTarget.value !== 'TOP' && position === 'finished')
+                    position = 'opening'
+            }}
             ><option value="TOP">The Old Prince 1871</option><option value="1889"
                 >Shikoku 1889</option
             ></select
@@ -29,6 +35,7 @@
             <option value="trains">Buy trains</option>
             <option value="transfers">Negotiated purchases</option>
             <option value="ending">Final operating turn</option>
+            {#if title === 'TOP'}<option value="finished">Finished game</option>{/if}
         </select>
         <a class="tools" href="/economy">Logic workbench</a>
     </nav>

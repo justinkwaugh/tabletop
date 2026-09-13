@@ -1654,19 +1654,8 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     }
     selectSale(request: SaleRequest) {
         this.assertSelectionAvailable(request.playerId)
-        const existing =
-            this.selection?.kind === 'sale' &&
-            sameOwner(this.selection.request.seller, request.seller)
-                ? this.selection.request.sales
-                : []
-        const chosen = request.sales[0]
-        this.selection = {
-            kind: 'sale',
-            request: {
-                ...request,
-                sales: [...existing.filter((sale) => sale.companyId !== chosen.companyId), chosen]
-            }
-        }
+        assert(request.sales.length === 1, 'Select one company per sale')
+        this.selection = { kind: 'sale', request }
     }
     removeSale(companyId: string) {
         if (this.selection?.kind !== 'sale') return
@@ -1674,16 +1663,6 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         this.selection = sales.length
             ? { kind: 'sale', request: { ...this.selection.request, sales } }
             : undefined
-    }
-    moveSale(companyId: string, offset: number) {
-        if (this.selection?.kind !== 'sale') return
-        const sales = [...this.selection.request.sales]
-        const index = sales.findIndex((sale) => sale.companyId === companyId)
-        const target = index + offset
-        assert(index >= 0 && target >= 0 && target < sales.length, 'Invalid sale order')
-        const [sale] = sales.splice(index, 1)
-        sales.splice(target, 0, sale)
-        this.selection = { kind: 'sale', request: { ...this.selection.request, sales } }
     }
     cancelSelection() {
         this.selection = undefined

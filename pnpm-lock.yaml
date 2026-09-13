@@ -2570,6 +2570,9 @@ importers:
       '@tabletop/frontend-components':
         specifier: workspace:*
         version: link:../frontend-components
+      fast-json-patch:
+        specifier: github:justinkwaugh/fast-json-patch
+        version: https://codeload.github.com/justinkwaugh/fast-json-patch/tar.gz/cd3677146f4543287076bd4595f88deee14587b8
     devDependencies:
       '@sveltejs/kit':
         specifier: ^2.48.4

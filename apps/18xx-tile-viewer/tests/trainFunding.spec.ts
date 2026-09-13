@@ -23,13 +23,14 @@ for (const title of ['TOP', '1889']) {
         ).toBeDisabled()
         let sawSale = false
         for (let step = 0; step < 15; step++) {
-            const buy = panel.getByRole('button', { name: 'Buy required train', exact: true })
+            await expect(panel.getByRole('button', { name: /^(Buy required train|Issue treasury shares|Contribute \$|Sell )/ }).and(page.locator(':enabled')).first()).toBeVisible()
+            const buy = panel.getByRole('button', { name: 'Buy required train', exact: true }).and(page.locator(':enabled'))
             if (await buy.count()) {
                 await buy.click()
                 break
             }
-            const issue = panel.getByRole('button', { name: 'Issue treasury shares', exact: true })
-            const contribute = panel.getByRole('button', { name: /^Contribute \$/ })
+            const issue = panel.getByRole('button', { name: 'Issue treasury shares', exact: true }).and(page.locator(':enabled'))
+            const contribute = panel.getByRole('button', { name: /^Contribute \$/ }).and(page.locator(':enabled'))
             if (await issue.count()) await issue.click()
             else if (await contribute.count()) await contribute.click()
             else {

@@ -94,24 +94,13 @@
     {:else if state.machineState === 'StockRound'}
         {#if session.selectedSale}
             <div class="preview" aria-label="Confirm share sale">
-                <h3>Sale order</h3>
+                <h3>Share sale</h3>
                 <ol>
-                    {#each session.selectedSale.sales as sale, index (sale.companyId)}
+                    {#each session.selectedSale.sales as sale (sale.companyId)}
                         <li>
                             <strong>{getCompany(state, sale.companyId).name}</strong> · {sale.shares}
                             shares
                             <div class="buttons">
-                                <button
-                                    aria-label={`Move ${sale.companyId} earlier`}
-                                    disabled={session.busy || index === 0}
-                                    onclick={() => session.moveSale(sale.companyId, -1)}>↑</button
-                                >
-                                <button
-                                    aria-label={`Move ${sale.companyId} later`}
-                                    disabled={session.busy ||
-                                        index === session.selectedSale.sales.length - 1}
-                                    onclick={() => session.moveSale(sale.companyId, 1)}>↓</button
-                                >
                                 <button
                                     aria-label={`Remove ${sale.companyId} sale`}
                                     disabled={session.busy}
@@ -122,10 +111,6 @@
                         </li>
                     {/each}
                 </ol>
-                <p>
-                    Markers arriving together are stacked in this order, below markers already
-                    there.
-                </p>
                 {#if session.selectedSaleResult?.details}
                     {@const details = session.selectedSaleResult.details}
                     <p>Total proceeds: <strong>{details.proceeds}</strong></p>

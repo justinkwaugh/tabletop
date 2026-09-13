@@ -19,7 +19,7 @@ export const SellShares = Type.Object(
         ...PlayerAction.properties,
         type: Type.Literal('SellShares'),
         seller: Owner,
-        sales: Type.Array(ShareSale, { minItems: 1 }),
+        sales: Type.Array(ShareSale, { minItems: 1, maxItems: 1 }),
         expectedProceeds: Type.Integer({ minimum: 1 }),
         metadata: Type.Optional(ShareSaleDetails)
     },

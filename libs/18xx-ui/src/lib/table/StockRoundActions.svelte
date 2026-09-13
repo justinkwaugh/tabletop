@@ -186,23 +186,9 @@
         </div>
         {#if menu === 'sell' && session.selectedSale}
             <div class="sale-order">
-                {#if session.selectedSaleCompany}<button
-                        {disabled}
-                        onclick={() => session.backFromStockMenu()}>Add another company</button
-                    >{/if}
-                {#each session.selectedSale.sales as sale, index}<div class="sale">
+                {#each session.selectedSale.sales as sale}<div class="sale">
                         <span
                             >{getCompany(session.financialState, sale.companyId).name} · {sale.shares}</span
-                        >
-                        <button
-                            aria-label={`Move ${sale.companyId} earlier`}
-                            disabled={disabled || index === 0}
-                            onclick={() => session.moveSale(sale.companyId, -1)}>↑</button
-                        >
-                        <button
-                            aria-label={`Move ${sale.companyId} later`}
-                            disabled={disabled || index === session.selectedSale.sales.length - 1}
-                            onclick={() => session.moveSale(sale.companyId, 1)}>↓</button
                         >
                         <button
                             aria-label={`Remove ${sale.companyId} sale`}

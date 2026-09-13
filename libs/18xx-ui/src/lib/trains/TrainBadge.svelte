@@ -1,16 +1,14 @@
 <script lang="ts">
-    import { assertExists } from '@tabletop/common'
-    import { TileColors } from '../tiles/tilePresentation.js'
-
     let { name, color, title }: { name: string; color: string; title?: string } = $props()
-    const background = $derived.by(() => {
-        const fill = TileColors[color]
-        assertExists(fill, `Unknown train phase color: ${color}`)
-        return fill
+    const textColor = $derived.by(() => {
+        const channels = [1, 3, 5].map((offset) => parseInt(color.slice(offset, offset + 2), 16) / 255)
+        const linear = channels.map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
+        const luminance = linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722
+        return luminance > 0.179 ? '#181818' : '#ffffff'
     })
 </script>
 
-<span class="train-badge" style:background {title}>{name}</span>
+<span class="train-badge" style:background={color} style:color={textColor} {title}>{name}</span>
 
 <style>
     .train-badge {

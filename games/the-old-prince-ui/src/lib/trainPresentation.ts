@@ -1,12 +1,12 @@
 export const TheOldPrinceTrainColors: Readonly<Record<string, string>> = {
-    '2H': 'yellow',
-    '3H': 'yellow',
-    '4H': 'green',
-    '5H': 'green',
-    '6H': 'green',
-    '2+': 'green',
-    '3+': 'green',
-    '4+': 'brown',
-    '7': 'brown',
-    D: 'gray'
+    '2H': '#ffe599',
+    '3H': '#f1c232',
+    '4H': '#b6d7a8',
+    '5H': '#6aa84f',
+    '6H': '#38761d',
+    '2+': '#3c78d8',
+    '3+': '#40bcc6',
+    '4+': '#994735',
+    '7': '#e06666',
+    D: '#cccccc'
 }

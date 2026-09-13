@@ -1,6 +1,7 @@
 <script lang="ts">
+    import { TheOldPrinceTrackColors } from '@tabletop/the-old-prince'
     import { TheOldPrinceCompanyNames } from './companyPresentation.js'
-    import { TheOldPrinceEndingRules, TheOldPrinceCompanies, TheOldPrinceMap } from '@tabletop/the-old-prince'
+    import { isSplitCompany, TheOldPrinceEndingRules, TheOldPrinceCompanies, TheOldPrinceMap } from '@tabletop/the-old-prince'
     import { TheOldPrinceTrainColors } from './trainPresentation.js'
     import { TheOldPrinceOperatingRules } from '@tabletop/the-old-prince'
     import OpeningAuction from './OpeningAuction.svelte'
@@ -29,6 +30,11 @@
 </script>
 
 <GameTable
+    historyDescription={(action) => isSplitCompany(action) ? {
+        text: `Split ${TheOldPrinceCompanyNames[action.branchId]?.short ?? action.branchId} from ${TheOldPrinceCompanyNames[action.parentId]?.short ?? action.parentId}`,
+        value: `$${action.expectedFunding.toLocaleString('en-US')}`,
+        detail: 'Branch capital', important: true
+    } : undefined}
     {numberedShareLocation}
     mapFocusExcludedCompanyIds={['PEIR']}
     numberedShareNames={{ PEIR: Object.fromEntries(TheOldPrinceCompanies.map((company) => [company.number, company.name])) }}
@@ -40,6 +46,8 @@
     portfolioCompanyIds={['UB']}
     valuationRules={TheOldPrinceEndingRules}
     trainColors={TheOldPrinceTrainColors}
+    phaseColors={TheOldPrinceTrainColors}
+    phaseTileColors={TheOldPrinceTrackColors}
     operatingRules={TheOldPrinceOperatingRules}
     privateOperationDescription={(id, companyId) =>
         id === 'HS' && companyId !== 'PEIR'

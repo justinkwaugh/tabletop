@@ -777,3 +777,97 @@ Title-specific stock actions can contribute menu entries without dependencies fr
 The operating-order section is omitted when its current/prospective company list is empty, including its label and display controls.
 
 Each offered auction is one stable history card keyed by its offer action. The card lists the offer, chronological bids/passes and the recorded award, while cards remain newest first. Its lines navigate to the corresponding action; Undo and visible history prefixes rebuild the card rather than maintaining a separate mutable log. Waterfall auction events retain ordinary history until their distinct grouping is designed. Private-card monetary headers place Income left and Value right.
+
+## Scrolling round history
+
+History entries remain newest first. Each opening auction, stock round, and
+operating round has a divider at its chronological beginning. Dividers follow
+scroll position between the top and bottom stacks. A stock round and its following operating
+set share one compact 20px row when docked together, retain separate click targets and horizontal
+slots while separating, and join again on contact. A round label scrolls to its
+oldest entries without navigating Game State; action rows still navigate through
+the existing History interface.
+
+The history list and grouping use the same visible history context. Round identity
+comes from recorded stock/operating state patches, including prepared partial
+games. Resizing or updating visible history remeasures the content. Scroll motion
+is local presentation: one animation-frame callback updates DOM transforms from
+cached offsets, with no per-frame reactive state changes or game animation
+coordination. Native smooth scrolling respects reduced-motion preferences.
+Observers, listeners, and pending frames are released on teardown.
+
+The family round-sequence survey includes variable operating-set lengths,
+consecutive stock rounds, inserted special rounds, and nonstandard calendars.
+The layout only knows round/group identities, not alternation or fixed set length.
+The current state-to-round adapter supports the implemented auction, SR, and OR
+states, grouping each SR with its numbered OR set; titles with special rounds will supply their own identities rather than
+having their events guessed from player action names.
+
+Each round segment uses title-supplied phase colors and the phases recorded in
+its state patches, including automatic phase changes. Muted backgrounds retain
+dark, high-contrast labels. A corner-to-corner diagonal hard split shows successive distinct colors
+when a round spans phases; adjacent phases sharing a color use one fill. Phase
+colors are independent of train identity in the shared interface: the initial
+titles explicitly reuse their train palettes. The phase/round survey includes
+exports and other automatic triggers, delayed phase effects, and round counts
+fixed before a phase changes; header colors do not infer or alter that schedule.
+
+Separating round segments soften their exposed internal ends with up to 5px
+corner rounding, shrinking continuously to flush joins as the segments meet.
+This treatment depends only on header geometry and applies to every round group.
+
+## Compact history groups
+
+Round contents use a light ledger: stock-turn actors share the first action line,
+company operations have a token header, and consecutive stock passes share a row.
+Groups are newest first, with events chronological inside each group. Recorded
+turn completion ends a group even if the same player acts next. A funding sale's
+company identifies the shares sold, not the operating company; it remains with
+that company's funding sequence. Actor changes within an operation remain visible.
+
+Summaries use processed action outcomes for money, dividends, purchases, phase
+changes and rusting. Bookkeeping finish steps are omitted from the displayed history. Stock actions
+and their consequences are visible directly with no disclosure control; operating
+Details exposes route and tile information. Meaningful events remain individually
+clickable. The original action identities are preserved; no grouped
+Action is synthesized. Offered auctions retain their existing grouping and action
+navigation with lighter borders and tighter event spacing. Title-local descriptions
+handle unique procedures such as branch splits, and shared views receive company
+name variants rather than depending on title modules.
+
+This presentation builds on the family survey of operating sequences, interrupted
+procedures, treasury funding, dividends, private powers and auction variations.
+The common UI supports both initial titles' stock/operating actions and waterfall
+bid descriptions; offered auctions and reserved bids retain their distinct rules.
+Grouping does not infer that every companyId denotes the operator or that a phase
+change terminates an operation. Future title-specific actions retain an individually
+accessible description until a title supplies their concise summary. Details are
+local disclosure state; history navigation continues through the existing Game
+Session interface. No game-state animation or new read-bookmark contract is added.
+
+Stock prices read inline ("Bought 1 Summerside for $73"), and pass entries put the
+player before "passed". Sale settlement metadata supplies market-price changes
+and named presidency transfers. Operating-order notices use the recorded order
+before/after each action, including indexed array patches, so fixed order remains
+fixed until a recorded change. Initial order, new round order, and emergency
+funding reorders are shown with the actual company sequence; a stock-price move
+alone does not imply that the current OR reordered. Disclosure buttons only appear
+when additional route/tile detail exists.
+
+Phase changes that change the title-provided phase color highlight their history row with the new color and explicitly name the old and new colors. Phase changes within the same color retain ordinary event styling. This uses each title’s phase palette, independent of its phase identifiers or operating-round count.
+
+Recorded operating-order changes use token diagrams. Reorders show only each relocated company’s faded old position, solid new position, and intervening companies, connected by a low static overhead arrow. The diagram has no visible “Operating order” label; its accessible description retains the movement meaning. Multiple relocations use successive minimal moves; new orders with changed membership show the resulting token row. The diagram derives solely from the recorded before/after order and remains identical during replay or restoration; it does not animate game state.
+
+Stock sales select one company and a share quantity per committed action. Selecting another company replaces the uncommitted selection; there is no sale basket or reorder control. Separate sales retain separate market settlement, presidency consequences, history and Undo steps. Family review: stock-transaction ordering and market behavior (including 1870’s intervening price-protection decision) favor company-scoped player decisions; multi-company disposal calculations remain available internally for financial projections, not as a stock-round action.
+
+Emergency train funding raises each contributor’s required cash through ordered company sales before transferring their contribution once. Existing company cash and treasury issuance still reduce the shortfall first. TOP’s Union Bank and its controlling owner remain separate ordered funding sources; 1889’s compulsory ownership sales still precede contribution. If a source cannot fully cover the shortfall after exhausting legal sales, its cash is used before advancing to the next source or bankruptcy.
+
+Operation headers stack the player name immediately below the company name beside the token. Before a contributor’s first emergency sale, history shows their recorded required contribution as “President owes $N”; any cash shortfall is appended as “and is short $N”. The actual single transfer remains a later “President contributed $N” entry. This obligation is recorded before the sale, rather than inferred from a later action.
+
+Company operation history uses a cash ledger: opening cash at the right of its header, signed company cash deltas aligned right (negative red, positive black), and closing cash in its footer. Amounts are reconstructed from canonical cash undo patches, including automatic cash events, not inferred from nominal revenue or prices. Train revenue and per-share dividends remain informational amounts in the action text; president share-sale proceeds stay inline and are excluded from company cash. Supplemental action details are shown inline without a Details control. The closing balance has a short rule over its amount, separate from the operation group divider. The move arrowhead touches the destination token. Family review: treasury dividends, retained/half-paid earnings, private income, negotiated transactions and indirect funding can differ across titles; owner-specific balance deltas accommodate those differences without assuming revenue enters company cash.
+
+Company operation headers use a subtle contrasting background behind the token, company/player names and starting cash. Track-lay history shows location and cash cost, without a tile identifier/rotation description.
+
+SR/OR interstitial backgrounds use the active phase’s train-color mapping, including split backgrounds for changes within the round. Phase-change entries separately compare the title’s available tile colors and explicitly announce newly unlocked colors (“green tiles now available”). These are distinct inputs even when their colors coincide in TOP and 1889.
+
+Train palettes use title-owned hex colors, separate from tile colors. TOP uses its ten train-roster colors (including blue 2+, cyan 3+, and red 7); badges select contrasting text and SR/OR bands tint those same colors. End cash uses a single-line label beside the amount, with a short rule above the amount.

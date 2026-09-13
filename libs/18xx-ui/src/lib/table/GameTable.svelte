@@ -28,6 +28,8 @@
     import { ClassicTileAppearance, MutedTileAppearance } from '../tiles/tileAppearance.js'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
+    import type { GameAction } from '@tabletop/common'
+    import type { HistoryDescription } from './historyDescription.js'
     import History from './History.svelte'
     import TableHeader from './TableHeader.svelte'
     let {
@@ -43,6 +45,9 @@
         operatingRules,
         poolName,
         trainColors,
+        phaseColors,
+        phaseTileColors,
+        historyDescription,
         valuationRules,
         portfolioCompanyIds = [],
         privateOperationDescription
@@ -60,6 +65,9 @@
         portfolioCompanyIds?: readonly string[]
         valuationRules: ValuationRules
         trainColors: Readonly<Record<string, string>>
+        phaseColors: Readonly<Record<string, string>>
+        phaseTileColors: Readonly<Record<string, readonly string[]>>
+        historyDescription?: (action: GameAction) => HistoryDescription | undefined
         poolName?: (pool: CertificatePool) => string
         privateOperationDescription: (
             privateCompanyId: string,
@@ -165,7 +173,7 @@
                         onFocusCompany={focusCompany}
                         {portfolioCompanyIds}
                     />{/snippet}
-                {#snippet history()}<History {session} />{/snippet}
+                {#snippet history()}<History {session} {trainColors} {phaseColors} {phaseTileColors} {companyNames} describeAction={historyDescription} />{/snippet}
                 {#snippet chat()}
                     <GameChat
                         timeColor="text-[#887969]"

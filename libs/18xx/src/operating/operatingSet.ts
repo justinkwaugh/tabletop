@@ -1,4 +1,5 @@
 import * as Type from 'typebox'
+import { assert } from '@tabletop/common'
 import type { StockState } from '../stock/stockState.js'
 
 export const OperatingSet = Type.Object(
@@ -18,6 +19,22 @@ export type OperatingState = StockState & { operatingSet?: OperatingSet }
 export interface OperatingRules {
     roundCount(state: OperatingState): number
     companyOrder(state: OperatingState): string[]
+}
+
+export function reorderPendingOperatingCompanies(
+    state: OperatingState,
+    order: readonly string[]
+): void {
+    const set = state.operatingSet
+    if (!set || set.completed) return
+    const current = nextOperatingCompany(state)
+    const fixed = set.companyOrder.filter(
+        (id) => set.completedCompanyIds.includes(id) || id === current
+    )
+    const pending = set.companyOrder.filter((id) => !fixed.includes(id))
+    const reordered = order.filter((id) => pending.includes(id))
+    assert(reordered.length === pending.length, 'Operating order must retain every pending company')
+    set.companyOrder = [...fixed, ...reordered]
 }
 
 export function nextOperatingCompany(state: OperatingState): string | undefined {

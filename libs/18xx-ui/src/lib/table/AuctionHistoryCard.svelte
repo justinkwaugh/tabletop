@@ -58,17 +58,18 @@
 
 <style>
     article {
-        margin: 6px 4px;
+        margin: 5px 0;
         overflow: hidden;
-        border: 1px solid #cbbca8;
-        border-radius: 7px;
-        background: #fffdf8;
+        border: 0;
+        border-bottom: 1px solid #b9ac994f;
+        border-radius: 0;
+        background: transparent;
         color: #514538;
         font-size: 12px;
         line-height: 1.4;
     }
     header {
-        background: #efe7db;
+        background: #ffffff30;
     }
     button {
         width: 100%;
@@ -78,7 +79,7 @@
         font: inherit;
         text-align: left;
         cursor: pointer;
-        padding: 5px 9px;
+        padding: 3px 6px;
     }
     button:hover:not(:disabled) {
         background: #e7ddce66;
@@ -101,7 +102,7 @@
         display: flex;
         justify-content: space-between;
         gap: 8px;
-        padding: 3px 9px;
+        padding: 2px 6px;
     }
     .passed,
     .initial {
@@ -110,6 +111,6 @@
     .events button.winner {
         border-top: 1px solid #e3d9cd;
         margin-top: 3px;
-        padding-top: 6px;
+        padding-top: 3px;
     }
 </style>

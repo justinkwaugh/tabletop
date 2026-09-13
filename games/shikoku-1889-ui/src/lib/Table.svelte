@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { Shikoku1889TrackColors } from '@tabletop/shikoku-1889'
     import { Shikoku1889CompanyNames } from './companyPresentation.js'
     import { Shikoku1889EndingRules } from '@tabletop/shikoku-1889'
     import { Shikoku1889TrainColors } from './trainPresentation.js'
@@ -17,6 +18,8 @@
     {session}
     valuationRules={Shikoku1889EndingRules}
     trainColors={Shikoku1889TrainColors}
+    phaseColors={Shikoku1889TrainColors}
+    phaseTileColors={Shikoku1889TrackColors}
     operatingRules={Shikoku1889OperatingRules}
     privateOperationDescription={(id) =>
         id === 'SRR'

@@ -23,7 +23,7 @@
         playerCount
     }: {
         definition: GameUiDefinition<GameState, HydratedGameState>
-        position?: FinanceExamplePosition
+        position?: FinanceExamplePosition | 'finished'
         playerCount?: number
     } = $props()
     const app = untrack(() => createHarnessAppContext(definition))
@@ -70,6 +70,12 @@
             const owner = app.authorizationService.getSessionUser()
             assertExists(owner, 'The local harness requires a user')
             let loaded = await loadCompatibleExample()
+            if (!loaded && position === 'finished') {
+                const { finishedGame } = await import('./finishedGame.js')
+                const completed = await finishedGame(owner.id, exampleName)
+                await app.gameService.saveGameLocally(completed)
+                loaded = await app.gameService.loadGame(completed.game.id)
+            }
             if (!loaded) {
                 const created = await app.gameService.createGame({
                     id: crypto.randomUUID(),

@@ -59,6 +59,7 @@ export function evaluateShareSale(
     rules: StockRules
 ): ShareSaleResult {
     const { playerId, seller, sales } = request
+    if (sales.length !== 1) return { reason: 'Sell one company per action.' }
     if (!state.activePlayerIds.includes(playerId))
         return { reason: 'It is not this player’s turn.' }
     if (!rules.sellers(state, playerId).some((owner) => sameOwner(owner, seller)))

@@ -1,6 +1,16 @@
 import { assertExists } from '@tabletop/common'
-import { companyMarketSpace, getCompany, sharesOwned, type TrainFundingRules } from '@tabletop/18xx'
+import {
+    companyMarketSpace,
+    getCompany,
+    sharesOwned,
+    reorderPendingOperatingCompanies,
+    type TrainFundingRules
+} from '@tabletop/18xx'
+import { Shikoku1889OperatingRules } from './roundRules.js'
 export const Shikoku1889TrainFundingRules: TrainFundingRules = {
+    afterShareSale(state) {
+        reorderPendingOperatingCompanies(state, Shikoku1889OperatingRules.companyOrder(state))
+    },
     includeMarketTrains: true,
     contributors(state, companyId) {
         const president = getCompany(state, companyId).president

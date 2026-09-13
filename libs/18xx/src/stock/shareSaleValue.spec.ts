@@ -3,6 +3,7 @@ import { Color } from '@tabletop/common'
 import { createOrdinaryShareCertificates } from '../finance/finance.js'
 import { createStockRound } from './stockRound.js'
 import { createRectangularStockMarket, placeStockMarker } from './stockMarket.js'
+import { evaluateShareSale } from './shareSale.js'
 import { shareSaleValue } from './shareSaleValue.js'
 import { priorityOrder } from './priorityOrder.js'
 import type { StockState } from './stockState.js'
@@ -129,4 +130,12 @@ it('uses pass order for titles that award priority by passing', () => {
     expect(priorityOrder(state, { ...rules.round, passing: 'pass-order' })).toEqual(['c', 'a', 'b'])
     state.stockRound.passedPlayerIds = ['a']
     expect(priorityOrder(state, { ...rules.round, passing: 'pass-order' })).toEqual(['a', 'b', 'c'])
+})
+
+it('requires a separate stock action for each company sale', () => {
+    const state = example()
+    const before = structuredClone(state)
+    expect(evaluateShareSale(state, { playerId: 'a', seller, sales: [{ companyId: 'R', shares: 1 }, { companyId: 'S', shares: 1 }] }, rules).reason).toBe('Sell one company per action.')
+    expect(evaluateShareSale(state, { playerId: 'a', seller, sales: [{ companyId: 'R', shares: 2 }] }, rules).details?.proceeds).toBe(200)
+    expect(state).toEqual(before)
 })

@@ -14,6 +14,8 @@ import {
 } from '@tabletop/shikoku-1889'
 import {
     EmergencyTrainFunding,
+    sameOwner,
+    type Owner,
     cashOwnedBy,
     getCompany,
     companyMarketSpace,
@@ -95,6 +97,7 @@ it.each(Titles)(
         })
         expect(result.updatedState.machineState).toBe('FundingTrain')
         const initial = result.updatedState
+        const contributed: Owner[] = []
         for (
             let index = 0;
             result.updatedState.trainFunding && !result.updatedState.bankruptcy && index < 20;
@@ -102,6 +105,12 @@ it.each(Titles)(
         ) {
             const before = result.updatedState
             const next = new EmergencyTrainFunding(before, rules, stocks, trains).next()
+            if (next.kind === 'contribute') {
+                expect(contributed.some((owner) => sameOwner(owner, next.owner))).toBe(false)
+                contributed.push(next.owner)
+            }
+            if (next.kind === 'sell')
+                expect(contributed.some((owner) => sameOwner(owner, next.owner))).toBe(false)
             const selected = nextAction(before, next)
             expect(() =>
                 engine.executeCanonicalAction({
@@ -324,7 +333,7 @@ it('does not use stock-round sale timing and forbids all 1889 presidency transfe
             Shikoku1889TrainRules
         )
     const purchase = model(state).purchases()[0]
-    let current = engine.executeCanonicalAction({
+    const current = engine.executeCanonicalAction({
         game,
         state,
         action: action(state, 'FundTrain', {
@@ -333,11 +342,6 @@ it('does not use stock-round sale timing and forbids all 1889 presidency transfe
             definitionId: purchase.definitionId,
             expectedPrice: purchase.price
         })
-    }).updatedState
-    current = engine.executeCanonicalAction({
-        game,
-        state: current,
-        action: nextAction(current, model(current).next())
     }).updatedState
     const next = model(current).next()
     expect(next.kind).toBe('sell')

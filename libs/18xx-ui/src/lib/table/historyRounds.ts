@@ -1,0 +1,111 @@
+import {
+    isAdvancePhase,
+    isFloatCompany,
+    isEndGame,
+    isResolveAuction,
+    type FinanceExampleState,
+    type AuctionAward
+} from '@tabletop/18xx'
+import type { GameAction } from '@tabletop/common'
+import { historyOperatingOrder, type HistoryOperatingOrder } from './historyOperatingOrder.js'
+import { historyCash, changedCompanyCash, type HistoryCash } from './historyCash.js'
+import { auctionHistory, type ActionHistoryEntry } from './auctionHistory.js'
+
+export type HistoryRound = {
+    id: string
+    group: string
+    label: string
+    phases: string[]
+    entries: ActionHistoryEntry[]
+}
+
+export function historyRounds(
+    actions: readonly GameAction[],
+    state: FinanceExampleState,
+    orderChanges: ReadonlyMap<string, HistoryOperatingOrder> = historyOperatingOrder(actions, state),
+    cash: ReadonlyMap<string, HistoryCash> = historyCash(actions, state)
+): HistoryRound[] {
+    const awards: readonly AuctionAward[] = state.offerAuction?.awards ?? []
+    const entries = new Map(auctionHistory(actions, awards).map((entry) => [entry.id, entry]))
+    let phase = state.phaseId
+    let stock = state.stockRound.number
+    let operating = state.stockRound.completed
+    let set = state.operatingSet?.number ?? 1
+    let round = state.operatingSet?.roundNumber ?? 1
+    let auction = !!(
+        (state.offerAuction && !state.offerAuction.completed) ||
+        (state.openingAuction && !state.openingAuction.completed)
+    )
+    const rounds: HistoryRound[] = []
+    for (const action of actions.toReversed()) {
+        const label = auction ? 'Auction' : operating ? `OR ${set}.${round}` : `SR ${stock}`
+        let section = rounds.at(-1)
+        if (section?.id !== label) {
+            section = {
+                id: label,
+                group: auction ? 'Auction' : `Round ${operating ? set : stock}`,
+                label,
+                phases: [phase],
+                entries: []
+            }
+            rounds.push(section)
+        }
+        if (section.phases[0] !== phase) section.phases.unshift(phase)
+        const entry =
+            entries.get(action.id) ??
+            (orderChanges.has(action.id) ||
+            (cash.has(action.id) && changedCompanyCash(cash.get(action.id)!)) ||
+            isAdvancePhase(action) ||
+            isFloatCompany(action) ||
+            isEndGame(action) ||
+            (isResolveAuction(action) && !state.offerAuction)
+                ? { kind: 'action' as const, id: action.id, action }
+                : undefined)
+        if (entry) section.entries.push(entry)
+        for (const patch of action.undoPatch ?? []) {
+            if (patch.op !== 'add' && patch.op !== 'replace') continue
+            if (patch.path === '/phaseId') {
+                phase = patch.value
+                if (section.phases[0] !== phase) section.phases.unshift(phase)
+            } else if (patch.path === '/stockRound') {
+                stock = patch.value.number
+                operating = patch.value.completed
+            } else if (patch.path === '/stockRound/number') stock = patch.value
+            else if (patch.path === '/stockRound/completed') operating = patch.value
+            else if (patch.path === '/operatingSet') {
+                set = patch.value.number
+                round = patch.value.roundNumber
+            } else if (patch.path === '/operatingSet/number') set = patch.value
+            else if (patch.path === '/operatingSet/roundNumber') round = patch.value
+            else if (
+                patch.path === '/offerAuction/completed' ||
+                patch.path === '/openingAuction/completed'
+            )
+                auction = !patch.value
+        }
+    }
+    return rounds.filter((section) => section.entries.length)
+}
+
+export function roundHeaderPositions(
+    headers: readonly { group: string; top: number }[],
+    height: number,
+    rowHeight: number
+): number[] {
+    const positions = headers.map((header) => header.top)
+    for (let i = positions.length - 1; i >= 0; i--) {
+        const ceiling =
+            i === positions.length - 1
+                ? height - rowHeight
+                : positions[i + 1] - (headers[i].group === headers[i + 1].group ? 0 : rowHeight)
+        positions[i] = Math.min(positions[i], ceiling)
+    }
+    for (let i = 0; i < positions.length; i++) {
+        const floor =
+            i === 0
+                ? 0
+                : positions[i - 1] + (headers[i].group === headers[i - 1].group ? 0 : rowHeight)
+        positions[i] = Math.max(positions[i], floor)
+    }
+    return positions
+}

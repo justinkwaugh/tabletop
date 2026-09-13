@@ -1,33 +1,27 @@
 import { expect, test } from '@playwright/test'
 
 for (const width of [1280, 390]) {
-    test(`orders and removes sale blocks before committing at ${width}px`, async ({ page }) => {
+    test(`sells companies in separate actions at ${width}px`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 })
         await page.goto('/economy')
         const trading = page.getByRole('region', { name: 'Stock trading', exact: true })
         const alex = page.getByRole('article', { name: 'Alex portfolio', exact: true })
         await page.locator('[data-sale-company="ML"][data-sale-shares="1"]').click()
         await page.locator('[data-sale-company="So"][data-sale-shares="1"]').click()
-        const order = trading.locator('[aria-label="Confirm share sale"] ol li strong')
-        const original = await order.allTextContents()
-        expect(original).toHaveLength(2)
-        await trading.getByRole('button', { name: 'Move So earlier', exact: true }).click()
-        await expect(order).toHaveText([...original].reverse())
-        await trading.getByRole('button', { name: 'Remove ML sale', exact: true }).click()
-        await expect(order).toHaveText([original[1]])
+        const selection = trading.locator('[aria-label="Confirm share sale"] ol li strong')
+        await expect(selection).toHaveCount(1)
         await expect(trading).toContainText('Total proceeds: 86')
         await expect(alex).toContainText('Cash 240')
+        await trading.getByRole('button', { name: 'Confirm sale', exact: true }).click()
+        await expect(alex).toContainText('Cash 326')
         await page.locator('[data-sale-company="ML"][data-sale-shares="1"]').click()
-        await expect(order).toHaveText([...original].reverse())
-        await expect(trading).toContainText('Total proceeds: 178')
+        await expect(selection).toHaveCount(1)
+        await expect(trading).toContainText('Total proceeds: 92')
         await trading.getByRole('button', { name: 'Confirm sale', exact: true }).click()
         await expect(alex).toContainText('Cash 418')
-        await expect(
-            page.getByRole('list', { name: 'Stock history' }).locator('li > span')
-        ).toHaveText([
-            `${original[1]}: 1 shares at 86; market price 80.`,
-            `${original[0]}: 1 shares at 92; market price 86.`
-        ])
+        await expect(page.getByRole('list', { name: 'Stock history' }).locator('li > span')).toHaveCount(2)
+        await trading.getByRole('button', { name: 'Undo', exact: true }).click()
+        await expect(alex).toContainText('Cash 326')
         await trading.getByRole('button', { name: 'Undo', exact: true }).click()
         await expect(alex).toContainText('Cash 240')
         await expect(page.getByRole('list', { name: 'Stock history' })).toHaveCount(0)

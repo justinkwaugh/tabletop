@@ -1,0 +1,17 @@
+# Finished TOP game
+
+`top-finished.json` contains a canonical opening state, native player actions, and
+expected final wealth. The harness replays the actions through TOP's engine to
+generate automatic actions, metadata, and reversible history patches. It saves
+the resulting finished game in local storage.
+
+Select **Finished game** in the TOP table's Position menu. History controls and
+auction history entries can navigate back to the opening and forward to the end.
+
+The game uses Mount Stewart as Mainline, Alberton as Shortline, and Summerside
+as the Union Bank's other initial share. It includes a Belfast Branch split,
+emergency train funding, and the final diesel rounds. Union Bank's initial value
+is 120; King's Mail income is 80.
+
+Replay produces 908 player actions and 163 automatic actions. Final wealth is
+6,764 for Player 1, 7,328 for Player 2, and 7,126 for Player 3.

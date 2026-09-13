@@ -12,7 +12,14 @@ import { EmergencyTrainFunding, type FundingState, type TrainFundingRules } from
 import type { StockRules } from '../stock/stockRules.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import { ShareSale, ShareSaleDetails } from '../stock/shareSale.js'
-import { Owner, sameOwner } from '../finance/finance.js'
+import { Owner, sameOwner, cashOwnedBy } from '../finance/finance.js'
+
+const FundingShareSaleDetails = Type.Object({
+    ...ShareSaleDetails.properties,
+    requiredContribution: Type.Integer({ minimum: 0 }),
+    cashShortfall: Type.Integer({ minimum: 0 })
+}, { additionalProperties: false })
+type FundingShareSaleDetails = Type.Static<typeof FundingShareSaleDetails>
 
 export const SellFundingShares = Type.Object(
     {
@@ -21,7 +28,7 @@ export const SellFundingShares = Type.Object(
         type: Type.Literal('SellFundingShares'),
         seller: Owner,
         expectedProceeds: Type.Integer({ minimum: 1 }),
-        metadata: Type.Optional(ShareSaleDetails)
+        metadata: Type.Optional(FundingShareSaleDetails)
     },
     { additionalProperties: false }
 )
@@ -43,7 +50,7 @@ export class HydratedSellFundingShares
     declare companyId: string
     declare shares: number
     declare expectedProceeds: number
-    declare metadata?: ShareSaleDetails
+    declare metadata?: FundingShareSaleDetails
     readonly #rules: TrainFundingRules
     readonly #stocks: StockRules
     readonly #trains: TrainRules
@@ -86,7 +93,11 @@ export class HydratedSellFundingShares
                 sale.sales[0].companyId === this.companyId && sale.sales[0].shares === this.shares
         )
         assert(details, 'Funding sale requires a settlement')
+        const requiredContribution = funding.shortfall()
+        const cash = cashOwnedBy(state, this.seller)
+        assert(typeof cash === 'number', 'Funding requires a finite contributor balance')
+        const cashShortfall = Math.max(0, requiredContribution - cash)
         funding.applySale(details)
-        this.metadata = details
+        this.metadata = { ...details, requiredContribution, cashShortfall }
     }
 }

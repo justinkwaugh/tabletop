@@ -1,12 +1,17 @@
 import { assertExists } from '@tabletop/common'
+import { TheOldPrinceOperatingRules } from './roundRules.js'
 import {
     companyMarketSpace,
+    reorderPendingOperatingCompanies,
     getCompany,
     privateOwner,
     type TrainFundingRules
 } from '@tabletop/18xx'
 import { TheOldPrinceStockRules } from './stockRules.js'
 export const TheOldPrinceTrainFundingRules: TrainFundingRules = {
+    afterShareSale(state) {
+        reorderPendingOperatingCompanies(state, TheOldPrinceOperatingRules.companyOrder(state))
+    },
     includeMarketTrains: false,
     contributors(state, companyId) {
         const president = getCompany(state, companyId).president
