@@ -1,4 +1,10 @@
-import { chooseStockAction, chooseSaleCompany, backFromStockAction, type StockAction, type StockActionSelection } from '../stock/stockActionSelection.js'
+import {
+    chooseStockAction,
+    chooseSaleCompany,
+    backFromStockAction,
+    type StockAction,
+    type StockActionSelection
+} from '../stock/stockActionSelection.js'
 import { cashOwnedBy, shareSaleValue, priorityOrder, stockCertificateCount } from '@tabletop/18xx'
 import {
     OfferAuction,
@@ -70,8 +76,16 @@ import {
     type EarningsChoice,
     type EarningsRules
 } from '@tabletop/18xx'
+import { routeColor } from '../routes/routePresentation.js'
 import { RouteEditor } from './routeEditor.svelte.js'
-import { RunTrains, type RouteRules, type RevenueCenter, type RoutePath } from '@tabletop/18xx'
+import {
+    RunTrains,
+    RouteEvaluation,
+    type OperatingResult,
+    type RouteRules,
+    type RevenueCenter,
+    type RoutePath
+} from '@tabletop/18xx'
 import {
     BuyTrain,
     TrainPurchase,
@@ -143,6 +157,7 @@ import {
     evaluateSharePurchase,
     evaluateShareSale,
     requireFinanceExampleState,
+    type FinanceExampleState,
     getCompany,
     sharesOwned,
     sameOwner,
@@ -687,6 +702,39 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         assert(this.canFinishOperatingTurn && companyId, 'The operating turn cannot finish yet')
         await this.applyAction(this.createPlayerAction(FinishOperatingTurn, { companyId }))
     }
+    private automaticRoutes:
+        | { state: FinanceExampleState; result: OperatingResult; exhaustive: boolean }
+        | undefined = $state.raw()
+    automaticRouteResult = $derived.by(() =>
+        this.routeDraftVisible && this.automaticRoutes?.state === this.financialState
+            ? this.automaticRoutes
+            : undefined
+    )
+    setAutomaticRoutes(state: FinanceExampleState, result: OperatingResult, exhaustive: boolean) {
+        if (state !== this.financialState || !this.canRunTrains) return
+        const companyId = state.routeStep?.companyId
+        assert(
+            companyId && result.companyId === companyId,
+            'Automatic routes require the operating company'
+        )
+        const routes = this.trainRoutes(result)
+        const checked = new RouteEvaluation(state, this.routeRules).evaluate(companyId, routes)
+        assertExists(checked.result, checked.reason ?? 'Invalid automatic routes')
+        this.automaticRoutes = { state, result: checked.result, exhaustive }
+    }
+    async runAutomaticTrains() {
+        const result = this.automaticRouteResult?.result
+        assert(this.canRunTrains && result, 'Wait for the train routes to be calculated')
+        await this.applyAction(
+            this.createPlayerAction(RunTrains, {
+                companyId: result.companyId,
+                routes: this.trainRoutes(result)
+            })
+        )
+    }
+    private trainRoutes(result: OperatingResult) {
+        return result.routes.map(({ trainId, start, paths }) => ({ trainId, start, paths }))
+    }
     routeEditor = $derived.by(() => new RouteEditor(this.financialState, this.routeRules))
     canRunTrains = $derived(
         !this.busy &&
@@ -703,10 +751,12 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     routeOverlays = $derived.by(() => {
         if (this.updatingVisibleState) return []
         const result = this.financialState.routeStep?.result
-        const routes = this.routeDraftVisible ? this.routeEditor.routes : (result?.routes ?? [])
+        const routes = this.routeDraftVisible
+            ? (this.automaticRouteResult?.result.routes ?? this.routeEditor.routes)
+            : (result?.routes ?? [])
         const overlays = routes.map((route, index) => ({
             id: route.trainId,
-            color: ['#b24bce', '#15784e', '#d34b38', '#325aba'][index % 4],
+            color: routeColor(index),
             segments: route.paths
         }))
         if (this.routeDraftVisible && this.routeEditor.route)
@@ -714,7 +764,11 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         return overlays
     })
     displayedRoutes = $derived.by(() =>
-        this.routeOverlays.length ? this.routeOverlays : this.networkRoutes
+        this.automaticRouteResult ||
+        this.financialState.routeStep?.result ||
+        this.routeOverlays.length
+            ? this.routeOverlays
+            : this.networkRoutes
     )
     selectRouteTrain(trainId: string) {
         assert(this.canRunTrains, 'Routes are not active')
@@ -1346,7 +1400,11 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         )
     )
     selectMap(selection: MapSelection, allowInspection = true) {
-        if (this.showTrackChoices && (!this.canBuildTrack || !this.trackLocationIds.includes(selection.locationId))) return
+        if (
+            this.showTrackChoices &&
+            (!this.canBuildTrack || !this.trackLocationIds.includes(selection.locationId))
+        )
+            return
         if (
             this.canRunTrains &&
             this.routeEditor.trainId &&
@@ -1420,7 +1478,11 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         this.mapStyles[this.myPlayer.id] = style
     }
     private stockActionDraft: StockActionSelection = $state({})
-    stockMenu = $derived(this.updatingVisibleState || this.isViewingHistory ? undefined : this.stockActionDraft.action?.value)
+    stockMenu = $derived(
+        this.updatingVisibleState || this.isViewingHistory
+            ? undefined
+            : this.stockActionDraft.action?.value
+    )
     selectedSaleCompany = $derived(this.stockActionDraft.saleCompany?.value)
     chooseStockMenu(menu: StockAction | undefined) {
         this.assertSelectionAvailable(this.myPlayer?.id)
@@ -1704,7 +1766,8 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         await this.applyAction(this.createPlayerAction(FinishStockTurn, {}))
     }
     override beforeNewState() {
-        this.stockActionDraft = {};
+        this.automaticRoutes = undefined
+        this.stockActionDraft = {}
         this.offerDraft = undefined
         this.auctionDraft = undefined
         this.fundingDraft = undefined

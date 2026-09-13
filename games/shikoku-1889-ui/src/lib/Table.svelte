@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { Shikoku1889PhaseChart } from './phaseChart.js'
     import { Shikoku1889TrackColors } from '@tabletop/shikoku-1889'
     import { Shikoku1889CompanyNames } from './companyPresentation.js'
     import { Shikoku1889EndingRules } from '@tabletop/shikoku-1889'
@@ -8,11 +9,15 @@
     import type { GameSession } from '@tabletop/frontend-components'
     import type { GameState, HydratedGameState } from '@tabletop/common'
     import { GameTable, OperatingActions, requireFinanceExampleSession } from '@tabletop/18xx-ui'
+    function createRouteWorker() {
+        return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
+    }
     let { gameSession }: { gameSession: GameSession<GameState, HydratedGameState> } = $props()
     const session = $derived(requireFinanceExampleSession(gameSession))
 </script>
 
 <GameTable
+    phaseChart={Shikoku1889PhaseChart}
     companyNames={Shikoku1889CompanyNames}
     marketPoolId="open-market"
     {session}
@@ -28,11 +33,11 @@
               ? 'On purchase, the seller may immediately upgrade Ohzu in addition to ordinary construction.'
               : undefined}
 >
-    {#snippet actions()}
+    {#snippet actions(_focusLocation, focusRoute)}
         {#if session.auction && !session.auction.auction.completed}
             <OpeningAuction {session} showUndo={false} />
         {:else}
-            <OperatingActions {session} />
+            <OperatingActions onFocusRoute={focusRoute} {session} {createRouteWorker} trainColors={Shikoku1889TrainColors} />
         {/if}
     {/snippet}
 </GameTable>

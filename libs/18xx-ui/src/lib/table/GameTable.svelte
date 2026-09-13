@@ -32,6 +32,7 @@
     import type { HistoryDescription } from './historyDescription.js'
     import History from './History.svelte'
     import TableHeader from './TableHeader.svelte'
+    import type { PhaseChartData } from '../phases/phaseChart.js'
     let {
         session,
         marketPoolId,
@@ -46,6 +47,7 @@
         poolName,
         trainColors,
         phaseColors,
+        phaseChart,
         phaseTileColors,
         historyDescription,
         valuationRules,
@@ -60,12 +62,13 @@
         numberedShareNames?: NumberedShareNames
         numberedShareLocation?: (companyId: string, number: number) => string | undefined
         mapFocusExcludedCompanyIds?: readonly string[]
-        actions: Snippet<[(locationId: string) => void]>
+        actions: Snippet<[(locationId: string) => void, (trainId: string) => void]>
         operatingRules: OperatingRules
         portfolioCompanyIds?: readonly string[]
         valuationRules: ValuationRules
         trainColors: Readonly<Record<string, string>>
         phaseColors: Readonly<Record<string, string>>
+        phaseChart: PhaseChartData
         phaseTileColors: Readonly<Record<string, readonly string[]>>
         historyDescription?: (action: GameAction) => HistoryDescription | undefined
         poolName?: (pool: CertificatePool) => string
@@ -80,6 +83,7 @@
         return undefined
     })
     async function focusLocation(locationId: string) {
+        focusedRoute = undefined
         focusedCompany = undefined
         const restore = focusedLocation === locationId
         focusedLocation = restore ? undefined : locationId
@@ -100,6 +104,7 @@
         return undefined
     })
     async function focusCompany(companyId: string) {
+        focusedRoute = undefined
         const restore = focusedCompany === companyId
         focusedCompany = restore ? undefined : companyId
         focusedLocation = undefined
@@ -111,6 +116,29 @@
         }
         const locations = companyFocusLocations(session.stationDisplayState, companyId)
         if (!locations.length) return
+        focusLocations(locations)
+    }
+    let focusedRoute: string | undefined = $derived.by(() => {
+        session.financialState
+        session.updatingVisibleState
+        return undefined
+    })
+    async function focusRoute(trainId: string) {
+        const route = session.automaticRouteResult?.result.routes.find((route) => route.trainId === trainId)
+        if (!route) return
+        const restore = focusedRoute === trainId
+        focusedRoute = restore ? undefined : trainId
+        focusedLocation = undefined
+        focusedCompany = undefined
+        view = 'Map'
+        await tick()
+        if (restore) {
+            mapWrapper?.fitToContent({ animate: true })
+            return
+        }
+        focusLocations([...new Set(route.paths.map((path) => path.locationId))])
+    }
+    function focusLocations(locations: readonly string[]) {
         const rectangles = locations.map((locationId) => mapSelectionRect(
             session.displayedMapScene, { kind: 'hex', locationId }, 140, 220
         ))
@@ -120,6 +148,25 @@
         const bottom = Math.max(...rectangles.map((rect) => rect.y + rect.height))
         mapWrapper?.focusRect({ x, y, width: right - x, height: bottom - y }, { animate: true })
     }
+    $effect(() => {
+        const preview = session.automaticRouteResult
+        if (!preview?.result.routes.length) return
+        let cancelled = false
+        untrack(() => {
+            focusedRoute = undefined
+            focusedLocation = undefined
+            focusedCompany = undefined
+            view = 'Map'
+            void tick().then(() => {
+                if (cancelled) return
+                const locations = preview.result.routes.flatMap((route) =>
+                    route.paths.map((path) => path.locationId)
+                )
+                focusLocations([...new Set(locations)])
+            })
+        })
+        return () => { cancelled = true }
+    })
     const financialState = $derived(session.financialState)
     const operating = $derived(financialState.stockRound.completed && !!financialState.operatingSet)
     const companyOrder = $derived(
@@ -148,7 +195,7 @@
 </script>
 
 <div class="railway-table" aria-label="Game table">
-    <DefaultTableLayout>
+    <DefaultTableLayout topPadding={0}>
         {#snippet sideContent()}
             <HistoryControls
                 borderClass="border-b border-[#b8a995]"
@@ -188,9 +235,9 @@
             </DefaultTabs>
         {/snippet}
         {#snippet gameContent()}
-            <TableHeader {session} />
+            <TableHeader {session} {phaseChart} {trainColors} />
             <section class="action-panel" aria-label="Current action">
-                {@render actions(focusLocation)}
+                {@render actions(focusLocation, focusRoute)}
             </section>
             {#if companyOrder.length}
             <CompanyOrder
@@ -351,7 +398,6 @@
         overflow: auto;
         padding: 12px 16px;
         background: #faf7f1;
-        border-top: 1px solid #b8a995;
         border-bottom: 1px solid #b8a995;
         font-size: 13px;
     }

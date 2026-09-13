@@ -62,3 +62,4 @@ export { default as AuctionBidControl } from './auctions/AuctionBidControl.svelt
 export { default as OfferAuctionBidding } from './auctions/OfferAuctionBidding.svelte'
 
 export { default as PrivateCard } from './privates/PrivateCard.svelte'
+export { createPhaseChart, type PhaseChartData } from './phases/phaseChart.js'

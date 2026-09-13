@@ -4,12 +4,24 @@
     import GameEnding from '../examples/GameEnding.svelte'
     import TrackBuilding from '../examples/TrackBuilding.svelte'
     import StationBuilding from '../examples/StationBuilding.svelte'
-    import RouteBuilding from '../examples/RouteBuilding.svelte'
+    import AutomaticRoutes from '../routes/AutomaticRoutes.svelte'
     import EarningsDistribution from '../examples/EarningsDistribution.svelte'
     import StockRoundActions from './StockRoundActions.svelte'
     import TrainBuying from '../examples/TrainBuying.svelte'
     import CompanyDecisions from '../examples/CompanyDecisions.svelte'
-    let { session, additionalStockActions = [] }: { session: FinanceExampleSession; additionalStockActions?: readonly StockMenuOption[] } = $props()
+    let {
+        session,
+        createRouteWorker,
+        onFocusRoute,
+        trainColors,
+        additionalStockActions = []
+    }: {
+        createRouteWorker: () => Worker
+        onFocusRoute: (trainId: string) => void
+        trainColors: Readonly<Record<string, string>>
+        session: FinanceExampleSession
+        additionalStockActions?: readonly StockMenuOption[]
+    } = $props()
     const state = $derived(session.financialState)
 </script>
 
@@ -26,7 +38,12 @@
             mapControls
         />
     {:else if state.machineState === 'PlacingStation'}<StationBuilding {session} showUndo={false} />
-    {:else if state.machineState === 'RunningTrains'}<RouteBuilding {session} showUndo={false} />
+    {:else if state.machineState === 'RunningTrains'}<AutomaticRoutes
+            {session}
+            {createRouteWorker}
+            {onFocusRoute}
+            {trainColors}
+        />
     {:else if state.machineState === 'DistributingEarnings'}<EarningsDistribution
             {session}
             showUndo={false}

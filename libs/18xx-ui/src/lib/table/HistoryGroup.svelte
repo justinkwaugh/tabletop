@@ -1,6 +1,6 @@
 <script lang="ts">
     import { assertExists, type GameAction } from '@tabletop/common'
-    import { isAdvancePhase, isSellFundingShares, sameOwner, isDistributeEarnings } from '@tabletop/18xx'
+    import { isAdvancePhase, isStartOperatingRound, isSellFundingShares, sameOwner, isDistributeEarnings } from '@tabletop/18xx'
     import { TileColors } from '../tiles/tilePresentation.js'
     import type { HistoryGroup } from './historyGroups.js'
     import type { HistoryDescription } from './historyDescription.js'
@@ -15,8 +15,6 @@
         appearance,
         playerName,
         describe,
-        disabled,
-        onSelect,
         lastOwnActionId,
         companyName,
         phaseColors,
@@ -38,8 +36,6 @@
         appearance?: StationAppearance
         playerName: (id: string) => string
         describe: (action: GameAction) => HistoryDescription
-        disabled: boolean
-        onSelect: (action: GameAction) => void
         lastOwnActionId?: string
         companyName: (id: string) => string
     } = $props()
@@ -76,12 +72,12 @@
             ledgerValue: startingCash !== undefined && description.value && (!delta || isDistributeEarnings(action)) ? description.value : undefined }
     }))
     const visible = $derived(rows.filter((row) => !row.routine))
-    const last = $derived(group.actions.at(-1)!)
 </script>
 
 <article
     hidden={!visible.length}
     class:stock={group.kind === 'turn'}
+    class:order-start={group.actions.some(isStartOperatingRound)}
     class:operation={group.kind === 'operation'}
     aria-label={group.companyId
         ? `${group.companyId} operation history`
@@ -89,23 +85,19 @@
 >
     {#if group.kind === 'passes'}
         <div class="passes">
-            {#each group.actions as action (action.id)}<button
-                    {disabled}
-                    onclick={() => onSelect(action)}
-                    >{playerName(action.playerId ?? '')} <span>passed</span></button
+            {#each group.actions as action (action.id)}<div class="history-entry"
+                    >{playerName(action.playerId ?? '')} <span>passed</span></div
                 >{/each}
         </div>
     {:else if group.kind === 'turn'}
         {#each visible as row, index (row.action.id)}
             <div class="stock-row">
-                <button
-                    class="stock-action"
+                <div
+                    class="history-entry stock-action"
                     class:phase-change={!!row.phase}
                     style:--phase-color={row.phase?.color}
                     class:important={row.important}
                     class:routine={row.routine}
-                    disabled={disabled || row.action.index === undefined}
-                    onclick={() => onSelect(row.action)}
                 >
                     <span class="stock-player"
                         >{index === 0 ? playerName(group.playerId ?? '') : ''}</span
@@ -116,30 +108,26 @@
                     >
                     {#if row.detail}<small>{row.detail}</small>{/if}
                     {#if row.order}<OperatingOrderHistory order={row.order} {stations} {companyName} />{/if}
-                </button>
+                </div>
             </div>
         {/each}
     {:else}
-        <header class:company-header={group.kind === 'operation'}>
-            <button
-                class="heading"
-                disabled={disabled || last.index === undefined}
-                onclick={() => onSelect(last)}
+        {#if group.kind !== 'event'}<header class:company-header={group.kind === 'operation'}>
+            <div
+                class="history-entry heading"
             >
                 {#if appearance}<CompanyToken {appearance} size={23} />{/if}
                 <span class="company-heading">
                 <strong
                     >{(group.companyId ? companyName(group.companyId) : undefined) ??
-                        (group.kind === 'event'
-                            ? 'Game'
-                            : playerName(group.playerId ?? ''))}</strong
+                        playerName(group.playerId ?? '')}</strong
                 >
                 {#if group.companyId}<span class="actor">{playerName(group.playerId ?? '')}</span
                     >{/if}
                 </span>
-            </button>
+            </div>
             {#if startingCash !== undefined}<span class="cash-balance"><small>Start cash</small><strong>{money(startingCash)}</strong></span>{/if}
-        </header>
+        </header>{/if}
         {#if group.actions.some((action) => action.id === lastOwnActionId)}<div class="last-own">
                 Your last action
             </div>{/if}
@@ -148,13 +136,11 @@
                 {#if row.beforeText && !group.actions.slice(0, group.actions.indexOf(row.action)).some((earlier) => isSellFundingShares(earlier) && isSellFundingShares(row.action) && sameOwner(earlier.seller, row.action.seller))}
                     <div class="funding-obligation">{row.beforeText}</div>
                 {/if}
-                <button
+                <div class="history-entry"
                     class:phase-change={!!row.phase}
                     style:--phase-color={row.phase?.color}
                     class:important={row.important}
                     class:routine={row.routine}
-                    disabled={disabled || row.action.index === undefined}
-                    onclick={() => onSelect(row.action)}
                 >
                     {#if row.action.playerId && row.action.playerId !== group.playerId}<small
                             >{playerName(row.action.playerId)}</small
@@ -162,10 +148,10 @@
                     <span>{startingCash !== undefined ? row.ledgerText ?? row.text : row.text}{#if row.trainDefinitionIds?.length}<span class="run-trains">{#each row.trainDefinitionIds as id}<TrainBadge name={trainName(id)} color={trainColors[id]} />{/each}</span>{/if}{#if row.phase}<span class="phase-colors">{row.phase.label}</span>{/if}{#if row.ledgerValue}<span class="ledger-note">{row.ledgerValue}</span>{/if}</span><strong class:debit={row.delta < 0} class:credit={row.delta > 0}>{startingCash !== undefined ? row.delta ? `${row.delta > 0 ? '+' : '−'}${money(Math.abs(row.delta))}` : '' : row.value ?? ''}</strong>
                     {#if row.detail}<small>{row.detail}</small>{/if}
                     {#if row.order}<OperatingOrderHistory order={row.order} {stations} {companyName} />{/if}
-                </button>
+                </div>
             {/each}
-            {#if !visible.length}<button class="routine" {disabled} onclick={() => onSelect(last)}
-                    >No further actions</button
+            {#if !visible.length}<div class="history-entry routine"
+                    >No further actions</div
                 >{/if}
         </div>
         <footer>
@@ -217,7 +203,7 @@
     .passes span {
         color: #8a7c6b;
     }
-    .passes button {
+    .passes .history-entry {
         padding: 1px 0;
     }
     article {
@@ -227,7 +213,11 @@
         color: #463e35;
         font-size: 12px;
     }
-    article.operation { border-bottom: 0; }
+    article.operation,
+    article.order-start { border-bottom: 0; }
+    .order-start .events .history-entry {
+        row-gap: 2px;
+    }
     header {
         display: flex;
         align-items: center;
@@ -240,21 +230,12 @@
         padding: 5px 6px;
         border-radius: 3px 3px 0 0;
     }
-    button {
+    .history-entry {
         border: 0;
         background: none;
         color: inherit;
         font: inherit;
-        cursor: pointer;
         text-align: left;
-    }
-    button:hover:not(:disabled) {
-        background: #ffffff65;
-        border-radius: 3px;
-    }
-    button:focus-visible {
-        outline: 2px solid #a87948;
-        outline-offset: -2px;
     }
     .heading {
         display: flex;
@@ -275,7 +256,7 @@
     .events {
         margin-top: 2px;
     }
-    .events button {
+    .events .history-entry {
         width: 100%;
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
@@ -294,16 +275,13 @@
         font-size: 10px;
         line-height: 14px;
     }
-    button.phase-change {
+    .history-entry.phase-change {
         margin: 3px 0;
         padding: 4px 6px;
         border-left: 4px solid var(--phase-color);
         border-radius: 3px;
         background: color-mix(in srgb, var(--phase-color) 32%, #f7f5f0);
         color: #302c27;
-    }
-    button.phase-change:hover:not(:disabled) {
-        background: color-mix(in srgb, var(--phase-color) 42%, #f7f5f0);
     }
     .phase-colors {
         display: inline-block;

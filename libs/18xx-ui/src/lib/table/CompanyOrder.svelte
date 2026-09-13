@@ -206,7 +206,6 @@
                                 {/each}
                             </div>
                         </div>{/if}
-                    {#if completed}<span class="done" aria-hidden="true">✓</span>{/if}
                 </button>
             </li>
         {/each}
@@ -409,18 +408,6 @@
     }
     .completed {
         opacity: 0.55;
-    }
-    .done {
-        position: absolute;
-        right: -2px;
-        bottom: -1px;
-        color: #4c6653;
-        background: #ede2dc;
-        border-radius: 50%;
-        font-size: 12px;
-        line-height: 16px;
-        width: 16px;
-        text-align: center;
     }
     .empty {
         font-size: 12px;

@@ -32,7 +32,7 @@ export const TheOldPrinceStockRoundRules: StockRoundRules = {
         )
     }
 }
-const OperatingRoundCounts: Record<string, number> = {
+export const TheOldPrinceOperatingRoundCounts: Record<string, number> = {
     '2H': 1,
     '3H': 1,
     '4H': 2,
@@ -46,7 +46,7 @@ const OperatingRoundCounts: Record<string, number> = {
 }
 export const TheOldPrinceOperatingRules: OperatingRules = {
     roundCount(state) {
-        const count = OperatingRoundCounts[state.phaseId]
+        const count = TheOldPrinceOperatingRoundCounts[state.phaseId]
         assertExists(count, 'Unknown phase')
         return count
     },

@@ -1,4 +1,4 @@
-import { isSellFundingShares, type FinanceExampleState } from '@tabletop/18xx'
+import { isStartOperatingRound, isStartOperatingSet, isSellFundingShares, type FinanceExampleState } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 import { assert } from '@tabletop/common'
 
@@ -39,7 +39,12 @@ export function historyOperatingOrder(
                 }
             }
         }
+        if (isStartOperatingRound(action)) {
+            changes.set(action.id, { before: [], after })
+            continue
+        }
         if (
+            !isStartOperatingSet(action) &&
             after.length &&
             (after.length !== order.length || after.some((id, index) => id !== order[index]))
         )

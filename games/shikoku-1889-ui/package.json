@@ -31,6 +31,7 @@
     },
     "dependencies": {
         "@tabletop/18xx": "workspace:*",
+        "@tabletop/18xx-autorouter": "workspace:*",
         "@tabletop/18xx-ui": "workspace:*",
         "@tabletop/common": "workspace:*",
         "@tabletop/frontend-components": "workspace:*",

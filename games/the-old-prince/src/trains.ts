@@ -51,7 +51,7 @@ export const TheOldPrinceTrainDepot = new TrainDepot({
     ]
 })
 export const TheOldPrincePhases = ['2H', '3H', '4H', '5H', '6H', '2+', '3+', '4+', '7', 'D']
-const Limits: Record<string, number> = {
+export const TheOldPrinceTrainLimits: Record<string, number> = {
     '2H': 4,
     '3H': 4,
     '4H': 4,
@@ -86,7 +86,7 @@ export const TheOldPrinceTrainRules: TrainRules = {
         ]
     },
     trainLimit(state) {
-        const limit = Limits[state.phaseId]
+        const limit = TheOldPrinceTrainLimits[state.phaseId]
         assertExists(limit, 'Unknown train-limit phase')
         return limit
     },

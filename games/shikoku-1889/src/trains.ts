@@ -28,7 +28,7 @@ export const Shikoku1889TrainDepot = new TrainDepot({
     ]
 })
 export const Shikoku1889Phases = ['2', '3', '4', '5', '6', 'D']
-const Limits: Record<string, number> = { '2': 4, '3': 4, '4': 3, '5': 2, '6': 2, D: 2 }
+export const Shikoku1889TrainLimits: Record<string, number> = { '2': 4, '3': 4, '4': 3, '5': 2, '6': 2, D: 2 }
 export const Shikoku1889TrainRules: TrainRules = {
     depot: Shikoku1889TrainDepot,
     exchangePrice: (state, _companyId, definitionId, train) =>
@@ -61,7 +61,7 @@ export const Shikoku1889TrainRules: TrainRules = {
         ]
     },
     trainLimit(state) {
-        const limit = Limits[state.phaseId]
+        const limit = Shikoku1889TrainLimits[state.phaseId]
         assertExists(limit, 'Unknown train-limit phase')
         return limit
     },

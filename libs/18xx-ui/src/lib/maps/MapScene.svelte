@@ -104,17 +104,21 @@
                 showZeroRevenue={false}
             >
                 {#snippet trackOverlay(drawing)}
-                    {#each routes as route (route.id)}
-                        {#each drawing.paths.filter( (path) => route.segments.some((segment) => segment.locationId === id && segment.pathId === path.id) ) as path (path.id)}
-                            <path
-                                data-map-route={route.id}
-                                d={path.d}
-                                fill="none"
-                                stroke={route.color}
-                                stroke-width="3"
-                            />
+                    {@const routePaths = routes.flatMap((route) =>
+                        drawing.paths
+                            .filter((path) =>
+                                route.segments.some(
+                                    (segment) =>
+                                        segment.locationId === id && segment.pathId === path.id
+                                )
+                            )
+                            .map((path) => ({ route, path }))
+                    )}
+                    <g fill="none" stroke-width="8" stroke-linejoin="round">
+                        {#each routePaths as { route, path } (`${route.id}:${path.id}`)}
+                            <path data-map-route={route.id} d={path.d} stroke={route.color} />
                         {/each}
-                    {/each}
+                    </g>
                     {#if selected && selection?.kind === 'path'}
                         {#each drawing.paths.filter((path) => path.id === selectedPath) as path}
                             <path d={path.d} fill="none" stroke="#d52f83" stroke-width="3" />
@@ -364,7 +368,9 @@
     .map-annotations {
         pointer-events: none;
     }
-    .unavailable { pointer-events: none; }
+    .unavailable {
+        pointer-events: none;
+    }
     [role='button'] {
         cursor: pointer;
         outline: none;

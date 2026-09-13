@@ -31,6 +31,7 @@
     "dependencies": {
         "@floating-ui/dom": "^1.7.4",
         "@tabletop/18xx": "workspace:*",
+        "@tabletop/18xx-autorouter": "workspace:*",
         "@tabletop/common": "workspace:*",
         "@tabletop/frontend-components": "workspace:*",
         "fast-json-patch": "github:justinkwaugh/fast-json-patch"

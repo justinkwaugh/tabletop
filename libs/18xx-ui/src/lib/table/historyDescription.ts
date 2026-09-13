@@ -87,13 +87,7 @@ export function historyDescription(
                 assertExists(train, 'Recorded train run requires its train')
                 return train.definitionId
             }),
-            value: action.metadata.revenue ? money(action.metadata.revenue) : undefined,
-            detail: action.metadata.routes
-                .map(
-                    (route) =>
-                        `${route.visits.map((visit) => visit.locationId).join('–')}: ${money(route.revenue)}`
-                )
-                .join(' · ')
+            value: action.metadata.revenue ? money(action.metadata.revenue) : undefined
         }
     }
     if (isDistributeEarnings(action)) {
@@ -257,8 +251,10 @@ export function historyDescription(
             important: true
         }
     }
-    if (isStartOperatingSet(action) || isStartOperatingRound(action))
-        return { text: 'Operating order set', important: true }
+    if (isStartOperatingSet(action))
+        return { text: 'Started operating set', routine: true }
+    if (isStartOperatingRound(action))
+        return { text: 'Operating order', important: true }
     if (isEndGame(action)) return { text: 'Game ended', important: true }
     if (isOfferPurchase(action) || isRespondToPurchaseOffer(action)) {
         assertExists(action.metadata, 'Recorded purchase offer requires its terms')

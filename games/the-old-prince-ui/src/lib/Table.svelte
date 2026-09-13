@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { TheOldPrincePhaseChart } from './phaseChart.js'
     import { TheOldPrinceTrackColors } from '@tabletop/the-old-prince'
     import { TheOldPrinceCompanyNames } from './companyPresentation.js'
     import { isSplitCompany, TheOldPrinceEndingRules, TheOldPrinceCompanies, TheOldPrinceMap } from '@tabletop/the-old-prince'
@@ -10,6 +11,9 @@
     import { GameTable, OperatingActions, AuctionOffers, OfferAuctionBidding } from '@tabletop/18xx-ui'
     import { requireTheOldPrinceSession } from './session.svelte.js'
     import BranchSplitPreview from './BranchSplitPreview.svelte'
+    function createRouteWorker() {
+        return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
+    }
     let { gameSession }: { gameSession: GameSession<GameState, HydratedGameState> } = $props()
     function lotInfo(id: string) {
         const privateCompany = session.privateCompanies.find((company) => company.id === id)
@@ -30,6 +34,7 @@
 </script>
 
 <GameTable
+    phaseChart={TheOldPrincePhaseChart}
     historyDescription={(action) => isSplitCompany(action) ? {
         text: `Split ${TheOldPrinceCompanyNames[action.branchId]?.short ?? action.branchId} from ${TheOldPrinceCompanyNames[action.parentId]?.short ?? action.parentId}`,
         value: `$${action.expectedFunding.toLocaleString('en-US')}`,
@@ -60,7 +65,7 @@
               ? 'Treasury'
               : pool.name}
 >
-    {#snippet actions(focusLocation)}
+    {#snippet actions(focusLocation, focusRoute)}
         {#if session.offerAuction && !session.offerAuction.auction.completed}
             {#if !session.offerAuction.auction.bidding && !session.offerAuction.auction.stalled}
                 <AuctionOffers {session} {lotInfo} onFocus={focusLocation} />
@@ -73,7 +78,7 @@
             {#if session.hasSplitDraft}
                 <BranchSplitPreview {session} showUndo={false} />
             {:else}
-                <OperatingActions {session} additionalStockActions={session.canPreviewSplit && session.myPlayer && session.splitModel.branches().length && session.splitModel.parents(session.myPlayer.id).some((parent) => !parent.reason) ? [{ label: 'Split', onSelect: () => session.chooseSplit() }] : []} />
+                <OperatingActions onFocusRoute={focusRoute} {session} {createRouteWorker} trainColors={TheOldPrinceTrainColors} additionalStockActions={session.canPreviewSplit && session.myPlayer && session.splitModel.branches().length && session.splitModel.parents(session.myPlayer.id).some((parent) => !parent.reason) ? [{ label: 'Split', onSelect: () => session.chooseSplit() }] : []} />
             {/if}
         {/if}
     {/snippet}

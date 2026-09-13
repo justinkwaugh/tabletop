@@ -57,3 +57,26 @@ pass. Tests cover pending-discard hydration, deterministic flattened replay and
 Undo, preserved operating turns/allowances/set length, 1889 exchange price and
 Market identity, and TOP rusting after both a submitted route and an unused
 final operating opportunity.
+
+## Header phase chart
+
+The shared header shows the operating company's existing token. Clicking the phase
+opens a native modal dialog with a full-viewport backdrop, focus containment,
+Escape/close/backdrop dismissal, and focus restoration. This is local presentation,
+not an Action, and does not alter history or the current phase.
+
+The catalog survey above also guides this presentation: train introduction and
+phases are not universally one-to-one, and rusting differs from obsolescence,
+salvage and capacity loss. Phase rows and train roster rows are therefore separate
+display data. TOP and 1889 build theirs from existing title-owned phase order,
+tile colors, OR counts, train limits, depot supply/prices, and rust-phase tables.
+Existing constant tables are exported for reuse without changing rule behavior.
+No shared package imports a title. The small assembly helper covers these titles'
+phase-triggered rusting; other titles can supply the display data directly and
+need explicit presentation for richer events rather than inventing rust triggers.
+
+TOP's never-run owned 4+ exception remains visible beside the schedule. 1889's
+diesel availability/trade-in and private closure exception are described below
+the tables. The chart shows each phase’s OR count without a separate explanatory note about set length.
+Browser verification covers both title charts, current-phase highlighting,
+operating token, keyboard dismissal/focus return, and backdrop dismissal.

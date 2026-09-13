@@ -9,12 +9,14 @@
         mobileControlsContent,
         gameContent,
         sideContent,
-        debugContent
+        debugContent,
+        topPadding = 8
     }: {
         mobileControlsContent?: Snippet
         gameContent?: Snippet
         sideContent?: Snippet
         debugContent?: Snippet
+        topPadding?: number
     } = $props()
 
     let gameSession = getGameSession()
@@ -22,13 +24,13 @@
     const tableHeightMobileClass = 'max-sm:h-[calc(100dvh-var(--app-shell-height))]'
     const tableHeightDesktopClass = 'sm:h-[calc(100dvh-var(--app-shell-height))]'
     const tableInnerHeightMobileClass =
-        'max-sm:h-[calc(100dvh-16px-44px-var(--app-shell-height))]'
-    const tableInnerHeightDesktopClass = 'sm:h-[calc(100dvh-16px-var(--app-shell-height))]'
+        'max-sm:h-[calc(100dvh-8px-var(--table-top-padding)-44px-var(--app-shell-height))]'
+    const tableInnerHeightDesktopClass = 'sm:h-[calc(100dvh-8px-var(--table-top-padding)-var(--app-shell-height))]'
 </script>
 
 <div
     class="flex w-full overflow-auto {tableHeightDesktopClass} {tableHeightMobileClass} box-border"
-    style="--app-shell-height: calc(var(--app-navbar-height, 0px) + var(--app-banner-height, 0px)); --table-height-offset: var(--app-shell-height); --safe-area-right: env(safe-area-inset-right, 0px); --safe-area-bottom: env(safe-area-inset-bottom, 0px); --safe-area-left: env(safe-area-inset-left, 0px); padding: 0 var(--safe-area-right) var(--safe-area-bottom) var(--safe-area-left);"
+    style="--table-top-padding: {topPadding}px; --app-shell-height: calc(var(--app-navbar-height, 0px) + var(--app-banner-height, 0px)); --table-height-offset: var(--app-shell-height); --safe-area-right: env(safe-area-inset-right, 0px); --safe-area-bottom: env(safe-area-inset-bottom, 0px); --safe-area-left: env(safe-area-inset-left, 0px); padding: 0 var(--safe-area-right) var(--safe-area-bottom) var(--safe-area-left);"
 >
     <div class="flex flex-col w-full">
         <div class="sm:hidden">
@@ -39,7 +41,7 @@
             {/if}
         </div>
         <div {@attach scrollToRight} class="w-full overflow-auto">
-            <div class="p-2 w-full h-full flex flex-row justify-between items-start">
+            <div class="p-2 w-full h-full flex flex-row justify-between items-start" style:padding-top={topPadding + 'px'}>
                 <div
                     class="flex flex-col gap-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] {tableInnerHeightDesktopClass} {tableInnerHeightMobileClass}"
                 >

@@ -66,9 +66,6 @@
         return orderChanges.has(action.id) ? { ...description, important: true } : description
     }
 
-    function select(action: GameAction) {
-        if (action.index !== undefined) session.history.goToActionIndex(action.index)
-    }
     function lot(lotId: string) {
         const lot = session.offerAuction?.lots.find((lot) => lot.id === lotId)
         assertExists(lot, 'Auction history requires a known offered lot')
@@ -86,8 +83,6 @@
                             card={entry}
                             lot={lot(entry.offer.lotId)}
                             playerName={(id) => session.getPlayerName(id)}
-                            disabled={session.busy || session.updatingVisibleState}
-                            onSelect={select}
                         />
                     </li>
                 {:else}
@@ -108,8 +103,6 @@
                             {describe}
                             {companyName}
                             {lastOwnActionId}
-                            disabled={session.busy || session.updatingVisibleState}
-                            onSelect={select}
                         />
                     </li>
                 {/if}

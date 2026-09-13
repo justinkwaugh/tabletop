@@ -594,7 +594,7 @@ edge turns; these are static annotations, not controls or staged movement.
 
 Company order sits between the action area and view tabs, outside ScalingWrapper.
 Its ordered token list follows the displayed OperatingSet, including completed
-companies, with checks on completed turns. The current company uses the ordinary
+companies, with completed turns dimmed and no checkmarks. The current company uses the ordinary
 pill styling; its operating status remains available through accessible semantics.
 Pills sit below the operating-order heading. Each places a 38px company token filling the rounded left end
 beside two compact lines: the available station-token count and tiny token icon
@@ -871,3 +871,72 @@ Company operation headers use a subtle contrasting background behind the token, 
 SR/OR interstitial backgrounds use the active phase’s train-color mapping, including split backgrounds for changes within the round. Phase-change entries separately compare the title’s available tile colors and explicitly announce newly unlocked colors (“green tiles now available”). These are distinct inputs even when their colors coincide in TOP and 1889.
 
 Train palettes use title-owned hex colors, separate from tile colors. TOP uses its ten train-roster colors (including blue 2+, cyan 3+, and red 7); badges select contrasting text and SR/OR bands tint those same colors. End cash uses a single-line label beside the amount, with a short rule above the amount.
+
+During a live, actionable RunningTrains step, the table starts client-side
+autorouting in a title-owned Web Worker. Its state-tagged result is an automatic
+transient preview owned by FinanceExampleSession. It renders paths on the map
+and per-train income in the action panel, using matching route colors and the
+title's train badges. The panel has one Run trains action and no manual route
+selection. Trains with no run display zero income; an empty fleet can submit an
+empty run. Pending and failed calculation states do not offer submission.
+
+The worker is canceled on visible-state transition, history navigation or panel
+teardown; stale replies cannot publish a preview. Before publishing, the session
+validates routes against that same canonical state. Automatic previews take
+precedence over company-network focus, including an empty route result. Only
+Run trains commits a Game Action. Undo skips this automatic preview and undoes
+the last committed action; returning to RunningTrains calculates a new preview.
+Recorded route results continue to render after submission and during history.
+The logic workbench retains its independent manual editor.
+
+Automatic run income uses a compact two-column train/income table with a total
+row. Map routes use a fully opaque 8-unit colored stroke without a white outline,
+with revenue centers/stations above it. This keeps runs distinct from black
+track without obscuring tokens or changing path geometry.
+
+When an automatic route preview becomes available, GameTable opens the Map tab
+and focuses the union of its route locations. Clicking anywhere in a train's
+income row focuses that individual route; the same row toggles back to the full
+map. Rows without a run are disabled. Focus uses the existing ScalingWrapper
+focusRect animation and the same contextual padding as company station focus.
+Location/company/route focus clear one another's toggle identity.
+
+Camera motion remains local presentation: it neither submits an action nor gates
+play, and the wrapper owns interruption and teardown. Automatic focus runs once
+per new preview, not on tab changes or manual panning; a pending focus is canceled
+when the preview disappears. Empty route sets do not move the camera. Returning
+to RunningTrains through Undo recalculates and focuses the new preview.
+
+The turn header pairs the current operating company's name with its title-owned
+token. The phase is a button opening a native modal phase chart with a full-screen
+backdrop. Its independent phase and train tables use canonical title data and
+highlight the current visible phase, including history positions. Special rust
+timing is explicit in the chart notes. Opening/closing is local presentation with
+no Action or Undo step. The native dialog owns focus containment, Escape,
+backdrop dismissal and focus restoration; it sits in the browser's top layer.
+
+Phase-chart rows include a title-supplied Notes column for phase-specific
+purchasing windows, private closures and diesel availability. Compact table
+spacing makes room for those notes beside their phase; delayed rusting remains
+an explicitly marked train footnote. General rules that do not belong to a
+particular phase remain beneath the chart.
+
+The clickable header phase uses the same colored badge and contrasting text as
+its phase-chart entry, following the title's train-phase palette rather than its
+available tile colors.
+
+The turn header uses its own available width to shorten Operating round/Stock
+round to OR/SR only when the full heading and turn controls exceed the available width. The table opts out of DefaultTableLayout's top inset;
+its history controls and turn header share a 44px border-box height and aligned
+bottom borders. The action panel no longer adds a second top border. Other
+DefaultTableLayout consumers retain the default 8px top inset.
+
+History train-run entries show train badges and total revenue without listing route stops.
+
+History action rows and group headers are read-only; clicking them does not move the history cursor. Navigation remains in the history controls and round interstitials.
+
+Round interstitials moving through the history use a stronger full-width divider band and bolder labels to separate rounds clearly. Docked stacks retain their compact styling and phase colors. This treatment follows scroll layout locally and does not alter header positions or row heights.
+
+System-action history groups omit an actor heading; their events appear directly without a “Game” label or empty header space.
+
+Each OR starts with one “Operating order” entry showing the entire ordered token list, even when unchanged. The set-start bookkeeping action is hidden. This order entry has no bottom divider or movement arrows; later order changes retain their movement diagrams.

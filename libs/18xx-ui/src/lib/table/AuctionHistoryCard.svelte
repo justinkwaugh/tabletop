@@ -1,55 +1,43 @@
 <script lang="ts">
     import type { AuctionLot } from '@tabletop/18xx'
-    import type { GameAction } from '@tabletop/common'
     import type { AuctionHistoryCard } from './auctionHistory.js'
     let {
         card,
         lot,
         playerName,
-        disabled,
-        onSelect
     }: {
         card: AuctionHistoryCard
         lot: AuctionLot
         playerName: (id: string) => string
-        disabled: boolean
-        onSelect: (action: GameAction) => void
     } = $props()
 </script>
 
 <article aria-label={`${lot.name} auction history`}>
     <header>
-        <button
-            disabled={disabled || card.offer.index === undefined}
-            onclick={() => onSelect(card.offer)}
+        <div class="history-entry"
         >
             <strong>{playerName(card.offer.playerId)}</strong> offered <strong>{lot.name}</strong> for
             auction
-        </button>
+        </div>
     </header>
     <div class="events">
         {#each card.events as event (event.id)}
-            <button
-                disabled={disabled || event.index === undefined}
-                onclick={() => onSelect(event)}
+            <div class="history-entry"
             >
                 <span>{playerName(event.playerId)}</span>
                 {#if event.type === 'BidOnAuctionLot'}<span
                         >bid <strong>${event.amount.toLocaleString('en-US')}</strong></span
                     >{:else}<span class="passed">passed</span>{/if}
-            </button>
+            </div>
         {/each}
         {#if card.award && card.resolution}
-            {@const resolution = card.resolution}
-            <button
-                class="winner"
-                disabled={disabled || resolution.index === undefined}
-                onclick={() => onSelect(resolution)}
+            <div
+                class="history-entry winner"
             >
                 <strong>{playerName(card.award.playerId)} won</strong><strong
                     >${card.award.price.toLocaleString('en-US')}</strong
                 >
-            </button>
+            </div>
         {:else if !card.events.length}<div class="initial">
                 Starting value <strong>${lot.price.toLocaleString('en-US')}</strong>
             </div>{/if}
@@ -71,25 +59,15 @@
     header {
         background: #ffffff30;
     }
-    button {
+    .history-entry {
         width: 100%;
+        box-sizing: border-box;
         border: 0;
         background: none;
         color: inherit;
         font: inherit;
         text-align: left;
-        cursor: pointer;
         padding: 3px 6px;
-    }
-    button:hover:not(:disabled) {
-        background: #e7ddce66;
-    }
-    button:focus-visible {
-        outline: 2px solid #a87948;
-        outline-offset: -2px;
-    }
-    button:disabled {
-        cursor: default;
     }
     strong {
         font-weight: 600;
@@ -97,7 +75,7 @@
     .events {
         padding: 3px 0;
     }
-    .events button,
+    .events .history-entry,
     .initial {
         display: flex;
         justify-content: space-between;
@@ -108,7 +86,7 @@
     .initial {
         color: #887664;
     }
-    .events button.winner {
+    .events .history-entry.winner {
         border-top: 1px solid #e3d9cd;
         margin-top: 3px;
         padding-top: 3px;

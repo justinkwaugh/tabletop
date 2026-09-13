@@ -26,7 +26,7 @@ export const Shikoku1889StockRoundRules: StockRoundRules = {
         )
     }
 }
-const OperatingRoundCounts: Record<string, number> = {
+export const Shikoku1889OperatingRoundCounts: Record<string, number> = {
     '2': 1,
     '3': 2,
     '4': 2,
@@ -36,7 +36,7 @@ const OperatingRoundCounts: Record<string, number> = {
 }
 export const Shikoku1889OperatingRules: OperatingRules = {
     roundCount(state) {
-        const count = OperatingRoundCounts[state.phaseId]
+        const count = Shikoku1889OperatingRoundCounts[state.phaseId]
         assertExists(count, 'Unknown phase')
         return count
     },

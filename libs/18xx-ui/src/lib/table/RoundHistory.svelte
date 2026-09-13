@@ -44,6 +44,10 @@
             }))
             const positions = roundHeaderPositions(headers, viewport.clientHeight, rowHeight)
             for (let i = 0; i < markers.length; i++) {
+                const inline = Math.abs(positions[i] - headers[i].top) < 1 &&
+                    positions[i] > 0 && positions[i] < viewport.clientHeight - rowHeight
+                bands[i].dataset.inline = String(inline)
+                buttons[i].dataset.inline = String(inline)
                 bands[i].style.transform = `translateY(${positions[i]}px)`
                 buttons[i].style.transform = `translateY(${positions[i]}px)`
                 const next = headers.findIndex(
@@ -189,6 +193,18 @@
         background: #ece8e1;
         border-bottom: 1px solid #9b93884d;
         box-sizing: border-box;
+    }
+    .round-band:global([data-inline='true']) {
+        background: #6f5c46;
+        border-top: 1px solid #6f5c46;
+        border-bottom: 1px solid #6f5c46;
+    }
+    nav button:global([data-inline='true']) {
+        border-radius: 0;
+        font-size: 11px;
+        font-weight: 750;
+        color: #29271f;
+        box-shadow: inset 0 1px #6f5c46, inset 0 -1px #6f5c46;
     }
     nav button {
         position: absolute;

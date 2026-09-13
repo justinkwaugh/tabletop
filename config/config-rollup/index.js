@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { moduleWorkers } from './workers.js'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import svelte from 'rollup-plugin-svelte'
@@ -152,6 +153,7 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
         plugins: [
             createResolveJsExtensions(packageRoot),
             createLibAlias(packageRoot),
+            moduleWorkers(),
             typescript({ tsconfig: path.join(packageRoot, 'tsconfig.rollup.json') }),
             commonjs(),
             svelte({

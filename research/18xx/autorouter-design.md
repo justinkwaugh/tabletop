@@ -10,8 +10,8 @@ ordinary `OperatingResult`, completion status and timing/search metrics.
 
 Game state, Actions and state handlers do not change. Loading and running the
 solver is a client concern. It neither mutates state nor commits `RunTrains`.
-Future UI integration should populate a local route draft through the Game
-Session; it is not part of this change. The Rust crate is the maintained solver;
+The table UI keeps automatic routes as a local preview in the Game Session
+until the player submits Run trains. The Rust crate is the maintained solver;
 the separate research harness consumes its built artifact.
 
 ## Rule evidence and family review
@@ -85,3 +85,33 @@ compare with the search optimum. Native tests use a separate permutation oracle.
   606 previously validated external 1830/1817/1850 problems, after converting
   their numeric-distance encoding to wire version 2. Those fixtures and adapters
   remain outside the repository.
+
+
+## Table integration
+
+The existing family survey above also governs the worker protocol, action panel,
+and map preview. Route and fleet restrictions remain in title-provided
+RouteRules; the UI does not assume equal train distance, revenue per stop,
+a nonempty fleet, or that every owned train can run. The action panel lists all
+owned trains, including unused trains with zero revenue, and pairs their incomes
+with the same colors as the map paths. More specialized routing policies in the
+survey remain unsupported by the solver until encoded explicitly.
+
+Each title owns a module-worker entry that supplies its rules. The shared
+autorouter serves a canonical state snapshot and company ID, returning an
+evaluated fleet with completion status. No title dependency enters a shared
+package. Vite and the UI Artifact Rollup build both package the worker and WASM;
+Rollup's shared module-worker plugin emits entry chunks and referenced assets.
+
+The RunningTrains panel starts a worker only for a live actionable state and
+terminates it on state transition, history navigation, teardown, or completion.
+An in-flight response must still belong to the same state before the session
+revalidates it through RouteEvaluation and exposes the preview. Only the session's
+Run trains method submits the ordinary RunTrains Action. Automatic calculation
+never adds an action or consumes an Undo step. The manual route editor remains
+available only in the separate logic workbench.
+
+Verification includes real browser workers for both titles, map/panel revenue
+agreement, commit and Undo, abandoning an in-flight calculation, and execution of
+the packaged worker with its emitted WASM. Time-limited results are labeled;
+this integration does not claim that a nonexhaustive search found the optimum.

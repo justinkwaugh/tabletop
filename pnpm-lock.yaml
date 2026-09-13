@@ -2042,6 +2042,9 @@ importers:
       '@tabletop/18xx':
         specifier: workspace:*
         version: link:../../libs/18xx
+      '@tabletop/18xx-autorouter':
+        specifier: workspace:*
+        version: link:../../libs/18xx-autorouter
       '@tabletop/18xx-ui':
         specifier: workspace:*
         version: link:../../libs/18xx-ui
@@ -2301,6 +2304,9 @@ importers:
       '@tabletop/18xx':
         specifier: workspace:*
         version: link:../../libs/18xx
+      '@tabletop/18xx-autorouter':
+        specifier: workspace:*
+        version: link:../../libs/18xx-autorouter
       '@tabletop/18xx-ui':
         specifier: workspace:*
         version: link:../../libs/18xx-ui
@@ -2564,6 +2570,9 @@ importers:
       '@tabletop/18xx':
         specifier: workspace:*
         version: link:../18xx
+      '@tabletop/18xx-autorouter':
+        specifier: workspace:*
+        version: link:../18xx-autorouter
       '@tabletop/common':
         specifier: workspace:*
         version: link:../common
