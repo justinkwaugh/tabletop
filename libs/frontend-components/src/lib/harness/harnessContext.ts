@@ -6,7 +6,8 @@ import { HarnessLibraryService } from './harnessLibraryService.js'
 import { HarnessManifestService } from './harnessManifestService.js'
 import type { AppContext } from '$lib/model/appContext.js'
 import { VisibilityService } from '$lib/services/visibilityService.svelte.js'
-import { DummyRemoteApiService } from './dummyRemoteApiService.js'
+import type { DummyRemoteApiService } from './dummyRemoteApiService.js'
+import { HarnessPreferenceApi } from './harnessPreferenceApi.js'
 import type { GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
 import type { GameState, HydratedGameState } from '@tabletop/common'
 
@@ -15,7 +16,6 @@ const notificationService = new DummyNotificationService()
 
 const visibilityService = new VisibilityService() // No reason not to use the real one
 const chatService = new HarnessChatService()
-const api = new DummyRemoteApiService()
 
 export type HarnessAppContext = AppContext & {
     chatService: HarnessChatService
@@ -37,6 +37,6 @@ export function createHarnessAppContext(
         gameService,
         chatService,
         visibilityService,
-        api
+        api: new HarnessPreferenceApi(definition.info.id, definition.info.preferences)
     }
 }

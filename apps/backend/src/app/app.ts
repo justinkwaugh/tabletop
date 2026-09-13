@@ -125,7 +125,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         origin: [FRONTEND_HOST],
         credentials: true,
         methods: ['GET', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-        exposedHeaders: ['X-Tabletop-Version']
+        exposedHeaders: ['X-Tabletop-Version', 'ETag']
     })
 
     await fastify.register(SecureSession, {

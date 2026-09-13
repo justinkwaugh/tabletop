@@ -58,3 +58,5 @@ export * from './utils/publishCssVarFromRect.js'
 export * from './utils/runeBackedStore.svelte.js'
 
 export * from './utils/validateLocalGameState.js'
+
+export { TitlePreferences } from './preferences/titlePreferences.svelte.js'

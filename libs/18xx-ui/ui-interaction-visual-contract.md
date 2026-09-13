@@ -973,3 +973,18 @@ checks cover past placements, recorded routes, unchanged table state, read-only
 map interaction, fullscreen return, repeat-click closing and Undo invalidation for
 both titles. The projection test also verifies action-boundary accuracy and that
 neither the source state nor recorded undo patches are mutated.
+
+## Operating-order display preference
+
+The existing tokens/details control updates the session's user preference at
+18xx family scope. CompanyOrder renders that resolved choice; it owns no saved
+preference state. The change is immediate, survives game-instance changes and
+reload, and carries between TOP and 1889 for the same account. It leaves the
+operating roster, open company card, turn, and canonical state unchanged.
+
+Preferences belong to the signed-in account even when viewing another player,
+history, or an exploration. Saves are serialized; failures revert the failed
+choice and show a toast. Signing into a different account discards the previous
+account's pending presentation and ignores late responses. Undo and action-state
+reset do not reset preferences. See `docs/title-preferences.md` for inheritance,
+API/cache behavior, and mixed-artifact adoption.

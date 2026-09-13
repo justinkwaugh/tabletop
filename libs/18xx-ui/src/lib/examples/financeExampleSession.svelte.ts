@@ -1,3 +1,5 @@
+import { EighteenXXPreferenceDefinition, type EighteenXXPreferences } from '@tabletop/18xx'
+import type { TitlePreferences } from '@tabletop/frontend-components'
 import { FinanceExampleValidator } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 import { HistoricalMaps, type HistoricalMap } from '../maps/historicalMap.js'
@@ -179,6 +181,7 @@ type Selection =
     | { kind: 'sale'; request: SaleRequest }
     | { kind: 'start'; stages: CompanyStartSelection }
 export class FinanceExampleSession extends GameSession<GameState, HydratedGameState> {
+    readonly preferences: TitlePreferences<typeof EighteenXXPreferences> = this.createPreferences(EighteenXXPreferenceDefinition)
     selection: Selection | undefined = $state()
     constructor(
         options: SessionOptions,

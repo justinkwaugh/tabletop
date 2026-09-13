@@ -167,3 +167,12 @@ Session, including reload, the final System Action, and restoration of the prior
 state. The fix is bundled with each newly published UI Artifact; existing UI
 Artifacts retain their previous Game Session implementation. No host bridge fields
 or injected capabilities change.
+
+## Title preference controls
+
+Game Sessions may create a typed TitlePreferences model using their injected API.
+Controls optimistically update it without creating game actions. The model owns
+explicit overrides, inheritance, save serialization, conflict retry, error
+reporting, account changes, and disposal. Host API methods are optional so older
+hosts continue to support session-local presentation choices. The ordinary dev
+harness supplies localStorage persistence through the same preference contract.

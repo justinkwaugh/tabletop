@@ -1,5 +1,8 @@
+import type * as Type from 'typebox'
+import { TitlePreferences } from '../preferences/titlePreferences.svelte.js'
 import * as Value from 'typebox/value'
 import {
+    type TitlePreferenceDefinition,
     ActionSource,
     Game,
     GameAction,
@@ -703,7 +706,22 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
     }
 
+    private preferenceDisposers: (() => void)[] = []
+
+    protected createPreferences<P extends Type.TObject>(definition: TitlePreferenceDefinition<P>) {
+        const preferences = new TitlePreferences(
+            definition,
+            this.game.typeId,
+            this.api,
+            () => this.sessionUserStore.current?.id,
+            (message) => toast.error(`Preferences: ${message}`)
+        )
+        this.preferenceDisposers.push(() => preferences.dispose())
+        return preferences
+    }
+
     dispose() {
+        for (const dispose of this.preferenceDisposers) dispose()
         this.notifications.stop()
         this.representations.dispose()
         this.effectDisposer()

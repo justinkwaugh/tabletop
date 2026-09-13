@@ -1,3 +1,4 @@
+import { EighteenXXPreferenceDefinition } from '@tabletop/18xx'
 import { prepareTheOldPrinceEnding } from './endingExample.js'
 import { TheOldPrinceEndingRules } from './endingRules.js'
 import { TheOldPrinceStockRoundHandler } from './stockRoundHandler.js'
@@ -55,6 +56,7 @@ const FinanceRuntime = createFinanceExampleRuntime({
 
 export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExampleState> = {
     info: {
+        preferences: EighteenXXPreferenceDefinition,
         configurator: new FinanceExampleConfigurator(),
         id: 'the-old-prince',
         metadata: {

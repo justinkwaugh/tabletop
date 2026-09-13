@@ -262,6 +262,12 @@
             </section>
             {#if companyOrder.length}
             <CompanyOrder
+                showDetails={session.preferences.values.operatingOrderDisplay === 'details'}
+                onDisplayChange={(details) =>
+                    session.preferences.set(
+                        { operatingOrderDisplay: details ? 'details' : 'tokens' },
+                        'family'
+                    )}
                 companies={companyOrder}
                 state={financialState}
                 trainDepot={session.trainDepot}

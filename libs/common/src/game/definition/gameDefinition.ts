@@ -1,3 +1,4 @@
+import type { TitlePreferenceDefinition } from '../../preferences/preferences.js'
 import type * as Type from 'typebox'
 import type { Validator } from 'typebox/compile'
 import type { GameHydrator } from './gameHydrator.js'
@@ -16,6 +17,7 @@ export interface GameInfo {
     id: string
     metadata: GameMetadata
     configurator?: GameConfigurator
+    preferences?: TitlePreferenceDefinition
 }
 
 export interface GameRuntime<

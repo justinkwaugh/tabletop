@@ -1,3 +1,4 @@
+import { EighteenXXPreferenceDefinition } from '@tabletop/18xx'
 import { prepareShikoku1889Ending } from './endingExample.js'
 import { Shikoku1889EndingRules } from './endingRules.js'
 import { Shikoku1889AuctionRules } from './openingAuction.js'
@@ -28,6 +29,7 @@ import { createShikoku1889CompanyExample } from './companyExamples.js'
 
 export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExampleState> = {
     info: {
+        preferences: EighteenXXPreferenceDefinition,
         configurator: new FinanceExampleConfigurator(),
         id: 'shikoku-1889',
         metadata: {

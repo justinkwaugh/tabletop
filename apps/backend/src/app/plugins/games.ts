@@ -2,6 +2,7 @@ import fp from 'fastify-plugin'
 import { FastifyInstance } from 'fastify'
 import { GameDefinition } from '@tabletop/common'
 
+import Preferences from '../routes/titleSpecific/preferences.js'
 import CreateGame from '../routes/titleSpecific/create.js'
 import StartGame from '../routes/titleSpecific/start.js'
 import ApplyAction from '../routes/titleSpecific/action.js'
@@ -64,6 +65,7 @@ async function registerGame(
                 return payload
             })
 
+            await instance.register(Preferences.bind(null, definition))
             await instance.register(CreateGame.bind(null, definition))
             await instance.register(StartGame.bind(null, definition))
             await instance.register(UndoAction.bind(null, definition))

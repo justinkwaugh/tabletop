@@ -1,6 +1,8 @@
 import path from 'node:path'
 import {
     GameService,
+    PreferenceService,
+    FirestorePreferenceStore,
     LibraryService,
     CloudTasksTaskService,
     EmailService,
@@ -42,6 +44,7 @@ declare module 'fastify' {
         taskService: TaskService
         tokenService: TokenService
         userService: UserService
+        preferenceService: PreferenceService
         emailService: EmailService
         secretsService: SecretsService
         gameService: GameService
@@ -144,6 +147,10 @@ export default fp(async (fastify: FastifyInstance) => {
     fastify.decorate('taskService', taskService)
     fastify.decorate('tokenService', tokenService)
     fastify.decorate('userService', userService)
+    fastify.decorate(
+        'preferenceService',
+        new PreferenceService(new FirestorePreferenceStore(fastify.firestore), redisCacheService)
+    )
     fastify.decorate('emailService', emailService)
     fastify.decorate('secretsService', secretsService)
     fastify.decorate('gameService', gameService)

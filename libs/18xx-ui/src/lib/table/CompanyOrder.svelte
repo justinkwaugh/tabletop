@@ -14,6 +14,8 @@
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     let {
+        showDetails,
+        onDisplayChange,
         companies,
         state: financialState,
         trainDepot,
@@ -25,6 +27,8 @@
         prospective = false,
         companyDetails
     }: {
+        showDetails: boolean
+        onDisplayChange: (details: boolean) => void
         companies: readonly Company[]
         state: Pick<FinancialState, 'cash'> & TrainState & StationState
         trainColors: Readonly<Record<string, string>>
@@ -37,7 +41,6 @@
         companyDetails: Snippet<[Company]>
     } = $props()
     let scrollArea: HTMLOListElement | undefined = $state()
-    let showDetails = $state(true)
     let overflowing = $state(false)
     let firstVisible = $state(-1)
     let lastVisible = $state(-1)
@@ -109,7 +112,7 @@
             <button
                 aria-label="Tokens only"
                 aria-pressed={!showDetails}
-                onclick={() => (showDetails = false)}
+                onclick={() => onDisplayChange(false)}
             >
                 <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
                     <circle cx="8" cy="8" r="7" fill="currentColor" />
@@ -119,7 +122,7 @@
             <button
                 aria-label="Detailed chips"
                 aria-pressed={showDetails}
-                onclick={() => (showDetails = true)}
+                onclick={() => onDisplayChange(true)}
             >
                 <svg width="29" height="16" viewBox="0 0 29 16" aria-hidden="true">
                     <path
