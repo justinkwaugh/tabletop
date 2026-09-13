@@ -12,6 +12,7 @@ import {
 import Fastify from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import startGameRoute from './start.js'
+import continueGameRoute from './continue.js'
 
 const user: User = {
     id: 'user-1',
@@ -97,7 +98,7 @@ function createStartedGame(): Game {
     }
 }
 
-async function createServer() {
+async function createServer(operation: 'start' | 'continue') {
     const server = Fastify()
     await server.register(fastifyAuth)
 
@@ -108,13 +109,17 @@ async function createServer() {
 
     const startedGame = createStartedGame()
     const startGame = vi.fn(async () => startedGame)
-    Reflect.set(server, 'gameService', { startGame })
+    Reflect.set(server, 'gameService', {
+        [operation === 'start' ? 'startGame' : 'continueGame']: startGame
+    })
 
-    await server.register(startGameRoute.bind(undefined, definition))
+    await server.register(
+        (operation === 'start' ? startGameRoute : continueGameRoute).bind(undefined, definition)
+    )
     return { server, startGame, startedGame }
 }
 
-describe('POST /start', () => {
+describe('game initialization routes', () => {
     const servers = new Set<ReturnType<typeof Fastify>>()
 
     afterEach(async () => {
@@ -122,23 +127,26 @@ describe('POST /start', () => {
         servers.clear()
     })
 
-    it('omits the canonical initial state from its response', async () => {
-        const { server, startGame, startedGame } = await createServer()
-        servers.add(server)
+    it.each(['start', 'continue'] as const)(
+        'POST /%s omits canonical state from its response',
+        async (operation) => {
+            const { server, startGame, startedGame } = await createServer(operation)
+            servers.add(server)
 
-        const response = await server.inject({
-            method: 'POST',
-            url: '/start',
-            payload: { gameId: startedGame.id }
-        })
+            const response = await server.inject({
+                method: 'POST',
+                url: `/${operation}`,
+                payload: { gameId: startedGame.id }
+            })
 
-        expect(response.statusCode).toBe(200)
-        expect(response.json().payload.game).not.toHaveProperty('state')
-        expect(startedGame).toHaveProperty('state')
-        expect(startGame).toHaveBeenCalledWith({
-            definition,
-            gameId: startedGame.id,
-            user
-        })
-    })
+            expect(response.statusCode).toBe(200)
+            expect(response.json().payload.game).not.toHaveProperty('state')
+            expect(startedGame).toHaveProperty('state')
+            expect(startGame).toHaveBeenCalledWith({
+                definition,
+                gameId: startedGame.id,
+                user
+            })
+        }
+    )
 })

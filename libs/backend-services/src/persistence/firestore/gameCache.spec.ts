@@ -435,13 +435,14 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             await store.addActionsToGame({
                 game,
                 actions: [action],
-                state: { ...state, actionCount: 1, result: GameResult.Draw },
+                state: { ...state, actionCount: 1, result: GameResult.Draw, canContinue: true },
                 validator: async () => UpdateValidationResult.Proceed
             })
             expect(await store.findGamesForUser(owner, GameStatusCategory.Active)).toEqual([])
             expect(
                 (await store.findGamesForUser(owner, GameStatusCategory.Completed)).map((g) => g.id)
             ).toEqual([game.id])
+            expect((await store.findGameById(game.id, false))?.canContinue).toBe(true)
             await primeUser(owner, GameStatusCategory.Active)
             await primeUser(owner, GameStatusCategory.Completed)
             await store.undoActionsFromGame({
@@ -455,6 +456,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 (await store.findGamesForUser(owner, GameStatusCategory.Active)).map((g) => g.id)
             ).toEqual([game.id])
             expect(await store.findGamesForUser(owner, GameStatusCategory.Completed)).toEqual([])
+            expect((await store.findGameById(game.id, false))?.canContinue).toBe(false)
         })
 
         it('uses authoritative dependencies when deleting with stale metadata', async () => {

@@ -54,6 +54,7 @@
             return false
         }
 
+        if (game.continuedFromGameId && myPlayer?.status === PlayerStatus.Declined) return true
         if (hasPendingGameInvitation(game, sessionUser?.id)) {
             return true
         }
@@ -82,6 +83,7 @@
             !loading &&
             isOwnedByMe &&
             !game.parentId &&
+            !game.continuedFromGameId &&
             (game.status === GameStatus.WaitingForPlayers ||
                 game.status === GameStatus.WaitingToStart)
     )
@@ -91,6 +93,14 @@
     )
     let canPlay = $derived(isMine && game.status === GameStatus.Started)
     let canWatch = $derived(!isMine && game.status === GameStatus.Started)
+    let continuing = $state(false)
+    let canContinue = $derived(
+        !game.tournament &&
+            isOwnedByMe &&
+            gameService.continueGame !== undefined &&
+            (game.continuedToGameId !== undefined ||
+                (game.status === GameStatus.Finished && game.canContinue === true))
+    )
     let canRevisit = $derived(game.status === GameStatus.Finished)
     let canDelete = $derived(!game.tournament && (isOwnedByMe || authorizationService.isAdmin))
 
@@ -140,6 +150,23 @@
         event.stopPropagation()
         game = await gameService.declineGame(game.id)
         ondecline?.(game)
+    }
+
+    async function continueGame(event: Event) {
+        event.stopPropagation()
+        if (!gameService.continueGame || continuing) return
+        continuing = true
+        try {
+            const next = await gameService.continueGame(game)
+            game = { ...game, continuedToGameId: next.id }
+            await goto(
+                next.status === GameStatus.Started || next.status === GameStatus.Finished
+                    ? `/game/${next.id}`
+                    : '/dashboard'
+            )
+        } finally {
+            continuing = false
+        }
     }
 
     async function startGame(event: Event) {
@@ -291,6 +318,14 @@
                                             : canPlay
                                               ? 'Enter'
                                               : 'Watch'}</Button
+                                    >
+                                {:else if canContinue}
+                                    <Button
+                                        size="xs"
+                                        color="primary"
+                                        class="h-[20px]"
+                                        disabled={continuing}
+                                        onclick={continueGame}>Continue</Button
                                     >
                                 {:else if canRevisit}
                                     <Button
@@ -498,6 +533,15 @@
                             {:else if canPlay || canWatch}
                                 <Button size="xs" color="primary" class="mx-2" onclick={playGame}
                                     >{canPlay ? 'Play' : 'Watch'}&nbsp;Game</Button
+                                >
+                            {/if}
+                            {#if canContinue}
+                                <Button
+                                    size="xs"
+                                    color="primary"
+                                    class="mx-2"
+                                    disabled={continuing}
+                                    onclick={continueGame}>Continue</Button
                                 >
                             {/if}
                             {#if canRevisit}

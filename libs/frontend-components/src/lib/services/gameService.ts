@@ -26,6 +26,7 @@ export type GameService = {
     ): Promise<{ game?: Game; actions: GameAction[] }>
 
     createGame(game: Partial<Game>, options?: GameCreationOptions): Promise<Game>
+    continueGame?(game: Game): Promise<Game>
     forkGame(game: Partial<Game>, actionIndex: number, name: string): Promise<Game>
     updateGame(game: Partial<Game>): Promise<Game>
 

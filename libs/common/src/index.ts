@@ -2,6 +2,7 @@ export * from './game/engine/gameAction.js'
 export * from './game/engine/canonicalActionReplay.js'
 export * from './game/engine/gameEngine.js'
 export * from './game/engine/gameFork.js'
+export * from './game/engine/gameContinuation.js'
 export * from './game/engine/machineStateHandler.js'
 export * from './game/engine/machineContext.js'
 

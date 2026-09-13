@@ -11,11 +11,13 @@ export interface GameInitializer<
     U extends HydratedGameState<T> = HydratedGameState<T>
 > {
     readonly supportsStartingPositions?: boolean
+    readonly supportsContinuation?: boolean
     initializeGame(game: Partial<Game>, definition: GameDefinition<T, U>): Game
     initializeGameState(
         game: Game,
         state: UninitializedGameState,
-        assignment?: StartingPositionAssignment
+        assignment?: StartingPositionAssignment,
+        previousState?: Readonly<T>
     ): U
 }
 
@@ -26,7 +28,8 @@ export abstract class BaseGameInitializer<
     abstract initializeGameState(
         game: Game,
         state: UninitializedGameState,
-        assignment?: StartingPositionAssignment
+        assignment?: StartingPositionAssignment,
+        previousState?: Readonly<T>
     ): U
 
     initializeGame(game: Partial<Game>, definition: GameDefinition<T, U>): Game {

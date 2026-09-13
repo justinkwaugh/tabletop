@@ -43,7 +43,8 @@ export type ActionCascadeResult<T extends GameState = GameState> = ActionResult<
     actionCascade: CanonicalActionCascade<T>
 }
 
-export interface GameStartOptions extends GameCreationOptions {
+export interface GameStartOptions<T extends GameState = GameState> extends GameCreationOptions {
+    previousState?: T
     startingPositions?: StartingPositionAssignment
 }
 
@@ -111,10 +112,13 @@ export class GameEngine<
 
     startGame(
         game: Game,
-        options: GameStartOptions | string = {}
+        options: GameStartOptions<T> | string = {}
     ): { startedGame: Game; initialState: T } {
-        const { masterSeed, startingPositions: assignment } =
-            typeof options === 'string' ? { masterSeed: options } : options
+        const {
+            masterSeed,
+            startingPositions: assignment,
+            previousState
+        } = typeof options === 'string' ? { masterSeed: options } : options
         if (game.startedAt !== null && game.startedAt !== undefined) {
             throw Error('Game is already started')
         }
@@ -131,6 +135,37 @@ export class GameEngine<
             )
         }
 
+        let continuationState: T | undefined
+        if (game.continuedFromGameId !== undefined || previousState !== undefined) {
+            assert(
+                initializer.supportsContinuation === true,
+                'This initializer does not support continuation'
+            )
+            assertExists(previousState, 'Continuation requires the captured previous state')
+            continuationState = this.runtime.hydrator
+                .hydrateState(structuredClone(previousState))
+                .dehydrate()
+            this.validateCanonicalState(continuationState)
+            assert(
+                continuationState.result !== undefined && continuationState.canContinue === true,
+                'Previous game is not ready to continue'
+            )
+            assert(
+                continuationState.gameId === game.continuedFromGameId,
+                'Continuation source does not match'
+            )
+            const previousPlayers = continuationState.players
+            assert(
+                game.players.length === previousPlayers.length &&
+                    new Set(game.players.map((player) => player.id)).size ===
+                        previousPlayers.length &&
+                    game.players.every((player) =>
+                        previousPlayers.some((previous) => previous.playerId === player.id)
+                    ),
+                'Continuation must preserve player identities'
+            )
+        }
+
         const startedGame = structuredClone(game)
         startedGame.startedAt = new Date()
         startedGame.status = GameStatus.Started
@@ -143,7 +178,8 @@ export class GameEngine<
         const initialState = initializer.initializeGameState(
             seededGame,
             uninitializedState,
-            assignment
+            assignment,
+            continuationState
         )
 
         const machineContext = new MachineContext({

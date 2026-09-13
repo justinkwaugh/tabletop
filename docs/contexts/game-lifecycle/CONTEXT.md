@@ -96,6 +96,10 @@ A Primary Game Context whose Action history requires repair before it agrees wit
 
 ## Undo and derivation
 
+**Continuation**:
+A new Game Instance initialized from a captured final Game State of another Game Instance, preserving its Game Title, Game Configuration and Players while starting fresh play and history. A source has at most one Continuation, whose setup is independent of subsequent source Undo or deletion.
+_Avoid_: Fork, resumed Game
+
 **Undo Request**:
 A request to remove an eligible User Action and its resulting Action-history suffix from a Game Instance.
 

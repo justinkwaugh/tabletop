@@ -4,6 +4,8 @@ import type {
     CanonicalActionReplay,
     Game,
     GameAction,
+    GameCatalogEntry,
+    GameHistoryPage,
     GameChat,
     GameChatMessage,
     GameState,
@@ -43,6 +45,14 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async getTournament(): Promise<TournamentDetail> {
         return this.fail('getTournament')
+    }
+
+    async correctTournamentResult(): Promise<Tournament> {
+        return this.fail('correctTournamentResult')
+    }
+
+    async rebuildTournamentStandings(): Promise<Tournament> {
+        return this.fail('rebuildTournamentStandings')
     }
 
     async getTournamentSchedule(): Promise<TournamentSchedule> {
@@ -161,6 +171,14 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async hasActiveGames(): Promise<boolean> {
         return this.fail('hasActiveGames')
+    }
+
+    async getGameCatalog(): Promise<GameCatalogEntry[]> {
+        return this.fail('getGameCatalog')
+    }
+
+    async getMyGameHistory(): Promise<GameHistoryPage> {
+        return this.fail('getMyGameHistory')
     }
 
     async getMyGames(): Promise<Game[]> {

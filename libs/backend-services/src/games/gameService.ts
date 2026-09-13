@@ -9,6 +9,8 @@ import {
     ActionSource,
     calculateActionChecksum,
     createGameFork,
+    initializeContinuationGame,
+    assertContinuationAllowed,
     GameForkError,
     findLast,
     findPlayerForUserId,
@@ -134,6 +136,19 @@ export class GameService {
     }): Promise<Game> {
         if (Object.hasOwn(game, 'tournament'))
             throw new TournamentGameError('Tournament membership cannot be supplied by clients')
+        this.assertContinuationFieldsAbsent(game)
+        const prepared = await this.prepareGameCreation(definition, game, owner, options)
+        const createdGame = await this.gameStore.createGame(prepared.game, prepared.options)
+        await this.notifyGameCreated(createdGame, owner, prepared.usersByPlayerId)
+        return createdGame
+    }
+
+    private async prepareGameCreation(
+        definition: GameDefinition,
+        game: Partial<Game>,
+        owner: User,
+        options?: GameCreationOptions
+    ) {
         assertExists(game.id, 'Game id is required')
         if (options?.masterSeed !== undefined && !owner.roles.includes(Role.Admin)) {
             throw new UnauthorizedAccessError({ user: owner, gameId: game.id })
@@ -174,17 +189,27 @@ export class GameService {
             }
         }
 
-        const createdGame = await this.gameStore.createGame(
-            newGame,
-            masterSeed === undefined ? undefined : { masterSeed }
-        )
+        newGame.status = newGame.players.every((player) => player.status === PlayerStatus.Joined)
+            ? GameStatus.WaitingToStart
+            : GameStatus.WaitingForPlayers
+        return {
+            game: newGame,
+            usersByPlayerId,
+            options: masterSeed === undefined ? undefined : { masterSeed }
+        }
+    }
 
+    private async notifyGameCreated(
+        createdGame: Game,
+        owner: User,
+        usersByPlayerId: Record<string, User>
+    ): Promise<void> {
         // Send invites
         for (const user of Object.values(usersByPlayerId)) {
             if (user.id === owner.id) {
                 continue
             }
-            await this.inviteUserToGame({ owner, game: newGame, user })
+            await this.inviteUserToGame({ owner, game: createdGame, user })
             await this.notifyWasInvited(user, owner, createdGame)
         }
 
@@ -194,8 +219,52 @@ export class GameService {
         } else {
             await this.notifyGamePlayers(GameNotificationAction.Create, { game: createdGame })
         }
+    }
 
-        return createdGame
+    async continueGame({
+        definition,
+        gameId,
+        user
+    }: {
+        definition: GameDefinition
+        gameId: string
+        user: User
+    }): Promise<Game> {
+        let invitedUsers: Record<string, User> = {}
+        const { game, created } = await this.gameStore.createContinuation({
+            sourceGameId: gameId,
+            validateSource: (source) => {
+                assertContinuationAllowed(
+                    source.typeId === definition.info.id,
+                    'Continuation must use the same Game Title'
+                )
+                assertOrdinaryGame(source)
+                if (source.ownerId !== user.id) throw new UnauthorizedAccessError({ user, gameId })
+            },
+            prepare: async (source, state) => {
+                const continuation = initializeContinuationGame(source, state, definition)
+                const prepared = await this.prepareGameCreation(definition, continuation, user)
+                prepared.game.continuedFromGameId = source.id
+                invitedUsers = prepared.usersByPlayerId
+                return prepared
+            }
+        })
+        if (created) {
+            await this.notifyGameCreated(game, user, invitedUsers)
+            const source = await this.getGame({ gameId })
+            if (source)
+                await this.notifyGameInstance(GameNotificationAction.Update, { game: source })
+        }
+        return game
+    }
+
+    private assertContinuationFieldsAbsent(game: Partial<Game>): void {
+        assertContinuationAllowed(
+            !['canContinue', 'continuedFromGameId', 'continuedToGameId'].some((field) =>
+                Object.hasOwn(game, field)
+            ),
+            'Continuation metadata cannot be supplied by clients'
+        )
     }
 
     async provisionTournamentGame(
@@ -545,6 +614,7 @@ export class GameService {
         if (Object.hasOwn(fields, 'tournament'))
             throw new TournamentGameError('Tournament membership cannot be changed')
         assert(!Object.hasOwn(fields, 'protectedInformation'), 'Game protection cannot be changed')
+        this.assertContinuationFieldsAbsent(fields)
         const game = await this.getGame({ gameId })
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
@@ -582,6 +652,23 @@ export class GameService {
             game,
             fields,
             validator: (existingGame, fieldsToUpdate) => {
+                if (existingGame.continuedFromGameId) {
+                    assertContinuationAllowed(
+                        fieldsToUpdate.config === undefined ||
+                            Value.Equal(fieldsToUpdate.config, existingGame.config),
+                        'Continuation configuration is fixed'
+                    )
+                    assertContinuationAllowed(
+                        fieldsToUpdate.isPublic === undefined ||
+                            fieldsToUpdate.isPublic === existingGame.isPublic,
+                        'Continuation visibility is fixed'
+                    )
+                    assertContinuationAllowed(
+                        fieldsToUpdate.players === undefined ||
+                            Value.Equal(fieldsToUpdate.players, existingGame.players),
+                        'Continuation players are fixed'
+                    )
+                }
                 // Only waiting games can be updated by the user
                 if (
                     existingGame.status !== GameStatus.WaitingForPlayers &&
@@ -683,6 +770,10 @@ export class GameService {
             fields: { players: game.players },
             validator: (existingGame, fieldsToUpdate) => {
                 const existingPlayer = findPlayerForUserId(existingGame, user.id)
+                assertContinuationAllowed(
+                    !existingGame.continuedFromGameId || existingPlayer !== undefined,
+                    'Continuation players are fixed'
+                )
                 if (existingGame.isPublic && existingPlayer?.status === PlayerStatus.Joined) {
                     return UpdateValidationResult.Cancel
                 }
@@ -752,7 +843,7 @@ export class GameService {
                 if (player.status === PlayerStatus.Declined) {
                     throw new UserAlreadyDeclinedError({ user, gameId: game.id })
                 }
-                if (existingGame.isPublic) {
+                if (existingGame.isPublic && !existingGame.continuedFromGameId) {
                     player.userId = undefined
                     player.name = ''
                     player.status = PlayerStatus.Open
@@ -844,9 +935,12 @@ export class GameService {
                 definition.runtime.randomnessVersion === 1
                     ? await this.gameStore.getMasterSeed(gameId)
                     : undefined
+            const previousState = game.continuedFromGameId
+                ? await this.gameStore.getContinuationState(gameId)
+                : undefined
             const { startedGame, initialState } = new GameEngine(definition.runtime).startGame(
                 game,
-                masterSeed
+                { masterSeed, previousState }
             )
             startedGame.state = initialState
             ;[updatedGame] = await this.gameStore.updateGame({
