@@ -780,12 +780,13 @@ Each offered auction is one stable history card keyed by its offer action. The c
 
 ## Scrolling round history
 
-History entries remain newest first. Each opening auction, stock round, and
+History follows the player’s selected order, defaulting to newest last. Each opening auction, stock round, and
 operating round has a full-width, 36px-minimum divider at its chronological
 beginning. Bold expanded round names, phase labels, stronger phase colors, and
 dark top/bottom borders separate rounds. Phase changes within a round retain
-fixed 45° color segments. Dividers scroll naturally with the entries; no sticky
-stacks, combined tabs, reserved end space, or scroll-position observers remain.
+fixed 45° color segments. Dividers stick within their own round and scroll away
+at its boundary; no stacks, combined tabs, reserved end space, or scroll-position
+observers remain.
 The dividers are headings, not navigation controls.
 
 The history list and grouping use the same visible history context. Round identity
@@ -809,9 +810,7 @@ titles explicitly reuse their train palettes. The phase/round survey includes
 exports and other automatic triggers, delayed phase effects, and round counts
 fixed before a phase changes; header colors do not infer or alter that schedule.
 
-Separating round segments soften their exposed internal ends with up to 5px
-corner rounding, shrinking continuously to flush joins as the segments meet.
-This treatment depends only on header geometry and applies to every round group.
+Round interstitials retain square ends; no combined segment geometry is used.
 
 ## Compact history groups
 
@@ -935,7 +934,7 @@ History train-run entries show train badges and total revenue without listing ro
 
 History action rows and group headers do not move the history cursor. Track-lay and train-run labels can open a separate historical map preview. Navigation remains in the history controls.
 
-Round interstitials are prominent, full-width headings in normal document flow. They never dock or combine into stacks.
+Round interstitials are prominent, full-width headings in normal document flow. Each sticks at the chronological beginning edge while its round is visible, and never combines into a stack.
 
 System-action history groups omit an actor heading; their events appear directly without a “Game” label or empty header space.
 
@@ -996,3 +995,5 @@ The additive historyOrder preference uses existing preference endpoints and defa
 History currently omits the “Your last action” marker; no player-relative highlight is displayed.
 
 The history tab reduces the sidebar’s tab-to-content gap from 8px to 4px; other sidebar tabs retain their spacing.
+
+Round interstitials use native sticky positioning bounded by their round section: top for Newest last, bottom for Newest first. At a round boundary the departing heading scrolls away and yields to the next one. There is no stack, duplicate heading, scroll listener, or game-state animation.

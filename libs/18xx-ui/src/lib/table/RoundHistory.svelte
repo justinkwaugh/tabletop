@@ -40,7 +40,7 @@
     }
 </script>
 
-<div class="round-history">
+<div class="round-history" class:newest-first={newestFirst}>
     <div class="history-order" role="group" aria-label="History order">
         <button type="button" aria-pressed={!newestFirst} onclick={() => onOrderChange(false)}>Newest last</button>
         <span aria-hidden="true">/</span>
@@ -121,6 +121,9 @@
         padding: 0;
     }
     .round-divider {
+        position: sticky;
+        top: 0;
+        z-index: 1;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -133,6 +136,10 @@
         border-bottom: 2px solid #6f5c46;
         color: #30271f;
         font: 750 13px/1.3 ui-sans-serif, system-ui, sans-serif;
+    }
+    .newest-first .round-divider {
+        top: auto;
+        bottom: 0;
     }
     .round-phase {
         font-size: 11px;
