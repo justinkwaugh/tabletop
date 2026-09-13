@@ -1,4 +1,5 @@
 <script lang="ts">
+    import './historyCard.css'
     import { assertExists, type GameAction } from '@tabletop/common'
     import { isAdvancePhase, isStartOperatingRound, isSellFundingShares, sameOwner, isDistributeEarnings } from '@tabletop/18xx'
     import { TileColors } from '../tiles/tilePresentation.js'
@@ -18,7 +19,6 @@
         appearance,
         playerName,
         describe,
-        lastOwnActionId,
         companyName,
         phaseColors,
         phaseTileColors,
@@ -41,7 +41,6 @@
         appearance?: StationAppearance
         playerName: (id: string) => string
         describe: (action: GameAction) => HistoryDescription
-        lastOwnActionId?: string
         companyName: (id: string) => string
     } = $props()
     function phaseChange(action: GameAction) {
@@ -84,6 +83,7 @@
     class:stock={group.kind === 'turn'}
     class:order-start={group.actions.some(isStartOperatingRound)}
     class:operation={group.kind === 'operation'}
+    class:history-card={group.kind === 'operation'}
     aria-label={group.companyId
         ? `${group.companyId} operation history`
         : `${playerName(group.playerId ?? '')} turn history`}
@@ -104,9 +104,7 @@
                     class:important={row.important}
                     class:routine={row.routine}
                 >
-                    <span class="stock-player"
-                        >{index === 0 ? playerName(group.playerId ?? '') : ''}</span
-                    >
+                    {#if index === 0}<span class="stock-player">{playerName(group.playerId ?? '')}:</span>{' '}{/if}
                     <span
                         >{row.text}{#if row.phase}<span class="phase-colors">{row.phase.label}</span>{/if}{#if row.value}
                             for <strong>{row.value}</strong>{/if}</span
@@ -117,7 +115,7 @@
             </div>
         {/each}
     {:else}
-        {#if group.kind !== 'event'}<header class:company-header={group.kind === 'operation'}>
+        {#if group.kind !== 'event'}<header class:history-card-header={group.kind === 'operation'} class:company-header={group.kind === 'operation'}>
             <div
                 class="history-entry heading"
             >
@@ -133,9 +131,7 @@
             </div>
             {#if startingCash !== undefined}<span class="cash-balance"><small>Start cash</small><strong>{money(startingCash)}</strong></span>{/if}
         </header>{/if}
-        {#if group.actions.some((action) => action.id === lastOwnActionId)}<div class="last-own">
-                Your last action
-            </div>{/if}
+
         <div class="events">
             {#each visible as row (row.action.id)}
                 {#if row.beforeText && !group.actions.slice(0, group.actions.indexOf(row.action)).some((earlier) => isSellFundingShares(earlier) && isSellFundingShares(row.action) && sameOwner(earlier.seller, row.action.seller))}
@@ -184,15 +180,15 @@
         position: relative;
     }
     .stock-action {
-        display: grid;
-        grid-template-columns: 55px minmax(0, 1fr);
-        column-gap: 5px;
+        display: block;
+        min-width: 0;
+        overflow-wrap: anywhere;
         width: 100%;
         padding: 2px 0;
         line-height: 16px;
     }
     .stock-player {
-        font-size: 11px;
+        font-weight: 600;
         color: #817565;
     }
     .stock-action strong {
@@ -200,7 +196,7 @@
         white-space: nowrap;
     }
     .stock-action small {
-        grid-column: 2 / -1;
+        display: block;
         color: #817565;
         font-size: 10px;
         line-height: 13px;
@@ -220,16 +216,15 @@
         padding: 1px 0;
     }
     article {
-        margin: 5px 0;
+        margin: var(--history-item-gap, 5px) 0;
         padding: 3px 6px 5px;
-        border-bottom: 1px solid #b9ac994f;
         color: #463e35;
         font-size: 12px;
     }
-    article.operation,
+    article:not(.history-card) { border-bottom: 1px solid #b9ac994f; }
     article.order-start { border-bottom: 0; }
     .order-start .events .history-entry {
-        row-gap: 2px;
+        row-gap: 6px;
     }
     header {
         display: flex;
@@ -238,10 +233,7 @@
         min-height: 24px;
     }
     .company-header {
-        background: #d9cdbc;
         margin: -3px -6px 5px;
-        padding: 5px 6px;
-        border-radius: 3px 3px 0 0;
     }
     .history-entry {
         border: 0;
@@ -338,10 +330,5 @@
     .important > span {
         font-weight: 600;
     }
-    .last-own {
-        color: #8b6035;
-        border-top: 1px solid #b79a75;
-        font-size: 10px;
-        margin-top: 3px;
-    }
+
 </style>

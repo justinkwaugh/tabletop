@@ -1,250 +1,143 @@
 <script lang="ts">
-    import type { Snippet } from 'svelte'
+    import { tick, type Snippet } from 'svelte'
     import { assertExists } from '@tabletop/common'
-    import { roundHeaderPositions, type HistoryRound } from './historyRounds.js'
+    import type { HistoryRound } from './historyRounds.js'
     let {
         rounds,
         children,
-        phaseColors
+        phaseColors,
+        newestFirst = false,
+        onOrderChange
     }: {
         rounds: HistoryRound[]
         children: Snippet<[HistoryRound]>
         phaseColors: Readonly<Record<string, string>>
+        newestFirst?: boolean
+        onOrderChange: (newestFirst: boolean) => void
     } = $props()
-    const rowHeight = 20
+    let scrollElement: HTMLDivElement | undefined = $state()
+    $effect(() => {
+        const first = newestFirst
+        const element = scrollElement
+        void tick().then(() => {
+            if (element) element.scrollTop = first ? 0 : element.scrollHeight
+        })
+    })
     function phaseBackground(round: HistoryRound) {
         const colors = round.phases
             .map((phase) => {
                 const color = phaseColors[phase]
                 assertExists(color, `Unknown history phase color: ${phase}`)
-                return `color-mix(in srgb, ${color} 38%, #f7f5f0)`
+                return `color-mix(in srgb, ${color} 55%, #f7f5f0)`
             })
             .filter((color, index, all) => index === 0 || color !== all[index - 1])
-        return `linear-gradient(to bottom right, ${colors
+        return `linear-gradient(45deg, ${colors
             .map(
                 (color, index) =>
                     `${color} ${(index * 100) / colors.length}% ${((index + 1) * 100) / colors.length}%`
             )
             .join(', ')})`
     }
-    let scrollToRound: (id: string) => void = () => {}
-    function attach(root: HTMLElement) {
-        const viewport = root.querySelector<HTMLElement>('.history-scroll')!
-        const content = root.querySelector<HTMLElement>('.history-content')!
-        let frame = 0
-        let markers: HTMLElement[] = []
-        let buttons: HTMLButtonElement[] = []
-        let bands: HTMLElement[] = []
-        let offsets: number[] = []
-        function draw() {
-            frame = 0
-            const headers = markers.map((marker, index) => ({
-                group: marker.dataset.group!,
-                top: offsets[index] - viewport.scrollTop
-            }))
-            const positions = roundHeaderPositions(headers, viewport.clientHeight, rowHeight)
-            for (let i = 0; i < markers.length; i++) {
-                const inline = Math.abs(positions[i] - headers[i].top) < 1 &&
-                    positions[i] > 0 && positions[i] < viewport.clientHeight - rowHeight
-                bands[i].dataset.inline = String(inline)
-                buttons[i].dataset.inline = String(inline)
-                bands[i].style.transform = `translateY(${positions[i]}px)`
-                buttons[i].style.transform = `translateY(${positions[i]}px)`
-                const next = headers.findIndex(
-                    (header, index) =>
-                        index < i &&
-                        header.group === headers[i].group &&
-                        Math.abs(positions[index] - positions[i]) < 1
-                )
-                buttons[i].dataset.joined = String(next >= 0)
-                for (const [side, neighbor] of [
-                    ['left', i + 1],
-                    ['right', i - 1]
-                ] as const) {
-                    const radius =
-                        headers[neighbor]?.group === headers[i].group
-                            ? Math.min(5, Math.abs(positions[neighbor] - positions[i]))
-                            : 0
-                    buttons[i].style.setProperty(`--${side}-radius`, `${radius}px`)
-                }
-            }
-        }
-        function schedule() {
-            if (!frame) frame = requestAnimationFrame(draw)
-        }
-        function measure() {
-            markers = [...content.querySelectorAll<HTMLElement>('[data-round-marker]')]
-            buttons = [...root.querySelectorAll<HTMLButtonElement>('[data-round-link]')]
-            bands = [...root.querySelectorAll<HTMLElement>('[data-round-band]')]
-            offsets = markers.map((marker) => marker.offsetTop)
-            schedule()
-        }
-        scrollToRound = (id) => {
-            const index = markers.findIndex((marker) => marker.dataset.roundMarker === id)
-            if (index < 0) return
-            const groupsBelow = new Set(markers.slice(index).map((marker) => marker.dataset.group))
-            const top = viewport.clientHeight - groupsBelow.size * rowHeight
-            viewport.scrollTo({
-                top: offsets[index] - top,
-                behavior: matchMedia('(prefers-reduced-motion: reduce)').matches
-                    ? 'instant'
-                    : 'smooth'
-            })
-        }
-        const resize = new ResizeObserver(measure)
-        resize.observe(viewport)
-        resize.observe(content)
-        const mutation = new MutationObserver(measure)
-        mutation.observe(content, { childList: true, subtree: true })
-        viewport.addEventListener('scroll', schedule, { passive: true })
-        measure()
-        return {
-            destroy() {
-                resize.disconnect()
-                mutation.disconnect()
-                viewport.removeEventListener('scroll', schedule)
-                cancelAnimationFrame(frame)
-                scrollToRound = () => {}
-            }
-        }
-    }
 </script>
 
-<div class="round-history" style:--round-height={`${rowHeight}px`} use:attach>
-    <div class="history-scroll" role="region" aria-label="Scrollable history">
-        <nav aria-label="History rounds">
-            {#each rounds as round (round.id)}
-                <div class="round-band" data-round-band aria-hidden="true"></div>
-            {/each}
-            {#each rounds as round (round.id)}
-                {@const siblings = rounds.filter((r) => r.group === round.group).toReversed()}
-                <button
-                    data-round-link={round.id}
-                    aria-label={`Scroll to ${round.label}`}
-                    title={`${round.label} · Phase ${round.phases.join(' → ')}`}
-                    style:background={phaseBackground(round)}
-                    style:left={`${(siblings.findIndex((r) => r.id === round.id) / siblings.length) * 100}%`}
-                    style:width={`${100 / siblings.length}%`}
-                    onclick={() => scrollToRound(round.id)}
-                >
-                    {round.label}<span class="separator" aria-hidden="true"></span>
-                </button>
-            {/each}
-        </nav>
-        <ol class="history-content" aria-label="Action history">
-            {#each rounds as round (round.id)}
+<div class="round-history">
+    <div class="history-order" role="group" aria-label="History order">
+        <button type="button" aria-pressed={!newestFirst} onclick={() => onOrderChange(false)}>Newest last</button>
+        <span aria-hidden="true">/</span>
+        <button type="button" aria-pressed={newestFirst} onclick={() => onOrderChange(true)}>Newest first</button>
+    </div>
+    <div class="history-scroll" bind:this={scrollElement} role="region" aria-label="Scrollable history">
+        <ol class="history-content" class:newest-last={!newestFirst} aria-label="Action history">
+            {#each newestFirst ? rounds : rounds.toReversed() as round (round.id)}
                 <li class="round-section" aria-label={round.label}>
+                    {#snippet divider()}
+                    <h3 class="round-divider" style:background={phaseBackground(round)}>
+                        <span>{round.label.replace(/^OR /, 'Operating round ').replace(/^SR /, 'Stock round ')}</span>
+                        <span class="round-phase">Phase {round.phases.join(' → ')}</span>
+                    </h3>
+                    {/snippet}
+                    {#if !newestFirst}{@render divider()}{/if}
                     {@render children(round)}
-                    <div
-                        class="round-marker"
-                        data-round-marker={round.id}
-                        data-group={round.group}
-                    ></div>
+                    {#if newestFirst}{@render divider()}{/if}
                 </li>
             {:else}<li class="empty">No actions yet.</li>{/each}
-            <li
-                class="end-space"
-                aria-hidden="true"
-                style:height={`${new Set(rounds.map((r) => r.group)).size * rowHeight}px`}
-            ></li>
         </ol>
     </div>
 </div>
 
 <style>
     .round-history {
-        position: relative;
+        --history-item-gap: 5px;
+        display: flex;
+        flex-direction: column;
         height: 100%;
         min-height: 0;
         overflow: hidden;
     }
     .history-scroll {
-        height: 100%;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
         overflow-y: auto;
         scrollbar-width: thin;
         overscroll-behavior: contain;
     }
+    .history-order {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 7px;
+        padding: 0 6px 2px;
+        color: #9b8e7c;
+        font-size: 11px;
+    }
+    .history-order button {
+        border: 0;
+        background: none;
+        padding: 2px 0;
+        color: #817565;
+        font: inherit;
+        cursor: pointer;
+    }
+    .history-order button[aria-pressed='true'] {
+        color: #463e35;
+        font-weight: 650;
+    }
+    .history-order button:hover {
+        color: #30271f;
+    }
     .history-content {
-        position: relative;
+        flex-shrink: 0;
         list-style: none;
         padding: 0;
         margin: 0;
+    }
+    .history-content.newest-last {
+        margin-top: auto;
     }
     .round-section {
         margin: 0;
         padding: 0;
     }
-    .round-marker {
-        height: var(--round-height);
-    }
-    nav {
-        position: sticky;
-        top: 0;
-        height: 0;
-        z-index: 2;
-        pointer-events: none;
-        overflow: visible;
-    }
-    .round-band {
-        pointer-events: auto;
-        position: absolute;
-        inset: 0 0 auto;
-        height: var(--round-height);
-        background: #ece8e1;
-        border-bottom: 1px solid #9b93884d;
+    .round-divider {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        min-height: 36px;
         box-sizing: border-box;
+        margin: var(--history-item-gap) 0;
+        padding: 7px 10px;
+        border-top: 2px solid #6f5c46;
+        border-bottom: 2px solid #6f5c46;
+        color: #30271f;
+        font: 750 13px/1.3 ui-sans-serif, system-ui, sans-serif;
     }
-    .round-band:global([data-inline='true']) {
-        background: #6f5c46;
-        border-top: 1px solid #6f5c46;
-        border-bottom: 1px solid #6f5c46;
-    }
-    nav button:global([data-inline='true']) {
-        border-radius: 0;
+    .round-phase {
         font-size: 11px;
-        font-weight: 750;
-        color: #29271f;
-        box-shadow: inset 0 1px #6f5c46, inset 0 -1px #6f5c46;
-    }
-    nav button {
-        position: absolute;
-        top: 0;
-        height: var(--round-height);
-        padding: 0 3px;
-        border: 0;
-        border-bottom: 1px solid #514a3d30;
-        border-radius: var(--left-radius, 0) var(--right-radius, 0) var(--right-radius, 0)
-            var(--left-radius, 0);
-        background: transparent;
-        color: #39392f;
-        font:
-            600 10px/var(--round-height) ui-sans-serif,
-            system-ui,
-            sans-serif;
-        letter-spacing: 0.01em;
-        cursor: pointer;
-        pointer-events: auto;
-        white-space: nowrap;
-    }
-    nav button:hover {
-        filter: brightness(1.04);
-    }
-    nav button:focus-visible {
-        outline: 2px solid #8d573a;
-        outline-offset: -2px;
-    }
-    .separator {
-        position: absolute;
-        right: 0;
-        top: 5px;
-        bottom: 5px;
-        width: 1px;
-        background: #514a3d40;
-        z-index: 1;
-        display: none;
-    }
-    button:global([data-joined='true']) .separator {
-        display: inline;
+        font-weight: 600;
+        text-align: right;
     }
     .empty {
         padding: 20px 8px;

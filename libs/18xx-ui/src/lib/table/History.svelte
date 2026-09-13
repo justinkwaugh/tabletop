@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { ActionSource, assert, assertExists, type GameAction } from '@tabletop/common'
+    import { assert, assertExists, type GameAction } from '@tabletop/common'
     import { FinanceExampleValidator } from '@tabletop/18xx'
     import { historyCash } from './historyCash.js'
     import { historyOperatingOrder } from './historyOperatingOrder.js'
@@ -28,6 +28,7 @@
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
         describeAction?: (action: GameAction) => HistoryDescription | undefined
     } = $props()
+    const newestFirst = $derived(session.preferences.values.historyOrder === 'newestFirst')
     const orderChanges = $derived.by(() => {
         const context = session.history.visibleContext
         assert(FinanceExampleValidator.Check(context.state), 'History requires financial state')
@@ -46,18 +47,11 @@
         )
         return historyRounds(context.actions, context.state, orderChanges, cash)
     })
-    const lastOwnActionId = $derived(
-        session.history.visibleContext.actions.findLast(
-            (action) =>
-                action.source === ActionSource.User && action.playerId === session.myPlayer?.id
-        )?.id
-    )
+    function fullCompanyName(id: string) {
+        return session.financialState.companies.find((company) => company.id === id)?.name ?? id
+    }
     function companyName(id: string) {
-        return (
-            companyNames?.[id]?.short ??
-            session.financialState.companies.find((company) => company.id === id)?.name ??
-            id
-        )
+        return companyNames?.[id]?.short ?? fullCompanyName(id)
     }
     function describe(action: GameAction) {
         const description =
@@ -75,10 +69,13 @@
     }
 </script>
 
-<RoundHistory {rounds} {phaseColors}>
+<RoundHistory {rounds} {phaseColors} {newestFirst}
+    onOrderChange={(first) => session.preferences.set({ historyOrder: first ? 'newestFirst' : 'newestLast' }, 'family')}>
+
     {#snippet children(round)}
+        {@const groups = historyGroups(round.entries, round.label.startsWith('OR '))}
         <ol aria-label={`${round.label} actions`}>
-            {#each historyGroups(round.entries, round.label.startsWith('OR ')) as entry (entry.id)}
+            {#each newestFirst ? groups : groups.toReversed() as entry (entry.id)}
                 {#if entry.kind === 'auction'}
                     <li class="auction">
                         <AuctionHistoryCard
@@ -105,8 +102,7 @@
                             {cash}
                             stations={session.mapView.stations}
                             {describe}
-                            {companyName}
-                            {lastOwnActionId}
+                            companyName={fullCompanyName}
                         />
                     </li>
                 {/if}
@@ -118,7 +114,7 @@
 <style>
     ol {
         list-style: none;
-        padding: 2px 0;
+        padding: 0;
         margin: 0;
     }
     li {

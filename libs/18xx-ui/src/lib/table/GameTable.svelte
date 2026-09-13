@@ -226,7 +226,7 @@
             />
             <DefaultTabs
                 fontClass="text-[11px] font-semibold uppercase tracking-[0.07em]"
-                contentClass="p-0 mt-0 h-full overflow-auto rounded-none bg-transparent dark:bg-transparent"
+                contentClass="p-0 mt-0 has-[.round-history]:-mt-1 h-full overflow-auto rounded-none bg-transparent dark:bg-transparent"
                 activeTabClass="py-2 px-2 text-[#5e4937] rounded-none"
                 inactiveTabClass="py-2 px-2 text-[#998b79] hover:text-[#5e4937] rounded-none"
             >

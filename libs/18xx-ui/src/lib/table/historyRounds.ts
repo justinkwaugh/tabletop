@@ -13,7 +13,6 @@ import { auctionHistory, type ActionHistoryEntry } from './auctionHistory.js'
 
 export type HistoryRound = {
     id: string
-    group: string
     label: string
     phases: string[]
     entries: ActionHistoryEntry[]
@@ -43,7 +42,6 @@ export function historyRounds(
         if (section?.id !== label) {
             section = {
                 id: label,
-                group: auction ? 'Auction' : `Round ${operating ? set : stock}`,
                 label,
                 phases: [phase],
                 entries: []
@@ -85,27 +83,4 @@ export function historyRounds(
         }
     }
     return rounds.filter((section) => section.entries.length)
-}
-
-export function roundHeaderPositions(
-    headers: readonly { group: string; top: number }[],
-    height: number,
-    rowHeight: number
-): number[] {
-    const positions = headers.map((header) => header.top)
-    for (let i = positions.length - 1; i >= 0; i--) {
-        const ceiling =
-            i === positions.length - 1
-                ? height - rowHeight
-                : positions[i + 1] - (headers[i].group === headers[i + 1].group ? 0 : rowHeight)
-        positions[i] = Math.min(positions[i], ceiling)
-    }
-    for (let i = 0; i < positions.length; i++) {
-        const floor =
-            i === 0
-                ? 0
-                : positions[i - 1] + (headers[i].group === headers[i - 1].group ? 0 : rowHeight)
-        positions[i] = Math.max(positions[i], floor)
-    }
-    return positions
 }

@@ -51,7 +51,6 @@ it('replays the finished game and restores every history step in both directions
         'SR 1',
         'Auction'
     ])
-    expect(new Set(rounds.map((round) => round.group)).size).toBe(9)
     expect(rounds.find((round) => round.id === 'OR 7.1')?.phases).toEqual(['7', 'D'])
     expect(rounds.find((round) => round.id === 'OR 6.1')?.phases).toEqual(['3+', '4+', '7'])
     expect(rounds.find((round) => round.id === 'OR 3.1')?.phases).toEqual(['2H', '3H', '4H'])

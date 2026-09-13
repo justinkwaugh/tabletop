@@ -781,26 +781,23 @@ Each offered auction is one stable history card keyed by its offer action. The c
 ## Scrolling round history
 
 History entries remain newest first. Each opening auction, stock round, and
-operating round has a divider at its chronological beginning. Dividers follow
-scroll position between the top and bottom stacks. A stock round and its following operating
-set share one compact 20px row when docked together, retain separate click targets and horizontal
-slots while separating, and join again on contact. A round label scrolls to its
-oldest entries without navigating Game State; action rows still navigate through
-the existing History interface.
+operating round has a full-width, 36px-minimum divider at its chronological
+beginning. Bold expanded round names, phase labels, stronger phase colors, and
+dark top/bottom borders separate rounds. Phase changes within a round retain
+fixed 45° color segments. Dividers scroll naturally with the entries; no sticky
+stacks, combined tabs, reserved end space, or scroll-position observers remain.
+The dividers are headings, not navigation controls.
 
 The history list and grouping use the same visible history context. Round identity
 comes from recorded stock/operating state patches, including prepared partial
-games. Resizing or updating visible history remeasures the content. Scroll motion
-is local presentation: one animation-frame callback updates DOM transforms from
-cached offsets, with no per-frame reactive state changes or game animation
-coordination. Native smooth scrolling respects reduced-motion preferences.
-Observers, listeners, and pending frames are released on teardown.
+games. History navigation remains in the existing controls, while track/run
+labels retain historical-map inspection.
 
 The family round-sequence survey includes variable operating-set lengths,
 consecutive stock rounds, inserted special rounds, and nonstandard calendars.
-The layout only knows round/group identities, not alternation or fixed set length.
+The layout only knows round identities, not alternation or fixed set length.
 The current state-to-round adapter supports the implemented auction, SR, and OR
-states, grouping each SR with its numbered OR set; titles with special rounds will supply their own identities rather than
+states; titles with special rounds will supply their own identities rather than
 having their events guessed from player action names.
 
 Each round segment uses title-supplied phase colors and the phases recorded in
@@ -819,7 +816,7 @@ This treatment depends only on header geometry and applies to every round group.
 ## Compact history groups
 
 Round contents use a light ledger: stock-turn actors share the first action line,
-company operations have a token header, and consecutive stock passes share a row.
+company operations have a token header, and consecutive stock passes share a row. Stock-turn player names appear inline before the first action, using the full available width and natural wrapping rather than a fixed name column; long unbroken names wrap without hiding action details.
 Groups are newest first, with events chronological inside each group. Recorded
 turn completion ends a group even if the same player acts next. A funding sale's
 company identifies the shares sold, not the operating company; it remains with
@@ -866,7 +863,7 @@ Operation headers stack the player name immediately below the company name besid
 
 Company operation history uses a cash ledger: opening cash at the right of its header, signed company cash deltas aligned right (negative red, positive black), and closing cash in its footer. Amounts are reconstructed from canonical cash undo patches, including automatic cash events, not inferred from nominal revenue or prices. Train revenue and per-share dividends remain informational amounts in the action text; president share-sale proceeds stay inline and are excluded from company cash. Supplemental action details are shown inline without a Details control. The closing balance has a short rule over its amount, separate from the operation group divider. The move arrowhead touches the destination token. Family review: treasury dividends, retained/half-paid earnings, private income, negotiated transactions and indirect funding can differ across titles; owner-specific balance deltas accommodate those differences without assuming revenue enters company cash.
 
-Company operation headers use a subtle contrasting background behind the token, company/player names and starting cash. Track-lay history shows location and cash cost, without a tile identifier/rotation description.
+Company operation and offered-auction history headers share the same compact padding, subtle contrasting background and corner treatment. Operation headers contain the token, full unabbreviated company name, player name and starting cash; auction headers identify the offering player and item. History cards and round interstitials share a 5px vertical gap, with no extra round-list padding. Both groups have a subtle 1px card border and slightly rounded 5px outer corners, without an additional outer divider. Track-lay history shows location and cash cost, without a tile identifier/rotation description.
 
 SR/OR interstitial backgrounds use the active phase’s train-color mapping, including split backgrounds for changes within the round. Phase-change entries separately compare the title’s available tile colors and explicitly announce newly unlocked colors (“green tiles now available”). These are distinct inputs even when their colors coincide in TOP and 1889.
 
@@ -936,13 +933,13 @@ DefaultTableLayout consumers retain the default 8px top inset.
 
 History train-run entries show train badges and total revenue without listing route stops.
 
-History action rows and group headers do not move the history cursor. Track-lay and train-run labels can open a separate historical map preview. Navigation remains in the history controls and round interstitials.
+History action rows and group headers do not move the history cursor. Track-lay and train-run labels can open a separate historical map preview. Navigation remains in the history controls.
 
-Round interstitials moving through the history use a stronger full-width divider band and bolder labels to separate rounds clearly. Docked stacks retain their compact styling and phase colors. This treatment follows scroll layout locally and does not alter header positions or row heights.
+Round interstitials are prominent, full-width headings in normal document flow. They never dock or combine into stacks.
 
 System-action history groups omit an actor heading; their events appear directly without a “Game” label or empty header space.
 
-Each OR starts with one “Operating order” entry showing the entire ordered token list, even when unchanged. The set-start bookkeeping action is hidden. This order entry has no bottom divider or movement arrows; later order changes retain their movement diagrams.
+Each OR starts with one “Operating order” entry showing the entire ordered token list, even when unchanged, with 6px between its label and tokens. The set-start bookkeeping action is hidden. This order entry has no bottom divider or movement arrows; later order changes retain their movement diagrams.
 
 Historical map inspection is an explicit, session-owned manual preview, independent of
 the history cursor. Only track-lay and train-run labels are buttons; other history
@@ -991,3 +988,11 @@ choice and show a toast. Signing into a different account discards the previous
 account's pending presentation and ignores late responses. Undo and action-state
 reset do not reset preferences. See `docs/title-preferences.md` for inheritance,
 API/cache behavior, and mixed-artifact adoption.
+
+History has a compact text toggle above the scrolling list for Newest last / Newest first, defaulting to Newest last. The choice is saved through the session’s existing 18xx family preferences and follows the player between titles. This display choice reverses rounds and their grouped entries, retaining chronological events inside auction and operation cards. Round interstitials remain at the chronological beginning of each round. Short histories align to the top for Newest first and bottom for Newest last. Switching order scrolls to the newest end: top for Newest first, bottom for Newest last. Changing the toggle does not move the game-history cursor or create an Action.
+
+The additive historyOrder preference uses existing preference endpoints and defaults for older records; no host bridge contract changes. TOP and 1889 Logic/UI Artifacts must be republished to expose the new schema and control in hosted games.
+
+History currently omits the “Your last action” marker; no player-relative highlight is displayed.
+
+The history tab reduces the sidebar’s tab-to-content gap from 8px to 4px; other sidebar tabs retain their spacing.

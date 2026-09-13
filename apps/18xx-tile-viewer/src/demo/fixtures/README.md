@@ -3,10 +3,11 @@
 `top-finished.json` contains a canonical opening state, native player actions, and
 expected final wealth. The harness replays the actions through TOP's engine to
 generate automatic actions, metadata, and reversible history patches. It saves
-the resulting finished game in local storage.
+the resulting finished game in local storage. Cached actions are checked against
+the loaded runtime’s action schemas; incompatible saved examples are replayed
+to regenerate current metadata and reversible history patches.
 
-Select **Finished game** in the TOP table's Position menu. History controls and
-auction history entries can navigate back to the opening and forward to the end.
+Select **Finished game** in the TOP table's Position menu. History controls can navigate back to the opening and forward to the end.
 
 The game uses Mount Stewart as Mainline, Alberton as Shortline, and Summerside
 as the Union Bank's other initial share. It includes a Belfast Branch split,

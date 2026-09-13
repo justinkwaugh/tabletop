@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount, onDestroy, untrack } from 'svelte'
+    import { Compile } from 'typebox/compile'
     import {
         assertExists,
         GameStorage,
@@ -70,6 +71,13 @@
             const owner = app.authorizationService.getSessionUser()
             assertExists(owner, 'The local harness requires a user')
             let loaded = await loadCompatibleExample()
+            if (loaded && position === 'finished') {
+                const validators = new Map(
+                    Object.entries(runtime.apiActions).map(([type, schema]) => [type, Compile(schema)])
+                )
+                if (loaded.actions.some((action) => validators.get(action.type)?.Check(action) === false))
+                    loaded = undefined
+            }
             if (!loaded && position === 'finished') {
                 const { finishedGame } = await import('./finishedGame.js')
                 const completed = await finishedGame(owner.id, exampleName)

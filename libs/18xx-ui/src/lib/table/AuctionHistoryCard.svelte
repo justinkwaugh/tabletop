@@ -1,4 +1,5 @@
 <script lang="ts">
+    import './historyCard.css'
     import type { AuctionLot } from '@tabletop/18xx'
     import type { AuctionHistoryCard } from './auctionHistory.js'
     let {
@@ -12,8 +13,8 @@
     } = $props()
 </script>
 
-<article aria-label={`${lot.name} auction history`}>
-    <header>
+<article class="history-card" aria-label={`${lot.name} auction history`}>
+    <header class="history-card-header">
         <div class="history-entry"
         >
             <strong>{playerName(card.offer.playerId)}</strong> offered <strong>{lot.name}</strong> for
@@ -46,18 +47,14 @@
 
 <style>
     article {
-        margin: 5px 0;
-        overflow: hidden;
-        border: 0;
-        border-bottom: 1px solid #b9ac994f;
-        border-radius: 0;
+        margin: var(--history-item-gap, 5px) 0;
         background: transparent;
         color: #514538;
         font-size: 12px;
         line-height: 1.4;
     }
-    header {
-        background: #ffffff30;
+    header .history-entry {
+        padding: 0;
     }
     .history-entry {
         width: 100%;
