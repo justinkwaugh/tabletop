@@ -31,4 +31,4 @@ export function backFromStockAction(selection: StockActionSelection): StockActio
     return popHighestManualStagedSelection(selection, Stages).nextState
 }
 
-export type StockMenuOption = { label: string; onSelect: () => void }
+export type StockMenuOption = { label: string; selected?: boolean; onSelect: () => void }

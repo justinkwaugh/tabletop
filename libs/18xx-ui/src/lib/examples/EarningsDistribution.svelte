@@ -18,7 +18,6 @@
 
 {#if result && session.financialState.machineState === 'DistributingEarnings'}
     <section aria-label="Earnings distribution">
-        <h2>Distribute ${result.revenue}</h2>
         <div class="choices">
             {#each session.earningsChoices as { choice, evaluation }}
                 {@const details = evaluation.details}
@@ -67,7 +66,6 @@
 
 <style>
     section { padding: 4px 0; color: #514536; font-size: 12px; }
-    h2 { margin: 0 0 10px; font-size: 13px; font-weight: 400; text-align: center; }
     .choices { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 10px; }
     button { font: inherit; color: inherit; cursor: pointer; background: #fffdf8; border: 1px solid #c7b8a6; border-radius: 7px; }
     .choice { display: flex; flex-direction: column; gap: 7px; padding: 10px 12px; text-align: left; font-variant-numeric: tabular-nums; }

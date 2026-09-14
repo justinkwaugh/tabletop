@@ -145,3 +145,15 @@ The harness now preserves that save, selects another canonically loadable matchi
 example or creates a fresh one, and continues to surface unrelated errors. The
 reproduction and both saved-example browser checks pass, as does the harness type
 check. Canonical state validation itself is unchanged.
+
+### Stock action strip presentation
+
+The stock action strip reuses legal session choices and staged selection rather
+than imposing a stock action sequence. The variation catalog's conventional
+1830-family turns, 1841 corporate owners, and 1817-family special stock actions
+motivate a persistent category selector with title-supplied additions. Only the
+existing TOP/1889 categories are implemented; this adds no new trading rules.
+Owner selection remains within Buy/Start and supports multiple eligible owners.
+TOP supplies Split without a family dependency on TOP. Switching categories must
+clear prior drafts; Pass/End turn commits separately. Browser checks cover legal
+categories, persistent selection, and switching from Split into ordinary trading.

@@ -67,7 +67,7 @@
                                         appearance={session.mapView.stations[companyId]}
                                         size={22}
                                     />{/if}
-                                {companyNames[companyId]?.short ?? name}
+                                <span title={name}>{companyNames[companyId]?.initials ?? companyId}</span>
                             </span></th
                         >
                         {#each rounds as round (round.id)}

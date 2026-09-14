@@ -14,6 +14,12 @@
     }
     let { gameSession }: { gameSession: GameSession<GameState, HydratedGameState> } = $props()
     const session = $derived(requireFinanceExampleSession(gameSession))
+    const privateOperationDescription = (id: string) =>
+        id === 'SRR'
+            ? 'Ignores mountain-only terrain costs. Combined river and mountain costs still apply.'
+            : id === 'ER' && !session.financialState.usedPrivatePowerIds.includes(id)
+              ? 'On purchase, the seller may immediately upgrade Ohzu in addition to ordinary construction.'
+              : undefined
 </script>
 
 <GameTable
@@ -26,18 +32,13 @@
     phaseColors={Shikoku1889TrainColors}
     phaseTileColors={Shikoku1889TrackColors}
     operatingRules={Shikoku1889OperatingRules}
-    privateOperationDescription={(id) =>
-        id === 'SRR'
-            ? 'Ignores mountain-only terrain costs. Combined river and mountain costs still apply.'
-            : id === 'ER' && !session.financialState.usedPrivatePowerIds.includes(id)
-              ? 'On purchase, the seller may immediately upgrade Ohzu in addition to ordinary construction.'
-              : undefined}
+    {privateOperationDescription}
 >
     {#snippet actions(_focusLocation, focusRoute)}
         {#if session.auction && !session.auction.auction.completed}
             <OpeningAuction {session} showUndo={false} />
         {:else}
-            <OperatingActions onFocusRoute={focusRoute} {session} {createRouteWorker} trainColors={Shikoku1889TrainColors} />
+            <OperatingActions {privateOperationDescription} onFocusRoute={focusRoute} {session} {createRouteWorker} trainColors={Shikoku1889TrainColors} />
         {/if}
     {/snippet}
 </GameTable>

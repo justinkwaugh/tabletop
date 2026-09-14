@@ -7,6 +7,10 @@
         type CertificatePool
     } from '@tabletop/18xx'
     import type { ValuationRules } from '@tabletop/18xx'
+    import CompanyToken from '../tokens/CompanyToken.svelte'
+    import OperatingSteps from './OperatingSteps.svelte'
+    import StockActionStrip from './StockActionStrip.svelte'
+    import type { StockMenuOption } from '../stock/stockActionSelection.js'
     import CompanyDetails from './CompanyDetails.svelte'
     import CompanyOrder from './CompanyOrder.svelte'
     import { untrack, tick, type Snippet } from 'svelte'
@@ -21,6 +25,7 @@
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
     import { mapSelectionRect } from '../maps/mapDrawing.js'
     import MapScene from '../maps/MapScene.svelte'
+    import HistoricalMapViewer from '../maps/HistoricalMapViewer.svelte'
     import StockMarketScene from '../stock/StockMarketScene.svelte'
     import TileManifest from '../tiles/TileManifest.svelte'
     import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
@@ -32,10 +37,15 @@
     import type { HistoryDescription } from './historyDescription.js'
     import History from './History.svelte'
     import TableHeader from './TableHeader.svelte'
+    import TrainBadge from '../trains/TrainBadge.svelte'
+    import PhaseChart from '../phases/PhaseChart.svelte'
     import type { PhaseChartData } from '../phases/phaseChart.js'
     let {
         session,
         marketPoolId,
+        companyRoles = [],
+        additionalStockActions = [],
+        gameInformation,
         exchangePoolId,
         companyNames,
         auctionLotDescription,
@@ -55,6 +65,9 @@
         privateOperationDescription
     }: {
         session: FinanceExampleSession
+        additionalStockActions?: readonly StockMenuOption[]
+        gameInformation?: Snippet
+        companyRoles?: readonly { companyId: string; label: string; secondLine?: string }[]
         marketPoolId: string
         exchangePoolId?: string
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
@@ -77,6 +90,9 @@
             companyId: string
         ) => string | undefined
     } = $props()
+    let showDepot = $state(false)
+    const currentDepotIds = $derived(session.availableTrainDefinitionIds.filter((id) => session.trainDepot.remaining(session.financialState.trainInventory, id) !== 0))
+
     let mapWrapper = $state<ScalingWrapper>()
     let focusedLocation: string | undefined = $derived.by(() => {
         session.financialState
@@ -141,24 +157,10 @@
         }
         focusLocations([...new Set(route.paths.map((path) => path.locationId))])
     }
-    async function previewHistoryMap(action: GameAction) {
-        focusedLocation = undefined
-        focusedCompany = undefined
-        focusedRoute = undefined
+    function previewHistoryMap(action: GameAction) {
         session.previewHistoryMap(action)
-        view = 'Map'
-        const preview = session.historicalMap
-        await tick()
-        if (session.historicalMap !== preview) return
-        if (preview?.locations.length) focusLocations(preview.locations)
-        else mapWrapper?.fitToContent({ animate: true })
     }
-    async function closeHistoricalMap() {
-        session.closeHistoricalMap()
-        await tick()
-        if (!session.historicalMap) mapWrapper?.fitToContent({ animate: true })
-    }
-    const displayedScene = $derived(session.historicalMap?.scene ?? session.displayedMapScene)
+    const displayedScene = $derived(session.displayedMapScene)
     function focusLocations(locations: readonly string[]) {
         const rectangles = locations.map((locationId) => mapSelectionRect(
             displayedScene, { kind: 'hex', locationId }, 140, 220
@@ -169,10 +171,10 @@
         const bottom = Math.max(...rectangles.map((rect) => rect.y + rect.height))
         mapWrapper?.focusRect({ x, y, width: right - x, height: bottom - y }, { animate: true })
     }
-    const consentPreview = $derived(session.historicalMap ? undefined : session.financialState.trackConsent)
-    const maskPlacementLocations = $derived(!session.historicalMap && !consentPreview &&
+    const consentPreview = $derived(session.financialState.trackConsent)
+    const maskPlacementLocations = $derived(!consentPreview &&
         (session.showTrackChoices || session.financialState.machineState === 'PlacingStation'))
-    const placementLocationIds = $derived(session.historicalMap ? [] : session.canPlaceStation
+    const placementLocationIds = $derived(session.canPlaceStation
         ? session.stationLocationIds : session.trackLocationIds)
     const placementFocusKey = $derived(consentPreview?.id ?? (maskPlacementLocations
         ? JSON.stringify([session.financialState.machineState, placementLocationIds]) : undefined))
@@ -252,8 +254,30 @@
     )
     setGameSession(untrack(() => session))
     const views = ['Map', 'Market', 'Spreadsheet', 'Tiles'] as const
+    let sidebar: HTMLDivElement
     const tabsId = $props.id()
     let view = $state<(typeof views)[number]>('Map')
+
+    function navigateByShortcut(event: KeyboardEvent) {
+        if (event.defaultPrevented || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return
+        const target = event.target
+        if (target instanceof HTMLElement && (target.isContentEditable || target.closest('input, textarea, select, [role="textbox"], [role="dialog"]'))) return
+        const key = event.key.toLowerCase()
+        const viewIndex = ['m', 'k', 's', 't'].indexOf(key)
+        if (viewIndex >= 0) {
+            event.preventDefault()
+            view = views[viewIndex]
+            return
+        }
+        const sidebarIndex = ['p', 'h', 'c'].indexOf(key)
+        if (sidebarIndex >= 0) {
+            const tab = sidebar.querySelectorAll<HTMLButtonElement>('[role="tab"]')[sidebarIndex]
+            if (tab) {
+                event.preventDefault()
+                tab.click()
+            }
+        }
+    }
 
     function navigateTabs(event: KeyboardEvent, index: number) {
         let next: number
@@ -269,6 +293,8 @@
     }
 </script>
 
+<svelte:window onkeydown={navigateByShortcut} />
+
 <div class="railway-table" aria-label="Game table">
     <DefaultTableLayout topPadding={0}>
         {#snippet sideContent()}
@@ -278,6 +304,29 @@
                 disabledColor="text-[#b9ae9f]"
                 bgClass="bg-transparent"
             />
+            <div class="game-information" aria-label="Game information">
+                {#each companyRoles as role (role.companyId)}
+                    <div class="game-information-item" title={`${role.label}: ${getCompany(session.financialState, role.companyId).name}`}>
+                        <span class="information-label role-label">{role.label}{#if role.secondLine}<br />{role.secondLine}{/if}</span>
+                        <CompanyToken appearance={session.mapView.stations[role.companyId]} size={16} />
+                    </div>
+                {/each}
+                <div class="game-information-item">
+                    <span class="information-label train-limit-label">Train<br />limit</span>
+                    <span class="train-limit-value">{phaseChart.phases.find((phase) => phase.id === session.financialState.phaseId)?.trainLimit}</span>
+                </div>
+                <button class="game-information-item depot-information" onclick={() => showDepot = true} aria-haspopup="dialog" aria-label="Open depot">
+                    <span class="information-label">Depot</span>
+                    {#each currentDepotIds as currentDepotId (currentDepotId)}
+                        {@const remaining = session.trainDepot.remaining(session.financialState.trainInventory, currentDepotId)}
+                        {@const trainName = session.trainDepot.trainDefinition(currentDepotId).name}
+                        <span class="depot-type"><TrainBadge name={trainName === 'Diesel' ? 'D' : trainName} color={trainColors[currentDepotId]} />
+                        <span class="depot-count">{remaining === 'unlimited' ? '∞' : `×${remaining}`}</span></span>
+                    {:else}<span>Empty</span>{/each}
+                </button>
+            </div>
+            {#if gameInformation}{@render gameInformation()}{/if}
+            <div bind:this={sidebar} style="display: contents">
             <DefaultTabs
                 fontClass="text-[11px] font-semibold uppercase tracking-[0.07em]"
                 contentClass="p-0 mt-0 has-[.round-history]:-mt-1 h-full overflow-auto rounded-none bg-transparent dark:bg-transparent"
@@ -308,10 +357,13 @@
                     />
                 {/snippet}
             </DefaultTabs>
+            </div>
         {/snippet}
         {#snippet gameContent()}
             <TableHeader {session} {phaseChart} {trainColors} />
-            <section class="action-panel" aria-label="Current action">
+            <OperatingSteps {session} />
+            <StockActionStrip {session} additionalActions={additionalStockActions} />
+            <section class="action-panel" class:share-purchases={session.financialState.machineState === 'StockRound'} aria-label="Current action">
                 {@render actions(focusLocation, focusRoute)}
             </section>
             {#if companyOrder.length}
@@ -338,6 +390,7 @@
             >
                 {#snippet companyDetails(company)}
                     <CompanyDetails
+                        onPreviewMap={previewHistoryMap}
                         {trainColors}
                         {session}
                         {company}
@@ -363,7 +416,6 @@
             <div class="view-area">
                 <div
                     class="view-panel map-area"
-                    class:historical={!!session.historicalMap}
                     class:inactive={view !== 'Map'}
                     role="tabpanel"
                     id={`${tabsId}-panel-Map`}
@@ -380,32 +432,24 @@
                     >
                         <MapScene revenueStageColors={session.mapView.revenueStageColors}
                             scene={displayedScene}
-                            tokens={session.historicalMap?.tokens ?? session.displayedMapTokens}
-                            reservations={session.historicalMap?.reservations ?? session.displayedTrackPreview?.stationReservations ??
+                            tokens={session.displayedMapTokens}
+                            reservations={session.displayedTrackPreview?.stationReservations ??
                                 session.stationDisplayState.stationReservations}
-                            routes={session.historicalMap?.routes ?? session.routeOverlays}
-                            selection={session.historicalMap ? session.historicalMap.selection : session.mapSelection}
+                            routes={session.routeOverlays}
+                            selection={session.mapSelection}
                             maskUnavailableLocations={maskPlacementLocations}
                             legalLocationIds={placementLocationIds}
-                            previewLocationId={session.historicalMap ? undefined : session.displayedTrackPreview?.locationId ??
+                            previewLocationId={session.displayedTrackPreview?.locationId ??
                                 session.stationPreview?.position.locationId}
                             translucentLocationId={consentPreview?.details.locationId}
                             appearance={session.mapStyle === 'muted'
                                 ? MutedTileAppearance
                                 : ClassicTileAppearance}
                             hexDiameter={140}
-                            onselect={session.historicalMap || consentPreview ? undefined : (selection) => session.selectMap(selection, false)}
+                            onselect={consentPreview ? undefined : (selection) => session.selectMap(selection, false)}
                         />
-                        {#snippet toolbar()}
-                            {#if session.historicalMap}<div class="historical-map-toolbar">
-                                <div class="historical-map-banner" role="status">
-                                    <span><strong>Historical map</strong> · {session.historicalMap.label}</span>
-                                    <button onclick={closeHistoricalMap}>Return to current map</button>
-                                </div>
-                            </div>{/if}
-                        {/snippet}
                         {#snippet overlay(viewport)}
-                            {#if !session.historicalMap && view === 'Map' && session.canBuildTrack && session.trackSelection.locationId}
+                            {#if view === 'Map' && session.canBuildTrack && session.trackSelection.locationId}
                                 <TrackTilePicker {session} {viewport} />
                             {/if}
                         {/snippet}
@@ -475,7 +519,30 @@
     </DefaultTableLayout>
 </div>
 
+{#if showDepot}<PhaseChart depotView={{ depot: session.trainDepot, inventory: session.financialState.trainInventory, availableDefinitionIds: session.availableTrainDefinitionIds }} chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} onclose={() => showDepot = false} />{/if}
+
+{#if session.historicalMap}
+    <HistoricalMapViewer preview={session.historicalMap}
+        revenueStageColors={session.mapView.revenueStageColors}
+        appearance={session.mapStyle === 'muted' ? MutedTileAppearance : ClassicTileAppearance}
+        onclose={() => session.closeHistoricalMap()} />
+{/if}
+
 <style>
+    .game-information { display: flex; align-items: center; justify-content: space-between; flex: none; gap: 3px; flex-wrap: wrap; margin-top: -8px; padding: 6px; border-bottom: 1px solid #b8a995; color: #514536; font-size: 12px; line-height: 20px; }
+    .game-information-item { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .depot-information { border: 0; padding: 4px 5px; margin: -4px -5px; border-radius: 4px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+    .depot-information:hover { background: #ffffff66; }
+    .depot-information:focus-visible { outline: 2px solid #9e7752; outline-offset: 2px; }
+    .depot-type { display: inline-flex; align-items: center; gap: 3px; }
+    .depot-information { flex-wrap: wrap; justify-content: flex-end; }
+    .depot-count { font-size: 12px; font-weight: 700; line-height: 16px; font-variant-numeric: tabular-nums; }
+    .role-label,
+    .train-limit-label { text-align: center; line-height: 10px; }
+    .train-limit-value { font-size: 16px; font-weight: 700; line-height: 20px; }
+    .information-label { color: #887969; font-size: 10px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; line-height: 1; }
+
+
     .railway-table {
         background: #ede2dc;
         color: #443c34;
@@ -491,6 +558,7 @@
         border-bottom: 1px solid #b8a995;
         font-size: 13px;
     }
+    .action-panel.share-purchases { max-height: 50dvh; }
     .action-panel :global(section) {
         padding: 0;
         margin: 0;
@@ -549,31 +617,6 @@
     }
     .view-tabs button:hover {
         color: #5e4937;
-    }
-    .historical { background: #dfd8ca; }
-    .historical-map-toolbar { padding: 8px 12px; }
-    .historical-map-banner {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 8px 12px;
-        border: 1px solid #715638;
-        border-radius: 5px;
-        background: #493b2bee;
-        color: #fff8e9;
-        box-shadow: 0 2px 8px #30271f33;
-        font-size: 12px;
-    }
-    .historical-map-banner button {
-        flex-shrink: 0;
-        border: 1px solid #c3b394;
-        border-radius: 4px;
-        padding: 4px 8px;
-        background: #faf5e8;
-        color: #493b2b;
-        font: inherit;
-        cursor: pointer;
     }
     .map-area {
         position: relative;

@@ -173,3 +173,9 @@ funding on reload or undo. Intermediate restored funding states remain actionabl
 History continues to record each financial settlement.
 
 The forced-purchase refinement exposes the first share-sale choice and net amount to raise in the immutable preview, preserving Union Bank-first liability and 1889 ownership-limit corrections. Funding begun by a sale performs mandatory issuance before validating that sale. After sales, funding pauses when remaining cash can cover the train; contributions and purchase wait for the explicit train button. The running sales ledger derives from canonical issuance/sale metadata since FundTrain, bounded by the visible action count.
+
+Private purchase presentation uses existing title-owned transfer eligibility and
+price bounds, not a president-only restriction. TOP's Hunslet and 1889's multiple
+privates share a source/card/price flow; other-player sales still require consent.
+The common staged-selection helper tracks the manually opened source choice;
+existing company decision drafts and canonical offers own asset/price and purchase.

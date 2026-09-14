@@ -7,7 +7,7 @@ export type CompanyOwnership = {
     certificateNumbers: number[]
 }
 
-export function companyOwnership(state: FinancialState, companyId: string): CompanyOwnership[] {
+export function companyOwnership(state: FinancialState, companyId: string, retainedOwners: readonly Owner[] = []): CompanyOwnership[] {
     const rows: CompanyOwnership[] = []
     for (const certificate of state.certificates) {
         if (
@@ -31,6 +31,11 @@ export function companyOwnership(state: FinancialState, companyId: string): Comp
         }
         row.shares += certificate.shares
         if (certificate.number !== undefined) row.certificateNumbers.push(certificate.number)
+    }
+    for (const owner of retainedOwners) {
+        if (!rows.some((row) => sameOwner(row.owner, owner))) {
+            rows.push({ owner, shares: 0, certificateNumbers: [] })
+        }
     }
     for (const row of rows) row.certificateNumbers.sort((a, b) => a - b)
     return [

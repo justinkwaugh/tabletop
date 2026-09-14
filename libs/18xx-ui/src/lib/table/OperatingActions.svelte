@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { StockMenuOption } from '../stock/stockActionSelection.js'
+    import type { CertificatePool } from '@tabletop/18xx'
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
     import GameEnding from '../examples/GameEnding.svelte'
     import TrackBuilding from '../examples/TrackBuilding.svelte'
@@ -14,13 +14,15 @@
         createRouteWorker,
         onFocusRoute,
         trainColors,
-        additionalStockActions = []
+        privateOperationDescription,
+        poolName
     }: {
         createRouteWorker: () => Worker
         onFocusRoute: (trainId: string) => void
         trainColors: Readonly<Record<string, string>>
+        privateOperationDescription: (id: string, companyId: string) => string | undefined
+        poolName?: (pool: CertificatePool) => string
         session: FinanceExampleSession
-        additionalStockActions?: readonly StockMenuOption[]
     } = $props()
     const state = $derived(session.financialState)
     const trainBuying = $derived(state.machineState === 'BuyingTrains')
@@ -31,8 +33,9 @@
     {#if (state.purchaseOffer && !(trainBuying && state.purchaseOffer.asset.kind === 'train')) || state.trackConsent || state.privateTrackLay || state.privatePowerWindow || session.purchaseOptions.some((option) => !trainBuying || option.request.asset.kind !== 'train') || session.privateTileOptions.length || session.privateTrainOptions.length || session.companyDecisionSelection}
         <CompanyDecisions {session} showUndo={false} excludeTrainPurchases={trainBuying} />
     {/if}
+    {#if !session.privatePurchaseSource && state.purchaseOffer?.asset.kind !== 'private'}
     {#if state.machineState === 'StockRound'}
-        <StockRoundActions {session} additionalActions={additionalStockActions} />
+        <StockRoundActions {session} {trainColors} {privateOperationDescription} {poolName} />
     {:else if state.machineState === 'LayingTrack'}<TrackBuilding
             {session}
             showUndo={false}
@@ -50,4 +53,5 @@
             showUndo={false}
         />
     {:else}<TrainBuying {session} {trainColors} showUndo={false} />{/if}
+    {/if}
 {/if}

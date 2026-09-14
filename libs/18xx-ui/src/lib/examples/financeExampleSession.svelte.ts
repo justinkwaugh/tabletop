@@ -1,3 +1,4 @@
+import { setStagedSelectionValue, type StagedSelectionState } from '@tabletop/frontend-components'
 import { isSellFundingShares, isIssueTreasuryShares, isContributeTrainFunds } from '@tabletop/18xx'
 import { EighteenXXPreferenceDefinition, type EighteenXXPreferences } from '@tabletop/18xx'
 import { isOfferPurchase, isRespondToPurchaseOffer, isDistributeEarnings } from '@tabletop/18xx'
@@ -321,6 +322,13 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         return this.gameState.activePlayerIds.flatMap((id) =>
             this.game.players.filter((player) => player.id === id)
         )
+    }
+    private privatePurchaseStages: StagedSelectionState<{ source: 'mine' | 'other' }> = $state({})
+    privatePurchaseSource = $derived(!this.updatingVisibleState && !this.isViewingHistory ? this.privatePurchaseStages.source?.value : undefined)
+    privatePurchases = $derived.by(() => this.purchaseOptions.filter((option) => option.request.asset.kind === 'private'))
+    choosePrivatePurchaseSource(source: 'mine' | 'other') {
+        this.companyDraft = undefined
+        this.privatePurchaseStages = setStagedSelectionValue(this.privatePurchaseStages, ['source'], 'source', source, 'manual')
     }
     private companyDraft: CompanyDecisionDraft | undefined = $state()
     companyDecisionSelection = $derived(
@@ -1483,6 +1491,49 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             )
         )
     }
+    operatingStep = $derived.by(() => {
+        switch (this.financialState.machineState) {
+            case 'LayingTrack': return 0
+            case 'PlacingStation': return 1
+            case 'RunningTrains':
+            case 'RustingTrains': return 2
+            case 'DistributingEarnings': return 3
+            case 'BuyingTrains':
+            case 'FundingTrain': return 4
+            default: return undefined
+        }
+    })
+    private skippingOperatingSteps = $state(false)
+    canSkipToOperatingStep(target: number): boolean {
+        const current = this.operatingStep
+        return current !== undefined && target > current && target <= 2 &&
+            !this.skippingOperatingSteps && !this.busy && !this.updatingVisibleState &&
+            !this.isViewingHistory && !this.hasActionDraft &&
+            !this.financialState.purchaseOffer && !this.financialState.trackConsent &&
+            !this.financialState.privateTrackLay &&
+            this.validActionTypes.includes(current === 0 ? 'FinishTrack' : 'FinishStations')
+    }
+    async skipToOperatingStep(target: number) {
+        assert(this.canSkipToOperatingStep(target), 'This operating step cannot be skipped to')
+        const operatingSet = this.financialState.operatingSet
+        const companyId = this.financialState.trackStep?.companyId ?? this.financialState.stationStep?.companyId
+        this.skippingOperatingSteps = true
+        try {
+            while (this.operatingStep !== undefined && this.operatingStep < target) {
+                if (this.operatingStep === 0) await this.finishTrack()
+                else if (this.operatingStep === 1 && this.validActionTypes.includes('FinishStations')) await this.finishStations()
+                else break
+                await this.waitForVisibleTransitionSettled()
+                const state = this.financialState
+                if (state.operatingSet?.number !== operatingSet?.number ||
+                    state.operatingSet?.roundNumber !== operatingSet?.roundNumber ||
+                    (state.trackStep?.companyId ?? state.stationStep?.companyId) !== companyId ||
+                    state.purchaseOffer || state.trackConsent || state.privateTrackLay) break
+            }
+        } finally {
+            this.skippingOperatingSteps = false
+        }
+    }
     async finishTrack() {
         const companyId = this.financialState.trackStep?.companyId
         assert(
@@ -1613,6 +1664,12 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     setMapStyle(style: 'classic' | 'muted') {
         assertExists(this.myPlayer, 'A map preference requires a player')
         this.mapStyles[this.myPlayer.id] = style
+    }
+    stockCompanyName(companyId: string) {
+        return getCompany(this.financialState, companyId).name
+    }
+    get stockCompanies() {
+        return this.financialState.companies.filter((company) => company.started)
     }
     private stockActionDraft: StockActionSelection = $state({})
     stockMenu = $derived(
@@ -1916,6 +1973,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         this.stockActionDraft = {}
         this.offerDraft = undefined
         this.auctionDraft = undefined
+        this.privatePurchaseStages = {}
         this.companyDraft = undefined
         this.privateDraft = undefined
         this.discardDraft = undefined
@@ -1932,7 +1990,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             this.stockMenu ||
             this.offerDraft ||
             this.auctionDraft ||
-            this.companyDraft ||
+            this.companyDraft || this.privatePurchaseSource ||
             this.privateDraft ||
             this.discardDraft ||
             this.earningsDraft ||
@@ -1960,6 +2018,10 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         }
         if (this.companyDraft) {
             this.companyDraft = undefined
+            return
+        }
+        if (this.privatePurchaseSource) {
+            this.privatePurchaseStages = {}
             return
         }
         if (this.privateDraft) {

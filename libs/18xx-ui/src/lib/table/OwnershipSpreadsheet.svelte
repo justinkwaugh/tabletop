@@ -150,9 +150,7 @@
         {#if session.mapView.stations[company.id]}
             <CompanyToken appearance={session.mapView.stations[company.id]} size={22} />
         {/if}
-        <span class="full-name">{company.name}</span>
-        <span class="short-name">{companyNames[company.id]?.short ?? company.name}</span>
-        <span class="initials">{companyNames[company.id]?.initials ?? company.id}</span>
+        <span title={company.name}>{companyNames[company.id]?.initials ?? company.id}</span>
     </span>
 {/snippet}
 
@@ -306,18 +304,8 @@
     .transposed .company {
         justify-content: center;
     }
-    .transposed .full-name {
-        display: none;
-    }
-    .transposed .short-name {
-        display: inline;
-    }
     .spreadsheet {
         container-type: inline-size;
-    }
-    .short-name,
-    .initials {
-        display: none;
     }
     table {
         width: 100%;
@@ -378,25 +366,12 @@
         color: #a79888;
     }
     @container (max-width: 800px) {
-        .full-name {
-            display: none;
-        }
-        .short-name {
-            display: inline;
-        }
         th,
         td {
             padding-inline: 9px;
         }
     }
     @container (max-width: 560px) {
-        .short-name,
-        .transposed .short-name {
-            display: none;
-        }
-        .initials {
-            display: inline;
-        }
         th,
         td {
             padding-inline: 6px;

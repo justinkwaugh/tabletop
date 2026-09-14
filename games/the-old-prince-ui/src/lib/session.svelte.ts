@@ -115,6 +115,16 @@ export class TheOldPrinceSession extends BaseSession {
             })
         )
     }
+    override cancelSelection() {
+        this.splitDraft = {}
+        super.cancelSelection()
+    }
+    override stockCompanyName(companyId: string) {
+        return companyId === 'PEIR' ? 'PEIR' : super.stockCompanyName(companyId)
+    }
+    override get stockCompanies() {
+        return this.financialState.companies.filter((company) => company.started || company.id === 'PEIR')
+    }
     chooseSplit() {
         assert(this.canPreviewSplit, 'Split selection is unavailable')
         this.chooseStockMenu(undefined)

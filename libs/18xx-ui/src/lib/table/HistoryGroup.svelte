@@ -143,7 +143,7 @@
                     class:important={row.important}
                     class:routine={row.routine}
                 >
-                    {#if row.action.playerId && row.action.playerId !== group.playerId}<small
+                    {#if !row.omitActor && row.action.playerId && row.action.playerId !== group.playerId}<small
                             >{playerName(row.action.playerId)}</small
                         >{/if}
                     <span>{#snippet actionSummary()}{startingCash !== undefined ? row.ledgerText ?? row.text : row.text}{#if row.trainDefinitionIds?.length}<span class="run-trains">{#each row.trainDefinitionIds as id}<TrainBadge name={trainName(id)} color={trainColors[id]} />{/each}</span>{/if}{/snippet}

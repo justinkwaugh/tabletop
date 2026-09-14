@@ -306,7 +306,7 @@
     }
     .heading {
         flex-shrink: 0;
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 650;
         letter-spacing: 0.06em;
         text-transform: uppercase;

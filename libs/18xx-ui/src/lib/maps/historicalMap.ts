@@ -72,7 +72,9 @@ export class HistoricalMaps {
         const selection: MapSelection | undefined = locationId ? { kind: 'hex', locationId } : undefined
         const preview = {
             actionId: action.id,
-            label: `${set ? `OR ${set.number}.${set.roundNumber} · ` : ''}${company.name}`,
+            label: `${company.name}${set ? ` · OR ${set.number}.${set.roundNumber}` : ''}`,
+            kind: isRunTrains(action) ? 'run' : 'track lay',
+            revenue: isRunTrains(action) ? action.metadata?.revenue : undefined,
             scene: createMapDrawing(this.view.map, {
                 tileSet: this.view.tileSet, inventory: snapshot.tileInventory
             }, this.view.layouts),
@@ -92,6 +94,8 @@ export class HistoricalMaps {
 export type HistoricalMap = {
     actionId: string
     label: string
+    kind: string
+    revenue?: number
     scene: ReturnType<typeof createMapDrawing>
     tokens: ReturnType<typeof stationMapTokens>
     reservations: FinanceExampleState['stationReservations']

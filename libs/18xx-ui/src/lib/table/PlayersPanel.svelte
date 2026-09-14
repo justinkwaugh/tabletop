@@ -315,11 +315,13 @@
         border-left: 1px solid #e3d9cd;
     }
     dt {
+        line-height: 12px;
         font-size: 10px;
         color: #887664;
     }
     dd {
-        margin: 1px 0 0;
+        margin: 0;
+        line-height: 16px;
         font-size: 14px;
         font-weight: 650;
         font-variant-numeric: tabular-nums;

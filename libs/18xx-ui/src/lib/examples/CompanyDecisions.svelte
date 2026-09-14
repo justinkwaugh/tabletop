@@ -2,11 +2,12 @@
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
     import { getCompany } from '@tabletop/18xx'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import PrivateBuying from './PrivateBuying.svelte'
     import DecisionResponse from './DecisionResponse.svelte'
     import Tile from '../tiles/Tile.svelte'
     let { session, showUndo = true, excludeTrainPurchases = false }: { excludeTrainPurchases?: boolean; showUndo?: boolean; session: FinanceExampleSession } =
         $props()
-    const purchaseOptions = $derived(session.purchaseOptions.filter((option) => !excludeTrainPurchases || option.request.asset.kind !== 'train'))
+    const purchaseOptions = $derived(session.purchaseOptions.filter((option) => option.request.asset.kind === 'train' && !excludeTrainPurchases))
     const state = $derived(session.financialState)
     const draft = $derived(session.companyDecisionSelection)
 </script>
@@ -29,7 +30,7 @@
     </DecisionResponse>
 {:else}
 <section aria-label="Company decisions">
-    <h2>Purchases and private powers</h2>
+
     {#if state.privatePowerWindow}
         <p>Private powers before {state.privatePowerWindow.companyId} operates.</p>
         <button
@@ -40,28 +41,12 @@
     {/if}
     {#if state.purchaseOffer}
         {@const offer = state.purchaseOffer}
-        <div aria-label="Purchase response">
-            <p>
-                {offer.companyId} offers {offer.price} to {session.ownerName(offer.seller)} for {offer
-                    .asset.kind === 'train'
-                    ? offer.asset.trainId
-                    : offer.asset.privateCompanyId}.
-            </p>
-            <p>
-                {session.getPlayerName(offer.sellerPlayerId)} decides. {offer.companyId}’s turn
-                resumes afterward.
-            </p>
-            <button
-                disabled={!session.canResolveCompanyDecision ||
-                    !session.validActionTypes.includes('RespondToPurchaseOffer')}
-                onclick={() => session.respondToPurchaseOffer(true)}>Accept purchase</button
-            >
-            <button
-                disabled={!session.canResolveCompanyDecision ||
-                    !session.validActionTypes.includes('RespondToPurchaseOffer')}
-                onclick={() => session.respondToPurchaseOffer(false)}>Reject purchase</button
-            >
-        </div>
+        <DecisionResponse label="Purchase response" acceptLabel="Accept"
+            disabled={!session.canResolveCompanyDecision || !session.validActionTypes.includes('RespondToPurchaseOffer')}
+            onAccept={() => session.respondToPurchaseOffer(true)} onDecline={() => session.respondToPurchaseOffer(false)}>
+            <CompanyToken appearance={session.mapView.stations[offer.companyId]} size={24} />
+            <span>{getCompany(state, offer.companyId).name} offers ${offer.price} for {offer.asset.kind === 'private' ? getCompany(state, offer.asset.privateCompanyId).name : offer.asset.trainId}</span>
+        </DecisionResponse>
     {:else}
         {#if state.privateTrackLay}
             <p>
@@ -74,6 +59,7 @@
                 onclick={() => session.declinePrivateTile()}>Decline private tile lay</button
             >
         {/if}
+        <PrivateBuying {session} />
         <div class="choices">
             {#if purchaseOptions.length}
                 <label
@@ -101,7 +87,7 @@
                     </select>
                 </label>
             {/if}
-            {#if session.privateTileOptions.length}
+            {#if !session.privatePurchaseSource && session.privateTileOptions.length}
                 <label
                     >Private tile lay
                     <select
@@ -124,7 +110,7 @@
                     </select>
                 </label>
             {/if}
-            {#if session.privateTrainOptions.length}
+            {#if !session.privatePurchaseSource && session.privateTrainOptions.length}
                 <label
                     >Private train purchase
                     <select
@@ -147,7 +133,7 @@
             {/if}
         </div>
     {/if}
-    {#if draft}
+    {#if draft && !(draft.kind === 'purchase' && draft.request.asset.kind === 'private')}
         <div aria-label="Company decision preview">
             {#if draft.kind === 'purchase'}
                 <label
@@ -206,13 +192,10 @@
 <style>
     strong { font-weight: 600; }
     section {
-        margin-block: 1rem;
-        padding: 0.75rem;
+        margin-block: 0;
+        padding: 0;
         border: 1px solid #cbd5e1;
         border-radius: 0.4rem;
-    }
-    h2 {
-        margin-top: 0;
     }
     .choices {
         display: flex;

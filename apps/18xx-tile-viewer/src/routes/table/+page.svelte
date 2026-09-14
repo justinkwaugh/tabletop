@@ -34,6 +34,7 @@
             <option value="operations">Operating rounds</option>
             <option value="trains">Buy trains</option>
             {#if title === 'TOP'}<option value="funding-chain">Union Bank train funding</option>{/if}
+            <option value="powers">Buy privates</option>
             <option value="transfers">Negotiated purchases</option>
             <option value="ending">Final operating turn</option>
             {#if title === 'TOP'}<option value="finished">Finished game</option>{/if}

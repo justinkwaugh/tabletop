@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { TrainDepot, TrainInventory } from '@tabletop/18xx'
     import { onMount } from 'svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import { TileColors } from '../tiles/tilePresentation.js'
@@ -6,10 +7,12 @@
 
     let {
         chart,
+        depotView,
         currentPhaseId,
         trainColors,
         onclose
     }: {
+        depotView?: { depot: TrainDepot; inventory: TrainInventory; availableDefinitionIds: readonly string[] }
         chart: PhaseChartData
         currentPhaseId: string
         trainColors: Readonly<Record<string, string>>
@@ -34,10 +37,10 @@
     }
 </script>
 
-<dialog bind:this={dialog} aria-labelledby={titleId} {onclose} onclick={closeOutside}>
+<dialog class:depot={!!depotView} bind:this={dialog} aria-labelledby={titleId} {onclose} onclick={closeOutside}>
     <header>
-        <h2 id={titleId}>Phase chart &amp; rusting schedule</h2>
-        <button class="close" aria-label="Close phase chart" onclick={() => dialog.close()}>
+        <h2 id={titleId}>{depotView ? 'Train Depot' : 'Phase Chart & Train Roster'}</h2>
+        <button class="close" aria-label={depotView ? 'Close depot' : 'Close phase chart'} onclick={() => dialog.close()}>
             <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"
                 ><path
                     d="m4 4 8 8m0-8-8 8"
@@ -50,6 +53,7 @@
         </button>
     </header>
     <div class="charts">
+        {#if !depotView}
         <section aria-label="Phases">
             <table>
                 <thead
@@ -95,20 +99,23 @@
                 </tbody>
             </table>
         </section>
+        {/if}
         <section aria-label="Train roster">
             <table>
                 <thead
-                    ><tr><th>Train</th><th>Price</th><th>Qty</th><th>Rusts in phase</th></tr
+                    ><tr><th>Train</th><th class="money">Price</th><th>{depotView ? 'Remaining' : 'Qty'}</th><th>Rusts in phase</th></tr
                     ></thead
                 >
                 <tbody>
                     {#each chart.trains as train (train.id)}
-                        <tr>
+                        {@const remaining = depotView ? depotView.depot.remaining(depotView.inventory, train.id) : train.count}
+                        {@const current = depotView?.availableDefinitionIds.includes(train.id) && remaining !== 0}
+                        <tr class:current aria-current={current ? 'step' : undefined} class:exhausted={!!depotView && remaining === 0}>
                             <th scope="row"
                                 ><TrainBadge name={train.name} color={trainColors[train.id]} /></th
                             >
                             <td class="money">${train.price.toLocaleString('en-US')}</td>
-                            <td class="number">{train.count === 'unlimited' ? '∞' : train.count}</td
+                            <td class="number">{remaining === 'unlimited' ? '∞' : remaining}</td
                             >
                             <td
                                 >{#if train.rustPhaseId}<TrainBadge
@@ -127,7 +134,7 @@
         {#each chart.trains.filter((train) => train.rustNote) as train}<p>
                 * {train.rustNote}
             </p>{/each}
-        {#each chart.notes as note}<p>{note}</p>{/each}
+        {#if !depotView}{#each chart.notes as note}<p>{note}</p>{/each}{/if}
     </div>
 </dialog>
 
@@ -144,6 +151,9 @@
         color: #463e35;
         box-shadow: 0 20px 70px #16120d55;
     }
+    dialog.depot { width: min(430px, calc(100vw - 40px)); }
+    .depot .charts { grid-template-columns: minmax(0, 1fr); }
+    .exhausted { color: #958878; opacity: .55; }
     dialog::backdrop {
         background: #17141099;
     }

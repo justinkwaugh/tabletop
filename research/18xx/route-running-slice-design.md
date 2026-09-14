@@ -121,3 +121,20 @@ This conservative proof avoids invoking optimization in the runtime; train-speci
 distance constraints remain in route evaluation. Zero revenue with no submitted
 routes automatically withholds when the title offers that choice, retaining the
 canonical run, distribution, and market effects for history and undo.
+
+The table sidebar now presents persistent game information. Title-supplied company
+roles cover TOP's randomized Mainline and Shortline without placing those concepts
+in shared UI policy; titles without those roles omit them. The current general
+train limit comes from the title's phase chart. Company-specific exceptions remain
+with company rules rather than being implied by this general phase limit.
+
+TOP's tranche strip is title-owned presentation of existing tranche capacities
+and assigned company IDs. A shared table snippet supplies the insertion point;
+titles without tranches do not allocate space for it.
+
+The first operating-step strip represents the shared Track, Station, Run, Payout,
+Trains sequence used by TOP/1889. Research variations include private powers at
+multiple timings, extra construction/station allowances, and mandatory purchases;
+therefore skipping invokes existing canonical FinishTrack/FinishStations actions
+only and never fabricates runs, earnings choices, or funding. Other sequences will
+need title-supplied step descriptors before adopting this prototype strip.

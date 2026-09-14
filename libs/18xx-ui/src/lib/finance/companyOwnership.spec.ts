@@ -72,5 +72,11 @@ describe('company ownership', () => {
             { owner, poolId: undefined, shares: 2, certificateNumbers: [2, 7] }
         ])
         expect(companyOwnership(state, 'other')).toEqual([])
+        const formerOwner = { kind: 'player', playerId: 'p2' } as const
+        expect(companyOwnership(state, 'N', [owner, formerOwner, formerOwner])).toEqual([
+            { owner, poolId: undefined, shares: 2, certificateNumbers: [2, 7] },
+            { owner: formerOwner, shares: 0, certificateNumbers: [] }
+        ])
+        expect(companyOwnership(state, 'N')).toHaveLength(1)
     })
 })

@@ -42,6 +42,7 @@
         onselect?: (selection: MapSelection) => void
     } = $props()
     const perimeterMaskId = $props.id()
+    const perimeterRoundingId = `${perimeterMaskId}-rounding`
     const currentReservations = $derived(reservations ?? printedMapReservations(scene))
     const entries = $derived.by(() => {
         assertMapOverlays(scene, tokens, routes, currentReservations)
@@ -80,8 +81,14 @@
 >
     {#if maskUnavailableLocations}
         <defs>
+            <filter id={perimeterRoundingId} filterUnits="userSpaceOnUse" {...scene.bounds} color-interpolation-filters="sRGB">
+                <feGaussianBlur stdDeviation="5" />
+                <feComponentTransfer>
+                    <feFuncA type="linear" slope="20" intercept="-9.5" />
+                </feComponentTransfer>
+            </filter>
             <mask id={perimeterMaskId} maskUnits="userSpaceOnUse" {...scene.bounds}>
-                <g fill="white" stroke="white" stroke-width="50" stroke-linejoin="round">
+                <g fill="white" stroke="white" stroke-width="50" stroke-linejoin="round" filter={`url(#${perimeterRoundingId})`}>
                     {#each entries as entry (entry.location.id)}
                         <polygon transform={`translate(${entry.center.x} ${entry.center.y})`} points={entry.drawing.polygon} />
                     {/each}

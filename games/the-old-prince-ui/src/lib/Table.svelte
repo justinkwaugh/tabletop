@@ -1,6 +1,7 @@
 <script lang="ts">
+    import type { CertificatePool } from '@tabletop/18xx'
     import { TheOldPrincePhaseChart } from './phaseChart.js'
-    import { TheOldPrinceTrackColors } from '@tabletop/the-old-prince'
+    import { availableTheOldPrinceTranche, TheOldPrinceTrackColors } from '@tabletop/the-old-prince'
     import { TheOldPrinceCompanyNames } from './companyPresentation.js'
     import { isSplitCompany, TheOldPrinceEndingRules, TheOldPrinceCompanies, TheOldPrinceMap } from '@tabletop/the-old-prince'
     import { TheOldPrinceTrainColors } from './trainPresentation.js'
@@ -8,7 +9,7 @@
     import OpeningAuction from './OpeningAuction.svelte'
     import type { GameSession } from '@tabletop/frontend-components'
     import type { GameState, HydratedGameState } from '@tabletop/common'
-    import { GameTable, OperatingActions, AuctionOffers, OfferAuctionBidding } from '@tabletop/18xx-ui'
+    import { CompanyToken, GameTable, OperatingActions, AuctionOffers, OfferAuctionBidding } from '@tabletop/18xx-ui'
     import { requireTheOldPrinceSession } from './session.svelte.js'
     import BranchSplitPreview from './BranchSplitPreview.svelte'
     function createRouteWorker() {
@@ -31,9 +32,24 @@
         )?.id
     }
     const session = $derived(requireTheOldPrinceSession(gameSession))
+    const availableTranche = $derived(availableTheOldPrinceTranche(session.financialState))
+    const privateOperationDescription = (id: string, companyId: string) =>
+        id === 'HS' && companyId !== 'PEIR'
+            ? 'Close to buy one depot train during the company’s turn, paying the normal train price.'
+            : undefined
+    const poolName = (pool: CertificatePool) =>
+        pool.id === 'reserved'
+            ? 'Exchange'
+            : pool.owner.kind === 'company'
+              ? 'Treasury'
+              : pool.name
 </script>
 
 <GameTable
+    additionalStockActions={session.canPreviewSplit && session.myPlayer && session.splitModel.branches().length && session.splitModel.parents(session.myPlayer.id).some((parent) => !parent.reason) ? [{ label: 'Split', selected: session.hasSplitDraft, onSelect: () => session.chooseSplit() }] : []}
+    companyRoles={session.financialState.companies.flatMap((company) =>
+        company.role === 'mainline' || company.role === 'shortline'
+            ? [{ companyId: company.id, label: company.role === 'mainline' ? 'Main' : 'Short', secondLine: 'Line' }] : [])}
     phaseChart={TheOldPrincePhaseChart}
     historyDescription={(action) => isSplitCompany(action) ? {
         text: `Split ${TheOldPrinceCompanyNames[action.branchId]?.short ?? action.branchId} from ${TheOldPrinceCompanyNames[action.parentId]?.short ?? action.parentId}`,
@@ -54,16 +70,8 @@
     phaseColors={TheOldPrinceTrainColors}
     phaseTileColors={TheOldPrinceTrackColors}
     operatingRules={TheOldPrinceOperatingRules}
-    privateOperationDescription={(id, companyId) =>
-        id === 'HS' && companyId !== 'PEIR'
-            ? 'Close to buy one depot train during the company’s turn, paying the normal train price.'
-            : undefined}
-    poolName={(pool) =>
-        pool.id === 'reserved'
-            ? 'Exchange'
-            : pool.owner.kind === 'company'
-              ? 'Treasury'
-              : pool.name}
+    {privateOperationDescription}
+    {poolName}
 >
     {#snippet actions(focusLocation, focusRoute)}
         {#if session.offerAuction && !session.offerAuction.auction.completed}
@@ -77,9 +85,35 @@
         {:else}
             {#if session.hasSplitDraft}
                 <BranchSplitPreview {session} showUndo={false} />
-            {:else}
-                <OperatingActions onFocusRoute={focusRoute} {session} {createRouteWorker} trainColors={TheOldPrinceTrainColors} additionalStockActions={session.canPreviewSplit && session.myPlayer && session.splitModel.branches().length && session.splitModel.parents(session.myPlayer.id).some((parent) => !parent.reason) ? [{ label: 'Split', onSelect: () => session.chooseSplit() }] : []} />
             {/if}
+                <OperatingActions {poolName} {privateOperationDescription} onFocusRoute={focusRoute} {session} {createRouteWorker} trainColors={TheOldPrinceTrainColors} />
         {/if}
     {/snippet}
+    {#snippet gameInformation()}
+        <div class="tranches" aria-label="Company tranches">
+            <span class="tranches-label">Tranches</span>
+            {#each session.financialState.tranches.filter((tranche) => tranche.id !== 'initial') as tranche (tranche.id)}
+                {@const closed = tranche.companyIds.length < tranche.capacity && tranche.id !== availableTranche?.id}
+                <div class="tranche" class:closed aria-label={`${tranche.name}${closed ? ': closed' : ''}`} title={closed ? `${tranche.name}: closed` : tranche.name}>
+                    {#each Array.from({ length: tranche.capacity }, (_, index) => tranche.companyIds[index]) as companyId}
+                        <span class="tranche-slot" class:empty={!companyId}>
+                            {#if companyId}<CompanyToken appearance={session.mapView.stations[companyId]} size={22} />
+                            {:else if closed}<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" /><path d="M5 7V5a3 3 0 0 1 6 0v2" /></svg>{/if}
+                        </span>
+                    {/each}
+                </div>
+            {/each}
+        </div>
+    {/snippet}
 </GameTable>
+
+<style>
+    .tranches { display: flex; align-items: center; gap: 0; flex: none; margin-top: -8px; padding: 6px 8px; border-bottom: 1px solid #b8a995; }
+    .tranches-label { color: #887969; font-size: 10px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; line-height: 1; margin-right: 3px; }
+    .tranche:last-child { padding-right: 0; }
+    .tranche { display: flex; align-items: center; justify-content: center; flex-grow: 1; gap: 5px; padding: 0 8px; }
+    .tranche + .tranche { border-left: 1px solid #b8a995; }
+    .tranche-slot.empty { border-style: dashed; background: transparent; }
+    .closed .tranche-slot.empty { color: #776657; opacity: 0.55; }
+    .tranche-slot { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid #b8a995; border-radius: 50%; background: #dfd3c8; }
+</style>

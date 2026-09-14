@@ -41,6 +41,7 @@ import { assert, assertExists, type GameAction } from '@tabletop/common'
 
 export type HistoryDescription = {
     text: string
+    omitActor?: boolean
     trainDefinitionIds?: string[]
     beforeText?: string
     ledgerText?: string
@@ -343,14 +344,16 @@ export function historyDescription(
     if (isOfferPurchase(action) || isRespondToPurchaseOffer(action)) {
         assertExists(action.metadata, 'Recorded purchase offer requires its terms')
         const { offer, accepted } = action.metadata
+        if (isRespondToPurchaseOffer(action) && !accepted) return { text: 'Declined offer' }
         const purchaseAsset = offer.asset
         const asset =
             purchaseAsset.kind === 'private'
                 ? companyName(purchaseAsset.privateCompanyId)
                 : `${state.trainInventory.trains.find((train) => train.id === purchaseAsset.trainId)?.definitionId ?? purchaseAsset.trainId} train`
         return {
-            text: `${accepted ? 'Bought' : isRespondToPurchaseOffer(action) ? 'Declined' : 'Offered to buy'} ${asset}`,
-            value: money(offer.price),
+            text: accepted ? `Bought ${asset}` : `Offered to buy ${asset} for ${money(offer.price)}`,
+            omitActor: accepted,
+            value: accepted ? money(offer.price) : undefined,
             detail: `From ${offer.seller.kind === 'bank' ? state.bank.name : ownerName(offer.seller)}`,
             important: accepted
         }

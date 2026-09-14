@@ -944,18 +944,18 @@ Historical map inspection is an explicit, session-owned manual preview, independ
 the history cursor. Only track-lay and train-run labels are buttons; other history
 text stays read-only. Clicking one shows the map immediately after that action,
 including its tiles, stations and reservations, with recorded routes for train runs.
-A prominent Historical map banner includes the OR and company and a Return to
-current map button. It lives in ScalingWrapper's unscaled toolbar, including in
-fullscreen. The toolbar reserves its measured height so route fitting cannot place
-track underneath the banner. Tile placement controls and map selection are unavailable in this mode.
-The rest of the table continues to show its existing state.
+A separate full-screen native dialog owns its map renderer and ScalingWrapper.
+Its header identifies Historical run (or track lay), company, OR and recorded run
+revenue. History runs and the expanded company card's Last run share this viewer.
+Close, F and Escape dismiss it; zoom/pan controls remain but no expansion control
+is shown. The dialog blocks live-map interactions. Opening and closing do not
+change the underlying tab, map contents, selection, zoom or pan.
 
-Clicking the same action closes the preview. Choosing another replaces it; return
-restores the current map and fits it. Company/location/current-route focus also
-closes the historical preview. Visible-state transitions invalidate it before the
-state swap, including Undo, replay, new actions and history navigation. The session
-owns preview presence; camera focus is local inspection feedback using the existing
-ScalingWrapper helper, with post-tick identity checks against stale requests.
+Visible-state transitions invalidate the session-owned preview before the state
+swap, including Undo, replay, new actions and history navigation. Camera focus
+belongs only to the mounted viewer and uses recorded locations with contextual
+padding. This presentation reuses the family map projection across titles; no
+train, phase or revenue policy is inferred by the viewer.
 
 Historical map reconstruction applies only map, station, company and round undo
 patches after the selected action to a detached projection. It never mutates live
@@ -1129,3 +1129,87 @@ On entering train running, a company with no trains or no connected station rout
 records an automatic empty run. Empty, zero-income runs automatically withhold
 when supported by the title. History retains these actions and their market
 consequences, while the action panel advances without a run or payout click.
+
+A compact game-information block sits between history controls and the sidebar
+tabs. It shows title-supplied company roles with tokens in a single compact row (full names on hover), plus the
+visible state's phase train limit, so historical navigation shows matching data.
+
+Titles may supply additional compact game information below that row. TOP shows
+its three non-initial tranches as grouped station-token slots, populated from the
+visible state's tranche assignments; unfilled slots remain visible.
+TOP's unavailable unfilled tranche slots show empty dashed circles with lock icons;
+currently available slots retain empty dashed circles. Availability follows the
+title's tranche rule, including the preceding companies' operation/sold-out condition.
+
+Keyboard shortcuts M/K/S/T select Map/Market/Spreadsheet/Tiles. P/H/C activate
+the existing Players/History/Chat tab controls, preserving their normal behavior.
+Modified shortcuts, repeated keys, and typing within inputs, editors, or dialogs
+are ignored.
+
+Private purchases open from Buy privates into a staged source choice. Your privates
+is the default when eligible; Other players is available only with eligible offers.
+Cards show private income and the legal purchase range. Selecting one opens price
+entry and Buy (same controller) or Offer (seller approval). Sidebar/header Undo
+clears the asset selection first, then the source stage; canonical purchases retain
+ordinary undo. During the picker, unrelated operating prompts and private powers
+are hidden. Source selection resets before publishing the next game state.
+
+A horizontal operating-step strip sits below the turn header. The current canonical
+step is highlighted, prior steps muted, and later mandatory steps noninteractive.
+Station/Run destinations may finish optional track/station steps through session
+methods and canonical actions. Pending drafts or decisions block these shortcuts.
+The session waits for each visible transition and stops if a required decision or
+company/round boundary intervenes. Prior-step buttons never navigate or undo.
+Steps completed without an action show an inline second line: Not available for
+canonical automatic completion, Skipped for voluntary completion. These labels
+use current-operation actions and step results, and have no explanatory tooltip.
+The step strip also summarizes performed actions inline: N laid, Placed, Ran for
+$N, Paid out/Withheld/Half-paid, and N bought. Counts and outcomes come from the
+visible canonical step state, including partial progress in the current step.
+
+### Stock action strip
+
+The stock round uses a persistent rectangular action strip directly beneath the
+header. Only legal action categories appear; title UI supplies additional choices
+(such as Split) and their selected state. Selection replaces the current manual
+stock draft using the session; switching away from Split clears its draft too.
+Buy and Start show the eligible purchasing owners within their choices, only when
+there are multiple owners. Pass / End turn is separated at the right and commits
+immediately. The strip remains outside the scrolling action choices.
+
+The share purchase view reuses CompanyDetails in a vertical layout: identity and
+trains, financial summary, ownership with clickable legal purchase source rows, then private
+companies and powers. Source rows commit the selected owner's purchase directly.
+The operating-order detail retains its horizontal layout. Title-owned power
+descriptions and pool labels are shared between both presentations.
+
+During a stock round, company ownership rows use canonical stock-round sales to
+mark sellers red. Sellers remain listed at zero shares, displayed as a dash. The
+marker is scoped to the current stock round and follows visible state on undo
+and history inspection; no sales are inferred from changes in share counts.
+
+Share purchase cards include all started companies. Companies with no legal
+purchase for the selected owner are grayed out; only legal source rows commit
+purchases. Switching the buyer recomputes availability from session choices.
+
+Titles may extend the session's stock-company list for railways active from the
+outset without ordinary company formation; TOP includes PEIR. Unavailable cards
+retain their primary token in full color, while their details are dimmed.
+
+Stock-company cards remain visible before action selection and alongside stock
+action choices. Buy availability follows the selected purchasing owner; Sell
+availability follows legal sale choices. In Sell, a seller's ownership row selects
+the company using staged selection, followed by the existing quantity and commit
+controls. TOP abbreviates PEIR only in the compact card title.
+
+Sidebar game information pairs train limit with depot availability. Each currently
+available depot type uses the title's train badge and canonical remaining count
+(infinity for unlimited supply); sold-out types are omitted. Clicking Depot opens
+a depot-only roster with live remaining counts and the same current-row highlight
+as the phase chart. All available types are highlighted; exhausted rows are muted. Title-specific company roles share the compact information row; TOP labels them
+Main and Short. Additional title information such as tranches follows below.
+
+Expanded operating-order company cards show Cash, Par (if present), Market, and
+Last run below the header. Last run uses the latest visible RunTrains revenue;
+clicking it invokes the same historical map preview and route focus as history.
+A company without a recorded run shows a noninteractive dash.
