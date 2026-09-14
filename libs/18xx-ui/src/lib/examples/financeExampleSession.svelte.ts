@@ -1,5 +1,7 @@
 import { EighteenXXPreferenceDefinition, type EighteenXXPreferences } from '@tabletop/18xx'
+import { isOfferPurchase, isRespondToPurchaseOffer, isDistributeEarnings } from '@tabletop/18xx'
 import type { TitlePreferences } from '@tabletop/frontend-components'
+import { chooseTrainSource, chooseCompanyTrain, backFromTrainBuying, type TrainBuyingSelection, type TrainSource } from './trainBuyingSelection.js'
 import { FinanceExampleValidator } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 import { HistoricalMaps, type HistoricalMap } from '../maps/historicalMap.js'
@@ -712,11 +714,17 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     private automaticRoutes:
         | { state: FinanceExampleState; result: OperatingResult; exhaustive: boolean }
         | undefined = $state.raw()
-    automaticRouteResult = $derived.by(() =>
-        this.routeDraftVisible && this.automaticRoutes?.state === this.financialState
-            ? this.automaticRoutes
-            : undefined
-    )
+    automaticRouteResult = $derived.by(() => {
+        if (!this.routeDraftVisible) return undefined
+        const state = this.financialState
+        const companyId = state.routeStep?.companyId
+        if (companyId && !trainsOwnedBy(state, { kind: 'company', companyId }).length) {
+            const checked = new RouteEvaluation(state, this.routeRules).evaluate(companyId, [])
+            assertExists(checked.result, checked.reason ?? 'Invalid empty train run')
+            return { state, result: checked.result, exhaustive: true }
+        }
+        return this.automaticRoutes?.state === state ? this.automaticRoutes : undefined
+    })
     setAutomaticRoutes(state: FinanceExampleState, result: OperatingResult, exhaustive: boolean) {
         if (state !== this.financialState || !this.canRunTrains) return
         const companyId = state.routeStep?.companyId
@@ -958,6 +966,41 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         }
     }
     private trainDraft: TrainPurchaseRequest | undefined = $state.raw()
+    private trainBuyingDraft: TrainBuyingSelection = $state({})
+    trainBuyingSelection = $derived.by(() =>
+        !this.updatingVisibleState && !this.isViewingHistory && this.financialState.machineState === 'BuyingTrains'
+            ? this.trainBuyingDraft : {})
+    trainBuyingSource = $derived(this.trainBuyingSelection.source?.value ?? 'depot')
+    companyTrainChoices = $derived.by(() => this.purchaseOptions.flatMap((option) => {
+        if (option.request.asset.kind !== 'train' || option.request.seller.kind !== 'company') return []
+        const evaluation = evaluatePurchaseOffer(this.financialState, option.request, this.transferRules, this.trainRules)
+        const trainId = option.request.asset.trainId
+        const train = this.financialState.trainInventory.trains.find((train) => train.id === trainId)
+        assertExists(train, 'Train purchase choice requires a train')
+        return [{ ...option, definitionId: train.definitionId,
+            source: evaluation.buyerPlayerId === evaluation.sellerPlayerId ? 'mine' as const : 'others' as const }]
+    }))
+    companyTrainEvaluation = $derived.by(() => {
+        const request = this.trainBuyingSelection.purchase?.value
+        return request ? evaluatePurchaseOffer(this.financialState, request, this.transferRules, this.trainRules) : undefined
+    })
+    selectTrainSource(source: TrainSource) {
+        this.trainBuyingDraft = chooseTrainSource(source)
+    }
+    selectCompanyTrain(request: PurchaseOfferRequest) {
+        assert(this.companyTrainChoices.some((choice) => choice.request.asset.kind === 'train' && request.asset.kind === 'train' && choice.request.asset.trainId === request.asset.trainId && choice.source === this.trainBuyingSource), 'Choose an available company train')
+        this.trainBuyingDraft = chooseCompanyTrain(this.trainBuyingDraft, { ...request })
+    }
+    setCompanyTrainPrice(price: number) {
+        const request = this.trainBuyingSelection.purchase?.value
+        assert(request, 'Choose a company train first')
+        this.trainBuyingDraft = chooseCompanyTrain(this.trainBuyingDraft, { ...request, price })
+    }
+    async buyCompanyTrain() {
+        const request = this.trainBuyingSelection.purchase?.value
+        assert(request && this.canResolveCompanyDecision && this.validActionTypes.includes('OfferPurchase') && this.companyTrainEvaluation && !this.companyTrainEvaluation.reason, 'Choose a legal company train purchase')
+        await this.applyAction(this.createPlayerAction(OfferPurchase, request))
+    }
     trainSelection = $derived.by(() =>
         !this.updatingVisibleState &&
         !this.isViewingHistory &&
@@ -967,6 +1010,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     )
     trainPurchase = $derived.by(() => new TrainPurchase(this.financialState, this.trainRules))
     trainOffers = $derived(this.trainPurchase.offers())
+    availableTrainDefinitionIds = $derived.by(() => this.trainRules.availableDefinitions(this.financialState))
     marketTrainOffers = $derived(this.trainPurchase.marketOffers())
     trainExchanges = $derived(this.trainPurchase.exchanges())
     trainNextPhase = $derived.by(() =>
@@ -989,6 +1033,19 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             this.validActionTypes.includes('BuyTrain')
     )
     trainPurchases = $derived(this.actions.slice(0, this.gameState.actionCount).filter(isBuyTrain))
+    currentTrainPurchaseIds = $derived.by(() => {
+        const step = this.financialState.trainPurchaseStep
+        if (!step) return []
+        const ids = new Set(step.purchasedTrainIds)
+        const actions = this.actions.slice(0, this.gameState.actionCount)
+        const start = actions.findLastIndex((action) => isDistributeEarnings(action) && action.companyId === step.companyId)
+        for (const action of actions.slice(start + 1)) {
+            if (!isOfferPurchase(action) && !isRespondToPurchaseOffer(action)) continue
+            const offer = action.metadata?.offer
+            if (action.metadata?.accepted && offer?.companyId === step.companyId && offer.asset.kind === 'train') ids.add(offer.asset.trainId)
+        }
+        return [...ids]
+    })
     trainRosters = $derived.by(() =>
         this.financialState.companies
             .map((company) => ({
@@ -1041,6 +1098,11 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     async confirmTrainPurchase() {
         const preview = this.trainPreview
         assert(this.canBuyTrain && preview, 'Choose a legal train purchase')
+        await this.buyTrain(preview)
+    }
+    async buyTrain(request: TrainPurchaseRequest) {
+        const preview = this.trainPurchase.evaluate(request).details
+        assert(this.canBuyTrain && preview, 'Choose a legal train purchase')
         await this.applyAction(
             this.createPlayerAction(BuyTrain, {
                 companyId: preview.companyId,
@@ -1051,14 +1113,20 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             })
         )
     }
+    get requiresStationTokenChoice(): boolean {
+        return false
+    }
     private stationDraft: StationSelection = $state({})
-    stationSelection = $derived.by(() =>
-        !this.updatingVisibleState &&
-        !this.isViewingHistory &&
-        this.financialState.machineState === 'PlacingStation'
-            ? this.stationDraft
-            : {}
-    )
+    stationSelection = $derived.by(() => {
+        if (this.updatingVisibleState || this.isViewingHistory ||
+            this.financialState.machineState !== 'PlacingStation') return {}
+        if (this.stationDraft.stationId) return this.stationDraft
+        if (this.requiresStationTokenChoice || !this.canPlaceStation || !this.validActionTypes.includes('PlaceStation')) return {}
+        const station = [...this.availableStations]
+            .sort((left, right) => this.stationPlacementCost(left.id) - this.stationPlacementCost(right.id))
+            .find((token) => this.stationPlacement.choices(token.id).length > 0)
+        return station ? chooseStation(station.id, 'auto') : {}
+    })
     stationPlacement = $derived.by(
         () => new StationPlacement(this.financialState, this.stationRules)
     )
@@ -1187,8 +1255,8 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
                 this.stationPlacement.evaluate(request).details,
             'Choose a legal station position'
         )
-        this.stationDraft = chooseStationPosition(this.stationDraft, request)
-        this.inspectMap({ kind: 'slot', ...request.position })
+        this.stationDraft = chooseStationPosition(this.stationSelection, request)
+        this.mapInspection = undefined
     }
     backStation() {
         this.stationDraft = backFromStation(this.stationDraft)
@@ -1315,7 +1383,12 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             'No legal construction at this location'
         )
         this.trackDraft = chooseTrackLocation(locationId)
-        this.inspectMap({ kind: 'hex', locationId })
+        const choices = this.trackChoicesByLocation.get(locationId)!
+        if (new Set(choices.map((choice) => choice.definitionId)).size === 1) {
+            this.trackDraft = chooseTrackTile(this.trackDraft, choices[0].definitionId, choices.slice(0, 1), 'auto')
+            this.trackTileInFlight = true
+        }
+        this.mapInspection = undefined
     }
     selectTrackTile(definitionId: string) {
         assert(
@@ -1461,22 +1534,31 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             if (this.trackPreview?.locationId === selection.locationId) this.rotateTrackPreview()
             else this.selectTrackLocation(selection.locationId)
         } else if (this.canPlaceStation && this.stationLocationIds.includes(selection.locationId)) {
-            const choices = this.stationChoices.filter(
-                (choice) =>
-                    choice.position.locationId === selection.locationId &&
-                    (selection.kind !== 'slot' ||
-                        (choice.position.nodeId === selection.nodeId &&
-                            choice.position.slot === selection.slot)) &&
-                    (selection.kind !== 'node' || choice.position.nodeId === selection.nodeId)
+            const location = this.mapScene.locations.find((entry) => entry.location.id === selection.locationId)
+            assertExists(location, 'Station placement requires a map location')
+            const separateCities = location.face.nodes.filter((node) => node.kind === 'city').length > 1
+            if (separateCities && selection.kind !== 'slot' && selection.kind !== 'node') return
+            const choice = this.stationChoices.find(
+                (choice) => choice.position.locationId === selection.locationId &&
+                    (!separateCities ||
+                        ((selection.kind === 'slot' || selection.kind === 'node') &&
+                            choice.position.nodeId === selection.nodeId))
             )
-            if (choices.length === 1) this.selectStationPosition(choices[0])
-            else this.inspectMap(selection)
+            if (choice) {
+                this.selectStationPosition(choice)
+                void this.confirmStation()
+            }
         } else if (allowInspection) this.inspectMap(selection)
     }
     mapTokens = $derived.by(() => stationMapTokens(this.financialState, this.mapView.stations))
     tileCounts = $derived.by(() => this.mapView.tileSet.counts(this.financialState.tileInventory))
     private mapInspection: { selection: MapSelection; face: TileFace } | undefined = $state.raw()
     mapSelection = $derived.by(() => {
+        if (this.updatingVisibleState) return undefined
+        const constructionLocation = this.trackSelection.locationId?.value
+        if (constructionLocation) return { kind: 'hex', locationId: constructionLocation } as const
+        const stationPosition = this.stationSelection.placement?.value.position
+        if (stationPosition) return { kind: 'slot', ...stationPosition } as const
         const inspection = this.mapInspection
         if (
             this.updatingVisibleState ||
@@ -1802,6 +1884,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         await this.applyAction(this.createPlayerAction(FinishStockTurn, {}))
     }
     override beforeNewState() {
+        this.mapInspection = undefined
         this.automaticRoutes = undefined
         this.stockActionDraft = {}
         this.offerDraft = undefined
@@ -1814,6 +1897,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         this.routeEditor.clear()
         this.trainDraft = undefined
         this.stationDraft = {}
+        this.trainBuyingDraft = {}
         this.trackDraft = {}
         this.cancelSelection()
     }
@@ -1829,6 +1913,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             this.earningsDraft ||
             this.routeEditor.hasDraft ||
             this.trainDraft ||
+            this.trainBuyingDraft.source ||
             this.stationDraft.stationId ||
             this.trackDraft.locationId ||
             this.selection
@@ -1836,6 +1921,10 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     }
     override async undo() {
         if (this.busy || this.isViewingHistory) return
+        if (this.trainBuyingDraft.source) {
+            this.trainBuyingDraft = backFromTrainBuying(this.trainBuyingDraft)
+            return
+        }
         if (this.offerDraft) {
             this.offerDraft = undefined
             return
@@ -1872,7 +1961,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             this.trainDraft = undefined
             return
         }
-        if (this.stationDraft.stationId) {
+        if (this.stationDraft.placement || this.stationDraft.stationId?.source === 'manual') {
             this.stationDraft = {}
             return
         }

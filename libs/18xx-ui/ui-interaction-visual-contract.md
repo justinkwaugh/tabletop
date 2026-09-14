@@ -1019,3 +1019,74 @@ Stock exchange choices read private name → destination company token and full 
 Company starts select the buyer in the stock action stage, just like share purchases: Start for a player, or Start for the eligible corporate owner. The company list contains only that buyer’s valid starts; buyer-specific prices and canonical start requests remain intact. Global Undo unwinds the existing staged selection.
 
 Selecting a company to start focuses its home locations using the map’s contextual focus bounds. This local selection owns a saved viewport: unwinding the company selection restores the prior tab and viewport, while committing or navigating game history discards the saved view. Map focus remains an imperative ScalingWrapper presentation operation, not a game-state action.
+
+Ordinary station placement automatically selects the cheapest available token with a legal placement, retaining supply order for equal costs. Titles whose token identities introduce a meaningful choice can override requiresStationTokenChoice to retain manual selection. Token selection is derived and marked auto; only the location choice is a manual stage. Undo skips the automatic token selection, and Finish stations remains available until a location is selected. Canonical token identity, costs and placement validation are unchanged.
+
+Station placement masks map hexes without legal placements. Clicking anywhere on a valid single-city hex submits PlaceStation directly; interchangeable slots use the first legal slot. Hexes containing multiple separate cities require a city/slot click, even when only one city is eligible. No location dropdown or confirmation stage is shown; committed placement is undone through action history.
+
+Reaching the title’s ordinary station-placement limit produces a canonical system FinishStations action in the placement cascade. The UI advances without an extra click. Titles permitting additional placements retain the placement step. Undo reverses the placement and its automatic completion together.
+
+A trainless company entering RunningTrains receives a canonical empty RunTrains system action. With zero revenue and no trains, withholding is automatic when permitted by the title. The distribution still applies market movement and operation effects, then advances to BuyingTrains without either player prompt. Existing recorded runs with revenue retain their dividend decision even if their trains rusted afterward.
+
+When a selected track hex has exactly one legal tile definition, its tile and initial legal rotation are auto-selected. The picker scales that tile directly into the hex with no arc detour; rotation and acceptance remain available. The map preview is suppressed during this local entrance using the existing in-flight flag. Undo skips these automatic stages, and reduced-motion displays the selection immediately.
+
+After a track lay, construction automatically finishes if the composed action handlers offer no further ordinary, private, or consent-based track placement. The system completion is part of the lay’s action cascade. The map prompt reads “Choose a space or” with a Skip button; skipped/finished construction advances through the canonical FinishTrack action.
+
+The currently operating company always displays its detailed chip. The operating-order display preference continues to control every other company and is not modified by this override. Station placement presents “Choose a city to place a station or” followed by Skip.
+
+Entering station placement with no legal token/location choice automatically finishes the step. This uses full placement validation, including available tokens, costs, connectivity, reservations and the title’s placement limit.
+
+Earnings choices are direct-submit cards. Each shows per-share dividends, retained income, recipient payments and market-price movement before selection. Clicking Pay, Half-pay or Withhold commits the existing validated action immediately; there is no confirmation or manual selection to unwind afterward.
+
+Leaving RunningTrains, including Undo, restores the viewport saved before its
+first automatic route focus. The saved view belongs to that company's running
+step, rather than the asynchronous route result. Manual map pan or zoom discards
+it; route-row focus remains part of the temporary inspection. Restoration uses
+ScalingWrapper's interruptible 180ms camera motion and neither gates game actions
+nor changes canonical state. Leaving before a result arrives cancels the pending
+focus without moving the map.
+
+Train purchase choices commit immediately through the session's `buyTrain`
+method. There is no local confirmation selection for depot, Market, or exchange
+choices; global Undo reverses the committed purchase. A compact train-badge row
+shows this company's purchases recorded in the current train-purchase step.
+All available depot types and legal Market offers precede the next depot type,
+which is disabled and labeled Upcoming. Market offers group matching type and
+price while retaining the selected physical train's identity for the action.
+
+Train buying separates Depot, My companies, and Other companies. Company sources
+include only offers accepted by the canonical transfer validator at their minimum
+price. Source and train selection use stagedSelection; editing the negotiated
+price updates that train selection, so Undo first returns to the train choices,
+then the default depot, then committed history. Commit uses OfferPurchase:
+shared control settles immediately, while a different controlling player accepts
+or declines the offer. Union Bank presidencies use their controlling player for
+this distinction. Purchased badges include accepted intercompany transfers.
+
+BuyingTrains automatically completes with a System FinishOperatingTurn when the
+composed title handler offers no decision other than ending the turn. Legal
+company transfers, depot/Market purchases, exchanges, compulsory funding, private
+powers, and pending responses keep their opportunity to act. This is canonical
+state flow, not a client click; Undo reverses the automatic completion together
+with its triggering purchase. Titles retain their own purchase limits and train
+requirements.
+
+A construction outline belongs to the current track selection rather than a
+persistent map inspection. Choosing a construction space clears the previous
+inspection; finishing or canceling that selection removes its outline. The
+normal beforeNewState reset clears it after a committed lay and its automatic
+follow-up actions, without affecting historical-map selection.
+
+Phase-dependent tile revenues display contiguous phase-colored value cells, arranged horizontally or vertically according to available tile space. Titles can supply stage colors for names that differ from tile colors. Fixed revenues retain their circular markers.
+
+While unavailable map spaces are masked, a matching translucent perimeter extends 25 map units (one quarter hex diameter) beyond the map shape. The union mask avoids overlapping dark seams, ignores pointer input, and sits below tile artwork and interaction outlines. Map bounds reserve this margin in every interaction mode so entering or leaving masking does not resize the map.
+
+Action-selection button text uses regular weight, including nested labels and stock action choices.
+
+Placement masking focuses the map on the union of its legal locations, with the existing contextual focus margin. The table uses the same location set for masking and camera framing. Focus refreshes after visible-state updates and legal-target changes, not tile selection or rotation. Empty sets do not move the camera. This is local camera assistance through ScalingWrapper, not a game-action animation; it does not gate interaction or mutate game state.
+
+Staged revenue layout favors horizontally centered rows or vertically centered columns. Track/stop clearance and staying inside the hex take precedence over centering.
+
+Station-placement selection outlines belong to the placement draft, matching track placement. They disappear when the visible-state update begins and do not return after placement, cancellation, or Undo clears the draft. General map inspection selections also clear before publishing a new visible state; historical-map previews retain their separate explicit selection ownership.
+
+Stock-menu navigation (Buy, Sell, Start, Exchange and title-specific staged choices) uses light buttons. Dark action-button treatment is reserved for submission. The root stock prompt includes an inline lowercase pass, or end turn after acting, only when FinishStockTurn is legal.

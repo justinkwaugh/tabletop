@@ -11,7 +11,7 @@ import {
     type StationRules
 } from './stationPlacement.js'
 import { isPlaceStation, type HydratedPlaceStation } from './placeStation.js'
-import { isFinishStations, type HydratedFinishStations } from './finishStations.js'
+import { FinishStations, isFinishStations, type HydratedFinishStations } from './finishStations.js'
 type State = HydratedGameState & StationPlacementState
 export class PlacingStationHandler implements MachineStateHandler<
     HydratedPlaceStation | HydratedFinishStations,
@@ -24,7 +24,8 @@ export class PlacingStationHandler implements MachineStateHandler<
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         const state = context.gameState
         if (
-            action.source !== ActionSource.User ||
+            (action.source !== ActionSource.User &&
+                !(action.source === ActionSource.System && isFinishStations(action) && this.mustFinish(state))) ||
             !action.playerId ||
             !state.activePlayerIds.includes(action.playerId) ||
             (!isPlaceStation(action) && !isFinishStations(action))
@@ -47,13 +48,27 @@ export class PlacingStationHandler implements MachineStateHandler<
             !placement.canAct(playerId, companyId)
         )
             return []
-        return state.stations.some(
-            (station) => station.companyId === companyId && placement.choices(station.id).length
-        )
-            ? ['PlaceStation', 'FinishStations']
-            : ['FinishStations']
+        return this.hasLegalPlacement(state) ? ['PlaceStation', 'FinishStations'] : ['FinishStations']
     }
-    enter(): void {}
+    private hasLegalPlacement(state: State): boolean {
+        const placement = new StationPlacement(state, this.rules)
+        return state.stations.some((station) =>
+            station.companyId === state.stationStep?.companyId &&
+            placement.choices(station.id).length > 0)
+    }
+    private mustFinish(state: State): boolean {
+        return !!state.stationStep && !state.stationStep.completed && !this.hasLegalPlacement(state)
+    }
+    enter(context: MachineContext<State>): void {
+        const state = context.gameState
+        if (this.mustFinish(state)) {
+            const step = state.stationStep!
+            context.addSystemAction(FinishStations, {
+                companyId: step.companyId,
+                playerId: state.activePlayerIds[0]
+            })
+        }
+    }
     onAction(
         action: HydratedPlaceStation | HydratedFinishStations,
         context: MachineContext<State>

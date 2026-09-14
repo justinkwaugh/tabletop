@@ -22,6 +22,7 @@
         reservations,
         routes = [],
         appearance = ClassicTileAppearance,
+        revenueStageColors,
         hexDiameter = 100,
         onselect
     }: {
@@ -33,10 +34,12 @@
         tokens?: readonly MapToken[]
         reservations?: readonly StationReservation[]
         routes?: readonly MapRoute[]
+        revenueStageColors?: Readonly<Record<string, string>>
         appearance?: TileAppearance
         hexDiameter?: number
         onselect?: (selection: MapSelection) => void
     } = $props()
+    const perimeterMaskId = $props.id()
     const currentReservations = $derived(reservations ?? printedMapReservations(scene))
     const entries = $derived.by(() => {
         assertMapOverlays(scene, tokens, routes, currentReservations)
@@ -73,6 +76,23 @@
     aria-label={`${scene.map.definition.name} map`}
     class="map-scene"
 >
+    {#if maskUnavailableLocations}
+        <defs>
+            <mask id={perimeterMaskId} maskUnits="userSpaceOnUse" {...scene.bounds}>
+                <g fill="white" stroke="white" stroke-width="50" stroke-linejoin="round">
+                    {#each entries as entry (entry.location.id)}
+                        <polygon transform={`translate(${entry.center.x} ${entry.center.y})`} points={entry.drawing.polygon} />
+                    {/each}
+                </g>
+                <g fill="black">
+                    {#each entries as entry (entry.location.id)}
+                        <polygon transform={`translate(${entry.center.x} ${entry.center.y})`} points={entry.drawing.polygon} />
+                    {/each}
+                </g>
+            </mask>
+        </defs>
+        <rect {...scene.bounds} mask={`url(#${perimeterMaskId})`} fill="#24272b" fill-opacity="0.45" pointer-events="none" data-map-layer="masked-perimeter" />
+    {/if}
     {#each entries as entry (entry.location.id)}
         {@const id = entry.location.id}
         {@const available = !!onselect && (!maskUnavailableLocations || legalLocationIds.includes(id))}
@@ -102,6 +122,7 @@
                 face={entry.face}
                 drawing={entry.drawing}
                 {appearance}
+                {revenueStageColors}
                 showZeroRevenue={false}
             >
                 {#snippet trackOverlay(drawing)}

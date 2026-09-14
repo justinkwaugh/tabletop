@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { ActionSource } from '@tabletop/common'
 import { Definition as Top, TheOldPrinceTrackRules } from '@tabletop/the-old-prince'
 import { Definition as Shikoku, Shikoku1889TrackRules } from '@tabletop/shikoku-1889'
@@ -46,7 +46,9 @@ it.each(Titles)(
         expect(state).toEqual(before)
         const action = lay(state, details)
         const result = engine.executeCanonicalAction({ game, state, action })
-        expect(result.processedActions.map((action) => action.type)).toEqual(['LayTile'])
+        expect(result.processedActions.map((action) => action.type)).toEqual(['LayTile', 'FinishTrack', 'FinishStations'])
+        expect(result.processedActions[1].source).toBe(ActionSource.System)
+        expect(result.updatedState.machineState).toBe('RunningTrains')
         expect(result.updatedState.tileInventory.placements[locationId]).toEqual(details.placement)
         expect(result.updatedState.stations).toEqual(state.stations)
         expect(result.updatedState.trackStep?.lays).toHaveLength(1)
@@ -60,15 +62,14 @@ it.each(Titles)(
                     .some((piece) => piece.id === details.previous?.pieceId)
             ).toBe(true)
         expect(new TrackConstruction(result.updatedState, rules).choices(locationId)).toEqual([])
-        expect(
-            engine.applyProcessedAction({ game, state, action: result.processedActions[0] })
-        ).toEqual(result.updatedState)
-        expect(
-            engine.undoProcessedAction({
-                state: result.updatedState,
-                action: result.processedActions[0]
-            })
-        ).toEqual(state)
+        let replayed = state
+        for (const action of result.processedActions)
+            replayed = engine.applyProcessedAction({ game, state: replayed, action })
+        expect(replayed).toEqual(result.updatedState)
+        let undone = result.updatedState
+        for (const action of [...result.processedActions].reverse())
+            undone = engine.undoProcessedAction({ state: undone, action })
+        expect(undone).toEqual(state)
         expect(engine.executeCanonicalAction({ game, state, action }).updatedState).toEqual(
             result.updatedState
         )
@@ -209,23 +210,22 @@ it.each(Titles)(
             companyId: state.trackStep!.companyId
         }
         const result = engine.executeCanonicalAction({ game, state, action })
-        expect(result.updatedState.machineState).toBe('PlacingStation')
-        expect(result.processedActions.map((action) => action.type)).toEqual(['FinishTrack'])
+        expect(result.updatedState.machineState).toBe('RunningTrains')
+        expect(result.processedActions.map((action) => action.type)).toEqual(['FinishTrack', 'FinishStations'])
         expect(result.updatedState.stationStep).toEqual({
             companyId: state.trackStep!.companyId,
             placedStationIds: [],
-            completed: false
+            completed: true
         })
         expect(result.updatedState.tileInventory).toEqual(state.tileInventory)
-        expect(
-            engine.applyProcessedAction({ game, state, action: result.processedActions[0] })
-        ).toEqual(result.updatedState)
-        expect(
-            engine.undoProcessedAction({
-                state: result.updatedState,
-                action: result.processedActions[0]
-            })
-        ).toEqual(state)
+        let replayed = state
+        for (const action of result.processedActions)
+            replayed = engine.applyProcessedAction({ game, state: replayed, action })
+        expect(replayed).toEqual(result.updatedState)
+        let undone = result.updatedState
+        for (const action of [...result.processedActions].reverse())
+            undone = engine.undoProcessedAction({ state: undone, action })
+        expect(undone).toEqual(state)
         expect(() =>
             engine.executeCanonicalAction({ game, state: result.updatedState, action })
         ).toThrow()
@@ -352,4 +352,32 @@ it('rejects TOP’s O17 upgrade when its new branch requires reversing at the he
         expectedCost: 0
     }
     expect(() => engine.executeCanonicalAction({ game, state, action })).toThrow()
+})
+
+
+it('finishes TOP construction when the second lay is unaffordable', () => {
+    const { game, engine, state } = example(Top, 'construction')
+    const details = first(new TrackConstruction(state, TheOldPrinceTrackRules)
+        .choices('K17').filter((choice) => choice.definitionId === '18xx:8' && choice.rotation === 2))
+    const cash = state.cash.find((entry) =>
+        entry.owner.kind === 'company' && entry.owner.companyId === details.companyId)!
+    cash.amount = details.cost
+    const result = engine.executeCanonicalAction({ game, state, action: lay(state, details) })
+    expect(result.processedActions.map((action) => action.type)).toEqual(['LayTile', 'FinishTrack', 'FinishStations'])
+    expect(result.updatedState.trackStep?.completed).toBe(true)
+})
+
+it('rejects unaffordable additional track before network usefulness checks', () => {
+    const { state } = example(Top, 'construction')
+    const construction = new TrackConstruction(state, TheOldPrinceTrackRules)
+    const request = first(construction.choices('K17'))
+    const cash = state.cash.find((account) => account.owner.kind === 'company' &&
+        account.owner.companyId === request.companyId)
+    if (!cash || !state.trackStep) throw new Error('Expected company construction state')
+    cash.amount = 0
+    state.trackStep.lays.push({ locationId: 'V12', color: 'yellow', cost: 0 })
+    const useful = vi.fn(TheOldPrinceTrackRules.useful)
+    const evaluation = new TrackConstruction(state, { ...TheOldPrinceTrackRules, useful }).evaluate(request)
+    expect(evaluation.reason).toBe('The company cannot afford construction')
+    expect(useful).not.toHaveBeenCalled()
 })

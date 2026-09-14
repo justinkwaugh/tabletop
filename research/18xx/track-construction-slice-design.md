@@ -141,3 +141,19 @@ end-map screenshot represents the run before this fix.
 After the correction, all 146 shared family tests, 280 harness tests (including
 both normal full-game runs with replay and Undo), and six construction/station/route
 browser tests passed. Family TypeScript and harness Svelte/TypeScript checks passed.
+
+### Affordability before connectivity work
+
+Track evaluation computes the exact title-adjusted terrain, border and allowance cost before supply lookup, station migration and network construction. It does not assume a flat minimum cost: discounts, alternate payers and title-specific cost policies still participate in the exact calculation. This retains the broader catalog's special construction permissions and cost variations. Automatic completion reuses the acting player's action list within each decision; it still checks other active players and special construction actions.
+
+The Souris/Elmira trainless browser sequence exposed repeated expensive evaluation of an unaffordable second lay. Measured acceptance-to-train-buying time fell from 835–859 ms to 228 ms in the local harness, with no route worker started for Souris. A regression checks that unaffordable additional construction never reaches the network-usefulness policy. TOP/1889 construction, stations and private powers exercise unchanged legal outcomes.
+
+### Shared construction traversal
+
+ConstructionReachability replaces the candidate-by-candidate full TrackNetwork rebuild. One station traversal finds reachable existing track and adjacent candidate spaces. For each candidate location, lazy boundary summaries exclude that location and record external entry/re-entry connections. Rotations traverse only the replacement face and those summaries. Excluding the old face is necessary: old connections cannot supply imaginary access to a disconnected part of its replacement. External return paths are retained so real loops remain legal; arriving and departing edge states remain distinct so immediate edge reversal does not become a junction.
+
+The existing survey's city mergers, blocked rival cities, remote private lays and home exceptions remain explicit. Migrated candidate stations determine local blocking and origins; the exterior network keeps existing stations. Non-network usefulness policies bypass frontier pruning. Gauge/lane distinctions remain outside the existing single-gauge/single-lane model; this optimization does not broaden its rules. Common map adjacency, topology rotation and city blocking remain authoritative.
+
+The cache belongs to one TrackConstruction/map snapshot and is recreated with each visible or authoritative state; it is not global or persisted. Supply results are reused per definition within that snapshot. Differential tests compare candidate paths and nodes against full replacement-network traversal for all existing face rotations in TOP/1889, including filled rival cities. Existing upgrade, private, no-edge-reversal and replay/undo tests exercise legal results.
+
+The affordable TOP route-position scan (all map locations, 15 legal choices) measured 75.5 ms before and 4.5–5.3 ms after in the same local Node harness. These are legality enumeration timings, separate from browser rendering and animations.

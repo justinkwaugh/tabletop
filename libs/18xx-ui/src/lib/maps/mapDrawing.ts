@@ -137,16 +137,16 @@ export function createMapDrawing(
                 location.coordinates
             ).vertices
     )
-    const x = Math.min(...vertices.map((point) => point.x)) - 12
-    const y = Math.min(...vertices.map((point) => point.y)) - 12
+    const x = Math.min(...vertices.map((point) => point.x)) - 26
+    const y = Math.min(...vertices.map((point) => point.y)) - 26
     return {
         map,
         locations,
         bounds: {
             x,
             y,
-            width: Math.max(...vertices.map((point) => point.x)) - x + 12,
-            height: Math.max(...vertices.map((point) => point.y)) - y + 12
+            width: Math.max(...vertices.map((point) => point.x)) - x + 26,
+            height: Math.max(...vertices.map((point) => point.y)) - y + 26
         }
     }
 }

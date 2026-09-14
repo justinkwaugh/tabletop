@@ -36,8 +36,8 @@
             onclick={() => onChange(amount + increment)}>+</button
         >
     </div>
-    <button class="bid" disabled={!canBid} onclick={onBid}>Bid</button>
-    <button class="pass" disabled={!canPass} onclick={onPass}>Pass</button>
+    <button class="bid action-button" disabled={!canBid} onclick={onBid}>Bid</button>
+    <button class="pass action-button" disabled={!canPass} onclick={onPass}>Pass</button>
 </div>
 
 <style>

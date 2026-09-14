@@ -1,8 +1,9 @@
 <script lang="ts">
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
     import Tile from '../tiles/Tile.svelte'
-    let { session, showUndo = true }: { showUndo?: boolean; session: FinanceExampleSession } =
+    let { session, showUndo = true, excludeTrainPurchases = false }: { excludeTrainPurchases?: boolean; showUndo?: boolean; session: FinanceExampleSession } =
         $props()
+    const purchaseOptions = $derived(session.purchaseOptions.filter((option) => !excludeTrainPurchases || option.request.asset.kind !== 'train'))
     const state = $derived(session.financialState)
     const draft = $derived(session.companyDecisionSelection)
 </script>
@@ -81,7 +82,7 @@
             >
         {/if}
         <div class="choices">
-            {#if session.purchaseOptions.length}
+            {#if purchaseOptions.length}
                 <label
                     >Buy from another owner
                     <select
@@ -89,13 +90,13 @@
                         value=""
                         onchange={(event) => {
                             const choice =
-                                session.purchaseOptions[Number(event.currentTarget.value)]
+                                purchaseOptions[Number(event.currentTarget.value)]
                             if (event.currentTarget.value && choice)
                                 session.selectPurchaseOffer(choice.request)
                         }}
                     >
                         <option value="">Choose asset</option>
-                        {#each session.purchaseOptions as option, index}<option value={index}
+                        {#each purchaseOptions as option, index}<option value={index}
                                 >{option.request.asset.kind === 'train'
                                     ? option.request.asset.trainId
                                     : option.request.asset.privateCompanyId} · {session.ownerName(

@@ -58,7 +58,8 @@
         toolbar,
         justify = 'center',
         controls = 'top-left',
-        expandable = false
+        expandable = false,
+        onManualViewChange
     }: {
         children: Snippet
         overlay?: Snippet<[HTMLDivElement]>
@@ -66,6 +67,7 @@
         justify?: 'center' | 'left' | 'right'
         controls: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'none'
         expandable?: boolean
+        onManualViewChange?: () => void
     } = $props()
 
     let baseScale = $state(1)
@@ -207,6 +209,14 @@
             metrics,
             translateX: clamp(translateX, metrics.minTranslateX, metrics.maxTranslateX),
             translateY: clamp(translateY, metrics.minTranslateY, metrics.maxTranslateY)
+        }
+    }
+
+    function notifyManualViewChange(scale: number, translateX: number, translateY: number) {
+        if (Math.abs(scale - currentScale) > EPSILON ||
+            Math.abs(translateX - currentTranslateX) > EPSILON ||
+            Math.abs(translateY - currentTranslateY) > EPSILON) {
+            onManualViewChange?.()
         }
     }
 
@@ -559,6 +569,8 @@
             scale
         )
 
+        notifyManualViewChange(targetView.scale, targetView.translateX, targetView.translateY)
+
         if (animate) {
             animateViewTo(targetView.scale, targetView.translateX, targetView.translateY)
             return
@@ -814,6 +826,7 @@
 
             cancelViewAnimation()
             clearActiveFocus()
+            notifyManualViewChange(targetView.scale, targetView.translateX, targetView.translateY)
             applyView(targetView.scale, targetView.translateX, targetView.translateY)
         })
     }
@@ -890,6 +903,7 @@
 
         if (didPanX || didPanY) {
             cancelViewAnimation()
+            notifyManualViewChange(currentScale, nextView.translateX, nextView.translateY)
             applyView(currentScale, nextView.translateX, nextView.translateY)
         }
 
@@ -999,6 +1013,7 @@
                 viewportY,
                 nextScale
             )
+            notifyManualViewChange(targetView.scale, targetView.translateX, targetView.translateY)
             applyView(targetView.scale, targetView.translateX, targetView.translateY)
             return
         }
@@ -1024,6 +1039,7 @@
 
         event.preventDefault()
         cancelViewAnimation()
+        notifyManualViewChange(currentScale, nextView.translateX, nextView.translateY)
         applyView(currentScale, nextView.translateX, nextView.translateY)
     }
 

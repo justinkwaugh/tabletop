@@ -5,7 +5,7 @@ import { historyGroups } from '../../../../libs/18xx-ui/src/lib/table/historyGro
 import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
 import { historyRounds } from '../../../../libs/18xx-ui/src/lib/table/historyRounds.js'
 import { finishedGame } from './finishedGame.js'
-import { reorderPendingOperatingCompanies } from '@tabletop/18xx'
+import { reorderPendingOperatingCompanies, isRunTrains, isDistributeEarnings } from '@tabletop/18xx'
 
 it('replays the finished game and restores every history step in both directions', async () => {
     const { game, state, initialState, actions, engine } = await finishedGame(
@@ -25,6 +25,19 @@ it('replays the finished game and restores every history step in both directions
     expect(orders.get(fundingSale.id)?.after).toEqual(['MS', 'S', 'A', 'So', 'C', 'branch:BB', 'MR', 'Gt'])
     expect(historyDescription(fundingSale, state).detail).toContain('Market')
     const rounds = historyRounds(actions, state)
+    const trainlessActions = actions.filter((action) =>
+        (isRunTrains(action) && action.metadata?.revenue === 0) ||
+        (isDistributeEarnings(action) && action.metadata?.revenue === 0))
+    expect(trainlessActions.length).toBeGreaterThan(0)
+    const visibleIds = new Set(rounds.flatMap((round) => round.entries.map((entry) => entry.id)))
+    for (const action of trainlessActions) {
+        expect(visibleIds.has(action.id)).toBe(true)
+        const description = historyDescription(action, state)
+        expect(description.text).toBe(action.type === 'RunTrains' ? 'Did not run trains' : 'Did not pay out')
+        if (isDistributeEarnings(action) && action.metadata?.marketMove &&
+            action.metadata.marketMove.fromMarketSpaceId !== action.metadata.marketMove.toMarketSpaceId)
+            expect(description.detail).toContain('Market')
+    }
     expect(rounds.map((round) => round.label)).toEqual([
         'OR 8.3',
         'OR 8.2',

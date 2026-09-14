@@ -13,6 +13,7 @@
         rotation = 0,
         layout,
         appearance,
+        revenueStageColors,
         size = 120,
         label,
         highlightedPathIds,
@@ -24,6 +25,7 @@
         orientation?: HexOrientation
         rotation?: TileRotation
         layout?: TileLayout
+        revenueStageColors?: Readonly<Record<string, string>>
         appearance?: TileAppearance
         size?: number | string
         label?: string
@@ -46,7 +48,7 @@
     aria-label={description}
     data-tile-rotation={rotation}
 >
-    <TileArtwork {face} {drawing} {appearance} {highlightedPathIds} {trackOverlay} {overlays} />
+    <TileArtwork {face} {drawing} {appearance} {revenueStageColors} {highlightedPathIds} {trackOverlay} {overlays} />
 </svg>
 
 <style>

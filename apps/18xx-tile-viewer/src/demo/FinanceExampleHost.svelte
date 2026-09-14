@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount, onDestroy, untrack } from 'svelte'
+    import { migrateCompanyNames } from './migrateCompanyNames.js'
     import { Compile } from 'typebox/compile'
     import {
         assertExists,
@@ -113,6 +114,9 @@
             assertExists(game.state, 'Local example has no state')
             if (!FinanceExampleValidator.Check(game.state))
                 throw new Error('Local example has an invalid finance state')
+            if (migrateCompanyNames(loaded)) {
+                await app.gameService.saveGameLocally({ game, state: game.state, actions })
+            }
             if (disposed) return
             app.chatService.setGame(game)
             bridge = new BridgedContext({

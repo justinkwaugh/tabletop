@@ -72,7 +72,9 @@ export class HydratedDistributeEarnings
     apply(state: HydratedGameState & DistributionState & StockState & MapStateData): void {
         const distribution = new EarningsDistribution(state, this.#rules)
         assert(
-            this.source === ActionSource.User &&
+            (this.source === ActionSource.User ||
+                (this.source === ActionSource.System &&
+                    distribution.automaticChoice(this.companyId) === this.choice)) &&
                 state.activePlayerIds.includes(this.playerId) &&
                 distribution.canAct(this.playerId, this.companyId),
             'Only the operating company’s controlling owner may distribute earnings'

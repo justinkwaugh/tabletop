@@ -25,3 +25,10 @@ it('Back unwinds manual placement, tile and location, skipping a single auto pla
     expect(backFromTrack(automatic)).toEqual(location)
     expect(chooseTrackTile(automatic, '18xx:8', []).placement).toBeUndefined()
 })
+
+it('skips an automatically selected tile and rotation when undoing the location', () => {
+    const selected = chooseTrackTile(chooseTrackLocation('B2'), choice.definitionId, [choice], 'auto')
+    expect(selected.definitionId?.source).toBe('auto')
+    expect(selected.placement?.source).toBe('auto')
+    expect(backFromTrack(selected)).toEqual({})
+})

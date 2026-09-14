@@ -39,13 +39,12 @@ export class LayingTrackHandler implements MachineStateHandler<
     validActionsForPlayer(playerId: string, context: MachineContext<State>): string[] {
         const state = context.gameState
         const companyId = state.trackStep?.companyId
+        if (!companyId || !state.activePlayerIds.includes(playerId)) return []
+        const construction = new TrackConstruction(state, this.rules)
         if (
-            !companyId ||
-            !state.activePlayerIds.includes(playerId) ||
-            !new TrackConstruction(state, this.rules).canAct(playerId, companyId)
+            !construction.canAct(playerId, companyId)
         )
             return []
-        const construction = new TrackConstruction(state, this.rules)
         return this.rules.map.definition.locations.some((location) =>
             construction
                 .choices(location.id)

@@ -82,7 +82,7 @@
             {/if}
         </div>
     {/if}
-    <MapViewer
+    <MapViewer revenueStageColors={session.mapView.revenueStageColors}
         scene={session.displayedMapScene}
         maskUnavailableLocations={session.showTrackChoices}
         legalLocationIds={session.canPlaceStation

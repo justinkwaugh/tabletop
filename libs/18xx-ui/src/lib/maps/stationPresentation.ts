@@ -8,6 +8,7 @@ export type MapViewDefinition = {
     map: RailwayMap
     tileSet: TileSet
     stations: Readonly<Record<string, StationAppearance>>
+    revenueStageColors?: Readonly<Record<string, string>>
     layouts?: Readonly<Record<string, TileLayout>>
 }
 export function stationMapTokens(

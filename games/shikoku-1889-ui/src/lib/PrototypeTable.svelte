@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { Shikoku1889TrainColors } from './trainPresentation.js'
     import OpeningAuction from './OpeningAuction.svelte'
     import type { GameSession } from '@tabletop/frontend-components'
     import { requireFinanceExampleState } from '@tabletop/18xx'
@@ -26,7 +27,7 @@
 {:else}
     <CompanyDecisions {session} />
     <PrivateCompanies {session} />
-    <TrainBuying {session} />
+    <TrainBuying {session} trainColors={Shikoku1889TrainColors} />
     <FinanceMap {session} />
     <StockTrading {session} />
     <StockMarket {session} appearances={session.mapView.stations} market={state.stockMarket} companies={state.companies} />

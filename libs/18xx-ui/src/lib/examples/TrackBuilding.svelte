@@ -14,6 +14,14 @@
 
 {#if turn && !session.financialState.stationStep}
     <section aria-label="Track construction">
+        {#if mapControls}
+            <header class="map-prompt">
+                <span>Choose a space or</span>
+                <button class="action-button inline-action" onclick={() => session.finishTrack()}
+                    disabled={!session.canBuildTrack || !!selection.locationId}>skip</button>
+                <span class="cost" class:inactive-cost={!preview}>Cost: ${preview?.cost ?? 0}</span>
+            </header>
+        {:else}
         <header>
             <strong>{getCompany(session.financialState, turn.companyId).name} · Track</strong>
             <span
@@ -39,6 +47,7 @@
                 <span class="cost" class:inactive-cost={!preview}>Cost: ${preview?.cost ?? 0}</span>
             {/if}
         </header>
+        {/if}
         {#if turn.completed}<p>Track complete.</p>
         {:else if session.isViewingHistory}<p>History view</p>
         {:else if !mapControls && !selection.locationId}
@@ -127,6 +136,7 @@
 {/if}
 
 <style>
+    .map-prompt { justify-content: center; }
     .cost {
         min-width: 8ch;
         white-space: nowrap;

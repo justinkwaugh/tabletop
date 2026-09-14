@@ -10,6 +10,7 @@ import type { MapViewDefinition } from '@tabletop/18xx-ui'
 
 export const Shikoku1889MapView: MapViewDefinition = {
     map: Shikoku1889Map,
+    revenueStageColors: { diesel: '#b9bdc0' },
     tileSet: Shikoku1889TileSet,
     stations: {
         KO: { color: '#d81e3e', label: 'KO', imageUrl: KOToken },

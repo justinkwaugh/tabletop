@@ -176,3 +176,11 @@ explicit overrides, inheritance, save serialization, conflict retry, error
 reporting, account changes, and disposal. Host API methods are optional so older
 hosts continue to support session-local presentation choices. The ordinary dev
 harness supplies localStorage persistence through the same preference contract.
+
+## Manual camera movement
+
+ScalingWrapper's optional `onManualViewChange` callback reports effective wheel,
+zoom-button, touch-pan, pinch, and gesture changes. Programmatic focus, viewport
+restoration, and resize adjustments do not report manual movement. Inspection
+views can use this distinction to relinquish a saved viewport when the user takes
+control of the camera.

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import { assert, assertExists } from '@tabletop/common'
     import type { TileFace } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
@@ -10,6 +11,7 @@
         drawing,
         appearance = ClassicTileAppearance,
         highlightedPathIds = [],
+        revenueStageColors = {},
         showZeroRevenue = true,
         trackOverlay,
         overlays
@@ -17,6 +19,7 @@
         face: TileFace
         drawing: TileDrawing
         appearance?: TileAppearance
+        revenueStageColors?: Readonly<Record<string, string>>
         highlightedPathIds?: readonly string[]
         showZeroRevenue?: boolean
         trackOverlay?: Snippet<[TileDrawing]>
@@ -160,7 +163,7 @@
                 </g>
             </g>
         {/if}
-        {#each drawing.nodes as { node, revenuePosition } (node.id)}
+        {#each drawing.nodes as { node, revenuePosition, revenueCells } (node.id)}
             {#if node.kind !== 'junction' && (showZeroRevenue || node.revenue.kind === 'staged' || node.revenue.amount !== 0)}
                 <g
                     data-revenue-for={node.id}
@@ -175,19 +178,12 @@
                         />
                         <text font-size="10" font-weight="750">{node.revenue.amount}</text>
                     {:else}
-                        <rect
-                            x="-17"
-                            y={-node.revenue.values.length * 4.5 - 2}
-                            width="34"
-                            height={node.revenue.values.length * 9 + 4}
-                            rx="3"
-                            fill={appearance.paper}
-                        />
-                        {#each node.revenue.values as value, index}
-                            <text
-                                y={(index - (node.revenue.values.length - 1) / 2) * 9}
-                                font-size="6.5">{value.stage} {value.amount}</text
-                            >
+                        {#each revenueCells as cell}
+                            {@const color = revenueStageColors[cell.stage] ?? appearance.colors[cell.stage] ?? appearance.paper}
+                            <g transform={`translate(${cell.x - revenuePosition.x} ${cell.y - revenuePosition.y})`} data-revenue-stage={cell.stage}>
+                                <rect x={-cell.width / 2} y={-cell.height / 2} width={cell.width} height={cell.height} fill={color} stroke={appearance.ink} stroke-width="0.5" />
+                                <text fill={contrastingTextColor(color)} font-size="9" font-weight="650" aria-label={`${cell.stage}: ${cell.amount}`}>{cell.amount}</text>
+                            </g>
                         {/each}
                     {/if}
                 </g>

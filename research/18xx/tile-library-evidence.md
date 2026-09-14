@@ -58,3 +58,11 @@ Acceptance should demonstrate all six rotations, matching path endpoints/hit tar
 [render]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/assets/app/view/game/tile.rb
 [esp]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_18_esp/map.rb#L779-L781
 [norway]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_18_norway/game.rb#L285-L291
+
+### Phase revenue cells and map perimeter
+
+The family survey distinguishes fixed stop values from staged offboard/city values and title-specific phase names. TOP exercises yellow/brown values; 1889 adds diesel. The shared renderer retains stage identity and accepts title-owned color overrides, rather than assuming every phase name is a tile color or importing a game's train roster. Horizontal and vertical cell arrangements compete for space around the existing track and stops. Fixed values keep their existing presentation; unusually long stage schedules may need additional layout candidates later.
+
+The masking perimeter is presentation-only and follows the union of semantic map hexes. This supports irregular and disconnected maps across the surveyed catalog without relying on either title's board silhouette. Physical artwork and generic rendering retain the same semantic hit targets. A constant margin avoids resizing when construction or station interaction changes.
+
+Placement focus reuses the renderer's legal-location set and the existing contextual map focus bounds. It does not infer reachability from screen position or assume one connected cluster: disconnected construction permissions, home stations, and multiple separate-city targets remain title/rule data. TOP and 1889 use the same framing behavior. Camera changes are local UI assistance and do not alter canonical action selection.

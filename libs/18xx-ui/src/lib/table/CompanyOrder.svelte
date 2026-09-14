@@ -158,6 +158,7 @@
     <ol bind:this={scrollArea}>
         {#each entries as { company, appearance, amount, trains, remainingTokens } (company.id)}
             {@const completed = completedCompanyIds.includes(company.id)}
+            {@const detailed = showDetails || currentCompanyId === company.id}
             <li
                 data-company-id={company.id}
                 class:completed
@@ -168,7 +169,7 @@
                 <button
                     id={`${detailsId}-${company.id}`}
                     class="pill"
-                    class:token-only={!showDetails}
+                    class:token-only={!detailed}
                     aria-label={company.name}
                     aria-expanded={expandedCompanyId === company.id}
                     aria-controls={`${detailsId}-panel`}
@@ -177,7 +178,7 @@
                             expandedCompanyId === company.id ? undefined : company.id)}
                 >
                     <CompanyToken {appearance} size={38} />
-                    {#if showDetails}<div class="details">
+                    {#if detailed}<div class="details">
                             <div class="summary">
                                 <span class="cash"
                                     >{amount === undefined

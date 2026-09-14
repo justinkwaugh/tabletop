@@ -1,3 +1,4 @@
+import { trainsOwnedBy } from '../trains/train.js'
 import { trainsRustingAfterOperation } from '../trains/rustTrains.js'
 import {
     ActionSource,
@@ -6,7 +7,7 @@ import {
     type MachineContext,
     type MachineStateHandler
 } from '@tabletop/common'
-import { isRunTrains, type HydratedRunTrains } from './runTrains.js'
+import { RunTrains, isRunTrains, type HydratedRunTrains } from './runTrains.js'
 import { RouteEvaluation, type RouteRules } from './routeEvaluation.js'
 import type { TrainRunningState } from './route.js'
 type State = HydratedGameState & TrainRunningState
@@ -19,7 +20,9 @@ export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrai
         const state = context.gameState
         if (
             !isRunTrains(action) ||
-            action.source !== ActionSource.User ||
+            (action.source !== ActionSource.User &&
+                !(action.source === ActionSource.System &&
+                    !trainsOwnedBy(state, { kind: 'company', companyId: action.companyId }).length)) ||
             !action.playerId ||
             !state.activePlayerIds.includes(action.playerId)
         )
@@ -39,7 +42,16 @@ export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrai
             ? ['RunTrains']
             : []
     }
-    enter(): void {}
+    enter(context: MachineContext<State>): void {
+        const state = context.gameState
+        const companyId = state.routeStep?.companyId
+        if (companyId && !state.routeStep?.result &&
+            !trainsOwnedBy(state, { kind: 'company', companyId }).length) {
+            context.addSystemAction(RunTrains, {
+                companyId, playerId: state.activePlayerIds[0], routes: []
+            })
+        }
+    }
     onAction(action: HydratedRunTrains, context: MachineContext<State>): string {
         return trainsRustingAfterOperation(context.gameState, action.companyId).length
             ? 'RustingTrains'

@@ -7,7 +7,7 @@ import { Station, StationReservation } from '../map/station.js'
 import { TilePlacement, type TileInventory, type TileSet } from '../tiles/inventory.js'
 import { TileRotation, type TileDefinition, type TileFace } from '../tiles/tile.js'
 import { rotateTileEdge, rotateTileFace } from '../tiles/topology.js'
-import { TrackNetwork } from './trackNetwork.js'
+import { ConstructionReachability } from './constructionReachability.js'
 import {
     tileUpgradeMappings,
     preservesPath,
@@ -79,6 +79,8 @@ export interface TrackRules {
 const Rotations: readonly TileRotation[] = [0, 1, 2, 3, 4, 5]
 
 export class TrackConstruction {
+    private reachability: ConstructionReachability | undefined
+    private readonly pieces = new Map<string, ReturnType<TileSet['availablePieces']>>()
     readonly mapState: RailwayMapState
     constructor(
         readonly state: ConstructionState,
@@ -100,6 +102,11 @@ export class TrackConstruction {
     choices(locationId: string): TrackLayDetails[] {
         const companyId = this.state.trackStep?.companyId
         if (!companyId) return []
+        if (!this.network(companyId).canReach(locationId) && !this.rules.useful({
+            home: this.rules.homeLocations(companyId).includes(locationId),
+            newTrack: false,
+            increasedCityRevenue: false
+        })) return []
         const choices: TrackLayDetails[] = []
         for (const definition of this.rules.tileSet.definitions) {
             if (
@@ -157,14 +164,6 @@ export class TrackConstruction {
             )
         )
             return { reason: 'Existing track and stops must be preserved' }
-        const piece =
-            this.rules.tileSet.availablePieces(this.state.tileInventory, definitionId)[0] ??
-            this.rules.tileSet.pieces.find(
-                (piece) =>
-                    piece.id === previous.placement?.pieceId &&
-                    piece.faceDefinitionIds.includes(definitionId)
-            )
-        if (!piece) return { reason: 'No tile remains in the supply' }
         let borderCost = 0
         const edges = new Set(
             after.paths.flatMap((path) =>
@@ -196,17 +195,33 @@ export class TrackConstruction {
             )
                 borderCost += Math.max(0, ...borders.map((border) => border.cost ?? 0))
         }
+        const printedTerrainCost =
+            (!previous.placement ? (location.terrain?.cost ?? 0) : 0) +
+            (before.upgradeCost ?? 0) +
+            borderCost
+        const terrainCost =
+            this.rules.terrainCost?.(this.state, request, printedTerrainCost) ?? printedTerrainCost
+        const consentPlayerId = this.rules.consentPlayerId?.(this.state, request)
+        const cost = terrainCost + allowance.cost
+        const cash = cashOwnedBy(this.state, this.payer ?? { kind: 'company', companyId })
+        if (cash === undefined || (cash !== 'unlimited' && cash < cost))
+            return { reason: 'The company cannot afford construction' }
+        const piece =
+            this.availablePieces(definitionId)[0] ??
+            this.rules.tileSet.pieces.find(
+                (piece) =>
+                    piece.id === previous.placement?.pieceId &&
+                    piece.faceDefinitionIds.includes(definitionId)
+            )
+        if (!piece) return { reason: 'No tile remains in the supply' }
         const migrated = this.migrateStations(locationId, after, nodeMapping)
         if (!migrated) return { reason: 'The upgrade cannot preserve all station spaces' }
-        const network = new TrackNetwork(this.mapState, migrated, companyId, {
-            locationId,
-            face: after
-        })
+        const network = this.network(companyId).connections(locationId, after, migrated)
         const reverse = Object.fromEntries(
             Object.entries(nodeMapping).map(([id, target]) => [target, id])
         )
         const newTrack = after.paths.some(
-            (path) => network.usesPath(locationId, path.id) && !preservesPath(path, before, reverse)
+            (path) => network.paths.has(path.id) && !preservesPath(path, before, reverse)
         )
         const increasedCityRevenue = before.nodes.some(
             (node) =>
@@ -215,7 +230,7 @@ export class TrackConstruction {
                     (target) =>
                         target.id === nodeMapping[node.id] &&
                         fixedNodeRevenue(target) > fixedNodeRevenue(node) &&
-                        network.reaches(locationId, { kind: 'node', nodeId: target.id })
+                        network.nodes.has(target.id)
                 )
         )
         if (
@@ -228,17 +243,6 @@ export class TrackConstruction {
             return {
                 reason: 'Construction must add connected track or increase a connected city’s revenue'
             }
-        const printedTerrainCost =
-            (!previous.placement ? (location.terrain?.cost ?? 0) : 0) +
-            (before.upgradeCost ?? 0) +
-            borderCost
-        const terrainCost =
-            this.rules.terrainCost?.(this.state, request, printedTerrainCost) ?? printedTerrainCost
-        const consentPlayerId = this.rules.consentPlayerId?.(this.state, request)
-        const cost = terrainCost + allowance.cost
-        const cash = cashOwnedBy(this.state, this.payer ?? { kind: 'company', companyId })
-        if (cash === undefined || (cash !== 'unlimited' && cash < cost))
-            return { reason: 'The company cannot afford construction' }
         return {
             details: {
                 companyId,
@@ -263,6 +267,17 @@ export class TrackConstruction {
             placement: details.placement,
             returnPrevious: true
         })
+    }
+    private network(companyId: string): ConstructionReachability {
+        return this.reachability ??= new ConstructionReachability(this.mapState, this.state, companyId)
+    }
+    private availablePieces(definitionId: string): ReturnType<TileSet['availablePieces']> {
+        let pieces = this.pieces.get(definitionId)
+        if (!pieces) {
+            pieces = this.rules.tileSet.availablePieces(this.state.tileInventory, definitionId)
+            this.pieces.set(definitionId, pieces)
+        }
+        return pieces
     }
     private basicTileAllowed(locationId: string, definition: TileDefinition): boolean {
         const location = this.rules.map.location(locationId)

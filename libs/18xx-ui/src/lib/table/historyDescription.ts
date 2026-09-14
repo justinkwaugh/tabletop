@@ -81,7 +81,7 @@ export function historyDescription(
     if (isRunTrains(action)) {
         assertExists(action.metadata, 'Recorded train run requires its revenue')
         return {
-            text: action.routes.length ? 'Ran' : 'No trains ran',
+            text: action.routes.length ? 'Ran' : 'Did not run trains',
             trainDefinitionIds: action.routes.map((route) => {
                 const train = state.trainInventory.trains.find((train) => train.id === route.trainId)
                 assertExists(train, 'Recorded train run requires its train')
@@ -95,7 +95,9 @@ export function historyDescription(
         const details = action.metadata
         return {
             text:
-                action.choice === 'withhold'
+                !details.revenue && !details.dividendPerShare && !details.bonusPerShare
+                    ? 'Did not pay out'
+                    : action.choice === 'withhold'
                     ? 'Withheld'
                     : action.choice === 'half-pay'
                       ? 'Half paid'

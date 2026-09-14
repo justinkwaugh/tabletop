@@ -169,6 +169,36 @@
         const bottom = Math.max(...rectangles.map((rect) => rect.y + rect.height))
         mapWrapper?.focusRect({ x, y, width: right - x, height: bottom - y }, { animate: true })
     }
+    const maskPlacementLocations = $derived(!session.historicalMap &&
+        (session.showTrackChoices || session.financialState.machineState === 'PlacingStation'))
+    const placementLocationIds = $derived(session.historicalMap ? [] : session.canPlaceStation
+        ? session.stationLocationIds : session.trackLocationIds)
+    const placementFocusKey = $derived(maskPlacementLocations
+        ? JSON.stringify([session.financialState.machineState, placementLocationIds]) : undefined)
+    $effect(() => {
+        if (!placementFocusKey || session.updatingVisibleState) return
+        return untrack(() => {
+            const locations = [...placementLocationIds]
+            if (!locations.length) return
+            let cancelled = false
+            view = 'Map'
+            void tick().then(() => {
+                if (!cancelled) focusLocations(locations)
+            })
+            return () => { cancelled = true }
+        })
+    })
+    let restoreRouteView: ReturnType<ScalingWrapper['captureView']> | undefined
+    const runningCompanyId = $derived(session.financialState.machineState === 'RunningTrains'
+        ? session.financialState.routeStep?.companyId : undefined)
+    $effect(() => {
+        if (!runningCompanyId) return
+        return () => {
+            const restore = restoreRouteView
+            restoreRouteView = undefined
+            restore?.({ animate: true })
+        }
+    })
     $effect(() => {
         const preview = session.automaticRouteResult
         if (!preview?.result.routes.length) return
@@ -183,6 +213,7 @@
                 const locations = preview.result.routes.flatMap((route) =>
                     route.paths.map((path) => path.locationId)
                 )
+                restoreRouteView ??= mapWrapper?.captureView()
                 focusLocations([...new Set(locations)])
             })
         })
@@ -341,21 +372,20 @@
                 >
                     <ScalingWrapper
                         bind:this={mapWrapper}
+                        onManualViewChange={() => { restoreRouteView = undefined }}
                         justify="center"
                         controls="bottom-left"
                         expandable={true}
                     >
-                        <MapScene
+                        <MapScene revenueStageColors={session.mapView.revenueStageColors}
                             scene={displayedScene}
                             tokens={session.historicalMap?.tokens ?? session.displayedMapTokens}
                             reservations={session.historicalMap?.reservations ?? session.trackPreview?.stationReservations ??
                                 session.stationDisplayState.stationReservations}
                             routes={session.historicalMap?.routes ?? session.routeOverlays}
                             selection={session.historicalMap ? session.historicalMap.selection : session.mapSelection}
-                            maskUnavailableLocations={!session.historicalMap && session.showTrackChoices}
-                            legalLocationIds={session.historicalMap ? [] : session.canPlaceStation
-                                ? session.stationLocationIds
-                                : session.trackLocationIds}
+                            maskUnavailableLocations={maskPlacementLocations}
+                            legalLocationIds={placementLocationIds}
                             previewLocationId={session.historicalMap ? undefined : session.trackPreview?.locationId ??
                                 session.stationPreview?.position.locationId}
                             appearance={session.mapStyle === 'muted'
@@ -471,6 +501,25 @@
     }
     .action-panel :global(button) {
         font-size: 12px;
+        font-weight: 400;
+    }
+    .action-panel :global(button.action-button) {
+        background: #443e35;
+        border-color: #443e35;
+        color: #fff;
+    }
+    .action-panel :global(button.action-button:hover:not(:disabled)) {
+        background: #302c26;
+        border-color: #302c26;
+    }
+    .action-panel :global(header button.inline-action) {
+        font: inherit;
+        border: 0;
+        padding: 3px 8px;
+        border-radius: 4px;
+    }
+    .action-panel :global(button strong) {
+        font-weight: 400;
     }
     .view-tabs {
         display: flex;

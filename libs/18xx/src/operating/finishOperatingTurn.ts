@@ -69,7 +69,7 @@ export class HydratedFinishOperatingTurn
     }
     apply(state: HydratedGameState & OperatingTurnState): void {
         assert(
-            this.source === ActionSource.User &&
+            (this.source === ActionSource.User || this.source === ActionSource.System) &&
                 state.activePlayerIds.includes(this.playerId) &&
                 controllingOwner(state, this.companyId)?.playerId === this.playerId,
             'Only the operating company’s controlling owner may finish its turn'

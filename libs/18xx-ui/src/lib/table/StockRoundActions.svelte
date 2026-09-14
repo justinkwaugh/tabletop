@@ -64,7 +64,13 @@
 <section aria-label="Stock trading">
     {#if session.mustSell}<p class="notice">Sell down to the stock limits.</p>{/if}
     {#if !menu}
-        <div class="heading">Choose a stock action</div>
+        <header class="heading stock-prompt">
+            <span>Choose a stock action{session.validActionTypes.includes('FinishStockTurn') ? ' or' : ''}</span>
+            {#if session.validActionTypes.includes('FinishStockTurn')}
+                <button class="action-button inline-action" {disabled} onclick={() => session.finishTurn()}
+                    >{session.financialState.stockRound.turn.acted ? 'end turn' : 'pass'}</button>
+            {/if}
+        </header>
         <div class="choices">
             {#each buyers as buyer}<button class="buy-action" {disabled} onclick={() => session.chooseStockMenu('buy', buyer)}
                 >{buyer.kind === 'player' ? 'Buy' : `Buy for ${session.ownerName(buyer)}`}</button>{/each}
@@ -79,11 +85,6 @@
                     onclick={() => session.chooseStockMenu('exchange')}>Exchange</button
                 >{/if}
             {#each additionalActions as action}<button {disabled} onclick={action.onSelect}>{action.label}</button>{/each}
-            {#if session.validActionTypes.includes('FinishStockTurn')}<button
-                    {disabled}
-                    onclick={() => session.finishTurn()}
-                    >{session.financialState.stockRound.turn.acted ? 'End turn' : 'Pass'}</button
-                >{/if}
         </div>
     {:else}
         <div class="heading">
@@ -206,7 +207,7 @@
         {#if menu === 'sell' && session.selectedSale}
             <div class="sale-order">
                 <button
-                    class="confirm"
+                    class="confirm action-button"
                     disabled={disabled || !session.selectedSaleResult?.details}
                     onclick={() => session.confirmSale()}
                     >{session.selectedSaleResult?.details
@@ -280,7 +281,8 @@
     .purchase-option strong { font-size: 13px; font-variant-numeric: tabular-nums; }
     .purchase-source { font-size: 12px; }
     .purchase-option small { margin-top: 1px; }
-    .buy-action { font-weight: 600; }
+
+    .heading.stock-prompt { gap: 5px; }
     .choices {
         display: flex;
         flex-wrap: wrap;

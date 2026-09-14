@@ -76,7 +76,7 @@ for (const title of ['TOP', '1889']) {
         const spreadsheet = page.getByRole('table', { name: 'Company share ownership' })
         await expect(spreadsheet).toBeVisible()
         await expect(spreadsheet.getByRole('columnheader')).toHaveText(['Company', 'Alex', 'Blair', 'Casey', ...(title === 'TOP' ? ['Union Bank', 'Exchange'] : []), 'Treasury', 'Market', 'Cash'])
-        await expect(spreadsheet.getByRole('row').filter({ has: page.getByRole('rowheader', { name: title === 'TOP' ? 'Charlottetown · Mainline' : 'Iyo Railway', exact: true }) }).getByRole('cell')).toHaveText(title === 'TOP' ? [/^3\s*P$/, '2', '0', '1', '1', '1', '2', /^\$[\d,]+$/] : ['3', /^3\s*P$/, '0', '0', '0', /^\$[\d,]+$/])
+        await expect(spreadsheet.getByRole('row').filter({ has: page.getByRole('rowheader', { name: title === 'TOP' ? 'Charlottetown' : 'Iyo Railway', exact: true }) }).getByRole('cell')).toHaveText(title === 'TOP' ? [/^3\s*P$/, '2', '0', '1', '1', '1', '2', /^\$[\d,]+$/] : ['3', /^3\s*P$/, '0', '0', '0', /^\$[\d,]+$/])
         const matrix = await spreadsheet.locator('tbody tr').evaluateAll(rows => rows.map(row => [...row.querySelectorAll('td')].map(cell => cell.textContent?.trim())))
         await page.getByRole('group', { name: 'Spreadsheet view' }).getByRole('button', { name: 'Player', exact: true }).click()
         for (let index = 0; index < matrix[0].length; index++) {

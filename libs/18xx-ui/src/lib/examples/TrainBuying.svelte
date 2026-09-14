@@ -1,29 +1,61 @@
 <script lang="ts">
+    import type { TrainPurchaseDetails } from '@tabletop/18xx'
+    import { contrastingTextColor } from '../colors/contrastingTextColor.js'
+    import TrainBadge from '../trains/TrainBadge.svelte'
+    import CompanyTrainBuying from './CompanyTrainBuying.svelte'
     import TrainFunding from './TrainFunding.svelte'
     import PhaseChanges from './PhaseChanges.svelte'
-    import { getCompany, cashOwnedBy } from '@tabletop/18xx'
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session, showUndo = true }: { showUndo?: boolean; session: FinanceExampleSession } =
+    let { session, trainColors, showUndo = true }: { trainColors: Readonly<Record<string, string>>; showUndo?: boolean; session: FinanceExampleSession } =
         $props()
     const step = $derived(session.financialState.trainPurchaseStep)
-    const preview = $derived(session.trainPreview)
+    const availableTypes = $derived(session.availableTrainDefinitionIds)
+    const remainingDepot = $derived(session.trainOffers.filter((offer) => offer.remaining !== 0))
+    const currentDepot = $derived(remainingDepot.filter((offer) => availableTypes.includes(offer.definitionId) && offer.evaluation.details))
+    const nextDepot = $derived(remainingDepot.find((offer) => !availableTypes.includes(offer.definitionId)))
+    const marketChoices = $derived.by(() => {
+        const groups = new Map<string, { details: TrainPurchaseDetails; count: number }>()
+        for (const offer of session.marketTrainOffers) {
+            if (!offer.details) continue
+            const key = `${offer.details.definitionId}:${offer.details.price}`
+            const group = groups.get(key)
+            if (group) group.count += 1
+            else groups.set(key, { details: offer.details, count: 1 })
+        }
+        return [...groups.values()]
+    })
 </script>
 
-<PhaseChanges {session} {showUndo} />
+{#snippet trainChoice(definitionId: string, price: number, remaining: number | 'unlimited', details: TrainPurchaseDetails | undefined, upcoming = false, market = false)}
+    {@const definition = session.trainDepot.trainDefinition(definitionId)}
+    <div class="depot-entry">
+        <button style:background={trainColors[definitionId]} style:color={contrastingTextColor(trainColors[definitionId])}
+            class="depot-choice" class:upcoming data-depot-train={market ? undefined : definitionId}
+            aria-label={`${definition.name} for $${price}${upcoming ? ', upcoming' : market ? ' from Market' : ''}`}
+            disabled={upcoming || !session.canBuyTrain || !details}
+            onclick={() => { if (details) void session.buyTrain(details) }}>
+            <span class="train-price"><strong>{definition.name}</strong><b>${price}</b></span>
+        </button>
+        <small class="remaining">{#if upcoming}{remaining === 'unlimited' ? 'Unlimited upcoming' : `${remaining} upcoming`}{:else}{market ? 'Market · ' : ''}{remaining === 'unlimited' ? 'Unlimited' : `${remaining} remaining`}{/if}</small>
+    </div>
+{/snippet}
+
+{#if session.financialState.phaseChange}<PhaseChanges {session} {showUndo} />{/if}
 <TrainFunding {session} {showUndo} />
 
-{#if step}
+{#if step && session.financialState.machineState === 'BuyingTrains'}
     <section aria-label="Train purchases">
+        {#if session.financialState.purchaseOffer?.asset.kind === 'train'}
+            <CompanyTrainBuying {session} {trainColors} />
+        {:else}
         <header>
-            <h2>{getCompany(session.financialState, step.companyId).name} · Trains</h2>
-            <span
-                >Treasury: ${cashOwnedBy(session.financialState, {
-                    kind: 'company',
-                    companyId: step.companyId
-                })}</span
-            >
-            <span>Train limit: {session.trainLimit}</span>
-            <span>{step.purchasedTrainIds.length} purchased this turn</span>
+            <h2>
+                Choose a train to buy
+                {#if !session.finishOperatingReason}
+                    or <button class="action-button inline-action" onclick={() => session.finishOperatingTurn()}
+                        disabled={!session.canFinishOperatingTurn}>skip</button>
+                {/if}
+            </h2>
             {#if showUndo}<button
                     onclick={() => session.undo()}
                     disabled={session.busy ||
@@ -33,145 +65,113 @@
                 >{/if}
         </header>
         {#if session.isViewingHistory}<p>History view</p>{/if}
-        <button
-            onclick={() => session.finishOperatingTurn()}
-            disabled={!session.canFinishOperatingTurn}>Finish operating turn</button
-        >
-        {#if session.finishOperatingReason}<p>{session.finishOperatingReason}</p>{/if}
-        <h3>Depot</h3>
+
+        <nav aria-label="Train source" class="sources">
+            {#if currentDepot.length || marketChoices.length || session.trainExchanges.length}
+                <button aria-pressed={session.trainBuyingSource === 'depot'} onclick={() => session.selectTrainSource('depot')}>Depot</button>
+            {/if}
+            {#if session.companyTrainChoices.some((choice) => choice.source === 'mine')}
+                <button aria-pressed={session.trainBuyingSource === 'mine'} onclick={() => session.selectTrainSource('mine')}>My companies</button>
+            {/if}
+            {#if session.companyTrainChoices.some((choice) => choice.source === 'others')}
+                <button aria-pressed={session.trainBuyingSource === 'others'} onclick={() => session.selectTrainSource('others')}>Other companies</button>
+            {/if}
+        </nav>
+        {#if session.trainBuyingSource === 'depot'}
         <div class="trains">
-            {#each session.trainOffers as offer (offer.definitionId)}
-                {@const definition = session.trainDepot.trainDefinition(offer.definitionId)}
-                <article data-depot-train={definition.id}>
-                    <strong>{definition.name}</strong>
-                    <span>${definition.price} · {offer.remaining} remaining</span>
-                    <span
-                        >{definition.distance.maximum}
-                        {definition.distance.measure === 'hex-edges'
-                            ? 'hex edges'
-                            : definition.distance.measure === 'cities-and-offboards'
-                              ? 'cities/offboards, plus towns'
-                              : 'revenue centers'}</span
-                    >
-                    <button
-                        disabled={!session.canBuyTrain || !offer.evaluation.details}
-                        aria-pressed={preview?.definitionId === definition.id}
-                        onclick={() => {
-                            if (offer.evaluation.details)
-                                session.selectTrain(offer.evaluation.details)
-                        }}>Select {definition.name}</button
-                    >
-                    {#if offer.evaluation.reason}<small>{offer.evaluation.reason}</small>{/if}
-                </article>
+            {#each currentDepot as offer (offer.definitionId)}
+                {@render trainChoice(offer.definitionId, offer.evaluation.details?.price ?? session.trainDepot.trainDefinition(offer.definitionId).price, offer.remaining, offer.evaluation.details)}
             {/each}
+            {#each marketChoices as { details, count } (`${details.definitionId}:${details.price}`)}
+                {@render trainChoice(details.definitionId, details.price, count, details, false, true)}
+            {/each}
+            {#if nextDepot}
+                {@render trainChoice(nextDepot.definitionId, session.trainDepot.trainDefinition(nextDepot.definitionId).price, nextDepot.remaining, undefined, true)}
+            {/if}
         </div>
-        {#if session.marketTrainOffers.length}<h3>Market trains</h3>
-            <div class="trains">
-                {#each session.marketTrainOffers as offer}
-                    {#if offer.details}<button
-                            disabled={!session.canBuyTrain}
-                            onclick={() => {
-                                if (offer.details) session.selectTrain(offer.details)
-                            }}
-                            >Buy Market {session.trainDepot.trainDefinition(
-                                offer.details.definitionId
-                            ).name} · ${offer.details.price}</button
-                        >
-                    {:else}<p>{offer.reason}</p>{/if}
-                {/each}
-            </div>{/if}
         {#if session.trainExchanges.length}<h3>Diesel exchange</h3>
             <div class="trains">
                 {#each session.trainExchanges as exchange}<button
                         disabled={!session.canBuyTrain}
-                        onclick={() => session.selectTrain(exchange)}
+                        onclick={() => session.buyTrain(exchange)}
                         >Exchange {exchange.exchangeTrainId} for Diesel · ${exchange.price}</button
                     >{/each}
             </div>{/if}
-        {#if preview}
-            <div class="purchase" aria-label="Train purchase preview">
-                <strong
-                    >{session.trainDepot.trainDefinition(preview.definitionId).name} · ${preview.price}</strong
-                >
-                {#if preview.exchangeTrainId}<span>Trade in {preview.exchangeTrainId}</span>{/if}
-                {#if session.trainNextPhase !== session.financialState.phaseId}<span
-                        >Phase {session.financialState.phaseId} → {session.trainNextPhase}</span
-                    >{/if}
-                <button onclick={() => session.backTrain()}>Back</button>
-                <button
-                    onclick={() => session.confirmTrainPurchase()}
-                    disabled={!session.canBuyTrain}>Confirm train purchase</button
-                >
+        {:else}<CompanyTrainBuying {session} {trainColors} />{/if}
+        {#if session.currentTrainPurchaseIds.length}
+            <div class="purchased" aria-label="Trains purchased this OR">
+                <span>Purchased</span>
+                {#each session.financialState.trainInventory.trains.filter((train) => session.currentTrainPurchaseIds.includes(train.id)) as train (train.id)}
+                    <TrainBadge name={session.trainDepot.trainDefinition(train.definitionId).name} color={trainColors[train.definitionId]} />
+                {/each}
             </div>
         {/if}
-        <h3>Company trains</h3>
-        <div class="rosters">
-            {#each session.trainRosters as { company, trains }}
-                <div data-train-roster={company.id}>
-                    <strong>{company.name}</strong>
-                    <ul>
-                        {#each trains as train (train.id)}<li data-owned-train={train.id}>
-                                {session.trainDepot.trainDefinition(train.definitionId).name}
-                                {#if train.status === 'owned' && train.rustsAfterOperation}
-                                    · Rusts after this operation; cannot trade{/if}
-                            </li>{/each}
-                    </ul>
-                </div>
-            {/each}
-        </div>
-        {#if session.trainPurchases.length}<ol aria-label="Train purchase history">
-                {#each session.trainPurchases as action (action.id)}<li>
-                        {action.companyId}: {session.trainDepot.trainDefinition(action.definitionId)
-                            .name}, ${action.metadata?.price ?? action.expectedPrice}
-                    </li>{/each}
-            </ol>{/if}
+        {/if}
     </section>
 {/if}
 
 <style>
     section {
-        margin-bottom: 20px;
-        padding: 16px;
-        border: 1px solid #c9d2cb;
-        border-radius: 7px;
-        background: #fffefa;
+        padding: 4px 0;
+        color: #514536;
         font:
             13px/1.5 ui-sans-serif,
             system-ui,
             sans-serif;
     }
     header,
-    .purchase,
-    .rosters {
+    .purchased {
         display: flex;
         flex-wrap: wrap;
-        gap: 16px;
+        gap: 8px;
         align-items: center;
     }
     h2 {
-        font-size: 17px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        width: 100%;
+        font-size: 13px;
+        font-weight: 400;
         margin: 0;
     }
     h3 {
-        font-size: 15px;
-        margin: 14px 0 8px;
+        font-size: 12px;
+        font-weight: 500;
+        text-align: center;
+        margin: 12px 0 6px;
     }
+    .sources { display: flex; justify-content: center; gap: 4px; margin: 10px 0; }
+    .sources button { background: transparent; border: 0; padding: 4px 9px; }
+    .sources button[aria-pressed='true'] { background: #e8dfd2; }
     .trains {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: flex-end;
         gap: 10px;
+        margin-top: 10px;
     }
-    article {
+    .depot-entry { display: flex; flex-direction: column; gap: 2px; }
+    .remaining { text-align: right; }
+    .depot-choice {
+        filter: saturate(0.6);
         display: flex;
         flex-direction: column;
-        gap: 5px;
-        padding: 10px;
-        border: 1px solid #b5c3ba;
+        gap: 2px;
+        padding: 6px 10px;
+        border: 1px solid #c7b8a6;
         border-radius: 4px;
     }
-    article strong {
-        font-size: 20px;
+    .train-price strong, .train-price b {
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.25;
     }
+    .train-price { display: flex; align-items: baseline; justify-content: space-between; gap: 28px; }
+    .depot-choice { text-align: left; min-width: 108px; }
+    .depot-choice.upcoming { opacity: 0.5; border-style: dashed; cursor: not-allowed; }
     small {
         color: #5e675f;
     }
@@ -179,29 +179,18 @@
         padding: 7px 12px;
         font: inherit;
         cursor: pointer;
-        background: #fffefa;
-        border: 1px solid #b5c3ba;
+        background: #efe7db;
+        border: 1px solid #c7b8a6;
         border-radius: 4px;
     }
     button:disabled {
         opacity: 0.5;
         cursor: default;
     }
-    button[aria-pressed='true'] {
-        outline: 2px solid #d67910;
+    .purchased {
+        margin-top: 10px;
+        justify-content: center;
     }
-    .purchase {
-        margin-top: 14px;
-    }
-    ul {
-        display: flex;
-        gap: 8px;
-        list-style: none;
-        padding: 0;
-    }
-    li[data-owned-train] {
-        padding: 4px 9px;
-        border: 1px solid #b5c3ba;
-        border-radius: 4px;
-    }
+    button:hover:not(:disabled) { background: #e5d9c8; }
+    button:focus-visible { outline: 2px solid #a87948; outline-offset: 2px; }
 </style>

@@ -23,12 +23,13 @@
         additionalStockActions?: readonly StockMenuOption[]
     } = $props()
     const state = $derived(session.financialState)
+    const trainBuying = $derived(state.machineState === 'BuyingTrains')
 </script>
 
 {#if state.result}<GameEnding {session} />
 {:else}
-    {#if state.purchaseOffer || state.trackConsent || state.privateTrackLay || state.privatePowerWindow || session.purchaseOptions.length || session.privateTileOptions.length || session.privateTrainOptions.length || session.companyDecisionSelection}
-        <CompanyDecisions {session} showUndo={false} />
+    {#if (state.purchaseOffer && !(trainBuying && state.purchaseOffer.asset.kind === 'train')) || state.trackConsent || state.privateTrackLay || state.privatePowerWindow || session.purchaseOptions.some((option) => !trainBuying || option.request.asset.kind !== 'train') || session.privateTileOptions.length || session.privateTrainOptions.length || session.companyDecisionSelection}
+        <CompanyDecisions {session} showUndo={false} excludeTrainPurchases={trainBuying} />
     {/if}
     {#if state.machineState === 'StockRound'}
         <StockRoundActions {session} additionalActions={additionalStockActions} />
@@ -48,5 +49,5 @@
             {session}
             showUndo={false}
         />
-    {:else}<TrainBuying {session} showUndo={false} />{/if}
+    {:else}<TrainBuying {session} {trainColors} showUndo={false} />{/if}
 {/if}

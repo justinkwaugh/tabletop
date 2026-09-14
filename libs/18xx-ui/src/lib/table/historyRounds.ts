@@ -1,5 +1,7 @@
 import {
     isAdvancePhase,
+    isRunTrains,
+    isDistributeEarnings,
     isFinishStockTurn,
     isFloatCompany,
     isEndGame,
@@ -54,6 +56,8 @@ export function historyRounds(
             entries.get(action.id) ??
             (orderChanges.has(action.id) ||
             (cash.has(action.id) && changedCompanyCash(cash.get(action.id)!)) ||
+            isRunTrains(action) ||
+            isDistributeEarnings(action) ||
             isAdvancePhase(action) ||
             isFinishStockTurn(action) ||
             isFloatCompany(action) ||

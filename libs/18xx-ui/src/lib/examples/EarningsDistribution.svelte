@@ -1,117 +1,87 @@
 <script lang="ts">
-    import { getCompany, stockMarketSpace, type EarningsChoice } from '@tabletop/18xx'
+    import { stockMarketSpace, type EarningsChoice, type Owner } from '@tabletop/18xx'
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session, showUndo = true }: { showUndo?: boolean; session: FinanceExampleSession } =
-        $props()
+    let { session, showUndo = true }: { showUndo?: boolean; session: FinanceExampleSession } = $props()
     const result = $derived(session.financialState.routeStep?.result)
-    const preview = $derived(session.earningsPreview ?? session.financialState.earningsDistribution)
+    function isTreasury(owner: Owner): boolean {
+        return owner.kind === 'company' && owner.companyId === result?.companyId
+    }
+    function paymentOrder(owner: Owner): number {
+        return isTreasury(owner) ? 0 : owner.kind === 'player' ? 1 : 2
+    }
     const names: Record<EarningsChoice, string> = {
-        pay: 'Pay dividends',
+        pay: 'Pay',
         withhold: 'Withhold',
-        'half-pay': 'Half pay'
+        'half-pay': 'Half-pay'
     }
 </script>
 
-{#if result && (session.financialState.machineState === 'DistributingEarnings' || session.financialState.machineState === 'BuyingTrains')}
+{#if result && session.financialState.machineState === 'DistributingEarnings'}
     <section aria-label="Earnings distribution">
-        <h2>
-            {getCompany(session.financialState, result.companyId).name} · Earnings ${result.revenue}
-        </h2>
-        {#if session.financialState.machineState === 'DistributingEarnings'}
-            <div class="choices">
-                {#each session.earningsChoices as { choice, evaluation }}
-                    <div>
-                        <button
-                            disabled={!session.canDistributeEarnings || !evaluation.details}
-                            aria-pressed={session.earningsSelection === choice}
-                            onclick={() => session.selectEarnings(choice)}>{names[choice]}</button
-                        >
-                        {#if evaluation.reason}<p>{evaluation.reason}</p>{/if}
-                    </div>
-                {/each}
-                {#if showUndo}<button
-                        disabled={session.busy ||
-                            session.updatingVisibleState ||
-                            session.isViewingHistory ||
-                            !session.actions.length}
-                        onclick={() => session.undo()}>Undo</button
-                    >{/if}
-            </div>
-        {/if}
-        {#if preview}
-            <div aria-label="Earnings preview">
-                <p>
-                    Retained: ${preview.retained} · Dividend per share: ${preview.dividendPerShare}
-                </p>
-                {#if preview.bonusPerShare}<p>
-                        Includes a ${preview.bonusPerShare} bonus per share.
-                    </p>{/if}
-                <ul>
-                    {#each preview.payments as payment}<li>
-                            {session.ownerName(payment.to)}: ${payment.amount}
-                        </li>{/each}
-                </ul>
-                {#if preview.bankAdjustment > 0}<p>Bank supplement: ${preview.bankAdjustment}</p>
-                {:else if preview.bankAdjustment < 0}<p>
-                        Unpaid shares: ${-preview.bankAdjustment} remains in the Bank.
-                    </p>{/if}
-                {#if preview.marketMove}
-                    <p>
-                        Share price: ${stockMarketSpace(
-                            session.financialState.stockMarket,
-                            preview.marketMove.fromMarketSpaceId
-                        ).price} → ${stockMarketSpace(
-                            session.financialState.stockMarket,
-                            preview.marketMove.toMarketSpaceId
-                        ).price}
-                    </p>
-                {/if}
-                {#if !session.financialState.earningsDistribution}
-                    <button onclick={() => session.backEarnings()}>Back</button>
-                    <button
-                        disabled={!session.canDistributeEarnings}
-                        onclick={() => session.confirmEarnings()}>Confirm distribution</button
-                    >
-                {:else}<p>Distributed · {names[preview.choice]}</p>{/if}
-            </div>
-        {/if}
+        <h2>Distribute ${result.revenue}</h2>
+        <div class="choices">
+            {#each session.earningsChoices as { choice, evaluation }}
+                {@const details = evaluation.details}
+                <button class="choice" aria-label={names[choice]}
+                    disabled={!session.canDistributeEarnings || !details}
+                    onclick={() => {
+                        session.selectEarnings(choice)
+                        void session.confirmEarnings()
+                    }}>
+                    <span class="choice-heading">
+                        <strong class="choice-name">{names[choice]}</strong>
+                        {#if details}
+                            <span class="heading-amounts">
+                                <span class="heading-amount">
+                                    <b>${choice === 'withhold' ? details.retained : details.dividendPerShare}</b>
+                                    {#if choice !== 'withhold'}<small>/share</small>{/if}
+                                </span>
+                                {#if choice === 'half-pay'}
+                                    <span class="heading-amount"><b>${details.retained}</b><small>&nbsp;retained</small></span>
+                                {/if}
+                            </span>
+                        {/if}
+                    </span>
+                    {#if details}
+                        {#if details.bonusPerShare}<small>Includes ${details.bonusPerShare}/share bonus</small>{/if}
+                        {#if choice !== 'withhold'}<span class="payments">
+                            {#each details.payments.toSorted((a, b) => paymentOrder(a.to) - paymentOrder(b.to)) as payment}
+                                <span><span>{isTreasury(payment.to) ? 'Treasury' : session.ownerName(payment.to)}</span><b>${payment.amount}</b></span>
+                            {/each}
+                        </span>{/if}
+                        {#if details.marketMove}
+                            <span class="market">Market
+                                <b>{stockMarketSpace(session.financialState.stockMarket, details.marketMove.fromMarketSpaceId).price}
+                                → {stockMarketSpace(session.financialState.stockMarket, details.marketMove.toMarketSpaceId).price}</b>
+                            </span>
+                        {/if}
+                    {:else}<small>{evaluation.reason}</small>{/if}
+                </button>
+            {/each}
+        </div>
+        {#if showUndo}<button class="undo"
+            disabled={session.busy || session.updatingVisibleState || session.isViewingHistory || !session.actions.length}
+            onclick={() => session.undo()}>Undo</button>{/if}
     </section>
 {/if}
 
 <style>
-    section {
-        padding: 16px;
-        margin-bottom: 20px;
-        border: 1px solid #c9d2cb;
-        border-radius: 7px;
-        background: #fffefa;
-        font:
-            13px/1.5 ui-sans-serif,
-            system-ui,
-            sans-serif;
-    }
-    h2 {
-        font-size: 17px;
-        margin: 0 0 12px;
-    }
-    .choices {
-        display: flex;
-        gap: 12px;
-        align-items: start;
-    }
-    button {
-        padding: 7px 12px;
-        font: inherit;
-        cursor: pointer;
-        background: #fffefa;
-        border: 1px solid #b5c3ba;
-        border-radius: 4px;
-    }
-    button:disabled {
-        opacity: 0.5;
-        cursor: default;
-    }
-    button[aria-pressed='true'] {
-        outline: 2px solid #d67910;
-    }
+    section { padding: 4px 0; color: #514536; font-size: 12px; }
+    h2 { margin: 0 0 10px; font-size: 13px; font-weight: 400; text-align: center; }
+    .choices { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 10px; }
+    button { font: inherit; color: inherit; cursor: pointer; background: #fffdf8; border: 1px solid #c7b8a6; border-radius: 7px; }
+    .choice { display: flex; flex-direction: column; gap: 7px; padding: 10px 12px; text-align: left; font-variant-numeric: tabular-nums; }
+    .choice-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+    .heading-amount { display: flex; align-items: baseline; gap: 0; text-align: right; white-space: nowrap; }
+    .heading-amounts { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+    .heading-amount b, .choice-name { font-size: 14px; font-weight: 600; line-height: 1.25; }
+    small { color: #786550; font-size: 10px; }
+    b { font-weight: 600; }
+    .payments { display: flex; flex-direction: column; gap: 2px; border-top: 1px solid #e4dacd; padding-top: 6px; }
+    .payments > span, .market { display: flex; justify-content: space-between; gap: 14px; }
+    .market { border-top: 1px solid #e4dacd; padding-top: 6px; margin-top: auto; }
+    .undo { display: block; margin: 10px auto 0; padding: 7px 12px; }
+    button:hover:not(:disabled) { background: #efe7db; border-color: #a68c6d; }
+    button:focus-visible { outline: 2px solid #a87948; outline-offset: 2px; }
+    button:disabled { opacity: 0.45; cursor: default; }
 </style>

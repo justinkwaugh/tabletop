@@ -36,7 +36,7 @@ export class HydratedFinishStations
     apply(state: HydratedGameState & StationPlacementState & RouteState): void {
         const step = state.stationStep
         assert(
-            this.source === ActionSource.User &&
+            (this.source === ActionSource.User || this.source === ActionSource.System) &&
                 state.activePlayerIds.includes(this.playerId) &&
                 step?.companyId === this.companyId &&
                 !step.completed &&

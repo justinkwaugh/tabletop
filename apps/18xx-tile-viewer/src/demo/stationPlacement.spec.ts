@@ -1,9 +1,10 @@
 import { expect, it } from 'vitest'
-import { ActionSource } from '@tabletop/common'
+import { ActionSource, MachineContext } from '@tabletop/common'
 import { Definition as Top, TheOldPrinceStationRules } from '@tabletop/the-old-prince'
 import { Definition as Shikoku, Shikoku1889StationRules } from '@tabletop/shikoku-1889'
 import {
     StationPlacement,
+    PlacingStationHandler,
     TrackNetwork,
     RailwayMapState,
     cashOwnedBy,
@@ -48,7 +49,11 @@ it.each(Titles)(
         expect(state).toEqual(before)
         const command = action(state, details)
         const result = engine.executeCanonicalAction({ game, state, action: command })
-        expect(result.processedActions.map((action) => action.type)).toEqual(['PlaceStation'])
+        expect(result.processedActions.map((action) => action.type)).toEqual(['PlaceStation', 'FinishStations', 'RunTrains', 'DistributeEarnings'])
+        expect(result.processedActions.slice(1).every((action) => action.source === ActionSource.System)).toBe(true)
+        expect(result.updatedState.routeStep?.result).toMatchObject({ routes: [], revenue: 0 })
+        expect(result.updatedState.earningsDistribution).toMatchObject({ choice: 'withhold', payments: [] })
+        expect(result.updatedState.machineState).toBe('BuyingTrains')
         expect(
             result.updatedState.stations.find((station) => station.id === details.stationId)
         ).toMatchObject({ status: 'placed', position: details.position })
@@ -59,15 +64,14 @@ it.each(Titles)(
         expect(new StationPlacement(result.updatedState, rules).choices(details.stationId)).toEqual(
             []
         )
-        expect(
-            engine.applyProcessedAction({ game, state, action: result.processedActions[0] })
-        ).toEqual(result.updatedState)
-        expect(
-            engine.undoProcessedAction({
-                state: result.updatedState,
-                action: result.processedActions[0]
-            })
-        ).toEqual(state)
+        let replayed = state
+        for (const action of result.processedActions)
+            replayed = engine.applyProcessedAction({ game, state: replayed, action })
+        expect(replayed).toEqual(result.updatedState)
+        let undone = result.updatedState
+        for (const action of [...result.processedActions].reverse())
+            undone = engine.undoProcessedAction({ state: undone, action })
+        expect(undone).toEqual(state)
         expect(definition.runtime.hydrator.hydrateState(result.updatedState).dehydrate()).toEqual(
             result.updatedState
         )
@@ -143,14 +147,12 @@ it.each(Titles)(
             companyId: state.stationStep!.companyId
         }
         const result = engine.executeCanonicalAction({ game, state, action: finish })
-        expect(result.updatedState.machineState).toBe('RunningTrains')
+        expect(result.updatedState.machineState).toBe('BuyingTrains')
         expect(result.updatedState.stations).toEqual(state.stations)
-        expect(
-            engine.undoProcessedAction({
-                state: result.updatedState,
-                action: result.processedActions[0]
-            })
-        ).toEqual(state)
+        let undone = result.updatedState
+        for (const action of [...result.processedActions].reverse())
+            undone = engine.undoProcessedAction({ state: undone, action })
+        expect(undone).toEqual(state)
     }
 )
 it('places all newly floated 1889 homes before construction, without payment or using the extra placement', () => {
@@ -242,3 +244,38 @@ it('reaches a rival-filled city as an endpoint and stops access beyond it until 
     })
     expect(network(restored).reaches('E2', { kind: 'node', nodeId: 'city' })).toBe(true)
 })
+
+
+it('keeps station placement open when the title allows another token', () => {
+    const { game, state } = example(Top, 'stations')
+    const hydrated = Top.runtime.hydrator.hydrateState(state)
+    hydrated.stationStep!.placedStationIds.push('already-placed')
+    const context = new MachineContext({ gameConfig: game.config, gameState: hydrated })
+    const handler = new PlacingStationHandler(
+        { ...TheOldPrinceStationRules, placementLimit: () => 2 },
+        'RunningTrains'
+    )
+    handler.enter(context)
+    expect(context.getPendingActions()).toEqual([])
+})
+
+it.each(['unaffordable', 'no tokens', 'disconnected'] as const)(
+    'automatically skips station placement when %s',
+    (reason) => {
+        const { game, state } = example(Top, 'stations')
+        const companyId = state.stationStep!.companyId
+        if (reason === 'unaffordable')
+            state.cash.find((entry) => entry.owner.kind === 'company' && entry.owner.companyId === companyId)!.amount = 0
+        else
+            state.stations = state.stations.filter((station) =>
+                station.companyId !== companyId ||
+                (reason === 'no tokens' ? station.status !== 'available' : station.status !== 'placed'))
+        const hydrated = Top.runtime.hydrator.hydrateState(state)
+        const context = new MachineContext({ gameConfig: game.config, gameState: hydrated })
+        const handler = new PlacingStationHandler(TheOldPrinceStationRules, 'RunningTrains')
+        handler.enter(context)
+        expect(context.getPendingActions()).toMatchObject([{
+            type: 'FinishStations', source: ActionSource.System, companyId
+        }])
+    }
+)

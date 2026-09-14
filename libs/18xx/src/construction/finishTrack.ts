@@ -37,7 +37,7 @@ export class HydratedFinishTrack
     apply(state: HydratedGameState & ConstructionState & StationPlacementState): void {
         const turn = state.trackStep
         assert(
-            this.source === ActionSource.User &&
+            (this.source === ActionSource.User || this.source === ActionSource.System) &&
                 state.activePlayerIds.includes(this.playerId) &&
                 turn?.companyId === this.companyId &&
                 !turn.completed &&

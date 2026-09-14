@@ -27,7 +27,7 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
             { id: 'UB', name: 'Union Bank', kind: 'private', privateRevenue: 0 },
             {
                 id: 'ML',
-                name: 'Charlottetown · Mainline',
+                name: 'Charlottetown',
                 role: 'mainline',
                 kind: 'major',
                 shareCount: 10,

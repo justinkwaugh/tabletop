@@ -1,3 +1,5 @@
+import { AutomaticTrackCompletionHandler } from '../construction/automaticTrackCompletionHandler.js'
+import { AutomaticTrainCompletionHandler } from '../trains/automaticTrainCompletionHandler.js'
 import { GameEnding, type EndingRules } from '../ending/gameEnding.js'
 import { EndingFields, type PlayerWealth } from '../ending/finalWealth.js'
 import {
@@ -1135,6 +1137,10 @@ export function createFinanceExampleRuntime(
                               : handler,
                           options.endingRules
                       )
+            ] as const).map(([name, handler]) => [
+                name,
+                name === 'LayingTrack' ? new AutomaticTrackCompletionHandler<HydratedFinanceExampleState>(handler)
+                    : name === 'BuyingTrains' ? new AutomaticTrainCompletionHandler<HydratedFinanceExampleState>(handler) : handler
             ])
         )
     }

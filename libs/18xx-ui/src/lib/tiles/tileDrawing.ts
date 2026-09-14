@@ -23,6 +23,7 @@ import {
     tilePathPoint,
     type TileDrawnPath
 } from './tileTrackGeometry.js'
+import { stagedRevenueLayout, type RevenueCell } from './stagedRevenueLayout.js'
 
 export type { TileDrawnPath } from './tileTrackGeometry.js'
 
@@ -42,6 +43,7 @@ export type TileDrawnNode = {
     center: Point
     slots: readonly Point[]
     revenuePosition: Point
+    revenueCells: readonly RevenueCell[]
     townAngle?: number
 }
 
@@ -186,7 +188,8 @@ export function createTileDrawing(
                       ? geometry.vertices
                       : undefined
               )
-        if (node.kind !== 'junction') occupied.push(revenuePosition)
+        const revenueCells = node.kind === 'junction' ? [] : stagedRevenueLayout(node.revenue, revenuePosition, geometry.vertices, paths, occupied)
+        if (node.kind !== 'junction') occupied.push(...(revenueCells.length ? revenueCells : [revenuePosition]))
         const townAngle = automaticTownPaths.has(node.id)
             ? townMarkerAngle(center, paths)
             : undefined
@@ -195,6 +198,7 @@ export function createTileDrawing(
             center,
             slots: node.kind === 'city' ? stationPositions(node.stationSlots, center, angle) : [],
             revenuePosition,
+            revenueCells,
             townAngle
         }
     })

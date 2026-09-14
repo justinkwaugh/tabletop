@@ -7,7 +7,7 @@ export const TheOldPrinceCompanyNames: Readonly<Record<string, CompanyNameVarian
     'branch:BB': { short: 'BR:BB', initials: 'BR:BB' },
     'branch:WB': { short: 'BR:WB', initials: 'BR:WB' },
     'branch:HRB': { short: 'BR:HRB', initials: 'BR:HRB' },
-    ML: { short: 'Char - Main', initials: 'C-M' },
+    ML: { short: 'Charlottetown', initials: 'C' },
     C: { short: 'Char', initials: 'C' },
     So: { short: 'Souris', initials: 'SO' },
     PEIR: { short: 'PEIR', initials: 'PEIR' },

@@ -4192,40 +4192,6 @@
       "expectedCost": 20
     },
     {
-      "id": "recorded:91",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "MS"
-    },
-    {
-      "id": "recorded:92",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "MS"
-    },
-    {
-      "id": "recorded:93",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "RunTrains",
-      "playerId": "12729",
-      "companyId": "MS",
-      "routes": []
-    },
-    {
-      "id": "recorded:94",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "DistributeEarnings",
-      "playerId": "12729",
-      "companyId": "MS",
-      "choice": "withhold"
-    },
-    {
       "id": "recorded:95",
       "gameId": "top-finished",
       "source": "user",
@@ -4283,40 +4249,6 @@
         "town-1": "town-1"
       },
       "expectedCost": 20
-    },
-    {
-      "id": "recorded:101",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "PEIR"
-    },
-    {
-      "id": "recorded:102",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "PEIR"
-    },
-    {
-      "id": "recorded:103",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "RunTrains",
-      "playerId": "3574",
-      "companyId": "PEIR",
-      "routes": []
-    },
-    {
-      "id": "recorded:104",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "DistributeEarnings",
-      "playerId": "3574",
-      "companyId": "PEIR",
-      "choice": "withhold"
     },
     {
       "id": "recorded:105",
@@ -4419,22 +4351,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:121",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "MS"
-    },
-    {
-      "id": "recorded:122",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "MS"
-    },
-    {
       "id": "recorded:123",
       "gameId": "top-finished",
       "source": "user",
@@ -4509,22 +4425,6 @@
       "rotation": 2,
       "nodeMapping": {},
       "expectedCost": 20
-    },
-    {
-      "id": "recorded:129",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "PEIR"
-    },
-    {
-      "id": "recorded:130",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "PEIR"
     },
     {
       "id": "recorded:131",
@@ -4666,14 +4566,6 @@
       "companyId": "MS"
     },
     {
-      "id": "recorded:152",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "MS"
-    },
-    {
       "id": "recorded:153",
       "gameId": "top-finished",
       "source": "user",
@@ -4764,40 +4656,6 @@
       "expectedCost": 20
     },
     {
-      "id": "recorded:161",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "A"
-    },
-    {
-      "id": "recorded:162",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "A"
-    },
-    {
-      "id": "recorded:163",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "RunTrains",
-      "playerId": "3574",
-      "companyId": "A",
-      "routes": []
-    },
-    {
-      "id": "recorded:164",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "DistributeEarnings",
-      "playerId": "3574",
-      "companyId": "A",
-      "choice": "withhold"
-    },
-    {
       "id": "recorded:165",
       "gameId": "top-finished",
       "source": "user",
@@ -4869,22 +4727,6 @@
         "city": "city"
       },
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:173",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "PEIR"
-    },
-    {
-      "id": "recorded:174",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "PEIR"
     },
     {
       "id": "recorded:175",
@@ -5190,14 +5032,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:214",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "MS"
-    },
-    {
       "id": "recorded:215",
       "gameId": "top-finished",
       "source": "user",
@@ -5211,14 +5045,6 @@
         "slot": 1
       },
       "expectedCost": 80
-    },
-    {
-      "id": "recorded:216",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "MS"
     },
     {
       "id": "recorded:217",
@@ -5318,14 +5144,6 @@
       "expectedPrice": 120
     },
     {
-      "id": "recorded:220",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishOperatingTurn",
-      "playerId": "12729",
-      "companyId": "MS"
-    },
-    {
       "id": "recorded:222",
       "gameId": "top-finished",
       "source": "user",
@@ -5355,38 +5173,12 @@
       "expectedCost": 20
     },
     {
-      "id": "recorded:224",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "13748",
-      "companyId": "S"
-    },
-    {
       "id": "recorded:225",
       "gameId": "top-finished",
       "source": "user",
       "type": "FinishStations",
       "playerId": "13748",
       "companyId": "S"
-    },
-    {
-      "id": "recorded:226",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "RunTrains",
-      "playerId": "13748",
-      "companyId": "S",
-      "routes": []
-    },
-    {
-      "id": "recorded:227",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "DistributeEarnings",
-      "playerId": "13748",
-      "companyId": "S",
-      "choice": "withhold"
     },
     {
       "id": "recorded:228",
@@ -5445,14 +5237,6 @@
       "expectedCost": 20
     },
     {
-      "id": "recorded:235",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "A"
-    },
-    {
       "id": "recorded:236",
       "gameId": "top-finished",
       "source": "user",
@@ -5466,14 +5250,6 @@
         "slot": 0
       },
       "expectedCost": 80
-    },
-    {
-      "id": "recorded:237",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "A"
     },
     {
       "id": "recorded:238",
@@ -5588,22 +5364,6 @@
       "expectedCost": 20
     },
     {
-      "id": "recorded:244",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "PEIR"
-    },
-    {
-      "id": "recorded:245",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "PEIR"
-    },
-    {
       "id": "recorded:246",
       "gameId": "top-finished",
       "source": "user",
@@ -5681,14 +5441,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:252",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "MS"
-    },
-    {
       "id": "recorded:253",
       "gameId": "top-finished",
       "source": "user",
@@ -5702,14 +5454,6 @@
         "slot": 0
       },
       "expectedCost": 80
-    },
-    {
-      "id": "recorded:254",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "MS"
     },
     {
       "id": "recorded:255",
@@ -5838,22 +5582,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:263",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "A"
-    },
-    {
-      "id": "recorded:264",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "A"
-    },
-    {
       "id": "recorded:265",
       "gameId": "top-finished",
       "source": "user",
@@ -5944,14 +5672,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:271",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "13748",
-      "companyId": "S"
-    },
-    {
       "id": "recorded:272",
       "gameId": "top-finished",
       "source": "user",
@@ -5965,14 +5685,6 @@
         "slot": 1
       },
       "expectedCost": 80
-    },
-    {
-      "id": "recorded:273",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "13748",
-      "companyId": "S"
     },
     {
       "id": "recorded:274",
@@ -6079,14 +5791,6 @@
       "expectedPrice": 220
     },
     {
-      "id": "recorded:278",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishOperatingTurn",
-      "playerId": "13748",
-      "companyId": "S"
-    },
-    {
       "id": "recorded:280",
       "gameId": "top-finished",
       "source": "user",
@@ -6115,40 +5819,6 @@
         "city": "city"
       },
       "expectedCost": 20
-    },
-    {
-      "id": "recorded:282",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "PEIR"
-    },
-    {
-      "id": "recorded:283",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "PEIR"
-    },
-    {
-      "id": "recorded:284",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "RunTrains",
-      "playerId": "3574",
-      "companyId": "PEIR",
-      "routes": []
-    },
-    {
-      "id": "recorded:285",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "DistributeEarnings",
-      "playerId": "3574",
-      "companyId": "PEIR",
-      "choice": "withhold"
     },
     {
       "id": "recorded:286",
@@ -6492,14 +6162,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:332",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "MS"
-    },
-    {
       "id": "recorded:333",
       "gameId": "top-finished",
       "source": "user",
@@ -6636,40 +6298,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:339",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "MR"
-    },
-    {
-      "id": "recorded:340",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "MR"
-    },
-    {
-      "id": "recorded:341",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "RunTrains",
-      "playerId": "3574",
-      "companyId": "MR",
-      "routes": []
-    },
-    {
-      "id": "recorded:342",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "DistributeEarnings",
-      "playerId": "3574",
-      "companyId": "MR",
-      "choice": "withhold"
-    },
-    {
       "id": "recorded:343",
       "gameId": "top-finished",
       "source": "user",
@@ -6702,14 +6330,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:347",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "C"
-    },
-    {
       "id": "recorded:348",
       "gameId": "top-finished",
       "source": "user",
@@ -6723,32 +6343,6 @@
         "slot": 1
       },
       "expectedCost": 80
-    },
-    {
-      "id": "recorded:349",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "C"
-    },
-    {
-      "id": "recorded:350",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "RunTrains",
-      "playerId": "12729",
-      "companyId": "C",
-      "routes": []
-    },
-    {
-      "id": "recorded:351",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "DistributeEarnings",
-      "playerId": "12729",
-      "companyId": "C",
-      "choice": "withhold"
     },
     {
       "id": "recorded:352",
@@ -6794,14 +6388,6 @@
         "city": "city"
       },
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:358",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "13748",
-      "companyId": "S"
     },
     {
       "id": "recorded:359",
@@ -6893,22 +6479,6 @@
         "city": "city"
       },
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:365",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "A"
-    },
-    {
-      "id": "recorded:366",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "A"
     },
     {
       "id": "recorded:367",
@@ -7013,22 +6583,6 @@
       "rotation": 4,
       "nodeMapping": {},
       "expectedCost": 20
-    },
-    {
-      "id": "recorded:373",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "PEIR"
-    },
-    {
-      "id": "recorded:374",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "PEIR"
     },
     {
       "id": "recorded:375",
@@ -7236,22 +6790,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:390",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "MR"
-    },
-    {
-      "id": "recorded:391",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "MR"
-    },
-    {
       "id": "recorded:392",
       "gameId": "top-finished",
       "source": "user",
@@ -7441,22 +6979,6 @@
       "rotation": 4,
       "nodeMapping": {},
       "expectedCost": 20
-    },
-    {
-      "id": "recorded:405",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "A"
-    },
-    {
-      "id": "recorded:406",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "A"
     },
     {
       "id": "recorded:407",
@@ -7673,22 +7195,6 @@
       "rotation": 1,
       "nodeMapping": {},
       "expectedCost": 20
-    },
-    {
-      "id": "recorded:421",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "PEIR"
-    },
-    {
-      "id": "recorded:422",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "PEIR"
     },
     {
       "id": "recorded:423",
@@ -8101,22 +7607,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:475",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "MS"
-    },
-    {
-      "id": "recorded:476",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "MS"
-    },
-    {
       "id": "recorded:477",
       "gameId": "top-finished",
       "source": "user",
@@ -8477,22 +7967,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:498",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "A"
-    },
-    {
-      "id": "recorded:499",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "A"
-    },
-    {
       "id": "recorded:500",
       "gameId": "top-finished",
       "source": "user",
@@ -8621,32 +8095,6 @@
       "expectedCost": 80
     },
     {
-      "id": "recorded:507",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "13748",
-      "companyId": "branch:BB"
-    },
-    {
-      "id": "recorded:508",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "RunTrains",
-      "playerId": "13748",
-      "companyId": "branch:BB",
-      "routes": []
-    },
-    {
-      "id": "recorded:509",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "DistributeEarnings",
-      "playerId": "13748",
-      "companyId": "branch:BB",
-      "choice": "withhold"
-    },
-    {
       "id": "recorded:510",
       "gameId": "top-finished",
       "source": "user",
@@ -8694,38 +8142,12 @@
       "expectedCost": 80
     },
     {
-      "id": "recorded:515",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "So"
-    },
-    {
       "id": "recorded:516",
       "gameId": "top-finished",
       "source": "user",
       "type": "FinishStations",
       "playerId": "12729",
       "companyId": "So"
-    },
-    {
-      "id": "recorded:517",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "RunTrains",
-      "playerId": "12729",
-      "companyId": "So",
-      "routes": []
-    },
-    {
-      "id": "recorded:518",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "DistributeEarnings",
-      "playerId": "12729",
-      "companyId": "So",
-      "choice": "withhold"
     },
     {
       "id": "recorded:519",
@@ -8762,40 +8184,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:524",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "MR"
-    },
-    {
-      "id": "recorded:525",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "MR"
-    },
-    {
-      "id": "recorded:526",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "RunTrains",
-      "playerId": "3574",
-      "companyId": "MR",
-      "routes": []
-    },
-    {
-      "id": "recorded:527",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "DistributeEarnings",
-      "playerId": "3574",
-      "companyId": "MR",
-      "choice": "withhold"
-    },
-    {
       "id": "recorded:528",
       "gameId": "top-finished",
       "source": "user",
@@ -8828,22 +8216,6 @@
         "city": "city"
       },
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:532",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "PEIR"
-    },
-    {
-      "id": "recorded:533",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "PEIR"
     },
     {
       "id": "recorded:534",
@@ -8911,14 +8283,6 @@
         "city": "city"
       },
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:540",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "MS"
     },
     {
       "id": "recorded:541",
@@ -9040,22 +8404,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:547",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "13748",
-      "companyId": "S"
-    },
-    {
-      "id": "recorded:548",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "13748",
-      "companyId": "S"
-    },
-    {
       "id": "recorded:549",
       "gameId": "top-finished",
       "source": "user",
@@ -9157,22 +8505,6 @@
         "city": "city"
       },
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:554",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "A"
-    },
-    {
-      "id": "recorded:555",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "A"
     },
     {
       "id": "recorded:556",
@@ -9282,38 +8614,12 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:561",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "C"
-    },
-    {
       "id": "recorded:562",
       "gameId": "top-finished",
       "source": "user",
       "type": "FinishStations",
       "playerId": "12729",
       "companyId": "C"
-    },
-    {
-      "id": "recorded:563",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "RunTrains",
-      "playerId": "12729",
-      "companyId": "C",
-      "routes": []
-    },
-    {
-      "id": "recorded:564",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "DistributeEarnings",
-      "playerId": "12729",
-      "companyId": "C",
-      "choice": "withhold"
     },
     {
       "id": "recorded:565",
@@ -9350,14 +8656,6 @@
       "expectedPrice": 500
     },
     {
-      "id": "recorded:568",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishOperatingTurn",
-      "playerId": "12729",
-      "companyId": "C"
-    },
-    {
       "id": "recorded:570",
       "gameId": "top-finished",
       "source": "user",
@@ -9371,14 +8669,6 @@
         "city": "city"
       },
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:571",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "13748",
-      "companyId": "branch:BB"
     },
     {
       "id": "recorded:572",
@@ -9502,22 +8792,6 @@
         "city": "city"
       },
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:578",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "So"
-    },
-    {
-      "id": "recorded:579",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "So"
     },
     {
       "id": "recorded:580",
@@ -9674,22 +8948,6 @@
       "expectedCost": 20
     },
     {
-      "id": "recorded:586",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "MR"
-    },
-    {
-      "id": "recorded:587",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "MR"
-    },
-    {
       "id": "recorded:588",
       "gameId": "top-finished",
       "source": "user",
@@ -9795,22 +9053,6 @@
         "town-1": "town-1"
       },
       "expectedCost": 20
-    },
-    {
-      "id": "recorded:594",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "PEIR"
-    },
-    {
-      "id": "recorded:595",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "PEIR"
     },
     {
       "id": "recorded:596",
@@ -10171,14 +9413,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:644",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "MS"
-    },
-    {
       "id": "recorded:645",
       "gameId": "top-finished",
       "source": "user",
@@ -10412,14 +9646,6 @@
       "companyId": "A"
     },
     {
-      "id": "recorded:658",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "A"
-    },
-    {
       "id": "recorded:659",
       "gameId": "top-finished",
       "source": "user",
@@ -10513,14 +9739,6 @@
       "trainId": "the-old-prince/7/28",
       "definitionId": "7",
       "expectedPrice": 500
-    },
-    {
-      "id": "recorded:662",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishOperatingTurn",
-      "playerId": "3574",
-      "companyId": "A"
     },
     {
       "id": "recorded:664",
@@ -10678,14 +9896,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:675",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "So"
-    },
-    {
       "id": "recorded:676",
       "gameId": "top-finished",
       "source": "user",
@@ -10699,14 +9909,6 @@
         "slot": 2
       },
       "expectedCost": 80
-    },
-    {
-      "id": "recorded:677",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "So"
     },
     {
       "id": "recorded:678",
@@ -10852,14 +10054,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:683",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "MR"
-    },
-    {
       "id": "recorded:684",
       "gameId": "top-finished",
       "source": "user",
@@ -10973,22 +10167,6 @@
         "city": "city"
       },
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:690",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "C"
-    },
-    {
-      "id": "recorded:691",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "C"
     },
     {
       "id": "recorded:692",
@@ -11119,14 +10297,6 @@
       "choice": "pay"
     },
     {
-      "id": "recorded:694",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishOperatingTurn",
-      "playerId": "12729",
-      "companyId": "C"
-    },
-    {
       "id": "recorded:696",
       "gameId": "top-finished",
       "source": "user",
@@ -11138,14 +10308,6 @@
       "rotation": 4,
       "nodeMapping": {},
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:697",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "Gt"
     },
     {
       "id": "recorded:698",
@@ -11161,32 +10323,6 @@
         "slot": 1
       },
       "expectedCost": 80
-    },
-    {
-      "id": "recorded:699",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "Gt"
-    },
-    {
-      "id": "recorded:700",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "RunTrains",
-      "playerId": "3574",
-      "companyId": "Gt",
-      "routes": []
-    },
-    {
-      "id": "recorded:701",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "DistributeEarnings",
-      "playerId": "3574",
-      "companyId": "Gt",
-      "choice": "withhold"
     },
     {
       "id": "recorded:702",
@@ -11223,14 +10359,6 @@
       "expectedPrice": 600
     },
     {
-      "id": "recorded:705",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishOperatingTurn",
-      "playerId": "3574",
-      "companyId": "Gt"
-    },
-    {
       "id": "recorded:708",
       "gameId": "top-finished",
       "source": "user",
@@ -11246,38 +10374,12 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:709",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "MS"
-    },
-    {
       "id": "recorded:710",
       "gameId": "top-finished",
       "source": "user",
       "type": "FinishStations",
       "playerId": "12729",
       "companyId": "MS"
-    },
-    {
-      "id": "recorded:711",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "RunTrains",
-      "playerId": "12729",
-      "companyId": "MS",
-      "routes": []
-    },
-    {
-      "id": "recorded:712",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "DistributeEarnings",
-      "playerId": "12729",
-      "companyId": "MS",
-      "choice": "withhold"
     },
     {
       "id": "recorded:713",
@@ -11314,14 +10416,6 @@
       "expectedPrice": 600
     },
     {
-      "id": "recorded:716",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishOperatingTurn",
-      "playerId": "12729",
-      "companyId": "MS"
-    },
-    {
       "id": "recorded:718",
       "gameId": "top-finished",
       "source": "user",
@@ -11352,24 +10446,6 @@
       "type": "FinishStations",
       "playerId": "13748",
       "companyId": "S"
-    },
-    {
-      "id": "recorded:721",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "RunTrains",
-      "playerId": "13748",
-      "companyId": "S",
-      "routes": []
-    },
-    {
-      "id": "recorded:722",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "DistributeEarnings",
-      "playerId": "13748",
-      "companyId": "S",
-      "choice": "withhold"
     },
     {
       "id": "recorded:723",
@@ -11428,26 +10504,10 @@
       "expectedPrice": 600
     },
     {
-      "id": "recorded:729",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishOperatingTurn",
-      "playerId": "13748",
-      "companyId": "S"
-    },
-    {
       "id": "recorded:731",
       "gameId": "top-finished",
       "source": "user",
       "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "A"
-    },
-    {
-      "id": "recorded:732",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
       "playerId": "3574",
       "companyId": "A"
     },
@@ -11560,14 +10620,6 @@
       "gameId": "top-finished",
       "source": "user",
       "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "So"
-    },
-    {
-      "id": "recorded:738",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
       "playerId": "12729",
       "companyId": "So"
     },
@@ -11716,14 +10768,6 @@
       "companyId": "C"
     },
     {
-      "id": "recorded:744",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "C"
-    },
-    {
       "id": "recorded:745",
       "gameId": "top-finished",
       "source": "user",
@@ -11852,14 +10896,6 @@
       "choice": "pay"
     },
     {
-      "id": "recorded:747",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishOperatingTurn",
-      "playerId": "12729",
-      "companyId": "C"
-    },
-    {
       "id": "recorded:749",
       "gameId": "top-finished",
       "source": "user",
@@ -11871,22 +10907,6 @@
       "rotation": 0,
       "nodeMapping": {},
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:750",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "13748",
-      "companyId": "branch:BB"
-    },
-    {
-      "id": "recorded:751",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "13748",
-      "companyId": "branch:BB"
     },
     {
       "id": "recorded:752",
@@ -12062,14 +11082,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:757",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "MR"
-    },
-    {
       "id": "recorded:758",
       "gameId": "top-finished",
       "source": "user",
@@ -12083,14 +11095,6 @@
         "slot": 2
       },
       "expectedCost": 80
-    },
-    {
-      "id": "recorded:759",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "MR"
     },
     {
       "id": "recorded:760",
@@ -12238,22 +11242,6 @@
         "city": "city"
       },
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:765",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "Gt"
-    },
-    {
-      "id": "recorded:766",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "Gt"
     },
     {
       "id": "recorded:767",
@@ -12421,22 +11409,6 @@
         "city": "city"
       },
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:773",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "MS"
-    },
-    {
-      "id": "recorded:774",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "MS"
     },
     {
       "id": "recorded:775",
@@ -12646,14 +11618,6 @@
       "expectedCost": 80
     },
     {
-      "id": "recorded:781",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "A"
-    },
-    {
       "id": "recorded:782",
       "gameId": "top-finished",
       "source": "user",
@@ -12762,14 +11726,6 @@
       "gameId": "top-finished",
       "source": "user",
       "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "So"
-    },
-    {
-      "id": "recorded:787",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
       "playerId": "12729",
       "companyId": "So"
     },
@@ -12914,14 +11870,6 @@
       "companyId": "C"
     },
     {
-      "id": "recorded:793",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "C"
-    },
-    {
       "id": "recorded:794",
       "gameId": "top-finished",
       "source": "user",
@@ -13046,14 +11994,6 @@
       "choice": "pay"
     },
     {
-      "id": "recorded:796",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishOperatingTurn",
-      "playerId": "12729",
-      "companyId": "C"
-    },
-    {
       "id": "recorded:798",
       "gameId": "top-finished",
       "source": "user",
@@ -13065,22 +12005,6 @@
       "rotation": 5,
       "nodeMapping": {},
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:799",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "13748",
-      "companyId": "S"
-    },
-    {
-      "id": "recorded:800",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "13748",
-      "companyId": "S"
     },
     {
       "id": "recorded:801",
@@ -13226,22 +12150,6 @@
       "rotation": 0,
       "nodeMapping": {},
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:806",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "13748",
-      "companyId": "branch:BB"
-    },
-    {
-      "id": "recorded:807",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "13748",
-      "companyId": "branch:BB"
     },
     {
       "id": "recorded:808",
@@ -13412,14 +12320,6 @@
       "companyId": "MR"
     },
     {
-      "id": "recorded:813",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "MR"
-    },
-    {
       "id": "recorded:814",
       "gameId": "top-finished",
       "source": "user",
@@ -13573,14 +12473,6 @@
         "slot": 0
       },
       "expectedCost": 80
-    },
-    {
-      "id": "recorded:820",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "Gt"
     },
     {
       "id": "recorded:821",
@@ -14420,14 +13312,6 @@
       "expectedCost": 80
     },
     {
-      "id": "recorded:914",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "MS"
-    },
-    {
       "id": "recorded:915",
       "gameId": "top-finished",
       "source": "user",
@@ -14620,14 +13504,6 @@
       "companyId": "A"
     },
     {
-      "id": "recorded:920",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "A"
-    },
-    {
       "id": "recorded:921",
       "gameId": "top-finished",
       "source": "user",
@@ -14743,22 +13619,6 @@
       "rotation": 1,
       "nodeMapping": {},
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:926",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "13748",
-      "companyId": "S"
-    },
-    {
-      "id": "recorded:927",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "13748",
-      "companyId": "S"
     },
     {
       "id": "recorded:928",
@@ -14936,14 +13796,6 @@
       "companyId": "So"
     },
     {
-      "id": "recorded:934",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "So"
-    },
-    {
       "id": "recorded:935",
       "gameId": "top-finished",
       "source": "user",
@@ -15067,22 +13919,6 @@
       "rotation": 1,
       "nodeMapping": {},
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:940",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "13748",
-      "companyId": "branch:BB"
-    },
-    {
-      "id": "recorded:941",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "13748",
-      "companyId": "branch:BB"
     },
     {
       "id": "recorded:942",
@@ -15288,14 +14124,6 @@
       "expectedCost": 80
     },
     {
-      "id": "recorded:948",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "MR"
-    },
-    {
       "id": "recorded:949",
       "gameId": "top-finished",
       "source": "user",
@@ -15421,22 +14249,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:954",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "C"
-    },
-    {
-      "id": "recorded:955",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "C"
-    },
-    {
       "id": "recorded:956",
       "gameId": "top-finished",
       "source": "user",
@@ -15529,14 +14341,6 @@
       "choice": "pay"
     },
     {
-      "id": "recorded:958",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishOperatingTurn",
-      "playerId": "12729",
-      "companyId": "C"
-    },
-    {
       "id": "recorded:960",
       "gameId": "top-finished",
       "source": "user",
@@ -15558,14 +14362,6 @@
         "slot": 0
       },
       "expectedCost": 80
-    },
-    {
-      "id": "recorded:962",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "Gt"
     },
     {
       "id": "recorded:963",
@@ -15731,22 +14527,6 @@
       "rotation": 3,
       "nodeMapping": {},
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:969",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "MS"
-    },
-    {
-      "id": "recorded:970",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "MS"
     },
     {
       "id": "recorded:971",
@@ -15973,14 +14753,6 @@
       "companyId": "A"
     },
     {
-      "id": "recorded:976",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "A"
-    },
-    {
       "id": "recorded:977",
       "gameId": "top-finished",
       "source": "user",
@@ -16096,22 +14868,6 @@
       "rotation": 3,
       "nodeMapping": {},
       "expectedCost": 0
-    },
-    {
-      "id": "recorded:982",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "13748",
-      "companyId": "S"
-    },
-    {
-      "id": "recorded:983",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "13748",
-      "companyId": "S"
     },
     {
       "id": "recorded:984",
@@ -16274,14 +15030,6 @@
       "companyId": "So"
     },
     {
-      "id": "recorded:989",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "So"
-    },
-    {
       "id": "recorded:990",
       "gameId": "top-finished",
       "source": "user",
@@ -16402,14 +15150,6 @@
       "gameId": "top-finished",
       "source": "user",
       "type": "FinishTrack",
-      "playerId": "13748",
-      "companyId": "branch:BB"
-    },
-    {
-      "id": "recorded:995",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
       "playerId": "13748",
       "companyId": "branch:BB"
     },
@@ -16610,14 +15350,6 @@
       "companyId": "MR"
     },
     {
-      "id": "recorded:1001",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "MR"
-    },
-    {
       "id": "recorded:1002",
       "gameId": "top-finished",
       "source": "user",
@@ -16743,22 +15475,6 @@
       "expectedCost": 0
     },
     {
-      "id": "recorded:1007",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "C"
-    },
-    {
-      "id": "recorded:1008",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "C"
-    },
-    {
       "id": "recorded:1009",
       "gameId": "top-finished",
       "source": "user",
@@ -16851,26 +15567,10 @@
       "choice": "pay"
     },
     {
-      "id": "recorded:1011",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishOperatingTurn",
-      "playerId": "12729",
-      "companyId": "C"
-    },
-    {
       "id": "recorded:1013",
       "gameId": "top-finished",
       "source": "user",
       "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "Gt"
-    },
-    {
-      "id": "recorded:1014",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
       "playerId": "3574",
       "companyId": "Gt"
     },
@@ -17053,22 +15753,6 @@
       "rotation": 0,
       "nodeMapping": {},
       "expectedCost": 20
-    },
-    {
-      "id": "recorded:1022",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishTrack",
-      "playerId": "12729",
-      "companyId": "MS"
-    },
-    {
-      "id": "recorded:1023",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "MS"
     },
     {
       "id": "recorded:1024",
@@ -17295,14 +15979,6 @@
       "companyId": "A"
     },
     {
-      "id": "recorded:1029",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "A"
-    },
-    {
       "id": "recorded:1030",
       "gameId": "top-finished",
       "source": "user",
@@ -17410,26 +16086,10 @@
       "expectedPrice": 600
     },
     {
-      "id": "recorded:1033",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishOperatingTurn",
-      "playerId": "3574",
-      "companyId": "A"
-    },
-    {
       "id": "recorded:1035",
       "gameId": "top-finished",
       "source": "user",
       "type": "FinishTrack",
-      "playerId": "13748",
-      "companyId": "S"
-    },
-    {
-      "id": "recorded:1036",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
       "playerId": "13748",
       "companyId": "S"
     },
@@ -17594,14 +16254,6 @@
       "companyId": "So"
     },
     {
-      "id": "recorded:1042",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "So"
-    },
-    {
       "id": "recorded:1043",
       "gameId": "top-finished",
       "source": "user",
@@ -17735,14 +16387,6 @@
       "gameId": "top-finished",
       "source": "user",
       "type": "FinishTrack",
-      "playerId": "13748",
-      "companyId": "branch:BB"
-    },
-    {
-      "id": "recorded:1049",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
       "playerId": "13748",
       "companyId": "branch:BB"
     },
@@ -17943,14 +16587,6 @@
       "companyId": "MR"
     },
     {
-      "id": "recorded:1055",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "3574",
-      "companyId": "MR"
-    },
-    {
       "id": "recorded:1056",
       "gameId": "top-finished",
       "source": "user",
@@ -18071,14 +16707,6 @@
       "companyId": "C"
     },
     {
-      "id": "recorded:1061",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
-      "playerId": "12729",
-      "companyId": "C"
-    },
-    {
       "id": "recorded:1062",
       "gameId": "top-finished",
       "source": "user",
@@ -18171,26 +16799,10 @@
       "choice": "pay"
     },
     {
-      "id": "recorded:1064",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishOperatingTurn",
-      "playerId": "12729",
-      "companyId": "C"
-    },
-    {
       "id": "recorded:1066",
       "gameId": "top-finished",
       "source": "user",
       "type": "FinishTrack",
-      "playerId": "3574",
-      "companyId": "Gt"
-    },
-    {
-      "id": "recorded:1067",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStations",
       "playerId": "3574",
       "companyId": "Gt"
     },

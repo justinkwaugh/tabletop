@@ -21,6 +21,7 @@
         routes = [],
         reservations,
         appearance = ClassicTileAppearance,
+        revenueStageColors,
         onselect
     }: {
         scene: MapDrawing
@@ -31,6 +32,7 @@
         tokens?: readonly MapToken[]
         routes?: readonly MapRoute[]
         reservations?: readonly StationReservation[]
+        revenueStageColors?: Readonly<Record<string, string>>
         appearance?: TileAppearance
         onselect?: (selection: MapSelection) => void
     } = $props()
@@ -65,6 +67,7 @@
                     {routes}
                     {reservations}
                     {appearance}
+                {revenueStageColors}
                     {hexDiameter}
                     {onselect}
                 />

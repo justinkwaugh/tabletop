@@ -61,7 +61,7 @@ for (const title of ['TOP', '1889']) {
         await page.getByRole('tab', { name: 'Spreadsheet', exact: true }).click()
         await page.getByRole('group', { name: 'Spreadsheet period' }).getByRole('button', { name: 'Income', exact: true }).click()
         const history = page.getByRole('table', { name: 'Operating round history' })
-        await expect(history.getByRole('row').filter({ has: page.getByRole('rowheader', { name: title === 'TOP' ? 'Charlottetown · Mainline' : 'Iyo Railway', exact: true }) }).getByRole('cell')).toHaveText(['$40'])
+        await expect(history.getByRole('row').filter({ has: page.getByRole('rowheader', { name: title === 'TOP' ? 'Charlottetown' : 'Iyo Railway', exact: true }) }).getByRole('cell')).toHaveText(['$40'])
         await page.getByRole('group', { name: 'Spreadsheet view' }).getByRole('button', { name: 'Player', exact: true }).click()
         await expect(history.getByRole('row').filter({ has: page.getByRole('rowheader', { name: 'Alex', exact: true }) }).getByRole('cell').first()).toHaveText('$12')
         await page.getByRole('button', { name: 'Undo', exact: true }).click()

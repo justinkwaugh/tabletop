@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { TheOldPrinceTrainColors } from './trainPresentation.js'
     import OpeningAuction from './OpeningAuction.svelte'
     import BranchSplitPreview from './BranchSplitPreview.svelte'
     import { requireTheOldPrinceSession } from './session.svelte.js'
@@ -29,7 +30,7 @@
     <BranchSplitPreview {session} />
     <CompanyDecisions {session} />
     <PrivateCompanies {session} />
-    <TrainBuying {session} />
+    <TrainBuying {session} trainColors={TheOldPrinceTrainColors} />
     <FinanceMap {session} />
     <StockTrading {session} />
     <StockMarket {session} appearances={session.mapView.stations} market={state.stockMarket} companies={state.companies} />

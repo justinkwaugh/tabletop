@@ -65,11 +65,15 @@
     let motionVersion = 0
     function register(node: HTMLButtonElement, id: string) {
         elements.set(id, node)
-        if (!selectedId && !prefersReducedMotion.current) {
+        const autoSelected = id === selectedId && session.trackSelection.definitionId?.source === 'auto'
+        if (autoSelected && prefersReducedMotion.current) session.trackTileInFlight = false
+        if ((!selectedId || autoSelected) && !prefersReducedMotion.current) {
             const bounds = viewport.getBoundingClientRect()
             const target = node.getBoundingClientRect()
-            const dx = bounds.x + center.x - target.x - target.width / 2
-            const dy = bounds.y + center.y - target.y - target.height / 2
+            const dx = autoSelected ? 0 : bounds.x + center.x - target.x - target.width / 2
+            const dy = autoSelected ? 0 : bounds.y + center.y - target.y - target.height / 2
+            const version = motionVersion
+            const openingLocation = locationId
             const animation = node.animate(
                 [
                     {
@@ -81,7 +85,11 @@
                 { duration: 200, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
             )
             animations.add(animation)
-            void animation.finished.catch(() => undefined).then(() => animations.delete(animation))
+            void animation.finished.catch(() => undefined).then(() => {
+                animations.delete(animation)
+                if (autoSelected && version === motionVersion && openingLocation === locationId)
+                    session.trackTileInFlight = false
+            })
         }
         return {
             destroy() {

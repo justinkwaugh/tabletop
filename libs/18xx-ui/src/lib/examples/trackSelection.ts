@@ -24,9 +24,10 @@ export function chooseTrackLocation(locationId: string): TrackSelection {
 export function chooseTrackTile(
     selection: TrackSelection,
     definitionId: string,
-    choices: readonly TrackRequest[]
+    choices: readonly TrackRequest[],
+    source: 'manual' | 'auto' = 'manual'
 ): TrackSelection {
-    const next = setStagedSelectionValue(selection, Stages, 'definitionId', definitionId, 'manual')
+    const next = setStagedSelectionValue(selection, Stages, 'definitionId', definitionId, source)
     return choices.length === 1
         ? setStagedSelectionValue(next, Stages, 'placement', choices[0], 'auto')
         : next
