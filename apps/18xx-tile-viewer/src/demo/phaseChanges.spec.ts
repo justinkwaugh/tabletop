@@ -118,13 +118,16 @@ it.each(Titles)(
             )
         }
         expect(discarded).toHaveLength(definition === Top ? 1 : 2)
-        expect(current.machineState).toBe('BuyingTrains')
-        expect(current.activePlayerIds).toEqual(initial.activePlayerIds)
-        expect(current.trainPurchaseStep!.purchasedTrainIds).toHaveLength(1)
-        expect(current.turnManager).toEqual(initial.turnManager)
+        expect(current.machineState).toBe(definition === Top ? 'BuyingTrains' : 'LayingTrack')
         let replay = state
         for (const a of actions) {
             replay = engine.applyProcessedAction({ game, state: replay, action: a })
+            if (a.type === 'DiscardTrain' && !replay.phaseChange) {
+                expect(replay.machineState).toBe('BuyingTrains')
+                expect(replay.activePlayerIds).toEqual(initial.activePlayerIds)
+                expect(replay.trainPurchaseStep!.purchasedTrainIds).toHaveLength(1)
+                expect(replay.turnManager).toEqual(initial.turnManager)
+            }
             expect(
                 definition.runtime.hydrator
                     .hydrateState(JSON.parse(JSON.stringify(replay)))
@@ -216,7 +219,7 @@ it('1889 exchanges a 4 at capacity for an 800 diesel and rusts the traded-in tra
         'removed'
     )
     expect(result.updatedState.phaseEvents[0].rustedTrainIds).toContain(four.id)
-    expect(result.updatedState.machineState).toBe('BuyingTrains')
+    expect(result.updatedState.machineState).toBe('LayingTrack')
 })
 it('1889 preserves a traded 5 in the Market, and Market purchases preserve identity and prior use', () => {
     const { game, engine, state } = example(Shikoku, 'diesel')
@@ -244,7 +247,11 @@ it('1889 preserves a traded 5 in the Market, and Market purchases preserve ident
             expectedPrice: 450
         })
     })
-    expect(result.processedActions.map((a) => a.type)).toEqual(['BuyTrain'])
+    expect(result.processedActions.map((a) => a.type)).toEqual([
+        'BuyTrain',
+        'FinishOperatingTurn',
+        'StartOperatingTurn'
+    ])
     expect(result.updatedState.trainInventory.trains.find((t) => t.id === five.id)).toMatchObject({
         status: 'owned',
         hasRun: true,

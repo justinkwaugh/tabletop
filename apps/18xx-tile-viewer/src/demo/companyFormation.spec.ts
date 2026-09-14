@@ -1,3 +1,5 @@
+import { historyCompanyChanges } from '../../../../libs/18xx-ui/src/lib/table/historyCompanyChanges.js'
+import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
 import { expect, it } from 'vitest'
 import { ActionSource } from '@tabletop/common'
 import {
@@ -23,7 +25,8 @@ import {
     TheOldPrinceStockRules,
     TheOldPrinceCompanyRules,
     availableTheOldPrinceTranche,
-    peirShares
+    peirShares,
+    TheOldPrinceTrainDepot
 } from '@tabletop/the-old-prince'
 import {
     Definition as Shikoku,
@@ -72,7 +75,9 @@ for (const [definition, companyId, marketSpaceId, parPrice] of [
             action: start(companyId, marketSpaceId, parPrice * 2)
         })
         expect(state).toEqual(before)
-        expect(result.processedActions.map((action) => action.type)).toEqual(['StartCompany'])
+        expect(result.processedActions.map((action) => action.type)).toEqual(
+            definition === Top ? ['StartCompany', 'FinishStockTurn'] : ['StartCompany']
+        )
         expect(getCompany(result.updatedState, companyId)).toMatchObject({
             started: true,
             funded: false,
@@ -93,10 +98,13 @@ for (const [definition, companyId, marketSpaceId, parPrice] of [
         ).toBe('available')
         const action = result.processedActions[0]
         expect(isStartCompany(action)).toBe(true)
-        expect(engine.applyProcessedAction({ game, state: before, action })).toEqual(
-            result.updatedState
-        )
-        expect(engine.undoProcessedAction({ state: result.updatedState, action })).toEqual(before)
+        let replay = before
+        for (const processed of result.processedActions)
+            replay = engine.applyProcessedAction({ game, state: replay, action: processed })
+        expect(replay).toEqual(result.updatedState)
+        for (const processed of result.processedActions.toReversed())
+            replay = engine.undoProcessedAction({ state: replay, action: processed })
+        expect(replay).toEqual(before)
         expect(() =>
             engine.executeCanonicalAction({
                 game,
@@ -117,7 +125,8 @@ for (const [definition, companyId, marketSpaceId, parPrice] of [
         expect(state).toEqual(before)
         expect(result.processedActions.map((action) => action.type)).toEqual([
             'BuyShares',
-            'FloatCompany'
+            'FloatCompany',
+            ...(definition === Top ? ['FinishStockTurn'] : [])
         ])
         expect(getCompany(result.updatedState, companyId)).toMatchObject({
             funded: true,
@@ -264,10 +273,23 @@ it('preserves a forced PEIR ownership excess without allowing further ordinary p
     const result = engine.executeCanonicalAction({ game, state, action: purchase('A:share:4', 80) })
     expect(sharesOwned(result.updatedState, 'A', alex)).toBe(7)
     expect(exceedsStockLimits(result.updatedState, alex, TheOldPrinceStockRules)).toBe(false)
-    result.updatedState.stockRound.turn.bought = false
+    let nextTurn = result.updatedState
+    for (let count = 0; count < 2; count++)
+        nextTurn = engine.executeCanonicalAction({
+            game,
+            state: nextTurn,
+            action: {
+                id: `pass:${count}`,
+                gameId: game.id,
+                type: 'FinishStockTurn',
+                source: ActionSource.User,
+                playerId: nextTurn.activePlayerIds[0]
+            }
+        }).updatedState
+    expect(nextTurn.activePlayerIds).toEqual(['alex'])
     expect(
         evaluateSharePurchase(
-            result.updatedState,
+            nextTurn,
             { playerId: 'alex', buyer: alex, certificateId: 'A:share:6' },
             TheOldPrinceStockRules
         ).reason
@@ -323,7 +345,7 @@ it('floats an already funded branch without granting initial capital again', () 
     const action = result.processedActions[1]
     expect(isFloatCompany(action) && action.metadata?.payments).toEqual([])
 })
-it('closes PEIR and the King’s Mail and discards PEIR cash on its final exchange', () => {
+it('closes PEIR and removes its cash and trains on its final exchange', () => {
     const { game, engine, state } = example(Top, 'flotation')
     state.certificates = state.certificates.map((certificate) => {
         if (
@@ -340,7 +362,24 @@ it('closes PEIR and the King’s Mail and discards PEIR cash on its final exchan
             ? { id: station.id, companyId: station.companyId, status: 'removed' }
             : station
     )
+    const ownedTrainIds = ['3H', '7', 'D'].map((definitionId) => {
+        const train = TheOldPrinceTrainDepot.nextTrain(state.trainInventory, definitionId)!
+        TheOldPrinceTrainDepot.purchase(state.trainInventory, train.id, definitionId, {
+            kind: 'company',
+            companyId: 'PEIR'
+        })
+        return train.id
+    })
     const result = engine.executeCanonicalAction({ game, state, action: purchase('A:share:4', 80) })
+    for (const id of ownedTrainIds) {
+        const train = result.updatedState.trainInventory.trains.find((train) => train.id === id)
+        expect(train).toMatchObject({ status: 'removed' })
+        expect(train).not.toHaveProperty('owner')
+    }
+    let replay = state
+    for (const action of result.processedActions)
+        replay = engine.applyProcessedAction({ game, state: replay, action })
+    expect(replay).toEqual(result.updatedState)
     expect(peirShares(result.updatedState)).toHaveLength(0)
     expect(getCompany(result.updatedState, 'PEIR')).toMatchObject({ closed: true })
     expect(getCompany(result.updatedState, 'PEIR').president).toBeUndefined()
@@ -416,4 +455,19 @@ it('resolves both presidencies when the PEIR exchange changes the largest intere
         playerId: 'casey'
     })
     expect(sharesOwned(result.updatedState, 'MS', blair)).toBe(3)
+    const flotation = result.processedActions.find(isFloatCompany)!
+    const changes = historyCompanyChanges(result.processedActions, result.updatedState)
+    const description = historyDescription(
+        flotation,
+        result.updatedState,
+        (id) => id,
+        (id) => id,
+        changes.get(flotation.id)
+    )
+    expect(description.detail).toContain('MS President: alex → blair')
+    expect(description.detail).toContain('PEIR President: blair → casey')
+    expect(description.detail).toContain('blair exchanged PEIR #3 for 1 MS')
+    const before = structuredClone(result.updatedState)
+    historyCompanyChanges(result.processedActions, result.updatedState)
+    expect(result.updatedState).toEqual(before)
 })

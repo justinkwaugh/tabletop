@@ -2,6 +2,7 @@
     import { assertExists } from '@tabletop/common'
     import { getCompany } from '@tabletop/18xx'
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
+    import DecisionResponse from './DecisionResponse.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     let { session, trainColors }: { session: FinanceExampleSession; trainColors: Readonly<Record<string, string>> } = $props()
@@ -29,7 +30,10 @@
 
 <div class="company-trains">
     {#if response?.asset.kind === 'train' && selectedTrain}
-        <div class="summary">
+        <DecisionResponse label="Train purchase response"
+            disabled={!session.canResolveCompanyDecision || !session.validActionTypes.includes('RespondToPurchaseOffer')}
+            onAccept={() => session.respondToPurchaseOffer(true)}
+            onDecline={() => session.respondToPurchaseOffer(false)}>
             <CompanyToken appearance={session.mapView.stations[response.companyId]} size={24} />
             <strong>{getCompany(session.financialState, response.companyId).name}</strong>
             <span>offers ${response.price} for</span>
@@ -39,11 +43,7 @@
                 <CompanyToken appearance={session.mapView.stations[response.seller.companyId]} size={24} />
             {/if}
             <span>{session.ownerName(response.seller)}</span>
-        </div>
-        <div class="controls">
-            <button class="action-button" disabled={!session.canResolveCompanyDecision || !session.validActionTypes.includes('RespondToPurchaseOffer')} onclick={() => session.respondToPurchaseOffer(true)}>Accept</button>
-            <button class="action-button" disabled={!session.canResolveCompanyDecision || !session.validActionTypes.includes('RespondToPurchaseOffer')} onclick={() => session.respondToPurchaseOffer(false)}>Decline</button>
-        </div>
+        </DecisionResponse>
     {:else if request && selectedTrain}
         <div class="summary">
             {#if request.seller.kind === 'company'}

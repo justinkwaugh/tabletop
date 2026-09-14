@@ -209,3 +209,7 @@ increment; the old workbench remains available for detailed rule inspection.
 The company-order row and token artwork follow the shared game-table-shell
 contract. This title supplies its existing OperatingRules and packaged token
 artwork; order and token identities remain canonical during history and Undo.
+
+Automatic history follows the shared consequence contract: sold-out price moves
+belong to the completed stock round, and phase entries include Uno-Takamatsu
+income changes as well as private closures.

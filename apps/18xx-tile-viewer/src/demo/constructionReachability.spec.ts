@@ -8,7 +8,7 @@ import {
 } from '@tabletop/18xx'
 import { Definition as Top, TheOldPrinceTrackRules } from '@tabletop/the-old-prince'
 import { Definition as Shikoku, Shikoku1889TrackRules } from '@tabletop/shikoku-1889'
-import { ConstructionReachability } from '../../../../libs/18xx/src/construction/constructionReachability.js'
+import { ConstructionReachability } from '../../../../libs/18xx/esm/construction/constructionReachability.js'
 import { example } from './stockTestUtils.js'
 
 it.each([

@@ -235,7 +235,7 @@ it('starts and floats a company from the real first stock round, placing its hom
         marketSpaceId: marketSpace.id,
         expectedPrice: 130
     })
-    run.act('FinishStockTurn', { playerId })
+    expect(run.state.activePlayerIds).not.toContain(playerId)
     for (let i = 0; i < 3; i++) {
         const acting = run.state.activePlayerIds[0]
         const certificate = run.state.certificates.find(
@@ -251,12 +251,12 @@ it('starts and floats a company from the real first stock round, placing its hom
             certificateId: certificate.id,
             expectedPrice: 65
         })
-        if (i < 2) run.act('FinishStockTurn')
+        if (i < 2 && run.state.activePlayerIds.includes(acting)) run.act('FinishStockTurn')
     }
     expect(run.state.companies.find((c) => c.id === 'AR')?.floated).toBe(true)
     expect(cashOwnedBy(run.state, { kind: 'company', companyId: 'AR' })).toBe(650)
-    run.act('FinishStockTurn')
-    for (let i = 0; i < 3; i++) run.act('FinishStockTurn')
+    for (let i = 0; i < 4 && run.state.machineState === 'StockRound'; i++)
+        run.act('FinishStockTurn')
     expect(run.state.privatePowerWindow).toBeDefined()
     run.act('ContinueOperatingRound', { companyId: run.state.privatePowerWindow!.companyId })
     expect(run.state.machineState).toBe('LayingTrack')

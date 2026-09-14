@@ -1,3 +1,5 @@
+import { historyCompanyChanges } from '../../../../libs/18xx-ui/src/lib/table/historyCompanyChanges.js'
+import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
 import { expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
 import {
@@ -14,6 +16,7 @@ import {
     Shikoku1889TrainRules
 } from '@tabletop/shikoku-1889'
 import {
+    isAdvancePhase,
     evaluatePrivateExchange,
     evaluateSharePurchase,
     privateExchangeOffers,
@@ -308,6 +311,20 @@ it.each([
             action: action(state, 'BuyTrain', { ...request, expectedPrice: details.price })
         })
         const updated = result.updatedState
+        const advancement = result.processedActions.find(isAdvancePhase)!
+        const changes = historyCompanyChanges(result.processedActions, updated)
+        const description = historyDescription(
+            advancement,
+            updated,
+            (id) => id,
+            (id) => id,
+            changes.get(advancement.id)
+        )
+        if (definition === Top) {
+            for (const id of ['MC', 'SB', 'VR'])
+                expect(description.detail).toContain(`${id} exchanged for 1 So`)
+            expect(description.detail).toContain('So President: UB → alex')
+        } else expect(description.detail).toContain('UTF income $50')
         expect(updated.phaseId).toBe(phase)
         expect(updated.phaseEvents[0].privateEffects.length).toBeGreaterThan(0)
         if (definition === Top) {

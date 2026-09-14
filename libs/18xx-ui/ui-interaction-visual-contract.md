@@ -1090,3 +1090,42 @@ Staged revenue layout favors horizontally centered rows or vertically centered c
 Station-placement selection outlines belong to the placement draft, matching track placement. They disappear when the visible-state update begins and do not return after placement, cancellation, or Undo clears the draft. General map inspection selections also clear before publishing a new visible state; historical-map previews retain their separate explicit selection ownership.
 
 Stock-menu navigation (Buy, Sell, Start, Exchange and title-specific staged choices) uses light buttons. Dark action-button treatment is reserved for submission. The root stock prompt includes an inline lowercase pass, or end turn after acting, only when FinishStockTurn is legal.
+
+Station Skip rejects only a pending placement, not a token selection. Automatic cheapest-token selection (or choosing a special token without placing it) does not commit the company to a station purchase; Skip submits FinishStations and Undo restores that decision.
+
+Automatic history consequences stay with their triggering event. Meaningful
+sold-out market moves are shown in the stock round that ended, without player
+attribution; no-op moves remain hidden. Flotation shows its recorded certificate
+exchanges and patch-derived presidency/closure changes. Phase entries show forced
+private exchanges and income changes alongside closures and resulting presidencies.
+Company history is reconstructed from recorded patches, never from current owners
+alone, and does not mutate state or initiate gameplay.
+
+Track-consent responses use the same compact summary and direct response controls
+as negotiated train purchases: requesting company token/name, location and small
+proposed tile, then Allow/Decline. No separate inspector card or deciding-player
+caption is shown. Title policy still determines whether consent is needed; the
+shared response layout initiates decisions only through session callbacks.
+
+While track consent is pending, the construction controls are suspended: show the
+permission response without the space-selection prompt or Skip button.
+
+Track permission history distinguishes requests, declines, and approval that actually lays track (including its cost). A declined response appears above the resumed construction prompt until the next user action. The notice derives from visible recorded actions, so undo and history navigation do not retain stale notices.
+
+Pending track permission projects the requested tile and relocated stations from canonical request details into the table map at 55% opacity. The map is read-only during approval and focuses the requested space with the existing contextual placement focus. Resolution/undo removes this projection; historical map inspection takes precedence.
+
+Map availability never uses dashed target outlines. Masking shows legal placement areas; solid highlights identify only the selected, focused, previewed, or hovered target.
+
+Selected track placement shows its cost in a dark floating chip below the map tile, scaled with the picker and fading with its controls. The table action prompt does not repeat the cost.
+
+Forced depot purchases use the ordinary train button and show the required cash
+contributions before purchase. Clicking the train executes canonical mandatory funding steps and buys it. Share-sale choices are presented separately, and completing the required sales waits for that explicit train click. Negotiated train sources
+remain selectable before that commitment when company cash permits them. Reload
+and undo do not themselves execute funding actions.
+
+The forced train view names the obligated company beside its token and shows the required train badge and price. Each legal funding sale appears as a company token above its share count and proceeds. Clicking commits the sale directly; Undo reverses the committed sale. A sales ledger persists throughout funding. Raising sufficient cash reveals the normal train purchase button; it does not purchase automatically. Completed contributions remain visible above the next owner’s shortfall, derived from the current funding sequence’s visible actions. Pending cash contributions are shown and executed on that explicit purchase click.
+
+On entering train running, a company with no trains or no connected station route
+records an automatic empty run. Empty, zero-income runs automatically withhold
+when supported by the title. History retains these actions and their market
+consequences, while the action panel advances without a run or payout click.

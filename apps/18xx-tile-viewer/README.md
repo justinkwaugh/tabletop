@@ -1,6 +1,6 @@
 # 18xx tile viewer
 
-Standalone development host for shared 18xx tiles, maps, and economic inspection.
+Standalone development host for shared 18xx tiles, maps, and playable title prototypes.
 This app composes `@tabletop/18xx-ui`, TOP, and Shikoku 1889. Shared libraries must
 not depend on game packages, including through development dependencies or tests.
 Title definitions remain in their game packages; the app supplies them to the
@@ -30,11 +30,18 @@ Unit tests exercise the public renderer with complete title catalogs. Browser
 tests verify browsing, inventory counts, mobile layout, and the specimen sheet.
 The production build writes a static app to `build`.
 
-`/economy` loads each title's three-player finance example through its real
-`UiDefinition`, Game Session, and existing local harness services. Examples are
-saved locally and restored on revisit. The screens expose cash, shares
-and certificate-limit contributions, private ownership, presidents, and controlling owners. They implement no
-stock actions or full-game initialization.
+`/table` loads each title's `UiDefinition` and canonical runtime, with player panels,
+actions, map, market, tile manifest, spreadsheet and grouped history. `/economy`
+loads `PrototypeUiDefinition`, the earlier workbench for inspecting the same rules.
+Both use Game Sessions and local harness services. Games are persisted locally and
+restored on revisit. The position selector includes focused scenarios and real
+opening auctions; TOP also has a finished-game fixture for forward/backward history.
 
-The current schema uses a new versioned local example. Earlier inspection examples
-are preserved; current examples are reused on reload.
+TOP supports 3–4 players and standard Shikoku 1889 supports 2–6. Stock and operating
+Actions run through the canonical engine, including complete-game replay and Undo.
+See [complete-game verification](../../research/18xx/complete-game-verification.md)
+and [client autorouting](../../research/18xx/autorouter-design.md). These are still
+development interfaces; physical-board artwork and mobile polish remain deferred.
+
+Versioned local examples preserve older saved positions while keeping current
+examples reusable on reload.

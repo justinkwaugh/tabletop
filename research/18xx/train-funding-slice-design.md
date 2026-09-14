@@ -153,3 +153,23 @@ memory pressure passed when rerun separately. The 16 new logic cases and four ne
 browser cases all pass. All affected builds and four 18xx UI checks pass. Shared
 frontend checking has no errors and seven existing warnings in unchanged files.
 The funding sale panel was visually inspected at desktop size.
+
+### Direct train purchase presentation
+
+The depot choice includes eligible president-assisted purchases alongside ordinary
+company-funded purchases. An immutable funding preview walks the existing title
+policy through mandatory treasury issuance and ordered cash contributions, stopping
+at a share-sale decision. TOP's Union Bank retains priority over its controlling
+owner; 1889's presidency and cheapest-train restrictions remain unchanged. Titles
+with negotiated train purchases retain that alternative before committing to depot
+funding, using company cash only. The broader financing variations surveyed above
+remain title policy, not UI inference.
+
+The session's explicit train click initiates FundTrain and then performs canonical
+issuance, contribution, and purchase actions until a sale choice or completion.
+After a selected sale it resolves mandatory issuance and intermediate contributors only while another sale is needed; otherwise it waits for the train purchase click. It waits for the visible
+transition and verifies forward progress after each action; no effect initiates
+funding on reload or undo. Intermediate restored funding states remain actionable.
+History continues to record each financial settlement.
+
+The forced-purchase refinement exposes the first share-sale choice and net amount to raise in the immutable preview, preserving Union Bank-first liability and 1889 ownership-limit corrections. Funding begun by a sale performs mandatory issuance before validating that sale. After sales, funding pauses when remaining cash can cover the train; contributions and purchase wait for the explicit train button. The running sales ledger derives from canonical issuance/sale metadata since FundTrain, bounded by the visible action count.

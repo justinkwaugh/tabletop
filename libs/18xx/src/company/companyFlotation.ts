@@ -1,5 +1,6 @@
 import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
+import { CertificateExchange } from '../finance/certificateExchange.js'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { copyFinances, getCompany } from '../finance/finance.js'
 import { applyPresidencyChange } from '../stock/presidency.js'
@@ -10,7 +11,8 @@ import type { CompanyRules } from './companyRules.js'
 export const CompanyFlotationDetails = Type.Object(
     {
         companyId: Type.String(),
-        payments: Type.Array(CashPayment)
+        payments: Type.Array(CashPayment),
+        exchanges: Type.Optional(Type.Array(CertificateExchange))
     },
     { additionalProperties: false }
 )

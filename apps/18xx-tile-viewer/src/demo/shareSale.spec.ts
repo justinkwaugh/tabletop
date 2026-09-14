@@ -125,12 +125,13 @@ it.each([Shikoku, Top])('supports a presidency change on purchase in $info.id', 
     const record = result.processedActions[0]
     if (!isBuyShares(record)) throw new Error('Expected purchase')
     expect(record.metadata?.presidency?.next).toEqual(buyer)
-    expect(engine.undoProcessedAction({ state: result.updatedState, action: record })).toEqual(
-        state
-    )
-    expect(engine.applyProcessedAction({ game, state, action: record })).toEqual(
-        result.updatedState
-    )
+    let replay = state
+    for (const action of result.processedActions)
+        replay = engine.applyProcessedAction({ game, state: replay, action })
+    expect(replay).toEqual(result.updatedState)
+    for (const action of result.processedActions.toReversed())
+        replay = engine.undoProcessedAction({ state: replay, action })
+    expect(replay).toEqual(state)
 })
 
 it('chooses players before Union Bank when successor holdings tie', () => {
@@ -179,22 +180,28 @@ it.each([
         state.companies.push({ id: 'stationary', kind: 'major', name: 'Stationary' })
         placeStockMarker(state.stockMarket, 'stationary', '2:1')
         placeStockMarker(state.stockMarket, 'So', '1:1')
-        const result = engine.executeCanonicalAction({
-            game,
-            state,
-            action: sell(
-                [
-                    { companyId: first, shares: 1 },
-                    { companyId: second, shares: 1 }
-                ],
-                184
-            )
-        })
+        let current = state
+        const actions = []
+        for (const companyId of [first, second]) {
+            const result = engine.executeCanonicalAction({
+                game,
+                state: current,
+                action: { ...sell([{ companyId, shares: 1 }], 92), id: `sell:${companyId}` }
+            })
+            actions.push(...result.processedActions)
+            current = result.updatedState
+        }
+        let replay = state
+        for (const action of actions)
+            replay = engine.applyProcessedAction({ game, state: replay, action })
+        expect(replay).toEqual(current)
+        for (const action of actions.toReversed())
+            replay = engine.undoProcessedAction({ state: replay, action })
+        expect(replay).toEqual(state)
         expect(
-            result.updatedState.stockMarket.stacks.find((stack) => stack.spaceId === '2:1')
-                ?.companyIds
+            current.stockMarket.stacks.find((stack) => stack.spaceId === '2:1')?.companyIds
         ).toEqual(['stationary', first, second])
-        expect(cashOwnedBy(result.updatedState, alex)).toBe(424)
+        expect(cashOwnedBy(current, alex)).toBe(424)
     }
 )
 
@@ -273,11 +280,17 @@ it('enforces each title’s sale/purchase sequence and one sale block per compan
             evaluateSharePurchase(sale, purchase(`${companyId}:share:5`, 1), rules).reason
         ).toContain('sold shares')
         const other = definition === Top ? 'So' : 'IR'
-        const afterBuy = engine.executeCanonicalAction({
+        const purchaseResult = engine.executeCanonicalAction({
             game,
             state: sale,
             action: purchase(`${other}:share:5`, definition === Top ? 86 : 70)
-        }).updatedState
+        })
+        const afterBuy = engine.applyProcessedAction({
+            game,
+            state: sale,
+            action: purchaseResult.processedActions[0]
+        })
+        expect(purchaseResult.updatedState.activePlayerIds[0]).toBe('blair')
         expect(
             evaluateShareSale(afterBuy, sell([{ companyId: other, shares: 1 }], 1), rules).reason
         ).toContain('after this purchase')

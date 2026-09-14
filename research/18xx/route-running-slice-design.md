@@ -113,3 +113,11 @@ distribution. RouteEvaluation owns path legality and revenue calculations. Route
 editor, TrainRoute and route selection continue to describe the chosen paths.
 The prototype fixture is version 15 so earlier saved actions remain in
 their existing examples without being replayed as the renamed action.
+
+No-run progression also applies when trains are owned but no station connects to
+another revenue center. Reuse the station-route reachability check, independent
+of compulsory purchase policy (PEIR is exempt from buying, not from running).
+This conservative proof avoids invoking optimization in the runtime; train-specific
+distance constraints remain in route evaluation. Zero revenue with no submitted
+routes automatically withholds when the title offers that choice, retaining the
+canonical run, distribution, and market effects for history and undo.

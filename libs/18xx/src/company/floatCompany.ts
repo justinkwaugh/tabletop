@@ -10,6 +10,7 @@ import {
 import { getCompany } from '../finance/finance.js'
 import { settleCashPayments } from '../finance/cashPayments.js'
 import { CompanyFlotationDetails, evaluateCompanyFlotation } from './companyFlotation.js'
+import type { TrainState } from '../trains/train.js'
 import type { StockState } from '../stock/stockState.js'
 import type { CompanyRules } from './companyRules.js'
 
@@ -47,7 +48,7 @@ export class HydratedFloatCompany
         super(data instanceof HydratedFloatCompany ? data.dehydrate() : data, Validator)
         this.#rules = rules
     }
-    apply(state: HydratedGameState & StockState): void {
+    apply(state: HydratedGameState & StockState & TrainState): void {
         assert(this.source === ActionSource.System, 'Flotation requires a system action')
         const details = evaluateCompanyFlotation(state, this.companyId, this.#rules)
         assert(details, 'Company does not qualify to float')
@@ -55,7 +56,8 @@ export class HydratedFloatCompany
         const company = getCompany(state, this.companyId)
         if (details.payments.length) company.funded = true
         company.floated = true
-        this.#rules.onFloat?.(state, this.companyId)
+        const exchanges = this.#rules.onFloat?.(state, this.companyId)
+        if (exchanges?.length) details.exchanges = exchanges
         this.metadata = details
     }
 }

@@ -1,4 +1,3 @@
-import { trainsOwnedBy } from '../trains/train.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -45,7 +44,7 @@ export class HydratedRunTrains extends HydratableAction<typeof RunTrains> implem
         assert(
             (this.source === ActionSource.User ||
                 (this.source === ActionSource.System &&
-                    !trainsOwnedBy(state, { kind: 'company', companyId: this.companyId }).length)) &&
+                    this.routes.length === 0 && running.cannotRun(this.companyId))) &&
                 state.activePlayerIds.includes(this.playerId) &&
                 running.canAct(this.playerId, this.companyId),
             'Only the operating company’s controlling owner may run trains'

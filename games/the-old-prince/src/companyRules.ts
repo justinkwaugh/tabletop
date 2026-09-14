@@ -12,6 +12,7 @@ import {
     replaceStation,
     applyStationPlacement,
     sameOwner,
+    unownedTrain,
     stockMarketSpace,
     type CompanyRules,
     type StockState
@@ -172,7 +173,13 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
             )
             assertExists(cash, 'PEIR requires a treasury')
             cash.amount = 0
+            state.trainInventory.trains = state.trainInventory.trains.map((train) =>
+                train.status === 'owned' && sameOwner(train.owner, cash.owner)
+                    ? unownedTrain(train, 'removed')
+                    : train
+            )
             closePrivate(state, 'KM')
         }
+        return [{ surrenderedId: association.peirCertificateId, receivedId: replacement.id, owner }]
     }
 }

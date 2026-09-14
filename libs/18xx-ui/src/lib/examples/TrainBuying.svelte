@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { TrainPurchaseDetails } from '@tabletop/18xx'
-    import { contrastingTextColor } from '../colors/contrastingTextColor.js'
+    import TrainPurchaseButton from '../trains/TrainPurchaseButton.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyTrainBuying from './CompanyTrainBuying.svelte'
     import TrainFunding from './TrainFunding.svelte'
@@ -10,44 +10,46 @@
         $props()
     const step = $derived(session.financialState.trainPurchaseStep)
     const availableTypes = $derived(session.availableTrainDefinitionIds)
+    const fundingDepot = $derived(session.fundingPurchases.filter((purchase) => session.financialState.trainInventory.trains.some((train) => train.id === purchase.trainId && train.status === 'depot')))
     const remainingDepot = $derived(session.trainOffers.filter((offer) => offer.remaining !== 0))
-    const currentDepot = $derived(remainingDepot.filter((offer) => availableTypes.includes(offer.definitionId) && offer.evaluation.details))
+    const currentDepot = $derived(remainingDepot.filter((offer) => availableTypes.includes(offer.definitionId) && (offer.evaluation.details || fundingDepot.some((purchase) => purchase.definitionId === offer.definitionId))))
     const nextDepot = $derived(remainingDepot.find((offer) => !availableTypes.includes(offer.definitionId)))
     const marketChoices = $derived.by(() => {
         const groups = new Map<string, { details: TrainPurchaseDetails; count: number }>()
-        for (const offer of session.marketTrainOffers) {
-            if (!offer.details) continue
-            const key = `${offer.details.definitionId}:${offer.details.price}`
+        const offers = [
+            ...session.marketTrainOffers.flatMap((offer) => offer.details ? [offer.details] : []),
+            ...session.fundingPurchases.filter((purchase) => session.financialState.trainInventory.trains.some((train) => train.id === purchase.trainId && train.status === 'market'))
+        ]
+        for (const details of offers) {
+            const key = `${details.definitionId}:${details.price}`
             const group = groups.get(key)
             if (group) group.count += 1
-            else groups.set(key, { details: offer.details, count: 1 })
+            else groups.set(key, { details, count: 1 })
         }
         return [...groups.values()]
     })
 </script>
 
-{#snippet trainChoice(definitionId: string, price: number, remaining: number | 'unlimited', details: TrainPurchaseDetails | undefined, upcoming = false, market = false)}
+{#snippet trainChoice(definitionId: string, price: number, remaining: number | 'unlimited', details: TrainPurchaseDetails | undefined, upcoming = false, market = false, funding = false)}
     {@const definition = session.trainDepot.trainDefinition(definitionId)}
     <div class="depot-entry">
-        <button style:background={trainColors[definitionId]} style:color={contrastingTextColor(trainColors[definitionId])}
-            class="depot-choice" class:upcoming data-depot-train={market ? undefined : definitionId}
-            aria-label={`${definition.name} for $${price}${upcoming ? ', upcoming' : market ? ' from Market' : ''}`}
-            disabled={upcoming || !session.canBuyTrain || !details}
-            onclick={() => { if (details) void session.buyTrain(details) }}>
-            <span class="train-price"><strong>{definition.name}</strong><b>${price}</b></span>
-        </button>
+        <TrainPurchaseButton name={definition.name} {price} color={trainColors[definitionId]}
+            {definitionId} {upcoming} {market}
+            disabled={!(funding ? session.canFundTrain : session.canBuyTrain) || !details}
+            onclick={() => { if (details) void (funding ? session.fundTrain(details) : session.buyTrain(details)) }} />
         <small class="remaining">{#if upcoming}{remaining === 'unlimited' ? 'Unlimited upcoming' : `${remaining} upcoming`}{:else}{market ? 'Market · ' : ''}{remaining === 'unlimited' ? 'Unlimited' : `${remaining} remaining`}{/if}</small>
     </div>
 {/snippet}
 
 {#if session.financialState.phaseChange}<PhaseChanges {session} {showUndo} />{/if}
-<TrainFunding {session} {showUndo} />
+{#if session.financialState.trainFunding}<TrainFunding {session} {showUndo} {trainColors} />{/if}
 
 {#if step && session.financialState.machineState === 'BuyingTrains'}
     <section aria-label="Train purchases">
         {#if session.financialState.purchaseOffer?.asset.kind === 'train'}
             <CompanyTrainBuying {session} {trainColors} />
         {:else}
+        {#if !session.fundingPurchases.length}
         <header>
             <h2>
                 Choose a train to buy
@@ -64,8 +66,10 @@
                         (!session.trainSelection && !session.actions.length)}>Undo</button
                 >{/if}
         </header>
+        {/if}
         {#if session.isViewingHistory}<p>History view</p>{/if}
 
+        {#if session.companyTrainChoices.length}
         <nav aria-label="Train source" class="sources">
             {#if currentDepot.length || marketChoices.length || session.trainExchanges.length}
                 <button aria-pressed={session.trainBuyingSource === 'depot'} onclick={() => session.selectTrainSource('depot')}>Depot</button>
@@ -77,13 +81,18 @@
                 <button aria-pressed={session.trainBuyingSource === 'others'} onclick={() => session.selectTrainSource('others')}>Other companies</button>
             {/if}
         </nav>
+        {/if}
         {#if session.trainBuyingSource === 'depot'}
+        {#if session.fundingPurchases.length}
+            <TrainFunding {session} {trainColors} {showUndo} />
+        {:else}
         <div class="trains">
             {#each currentDepot as offer (offer.definitionId)}
-                {@render trainChoice(offer.definitionId, offer.evaluation.details?.price ?? session.trainDepot.trainDefinition(offer.definitionId).price, offer.remaining, offer.evaluation.details)}
+                {@const fundingPurchase = fundingDepot.find((purchase) => purchase.definitionId === offer.definitionId)}
+                {@render trainChoice(offer.definitionId, offer.evaluation.details?.price ?? session.trainDepot.trainDefinition(offer.definitionId).price, offer.remaining, offer.evaluation.details ?? fundingPurchase, false, false, !!fundingPurchase)}
             {/each}
             {#each marketChoices as { details, count } (`${details.definitionId}:${details.price}`)}
-                {@render trainChoice(details.definitionId, details.price, count, details, false, true)}
+                {@render trainChoice(details.definitionId, details.price, count, details, false, true, session.fundingPurchases.some((purchase) => purchase.trainId === details.trainId))}
             {/each}
             {#if nextDepot}
                 {@render trainChoice(nextDepot.definitionId, session.trainDepot.trainDefinition(nextDepot.definitionId).price, nextDepot.remaining, undefined, true)}
@@ -97,6 +106,7 @@
                         >Exchange {exchange.exchangeTrainId} for Diesel · ${exchange.price}</button
                     >{/each}
             </div>{/if}
+        {/if}
         {:else}<CompanyTrainBuying {session} {trainColors} />{/if}
         {#if session.currentTrainPurchaseIds.length}
             <div class="purchased" aria-label="Trains purchased this OR">
@@ -155,23 +165,6 @@
     }
     .depot-entry { display: flex; flex-direction: column; gap: 2px; }
     .remaining { text-align: right; }
-    .depot-choice {
-        filter: saturate(0.6);
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        padding: 6px 10px;
-        border: 1px solid #c7b8a6;
-        border-radius: 4px;
-    }
-    .train-price strong, .train-price b {
-        font-size: 14px;
-        font-weight: 600;
-        line-height: 1.25;
-    }
-    .train-price { display: flex; align-items: baseline; justify-content: space-between; gap: 28px; }
-    .depot-choice { text-align: left; min-width: 108px; }
-    .depot-choice.upcoming { opacity: 0.5; border-style: dashed; cursor: not-allowed; }
     small {
         color: #5e675f;
     }

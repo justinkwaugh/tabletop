@@ -1,5 +1,8 @@
 <script lang="ts">
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
+    import { getCompany } from '@tabletop/18xx'
+    import CompanyToken from '../tokens/CompanyToken.svelte'
+    import DecisionResponse from './DecisionResponse.svelte'
     import Tile from '../tiles/Tile.svelte'
     let { session, showUndo = true, excludeTrainPurchases = false }: { excludeTrainPurchases?: boolean; showUndo?: boolean; session: FinanceExampleSession } =
         $props()
@@ -8,6 +11,23 @@
     const draft = $derived(session.companyDecisionSelection)
 </script>
 
+{#if state.trackConsent}
+    {@const request = state.trackConsent.details}
+    {@const definition = session.mapView.tileSet.definitions.find((tile) => tile.id === request.definitionId)}
+    <DecisionResponse label="Track permission response" acceptLabel="Allow"
+        disabled={!session.canResolveCompanyDecision || !session.validActionTypes.includes('RespondToTrackConsent')}
+        onAccept={() => session.respondToTrackConsent(true)}
+        onDecline={() => session.respondToTrackConsent(false)}>
+        <CompanyToken appearance={session.mapView.stations[request.companyId]} size={24} />
+        <strong>{getCompany(state, request.companyId).name}</strong>
+        <span>requests permission to lay track at {request.locationId}</span>
+        {#if definition}
+            <Tile face={definition.face} orientation={session.mapView.map.definition.orientation}
+                rotation={request.rotation} size={48} />
+        {/if}
+        {#if request.cost}<span>for ${request.cost}</span>{/if}
+    </DecisionResponse>
+{:else}
 <section aria-label="Company decisions">
     <h2>Purchases and private powers</h2>
     {#if state.privatePowerWindow}
@@ -40,33 +60,6 @@
                 disabled={!session.canResolveCompanyDecision ||
                     !session.validActionTypes.includes('RespondToPurchaseOffer')}
                 onclick={() => session.respondToPurchaseOffer(false)}>Reject purchase</button
-            >
-        </div>
-    {:else if state.trackConsent}
-        {@const request = state.trackConsent}
-        {@const definition = session.mapView.tileSet.definitions.find(
-            (tile) => tile.id === request.details.definitionId
-        )}
-        <div aria-label="Track permission response">
-            {#if definition}<Tile
-                    face={definition.face}
-                    orientation={session.mapView.map.definition.orientation}
-                    rotation={request.details.rotation}
-                />{/if}
-            <p>
-                {request.details.companyId} requests permission to lay {request.details
-                    .definitionId} on {request.details.locationId} for {request.details.cost}.
-            </p>
-            <p>{session.getPlayerName(request.details.consentPlayerId!)} decides.</p>
-            <button
-                disabled={!session.canResolveCompanyDecision ||
-                    !session.validActionTypes.includes('RespondToTrackConsent')}
-                onclick={() => session.respondToTrackConsent(true)}>Allow track lay</button
-            >
-            <button
-                disabled={!session.canResolveCompanyDecision ||
-                    !session.validActionTypes.includes('RespondToTrackConsent')}
-                onclick={() => session.respondToTrackConsent(false)}>Deny track lay</button
             >
         </div>
     {:else}
@@ -208,8 +201,10 @@
             onclick={() => session.undo()}>Undo</button
         >{/if}
 </section>
+{/if}
 
 <style>
+    strong { font-weight: 600; }
     section {
         margin-block: 1rem;
         padding: 0.75rem;

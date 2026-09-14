@@ -16,7 +16,7 @@
             aria-label="Game"
             bind:value={title}
             onchange={(event) => {
-                if (event.currentTarget.value !== 'TOP' && position === 'finished')
+                if (event.currentTarget.value !== 'TOP' && (position === 'finished' || position === 'funding-chain'))
                     position = 'opening'
             }}
             ><option value="TOP">The Old Prince 1871</option><option value="1889"
@@ -33,6 +33,7 @@
             <option value="routes">Run trains</option>
             <option value="operations">Operating rounds</option>
             <option value="trains">Buy trains</option>
+            {#if title === 'TOP'}<option value="funding-chain">Union Bank train funding</option>{/if}
             <option value="transfers">Negotiated purchases</option>
             <option value="ending">Final operating turn</option>
             {#if title === 'TOP'}<option value="finished">Finished game</option>{/if}

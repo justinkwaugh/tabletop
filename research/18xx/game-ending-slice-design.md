@@ -78,3 +78,5 @@ stock-round flotation causing exhaustion, deferred continuation, actual diesel
 purchase, the final SR and three final ORs, bankruptcy precedence, tied winners,
 Union Bank/PEIR/private valuation, terminal rejection, replay, reload and Undo.
 Slice 18 remains deferred; manual route submission supplies authoritative revenue.
+
+Share-sale affordability follows the payer's bank policy: a bank configured to become unlimited on exhaustion may fund the full sale, and ordinary cash settlement records the bank break. This applies to stock-round and compulsory-funding disposals. Finite banks without that policy retain their affordability restriction. Regression cases cover SR settlement/undo, emergency sales and completed train purchase, and the finite-bank counterexample.

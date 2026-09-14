@@ -14,6 +14,7 @@ import {
 import {
     EarningsDistribution,
     cashOwnedBy,
+    isFinishOperatingTurn,
     getCompany,
     placeStockMarker,
     finishOperatingTurnReason,
@@ -140,12 +141,8 @@ it.each(Titles)(
     'settles $companyId earnings once, validates actors, and restores cash/market through replay and undo',
     ({ definition, rules, companyId }) => {
         const { game, engine, state } = example(definition, 'routes')
-        const run = engine.executeCanonicalAction({
-            game,
-            state,
-            action: action(state, 'RunTrains', { companyId, routes: [] })
-        })
-        const before = run.updatedState
+        earnings(state, companyId, 100)
+        const before = state
         const choice: EarningsChoice = 'withhold'
         const distribute = action(before, 'DistributeEarnings', { companyId, choice })
         for (const invalid of [
@@ -224,7 +221,8 @@ it.each(Titles)(
                 state: current,
                 action: action(current, type, fields)
             })
-            if (type === 'FinishOperatingTurn') seen.push(id)
+            for (const processed of result.processedActions)
+                if (isFinishOperatingTurn(processed)) seen.push(processed.companyId)
             let replay = current
             for (const processed of result.processedActions)
                 replay = engine.applyProcessedAction({ game, state: replay, action: processed })
@@ -363,4 +361,17 @@ it('previews a bank-breaking payment without mutation, then pays in full and sch
     expect(cashOwnedBy(result.updatedState, { kind: 'company', companyId: 'IR' })).toBe(
         Number(cashOwnedBy(state, { kind: 'company', companyId: 'IR' })) + 100
     )
+})
+
+it.each(Titles)('skips running and payout with trains but no connected route for $companyId', ({ definition, companyId }) => {
+    const { game, engine, state } = example(definition, 'routes')
+    state.stations = state.stations.filter((station) => station.companyId !== companyId)
+    const result = engine.executeCanonicalAction({ game, state, action: {
+        ...action(state, 'RunTrains', { companyId, routes: [] }), source: ActionSource.System
+    } })
+    expect(result.updatedState.routeStep?.result).toMatchObject({ revenue: 0, routes: [] })
+    expect(result.updatedState.machineState).not.toBe('RunningTrains')
+    expect(result.updatedState.machineState).not.toBe('DistributingEarnings')
+    expect(result.updatedState.earningsDistribution?.choice).toBe('withhold')
+    expect(result.updatedState.earningsDistribution?.marketMove).toBeDefined()
 })

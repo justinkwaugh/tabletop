@@ -244,6 +244,15 @@
             {/key}
         {/if}
         {#if session.trackPreview && !collapsing}
+            {#if session.trackPreview.cost > 0}
+            <div
+                class="placement-cost"
+                transition:fade|global={{ duration: prefersReducedMotion.current ? 0 : 120 }}
+                style:left={`${center.x}px`}
+                style:top={`${Math.min(height - tileSize * 0.3, center.y + hexHeight / 2 + tileSize * 0.06)}px`}
+                style:font-size={`${tileSize * 0.15}px`}
+            >${session.trackPreview.cost}</div>
+            {/if}
             <div
                 class="controls"
                 transition:fade|global={{ duration: prefersReducedMotion.current ? 0 : 120 }}
@@ -320,6 +329,18 @@
     button:focus-visible {
         outline: 3px solid #d52f83;
         outline-offset: 3px;
+    }
+    .placement-cost {
+        position: absolute;
+        transform: translateX(-50%);
+        padding: 0.25em 0.6em;
+        border-radius: 0.35em;
+        background: #302d29;
+        color: #fffaf2;
+        line-height: 1.2;
+        white-space: nowrap;
+        box-shadow: 0 2px 5px #0004;
+        font-variant-numeric: tabular-nums;
     }
     .controls {
         position: absolute;

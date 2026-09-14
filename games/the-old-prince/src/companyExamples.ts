@@ -240,7 +240,7 @@ export function createTheOldPrinceCompanyExample(
                 : train
         )
     }
-    if (position === 'funding' || position === 'bankruptcy') {
+    if (position === 'funding' || position === 'funding-chain' || position === 'bankruptcy') {
         state.phaseId = '4H'
         state.tileInventory = TheOldPrinceTileSet.createInventory([
             { locationId: 'K17', definitionId: '18xx:8', rotation: 4 },
@@ -271,6 +271,32 @@ export function createTheOldPrinceCompanyExample(
                     certificate.poolId = 'market'
                 }
             }
+    }
+    if (position === 'funding-chain') {
+        const union = { kind: 'company', companyId: 'UB' } as const
+        const alex = { kind: 'player', playerId: players[0].playerId } as const
+        const blair = { kind: 'player', playerId: players[1].playerId } as const
+        const casey = { kind: 'player', playerId: players[2].playerId } as const
+        getCompany(state, 'ML').president = union
+        getCompany(state, 'So').president = blair
+        for (const [id, owner] of [
+            ['ML:president', union],
+            ['ML:share:2', alex],
+            ['ML:share:7', casey],
+            ['ML:share:8', casey],
+            ['So:president', blair]
+        ] as const) {
+            const certificate = state.certificates.find((item) => item.id === id)
+            assert(certificate && !certificate.retired, 'Funding chain requires its share')
+            certificate.owner = owner
+            delete certificate.poolId
+        }
+        for (const cash of state.cash) {
+            if (cash.owner.kind === 'player')
+                cash.amount = cash.owner.playerId === alex.playerId ? 10 : 40
+            else if (cash.owner.kind === 'company' && cash.owner.companyId === 'UB')
+                cash.amount = 40
+        }
     }
     if (position === 'split') prepareTheOldPrinceBranchSplit(state, players)
     return state

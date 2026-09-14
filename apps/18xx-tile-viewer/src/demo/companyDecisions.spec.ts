@@ -1,4 +1,6 @@
 import { expect, it } from 'vitest'
+import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
+import { trackConsentDecline } from '../../../../libs/18xx-ui/src/lib/examples/trackConsentNotice.js'
 import { ActionSource, type GameAction } from '@tabletop/common'
 import {
     Definition as Top,
@@ -555,6 +557,14 @@ it.each([true, false])(
             state,
             action: action(state, 'RequestTrackConsent', request)
         })
+        const pendingConstruction = new TrackConstruction(
+            Top.runtime.hydrator.hydrateState(pending.updatedState),
+            TheOldPrinceTrackRules
+        )
+        const previewInventory = pendingConstruction.inventoryAfter(
+            pending.updatedState.trackConsent!.details
+        )
+        expect(previewInventory.placements.N18).toMatchObject({ definitionId, rotation })
         expect(pending.updatedState.activePlayerIds).toEqual(['casey'])
         expect(pending.updatedState.tileInventory).toEqual(state.tileInventory)
         expect(pending.updatedState.trackStep).toEqual(state.trackStep)
@@ -574,6 +584,46 @@ it.each([true, false])(
             state: pending.updatedState,
             action: response
         })
+        const recordedRequest = pending.processedActions.find(
+            (item) => item.type === 'RequestTrackConsent'
+        )!
+        const recordedResponse = result.processedActions.find(
+            (item) => item.type === 'RespondToTrackConsent'
+        )!
+        expect(historyDescription(recordedRequest, result.updatedState).text).toBe(
+            'Requested permission to lay track at N18'
+        )
+        expect(historyDescription(recordedResponse, result.updatedState)).toEqual(
+            accept
+                ? { text: 'Allowed track at N18; track laid', value: cost ? `$${cost}` : undefined }
+                : { text: 'Declined permission to lay track at N18' }
+        )
+        const recorded = [...pending.processedActions, ...result.processedActions]
+        const visibleState = { ...result.updatedState, actionCount: recorded.length }
+        expect(trackConsentDecline(recorded, visibleState)?.id).toBe(
+            accept ? undefined : recordedResponse.id
+        )
+        expect(
+            trackConsentDecline(recorded, {
+                ...visibleState,
+                trackConsent: pending.updatedState.trackConsent
+            })
+        ).toBeUndefined()
+        expect(
+            trackConsentDecline(recorded, { ...visibleState, machineState: 'BuyingTrains' })
+        ).toBeUndefined()
+        expect(
+            trackConsentDecline([...recorded, recordedRequest], {
+                ...visibleState,
+                actionCount: recorded.length + 1
+            })
+        ).toBeUndefined()
+        expect(
+            trackConsentDecline(recorded, {
+                ...visibleState,
+                actionCount: pending.processedActions.length
+            })
+        ).toBeUndefined()
         expect(result.updatedState.trackConsent).toBeUndefined()
         expect(result.updatedState.activePlayerIds[0]).toBe('alex')
         expect(result.updatedState.trackStep!.lays).toHaveLength(accept ? 1 : 0)

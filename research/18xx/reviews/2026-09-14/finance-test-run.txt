@@ -1,0 +1,344 @@
+
+> @tabletop/18xx-tile-viewer@0.0.1 test:unit /home/node/.codex/worktrees/21d7/workspace/apps/18xx-tile-viewer
+> vitest run src/demo/finance.spec.ts src/demo/companyFormation.spec.ts src/demo/sharePurchase.spec.ts src/demo/shareSale.spec.ts src/demo/stockRound.spec.ts src/demo/earnings.spec.ts src/demo/privateCompanies.spec.ts src/demo/companyDecisions.spec.ts src/demo/openingAuction.spec.ts src/demo/branchSplit.spec.ts src/demo/splitCompany.spec.ts src/demo/gameEnding.spec.ts src/demo/trainFunding.spec.ts src/demo/bankShareSales.spec.ts
+
+
+ RUN  v4.0.17 /home/node/.codex/worktrees/21d7/workspace/apps/18xx-tile-viewer
+
+ ❯ src/demo/sharePurchase.spec.ts (21 tests | 4 failed) 407ms
+   ✓ settles 'shikoku-1889' 'AR:share:5' for 'player' and round-trips history 85ms
+   ✓ settles 'shikoku-1889' 'AR:share:4' for 'player' and round-trips history 49ms
+   × settles 'the-old-prince' 'ML:share:5' for 'player' and round-trips history 39ms
+   × settles 'the-old-prince' 'ML:share:7' for 'player' and round-trips history 30ms
+   × settles 'the-old-prince' 'ML:share:5' for 'company' and round-trips history 19ms
+   × settles 'the-old-prince' 'ML:share:7' for 'company' and round-trips history 33ms
+     ✓ rejects 'another player acting' without mutation 16ms
+     ✓ rejects 'buying for another player' without mutation 8ms
+     ✓ rejects 'system action' without mutation 10ms
+     ✓ rejects 'changed price' without mutation 4ms
+     ✓ rejects 'missing certificate' without mutation 4ms
+     ✓ rejects 'unavailable presidency' without mutation 4ms
+     ✓ rejects 'corporate buyer in 1889' without mutation 10ms
+     ✓ rejects 'insufficient cash' without mutation 18ms
+     ✓ rejects 'sale earlier this round' without mutation 15ms
+     ✓ rejects 'unstarted company' without mutation 12ms
+     ✓ rejects 'certificate limit' without mutation 7ms
+     ✓ rejects 'ownership limit' without mutation 4ms
+     ✓ rejects TOP reserved shares and a second Union Bank purchase in the round 3ms
+     ✓ requires enough combined funds for Union Bank and preserves the incumbent on ties 4ms
+     ✓ replaces client-supplied settlement metadata with the authoritative details 32ms
+ ❯ src/demo/gameEnding.spec.ts (11 tests | 1 failed) 428ms
+   ✓ ends the final operating turn, records wealth, replays, reloads, and undoes: 'the-old-prince' 101ms
+   ✓ ends the final operating turn, records wealth, replays, reloads, and undoes: 'shikoku-1889' 63ms
+   × records the first TOP diesel once and preserves its final-set target through later actions 69ms
+   ✓ 1889 bank break during stock schedules the correct set and pays in full 14ms
+   ✓ 1889 bank break during operating schedules the correct set and pays in full 24ms
+   ✓ 1889 retains a broken-bank trigger after later deposits and schedules the NEXT set from a later SR 23ms
+   ✓ finishes TOP’s current set, a final stock round, and exactly three final operating rounds 64ms
+   ✓ values TOP’s PEIR and Union Bank assets once and ignores retired certificates and railway treasuries 6ms
+   ✓ scores private face values only for their actual owner and awards tied winners 21ms
+   ✓ bank break caused by flotation is recorded in the stock round and undone with the purchase 20ms
+   ✓ bankruptcy overrides a deferred ending and the bankrupt player can win 21ms
+ ❯ src/demo/shareSale.spec.ts (17 tests | 4 failed) 462ms
+   ✓ settles 'shikoku-1889' sale and presidency exchange with exact replay and Undo 91ms
+   ✓ settles 'the-old-prince' sale and presidency exchange with exact replay and Undo 75ms
+   ✓ retains the incumbent on a tied holding in 'shikoku-1889' 15ms
+   ✓ retains the incumbent on a tied holding in 'the-old-prince' 12ms
+   ✓ supports a presidency change on purchase in 'shikoku-1889' 35ms
+   × supports a presidency change on purchase in 'the-old-prince' 91ms
+   ✓ chooses players before Union Bank when successor holdings tie 26ms
+   ✓ allows Union Bank to take a presidency through another owner’s sale 13ms
+   ✓ resolves 1889 successor ties clockwise from the incumbent using turn order 4ms
+   × preserves the chosen TOP arrival order ML then So beneath existing markers 9ms
+   × preserves the chosen TOP arrival order So then ML beneath existing markers 6ms
+   ✓ rejects reserved purchases, Union Bank sales, unoperated companies, PEIR sales and oversized TOP blocks 9ms
+   ✓ rejects 1889 first-round sales and a Market above 50% 3ms
+   ✓ rejects a presidency dump without a successor, a stale sale price, an unauthorized actor, and malformed blocks without mutation 17ms
+   × enforces each title’s sale/purchase sequence and one sale block per company 38ms
+   ✓ applies yellow/orange exemptions dynamically and requires sales when an exemption ends 15ms
+   ✓ does not use a presidency exchange to evade the 1889 certificate limit 3ms
+ ❯ src/demo/companyFormation.spec.ts (13 tests | 3 failed) 550ms
+   × starts the-old-prince without prematurely funding or floating it 110ms
+   × floats the-old-prince through a recorded system action, with exact replay and Undo 82ms
+   ✓ starts shikoku-1889 without prematurely funding or floating it 39ms
+   ✓ floats shikoku-1889 through a recorded system action, with exact replay and Undo 71ms
+   ✓ starts a company for Union Bank using its cash before its owner’s contribution 43ms
+   ✓ rejects invalid starts without mutation 30ms
+   ✓ applies TOP phase prices and tranche completion independently of flotation 7ms
+   ✓ counts 1889 Market stock toward flotation and TOP reserved stock separately from Bank stock 12ms
+   × preserves a forced PEIR ownership excess without allowing further ordinary purchases 30ms
+   ✓ floats an already funded branch without granting initial capital again 20ms
+   ✓ closes PEIR and the King’s Mail and discards PEIR cash on its final exchange 38ms
+   ✓ rejects player-triggered flotation and refuses start costs above the buyer’s cash or limits 9ms
+   ✓ resolves both presidencies when the PEIR exchange changes the largest interests 56ms
+ ✓ src/demo/splitCompany.spec.ts (16 tests) 597ms
+ ✓ src/demo/privateCompanies.spec.ts (15 tests) 612ms
+ ✓ src/demo/trainFunding.spec.ts (17 tests) 731ms
+ ✓ src/demo/companyDecisions.spec.ts (21 tests) 870ms
+ ✓ src/demo/stockRound.spec.ts (19 tests) 887ms
+ ❯ src/demo/earnings.spec.ts (18 tests | 1 failed) 961ms
+   ✓ pays TOP bank and treasury shares to the company, and Union Bank shares to Union Bank 32ms
+   ✓ 1889 leaves IPO dividends in the bank and pays Market shares to the treasury 16ms
+   ✓ PEIR uses surviving shares, rounds each dividend up and retains the rounded-up half 16ms
+   ✓ TOP adds forty per share only when paying from the market ceiling 13ms
+   ✓ settles 'ML' earnings once, validates actors, and restores cash/market through replay and undo 61ms
+   ✓ settles 'IR' earnings once, validates actors, and restores cash/market through replay and undo 35ms
+   × completes every ordinary operating round for 'ML' and resumes the preserved stock order 540ms
+   ✓ completes every ordinary operating round for 'IR' and resumes the preserved stock order 203ms
+   ✓ requires a train when 'ML' has connected revenue centers 4ms
+   ✓ requires a train when 'IR' has connected revenue centers 3ms
+   ✓ exempts PEIR from compulsory train ownership 2ms
+   ✓ moves a floated trainless company left but leaves un-floated companies alone for 'ML' 3ms
+   ✓ moves a floated trainless company left but leaves un-floated companies alone for 'IR' 2ms
+   ✓ uses dividend edge arrows for 'ML' 3ms
+   ✓ uses dividend edge arrows for 'IR' 3ms
+   ✓ pays private income once and refreshes company order while retaining set length for 'ML' 9ms
+   ✓ pays private income once and refreshes company order while retaining set length for 'IR' 6ms
+   ✓ previews a bank-breaking payment without mutation, then pays in full and schedules the ending 8ms
+ ✓ src/demo/bankShareSales.spec.ts (2 tests) 37ms
+ ✓ src/demo/finance.spec.ts (2 tests) 56ms
+ ❯ src/demo/openingAuction.spec.ts (13 tests | 1 failed) 1204ms
+   ✓ creates the standard 2-player opening 85ms
+   ✓ creates the standard 3-player opening 47ms
+   ✓ creates the standard 4-player opening 54ms
+   ✓ creates the standard 5-player opening 42ms
+   ✓ creates the standard 6-player opening 41ms
+   ✓ reserves every standing bid and releases only the replaced lot commitment 205ms
+   ✓ rejects wrong actors, insufficient bids, higher-lot purchases, stale prices and user resolution 31ms
+   ✓ cascades reserved awards and preserves the next outer turn through completion 135ms
+   ✓ starts restricted bidding clockwise from the highest bidder, releases passes, and resumes the saved outer turn 109ms
+   ✓ discounts the first lot to a free award, then pays private income on later all-pass cycles 150ms
+   ✓ replays and undoes user actions and automatic cascades exactly without serializing rule dependencies 159ms
+   × starts and floats a company from the real first stock round, placing its home for free 73ms
+   ✓ restores the complete discount and free-award cascade with Undo 72ms
+ ✓ src/demo/branchSplit.spec.ts (20 tests) 137ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 14 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/demo/companyFormation.spec.ts > starts the-old-prince without prematurely funding or floating it
+AssertionError: expected [ 'StartCompany', 'FinishStockTurn' ] to deeply equal [ 'StartCompany' ]
+
+- Expected
++ Received
+
+  [
+    "StartCompany",
++   "FinishStockTurn",
+  ]
+
+ ❯ src/demo/companyFormation.spec.ts:75:70
+     73|         })
+     74|         expect(state).toEqual(before)
+     75|         expect(result.processedActions.map((action) => action.type)).t…
+       |                                                                      ^
+     76|         expect(getCompany(result.updatedState, companyId)).toMatchObje…
+     77|             started: true,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/14]⎯
+
+ FAIL  src/demo/companyFormation.spec.ts > floats the-old-prince through a recorded system action, with exact replay and Undo
+AssertionError: expected [ 'BuyShares', 'FloatCompany', …(1) ] to deeply equal [ 'BuyShares', 'FloatCompany' ]
+
+- Expected
++ Received
+
+  [
+    "BuyShares",
+    "FloatCompany",
++   "FinishStockTurn",
+  ]
+
+ ❯ src/demo/companyFormation.spec.ts:118:70
+    116|         })
+    117|         expect(state).toEqual(before)
+    118|         expect(result.processedActions.map((action) => action.type)).t…
+       |                                                                      ^
+    119|             'BuyShares',
+    120|             'FloatCompany'
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/14]⎯
+
+ FAIL  src/demo/companyFormation.spec.ts > preserves a forced PEIR ownership excess without allowing further ordinary purchases
+AssertionError: expected 'It is not this player’s turn.' to contain 'ownership limit'
+
+Expected: "ownership limit"
+Received: "It is not this player’s turn."
+
+ ❯ src/demo/companyFormation.spec.ts:274:7
+    272|             TheOldPrinceStockRules
+    273|         ).reason
+    274|     ).toContain('ownership limit')
+       |       ^
+    275| })
+    276| it('floats an already funded branch without granting initial capital a…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/14]⎯
+
+ FAIL  src/demo/earnings.spec.ts > completes every ordinary operating round for 'ML' and resumes the preserved stock order
+AssertionError: expected [ 'ML', 'PEIR', 'ML', 'PEIR' ] to have a length of 6 but got 4
+
+- Expected
++ Received
+
+- 6
++ 4
+
+ ❯ src/demo/earnings.spec.ts:238:22
+    236|             current = result.updatedState
+    237|         }
+    238|         expect(seen).toHaveLength(expectedTurns)
+       |                      ^
+    239|         expect(seen[0]).toBe(companyId)
+    240|         expect(current.machineState).toBe('StockRound')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/14]⎯
+
+ FAIL  src/demo/gameEnding.spec.ts > records the first TOP diesel once and preserves its final-set target through later actions
+AssertionError: expected 'LayingTrack' to be 'BuyingTrains' // Object.is equality
+
+Expected: "BuyingTrains"
+Received: "LayingTrack"
+
+ ❯ src/demo/gameEnding.spec.ts:89:46
+     87|     expect(result.updatedState.gameEnding).toEqual({ reason: 'First di…
+     88|     expect(result.updatedState.result).toBeUndefined()
+     89|     expect(result.updatedState.machineState).toBe('BuyingTrains')
+       |                                              ^
+     90|     const next = engine.executeCanonicalAction({
+     91|         game,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/14]⎯
+
+ FAIL  src/demo/openingAuction.spec.ts > starts and floats a company from the real first stock round, placing its home for free
+Error: Player casey is not an active player
+ ❯ assert ../../libs/common/src/util/assertions.ts:2:27
+ ❯ GameEngine.executeThroughRuntime ../../libs/common/src/game/engine/gameEngine.ts:315:19
+ ❯ GameEngine.executeUnprocessedAction ../../libs/common/src/game/engine/gameEngine.ts:186:32
+ ❯ GameEngine.executeCanonicalAction ../../libs/common/src/game/engine/gameEngine.ts:70:21
+ ❯ Object.act src/demo/openingAuction.spec.ts:37:35
+     35|         },
+     36|         act(type: string, fields: object = {}) {
+     37|             const result = engine.executeCanonicalAction({
+       |                                   ^
+     38|                 game,
+     39|                 state,
+ ❯ src/demo/openingAuction.spec.ts:238:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/14]⎯
+
+ FAIL  src/demo/sharePurchase.spec.ts > settles 'the-old-prince' 'ML:share:5' for 'player' and round-trips history
+ FAIL  src/demo/sharePurchase.spec.ts > settles 'the-old-prince' 'ML:share:7' for 'player' and round-trips history
+ FAIL  src/demo/sharePurchase.spec.ts > settles 'the-old-prince' 'ML:share:5' for 'company' and round-trips history
+ FAIL  src/demo/sharePurchase.spec.ts > settles 'the-old-prince' 'ML:share:7' for 'company' and round-trips history
+AssertionError: expected 'blair' to be 'alex' // Object.is equality
+
+Expected: "alex"
+Received: "blair"
+
+ ❯ src/demo/sharePurchase.spec.ts:95:49
+     93|         ).not.toHaveProperty('poolId')
+     94|         expect(updatedState.machineState).toBe('StockRound')
+     95|         expect(updatedState.activePlayerIds[0]).toBe('alex')
+       |                                                 ^
+     96|         expect(updatedState.actionCount).toBe(1)
+     97|         const [action] = processedActions
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/14]⎯
+
+ FAIL  src/demo/shareSale.spec.ts > supports a presidency change on purchase in 'the-old-prince'
+AssertionError: expected { systemVersion: 3, …(30) } to deeply equal { systemVersion: 3, …(30) }
+
+- Expected
++ Received
+
+@@ -1,10 +1,10 @@
+  {
+    "actionChecksum": 0,
+    "actionCount": 0,
+    "activePlayerIds": [
+-     "alex",
++     "blair",
+    ],
+    "bank": {
+      "name": "Bank",
+    },
+    "cash": [
+@@ -1513,17 +1513,23 @@
+      },
+    ],
+    "turnManager": {
+      "series": [
+        {
++         "end": 2,
+          "playerId": "alex",
+          "start": 0,
++         "type": "turn",
++       },
++       {
++         "playerId": "blair",
++         "start": 2,
+          "type": "turn",
+        },
+      ],
+      "turnCounts": {
+-       "alex": 0,
++       "alex": 1,
+        "blair": 0,
+        "casey": 0,
+      },
+      "turnOrder": [
+        "alex",
+
+ ❯ src/demo/shareSale.spec.ts:128:88
+    126|     if (!isBuyShares(record)) throw new Error('Expected purchase')
+    127|     expect(record.metadata?.presidency?.next).toEqual(buyer)
+    128|     expect(engine.undoProcessedAction({ state: result.updatedState, ac…
+       |                                                                                        ^
+    129|         state
+    130|     )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/14]⎯
+
+ FAIL  src/demo/shareSale.spec.ts > preserves the chosen TOP arrival order ML then So beneath existing markers
+ FAIL  src/demo/shareSale.spec.ts > preserves the chosen TOP arrival order So then ML beneath existing markers
+Error: Unknown finance example action: SellShares
+ ❯ Object.hydrateAction ../../libs/18xx/src/examples/financeExample.ts:987:23
+ ❯ Object.hydrateAction ../../games/the-old-prince/src/definition.ts:82:47
+ ❯ GameEngine.executeThroughRuntime ../../libs/common/src/game/engine/gameEngine.ts:321:58
+ ❯ GameEngine.executeUnprocessedAction ../../libs/common/src/game/engine/gameEngine.ts:186:32
+ ❯ GameEngine.executeCanonicalAction ../../libs/common/src/game/engine/gameEngine.ts:70:21
+ ❯ src/demo/shareSale.spec.ts:182:31
+    180|         placeStockMarker(state.stockMarket, 'stationary', '2:1')
+    181|         placeStockMarker(state.stockMarket, 'So', '1:1')
+    182|         const result = engine.executeCanonicalAction({
+       |                               ^
+    183|             game,
+    184|             state,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/14]⎯
+
+ FAIL  src/demo/shareSale.spec.ts > enforces each title’s sale/purchase sequence and one sale block per company
+AssertionError: expected 'It is not this player’s turn.' to contain 'after this purchase'
+
+Expected: "after this purchase"
+Received: "It is not this player’s turn."
+
+ ❯ src/demo/shareSale.spec.ts:283:11
+    281|         expect(
+    282|             evaluateShareSale(afterBuy, sell([{ companyId: other, shar…
+    283|         ).toContain('after this purchase')
+       |           ^
+    284|     }
+    285| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/14]⎯
+
+
+ Test Files  6 failed | 8 passed (14)
+      Tests  14 failed | 191 passed (205)
+   Start at  05:01:13
+   Duration  3.26s (transform 9.29s, setup 0ms, import 20.72s, tests 7.94s, environment 11ms)
+
+/home/node/.codex/worktrees/21d7/workspace/apps/18xx-tile-viewer:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @tabletop/18xx-tile-viewer@0.0.1 test:unit: `vitest run src/demo/finance.spec.ts src/demo/companyFormation.spec.ts src/demo/sharePurchase.spec.ts src/demo/shareSale.spec.ts src/demo/stockRound.spec.ts src/demo/earnings.spec.ts src/demo/privateCompanies.spec.ts src/demo/companyDecisions.spec.ts src/demo/openingAuction.spec.ts src/demo/branchSplit.spec.ts src/demo/splitCompany.spec.ts src/demo/gameEnding.spec.ts src/demo/trainFunding.spec.ts src/demo/bankShareSales.spec.ts`
+Exit status 1

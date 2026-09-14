@@ -4,6 +4,7 @@ import {
     isAdvancePhase,
     isFloatCompany,
     isEndGame,
+    isCompleteStockRound,
     isStartOperatingSet,
     isStartOperatingRound,
     isSellFundingShares
@@ -46,8 +47,11 @@ export function historyGroups(
                 ? action.companyId
                 : undefined
         const phase = isAdvancePhase(action)
-        const orderEvent = isStartOperatingSet(action) || isStartOperatingRound(action)
-        if (isEndGame(action) || orderEvent) current = undefined
+        const roundEvent =
+            isStartOperatingSet(action) ||
+            isStartOperatingRound(action) ||
+            isCompleteStockRound(action)
+        if (isEndGame(action) || roundEvent) current = undefined
         const consequence = phase || isFloatCompany(action)
         const compatible =
             current &&
@@ -60,7 +64,7 @@ export function historyGroups(
         if (!compatible) {
             current = {
                 kind:
-                    isEndGame(action) || phase || orderEvent
+                    isEndGame(action) || phase || roundEvent
                         ? 'event'
                         : operating && companyId
                           ? 'operation'

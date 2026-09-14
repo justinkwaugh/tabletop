@@ -1,5 +1,6 @@
 import {
     isAdvancePhase,
+    isCompleteStockRound,
     isRunTrains,
     isDistributeEarnings,
     isFinishStockTurn,
@@ -24,7 +25,10 @@ export type HistoryRound = {
 export function historyRounds(
     actions: readonly GameAction[],
     state: FinanceExampleState,
-    orderChanges: ReadonlyMap<string, HistoryOperatingOrder> = historyOperatingOrder(actions, state),
+    orderChanges: ReadonlyMap<string, HistoryOperatingOrder> = historyOperatingOrder(
+        actions,
+        state
+    ),
     cash: ReadonlyMap<string, HistoryCash> = historyCash(actions, state)
 ): HistoryRound[] {
     const awards: readonly AuctionAward[] = state.offerAuction?.awards ?? []
@@ -40,7 +44,11 @@ export function historyRounds(
     )
     const rounds: HistoryRound[] = []
     for (const action of actions.toReversed()) {
-        const label = auction ? 'Auction' : operating ? `OR ${set}.${round}` : `SR ${stock}`
+        const label = auction
+            ? 'Auction'
+            : operating && !isCompleteStockRound(action)
+              ? `OR ${set}.${round}`
+              : `SR ${stock}`
         let section = rounds.at(-1)
         if (section?.id !== label) {
             section = {
@@ -61,6 +69,10 @@ export function historyRounds(
             isAdvancePhase(action) ||
             isFinishStockTurn(action) ||
             isFloatCompany(action) ||
+            (isCompleteStockRound(action) &&
+                action.metadata?.marketMoves.some(
+                    (move) => move.fromMarketSpaceId !== move.toMarketSpaceId
+                )) ||
             isEndGame(action) ||
             (isResolveAuction(action) && !state.offerAuction)
                 ? { kind: 'action' as const, id: action.id, action }

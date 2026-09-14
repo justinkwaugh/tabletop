@@ -1,6 +1,7 @@
 <script lang="ts">
     import { assert, assertExists, type GameAction } from '@tabletop/common'
     import { FinanceExampleValidator } from '@tabletop/18xx'
+    import { historyCompanyChanges } from './historyCompanyChanges.js'
     import { historyCash } from './historyCash.js'
     import { historyOperatingOrder } from './historyOperatingOrder.js'
     import { historyRounds } from './historyRounds.js'
@@ -39,6 +40,11 @@
         assert(FinanceExampleValidator.Check(context.state), 'Cash history requires financial state')
         return historyCash(context.actions, context.state)
     })
+    const companyChanges = $derived.by(() => {
+        const context = session.history.visibleContext
+        assert(FinanceExampleValidator.Check(context.state), 'Company history requires financial state')
+        return historyCompanyChanges(context.actions, context.state)
+    })
     const rounds = $derived.by(() => {
         const context = session.history.visibleContext
         assert(
@@ -57,7 +63,7 @@
         const description =
             describeAction?.(action) ??
             historyDescription(action, session.financialState, companyName, (id) =>
-                session.getPlayerName(id)
+                session.getPlayerName(id), companyChanges.get(action.id)
             )
         return orderChanges.has(action.id) ? { ...description, important: true } : description
     }

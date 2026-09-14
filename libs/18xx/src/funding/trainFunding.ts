@@ -1,3 +1,4 @@
+import { settleCashPayments } from '../finance/cashPayments.js'
 import { copyStockState } from '../stock/stockState.js'
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
@@ -115,6 +116,48 @@ export class EmergencyTrainFunding {
         const price = Math.min(...offers.map((offer) => offer.price))
         if (this.cash({ kind: 'company', companyId }) >= price) return []
         return offers.filter((offer) => offer.price === price)
+    }
+    preview(purchase: TrainPurchaseDetails) {
+        const state: FundingState = {
+            ...this.state,
+            ...copyStockState(this.state),
+            operatingSet: this.state.operatingSet
+                ? structuredClone(this.state.operatingSet)
+                : undefined,
+            trainFunding: this.state.trainFunding
+                ? structuredClone(this.state.trainFunding)
+                : this.begin(purchase)
+        }
+        const funding = new EmergencyTrainFunding(state, this.rules, this.stocks, this.trains)
+        const contributions: { owner: Owner; amount: number }[] = []
+        let treasuryProceeds = 0
+        while (true) {
+            const next = funding.next()
+            if (next.kind === 'issue') {
+                treasuryProceeds += next.details.proceeds
+                funding.applySale(next.details)
+            } else if (next.kind === 'contribute') {
+                contributions.push({ owner: next.owner, amount: next.amount })
+                settleCashPayments(state, [
+                    {
+                        from: next.owner,
+                        to: { kind: 'company', companyId: purchase.companyId },
+                        amount: next.amount
+                    }
+                ])
+            } else {
+                return {
+                    contributions,
+                    treasuryProceeds,
+                    requiresSales: next.kind === 'sell',
+                    choice: next,
+                    amountToRaise:
+                        next.kind === 'sell'
+                            ? Math.max(0, funding.shortfall() - funding.cash(next.owner))
+                            : funding.shortfall()
+                }
+            }
+        }
     }
     begin(purchase: TrainPurchaseDetails): TrainFunding {
         const player = controllingOwner(this.state, purchase.companyId)

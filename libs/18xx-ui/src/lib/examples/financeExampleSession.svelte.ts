@@ -1,3 +1,4 @@
+import { isSellFundingShares, isIssueTreasuryShares, isContributeTrainFunds } from '@tabletop/18xx'
 import { EighteenXXPreferenceDefinition, type EighteenXXPreferences } from '@tabletop/18xx'
 import { isOfferPurchase, isRespondToPurchaseOffer, isDistributeEarnings } from '@tabletop/18xx'
 import type { TitlePreferences } from '@tabletop/frontend-components'
@@ -898,19 +899,19 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             this.financialState.machineState === 'FundingTrain' &&
             this.validActionTypes.length > 0
     )
-    private fundingDraft: ShareSaleDetails | undefined = $state.raw()
-    fundingSale = $derived(this.canResolveFunding ? this.fundingDraft : undefined)
-    selectFundingSale(sale: ShareSaleDetails) {
-        assert(
-            this.canResolveFunding && this.fundingChoice?.kind === 'sell',
-            'Funding sales are unavailable'
-        )
-        this.fundingDraft = sale
-    }
-    backFundingSale() {
-        this.fundingDraft = undefined
-    }
-    async fundTrain(purchase: TrainPurchaseDetails) {
+    fundingPurchase = $derived.by(() => this.financialState.trainFunding?.purchase ?? this.fundingPurchases[0])
+    fundingPlan = $derived.by(() => this.fundingPurchase ? this.funding.preview(this.fundingPurchase) : undefined)
+    fundingSales = $derived.by(() => this.fundingPlan?.choice.kind === 'sell' ? this.fundingPlan.choice.sales : [])
+    private fundingActions = $derived.by(() => {
+        const actions = this.actions.slice(0, this.gameState.actionCount)
+        const start = actions.findLastIndex((action) => action.type === 'FundTrain')
+        return this.financialState.trainFunding && start >= 0 ? actions.slice(start + 1) : []
+    })
+    fundingContributions = $derived(this.fundingActions.filter(isContributeTrainFunds))
+    fundingSaleHistory = $derived(this.fundingActions.flatMap((action) =>
+        (isSellFundingShares(action) || isIssueTreasuryShares(action)) && action.metadata
+            ? [{ id: action.id, details: action.metadata }] : []))
+    async fundTrain(purchase: TrainPurchaseDetails, buy = true) {
         assert(this.canFundTrain, 'Train funding is unavailable')
         await this.applyAction(
             this.createPlayerAction(FundTrain, {
@@ -920,8 +921,24 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
                 expectedPrice: purchase.price
             })
         )
+        await this.completeCashFunding(buy)
     }
-    async resolveTrainFunding() {
+    async resolveTrainFunding(sale?: ShareSaleDetails) {
+        if (sale) assert((this.canFundTrain || this.canResolveFunding) && this.fundingSales.includes(sale), 'Choose a legal funding sale')
+        const purchase = this.fundingPurchase
+        assert(purchase, 'Funding requires a train')
+        if (!this.financialState.trainFunding) {
+            await this.fundTrain(purchase, !sale)
+            if (!sale) return
+        }
+        if (sale) {
+            await this.applyFundingChoice(sale)
+            await this.completeCashFunding(false)
+        } else {
+            await this.completeCashFunding(true)
+        }
+    }
+    private async applyFundingChoice(sale?: ShareSaleDetails) {
         assert(this.canResolveFunding && this.fundingChoice, 'Train funding is unavailable')
         const choice = this.fundingChoice
         switch (choice.kind) {
@@ -941,7 +958,6 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
                 )
                 break
             case 'sell': {
-                const sale = this.fundingSale
                 assert(sale, 'Choose shares to sell')
                 await this.applyAction(
                     this.createPlayerAction(SellFundingShares, {
@@ -963,6 +979,16 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
                     })
                 )
                 break
+        }
+    }
+    private async completeCashFunding(buy: boolean) {
+        await this.waitForVisibleTransitionSettled()
+        while (this.canResolveFunding && this.fundingChoice &&
+            (this.fundingChoice.kind === 'issue' || (buy && ['contribute', 'buy'].includes(this.fundingChoice.kind)) || (!buy && this.fundingChoice.kind === 'contribute' && this.fundingPlan?.requiresSales === true))) {
+            const actionCount = this.financialState.actionCount
+            await this.applyFundingChoice()
+            await this.waitForVisibleTransitionSettled()
+            if (this.financialState.actionCount === actionCount) break
         }
     }
     private trainDraft: TrainPurchaseRequest | undefined = $state.raw()
@@ -1276,7 +1302,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     async finishStations() {
         const companyId = this.financialState.stationStep?.companyId
         assert(
-            companyId && this.canPlaceStation && !this.stationSelection.stationId,
+            companyId && this.canPlaceStation && !this.stationSelection.placement,
             'Finish or cancel the station selection'
         )
         await this.applyAction(this.createPlayerAction(FinishStations, { companyId }))
@@ -1358,21 +1384,22 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         this.trackSelection
         return false
     })
+    displayedTrackPreview = $derived.by(() => this.financialState.trackConsent?.details ?? this.trackPreview)
     displayedMapScene = $derived.by(() =>
-        this.trackPreview && !this.trackTileInFlight
+        this.displayedTrackPreview && !this.trackTileInFlight
             ? createMapDrawing(
                   this.mapView.map,
                   {
                       tileSet: this.mapView.tileSet,
-                      inventory: this.construction.inventoryAfter(this.trackPreview)
+                      inventory: this.construction.inventoryAfter(this.displayedTrackPreview)
                   },
                   this.mapView.layouts
               )
             : this.mapScene
     )
     displayedMapTokens = $derived.by(() =>
-        this.trackPreview && !this.trackTileInFlight
-            ? stationMapTokens(this.trackPreview, this.mapView.stations)
+        this.displayedTrackPreview && !this.trackTileInFlight
+            ? stationMapTokens(this.displayedTrackPreview, this.mapView.stations)
             : this.stationPreview
               ? stationMapTokens(this.stationDisplayState, this.mapView.stations)
               : this.mapTokens
@@ -1889,7 +1916,6 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         this.stockActionDraft = {}
         this.offerDraft = undefined
         this.auctionDraft = undefined
-        this.fundingDraft = undefined
         this.companyDraft = undefined
         this.privateDraft = undefined
         this.discardDraft = undefined
@@ -1906,7 +1932,6 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             this.stockMenu ||
             this.offerDraft ||
             this.auctionDraft ||
-            this.fundingDraft ||
             this.companyDraft ||
             this.privateDraft ||
             this.discardDraft ||
@@ -1931,10 +1956,6 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         }
         if (this.auctionDraft) {
             this.auctionDraft = undefined
-            return
-        }
-        if (this.fundingDraft) {
-            this.fundingDraft = undefined
             return
         }
         if (this.companyDraft) {

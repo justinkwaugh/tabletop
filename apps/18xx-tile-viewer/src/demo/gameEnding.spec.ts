@@ -86,11 +86,13 @@ it('records the first TOP diesel once and preserves its final-set target through
     expect(result.processedActions.map((a) => a.type)).toContain('ScheduleGameEnd')
     expect(result.updatedState.gameEnding).toEqual({ reason: 'First diesel', finalOperatingSet: 2 })
     expect(result.updatedState.result).toBeUndefined()
-    expect(result.updatedState.machineState).toBe('BuyingTrains')
+    expect(result.updatedState.machineState).toBe('LayingTrack')
     const next = engine.executeCanonicalAction({
         game,
         state: result.updatedState,
-        action: action(result.updatedState, 'FinishOperatingTurn', { companyId: request.companyId })
+        action: action(result.updatedState, 'FinishTrack', {
+            companyId: result.updatedState.trackStep!.companyId
+        })
     })
     expect(next.processedActions.map((a) => a.type)).not.toContain('ScheduleGameEnd')
     expect(next.updatedState.gameEnding).toEqual(result.updatedState.gameEnding)

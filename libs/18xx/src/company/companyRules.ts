@@ -1,3 +1,5 @@
+import type { CertificateExchange } from '../finance/certificateExchange.js'
+import type { TrainState } from '../trains/train.js'
 import type { Owner } from '../finance/finance.js'
 import type { StockState } from '../stock/stockState.js'
 import type { SharePurchaseTerms } from '../stock/sharePurchase.js'
@@ -14,5 +16,5 @@ export interface CompanyRules {
     ): SharePurchaseTerms | string
     flotationPayments(state: StockState, companyId: string): CashPayment[] | undefined
     onStart?(state: StockState, details: CompanyStartDetails): void
-    onFloat?(state: StockState, companyId: string): void
+    onFloat?(state: StockState & TrainState, companyId: string): CertificateExchange[] | void
 }

@@ -1,4 +1,3 @@
-import { trainsOwnedBy } from '../trains/train.js'
 import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
 import {
@@ -85,7 +84,7 @@ export class EarningsDistribution {
     ) {}
     automaticChoice(companyId: string): EarningsChoice | undefined {
         return this.state.routeStep?.result?.revenue === 0 &&
-            !trainsOwnedBy(this.state, { kind: 'company', companyId }).length &&
+            this.state.routeStep.result.routes.length === 0 &&
             this.rules.choices(this.state, companyId).includes('withhold')
             ? 'withhold' : undefined
     }

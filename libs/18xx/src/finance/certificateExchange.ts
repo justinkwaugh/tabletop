@@ -1,5 +1,12 @@
 import { assert } from '@tabletop/common'
-import type { FinancialState, Owner } from './finance.js'
+import * as Type from 'typebox'
+import { Owner, type FinancialState } from './finance.js'
+
+export const CertificateExchange = Type.Object(
+    { surrenderedId: Type.String(), receivedId: Type.String(), owner: Owner },
+    { additionalProperties: false }
+)
+export type CertificateExchange = Type.Static<typeof CertificateExchange>
 
 export function exchangeCertificate(
     state: FinancialState,

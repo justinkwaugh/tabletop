@@ -1,5 +1,6 @@
 <script lang="ts">
     import { getCompany, cashOwnedBy } from '@tabletop/18xx'
+    import { trackConsentDecline } from './trackConsentNotice.js'
     import Tile from '../tiles/Tile.svelte'
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
     let {
@@ -7,19 +8,22 @@
         showUndo = true,
         mapControls = false
     }: { showUndo?: boolean; mapControls?: boolean; session: FinanceExampleSession } = $props()
+    const declined = $derived(trackConsentDecline(session.actions, session.financialState))
     const turn = $derived(session.financialState.trackStep)
     const selection = $derived(session.trackSelection)
     const preview = $derived(session.trackPreview)
 </script>
 
-{#if turn && !session.financialState.stationStep}
+{#if turn && !session.financialState.stationStep && !session.financialState.trackConsent}
     <section aria-label="Track construction">
+        {#if declined}
+            <p class="decline-notice" role="status">{session.getPlayerName(declined.playerId)} declined permission to lay track at {declined.metadata?.request.details.locationId}.</p>
+        {/if}
         {#if mapControls}
             <header class="map-prompt">
-                <span>Choose a space or</span>
+                <span>Choose a tile space or</span>
                 <button class="action-button inline-action" onclick={() => session.finishTrack()}
                     disabled={!session.canBuildTrack || !!selection.locationId}>skip</button>
-                <span class="cost" class:inactive-cost={!preview}>Cost: ${preview?.cost ?? 0}</span>
             </header>
         {:else}
         <header>
@@ -42,9 +46,6 @@
                     onclick={() => session.finishTrack()}
                     disabled={!session.canBuildTrack || !!selection.locationId}>Finish track</button
                 >
-            {/if}
-            {#if mapControls}
-                <span class="cost" class:inactive-cost={!preview}>Cost: ${preview?.cost ?? 0}</span>
             {/if}
         </header>
         {/if}
@@ -136,14 +137,19 @@
 {/if}
 
 <style>
-    .map-prompt { justify-content: center; }
-    .cost {
-        min-width: 8ch;
-        white-space: nowrap;
+    .decline-notice {
+        width: fit-content;
+        max-width: 100%;
+        box-sizing: border-box;
+        margin: 0 auto 10px;
+        padding: 6px 12px;
+        border-radius: 5px;
+        background: #f2dfda;
+        color: #8b352e;
+        text-align: center;
+        font-size: 13px;
     }
-    .inactive-cost {
-        visibility: hidden;
-    }
+    .map-prompt { justify-content: center; margin-bottom: 0; }
     section {
         margin: 12px 0;
         padding: 12px;

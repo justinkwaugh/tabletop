@@ -1,135 +1,89 @@
 <script lang="ts">
     import { getCompany } from '@tabletop/18xx'
+    import CompanyToken from '../tokens/CompanyToken.svelte'
+    import TrainBadge from '../trains/TrainBadge.svelte'
+    import TrainPurchaseButton from '../trains/TrainPurchaseButton.svelte'
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session, showUndo = true }: { showUndo?: boolean; session: FinanceExampleSession } =
-        $props()
-    const funding = $derived(session.financialState.trainFunding)
-    const choice = $derived(session.fundingChoice)
-    const bankruptcy = $derived(session.financialState.bankruptcy)
+    let { session, trainColors, showUndo = true }: {
+        session: FinanceExampleSession; trainColors: Readonly<Record<string, string>>; showUndo?: boolean
+    } = $props()
+    const purchase = $derived(session.fundingPurchase)
+    const plan = $derived(session.fundingPlan)
+    const disabled = $derived(!(session.canFundTrain || session.canResolveFunding))
 </script>
 
-{#if funding || session.fundingPurchases.length}
+{#if purchase && plan}
     <section aria-label="Compulsory train funding">
         <header>
-            <h2>{bankruptcy ? 'Bankruptcy' : 'Compulsory train funding'}</h2>
-            {#if showUndo}<button
-                    onclick={() => session.undo()}
-                    disabled={session.busy ||
-                        session.updatingVisibleState ||
-                        session.isViewingHistory ||
-                        !session.actions.length}>Undo</button
-                >{/if}
+            <CompanyToken appearance={session.mapView.stations[purchase.companyId]} size={24} />
+            <span>{getCompany(session.financialState, purchase.companyId).name} must buy a</span>
+            <TrainBadge name={session.trainDepot.trainDefinition(purchase.definitionId).name} color={trainColors[purchase.definitionId]} />
+            <span>for ${purchase.price}</span>
+            {#if showUndo}<button disabled={session.busy || session.updatingVisibleState || session.isViewingHistory}
+                onclick={() => session.undo()}>Undo</button>{/if}
         </header>
-        {#if bankruptcy}
-            <p>
-                {session.ownerName({ kind: 'player', playerId: bankruptcy.playerId })} cannot fund {getCompany(
-                    session.financialState,
-                    bankruptcy.companyId
-                ).name}’s required train. The game has ended with a ${bankruptcy.shortfall} shortfall.
-            </p>
-        {:else if funding}
-            <p>
-                {getCompany(session.financialState, funding.purchase.companyId).name} must buy a {session.trainDepot.trainDefinition(
-                    funding.purchase.definitionId
-                ).name} for ${funding.purchase.price}. Remaining shortfall: ${session.funding.shortfall()}.
-            </p>
-            <p>
-                Contributions: {funding.contributors
-                    .map((owner) => session.ownerName(owner))
-                    .join(' → ')}
-            </p>
-            {#if session.isViewingHistory}<p>History view</p>{/if}
-            {#if choice?.kind === 'issue'}
-                <p>
-                    Issue all {choice.details.sales[0].shares} treasury shares for ${choice.details
-                        .proceeds}.
-                </p>
-                <button
-                    disabled={!session.canResolveFunding}
-                    onclick={() => session.resolveTrainFunding()}>Issue treasury shares</button
-                >
-            {:else if choice?.kind === 'contribute'}
-                <p>{session.ownerName(choice.owner)} must contribute ${choice.amount}.</p>
-                <button
-                    disabled={!session.canResolveFunding}
-                    onclick={() => session.resolveTrainFunding()}
-                    >Contribute ${choice.amount}</button
-                >
-            {:else if choice?.kind === 'sell'}
-                <p>{session.ownerName(choice.owner)} must sell shares.</p>
-                <div class="choices">
-                    {#each choice.sales as sale}
-                        <button
-                            disabled={!session.canResolveFunding}
-                            aria-pressed={session.fundingSale === sale}
-                            onclick={() => session.selectFundingSale(sale)}
-                            >Sell {sale.sales[0].shares}
-                            {sale.sales[0].companyId} for ${sale.proceeds}</button
-                        >
+        {#if session.financialState.bankruptcy}
+            <p>Unable to raise the remaining ${session.financialState.bankruptcy.shortfall}. The game has ended.</p>
+        {:else}
+            {#if plan.treasuryProceeds}<p>Treasury shares will raise ${plan.treasuryProceeds}.</p>{/if}
+            {#each session.fundingContributions as contribution (contribution.id)}
+                <p>{session.ownerName(contribution.owner)} contributed ${contribution.amount}.</p>
+            {/each}
+            {#each plan.contributions as contribution}
+                <p>{session.ownerName(contribution.owner)} contributes ${contribution.amount}.</p>
+            {/each}
+            {#if plan.choice.kind === 'sell'}
+                <p>{session.ownerName(plan.choice.owner)}
+                    {#if plan.amountToRaise > 0}must raise <strong>${plan.amountToRaise}</strong> by selling shares.
+                    {:else}must sell shares to meet the ownership limit.{/if}</p>
+                <div class="choices" aria-label="Funding share sales">
+                    {#each session.fundingSales as sale}
+                        {@const companyId = sale.sales[0].companyId}
+                        <button class="sale-choice" {disabled} data-funding-shares={sale.sales[0].shares}
+                            aria-label={`Sell ${sale.sales[0].shares} ${getCompany(session.financialState, companyId).name} shares for $${sale.proceeds}`}
+                            onclick={() => session.resolveTrainFunding(sale)}>
+                            <CompanyToken appearance={session.mapView.stations[companyId]} size={32} />
+                            <span>{sale.sales[0].shares} {sale.sales[0].shares === 1 ? 'share' : 'shares'} · ${sale.proceeds}</span>
+                        </button>
                     {/each}
                 </div>
-                {#if session.fundingSale}
-                    <p>
-                        Confirm sale of {session.fundingSale.sales[0].shares}
-                        {session.fundingSale.sales[0].companyId} shares for ${session.fundingSale
-                            .proceeds}.
-                    </p>
-                    <button onclick={() => session.backFundingSale()}>Back</button>
-                    <button
-                        disabled={!session.canResolveFunding}
-                        onclick={() => session.resolveTrainFunding()}>Confirm share sale</button
-                    >
-                {/if}
-            {:else if choice?.kind === 'buy'}
-                <button
-                    disabled={!session.canResolveFunding}
-                    onclick={() => session.resolveTrainFunding()}>Buy required train</button
-                >
+            {:else if plan.choice.kind === 'bankrupt'}
+                <p>Unable to raise the remaining ${plan.amountToRaise}.</p>
+                <div class="choices"><button class="action-button" {disabled}
+                    onclick={() => session.resolveTrainFunding()}>Declare bankruptcy</button></div>
+            {:else if plan.choice.kind === 'buy'}
+                <div class="choices">
+                    <span>Buy</span>
+                    <TrainPurchaseButton name={session.trainDepot.trainDefinition(purchase.definitionId).name}
+                        definitionId={purchase.definitionId} price={purchase.price} color={trainColors[purchase.definitionId]}
+                        {disabled} onclick={() => { void session.resolveTrainFunding() }} />
+                </div>
             {/if}
-        {:else}
-            <p>
-                The company needs a train and cannot afford the cheapest available bank train. Begin
-                compulsory funding, or arrange a purchase from another company using treasury cash.
-            </p>
-            {#each session.fundingPurchases as purchase}
-                <button disabled={!session.canFundTrain} onclick={() => session.fundTrain(purchase)}
-                    >Fund {session.trainDepot.trainDefinition(purchase.definitionId).name} · ${purchase.price}</button
-                >
-            {/each}
+            {#if session.fundingSaleHistory.length}
+                <table aria-label="Shares sold for train">
+                    <thead><tr><th>Seller</th><th>Company</th><th>Shares</th><th>Proceeds</th></tr></thead>
+                    <tbody>{#each session.fundingSaleHistory as { id, details } (id)}
+                        <tr><td>{session.ownerName(details.seller)}</td>
+                            <td><span class="company"><CompanyToken appearance={session.mapView.stations[details.sales[0].companyId]} size={20} />{getCompany(session.financialState, details.sales[0].companyId).name}</span></td>
+                            <td>{details.sales[0].shares}</td><td>${details.proceeds}</td></tr>
+                    {/each}</tbody>
+                </table>
+            {/if}
         {/if}
     </section>
 {/if}
 
 <style>
-    section {
-        background: #fff6df;
-        border: 1px solid #c5ad71;
-        border-radius: 8px;
-        padding: 16px;
-        margin: 14px 0;
-    }
-    header,
-    .choices {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-    h2 {
-        margin: 0;
-        flex: 1;
-    }
-    button {
-        padding: 8px 12px;
-        margin: 3px;
-        border: 1px solid #8d8b72;
-        border-radius: 5px;
-        background: white;
-    }
-    button:disabled {
-        opacity: 0.45;
-    }
-    button[aria-pressed='true'] {
-        background: #d9e7d5;
-    }
+    section { font-size: 13px; color: #514536; }
+    header, .choices, .company { display: flex; align-items: center; gap: 6px; }
+    header, .choices { justify-content: center; flex-wrap: wrap; }
+    p { text-align: center; margin: 8px 0; }
+    .choices { margin-top: 10px; }
+    button { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid #c7b8a6; border-radius: 4px; background: #efe7db; color: inherit; font: inherit; cursor: pointer; }
+    .sale-choice { flex-direction: column; gap: 4px; }
+    button:disabled { opacity: .5; cursor: default; }
+    table { border-collapse: collapse; margin: 12px auto 0; font-variant-numeric: tabular-nums; }
+    th { font-weight: 500; color: #756854; border-bottom: 1px solid #c7b8a6; }
+    th, td { padding: 3px 9px; text-align: left; }
+    th:nth-last-child(-n+2), td:nth-last-child(-n+2) { text-align: right; }
 </style>

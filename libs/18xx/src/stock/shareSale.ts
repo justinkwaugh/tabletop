@@ -153,7 +153,11 @@ export function evaluateShareDisposal(
         const owed = payments
             .filter((other) => sameOwner(other.from, payment.from))
             .reduce((sum, other) => sum + other.amount, 0)
-        if (cash !== 'unlimited' && cash < owed)
+        if (
+            cash !== 'unlimited' &&
+            cash < owed &&
+            !(payment.from.kind === 'bank' && state.bank.unlimitedAfterExhaustion)
+        )
             return { reason: 'The payer cannot fund this sale in the example.' }
     }
     return { details: { seller, sales: settlements, payments, proceeds: total } }

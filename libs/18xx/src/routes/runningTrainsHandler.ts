@@ -1,4 +1,3 @@
-import { trainsOwnedBy } from '../trains/train.js'
 import { trainsRustingAfterOperation } from '../trains/rustTrains.js'
 import {
     ActionSource,
@@ -22,7 +21,7 @@ export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrai
             !isRunTrains(action) ||
             (action.source !== ActionSource.User &&
                 !(action.source === ActionSource.System &&
-                    !trainsOwnedBy(state, { kind: 'company', companyId: action.companyId }).length)) ||
+                    action.routes.length === 0 && new RouteEvaluation(state, this.rules).cannotRun(action.companyId))) ||
             !action.playerId ||
             !state.activePlayerIds.includes(action.playerId)
         )
@@ -46,7 +45,7 @@ export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrai
         const state = context.gameState
         const companyId = state.routeStep?.companyId
         if (companyId && !state.routeStep?.result &&
-            !trainsOwnedBy(state, { kind: 'company', companyId }).length) {
+            new RouteEvaluation(state, this.rules).cannotRun(companyId)) {
             context.addSystemAction(RunTrains, {
                 companyId, playerId: state.activePlayerIds[0], routes: []
             })

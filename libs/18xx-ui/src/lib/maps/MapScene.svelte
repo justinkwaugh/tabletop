@@ -17,6 +17,7 @@
         legalLocationIds = [],
         maskUnavailableLocations = false,
         previewLocationId,
+        translucentLocationId,
         selection,
         tokens = [],
         reservations,
@@ -30,6 +31,7 @@
         legalLocationIds?: readonly string[]
         maskUnavailableLocations?: boolean
         previewLocationId?: string
+        translucentLocationId?: string
         selection?: MapSelection
         tokens?: readonly MapToken[]
         reservations?: readonly StationReservation[]
@@ -102,6 +104,7 @@
             transform={`translate(${entry.center.x} ${entry.center.y})`}
             data-map-location={id}
             data-placed={entry.placed}
+            opacity={id === translucentLocationId ? 0.55 : 1}
             class:unavailable={!available}
             aria-disabled={!available}
             role="button"
@@ -344,21 +347,6 @@
             {/each}
         </g>
     {/if}
-    <g data-map-layer="construction" fill="none" pointer-events="none" aria-hidden="true">
-        {#each entries.filter((entry) => !maskUnavailableLocations && (legalLocationIds.includes(entry.location.id) || entry.location.id === previewLocationId)) as entry (entry.location.id)}
-            <polygon
-                data-track-target={entry.location.id}
-                data-track-preview={entry.location.id === previewLocationId
-                    ? entry.location.id
-                    : undefined}
-                transform={`translate(${entry.center.x} ${entry.center.y}) scale(${entry.location.id === previewLocationId ? 0.93 : 1})`}
-                points={entry.drawing.polygon}
-                stroke={entry.location.id === previewLocationId ? '#d67910' : '#278249'}
-                stroke-width="2"
-                stroke-dasharray={maskUnavailableLocations ? undefined : '4 2'}
-            />
-        {/each}
-    </g>
     <g
         data-map-layer="highlights"
         fill="none"
@@ -366,9 +354,10 @@
         pointer-events="none"
         aria-hidden="true"
     >
-        {#each entries.filter((entry) => entry.location.id === selection?.locationId || entry.location.id === focusedLocationId || (maskUnavailableLocations && (entry.location.id === previewLocationId || (entry.location.id === hoveredLocationId && legalLocationIds.includes(entry.location.id))))) as entry (entry.location.id)}
+        {#each entries.filter((entry) => entry.location.id === selection?.locationId || entry.location.id === focusedLocationId || entry.location.id === previewLocationId || (maskUnavailableLocations && entry.location.id === hoveredLocationId && legalLocationIds.includes(entry.location.id))) as entry (entry.location.id)}
             <polygon
                 data-map-highlight={entry.location.id}
+                data-track-preview={entry.location.id === previewLocationId ? entry.location.id : undefined}
                 data-map-hover={maskUnavailableLocations &&
                 entry.location.id === hoveredLocationId &&
                 legalLocationIds.includes(entry.location.id)

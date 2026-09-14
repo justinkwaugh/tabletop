@@ -1,0 +1,22 @@
+{
+  "actions": [
+    "BuyShares",
+    "FloatCompany",
+    "FinishStockTurn"
+  ],
+  "peir": {
+    "id": "PEIR",
+    "name": "Prince Edward Island Railway",
+    "kind": "major",
+    "closed": true
+  },
+  "train": {
+    "id": "the-old-prince/3H/5",
+    "definitionId": "3H",
+    "status": "owned",
+    "owner": {
+      "kind": "company",
+      "companyId": "PEIR"
+    }
+  }
+}

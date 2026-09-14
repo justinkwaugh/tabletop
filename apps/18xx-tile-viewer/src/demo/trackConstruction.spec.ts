@@ -46,9 +46,9 @@ it.each(Titles)(
         expect(state).toEqual(before)
         const action = lay(state, details)
         const result = engine.executeCanonicalAction({ game, state, action })
-        expect(result.processedActions.map((action) => action.type)).toEqual(['LayTile', 'FinishTrack', 'FinishStations'])
+        expect(result.processedActions.map((action) => action.type)).toEqual(['LayTile', 'FinishTrack', 'FinishStations', ...(definition === Top ? [] : ['RunTrains', 'DistributeEarnings'])])
         expect(result.processedActions[1].source).toBe(ActionSource.System)
-        expect(result.updatedState.machineState).toBe('RunningTrains')
+        expect(result.updatedState.machineState).toBe(definition === Top ? 'RunningTrains' : 'BuyingTrains')
         expect(result.updatedState.tileInventory.placements[locationId]).toEqual(details.placement)
         expect(result.updatedState.stations).toEqual(state.stations)
         expect(result.updatedState.trackStep?.lays).toHaveLength(1)
@@ -210,8 +210,8 @@ it.each(Titles)(
             companyId: state.trackStep!.companyId
         }
         const result = engine.executeCanonicalAction({ game, state, action })
-        expect(result.updatedState.machineState).toBe('RunningTrains')
-        expect(result.processedActions.map((action) => action.type)).toEqual(['FinishTrack', 'FinishStations'])
+        expect(result.updatedState.machineState).toBe(definition === Top ? 'RunningTrains' : 'BuyingTrains')
+        expect(result.processedActions.map((action) => action.type)).toEqual(['FinishTrack', 'FinishStations', ...(definition === Top ? [] : ['RunTrains', 'DistributeEarnings'])])
         expect(result.updatedState.stationStep).toEqual({
             companyId: state.trackStep!.companyId,
             placedStationIds: [],

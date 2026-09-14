@@ -169,16 +169,17 @@
         const bottom = Math.max(...rectangles.map((rect) => rect.y + rect.height))
         mapWrapper?.focusRect({ x, y, width: right - x, height: bottom - y }, { animate: true })
     }
-    const maskPlacementLocations = $derived(!session.historicalMap &&
+    const consentPreview = $derived(session.historicalMap ? undefined : session.financialState.trackConsent)
+    const maskPlacementLocations = $derived(!session.historicalMap && !consentPreview &&
         (session.showTrackChoices || session.financialState.machineState === 'PlacingStation'))
     const placementLocationIds = $derived(session.historicalMap ? [] : session.canPlaceStation
         ? session.stationLocationIds : session.trackLocationIds)
-    const placementFocusKey = $derived(maskPlacementLocations
-        ? JSON.stringify([session.financialState.machineState, placementLocationIds]) : undefined)
+    const placementFocusKey = $derived(consentPreview?.id ?? (maskPlacementLocations
+        ? JSON.stringify([session.financialState.machineState, placementLocationIds]) : undefined))
     $effect(() => {
         if (!placementFocusKey || session.updatingVisibleState) return
         return untrack(() => {
-            const locations = [...placementLocationIds]
+            const locations = consentPreview ? [consentPreview.details.locationId] : [...placementLocationIds]
             if (!locations.length) return
             let cancelled = false
             view = 'Map'
@@ -380,19 +381,20 @@
                         <MapScene revenueStageColors={session.mapView.revenueStageColors}
                             scene={displayedScene}
                             tokens={session.historicalMap?.tokens ?? session.displayedMapTokens}
-                            reservations={session.historicalMap?.reservations ?? session.trackPreview?.stationReservations ??
+                            reservations={session.historicalMap?.reservations ?? session.displayedTrackPreview?.stationReservations ??
                                 session.stationDisplayState.stationReservations}
                             routes={session.historicalMap?.routes ?? session.routeOverlays}
                             selection={session.historicalMap ? session.historicalMap.selection : session.mapSelection}
                             maskUnavailableLocations={maskPlacementLocations}
                             legalLocationIds={placementLocationIds}
-                            previewLocationId={session.historicalMap ? undefined : session.trackPreview?.locationId ??
+                            previewLocationId={session.historicalMap ? undefined : session.displayedTrackPreview?.locationId ??
                                 session.stationPreview?.position.locationId}
+                            translucentLocationId={consentPreview?.details.locationId}
                             appearance={session.mapStyle === 'muted'
                                 ? MutedTileAppearance
                                 : ClassicTileAppearance}
                             hexDiameter={140}
-                            onselect={session.historicalMap ? undefined : (selection) => session.selectMap(selection, false)}
+                            onselect={session.historicalMap || consentPreview ? undefined : (selection) => session.selectMap(selection, false)}
                         />
                         {#snippet toolbar()}
                             {#if session.historicalMap}<div class="historical-map-toolbar">
@@ -482,9 +484,9 @@
     .action-panel {
         flex-shrink: 0;
         max-height: 32dvh;
-        min-height: 78px;
+        min-height: 0;
         overflow: auto;
-        padding: 12px 16px;
+        padding: 10px 16px;
         background: #faf7f1;
         border-bottom: 1px solid #b8a995;
         font-size: 13px;

@@ -144,8 +144,15 @@ it.each(Titles)(
         }
         expect(result.updatedState.bankruptcy).toBeUndefined()
         expect(result.updatedState.trainFunding).toBeUndefined()
-        expect(result.updatedState.machineState).toBe('BuyingTrains')
-        expect(result.updatedState.trainPurchaseStep?.purchasedTrainIds).toContain(purchase.trainId)
+        expect(result.updatedState.machineState).toBe(
+            definition === Top ? 'LayingTrack' : 'OperatingSet'
+        )
+        expect(
+            result.updatedState.trainInventory.trains.find((train) => train.id === purchase.trainId)
+        ).toMatchObject({
+            status: 'owned',
+            owner: { kind: 'company', companyId: purchase.companyId }
+        })
         expect(result.updatedState.phaseId).toBe(purchase.definitionId)
     }
 )
@@ -556,4 +563,169 @@ it('reevaluates 1889 ownership limits when an emergency sale moves into the Oran
     if (next.kind !== 'sell') throw Error('Expected ownership correction')
     expect(next.sales.map((sale) => sale.sales[0].shares)).toEqual([1])
     expect(next.sales[0].sales[0].toMarketSpaceId).toBe('8:0')
+})
+
+it('continues emergency share sales when they exhaust the 1889 bank', () => {
+    const { game, engine, state } = example(Shikoku, 'funding')
+    state.cash.find((cash) => cash.owner.kind === 'bank')!.amount = 1
+    const funding = (value: FinanceExampleState) =>
+        new EmergencyTrainFunding(
+            value,
+            Shikoku1889TrainFundingRules,
+            Shikoku1889StockRules,
+            Shikoku1889TrainRules
+        )
+    const purchase = funding(state).purchases()[0]
+    let result = engine.executeCanonicalAction({
+        game,
+        state,
+        action: action(state, 'FundTrain', {
+            companyId: purchase.companyId,
+            trainId: purchase.trainId,
+            definitionId: purchase.definitionId,
+            expectedPrice: purchase.price
+        })
+    })
+    let sold = false
+    for (
+        let index = 0;
+        result.updatedState.trainFunding && !result.updatedState.bankruptcy && index < 20;
+        index++
+    ) {
+        const before = result.updatedState
+        const choice = funding(before).next()
+        result = engine.executeCanonicalAction({
+            game,
+            state: before,
+            action: nextAction(before, choice)
+        })
+        if (choice.kind === 'sell') {
+            sold = true
+            expect(result.updatedState.bank.broken).toBe(true)
+            expect(cashOwnedBy(result.updatedState, { kind: 'bank' })).toBe('unlimited')
+        }
+        let undone = result.updatedState
+        for (const processed of [...result.processedActions].reverse())
+            undone = engine.undoProcessedAction({ state: undone, action: processed })
+        expect(undone).toEqual(before)
+    }
+    expect(sold).toBe(true)
+    expect(result.updatedState.bankruptcy).toBeUndefined()
+    expect(
+        result.updatedState.trainInventory.trains.find((train) => train.id === purchase.trainId)
+    ).toMatchObject({
+        status: 'owned',
+        owner: { kind: 'company', companyId: purchase.companyId }
+    })
+})
+
+it.each(Titles)(
+    'previews cash funding without changing the game: $definition.info.id',
+    ({ definition, rules, stocks, trains }) => {
+        const { game, engine, state } = example(definition, 'funding')
+        for (const cash of state.cash) if (cash.owner.kind === 'player') cash.amount = 2000
+        const before = structuredClone(state)
+        const funding = new EmergencyTrainFunding(state, rules, stocks, trains)
+        const purchase = funding.purchases()[0]
+        const preview = funding.preview(purchase)
+        expect(state).toEqual(before)
+        expect(preview.requiresSales).toBe(false)
+        let result = engine.executeCanonicalAction({
+            game,
+            state,
+            action: action(state, 'FundTrain', {
+                companyId: purchase.companyId,
+                trainId: purchase.trainId,
+                definitionId: purchase.definitionId,
+                expectedPrice: purchase.price
+            })
+        })
+        const contributions: { owner: Owner; amount: number }[] = []
+        let treasuryProceeds = 0
+        while (result.updatedState.trainFunding) {
+            const choice = new EmergencyTrainFunding(
+                result.updatedState,
+                rules,
+                stocks,
+                trains
+            ).next()
+            expect(['issue', 'contribute', 'buy']).toContain(choice.kind)
+            if (choice.kind === 'contribute')
+                contributions.push({ owner: choice.owner, amount: choice.amount })
+            if (choice.kind === 'issue') treasuryProceeds += choice.details.proceeds
+            result = engine.executeCanonicalAction({
+                game,
+                state: result.updatedState,
+                action: nextAction(result.updatedState, choice)
+            })
+        }
+        expect(preview).toMatchObject({
+            contributions,
+            treasuryProceeds,
+            requiresSales: false,
+            amountToRaise: 0,
+            choice: { kind: 'buy' }
+        })
+        expect(
+            result.updatedState.trainInventory.trains.find((train) => train.id === purchase.trainId)
+        ).toMatchObject({ owner: { kind: 'company', companyId: purchase.companyId } })
+    }
+)
+
+it('the funding-chain example exhausts Union Bank before its owner sells and buys', () => {
+    const { game, engine, state } = example(Top, 'funding-chain')
+    const model = (current: FinanceExampleState) =>
+        new EmergencyTrainFunding(
+            current,
+            TheOldPrinceTrainFundingRules,
+            TheOldPrinceStockRules,
+            TheOldPrinceTrainRules
+        )
+    const purchase = model(state).purchases()[0]
+    expect(purchase.price).toBe(160)
+    const union = { kind: 'company', companyId: 'UB' } as const
+    const alex = { kind: 'player', playerId: 'alex' } as const
+    expect(model(state).preview(purchase).choice).toMatchObject({ kind: 'sell', owner: union })
+    let result = engine.executeCanonicalAction({
+        game,
+        state,
+        action: action(state, 'FundTrain', {
+            companyId: purchase.companyId,
+            trainId: purchase.trainId,
+            definitionId: purchase.definitionId,
+            expectedPrice: purchase.price
+        })
+    })
+    const recorded = [...result.processedActions]
+    const choices: FundingChoice[] = []
+    for (let i = 0; result.updatedState.trainFunding && i < 10; i++) {
+        const next = model(result.updatedState).next()
+        choices.push(next)
+        result = engine.executeCanonicalAction({
+            game,
+            state: result.updatedState,
+            action: nextAction(result.updatedState, next)
+        })
+        recorded.push(...result.processedActions)
+    }
+    expect(choices.map((choice) => choice.kind)).toEqual([
+        'sell',
+        'contribute',
+        'sell',
+        'contribute',
+        'buy'
+    ])
+    expect(choices[0]).toMatchObject({ owner: union })
+    expect(choices[1]).toMatchObject({ owner: union })
+    expect(choices[2]).toMatchObject({ owner: alex })
+    expect(choices[3]).toMatchObject({ owner: alex })
+    expect(cashOwnedBy(result.updatedState, union)).toBe(0)
+    expect(result.updatedState.bankruptcy).toBeUndefined()
+    expect(
+        result.updatedState.trainInventory.trains.find((train) => train.id === purchase.trainId)
+    ).toMatchObject({ owner: { kind: 'company', companyId: purchase.companyId } })
+    let undone = result.updatedState
+    for (const processed of recorded.toReversed())
+        undone = engine.undoProcessedAction({ state: undone, action: processed })
+    expect(undone).toEqual(state)
 })

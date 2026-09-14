@@ -1,3 +1,5 @@
+import { trainsOwnedBy } from '../trains/train.js'
+import { hasStationRoute } from '../trains/trainRequirement.js'
 import { routeRevenue } from './routeRevenue.js'
 import { controllingOwner, getCompany, sameOwner } from '../finance/finance.js'
 import { RailwayMapState } from '../map/mapState.js'
@@ -30,6 +32,10 @@ export class RouteEvaluation {
         this.network = new RouteNetwork(
             new RailwayMapState(rules.map, rules.tileSet, state.tileInventory)
         )
+    }
+    cannotRun(companyId: string): boolean {
+        return !trainsOwnedBy(this.state, { kind: 'company', companyId }).length ||
+            !hasStationRoute(this.network.mapState, this.state, companyId)
     }
     canAct(playerId: string, companyId: string): boolean {
         return (

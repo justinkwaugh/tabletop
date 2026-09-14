@@ -92,8 +92,11 @@ it.each([
             updatedState.certificates.find((certificate) => certificate.id === certificateId)
         ).not.toHaveProperty('poolId')
         expect(updatedState.machineState).toBe('StockRound')
-        expect(updatedState.activePlayerIds[0]).toBe('alex')
-        expect(updatedState.actionCount).toBe(1)
+        expect(updatedState.activePlayerIds[0]).toBe(definition === Top ? 'blair' : 'alex')
+        expect(processedActions.map((record) => record.type)).toEqual(
+            definition === Top ? ['BuyShares', 'FinishStockTurn'] : ['BuyShares']
+        )
+        expect(updatedState.actionCount).toBe(before.actionCount + processedActions.length)
         const [action] = processedActions
         expect(isBuyShares(action)).toBe(true)
         if (!isBuyShares(action)) throw new Error('Expected purchase history')
@@ -114,9 +117,13 @@ it.each([
                 .hydrateState(JSON.parse(JSON.stringify(updatedState)))
                 .dehydrate()
         ).toEqual(updatedState)
-        const replay = engine.applyProcessedAction({ game, state: before, action })
+        let replay = before
+        for (const record of processedActions)
+            replay = engine.applyProcessedAction({ game, state: replay, action: record })
         expect(replay).toEqual(updatedState)
-        expect(engine.undoProcessedAction({ state: replay, action })).toEqual(before)
+        for (const record of processedActions.toReversed())
+            replay = engine.undoProcessedAction({ state: replay, action: record })
+        expect(replay).toEqual(before)
         expect(() =>
             engine.executeCanonicalAction({
                 game,

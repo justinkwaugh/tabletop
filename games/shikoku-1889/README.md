@@ -1,6 +1,6 @@
 # Shikoku 1889
 
-`@tabletop/shikoku-1889` is the deterministic logic scaffold for Shikoku 1889.
+`@tabletop/shikoku-1889` is the deterministic logic package for Shikoku 1889.
 It depends on `@tabletop/18xx` and `@tabletop/common`; its companion Game Client
 package is `@tabletop/shikoku-1889-ui`.
 
@@ -10,11 +10,16 @@ The public entry point exports `Shikoku1889Tiles`, `Shikoku1889TileSet`, and
 `Shikoku1889Map` exports the complete semantic map, including geography,
 construction facts, reservations, and markers. See the [M1 map design](../../libs/18xx/maps.md).
 See the [T3 inventory design and evidence](../../libs/18xx/inventory.md), including
-the rulebook's extra beginner #57. The public `Definition` now loads a strict three-player finance example through
-Common Game Runtime. It includes cash, certificates, and control inspection; it is
-not full game setup or a playable game. There are no registered gameplay Actions,
-and the title is not registered in the site catalog. See the
-[shared economic model and title examples](../../libs/18xx/finance.md).
+the rulebook's extra beginner #57. The public `Definition` initializes the real opening auction for 2–6 players.
+Its registered Actions and handlers cover setup, stock rounds, company operations,
+private powers, trains, emergency funding and game endings. Scenario initialization
+is also available through the development configurator; the shared runtime retains
+its `FinanceExample` naming while the session and table UI remain provisional.
+See [complete-game verification](../../research/18xx/complete-game-verification.md)
+and the [client autorouter design](../../research/18xx/autorouter-design.md).
+The title's Logic and UI packages participate in artifact staging; this is not a
+claim that they have been published or accepted for production.
+
 
 ## Rule evidence
 
@@ -25,8 +30,9 @@ and the title is not registered in the site catalog. See the
   identified there as production. Its game definitions and inherited engine
   behavior can be consulted for canonical rule questions alongside the supplied PDF.
 
-Standard and Beginner Game supplies are separate manifests; their complete runtime
-rules remain later work. Shikoku 1889 owns its map, private
+Standard and Beginner Game supplies are separate manifests. The standard runtime
+is implemented; beginner-specific runtime differences remain deferred, along with
+physical-board artwork and mobile presentation. Shikoku 1889 owns its map, private
 powers, setup, rule choices, and round composition. Shared stock, operating, and
 financial mechanisms belong in the family library when their semantics match.
 See the [family mechanism map](../../libs/18xx/README.md#initial-title-pair).
