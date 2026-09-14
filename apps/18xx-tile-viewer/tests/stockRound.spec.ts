@@ -70,7 +70,7 @@ test(`resumes TOP trading after a pass and restores pass cards with Undo at desk
     await page.locator('[data-purchase-certificate="So:share:5"][data-buyer="player"]').click()
     await expect(trading.getByRole('button', { name: 'Pass', exact: true })).toBeDisabled()
     await trading.getByRole('button', { name: 'Confirm purchase', exact: true }).click()
-    await trading.getByRole('button', { name: 'Finish turn', exact: true }).click()
+    await trading.getByRole('button', { name: 'End turn', exact: true }).click()
     await trading.getByRole('button', { name: 'Pass', exact: true }).click()
     await expect(status).toContainText('Alex’s stock turn')
     await expect(status).toContainText('Pass order: Alex → Casey')

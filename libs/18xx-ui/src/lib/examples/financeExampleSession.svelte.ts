@@ -1509,13 +1509,14 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     stockMenu = $derived(
         this.updatingVisibleState || this.isViewingHistory
             ? undefined
-            : this.stockActionDraft.action?.value
+            : this.stockActionDraft.action?.value.menu
     )
+    stockActionBuyer = $derived(this.stockActionDraft.action?.value.buyer)
     selectedSaleCompany = $derived(this.stockActionDraft.saleCompany?.value)
-    chooseStockMenu(menu: StockAction | undefined) {
+    chooseStockMenu(menu: StockAction | undefined, buyer?: Owner) {
         this.assertSelectionAvailable(this.myPlayer?.id)
         this.cancelSelection()
-        this.stockActionDraft = menu ? chooseStockAction(menu) : {}
+        this.stockActionDraft = menu ? chooseStockAction(menu, buyer) : {}
     }
     chooseStockSaleCompany(companyId: string) {
         this.assertSelectionAvailable(this.myPlayer?.id)
@@ -1686,11 +1687,18 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         return evaluateSharePurchase(this.financialState, this.selection.request, this.stockRules)
             .details
     })
-    selectedSale = $derived(
-        this.selection?.kind === 'sale' && !this.updatingVisibleState && !this.isViewingHistory
-            ? this.selection.request
-            : undefined
-    )
+    stockSaleSelection = $derived.by(() => {
+        if (this.updatingVisibleState || this.isViewingHistory) return undefined
+        if (this.selection?.kind === 'sale')
+            return { source: 'manual' as const, request: this.selection.request }
+        if (this.stockMenu !== 'sell' || !this.selectedSaleCompany) return undefined
+        const choices = this.saleChoices.filter((choice) =>
+            choice.sale.companyId === this.selectedSaleCompany && choice.result.details)
+        if (choices.length === 1 && choices[0].sale.shares === 1)
+            return { source: 'auto' as const, request: choices[0].request }
+        return undefined
+    })
+    selectedSale = $derived(this.stockSaleSelection?.request)
     selectedSaleResult = $derived.by(() =>
         this.selectedSale
             ? evaluateShareSale(this.financialState, this.selectedSale, this.stockRules)
@@ -1870,6 +1878,11 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         }
         if (this.trackDraft.locationId) {
             this.trackDraft = {}
+            return
+        }
+        if (this.stockMenu === 'sell' && this.selectedSaleCompany) {
+            this.cancelSelection()
+            this.backFromStockMenu()
             return
         }
         if (this.selection) {

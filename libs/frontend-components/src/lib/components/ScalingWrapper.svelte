@@ -587,8 +587,11 @@
 
             if (activeFocusTarget) {
                 const targetView = getViewForFocusTarget(activeFocusTarget)
-                cancelViewAnimation()
-                applyView(targetView.scale, targetView.translateX, targetView.translateY)
+                if (viewAnimationFrame !== undefined) {
+                    animateViewTo(targetView.scale, targetView.translateX, targetView.translateY)
+                } else {
+                    applyView(targetView.scale, targetView.translateX, targetView.translateY)
+                }
                 initialized = true
                 return
             }
@@ -699,6 +702,18 @@
 
     export function toggleExpanded() {
         setExpanded(!isExpanded)
+    }
+
+    export function captureView() {
+        const scale = currentScale
+        const rect = {
+            x: -currentTranslateX / scale,
+            y: -currentTranslateY / scale,
+            width: wrapperWidth / scale,
+            height: wrapperHeight / scale
+        }
+        return (options: FitOptions = {}) =>
+            focusRect(rect, { maxScale: scale, padding: 0, animate: options.animate })
     }
 
     export function fitToContent(options: FitOptions = {}) {

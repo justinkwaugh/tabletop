@@ -73,7 +73,7 @@ it('commits the exact preview, conserves assets, and uses one stock action', () 
     const action = split(state)
     const calculation = new TheOldPrinceBranchSplit(state).allocate(action, action.allocation)
     const result = engine.executeCanonicalAction({ game, state, action })
-    expect(result.processedActions).toHaveLength(1)
+    expect(result.processedActions.map((action) => action.type)).toEqual(['SplitCompany', 'FinishStockTurn'])
     const processed = result.processedActions[0]
     if (!isSplitCompany(processed)) throw new Error('Expected a processed split')
     expect(processed.metadata).toEqual(calculation.details)
@@ -134,9 +134,9 @@ it('commits the exact preview, conserves assets, and uses one stock action', () 
         companyMarketSpace(state.stockMarket, 'So')
     )
     expect(companyMarketSpace(after.stockMarket, 'branch:BB').price).toBe(80)
-    expect(after.stockRound.turn.bought).toBe(true)
-    expect(after.stockRound.turn.acted).toBe(true)
-    expect(after.activePlayerIds[0]).toBe('alex')
+    expect(after.stockRound.turn.bought).toBe(false)
+    expect(after.stockRound.turn.acted).toBe(false)
+    expect(after.activePlayerIds[0]).toBe('blair')
     expect(after.machineState).toBe('StockRound')
 })
 it('round-trips the action and restores the entire split with replay and Undo', () => {
@@ -151,12 +151,13 @@ it('round-trips the action and restores the entire split with replay and Undo', 
     expect(Top.runtime.hydrator.hydrateState(result.updatedState).dehydrate()).toEqual(
         result.updatedState
     )
-    expect(engine.applyProcessedAction({ game, state, action: processed })).toEqual(
-        result.updatedState
-    )
-    expect(engine.undoProcessedAction({ state: result.updatedState, action: processed })).toEqual(
-        state
-    )
+    let replay = state
+    for (const action of result.processedActions)
+        replay = engine.applyProcessedAction({ game, state: replay, action })
+    expect(replay).toEqual(result.updatedState)
+    for (const action of result.processedActions.toReversed())
+        replay = engine.undoProcessedAction({ state: replay, action })
+    expect(replay).toEqual(state)
     expect(Shikoku.runtime.apiActions.SplitCompany).toBeUndefined()
 })
 it.each([
@@ -251,7 +252,7 @@ it('allows zero cash and no trains or Hunslet to be transferred', () => {
         position: { locationId: 'N20' }
     })
 })
-it('resumes the stock turn, bars a second purchase, and floats later without paying again', () => {
+it('finishes the stock turn, bars a second purchase, and floats later without paying again', () => {
     const { game, engine, state: initial } = example(Top, 'split')
     let state = engine.executeCanonicalAction({
         game,
@@ -261,7 +262,6 @@ it('resumes the stock turn, bars a second purchase, and floats later without pay
     expect(() =>
         engine.executeCanonicalAction({ game, state, action: purchase('branch:BB:share:2', 80) })
     ).toThrow()
-    state = apply(state, game, engine, 'FinishStockTurn', 'alex')
     expect(state.activePlayerIds[0]).toBe('blair')
     for (const [playerId, certificateId] of [
         ['blair', 'branch:BB:share:2'],
@@ -283,11 +283,13 @@ it('resumes the stock turn, bars a second purchase, and floats later without pay
             }
         })
         state = result.updatedState
-        if (playerId !== 'alex') state = apply(state, game, engine, 'FinishStockTurn', playerId)
-        else
+        if (playerId !== 'alex') {
+            if (state.stockRound.turn.acted) state = apply(state, game, engine, 'FinishStockTurn', playerId)
+        } else
             expect(result.processedActions.map((action) => action.type)).toEqual([
                 'BuyShares',
-                'FloatCompany'
+                'FloatCompany',
+                'FinishStockTurn'
             ])
     }
     expect(getCompany(state, 'branch:BB').floated).toBe(true)

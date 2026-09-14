@@ -1001,3 +1001,21 @@ Round interstitials use native sticky positioning bounded by their round section
 A right-aligned Index button beside the left-aligned history-order toggle opens a native popover over the history list. Its compact phase-colored round buttons follow the selected display order. Selecting one closes the index and scrolls that round’s beginning to the pinned edge without changing the history cursor or game state. Outside click, Escape, or viewport resize dismisses the index; the list scrolls within the available history height.
 
 Round sections contain their content margins, while sticky interstitials have no outer margin. This preserves the 5px card-to-heading spacing and lets consecutive pinned headings meet without a gap at round boundaries.
+
+Stock purchases use one company card with its token and full name, containing vertical source/price buttons. A row submits the selected canonical purchase through the session. Equivalent certificates remain deduplicated, but numbered shares, denominations and presidency distinctions stay explicit. Buyer selection is part of the manual action-menu stage: Buy selects the player; Buy for <owner> selects each available corporate buyer. Back clears that whole stage in one step. The shared UI does not name Union Bank or depend on TOP.
+
+Design review: the ownership/certificate survey includes TOP’s Union Bank, 1841 corporate investment, differing IPO/market/treasury pools and 18MEX certificate denominations. Accordingly buyer and source remain canonical Owner and certificate-pool data, independent of company grouping. This slice renders the existing legal choices for TOP/1889 without adding new corporate trading rules. Verify one card for multiple pools, direct row submission for the selected buyer, distinct numbered certificates and Back without an Action.
+
+Stock purchase source rows label Treasury shares as Treasury. The stock action panel has no separate Back button; the existing staged-selection-aware history controls own stepping back through manual choices.
+
+The operating-order display-style toggle is right-aligned in its heading row; the overflow overview stays beside the heading.
+
+After an acted stock turn, the outer stock handler evaluates the fully composed legal-action set, including title extensions and private exchanges. If only FinishStockTurn remains, it appends that action as a system consequence. Pass remains explicit on an untouched turn, and ownership/certificate-limit sales cannot be bypassed. Undo restores the initiating transaction and automatic completion together. The outer placement preserves optional actions across TOP branch splits, Union Bank purchases, 1889 exchanges, and differing sell/buy sequences; no title’s purchase count is treated as a universal end-of-turn rule.
+
+Stock sales highlight the chosen share-count option in place; there is no separate removable-sale row. When a manually selected company has exactly one legal sale choice and it is one share, the session derives an auto-sourced selection. Confirmation still submits the sale. Undo from the share-count choices clears both the count and selected company, returning directly to company selection for manual and automatic counts alike. Automatic selection is gated by stock menu, company choice, and visible-state lifecycle without an effect.
+
+Stock exchange choices read private name → destination company token and full name, in one clickable row. Destination identity comes from the offered certificate, not its encoded identifier. The whole row keeps the existing direct exchange submission behavior.
+
+Company starts select the buyer in the stock action stage, just like share purchases: Start for a player, or Start for the eligible corporate owner. The company list contains only that buyer’s valid starts; buyer-specific prices and canonical start requests remain intact. Global Undo unwinds the existing staged selection.
+
+Selecting a company to start focuses its home locations using the map’s contextual focus bounds. This local selection owns a saved viewport: unwinding the company selection restores the prior tab and viewport, while committing or navigating game history discards the saved view. Map focus remains an imperative ScalingWrapper presentation operation, not a game-state action.

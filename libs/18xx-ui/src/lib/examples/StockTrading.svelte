@@ -41,7 +41,7 @@
                         session.isViewingHistory ||
                         !!session.selection ||
                         !session.validActionTypes.includes('FinishStockTurn')}
-                    >{state.stockRound.turn.acted ? 'Finish turn' : 'Pass'}</button
+                    >{state.stockRound.turn.acted ? 'End turn' : 'Pass'}</button
                 >{/if}
             {#if showUndo}<button
                     onclick={() => session.undo()}

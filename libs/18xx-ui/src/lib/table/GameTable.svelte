@@ -188,6 +188,28 @@
         })
         return () => { cancelled = true }
     })
+    $effect(() => {
+        const selected = session.selectedStartCompany
+        if (!selected) return
+        return untrack(() => {
+            const previousView = view
+            const restore = mapWrapper?.captureView()
+            let cancelled = false
+            session.closeHistoricalMap()
+            view = 'Map'
+            void tick().then(() => {
+                if (cancelled) return
+                const locations = companyFocusLocations(session.stationDisplayState, selected.companyId)
+                if (locations.length) focusLocations(locations)
+            })
+            return () => {
+                cancelled = true
+                if (session.busy || session.updatingVisibleState || session.isViewingHistory) return
+                view = previousView
+                void tick().then(() => restore?.({ animate: true }))
+            }
+        })
+    })
     const financialState = $derived(session.financialState)
     const operating = $derived(financialState.stockRound.completed && !!financialState.operatingSet)
     const companyOrder = $derived(

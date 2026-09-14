@@ -231,12 +231,15 @@
         min-width: 0;
     }
     .order-heading {
+        width: 100%;
         display: flex;
         align-items: center;
         gap: 10px;
         max-width: 100%;
     }
     .chip-style {
+        order: 1;
+        margin-left: auto;
         display: flex;
         align-items: center;
         gap: 3px;

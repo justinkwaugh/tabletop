@@ -245,3 +245,5 @@ increment; the old workbench remains available for detailed rule inspection.
 The company-order row and token artwork follow the shared game-table-shell
 contract. This title supplies its existing OperatingRules and packaged token
 artwork; order and token identities remain canonical during history and Undo.
+
+Branch split presents one manual stage at a time: eligible parent token/name, branch token/name, then starting-price buttons. Completed company choices remain a compact token/name summary. The existing staged selection owns progress; Undo unwinds it without committing an action. There are no dropdowns or separate Back controls. Price selection opens the existing split preview and allocation flow.

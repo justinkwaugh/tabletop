@@ -246,7 +246,7 @@ for (const width of [1280, 390]) {
         await page.locator('[data-purchase-certificate="So:share:5"][data-buyer="player"]').click()
         await trading.getByRole('button', { name: 'Confirm purchase' }).click()
         await expect(alex).toContainText('Cash 338')
-        await trading.getByRole('button', { name: 'Finish turn' }).click()
+        await trading.getByRole('button', { name: 'End turn' }).click()
         await expect(page.getByRole('region', { name: 'Round status' })).toContainText(
             'Blair’s stock turn'
         )

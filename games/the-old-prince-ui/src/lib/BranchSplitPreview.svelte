@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { CompanyToken } from '@tabletop/18xx-ui'
     import BranchSplitAllocation from './BranchSplitAllocation.svelte'
     import { getCompany } from '@tabletop/18xx'
     import { TheOldPrinceMap } from '@tabletop/the-old-prince'
@@ -9,89 +10,59 @@
     const selection = $derived(session.splitSelection)
     const preview = $derived(session.splitPreview?.details)
     const parents = $derived(
-        session.myPlayer ? session.splitModel.parents(session.myPlayer.id) : []
+        session.myPlayer ? session.splitModel.parents(session.myPlayer.id).filter((parent) => !parent.reason) : []
     )
 </script>
 
 {#if state.machineState === 'StockRound' && session.splitModel.branches().length && !session.isViewingHistory && !session.updatingVisibleState}
     <section aria-label="Branch split preview">
-        <h2>Branch split</h2>
-        {#if session.latestSplit?.metadata}
-            <p role="status">
-                {getCompany(state, session.latestSplit.parentId).name} split into {getCompany(
-                    state,
-                    session.latestSplit.branchId
-                ).name}. Branch funding: ${session.latestSplit.metadata.childFunding}.
-            </p>
+        <h2>{!selection.parentId ? 'Choose a parent company' : !selection.branchId ? 'Choose a branch company' : !selection.marketSpaceId ? 'Choose a starting price' : 'Branch split'}</h2>
+        {#if selection.parentId}
+            <div class="selected-companies">
+                <span><CompanyToken appearance={session.mapView.stations[selection.parentId.value]} size={26} />{getCompany(state, selection.parentId.value).name}</span>
+                {#if selection.branchId}
+                    <span class="arrow" aria-hidden="true">→</span>
+                    <span><CompanyToken appearance={session.mapView.stations[selection.branchId.value]} size={26} />{getCompany(state, selection.branchId.value).name}</span>
+                {/if}
+                {#if preview}<span class="selected-price"><span>Par</span><strong>{preview.price}</strong></span>{/if}
+            </div>
         {/if}
         <div class="controls">
-            <label
-                >Parent company
-                <select
-                    aria-label="Split parent"
-                    value={selection.parentId?.value ?? ''}
-                    disabled={!session.canPreviewSplit}
-                    onchange={(event) => session.selectSplitParent(event.currentTarget.value)}
-                >
-                    <option value="" disabled>Choose a parent</option>
-                    {#each parents as { company, reason }}<option
-                            value={company.id}
-                            disabled={!!reason}>{company.name}{reason ? ` — ${reason}` : ''}</option
-                        >{/each}
-                </select>
-            </label>
-            <label
-                >Branch company
-                <select
-                    aria-label="Split branch"
-                    value={selection.branchId?.value ?? ''}
-                    disabled={!session.canPreviewSplit || !selection.parentId}
-                    onchange={(event) => session.selectSplitBranch(event.currentTarget.value)}
-                >
-                    <option value="" disabled>Choose a branch</option>
-                    {#each session.splitModel.branches() as branch}<option value={branch.id}
-                            >{branch.name}</option
-                        >{/each}
-                </select>
-            </label>
-            <label
-                >Starting price
-                <select
-                    aria-label="Branch starting price"
-                    value={selection.marketSpaceId?.value ?? ''}
-                    disabled={!session.canPreviewSplit || !selection.branchId}
-                    onchange={(event) => session.selectSplitPrice(event.currentTarget.value)}
-                >
-                    <option value="" disabled>Choose a price</option>
-                    {#each session.splitModel.prices() as price}<option value={price.id}
-                            >${price.price}</option
-                        >{/each}
-                </select>
-            </label>
-            <button
-                onclick={() => session.backSplit()}
-                disabled={!session.hasSplitDraft || !session.canPreviewSplit}>Back</button
-            >
-            {#if showUndo}<button
-                    onclick={() => session.undo()}
-                    disabled={session.busy || (!session.hasSplitDraft && !session.undoableAction)}
-                    >Undo</button
-                >{/if}
+            {#if !selection.parentId}
+                {#each parents as { company }}
+                    <button class="company-choice" aria-label={`Split ${company.name}`} data-split-parent={company.id}
+                        disabled={!session.canPreviewSplit} onclick={() => session.selectSplitParent(company.id)}>
+                        <CompanyToken appearance={session.mapView.stations[company.id]} size={36} />
+                        <span>{company.name}</span>
+                    </button>
+                {/each}
+                {#if !parents.length}<p>No companies can split.</p>{/if}
+            {:else if !selection.branchId}
+                {#each session.splitModel.branches() as company}
+                    <button class="company-choice" aria-label={`Choose ${company.name}`} data-split-branch={company.id}
+                        disabled={!session.canPreviewSplit} onclick={() => session.selectSplitBranch(company.id)}>
+                        <CompanyToken appearance={session.mapView.stations[company.id]} size={36} />
+                        <span>{company.name}</span>
+                    </button>
+                {/each}
+            {:else if !selection.marketSpaceId}
+                {#each session.splitModel.prices() as price}
+                    <button class="price-choice" aria-label={`Start branch at ${price.price}`} data-split-price={price.id}
+                        disabled={!session.canPreviewSplit} onclick={() => session.selectSplitPrice(price.id)}>
+                        {price.price}
+                    </button>
+                {/each}
+            {/if}
         </div>
+        {#if showUndo}<button class="local-undo"
+            onclick={() => session.undo()}
+            disabled={session.busy || (!session.hasSplitDraft && !session.undoableAction)}>Undo</button>{/if}
         {#if session.splitPreview?.reason}<p role="status">{session.splitPreview.reason}</p>{/if}
         {#if preview}
-            <p class="summary">
-                {getCompany(state, preview.request.parentId).name} → {getCompany(
-                    state,
-                    preview.request.branchId
-                ).name} · Tranche {preview.trancheId} · ${preview.price} starting price
-            </p>
             <table aria-label="Split share ownership">
                 <thead
                     ><tr
-                        ><th>Owner</th><th>Parent before</th><th>Moved to parent treasury</th><th
-                            >Parent after</th
-                        ><th>Branch after</th></tr
+                        ><th>Owner</th><th>Parent<br />before</th><th>To parent<br />treasury</th><th>Parent<br />after</th><th>Branch<br />after</th></tr
                     ></thead
                 >
                 <tbody
@@ -170,61 +141,64 @@
 
 <style>
     section {
-        margin-bottom: 20px;
-        padding: 20px;
-        background: #fffefa;
-        border: 1px solid #b0c0b4;
-        border-radius: 8px;
+        padding: 4px 0;
+        color: #514536;
     }
     h2 {
-        margin: 0 0 16px;
-        font-size: 18px;
-    }
-    h3 {
-        font-size: 15px;
         margin: 0 0 10px;
+        text-align: center;
+        font-size: 13px;
+        font-weight: 400;
     }
-    .controls {
+    h3 { font-size: 15px; margin: 0 0 10px; }
+    .controls, .selected-companies {
         display: flex;
-        align-items: flex-end;
-        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
     }
-    label {
-        display: grid;
-        gap: 6px;
-        font-size: 12px;
-    }
-    select,
+    .selected-companies { margin-bottom: 12px; font-size: 12px; }
+    .selected-companies span { display: flex; align-items: center; gap: 6px; }
+    .arrow { color: #95816a; font-size: 18px; }
     button {
-        border: 1px solid #aebfb4;
-        border-radius: 5px;
-        background: white;
+        border: 1px solid #c7b8a6;
+        border-radius: 7px;
+        background: #fffdf8;
         color: inherit;
         font: inherit;
-        height: 38px;
-    }
-    select {
-        padding: 8px 32px 8px 10px;
-        max-width: 350px;
-    }
-    button {
-        padding: 8px 14px;
+        padding: 8px 12px;
         cursor: pointer;
     }
+    button:hover:not(:disabled) { background: #efe7db; border-color: #a68c6d; }
+    button:focus-visible { outline: 2px solid #a87948; outline-offset: 2px; }
+    .company-choice {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 600;
+        max-width: 240px;
+    }
+    .price-choice { min-width: 60px; font-size: 15px; font-weight: 600; }
+    .local-undo { display: block; margin: 10px auto 0; }
     :disabled {
         opacity: 0.5;
         cursor: default;
     }
     table {
-        width: 100%;
+        width: auto;
+        margin: 0 auto;
         border-collapse: collapse;
-        font-size: 14px;
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
     }
     th,
     td {
         text-align: right;
-        padding: 10px;
-        border-bottom: 1px solid #d7dfd7;
+        padding: 4px 10px;
+        border-bottom: 1px solid #e4dacd;
     }
     th:first-child {
         text-align: left;
@@ -247,9 +221,16 @@
     .allocate {
         margin-top: 16px;
     }
-    .summary {
-        margin-top: 20px;
+    .selected-price {
+        padding: 3px 8px;
+        border: 1px solid #c7b8a6;
+        border-radius: 5px;
+        background: #fffdf8;
+        font-variant-numeric: tabular-nums;
     }
+    .selected-price > span { color: #786550; font-size: 10px; }
+    thead th { font-weight: 500; font-size: 11px; line-height: 1.25; }
+    tbody th { font-weight: 500; }
     .preview-note {
         margin-bottom: 0;
         color: #52645b;

@@ -14,6 +14,12 @@ describe('stock action selection', () => {
         expect(backFromStockAction(company)).toEqual(action)
         expect(backFromStockAction(action)).toEqual({})
     })
+    it('chooses the corporate buyer in the same manual step and clears it on Back', () => {
+        const selection = chooseStockAction('buy', { kind: 'company', companyId: 'UB' })
+        expect(selection.action?.value).toEqual({ menu: 'buy', buyer: { kind: 'company', companyId: 'UB' } })
+        expect(backFromStockAction(selection)).toEqual({})
+        expect(chooseStockAction('buy').action?.value.buyer).toBeUndefined()
+    })
     it('starts a fresh branch when the action is reselected', () => {
         const previous = chooseSaleCompany(chooseStockAction('sell'), 'A')
         const next = chooseStockAction('buy')

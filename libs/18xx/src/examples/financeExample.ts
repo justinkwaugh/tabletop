@@ -252,6 +252,7 @@ import {
     type UninitializedGameState
 } from '@tabletop/common'
 import { BuyShares, HydratedBuyShares, isBuyShares } from '../stock/buyShares.js'
+import { AutomaticStockTurnHandler } from '../stock/automaticStockTurnHandler.js'
 import { StockRoundHandler } from '../stock/stockRoundHandler.js'
 import { SellShares, HydratedSellShares, isSellShares } from '../stock/sellShares.js'
 import {
@@ -1065,13 +1066,13 @@ export function createFinanceExampleRuntime(
                 AdvancingPhase: new AdvancingPhaseHandler(),
                 DiscardingTrains: new DiscardingTrainsHandler(options.trainRules),
                 RustingTrains: new RustingTrainsHandler('DistributingEarnings'),
-                StockRound: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                StockRound: new AutomaticStockTurnHandler(new PrivateExchangeHandler<HydratedFinanceExampleState>(
                     options.stockRoundHandler ??
                         new StockRoundHandler(rules, 'StartingOperatingSet', companyRules),
                     options.privateRules,
                     rules,
                     companyRules
-                ),
+                )),
                 StartingOperatingSet: new StartOperatingSetHandler('OperatingSet'),
                 OperatingSet: new BetweenCompaniesHandler<HydratedFinanceExampleState>(
                     new StartOperatingTurnHandler(options.stationRules),

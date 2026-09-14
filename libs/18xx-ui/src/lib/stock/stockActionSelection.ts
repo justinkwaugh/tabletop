@@ -1,22 +1,23 @@
+import type { Owner } from '@tabletop/18xx'
 import {
     setStagedSelectionValue,
     popHighestManualStagedSelection,
     type StagedSelectionState
 } from '@tabletop/frontend-components'
 
+export type StockAction = 'buy' | 'sell' | 'start' | 'exchange'
 type StockActionStages = {
-    action: 'buy' | 'sell' | 'start' | 'exchange'
+    action: { menu: StockAction; buyer?: Owner }
     saleCompany: string
 }
 const Stages = ['action', 'saleCompany'] as const satisfies readonly (keyof StockActionStages)[]
 export type StockActionSelection = StagedSelectionState<StockActionStages>
-export type StockAction = StockActionStages['action']
-export function chooseStockAction(action: StockAction): StockActionSelection {
+export function chooseStockAction(menu: StockAction, buyer?: Owner): StockActionSelection {
     return setStagedSelectionValue<StockActionStages, 'action'>(
         {},
         Stages,
         'action',
-        action,
+        { menu, ...(buyer ? { buyer } : {}) },
         'manual'
     )
 }

@@ -136,11 +136,12 @@ it.each([Top, Shikoku])(
             state,
             action: buy(state, certificateId, price)
         }).updatedState
-        current = engine.executeCanonicalAction({
-            game,
-            state: current,
-            action: finish(current)
-        }).updatedState
+        if (current.stockRound.turn.acted)
+            current = engine.executeCanonicalAction({
+                game,
+                state: current,
+                action: finish(current)
+            }).updatedState
         expect(current.activePlayerIds[0]).toBe('blair')
         expect(current.stockRound.passedPlayerIds).toEqual([])
         expect(current.stockRound.turn).toEqual({
@@ -179,11 +180,12 @@ it.each([Top, Shikoku])(
             )
         }).updatedState
         expect(current.stockRound.passedPlayerIds).toEqual(definition === Top ? ['alex'] : [])
-        current = engine.executeCanonicalAction({
-            game,
-            state: current,
-            action: finish(current)
-        }).updatedState
+        if (current.stockRound.turn.acted)
+            current = engine.executeCanonicalAction({
+                game,
+                state: current,
+                action: finish(current)
+            }).updatedState
         current = engine.executeCanonicalAction({
             game,
             state: current,
@@ -200,11 +202,12 @@ it.each([Top, Shikoku])(
             )
         }).updatedState
         expect(current.stockRound.passedPlayerIds).toEqual(definition === Top ? ['casey'] : [])
-        current = engine.executeCanonicalAction({
-            game,
-            state: current,
-            action: finish(current)
-        }).updatedState
+        if (current.stockRound.turn.acted)
+            current = engine.executeCanonicalAction({
+                game,
+                state: current,
+                action: finish(current)
+            }).updatedState
         current = engine.executeCanonicalAction({
             game,
             state: current,
@@ -237,8 +240,8 @@ it('keeps Union Bank usage and sale restrictions across TOP turns while resettin
         buyer: { kind: 'company', companyId: 'UB' } as const
     }
     let current = engine.executeCanonicalAction({ game, state, action }).updatedState
-    expect(current.stockRound.turn.acted).toBe(true)
-    for (let index = 0; index < 3; index++)
+    expect(current.activePlayerIds[0]).toBe('blair')
+    for (let index = 0; index < 2; index++)
         current = engine.executeCanonicalAction({
             game,
             state: current,
@@ -393,9 +396,9 @@ it.each([Top, Shikoku])(
         )
         let current = engine.executeCanonicalAction({ game, state, action }).updatedState
         expect(getCompany(current, companyId).floated).toBe(true)
-        expect(current.stockRound.turn.acted).toBe(true)
+        expect(current.stockRound.turn.acted).toBe(definition !== Top)
         expect(current.stockRound.passedPlayerIds).toEqual([])
-        for (let index = 0; index < 4; index++)
+        for (let index = 0; index < (definition === Top ? 3 : 4); index++)
             current = engine.executeCanonicalAction({
                 game,
                 state: current,
@@ -405,3 +408,26 @@ it.each([Top, Shikoku])(
         expect(current.turnManager.turnOrder).toEqual(['blair', 'casey', 'alex'])
     }
 )
+
+it('automatically finishes a TOP purchase in the same undoable result', () => {
+    const { game, engine, state } = example(Top)
+    const action = buy(state, 'ML:share:5', 92)
+    const result = engine.executeCanonicalAction({ game, state, action })
+    expect(result.processedActions.at(-1)).toMatchObject({
+        type: 'FinishStockTurn', source: ActionSource.System, playerId: 'alex',
+        metadata: { passed: false }
+    })
+    expect(result.updatedState.activePlayerIds[0]).toBe('blair')
+    let restored = result.updatedState
+    for (const processed of result.processedActions.toReversed())
+        restored = engine.undoProcessedAction({ state: restored, action: processed })
+    expect(restored).toEqual(state)
+})
+
+it('keeps an 1889 purchase turn open when selling is still legal', () => {
+    const { game, engine, state } = example(Shikoku)
+    const result = engine.executeCanonicalAction({ game, state, action: buy(state, 'IR:share:5', 70) })
+    expect(result.processedActions.some(isFinishStockTurn)).toBe(false)
+    expect(result.updatedState.activePlayerIds[0]).toBe('alex')
+    expect(result.updatedState.stockRound.turn.bought).toBe(true)
+})

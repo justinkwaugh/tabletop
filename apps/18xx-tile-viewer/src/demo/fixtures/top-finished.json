@@ -993,7 +993,7 @@
       },
       {
         "id": "KM",
-        "name": "The King\u2019s Mail",
+        "name": "The King’s Mail",
         "kind": "private",
         "privateRevenue": 80
       },
@@ -4599,13 +4599,6 @@
       "expectedPrice": 92
     },
     {
-      "id": "recorded:137",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
-    },
-    {
       "id": "recorded:138",
       "gameId": "top-finished",
       "source": "user",
@@ -4642,13 +4635,6 @@
       },
       "certificateId": "A:share:1",
       "expectedPrice": 86
-    },
-    {
-      "id": "recorded:143",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
     },
     {
       "id": "recorded:144",
@@ -5036,13 +5022,6 @@
       "expectedPrice": 160
     },
     {
-      "id": "recorded:184",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:185",
       "gameId": "top-finished",
       "source": "user",
@@ -5054,13 +5033,6 @@
       },
       "certificateId": "A:share:1",
       "expectedPrice": 78
-    },
-    {
-      "id": "recorded:186",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
     },
     {
       "id": "recorded:187",
@@ -5076,13 +5048,6 @@
       "expectedPrice": 80
     },
     {
-      "id": "recorded:188",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
-    },
-    {
       "id": "recorded:189",
       "gameId": "top-finished",
       "source": "user",
@@ -5094,13 +5059,6 @@
       },
       "certificateId": "S:share:2",
       "expectedPrice": 80
-    },
-    {
-      "id": "recorded:190",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
     },
     {
       "id": "recorded:191",
@@ -5123,13 +5081,6 @@
       "expectedPrice": 93
     },
     {
-      "id": "recorded:193",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
-    },
-    {
       "id": "recorded:194",
       "gameId": "top-finished",
       "source": "user",
@@ -5141,13 +5092,6 @@
       },
       "certificateId": "A:share:2",
       "expectedPrice": 78
-    },
-    {
-      "id": "recorded:195",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
     },
     {
       "id": "recorded:196",
@@ -5170,13 +5114,6 @@
       "expectedPrice": 78
     },
     {
-      "id": "recorded:198",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
-    },
-    {
       "id": "recorded:199",
       "gameId": "top-finished",
       "source": "user",
@@ -5188,13 +5125,6 @@
       },
       "certificateId": "S:share:3",
       "expectedPrice": 80
-    },
-    {
-      "id": "recorded:201",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
     },
     {
       "id": "recorded:202",
@@ -5222,13 +5152,6 @@
       },
       "certificateId": "S:share:5",
       "expectedPrice": 80
-    },
-    {
-      "id": "recorded:205",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
     },
     {
       "id": "recorded:206",
@@ -6297,13 +6220,6 @@
       "expectedPrice": 130
     },
     {
-      "id": "recorded:292",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
-    },
-    {
       "id": "recorded:293",
       "gameId": "top-finished",
       "source": "user",
@@ -6372,13 +6288,6 @@
       "expectedPrice": 148
     },
     {
-      "id": "recorded:297",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
-    },
-    {
       "id": "recorded:298",
       "gameId": "top-finished",
       "source": "user",
@@ -6390,13 +6299,6 @@
       },
       "certificateId": "MS:share:2",
       "expectedPrice": 102
-    },
-    {
-      "id": "recorded:299",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
     },
     {
       "id": "recorded:300",
@@ -6412,13 +6314,6 @@
       "expectedPrice": 65
     },
     {
-      "id": "recorded:301",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
-    },
-    {
       "id": "recorded:302",
       "gameId": "top-finished",
       "source": "user",
@@ -6430,13 +6325,6 @@
       },
       "certificateId": "MR:share:1",
       "expectedPrice": 74
-    },
-    {
-      "id": "recorded:303",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
     },
     {
       "id": "recorded:304",
@@ -6452,13 +6340,6 @@
       "expectedPrice": 65
     },
     {
-      "id": "recorded:305",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:306",
       "gameId": "top-finished",
       "source": "user",
@@ -6472,13 +6353,6 @@
       "expectedPrice": 65
     },
     {
-      "id": "recorded:307",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
-    },
-    {
       "id": "recorded:308",
       "gameId": "top-finished",
       "source": "user",
@@ -6490,13 +6364,6 @@
       },
       "certificateId": "MR:share:2",
       "expectedPrice": 74
-    },
-    {
-      "id": "recorded:309",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
     },
     {
       "id": "recorded:310",
@@ -6530,13 +6397,6 @@
       "expectedPrice": 74
     },
     {
-      "id": "recorded:312",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:313",
       "gameId": "top-finished",
       "source": "user",
@@ -6550,13 +6410,6 @@
       "expectedPrice": 65
     },
     {
-      "id": "recorded:315",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
-    },
-    {
       "id": "recorded:316",
       "gameId": "top-finished",
       "source": "user",
@@ -6568,13 +6421,6 @@
       },
       "certificateId": "MR:share:4",
       "expectedPrice": 74
-    },
-    {
-      "id": "recorded:318",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
     },
     {
       "id": "recorded:319",
@@ -6597,13 +6443,6 @@
       "expectedPrice": 74
     },
     {
-      "id": "recorded:321",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
-    },
-    {
       "id": "recorded:322",
       "gameId": "top-finished",
       "source": "user",
@@ -6615,13 +6454,6 @@
       },
       "certificateId": "C:share:6",
       "expectedPrice": 65
-    },
-    {
-      "id": "recorded:323",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
     },
     {
       "id": "recorded:324",
@@ -7964,13 +7796,6 @@
       "expectedFunding": 520
     },
     {
-      "id": "recorded:428",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:429",
       "gameId": "top-finished",
       "source": "user",
@@ -8003,13 +7828,6 @@
       "expectedPrice": 130
     },
     {
-      "id": "recorded:431",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
-    },
-    {
       "id": "recorded:432",
       "gameId": "top-finished",
       "source": "user",
@@ -8021,13 +7839,6 @@
       },
       "certificateId": "S:share:6",
       "expectedPrice": 73
-    },
-    {
-      "id": "recorded:433",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
     },
     {
       "id": "recorded:434",
@@ -8061,13 +7872,6 @@
       "expectedPrice": 65
     },
     {
-      "id": "recorded:436",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:437",
       "gameId": "top-finished",
       "source": "user",
@@ -8079,13 +7883,6 @@
       },
       "certificateId": "So:share:1",
       "expectedPrice": 65
-    },
-    {
-      "id": "recorded:438",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
     },
     {
       "id": "recorded:439",
@@ -8101,13 +7898,6 @@
       "expectedPrice": 65
     },
     {
-      "id": "recorded:440",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
-    },
-    {
       "id": "recorded:441",
       "gameId": "top-finished",
       "source": "user",
@@ -8119,13 +7909,6 @@
       },
       "certificateId": "branch:BB:share:2",
       "expectedPrice": 65
-    },
-    {
-      "id": "recorded:442",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
     },
     {
       "id": "recorded:443",
@@ -8141,13 +7924,6 @@
       "expectedPrice": 65
     },
     {
-      "id": "recorded:444",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
-    },
-    {
       "id": "recorded:445",
       "gameId": "top-finished",
       "source": "user",
@@ -8159,13 +7935,6 @@
       },
       "certificateId": "C:share:8",
       "expectedPrice": 65
-    },
-    {
-      "id": "recorded:446",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
     },
     {
       "id": "recorded:447",
@@ -8181,13 +7950,6 @@
       "expectedPrice": 65
     },
     {
-      "id": "recorded:448",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:449",
       "gameId": "top-finished",
       "source": "user",
@@ -8199,13 +7961,6 @@
       },
       "certificateId": "So:share:3",
       "expectedPrice": 65
-    },
-    {
-      "id": "recorded:450",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
     },
     {
       "id": "recorded:451",
@@ -8228,13 +7983,6 @@
       "expectedPrice": 65
     },
     {
-      "id": "recorded:454",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:455",
       "gameId": "top-finished",
       "source": "user",
@@ -8246,13 +7994,6 @@
       },
       "certificateId": "So:share:4",
       "expectedPrice": 65
-    },
-    {
-      "id": "recorded:457",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
     },
     {
       "id": "recorded:458",
@@ -8293,13 +8034,6 @@
       "expectedPrice": 73
     },
     {
-      "id": "recorded:461",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:462",
       "gameId": "top-finished",
       "source": "user",
@@ -8311,13 +8045,6 @@
       },
       "certificateId": "S:share:7",
       "expectedPrice": 73
-    },
-    {
-      "id": "recorded:463",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
     },
     {
       "id": "recorded:464",
@@ -8338,13 +8065,6 @@
       },
       "certificateId": "S:share:2",
       "expectedPrice": 73
-    },
-    {
-      "id": "recorded:466",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
     },
     {
       "id": "recorded:467",
@@ -10199,13 +9919,6 @@
       "expectedPrice": 116
     },
     {
-      "id": "recorded:601",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
-    },
-    {
       "id": "recorded:602",
       "gameId": "top-finished",
       "source": "user",
@@ -10217,13 +9930,6 @@
       },
       "certificateId": "S:share:3",
       "expectedPrice": 89
-    },
-    {
-      "id": "recorded:603",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
     },
     {
       "id": "recorded:604",
@@ -10239,13 +9945,6 @@
       "expectedPrice": 65
     },
     {
-      "id": "recorded:605",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:606",
       "gameId": "top-finished",
       "source": "user",
@@ -10257,13 +9956,6 @@
       },
       "certificateId": "So:share:7",
       "expectedPrice": 65
-    },
-    {
-      "id": "recorded:607",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
     },
     {
       "id": "recorded:608",
@@ -10279,13 +9971,6 @@
       "expectedPrice": 65
     },
     {
-      "id": "recorded:609",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
-    },
-    {
       "id": "recorded:610",
       "gameId": "top-finished",
       "source": "user",
@@ -10297,13 +9982,6 @@
       },
       "certificateId": "So:share:8",
       "expectedPrice": 65
-    },
-    {
-      "id": "recorded:611",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
     },
     {
       "id": "recorded:612",
@@ -10319,13 +9997,6 @@
       "expectedPrice": 65
     },
     {
-      "id": "recorded:613",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
-    },
-    {
       "id": "recorded:614",
       "gameId": "top-finished",
       "source": "user",
@@ -10337,13 +10008,6 @@
       },
       "certificateId": "branch:BB:share:7",
       "expectedPrice": 65
-    },
-    {
-      "id": "recorded:615",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
     },
     {
       "id": "recorded:616",
@@ -10359,13 +10023,6 @@
       "expectedPrice": 65
     },
     {
-      "id": "recorded:617",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:618",
       "gameId": "top-finished",
       "source": "user",
@@ -10377,13 +10034,6 @@
       },
       "certificateId": "branch:BB:share:8",
       "expectedPrice": 65
-    },
-    {
-      "id": "recorded:619",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
     },
     {
       "id": "recorded:620",
@@ -10399,13 +10049,6 @@
       "expectedPrice": 58
     },
     {
-      "id": "recorded:621",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
-    },
-    {
       "id": "recorded:622",
       "gameId": "top-finished",
       "source": "user",
@@ -10419,13 +10062,6 @@
       "expectedPrice": 65
     },
     {
-      "id": "recorded:623",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:624",
       "gameId": "top-finished",
       "source": "user",
@@ -10437,13 +10073,6 @@
       },
       "certificateId": "Gt:share:2",
       "expectedPrice": 58
-    },
-    {
-      "id": "recorded:625",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
     },
     {
       "id": "recorded:626",
@@ -10466,13 +10095,6 @@
       "expectedPrice": 65
     },
     {
-      "id": "recorded:628",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:629",
       "gameId": "top-finished",
       "source": "user",
@@ -10484,13 +10106,6 @@
       },
       "certificateId": "Gt:share:3",
       "expectedPrice": 58
-    },
-    {
-      "id": "recorded:630",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
     },
     {
       "id": "recorded:631",
@@ -10518,13 +10133,6 @@
       },
       "certificateId": "Gt:share:4",
       "expectedPrice": 58
-    },
-    {
-      "id": "recorded:635",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
     },
     {
       "id": "recorded:636",
@@ -14140,13 +13748,6 @@
       "expectedPrice": 167
     },
     {
-      "id": "recorded:826",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
-    },
-    {
       "id": "recorded:827",
       "gameId": "top-finished",
       "source": "user",
@@ -14158,13 +13759,6 @@
       },
       "certificateId": "MS:share:2",
       "expectedPrice": 167
-    },
-    {
-      "id": "recorded:828",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
     },
     {
       "id": "recorded:829",
@@ -14198,13 +13792,6 @@
       "expectedPrice": 167
     },
     {
-      "id": "recorded:831",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
-    },
-    {
       "id": "recorded:832",
       "gameId": "top-finished",
       "source": "user",
@@ -14216,13 +13803,6 @@
       },
       "certificateId": "MS:share:5",
       "expectedPrice": 167
-    },
-    {
-      "id": "recorded:833",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
     },
     {
       "id": "recorded:834",
@@ -14238,13 +13818,6 @@
       "expectedPrice": 61
     },
     {
-      "id": "recorded:835",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:836",
       "gameId": "top-finished",
       "source": "user",
@@ -14256,13 +13829,6 @@
       },
       "certificateId": "MS:share:6",
       "expectedPrice": 167
-    },
-    {
-      "id": "recorded:837",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
     },
     {
       "id": "recorded:838",
@@ -14278,13 +13844,6 @@
       "expectedPrice": 167
     },
     {
-      "id": "recorded:839",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
-    },
-    {
       "id": "recorded:840",
       "gameId": "top-finished",
       "source": "user",
@@ -14298,13 +13857,6 @@
       "expectedPrice": 61
     },
     {
-      "id": "recorded:841",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:842",
       "gameId": "top-finished",
       "source": "user",
@@ -14316,13 +13868,6 @@
       },
       "certificateId": "S:share:4",
       "expectedPrice": 89
-    },
-    {
-      "id": "recorded:843",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
     },
     {
       "id": "recorded:844",
@@ -14356,13 +13901,6 @@
       "expectedPrice": 61
     },
     {
-      "id": "recorded:846",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
-    },
-    {
       "id": "recorded:847",
       "gameId": "top-finished",
       "source": "user",
@@ -14374,13 +13912,6 @@
       },
       "certificateId": "MR:share:3",
       "expectedPrice": 78
-    },
-    {
-      "id": "recorded:848",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
     },
     {
       "id": "recorded:849",
@@ -14410,13 +13941,6 @@
       "expectedPrice": 122
     },
     {
-      "id": "recorded:852",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:853",
       "gameId": "top-finished",
       "source": "user",
@@ -14442,13 +13966,6 @@
       },
       "certificateId": "A:share:3",
       "expectedPrice": 122
-    },
-    {
-      "id": "recorded:856",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
     },
     {
       "id": "recorded:857",
@@ -14482,13 +13999,6 @@
       "expectedPrice": 122
     },
     {
-      "id": "recorded:859",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
-    },
-    {
       "id": "recorded:860",
       "gameId": "top-finished",
       "source": "user",
@@ -14509,13 +14019,6 @@
       "expectedPrice": 122
     },
     {
-      "id": "recorded:862",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:863",
       "gameId": "top-finished",
       "source": "user",
@@ -14527,13 +14030,6 @@
       },
       "certificateId": "A:share:6",
       "expectedPrice": 122
-    },
-    {
-      "id": "recorded:864",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
     },
     {
       "id": "recorded:865",
@@ -14554,13 +14050,6 @@
       },
       "certificateId": "A:share:7",
       "expectedPrice": 122
-    },
-    {
-      "id": "recorded:867",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
     },
     {
       "id": "recorded:868",
@@ -14594,13 +14083,6 @@
       "expectedPrice": 122
     },
     {
-      "id": "recorded:870",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
-    },
-    {
       "id": "recorded:871",
       "gameId": "top-finished",
       "source": "user",
@@ -14619,13 +14101,6 @@
       },
       "certificateId": "MR:share:5",
       "expectedPrice": 78
-    },
-    {
-      "id": "recorded:873",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
     },
     {
       "id": "recorded:874",
@@ -14673,13 +14148,6 @@
       "expectedPrice": 78
     },
     {
-      "id": "recorded:878",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:879",
       "gameId": "top-finished",
       "source": "user",
@@ -14709,13 +14177,6 @@
       },
       "certificateId": "MR:share:7",
       "expectedPrice": 78
-    },
-    {
-      "id": "recorded:881",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "3574"
     },
     {
       "id": "recorded:882",
@@ -14756,13 +14217,6 @@
       "expectedPrice": 78
     },
     {
-      "id": "recorded:885",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:886",
       "gameId": "top-finished",
       "source": "user",
@@ -14790,13 +14244,6 @@
       "expectedPrice": 65
     },
     {
-      "id": "recorded:889",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:890",
       "gameId": "top-finished",
       "source": "user",
@@ -14822,13 +14269,6 @@
       },
       "certificateId": "C:share:6",
       "expectedPrice": 65
-    },
-    {
-      "id": "recorded:893",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
     },
     {
       "id": "recorded:894",
@@ -14876,13 +14316,6 @@
       "expectedPrice": 65
     },
     {
-      "id": "recorded:898",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:899",
       "gameId": "top-finished",
       "source": "user",
@@ -14926,13 +14359,6 @@
       },
       "certificateId": "C:share:8",
       "expectedPrice": 65
-    },
-    {
-      "id": "recorded:903",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "13748"
     },
     {
       "id": "recorded:904",
@@ -18922,8 +18348,8 @@
     }
   ],
   "finalWealth": {
-    "12729": 6764,
     "3574": 7328,
+    "12729": 6764,
     "13748": 7126
   }
 }

@@ -1,6 +1,7 @@
 <script lang="ts">
+    import { assertExists } from '@tabletop/common'
     import type { StockMenuOption } from '../stock/stockActionSelection.js'
-    import { getCompany } from '@tabletop/18xx'
+    import { getCompany, sameOwner, type Owner } from '@tabletop/18xx'
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     let { session, additionalActions = [] }: { session: FinanceExampleSession; additionalActions?: readonly StockMenuOption[] } = $props()
@@ -29,15 +30,31 @@
             return true
         })
     })
+    function distinctBuyers(owners: readonly Owner[]): Owner[] {
+        return owners.filter((owner, index) =>
+            owners.findIndex((candidate) => sameOwner(candidate, owner)) === index)
+    }
+    const buyers = $derived(distinctBuyers(purchases.map((choice) => choice.request.buyer)))
+    const buyerPurchases = $derived(purchases.filter((choice) =>
+        session.stockActionBuyer
+            ? sameOwner(choice.request.buyer, session.stockActionBuyer)
+            : choice.request.buyer.kind === 'player'))
+    const purchaseCompanies = $derived([...new Set(buyerPurchases.map((choice) => choice.result.details!.companyId))])
     const sales = $derived(session.saleChoices.filter((choice) => choice.result.details))
     const starts = $derived(
         session.startChoices.filter((choice) => choice.prices.some((price) => price.result.details))
     )
+    const startBuyers = $derived(distinctBuyers(starts.map((choice) => choice.request.buyer)))
+    const buyerStarts = $derived(starts.filter((choice) =>
+        session.stockActionBuyer
+            ? sameOwner(choice.request.buyer, session.stockActionBuyer)
+            : choice.request.buyer.kind === 'player'))
     const menu = $derived(session.stockMenu)
-    function back() {
-        if (session.selectedStartCompany) session.backFromStart()
-        else if (session.selectedSale) session.cancelSelection()
-        else session.backFromStockMenu()
+
+    function exchangeCompany(certificateId: string) {
+        const certificate = session.financialState.certificates.find((item) => item.id === certificateId)
+        assertExists(certificate, 'An exchange requires its destination certificate')
+        return getCompany(session.financialState, certificate.companyId)
     }
 </script>
 
@@ -47,16 +64,16 @@
 <section aria-label="Stock trading">
     {#if session.mustSell}<p class="notice">Sell down to the stock limits.</p>{/if}
     {#if !menu}
+        <div class="heading">Choose a stock action</div>
         <div class="choices">
-            {#if purchases.length}<button {disabled} onclick={() => session.chooseStockMenu('buy')}
-                    >Buy</button
-                >{/if}
+            {#each buyers as buyer}<button class="buy-action" {disabled} onclick={() => session.chooseStockMenu('buy', buyer)}
+                >{buyer.kind === 'player' ? 'Buy' : `Buy for ${session.ownerName(buyer)}`}</button>{/each}
             {#if sales.length}<button {disabled} onclick={() => session.chooseStockMenu('sell')}
                     >Sell</button
                 >{/if}
-            {#if starts.length}<button {disabled} onclick={() => session.chooseStockMenu('start')}
-                    >Start</button
-                >{/if}
+            {#each startBuyers as buyer}<button {disabled} onclick={() => session.chooseStockMenu('start', buyer)}
+                    >{buyer.kind === 'player' ? 'Start' : `Start for ${session.ownerName(buyer)}`}</button
+                >{/each}
             {#if session.privateExchangeOffers.length}<button
                     {disabled}
                     onclick={() => session.chooseStockMenu('exchange')}>Exchange</button
@@ -65,51 +82,47 @@
             {#if session.validActionTypes.includes('FinishStockTurn')}<button
                     {disabled}
                     onclick={() => session.finishTurn()}
-                    >{session.financialState.stockRound.turn.acted ? 'Finish turn' : 'Pass'}</button
+                    >{session.financialState.stockRound.turn.acted ? 'End turn' : 'Pass'}</button
                 >{/if}
         </div>
     {:else}
         <div class="heading">
-            <button class="back" {disabled} onclick={back}>Back</button><span
+            <span
                 >{menu === 'buy'
-                    ? 'Buy shares'
+                    ? (session.stockActionBuyer?.kind === 'company' ? `Buy for ${session.ownerName(session.stockActionBuyer)}` : 'Choose a share')
                     : menu === 'sell'
                       ? 'Sell shares'
                       : menu === 'start'
-                        ? 'Start a company'
+                        ? (session.stockActionBuyer?.kind === 'company' ? `Start for ${session.ownerName(session.stockActionBuyer)}` : 'Start a company')
                         : 'Exchange a private'}</span
             >
         </div>
         <div class="choices">
             {#if menu === 'buy'}
-                {#each purchases as choice}
-                    {@const details = choice.result.details}
-                    {#if details}
-                        <button
-                            class="company-choice"
-                            {disabled}
-                            aria-label={`Buy ${getCompany(session.financialState, details.companyId).name} for $${details.price}`}
-                            data-purchase-certificate={choice.certificate.id}
-                            onclick={() => {
-                                session.selectPurchase(choice.request)
-                                void session.confirmPurchase()
-                            }}
-                        >
-                            {@render token(details.companyId)}
-                            <strong>${details.price}</strong>
-                            {#if choice.certificate.kind === 'share' && choice.certificate.number !== undefined}<small
-                                    >#{choice.certificate.number}</small
-                                >{/if}
-                            <small
-                                >{session.financialState.certificatePools.find(
-                                    (pool) => pool.id === choice.certificate.poolId
-                                )?.name}</small
-                            >
-                            {#if choice.request.buyer.kind === 'company'}<small
-                                    >{session.ownerName(choice.request.buyer)}</small
-                                >{/if}
-                        </button>
-                    {/if}
+                {#each purchaseCompanies as companyId (companyId)}
+                    <article class="purchase-card" aria-label={`${getCompany(session.financialState, companyId).name} shares`}>
+                        <header><CompanyToken appearance={session.mapView.stations[companyId]} size={30} />
+                            <strong>{getCompany(session.financialState, companyId).name}</strong></header>
+                        <div class="purchase-options">
+                        {#each buyerPurchases.filter((choice) => choice.result.details?.companyId === companyId) as choice (choice.certificate.id)}
+                            {@const details = choice.result.details}
+                            {#if details && choice.certificate.kind === 'share'}
+                            {@const pool = session.financialState.certificatePools.find((pool) => pool.id === choice.certificate.poolId)}
+                            {@const sourceName = pool?.name === 'Treasury shares' ? 'Treasury' : pool?.name}
+                            <button class="purchase-option" {disabled}
+                                aria-label={`Buy ${getCompany(session.financialState, companyId).name} from ${sourceName} for $${details.price}`}
+                                data-purchase-certificate={choice.certificate.id}
+                                onclick={() => { session.selectPurchase(choice.request); void session.confirmPurchase() }}>
+                                <span class="purchase-source">{sourceName}
+                                    {#if choice.certificate.number !== undefined}<small>Share #{choice.certificate.number}</small>{/if}
+                                    {#if choice.certificate.president || choice.certificate.shares !== 1}<small>{choice.certificate.shares} shares{choice.certificate.president ? ' · President' : ''}</small>{/if}
+                                </span>
+                                <strong>${details.price.toLocaleString('en-US')}</strong>
+                            </button>
+                            {/if}
+                        {/each}
+                        </div>
+                    </article>
                 {/each}
             {:else if menu === 'start'}
                 {#if session.selectedStartCompany}
@@ -128,7 +141,7 @@
                             </button>{/if}
                     {/each}
                 {:else}
-                    {#each starts as choice}<button
+                    {#each buyerStarts as choice}<button
                             class="company-choice"
                             {disabled}
                             aria-label={`Start ${getCompany(session.financialState, choice.request.companyId).name}`}
@@ -136,9 +149,6 @@
                             onclick={() => session.selectCompanyStart(choice.request)}
                         >
                             {@render token(choice.request.companyId)}
-                            {#if choice.request.buyer.kind === 'company'}<small
-                                    >{session.ownerName(choice.request.buyer)}</small
-                                >{/if}
                         </button>{/each}
                 {/if}
             {:else if menu === 'sell'}
@@ -158,7 +168,10 @@
                             {disabled}
                             data-sale-company={choice.sale.companyId}
                             data-sale-shares={choice.sale.shares}
-                            onclick={() => session.selectSale(choice.request)}
+                            aria-pressed={!!session.selectedSale && sameOwner(session.selectedSale.seller, choice.request.seller) && session.selectedSale.sales.some((sale) => sale.companyId === choice.sale.companyId && sale.shares === choice.sale.shares)}
+                            onclick={() => {
+                                if (session.stockSaleSelection?.source !== 'auto') session.selectSale(choice.request)
+                            }}
                         >
                             {@render token(choice.sale.companyId)}
                             <span
@@ -171,31 +184,27 @@
                         </button>{/each}
                 {/if}
             {:else}
-                {#each session.privateExchangeOffers as offer}<button
+                {#each session.privateExchangeOffers as offer}
+                    {@const company = exchangeCompany(offer.certificateId)}
+                    <button class="exchange-choice"
+                        aria-label={`Exchange ${getCompany(session.financialState, offer.privateCompanyId).name} for ${company.name}`}
                         {disabled}
                         onclick={() => {
                             session.selectPrivateExchange(offer)
                             void session.confirmPrivateExchange()
                         }}
                     >
-                        {getCompany(session.financialState, offer.privateCompanyId).name}<small
-                            >{offer.certificateId}</small
-                        >
+                        <span class="exchange-private">{getCompany(session.financialState, offer.privateCompanyId).name}</span>
+                        <span class="exchange-arrow" aria-hidden="true">→</span>
+                        <span class="exchange-company">
+                            <CompanyToken appearance={session.mapView.stations[company.id]} size={28} />
+                            <span>{company.name}</span>
+                        </span>
                     </button>{/each}
             {/if}
         </div>
         {#if menu === 'sell' && session.selectedSale}
             <div class="sale-order">
-                {#each session.selectedSale.sales as sale}<div class="sale">
-                        <span
-                            >{getCompany(session.financialState, sale.companyId).name} · {sale.shares}</span
-                        >
-                        <button
-                            aria-label={`Remove ${sale.companyId} sale`}
-                            {disabled}
-                            onclick={() => session.removeSale(sale.companyId)}>×</button
-                        >
-                    </div>{/each}
                 <button
                     class="confirm"
                     disabled={disabled || !session.selectedSaleResult?.details}
@@ -216,6 +225,62 @@
     section {
         padding: 4px 0;
     }
+    button.exchange-choice {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+    }
+    .exchange-private { font-weight: 600; }
+    .exchange-arrow { color: #95816a; font-size: 20px; }
+    .exchange-company {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 4px 9px 4px 4px;
+        border: 1px solid #c9baa6;
+        border-radius: 20px;
+        background: #ece3d7;
+        text-align: left;
+    }
+    .exchange-company span { max-width: 180px; line-height: 1.25; }
+    .purchase-card {
+        flex: 0 1 210px;
+        min-width: 170px;
+        align-self: flex-start;
+        overflow: hidden;
+        border: 1px solid #c5b8a6;
+        border-radius: 7px;
+        background: #fffdf8;
+        box-shadow: 0 1px 2px #5145360d;
+    }
+    .purchase-card header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 10px;
+        background: #e5dccf;
+        color: #42382d;
+    }
+    .purchase-card header strong { font-size: 13px; line-height: 1.25; }
+    .purchase-options { padding: 3px 0; }
+    button.purchase-option {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 11px;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        text-align: left;
+    }
+    .purchase-option + .purchase-option { border-top: 1px solid #e9e1d6; }
+    .purchase-option strong { font-size: 13px; font-variant-numeric: tabular-nums; }
+    .purchase-source { font-size: 12px; }
+    .purchase-option small { margin-top: 1px; }
+    .buy-action { font-weight: 600; }
     .choices {
         display: flex;
         flex-wrap: wrap;
@@ -244,6 +309,11 @@
         outline: 2px solid #a87948;
         outline-offset: 2px;
     }
+    .company-choice[aria-pressed='true'] {
+        border-color: #8c7050;
+        background: #e5d7c3;
+        box-shadow: inset 0 0 0 1px #8c7050;
+    }
     .company-choice {
         display: flex;
         flex-direction: column;
@@ -269,10 +339,6 @@
         margin-bottom: 10px;
         font-size: 13px;
     }
-    .back {
-        padding: 4px 10px;
-        background: transparent;
-    }
     .notice {
         text-align: center;
         font-size: 12px;
@@ -285,14 +351,6 @@
         gap: 4px;
         margin-top: 12px;
         font-size: 12px;
-    }
-    .sale {
-        display: flex;
-        gap: 5px;
-        align-items: center;
-    }
-    .sale button {
-        padding: 2px 7px;
     }
     .confirm {
         margin-top: 5px;

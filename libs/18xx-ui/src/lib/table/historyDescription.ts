@@ -57,7 +57,7 @@ export function historyDescription(
     const ownerName = (owner: President) =>
         owner.kind === 'player' ? playerName(owner.playerId) : companyName(owner.companyId)
     const presidency = (change: PresidencyChange) =>
-        `${companyName(change.companyId)} president: ${ownerName(change.previous)} → ${ownerName(change.next)}`
+        `President: ${ownerName(change.previous)} → ${ownerName(change.next)}`
     function marketPrice(id: string) {
         const space = state.stockMarket.spaces.find((item) => item.id === id)
         assertExists(space, 'Recorded market movement requires its space')
