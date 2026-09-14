@@ -997,3 +997,7 @@ History currently omits the “Your last action” marker; no player-relative hi
 The history tab reduces the sidebar’s tab-to-content gap from 8px to 4px; other sidebar tabs retain their spacing.
 
 Round interstitials use native sticky positioning bounded by their round section: top for Newest last, bottom for Newest first. At a round boundary the departing heading scrolls away and yields to the next one. There is no stack, duplicate heading, scroll listener, or game-state animation.
+
+A right-aligned Index button beside the left-aligned history-order toggle opens a native popover over the history list. Its compact phase-colored round buttons follow the selected display order. Selecting one closes the index and scrolls that round’s beginning to the pinned edge without changing the history cursor or game state. Outside click, Escape, or viewport resize dismisses the index; the list scrolls within the available history height.
+
+Round sections contain their content margins, while sticky interstitials have no outer margin. This preserves the 5px card-to-heading spacing and lets consecutive pinned headings meet without a gap at round boundaries.
