@@ -944,7 +944,10 @@ Historical map inspection is an explicit, session-owned manual preview, independ
 the history cursor. Only track-lay and train-run labels are buttons; other history
 text stays read-only. Clicking one shows the map immediately after that action,
 including its tiles, stations and reservations, with recorded routes for train runs.
-A separate full-screen native dialog owns its map renderer and ScalingWrapper.
+A separate native dialog owns its map renderer and ScalingWrapper. It occupies
+90% of viewport width and height, centered with subtly rounded corners and a
+translucent dark backdrop. At widths up to 760px or heights up to 560px it fills
+the viewport with square corners.
 Its header identifies Historical run (or track lay), company, OR and recorded run
 revenue. History runs and the expanded company card's Last run share this viewer.
 Close, F and Escape dismiss it; zoom/pan controls remain but no expansion control
