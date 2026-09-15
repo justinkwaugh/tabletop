@@ -18,6 +18,8 @@
             onchange={(event) => {
                 if (event.currentTarget.value !== 'TOP' && (position === 'finished' || position === 'funding-chain'))
                     position = 'opening'
+                if (event.currentTarget.value === 'TOP' && position === 'diesel')
+                    position = 'trains'
             }}
             ><option value="TOP">The Old Prince 1871</option><option value="1889"
                 >Shikoku 1889</option
@@ -33,7 +35,9 @@
             <option value="routes">Run trains</option>
             <option value="operations">Operating rounds</option>
             <option value="trains">Buy trains</option>
+            {#if title === '1889'}<option value="diesel">Diesel exchange</option>{/if}
             {#if title === 'TOP'}<option value="funding-chain">Union Bank train funding</option>{/if}
+            <option value="bankruptcy">Bankruptcy</option>
             <option value="powers">Buy privates</option>
             <option value="transfers">Negotiated purchases</option>
             <option value="ending">Final operating turn</option>
