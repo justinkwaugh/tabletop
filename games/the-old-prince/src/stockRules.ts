@@ -62,6 +62,7 @@ export const TheOldPrinceStockRules: StockRules = {
             { kind: 'company', companyId: 'UB' }
         ]
     },
+    extendSaleBlocks: true,
     sellAfterBuying: false
 }
 

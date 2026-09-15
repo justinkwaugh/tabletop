@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { marketColors } from './marketColors.js'
     import { onMount, tick, untrack } from 'svelte'
     import { prefersReducedMotion } from 'svelte/motion'
     import {
@@ -147,15 +148,7 @@
             ? spaceId
             : undefined
     }
-    const colors: Record<string, string> = {
-        white: '#fffefa',
-        pink: '#f2c7d4',
-        yellow: '#f6df81',
-        orange: '#efa960',
-        green: '#9cccaa',
-        blue: '#accbe9',
-        red: '#e8a59f'
-    }
+
 </script>
 
 <div
@@ -186,7 +179,7 @@
                 data-market-space={space.id}
                 style:grid-column={space.column + 1}
                 style:grid-row={space.row + 1}
-                style:background={colors[space.color] ?? space.color}
+                style:background={marketColors[space.color] ?? space.color}
                 onpointerenter={() => expandStack(space.id)}
                 onfocus={() => expandStack(space.id)}
                 onblur={() => (hoveredSpace = undefined)}

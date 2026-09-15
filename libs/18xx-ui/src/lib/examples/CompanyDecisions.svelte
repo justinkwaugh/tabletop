@@ -59,7 +59,7 @@
                 onclick={() => session.declinePrivateTile()}>Decline private tile lay</button
             >
         {/if}
-        <PrivateBuying {session} />
+        <PrivateBuying {session} showEntry={session.operatingStep === undefined} />
         <div class="choices">
             {#if purchaseOptions.length}
                 <label

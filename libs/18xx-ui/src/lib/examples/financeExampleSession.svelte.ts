@@ -14,7 +14,7 @@ import {
     type StockAction,
     type StockActionSelection
 } from '../stock/stockActionSelection.js'
-import { cashOwnedBy, shareSaleValue, priorityOrder, stockCertificateCount } from '@tabletop/18xx'
+import { cashOwnedBy, shareSaleValue, priorityOrder, stockCertificateCount, stockMarketOrder } from '@tabletop/18xx'
 import {
     OfferAuction,
     OfferAuctionLot,
@@ -325,6 +325,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     }
     private privatePurchaseStages: StagedSelectionState<{ source: 'mine' | 'other' }> = $state({})
     privatePurchaseSource = $derived(!this.updatingVisibleState && !this.isViewingHistory ? this.privatePurchaseStages.source?.value : undefined)
+    get privatePurchaseHeading(): string | undefined { return 'Available privates' }
     privatePurchases = $derived.by(() => this.purchaseOptions.filter((option) => option.request.asset.kind === 'private'))
     choosePrivatePurchaseSource(source: 'mine' | 'other') {
         this.companyDraft = undefined
@@ -425,7 +426,15 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             this.canResolveCompanyDecision && this.validActionTypes.includes('OfferPurchase'),
             'Purchasing is unavailable'
         )
-        this.companyDraft = { kind: 'purchase', request: { ...request } }
+        let price = request.price
+        if (request.asset.kind === 'private') {
+            const range = this.transferRules.priceRange(this.financialState, request.companyId, request.asset)
+            assertExists(range, 'Private purchase requires a price range')
+            const cash = cashOwnedBy(this.financialState, { kind: 'company', companyId: request.companyId })
+            assert(typeof cash === 'number', 'Purchasing company requires a cash balance')
+            price = Math.min(cash, range.maximum ?? cash)
+        }
+        this.companyDraft = { kind: 'purchase', request: { ...request, price } }
     }
     setPurchasePrice(price: number) {
         assert(this.companyDraft?.kind === 'purchase', 'Select an asset first')
@@ -1665,11 +1674,18 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         assertExists(this.myPlayer, 'A map preference requires a player')
         this.mapStyles[this.myPlayer.id] = style
     }
+    sharesToFloat(companyId: string) {
+        return this.companyRules.sharesToFloat?.(this.financialState, companyId)
+    }
     stockCompanyName(companyId: string) {
         return getCompany(this.financialState, companyId).name
     }
     get stockCompanies() {
+        const order = stockMarketOrder(this.financialState.stockMarket)
+        const rank = new Map(order.map((id, index) => [id, index]))
         return this.financialState.companies.filter((company) => company.started)
+            .sort((left, right) =>
+                (rank.get(left.id) ?? order.length) - (rank.get(right.id) ?? order.length))
     }
     private stockActionDraft: StockActionSelection = $state({})
     stockMenu = $derived(

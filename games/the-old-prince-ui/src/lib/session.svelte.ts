@@ -1,3 +1,4 @@
+import { getCompany } from '@tabletop/18xx'
 import { TheOldPrinceAuctionRules } from '@tabletop/the-old-prince'
 import { TheOldPrinceTrainFundingRules } from '@tabletop/the-old-prince'
 import { TheOldPrinceTransferRules, TheOldPrincePrivatePowerRules } from '@tabletop/the-old-prince'
@@ -119,11 +120,13 @@ export class TheOldPrinceSession extends BaseSession {
         this.splitDraft = {}
         super.cancelSelection()
     }
+    override get privatePurchaseHeading(): string | undefined { return undefined }
     override stockCompanyName(companyId: string) {
         return companyId === 'PEIR' ? 'PEIR' : super.stockCompanyName(companyId)
     }
     override get stockCompanies() {
-        return this.financialState.companies.filter((company) => company.started || company.id === 'PEIR')
+        return [...super.stockCompanies.filter((company) => company.id !== 'PEIR'),
+            getCompany(this.financialState, 'PEIR')]
     }
     chooseSplit() {
         assert(this.canPreviewSplit, 'Split selection is unavailable')

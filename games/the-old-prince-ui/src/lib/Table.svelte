@@ -45,7 +45,7 @@
               : pool.name
 </script>
 
-<GameTable
+<GameTable privatePurchaseLabel="Buy Hunslet"
     additionalStockActions={session.canPreviewSplit && session.myPlayer && session.splitModel.branches().length && session.splitModel.parents(session.myPlayer.id).some((parent) => !parent.reason) ? [{ label: 'Split', selected: session.hasSplitDraft, onSelect: () => session.chooseSplit() }] : []}
     companyRoles={session.financialState.companies.flatMap((company) =>
         company.role === 'mainline' || company.role === 'shortline'

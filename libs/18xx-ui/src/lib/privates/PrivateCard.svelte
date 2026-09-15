@@ -3,26 +3,29 @@
         name,
         description,
         value,
-        income
+        income,
+        purchaseRange
     }: {
         name: string
         description: string
         value?: number
         income?: number
+        purchaseRange?: { minimum: number; maximum?: number }
     } = $props()
 </script>
 
 <div class="private-card">
     <header>
         <h3>{name}</h3>
-        {#if value !== undefined || income !== undefined}
+        {#if value !== undefined || income !== undefined || purchaseRange}
             <div class="values">
                 {#if income !== undefined}<span
                         >Income <strong
-                            >${income.toLocaleString('en-US')}<small> / OR</small></strong
+                            >${income.toLocaleString('en-US')}{#if !purchaseRange}<small> / OR</small>{/if}</strong
                         ></span
                     >{/if}
-                {#if value !== undefined}<span class="value"
+                {#if purchaseRange}<span class="value">Purchase <strong>${purchaseRange.minimum}{#if purchaseRange.maximum !== undefined}–${purchaseRange.maximum}{/if}</strong></span>
+                {:else if value !== undefined}<span class="value"
                         >Value <strong>${value.toLocaleString('en-US')}</strong></span
                     >{/if}
             </div>

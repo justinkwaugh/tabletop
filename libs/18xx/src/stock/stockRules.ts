@@ -32,6 +32,7 @@ export interface StockRules {
     certificateWeight(state: StockState, certificate: Portfolio[number]): number
     ownershipLimit(state: StockState, companyId: string, buyer: Owner): number
     presidencyCandidates(state: StockState, companyId: string): President[]
+    extendSaleBlocks?: boolean
     sellAfterBuying: boolean
 }
 export function stockCertificateCount(state: StockState, owner: Owner, rules: StockRules): number {

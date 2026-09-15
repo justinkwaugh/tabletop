@@ -44,7 +44,7 @@
         )
     )
     let showIncome = $state(false)
-    let view = $state<'Company' | 'Player'>('Company')
+    let view = $state<'Company' | 'Player'>('Player')
     const firstPoolId = $derived(exchangePoolId ? 'exchange' : 'treasury')
     function poolShares(poolId: string, companyId: string): number {
         return certificatesInPool(session.financialState, poolId).reduce(
@@ -157,7 +157,7 @@
 <div class="spreadsheet">
     <div class="toolbar">
         <div class="view-toggle" role="group" aria-label="Spreadsheet view">
-            {#each ['Company', 'Player'] as option}
+            {#each ['Player', 'Company'] as option}
                 <button
                     aria-pressed={view === option}
                     onclick={() => (view = option === 'Company' ? 'Company' : 'Player')}

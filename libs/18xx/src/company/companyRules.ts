@@ -14,6 +14,7 @@ export interface CompanyRules {
         buyer: Owner,
         marketSpaceId: string
     ): SharePurchaseTerms | string
+    sharesToFloat?(state: StockState, companyId: string): number | undefined
     flotationPayments(state: StockState, companyId: string): CashPayment[] | undefined
     onStart?(state: StockState, details: CompanyStartDetails): void
     onFloat?(state: StockState & TrainState, companyId: string): CertificateExchange[] | void

@@ -1191,19 +1191,17 @@ mark sellers red. Sellers remain listed at zero shares, displayed as a dash. The
 marker is scoped to the current stock round and follows visible state on undo
 and history inspection; no sales are inferred from changes in share counts.
 
-Share purchase cards include all started companies. Companies with no legal
-purchase for the selected owner are grayed out; only legal source rows commit
-purchases. Switching the buyer recomputes availability from session choices.
-
-Titles may extend the session's stock-company list for railways active from the
-outset without ordinary company formation; TOP includes PEIR. Unavailable cards
-retain their primary token in full color, while their details are dimmed.
-
-Stock-company cards remain visible before action selection and alongside stock
-action choices. Buy availability follows the selected purchasing owner; Sell
-availability follows legal sale choices. In Sell, a seller's ownership row selects
-the company using staged selection, followed by the existing quantity and commit
-controls. TOP abbreviates PEIR only in the compact card title.
+Stock choices appear only after selecting Buy or Sell. Compact company pills
+show the token beside the price above compact source rows. Buy lists only legal sources for the selected buyer,
+side by side beneath the shaded token/price header, with a tiny source label
+above its larger share count. A single source fills the width; multiple sources
+have short vertical dividers. Differing purchase prices remain explicit. Clicking a source commits the purchase. Sell lists only companies with legal sales, using the same token/market-value
+header as Buy. Company headers remain visible with the selected company highlighted. Its legal
+quantities appear in a separate row below with proceeds. Selecting a quantity
+stages the sale; switching company clears the previous quantity;
+the existing Sell submission and Undo behavior remain. No full company cards occupy the action
+panel. TOP abbreviates PEIR and places it last; other choices retain market order.
+Switching the buyer recomputes legal options from the session.
 
 Sidebar game information pairs train limit with depot availability. Each currently
 available depot type uses the title's train badge and canonical remaining count
@@ -1216,3 +1214,22 @@ Expanded operating-order company cards show Cash, Par (if present), Market, and
 Last run below the header. Last run uses the latest visible RunTrains revenue;
 clicking it invokes the same historical map preview and route focus as history.
 A company without a recorded run shows a noninteractive dash.
+
+Stock-round company choices follow stock-market operating order, including market stack tie order. TOP places PEIR last, matching its special operating position.
+
+Unfloated buy choices show a dark band between their header and sources: “N to float”. The remaining share count comes from title CompanyRules and shares the flotation eligibility calculation; floated companies omit the band.
+
+Starting a company keeps all legal company tokens visible, highlighting the staged selection. Legal par choices appear in a second row with large par values and the full purchase cost underneath, using the matching market space background colors. Switching companies replaces the staged selection; selecting par still submits immediately.
+
+Sell headers show the player's current holding count and sale price. In titles
+that allow extending a sale block, the price remains the block's original price
+for the current turn. Subsequent legal quantities are additions, with rules
+evaluating the cumulative limit. History renders one total-sale sentence for
+that block and retains the individual consequence lines and order diagrams.
+Undo recomputes the total from the remaining visible action prefix.
+
+When private purchases are legal during an operating turn, Buy privates sits at the right end of the OR strip after Trains. It opens the existing staged private-purchase panel and highlights while selected; there is no duplicate entry button in the action panel. The purchase remains optional and available across eligible OR steps, rather than becoming a sequential step.
+
+Private purchase choices reuse compact private-card headers with name, income and purchase range, without descriptions. TOP omits the chooser heading because Hunslet is its sole buyable private. Other titles show AVAILABLE PRIVATES. When both sources exist, Mine / Other players uses a short vertical divider and a selected background.
+
+Private purchase cards use equal-width responsive grid columns. Another player's ownership is shown beneath the card as right-aligned “owned by [name]”.

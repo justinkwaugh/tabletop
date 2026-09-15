@@ -67,9 +67,24 @@ export function evaluateShareSale(
     const turn = state.stockRound.turn
     if (turn.bought && (!rules.sellAfterBuying || turn.soldBeforeBuying))
         return { reason: 'Selling is not allowed after this purchase.' }
-    if (sales.some((sale) => turn.companiesSold.includes(sale.companyId)))
+    const previous = turn.saleBlocks?.find((block) =>
+        block.companyId === sales[0].companyId && sameOwner(block.seller, seller))
+    if (turn.companiesSold.includes(sales[0].companyId) && (!rules.extendSaleBlocks || !previous))
         return { reason: 'Sell a company’s shares in one block per turn.' }
-    return evaluateShareDisposal(state, seller, sales, rules)
+    if (!previous || !rules.extendSaleBlocks) return evaluateShareDisposal(state, seller, sales, rules)
+    return evaluateShareDisposal(state, seller, sales, {
+        presidencyCandidates: rules.presidencyCandidates,
+        saleTerms(projected, companyId, shares) {
+            const terms = rules.saleTerms(projected, companyId, previous.shares + shares)
+            if (typeof terms === 'string') return terms
+            return {
+                ...terms,
+                price: previous.price,
+                maximumShares: terms.maximumShares - previous.shares,
+                movement: Math.max(0, terms.movement - previous.movement)
+            }
+        }
+    })
 }
 
 export function evaluateShareDisposal(

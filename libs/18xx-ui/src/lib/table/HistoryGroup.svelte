@@ -1,5 +1,6 @@
 <script lang="ts">
     import './historyCard.css'
+    import { historyStockSales } from './historyStockSales.js'
     import { assertExists, type GameAction } from '@tabletop/common'
     import { isAdvancePhase, isStartOperatingRound, isSellFundingShares, sameOwner, isDistributeEarnings } from '@tabletop/18xx'
     import { TileColors } from '../tiles/tilePresentation.js'
@@ -65,17 +66,22 @@
     const endingCash = $derived(group.kind === 'operation' && group.companyId
         ? cash.get(group.actions.at(-1)!.id)?.after.get(group.companyId) : undefined)
     function money(amount: number) { return `$${amount.toLocaleString('en-US')}` }
+    const saleBlocks = $derived(historyStockSales(group.kind === 'turn' ? group.actions : []))
     const rows = $derived(group.actions.map((action) => {
         const description = describe(action)
+        const block = saleBlocks.get(action.id)
+        const text = block ? (block.firstId === action.id
+            ? `Sold ${block.shares} ${companyName(block.companyId)} for ${money(block.proceeds)}` : '')
+            : description.text
         const balance = cash.get(action.id)
         const delta = startingCash !== undefined && group.companyId && balance
             ? (balance.after.get(group.companyId) ?? 0) - (balance.before.get(group.companyId) ?? 0)
             : 0
-        return { action, ...description, routine: delta ? false : description.routine,
+        return { action, ...description, text, routine: delta ? false : description.routine,
             phase: phaseChange(action), order: orderChanges.get(action.id), delta,
             ledgerValue: startingCash !== undefined && description.value && (!delta || isDistributeEarnings(action)) ? description.value : undefined }
     }))
-    const visible = $derived(rows.filter((row) => !row.routine))
+    const visible = $derived(rows.filter((row) => !row.routine && (row.text || row.detail || row.order)))
 </script>
 
 <article

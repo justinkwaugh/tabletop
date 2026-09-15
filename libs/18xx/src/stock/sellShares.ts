@@ -9,7 +9,7 @@ import {
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
-import { Owner } from '../finance/finance.js'
+import { Owner, sameOwner } from '../finance/finance.js'
 import { ShareSale, ShareSaleDetails, evaluateShareSale, applyShareSale } from './shareSale.js'
 import type { StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
@@ -21,7 +21,7 @@ export const SellShares = Type.Object(
         seller: Owner,
         sales: Type.Array(ShareSale, { minItems: 1, maxItems: 1 }),
         expectedProceeds: Type.Integer({ minimum: 1 }),
-        metadata: Type.Optional(ShareSaleDetails)
+        metadata: Type.Optional(Type.Object({ ...ShareSaleDetails.properties, saleBlockId: Type.Optional(Type.String()) }, { additionalProperties: false }))
     },
     { additionalProperties: false }
 )
@@ -39,7 +39,7 @@ export class HydratedSellShares extends HydratableAction<typeof SellShares> impl
     declare seller: Owner
     declare sales: ShareSale[]
     declare expectedProceeds: number
-    declare metadata?: ShareSaleDetails
+    declare metadata?: SellShares['metadata']
     readonly #rules: StockRules
     constructor(data: SellShares, rules: StockRules) {
         super(data instanceof HydratedSellShares ? data.dehydrate() : data, Validator)
@@ -50,12 +50,32 @@ export class HydratedSellShares extends HydratableAction<typeof SellShares> impl
         const result = evaluateShareSale(state, this, this.#rules)
         assert(result.details, result.reason ?? 'Invalid sale')
         assert(this.expectedProceeds === result.details.proceeds, 'Sale proceeds have changed')
+        let saleBlockId: string | undefined
+        if (this.#rules.extendSaleBlocks) {
+            const sale = result.details.sales[0]
+            const blocks = state.stockRound.turn.saleBlocks ??= []
+            const previous = blocks.find((block) =>
+                block.companyId === sale.companyId && sameOwner(block.seller, this.seller))
+            const shares = (previous?.shares ?? 0) + sale.shares
+            const terms = this.#rules.saleTerms(state, sale.companyId, shares)
+            assert(typeof terms !== 'string', 'A legal sale requires sale terms')
+            if (previous) {
+                previous.shares = shares
+                previous.movement = terms.movement
+                saleBlockId = previous.id
+            } else {
+                saleBlockId = this.id
+                blocks.push({ id: this.id, companyId: sale.companyId, seller: this.seller,
+                    shares, price: sale.price, movement: terms.movement })
+            }
+        }
         applyShareSale(state, result.details)
         for (const sale of result.details.sales) {
             state.stockRound.sales.push({ owner: this.seller, companyId: sale.companyId })
-            state.stockRound.turn.companiesSold.push(sale.companyId)
+            if (!state.stockRound.turn.companiesSold.includes(sale.companyId))
+                state.stockRound.turn.companiesSold.push(sale.companyId)
         }
         recordStockAction(state, this.playerId, this.#rules.round)
-        this.metadata = result.details
+        this.metadata = { ...result.details, ...(saleBlockId ? { saleBlockId } : {}) }
     }
 }

@@ -62,6 +62,7 @@
         historyDescription,
         valuationRules,
         portfolioCompanyIds = [],
+        privatePurchaseLabel = 'Buy privates',
         privateOperationDescription
     }: {
         session: FinanceExampleSession
@@ -85,6 +86,7 @@
         phaseTileColors: Readonly<Record<string, readonly string[]>>
         historyDescription?: (action: GameAction) => HistoryDescription | undefined
         poolName?: (pool: CertificatePool) => string
+        privatePurchaseLabel?: string
         privateOperationDescription: (
             privateCompanyId: string,
             companyId: string
@@ -361,7 +363,7 @@
         {/snippet}
         {#snippet gameContent()}
             <TableHeader {session} {phaseChart} {trainColors} />
-            <OperatingSteps {session} />
+            <OperatingSteps {session} {privatePurchaseLabel} />
             <StockActionStrip {session} additionalActions={additionalStockActions} />
             <section class="action-panel" class:share-purchases={session.financialState.machineState === 'StockRound'} aria-label="Current action">
                 {@render actions(focusLocation, focusRoute)}

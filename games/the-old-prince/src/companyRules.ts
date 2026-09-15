@@ -92,7 +92,7 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
         assertExists(tranche, 'Company start requires a tranche space')
         tranche.companyIds.push(details.companyId)
     },
-    flotationPayments(state, companyId) {
+    sharesToFloat(state, companyId) {
         const company = getCompany(state, companyId)
         if (!company.shareCount) return undefined
         const inBank = state.certificates.reduce(
@@ -107,7 +107,11 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
                     : 0),
             0
         )
-        if (inBank * 100 > company.shareCount * 40) return undefined
+        return Math.max(0, inBank - Math.floor(company.shareCount * 40 / 100))
+    },
+    flotationPayments(state, companyId) {
+        const company = getCompany(state, companyId)
+        if (TheOldPrinceCompanyRules.sharesToFloat?.(state, companyId) !== 0) return undefined
         assertExists(company.parPrice, 'Started company requires a starting price')
         return company.funded
             ? []

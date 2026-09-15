@@ -35,7 +35,7 @@
     {/if}
     {#if !session.privatePurchaseSource && state.purchaseOffer?.asset.kind !== 'private'}
     {#if state.machineState === 'StockRound'}
-        <StockRoundActions {session} {trainColors} {privateOperationDescription} {poolName} />
+        <StockRoundActions {session} {poolName} />
     {:else if state.machineState === 'LayingTrack'}<TrackBuilding
             {session}
             showUndo={false}
