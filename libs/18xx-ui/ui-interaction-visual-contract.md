@@ -1269,3 +1269,10 @@ Operating-order chips use the same 180ms Svelte animate:flip layout settling on 
 TOP branch allocation opens automatically with an auto-sourced empty allocation after par selection. Two outlined Parent/Branch panels contain stations, trains, Hunslet when initially present, and cash. Transfers remain staged until Confirm split; arrows move assets between panels, protected homes cannot transfer, and the first transferred station supplies the internal branch-home token assignment without a separate choice. Undo resets manually edited allocation to its initial automatic value before backing out the par selection. Station names use the table’s normal location-focus callback. The branch panel includes its bank grant in cash and cannot transfer that grant back to the parent.
 
 Branch allocation uses one cash slider spanning both panels and one parent-cash input; branch cash is a read-only total including its bank grant. Empty train/Hunslet sections remain on the parent only if it originally owned those assets, and are hidden on the branch. Transfer arrows use larger borderless shaded buttons.
+
+### Sidebar tab typography
+
+The shared table owns Players/History/Chat label typography in component CSS so
+published UI Artifacts carry the 11px uppercase labels and their letter spacing.
+It must not depend on the Site Frontend scanning the family source for Tailwind
+utilities. Title harnesses scan family sources for other utility-class styling.

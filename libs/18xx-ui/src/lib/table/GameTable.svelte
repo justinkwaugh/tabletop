@@ -366,7 +366,7 @@
             {#if gameInformation}{@render gameInformation()}{/if}
             <div bind:this={sidebar} style="display: contents">
             <DefaultTabs
-                fontClass="text-[11px] font-semibold uppercase tracking-[0.07em]"
+                fontClass="railway-tab-label"
                 contentClass="p-0 mt-0 has-[.round-history]:-mt-1 h-full overflow-auto rounded-none bg-transparent dark:bg-transparent"
                 activeTabClass="py-2 px-2 text-[#5e4937] rounded-none"
                 inactiveTabClass="py-2 px-2 text-[#998b79] hover:text-[#5e4937] rounded-none"
@@ -595,6 +595,13 @@
         background: #ede2dc;
         color: #443c34;
         font-family: ui-sans-serif, system-ui, sans-serif;
+    }
+    .railway-table :global(.railway-tab-label) {
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 1.5;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
     }
     .action-panel {
         flex-shrink: 0;
