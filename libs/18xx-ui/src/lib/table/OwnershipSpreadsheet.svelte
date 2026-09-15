@@ -15,7 +15,6 @@
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
     import type { CompanyNameVariants } from './companyPresentation.js'
     import { ownerPortfolio } from '../finance/ownerPortfolio.js'
-    import PresidentBadge from '../finance/PresidentBadge.svelte'
     import OperatingHistory from './OperatingHistory.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
@@ -66,8 +65,15 @@
         ]
         return eligibleCompanies.toSorted((a, b) => order.indexOf(a.id) - order.indexOf(b.id))
     })
-    let showIncome = $state(false)
+    let period = $state<'Current' | 'Player income' | 'Company payouts'>('Current')
     const view = $derived(session.preferences.values.spreadsheetView === 'company' ? 'Company' : 'Player')
+    function soldThisRound(ownerId: string, companyId: string): boolean {
+        const state = session.financialState
+        return state.machineState === 'StockRound' && !state.stockRound.completed &&
+            state.stockRound.sales.some((sale) => sale.companyId === companyId &&
+                (sale.owner.kind === 'player' ? `player:${sale.owner.playerId}` :
+                    sale.owner.kind === 'company' ? `company:${sale.owner.companyId}` : 'bank') === ownerId)
+    }
     const firstPoolId = 'market'
     const poolColumnLabels: Readonly<Record<string, string>> = { market: 'Mark.', treasury: 'Treas.', exchange: 'Exch.' }
     const portfolioColumnLabels = $derived(new Map(portfolioCompanyIds.map((id) => [
@@ -119,7 +125,7 @@
                   }
               ]
             : [])
-    ])
+    ].filter((owner) => (owner.id !== 'exchange' && owner.id !== 'treasury') || companies.some((company) => owner.count(company.id) > 0)))
     const rows = $derived(
         companies.map((company) => ({
             company,
@@ -183,10 +189,10 @@
     </span>
 {/snippet}
 
-{#snippet shareCell(shares: number, poolStart = false, president = false, matrix = true)}
-    <td class:share-cell={matrix} class:empty={shares === 0} class:pool-start={poolStart}>
+{#snippet shareCell(shares: number, poolStart = false, president = false, matrix = true, sold = false)}
+    <td class:sold class:share-cell={matrix} class:available-pool={!matrix && shares !== 0} class:empty={shares === 0} class:pool-start={poolStart}>
         <span class="share-value" class:president
-            >{shares}{#if president}<span class="badge"><PresidentBadge /></span>{/if}</span
+            >{shares === 0 ? '' : shares}{#if president}<span class="badge" aria-label="President">P</span>{/if}</span
         >
     </td>
 {/snippet}
@@ -203,11 +209,12 @@
 <div class="spreadsheet">
     <div class="toolbar">
         <div class="view-toggle axis-toggle period-toggle" role="group" aria-label="Spreadsheet period">
-            <button aria-pressed={!showIncome} onclick={() => (showIncome = false)}>Current</button>
-            <span class="axis-separator" aria-hidden="true"></span>
-            <button aria-pressed={showIncome} onclick={() => (showIncome = true)}>Income</button>
+            {#each ['Current', 'Player income', 'Company payouts'] as const as option, index}
+                {#if index > 0}<span class="axis-separator" aria-hidden="true"></span>{/if}
+                <button aria-pressed={period === option} onclick={() => period = option}>{option}</button>
+            {/each}
         </div>
-        <div class="view-toggle axis-toggle" role="group" aria-label="Spreadsheet view">
+        {#if period === 'Current'}<div class="view-toggle axis-toggle" role="group" aria-label="Spreadsheet view">
             {#each ['Player', 'Company'] as option, index}
                 {#if index > 0}<span class="axis-separator" aria-hidden="true"></span>{/if}
                 <button
@@ -216,12 +223,12 @@
                     >{option}</button
                 >
             {/each}
-        </div>
+        </div>{/if}
     </div>
-    {#if showIncome}
+    {#if period !== 'Current'}
         <OperatingHistory rounds={session.operatingIncomeHistory()}
             players={session.playerPriorityOrder.map((playerId) => ({ playerId, name: session.getPlayerName(playerId) }))}
-            appearances={session.mapView.stations} {view} {companyNames} />
+            appearances={session.mapView.stations} view={period === 'Player income' ? 'Player' : 'Company'} {companyNames} {onPreviewMap} />
     {:else}
         <div class="table-scroll">
         <table aria-label="Company share ownership" class:transposed={view === 'Player'}>
@@ -244,7 +251,7 @@
                         {#each owners as owner (owner.id)}<th
                                 scope="col"
                                 class:pool-start={owner.id === firstPoolId}
-                                title={owner.name}>{poolColumnLabels[owner.id] ?? portfolioColumnLabels.get(owner.id) ?? owner.name}</th
+                                title={owner.name}><span class="owner-name">{poolColumnLabels[owner.id] ?? portfolioColumnLabels.get(owner.id) ?? owner.name}</span></th
                             >{/each}
                         <th scope="col" class="company-stat-start">Cash</th>
                         <th scope="col">Tokens</th>
@@ -274,11 +281,12 @@
                                     shares,
                                     owners[index].id === firstPoolId,
                                     row.presidentId === owners[index].id,
-                                    !(owners[index].id in poolColumnLabels)
+                                    !(owners[index].id in poolColumnLabels),
+                                    soldThisRound(owners[index].id, row.company.id)
                                 )}{/each}
-                            <td class="company-stat-start">{@render companyCash(row.cash)}</td>
-                            <td>{row.stations.filter((station) => station.status === 'available').length}/{row.stations.length}</td>
-                            <td>{@render companyTrains(row.company.id)}</td>
+                            <td class="company-stat-start bright-cell">{@render companyCash(row.cash)}</td>
+                            <td class="bright-cell token-cell">{row.stations.filter((station) => station.status === 'available').length}/{row.stations.length}</td>
+                            <td class="bright-cell">{@render companyTrains(row.company.id)}</td>
                             <td class="company-stat-start">{@render lastRunCell(row.company)}</td>
                         </tr>
                     {/each}
@@ -288,6 +296,8 @@
                             {#each owners as owner (owner.id)}
                                 <td
                                     class:pool-start={owner.id === firstPoolId}
+                                    class:bright-cell={label === 'Cash' && statistics.has(owner.id)}
+                                    class:token-cell={label === 'Shares' && statistics.has(owner.id)}
                                     class:empty={!statistics.has(owner.id)}
                                     >{statistics.get(owner.id)?.[index] ?? '—'}</td
                                 >
@@ -301,16 +311,19 @@
                 {:else}
                     {#each owners as owner, index (owner.id)}
                         <tr class:pool-start={owner.id === firstPoolId} class:pool-row={owner.id in poolColumnLabels}>
-                            <th scope="row" title={owner.name}>{portfolioColumnLabels.get(owner.id) ?? owner.name}</th>
+                            <th scope="row" title={owner.name}><span class="owner-name">{portfolioColumnLabels.get(owner.id) ?? owner.name}</span></th>
                             {#each rows as row (row.company.id)}{@render shareCell(
                                     row.shares[index],
                                     false,
                                     row.presidentId === owner.id,
-                                    !(owner.id in poolColumnLabels)
+                                    !(owner.id in poolColumnLabels),
+                                    soldThisRound(owner.id, row.company.id)
                                 )}{/each}
                             {#each statisticLabels as _, statIndex}
                                 <td
                                     class:stat-start={statIndex === 0}
+                                    class:bright-cell={statIndex === 0 && statistics.has(owner.id)}
+                                    class:token-cell={statisticLabels[statIndex] === 'Shares' && statistics.has(owner.id)}
                                     class:empty={!statistics.has(owner.id)}
                                     >{statistics.get(owner.id)?.[statIndex] ?? '—'}</td
                                 >
@@ -319,7 +332,7 @@
                     {/each}
                     <tr class="company-stat-start financial-row">
                         <th scope="row">Cash</th>
-                        {#each rows as row (row.company.id)}<td>{@render companyCash(row.cash)}</td
+                        {#each rows as row (row.company.id)}<td class="bright-cell">{@render companyCash(row.cash)}</td
                             >{/each}
                         {#each statisticLabels as _, index}<td
                                 class:stat-start={index === 0}
@@ -329,13 +342,13 @@
                     <tr class="financial-row">
                         <th scope="row">Tokens</th>
                         {#each rows as row (row.company.id)}
-                            <td>{row.stations.filter((station) => station.status === 'available').length}/{row.stations.length}</td>
+                            <td class="bright-cell token-cell">{row.stations.filter((station) => station.status === 'available').length}/{row.stations.length}</td>
                         {/each}
                         {#each statisticLabels as _, index}<td class:stat-start={index === 0} class="empty">—</td>{/each}
                     </tr>
                     <tr class="financial-row">
                         <th scope="row">Trains</th>
-                        {#each rows as row (row.company.id)}<td>{@render companyTrains(row.company.id)}</td>{/each}
+                        {#each rows as row (row.company.id)}<td class="bright-cell">{@render companyTrains(row.company.id)}</td>{/each}
                         {#each statisticLabels as _, index}<td class:stat-start={index === 0} class="empty">—</td>{/each}
                     </tr>
                     <tr class="company-stat-start financial-row">
@@ -351,6 +364,24 @@
 </div>
 
 <style>
+    .owner-name {
+        display: block;
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .share-cell,
+    .available-pool,
+    .bright-cell { background: #faf6ee; }
+    tbody tr:hover .share-cell,
+    tbody tr:hover .available-pool,
+    tbody tr:hover .bright-cell { background: #eee8df; }
+    .token-cell { background: #f0e7d9; }
+    tbody tr:hover .token-cell { background: #e5d9c8; }
+    tbody tr.active-row .share-cell { background: inherit; }
+    tbody tr .sold { background: #efd3ce; }
+    tbody tr:hover .sold { background: #e7beb7; }
     td + td.share-cell {
         border-left: 1px solid #6955401c;
     }
@@ -411,9 +442,12 @@
     }
     .badge {
         position: absolute;
-        --president-badge-background: #a79888;
+        color: #a79888;
+        font-size: 9px;
+        font-weight: 700;
+        line-height: 1;
         left: 100%;
-        margin-left: -2px;
+        margin-left: 2px;
         top: 50%;
         transform: translateY(-50%);
         display: flex;

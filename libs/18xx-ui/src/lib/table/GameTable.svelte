@@ -626,6 +626,7 @@
         color: #5e4937;
     }
     .map-area {
+        background: #cbdfe8;
         position: relative;
     }
     .view-area {

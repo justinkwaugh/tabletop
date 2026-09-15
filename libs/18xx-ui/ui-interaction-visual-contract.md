@@ -738,7 +738,7 @@ Cash, net worth, shares and certs/limit appear after ownership, as rows in Compa
 
 ### Operating-round financial history
 
-Spreadsheet's Current / Income toggle switches to chronological OR rows with player or company columns. Company view shows finalized train revenue before distribution; Player view shows dividend/private-income receipts and recorded net worth. Unfinished or partial rounds carry an asterisk explained below the table. Historical company names remain available after closure. Only the displayed action prefix is read, without moving the history cursor. Current / Income is left aligned; Player / Company is right aligned and saved as a family user preference, defaulting to Player.
+Spreadsheet's Current / Income toggle switches to chronological OR rows with player or company columns. Company view shows finalized train revenue before distribution; Player view shows dividend/private-income receipts and recorded net worth. Unfinished or partial rounds carry an asterisk explained below the table. Historical company names remain available after closure. Only the displayed action prefix is read, without moving the history cursor. Current, Player income, and Company payouts are separate left-aligned view choices. Player / Company applies only to Current, is right aligned, and is saved as a family user preference, defaulting to Player. Company payout values open their recorded run in the historical map modal; withheld runs are red.
 
 Income calculation receives only visible context actions; it does not read or reconstruct game states.
 

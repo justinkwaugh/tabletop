@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { GameAction } from '@tabletop/common'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import type { CompanyNameVariants } from './companyPresentation.js'
     import type { OperatingRoundHistory } from './operatingHistory.js'
@@ -9,8 +10,10 @@
         players,
         appearances,
         view,
-        companyNames
+        companyNames,
+        onPreviewMap
     }: {
+        onPreviewMap: (action: GameAction) => void
         rounds: OperatingRoundHistory[]
         players: { playerId: string; name: string }[]
         appearances: Readonly<Record<string, StationAppearance>>
@@ -29,9 +32,9 @@
         <colgroup>
             <col class="round-column" />
             {#if view === 'Player'}
-                {#each players as player, index (player.playerId)}<col span="3" class:shaded={index % 2 === 1} />{/each}
+                {#each players as player, index (player.playerId)}<col span="3" class="data-column" class:shaded={index % 2 === 1} />{/each}
             {:else}
-                {#each companies as [companyId], index (companyId)}<col class:shaded={index % 2 === 1} />{/each}
+                {#each companies as [companyId], index (companyId)}<col class="data-column" class:shaded={index % 2 === 1} />{/each}
             {/if}
         </colgroup>
         <thead>
@@ -39,7 +42,7 @@
                 <th scope="col" rowspan={view === 'Player' ? 2 : 1}>Round</th>
                 {#if view === 'Player'}
                     {#each players as player (player.playerId)}
-                        <th scope="colgroup" colspan="3">{player.name}</th>
+                        <th scope="colgroup" colspan="3" title={player.name}><span class="player-name">{player.name}</span></th>
                     {/each}
                 {:else}
                     {#each companies as [companyId, name] (companyId)}
@@ -82,7 +85,14 @@
                         {/each}
                     {:else}
                         {#each companies as [companyId] (companyId)}
-                            <td>{round.companyIncome[companyId] === undefined ? '—' : `$${money.format(round.companyIncome[companyId])}`}</td>
+                            {@const run = round.companyRuns[companyId]}
+                            <td class:negative={round.withheldCompanyIds.includes(companyId)}>
+                                {#if round.companyIncome[companyId] === undefined}—
+                                {:else if run && round.companyIncome[companyId] > 0}<button class="payout" onclick={() => onPreviewMap(run)}
+                                    aria-label={`Show ${round.companyNames[companyId]} run in OR ${round.id}`}
+                                    >${money.format(round.companyIncome[companyId])}</button>
+                                {:else}${money.format(round.companyIncome[companyId])}{/if}
+                            </td>
                         {/each}
                     {/if}
                 </tr>
@@ -102,6 +112,17 @@
 {/if}
 
 <style>
+    .payout { border: 0; border-radius: 4px; padding: 1px 4px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+    .payout:hover { background: #69554016; }
+    .payout:focus-visible { outline: 2px solid #9e7752; outline-offset: 1px; }
+    .player-name {
+        max-width: 180px;
+        margin-inline: auto;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: block;
+    }
     .negative { color: #b33a32; }
     .table-scroll { overflow-x: auto; }
     table {
@@ -140,7 +161,8 @@
     }
     sup { font-size: 10px; margin-left: 2px; }
     .round-column { background: #69554008; }
-    .shaded { background: #6955400a; }
+    .data-column { background: #faf6ee; }
+    .shaded { background: #f0e7d9; }
     thead { background: #69554012; }
     .metrics { background: #69554008; }
     tbody tr:hover { background-color: #69554016; }

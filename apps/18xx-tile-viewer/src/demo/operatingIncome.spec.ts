@@ -25,6 +25,13 @@ it('builds full-game income from recorded actions without states or replay patch
         expect(round?.playerNetWorth).toEqual(snapshot.playerNetWorth)
         expect(round?.complete).toBe(true)
     }
+    for (const round of rounds) {
+        for (const [companyId, run] of Object.entries(round.companyRuns)) {
+            expect(run.companyId).toBe(companyId)
+            expect(run.metadata?.revenue).toBe(round.companyIncome[companyId])
+        }
+    }
+    expect(rounds.some((round) => round.withheldCompanyIds.length > 0)).toBe(true)
     expect(records).toEqual(before)
     const legacy = structuredClone(actions)
     for (const action of legacy) {
@@ -40,7 +47,7 @@ it('builds full-game income from recorded actions without states or replay patch
     }
     const originalState = structuredClone(state)
     expect(migrateOperatingIncome(state, legacy, engine, TheOldPrinceEndingRules)).toBe(true)
-    expect(operatingHistory(legacy)).toEqual(rounds)
+    expect(operatingHistory(legacy.map(({ undoPatch, forwardPatch, ...action }) => action))).toEqual(rounds)
     expect(migrateOperatingIncome(state, legacy, engine, TheOldPrinceEndingRules)).toBe(false)
     expect(state).toEqual(originalState)
 }, 60000)

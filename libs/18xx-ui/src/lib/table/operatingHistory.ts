@@ -1,5 +1,7 @@
 import {
     isDistributeEarnings,
+    isRunTrains,
+    type RunTrains,
     isStartOperatingRound,
     isFinishOperatingTurn,
     type OperatingRoundSnapshot,
@@ -16,9 +18,12 @@ export type OperatingRoundHistory = {
     playerNetWorth: Record<string, number>
     companyIncome: Record<string, number>
     companyNames: Record<string, string>
+    companyRuns: Record<string, RunTrains>
+    withheldCompanyIds: string[]
 }
 
 export function operatingHistory(actions: readonly GameAction[]): OperatingRoundHistory[] {
+    const runs = new Map<string, RunTrains>()
     const rounds = new Map<string, OperatingRoundHistory>()
     function roundFor(identity: OperatingRoundIdentity): OperatingRoundHistory {
         const id = `${identity.number}.${identity.roundNumber}`
@@ -31,7 +36,9 @@ export function operatingHistory(actions: readonly GameAction[]): OperatingRound
                 playerIncome: {},
                 playerNetWorth: {},
                 companyIncome: {},
-                companyNames: {}
+                companyNames: {},
+                companyRuns: {},
+                withheldCompanyIds: []
             }
             rounds.set(id, round)
         }
@@ -53,7 +60,10 @@ export function operatingHistory(actions: readonly GameAction[]): OperatingRound
         }
     }
     for (const action of actions) {
-        if (isStartOperatingRound(action)) {
+        if (isRunTrains(action)) {
+            runs.set(action.companyId, action)
+        } else if (isStartOperatingRound(action)) {
+            runs.clear()
             assertExists(action.metadata, 'Recorded operating round requires metadata')
             const round = recordSnapshot(action.metadata.snapshot)
             round.partial = false
@@ -65,10 +75,14 @@ export function operatingHistory(actions: readonly GameAction[]): OperatingRound
             round.companyNames[action.companyId] = action.metadata.companyName
             round.companyIncome[action.companyId] =
                 (round.companyIncome[action.companyId] ?? 0) + action.metadata.revenue
+            const run = runs.get(action.companyId)
+            if (run) round.companyRuns[action.companyId] = run
+            if (action.choice === 'withhold') round.withheldCompanyIds.push(action.companyId)
             recordPayments(round, action.metadata.payments)
         } else if (isFinishOperatingTurn(action)) {
             assertExists(action.metadata, 'Recorded operating turn requires a snapshot')
             recordSnapshot(action.metadata)
+            runs.delete(action.companyId)
         }
     }
     return [...rounds.values()]
