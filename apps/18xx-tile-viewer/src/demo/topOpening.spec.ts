@@ -44,12 +44,13 @@ function opening(count = 3, seed = 5) {
             return result
         },
         offer() {
-            this.act('OfferAuctionLot', { lotId: this.model.offerIds[0] })
+            return this.act('OfferAuctionLot', { lotId: this.model.offerIds[0] })
         },
         force() {
-            this.offer()
-            this.act('PassAuction')
-            return this.act('PassAuction')
+            let result = this.offer()
+            while (this.state.machineState === 'OfferBidding' && !this.model.auction.stalled)
+                result = this.act('PassAuction')
+            return result
         }
     }
 }
@@ -138,7 +139,6 @@ it('uses the richest fallback, breaking ties clockwise from the current auctione
         if (account.owner.kind === 'player')
             account.amount = account.owner.playerId === receiver ? 0 : price
     run.act('PassAuction')
-    run.act('PassAuction')
     expect(run.model.auction.awards.at(-1)?.playerId).toBe(auctioneer)
 })
 it('pays player privates repeatedly until a forced purchase is affordable, excluding King’s Mail', () => {
@@ -153,7 +153,6 @@ it('pays player privates repeatedly until a forced purchase is affordable, exclu
     run.offer()
     const price = run.model.price(run.model.auction.bidding!.lotId)
     for (const account of run.state.cash) if (account.owner.kind === 'player') account.amount = 0
-    run.act('PassAuction')
     const result = run.act('PassAuction')
     expect(result.processedActions.filter((a) => a.type === 'ResolveAuction')).toHaveLength(
         Math.ceil(price / 5) + 1
@@ -165,7 +164,6 @@ it('preserves an unaffordable zero-income position and can undo the entire conse
     const run = opening()
     run.offer()
     for (const account of run.state.cash) if (account.owner.kind === 'player') account.amount = 0
-    run.act('PassAuction')
     const before = structuredClone(run.state)
     const result = run.act('PassAuction')
     expect(run.model.auction.stalled).toBe(true)
@@ -219,7 +217,6 @@ it('can reach the zero-income stall through legal bids alone', () => {
         const lotId = run.model.offerIds.find((id) => id.startsWith('PEIR:'))!
         run.act('OfferAuctionLot', { lotId })
         run.act('BidOnAuctionLot', { lotId, amount: 580 })
-        run.act('PassAuction')
     }
     expect(
         run.state.players.every(
@@ -247,4 +244,23 @@ it('assigns distinct roles without changing the seven company identities across 
         expect(new Set(numbers).size).toBe(5)
     }
     expect(mainlines.size).toBeGreaterThan(1)
+})
+
+it.each([0, 5])('auto passes only below the minimum bid (extra cash %i)', (extra) => {
+    const run = opening(4)
+    const [first, second] = run.model.bidders
+    const lotId = run.model.offerIds[0]
+    const account = run.state.cash.find((cash) => cash.owner.kind === 'player' && cash.owner.playerId === first)!
+    account.amount = run.model.price(lotId) + extra
+    const result = run.offer()
+    expect(result.processedActions.filter((action) => action.type === 'PassAuction')).toMatchObject(
+        extra === 0 ? [{ source: ActionSource.System, playerId: first }] : [])
+    expect(run.state.activePlayerIds).toEqual([extra === 0 ? second : first])
+    if (extra === 0) {
+        const bid = run.act('BidOnAuctionLot', { lotId, amount: run.model.minimumBid })
+        expect(bid.processedActions.filter((action) => action.type === 'PassAuction')).toMatchObject([
+            { source: ActionSource.System, playerId: first }
+        ])
+        expect(run.model.auction.awards.at(-1)?.playerId).toBe(second)
+    }
 })

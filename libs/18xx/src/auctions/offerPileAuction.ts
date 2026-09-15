@@ -115,6 +115,11 @@ export class OfferAuction {
             amount <= this.cash(playerId)
         )
     }
+    get mustPass(): boolean {
+        const bidding = this.auction.bidding
+        return !!bidding && !this.resolution() &&
+            !this.canBid(this.playerId, bidding.lotId, this.minimumBid)
+    }
     offer(playerId: string, lotId: string, actionId: string) {
         assert(this.canOffer(playerId, lotId), 'Offer an item from your pile')
         this.auction.bidding = {

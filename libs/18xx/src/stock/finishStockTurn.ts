@@ -44,7 +44,7 @@ export class HydratedFinishStockTurn
     }
     apply(state: HydratedGameState & StockState) {
         assert(
-            (this.source === ActionSource.User || (this.source === ActionSource.System && state.stockRound.turn.acted)) &&
+            (this.source === ActionSource.User || this.source === ActionSource.System) &&
                 state.turnManager.currentTurn()?.playerId === this.playerId &&
                 state.activePlayerIds.includes(this.playerId),
             'Only the acting player can finish the turn'

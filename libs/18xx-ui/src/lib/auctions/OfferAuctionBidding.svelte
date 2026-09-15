@@ -23,7 +23,7 @@
         return lot
     })
     const highBidderId = $derived.by(() => {
-        if (bidding.auction.highBid === undefined) return model.forcedBuyerId
+        if (bidding.auction.highBid === undefined) return model.auction.auctioneerId
         const bidder = bidding.auction.participants.find(
             (participant) => participant.bid === bidding.auction.highBid
         )
@@ -64,8 +64,8 @@
     </div>
     <div class="turn">
         <div class="bid-summary">
-            <span class="value">High bid: <strong>{session.getPlayerName(highBidderId)}</strong></span>
-            <span class="value">Current bid <strong>${(bidding.auction.highBid ?? lot.price).toLocaleString('en-US')}</strong></span>
+            <span class="value">{bidding.auction.highBid === undefined ? 'Offered by' : 'Current bidder'} <strong>{session.getPlayerName(highBidderId)}</strong></span>
+            <span class="value">{bidding.auction.highBid === undefined ? 'Initial value' : 'High bid'} <strong>${(bidding.auction.highBid ?? lot.price).toLocaleString('en-US')}</strong></span>
         </div>
         <AuctionBidControl
             {amount}

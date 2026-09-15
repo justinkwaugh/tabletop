@@ -359,7 +359,7 @@
     <g
         data-map-layer="highlights"
         fill="none"
-        stroke="#d52f83"
+        stroke="#f07818"
         pointer-events="none"
         aria-hidden="true"
     >
@@ -374,7 +374,8 @@
                     : undefined}
                 transform={`translate(${entry.center.x} ${entry.center.y})`}
                 points={entry.drawing.polygon}
-                stroke-width={entry.location.id === focusedLocationId ? 3 : 2.5}
+                stroke-width="8"
+                stroke-linejoin="round"
             />
         {/each}
     </g>

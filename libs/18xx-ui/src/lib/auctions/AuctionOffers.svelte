@@ -27,14 +27,26 @@
     <table>
         <thead
             ><tr
-                ><th>Private / share</th><th class="amount">Income</th><th class="amount">Value</th
-                ><th><span class="sr-only">Action</span></th></tr
+                ><th><span class="sr-only">Action</span></th><th>Private / share</th><th class="amount">Income</th><th class="amount">Value</th
+                ></tr
             ></thead
         >
         <tbody>
             {#each lots as lot (lot.id)}
                 {@const info = lotInfo(lot.id)}
                 <tr data-private-description-row>
+                    <td class="action"
+                        ><button
+                            data-description-exclude
+                            aria-label={`Offer ${lot.name}`}
+                            disabled={!session.canOfferAuction ||
+                                !session.myPlayer ||
+                                !model.canOffer(session.myPlayer.id, lot.id)}
+                            onclick={() => session.offerAuctionLot(lot.id)}
+                            >Offer <span aria-hidden="true">→</span></button
+                        ></td
+                    >
+
                     <th scope="row"
                         ><div class="identity">
                             <button
@@ -65,17 +77,6 @@
                                 .privateRevenue}<small> / OR</small>{:else}—{/if}</td
                     >
                     <td class="amount value">${lot.price}</td>
-                    <td class="action"
-                        ><button
-                            data-description-exclude
-                            aria-label={`Offer ${lot.name}`}
-                            disabled={!session.canOfferAuction ||
-                                !session.myPlayer ||
-                                !model.canOffer(session.myPlayer.id, lot.id)}
-                            onclick={() => session.offerAuctionLot(lot.id)}
-                            >Offer <span aria-hidden="true">→</span></button
-                        ></td
-                    >
                 </tr>
             {/each}
         </tbody>

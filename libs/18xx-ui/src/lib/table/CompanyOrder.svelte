@@ -230,7 +230,7 @@
         align-items: flex-start;
         flex-shrink: 0;
         gap: 5px;
-        padding: 8px 16px;
+        padding: 8px 16px 0;
         background: transparent;
         min-height: 52px;
         min-width: 0;

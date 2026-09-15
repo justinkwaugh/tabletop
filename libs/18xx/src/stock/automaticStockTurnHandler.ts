@@ -17,7 +17,6 @@ export class AutomaticStockTurnHandler<
         const state = context.gameState
         if (
             state.stockRound.completed ||
-            !state.stockRound.turn.acted ||
             state.turnManager.currentTurn()?.playerId !== playerId
         )
             return false

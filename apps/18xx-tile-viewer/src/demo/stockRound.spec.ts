@@ -431,3 +431,23 @@ it('keeps an 1889 purchase turn open when selling is still legal', () => {
     expect(result.updatedState.activePlayerIds[0]).toBe('alex')
     expect(result.updatedState.stockRound.turn.bought).toBe(true)
 })
+
+it('automatically passes a stock player with no affordable purchase or holdings to sell', () => {
+    const { game, engine, state } = example(Shikoku)
+    for (const cash of state.cash)
+        if (cash.owner.kind === 'player' && cash.owner.playerId === 'blair') cash.amount = 0
+    for (const certificate of state.certificates)
+        if (certificate.owner.kind === 'player' && certificate.owner.playerId === 'blair') {
+            certificate.owner = { kind: 'player', playerId: 'casey' }
+        }
+    const result = engine.executeCanonicalAction({ game, state, action: finish(state) })
+    expect(result.processedActions.filter(isFinishStockTurn)).toMatchObject([
+        { playerId: 'alex', source: ActionSource.User },
+        { playerId: 'blair', source: ActionSource.System, metadata: { passed: true } }
+    ])
+    expect(result.updatedState.activePlayerIds).toEqual(['casey'])
+    let restored = result.updatedState
+    for (const action of result.processedActions.toReversed())
+        restored = engine.undoProcessedAction({ state: restored, action })
+    expect(restored).toEqual(state)
+})

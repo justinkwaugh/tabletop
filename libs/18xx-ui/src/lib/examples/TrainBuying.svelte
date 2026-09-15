@@ -13,7 +13,6 @@
     const fundingDepot = $derived(session.fundingPurchases.filter((purchase) => session.financialState.trainInventory.trains.some((train) => train.id === purchase.trainId && train.status === 'depot')))
     const remainingDepot = $derived(session.trainOffers.filter((offer) => offer.remaining !== 0))
     const currentDepot = $derived(remainingDepot.filter((offer) => availableTypes.includes(offer.definitionId) && (offer.evaluation.details || fundingDepot.some((purchase) => purchase.definitionId === offer.definitionId))))
-    const nextDepot = $derived(remainingDepot.find((offer) => !availableTypes.includes(offer.definitionId)))
     const marketChoices = $derived.by(() => {
         const groups = new Map<string, { details: TrainPurchaseDetails; count: number }>()
         const offers = [
@@ -30,14 +29,14 @@
     })
 </script>
 
-{#snippet trainChoice(definitionId: string, price: number, remaining: number | 'unlimited', details: TrainPurchaseDetails | undefined, upcoming = false, market = false, funding = false)}
+{#snippet trainChoice(definitionId: string, price: number, remaining: number | 'unlimited', details: TrainPurchaseDetails | undefined, market = false, funding = false)}
     {@const definition = session.trainDepot.trainDefinition(definitionId)}
     <div class="depot-entry">
         <TrainPurchaseButton name={definition.name} {price} color={trainColors[definitionId]}
-            {definitionId} {upcoming} {market}
+            {definitionId} {market}
             disabled={!(funding ? session.canFundTrain : session.canBuyTrain) || !details}
             onclick={() => { if (details) void (funding ? session.fundTrain(details) : session.buyTrain(details)) }} />
-        <small class="remaining">{#if upcoming}{remaining === 'unlimited' ? 'Unlimited upcoming' : `${remaining} upcoming`}{:else}{market ? 'Market · ' : ''}{remaining === 'unlimited' ? 'Unlimited' : `${remaining} remaining`}{/if}</small>
+        <small class="remaining">{market ? 'Market · ' : ''}{remaining === 'unlimited' ? 'Unlimited' : `${remaining} remaining`}</small>
     </div>
 {/snippet}
 
@@ -88,14 +87,11 @@
         <div class="trains">
             {#each currentDepot as offer (offer.definitionId)}
                 {@const fundingPurchase = fundingDepot.find((purchase) => purchase.definitionId === offer.definitionId)}
-                {@render trainChoice(offer.definitionId, offer.evaluation.details?.price ?? session.trainDepot.trainDefinition(offer.definitionId).price, offer.remaining, offer.evaluation.details ?? fundingPurchase, false, false, !!fundingPurchase)}
+                {@render trainChoice(offer.definitionId, offer.evaluation.details?.price ?? session.trainDepot.trainDefinition(offer.definitionId).price, offer.remaining, offer.evaluation.details ?? fundingPurchase, false, !!fundingPurchase)}
             {/each}
             {#each marketChoices as { details, count } (`${details.definitionId}:${details.price}`)}
-                {@render trainChoice(details.definitionId, details.price, count, details, false, true, session.fundingPurchases.some((purchase) => purchase.trainId === details.trainId))}
+                {@render trainChoice(details.definitionId, details.price, count, details, true, session.fundingPurchases.some((purchase) => purchase.trainId === details.trainId))}
             {/each}
-            {#if nextDepot}
-                {@render trainChoice(nextDepot.definitionId, session.trainDepot.trainDefinition(nextDepot.definitionId).price, nextDepot.remaining, undefined, true)}
-            {/if}
         </div>
         {#if session.trainExchanges.length}<h3>Diesel exchange</h3>
             <div class="trains">

@@ -11,7 +11,7 @@ import {
 } from './offerPileAuction.js'
 import { HydratedOfferAuctionLot } from './offerAuctionLot.js'
 import { HydratedBidOnAuctionLot } from './bidOnAuctionLot.js'
-import { HydratedPassAuction } from './passAuction.js'
+import { HydratedPassAuction, PassAuction } from './passAuction.js'
 import { HydratedResolveAuction, ResolveAuction } from './resolveAuction.js'
 export class OfferAuctionHandler<
     State extends HydratedGameState & OfferAuctionState
@@ -60,6 +60,7 @@ export class OfferAuctionHandler<
             state.turnManager.endTurn(state.actionCount)
             state.turnManager.startTurn(model.playerId, state.actionCount + 1)
         }
+        if (model.mustPass) context.addSystemAction(PassAuction, { playerId: model.playerId })
     }
     onAction(_action: HydratedAction, context: MachineContext<State>) {
         const auction = context.gameState.offerAuction!

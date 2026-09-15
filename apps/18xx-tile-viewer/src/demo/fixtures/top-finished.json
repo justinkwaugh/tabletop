@@ -4046,26 +4046,12 @@
       "amount": 45
     },
     {
-      "id": "recorded:63",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "PassAuction",
-      "playerId": "12729"
-    },
-    {
       "id": "recorded:65",
       "gameId": "top-finished",
       "source": "user",
       "type": "OfferAuctionLot",
       "playerId": "13748",
       "lotId": "PEIR:share:6"
-    },
-    {
-      "id": "recorded:66",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "PassAuction",
-      "playerId": "12729"
     },
     {
       "id": "recorded:67",
@@ -4092,33 +4078,12 @@
       "amount": 45
     },
     {
-      "id": "recorded:71",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "PassAuction",
-      "playerId": "13748"
-    },
-    {
       "id": "recorded:73",
       "gameId": "top-finished",
       "source": "user",
       "type": "OfferAuctionLot",
       "playerId": "3574",
       "lotId": "SB"
-    },
-    {
-      "id": "recorded:74",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "PassAuction",
-      "playerId": "13748"
-    },
-    {
-      "id": "recorded:75",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "PassAuction",
-      "playerId": "12729"
     },
     {
       "id": "recorded:77",
@@ -4129,25 +4094,11 @@
       "lotId": "PEIR:share:7"
     },
     {
-      "id": "recorded:78",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "PassAuction",
-      "playerId": "12729"
-    },
-    {
       "id": "recorded:79",
       "gameId": "top-finished",
       "source": "user",
       "type": "PassAuction",
       "playerId": "3574"
-    },
-    {
-      "id": "recorded:82",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "FinishStockTurn",
-      "playerId": "12729"
     },
     {
       "id": "recorded:83",

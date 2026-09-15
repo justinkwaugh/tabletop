@@ -1317,3 +1317,7 @@ separate station-only behavior.
 The operating-order strip is visible only during operating rounds, including historical operating positions, and is hidden after game end. Active player cards use a reinforced outline with the normal unshaded header; the live round header pairs each active player name with their player-color dot and the same typography as the operating company.
 
 After a stock share sale settles, keep the Sell menu open at company selection if the same player remains active in that stock round and has another legal sale. Clear the previous company and quantity selection; normal reset behavior applies when the turn or round ends.
+
+Offered-lot auctions distinguish the auctioneer and initial value from a bidder and high bid. When an offered-lot bidder cannot make the minimum legal bid, the handler records a system PassAuction; it preserves the procedure's re-entry and forced-purchase rules. Stock rounds likewise record a system FinishStockTurn when the title's full action handler exposes only finishing/passing. These decisions belong to game logic, not a client effect; optional exchanges, starts, and title-specific actions prevent automatic passing. Waterfall auction offering/purchase behavior is unchanged.
+
+Tile selection, placement previews, legal tile hover, and history tile focus use a solid orange (#f07818), eight-unit outline with rounded joins.
