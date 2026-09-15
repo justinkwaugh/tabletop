@@ -110,6 +110,59 @@
     let scrollVelocityY = 0
     let scrollInertiaFrame: number | undefined
     let gestureStartScale: number | null = null
+    let mouseStartPoint: Point | null = null
+    let mouseLastPoint: Point | null = null
+    let mouseDragging = $state(false)
+    let suppressMouseClick = false
+    let lastWheelTimestamp = 0
+    let smoothWheelGesture = false
+
+    function handleMouseDown(event: MouseEvent) {
+        suppressMouseClick = false
+        if (event.button !== 0 || (event.target instanceof Element &&
+            event.target.closest('input, textarea, select, [contenteditable="true"]'))) return
+        event.preventDefault()
+        mouseStartPoint = mouseLastPoint = { x: event.clientX, y: event.clientY }
+    }
+
+    function handleMouseMove(event: MouseEvent) {
+        if (!mouseStartPoint || !mouseLastPoint) return
+        if (!(event.buttons & 1)) {
+            endMouseDrag()
+            return
+        }
+        if (!mouseDragging && Math.hypot(event.clientX - mouseStartPoint.x,
+            event.clientY - mouseStartPoint.y) < 5) return
+        mouseDragging = true
+        suppressMouseClick = true
+        event.preventDefault()
+        cancelViewAnimation()
+        cancelPanInertia()
+        cancelScrollInertia()
+        clearActiveFocus()
+        const next = clampTranslation(currentScale,
+            currentTranslateX + event.clientX - mouseLastPoint.x,
+            currentTranslateY + event.clientY - mouseLastPoint.y)
+        mouseLastPoint = { x: event.clientX, y: event.clientY }
+        notifyManualViewChange(currentScale, next.translateX, next.translateY)
+        applyView(currentScale, next.translateX, next.translateY)
+    }
+
+    function endMouseDrag() {
+        mouseStartPoint = mouseLastPoint = null
+        mouseDragging = false
+    }
+
+    function handleMouseClick(event: MouseEvent) {
+        if (!suppressMouseClick || event.detail === 0) return
+        suppressMouseClick = false
+        event.preventDefault()
+        event.stopImmediatePropagation()
+    }
+
+    function preventNativeDrag(event: DragEvent) {
+        event.preventDefault()
+    }
 
     $effect(() => {
         wrapperWidth
@@ -998,49 +1051,37 @@
             return
         }
 
-        if (event.ctrlKey) {
-            event.preventDefault()
-            cancelViewAnimation()
-            const nextScale = currentScale * Math.exp(-event.deltaY * 0.003)
-            const contentPoint = getContentPointForClientPoint(event.clientX, event.clientY)
-            const rect = scroller.getBoundingClientRect()
-            const viewportX = event.clientX - rect.left
-            const viewportY = event.clientY - rect.top
-            const targetView = getViewForContentPointAtViewportPoint(
-                contentPoint.x,
-                contentPoint.y,
-                viewportX,
-                viewportY,
-                nextScale
-            )
-            notifyManualViewChange(targetView.scale, targetView.translateX, targetView.translateY)
-            applyView(targetView.scale, targetView.translateX, targetView.translateY)
-            return
-        }
-
-        const metrics = getMetrics(currentScale)
-        const canPan =
-            metrics.minTranslateX !== metrics.maxTranslateX || metrics.minTranslateY !== metrics.maxTranslateY
-        if (!canPan) {
-            return
-        }
-
-        const nextView = clampTranslation(
-            currentScale,
-            currentTranslateX - event.deltaX,
-            currentTranslateY - event.deltaY
-        )
-        const didPan =
-            Math.abs(nextView.translateX - currentTranslateX) > EPSILON ||
-            Math.abs(nextView.translateY - currentTranslateY) > EPSILON
-        if (!didPan) {
-            return
-        }
-
         event.preventDefault()
         cancelViewAnimation()
-        notifyManualViewChange(currentScale, nextView.translateX, nextView.translateY)
-        applyView(currentScale, nextView.translateX, nextView.translateY)
+        cancelPanInertia()
+        cancelScrollInertia()
+        clearActiveFocus()
+        const unit = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16
+            : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? wrapperHeight : 1
+        if (!event.ctrlKey) {
+            if (event.timeStamp - lastWheelTimestamp > 250) smoothWheelGesture = false
+            lastWheelTimestamp = event.timeStamp
+            const smoothDelta = event.deltaMode === WheelEvent.DOM_DELTA_PIXEL &&
+                (event.deltaX !== 0 || Math.abs(event.deltaY) < 50 ||
+                    !Number.isInteger(event.deltaY))
+            smoothWheelGesture ||= smoothDelta
+            if (smoothWheelGesture) {
+                const next = clampTranslation(currentScale,
+                    currentTranslateX - event.deltaX * unit,
+                    currentTranslateY - event.deltaY * unit)
+                notifyManualViewChange(currentScale, next.translateX, next.translateY)
+                applyView(currentScale, next.translateX, next.translateY)
+                return
+            }
+        }
+        const nextScale = currentScale * Math.exp(-event.deltaY * unit * 0.003)
+        const contentPoint = getContentPointForClientPoint(event.clientX, event.clientY)
+        const rect = scroller.getBoundingClientRect()
+        const targetView = getViewForContentPointAtViewportPoint(
+            contentPoint.x, contentPoint.y,
+            event.clientX - rect.left, event.clientY - rect.top, nextScale)
+        notifyManualViewChange(targetView.scale, targetView.translateX, targetView.translateY)
+        applyView(targetView.scale, targetView.translateX, targetView.translateY)
     }
 
     function handleGestureStart(event: Event) {
@@ -1116,6 +1157,12 @@
         const gestureChangeListener = (event: Event) => handleGestureChange(event)
         const gestureEndListener = () => handleGestureEnd()
 
+        scroller.addEventListener('mousedown', handleMouseDown)
+        scroller.addEventListener('click', handleMouseClick, true)
+        scroller.addEventListener('dragstart', preventNativeDrag)
+        window.addEventListener('mousemove', handleMouseMove)
+        window.addEventListener('mouseup', endMouseDrag)
+        window.addEventListener('blur', endMouseDrag)
         scroller.addEventListener('touchstart', touchStartListener, { passive: false })
         scroller.addEventListener('touchmove', touchMoveListener, { passive: false })
         scroller.addEventListener('touchend', touchEndListener, { passive: false })
@@ -1125,6 +1172,12 @@
         scroller.addEventListener('gestureend', gestureEndListener)
 
         return () => {
+            scroller?.removeEventListener('mousedown', handleMouseDown)
+            scroller?.removeEventListener('click', handleMouseClick, true)
+            scroller?.removeEventListener('dragstart', preventNativeDrag)
+            window.removeEventListener('mousemove', handleMouseMove)
+            window.removeEventListener('mouseup', endMouseDrag)
+            window.removeEventListener('blur', endMouseDrag)
             scroller?.removeEventListener('touchstart', touchStartListener)
             scroller?.removeEventListener('touchmove', touchMoveListener)
             scroller?.removeEventListener('touchend', touchEndListener)
@@ -1149,10 +1202,10 @@
     {#if toolbar}<div bind:clientHeight={toolbarHeight}>{@render toolbar()}</div>{/if}
     <div
         bind:this={scroller}
-        class="overflow-hidden box-border"
+        class="scaling-surface overflow-hidden box-border"
         class:w-full={!isExpanded}
         class:h-full={!isExpanded}
-        style={`${isExpanded ? 'width: 100%; padding: 8px;' : ''} height: calc(100% - ${toolbar ? toolbarHeight : 0}px); touch-action: none;`}
+        style={`${isExpanded ? 'width: 100%; padding: 8px;' : ''} height: calc(100% - ${toolbar ? toolbarHeight : 0}px); touch-action: none; user-select: none; cursor: ${mouseDragging ? 'grabbing' : 'grab'};`}
         onwheel={handleWheel}
     >
         <div bind:this={viewport} bind:clientWidth={wrapperWidth} bind:clientHeight={wrapperHeight} class="relative w-full h-full">
@@ -1252,3 +1305,11 @@
         {/if}
     </div>
 </div>
+
+<style>
+    .scaling-surface,
+    .scaling-surface :global(*) {
+        -webkit-user-select: none;
+        user-select: none;
+    }
+</style>

@@ -285,3 +285,20 @@ The current code is closer than before, but it is still not mathematically exact
 - the shell height is still guessed instead of measured
 - harness and frontend are still not normalized to the same viewport contract
 - `GameChat` still uses a separate viewport formula
+
+## Scaling wrapper mouse interaction
+
+Discrete mouse wheel input zooms around the cursor, clamped between fit and native
+size. Smooth pixel deltas pan; Ctrl-wheel (trackpad pinch) zooms. Since wheel
+events do not identify the device, horizontal, fractional, or small pixel deltas
+classify a gesture as smooth, retained until a 250ms gap. Fast initial trackpad
+deltas and smooth-scrolling mice can be ambiguous.
+Left-button dragging pans after a five-pixel movement threshold; a drag consumes
+its resulting click so it cannot also select a board item. Ordinary clicks and
+keyboard activation remain available. Mouse release outside the wrapper and
+window blur end the drag. Mouse camera changes clear automatic focus and report
+through `onManualViewChange` so callers can preserve a user's chosen view.
+
+This behavior is bundled into each Game UI Artifact. Existing published games
+retain their old wrapper until their UI Artifact is republished; no host bridge
+change is required.
