@@ -247,15 +247,19 @@
                 {@const ownerId = playerIdForOwner(region.owner)}
                 {#if ownerId}
                     <PlayerName playerId={ownerId} possessive />
+                    region was completed ({region.spaceCount} space{region.spaceCount === 1
+                        ? ''
+                        : 's'}{townsPhrase(region.townCount)}) for +{region.points} power point{region.points ===
+                    1
+                        ? ''
+                        : 's'}{i === completed.length - 1 ? '.' : ''}
                 {:else}
-                    A neutral prince's
+                    <!-- A neutral prince's region scores for nobody (see PlaceWall.apply). -->
+                    A neutral prince's region was completed ({region.spaceCount} space{region.spaceCount ===
+                    1
+                        ? ''
+                        : 's'}{townsPhrase(region.townCount)}){i === completed.length - 1 ? '.' : ''}
                 {/if}
-                region was completed ({region.spaceCount} space{region.spaceCount === 1
-                    ? ''
-                    : 's'}{townsPhrase(region.townCount)}) for +{region.points} power point{region.points ===
-                1
-                    ? ''
-                    : 's'}{i === completed.length - 1 ? '.' : ''}
             {:else}
                 a neutral zone ({region.spaceCount} space{region.spaceCount === 1 ? '' : 's'}) was
                 sealed off{i === completed.length - 1 ? '.' : ''}
@@ -301,16 +305,17 @@
                 {@const ownerId = playerIdForOwner(region.owner)}
                 {#if ownerId}
                     <PlayerName playerId={ownerId} possessive />
+                    region elsewhere was incidentally completed ({region.spaceCount} space{region.spaceCount ===
+                    1
+                        ? ''
+                        : 's'}{townsPhrase(region.townCount)}) for +{region.points} power point{region.points ===
+                    1
+                        ? ''
+                        : 's'}.
                 {:else}
-                    A neutral prince's
+                    A neutral prince's region elsewhere was incidentally completed ({region.spaceCount}
+                    space{region.spaceCount === 1 ? '' : 's'}{townsPhrase(region.townCount)}).
                 {/if}
-                region elsewhere was incidentally completed ({region.spaceCount} space{region.spaceCount ===
-                1
-                    ? ''
-                    : 's'}{townsPhrase(region.townCount)}) for +{region.points} power point{region.points ===
-                1
-                    ? ''
-                    : 's'}.
             {:else}
                 a neutral zone elsewhere ({region.spaceCount} space{region.spaceCount === 1
                     ? ''
@@ -329,7 +334,7 @@
     {@const victimId = playerIdForOwner(action.metadata?.victimOwner)}
     played a Renegade card — removed a knight from
     {#if victimId}
-        <PlayerName playerId={victimId} />'s
+        <PlayerName playerId={victimId} possessive />
     {:else}
         a neutral prince's
     {/if}
@@ -441,9 +446,10 @@
                 {playerId}
             />
         {/each}
-        tied for the {slotLabel(meta.slot!, meta.slotKind)} action and {meta.tieWentToDuel
-            ? 'duel for it'
-            : 'enter negotiations'}.
+        {meta.tiedPlayerIds.length === 2 ? 'both' : 'all'} chose the {slotLabel(
+            meta.slot!,
+            meta.slotKind
+        )} action and {meta.tieWentToDuel ? 'duel for it' : 'enter negotiations'}.
     {:else if meta?.roundAdvanced}
         {@const newFirstIsMe = gameSession.myPlayer?.id === meta.newFirstPlayerId}
         <span class="text-gray-500">
