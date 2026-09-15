@@ -14,6 +14,7 @@
     let {
         scene,
         legalLocationIds = [],
+        highlightedLocationIds = legalLocationIds,
         maskUnavailableLocations = false,
         previewLocationId,
         selection,
@@ -26,6 +27,7 @@
     }: {
         scene: MapDrawing
         legalLocationIds?: readonly string[]
+        highlightedLocationIds?: readonly string[]
         maskUnavailableLocations?: boolean
         previewLocationId?: string
         selection?: MapSelection
@@ -60,6 +62,7 @@
                 <MapScene
                     {scene}
                     {legalLocationIds}
+                    {highlightedLocationIds}
                     {maskUnavailableLocations}
                     {previewLocationId}
                     {selection}

@@ -1276,3 +1276,13 @@ The shared table owns Players/History/Chat label typography in component CSS so
 published UI Artifacts carry the 11px uppercase labels and their letter spacing.
 It must not depend on the Site Frontend scanning the family source for Tailwind
 utilities. Title harnesses scan family sources for other utility-class styling.
+
+### Construction reach and placement eligibility
+
+During tile laying the mask exposes every location reachable under the laying
+company's construction rules, plus legal placement locations granted by special
+powers. Available tile inventory, cash, phase and remaining lays restrict clicks,
+not the displayed reach. Blocked cities still stop network traversal. The camera
+fits the exposed area. `MapScene.highlightedLocationIds` owns mask visibility;
+`legalLocationIds` independently owns selection and hover eligibility. Station
+placement continues to use its legal placement locations for both sets.

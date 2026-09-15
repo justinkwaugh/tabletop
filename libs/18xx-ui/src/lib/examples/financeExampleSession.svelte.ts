@@ -1427,6 +1427,13 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
                     : []
             )
     )
+    reachableTrackLocationIds = $derived.by(() =>
+        this.showTrackChoices
+            ? this.mapView.map.definition.locations
+                .filter((location) => this.construction.canReach(location.id))
+                .map((location) => location.id)
+            : []
+    )
     trackLocationIds = $derived(
         [...this.trackChoicesByLocation].filter(([, choices]) => choices.length).map(([id]) => id)
     )

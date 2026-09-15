@@ -85,6 +85,7 @@
     <MapViewer revenueStageColors={session.mapView.revenueStageColors}
         scene={session.displayedMapScene}
         maskUnavailableLocations={session.showTrackChoices}
+        highlightedLocationIds={session.canPlaceStation ? session.stationLocationIds : [...new Set([...session.reachableTrackLocationIds, ...session.trackLocationIds])]}
         legalLocationIds={session.canPlaceStation
             ? session.stationLocationIds
             : session.trackLocationIds}

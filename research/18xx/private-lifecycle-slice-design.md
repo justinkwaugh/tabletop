@@ -18,8 +18,9 @@ stock action. The older TOP book explicitly grants the enduring ownership-limit
 exception to the three reserved Shortline exchanges. This slice keeps Ice Boats
 subject to the ordinary ownership limit; the broader exception in the contextual
 implementation is not silently adopted. Its four-player restriction is enforced.
-King's Mail survives ordinary private closure and ends with PEIR; Union Bank stays
-open. Concessions close when their railway first operates or at 4+.
+King's Mail closes at 4+ with the other privates, or earlier if PEIR closes;
+Union Bank stays open. This corrects the earlier King's Mail exception per the
+confirmed title rule. Concessions close when their railway first operates or at 4+.
 
 Use the existing private Company and ownership Certificate, closure flag, mutable
 private income, Certificate Pools, exchangeCertificate, presidency settlement,

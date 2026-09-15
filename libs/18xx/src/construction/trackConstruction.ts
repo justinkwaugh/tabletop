@@ -99,14 +99,17 @@ export class TrackConstruction {
             controllingOwner(this.state, companyId)?.playerId === playerId
         )
     }
-    choices(locationId: string): TrackLayDetails[] {
+    canReach(locationId: string): boolean {
         const companyId = this.state.trackStep?.companyId
-        if (!companyId) return []
-        if (!this.network(companyId).canReach(locationId) && !this.rules.useful({
+        return !!companyId && (this.network(companyId).canReach(locationId) || this.rules.useful({
             home: this.rules.homeLocations(companyId).includes(locationId),
             newTrack: false,
             increasedCityRevenue: false
-        })) return []
+        }))
+    }
+    choices(locationId: string): TrackLayDetails[] {
+        const companyId = this.state.trackStep?.companyId
+        if (!companyId || !this.canReach(locationId)) return []
         const choices: TrackLayDetails[] = []
         for (const definition of this.rules.tileSet.definitions) {
             if (

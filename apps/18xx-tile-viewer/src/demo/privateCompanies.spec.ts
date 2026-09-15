@@ -331,7 +331,10 @@ it.each([
             for (const id of ['MC', 'VR', 'SB', 'IB', 'SBC', 'HS', 'MLC', 'SLC'])
                 expect(getCompany(updated, id).closed).toBe(true)
             expect(getCompany(updated, 'UB').closed).not.toBe(true)
-            expect(getCompany(updated, 'KM').closed).not.toBe(true)
+            expect(getCompany(updated, 'KM').closed).toBe(true)
+            expect(updated.phaseEvents[0].privateEffects).toContainEqual({
+                kind: 'close', privateCompanyId: 'KM'
+            })
             expect(
                 updated.phaseEvents[0].privateEffects.filter((effect) => effect.kind === 'exchange')
             ).toHaveLength(3)

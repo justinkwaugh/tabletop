@@ -6,6 +6,28 @@ not depend on game packages, including through development dependencies or tests
 Title definitions remain in their game packages; the app supplies them to the
 reusable viewer through its public interface.
 
+## Regular title harness vs scenario playground
+
+For the regular TOP development harness (create/load games, debug and options):
+
+```sh
+pnpm --filter @tabletop/the-old-prince-ui dev
+```
+
+That runs `games/the-old-prince-ui` on port 4189 using the shared `Harness`.
+
+For the separate scenario playground (title and position selectors, including
+the finished TOP game):
+
+```sh
+pnpm --filter @tabletop/18xx-tile-viewer dev:scenarios
+```
+
+That runs this app on port 4188 and opens `/table`. If it is already running,
+visit `http://localhost:4188/table` instead of starting another server.
+
+## Tile gallery
+
 Build the workspace dependencies, then start the gallery:
 
 ```sh

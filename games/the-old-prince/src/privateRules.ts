@@ -60,7 +60,7 @@ export const TheOldPrincePrivateRules: PrivateRules = {
         if (TheOldPrincePhases.indexOf(state.phaseId) < TheOldPrincePhases.indexOf('4+')) return []
         const open = state.companies.filter(
             (company) =>
-                company.kind === 'private' && !company.closed && !['UB', 'KM'].includes(company.id)
+                company.kind === 'private' && !company.closed && company.id !== 'UB'
         )
         return [
             ...['MC', 'VR', 'SB'].flatMap((id) => open.filter((company) => company.id === id)),
@@ -123,7 +123,7 @@ export const TheOldPrincePrivateRules: PrivateRules = {
             return 'Exchange during your stock turn for a Bank share in another started railway. Closes unused at 4+.'
         if (id === 'UB')
             return 'Union Bank holds its own cash and shares, controlled by the player who owns it. Once per stock round, that player may use a buying or company-starting action for Union Bank instead of themselves. Spend Union Bank’s cash first; its owner may contribute any shortfall. Dividends on its shares go to Union Bank. It may hold presidencies, with its owner making the company’s decisions. It cannot voluntarily sell shares. If one of its companies must buy a train, Union Bank contributes before its owner, with emergency share sales as required. It remains open throughout the game, and its cash and share value count toward its owner’s final wealth.'
-        if (id === 'KM') return 'Pays PEIR each operating round; closes when PEIR closes.'
+        if (id === 'KM') return 'Pays PEIR each operating round; closes at 4+ or when PEIR closes.'
         if (id === 'MLC' || id === 'SLC') return 'Closes when its railway first operates, or at 4+.'
         return 'Closes at 4+.'
     }

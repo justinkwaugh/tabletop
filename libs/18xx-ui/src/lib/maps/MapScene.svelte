@@ -15,6 +15,7 @@
     let {
         scene,
         legalLocationIds = [],
+        highlightedLocationIds = legalLocationIds,
         maskUnavailableLocations = false,
         previewLocationId,
         translucentLocationId,
@@ -29,6 +30,7 @@
     }: {
         scene: MapDrawing
         legalLocationIds?: readonly string[]
+        highlightedLocationIds?: readonly string[]
         maskUnavailableLocations?: boolean
         previewLocationId?: string
         translucentLocationId?: string
@@ -345,7 +347,7 @@
             pointer-events="none"
             aria-hidden="true"
         >
-            {#each entries.filter((entry) => !legalLocationIds.includes(entry.location.id)) as entry (entry.location.id)}
+            {#each entries.filter((entry) => !highlightedLocationIds.includes(entry.location.id)) as entry (entry.location.id)}
                 <polygon
                     data-map-masked={entry.location.id}
                     transform={`translate(${entry.center.x} ${entry.center.y})`}

@@ -185,12 +185,15 @@
         (session.showTrackChoices || session.financialState.machineState === 'PlacingStation'))
     const placementLocationIds = $derived(!session.privateTrackPowerSelection && session.canPlaceStation
         ? session.stationLocationIds : session.trackLocationIds)
+    const highlightedPlacementLocationIds = $derived(session.showTrackChoices
+        ? [...new Set([...session.reachableTrackLocationIds, ...placementLocationIds])]
+        : placementLocationIds)
     const placementFocusKey = $derived(consentPreview?.id ?? (maskPlacementLocations
-        ? JSON.stringify([session.financialState.machineState, placementLocationIds]) : undefined))
+        ? JSON.stringify([session.financialState.machineState, highlightedPlacementLocationIds]) : undefined))
     $effect(() => {
         if (session.isViewingHistory || !placementFocusKey || session.updatingVisibleState) return
         return untrack(() => {
-            const locations = consentPreview ? [consentPreview.details.locationId] : [...placementLocationIds]
+            const locations = consentPreview ? [consentPreview.details.locationId] : [...highlightedPlacementLocationIds]
             if (!locations.length) return
             let cancelled = false
             view = 'Map'
@@ -483,6 +486,7 @@
                                 : session.mapSelection}
                             maskUnavailableLocations={!session.isViewingHistory && maskPlacementLocations}
                             legalLocationIds={placementLocationIds}
+                            highlightedLocationIds={highlightedPlacementLocationIds}
                             previewLocationId={session.displayedTrackPreview?.locationId ??
                                 session.stationPreview?.position.locationId}
                             translucentLocationId={consentPreview?.details.locationId}

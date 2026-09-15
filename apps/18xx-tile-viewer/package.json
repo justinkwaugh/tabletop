@@ -6,6 +6,7 @@
     "scripts": {
         "clean": "rimraf .svelte-kit build",
         "dev": "vite --host 0.0.0.0 --port 4188 --strictPort",
+        "dev:scenarios": "pnpm run dev --open /table",
         "build": "vite build",
         "preview": "vite preview",
         "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.hosted.json",

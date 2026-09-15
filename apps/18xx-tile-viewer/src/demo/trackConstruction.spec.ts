@@ -381,3 +381,17 @@ it('rejects unaffordable additional track before network usefulness checks', () 
     expect(evaluation.reason).toBe('The company cannot afford construction')
     expect(useful).not.toHaveBeenCalled()
 })
+
+it.each(Titles)('keeps reachable track visible without a permitted lay in $definition.info.id', ({ definition, rules }) => {
+    const { state } = example(definition, 'construction')
+    const locationId = definition === Top ? 'L16' : 'E2'
+    const construction = new TrackConstruction(state, rules)
+    expect(construction.canReach(locationId)).toBe(true)
+    expect(construction.choices(locationId).length).toBeGreaterThan(0)
+    const unavailable = new TrackConstruction(state, {
+        ...rules,
+        allowance: () => ({ reason: 'No lays remaining' })
+    })
+    expect(unavailable.canReach(locationId)).toBe(true)
+    expect(unavailable.choices(locationId)).toEqual([])
+})
