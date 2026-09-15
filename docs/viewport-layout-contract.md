@@ -254,6 +254,19 @@ The contracted game layout should have exactly one chain of vertical truth:
 
 No child component should re-derive the viewport independently.
 
+## Published artifact CSS compatibility
+
+Older Game UI artifacts retain the layout utility classes they were built with.
+The Site Frontend generates Tailwind CSS from current source, so replacing a
+shared layout utility can silently remove CSS still required by published games.
+Preserve those utilities explicitly in `apps/frontend/src/app.css`; do not assume
+that updating the frontend also updates the layout bundled into each game.
+
+Run `node --test tests/legacy-layout.test.mjs` from `apps/frontend` to verify old
+layout markup against the current generated CSS at desktop and mobile sizes.
+The test checks actual board height, since a collapsed board produces no console
+error.
+
 ## Practical Interpretation
 
 The target behavior is:
