@@ -1,13 +1,22 @@
 <script lang="ts">
+    import { historicalOperatingStepIndex, operatingStepIndex } from './operatingStep.js'
     import OperatingPrivateActions from './OperatingPrivateActions.svelte'
-    import { ActionSource } from '@tabletop/common'
-    import { isFinishTrack, isFinishStations, isRunTrains } from '@tabletop/18xx' 
+    import { ActionSource, assert } from '@tabletop/common'
+    import { FinanceExampleValidator, isFinishTrack, isFinishStations, isRunTrains } from '@tabletop/18xx'
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
-    let { session, privatePurchaseLabel = 'Buy privates' }: { session: FinanceExampleSession; privatePurchaseLabel?: string } = $props()
+    let { session, privatePurchaseLabel = 'Buy privates', readOnly = false }: { session: FinanceExampleSession; privatePurchaseLabel?: string; readOnly?: boolean } = $props()
+    const context = $derived(session.history.visibleContext)
+    const state = $derived.by(() => {
+        if (!readOnly) return session.financialState
+        assert(FinanceExampleValidator.Check(context.state), 'Operating progress requires financial state')
+        return context.state
+    })
+    const currentStep = $derived(session.isViewingHistory
+        ? historicalOperatingStepIndex(context.actions.at(-1), state.machineState)
+        : operatingStepIndex(state.machineState))
     const steps = ['Track', 'Station', 'Run', 'Payout', 'Trains']
     const statuses = $derived.by(() => {
-        const state = session.financialState
-        const actions = session.actions.slice(0, session.gameState.actionCount)
+        const actions = readOnly ? context.actions : session.actions.slice(0, session.gameState.actionCount)
         const boundary = actions.findLastIndex((action) => action.type === 'FinishOperatingTurn' || action.type === 'StartOperatingRound')
         const current = actions.slice(boundary + 1)
         const track = current.findLast(isFinishTrack)
@@ -32,23 +41,23 @@
 
 </script>
 
-{#if session.operatingStep !== undefined}
+{#if currentStep !== undefined}
 <nav aria-label="Operating steps"
-    style:--start-color={session.operatingStep === 0 ? '#695543' : '#ded0c2'}
-    style:--end-color={session.operatingStep === 4 ? '#695543' : '#e8ded4'}>
+    style:--start-color={currentStep === 0 ? '#695543' : '#ded0c2'}
+    style:--end-color={currentStep === 4 ? '#695543' : '#e8ded4'}>
     <div class="steps">
     {#each steps as step, index}
-        <button class:current={index === session.operatingStep} class:completed={index < session.operatingStep}
-            aria-current={index === session.operatingStep ? 'step' : undefined}
-            disabled={!session.canSkipToOperatingStep(index)}
-            title={session.canSkipToOperatingStep(index) ? (index === 1 ? 'Finish track and proceed to station placement' : 'Finish track and station placement, stopping for any required decision') : undefined}
+        <button class:current={index === currentStep} class:completed={index < currentStep}
+            aria-current={index === currentStep ? 'step' : undefined}
+            disabled={readOnly || !session.canSkipToOperatingStep(index)}
+            title={!readOnly && session.canSkipToOperatingStep(index) ? (index === 1 ? 'Finish track and proceed to station placement' : 'Finish track and station placement, stopping for any required decision') : undefined}
             onclick={() => session.skipToOperatingStep(index)}>
             <span>{step}</span>
             {#if statuses[index]}<small>{statuses[index]}</small>{/if}
         </button>
     {/each}
     </div>
-    <OperatingPrivateActions {session} purchaseLabel={privatePurchaseLabel} />
+    {#if !readOnly}<OperatingPrivateActions {session} purchaseLabel={privatePurchaseLabel} />{/if}
 </nav>
 {/if}
 <style>

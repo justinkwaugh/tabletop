@@ -1,5 +1,7 @@
 <script lang="ts">
     import { untrack } from 'svelte'
+    import { FinanceExampleValidator } from '@tabletop/18xx'
+    import { assert } from '@tabletop/common'
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
@@ -39,11 +41,16 @@
         }
         return () => observer.disconnect()
     })
-    const financialState = $derived(session.financialState)
+    const financialState = $derived.by(() => {
+        if (!session.isViewingHistory && session.isMyTurn) return session.financialState
+        const state = session.history.visibleContext.state
+        assert(FinanceExampleValidator.Check(state), 'Round header requires financial state')
+        return state
+    })
     const auction = $derived(
         Boolean(
-            (session.auction && !session.auction.auction.completed) ||
-            (session.offerAuction && !session.offerAuction.auction.completed)
+            (financialState.openingAuction && !financialState.openingAuction.completed) ||
+            (financialState.offerAuction && !financialState.offerAuction.completed)
         )
     )
     const companyId = $derived(

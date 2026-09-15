@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { flip } from 'svelte/animate'
+    import { prefersReducedMotion } from 'svelte/motion'
     import { companyFocusLocations } from '../maps/companyFocusLocations.js'
     import { certificatesOwnedBy, controllingOwner, getCompany, type Owner, type ValuationRules } from '@tabletop/18xx'
     import { auctionLotDetails } from '../auctions/auctionLotDetails.js'
@@ -31,8 +33,10 @@
         onFocusCompany: (companyId: string) => void
         portfolioCompanyIds?: readonly string[]
     } = $props()
+    const stockRoundActive = $derived(session.financialState.machineState === 'StockRound')
+    const passOrderPositions = $derived(session.passing === 'pass-order')
     const players = $derived([
-        ...session.playerPriorityOrder.map((playerId) => ({
+        ...session.financialState.turnManager.turnOrder.map((playerId) => ({
             id: `player:${playerId}`,
             owner: { kind: 'player', playerId } as const,
             controller: undefined,
@@ -96,6 +100,7 @@
 <div class="players" aria-label="Players">
     {#each players as player, index (player.id)}
         <article
+            animate:flip={{ duration: prefersReducedMotion.current ? 0 : 180 }}
             aria-label={`${player.name} portfolio`}
             data-player-id={player.playerId}
             class:active={player.playerId !== undefined &&
@@ -117,9 +122,16 @@
                 {#if player.controller}<span class="controller"
                         >Controlled by {player.controller}</span
                     >{/if}
-                {#if index === 0}<span class="priority" title="First in priority order"
-                        >Priority deal</span
-                    >{/if}
+                {#if player.playerId && passOrderPositions}
+                    {@const position = stockRoundActive ? session.playerPriorityOrder.indexOf(player.playerId) + 1 : index + 1}
+                    {#if !stockRoundActive || session.financialState.stockRound.passedPlayerIds.includes(player.playerId)}
+                        <span class="turn-position" aria-label={`${stockRoundActive ? 'Next turn' : 'Turn'} position ${position}`}>
+                            {#if stockRoundActive}<small>Next</small>{/if}<b>{position}</b>
+                        </span>
+                    {/if}
+                {:else if player.playerId === session.playerPriorityOrder[0]}
+                    <span class="priority" title="First in priority order">Priority deal</span>
+                {/if}
             </header>
             <div class="stats">
                 <dl>
@@ -282,6 +294,9 @@
         color: #887664;
         font-size: 10px;
     }
+    .turn-position { display: flex; align-items: baseline; gap: 5px; margin-left: auto; color: #695543; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .turn-position small { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
+    .turn-position b { font-size: 20px; font-weight: 650; line-height: 1; }
     .priority {
         border: 1px solid #c8b08b;
         border-radius: 4px;

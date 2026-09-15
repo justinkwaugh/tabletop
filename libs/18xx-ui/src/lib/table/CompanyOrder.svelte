@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { flip } from 'svelte/animate'
+    import { prefersReducedMotion } from 'svelte/motion'
     import type { Snippet } from 'svelte'
     import { assertExists } from '@tabletop/common'
     import {
@@ -160,6 +162,7 @@
             {@const completed = completedCompanyIds.includes(company.id)}
             {@const detailed = showDetails || currentCompanyId === company.id}
             <li
+                animate:flip={{ duration: prefersReducedMotion.current ? 0 : 180 }}
                 data-company-id={company.id}
                 class:completed
                 aria-current={currentCompanyId === company.id ? 'step' : undefined}

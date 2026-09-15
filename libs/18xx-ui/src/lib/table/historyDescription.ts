@@ -159,7 +159,8 @@ export function historyDescription(
     }
     if (isBuyTrain(action) || isBuyPrivateTrain(action))
         return {
-            text: `Bought ${action.definitionId} train`,
+            text: `Bought`,
+            trainDefinitionIds: [action.definitionId],
             value: money(action.expectedPrice),
             important: true
         }
@@ -346,6 +347,18 @@ export function historyDescription(
         const { offer, accepted } = action.metadata
         if (isRespondToPurchaseOffer(action) && !accepted) return { text: 'Declined offer' }
         const purchaseAsset = offer.asset
+        if (purchaseAsset.kind === 'train' && accepted) {
+            const train = state.trainInventory.trains.find((train) => train.id === purchaseAsset.trainId)
+            assertExists(train, 'Recorded train purchase requires its train')
+            return {
+                text: 'Bought',
+                trainDefinitionIds: [train.definitionId],
+                omitActor: true,
+                value: money(offer.price),
+                detail: `From ${ownerName(offer.seller)}`,
+                important: true
+            }
+        }
         const asset =
             purchaseAsset.kind === 'private'
                 ? companyName(purchaseAsset.privateCompanyId)

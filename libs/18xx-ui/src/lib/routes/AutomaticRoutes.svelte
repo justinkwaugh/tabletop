@@ -4,8 +4,7 @@
     import { assert } from '@tabletop/common'
     import type { AutoroutingRequest, AutoroutingResponse } from '@tabletop/18xx-autorouter'
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
-    import TrainBadge from '../trains/TrainBadge.svelte'
-    import { routeColor } from './routePresentation.js'
+    import TrainRunTable from './TrainRunTable.svelte'
 
     let {
         session,
@@ -81,44 +80,8 @@
             {session.isViewingHistory ? 'Viewing train run' : 'Calculating routes…'}
         </p>
     {:else}
-        <table aria-label="Train income">
-            <thead><tr><th scope="col">Train</th><th scope="col">Income</th></tr></thead>
-            <tbody>
-                {#each trains as train (train.id)}
-                    {@const index = result.routes.findIndex((route) => route.trainId === train.id)}
-                    {@const route = result.routes[index]}
-                    <tr data-route-train={train.id}>
-                        <td
-                            ><button
-                                class="route-focus"
-                                disabled={!route}
-                                aria-label={`Show ${session.trainDepot.trainDefinition(train.definitionId).name} route for $${route?.revenue ?? 0}`}
-                                onclick={() => onFocusRoute(train.id)}
-                                ><span class="train">
-                                    <span
-                                        class="route-color"
-                                        style:background={route ? routeColor(index) : '#b6afa5'}
-                                    ></span>
-                                    <TrainBadge
-                                        name={session.trainDepot.trainDefinition(train.definitionId)
-                                            .name}
-                                        color={trainColors[train.definitionId]}
-                                    />
-                                </span></button
-                            ></td
-                        >
-                        <td class="income">${(route?.revenue ?? 0).toLocaleString('en-US')}</td>
-                    </tr>
-                {:else}<tr><td colspan="2">No trains</td></tr>{/each}
-            </tbody>
-            <tfoot
-                ><tr
-                    ><th scope="row">Total</th><td class="income"
-                        >${result.revenue.toLocaleString('en-US')}</td
-                    ></tr
-                ></tfoot
-            >
-        </table>
+        <TrainRunTable {result} {trains} {trainColors} {onFocusRoute}
+            trainName={(id) => session.trainDepot.trainDefinition(id).name} />
         <button
             class="run"
             disabled={!session.canRunTrains}
@@ -139,73 +102,6 @@
         gap: 12px 24px;
         padding: 10px 12px;
         color: #463e35;
-    }
-    table {
-        border-collapse: collapse;
-        min-width: 150px;
-        font-variant-numeric: tabular-nums;
-    }
-    th,
-    td {
-        padding: 2px 0;
-        text-align: left;
-        line-height: 18px;
-    }
-    th:last-child,
-    .income {
-        text-align: right;
-        padding-left: 24px;
-    }
-    thead th {
-        color: #817565;
-        font-size: 10px;
-        font-weight: 600;
-        line-height: 14px;
-    }
-    tfoot th,
-    tfoot td {
-        border-top: 1px solid #d6cbbc;
-        padding-top: 3px;
-        font-weight: 650;
-    }
-    tbody tr {
-        position: relative;
-    }
-    .route-focus {
-        padding: 0;
-        border: 0;
-        border-radius: 0;
-        background: transparent;
-        color: inherit;
-    }
-    .route-focus::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: 3px;
-    }
-    .route-focus:not(:disabled):hover::after {
-        background: #463e350c;
-    }
-    .route-focus:focus-visible {
-        outline: none;
-    }
-    .route-focus:focus-visible::after {
-        outline: 2px solid #bd865e;
-        outline-offset: 1px;
-    }
-    .route-focus:disabled {
-        opacity: 1;
-    }
-    .train {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-    .route-color {
-        width: 5px;
-        height: 14px;
-        border-radius: 2px;
     }
     button {
         border: 1px solid #b9ac99;

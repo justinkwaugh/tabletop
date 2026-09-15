@@ -1,3 +1,5 @@
+import { isHistoryBookkeeping } from '../table/historyNavigation.js'
+import { operatingStepIndex } from '../table/operatingStep.js'
 import { operatingHistory } from '../table/operatingHistory.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { setStagedSelectionValue, type StagedSelectionState } from '@tabletop/frontend-components'
@@ -213,6 +215,9 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     ) {
         super(options)
         this.historicalMaps = new HistoricalMaps(mapView)
+    }
+    auctionLotsFor(state: FinanceExampleState) {
+        return this.offerAuctionRules?.lots(state) ?? this.auctionRules?.lots(state) ?? []
     }
     offerAuction = $derived.by(() =>
         this.financialState.offerAuction && this.offerAuctionRules
@@ -1554,18 +1559,10 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             )
         )
     }
-    operatingStep = $derived.by(() => {
-        switch (this.financialState.machineState) {
-            case 'LayingTrack': return 0
-            case 'PlacingStation': return 1
-            case 'RunningTrains':
-            case 'RustingTrains': return 2
-            case 'DistributingEarnings': return 3
-            case 'BuyingTrains':
-            case 'FundingTrain': return 4
-            default: return undefined
-        }
-    })
+    override shouldAutoStepAction(action: GameAction, next?: GameAction) {
+        return isHistoryBookkeeping(action) || super.shouldAutoStepAction(action, next)
+    }
+    operatingStep = $derived.by(() => operatingStepIndex(this.financialState.machineState))
     private skippingOperatingSteps = $state(false)
     canSkipToOperatingStep(target: number): boolean {
         const current = this.operatingStep

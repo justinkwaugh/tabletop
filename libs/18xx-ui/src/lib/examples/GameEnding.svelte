@@ -1,7 +1,8 @@
 <script lang="ts">
+    import type { FinanceExampleState } from '@tabletop/18xx'
     import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session }: { session: FinanceExampleSession } = $props()
-    const state = $derived(session.financialState)
+    let { session, position }: { session: FinanceExampleSession; position?: FinanceExampleState } = $props()
+    const state = $derived(position ?? session.financialState)
     const standings = $derived(state.finalWealth?.toSorted((a, b) => b.total - a.total) ?? [])
     const winners = $derived(state.winningPlayerIds.map((id) => session.getPlayerName(id)).join(' & '))
 </script>

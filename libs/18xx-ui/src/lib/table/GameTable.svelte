@@ -1,6 +1,10 @@
 <script lang="ts">
+    import { historyMapFocus } from '../maps/historyMapFocus.js'
+    import { routeColor } from '../routes/routePresentation.js'
+    import PositionPanel from './PositionPanel.svelte'
     import { companyFocusLocations } from '../maps/companyFocusLocations.js'
     import {
+        FinanceExampleValidator,
         getCompany,
         nextOperatingCompany,
         type OperatingRules,
@@ -33,7 +37,7 @@
     import { ClassicTileAppearance, MutedTileAppearance } from '../tiles/tileAppearance.js'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
-    import type { GameAction } from '@tabletop/common'
+    import { assert, type GameAction } from '@tabletop/common'
     import type { HistoryDescription } from './historyDescription.js'
     import History from './History.svelte'
     import TableHeader from './TableHeader.svelte'
@@ -94,6 +98,7 @@
             companyId: string
         ) => string | undefined
     } = $props()
+    const readOnlyPosition = $derived(session.isViewingHistory || !session.myPlayer || !session.isMyTurn)
     let showDepot = $state(false)
     const currentDepotIds = $derived(session.availableTrainDefinitionIds.filter((id) => session.trainDepot.remaining(session.financialState.trainInventory, id) !== 0))
 
@@ -165,7 +170,7 @@
         session.previewHistoryMap(action)
     }
     const displayedScene = $derived(session.displayedMapScene)
-    function focusLocations(locations: readonly string[]) {
+    function focusLocations(locations: readonly string[], animate = true) {
         const rectangles = locations.map((locationId) => mapSelectionRect(
             displayedScene, { kind: 'hex', locationId }, 140, 220
         ))
@@ -173,7 +178,7 @@
         const y = Math.min(...rectangles.map((rect) => rect.y))
         const right = Math.max(...rectangles.map((rect) => rect.x + rect.width))
         const bottom = Math.max(...rectangles.map((rect) => rect.y + rect.height))
-        mapWrapper?.focusRect({ x, y, width: right - x, height: bottom - y }, { animate: true })
+        mapWrapper?.focusRect({ x, y, width: right - x, height: bottom - y }, { animate })
     }
     const consentPreview = $derived(session.financialState.trackConsent)
     const maskPlacementLocations = $derived(!consentPreview &&
@@ -183,7 +188,7 @@
     const placementFocusKey = $derived(consentPreview?.id ?? (maskPlacementLocations
         ? JSON.stringify([session.financialState.machineState, placementLocationIds]) : undefined))
     $effect(() => {
-        if (!placementFocusKey || session.updatingVisibleState) return
+        if (session.isViewingHistory || !placementFocusKey || session.updatingVisibleState) return
         return untrack(() => {
             const locations = consentPreview ? [consentPreview.details.locationId] : [...placementLocationIds]
             if (!locations.length) return
@@ -196,19 +201,19 @@
         })
     })
     let restoreRouteView: ReturnType<ScalingWrapper['captureView']> | undefined
-    const runningCompanyId = $derived(session.financialState.machineState === 'RunningTrains'
+    const runningCompanyId = $derived(!session.isViewingHistory && session.financialState.machineState === 'RunningTrains'
         ? session.financialState.routeStep?.companyId : undefined)
     $effect(() => {
         if (!runningCompanyId) return
         return () => {
             const restore = restoreRouteView
             restoreRouteView = undefined
-            restore?.({ animate: true })
+            if (!session.isViewingHistory) restore?.({ animate: true })
         }
     })
     $effect(() => {
         const preview = session.automaticRouteResult
-        if (!preview?.result.routes.length) return
+        if (session.isViewingHistory || !preview?.result.routes.length) return
         let cancelled = false
         untrack(() => {
             focusedRoute = undefined
@@ -248,6 +253,34 @@
             }
         })
     })
+
+    const historicalFocus = $derived.by(() => {
+        if (!session.isViewingHistory) return undefined
+        const context = session.history.visibleContext
+        assert(FinanceExampleValidator.Check(context.state), 'History map focus requires financial state')
+        return historyMapFocus(context.state, context.actions.at(-1))
+    })
+    const historyMapSettled = $derived(!session.updatingVisibleState &&
+        session.history.visibleContext.state.actionCount === session.gameState.actionCount)
+    const mapRoutes = $derived(!historyMapSettled ? [] : historicalFocus
+        ? historicalFocus.routes.map((route, index) => ({
+            id: route.trainId, color: routeColor(index), segments: route.paths
+        }))
+        : session.routeOverlays)
+    $effect(() => {
+        const target = historicalFocus
+        if (!target || !historyMapSettled || !mapWrapper) return
+        return untrack(() => {
+            let cancelled = false
+            void tick().then(() => {
+                if (cancelled) return
+                if (target.locations.length) focusLocations(target.locations, false)
+                else mapWrapper?.fitToContent()
+            })
+            return () => { cancelled = true }
+        })
+    })
+
     const financialState = $derived(session.financialState)
     const operating = $derived(financialState.stockRound.completed && !!financialState.operatingSet)
     const operatingCompanyId = $derived(operating && !financialState.result ? nextOperatingCompany(financialState) : undefined)
@@ -366,10 +399,16 @@
         {/snippet}
         {#snippet gameContent()}
             <TableHeader {session} {phaseChart} {trainColors} />
-            <OperatingSteps {session} {privatePurchaseLabel} />
+            <OperatingSteps {session} {privatePurchaseLabel} readOnly={readOnlyPosition} />
+            {#if !readOnlyPosition}
             <StockActionStrip {session} additionalActions={additionalStockActions} />
+            {/if}
             <section class="action-panel" class:share-purchases={session.financialState.machineState === 'StockRound'} aria-label="Current action">
-                {@render actions(focusLocation, focusRoute)}
+                {#if readOnlyPosition}
+                    <PositionPanel {session} {trainColors} describeAction={historyDescription} />
+                {:else}
+                    {@render actions(focusLocation, focusRoute)}
+                {/if}
             </section>
             {#if companyOrder.length}
             <CompanyOrder
@@ -438,9 +477,11 @@
                             tokens={session.displayedMapTokens}
                             reservations={session.displayedTrackPreview?.stationReservations ??
                                 session.stationDisplayState.stationReservations}
-                            routes={session.routeOverlays}
-                            selection={session.mapSelection}
-                            maskUnavailableLocations={maskPlacementLocations}
+                            routes={mapRoutes}
+                            selection={session.isViewingHistory
+                                ? historyMapSettled ? historicalFocus?.selection : undefined
+                                : session.mapSelection}
+                            maskUnavailableLocations={!session.isViewingHistory && maskPlacementLocations}
                             legalLocationIds={placementLocationIds}
                             previewLocationId={session.displayedTrackPreview?.locationId ??
                                 session.stationPreview?.position.locationId}
