@@ -12,7 +12,7 @@
         requestAnimationFrame(() => markBoardReady())
         return () => resetBoardReady()
     })
-    const state = $derived(session.gameState)
+    const gameState = $derived(session.gameState)
 
     const squares = Array.from({ length: BOARD_SQUARES }, (_, i) => i)
 
@@ -32,8 +32,8 @@
     let hoveredPos = $state<number | null>(null)
 
     const hoveredDistrict = $derived.by(() => {
-        if (hoveredPos === null || state.board[hoveredPos] === null) return new Set<number>()
-        return getDistrictFrom(state.board, hoveredPos)
+        if (hoveredPos === null || gameState.board[hoveredPos] === null) return new Set<number>()
+        return getDistrictFrom(gameState.board, hoveredPos)
     })
 
     type EdgeFlags = { top: boolean; right: boolean; bottom: boolean; left: boolean }
@@ -53,11 +53,11 @@
     })
 
     function handleSquareClick(pos: number, e: MouseEvent) {
-        const square = state.board[pos]
-        const architectAt = state.architects.indexOf(pos)
+        const square = gameState.board[pos]
+        const architectAt = gameState.architects.indexOf(pos)
 
         // Architect placement (setup phase)
-        if (session.canPlaceArchitect && square === null && pos !== state.architects[0] && pos !== state.architects[1]) {
+        if (session.canPlaceArchitect && square === null && pos !== gameState.architects[0] && pos !== gameState.architects[1]) {
             session.placeArchitect(pos)
             return
         }
@@ -87,8 +87,8 @@
     style="grid-template-columns: repeat({BOARD_SIZE}, 1fr); gap: 2px;"
 >
     {#each squares as pos}
-        {@const building = state.board[pos]}
-        {@const architectIndex = state.architects.indexOf(pos)}
+        {@const building = gameState.board[pos]}
+        {@const architectIndex = gameState.architects.indexOf(pos)}
         {@const isValid = validSquares.has(pos)}
         {@const uiColor = building ? session.colors.getPlayerUiColor(building.playerId) : undefined}
         <Square

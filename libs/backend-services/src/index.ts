@@ -41,3 +41,11 @@ export * from './env/envService.js'
 
 export * from './preferences/preferenceService.js'
 export * from './preferences/firestorePreferenceStore.js'
+export * from './competitions/tournamentService.js'
+export * from './competitions/tournamentError.js'
+export * from './persistence/firestore/tournamentStore.js'
+export * from './persistence/stores/tournamentStore.js'
+
+export { TournamentTask } from './competitions/tournamentTasks.js'
+
+export * from './games/catalogService.js'

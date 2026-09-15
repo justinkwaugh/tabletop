@@ -2,6 +2,7 @@ import { Color, type GameAction } from '@tabletop/common'
 import { allianceWalls } from '$lib/model/allianceGeometry.js'
 import { GameSession } from '@tabletop/frontend-components'
 import {
+    type Alliance,
     ActionCardType,
     ALLIANCE_CANCELLATION_COST,
     areRegionsAllied,
@@ -88,14 +89,17 @@ import {
 // twice is not allowed" falling out of the options rather than being encoded in the shapes.
 export type KnightPlan = 'knight' | 'expand'
 
+export type AllianceBreakingPayment = { treasureValue?: number; ducats: number }
+
 export class LowenherzGameSession extends GameSession<
     LowenherzProjectedState,
     HydratedLowenherzGameState
 > {
     override get canExplore(): boolean {
         return (
-            this.game.config?.publicMoney !== false &&
-            this.gameState.publicMoney !== false &&
+            (((this.showDebug || this.isActingAdmin || this.isViewingHost) &&
+                this.explorationPerspective() === undefined) ||
+                (this.game.config?.publicMoney !== false && this.gameState.publicMoney !== false)) &&
             super.canExplore
         )
     }
@@ -1125,7 +1129,7 @@ export class LowenherzGameSession extends GameSession<
     // on screen to say a card was armed at all.
     get selectedTreasureCard(): PoliticsCard | undefined {
         if (this.armedTreasure === undefined) return undefined
-        if (!this.canPlaceKnight) return undefined
+        if (!this.canPlaceKnight && !this.canBreakAnAlliance) return undefined
         return this.myTreasureCards.find((c) => c.value === this.armedTreasure)
     }
 
@@ -1570,13 +1574,16 @@ export class LowenherzGameSession extends GameSession<
         await this.applyAction(action)
     }
 
-    get canTakePoliticsCard(): boolean {
-        if (!this.canActNow) return false
-        if (!this.myPlayer) return false
+    get isMyPoliticsCardTurn(): boolean {
         return (
+            this.myPlayer !== undefined &&
             this.gameState.machineState === MachineState.TakingPoliticsCard &&
             this.gameState.politicsTakingPlayerId === this.myPlayer.id
         )
+    }
+
+    get canTakePoliticsCard(): boolean {
+        return this.canActNow && this.isMyPoliticsCardTurn
     }
 
     // Which pile (if either) the current player has committed to looking through -
@@ -1595,10 +1602,7 @@ export class LowenherzGameSession extends GameSession<
     // LowenherzProjectedPlayerState.politicsCards' own comment); this at least keeps the client from
     // actively rendering what it already has on hand for someone it doesn't belong to.
     get selectedPoliticsPile(): 'A' | 'B' | undefined {
-        if (!this.myPlayer || this.gameState.politicsTakingPlayerId !== this.myPlayer.id) {
-            return undefined
-        }
-        return this.gameState.openedPoliticsPile
+        return this.isMyPoliticsCardTurn ? this.gameState.openedPoliticsPile : undefined
     }
 
     // Viewport-space center point of wherever the player last clicked - either to peek at their
@@ -2107,7 +2111,7 @@ export class LowenherzGameSession extends GameSession<
             case PoliticsCardType.Alliance:
                 return this.canPlayAllianceCard && !this.isPlayingAllianceCard
             case PoliticsCardType.Treasure:
-                return this.canPlaceKnight || this.canSubmitDuelBid
+                return this.canPlaceKnight || this.canSubmitDuelBid || this.canBreakAnAlliance
             default:
                 return false
         }
@@ -2132,6 +2136,27 @@ export class LowenherzGameSession extends GameSession<
                 } else {
                     this.selectTreasureCard(card.value)
                 }
+                break
+        }
+    }
+
+    // Takes back whatever applying the card started, while it is still only a local selection:
+    // a Treasure armed for a wooded knight placement or a duel bid goes back to being paid in
+    // ducats, and a Renegade/Alliance mid-targeting flow is abandoned. The duel bid already had
+    // a chip for this; the knight placement had no way back at all, so an armed card was spent
+    // on the next wooded square whatever the player's ducats.
+    deactivatePoliticsCard(card: PoliticsCard) {
+        switch (card.type) {
+            case PoliticsCardType.Renegade:
+                this.cancelPlayingRenegadeCard()
+                break
+            case PoliticsCardType.Alliance:
+                this.cancelPlayingAllianceCard()
+                break
+            case PoliticsCardType.Treasure:
+                if (card.value === undefined) break
+                if (this.selectedTreasureCard?.value === card.value) this.selectTreasureCard(undefined)
+                if (this.armedDuelTreasureValues.includes(card.value)) this.unarmDuelTreasure(card.value)
                 break
         }
     }
@@ -2180,7 +2205,15 @@ export class LowenherzGameSession extends GameSession<
         MachineState.TakingPoliticsCard
     ]
 
-    get myCancellableAlliances(): { id: string; otherOwner: PieceOwner }[] {
+    private allianceOtherOwner(alliance: Alliance, myPlayerId: string): PieceOwner | undefined {
+        const regionA = this.gameState.regions.find((r) => r.id === alliance.regionAId)
+        const regionB = this.gameState.regions.find((r) => r.id === alliance.regionBId)
+        if (regionA?.owner === myPlayerId && regionB?.owner) return regionB.owner
+        if (regionB?.owner === myPlayerId && regionA?.owner) return regionA.owner
+        return undefined
+    }
+
+    private get myAlliances(): { id: string; otherOwner: PieceOwner }[] {
         if (!this.myPlayer || !this.gameState.activePlayerIds.includes(this.myPlayer.id)) return []
         if (
             !LowenherzGameSession.ALLIANCE_CANCELLATION_STATES.includes(this.gameState.machineState)
@@ -2188,33 +2221,66 @@ export class LowenherzGameSession extends GameSession<
             return []
         }
         const myPlayerId = this.myPlayer.id
-        if (this.gameState.getPlayerState(myPlayerId).getMoney() < ALLIANCE_CANCELLATION_COST) return []
-
         const result: { id: string; otherOwner: PieceOwner }[] = []
         for (const alliance of this.gameState.alliances) {
-            const regionA = this.gameState.regions.find((r) => r.id === alliance.regionAId)
-            const regionB = this.gameState.regions.find((r) => r.id === alliance.regionBId)
-            if (regionA?.owner === myPlayerId && regionB?.owner) {
-                result.push({ id: alliance.id, otherOwner: regionB.owner })
-            } else if (regionB?.owner === myPlayerId && regionA?.owner) {
-                result.push({ id: alliance.id, otherOwner: regionA.owner })
-            }
+            const otherOwner = this.allianceOtherOwner(alliance, myPlayerId)
+            if (otherOwner !== undefined) result.push({ id: alliance.id, otherOwner })
         }
         return result
     }
 
+    // Whether breaking an alliance is open to me at all right now, before the question of paying
+    // for it - the window a Treasure card can be armed in.
+    get canBreakAnAlliance(): boolean {
+        return this.myAlliances.length > 0
+    }
+
+    // How the 10 ducats would be paid if I broke an alliance now. An armed Treasure comes first
+    // (topped up from money when worth less; the excess is lost, as for a wooded knight), then
+    // plain ducats, then the single Treasure in hand that would make it affordable - one option
+    // counts as chosen, while several leave the choice to the player, who arms one from the hand.
+    get allianceBreakingPayment(): AllianceBreakingPayment | undefined {
+        if (!this.myPlayer) return undefined
+        const money = this.gameState.getPlayerState(this.myPlayer.id).getMoney()
+        const withTreasure = (value: number): AllianceBreakingPayment | undefined => {
+            const ducats = Math.max(0, ALLIANCE_CANCELLATION_COST - value)
+            return money >= ducats ? { treasureValue: value, ducats } : undefined
+        }
+
+        const armed = this.selectedTreasureCard
+        if (armed?.value !== undefined) return withTreasure(armed.value)
+        if (money >= ALLIANCE_CANCELLATION_COST) return { ducats: ALLIANCE_CANCELLATION_COST }
+        const affordable = this.myTreasureCards
+            .map((card) => card.value)
+            .filter((value): value is number => value !== undefined && withTreasure(value) !== undefined)
+        return affordable.length === 1 ? withTreasure(affordable[0]) : undefined
+    }
+
+    get myCancellableAlliances(): { id: string; otherOwner: PieceOwner }[] {
+        return this.allianceBreakingPayment ? this.myAlliances : []
+    }
+
     async cancelAlliance(allianceId: string) {
         if (!this.myPlayer) return
+        const payment = this.allianceBreakingPayment
+        if (!payment) return
 
-        const action = this.createPlayerAction(CancelAlliance, { allianceId })
+        const treasure = payment.treasureValue === undefined ? {} : { treasureValue: payment.treasureValue }
+        const action = this.createPlayerAction(CancelAlliance, { allianceId, ...treasure })
 
-        const invalidReason = cancelAllianceReason(this.gameState, this.myPlayer.id, allianceId)
+        const invalidReason = cancelAllianceReason(
+            this.gameState,
+            this.myPlayer.id,
+            allianceId,
+            payment.treasureValue
+        )
         if (invalidReason) {
             this.errorMessage = invalidReason
             return
         }
 
         this.errorMessage = undefined
+        this.armedTreasure = undefined
         try {
             await this.applyAction(action)
         } catch (e) {

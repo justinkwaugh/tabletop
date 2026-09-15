@@ -1,24 +1,21 @@
 import { type GameUiDefinition } from '@tabletop/frontend-components'
-import { GameState, canDiscoverTitle, User, type HydratedGameState } from '@tabletop/common'
+import { GameState, User, type HydratedGameState } from '@tabletop/common'
 import type { ManifestService } from './manifestService.js'
+import { availableLibraryTitles } from '$lib/utils/libraryTitles.js'
 
 export class LibraryService {
     titlesById: Record<string, GameUiDefinition<GameState, HydratedGameState>> = $state({})
     loading = $state(true)
-    private readonly loadPromise: Promise<void>
+    private loadPromise?: Promise<void>
 
-    constructor(private readonly manifestService: ManifestService) {
-        this.loadPromise = this.loadDefinitions()
-    }
+    constructor(private readonly manifestService: ManifestService) {}
 
     async whenReady(): Promise<void> {
-        await this.loadPromise
+        await (this.loadPromise ??= this.loadDefinitions())
     }
 
     getTitles(user: User): GameUiDefinition<GameState, HydratedGameState>[] {
-        return Object.values(this.titlesById)
-            .filter((title) => canDiscoverTitle(title.info.metadata, user.roles))
-            .sort((a, b) => a.info.metadata.name.localeCompare(b.info.metadata.name))
+        return availableLibraryTitles(this.titlesById, user)
     }
 
     getTitle(id: string): GameUiDefinition<GameState, HydratedGameState> | undefined {
@@ -56,7 +53,7 @@ export class LibraryService {
                         throw new Error('Missing UiDefinition export')
                     }
                     definitions.push(gameDefinition)
-                } catch (error) {
+                } catch {
                     console.log(
                         `Could not load game module for ${game.gameId} (${game.packageId}) at ${game.uiVersion}`
                     )

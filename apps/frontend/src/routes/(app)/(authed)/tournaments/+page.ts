@@ -1,0 +1,11 @@
+import { AuthorizationCategory } from '@tabletop/frontend-components'
+import { getAppContext } from '$lib/stores/appContext.svelte'
+import type { PageLoad } from './$types'
+
+export const load: PageLoad = async ({ url }) => {
+    await getAppContext().authorizationService.authorizeRoute({
+        category: AuthorizationCategory.ActiveUser,
+        intendedUrl: url
+    })
+    return { titleId: url.searchParams.get('titleId') ?? '' }
+}

@@ -1,6 +1,8 @@
 import type Ably from 'ably'
 import type {
     Bookmark,
+    GameCatalogEntry,
+    GameHistoryPage,
     CanonicalActionReplay,
     Game,
     GameAction,
@@ -11,7 +13,11 @@ import type {
     ProcessedActionReplay,
     User,
     UserPreferences,
-    Visibility
+    Visibility,
+    Tournament,
+    TournamentDetail,
+    TournamentList,
+    TournamentSchedule
 } from '@tabletop/common'
 import type { GameVersionProvider, GetGameOptions } from '$lib/network/tabletopApi.svelte.js'
 import type { Credentials } from '$lib/network/requestTypes.js'
@@ -31,6 +37,58 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     set versionChange(_value: VersionChange | undefined) {
         return
+    }
+
+    async getGameCatalog(): Promise<GameCatalogEntry[]> {
+        return this.fail('getGameCatalog')
+    }
+
+    async getMyGameHistory(): Promise<GameHistoryPage> {
+        return this.fail('getMyGameHistory')
+    }
+
+    async correctTournamentResult(): Promise<Tournament> {
+        return this.fail('correctTournamentResult')
+    }
+
+    async rebuildTournamentStandings(): Promise<Tournament> {
+        return this.fail('rebuildTournamentStandings')
+    }
+
+    async listTournaments(): Promise<TournamentList> {
+        return this.fail('listTournaments')
+    }
+
+    async getTournament(): Promise<TournamentDetail> {
+        return this.fail('getTournament')
+    }
+
+    async getTournamentSchedule(): Promise<TournamentSchedule> {
+        return this.fail('getTournamentSchedule')
+    }
+
+    async previewTournamentSchedule(): Promise<TournamentSchedule> {
+        return this.fail('previewTournamentSchedule')
+    }
+
+    async commitTournamentSchedule(): Promise<TournamentSchedule> {
+        return this.fail('commitTournamentSchedule')
+    }
+
+    async createTournament(): Promise<Tournament> {
+        return this.fail('createTournament')
+    }
+
+    async updateTournament(): Promise<Tournament> {
+        return this.fail('updateTournament')
+    }
+
+    async actOnTournament(): Promise<Tournament> {
+        return this.fail('actOnTournament')
+    }
+
+    async joinTournament(): Promise<Tournament> {
+        return this.fail('joinTournament')
     }
 
     async getSelf(): Promise<User | undefined> {

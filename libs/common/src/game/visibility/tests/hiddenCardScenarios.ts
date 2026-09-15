@@ -13,11 +13,11 @@ import type { GameRuntime } from '../../definition/gameDefinition.js'
 import type { Game } from '../../model/game.js'
 import { GameStatus } from '../../model/game.js'
 import {
-    GameResult,
     GameState,
     HydratableGameState,
     type UninitializedGameState
 } from '../../model/gameState.js'
+import { GameResult } from '../../model/gameResult.js'
 import { Color } from '../../model/colors.js'
 import { PlayerStatus } from '../../model/player.js'
 import type { PlayerState } from '../../model/playerState.js'

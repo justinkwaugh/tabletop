@@ -894,7 +894,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         )
     }
 
-    private explorationPerspective(
+    protected explorationPerspective(
         context = this.currentVisibleContext
     ): Visibility.Perspective | undefined {
         if (

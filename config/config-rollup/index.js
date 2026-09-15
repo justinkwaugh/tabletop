@@ -1,5 +1,7 @@
 import fs from 'node:fs'
 import { moduleWorkers } from './workers.js'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import svelte from 'rollup-plugin-svelte'
@@ -192,7 +194,16 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
             }),
             analyzeBundle(analyze),
             ...(minify ? [terser()] : []),
-            brotli()
+            brotli(),
+            {
+                name: 'game-catalog',
+                async writeBundle(options) {
+                    await promisify(execFile)(process.execPath, [
+                        fileURLToPath(new URL('./write-game-catalog.mjs', import.meta.url)),
+                        options.dir
+                    ])
+                }
+            }
         ]
     }
 }

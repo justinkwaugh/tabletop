@@ -1,12 +1,14 @@
 import { Compile } from 'typebox/compile'
 import wretch, { type Wretch, type WretchError } from 'wretch'
 import * as Value from 'typebox/value'
+import { Type, type Static, type TSchema } from 'typebox'
 import {
     TitlePreferenceData,
     PreferenceError,
     type PreferenceChange,
     type PreferenceResponse,
     type GameCreationOptions,
+    type GameCatalogEntry,
     assertExists,
     Bookmark,
     CanonicalActionReplay,
@@ -18,9 +20,19 @@ import {
     GameState,
     GameSyncStatus,
     GameValidator,
+    GameHistoryPage,
     User,
     UserPreferences,
-    Visibility
+    Visibility,
+    Tournament,
+    TournamentDetail,
+    type CorrectTournamentResultRequest,
+    TournamentList,
+    TournamentSchedule,
+    type CommitTournamentScheduleRequest,
+    type TournamentScheduleRequest,
+    type TournamentDraft,
+    type TournamentListQuery
 } from '@tabletop/common'
 import type {
     AblyTokenResponse,
@@ -137,6 +149,11 @@ export class TabletopApi {
             throw new Error('Invalid preference response')
         }
         return { data: body.payload, etag }
+    }
+
+    async getGameCatalog(): Promise<GameCatalogEntry[]> {
+        const response = await this.wretch.get('/catalog').json<{ payload: GameCatalogEntry[] }>()
+        return response.payload
     }
 
     async manifest<T = unknown>(): Promise<T> {
@@ -322,14 +339,28 @@ export class TabletopApi {
         return response.payload.hasActive
     }
 
-    async getMyGames(): Promise<Game[]> {
+    async getMyGames(scope?: 'current'): Promise<Game[]> {
         const response = await this.wretch
-            .get('/games/mine')
+            .get(scope ? `/games/mine?scope=${scope}` : '/games/mine')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<GamesResponse>()
 
         return response.payload.games.map((game) => this.validateGame(game))
+    }
+
+    async getMyGameHistory(before?: string): Promise<GameHistoryPage> {
+        const params = new URLSearchParams()
+        if (before) params.set('before', before)
+        const response = await this.wretch
+            .get(`/games/history?${params}`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<unknown>()
+        Value.Assert(Type.Object({ payload: Type.Unknown() }), response)
+        Value.Convert(GameHistoryPage, response.payload)
+        Value.Assert(GameHistoryPage, response.payload)
+        return response.payload
     }
 
     async getOpenGames(titleId: string): Promise<Game[]> {
@@ -342,6 +373,87 @@ export class TabletopApi {
         return response.payload.games.map((game) => this.validateGame(game))
     }
 
+    listTournaments(query: TournamentListQuery) {
+        const params = new URLSearchParams({ scope: query.scope })
+        if (query.after) params.set('after', query.after)
+        if (query.titleId) params.set('titleId', query.titleId)
+        return this.requestTournament(`/tournaments/?${params}`, TournamentList)
+    }
+
+    getTournament(id: string) {
+        return this.requestTournament(`/tournaments/${encodeURIComponent(id)}`, TournamentDetail)
+    }
+    correctTournamentResult(id: string, request: CorrectTournamentResultRequest) {
+        return this.requestTournament(
+            `/tournaments/${encodeURIComponent(id)}/results/correct`,
+            Tournament,
+            'POST',
+            request
+        )
+    }
+    rebuildTournamentStandings(id: string, revision: number) {
+        return this.requestTournament(
+            `/tournaments/${encodeURIComponent(id)}/standings/rebuild`,
+            Tournament,
+            'POST',
+            { revision }
+        )
+    }
+    getTournamentSchedule(id: string) {
+        return this.requestTournament(
+            `/tournaments/${encodeURIComponent(id)}/schedule`,
+            TournamentSchedule
+        )
+    }
+    previewTournamentSchedule(id: string, request: TournamentScheduleRequest) {
+        return this.requestTournament(
+            `/tournaments/${encodeURIComponent(id)}/schedule/preview`,
+            TournamentSchedule,
+            'POST',
+            request
+        )
+    }
+    commitTournamentSchedule(id: string, request: CommitTournamentScheduleRequest) {
+        return this.requestTournament(
+            `/tournaments/${encodeURIComponent(id)}/schedule`,
+            TournamentSchedule,
+            'POST',
+            request
+        )
+    }
+    createTournament(id: string, draft: TournamentDraft) {
+        return this.requestTournament('/tournaments/', Tournament, 'POST', { id, draft })
+    }
+    updateTournament(tournament: Tournament, draft: TournamentDraft) {
+        return this.requestTournament(
+            `/tournaments/${encodeURIComponent(tournament.id)}`,
+            Tournament,
+            'PUT',
+            {
+                draft,
+                revision: tournament.revision
+            }
+        )
+    }
+    actOnTournament(
+        id: string,
+        operation: 'publish' | 'cancel' | 'lock' | 'leave' | 'pause' | 'resume' | 'retry'
+    ) {
+        return this.requestTournament(
+            `/tournaments/${encodeURIComponent(id)}/${operation}`,
+            Tournament,
+            'POST',
+            {}
+        )
+    }
+    joinTournament(id: string) {
+        return this.requestTournament(
+            `/tournaments/${encodeURIComponent(id)}/join`,
+            Tournament,
+            'POST',
+            {}
+        )
+    }
     async getGame(
         gameId: string,
         options: GetGameOptions = {}
@@ -691,6 +803,25 @@ export class TabletopApi {
 
     setGameVersionProvider(provider: GameVersionProvider | null) {
         this.gameVersionProvider = provider
+    }
+
+    private async requestTournament<T extends TSchema>(
+        path: string,
+        schema: T,
+        method = 'GET',
+        body?: object
+    ): Promise<Static<T>> {
+        const request = body === undefined ? this.wretch : this.wretch.json(body)
+        const data = await request
+            .url(path)
+            .options({ cache: 'no-store' })
+            .catcherFallback(this.handleError)
+            .fetch(method)
+            .unauthorized(this.on401)
+            .json<unknown>()
+        Value.Assert(Type.Object({ status: Type.Literal('ok'), payload: Type.Unknown() }), data)
+        Value.Assert(schema, data.payload)
+        return data.payload
     }
 
     private getGameLogicVersion(gameId: string): string {

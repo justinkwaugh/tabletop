@@ -1,0 +1,3 @@
+# Tournament results are final immediately for Players
+
+A Tournament Game's completed result is final immediately, so tournament scheduling can release participation capacity and start subsequent Tables without waiting through a correction window. Players retain ordinary Undo eligibility during play but cannot use Undo to reopen a Finished Tournament Game; ordinary Hosted Games keep their existing behavior. Administrators may make explicitly attributed corrections through competition recovery, which must account for any subsequent Tables or advancement rather than silently reopening play; this tournament-specific restriction trades post-completion player Undo for prompt and predictable asynchronous progression.

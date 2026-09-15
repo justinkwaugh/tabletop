@@ -41,7 +41,10 @@ export class AuthorizationService {
     showDebug: boolean = $derived(this.canUseDeveloperTools && this.debugViewEnabled)
     actAsAdmin: boolean = $derived(this.isAdmin && this.adminCapabilitiesEnabled)
 
-    constructor(private api: TabletopApi) {}
+    constructor(
+        private api: TabletopApi,
+        private readonly onSessionUserSet: () => void
+    ) {}
 
     public async initialize(): Promise<void> {
         if (this.initialized) {
@@ -99,6 +102,7 @@ export class AuthorizationService {
 
     public setSessionUser(user: User) {
         this.sessionUser = user
+        this.onSessionUserSet()
     }
 
     public clearSessionUser() {
@@ -112,13 +116,13 @@ export class AuthorizationService {
             await goto(this.continueUrl)
             this.continueUrl = undefined
         } else {
-            await goto('/activeGamesCheck')
+            await goto('/library')
         }
     }
 
     public async onLogout() {
         this.clearSessionUser()
-        await goto('/login')
+        await goto('/')
     }
 
     private async loadSessionUser() {
@@ -131,7 +135,7 @@ export class AuthorizationService {
             ) {
                 this.setSessionUser(sessionUser)
             }
-        } catch (e) {
+        } catch {
             // do nothing
         }
     }

@@ -4,7 +4,7 @@
     import { BuildingType } from '@tabletop/urbino'
 
     const session = getGameSession()
-    const state = $derived(session.gameState)
+    const gameState = $derived(session.gameState)
 
     let concedeConfirming = $state(false)
 
@@ -15,7 +15,7 @@
         [BuildingType.Tower]: 'Tower (3pt)',
     }
     function myPlayerState() {
-        return state.players.find((p) => p.playerId === session.myPlayer?.id)
+        return gameState.players.find((p) => p.playerId === session.myPlayer?.id)
     }
 
     function hasBuildingType(type: BuildingType): boolean {
@@ -29,7 +29,7 @@
     function getStatusMessage(): string {
         if (!session.isMyTurn) return 'Waiting for opponent...'
         if (session.isPlacingArchitects) {
-            return state.architectsPlaced === 0
+            return gameState.architectsPlaced === 0
                 ? 'Place the first architect on any empty square'
                 : 'Place the second architect on any empty square'
         }
@@ -54,7 +54,7 @@
 
     {#if session.canChooseFirstPlayer}
         <div class="flex flex-wrap gap-2">
-            {#each state.players as player}
+            {#each gameState.players as player}
                 <button
                     class="rounded border border-[#6b3a2a] bg-white px-3 py-1.5 text-sm font-medium text-[#2c1810] transition-colors hover:bg-gray-100"
                     onclick={() => session.chooseFirstPlayer(player.playerId)}

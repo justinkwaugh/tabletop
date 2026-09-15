@@ -1,4 +1,5 @@
 {
+    "firestore": { "indexes": "firestore.indexes.json" },
     "emulators": {
         "singleProjectMode": true,
         "firestore": {

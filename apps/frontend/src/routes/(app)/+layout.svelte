@@ -19,7 +19,10 @@
         DropdownGroup
     } from 'flowbite-svelte'
     import darkLogo from '$lib/components/images/dark-logo.png'
-    import { goto } from '$app/navigation'
+    import { afterNavigate, goto, onNavigate } from '$app/navigation'
+    import LoginPanel, { loginViewTitles, type LoginView } from '$lib/components/LoginPanel.svelte'
+    import AuthModal from '$lib/components/AuthModal.svelte'
+    import { setLoginModal } from '$lib/stores/loginModal'
     import { onMount } from 'svelte'
     import { fromStore } from 'svelte/store'
     import { UserStatus, GameVisibility, getTitleVisibility } from '@tabletop/common'
@@ -50,6 +53,49 @@
     let sessionUser = $derived(authorizationService.getSessionUser())
     let showCreateGameModel = $state(false)
     let showCancelPrompt = $state(false)
+    let showLoginModal = $state(false)
+    let loginView = $state<LoginView>('signin')
+
+    const openLoginModal = setLoginModal(() => {
+        loginView = 'signin'
+        showLoginModal = true
+    })
+
+    afterNavigate(() => {
+        showLoginModal = false
+    })
+
+    function selectTransitionCover(titleId: string | undefined) {
+        for (const cover of document.querySelectorAll<HTMLImageElement>('img[data-game-cover]')) {
+            cover.style.viewTransitionName =
+                cover.dataset.gameCover === titleId ? `game-cover-${titleId}` : 'none'
+        }
+    }
+
+    onNavigate((navigation) => {
+        const from = navigation.from?.url.pathname
+        const to = navigation.to?.url.pathname
+        const libraryMove =
+            (from === '/' && to === '/library') ||
+            (from?.startsWith('/library') && to?.startsWith('/library'))
+        if (
+            !libraryMove ||
+            !document.startViewTransition ||
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        )
+            return
+
+        const titleId = navigation.to?.params?.titleId ?? navigation.from?.params?.titleId
+        selectTransitionCover(titleId)
+        return new Promise<void>((resolve) => {
+            const transition = document.startViewTransition(async () => {
+                resolve()
+                await navigation.complete
+                selectTransitionCover(titleId)
+            })
+            void transition.finished.catch(() => {})
+        })
+    })
 
     let currentGameState = $derived.by(() => {
         const state = gameService.currentGameSession?.bridge.gameState
@@ -269,7 +315,7 @@
         <div class="flex flex-col w-full">
             <div class="flex flex-row justify-between items-center w-full">
                 <div class="flex justify-center items-center">
-                    <NavBrand href="/library" class="shrink-0 cursor-pointer">
+                    <NavBrand href={sessionUser ? '/library' : '/'} class="shrink-0 cursor-pointer">
                         <img src={darkLogo} alt="Board Together" class="h-8 w-auto" />
                     </NavBrand>
 
@@ -336,6 +382,11 @@
                                 class="me-4 h-[30px]"
                                 onclick={gotoDashboard}>My Games</Button
                             >
+                            <a
+                                href="/tournaments"
+                                class="hidden sm:inline-flex me-4 text-sm text-blue-700 dark:text-blue-300"
+                                >Tournaments</a
+                            >
                         {/if}
 
                         <Avatar id="user-drop" class="cursor-pointer" />
@@ -347,6 +398,12 @@
                                     >
                                 </DropdownHeader>
                                 <DropdownDivider />
+                                {#if sessionUser.status === UserStatus.Active}
+                                    <DropdownItem
+                                        href="/tournaments"
+                                        class="sm:hidden w-full text-left">Tournaments</DropdownItem
+                                    >
+                                {/if}
                                 <DropdownItem class="w-full text-left" onclick={gotoProfile}
                                     >Profile</DropdownItem
                                 >
@@ -410,6 +467,8 @@
                                 {/if}
                             </DropdownGroup>
                         </Dropdown>
+                    {:else}
+                        <Button onclick={openLoginModal} size="sm" color="blue">Sign in</Button>
                     {/if}
                 </div>
             </div>
@@ -419,6 +478,16 @@
         </div>
     </Navbar>
 </div>
+{#if !sessionUser}
+    <AuthModal
+        bind:open={showLoginModal}
+        title={loginViewTitles[loginView]}
+        label={loginView === 'signin' ? 'Sign in' : loginViewTitles[loginView]}
+        variant={loginView === 'signin' ? 'welcome' : 'form'}
+    >
+        <LoginPanel bind:view={loginView} />
+    </AuthModal>
+{/if}
 <Modal
     bind:open={showCreateGameModel}
     size="xs"

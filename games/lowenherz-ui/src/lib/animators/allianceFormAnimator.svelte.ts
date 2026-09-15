@@ -1,7 +1,7 @@
 import { gsap } from 'gsap'
 import { tick } from 'svelte'
 import { isPlayAllianceCard } from '@tabletop/lowenherz'
-import { allianceWalls, heartPosition } from '$lib/model/allianceGeometry.js'
+import { allianceWalls, heartPositions, type HeartPosition } from '$lib/model/allianceGeometry.js'
 import { FALLBACK_DURATION, StateAnimator, type StateChange } from './stateAnimator.js'
 
 /**
@@ -16,7 +16,7 @@ import { FALLBACK_DURATION, StateAnimator, type StateChange } from './stateAnima
  * have run - so there is nothing to tween yet at either of those points. Positions come from
  * `to`, since the alliance is already formed there.
  */
-type Heart = { id: string; left: number; top: number }
+type Heart = HeartPosition & { id: string }
 
 const INITIAL_SCALE = 0.2
 const OVERSHOOT_SCALE = 1.16
@@ -51,10 +51,12 @@ export class AllianceFormAnimator extends StateAnimator {
         const cinematic = !!action
         const scale = cinematic ? 1 : FALLBACK_DURATION / (POP + SETTLE)
 
-        this.hearts = walls.map((wall) => ({
-            id: `${wall.col},${wall.row},${wall.edge}`,
-            ...heartPosition(wall)
-        }))
+        this.hearts = walls.flatMap((wall) =>
+            heartPositions(wall).map((position, index) => ({
+                id: `${wall.col},${wall.row},${wall.edge}-${index}`,
+                ...position
+            }))
+        )
 
         await tick()
 

@@ -1,0 +1,76 @@
+{
+    "indexes": [
+        {
+            "collectionGroup": "tournaments",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "rules.titleId",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "tournaments",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "entrantIds",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "rules.titleId",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "games",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "userIds",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "finishedAt",
+                    "order": "DESCENDING"
+                },
+                {
+                    "fieldPath": "__name__",
+                    "order": "DESCENDING"
+                }
+            ]
+        }
+    ],
+    "fieldOverrides": [
+        {
+            "collectionGroup": "tournaments",
+            "fieldPath": "entrants",
+            "indexes": []
+        },
+        {
+            "collectionGroup": "tournaments",
+            "fieldPath": "stages",
+            "indexes": []
+        },
+        {
+            "collectionGroup": "tournaments",
+            "fieldPath": "rules.gameConfig",
+            "indexes": []
+        },
+        {
+            "collectionGroup": "schedules",
+            "fieldPath": "*",
+            "indexes": []
+        }
+    ]
+}

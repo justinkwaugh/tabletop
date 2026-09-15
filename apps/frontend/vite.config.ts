@@ -19,6 +19,10 @@ export default defineProject(
             strictPort: Boolean(process.env.LOCAL_HOSTED_FRONTEND_PORT),
             fs: { strict: false },
             proxy: {
+                '/api': {
+                    target: 'http://localhost:3000',
+                    changeOrigin: true
+                },
                 '/games': {
                     target: process.env.PUBLIC_API_HOST ?? 'http://localhost:3000',
                     changeOrigin: true,

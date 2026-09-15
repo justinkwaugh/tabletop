@@ -291,6 +291,7 @@ Unless stated otherwise, every open item below is documented but not implemented
 
 - **Classification**: Model contradiction; planned Admin Mode
 - **Observed**: Backend services apply Admin bypasses whenever the Account has the Admin role. The frontend `actAsAdmin` toggle changes client acting behavior but does not constrain backend authority.
+- **Tournament scope**: By explicit product decision, Tournament administration uses the existing authenticated Active Administrator account without a separate administrator login or mode activation. The general planned Admin Mode contract below does not apply to Tournament management.
 - **Evidence**: `libs/backend-services/src/games/gameService.ts:161`; `libs/backend-services/src/games/gameService.ts:709`; `apps/frontend/src/lib/services/authorizationService.svelte.ts:35`
 - **Invariant**: The Admin role grants eligibility for administrative authority. An Administrator enters Admin Mode through Recent Authentication, and only requests explicitly made in that mode may exercise administrative bypasses. Outside Admin Mode, an Administrator behaves as an ordinary Active Account.
 

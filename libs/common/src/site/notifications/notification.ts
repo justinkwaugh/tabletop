@@ -4,7 +4,8 @@ import { Compile } from 'typebox/compile'
 export enum NotificationCategory {
     Game = 'game',
     User = 'user',
-    System = 'system'
+    System = 'system',
+    Tournament = 'tournament'
 }
 
 export type Notification = Type.Static<typeof Notification>

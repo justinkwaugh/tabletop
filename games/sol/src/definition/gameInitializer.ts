@@ -1,5 +1,6 @@
 import {
     type GameInitializer,
+    type StartingPositionAssignment,
     type RandomFunction,
     BaseGameInitializer,
     Prng,
@@ -28,11 +29,17 @@ export class SolGameInitializer
     extends BaseGameInitializer<SolGameState, HydratedSolGameState>
     implements GameInitializer<SolGameState, HydratedSolGameState>
 {
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedSolGameState {
+    readonly supportsStartingPositions = true
+
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState,
+        assignment?: StartingPositionAssignment
+    ): HydratedSolGameState {
         const prng = new Prng(state.prng)
 
         const players = this.initializePlayers(game, prng)
-        const turnManager = HydratedTurnManager.generate(players, prng.random)
+        const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
         // Put players array in turn order
         const orderedPlayers: SolPlayerState[] = []
         for (const playerId of turnManager.turnOrder) {

@@ -5,7 +5,7 @@ const publicMoneyOption: BooleanConfigOption = {
     id: 'publicMoney',
     type: ConfigOptionType.Boolean,
     name: 'Public Money',
-    description: 'Turn off to keep balances private until game end and disable exploration',
+    description: 'Turn off to keep balances private until game end. Exploration then requires Debug or Admin access to complete state.',
     default: true
 }
 

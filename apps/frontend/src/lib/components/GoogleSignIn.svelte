@@ -16,6 +16,9 @@
 
     let mounted = $state(false)
     let initialized = $state(false)
+    let buttonElement: HTMLDivElement | undefined = $state()
+    let buttonWidth = $state(0)
+    const targetWidth = $derived(mode === 'login' ? Math.min(400, Math.floor(buttonWidth)) : 100)
     async function setupGoogleSignin() {
         if (initialized) {
             return
@@ -37,29 +40,22 @@
             client_id: PUBLIC_GOOGLE_CLIENT_ID,
             callback: handleCredentialResponse
         })
-
-        const buttonElement = document.getElementById('google-sign-in-button')
-        if (buttonElement) {
-            const measuredWidth = Math.floor(buttonElement.getBoundingClientRect().width)
-            const targetWidth =
-                mode === 'login' ? (measuredWidth > 0 ? measuredWidth : 334) : 100
-            buttonElement.innerHTML = ''
-            google.accounts.id.renderButton(
-                buttonElement,
-                {
-                    type: 'standard',
-                    theme: 'outline',
-                    size: mode === 'login' ? 'large' : 'medium',
-                    text: mode === 'login' ? 'signin_with' : 'signin',
-                    shape: 'pill',
-                    logo_alignment: 'left',
-                    width: targetWidth
-                } // customization attributes
-            )
-        } else {
-            console.error('Google Sign-In button element not found')
-        }
     }
+
+    $effect(() => {
+        if (initialized && buttonElement && targetWidth > 0) {
+            buttonElement.innerHTML = ''
+            google.accounts.id.renderButton(buttonElement, {
+                type: 'standard',
+                theme: 'outline',
+                size: mode === 'login' ? 'large' : 'medium',
+                text: mode === 'login' ? 'signin_with' : 'signin',
+                shape: 'pill',
+                logo_alignment: 'left',
+                width: targetWidth
+            })
+        }
+    })
 
     function onGoogleLibraryLoaded() {
         markLibraryLoaded(LIBRARY_ID)
@@ -77,7 +73,11 @@
 </script>
 
 <div class={mode === 'login' ? 'google-signin-wrapper login' : 'google-signin-wrapper'}>
-    <div id="google-sign-in-button"><div><div></div></div></div>
+    <div
+        bind:this={buttonElement}
+        bind:clientWidth={buttonWidth}
+        class="google-sign-in-button"
+    ></div>
     <script
         src="https://accounts.google.com/gsi/client"
         onload={onGoogleLibraryLoaded}
@@ -87,16 +87,12 @@
 </div>
 
 <style>
-    #google-sign-in-button {
+    .google-sign-in-button {
         height: 44px;
         width: auto;
     }
 
-    #google-sign-in-button > div > div:first-child {
-        display: none;
-    }
-
-    .google-signin-wrapper.login #google-sign-in-button {
+    .google-signin-wrapper.login .google-sign-in-button {
         width: 100%;
     }
 </style>

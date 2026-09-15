@@ -36,6 +36,7 @@
                     class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
                 ></div>
                 <TimelineItem
+                    defaultDivClass="hidden"
                     title=""
                     class="mb-5"
                     date={timeAgo.format(gameSession.game.finishedAt)}
@@ -59,6 +60,7 @@
                         class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
                     ></div>
                     <TimelineItem
+                        defaultDivClass="hidden"
                         title=""
                         class="mb-5"
                         date={action.createdAt ? timeAgo.format(action.createdAt) : 'sometime'}
@@ -72,7 +74,12 @@
             <div
                 class="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -start-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"
             ></div>
-            <TimelineItem title="" class="mb-5" date={timeAgo.format(gameSession.game.createdAt)}>
+            <TimelineItem
+                defaultDivClass="hidden"
+                title=""
+                class="mb-5"
+                date={timeAgo.format(gameSession.game.createdAt)}
+            >
                 <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
                     The game was started
                 </p>

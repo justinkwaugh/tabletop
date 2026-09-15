@@ -1,3 +1,4 @@
+import type { StartingPositionAssignment } from '../model/startingPositionAssignment.js'
 import { generateSeed } from '../../util/prng.js'
 import { Game, GameCategory, GameStatus, GameStorage } from '../model/game.js'
 import type { GameState, HydratedGameState, UninitializedGameState } from '../model/gameState.js'
@@ -9,15 +10,24 @@ export interface GameInitializer<
     T extends GameState = GameState,
     U extends HydratedGameState<T> = HydratedGameState<T>
 > {
+    readonly supportsStartingPositions?: boolean
     initializeGame(game: Partial<Game>, definition: GameDefinition<T, U>): Game
-    initializeGameState(game: Game, state: UninitializedGameState): U
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState,
+        assignment?: StartingPositionAssignment
+    ): U
 }
 
 export abstract class BaseGameInitializer<
     T extends GameState = GameState,
     U extends HydratedGameState<T> = HydratedGameState<T>
 > implements GameInitializer<T, U> {
-    abstract initializeGameState(game: Game, state: UninitializedGameState): U
+    abstract initializeGameState(
+        game: Game,
+        state: UninitializedGameState,
+        assignment?: StartingPositionAssignment
+    ): U
 
     initializeGame(game: Partial<Game>, definition: GameDefinition<T, U>): Game {
         if (Object.keys(game.config ?? {}).length > 0) {

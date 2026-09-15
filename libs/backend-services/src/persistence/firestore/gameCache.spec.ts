@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { randomUUID } from 'node:crypto'
-import { Firestore, DocumentReference } from '@google-cloud/firestore'
+import { Firestore, DocumentReference, Query } from '@google-cloud/firestore'
 import { createClient, SocketClosedUnexpectedlyError, type RedisClientType } from 'redis'
 import {
     ActionSource,
@@ -120,6 +120,89 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             Object.assign(players[1], { userId: newcomer.id, status: PlayerStatus.Joined })
             return { players }
         }
+
+        it('caches history pages without database reads and preserves older pages on completion', async () => {
+            const records = Array.from(
+                { length: 28 },
+                (_, index): Game => ({
+                    ...game,
+                    id: `${prefix}-history-${index}`,
+                    status: GameStatus.Finished,
+                    finishedAt: new Date(1700000000000 - index * 1000)
+                })
+            )
+            try {
+                const batch = db.batch()
+                for (const record of records) batch.set(store.games.doc(record.id), record)
+                await batch.commit()
+                await store.createGame(game)
+                const reads = vi.spyOn(Query.prototype, 'get')
+                const first = await store.findGameHistory(owner)
+                expect(first.games.map((item) => item.id)).toEqual(
+                    records.slice(0, 25).map((item) => item.id)
+                )
+                expect(reads).toHaveBeenCalledTimes(1)
+                reads.mockClear()
+                expect(await store.findGameHistory(owner)).toEqual(first)
+                expect(reads).not.toHaveBeenCalled()
+                const before = { time: 1700000000000 - 24 * 1000, id: records[24].id }
+                const older = await store.findGameHistory(owner, before)
+                expect(older.games.map((item) => item.id)).toEqual(
+                    records.slice(25).map((item) => item.id)
+                )
+                expect(older.nextCursor).toBeUndefined()
+                expect(reads).toHaveBeenCalledTimes(1)
+                reads.mockClear()
+                expect(await store.findGameHistory(owner, before)).toEqual(older)
+                expect(reads).not.toHaveBeenCalled()
+                await store.updateGame({
+                    game,
+                    fields: { status: GameStatus.Finished, finishedAt: new Date() }
+                })
+                reads.mockClear()
+                expect(await store.findGameHistory(owner, before)).toEqual(older)
+                expect(reads).not.toHaveBeenCalled()
+                expect((await store.findGameHistory(owner)).games[0].id).toBe(game.id)
+                expect(reads).toHaveBeenCalledTimes(1)
+                await store.updateGame({ game: records[26], fields: { name: 'Corrected history' } })
+                reads.mockClear()
+                expect((await store.findGameHistory(owner, before)).games[1].name).toBe(
+                    'Corrected history'
+                )
+                expect(reads).toHaveBeenCalledTimes(1)
+                expect((await store.findGameHistory(newcomer)).games).toEqual([])
+            } finally {
+                const cleanup = db.batch()
+                for (const record of records) cleanup.delete(store.games.doc(record.id))
+                await cleanup.commit()
+            }
+        })
+
+        it('discards a cached history page when a finished game changes during the read', async () => {
+            game.status = GameStatus.Finished
+            game.finishedAt = new Date()
+            await store.createGame(game)
+            await store.findGameHistory(owner)
+            const pageKey = GameCacheKeys.historyPage(owner.id, 'null')
+            const read = live.cache.cacheGet.bind(live.cache)
+            let changed = false
+            vi.spyOn(live.cache, 'cacheGet').mockImplementation(async (key) => {
+                const result = await read(key)
+                if (key === pageKey && !changed) {
+                    changed = true
+                    await store.updateGame({
+                        game,
+                        fields: { name: 'Updated during history read' }
+                    })
+                }
+                return result
+            })
+            const query = vi.spyOn(Query.prototype, 'get')
+            expect((await store.findGameHistory(owner)).games[0].name).toBe(
+                'Updated during history read'
+            )
+            expect(query).toHaveBeenCalledTimes(1)
+        })
 
         it('protects a joining member before commit and preserves unaffected lists', async () => {
             await store.createGame(game)

@@ -90,3 +90,11 @@ export const GameConfig = Type.Record(
     Type.String(),
     Type.Union([Type.Boolean(), Type.String(), Type.Number(), Type.Null()])
 )
+
+export function defaultGameConfig(options: GameConfigOptions): GameConfig {
+    return Object.fromEntries(options.map((option) => [option.id, option.default ?? null]))
+}
+
+export function normalizeGameConfig(config: GameConfig): GameConfig {
+    return Object.fromEntries(Object.entries(config).filter(([, value]) => value !== null))
+}

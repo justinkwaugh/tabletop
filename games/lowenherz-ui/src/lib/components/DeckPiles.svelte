@@ -5,13 +5,10 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { CardBack, isAdvanceResolution } from '@tabletop/lowenherz'
     import type { ActionCardSlot } from '$lib/model/actionCardTypes.js'
+    import type { Snippet } from 'svelte'
     import { decisionsForSlot, playerName } from '$lib/model/actionCardHelpers.js'
     import ActionCard from './ActionCard.svelte'
-    import backA from '$lib/images/action-cards/backs/back-a.jpg'
-    import backB from '$lib/images/action-cards/backs/back-b.jpg'
-    import backC from '$lib/images/action-cards/backs/back-c.jpg'
-    import backD from '$lib/images/action-cards/backs/back-d.jpg'
-    import backE from '$lib/images/action-cards/backs/back-e.jpg'
+    import backPlain from '$lib/images/action-cards/backs/back-plain.jpg'
 
     const gameSession = getGameSession()
     const actionState = $derived(gameSession.gameState)
@@ -53,19 +50,18 @@
         if (count >= deck.length) return undefined
         return { count, nextBack: deck[count] }
     })
+    // Draws left before the final pack, when that is further off than the next pack.
+    const untilFinalPack = $derived.by(() => {
+        const deck = actionState.actionDeckBacks ?? []
+        const index = deck.indexOf(CardBack.E)
+        if (index <= 0 || untilNextPack?.nextBack === CardBack.E) return undefined
+        return index
+    })
     // The flip lives in an animator now (see animators/actionCardFlipAnimator), registered by the
     // {@attach} below so it is bound to this component's lifetime. It appends its tween to the
     // shared AnimationContext the session hands each listener, which is what sequences it before
     // the reactive state update instead of racing it.
     const flip = new ActionCardFlipAnimator(gameSession)
-
-    const backImages: Record<CardBack, string> = {
-        [CardBack.A]: backA,
-        [CardBack.B]: backB,
-        [CardBack.C]: backC,
-        [CardBack.D]: backD,
-        [CardBack.E]: backE
-    }
 
     // Drives ActionCard's interactive bands - clicking a band picks that slot's
     // decision card, and each picker shows up as a colored name pill on the band.
@@ -89,6 +85,39 @@
         }
     }
 </script>
+
+<!-- The pack letter is text over a letterless scan of the original back, in the status
+     messages' face rather than the scan's blackletter. The count lines sit at the foot of the
+     card and the letter centres in whatever room is left above them. -->
+{#snippet deckBack(back: CardBack, lines?: Snippet)}
+    <img src={backPlain} alt="Deck {back}" class="w-full h-full rounded-md shadow-md object-cover" />
+    <div class="absolute inset-0 flex flex-col pb-[6%] text-black/80">
+        <!-- IM Fell English's ascent (0.92em) and descent (0.36em) put a capital's ink - cap height
+             0.695em - 0.0675em above the centre of a line-height-1 box ((asc - desc - cap) / 2), so
+             the glyph is shifted down by that much to centre its ink rather than its box. -->
+        <div
+            class="flex-1 flex items-center justify-center text-[105px] leading-none text-black/85"
+        >
+            <span style="transform: translateY(0.0675em);">{back}</span>
+        </div>
+        {#if lines}
+            {@render lines()}
+        {/if}
+    </div>
+{/snippet}
+
+{#snippet drawPileLines()}
+    {#if untilNextPack}
+        <div class="text-center text-[22px] leading-none">
+            {untilNextPack.count} until {untilNextPack.nextBack}
+        </div>
+    {/if}
+    {#if untilFinalPack}
+        <div class="text-center text-[22px] leading-none pt-[2%]">
+            {untilFinalPack} until {CardBack.E}
+        </div>
+    {/if}
+{/snippet}
 
 {#snippet emptySlot(label: string)}
     <div
@@ -119,21 +148,11 @@
             : ''} {gameSession.canDrawActionCard && isFirstRound ? 'draw-pile-glow' : ''}"
     >
         {#if nextCardBack}
-            <img
-                src={backImages[nextCardBack]}
-                alt="Deck {nextCardBack}"
-                class="w-full rounded-md shadow-md"
-            />
+            <div class="relative w-full aspect-[546/840]">
+                {@render deckBack(nextCardBack, drawPileLines)}
+            </div>
         {:else}
             {@render emptySlot('deck')}
-        {/if}
-        {#if untilNextPack}
-            <div
-                class="absolute bottom-[8%] inset-x-0 text-center text-[28px] text-black/80 leading-none"
-            >
-                {untilNextPack.count} until
-                <span class="pack-letter">{untilNextPack.nextBack}</span>
-            </div>
         {/if}
     </button>
     <div
@@ -158,11 +177,7 @@
                 style="transform-style: preserve-3d;"
             >
                 <div class="absolute inset-0" style="backface-visibility: hidden;">
-                    <img
-                        src={backImages[flippingCard.back]}
-                        alt="Deck {flippingCard.back}"
-                        class="w-full h-full rounded-md shadow-md object-cover"
-                    />
+                    {@render deckBack(flippingCard.back)}
                 </div>
                 <div
                     class="absolute inset-0"

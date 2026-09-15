@@ -66,11 +66,11 @@ export default fp(async function (fastify: FastifyInstance) {
     function verifyRole(request: FastifyRequest, role: Role) {
         const user = request.user
         if (!user) {
-            throw new Error('No user found')
+            throw fastify.httpErrors.unauthorized('No user found')
         }
 
         if (!user.roles.includes(role)) {
-            throw new Error('User does not have ' + role + ' role')
+            throw fastify.httpErrors.forbidden('User does not have ' + role + ' role')
         }
     }
 

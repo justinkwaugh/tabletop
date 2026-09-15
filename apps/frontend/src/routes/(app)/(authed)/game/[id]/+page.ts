@@ -1,9 +1,7 @@
-import { goto } from '$app/navigation'
-import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
+import { error, isHttpError } from '@sveltejs/kit'
 import { AuthorizationCategory } from '@tabletop/frontend-components'
 import { getAppContext } from '$lib/stores/appContext.svelte.js'
 import { BridgedContext } from '@tabletop/frontend-components'
-import { toast } from 'svelte-sonner'
 import type { PageLoad } from './$types.js'
 
 export const load: PageLoad = async ({ params, url }) => {
@@ -18,29 +16,17 @@ export const load: PageLoad = async ({ params, url }) => {
     try {
         const { game, actions } = await appContext.gameService.loadGame(id)
         if (!game) {
-            onceMounted(() => {
-                toast.error('The specified game was not found')
-            })
-            await goto('/dashboard')
-            return
+            error(404, 'The specified game was not found')
         }
 
         if (!game.state) {
-            onceMounted(() => {
-                toast.error('The specified game has not been started')
-            })
-            await goto('/dashboard')
-            return
+            error(409, 'The specified game has not been started')
         }
 
         await appContext.libraryService.whenReady()
         const definition = appContext.libraryService.getTitle(game.typeId)
         if (!definition) {
-            onceMounted(() => {
-                toast.error('The specified game is not supported')
-            })
-            await goto('/dashboard')
-            return
+            error(404, 'The specified game is not supported')
         }
 
         const runtime = await definition.runtime()
@@ -66,10 +52,10 @@ export const load: PageLoad = async ({ params, url }) => {
             })
         }
     } catch (e) {
-        console.log(e)
-        onceMounted(() => {
-            toast.error('Unable to load the game')
-        })
-        await goto('/dashboard')
+        if (isHttpError(e)) {
+            throw e
+        }
+        console.error(e)
+        error(500, 'Unable to load the game')
     }
 }

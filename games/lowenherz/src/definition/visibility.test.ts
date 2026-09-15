@@ -619,11 +619,21 @@ describe('Lowenherz private money', () => {
         }
     )
 
-    it('blocks canonical exploration and preserves the private-money restriction in state', () => {
-        const state = initialize(3, 31, privateGame)
-        expect(() => LowenherzRuntime.exploration.createFromCanonicalState(state)).toThrow(
-            /private money/
+    it.each([1, 2, 3])('allows canonical exploration with private money in version %i', (version) => {
+        const state = initialize(version, 31, privateGame)
+        const exploration = LowenherzRuntime.exploration.createFromCanonicalState(state)
+        expect(LowenherzGameStateValidator.Check(exploration)).toBe(true)
+        expect(exploration.publicMoney).toBe(state.publicMoney)
+        expect(exploration.players.map((player) => player.money)).toEqual(
+            state.players.map((player) => player.money)
         )
+        expect(exploration.actionDeck?.map((card) => card.id).sort()).toEqual(
+            state.actionDeck.map((card) => card.id).sort()
+        )
+    })
+
+    it('preserves the private-money restriction for projected exploration in state', () => {
+        const state = initialize(3, 31, privateGame)
         expect(() =>
             LowenherzRuntime.exploration.createFromProjectedState({
                 game,

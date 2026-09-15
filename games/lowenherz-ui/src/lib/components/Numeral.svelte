@@ -3,10 +3,10 @@
     // three different heights, the way they would in running prose. 0 1 2 sit on the
     // baseline at x-height, 6 and 8 ascend above it, and 3 4 5 7 9 hang BELOW it.
     //
-    // Two other faces already loaded by app.css - Blankenburg and UnifrakturMaguntia -
-    // carry lining figures (every digit on the baseline, heights uniform to within ~5
-    // units against IM Fell's 41) and would need none of this. Both were tried and set
-    // aside: IM Fell is the face the game wants.
+    // Two other faces - Blankenburg (still loaded) and UnifrakturMaguntia (since dropped
+    // with the deck-back letters) - carry lining figures (every digit on the baseline,
+    // heights uniform to within ~5 units against IM Fell's 41) and would need none of
+    // this. Both were tried and set aside: IM Fell is the face the game wants.
     //
     // Measurements below come from rendering each digit at pointsize 200 against a fixed
     // baseline and reading the ink bounding box, so they're the real metrics of the

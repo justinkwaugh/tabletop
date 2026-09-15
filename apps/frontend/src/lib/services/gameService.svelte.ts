@@ -33,6 +33,7 @@ import {
 import * as Value from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
 import { NotificationService } from './notificationService.svelte'
+import { compareGameInvitations } from '$lib/utils/gameInvitation'
 
 import type { LibraryService } from './libraryService.svelte'
 
@@ -70,10 +71,12 @@ export class GameService implements GameServiceInterface {
                 )?.id
                 const isMyBTurn = myBPlayerId ? b.activePlayerIds?.includes(myBPlayerId) : false
                 const isMyATurn = myAPlayerId ? a.activePlayerIds?.includes(myAPlayerId) : false
+                const activityOrder =
+                    (a.lastActionAt ?? a.createdAt).getTime() -
+                    (b.lastActionAt ?? b.createdAt).getTime()
                 return (
                     (isMyBTurn ? 1 : 0) - (isMyATurn ? 1 : 0) ||
-                    (b.lastActionAt ?? b.createdAt).getTime() -
-                        (a.lastActionAt ?? a.createdAt).getTime()
+                    (isMyATurn ? activityOrder : -activityOrder)
                 )
             })
     })
@@ -86,7 +89,11 @@ export class GameService implements GameServiceInterface {
                         game.status === GameStatus.WaitingToStart) &&
                     game.category !== GameCategory.Exploration
             )
-            .toSorted((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+            .toSorted(
+                (a, b) =>
+                    compareGameInvitations(a, b, this.authorizationService.getSessionUser()?.id) ||
+                    b.createdAt.getTime() - a.createdAt.getTime()
+            )
     )
 
     finishedGames: Game[] = $derived(
@@ -120,23 +127,10 @@ export class GameService implements GameServiceInterface {
         return this.api.hasActiveGames()
     }
 
-    // Only allow a single async load at a time
     async loadGames() {
-        await this.libraryService.whenReady()
-        await this.loadLocalGames()
-
         if (!this.loadingPromise) {
             this.loading = true
-            this.loadingPromise = this.api.getMyGames().then((games) => {
-                const ids = games.map((game) => game.id)
-                games.forEach((game) => {
-                    this.gamesById.set(game.id, game)
-                })
-                this.gamesById.forEach((game, id) => {
-                    if (!ids.includes(id)) {
-                        this.gamesById.delete(id)
-                    }
-                })
+            this.loadingPromise = this.loadCurrentGames().finally(() => {
                 this.loading = false
                 this.loadingPromise = null
             })
@@ -144,16 +138,25 @@ export class GameService implements GameServiceInterface {
         return this.loadingPromise
     }
 
-    async loadLocalGames() {
+    private async loadCurrentGames() {
+        await this.libraryService.whenReady()
         const sessionUser = this.authorizationService.getSessionUser()
-        if (!sessionUser) {
-            console.log('No session user, clearing hotseat games')
-            this.localGamesById.clear()
-            return
-        }
+        const [games, localGames] = await Promise.all([
+            this.api.getMyGames('current'),
+            sessionUser ? this.localGameStore.findGamesForUser(sessionUser) : []
+        ])
 
-        const games = await this.localGameStore.findGamesForUser(sessionUser)
+        const ids = new Set(games.map((game) => game.id))
         games.forEach((game) => {
+            this.gamesById.set(game.id, game)
+        })
+        this.gamesById.forEach((game, id) => {
+            if (!ids.has(id)) {
+                this.gamesById.delete(id)
+            }
+        })
+        this.localGamesById.clear()
+        localGames.forEach((game) => {
             this.localGamesById.set(game.id, game)
         })
     }
@@ -371,6 +374,8 @@ export class GameService implements GameServiceInterface {
 
             if (!mine && game.ownerId !== myUserId) {
                 this.removeFromPrivateCache(game.id)
+            } else {
+                this.gamesById.set(game.id, game)
             }
         }
     }

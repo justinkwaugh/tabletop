@@ -32,6 +32,14 @@ export class GameCacheKeys {
         return `games-public-${titleId}`
     }
 
+    static history(userId: string, older = false): string {
+        return `game-history-${older ? 'older' : 'head'}-${userId}`
+    }
+
+    static historyPage(userId: string, cursor: string): string {
+        return `game-history-page-${userId}-${cursor}`
+    }
+
     static chatRevision(gameId: string): string {
         return `etag-${gameId}-chat`
     }
@@ -55,7 +63,18 @@ export class GameCacheKeys {
     static changedLists(before: Game | undefined, after: Game | undefined): string[] {
         const oldLists = this.listsContaining(before)
         const newLists = this.listsContaining(after)
+        const historyUsers = new Set([
+            ...(before?.status === GameStatus.Finished ? gameUserIds(before) : []),
+            ...(after?.status === GameStatus.Finished ? gameUserIds(after) : [])
+        ])
+        const historyKeys = [...historyUsers].flatMap((userId) => [
+            this.history(userId),
+            ...(before?.status === GameStatus.Finished || before === undefined
+                ? [this.history(userId, true)]
+                : [])
+        ])
         return [
+            ...historyKeys,
             ...[...oldLists].filter((key) => !newLists.has(key)),
             ...[...newLists].filter((key) => !oldLists.has(key))
         ]

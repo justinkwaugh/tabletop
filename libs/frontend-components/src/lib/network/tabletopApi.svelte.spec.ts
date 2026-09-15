@@ -308,3 +308,71 @@ describe('reproduction seed transport', () => {
         expect(game).not.toHaveProperty('masterSeed')
     })
 })
+
+describe('tournament requests through TabletopApi', () => {
+    test('uses the configured host, session credentials and version middleware', async () => {
+        const fetch = vi.fn(
+            async () =>
+                new Response(JSON.stringify({ status: 'ok', payload: { tournaments: [] } }), {
+                    headers: { 'Content-Type': 'application/json', 'X-Tabletop-Version': '2.0.0' }
+                })
+        )
+        vi.stubGlobal('fetch', fetch)
+        const api = new TabletopApi('https://tabletop.test', undefined, '1.0.0')
+        expect(
+            await api.listTournaments({ scope: 'mine', titleId: 'a & b', after: 'cursor' })
+        ).toEqual({ tournaments: [] })
+        expect(fetch).toHaveBeenCalledWith(
+            'https://tabletop.test/api/v1/tournaments/?scope=mine&after=cursor&titleId=a+%26+b',
+            expect.objectContaining({ credentials: 'include', cache: 'no-store', method: 'GET' })
+        )
+        expect(api.versionChange).toBe(VersionChange.MajorUpgrade)
+    })
+
+    test.each([403, 404, 409])(
+        'preserves tournament error messages for status %s',
+        async (status) => {
+            vi.stubGlobal(
+                'fetch',
+                vi.fn(
+                    async () =>
+                        new Response(
+                            JSON.stringify({
+                                status: 'error',
+                                error: {
+                                    name: 'TournamentError',
+                                    message:
+                                        'The tournament changed. Preview its schedule again before saving.'
+                                }
+                            }),
+                            { status, headers: { 'Content-Type': 'application/json' } }
+                        )
+                )
+            )
+            await expect(
+                new TabletopApi().commitTournamentSchedule('event', {
+                    revision: 1,
+                    version: 1,
+                    seed: 42,
+                    scheduleId: 'a'.repeat(64)
+                })
+            ).rejects.toMatchObject({
+                name: 'TournamentError',
+                message: 'The tournament changed. Preview its schedule again before saving.'
+            })
+        }
+    )
+
+    test('rejects an invalid tournament response', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(
+                async () =>
+                    new Response(JSON.stringify({ status: 'ok', payload: { tournament: {} } }), {
+                        headers: { 'Content-Type': 'application/json' }
+                    })
+            )
+        )
+        await expect(new TabletopApi().getTournament('event')).rejects.toThrow()
+    })
+})

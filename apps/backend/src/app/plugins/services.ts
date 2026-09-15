@@ -4,6 +4,7 @@ import {
     PreferenceService,
     FirestorePreferenceStore,
     LibraryService,
+    CatalogService,
     CloudTasksTaskService,
     EmailService,
     FirestoreTokenStore,
@@ -32,7 +33,9 @@ import {
     FirestoreChatStore,
     ResendEmailService,
     PubSubTransport,
-    EnvService
+    EnvService,
+    TournamentService,
+    FirestoreTournamentStore
 } from '@tabletop/backend-services'
 import type { GameDefinition } from '@tabletop/common'
 
@@ -55,6 +58,8 @@ declare module 'fastify' {
         chatService: ChatService
         cacheService: RedisCacheService
         libraryService: LibraryService
+        catalogService: CatalogService
+        tournamentService: TournamentService
     }
 }
 
@@ -85,10 +90,9 @@ export default fp(async (fastify: FastifyInstance) => {
         console.warn('Unable to load game definitions from manifest', error)
     }
 
-    const taskService: TaskService =
-        service === 'local'
-            ? new LocalTaskService(TASKS_HOST)
-            : new CloudTasksTaskService(TASKS_HOST)
+    const taskService: TaskService = EnvService.isLocal()
+        ? new LocalTaskService(TASKS_HOST)
+        : new CloudTasksTaskService(TASKS_HOST)
     const tokenService = new TokenService(new FirestoreTokenStore(fastify.firestore))
     const userService = new UserService(
         new FirestoreUserStore(redisCacheService, fastify.firestore, service === 'local'),
@@ -145,6 +149,18 @@ export default fp(async (fastify: FastifyInstance) => {
     )
 
     fastify.decorate('taskService', taskService)
+    const tournamentService = new TournamentService(
+        new FirestoreTournamentStore(redisCacheService, fastify.firestore),
+        userService,
+        availableTitles,
+        notificationService,
+        gameService,
+        taskService
+    )
+    fastify.decorate('tournamentService', tournamentService)
+    fastify.addHook('onClose', async () => {
+        if (taskService instanceof LocalTaskService) taskService.close()
+    })
     fastify.decorate('tokenService', tokenService)
     fastify.decorate('userService', userService)
     fastify.decorate(
@@ -155,6 +171,7 @@ export default fp(async (fastify: FastifyInstance) => {
     fastify.decorate('secretsService', secretsService)
     fastify.decorate('gameService', gameService)
     fastify.decorate('libraryService', libraryService)
+    fastify.decorate('catalogService', new CatalogService(path.join(STATIC_ROOT, 'games')))
     fastify.decorate('pubSubService', pubSubService)
     fastify.decorate('notificationService', notificationService)
     fastify.decorate('discordService', discordService)

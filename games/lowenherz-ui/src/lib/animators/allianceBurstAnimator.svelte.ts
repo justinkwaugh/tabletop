@@ -1,7 +1,7 @@
 import { gsap } from 'gsap'
 import { tick } from 'svelte'
 import { isCancelAlliance } from '@tabletop/lowenherz'
-import { allianceWalls, heartPosition } from '$lib/model/allianceGeometry.js'
+import { allianceWalls, heartPositions, type HeartPosition } from '$lib/model/allianceGeometry.js'
 import { scaled } from '$lib/model/boardMetrics.js'
 import { FALLBACK_DURATION, StateAnimator, type StateChange } from './stateAnimator.js'
 
@@ -20,7 +20,7 @@ import { FALLBACK_DURATION, StateAnimator, type StateChange } from './stateAnima
  * live for the whole burst, hearts and all. `burstingAllianceId` is published so the board can hold
  * those hearts back while their burst plays over them.
  */
-type Heart = { id: string; left: number; top: number }
+type Heart = HeartPosition & { id: string }
 
 /**
  * Directions the shards fly. Not evenly spaced round the circle - a slightly irregular spray reads
@@ -76,11 +76,12 @@ export class AllianceBurstAnimator extends StateAnimator {
         const scale = cinematic ? 1 : FALLBACK_DURATION / SHARD_FLIGHT
 
         this.burstingAllianceId = allianceId
-        this.hearts = walls.map((wall, i) => ({
-            id: `${allianceId}-${wall.col},${wall.row},${wall.edge}-${i}`,
-            // The hearts' own maths, so a burst starts exactly where its heart was sitting.
-            ...heartPosition(wall)
-        }))
+        this.hearts = walls.flatMap((wall) =>
+            heartPositions(wall).map((position, index) => ({
+                id: `${allianceId}-${wall.col},${wall.row},${wall.edge}-${index}`,
+                ...position
+            }))
+        )
 
         await tick()
 

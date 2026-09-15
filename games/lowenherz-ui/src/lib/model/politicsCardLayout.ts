@@ -8,6 +8,8 @@
 export const CARD_W = 66
 export const CARD_H = Math.round((CARD_W * 832) / 534)
 export const CARD_GAP = 8 // px, matches gap-2
+// One dealt row plus the py-2 of the deck chooser's and pile reveal's outer boxes.
+export const CARD_ROW_HEIGHT = CARD_H + 16
 
 // Below this width, a card stops shrinking any further and rows start piling up instead - card
 // art/numerals stop being legible past this point.

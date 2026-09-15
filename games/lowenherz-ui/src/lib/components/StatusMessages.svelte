@@ -17,6 +17,7 @@
     import {
         isAdvanceResolution,
         isCancelAlliance,
+        isPlayAllianceCard,
         isDrawActionCard,
         isNegotiationMove,
         isNeutralOwner,
@@ -28,8 +29,8 @@
         type SubmitDuelBidMetadata
     } from '@tabletop/lowenherz'
     import PlayerPill from './PlayerPill.svelte'
+    import EasedHeight from './EasedHeight.svelte'
     import ActionDescription from './ActionDescription.svelte'
-    import { playerName } from '$lib/model/actionCardHelpers.js'
     import type { KnightPlan } from '$lib/model/session.svelte.js'
 
     const gameSession = getGameSession()
@@ -102,11 +103,10 @@
 
     // The most recent completed negotiation this round - substitutes "X won a Y
     // action" with "X paid Y N ducats for the Z action" for whoever's now placing
-    // walls/knights/taking a politics card as a result. Guarded by fromPlayerId
-    // matching the current placer so an earlier slot's (already-resolved) negotiation
-    // this same round can't leak into a later, unrelated solo-win placement phase.
-    // Also bounded by the current action card's own draw (see lastMineReveal) so an
-    // earlier card's negotiation in the same round can't leak into a later one.
+    // walls/knights/taking a politics card as a result. Bounded by the current action
+    // card's own draw (see lastMineReveal) so an earlier card's negotiation in the same
+    // round can't leak into a later one; negotiationPaidFor below keeps it to the slot it
+    // was actually struck over.
     const lastNegotiationPayment = $derived.by(() => {
         const actions = gameSession.actions
         let roundBoundariesSeen = 0
@@ -126,6 +126,17 @@
         }
         return undefined
     })
+
+    // Whether the latest negotiation payment bought the placement phase now in progress. The
+    // deal's slot is the reliable test: the same player can win one slot by negotiation and the
+    // next one alone, and matching on the player narrated the first payment as buying the
+    // second. Deals recorded before the slot was kept fall back to the player check.
+    function negotiationPaidFor(placerId: string | undefined): boolean {
+        const payment = lastNegotiationPayment
+        if (!payment || !placerId) return false
+        if (payment.slot !== undefined) return gameSession.isFreshestResolvedSlot(payment.slot)
+        return payment.fromPlayerId === placerId
+    }
 
     type RevealedBid = NonNullable<SubmitDuelBidMetadata['roundResult']>['bids'][number]
     function effectiveBidAmount(bid: RevealedBid): number {
@@ -278,8 +289,8 @@
     // Once the deal is settled, its winner has somewhere else to be: the wall/knight/politics
     // prompt above (isPlayingAllianceCard / canPlaceWall / canPlaceKnight / canTakePoliticsCard)
     // already tells them what to do with what they just won, so re-reading the offer they signed
-    // moments ago is only in their way. Everyone else has nothing to act on right now, so the
-    // frozen offer and both signatures are exactly what they should be looking at.
+    // moments ago is only in their way. Everyone else has nothing to act on right now, so who paid
+    // whom (settledNegotiation below) is exactly what they should be looking at.
     //
     // Scoped to the frozen hold, not live negotiation: gameState.negotiation is only undefined
     // once the deal has resolved, and canPlaceWall/etc. are only ever true once a slot's winner
@@ -290,6 +301,15 @@
             (gameSession.canPlaceWall ||
                 gameSession.canPlaceKnight ||
                 gameSession.canTakePoliticsCard)
+    )
+
+    // The completed hold (see the onMount listener above): the deal is done and nothing is left to
+    // sign or decline, so only the struck terms show - as a status line above the prompt, for a
+    // beat before the next thing takes over.
+    const settledNegotiation = $derived(
+        displayNegotiation && !gameSession.gameState.negotiation && !negotiationHoldHidesForMe
+            ? displayNegotiation
+            : undefined
     )
 
     const negotiationOtherPlayerId = $derived.by(() => {
@@ -326,12 +346,41 @@
     // and when rewound past the very first action, so it doubles as "are we in history".
     const historyAction = $derived(gameSession.history.currentAction)
 
-    // An alliance just ended by clicking its heart leaves no other trace on the board - the
-    // heart is simply gone - so the status window repeats the history's own sentence for it
-    // until the next action of any kind arrives.
-    const latestAllianceCancellation = $derived.by(() => {
-        const latest = gameSession.actions.at(-1)
-        return latest && isCancelAlliance(latest) ? latest : undefined
+    const RESERVED_STATUS_HEIGHT = 77
+
+    // Forming or breaking an alliance leaves little trace on the board - hearts appear or vanish -
+    // so the status window announces the latest such event to everyone until the actor's turn
+    // passes: the message survives their own later actions and disappears once they are no longer
+    // active. It waits for the hearts' animation to finish (the actions list runs ahead of the
+    // visible state) so the board holds still while they form or break.
+    //
+    // "Turn passes" is read off the actions rather than off activePlayerIds alone, because the
+    // latest alliance event may be many turns old and its actor active again: another player's
+    // action since the event means the turn moved on - except duel bids and negotiation moves,
+    // the two phases where several players are active at once and the actor still is.
+    function isConcurrentPhaseAction(action: GameAction): boolean {
+        return isSubmitDuelBid(action) || isNegotiationMove(action)
+    }
+
+    const currentAllianceEvent = $derived.by(() => {
+        if (gameSession.updatingVisibleState) return undefined
+        const actions = gameSession.actions
+        const index = actions.findLastIndex(
+            (action) => isPlayAllianceCard(action) || isCancelAlliance(action)
+        )
+        if (index < 0) return undefined
+        const event = actions[index]
+        const turnHasNotPassed = actions
+            .slice(index + 1)
+            .every(
+                (action) =>
+                    action.source === ActionSource.System ||
+                    action.playerId === event.playerId ||
+                    isConcurrentPhaseAction(action)
+            )
+        const actorStillActive =
+            event.playerId !== undefined && gameSession.gameState.activePlayerIds.includes(event.playerId)
+        return turnHasNotPassed && actorStillActive ? event : undefined
     })
 
     // One label per thing a single sword can buy. The composite labels are gone with the
@@ -409,6 +458,11 @@
      starting at its left edge; text-center on the boxes themselves handles the
      wrapping lines within them. -->
 
+<!-- Two lines are always reserved: the prompt (text-[18px] leading-loose, 36px) plus the gap-2 (8px)
+     and the alliance/history line (27px + pb-1 + border-b-2, 33px). A lone line is centred in that
+     box, so the board never moves for the common one/two-line cases; only taller content
+     (negotiation, duel controls, wrapped prompts, history entries) eases the height. -->
+<EasedHeight minHeight={RESERVED_STATUS_HEIGHT} centerContent clip>
 <!-- items-center so each message box is centred over the board rather than starting at its left
      edge; text-center on the boxes themselves handles the wrapping lines within them. -->
 <div class="flex flex-col gap-2 items-center">
@@ -425,10 +479,10 @@
             {/if}
             <ActionDescription action={historyAction} justify="start" history={false} />
         </div>
-    {:else if latestAllianceCancellation}
+    {:else if currentAllianceEvent?.playerId}
         <div class="text-black text-[18px] text-center border-b-2 border-black/15 pb-1">
-            {@render playerPill(latestAllianceCancellation.playerId)}
-            <ActionDescription action={latestAllianceCancellation} justify="start" history={false} />
+            {@render playerPill(currentAllianceEvent.playerId)}
+            <ActionDescription action={currentAllianceEvent} justify="start" history={false} />
         </div>
     {/if}
     {#if lastDuelOutcome?.type === 'giveUp'}
@@ -436,6 +490,17 @@
             {@render bidList(lastDuelOutcome.bids)} — tied again, so no one performs the{lastDuelOutcome.actionNoun
                 ? ` ${lastDuelOutcome.actionNoun}`
                 : ''} action.
+        </div>
+    {/if}
+    {#if settledNegotiation?.offer}
+        {@const offer = settledNegotiation.offer}
+        {@const toPlayerId = settledNegotiation.playerIds.find((id) => id !== offer.fromPlayerId)}
+        <div class="text-black text-[18px] text-center border-b-2 border-black/15 pb-1">
+            {@render playerPill(offer.fromPlayerId)} pays
+            {#if toPlayerId}
+                {@render playerPill(toPlayerId)}
+            {/if}
+            {offer.amount} ducat{offer.amount === 1 ? '' : 's'}.
         </div>
     {/if}
     <div class="text-black text-[18px] text-center leading-loose">
@@ -479,7 +544,7 @@
                 Place a castle on the board.
             {/if}
         {:else if gameSession.canPlaceWall}
-            {#if lastNegotiationPayment && lastNegotiationPayment.fromPlayerId === gameSession.gameState.wallPlacingPlayerId}
+            {#if lastNegotiationPayment && negotiationPaidFor(gameSession.gameState.wallPlacingPlayerId)}
                 {@render playerPill(lastNegotiationPayment.fromPlayerId)} paid {@render playerPill(
                     lastNegotiationPayment.toPlayerId
                 )}
@@ -583,7 +648,7 @@
                  the second question, where the player has already spent a sword on it - so it is
                  shown only while nothing has been spent yet. -->
             {#if knightSwordsLeft >= gameSession.knightActionSwords}
-                {#if lastNegotiationPayment && lastNegotiationPayment.fromPlayerId === gameSession.gameState.knightPlacingPlayerId}
+                {#if lastNegotiationPayment && negotiationPaidFor(gameSession.gameState.knightPlacingPlayerId)}
                     {@render playerPill(lastNegotiationPayment.fromPlayerId)} paid {@render playerPill(
                         lastNegotiationPayment.toPlayerId
                     )}
@@ -702,7 +767,7 @@
                 Tied last round: {@render bidList(previousTiedRoundBids)}.
             {/if}
         {:else if gameSession.canTakePoliticsCard && !gameSession.selectedPoliticsPile}
-            {#if lastNegotiationPayment && lastNegotiationPayment.fromPlayerId === gameSession.gameState.politicsTakingPlayerId}
+            {#if lastNegotiationPayment && negotiationPaidFor(gameSession.gameState.politicsTakingPlayerId)}
                 {@render playerPill(lastNegotiationPayment.fromPlayerId)} paid {@render playerPill(
                     lastNegotiationPayment.toPlayerId
                 )}
@@ -730,13 +795,13 @@
         {/if}
     </div>
 
-    <!-- Cancelling an alliance used to be offered as a sentence-with-a-button here. It's
-         the beating heart on the shared boundary wall now (see allianceMarkers) - the price
-         and the consequence both show on hover, and the affordance stays put on the board
-         instead of appearing in a status area whose other messages are turn-scoped. -->
+    <!-- Cancelling an alliance is not offered here: the board shows a "Break alliance?" pill
+         near the allied border (see RealBoard's offeredAllianceId), so the affordance stays
+         put beside the thing it acts on instead of appearing in a status area whose other
+         messages are turn-scoped. -->
 
-    {#if displayNegotiation && !negotiationHoldHidesForMe}
-        {@const negotiation = displayNegotiation}
+    {#if gameSession.gameState.negotiation}
+        {@const negotiation = gameSession.gameState.negotiation}
         <!-- items-center on the column, justify-center on each row: the column is only as wide as
              its widest row (the terms), so without the latter the shorter signing row sat flush
              left under it - centred as a block, but not centred on the board the panel sits above.
@@ -838,19 +903,6 @@
                     >
                         Force a duel
                     </button>
-                </div>
-            {:else if negotiation.offer}
-                {@const toPlayerId = negotiation.playerIds.find(
-                    (id) => id !== negotiation.offer!.fromPlayerId
-                )}
-                <!-- The completed hold (see the onMount listener above): the deal is done, so
-                     there is nothing left to sign or decline - just the struck terms, on screen
-                     for a beat before the next thing takes over. -->
-                <div class="pb-4 text-[16px]">
-                    {playerName(gameSession, negotiation.offer.fromPlayerId)} pays {toPlayerId
-                        ? playerName(gameSession, toPlayerId)
-                        : ''}
-                    {negotiation.offer.amount} ducat{negotiation.offer.amount === 1 ? '' : 's'}.
                 </div>
             {/if}
         </div>
@@ -964,3 +1016,5 @@
         </div>
     {/if}
 </div>
+</EasedHeight>
+

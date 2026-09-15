@@ -1,7 +1,9 @@
 <script lang="ts">
-    import { Card, Hr, Button, Modal } from 'flowbite-svelte'
-    import { Game, GameStatus, PlayerStatus, GameResult, ConfigOptionType } from '@tabletop/common'
+    import { Card, Hr, Button, Modal, Spinner, type ButtonProps } from 'flowbite-svelte'
+    import { Game, GameStatus, PlayerStatus, GameResult } from '@tabletop/common'
+    import { gameCardOptions } from '$lib/utils/gameOptions'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
+    import { hasPendingGameInvitation } from '$lib/utils/gameInvitation'
     import { goto } from '$app/navigation'
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
@@ -15,7 +17,8 @@
         onstart,
         onjoin,
         ondelete,
-        expanded = false
+        expanded = false,
+        class: className = ''
     }: {
         game: Game
         ondecline?: (game: Game) => void
@@ -23,6 +26,7 @@
         onstart?: (game: Game) => void
         ondelete?: (game: Game) => void
         expanded?: boolean | 'always'
+        class?: string
     } = $props()
 
     let { libraryService, authorizationService, gameService } = getAppContext()
@@ -30,13 +34,14 @@
     let loading = $derived(libraryService.loading)
 
     let editing = $state(false)
+    let openingGame = $state(false)
     let canToggle = $derived(expanded !== 'always')
     let isExpanded = $derived(expanded ? true : false)
 
     let sessionUser = authorizationService.getSessionUser()
     let isOwnedByMe = $derived(sessionUser?.id === game.ownerId)
     let sortedPlayers = $derived(
-        game.players.sort(
+        game.players.toSorted(
             (a, b) => playerSortValue(a, game.ownerId) - playerSortValue(b, game.ownerId)
         )
     )
@@ -45,11 +50,12 @@
     let isMine = $derived(myPlayer !== undefined)
 
     let canJoin = $derived.by(() => {
+        if (game.tournament) return false
         if (isOwnedByMe) {
             return false
         }
 
-        if (isMine && myPlayer?.status === PlayerStatus.Reserved) {
+        if (hasPendingGameInvitation(game, sessionUser?.id)) {
             return true
         }
 
@@ -61,35 +67,33 @@
         )
     })
 
-    let canDecline = $derived(
-        (game.status === GameStatus.WaitingForPlayers ||
-            game.status === GameStatus.WaitingToStart) &&
-            !isOwnedByMe &&
-            isMine &&
-            myPlayer?.status === PlayerStatus.Reserved
-    )
+    let canDecline = $derived(hasPendingGameInvitation(game, sessionUser?.id))
 
     let canLeave = $derived(
-        (game.status === GameStatus.WaitingForPlayers ||
-            game.status === GameStatus.WaitingToStart) &&
+        !game.tournament &&
+            (game.status === GameStatus.WaitingForPlayers ||
+                game.status === GameStatus.WaitingToStart) &&
             !isOwnedByMe &&
             isMine &&
             myPlayer?.status === PlayerStatus.Joined
     )
 
     let canEdit = $derived(
-        !loading &&
+        !game.tournament &&
+            !loading &&
             isOwnedByMe &&
             !game.parentId &&
             (game.status === GameStatus.WaitingForPlayers ||
                 game.status === GameStatus.WaitingToStart)
     )
 
-    let canStart = $derived(isOwnedByMe && game.status === GameStatus.WaitingToStart)
+    let canStart = $derived(
+        !game.tournament && isOwnedByMe && game.status === GameStatus.WaitingToStart
+    )
     let canPlay = $derived(isMine && game.status === GameStatus.Started)
     let canWatch = $derived(!isMine && game.status === GameStatus.Started)
     let canRevisit = $derived(game.status === GameStatus.Finished)
-    let canDelete = $derived(isOwnedByMe || authorizationService.isAdmin)
+    let canDelete = $derived(!game.tournament && (isOwnedByMe || authorizationService.isAdmin))
 
     let confirmDelete = $state(false)
 
@@ -171,7 +175,13 @@
 
     async function playGame(event: Event) {
         event.stopPropagation()
-        await goto(`/game/${game.id}`)
+        if (openingGame) return
+        openingGame = true
+        try {
+            await goto(`/game/${game.id}`)
+        } finally {
+            openingGame = false
+        }
     }
 
     function isActive(playerId: string) {
@@ -222,52 +232,40 @@
     }
 
     let title = $derived.by(() => titlesById[game.typeId])
-    let displayableConfigs: Record<string, string> = $derived.by(() => {
-        if (!title || !game.config) {
-            return {}
-        }
-        if (
-            title.info.configurator?.options.length === 0 ||
-            Object.keys(game.config).length === 0
-        ) {
-            return {}
-        }
-        const configs: Record<string, string> = {}
-        if (game.config) {
-            for (const [key, value] of Object.entries(game.config)) {
-                const option = title.info.configurator?.options.find((opt) => opt.id === key)
-                if (!option) {
-                    continue
-                }
-                if (value === option.default && !option.alwaysShow) {
-                    continue
-                }
-
-                let displayValue = value
-                if (option.type === ConfigOptionType.Boolean) {
-                    displayValue = value ? 'Yes' : 'No'
-                } else if (option.type === ConfigOptionType.List) {
-                    const matchedOption = option.options.find((opt) => opt.value === value)
-                    displayValue = matchedOption ? matchedOption.name : value
-                }
-
-                configs[option.name] = String(displayValue)
-            }
-        }
-        return configs
-    })
+    let displayableConfigs = $derived(
+        gameCardOptions(game.config ?? {}, title?.info.configurator?.options ?? [])
+    )
 </script>
+
+{#snippet gameEntryButton(label: string, color: ButtonProps['color'], buttonClass: string)}
+    <Button
+        size="xs"
+        {color}
+        class={buttonClass}
+        disabled={openingGame}
+        aria-busy={openingGame}
+        aria-label={label}
+        onclick={playGame}
+    >
+        <span class="relative inline-flex items-center justify-center">
+            <span class:invisible={openingGame}>{label}</span>
+            {#if openingGame}
+                <Spinner size="4" class="absolute" aria-label="Loading game" />
+            {/if}
+        </span>
+    </Button>
+{/snippet}
 
 <Card
     onclick={toggleExpand}
-    class="min-w-[310px] mx-2 mb-1 bg-[#0d56ad] dark:border-gray-800 border-4 rounded-md overflow-hidden shadow-none"
+    class={`min-w-[310px] mx-2 mb-1 bg-[#0d56ad] dark:border-gray-800 border-4 rounded-md overflow-hidden shadow-none ${className}`}
     size="sm"
 >
     <div class="flex flex-col">
         <div class="flex flex-row">
             <div class="shrink-0">
                 <img
-                    class="h-[80px]"
+                    class="h-[80px] w-[80px] object-contain"
                     alt="cover thumbnail"
                     src={title?.info.thumbnailUrl ?? ''}
                 />
@@ -279,6 +277,11 @@
                             <h1 class="text-lg font-light text-left dark:text-gray-200 leading-5">
                                 {game.name}
                             </h1>
+                            {#if game.tournament}<a
+                                    class="mt-1 text-xs text-gray-500 underline decoration-gray-400/50 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                    href={`/tournaments/${game.tournament.tournamentId}`}
+                                    onclick={(event) => event.stopPropagation()}>Tournament</a
+                                >{/if}
                         </div>
                         {#if !isExpanded}
                             <div class="ms-2 text-nowrap">
@@ -304,24 +307,17 @@
                                         onclick={editGame}>Edit</Button
                                     >
                                 {:else if canPlay || canWatch}
-                                    <Button
-                                        size="xs"
-                                        color={isMyTurn ? 'yellow' : 'primary'}
-                                        class="h-[20px]"
-                                        onclick={playGame}
-                                        >{isMyTurn
-                                            ? 'Your Turn'
-                                            : canPlay
-                                              ? 'Enter'
-                                              : 'Watch'}</Button
-                                    >
+                                    {@render gameEntryButton(
+                                        isMyTurn ? 'Your Turn' : canPlay ? 'Enter' : 'Watch',
+                                        isMyTurn ? 'yellow' : 'primary',
+                                        'h-[20px]'
+                                    )}
                                 {:else if canRevisit}
-                                    <Button
-                                        size="xs"
-                                        color="light"
-                                        class="h-[20px] dark:text-gray-200"
-                                        onclick={playGame}>Revisit</Button
-                                    >
+                                    {@render gameEntryButton(
+                                        'Revisit',
+                                        'light',
+                                        'h-[20px] dark:text-gray-200'
+                                    )}
                                 {/if}
                             </div>
                             {#if waitingToStart}
@@ -426,13 +422,13 @@
                 </div>
             </div>
         </div>
-        {#if Object.keys(displayableConfigs).length > 0}
+        {#if displayableConfigs.length > 0}
             <div class="p-2 flex flex-col text-xs text-gray-400">
                 <Hr class="mt-1 mb-1" />
-                {#each Object.entries(displayableConfigs) as [key, value]}
+                {#each displayableConfigs as option}
                     <div class="flex flex-row justify-between">
-                        <div>{key}</div>
-                        <div>{value}</div>
+                        <div>{option.name}</div>
+                        <div>{option.value}</div>
                     </div>
                 {/each}
                 <Hr class="mt-1 mb-1" />
@@ -515,21 +511,20 @@
                                 >
                             {/if}
                             {#if isMyTurn}
-                                <Button size="xs" color="yellow" class="mx-2" onclick={playGame}
-                                    >Take Your Turn</Button
-                                >
+                                {@render gameEntryButton('Take Your Turn', 'yellow', 'mx-2')}
                             {:else if canPlay || canWatch}
-                                <Button size="xs" color="primary" class="mx-2" onclick={playGame}
-                                    >{canPlay ? 'Play' : 'Watch'}&nbsp;Game</Button
-                                >
+                                {@render gameEntryButton(
+                                    canPlay ? 'Play Game' : 'Watch Game',
+                                    'primary',
+                                    'mx-2'
+                                )}
                             {/if}
                             {#if canRevisit}
-                                <Button
-                                    size="xs"
-                                    color="light"
-                                    class="mx-2 dark:text-gray-200"
-                                    onclick={playGame}>Revisit</Button
-                                >
+                                {@render gameEntryButton(
+                                    'Revisit',
+                                    'light',
+                                    'mx-2 dark:text-gray-200'
+                                )}
                             {/if}
                             {#if canDelete}
                                 <Button size="xs" color="red" class="mx-2" onclick={deleteGame}

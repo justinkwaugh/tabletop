@@ -20,12 +20,13 @@
     import PoliticsPileReveal from '$lib/components/PoliticsPileReveal.svelte'
     import SummaryStrip from '$lib/components/SummaryStrip.svelte'
     import StatusMessages from '$lib/components/StatusMessages.svelte'
+    import EasedHeight from '$lib/components/EasedHeight.svelte'
+    import { CARD_ROW_HEIGHT } from '$lib/model/politicsCardLayout.js'
     import parchmentTexture from '$lib/images/board/parchment-texture.jpg'
 
     import BlankenburgFont from '$lib/fonts/Blankenburg.woff2'
     import IMFellEnglishFont from '$lib/fonts/IMFellEnglish-Regular.woff2'
     import IMFellEnglishItalicFont from '$lib/fonts/IMFellEnglish-Italic.woff2'
-    import UnifrakturMaguntiaFont from '$lib/fonts/UnifrakturMaguntia-Book.woff2'
 
     import type { LowenherzGameSession } from '$lib/model/session.svelte'
     import type { HydratedLowenherzGameState, LowenherzProjectedState } from '@tabletop/lowenherz'
@@ -59,11 +60,21 @@
     format="woff2"
     fontStyle="italic"
 />
-<CustomFont fontFamily="UnifrakturMaguntia" url={UnifrakturMaguntiaFont} format="woff2" />
 
 <!-- Full Height and Width with 8px padding-->
 <div style="background-image: url({parchmentTexture}); background-repeat: repeat;">
     <DefaultTableLayout>
+        <!-- On phones the layout draws the history controls itself, in the shared default
+             colours (white icons) unless given this snippet - which on parchment made them all
+             but invisible. Same colours as the desktop copy in sideContent below. -->
+        {#snippet mobileControlsContent()}
+            <HistoryControls
+                borderClass="border-b-2 border-black/20"
+                bgClass="bg-transparent"
+                enabledColor="text-black"
+                disabledColor="text-black/30"
+            />
+        {/snippet}
         {#snippet sideContent()}
             <div class="max-sm:hidden">
                 <HistoryControls
@@ -118,9 +129,14 @@
                      has something to show (see their own guards - PoliticsDeckChooser while
                      choosing, PoliticsPileReveal once a pile's picked), and sitting here, above
                      the board's own flex:1 area below, is what pushes the board down to make
-                     room whenever either one does. -->
-                <PoliticsDeckChooser />
-                <PoliticsPileReveal />
+                     room. One eased slot for both, holding a card row for the whole of my
+                     politics turn: the board slides down once when the decks appear, stays put
+                     through the chooser/reveal handoff, and slides back once the taken card is
+                     away. -->
+                <EasedHeight minHeight={lowenherzSession.isMyPoliticsCardTurn ? CARD_ROW_HEIGHT : 0}>
+                    <PoliticsDeckChooser />
+                    <PoliticsPileReveal />
+                </EasedHeight>
             </div>
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->
