@@ -57,6 +57,46 @@ test.beforeEach(async ({ page }) => {
     })
 })
 
+for (const expanded of [false, true]) {
+    test(`game entry shows a spinner while navigation waits, expanded ${expanded}`, async ({
+        page
+    }) => {
+        const requested = Promise.withResolvers<void>()
+        const released = Promise.withResolvers<void>()
+        await page.route('**/api/v1/game/get/dashboard-0', async (route) => {
+            requested.resolve()
+            await released.promise
+            await route.fulfill({ status: 500, json: { message: 'Unavailable' } })
+        })
+        await page.goto('/dashboard')
+        const card = page.locator('.dashboard-game-list > li').first()
+        if (expanded) {
+            await card.getByRole('heading', { name: 'Table 00', exact: true }).click()
+        }
+        const button = card.getByRole('button', {
+            name: expanded ? 'Take Your Turn' : 'Your Turn',
+            exact: true
+        })
+        const before = await button.boundingBox()
+        await button.click()
+        await requested.promise
+        try {
+            await expect(button).toBeDisabled()
+            await expect(button).toHaveAttribute('aria-busy', 'true')
+            await expect(button.getByRole('status')).toBeVisible()
+            await expect(button.locator('span.invisible')).toBeHidden()
+            const after = await button.boundingBox()
+            expect(after?.width).toBe(before?.width)
+            expect(after?.height).toBe(before?.height)
+        } finally {
+            released.resolve()
+        }
+        await expect(page.getByText('Unable to load the game', { exact: true })).toBeVisible()
+        await expect(page).toHaveURL(/\/dashboard$/)
+        await expect(card.getByRole('button', { name: 'Your Turn', exact: true })).toBeEnabled()
+    })
+}
+
 for (const entry of ['/', '/login']) {
     for (const hasActive of [false, true]) {
         test(`returning user entering ${entry} with active games ${hasActive} reaches the right page`, async ({

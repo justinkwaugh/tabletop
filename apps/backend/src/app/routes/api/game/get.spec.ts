@@ -3,6 +3,7 @@ import { Role, type User, UserStatus, Visibility } from '@tabletop/common'
 import Fastify from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import getGameRoute from './get.js'
+import requestTimings from '../../../plugins/requestTimings.js'
 
 const user: User = {
     id: 'user-1',
@@ -19,7 +20,17 @@ async function createServer(
     perspective: Visibility.Perspective | undefined,
     requestUser: User = user
 ) {
-    const server = Fastify()
+    const logs: Record<string, unknown>[] = []
+    const server = Fastify({
+        logger: {
+            stream: {
+                write(line: string) {
+                    logs.push(JSON.parse(line))
+                }
+            }
+        }
+    })
+    await server.register(requestTimings, { enabled: true })
     await server.register(fastifyAuth)
 
     Reflect.set(server, 'verifyActiveUser', async (request: { user?: User }) => {
@@ -46,7 +57,7 @@ async function createServer(
     })
 
     await server.register(getGameRoute)
-    return { server, canAccessHostView, getGameEtagForUser, getGameForUser }
+    return { server, canAccessHostView, getGameEtagForUser, getGameForUser, logs }
 }
 
 describe('GET /get/:gameId', () => {
@@ -56,6 +67,36 @@ describe('GET /get/:gameId', () => {
         await Promise.all([...servers].map((server) => server.close()))
         servers.clear()
     })
+
+    it.each([
+        {
+            etag: 'W/"older-revision"',
+            statusCode: 200,
+            spans: ['game.load.etag', 'game.load.representation']
+        },
+        { etag: 'W/"revision-1"', statusCode: 304, spans: ['game.load.etag'] }
+    ])(
+        'reports the work performed for a $statusCode game load',
+        async ({ etag, statusCode, spans }) => {
+            const { server, logs } = await createServer(undefined)
+            servers.add(server)
+            const response = await server.inject({
+                method: 'GET',
+                url: '/get/game-1',
+                headers: { 'if-none-match': etag }
+            })
+            expect(response.statusCode).toBe(statusCode)
+            const reports = logs.filter((entry) => entry.event === 'request_timing')
+            expect(reports).toHaveLength(1)
+            expect(reports[0]).toMatchObject({
+                route: '/get/:gameId',
+                statusCode,
+                spans: spans.map((name) => expect.objectContaining({ name, status: 'ok' }))
+            })
+            expect(JSON.stringify(reports)).not.toContain('user-1')
+            expect(JSON.stringify(reports)).not.toContain('game-1')
+        }
+    )
 
     it('returns and privately revalidates a projected representation when given the canonical ETag', async () => {
         const { server, getGameForUser } = await createServer(playerPerspective)

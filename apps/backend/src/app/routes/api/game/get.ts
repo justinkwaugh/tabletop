@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
+import { measure } from '@tabletop/backend-services/diagnostics'
 
 type ParamsType = Static<typeof ParamsType>
 const ParamsType = Type.Object({
@@ -15,6 +16,7 @@ export default async function (fastify: FastifyInstance) {
     fastify.get<{ Params: ParamsType; Querystring: QueryType }>(
         '/get/:gameId',
         {
+            config: { requestTiming: true },
             schema: { querystring: QueryType },
             onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyRoleUser], {
                 relation: 'and'
@@ -32,11 +34,10 @@ export default async function (fastify: FastifyInstance) {
                 return
             }
 
-            const gameEtag = await fastify.gameService.getGameEtagForUser({
-                gameId,
-                hostView,
-                user: request.user
-            })
+            const user = request.user
+            const gameEtag = await measure('game.load.etag', () =>
+                fastify.gameService.getGameEtagForUser({ gameId, hostView, user })
+            )
 
             if (gameEtag === undefined) {
                 await reply.code(404).send()
@@ -51,11 +52,9 @@ export default async function (fastify: FastifyInstance) {
                 return
             }
 
-            const representation = await fastify.gameService.getGameForUser({
-                gameId,
-                hostView,
-                user: request.user
-            })
+            const representation = await measure('game.load.representation', () =>
+                fastify.gameService.getGameForUser({ gameId, hostView, user })
+            )
 
             if (representation === undefined) {
                 await reply.code(404).send()

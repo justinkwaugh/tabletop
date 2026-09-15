@@ -407,14 +407,16 @@ export class GameService {
             game.state.actionChecksum = checksum
         }
 
-        return createGameRepresentation({
-            game,
-            actions,
-            hostView,
-            runtime: definition.runtime,
-            visibility: definition.runtime.visibility,
-            user
-        })
+        return measureSync('projection.response.game', () =>
+            createGameRepresentation({
+                game,
+                actions,
+                hostView,
+                runtime: definition.runtime,
+                visibility: definition.runtime.visibility,
+                user
+            })
+        )
     }
 
     async userHasCachedActiveGames(user: User): Promise<boolean> {
