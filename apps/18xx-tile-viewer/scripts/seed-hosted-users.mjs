@@ -24,7 +24,7 @@ try {
             email: `${id}@example.invalid`,
             emailVerified: true,
             status: 'active',
-            roles: ['user', 'betatester'],
+            roles: ['user', 'betatester', 'alphatester'],
             externalIds: [],
             passwordHash,
             createdAt: new Date(),

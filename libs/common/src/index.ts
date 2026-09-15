@@ -68,6 +68,7 @@ export * from './site/chat/gameChat.js'
 export * from './site/chat/gameChatMessage.js'
 export * from './site/chat/bookmark.js'
 export * from './site/user.js'
+export * from './site/titleVisibility.js'
 
 export * from './util/assertions.js'
 export * from './util/freeze.js'
@@ -92,3 +93,5 @@ export * from './util/gameSeeds.js'
 export * from './game/components/auctions/bidCommitment.js'
 
 export * from './preferences/preferences.js'
+
+export * from './game/definition/gameMetadata.js'

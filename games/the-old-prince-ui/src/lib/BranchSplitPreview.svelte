@@ -1,10 +1,9 @@
 <script lang="ts">
-    import { CompanyToken } from '@tabletop/18xx-ui'
+    import { CompanyToken, marketColors } from '@tabletop/18xx-ui'
     import BranchSplitAllocation from './BranchSplitAllocation.svelte'
     import { getCompany } from '@tabletop/18xx'
-    import { TheOldPrinceMap } from '@tabletop/the-old-prince'
     import type { TheOldPrinceSession } from './session.svelte.js'
-    let { session, showUndo = true }: { showUndo?: boolean; session: TheOldPrinceSession } =
+    let { session, showUndo = true, onFocusLocation }: { showUndo?: boolean; session: TheOldPrinceSession; onFocusLocation?: (locationId: string) => void } =
         $props()
     const state = $derived(session.financialState)
     const selection = $derived(session.splitSelection)
@@ -47,7 +46,7 @@
                 {/each}
             {:else if !selection.marketSpaceId}
                 {#each session.splitModel.prices() as price}
-                    <button class="price-choice" aria-label={`Start branch at ${price.price}`} data-split-price={price.id}
+                    <button class="price-choice" style:background={marketColors[price.color] ?? price.color} aria-label={`Start branch at ${price.price}`} data-split-price={price.id}
                         disabled={!session.canPreviewSplit} onclick={() => session.selectSplitPrice(price.id)}>
                         {price.price}
                     </button>
@@ -60,11 +59,18 @@
         {#if session.splitPreview?.reason}<p role="status">{session.splitPreview.reason}</p>{/if}
         {#if preview}
             <table aria-label="Split share ownership">
-                <thead
-                    ><tr
-                        ><th>Owner</th><th>Parent<br />before</th><th>To parent<br />treasury</th><th>Parent<br />after</th><th>Branch<br />after</th></tr
-                    ></thead
-                >
+                <thead>
+                    <tr class="column-groups">
+                        <th rowspan="2" scope="col" aria-label="Owner"></th>
+                        <th scope="colgroup">Before</th>
+                        <th colspan="2" scope="colgroup" class="after-divider">After</th>
+                    </tr>
+                    <tr class="company-columns">
+                        <th scope="col" aria-label="Parent before"><span class="column-token"><CompanyToken appearance={session.mapView.stations[preview.request.parentId]} size={22} /></span></th>
+                        <th scope="col" aria-label="Parent after" class="after-divider"><span class="column-token"><CompanyToken appearance={session.mapView.stations[preview.request.parentId]} size={22} /></span></th>
+                        <th scope="col" aria-label="Branch after"><span class="column-token"><CompanyToken appearance={session.mapView.stations[preview.request.branchId]} size={22} /></span></th>
+                    </tr>
+                </thead>
                 <tbody
                     >{#each preview.ownership as row}<tr>
                             <th
@@ -72,69 +78,13 @@
                                     ? 'Reserved exchanges'
                                     : session.ownerName(row.owner)}</th
                             >
-                            <td>{row.beforeShares * 10}%</td><td>{row.exchangedShares * 10}%</td><td
-                                >{row.parentShares * 10}%</td
-                            ><td>{row.childShares * 10}%</td>
+                            <td>{row.beforeShares}</td><td class="after-divider"
+                                >{row.parentShares}</td
+                            ><td>{row.childShares}</td>
                         </tr>{/each}</tbody
                 >
             </table>
-            <p>
-                {session.getPlayerName(preview.request.playerId)} retains the parent’s president certificate
-                and receives the branch’s president certificate.
-            </p>
-            <div class="assets">
-                <article aria-label="Branch funding">
-                    <h3>Branch funding</h3>
-                    <p>
-                        {preview.childBankShares} shares in the Bank × ${preview.price} =
-                        <strong>${preview.childFunding}</strong> from the Bank.
-                    </p>
-                    <p>
-                        {preview.childFloated
-                            ? 'Floated.'
-                            : `${preview.sharesUntilFlotation} more shares must leave the Bank before flotation.`}
-                    </p>
-                    <p>This grant is paid on splitting; flotation gives no second grant.</p>
-                </article>
-                <article aria-label="Assets available to divide">
-                    <h3>Assets available to divide</h3>
-                    <p>Parent cash: ${preview.parentCash}</p>
-                    <p>
-                        Trains: {preview.parentTrains
-                            .map((train) => train.definitionId)
-                            .join(', ') || 'None'}
-                    </p>
-                    <p>
-                        Hunslet Steam Engine: {preview.hunsletCertificateId
-                            ? 'Available'
-                            : 'Not owned by the parent'}
-                    </p>
-                    <ul>
-                        {#each preview.stations as { station, protectedHome }}<li>
-                                {TheOldPrinceMap.location(station.position.locationId).name ??
-                                    station.position.locationId}: {protectedHome
-                                    ? 'Protected parent home'
-                                    : 'May become a branch station'}
-                            </li>{/each}
-                    </ul>
-                    <p>
-                        The branch must receive at least one station. Cash, trains, and Hunslet can
-                        be divided when the split is committed.
-                    </p>
-                </article>
-            </div>
-            {#if !selection.allocation}
-                <button
-                    class="allocate"
-                    onclick={() => session.beginSplitAllocation()}
-                    disabled={!session.canPreviewSplit}>Allocate assets</button
-                >
-            {:else}
-                <BranchSplitAllocation {session} />
-            {/if}
-            <p class="preview-note">
-                No shares, cash, or stations move until you confirm the split.
-            </p>
+            <BranchSplitAllocation {session} {onFocusLocation} />
         {/if}
     </section>
 {/if}
@@ -150,7 +100,6 @@
         font-size: 13px;
         font-weight: 400;
     }
-    h3 { font-size: 15px; margin: 0 0 10px; }
     .controls, .selected-companies {
         display: flex;
         flex-wrap: wrap;
@@ -181,7 +130,8 @@
         font-weight: 600;
         max-width: 240px;
     }
-    .price-choice { min-width: 60px; font-size: 15px; font-weight: 600; }
+    .price-choice { min-width: 60px; font-size: 20px; font-weight: 600; border-color: #66574740; color: #463e35; }
+    .price-choice:hover:not(:disabled) { filter: brightness(0.96); border-color: #66574780; }
     .local-undo { display: block; margin: 10px auto 0; }
     :disabled {
         opacity: 0.5;
@@ -203,23 +153,9 @@
     th:first-child {
         text-align: left;
     }
-    .assets {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 24px;
-    }
-    article {
-        padding: 16px;
-        background: #f0f3ed;
-        border-radius: 6px;
-    }
-    p,
-    li {
+    p {
         font-size: 14px;
         line-height: 1.5;
-    }
-    .allocate {
-        margin-top: 16px;
     }
     .selected-price {
         padding: 3px 8px;
@@ -231,8 +167,8 @@
     .selected-price > span { color: #786550; font-size: 10px; }
     thead th { font-weight: 500; font-size: 11px; line-height: 1.25; }
     tbody th { font-weight: 500; }
-    .preview-note {
-        margin-bottom: 0;
-        color: #52645b;
-    }
+    tbody td { text-align: center; }
+    .column-groups th:not(:first-child) { text-align: center; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; border-bottom: none; padding-bottom: 0; }
+    .column-token { display: flex; justify-content: center; }
+    .after-divider { border-left: 1px solid #bba995; }
 </style>

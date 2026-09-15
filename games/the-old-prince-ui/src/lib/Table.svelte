@@ -93,9 +93,10 @@
             {/if}
         {:else}
             {#if session.hasSplitDraft}
-                <BranchSplitPreview {session} showUndo={false} />
-            {/if}
+                <BranchSplitPreview {session} showUndo={false} onFocusLocation={focusLocation} />
+            {:else}
                 <OperatingActions {poolName} {privateOperationDescription} onFocusRoute={focusRoute} {session} {createRouteWorker} trainColors={TheOldPrinceTrainColors} />
+            {/if}
         {/if}
     {/snippet}
     {#snippet gameInformation()}

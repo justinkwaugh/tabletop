@@ -214,14 +214,6 @@
       "uiVersion": "0.0.1",
       "priorLogicVersions": [],
       "priorUiVersions": []
-    },
-    {
-      "gameId": "shikoku-1889",
-      "packageId": "shikoku-1889",
-      "logicVersion": "0.0.1",
-      "uiVersion": "0.0.1",
-      "priorLogicVersions": [],
-      "priorUiVersions": []
     }
   ]
 }

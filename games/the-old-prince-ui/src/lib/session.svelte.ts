@@ -82,22 +82,34 @@ export class TheOldPrinceSession extends BaseSession {
             : undefined
     })
     latestSplit = $derived(this.actions.filter(isSplitCompany).at(-1))
-    beginSplitAllocation() {
-        assert(this.canPreviewSplit && this.splitPreview?.details, 'Choose a split first')
-        this.splitDraft = chooseSplitAllocation(this.splitDraft, {
-            stationIds: [],
-            homeStationId: '',
-            trainIds: [],
-            cash: 0,
-            hunslet: false
-        })
-    }
     setSplitAllocation(allocation: BranchSplitAllocation) {
         assert(
             this.canPreviewSplit && this.splitSelection.allocation,
-            'Begin allocating assets first'
+            'Choose a split price first'
         )
         this.splitDraft = chooseSplitAllocation(this.splitDraft, allocation)
+    }
+    setSplitCash(cash: number) {
+        const allocation = this.splitSelection.allocation?.value
+        const preview = this.splitPreview?.details
+        assert(allocation && preview && Number.isFinite(cash), 'Choose a valid cash allocation')
+        this.setSplitAllocation({ ...allocation, cash: Math.max(0, Math.min(preview.parentCash, Math.round(cash))) })
+    }
+    transferSplitStation(stationId: string) {
+        const allocation = this.splitSelection.allocation?.value
+        const station = this.splitPreview?.details?.stations.find((entry) => entry.station.id === stationId)
+        assert(allocation && station && !station.protectedHome, 'Choose a transferable station')
+        const stationIds = allocation.stationIds.includes(stationId)
+            ? allocation.stationIds.filter((id) => id !== stationId)
+            : [...allocation.stationIds, stationId]
+        this.setSplitAllocation({ ...allocation, stationIds,
+            homeStationId: stationIds.includes(allocation.homeStationId) ? allocation.homeStationId : stationIds[0] ?? '' })
+    }
+    transferSplitTrain(trainId: string) {
+        const allocation = this.splitSelection.allocation?.value
+        assert(allocation, 'Choose a split price first')
+        this.setSplitAllocation({ ...allocation, trainIds: allocation.trainIds.includes(trainId)
+            ? allocation.trainIds.filter((id) => id !== trainId) : [...allocation.trainIds, trainId] })
     }
     async confirmSplit() {
         const preview = this.splitPreview?.details

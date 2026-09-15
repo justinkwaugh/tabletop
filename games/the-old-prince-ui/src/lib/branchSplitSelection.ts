@@ -43,10 +43,11 @@ export function chooseSplitPrice(
     selection: BranchSplitSelection,
     marketSpaceId: string
 ): BranchSplitSelection {
-    return setStagedSelectionValue(selection, Stages, 'marketSpaceId', marketSpaceId, 'manual')
+    return initializeSplitAllocation(setStagedSelectionValue(selection, Stages, 'marketSpaceId', marketSpaceId, 'manual'))
 }
 export function backSplitSelection(selection: BranchSplitSelection): BranchSplitSelection {
-    return popHighestManualStagedSelection<SplitStages>(selection, Stages).nextState
+    const next = popHighestManualStagedSelection<SplitStages>(selection, Stages).nextState
+    return next.marketSpaceId && !next.allocation ? initializeSplitAllocation(next) : next
 }
 export function hasSplitSelection(selection: BranchSplitSelection): boolean {
     return CompleteStages && hasManualStagedSelection(selection, Stages)
@@ -70,4 +71,10 @@ export function chooseSplitAllocation(
     allocation: BranchSplitAllocation
 ): BranchSplitSelection {
     return setStagedSelectionValue(selection, Stages, 'allocation', allocation, 'manual')
+}
+
+function initializeSplitAllocation(selection: BranchSplitSelection): BranchSplitSelection {
+    return setStagedSelectionValue(selection, Stages, 'allocation', {
+        stationIds: [], homeStationId: '', trainIds: [], cash: 0, hunslet: false
+    }, 'auto')
 }

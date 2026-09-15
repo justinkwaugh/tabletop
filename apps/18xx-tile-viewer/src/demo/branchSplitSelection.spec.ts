@@ -55,7 +55,8 @@ it('clears allocations when earlier choices change and returns to the financial 
     }
     const draft = chooseSplitAllocation(selected(), allocation)
     expect(backSplitSelection(draft)).toEqual(selected())
-    expect(chooseSplitPrice(draft, '5:1').allocation).toBeUndefined()
+    expect(chooseSplitPrice(draft, '5:1').allocation).toEqual(selected().allocation)
+    expect(selected().allocation?.source).toBe('auto')
     expect(chooseSplitBranch(draft, 'branch:CB').allocation).toBeUndefined()
     expect(chooseSplitParent(draft, 'ML').allocation).toBeUndefined()
 })

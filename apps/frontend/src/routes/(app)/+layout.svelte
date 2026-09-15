@@ -22,7 +22,7 @@
     import { goto } from '$app/navigation'
     import { onMount } from 'svelte'
     import { fromStore } from 'svelte/store'
-    import { UserStatus } from '@tabletop/common'
+    import { UserStatus, GameVisibility, getTitleVisibility } from '@tabletop/common'
     import {
         VersionChange,
         GameEditForm,
@@ -96,6 +96,12 @@
 
         return titlesById[gameService.currentGameSession.primaryGame.typeId]
     })
+
+    let currentVisibility = $derived(
+        currentDefinition
+            ? getTitleVisibility(currentDefinition.info.metadata)
+            : GameVisibility.Public
+    )
 
     async function onLogout() {
         await api.logout()
@@ -236,8 +242,10 @@
             class="text-nowrap text-center mt-2 sm:mt-0 max-w-[320px] dark:text-gray-200 font-medium tight overflow-clip text-ellipsis"
             style=""
             tag="h4"
-            >{currentDefinition?.info.metadata.beta ? 'BETA: ' : ''}{gameService.currentGameSession
-                .primaryGame.name}</Heading
+            >{currentVisibility === GameVisibility.Public
+                ? ''
+                : `${currentVisibility.toUpperCase()}: `}{gameService.currentGameSession.primaryGame
+                .name}</Heading
         >
     {/if}
 {/snippet}
@@ -254,7 +262,9 @@
 <div {@attach attachGlobalCssVarFromRect('--app-navbar-height')}>
     <Navbar
         fluid={true}
-        class="{currentDefinition?.info.metadata.beta ? 'dark:bg-red-900' : 'dark:bg-gray-800'} "
+        class="{currentVisibility !== GameVisibility.Public
+            ? 'dark:bg-red-900'
+            : 'dark:bg-gray-800'} "
     >
         <div class="flex flex-col w-full">
             <div class="flex flex-row justify-between items-center w-full">

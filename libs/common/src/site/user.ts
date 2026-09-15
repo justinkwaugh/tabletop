@@ -6,7 +6,8 @@ export enum Role {
     User = 'user',
     Developer = 'developer',
     Admin = 'admin',
-    BetaTester = 'betatester'
+    BetaTester = 'betatester',
+    AlphaTester = 'alphatester'
 }
 
 export enum UserStatus {

@@ -12,6 +12,8 @@
     } from 'flowbite-svelte'
     import {
         normalizeMasterSeed,
+        GameVisibility,
+        getTitleVisibility,
         type GameCreationOptions,
         assertExists,
         BooleanConfigOption,
@@ -477,7 +479,7 @@
             {/if}
         {/each}
     </div>
-    {#if !gameTitle.info.metadata.beta && mode === EditMode.Create}
+    {#if getTitleVisibility(gameTitle.info.metadata) === GameVisibility.Public && mode === EditMode.Create}
         <Toggle bind:checked={isPublic}>Public</Toggle>
     {/if}
     {#if gameTitle.info.configurator && gameTitle.info.configurator.options.length > 0}

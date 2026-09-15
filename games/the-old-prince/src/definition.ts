@@ -20,7 +20,7 @@ import { TheOldPrinceOperatingRules } from './roundRules.js'
 import { TheOldPrinceCompanyRules } from './companyRules.js'
 import { createTheOldPrinceStockMarket } from './stockMarket.js'
 import { TheOldPrinceStockRules } from './stockRules.js'
-import { type GameDefinition } from '@tabletop/common'
+import { GameVisibility, type GameDefinition } from '@tabletop/common'
 import {
     createFinanceExampleRuntime,
     FinanceExampleConfigurator,
@@ -68,7 +68,8 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
             maxPlayers: 4,
             defaultPlayerCount: 3,
             version: '0.0.1',
-            beta: true
+            beta: true,
+            visibility: GameVisibility.Alpha
         }
     },
     runtime: {

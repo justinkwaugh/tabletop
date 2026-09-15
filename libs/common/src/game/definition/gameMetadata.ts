@@ -1,3 +1,9 @@
+export enum GameVisibility {
+    Public = 'public',
+    Beta = 'beta',
+    Alpha = 'alpha'
+}
+
 export interface GameMetadata {
     name: string
     designer: string
@@ -8,4 +14,5 @@ export interface GameMetadata {
     defaultPlayerCount: number
     version: string
     beta: boolean
+    visibility?: GameVisibility
 }
