@@ -1,4 +1,5 @@
 <script lang="ts">
+    import HistoryJump from './HistoryJump.svelte'
     import { tick, type Snippet } from 'svelte'
     import { assertExists } from '@tabletop/common'
     import type { HistoryRound } from './historyRounds.js'
@@ -7,8 +8,12 @@
         children,
         phaseColors,
         newestFirst = false,
+        onJump,
+        jumpDisabled = false,
         onOrderChange
     }: {
+        onJump: (index: number) => void
+        jumpDisabled?: boolean
         rounds: HistoryRound[]
         children: Snippet<[HistoryRound]>
         phaseColors: Readonly<Record<string, string>>
@@ -95,6 +100,7 @@
                     {#snippet divider()}
                     <h3 class="round-divider" style:background={phaseBackground(round)}>
                         <span>{round.label.replace(/^OR /, 'Operating round ').replace(/^SR /, 'Stock round ')}</span>
+                        {#if round.startActionIndex !== undefined}<HistoryJump label={`Jump to ${round.label} in history`} disabled={jumpDisabled} onclick={() => { if (round.startActionIndex !== undefined) onJump(round.startActionIndex) }} />{/if}
                         <span class="round-phase">Phase {round.phases.join(' → ')}</span>
                     </h3>
                     {/snippet}
@@ -221,6 +227,7 @@
         bottom: 0;
     }
     .round-phase {
+        margin-left: auto;
         font-size: 11px;
         font-weight: 600;
         text-align: right;

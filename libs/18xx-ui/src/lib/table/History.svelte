@@ -29,6 +29,10 @@
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
         describeAction?: (action: GameAction) => HistoryDescription | undefined
     } = $props()
+    const jumpDisabled = $derived(session.busy || session.updatingVisibleState || session.history.isDisabled())
+    function jumpToHistory(index: number) {
+        if (!jumpDisabled) void session.history.goToActionIndex(index, { exact: true })
+    }
     const newestFirst = $derived(session.preferences.values.historyOrder === 'newestFirst')
     const context = $derived(session.history.visibleContext)
     const state = $derived.by(() => {
@@ -61,7 +65,7 @@
     }
 </script>
 
-<RoundHistory {rounds} {phaseColors} {newestFirst}
+<RoundHistory onJump={jumpToHistory} {jumpDisabled} {rounds} {phaseColors} {newestFirst}
     onOrderChange={(first) => session.preferences.set({ historyOrder: first ? 'newestFirst' : 'newestLast' }, 'family')}>
 
     {#snippet children(round)}
@@ -80,6 +84,8 @@
                     <li>
                         <HistoryGroup
                             group={entry}
+                            onJump={jumpToHistory}
+                            {jumpDisabled}
                             {onPreviewMap}
                             previewActionId={session.historicalMap?.actionId}
                             appearance={entry.companyId

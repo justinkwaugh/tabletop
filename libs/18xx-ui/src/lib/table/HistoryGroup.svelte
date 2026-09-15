@@ -1,5 +1,6 @@
 <script lang="ts">
     import './historyCard.css'
+    import HistoryJump from './HistoryJump.svelte'
     import { historyStockSales } from './historyStockSales.js'
     import { assertExists, type GameAction } from '@tabletop/common'
     import { isAdvancePhase, isStartOperatingRound, isSellFundingShares, sameOwner, isDistributeEarnings } from '@tabletop/18xx'
@@ -15,6 +16,8 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
     let {
         group,
+        onJump,
+        jumpDisabled = false,
         onPreviewMap,
         previewActionId,
         appearance,
@@ -29,6 +32,8 @@
         stations,
         cash
     }: {
+        onJump: (index: number) => void
+        jumpDisabled?: boolean
         onPreviewMap: (action: GameAction) => void
         previewActionId?: string
         cash: ReadonlyMap<string, HistoryCash>
@@ -134,6 +139,9 @@
                 {#if group.companyId}<span class="actor">{playerName(group.playerId ?? '')}</span
                     >{/if}
                 </span>
+            {#if group.kind === 'operation' && group.actions[0]?.index !== undefined}
+                <HistoryJump label={`Jump to ${group.companyId ? companyName(group.companyId) : 'company'} operations in history`} disabled={jumpDisabled} onclick={() => { const index = group.actions[0]?.index; if (index !== undefined) onJump(index) }} />
+            {/if}
             </div>
             {#if startingCash !== undefined}<span class="cash-balance"><small>Start cash</small><strong>{money(startingCash)}</strong></span>{/if}
         </header>{/if}

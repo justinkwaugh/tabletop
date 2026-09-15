@@ -19,6 +19,7 @@ export type HistoryRound = {
     id: string
     label: string
     phases: string[]
+    startActionIndex?: number
     entries: ActionHistoryEntry[]
 }
 
@@ -59,6 +60,7 @@ export function historyRounds(
             }
             rounds.push(section)
         }
+        section.startActionIndex = action.index
         if (section.phases[0] !== phase) section.phases.unshift(phase)
         const entry =
             entries.get(action.id) ??
@@ -82,7 +84,8 @@ export function historyRounds(
             if (patch.op !== 'add' && patch.op !== 'replace') continue
             if (patch.path === '/phaseId') {
                 phase = patch.value
-                if (section.phases[0] !== phase) section.phases.unshift(phase)
+                section.startActionIndex = action.index
+        if (section.phases[0] !== phase) section.phases.unshift(phase)
             } else if (patch.path === '/stockRound') {
                 stock = patch.value.number
                 operating = patch.value.completed

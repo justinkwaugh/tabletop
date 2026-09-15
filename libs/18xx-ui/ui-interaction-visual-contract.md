@@ -1286,3 +1286,13 @@ not the displayed reach. Blocked cities still stop network traversal. The camera
 fits the exposed area. `MapScene.highlightedLocationIds` owns mask visibility;
 `legalLocationIds` independently owns selection and hover eligibility. Station
 placement continues to use its legal placement locations for both sets.
+
+### Explicit history jumps
+
+Round interstitials and company-operation headers expose an arrow/clock button.
+Only that button navigates the history cursor; clicking the surrounding header or
+row does not. Round targets use the earliest action in that round, including
+bookkeeping omitted from the displayed entries. Company targets use the group's
+first recorded action. Jumps request exact state-only navigation and are disabled
+while the session/history is busy. These controls do not open the historical map
+preview modal.
