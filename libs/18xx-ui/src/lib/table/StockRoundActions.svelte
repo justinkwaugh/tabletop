@@ -1,7 +1,7 @@
 <script lang="ts">
     import { marketColors } from '../stock/marketColors.js'
     import { assertExists } from '@tabletop/common'
-    import { getCompany, sharesOwned, companyMarketSpace, stockMarketSpace, sameOwner, type Owner } from '@tabletop/18xx'
+    import { cashOwnedBy, getCompany, sharesOwned, companyMarketSpace, stockMarketSpace, sameOwner, type Owner } from '@tabletop/18xx'
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
     import { companyOwnership } from '../finance/companyOwnership.js'
     import type { CertificatePool } from '@tabletop/18xx'
@@ -62,6 +62,11 @@
         assertExists(certificate, 'An exchange requires its destination certificate')
         return getCompany(session.financialState, certificate.companyId)
     }
+    function buyerCash(buyer: Owner): string {
+        const cash = cashOwnedBy(session.financialState, buyer)
+        assertExists(cash, 'A stock buyer company requires a cash account')
+        return cash.toLocaleString('en-US')
+    }
 </script>
 
 {#snippet token(companyId: string)}
@@ -86,7 +91,7 @@
                 {#each menu === 'buy' ? buyers : startBuyers as buyer, index}
                     {#if index > 0}<span class="separator" aria-hidden="true"></span>{/if}
                     <button {disabled} aria-pressed={!!session.stockActionBuyer && sameOwner(buyer, session.stockActionBuyer)}
-                        onclick={() => session.chooseStockMenu(menu, buyer)}>{buyer.kind === 'player' ? 'Yourself' : session.ownerName(buyer)}</button>
+                        onclick={() => session.chooseStockMenu(menu, buyer)}>{buyer.kind === 'player' ? 'Yourself' : session.ownerName(buyer)}{#if buyer.kind === 'company'} <span class="owner-cash">${buyerCash(buyer)}</span>{/if}</button>
                 {/each}
             </div>
         {/if}
@@ -325,6 +330,7 @@
     }
     .heading.available-shares { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #63513e; }
     .heading.idle-prompt { margin-bottom: 0; }
+    .owner-cash { margin-left: 5px; font-variant-numeric: tabular-nums; }
     .owner-toggle { gap: 7px; min-height: 22px; }
     .owner-toggle button,
     .owner-toggle button:hover:not(:disabled),

@@ -1296,3 +1296,24 @@ bookkeeping omitted from the displayed entries. Company targets use the group's
 first recorded action. Jumps request exact state-only navigation and are disabled
 while the session/history is busy. These controls do not open the historical map
 preview modal.
+
+### Compact player portfolios
+
+Clicking a player card's non-interactive area toggles its local compact layout;
+its player-name button provides keyboard access to the same toggle. Company-map
+links and private-description controls retain their own behavior. Compact cards
+hide Ownership/Privates section labels and arrange abbreviated company holdings
+in two columns, preserving percentages and presidency markers. Company tokens remain visible. Numbered railway
+shares appear inline after the company abbreviation (for example PEIR 3, 5, 6),
+with location names retained as accessible labels/tooltips and map-focus buttons.
+Expansion is keyed by owner identity so reordering cards does not change it.
+
+Company links in player portfolios focus all track reachable from the company's
+placed stations, respecting blocked cities and impassable borders, with reserved
+homes as the fallback for companies without placed stations. Clicking the same
+company again fits the whole map. History station-focused navigation retains its
+separate station-only behavior.
+
+The operating-order strip is visible only during operating rounds, including historical operating positions, and is hidden after game end. Active player cards use a reinforced outline with the normal unshaded header; the live round header pairs each active player name with their player-color dot and the same typography as the operating company.
+
+After a stock share sale settles, keep the Sell menu open at company selection if the same player remains active in that stock round and has another legal sale. Clear the previous company and quantity selection; normal reset behavior applies when the turn or round ends.

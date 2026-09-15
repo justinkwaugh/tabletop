@@ -5,7 +5,7 @@
     import { certificatesOwnedBy, controllingOwner, getCompany, type Owner, type ValuationRules } from '@tabletop/18xx'
     import { auctionLotDetails } from '../auctions/auctionLotDetails.js'
     import { assertExists } from '@tabletop/common'
-    import type { NumberedShareNames } from './companyPresentation.js'
+    import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PresidentBadge from '../finance/PresidentBadge.svelte'
@@ -14,6 +14,7 @@
 
     let {
         session,
+        companyNames = {},
         valuationRules,
         auctionLotDescription,
         numberedShareNames = {},
@@ -23,6 +24,7 @@
         onFocusCompany,
         portfolioCompanyIds = []
     }: {
+        companyNames?: Readonly<Record<string, CompanyNameVariants>>
         session: FinanceExampleSession
         valuationRules: ValuationRules
         auctionLotDescription?: (id: string) => string
@@ -33,6 +35,22 @@
         onFocusCompany: (companyId: string) => void
         portfolioCompanyIds?: readonly string[]
     } = $props()
+    let compactPlayers = $state(new Set<string>())
+    function toggleCompact(id: string) {
+        const next = new Set(compactPlayers)
+        if (next.has(id)) next.delete(id)
+        else next.add(id)
+        compactPlayers = next
+    }
+    function toggleOnBackground(node: HTMLElement, id: string) {
+        const click = (event: MouseEvent) => {
+            if (event.target instanceof Element && event.target.closest('button, a, input, select, textarea, [data-private-description-row]')) return
+            if (window.getSelection()?.toString()) return
+            toggleCompact(id)
+        }
+        node.addEventListener('click', click)
+        return { destroy: () => node.removeEventListener('click', click) }
+    }
     const stockRoundActive = $derived(session.financialState.machineState === 'StockRound')
     const passOrderPositions = $derived(session.passing === 'pass-order')
     const players = $derived([
@@ -99,7 +117,10 @@
 
 <div class="players" aria-label="Players">
     {#each players as player, index (player.id)}
+        {@const compact = compactPlayers.has(player.id)}
         <article
+            use:toggleOnBackground={player.id}
+            class:compact
             animate:flip={{ duration: prefersReducedMotion.current ? 0 : 180 }}
             aria-label={`${player.name} portfolio`}
             data-player-id={player.playerId}
@@ -117,7 +138,7 @@
                         ></span>{/if}{#if player.description}<PrivateDescription
                             name={player.name}
                             description={player.description}
-                        />{:else}{player.name}{/if}
+                        />{:else}<button class="card-toggle" aria-label={`${compact ? 'Expand' : 'Compact'} ${player.name} card`} aria-pressed={compact} onclick={() => toggleCompact(player.id)}>{player.name}</button>{/if}
                 </h3>
                 {#if player.controller}<span class="controller"
                         >Controlled by {player.controller}</span
@@ -126,7 +147,7 @@
                     {@const position = stockRoundActive ? session.playerPriorityOrder.indexOf(player.playerId) + 1 : index + 1}
                     {#if !stockRoundActive || session.financialState.stockRound.passedPlayerIds.includes(player.playerId)}
                         <span class="turn-position" aria-label={`${stockRoundActive ? 'Next turn' : 'Turn'} position ${position}`}>
-                            {#if stockRoundActive}<small>Next</small>{/if}<b>{position}</b>
+                            {#if stockRoundActive}<small>Next</small>{/if}<b style:background={session.colors.getPlayerBgColorValue(player.playerId)}>{position}</b>
                         </span>
                     {/if}
                 {:else if player.playerId === session.playerPriorityOrder[0]}
@@ -182,8 +203,24 @@
             {/if}
             {#if !auctionActive || player.ownership.length}
             <section>
-                <h4>Ownership</h4>
-                {#if player.ownership.length}
+                {#if !compact}<h4>Ownership</h4>{/if}
+                {#if player.ownership.length && compact}
+                    <div class="compact-ownership" aria-label={`${player.name} company ownership`}>
+                        {#each player.ownership.toSorted((a, b) => Number(!!numberedShareNames[a.company.id]) - Number(!!numberedShareNames[b.company.id])) as entry (entry.company.id)}
+                            {@const numbered = numberedShares(player.owner, entry.company.id)}
+                            <div class="compact-holding" class:president={entry.president}>
+                                <div class="holding-line">
+                                    <button class="company-focus compact-token" aria-label={`Show ${entry.company.name} network`} disabled={!focusableCompanyIds.has(entry.company.id)} onclick={() => onFocusCompany(entry.company.id)}><CompanyToken appearance={session.mapView.stations[entry.company.id]} size={22} /></button>
+                                    <button class="company-focus" title={entry.company.name} disabled={!focusableCompanyIds.has(entry.company.id)} onclick={() => onFocusCompany(entry.company.id)}>{companyNames[entry.company.id]?.initials ?? entry.company.id}</button>
+
+                                    {#if entry.president}<span class="compact-president" aria-label="President">P</span>{/if}
+                                    <span class="holding-amount">{#if numbered.length}<span class="compact-numbered">{#each numbered as share, shareIndex (share.number)}{@const locationId = numberedShareLocation?.(entry.company.id, share.number)}{#if shareIndex > 0}, {/if}<button class="company-focus" title={share.name} aria-label={share.name} disabled={!locationId} onclick={() => { if (locationId) onFocusLocation(locationId) }}>{share.number}</button>{/each}</span>{/if}<span>{percent.format(entry.percentage)}%</span></span>
+                                </div>
+
+                            </div>
+                        {/each}
+                    </div>
+                {:else if player.ownership.length}
                     <table class="ownership" aria-label={`${player.name} company ownership`}>
                         <tbody>
                             {#each player.ownership.toSorted((a, b) => Number(!!numberedShareNames[a.company.id]) - Number(!!numberedShareNames[b.company.id])) as entry (entry.company.id)}
@@ -193,7 +230,7 @@
                                     title={entry.president ? 'President' : undefined}
                                 >
                                     <td class="token"
-                                        ><button class="company-focus" aria-label={`Show ${entry.company.name} stations`} disabled={!focusableCompanyIds.has(entry.company.id)} onclick={() => onFocusCompany(entry.company.id)}><CompanyToken
+                                        ><button class="company-focus" aria-label={`Show ${entry.company.name} network`} disabled={!focusableCompanyIds.has(entry.company.id)} onclick={() => onFocusCompany(entry.company.id)}><CompanyToken
                                             appearance={session.mapView.stations[entry.company.id]}
                                             size={22}
                                         /></button></td
@@ -221,7 +258,7 @@
             {/if}
             {#if player.privates.length}<section class="privates">
                     <div class="private-head">
-                        <h4>Privates</h4>
+                        {#if compact}<span></span>{:else}<h4>Privates</h4>{/if}
                         <span title="Income per operating round">Income</span><span>Value</span>
                     </div>
                     <table aria-label={`${player.name} private companies`}>
@@ -250,6 +287,19 @@
 </div>
 
 <style>
+    .card-toggle { border: 0; padding: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: 3px; }
+    .card-toggle:hover { background: #69554012; }
+    .card-toggle:focus-visible { outline: 2px solid #796047; outline-offset: 3px; }
+    .compact-ownership { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 16px; font-size: 12px; }
+    .compact-ownership::after { content: ""; position: absolute; top: 2px; bottom: 2px; left: 50%; border-left: 1px solid #d9cebf; pointer-events: none; }
+    .holding-line { display: flex; align-items: center; gap: 3px; }
+    .holding-amount { display: inline-flex; align-items: center; gap: 7px; margin-left: auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .compact-holding.president .holding-line { font-weight: 700; }
+    .compact-president { color: #a79888; font-size: 9px; font-weight: 700; line-height: 1; margin-left: -2px; }
+    .compact-token { display: flex; flex-shrink: 0; }
+    .compact-numbered { color: inherit; font-size: inherit; white-space: nowrap; }
+    .compact section { padding-block: 6px; }
+
     .players {
         display: grid;
         gap: 10px;
@@ -265,6 +315,7 @@
     }
     article.active {
         border-color: #796047;
+        box-shadow: inset 0 0 0 1px #796047;
     }
     header {
         display: flex;
@@ -286,8 +337,9 @@
         font-weight: 650;
     }
     .player-color {
-        width: 9px;
-        height: 9px;
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
         border-radius: 50%;
     }
     .controller {
@@ -296,7 +348,7 @@
     }
     .turn-position { display: flex; align-items: baseline; gap: 5px; margin-left: auto; color: #695543; white-space: nowrap; font-variant-numeric: tabular-nums; }
     .turn-position small { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
-    .turn-position b { font-size: 20px; font-weight: 650; line-height: 1; }
+    .turn-position b { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 26px; padding-inline: 4px; box-sizing: border-box; border-radius: 5px; color: #fff; font-size: 20px; font-weight: 650; line-height: 1; }
     .priority {
         border: 1px solid #c8b08b;
         border-radius: 4px;

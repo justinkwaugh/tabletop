@@ -2,16 +2,16 @@
     import { historyMapFocus } from '../maps/historyMapFocus.js'
     import { routeColor } from '../routes/routePresentation.js'
     import PositionPanel from './PositionPanel.svelte'
-    import { companyFocusLocations } from '../maps/companyFocusLocations.js'
+    import { companyFocusLocations, companyNetworkFocusLocations } from '../maps/companyFocusLocations.js'
     import {
         FinanceExampleValidator,
+        RailwayMapState,
         getCompany,
         nextOperatingCompany,
         type OperatingRules,
         type CertificatePool
     } from '@tabletop/18xx'
     import type { ValuationRules } from '@tabletop/18xx'
-    import CompanyToken from '../tokens/CompanyToken.svelte'
     import OperatingSteps from './OperatingSteps.svelte'
     import StockActionStrip from './StockActionStrip.svelte'
     import type { StockMenuOption } from '../stock/stockActionSelection.js'
@@ -47,7 +47,6 @@
     let {
         session,
         marketPoolId,
-        companyRoles = [],
         additionalStockActions = [],
         gameInformation,
         exchangePoolId,
@@ -73,7 +72,6 @@
         session: FinanceExampleSession
         additionalStockActions?: readonly StockMenuOption[]
         gameInformation?: Snippet
-        companyRoles?: readonly { companyId: string; label: string; secondLine?: string }[]
         marketPoolId: string
         exchangePoolId?: string
         spreadsheetCompanyOrder?: readonly string[]
@@ -100,6 +98,7 @@
     } = $props()
     const readOnlyPosition = $derived(session.isViewingHistory || !session.myPlayer || !session.isMyTurn)
     let showDepot = $state(false)
+    let showPhaseChart = $state(false)
     const currentDepotIds = $derived(session.availableTrainDefinitionIds.filter((id) => session.trainDepot.remaining(session.financialState.trainInventory, id) !== 0))
 
     let mapWrapper = $state<ScalingWrapper>()
@@ -141,7 +140,11 @@
             mapWrapper?.fitToContent({ animate: true })
             return
         }
-        const locations = companyFocusLocations(session.stationDisplayState, companyId)
+        const locations = companyNetworkFocusLocations(
+            new RailwayMapState(session.mapView.map, session.mapView.tileSet, session.financialState.tileInventory),
+            session.stationDisplayState,
+            companyId
+        )
         if (!locations.length) return
         focusLocations(locations)
     }
@@ -346,14 +349,12 @@
                 bgClass="bg-transparent"
             />
             <div class="game-information" aria-label="Game information">
-                {#each companyRoles as role (role.companyId)}
-                    <div class="game-information-item" title={`${role.label}: ${getCompany(session.financialState, role.companyId).name}`}>
-                        <span class="information-label role-label">{role.label}{#if role.secondLine}<br />{role.secondLine}{/if}</span>
-                        <CompanyToken appearance={session.mapView.stations[role.companyId]} size={16} />
-                    </div>
-                {/each}
+                <button class="game-information-item depot-information" onclick={() => showPhaseChart = true} aria-haspopup="dialog" aria-label="Open phase chart">
+                    <span class="information-label">Phase</span>
+                    <TrainBadge name={session.financialState.phaseId} color={trainColors[session.financialState.phaseId]} />
+                </button>
                 <div class="game-information-item">
-                    <span class="information-label train-limit-label">Train<br />limit</span>
+                    <span class="information-label train-limit-label">Train limit</span>
                     <span class="train-limit-value">{phaseChart.phases.find((phase) => phase.id === session.financialState.phaseId)?.trainLimit}</span>
                 </div>
                 <button class="game-information-item depot-information" onclick={() => showDepot = true} aria-haspopup="dialog" aria-label="Open depot">
@@ -374,7 +375,7 @@
                 activeTabClass="py-2 px-2 text-[#5e4937] rounded-none"
                 inactiveTabClass="py-2 px-2 text-[#998b79] hover:text-[#5e4937] rounded-none"
             >
-                {#snippet playersPanel()}<PlayersPanel
+                {#snippet playersPanel()}<PlayersPanel {companyNames}
                         {session}
                         {valuationRules}
                         {auctionLotDescription}
@@ -413,7 +414,7 @@
                     {@render actions(focusLocation, focusRoute)}
                 {/if}
             </section>
-            {#if companyOrder.length}
+            {#if operating && !financialState.result && companyOrder.length}
             <CompanyOrder
                 showDetails={session.preferences.values.operatingOrderDisplay === 'details'}
                 onDisplayChange={(details) =>
@@ -571,6 +572,7 @@
     </DefaultTableLayout>
 </div>
 
+{#if showPhaseChart}<PhaseChart chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} onclose={() => showPhaseChart = false} />{/if}
 {#if showDepot}<PhaseChart depotView={{ depot: session.trainDepot, inventory: session.financialState.trainInventory, availableDefinitionIds: session.availableTrainDefinitionIds }} chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} onclose={() => showDepot = false} />{/if}
 
 {#if session.historicalMap}
@@ -589,7 +591,6 @@
     .depot-type { display: inline-flex; align-items: center; gap: 3px; }
     .depot-information { flex-wrap: wrap; justify-content: flex-end; }
     .depot-count { font-size: 12px; font-weight: 700; line-height: 16px; font-variant-numeric: tabular-nums; }
-    .role-label,
     .train-limit-label { text-align: center; line-height: 10px; }
     .train-limit-value { font-size: 16px; font-weight: 700; line-height: 20px; }
     .information-label { color: #887969; font-size: 10px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; line-height: 1; }

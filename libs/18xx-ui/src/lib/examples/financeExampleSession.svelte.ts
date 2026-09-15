@@ -2018,6 +2018,8 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     }
     async confirmSale() {
         this.assertSelectionAvailable(this.myPlayer?.id)
+        const playerId = this.myPlayer?.id
+        const roundNumber = this.financialState.stockRound.number
         const details = this.selectedSaleResult?.details
         assertExists(details, 'Select an available sale')
         const sales: ShareSale[] = details.sales.map(({ companyId, shares }) => ({
@@ -2031,6 +2033,16 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
                 expectedProceeds: details.proceeds
             })
         )
+        await this.waitForVisibleTransitionSettled()
+        if (
+            this.myPlayer?.id === playerId &&
+            this.isMyTurn &&
+            !this.isViewingHistory &&
+            this.financialState.stockRound.number === roundNumber &&
+            this.saleChoices.some((choice) => choice.result.details)
+        ) {
+            this.stockActionDraft = chooseStockAction('sell')
+        }
     }
     async finishTurn() {
         this.assertSelectionAvailable(this.myPlayer?.id)

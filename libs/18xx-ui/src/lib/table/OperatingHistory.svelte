@@ -3,6 +3,7 @@
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import type { CompanyNameVariants } from './companyPresentation.js'
     import type { OperatingRoundHistory } from './operatingHistory.js'
+    import SpreadsheetPlayerName from './SpreadsheetPlayerName.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
 
     let {
@@ -15,7 +16,7 @@
     }: {
         onPreviewMap: (action: GameAction) => void
         rounds: OperatingRoundHistory[]
-        players: { playerId: string; name: string }[]
+        players: { playerId: string; name: string; color: string }[]
         appearances: Readonly<Record<string, StationAppearance>>
         view: 'Company' | 'Player'
         companyNames: Readonly<Record<string, CompanyNameVariants>>
@@ -42,7 +43,7 @@
                 <th scope="col" rowspan={view === 'Player' ? 2 : 1}>Round</th>
                 {#if view === 'Player'}
                     {#each players as player (player.playerId)}
-                        <th scope="colgroup" colspan="3" title={player.name}><span class="player-name">{player.name}</span></th>
+                        <th scope="colgroup" colspan="3" title={player.name}><SpreadsheetPlayerName name={player.name} color={player.color} /></th>
                     {/each}
                 {:else}
                     {#each companies as [companyId, name] (companyId)}
@@ -115,14 +116,6 @@
     .payout { border: 0; border-radius: 4px; padding: 1px 4px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
     .payout:hover { background: #69554016; }
     .payout:focus-visible { outline: 2px solid #9e7752; outline-offset: 1px; }
-    .player-name {
-        max-width: 180px;
-        margin-inline: auto;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        display: block;
-    }
     .negative { color: #b33a32; }
     .table-scroll { overflow-x: auto; }
     table {

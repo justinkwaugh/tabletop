@@ -15,6 +15,7 @@
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
     import type { CompanyNameVariants } from './companyPresentation.js'
     import { ownerPortfolio } from '../finance/ownerPortfolio.js'
+    import SpreadsheetPlayerName from './SpreadsheetPlayerName.svelte'
     import OperatingHistory from './OperatingHistory.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
@@ -167,6 +168,15 @@
     )
 </script>
 
+{#snippet ownerLabel(owner: { id: string; name: string }, column = false)}
+    {#if owner.id.startsWith('player:')}
+        <SpreadsheetPlayerName name={owner.name} color={session.colors.getPlayerBgColorValue(owner.id.slice(7))} />
+    {:else if portfolioColumnLabels.has(owner.id)}
+        <span class="owner-name portfolio-full">{owner.name}</span>
+        <span class="owner-name portfolio-short">{portfolioColumnLabels.get(owner.id)}</span>
+    {:else}<span class="owner-name">{column ? poolColumnLabels[owner.id] ?? owner.name : owner.name}</span>{/if}
+{/snippet}
+
 {#snippet companyCash(cash: number | 'unlimited' | undefined)}
     {cash === undefined ? '—' : cash === 'unlimited' ? '∞' : `$${money.format(cash)}`}
 {/snippet}
@@ -227,7 +237,7 @@
     </div>
     {#if period !== 'Current'}
         <OperatingHistory rounds={session.operatingIncomeHistory()}
-            players={session.playerPriorityOrder.map((playerId) => ({ playerId, name: session.getPlayerName(playerId) }))}
+            players={session.playerPriorityOrder.map((playerId) => ({ playerId, name: session.getPlayerName(playerId), color: session.colors.getPlayerBgColorValue(playerId) }))}
             appearances={session.mapView.stations} view={period === 'Player income' ? 'Player' : 'Company'} {companyNames} {onPreviewMap} />
     {:else}
         <div class="table-scroll">
@@ -251,7 +261,7 @@
                         {#each owners as owner (owner.id)}<th
                                 scope="col"
                                 class:pool-start={owner.id === firstPoolId}
-                                title={owner.name}><span class="owner-name">{poolColumnLabels[owner.id] ?? portfolioColumnLabels.get(owner.id) ?? owner.name}</span></th
+                                title={owner.name}>{@render ownerLabel(owner, true)}</th
                             >{/each}
                         <th scope="col" class="company-stat-start">Cash</th>
                         <th scope="col">Tokens</th>
@@ -311,7 +321,7 @@
                 {:else}
                     {#each owners as owner, index (owner.id)}
                         <tr class:pool-start={owner.id === firstPoolId} class:pool-row={owner.id in poolColumnLabels}>
-                            <th scope="row" title={owner.name}><span class="owner-name">{portfolioColumnLabels.get(owner.id) ?? owner.name}</span></th>
+                            <th scope="row" title={owner.name}>{@render ownerLabel(owner)}</th>
                             {#each rows as row (row.company.id)}{@render shareCell(
                                     row.shares[index],
                                     false,
@@ -371,6 +381,7 @@
         text-overflow: ellipsis;
         white-space: nowrap;
     }
+    .portfolio-short { display: none; }
     .share-cell,
     .available-pool,
     .bright-cell { background: #faf6ee; }
@@ -579,6 +590,8 @@
         }
     }
     @container (max-width: 560px) {
+        .portfolio-full { display: none; }
+        .portfolio-short { display: block; }
         th,
         td {
             padding-inline: 5px;

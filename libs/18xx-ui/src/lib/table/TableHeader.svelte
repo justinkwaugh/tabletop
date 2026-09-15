@@ -90,13 +90,17 @@
             >{/if}
     </div>
     <div class="turn" bind:this={turnElement}>
-        <span
-            >{session.isViewingHistory
-                ? 'History'
-                : financialState.activePlayerIds
-                      .map((id) => session.getPlayerName(id))
-                      .join(' · ')}</span
-        >
+        {#if session.isViewingHistory}
+            <span>History</span>
+        {:else}
+            {#each financialState.activePlayerIds as playerId (playerId)}
+                <span class="player-name"><span
+                    class="player-color"
+                    style:background={session.colors.getPlayerBgColorValue(playerId)}
+                    aria-hidden="true"
+                ></span>{session.getPlayerName(playerId)}</span>
+            {/each}
+        {/if}
         <button
             onclick={() => session.undo()}
             disabled={session.busy ||
@@ -136,7 +140,8 @@
         white-space: nowrap;
     }
     strong,
-    .company {
+    .company,
+    .player-name {
         font-size: 13px;
         font-weight: 650;
     }
@@ -165,11 +170,18 @@
     .separator {
         color: #b9a997;
     }
-    .company {
+    .company,
+    .player-name {
         display: inline-flex;
         align-items: center;
         gap: 6px;
         color: inherit;
+    }
+    .player-color {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        border-radius: 50%;
     }
     button {
         padding: 7px 8px;

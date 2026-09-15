@@ -116,7 +116,7 @@
                 aria-pressed={!showDetails}
                 onclick={() => onDisplayChange(false)}
             >
-                <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
                     <circle cx="8" cy="8" r="7" fill="currentColor" />
                 </svg>
             </button>
@@ -126,7 +126,7 @@
                 aria-pressed={showDetails}
                 onclick={() => onDisplayChange(true)}
             >
-                <svg width="29" height="16" viewBox="0 0 29 16" aria-hidden="true">
+                <svg width="25" height="14" viewBox="0 0 29 16" aria-hidden="true">
                     <path
                         d="M8 1.5H24Q27.5 1.5 27.5 5V11Q27.5 14.5 24 14.5H8A6.5 6.5 0 0 1 8 1.5Z"
                         fill="none"
@@ -230,8 +230,8 @@
         align-items: flex-start;
         flex-shrink: 0;
         gap: 5px;
-        padding: 8px 16px 5px;
-        background: #695540;
+        padding: 8px 16px;
+        background: transparent;
         min-height: 52px;
         min-width: 0;
     }
@@ -249,7 +249,7 @@
         align-items: center;
         gap: 3px;
         flex-shrink: 0;
-        color: #fffaf3;
+        color: #695540;
     }
     .chip-style button {
         display: flex;
@@ -267,11 +267,11 @@
         opacity: 1;
     }
     .chip-style button:focus-visible {
-        outline: 2px solid #e5d5c3;
+        outline: 2px solid #796047;
         outline-offset: 1px;
     }
     .separator {
-        color: #c4b5a4;
+        color: #a18c75;
         font-size: 12px;
     }
     .overview {
@@ -287,9 +287,9 @@
         left: 0;
         top: 0;
         height: 20px;
-        border: 1px solid #cfbda7;
+        border: 1px solid #b8a38b;
         border-radius: 6px;
-        background: #756452;
+        background: #f5eee4;
         transition:
             transform 100ms ease-out,
             width 100ms ease-out;
@@ -314,7 +314,7 @@
         font-weight: 650;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        color: #f0e6da;
+        color: #695540;
     }
     ol {
         display: flex;
@@ -328,7 +328,7 @@
         scrollbar-width: thin;
         scrollbar-color: #9b8874 transparent;
         list-style: none;
-        padding: 0 2px 3px 0;
+        padding: 0 2px 0 0;
         margin: 0;
     }
     li {
@@ -423,6 +423,6 @@
     }
     .empty {
         font-size: 12px;
-        color: #c4b5a4;
+        color: #a18c75;
     }
 </style>
