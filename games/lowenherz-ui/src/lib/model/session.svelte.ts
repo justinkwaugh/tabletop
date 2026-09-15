@@ -1,5 +1,6 @@
 import { Color, type GameAction } from '@tabletop/common'
 import { allianceWalls } from '$lib/model/allianceGeometry.js'
+import { expansionActionsFor, openExpansionActionIdFor } from '$lib/model/expansionRun.js'
 import { GameSession } from '@tabletop/frontend-components'
 import {
     type Alliance,
@@ -19,7 +20,6 @@ import {
     DrawActionCard,
     expandRegionReason,
     ExpandRegion,
-    isExpandRegion,
     takePoliticsCardReason,
     playRenegadeCardReason,
     playAllianceCardReason,
@@ -1329,29 +1329,30 @@ export class LowenherzGameSession extends GameSession<
     //
     // It exists because knight squares are no longer offered while an expansion is open. Something
     // has to end the expansion, and it cannot be the knight click that used to end it.
-    // Keyed to the expansion it refers to, for the same reason the step choice is keyed to its
-    // step: a decline that applies to THIS expansion cannot leak into the next one, and nothing
-    // has to notice the expansion ended in order to clear it.
+    // Identified by the action that opened the expansion, so that a decline cannot outlive the
+    // space it applied to: keying it to the knight action and region instead survived an Undo of
+    // that space, since the Undo restores both unchanged, and then suppressed the free second
+    // space of the expansion the player re-took.
     private declinedExpansion: string | undefined = $state(undefined)
 
     declineSecondSpace() {
-        const openExpansion = this.openExpansionId
+        const openExpansion = this.openExpansionActionId
         if (openExpansion) this.declinedExpansion = openExpansion
     }
 
-    // Identifies the expansion currently open, action and region together - the same region can be
-    // expanded again in a later action, and that is a different expansion.
-    private get openExpansionId(): string | undefined {
-        const regionId = this.gameState.expandingRegionId
-        if (!regionId) return undefined
-        return `${this.currentKnightActionKey ?? 'none'}:${regionId}`
+    private get openExpansionActionId(): string | undefined {
+        return openExpansionActionIdFor(
+            this.actions,
+            this.gameState.expandingRegionId,
+            this.myPlayer?.id
+        )
     }
 
     // The optional second space of an expansion already under way. Costs no sword - it was paid
     // for by the one that started it - so it outlives the step that bought it.
     get canContinueExpansion(): boolean {
         if (!this.canActNow) return false
-        const openExpansion = this.openExpansionId
+        const openExpansion = this.openExpansionActionId
         return openExpansion !== undefined && this.declinedExpansion !== openExpansion
     }
 
@@ -1492,18 +1493,10 @@ export class LowenherzGameSession extends GameSession<
         const regionId = this.selectedExpandRegionId
         const myPlayerId = this.myPlayer?.id
         if (!regionId || !myPlayerId) return []
-
-        // The expansion's spaces are always the trailing run of ExpandRegion actions for
-        // this region: the engine emits nothing between them, and anything else in the log
-        // (a knight placement, the resolution cascade) means that expansion is over.
-        const spaces: { col: number; row: number }[] = []
-        for (let index = this.actions.length - 1; index >= 0; index--) {
-            const action = this.actions[index]
-            if (!isExpandRegion(action)) break
-            if (action.playerId !== myPlayerId || action.regionId !== regionId) break
-            spaces.unshift({ col: action.space.col, row: action.space.row })
-        }
-        return spaces
+        return expansionActionsFor(this.actions, regionId, myPlayerId).map(({ space }) => ({
+            col: space.col,
+            row: space.row
+        }))
     }
 
     selectRegionToExpand(regionId: string) {
