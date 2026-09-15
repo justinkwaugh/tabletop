@@ -2,7 +2,6 @@
     import type { Snippet } from 'svelte'
     import { assertExists, type GameAction } from '@tabletop/common'
     import {
-        isRunTrains,
         cashOwnedBy,
         certificatesOwnedBy,
         controllingOwner,
@@ -20,6 +19,7 @@
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
+    import { companyLastRun } from './companyLastRun.js'
     import PresidentBadge from '../finance/PresidentBadge.svelte'
     let {
         session,
@@ -50,8 +50,7 @@
         poolName?: (pool: CertificatePool) => string
     } = $props()
     const state = $derived(session.financialState)
-    const lastRun = $derived(vertical ? undefined : session.actions.slice(0, session.gameState.actionCount)
-        .filter(isRunTrains).findLast((action) => action.companyId === company.id))
+    const lastRun = $derived(vertical ? undefined : companyLastRun(session.actions, session.gameState.actionCount, company.id))
     const owner = $derived({ kind: 'company', companyId: company.id } as const)
     const cash = $derived(cashOwnedBy(state, owner))
     const control = $derived(controllingOwner(state, company.id))

@@ -37,6 +37,9 @@ export const EarningsFields = { earningsDistribution: Type.Optional(EarningsDeta
 export type EarningsState = Type.Static<Type.TObject<typeof EarningsFields>>
 export type DistributionState = TrainRunningState & EarningsState & { stockMarket: StockMarket }
 export type DividendEntitlement = { owner: Owner; shares: number }
+export type DistributionSummary = Pick<EarningsDetails, 'choice' | 'revenue' | 'retained'> & {
+    baseDividendPerShare: number
+}
 export interface EarningsRules {
     choices(state: DistributionState, companyId: string): EarningsChoice[]
     shareCount(state: DistributionState, companyId: string): number
@@ -51,7 +54,7 @@ export interface EarningsRules {
     marketEffect(
         state: DistributionState,
         companyId: string,
-        paying: boolean
+        distribution: DistributionSummary
     ): { move?: StockMarketMove; bonusPerShare: number }
 }
 export function dividendEntitlements(
@@ -120,7 +123,9 @@ export class EarningsDistribution {
             'Invalid retained revenue'
         )
         const base = this.rules.roundDividend(this.state, companyId, (revenue - retained) / count)
-        const effect = this.rules.marketEffect(this.state, companyId, base > 0)
+        const effect = this.rules.marketEffect(this.state, companyId, {
+            choice, revenue, retained, baseDividendPerShare: base
+        })
         const dividendPerShare = base + effect.bonusPerShare
         assert(
             Number.isInteger(dividendPerShare) && dividendPerShare >= 0,

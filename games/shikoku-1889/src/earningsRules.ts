@@ -23,9 +23,9 @@ export const Shikoku1889EarningsRules: EarningsRules = {
         ),
     retainedRevenue: (_state, _companyId, choice, revenue) => (choice === 'withhold' ? revenue : 0),
     roundDividend: (_state, _companyId, amount) => amount,
-    marketEffect: (state, companyId, paying) => ({
+    marketEffect: (state, companyId, distribution) => ({
         ...(getCompany(state, companyId).floated
-            ? { move: dividendMarketMove(state.stockMarket, companyId, paying) }
+            ? { move: dividendMarketMove(state.stockMarket, companyId, distribution.baseDividendPerShare > 0) }
             : {}),
         bonusPerShare: 0
     })

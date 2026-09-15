@@ -32,6 +32,15 @@
         )?.id
     }
     const session = $derived(requireTheOldPrinceSession(gameSession))
+    const spreadsheetCompanyOrder = $derived.by(() => {
+        const state = session.financialState
+        const trancheCompanies = state.tranches.flatMap((tranche) => tranche.companyIds)
+        return [
+            ...state.companies.filter((company) => company.role === 'mainline').map((company) => company.id),
+            ...state.companies.filter((company) => company.started && company.role !== 'mainline' && !trancheCompanies.includes(company.id)).map((company) => company.id),
+            ...trancheCompanies
+        ]
+    })
     const availableTranche = $derived(availableTheOldPrinceTranche(session.financialState))
     const privateOperationDescription = (id: string, companyId: string) =>
         id === 'HS' && companyId !== 'PEIR'
@@ -45,7 +54,7 @@
               : pool.name
 </script>
 
-<GameTable privatePurchaseLabel="Buy Hunslet"
+<GameTable {spreadsheetCompanyOrder} privatePurchaseLabel="Buy Hunslet"
     additionalStockActions={session.canPreviewSplit && session.myPlayer && session.splitModel.branches().length && session.splitModel.parents(session.myPlayer.id).some((parent) => !parent.reason) ? [{ label: 'Split', selected: session.hasSplitDraft, onSelect: () => session.chooseSplit() }] : []}
     companyRoles={session.financialState.companies.flatMap((company) =>
         company.role === 'mainline' || company.role === 'shortline'

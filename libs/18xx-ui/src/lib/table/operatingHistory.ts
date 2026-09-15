@@ -1,20 +1,12 @@
 import {
-    FinanceExampleValidator,
     isDistributeEarnings,
     isStartOperatingRound,
-    nextOperatingCompany,
-    portfolioWealth,
-    type ValuationRules
+    isFinishOperatingTurn,
+    type OperatingRoundSnapshot,
+    type OperatingRoundIdentity,
+    type CashPayment
 } from '@tabletop/18xx'
-import {
-    assert,
-    assertExists,
-    ExplorationHistory,
-    type GameAction,
-    type GameEngine,
-    type GameState,
-    type HydratedGameState
-} from '@tabletop/common'
+import { assertExists, type GameAction } from '@tabletop/common'
 
 export type OperatingRoundHistory = {
     id: string
@@ -26,76 +18,58 @@ export type OperatingRoundHistory = {
     companyNames: Record<string, string>
 }
 
-export function operatingHistory(
-    state: GameState,
-    actions: readonly GameAction[],
-    engine: GameEngine<GameState, HydratedGameState>,
-    valuationRules: ValuationRules
-): OperatingRoundHistory[] {
+export function operatingHistory(actions: readonly GameAction[]): OperatingRoundHistory[] {
     const rounds = new Map<string, OperatingRoundHistory>()
-    const history = new ExplorationHistory(engine)
-    const exploration = state.explorationState
-    let cursor = state
-    for (const action of actions.toReversed()) {
-        assert(
-            FinanceExampleValidator.Check(cursor),
-            'Operating history requires financial game state'
-        )
-        const snapshot = cursor
-        const set = snapshot.operatingSet
-        if (
-            set?.privateIncomePaid &&
-            cursor.stockRound.completed &&
-            (!set.completed || cursor.result)
-        ) {
-            const id = `${set.number}.${set.roundNumber}`
-            let round = rounds.get(id)
-            if (!round) {
-                round = {
-                    id,
-                    complete: !nextOperatingCompany(cursor),
-                    partial: true,
-                    playerIncome: Object.fromEntries(
-                        cursor.players.map((player) => [player.playerId, 0])
-                    ),
-                    playerNetWorth: Object.fromEntries(
-                        cursor.players.map((player) => [
-                            player.playerId,
-                            portfolioWealth(
-                                snapshot,
-                                { kind: 'player', playerId: player.playerId },
-                                valuationRules
-                            ).reduce((sum, item) => sum + item.value, 0)
-                        ])
-                    ),
-                    companyIncome: {},
-                    companyNames: Object.fromEntries(
-                        cursor.companies
-                            .filter((company) => set.companyOrder.includes(company.id))
-                            .map((company) => [company.id, company.name])
-                    )
-                }
-                rounds.set(id, round)
+    function roundFor(identity: OperatingRoundIdentity): OperatingRoundHistory {
+        const id = `${identity.number}.${identity.roundNumber}`
+        let round = rounds.get(id)
+        if (!round) {
+            round = {
+                id,
+                complete: false,
+                partial: true,
+                playerIncome: {},
+                playerNetWorth: {},
+                companyIncome: {},
+                companyNames: {}
             }
-            if (isStartOperatingRound(action)) {
-                assertExists(action.metadata, 'Recorded operating round requires payment metadata')
-                round.partial = false
-                for (const payment of action.metadata.payments) {
-                    if (payment.to.kind === 'player')
-                        round.playerIncome[payment.to.playerId] += payment.amount
-                }
-            }
-            if (isDistributeEarnings(action)) {
-                assertExists(action.metadata, 'Recorded earnings require payment metadata')
-                round.companyIncome[action.companyId] =
-                    (round.companyIncome[action.companyId] ?? 0) + action.metadata.revenue
-                for (const payment of action.metadata.payments) {
-                    if (payment.to.kind === 'player')
-                        round.playerIncome[payment.to.playerId] += payment.amount
-                }
+            rounds.set(id, round)
+        }
+        return round
+    }
+    function recordSnapshot(snapshot: OperatingRoundSnapshot) {
+        const round = roundFor(snapshot)
+        round.complete = snapshot.complete
+        round.playerNetWorth = { ...snapshot.playerNetWorth }
+        Object.assign(round.companyNames, snapshot.companyNames)
+        return round
+    }
+    function recordPayments(round: OperatingRoundHistory, payments: CashPayment[]) {
+        for (const payment of payments) {
+            if (payment.to.kind === 'player') {
+                const id = payment.to.playerId
+                round.playerIncome[id] = (round.playerIncome[id] ?? 0) + payment.amount
             }
         }
-        cursor = history.backward(cursor, action, exploration)
     }
-    return [...rounds.values()].reverse()
+    for (const action of actions) {
+        if (isStartOperatingRound(action)) {
+            assertExists(action.metadata, 'Recorded operating round requires metadata')
+            const round = recordSnapshot(action.metadata.snapshot)
+            round.partial = false
+            recordPayments(round, action.metadata.payments)
+        } else if (isDistributeEarnings(action)) {
+            assertExists(action.metadata, 'Recorded earnings require metadata')
+            if (!action.metadata.round) continue
+            const round = roundFor(action.metadata.round)
+            round.companyNames[action.companyId] = action.metadata.companyName
+            round.companyIncome[action.companyId] =
+                (round.companyIncome[action.companyId] ?? 0) + action.metadata.revenue
+            recordPayments(round, action.metadata.payments)
+        } else if (isFinishOperatingTurn(action)) {
+            assertExists(action.metadata, 'Recorded operating turn requires a snapshot')
+            recordSnapshot(action.metadata)
+        }
+    }
+    return [...rounds.values()]
 }

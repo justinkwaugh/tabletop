@@ -227,7 +227,8 @@
         align-items: flex-start;
         flex-shrink: 0;
         gap: 5px;
-        padding: 8px 16px 2px;
+        padding: 8px 16px 5px;
+        background: #695540;
         min-height: 52px;
         min-width: 0;
     }
@@ -245,7 +246,7 @@
         align-items: center;
         gap: 3px;
         flex-shrink: 0;
-        color: #34312d;
+        color: #fffaf3;
     }
     .chip-style button {
         display: flex;
@@ -255,7 +256,7 @@
         border-radius: 3px;
         background: transparent;
         color: inherit;
-        opacity: 0.4;
+        opacity: 0.55;
         cursor: pointer;
     }
     .chip-style button[aria-pressed='true'],
@@ -263,11 +264,11 @@
         opacity: 1;
     }
     .chip-style button:focus-visible {
-        outline: 2px solid #796047;
+        outline: 2px solid #e5d5c3;
         outline-offset: 1px;
     }
     .separator {
-        color: #a79888;
+        color: #c4b5a4;
         font-size: 12px;
     }
     .overview {
@@ -283,9 +284,9 @@
         left: 0;
         top: 0;
         height: 20px;
-        border: 1px solid #a99983;
+        border: 1px solid #cfbda7;
         border-radius: 6px;
-        background: #d9ccba;
+        background: #756452;
         transition:
             transform 100ms ease-out,
             width 100ms ease-out;
@@ -310,7 +311,7 @@
         font-weight: 650;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        color: #817261;
+        color: #f0e6da;
     }
     ol {
         display: flex;
@@ -322,6 +323,7 @@
         overflow-x: auto;
         overscroll-behavior-x: contain;
         scrollbar-width: thin;
+        scrollbar-color: #9b8874 transparent;
         list-style: none;
         padding: 0 2px 3px 0;
         margin: 0;
@@ -418,6 +420,6 @@
     }
     .empty {
         font-size: 12px;
-        color: #938371;
+        color: #c4b5a4;
     }
 </style>

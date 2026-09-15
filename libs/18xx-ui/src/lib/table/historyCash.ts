@@ -22,7 +22,7 @@ export function historyCash(actions: readonly GameAction[], state: FinanceExampl
     let after = balances()
     for (const action of actions.toReversed()) {
         const patches = (action.undoPatch ?? []).filter((patch) => patch.path === '/cash' || patch.path.startsWith('/cash/'))
-        if (patches.length) ledger = jsonpatch.applyPatch(ledger, patches).newDocument
+        if (patches.length) ledger = jsonpatch.applyPatch(ledger, structuredClone(patches)).newDocument
         const before = patches.length ? balances() : after
         result.set(action.id, { before, after })
         after = before

@@ -28,6 +28,7 @@ export const Shikoku1889TrainFundingRules: TrainFundingRules = {
             destinationPoolId: 'open-market',
             marketLimit: 50,
             maximumShares: company.shareCount,
+            direction: 'down',
             movement: shares
         }
     },

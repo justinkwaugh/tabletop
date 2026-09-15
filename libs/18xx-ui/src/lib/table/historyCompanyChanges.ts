@@ -29,14 +29,14 @@ export function historyCompanyChanges(
             president: company.president ? { ...company.president } : undefined,
             closed: company.closed
         }))
-        ledger = jsonpatch.applyPatch(ledger, patches).newDocument
+        ledger = jsonpatch.applyPatch(ledger, structuredClone(patches)).newDocument
         if (!isFloatCompany(action) && !isAdvancePhase(action)) continue
         const changes: HistoryCompanyChanges = { presidents: [], closedCompanyIds: [] }
         for (const company of after) {
             const before = ledger.companies.find((previous) => previous.id === company.id)
             if (company.closed && !before?.closed) changes.closedCompanyIds.push(company.id)
             if (company.closed) continue
-            const previous = before?.president
+            const previous = before?.president ? { ...before.president } : undefined
             const next = company.president
             if (previous && next ? !sameOwner(previous, next) : previous !== next)
                 changes.presidents.push({ companyId: company.id, previous, next })

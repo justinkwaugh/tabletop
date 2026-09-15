@@ -6,17 +6,17 @@
         type Company
     } from '@tabletop/18xx'
     import type { StationAppearance } from '../maps/stationPresentation.js'
-    import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
+    import type { MarketAnimationSource } from './marketAnimationSource.js'
     let {
         market,
         companies,
         appearances,
-        session
+        animation
     }: {
         market: StockMarketModel
         companies: readonly Company[]
         appearances: Readonly<Record<string, StationAppearance>>
-        session?: FinanceExampleSession
+        animation?: MarketAnimationSource
     } = $props()
 </script>
 
@@ -24,7 +24,7 @@
     <h2>Stock market</h2>
     <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus the scrollable market.) -->
     <div class="scroll" tabindex="0" role="region" aria-label="Stock market spaces">
-        <StockMarketScene {market} {companies} {appearances} {session} />
+        <StockMarketScene {market} {companies} {appearances} {animation} />
     </div>
     <p class="order">Market order: {stockMarketOrder(market).join(' · ')}</p>
 </section>

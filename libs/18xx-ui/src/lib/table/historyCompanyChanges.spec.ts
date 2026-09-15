@@ -34,3 +34,40 @@ it('keeps an earlier presidency change independent of later recorded owners with
     expect(changes.has(later.id)).toBe(false)
     expect({ companies, actions: [float, later] }).toEqual(before)
 })
+
+it('does not mutate object values inserted from frozen recorded patches', () => {
+    const companies: Company[] = [
+        { id: 'A', name: 'A', kind: 'major', president: { kind: 'player', playerId: 'casey' } }
+    ]
+    const float: FloatCompany = {
+        id: 'float',
+        gameId: 'history',
+        type: 'FloatCompany',
+        source: ActionSource.System,
+        companyId: 'A',
+        undoPatch: [{ op: 'replace', path: '/companies/0/president/playerId', value: 'alex' }]
+    }
+    const later: GameAction = {
+        id: 'sale',
+        gameId: 'history',
+        type: 'SellShares',
+        source: ActionSource.User,
+        undoPatch: [
+            {
+                op: 'replace',
+                path: '/companies/0/president',
+                value: Object.freeze({ kind: 'player', playerId: 'blair' })
+            }
+        ]
+    }
+    const original = structuredClone([float, later])
+    const changes = historyCompanyChanges([float, later], { companies })
+    expect(changes.get(float.id)?.presidents).toEqual([
+        {
+            companyId: 'A',
+            previous: { kind: 'player', playerId: 'alex' },
+            next: { kind: 'player', playerId: 'blair' }
+        }
+    ])
+    expect([float, later]).toEqual(original)
+})

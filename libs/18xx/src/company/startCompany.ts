@@ -13,7 +13,7 @@ import { Owner, getCompany } from '../finance/finance.js'
 import { applySharePurchase } from '../stock/sharePurchase.js'
 import { placeStockMarker } from '../stock/stockMarket.js'
 import { CompanyStartDetails, evaluateCompanyStart } from './companyStart.js'
-import type { StockState } from '../stock/stockState.js'
+import type { FormationState } from './companyState.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { CompanyRules } from './companyRules.js'
 
@@ -55,7 +55,7 @@ export class HydratedStartCompany
         this.#stockRules = stockRules
         this.#companyRules = companyRules
     }
-    apply(state: HydratedGameState & StockState): void {
+    apply(state: HydratedGameState & FormationState): void {
         assert(this.source === ActionSource.User, 'Starting a company requires a player action')
         const result = evaluateCompanyStart(state, this, this.#stockRules, this.#companyRules)
         assert(result.details, result.reason ?? 'Invalid company start')

@@ -117,7 +117,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 16px;
-        padding: 0 16px;
+        padding: 0;
         color: #5e4937;
     }
     .phase,
@@ -167,6 +167,7 @@
     button {
         padding: 7px 8px;
         border: 0;
+        border-radius: 4px;
         background: transparent;
         color: inherit;
         font: inherit;

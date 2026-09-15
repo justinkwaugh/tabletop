@@ -254,12 +254,13 @@ it('rejects a presidency dump without a successor, a stale sale price, an unauth
         expect(() => engine.executeCanonicalAction({ game, state, action })).toThrow()
     expect(state).toEqual(before)
 })
-it('enforces each title’s sale/purchase sequence and one sale block per company', () => {
+it('enforces each title’s sale/purchase sequence while extending company sale blocks', () => {
     for (const [definition, companyId, rules] of [
         [Top, 'ML', TheOldPrinceStockRules],
         [Shikoku, 'AR', Shikoku1889StockRules]
     ] as const) {
         const { game, engine, state } = example(definition)
+        if (definition === Shikoku) give(state, 'AR:share:6', alex)
         const bought = engine.executeCanonicalAction({
             game,
             state,
@@ -274,8 +275,8 @@ it('enforces each title’s sale/purchase sequence and one sale block per compan
             action: sell([{ companyId, shares: 1 }], definition === Top ? 92 : 90)
         }).updatedState
         expect(
-            evaluateShareSale(sale, sell([{ companyId, shares: 1 }], 1), rules).reason
-        ).toContain('one block')
+            evaluateShareSale(sale, sell([{ companyId, shares: 1 }], 1), rules).details?.proceeds
+        ).toBe(definition === Top ? 92 : 90)
         expect(
             evaluateSharePurchase(sale, purchase(`${companyId}:share:5`, 1), rules).reason
         ).toContain('sold shares')

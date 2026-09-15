@@ -57,16 +57,17 @@ export class HydratedSellShares extends HydratableAction<typeof SellShares> impl
             const previous = blocks.find((block) =>
                 block.companyId === sale.companyId && sameOwner(block.seller, this.seller))
             const shares = (previous?.shares ?? 0) + sale.shares
-            const terms = this.#rules.saleTerms(state, sale.companyId, shares)
+            const terms = this.#rules.saleTerms(state, sale.companyId, shares, this.seller)
             assert(typeof terms !== 'string', 'A legal sale requires sale terms')
             if (previous) {
                 previous.shares = shares
                 previous.movement = terms.movement
+                previous.direction = terms.direction
                 saleBlockId = previous.id
             } else {
                 saleBlockId = this.id
                 blocks.push({ id: this.id, companyId: sale.companyId, seller: this.seller,
-                    shares, price: sale.price, movement: terms.movement })
+                    shares, price: sale.price, movement: terms.movement, direction: terms.direction })
             }
         }
         applyShareSale(state, result.details)

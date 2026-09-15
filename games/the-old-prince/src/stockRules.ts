@@ -50,6 +50,7 @@ export const TheOldPrinceStockRules: StockRules = {
             destinationPoolId: 'market',
             marketLimit: 80,
             maximumShares: company.shareCount * 0.3,
+            direction: 'down',
             movement: 1
         }
     },

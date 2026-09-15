@@ -9,7 +9,6 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import { controllingOwner } from '../finance/finance.js'
-import type { StationPlacementState } from '../stations/stationPlacement.js'
 import type { ConstructionState } from './trackConstruction.js'
 
 export const FinishTrack = Type.Object(
@@ -34,7 +33,7 @@ export class HydratedFinishTrack
     constructor(data: FinishTrack) {
         super(data instanceof HydratedFinishTrack ? data.dehydrate() : data, Validator)
     }
-    apply(state: HydratedGameState & ConstructionState & StationPlacementState): void {
+    apply(state: HydratedGameState & ConstructionState): void {
         const turn = state.trackStep
         assert(
             (this.source === ActionSource.User || this.source === ActionSource.System) &&
@@ -45,6 +44,5 @@ export class HydratedFinishTrack
             'Only the operating company’s controlling owner may finish track'
         )
         turn.completed = true
-        state.stationStep = { companyId: this.companyId, placedStationIds: [], completed: false }
     }
 }

@@ -11,7 +11,7 @@ import { getCompany } from '../finance/finance.js'
 import { settleCashPayments } from '../finance/cashPayments.js'
 import { CompanyFlotationDetails, evaluateCompanyFlotation } from './companyFlotation.js'
 import type { TrainState } from '../trains/train.js'
-import type { StockState } from '../stock/stockState.js'
+import type { FormationState } from './companyState.js'
 import type { CompanyRules } from './companyRules.js'
 
 const FloatFields = Type.Object(
@@ -48,7 +48,7 @@ export class HydratedFloatCompany
         super(data instanceof HydratedFloatCompany ? data.dehydrate() : data, Validator)
         this.#rules = rules
     }
-    apply(state: HydratedGameState & StockState & TrainState): void {
+    apply(state: HydratedGameState & FormationState & TrainState): void {
         assert(this.source === ActionSource.System, 'Flotation requires a system action')
         const details = evaluateCompanyFlotation(state, this.companyId, this.#rules)
         assert(details, 'Company does not qualify to float')

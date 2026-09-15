@@ -1,3 +1,5 @@
+import { OperatingRoundIdentity } from '../operating/operatingRoundSnapshot.js'
+import type { OperatingState } from '../operating/operatingSet.js'
 import type { MapStateData } from '../map/mapState.js'
 import { PrivateEffect, type PrivateRules } from '../privates/privateRules.js'
 import { applyPrivateEffects } from '../privates/privateLifecycle.js'
@@ -31,7 +33,7 @@ export const DistributeEarnings = Type.Object(
         choice: EarningsChoice,
         metadata: Type.Optional(
             Type.Object(
-                { ...EarningsDetails.properties, privateEffects: Type.Array(PrivateEffect) },
+                { ...EarningsDetails.properties, privateEffects: Type.Array(PrivateEffect), round: Type.Optional(OperatingRoundIdentity), companyName: Type.String() },
                 { additionalProperties: false }
             )
         )
@@ -69,7 +71,7 @@ export class HydratedDistributeEarnings
         this.#privateRules = privateRules
         this.#stockRules = stockRules
     }
-    apply(state: HydratedGameState & DistributionState & StockState & MapStateData): void {
+    apply(state: HydratedGameState & DistributionState & StockState & MapStateData & Pick<OperatingState, 'operatingSet'>): void {
         const distribution = new EarningsDistribution(state, this.#rules)
         assert(
             (this.source === ActionSource.User ||
@@ -90,9 +92,13 @@ export class HydratedDistributeEarnings
             )
         getCompany(state, this.companyId).operated = true
         state.earningsDistribution = result.details
-        state.trainPurchaseStep = { companyId: this.companyId, purchasedTrainIds: [] }
         const privateEffects = this.#privateRules.operationEffects(state, this.companyId)
         applyPrivateEffects(state, privateEffects, this.#stockRules)
-        this.metadata = { ...result.details, privateEffects }
+        this.metadata = {
+            ...result.details,
+            privateEffects,
+            companyName: getCompany(state, this.companyId).name,
+            ...(state.operatingSet ? { round: { number: state.operatingSet.number, roundNumber: state.operatingSet.roundNumber } } : {})
+        }
     }
 }

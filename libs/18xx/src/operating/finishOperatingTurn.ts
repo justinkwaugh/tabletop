@@ -1,3 +1,5 @@
+import { OperatingRoundSnapshot, operatingRoundSnapshot } from './operatingRoundSnapshot.js'
+import type { ValuationRules } from '../ending/finalWealth.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -43,7 +45,8 @@ export const FinishOperatingTurn = Type.Object(
     {
         ...PlayerAction.properties,
         type: Type.Literal('FinishOperatingTurn'),
-        companyId: Type.String()
+        companyId: Type.String(),
+        metadata: Type.Optional(OperatingRoundSnapshot)
     },
     { additionalProperties: false }
 )
@@ -60,12 +63,15 @@ export class HydratedFinishOperatingTurn
     implements FinishOperatingTurn
 {
     declare type: 'FinishOperatingTurn'
+    declare metadata?: OperatingRoundSnapshot
     declare companyId: string
     declare playerId: string
     readonly #rules: TrainRules
-    constructor(data: FinishOperatingTurn, rules: TrainRules) {
+    readonly #valuationRules: ValuationRules
+    constructor(data: FinishOperatingTurn, rules: TrainRules, valuationRules: ValuationRules) {
         super(data instanceof HydratedFinishOperatingTurn ? data.dehydrate() : data, Validator)
         this.#rules = rules
+        this.#valuationRules = valuationRules
     }
     apply(state: HydratedGameState & OperatingTurnState): void {
         assert(
@@ -82,6 +88,7 @@ export class HydratedFinishOperatingTurn
         delete state.stationStep
         delete state.routeStep
         delete state.earningsDistribution
+        this.metadata = operatingRoundSnapshot(state, this.#valuationRules)
         delete state.trainPurchaseStep
     }
 }

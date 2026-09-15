@@ -23,9 +23,9 @@ import { isFinishStockTurn, type HydratedFinishStockTurn } from './finishStockTu
 import { evaluateSharePurchase } from './sharePurchase.js'
 import { evaluateShareSale } from './shareSale.js'
 import { exceedsStockLimits, type StockRules } from './stockRules.js'
-import type { StockState } from './stockState.js'
+import type { FormationState } from '../company/companyState.js'
 
-type State = HydratedGameState & StockState
+type State = HydratedGameState & FormationState
 type Action =
     | HydratedBuyShares
     | HydratedSellShares

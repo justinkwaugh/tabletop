@@ -74,9 +74,10 @@ export function evaluateShareSale(
     if (!previous || !rules.extendSaleBlocks) return evaluateShareDisposal(state, seller, sales, rules)
     return evaluateShareDisposal(state, seller, sales, {
         presidencyCandidates: rules.presidencyCandidates,
-        saleTerms(projected, companyId, shares) {
-            const terms = rules.saleTerms(projected, companyId, previous.shares + shares)
+        saleTerms(projected, companyId, shares, seller) {
+            const terms = rules.saleTerms(projected, companyId, previous.shares + shares, seller)
             if (typeof terms === 'string') return terms
+            assert(terms.direction === previous.direction, 'An extended sale block must keep its movement direction')
             return {
                 ...terms,
                 price: previous.price,
@@ -103,7 +104,7 @@ export function evaluateShareDisposal(
             return { reason: 'Choose a positive number of shares.' }
         if (!state.companies.some((company) => company.id === sale.companyId))
             return { reason: 'Unknown company.' }
-        const terms = rules.saleTerms(projected, sale.companyId, sale.shares)
+        const terms = rules.saleTerms(projected, sale.companyId, sale.shares, seller)
         if (typeof terms === 'string') return { reason: terms }
         if (sale.shares > terms.maximumShares)
             return { reason: 'The sale exceeds the per-turn sale limit.' }
@@ -144,7 +145,7 @@ export function evaluateShareDisposal(
                 reason: 'The president’s certificate cannot be sold without an eligible successor.'
             }
         const from = companyMarketSpace(projected.stockMarket, company.id)
-        const to = moveMarketSpace(projected.stockMarket, from.id, 'down', terms.movement)
+        const to = moveMarketSpace(projected.stockMarket, from.id, terms.direction, terms.movement)
         const proceeds = terms.price * sale.shares
         const settlement: ShareSaleSettlement = {
             ...sale,

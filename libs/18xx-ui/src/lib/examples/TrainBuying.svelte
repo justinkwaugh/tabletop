@@ -67,7 +67,6 @@
                 >{/if}
         </header>
         {/if}
-        {#if session.isViewingHistory}<p>History view</p>{/if}
 
         {#if session.companyTrainChoices.length}
         <nav aria-label="Train source" class="sources">
@@ -122,7 +121,7 @@
 
 <style>
     section {
-        padding: 4px 0;
+        padding: 4px 0 0;
         color: #514536;
         font:
             13px/1.5 ui-sans-serif,
@@ -152,7 +151,7 @@
         text-align: center;
         margin: 12px 0 6px;
     }
-    .sources { display: flex; justify-content: center; gap: 4px; margin: 10px 0; }
+    .sources { display: flex; justify-content: center; gap: 4px; margin: 6px 0; }
     .sources button { background: transparent; border: 0; padding: 4px 9px; }
     .sources button[aria-pressed='true'] { background: #e8dfd2; }
     .trains {
@@ -161,7 +160,7 @@
         justify-content: center;
         align-items: flex-end;
         gap: 10px;
-        margin-top: 10px;
+        margin-top: 6px;
     }
     .depot-entry { display: flex; flex-direction: column; gap: 2px; }
     .remaining { text-align: right; }

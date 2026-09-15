@@ -1,6 +1,6 @@
 import {
     privateOwner,
-    operatingCompany,
+    FinanceExampleTransferTiming,
     nextOperatingCompany,
     controllingOwner,
     type PrivatePowerRules
@@ -30,7 +30,7 @@ export const Shikoku1889PrivatePowerRules: PrivatePowerRules = {
         const owner = privateOwner(state, privateCompanyId)
         if (privateCompanyId !== 'MF' || owner?.kind !== 'player' || owner.playerId !== playerId)
             return undefined
-        const buyer = operatingCompany(state)
+        const buyer = FinanceExampleTransferTiming.operatingCompany(state)
         const betweenCompanies =
             state.machineState === 'OperatingSet' &&
             state.operatingSet?.privateIncomePaid &&

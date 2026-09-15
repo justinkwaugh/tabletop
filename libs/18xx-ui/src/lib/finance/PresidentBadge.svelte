@@ -9,17 +9,20 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 14px;
-        height: 14px;
+        width: 12px;
+        height: 12px;
         margin-left: 4px;
-        border: 1px solid #c8b08b;
-        border-radius: 3px;
-        background: #efe4cf;
-        color: #796047;
+        border: 1px solid var(--president-badge-background, #695540);
+        border-radius: 50%;
+        background: var(--president-badge-background, #695540);
+        color: #fffaf4;
         font-size: 9px;
         font-weight: 700;
         line-height: 1;
         vertical-align: -3px;
+    }
+    svg {
+        flex-shrink: 0;
     }
     text {
         fill: currentColor;

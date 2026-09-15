@@ -1,10 +1,12 @@
+import { operatingHistory } from '../table/operatingHistory.js'
+import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { setStagedSelectionValue, type StagedSelectionState } from '@tabletop/frontend-components'
 import { isSellFundingShares, isIssueTreasuryShares, isContributeTrainFunds } from '@tabletop/18xx'
 import { EighteenXXPreferenceDefinition, type EighteenXXPreferences } from '@tabletop/18xx'
 import { isOfferPurchase, isRespondToPurchaseOffer, isDistributeEarnings } from '@tabletop/18xx'
 import type { TitlePreferences } from '@tabletop/frontend-components'
 import { chooseTrainSource, chooseCompanyTrain, backFromTrainBuying, type TrainBuyingSelection, type TrainSource } from './trainBuyingSelection.js'
-import { FinanceExampleValidator } from '@tabletop/18xx'
+import { FinanceExampleValidator, type ValuationRules } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 import { HistoricalMaps, type HistoricalMap } from '../maps/historicalMap.js'
 import {
@@ -186,6 +188,10 @@ type Selection =
     | { kind: 'sale'; request: SaleRequest }
     | { kind: 'start'; stages: CompanyStartSelection }
 export class FinanceExampleSession extends GameSession<GameState, HydratedGameState> {
+    operatingIncomeHistory() {
+        return operatingHistory(this.history.visibleContext.actions)
+    }
+    readonly marketAnimation = createMarketAnimationSource(this, (state) => requireFinanceExampleState(state).stockMarket)
     readonly preferences: TitlePreferences<typeof EighteenXXPreferences> = this.createPreferences(EighteenXXPreferenceDefinition)
     selection: Selection | undefined = $state()
     constructor(

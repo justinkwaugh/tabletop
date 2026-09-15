@@ -1,9 +1,13 @@
 <script lang="ts">
     import { onMount, onDestroy, untrack } from 'svelte'
+    import { migrateOperatingIncome } from './migrateOperatingIncome.js'
+    import { TheOldPrinceEndingRules } from '@tabletop/the-old-prince'
+    import { Shikoku1889EndingRules } from '@tabletop/shikoku-1889'
     import { migrateCompanyNames } from './migrateCompanyNames.js'
     import { Compile } from 'typebox/compile'
     import {
         assertExists,
+        GameEngine,
         GameStorage,
         PlayerStatus,
         type GameState,
@@ -72,6 +76,10 @@
             const owner = app.authorizationService.getSessionUser()
             assertExists(owner, 'The local harness requires a user')
             let loaded = await loadCompatibleExample()
+            if (loaded?.game?.state && migrateOperatingIncome(loaded.game.state, loaded.actions,
+                new GameEngine(runtime), definition.info.id === 'the-old-prince' ? TheOldPrinceEndingRules : Shikoku1889EndingRules)) {
+                await app.gameService.saveGameLocally({ game: loaded.game, state: loaded.game.state, actions: loaded.actions })
+            }
             if (loaded && position === 'finished') {
                 const validators = new Map(
                     Object.entries(runtime.apiActions).map(([type, schema]) => [type, Compile(schema)])

@@ -3,12 +3,11 @@
     import { onMount, tick, untrack } from 'svelte'
     import { prefersReducedMotion } from 'svelte/motion'
     import {
-        requireFinanceExampleState,
         type StockMarket as StockMarketModel,
         type Company
     } from '@tabletop/18xx'
     import type { AnimationContext } from '@tabletop/frontend-components'
-    import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
+    import type { MarketAnimationSource, MarketStateChange } from './marketAnimationSource.js'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import {
@@ -23,13 +22,13 @@
         market,
         companies,
         appearances,
-        session,
+        animation,
         renderScale = 1
     }: {
         market: StockMarketModel
         companies: readonly Company[]
         appearances: Readonly<Record<string, StationAppearance>>
-        session?: FinanceExampleSession
+        animation?: MarketAnimationSource
         renderScale?: number
     } = $props()
     const columns = $derived(Math.max(...market.spaces.map((space) => space.column)) + 1)
@@ -37,7 +36,7 @@
     let tokens = $derived(marketTokenLayout(market))
     let hoveredSpace: string | undefined = $derived.by(() => {
         market
-        session?.updatingVisibleState
+        animation?.updatingVisibleState
         return undefined
     })
     const expanded = $derived(hoveredSpace ? expandedMarketStack(market, hoveredSpace) : [])
@@ -75,17 +74,17 @@
         }
     }
     onMount(() => {
-        const activeSession = untrack(() => session)
+        const activeSession = untrack(() => animation)
         if (!activeSession) return
         const listener = async ({
             to,
             from,
             action,
             animationContext
-        }: Parameters<FinanceExampleSession['onGameStateChange']>[0]) => {
+        }: MarketStateChange) => {
             if (!from || !board || getComputedStyle(board).visibility !== 'visible') return
-            const before = marketTokenLayout(requireFinanceExampleState(from).stockMarket)
-            const after = marketTokenLayout(requireFinanceExampleState(to).stockMarket)
+            const before = marketTokenLayout(from)
+            const after = marketTokenLayout(to)
             if (JSON.stringify(before) === JSON.stringify(after)) return
             hoveredSpace = undefined
             const beforeById = new Map(before.map((item) => [item.companyId, item]))
@@ -133,9 +132,9 @@
                 if (board) tokens = after
             })
         }
-        activeSession.addGameStateChangeListener(listener)
+        const unsubscribe = activeSession.subscribe(listener)
         return () => {
-            activeSession.removeGameStateChangeListener(listener)
+            unsubscribe()
             for (const timeline of timelines)
                 for (const element of elements.values()) timeline.killTweensOf(element)
             timelines.clear()
@@ -143,7 +142,7 @@
         }
     })
     function expandStack(spaceId: string) {
-        if (session?.updatingVisibleState) return
+        if (animation?.updatingVisibleState) return
         hoveredSpace = tokens.some((token) => token.spaceId === spaceId && token.overlapped)
             ? spaceId
             : undefined
@@ -156,7 +155,7 @@
     bind:this={board}
     role="region"
     aria-label="Stock market board"
-    aria-busy={session?.updatingVisibleState ?? false}
+    aria-busy={animation?.updatingVisibleState ?? false}
     style:--render-scale={renderScale}
 >
     <div
@@ -230,7 +229,7 @@
             >
                 <div
                     class="hover-offset"
-                    class:moving={session?.updatingVisibleState}
+                    class:moving={animation?.updatingVisibleState}
                     style:transform={`translate(${((target?.x ?? token.x) - token.x) * renderScale}px, ${((target?.y ?? token.y) - token.y) * renderScale}px)`}
                 >
                     <div

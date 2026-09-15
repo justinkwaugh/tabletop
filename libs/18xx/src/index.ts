@@ -137,3 +137,7 @@ export * from './stock/shareSaleValue.js'
 export * from './stock/priorityOrder.js'
 
 export * from './preferences.js'
+
+export * from './examples/financeExampleOperating.js'
+
+export * from './operating/operatingRoundSnapshot.js'

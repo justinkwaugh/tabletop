@@ -37,6 +37,7 @@ export const Shikoku1889StockRules: StockRules = {
             destinationPoolId: 'open-market',
             marketLimit: 50,
             maximumShares: company.shareCount,
+            direction: 'down',
             movement: shares
         }
     },

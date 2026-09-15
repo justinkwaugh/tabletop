@@ -15,12 +15,13 @@ import {
     unownedTrain,
     stockMarketSpace,
     type CompanyRules,
+    type FormationState,
     type StockState
 } from '@tabletop/18xx'
 import { peirPresident } from './finance.js'
 import { TheOldPrinceStockRules, theOldPrincePurchasePayers } from './stockRules.js'
 
-export function availableTheOldPrinceTranche(state: StockState) {
+export function availableTheOldPrinceTranche(state: FormationState) {
     return availableCompanyTranche(state.tranches, (companyId) => {
         const company = getCompany(state, companyId)
         return (

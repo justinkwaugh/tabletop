@@ -17,8 +17,7 @@
                     (!selection.placement && !session.actions.length)}>Undo</button>{/if}
         </header>
         {#if step.completed}<p>Station placement complete.</p>
-        {:else if session.isViewingHistory}<p>History view</p>
-        {:else if !selection.stationId}
+        {:else if !session.isViewingHistory && !selection.stationId}
             {#if session.requiresStationTokenChoice}
                 <div class="choices">
                     {#each session.availableStations as station, index}

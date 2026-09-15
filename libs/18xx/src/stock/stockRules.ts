@@ -17,6 +17,7 @@ export type ShareSaleTerms = {
     marketLimit: number
     maximumShares: number
     movement: number
+    direction: string
 }
 export interface StockRules {
     round: StockRoundRules
@@ -27,7 +28,12 @@ export interface StockRules {
         certificate: ShareCertificate,
         buyer: Owner
     ): SharePurchaseTerms | string
-    saleTerms(state: StockState, companyId: string, shares: number): ShareSaleTerms | string
+    saleTerms(
+        state: StockState,
+        companyId: string,
+        shares: number,
+        seller: Owner
+    ): ShareSaleTerms | string
     certificateLimit(state: StockState, buyer: Owner): number
     certificateWeight(state: StockState, certificate: Portfolio[number]): number
     ownershipLimit(state: StockState, companyId: string, buyer: Owner): number

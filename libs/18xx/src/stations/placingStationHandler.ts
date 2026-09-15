@@ -1,5 +1,7 @@
+import { nextOperatingCompany, type OperatingState } from '../operating/operatingSet.js'
 import {
     ActionSource,
+    assertExists,
     type HydratedAction,
     type HydratedGameState,
     type MachineContext,
@@ -12,7 +14,7 @@ import {
 } from './stationPlacement.js'
 import { isPlaceStation, type HydratedPlaceStation } from './placeStation.js'
 import { FinishStations, isFinishStations, type HydratedFinishStations } from './finishStations.js'
-type State = HydratedGameState & StationPlacementState
+type State = HydratedGameState & OperatingState & StationPlacementState
 export class PlacingStationHandler implements MachineStateHandler<
     HydratedPlaceStation | HydratedFinishStations,
     State
@@ -61,6 +63,11 @@ export class PlacingStationHandler implements MachineStateHandler<
     }
     enter(context: MachineContext<State>): void {
         const state = context.gameState
+        const operatingCompanyId = nextOperatingCompany(state)
+        assertExists(operatingCompanyId, 'Step entry requires an operating company')
+        if (!state.stationStep) {
+            state.stationStep = { companyId: operatingCompanyId, placedStationIds: [], completed: false }
+        }
         if (this.mustFinish(state)) {
             const step = state.stationStep!
             context.addSystemAction(FinishStations, {

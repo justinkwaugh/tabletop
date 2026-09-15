@@ -13,7 +13,8 @@ export const StockTurn = Type.Object(
             seller: Owner,
             shares: Type.Integer({ minimum: 1 }),
             price: Type.Integer({ minimum: 1 }),
-            movement: Type.Integer({ minimum: 0 })
+            movement: Type.Integer({ minimum: 0 }),
+            direction: Type.String()
         }, { additionalProperties: false })))
     },
     { additionalProperties: false }

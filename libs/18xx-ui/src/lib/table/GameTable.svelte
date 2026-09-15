@@ -48,6 +48,7 @@
         gameInformation,
         exchangePoolId,
         companyNames,
+        spreadsheetCompanyOrder,
         auctionLotDescription,
         numberedShareNames,
         numberedShareLocation,
@@ -71,6 +72,7 @@
         companyRoles?: readonly { companyId: string; label: string; secondLine?: string }[]
         marketPoolId: string
         exchangePoolId?: string
+        spreadsheetCompanyOrder?: readonly string[]
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
         auctionLotDescription?: (id: string) => string
         numberedShareNames?: NumberedShareNames
@@ -248,6 +250,7 @@
     })
     const financialState = $derived(session.financialState)
     const operating = $derived(financialState.stockRound.completed && !!financialState.operatingSet)
+    const operatingCompanyId = $derived(operating && !financialState.result ? nextOperatingCompany(financialState) : undefined)
     const companyOrder = $derived(
         (operating && financialState.operatingSet
             ? financialState.operatingSet.companyOrder
@@ -386,9 +389,7 @@
                 completedCompanyIds={operating
                     ? financialState.operatingSet?.completedCompanyIds
                     : []}
-                currentCompanyId={operating && !financialState.result
-                    ? nextOperatingCompany(financialState)
-                    : undefined}
+                currentCompanyId={operatingCompanyId}
             >
                 {#snippet companyDetails(company)}
                     <CompanyDetails
@@ -469,7 +470,7 @@
                 >
                     <ScalingWrapper justify="center" controls="bottom-left" expandable={true}>
                         <StockMarketScene
-                            {session}
+                            animation={session.marketAnimation}
                             appearances={session.mapView.stations}
                             renderScale={2}
                             market={session.financialState.stockMarket}
@@ -488,6 +489,10 @@
                     tabindex="0"
                 >
                     <OwnershipSpreadsheet
+                        companyOrder={spreadsheetCompanyOrder}
+                        {operatingCompanyId}
+                        onPreviewMap={previewHistoryMap}
+                        {trainColors}
                         {valuationRules}
                         {session}
                         {companyNames}

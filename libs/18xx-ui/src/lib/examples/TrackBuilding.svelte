@@ -50,8 +50,7 @@
         </header>
         {/if}
         {#if turn.completed}<p>Track complete.</p>
-        {:else if session.isViewingHistory}<p>History view</p>
-        {:else if !mapControls && !selection.locationId}
+        {:else if !session.isViewingHistory && !mapControls && !selection.locationId}
             <label
                 >Build on <select
                     aria-label="Construction hex"
@@ -71,7 +70,7 @@
             {#if session.canBuildTrack && !session.trackLocationIds.length}<p>
                     No legal construction is available.
                 </p>{/if}
-        {:else if !mapControls && selection.locationId}
+        {:else if !session.isViewingHistory && !mapControls && selection.locationId}
             <div class="selection">
                 <strong>{selection.locationId.value}</strong><button
                     onclick={() => session.backTrack()}>Back</button

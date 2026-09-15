@@ -2,6 +2,7 @@ import { assertExists } from '@tabletop/common'
 import { getCompany, sameOwner, sharesOwned } from '../finance/finance.js'
 import * as Type from 'typebox'
 import { Owner, type FinancialState } from '../finance/finance.js'
+import type { StockState } from '../stock/stockState.js'
 import { StationFields } from '../map/station.js'
 
 export const CompanyTranche = Type.Object(
@@ -25,13 +26,15 @@ export const OwnershipLimitExemption = Type.Object(
 )
 export type OwnershipLimitExemption = Type.Static<typeof OwnershipLimitExemption>
 
-export const CompanyFields = {
+export const StockCompanyFields = {
     phaseId: Type.String(),
-    tranches: Type.Array(CompanyTranche),
-    ownershipLimitExemptions: Type.Array(OwnershipLimitExemption),
-    ...StationFields
+    ownershipLimitExemptions: Type.Array(OwnershipLimitExemption)
 }
+export const TrancheFields = { tranches: Type.Array(CompanyTranche) }
+export const CompanyFields = { ...StockCompanyFields, ...TrancheFields, ...StationFields }
+export type StockCompanyState = FinancialState & Type.Static<Type.TObject<typeof StockCompanyFields>>
 export type CompanyState = FinancialState & Type.Static<Type.TObject<typeof CompanyFields>>
+export type FormationState = StockState & CompanyState
 
 export function availableCompanyTranche(
     tranches: readonly CompanyTranche[],
@@ -45,7 +48,7 @@ export function availableCompanyTranche(
 }
 
 export function grantOwnershipLimitExemption(
-    state: CompanyState,
+    state: StockCompanyState,
     companyId: string,
     owner: Owner
 ): void {

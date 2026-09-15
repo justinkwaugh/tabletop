@@ -5,7 +5,7 @@ import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { copyFinances, getCompany } from '../finance/finance.js'
 import { applyPresidencyChange } from '../stock/presidency.js'
 import type { SharePurchaseDetails } from '../stock/sharePurchase.js'
-import type { StockState } from '../stock/stockState.js'
+import type { FormationState } from './companyState.js'
 import type { CompanyRules } from './companyRules.js'
 
 export const CompanyFlotationDetails = Type.Object(
@@ -19,7 +19,7 @@ export const CompanyFlotationDetails = Type.Object(
 export type CompanyFlotationDetails = Type.Static<typeof CompanyFlotationDetails>
 
 export function evaluateCompanyFlotation(
-    state: StockState,
+    state: FormationState,
     companyId: string,
     rules: CompanyRules
 ): CompanyFlotationDetails | undefined {
@@ -31,7 +31,7 @@ export function evaluateCompanyFlotation(
     return { companyId, payments }
 }
 export function nextCompanyToFloat(
-    state: StockState,
+    state: FormationState,
     rules: CompanyRules
 ): CompanyFlotationDetails | undefined {
     for (const company of state.companies) {
@@ -41,11 +41,11 @@ export function nextCompanyToFloat(
     return undefined
 }
 export function flotationAfterPurchase(
-    state: StockState,
+    state: FormationState,
     purchase: SharePurchaseDetails,
     rules: CompanyRules
 ): CompanyFlotationDetails | undefined {
-    const projected: StockState = { ...state, ...copyFinances(state) }
+    const projected: FormationState = { ...state, ...copyFinances(state) }
     const certificate = projected.certificates.find((item) => item.id === purchase.certificateId)
     assert(certificate && !certificate.retired, 'Missing purchased certificate')
     certificate.owner = purchase.buyer

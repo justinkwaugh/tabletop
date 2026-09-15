@@ -1,10 +1,10 @@
 import { copyFinances } from '../finance/finance.js'
 import type { GameState } from '@tabletop/common'
-import type { CompanyState } from '../company/companyState.js'
+import type { StockCompanyState } from '../company/companyState.js'
 import type { StockMarket } from './stockMarket.js'
 import type { StockRound } from './stockRound.js'
 
-export type StockState = CompanyState &
+export type StockState = StockCompanyState &
     Pick<GameState, 'players' | 'activePlayerIds' | 'turnManager'> & {
         stockRound: StockRound
         stockMarket: StockMarket

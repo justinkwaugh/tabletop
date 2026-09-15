@@ -20,7 +20,7 @@ import {
     type Owner,
     type Portfolio,
     type Station,
-    type StockState,
+    type FormationState,
     type Train,
     type TrainState
 } from '@tabletop/18xx'
@@ -32,7 +32,7 @@ import { TheOldPrinceCompanyRules } from './companyRules.js'
 import { TheOldPrinceTrainRules } from './trains.js'
 import type { BranchSplitAllocation, BranchSplitSettlement } from './branchSplitAllocation.js'
 
-export type BranchSplitState = StockState & TrainState & Pick<GameState, 'machineState'>
+export type BranchSplitState = FormationState & TrainState & Pick<GameState, 'machineState'>
 export type BranchSplitRequest = {
     playerId: string
     parentId: string

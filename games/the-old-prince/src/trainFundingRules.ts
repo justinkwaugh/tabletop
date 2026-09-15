@@ -28,11 +28,12 @@ export const TheOldPrinceTrainFundingRules: TrainFundingRules = {
             destinationPoolId: 'market',
             marketLimit: 100,
             maximumShares: shares,
+            direction: 'down',
             movement: 1
         }
     },
-    saleTerms: (state, companyId, shares) =>
-        TheOldPrinceStockRules.saleTerms(state, companyId, shares),
+    saleTerms: (state, companyId, shares, seller) =>
+        TheOldPrinceStockRules.saleTerms(state, companyId, shares, seller),
     protectsPresidency: (companyId, operatingCompanyId) => companyId === operatingCompanyId,
     requiredSaleShares: () => 0
 }

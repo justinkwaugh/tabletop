@@ -51,7 +51,7 @@ export interface TrainFundingRules {
         companyId: string,
         shares: number
     ): ShareSaleTerms | undefined
-    saleTerms(state: FundingState, companyId: string, shares: number): ShareSaleTerms | string
+    saleTerms(state: FundingState, companyId: string, shares: number, seller: Owner): ShareSaleTerms | string
     protectsPresidency(companyId: string, operatingCompanyId: string): boolean
     requiredSaleShares(state: FundingState, seller: Owner, companyId: string): number
 }
@@ -248,8 +248,8 @@ export class EmergencyTrainFunding {
                     [{ companyId: company.id, shares }],
                     {
                         presidencyCandidates: this.stocks.presidencyCandidates,
-                        saleTerms: (_state, id, count) =>
-                            this.rules.saleTerms(this.state, id, count)
+                        saleTerms: (_state, id, count, seller) =>
+                            this.rules.saleTerms(this.state, id, count, seller)
                     }
                 )
                 if (

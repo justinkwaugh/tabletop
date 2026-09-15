@@ -1,3 +1,4 @@
+import type { FormationState } from '../company/companyState.js'
 import {
     ActionSource,
     assertExists,
@@ -18,7 +19,7 @@ import { evaluatePrivateExchange, privateExchangeOffers } from './privateExchang
 import type { PrivateState, PrivateRules } from './privateRules.js'
 
 export class PrivateExchangeHandler<
-    State extends HydratedGameState & PrivateState
+    State extends HydratedGameState & PrivateState & FormationState
 > implements MachineStateHandler<HydratedAction, State> {
     constructor(
         private readonly handler: MachineStateHandler<HydratedAction, State>,

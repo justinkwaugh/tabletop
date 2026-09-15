@@ -299,6 +299,7 @@ it.each([true, false])(
         expect(trainCanBeTraded(remaining)).toBe(false)
         delete current.trainPurchaseStep
         current.machineState = 'RunningTrains'
+        current.operatingSet!.completedCompanyIds = current.operatingSet!.completedCompanyIds.filter((id) => id !== 'ML')
         current.routeStep = { companyId: 'ML' }
         const result = engine.executeCanonicalAction({
             game,
@@ -319,12 +320,17 @@ it.each([true, false])(
                     : []
             })
         })
-        expect(result.processedActions.map((a) => a.type)).toEqual(['RunTrains', 'RustTrains'])
+        expect(result.processedActions.map((a) => a.type)).toEqual(submitRoute
+            ? ['RunTrains', 'RustTrains']
+            : ['RunTrains', 'RustTrains', 'DistributeEarnings'])
+        let afterRust = current
+        for (const processed of result.processedActions.slice(0, 2))
+            afterRust = engine.applyProcessedAction({ game, state: afterRust, action: processed })
         expect(
             result.updatedState.trainInventory.trains.find((t) => t.id === four.id)?.status
         ).toBe('removed')
-        expect(result.updatedState.machineState).toBe('DistributingEarnings')
-        expect(result.updatedState.routeStep!.result!.routes).toHaveLength(submitRoute ? 1 : 0)
+        expect(afterRust.machineState).toBe('DistributingEarnings')
+        expect(afterRust.routeStep!.result!.routes).toHaveLength(submitRoute ? 1 : 0)
         let replay = current
         for (const a of result.processedActions)
             replay = engine.applyProcessedAction({ game, state: replay, action: a })

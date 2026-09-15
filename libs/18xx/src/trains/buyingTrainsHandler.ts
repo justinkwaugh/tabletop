@@ -1,3 +1,4 @@
+import { nextOperatingCompany } from '../operating/operatingSet.js'
 import {
     EmergencyTrainFunding,
     type FundingState,
@@ -14,6 +15,7 @@ import {
 } from '../operating/finishOperatingTurn.js'
 import {
     ActionSource,
+    assertExists,
     type HydratedAction,
     type HydratedGameState,
     type MachineContext,
@@ -79,7 +81,14 @@ export class BuyingTrainsHandler implements MachineStateHandler<
         ]
     }
 
-    enter(): void {}
+    enter(context: MachineContext<State>): void {
+        const state = context.gameState
+        const operatingCompanyId = nextOperatingCompany(state)
+        assertExists(operatingCompanyId, 'Step entry requires an operating company')
+        if (!state.trainPurchaseStep) {
+            state.trainPurchaseStep = { companyId: operatingCompanyId, purchasedTrainIds: [] }
+        }
+    }
     onAction(
         action: HydratedBuyTrain | HydratedFinishOperatingTurn | HydratedFundTrain,
         context: MachineContext<State>

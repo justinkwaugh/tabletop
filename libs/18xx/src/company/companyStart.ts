@@ -3,7 +3,7 @@ import { copyFinances, getCompany } from '../finance/finance.js'
 import { SharePurchaseDetails, evaluateShareAcquisition } from '../stock/sharePurchase.js'
 import { placeStockMarker } from '../stock/stockMarket.js'
 import type { Owner } from '../finance/finance.js'
-import type { StockState } from '../stock/stockState.js'
+import type { FormationState } from './companyState.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { CompanyRules } from './companyRules.js'
 
@@ -27,7 +27,7 @@ export type CompanyStartResult =
     | { details?: never; reason: string }
 
 export function evaluateCompanyStart(
-    state: StockState,
+    state: FormationState,
     request: CompanyStartRequest,
     stockRules: StockRules,
     rules: CompanyRules
@@ -51,7 +51,7 @@ export function evaluateCompanyStart(
         return { reason: 'The president’s certificate is unavailable.' }
     const terms = rules.startTerms(state, company.id, request.buyer, space.id)
     if (typeof terms === 'string') return { reason: terms }
-    const projected: StockState = {
+    const projected: FormationState = {
         ...state,
         ...copyFinances(state),
         stockMarket: {

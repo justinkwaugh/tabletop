@@ -10,7 +10,7 @@ import {
 import { nextCompanyToFloat } from '../company/companyFlotation.js'
 import type { CompanyRules } from '../company/companyRules.js'
 import { controllingOwner } from '../finance/finance.js'
-import { operatingCompany, type TransferRules } from '../transfers/purchaseOffer.js'
+import { type TransferRules } from '../transfers/purchaseOffer.js'
 import {
     HydratedOfferPurchase,
     HydratedRespondToPurchaseOffer
@@ -81,7 +81,7 @@ export class CompanyDecisionsHandler<
                 ? ['LayPrivateTile', 'DeclinePrivateTile']
                 : []
         const actions = this.handler.validActionsForPlayer(playerId, context)
-        const companyId = operatingCompany(state)
+        const companyId = this.transfers.operatingCompany(state)
         if (companyId && controllingOwner(state, companyId)?.playerId === playerId) {
             if (purchaseChoices(state, playerId, this.transfers, this.trains).length)
                 actions.push('OfferPurchase')

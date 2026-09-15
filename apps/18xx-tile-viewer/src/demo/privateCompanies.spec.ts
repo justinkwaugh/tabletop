@@ -451,14 +451,13 @@ it('TOP concessions close on operation and no longer receive private income', ()
         owner: { kind: 'player', playerId: 'alex' }
     })
     let current = state
-    for (const type of ['FinishTrack', 'FinishStations', 'RunTrains', 'DistributeEarnings']) {
+    for (const type of ['FinishTrack', 'FinishStations', 'RunTrains']) {
         current = engine.executeCanonicalAction({
             game,
             state: current,
             action: action(current, type, {
                 companyId: 'ML',
-                ...(type === 'RunTrains' ? { routes: [] } : {}),
-                ...(type === 'DistributeEarnings' ? { choice: 'withhold' } : {})
+                ...(type === 'RunTrains' ? { routes: [] } : {})
             })
         }).updatedState
     }

@@ -1,6 +1,8 @@
+import { nextOperatingCompany, type OperatingState } from '../operating/operatingSet.js'
 import { trainsRustingAfterOperation } from '../trains/rustTrains.js'
 import {
     ActionSource,
+    assertExists,
     type HydratedAction,
     type HydratedGameState,
     type MachineContext,
@@ -9,7 +11,7 @@ import {
 import { RunTrains, isRunTrains, type HydratedRunTrains } from './runTrains.js'
 import { RouteEvaluation, type RouteRules } from './routeEvaluation.js'
 import type { TrainRunningState } from './route.js'
-type State = HydratedGameState & TrainRunningState
+type State = HydratedGameState & OperatingState & TrainRunningState
 export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrains, State> {
     constructor(
         private readonly rules: RouteRules,
@@ -43,6 +45,11 @@ export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrai
     }
     enter(context: MachineContext<State>): void {
         const state = context.gameState
+        const operatingCompanyId = nextOperatingCompany(state)
+        assertExists(operatingCompanyId, 'Step entry requires an operating company')
+        if (!state.routeStep) {
+            state.routeStep = { companyId: operatingCompanyId }
+        }
         const companyId = state.routeStep?.companyId
         if (companyId && !state.routeStep?.result &&
             new RouteEvaluation(state, this.rules).cannotRun(companyId)) {

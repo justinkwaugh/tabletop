@@ -1,3 +1,5 @@
+import { OperatingRoundSnapshot, operatingRoundSnapshot } from './operatingRoundSnapshot.js'
+import type { ValuationRules } from '../ending/finalWealth.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -20,7 +22,11 @@ const Fields = Type.Object({
     type: Type.Literal('StartOperatingRound'),
     metadata: Type.Optional(
         Type.Object(
-            { operatingSet: OperatingSet, payments: Type.Array(CashPayment) },
+            {
+                operatingSet: OperatingSet,
+                payments: Type.Array(CashPayment),
+                snapshot: OperatingRoundSnapshot
+            },
             { additionalProperties: false }
         )
     )
@@ -52,9 +58,11 @@ export class HydratedStartOperatingRound
     declare type: 'StartOperatingRound'
     declare metadata?: StartOperatingRound['metadata']
     readonly #rules: OperatingRules
-    constructor(data: StartOperatingRound, rules: OperatingRules) {
+    readonly #valuationRules: ValuationRules
+    constructor(data: StartOperatingRound, rules: OperatingRules, valuationRules: ValuationRules) {
         super(data instanceof HydratedStartOperatingRound ? data.dehydrate() : data, Validator)
         this.#rules = rules
+        this.#valuationRules = valuationRules
     }
     apply(state: HydratedGameState & OperatingState): void {
         assert(
@@ -68,7 +76,11 @@ export class HydratedStartOperatingRound
         set.companyOrder = this.#rules.companyOrder(state)
         set.completedCompanyIds = []
         set.privateIncomePaid = true
-        this.metadata = { operatingSet: structuredClone(set), payments }
+        this.metadata = {
+            operatingSet: structuredClone(set),
+            payments,
+            snapshot: operatingRoundSnapshot(state, this.#valuationRules)
+        }
     }
 }
 

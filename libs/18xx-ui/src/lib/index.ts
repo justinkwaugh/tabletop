@@ -63,3 +63,5 @@ export { default as OfferAuctionBidding } from './auctions/OfferAuctionBidding.s
 
 export { default as PrivateCard } from './privates/PrivateCard.svelte'
 export { createPhaseChart, type PhaseChartData } from './phases/phaseChart.js'
+
+export * from './stock/marketAnimationSource.js'

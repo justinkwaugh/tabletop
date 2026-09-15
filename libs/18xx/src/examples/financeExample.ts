@@ -892,9 +892,9 @@ export function createFinanceExampleRuntime(
                         rules
                     )
                 if (isStartOperatingRound(action))
-                    return new HydratedStartOperatingRound(action, operatingRules)
+                    return new HydratedStartOperatingRound(action, operatingRules, options.endingRules)
                 if (isFinishOperatingTurn(action))
-                    return new HydratedFinishOperatingTurn(action, options.trainRules)
+                    return new HydratedFinishOperatingTurn(action, options.trainRules, options.endingRules)
                 if (isStartStockRound(action)) return new HydratedStartStockRound(action)
                 if (isReserveBid(action)) {
                     const auctionRules = options.auctionRules

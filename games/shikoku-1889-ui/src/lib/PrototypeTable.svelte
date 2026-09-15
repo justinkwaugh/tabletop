@@ -30,7 +30,7 @@
     <TrainBuying {session} trainColors={Shikoku1889TrainColors} />
     <FinanceMap {session} />
     <StockTrading {session} />
-    <StockMarket {session} appearances={session.mapView.stations} market={state.stockMarket} companies={state.companies} />
+    <StockMarket animation={session.marketAnimation} appearances={session.mapView.stations} market={state.stockMarket} companies={state.companies} />
 {/if}
 
 <FinanceInspector

@@ -30,31 +30,17 @@
         describeAction?: (action: GameAction) => HistoryDescription | undefined
     } = $props()
     const newestFirst = $derived(session.preferences.values.historyOrder === 'newestFirst')
-    const orderChanges = $derived.by(() => {
-        const context = session.history.visibleContext
+    const context = $derived(session.history.visibleContext)
+    const state = $derived.by(() => {
         assert(FinanceExampleValidator.Check(context.state), 'History requires financial state')
-        return historyOperatingOrder(context.actions, context.state)
+        return context.state
     })
-    const cash = $derived.by(() => {
-        const context = session.history.visibleContext
-        assert(FinanceExampleValidator.Check(context.state), 'Cash history requires financial state')
-        return historyCash(context.actions, context.state)
-    })
-    const companyChanges = $derived.by(() => {
-        const context = session.history.visibleContext
-        assert(FinanceExampleValidator.Check(context.state), 'Company history requires financial state')
-        return historyCompanyChanges(context.actions, context.state)
-    })
-    const rounds = $derived.by(() => {
-        const context = session.history.visibleContext
-        assert(
-            FinanceExampleValidator.Check(context.state),
-            'Round history requires financial state'
-        )
-        return historyRounds(context.actions, context.state, orderChanges, cash)
-    })
+    const orderChanges = $derived(historyOperatingOrder(context.actions, state))
+    const cash = $derived(historyCash(context.actions, state))
+    const companyChanges = $derived(historyCompanyChanges(context.actions, state))
+    const rounds = $derived(historyRounds(context.actions, state, orderChanges, cash))
     function fullCompanyName(id: string) {
-        return session.financialState.companies.find((company) => company.id === id)?.name ?? id
+        return state.companies.find((company) => company.id === id)?.name ?? id
     }
     function companyName(id: string) {
         return companyNames?.[id]?.short ?? fullCompanyName(id)
@@ -62,7 +48,7 @@
     function describe(action: GameAction) {
         const description =
             describeAction?.(action) ??
-            historyDescription(action, session.financialState, companyName, (id) =>
+            historyDescription(action, state, companyName, (id) =>
                 session.getPlayerName(id), companyChanges.get(action.id)
             )
         return orderChanges.has(action.id) ? { ...description, important: true } : description

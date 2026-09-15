@@ -1,7 +1,6 @@
 import {
     assetOwner,
     evaluatePurchaseOffer,
-    operatingCompany,
     type PurchaseAsset,
     type PurchaseOfferRequest,
     type TransferRules
@@ -15,7 +14,7 @@ export function purchaseChoices(
     rules: TransferRules,
     trains: TrainRules
 ): { request: PurchaseOfferRequest; minimum: number; maximum?: number }[] {
-    const companyId = operatingCompany(state)
+    const companyId = rules.operatingCompany(state)
     if (
         !companyId ||
         pendingCompanyDecision(state) ||

@@ -8,7 +8,6 @@ import {
     sameOwner
 } from '../finance/finance.js'
 import { settleCashPayments } from '../finance/cashPayments.js'
-import { nextOperatingCompany } from '../operating/operatingSet.js'
 import { trainCanBeTraded, trainsOwnedBy } from '../trains/train.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import type { CompanyDecisionState } from '../privates/companyDecision.js'
@@ -43,24 +42,14 @@ export const PurchaseOffer = Type.Object(
 )
 export type PurchaseOffer = Type.Static<typeof PurchaseOffer>
 export interface TransferRules {
+    operatingCompany(state: CompanyDecisionState): string | undefined
+    canPurchase(state: CompanyDecisionState, companyId: string, asset: PurchaseAsset): boolean
     priceRange(
         state: CompanyDecisionState,
         companyId: string,
         asset: PurchaseAsset
     ): { minimum: number; maximum?: number } | undefined
     afterPurchase(state: CompanyDecisionState, offer: PurchaseOffer): void
-}
-export const OperatingDecisionStates = [
-    'LayingTrack',
-    'PlacingStation',
-    'RunningTrains',
-    'DistributingEarnings',
-    'BuyingTrains'
-]
-export function operatingCompany(state: CompanyDecisionState): string | undefined {
-    return OperatingDecisionStates.includes(state.machineState)
-        ? nextOperatingCompany(state)
-        : undefined
 }
 export function assetOwner(state: CompanyDecisionState, asset: PurchaseAsset): Owner | undefined {
     if (asset.kind === 'private') {
@@ -80,8 +69,10 @@ export function evaluatePurchaseOffer(
 ):
     | { buyerPlayerId: string; sellerPlayerId: string; reason?: never }
     | { reason: string; buyerPlayerId?: never; sellerPlayerId?: never } {
-    if (operatingCompany(state) !== request.companyId)
+    if (rules.operatingCompany(state) !== request.companyId)
         return { reason: 'Only the operating company may make a purchase offer.' }
+    if (!rules.canPurchase(state, request.companyId, request.asset))
+        return { reason: 'This asset cannot be purchased at this point in the turn.' }
     const buyer = state.companies.find((item) => item.id === request.companyId)
     const buyerPlayerId =
         buyer && !buyer.closed ? controllingOwner(state, buyer.id)?.playerId : undefined
@@ -112,12 +103,8 @@ export function evaluatePurchaseOffer(
     if (cash === undefined || (cash !== 'unlimited' && cash < request.price))
         return { reason: 'The buyer cannot afford the offer.' }
     if (request.asset.kind === 'train') {
-        if (
-            state.machineState !== 'BuyingTrains' ||
-            state.trainPurchaseStep?.companyId !== request.companyId ||
-            owner.kind !== 'company'
-        )
-            return { reason: 'Intercompany trains may only be bought during train purchasing.' }
+        if (owner.kind !== 'company')
+            return { reason: 'Intercompany trains must belong to another company.' }
         if (state.companies.find((item) => item.id === owner.companyId)?.closed)
             return { reason: 'A closed company cannot sell trains.' }
         if (

@@ -24,13 +24,13 @@ export const TheOldPrinceEarningsRules: EarningsRules = {
         choice === 'withhold' ? revenue : choice === 'half-pay' ? Math.ceil(revenue / 2) : 0,
     roundDividend: (_state, companyId, amount) =>
         companyId === 'PEIR' ? Math.ceil(amount) : amount,
-    marketEffect(state, companyId, paying) {
+    marketEffect(state, companyId, distribution) {
         if (companyId === 'PEIR' || !getCompany(state, companyId).floated)
             return { bonusPerShare: 0 }
         return {
-            move: dividendMarketMove(state.stockMarket, companyId, paying),
+            move: dividendMarketMove(state.stockMarket, companyId, distribution.baseDividendPerShare > 0),
             bonusPerShare:
-                paying && companyMarketSpace(state.stockMarket, companyId).price === 400 ? 40 : 0
+                distribution.baseDividendPerShare > 0 && companyMarketSpace(state.stockMarket, companyId).price === 400 ? 40 : 0
         }
     }
 }
