@@ -1,13 +1,22 @@
 <script lang="ts">
     import { Card, Hr, Button, Modal } from 'flowbite-svelte'
-    import { Game, GameStatus, PlayerStatus, GameResult } from '@tabletop/common'
+    import { LinkOutline } from 'flowbite-svelte-icons'
+    import { assertExists, Game, GameStatus, PlayerStatus, GameResult } from '@tabletop/common'
     import { gameCardOptions } from '$lib/utils/gameOptions'
+    import { gameCardAppearance } from '$lib/utils/gameCardAppearance'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
     import { hasPendingGameInvitation } from '$lib/utils/gameInvitation'
+    import { publicGameShareLink } from '$lib/utils/publicGameInvitation'
+    import { toast } from 'svelte-sonner'
     import { goto } from '$app/navigation'
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
-    import { createTimeAgo, GameEditForm, getAppContext } from '@tabletop/frontend-components'
+    import {
+        copyTextToClipboard,
+        createTimeAgo,
+        GameEditForm,
+        getAppContext
+    } from '@tabletop/frontend-components'
 
     const timeAgo = createTimeAgo()
 
@@ -37,7 +46,8 @@
     let canToggle = $derived(expanded !== 'always')
     let isExpanded = $derived(expanded ? true : false)
 
-    let sessionUser = authorizationService.getSessionUser()
+    let sessionUser = $derived(authorizationService.getSessionUser())
+    let shareLink = $derived(publicGameShareLink(game))
     let isOwnedByMe = $derived(sessionUser?.id === game.ownerId)
     let sortedPlayers = $derived(
         game.players.toSorted(
@@ -136,6 +146,19 @@
         onjoin?.(game)
     }
 
+    async function copyShareLink(event: Event) {
+        event.stopPropagation()
+        assertExists(shareLink, 'A shareable game is required to copy its link')
+        const url = new URL(shareLink.path, window.location.origin).href
+        const kind = shareLink.kind
+        try {
+            await copyTextToClipboard(url)
+            toast.success(kind === 'invite' ? 'Invite link copied' : 'Game link copied')
+        } catch {
+            toast.error('Unable to copy the link. Please try again.')
+        }
+    }
+
     async function declineGame(event: Event) {
         event.stopPropagation()
         game = await gameService.declineGame(game.id)
@@ -232,7 +255,7 @@
 
 <Card
     onclick={toggleExpand}
-    class={`min-w-[310px] mx-2 mb-1 bg-[#0d56ad] dark:border-gray-800 border-4 rounded-md overflow-hidden shadow-none ${className}`}
+    class={`min-w-[310px] mx-2 mb-1 ${gameCardAppearance} ${className}`}
     size="sm"
 >
     <div class="flex flex-col">
@@ -257,56 +280,69 @@
                                     onclick={(event) => event.stopPropagation()}>Tournament</a
                                 >{/if}
                         </div>
-                        {#if !isExpanded}
-                            <div class="ms-2 text-nowrap">
-                                {#if canJoin}
-                                    <Button
-                                        size="xs"
-                                        color="green"
-                                        class="h-[20px]"
-                                        onclick={joinGame}>Join</Button
-                                    >
-                                {:else if canStart}
-                                    <Button
-                                        size="xs"
-                                        color="primary"
-                                        class="h-[20px]"
-                                        onclick={startGame}>Start</Button
-                                    >
-                                {:else if canEdit}
-                                    <Button
-                                        size="xs"
-                                        color="blue"
-                                        class="h-[20px]"
-                                        onclick={editGame}>Edit</Button
-                                    >
-                                {:else if canPlay || canWatch}
-                                    <Button
-                                        size="xs"
-                                        color={isMyTurn ? 'yellow' : 'primary'}
-                                        class="h-[20px]"
-                                        onclick={playGame}
-                                        >{isMyTurn
-                                            ? 'Your Turn'
-                                            : canPlay
-                                              ? 'Enter'
-                                              : 'Watch'}</Button
-                                    >
-                                {:else if canRevisit}
-                                    <Button
-                                        size="xs"
-                                        color="light"
-                                        class="h-[20px] dark:text-gray-200"
-                                        onclick={playGame}>Revisit</Button
-                                    >
-                                {/if}
-                            </div>
-                            {#if waitingToStart}
-                                <div class="text-xs text-right text-gray-400">
-                                    Waiting<br />to start
-                                </div>
+                        <div class="ms-2 flex shrink-0 items-center gap-1">
+                            {#if shareLink}
+                                <button
+                                    type="button"
+                                    aria-label={`Copy ${shareLink.kind} link`}
+                                    title={`Copy ${shareLink.kind} link`}
+                                    class="inline-flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-gray-700 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                                    onclick={copyShareLink}
+                                >
+                                    <LinkOutline class="h-4 w-4" aria-hidden="true" />
+                                </button>
                             {/if}
-                        {/if}
+                            {#if !isExpanded}
+                                <div class="text-nowrap">
+                                    {#if canJoin}
+                                        <Button
+                                            size="xs"
+                                            color="green"
+                                            class="h-[20px]"
+                                            onclick={joinGame}>Join</Button
+                                        >
+                                    {:else if canStart}
+                                        <Button
+                                            size="xs"
+                                            color="primary"
+                                            class="h-[20px]"
+                                            onclick={startGame}>Start</Button
+                                        >
+                                    {:else if canEdit}
+                                        <Button
+                                            size="xs"
+                                            color="blue"
+                                            class="h-[20px]"
+                                            onclick={editGame}>Edit</Button
+                                        >
+                                    {:else if canPlay || canWatch}
+                                        <Button
+                                            size="xs"
+                                            color={isMyTurn ? 'yellow' : 'primary'}
+                                            class="h-[20px]"
+                                            onclick={playGame}
+                                            >{isMyTurn
+                                                ? 'Your Turn'
+                                                : canPlay
+                                                  ? 'Enter'
+                                                  : 'Watch'}</Button
+                                        >
+                                    {:else if canRevisit}
+                                        <Button
+                                            size="xs"
+                                            color="light"
+                                            class="h-[20px] dark:text-gray-200"
+                                            onclick={playGame}>Revisit</Button
+                                        >
+                                    {/if}
+                                </div>
+                                {#if waitingToStart}
+                                    <div class="text-xs text-right text-gray-400">
+                                        Waiting<br />to start
+                                    </div>
+                                {/if}
+                            {/if}
+                        </div>
                     </div>
                     <div class="flex flex-row justify-between items-start text-white">
                         {#if game.status === GameStatus.Started}
