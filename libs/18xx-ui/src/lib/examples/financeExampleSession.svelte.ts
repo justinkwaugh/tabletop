@@ -63,6 +63,7 @@ import {
     type TrackLayDetails,
     type TrainPurchaseDetails
 } from '@tabletop/18xx'
+type PrivateTrackPower = { privateCompanyId: string; playerId: string }
 type CompanyDecisionDraft =
     | { kind: 'purchase'; request: PurchaseOfferRequest }
     | { kind: 'tile'; privateCompanyId: string; playerId: string; details: TrackLayDetails }
@@ -323,13 +324,21 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             this.game.players.filter((player) => player.id === id)
         )
     }
-    private privatePurchaseStages: StagedSelectionState<{ source: 'mine' | 'other' }> = $state({})
-    privatePurchaseSource = $derived(!this.updatingVisibleState && !this.isViewingHistory ? this.privatePurchaseStages.source?.value : undefined)
+    private privateActionStages: StagedSelectionState<{ source: 'mine' | 'other' | 'powers'; power: PrivateTrackPower }> = $state({})
+    privateActionSelection = $derived(!this.updatingVisibleState && !this.isViewingHistory ? this.privateActionStages.source?.value : undefined)
+    privatePurchaseSource = $derived(this.privateActionSelection === 'powers' ? undefined : this.privateActionSelection)
+    get privatePowersAvailable() { return this.privateTileOptions.length > 0 || this.privateTrainOptions.length > 0 }
+    choosePrivatePowers() {
+        this.trackDraft = {}
+        this.companyDraft = undefined
+        this.privateActionStages = setStagedSelectionValue(this.privateActionStages, ['source', 'power'], 'source', 'powers', 'manual')
+    }
     get privatePurchaseHeading(): string | undefined { return 'Available privates' }
     privatePurchases = $derived.by(() => this.purchaseOptions.filter((option) => option.request.asset.kind === 'private'))
     choosePrivatePurchaseSource(source: 'mine' | 'other') {
+        this.trackDraft = {}
         this.companyDraft = undefined
-        this.privatePurchaseStages = setStagedSelectionValue(this.privatePurchaseStages, ['source'], 'source', source, 'manual')
+        this.privateActionStages = setStagedSelectionValue(this.privateActionStages, ['source', 'power'], 'source', source, 'manual')
     }
     private companyDraft: CompanyDecisionDraft | undefined = $state()
     companyDecisionSelection = $derived(
@@ -382,6 +391,27 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
                 })
         )
     })
+    privateTrackPowers = $derived.by(() => {
+        const powers: PrivateTrackPower[] = []
+        for (const { privateCompanyId, playerId } of this.privateTileOptions) {
+            if (!powers.some((power) => power.privateCompanyId === privateCompanyId && power.playerId === playerId))
+                powers.push({ privateCompanyId, playerId })
+        }
+        return powers
+    })
+    privateTrackPowerSelection = $derived.by(() => {
+        if (this.updatingVisibleState || this.isViewingHistory ||
+            (this.privateActionSelection !== 'powers' && !this.financialState.privateTrackLay && !this.financialState.privatePowerWindow)) return undefined
+        const selected = this.privateActionStages.power
+        if (selected && this.privateTrackPowers.some((power) => power.privateCompanyId === selected.value.privateCompanyId && power.playerId === selected.value.playerId)) return selected
+        return this.privateTrackPowers.length === 1
+            ? { value: this.privateTrackPowers[0], source: 'auto' as const } : undefined
+    })
+    choosePrivateTrackPower(power: PrivateTrackPower) {
+        assert(this.privateTrackPowers.some((option) => option.privateCompanyId === power.privateCompanyId && option.playerId === power.playerId), 'Choose an available private tile power')
+        this.trackDraft = {}
+        this.privateActionStages = setStagedSelectionValue(this.privateActionStages, ['source', 'power'], 'power', power, 'manual')
+    }
     privateTrainOptions = $derived.by(() => {
         if (
             !this.canResolveCompanyDecision ||
@@ -459,7 +489,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         )
         this.companyDraft = { kind: 'tile', ...option }
     }
-    selectPrivateTrain(option: { privateCompanyId: string; details: TrainPurchaseDetails }) {
+    selectPrivateTrain(option: Omit<Extract<CompanyDecisionDraft, { kind: 'train' }>, 'kind'>) {
         assert(
             this.privateTrainOptions.some(
                 (item) =>
@@ -472,6 +502,10 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     }
     backCompanyDecision() {
         this.companyDraft = undefined
+    }
+    async buyPrivateTrain(option: Omit<Extract<CompanyDecisionDraft, { kind: 'train' }>, 'kind'>) {
+        this.selectPrivateTrain(option)
+        await this.confirmCompanyDecision()
     }
     async confirmCompanyDecision() {
         const draft = this.companyDecisionSelection
@@ -1349,19 +1383,27 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     trackSelection = $derived.by(() =>
         !this.updatingVisibleState &&
         !this.isViewingHistory &&
-        this.financialState.machineState === 'LayingTrack'
+        (this.privateTrackPowerSelection || (this.financialState.machineState === 'LayingTrack' && !this.privateActionSelection))
             ? this.trackDraft
             : {}
     )
-    construction = $derived.by(() => new TrackConstruction(this.financialState, this.trackRules))
+    construction = $derived.by(() => {
+        const power = this.privateTrackPowerSelection?.value
+        if (!power) return new TrackConstruction(this.financialState, this.trackRules)
+        const terms = this.privatePowerRules.trackTerms(this.financialState, power.privateCompanyId, power.playerId)
+        assertExists(terms, 'Selected private tile power requires construction terms')
+        return privateTrackConstruction(this.financialState, terms, this.trackRules)
+    })
     canBuildTrack = $derived(
         !this.busy &&
             !this.updatingVisibleState &&
             !this.isViewingHistory &&
-            this.validActionTypes.includes('FinishTrack')
+            (this.privateTrackPowerSelection
+                ? this.validActionTypes.includes('LayPrivateTile')
+                : !this.privateActionSelection && this.validActionTypes.includes('FinishTrack'))
     )
     showTrackChoices = $derived.by(
-        () => this.financialState.machineState === 'LayingTrack' && !this.isViewingHistory
+        () => !this.isViewingHistory && (!!this.privateTrackPowerSelection || (this.financialState.machineState === 'LayingTrack' && !this.privateActionSelection))
     )
     trackChoicesByLocation = $derived.by(
         () =>
@@ -1483,6 +1525,12 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     async confirmTrack() {
         const preview = this.trackPreview
         assert(this.canBuildTrack && preview, 'Choose a legal track placement')
+        const power = this.privateTrackPowerSelection?.value
+        if (power) {
+            this.selectPrivateTile({ ...power, details: preview })
+            await this.confirmCompanyDecision()
+            return
+        }
         const { companyId, locationId, definitionId, rotation, nodeMapping, cost } = preview
         await this.applyAction(
             this.createPlayerAction(
@@ -1588,11 +1636,13 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         )
     )
     selectMap(selection: MapSelection, allowInspection = true) {
-        if (
-            this.showTrackChoices &&
-            (!this.canBuildTrack || !this.trackLocationIds.includes(selection.locationId))
-        )
+        if (this.showTrackChoices) {
+            if (this.canBuildTrack && this.trackLocationIds.includes(selection.locationId)) {
+                if (this.trackPreview?.locationId === selection.locationId) this.rotateTrackPreview()
+                else this.selectTrackLocation(selection.locationId)
+            }
             return
+        }
         if (
             this.canRunTrains &&
             this.routeEditor.trainId &&
@@ -1617,10 +1667,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
                 locationId: selection.locationId,
                 nodeId: selection.nodeId
             })
-        else if (this.canBuildTrack && this.trackLocationIds.includes(selection.locationId)) {
-            if (this.trackPreview?.locationId === selection.locationId) this.rotateTrackPreview()
-            else this.selectTrackLocation(selection.locationId)
-        } else if (this.canPlaceStation && this.stationLocationIds.includes(selection.locationId)) {
+        else if (this.canPlaceStation && this.stationLocationIds.includes(selection.locationId)) {
             const location = this.mapScene.locations.find((entry) => entry.location.id === selection.locationId)
             assertExists(location, 'Station placement requires a map location')
             const separateCities = location.face.nodes.filter((node) => node.kind === 'city').length > 1
@@ -1989,7 +2036,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         this.stockActionDraft = {}
         this.offerDraft = undefined
         this.auctionDraft = undefined
-        this.privatePurchaseStages = {}
+        this.privateActionStages = {}
         this.companyDraft = undefined
         this.privateDraft = undefined
         this.discardDraft = undefined
@@ -2006,7 +2053,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             this.stockMenu ||
             this.offerDraft ||
             this.auctionDraft ||
-            this.companyDraft || this.privatePurchaseSource ||
+            this.companyDraft || this.privateActionSelection ||
             this.privateDraft ||
             this.discardDraft ||
             this.earningsDraft ||
@@ -2036,8 +2083,13 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             this.companyDraft = undefined
             return
         }
-        if (this.privatePurchaseSource) {
-            this.privatePurchaseStages = {}
+        if (this.privateActionSelection || this.privateActionStages.power || (this.privateTrackPowerSelection && this.trackDraft.locationId)) {
+            if (this.trackDraft.locationId) { this.trackDraft = {}; return }
+            if (this.privateActionStages.power?.source === 'manual') {
+                this.privateActionStages = { source: this.privateActionStages.source }
+                return
+            }
+            this.privateActionStages = {}
             return
         }
         if (this.privateDraft) {

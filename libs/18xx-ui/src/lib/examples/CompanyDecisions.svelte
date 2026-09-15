@@ -5,11 +5,13 @@
     import PrivateBuying from './PrivateBuying.svelte'
     import DecisionResponse from './DecisionResponse.svelte'
     import Tile from '../tiles/Tile.svelte'
-    let { session, showUndo = true, excludeTrainPurchases = false }: { excludeTrainPurchases?: boolean; showUndo?: boolean; session: FinanceExampleSession } =
+    import PrivateTrainBuying from './PrivateTrainBuying.svelte'
+    let { session, trainColors, privateTilePrompts = {}, showUndo = true, excludeTrainPurchases = false }: { privateTilePrompts?: Readonly<Record<string, string>>; trainColors: Readonly<Record<string, string>>; excludeTrainPurchases?: boolean; showUndo?: boolean; session: FinanceExampleSession } =
         $props()
     const purchaseOptions = $derived(session.purchaseOptions.filter((option) => option.request.asset.kind === 'train' && !excludeTrainPurchases))
     const state = $derived(session.financialState)
     const draft = $derived(session.companyDecisionSelection)
+    const showPowers = $derived(!session.privatePurchaseSource && (session.operatingStep === undefined || session.privateActionSelection === 'powers' || !!state.privateTrackLay || !!state.privatePowerWindow))
 </script>
 
 {#if state.trackConsent}
@@ -29,7 +31,7 @@
         {#if request.cost}<span>for ${request.cost}</span>{/if}
     </DecisionResponse>
 {:else}
-<section aria-label="Company decisions">
+<section aria-label="Company decisions" class:private-powers={showPowers}>
 
     {#if state.privatePowerWindow}
         <p>Private powers before {state.privatePowerWindow.companyId} operates.</p>
@@ -48,17 +50,6 @@
             <span>{getCompany(state, offer.companyId).name} offers ${offer.price} for {offer.asset.kind === 'private' ? getCompany(state, offer.asset.privateCompanyId).name : offer.asset.trainId}</span>
         </DecisionResponse>
     {:else}
-        {#if state.privateTrackLay}
-            <p>
-                {session.getPlayerName(state.privateTrackLay.playerId)} may use {state
-                    .privateTrackLay.privateCompanyId} to lay a tile now.
-            </p>
-            <button
-                disabled={!session.canResolveCompanyDecision ||
-                    !session.validActionTypes.includes('DeclinePrivateTile')}
-                onclick={() => session.declinePrivateTile()}>Decline private tile lay</button
-            >
-        {/if}
         <PrivateBuying {session} showEntry={session.operatingStep === undefined} />
         <div class="choices">
             {#if purchaseOptions.length}
@@ -87,49 +78,26 @@
                     </select>
                 </label>
             {/if}
-            {#if !session.privatePurchaseSource && session.privateTileOptions.length}
-                <label
-                    >Private tile lay
-                    <select
-                        aria-label="Private tile lay"
-                        value=""
-                        onchange={(event) => {
-                            const choice =
-                                session.privateTileOptions[Number(event.currentTarget.value)]
-                            if (event.currentTarget.value && choice)
-                                session.selectPrivateTile(choice)
-                        }}
-                    >
-                        <option value="">Choose placement</option>
-                        {#each session.privateTileOptions as option, index}<option value={index}
-                                >{option.privateCompanyId} · {session.getPlayerName(
-                                    option.playerId
-                                )} · {option.details.locationId} · {option.details.definitionId} · {option
-                                    .details.rotation * 60}°</option
-                            >{/each}
-                    </select>
-                </label>
+            {#if showPowers && session.privateTileOptions.length}
+                <div class="private-track">
+                    {#if session.privateTrackPowerSelection}
+                        {@const power = session.privateTrackPowerSelection.value}
+                        <header class="private-track-prompt">
+                            <span>{privateTilePrompts[power.privateCompanyId] ?? `Place a tile using ${getCompany(state, power.privateCompanyId).name}`}</span>
+                            {#if state.privateTrackLay}
+                                <span>or</span>
+                                <button class="action-button inline-action" disabled={!session.canResolveCompanyDecision || !session.validActionTypes.includes('DeclinePrivateTile')} onclick={() => session.declinePrivateTile()}>skip</button>
+                            {/if}
+                        </header>
+                    {:else}
+                        {#each session.privateTrackPowers as power}
+                            <button onclick={() => session.choosePrivateTrackPower(power)}>{getCompany(state, power.privateCompanyId).name}</button>
+                        {/each}
+                    {/if}
+                </div>
             {/if}
-            {#if !session.privatePurchaseSource && session.privateTrainOptions.length}
-                <label
-                    >Private train purchase
-                    <select
-                        aria-label="Private train purchase"
-                        value=""
-                        onchange={(event) => {
-                            const choice =
-                                session.privateTrainOptions[Number(event.currentTarget.value)]
-                            if (event.currentTarget.value && choice)
-                                session.selectPrivateTrain(choice)
-                        }}
-                    >
-                        <option value="">Choose train</option>
-                        {#each session.privateTrainOptions as option, index}<option value={index}
-                                >{option.privateCompanyId} · {option.details.definitionId} · {option
-                                    .details.price}</option
-                            >{/each}
-                    </select>
-                </label>
+            {#if showPowers && session.privateTrainOptions.length}
+                <PrivateTrainBuying {session} {trainColors} />
             {/if}
         </div>
     {/if}
@@ -197,6 +165,10 @@
         border: 1px solid #cbd5e1;
         border-radius: 0.4rem;
     }
+    section.private-powers { border: none; }
+    .private-track { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .private-track-prompt { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 4px 0; font-size: 13px; color: #63513e; }
+    .private-track-prompt button { margin: 0; }
     .choices {
         display: flex;
         flex-wrap: wrap;

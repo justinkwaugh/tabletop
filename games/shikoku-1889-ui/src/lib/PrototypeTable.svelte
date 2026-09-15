@@ -25,7 +25,7 @@
 {#if session.auction && !session.auction.auction.completed}
     <OpeningAuction {session} />
 {:else}
-    <CompanyDecisions {session} />
+    <CompanyDecisions {session} trainColors={Shikoku1889TrainColors} />
     <PrivateCompanies {session} />
     <TrainBuying {session} trainColors={Shikoku1889TrainColors} />
     <FinanceMap {session} />

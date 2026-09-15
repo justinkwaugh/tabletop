@@ -28,7 +28,7 @@
     <OpeningAuction {session} />
 {:else}
     <BranchSplitPreview {session} />
-    <CompanyDecisions {session} />
+    <CompanyDecisions {session} trainColors={TheOldPrinceTrainColors} />
     <PrivateCompanies {session} />
     <TrainBuying {session} trainColors={TheOldPrinceTrainColors} />
     <FinanceMap {session} />

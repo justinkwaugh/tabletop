@@ -38,7 +38,7 @@
         {#if session.auction && !session.auction.auction.completed}
             <OpeningAuction {session} showUndo={false} />
         {:else}
-            <OperatingActions {privateOperationDescription} onFocusRoute={focusRoute} {session} {createRouteWorker} trainColors={Shikoku1889TrainColors} />
+            <OperatingActions privateTilePrompts={{ MF: 'Place the port tile', ER: 'Place a tile in Ohzu' }} {privateOperationDescription} onFocusRoute={focusRoute} {session} {createRouteWorker} trainColors={Shikoku1889TrainColors} />
         {/if}
     {/snippet}
 </GameTable>

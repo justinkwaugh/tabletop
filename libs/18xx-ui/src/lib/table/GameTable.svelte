@@ -176,7 +176,7 @@
     const consentPreview = $derived(session.financialState.trackConsent)
     const maskPlacementLocations = $derived(!consentPreview &&
         (session.showTrackChoices || session.financialState.machineState === 'PlacingStation'))
-    const placementLocationIds = $derived(session.canPlaceStation
+    const placementLocationIds = $derived(!session.privateTrackPowerSelection && session.canPlaceStation
         ? session.stationLocationIds : session.trackLocationIds)
     const placementFocusKey = $derived(consentPreview?.id ?? (maskPlacementLocations
         ? JSON.stringify([session.financialState.machineState, placementLocationIds]) : undefined))

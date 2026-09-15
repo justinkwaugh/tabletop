@@ -15,12 +15,14 @@
         onFocusRoute,
         trainColors,
         privateOperationDescription,
-        poolName
+        poolName,
+        privateTilePrompts
     }: {
         createRouteWorker: () => Worker
         onFocusRoute: (trainId: string) => void
         trainColors: Readonly<Record<string, string>>
         privateOperationDescription: (id: string, companyId: string) => string | undefined
+        privateTilePrompts?: Readonly<Record<string, string>>
         poolName?: (pool: CertificatePool) => string
         session: FinanceExampleSession
     } = $props()
@@ -31,9 +33,9 @@
 {#if state.result}<GameEnding {session} />
 {:else}
     {#if (state.purchaseOffer && !(trainBuying && state.purchaseOffer.asset.kind === 'train')) || state.trackConsent || state.privateTrackLay || state.privatePowerWindow || session.purchaseOptions.some((option) => !trainBuying || option.request.asset.kind !== 'train') || session.privateTileOptions.length || session.privateTrainOptions.length || session.companyDecisionSelection}
-        <CompanyDecisions {session} showUndo={false} excludeTrainPurchases={trainBuying} />
+        <CompanyDecisions {session} {trainColors} {privateTilePrompts} showUndo={false} excludeTrainPurchases={trainBuying} />
     {/if}
-    {#if !session.privatePurchaseSource && state.purchaseOffer?.asset.kind !== 'private'}
+    {#if !session.privateActionSelection && !session.privateTrackPowerSelection && state.purchaseOffer?.asset.kind !== 'private'}
     {#if state.machineState === 'StockRound'}
         <StockRoundActions {session} {poolName} />
     {:else if state.machineState === 'LayingTrack'}<TrackBuilding

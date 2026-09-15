@@ -1,4 +1,5 @@
 <script lang="ts">
+    import OperatingPrivateActions from './OperatingPrivateActions.svelte'
     import { ActionSource } from '@tabletop/common'
     import { isFinishTrack, isFinishStations, isRunTrains } from '@tabletop/18xx' 
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
@@ -47,14 +48,7 @@
         </button>
     {/each}
     </div>
-    {#if session.privatePurchases.length}
-        <button class="buy-privates" aria-pressed={!!session.privatePurchaseSource}
-            disabled={!session.canResolveCompanyDecision}
-            onclick={() => session.choosePrivatePurchaseSource(
-                session.privatePurchases.some((option) => option.request.seller.kind === 'player' &&
-                    option.request.seller.playerId === session.myPlayer?.id) ? 'mine' : 'other'
-            )}>{privatePurchaseLabel}</button>
-    {/if}
+    <OperatingPrivateActions {session} purchaseLabel={privatePurchaseLabel} />
 </nav>
 {/if}
 <style>
@@ -76,7 +70,4 @@
     button.current { background: #695543; color: #fffaf3; }
     button:not(:disabled):hover { background: #cdbba9; color: #443c34; }
     button:focus-visible { outline: none; background: #bda68f; color: #30291f; }
-    button.buy-privates { flex: none; align-self: center; margin: 3px 8px; padding: 3px 10px; clip-path: none; border-radius: 4px; background: #ded0c2; color: #51412f; font-size: 12px; }
-    button.buy-privates:hover:not(:disabled) { background: #cdbba9; }
-    button.buy-privates[aria-pressed='true'] { background: #695543; color: #fffaf3; }
 </style>
