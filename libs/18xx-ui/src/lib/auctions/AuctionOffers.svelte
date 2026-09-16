@@ -43,7 +43,7 @@
                                 !session.myPlayer ||
                                 !model.canOffer(session.myPlayer.id, lot.id)}
                             onclick={() => session.offerAuctionLot(lot.id)}
-                            >Offer <span aria-hidden="true">→</span></button
+                            >Offer</button
                         ></td
                     >
 
@@ -162,8 +162,8 @@
     }
     .action {
         width: 1%;
-        padding-right: 0;
-        padding-left: 14px;
+        padding-right: 14px;
+        padding-left: 0;
     }
     button {
         display: flex;

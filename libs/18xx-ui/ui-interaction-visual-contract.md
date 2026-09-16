@@ -1333,3 +1333,5 @@ Routes render above tile artwork and map borders as continuous round-ended strok
 The zoom wrapper does not permanently promote its content with `will-change: transform`, allowing vector content to repaint at the settled zoom scale. This is an internal rendering change with no host-bridge API change; UI artifacts bundling ScalingWrapper must be republished to adopt it.
 
 Wheel-event trackpad pinch (Ctrl-marked wheel events) uses a 0.006 zoom coefficient, independently of ordinary mouse-wheel zoom at 0.003. Touch-distance pinch and native Safari gesture scaling are unchanged. This internal shared-wrapper change requires republication of consuming UI artifacts to adopt it, without host-bridge changes.
+
+TOP imports its Tailwind stylesheet from the production runtime, with generated rules scoped to `[data-game-ui="the-old-prince"]`, matching the independent artifact pattern used by Bus and Indonesia. The development page must not be the only stylesheet entry. Republishing the TOP UI artifact adopts this fix without a Site Frontend or host-bridge change.

@@ -1,3 +1,4 @@
+import './styles.css'
 import { Definition } from '@tabletop/the-old-prince'
 import {
     DefaultColorizer,
