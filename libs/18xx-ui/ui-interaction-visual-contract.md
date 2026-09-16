@@ -1312,7 +1312,7 @@ preview modal.
 
 ### Compact player portfolios
 
-Clicking a player card's non-interactive area or header toggle changes all cards together.
+Only the player card's compact/expand header toggle changes all cards together.
 The header toggle provides keyboard access. The compactPlayerCards family preference
 persists this player’s choice across reloads and 18xx titles, defaulting to expanded. Company-map
 links and private-description controls retain their own behavior. Compact cards
@@ -1383,7 +1383,7 @@ The auction offer table centers within the action panel when narrower than the p
 
 Auction offers use compact 3px vertical cell padding and no horizontal row dividers.
 
-Player headers expose a compact/expand icon beside the order badge: two horizontal bars with arrows pointing inward to compact or outward to expand. The icon is light tan at rest and darkens on hover or keyboard focus. The dedicated button retains an explicit accessible action label; background/name clicks still toggle the card.
+Player headers expose a compact/expand icon beside the order badge: two horizontal bars with arrows pointing inward to compact or outward to expand. The icon is light tan at rest and darkens on hover or keyboard focus. The dedicated button retains an explicit accessible action label; background/name clicks do not change the card layout.
 
 Expanded private-company headers retain the “Income” label; compact cards omit the complete private header row and append “ / OR” to each private income amount.
 

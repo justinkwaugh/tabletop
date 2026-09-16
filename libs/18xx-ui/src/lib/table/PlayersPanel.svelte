@@ -39,15 +39,6 @@
     function toggleCompact() {
         session.preferences.set({ compactPlayerCards: !compact }, 'family')
     }
-    function toggleOnBackground(node: HTMLElement) {
-        const click = (event: MouseEvent) => {
-            if (event.target instanceof Element && event.target.closest('button, a, input, select, textarea, [data-private-description-row]')) return
-            if (window.getSelection()?.toString()) return
-            toggleCompact()
-        }
-        node.addEventListener('click', click)
-        return { destroy: () => node.removeEventListener('click', click) }
-    }
     const stockRoundActive = $derived(session.financialState.machineState === 'StockRound')
     const passOrderPositions = $derived(session.passing === 'pass-order')
     const players = $derived([
@@ -115,7 +106,6 @@
 <div class="players" aria-label="Players">
     {#each players as player, index (player.id)}
         <article
-            use:toggleOnBackground
             class:compact
             animate:flip={{ duration: prefersReducedMotion.current ? 0 : 180 }}
             aria-label={`${player.name} portfolio`}
