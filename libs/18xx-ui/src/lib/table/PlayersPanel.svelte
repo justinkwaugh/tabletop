@@ -211,9 +211,10 @@
                             <div class="compact-holding" class:president={entry.president}>
                                 <div class="holding-line">
                                     <button class="company-focus compact-token" aria-label={`Show ${entry.company.name} network`} disabled={!focusableCompanyIds.has(entry.company.id)} onclick={() => onFocusCompany(entry.company.id)}><CompanyToken appearance={session.mapView.stations[entry.company.id]} size={22} /></button>
-                                    <button class="company-focus" title={entry.company.name} disabled={!focusableCompanyIds.has(entry.company.id)} onclick={() => onFocusCompany(entry.company.id)}>{companyNames[entry.company.id]?.initials ?? entry.company.id}</button>
-
-                                    {#if entry.president}<span class="compact-president" aria-label="President">P</span>{/if}
+                                    <span class="compact-company-label">
+                                        <button class="company-focus" title={entry.company.name} disabled={!focusableCompanyIds.has(entry.company.id)} onclick={() => onFocusCompany(entry.company.id)}>{companyNames[entry.company.id]?.initials ?? entry.company.id}</button>
+                                        {#if entry.president}<span class="compact-president" aria-label="President">P</span>{/if}
+                                    </span>
                                     <span class="holding-amount">{#if numbered.length}<span class="compact-numbered">{#each numbered as share, shareIndex (share.number)}{@const locationId = numberedShareLocation?.(entry.company.id, share.number)}{#if shareIndex > 0}, {/if}<button class="company-focus" title={share.name} aria-label={share.name} disabled={!locationId} onclick={() => { if (locationId) onFocusLocation(locationId) }}>{share.number}</button>{/each}</span>{/if}<span>{percent.format(entry.percentage)}%</span></span>
                                 </div>
 
@@ -295,7 +296,10 @@
     .holding-line { display: flex; align-items: center; gap: 3px; }
     .holding-amount { display: inline-flex; align-items: center; gap: 7px; margin-left: auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
     .compact-holding.president .holding-line { font-weight: 700; }
-    .compact-president { color: #a79888; font-size: 9px; font-weight: 700; line-height: 1; margin-left: -2px; }
+    .compact-company-label { display: inline-flex; align-items: flex-start; gap: 1px; }
+    .compact-company-label > button,
+    .compact-president { text-box: trim-both cap alphabetic; }
+    .compact-president { color: #a79888; font-size: 9px; font-weight: 700; line-height: 1; }
     .compact-token { display: flex; flex-shrink: 0; }
     .compact-numbered { color: inherit; font-size: inherit; white-space: nowrap; }
     .compact section { padding-block: 6px; }

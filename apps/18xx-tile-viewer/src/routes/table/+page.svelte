@@ -43,7 +43,6 @@
             <option value="ending">Final operating turn</option>
             {#if title === 'TOP'}<option value="finished">Finished game</option>{/if}
         </select>
-        <a class="tools" href="/economy">Logic workbench</a>
     </nav>
     {#key `${title}:${position}`}<FinanceExampleHost
             definition={title === 'TOP' ? Top : Shikoku}
@@ -87,9 +86,5 @@
     option {
         color: #302c28;
         background: #f4eee6;
-    }
-    .tools {
-        margin-left: auto;
-        color: #bcb2a6;
     }
 </style>

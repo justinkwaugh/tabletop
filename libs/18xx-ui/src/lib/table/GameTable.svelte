@@ -340,15 +340,24 @@
 
 <svelte:window onkeydown={navigateByShortcut} />
 
+{#snippet historyControls()}
+    <HistoryControls
+        borderClass="border-b border-[#b8a995]"
+        enabledColor="text-[#695540]"
+        disabledColor="text-[#b9ae9f]"
+        bgClass="bg-transparent"
+    />
+{/snippet}
+
 <div class="railway-table" aria-label="Game table">
     <DefaultTableLayout topPadding={0}>
+        {#snippet mobileControlsContent()}
+            {@render historyControls()}
+        {/snippet}
         {#snippet sideContent()}
-            <HistoryControls
-                borderClass="border-b border-[#b8a995]"
-                enabledColor="text-[#695540]"
-                disabledColor="text-[#b9ae9f]"
-                bgClass="bg-transparent"
-            />
+            <div class="max-sm:hidden">
+                {@render historyControls()}
+            </div>
             <div class="game-information" aria-label="Game information">
                 <button class="game-information-item depot-information" onclick={() => showPhaseChart = true} aria-haspopup="dialog" aria-label="Open phase chart">
                     <span class="information-label">Phase</span>
@@ -403,7 +412,7 @@
             </div>
         {/snippet}
         {#snippet gameContent()}
-            <TableHeader {session} {phaseChart} {trainColors} />
+            <TableHeader {session} {phaseChart} {trainColors} {companyNames} />
             <OperatingSteps {session} {privatePurchaseLabel} readOnly={readOnlyPosition} />
             {#if !readOnlyPosition}
             <StockActionStrip {session} additionalActions={additionalStockActions} />
@@ -451,7 +460,12 @@
                         aria-controls={`${tabsId}-panel-${name}`}
                         tabindex={view === name ? 0 : -1}
                         onclick={() => (view = name)}
-                        onkeydown={(event) => navigateTabs(event, index)}>{name}</button
+                        onkeydown={(event) => navigateTabs(event, index)}>
+                        {#if name === 'Spreadsheet'}
+                            <span class="max-sm:hidden">Spreadsheet</span><span class="sm:hidden">Sheet</span>
+                        {:else}
+                            {name}
+                        {/if}</button
                     >
                 {/each}
             </div>
@@ -592,6 +606,9 @@
 
 <style>
     .game-information { display: flex; align-items: center; justify-content: space-between; flex: none; gap: 3px; flex-wrap: wrap; margin-top: -8px; padding: 6px; border-bottom: 1px solid #b8a995; color: #514536; font-size: 12px; line-height: 20px; }
+    @media (width < 40rem) {
+        .game-information { margin-top: 0; }
+    }
     .game-information-item { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
     .depot-information { border: 0; padding: 4px 5px; margin: -4px -5px; border-radius: 4px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
     .depot-information:hover { background: #ffffff66; }
@@ -713,7 +730,7 @@
         overflow: hidden;
     }
     .data-area {
-        padding: 8px 16px;
+        padding: 8px 0;
     }
     .inactive {
         visibility: hidden;

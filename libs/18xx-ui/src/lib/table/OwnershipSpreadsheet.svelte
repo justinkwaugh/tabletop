@@ -226,9 +226,17 @@
             {/each}
         </div>
         {#if period === 'Current'}<div class="view-toggle axis-toggle" role="group" aria-label="Spreadsheet view">
+            <button
+                class="swap-axes"
+                aria-label="Swap rows and columns"
+                title={view === 'Company' ? 'Show players as rows' : 'Show companies as rows'}
+                onclick={() => session.preferences.set({ spreadsheetView: view === 'Company' ? 'player' : 'company' }, 'family')}
+                >X ↔ Y</button
+            >
             {#each ['Player', 'Company'] as option, index}
-                {#if index > 0}<span class="axis-separator" aria-hidden="true"></span>{/if}
+                {#if index > 0}<span class="axis-separator desktop-axis" aria-hidden="true"></span>{/if}
                 <button
+                    class="desktop-axis"
                     aria-pressed={view === option}
                     onclick={() => session.preferences.set({ spreadsheetView: option === 'Company' ? 'company' : 'player' }, 'family')}
                     >{option}</button
@@ -516,6 +524,17 @@
         background: #e5d7c3;
     }
     .axis-toggle button:hover { color: #443c34; }
+    .axis-toggle .swap-axes {
+        display: none;
+        white-space: nowrap;
+        background: #e5d7c3;
+        color: #443c34;
+    }
+    .axis-toggle .swap-axes:hover { background: #d8c7ad; color: #443c34; }
+    @media (width < 40rem) {
+        .desktop-axis { display: none; }
+        .axis-toggle .swap-axes { display: block; }
+    }
     .axis-separator {
         height: 13px;
         border-left: 1px solid #b7a58f;

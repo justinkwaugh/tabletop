@@ -560,6 +560,14 @@ HistoryControls, DefaultTabs, GameChat and ScalingWrapper. Portfolio details can
 be collapsed locally; neither expansion nor tab selection changes Game State.
 MapScene renders directly in ScalingWrapper without a map card or inspector.
 
+History navigation uses one visible toolbar: above the horizontally scrolling
+table below the shared layout's 640px breakpoint, and in the sidebar at wider
+sizes. Both locations use the same table palette for enabled and disabled
+controls. Browser coverage checks TOP and 1889 at phone, breakpoint and desktop
+widths, including resizing back to mobile.
+The operating company in the phase header uses title-defined initials below that
+same breakpoint and its full name at wider sizes; its token remains visible.
+
 FinanceExampleSession.selectMap is the common map-intent entry point for both the
 table and the logic workbench. Route extension/start takes precedence, followed by
 track selection, station selection and ordinary inspection. The existing session
@@ -725,6 +733,10 @@ Each mounted scene subscribes through MarketAnimationSource. Its caller supplies
 Tiles follows Spreadsheet in the table tabs. Colored filter pills select one color or All; remaining tile faces render in an unframed grid with their available count, omitting exhausted faces. The filter is local browsing state and persists across tab switches and visible game-state updates. Counts follow the displayed canonical inventory in live play, history, Undo and restoration; an uncommitted tile preview does not consume stock. The manifest includes future-phase tiles and does not imply that a displayed tile is currently legal to lay. Layout and orientation come from the title's map presentation. It creates no actions and does not affect map selection.
 
 ### Ownership spreadsheet
+
+On mobile, a compact `X ↔ Y` button replaces the Player / Company choices for
+Current ownership. It swaps rows and columns through the same saved family
+preference; desktop retains the explicit choices.
 
 Spreadsheet shows open share companies against players in priority order, with direct share counts at each intersection and subdued zeros. Counts follow the displayed state through actions, history and Undo. It is read-only and does not aggregate a controlled company's shares into a player's holdings.
 

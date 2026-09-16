@@ -7,12 +7,15 @@
     import TrainBadge from '../trains/TrainBadge.svelte'
     import PhaseChart from '../phases/PhaseChart.svelte'
     import type { PhaseChartData } from '../phases/phaseChart.js'
+    import type { CompanyNameVariants } from './companyPresentation.js'
     let {
         session,
+        companyNames = {},
         phaseChart,
         trainColors
     }: {
         session: FinanceExampleSession
+        companyNames?: Readonly<Record<string, CompanyNameVariants>>
         phaseChart: PhaseChartData
         trainColors: Readonly<Record<string, string>>
     } = $props()
@@ -67,7 +70,7 @@
             {#if financialState.result}
                 Game over
             {:else if auction}
-                Opening auction
+                <span class="auction-label max-sm:hidden">Opening auction</span><span class="auction-label sm:hidden">Auction</span>
             {:else if !financialState.stockRound.completed}
                 <span class="round-full" bind:this={fullLabel} aria-hidden={compact}>Stock round</span><span class="round-short" bind:this={shortLabel} aria-hidden={!compact}>SR</span>
                 {financialState.stockRound.number}
@@ -79,14 +82,14 @@
         <span class="separator">/</span><button
             class="phase-button"
             aria-haspopup="dialog"
-            onclick={() => (showPhaseChart = true)}>Phase <TrainBadge name={financialState.phaseId} color={trainColors[financialState.phaseId]} /></button
+            onclick={() => (showPhaseChart = true)}><span class="max-sm:hidden">Phase </span><TrainBadge name={financialState.phaseId} color={trainColors[financialState.phaseId]} /></button
         >
         {#if company && financialState.stockRound.completed && !financialState.result}<span class="separator" aria-hidden="true">/</span><span
-                class="company"
+                class="company" title={company.name}
                 ><CompanyToken
                     appearance={session.mapView.stations[company.id]}
                     size={22}
-                />{company.name}</span
+                /><span class="max-sm:hidden">{company.name}</span><span class="sm:hidden">{companyNames[company.id]?.initials ?? company.id}</span></span
             >{/if}
     </div>
     <div class="turn" bind:this={turnElement}>
@@ -131,6 +134,9 @@
         padding: 0;
         color: #5e4937;
     }
+    @media (width < 40rem) {
+        header { min-height: 36px; }
+    }
     .phase,
     .turn {
         display: flex;
@@ -154,7 +160,8 @@
         font-size: 12px;
     }
     .round-full,
-    .round-short {
+    .round-short,
+    .auction-label {
         font: inherit;
     }
     .round-short,
@@ -176,6 +183,9 @@
         align-items: center;
         gap: 6px;
         color: inherit;
+    }
+    .company > span {
+        font: inherit;
     }
     .player-color {
         width: 14px;
