@@ -1377,3 +1377,7 @@ Auction share cards use the issuing company’s token in their upper-right corne
 Schreiber and Burpee Construction uses a yellow straight-track tile icon, exported from the standard tile 9 geometry and classic palette, in auction lists and the card corner. Card titles balance within 22ch so this long title occupies two lines.
 
 TOP private closure and forced-exchange conditions appear in the final paragraph. Phase references in that paragraph use the title-supplied phase colors and shared TrainBadge; timing text and exceptions remain intact. Introductory bold formatting is explicit, so splitting an ordinary description does not make its first paragraph bold.
+
+The auction offer table centers within the action panel when narrower than the panel. It omits the redundant player-name / offer-instruction heading; the round header retains acting-player context.
+
+Auction offers use compact 3px vertical cell padding and no horizontal row dividers.

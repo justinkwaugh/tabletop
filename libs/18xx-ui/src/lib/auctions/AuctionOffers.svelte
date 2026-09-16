@@ -23,7 +23,6 @@
 </script>
 
 <section aria-label="Auction offers">
-    <header><h2>{session.getPlayerName(model.playerId)} <span>· Offer an item</span></h2></header>
     <table>
         <thead
             ><tr
@@ -84,23 +83,13 @@
 
 <style>
     section {
-        max-width: 680px;
+        width: 100%;
         color: #514538;
-    }
-    header {
-        margin-bottom: 10px;
-    }
-    h2 {
-        margin: 0;
-        font-size: 14px;
-        font-weight: 650;
-    }
-    h2 span {
-        font-weight: 400;
-        color: #887664;
     }
     table {
         width: 100%;
+        max-width: 680px;
+        margin-inline: auto;
         border-collapse: collapse;
         font-size: 13px;
     }
@@ -108,22 +97,20 @@
         color: #887664;
         font-size: 10px;
         font-weight: 500;
-        padding: 0 10px 5px;
+        padding: 0 7px 3px;
         text-align: left;
     }
-    thead th:first-child {
+    thead th:first-child,
+    thead th:nth-child(2) {
         padding-left: 0;
-    }
-    tbody tr {
-        border-top: 1px solid #e3d9cd;
     }
     tbody th {
         font-weight: 500;
         text-align: left;
-        padding: 7px 10px 7px 0;
+        padding: 3px 7px 3px 0;
     }
     td {
-        padding: 7px 10px;
+        padding: 3px 7px;
     }
     .identity {
         display: flex;
@@ -161,14 +148,14 @@
     }
     .action {
         width: 1%;
-        padding-right: 14px;
+        padding-right: 10px;
         padding-left: 0;
     }
     button {
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 5px 11px;
+        padding: 3px 9px;
         border: 1px solid #a99983;
         border-radius: 5px;
         background: #fffdf8;
