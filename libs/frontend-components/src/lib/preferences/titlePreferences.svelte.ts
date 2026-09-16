@@ -21,6 +21,7 @@ export class TitlePreferences<T extends Type.TObject> {
     private readonly cleanup: () => void
     private channel: BroadcastChannel | undefined
     error: string | undefined = $state()
+    ready = $state(false)
     values = $derived.by(() => {
         let data = this.response?.data ?? this.empty()
         for (const change of this.pending) data = this.apply(data, change)
@@ -41,6 +42,7 @@ export class TitlePreferences<T extends Type.TObject> {
                     this.userId = userId
                     this.generation++
                     this.response = undefined
+                    this.ready = false
                     this.pending = []
                     this.error = undefined
                     this.processing = false
@@ -101,10 +103,14 @@ export class TitlePreferences<T extends Type.TObject> {
     private async load() {
         const generation = this.generation
         const sequence = ++this.loadSequence
-        if (!this.userId || !this.api.getTitlePreferences) return
-        const response = await this.api.getTitlePreferences(this.titleId, this.userId)
-        resolvePreferences(this.definition, response.data)
-        if (this.isCurrent(generation) && sequence === this.loadSequence) this.response = response
+        try {
+            if (!this.userId || !this.api.getTitlePreferences) return
+            const response = await this.api.getTitlePreferences(this.titleId, this.userId)
+            resolvePreferences(this.definition, response.data)
+            if (this.isCurrent(generation) && sequence === this.loadSequence) this.response = response
+        } finally {
+            if (this.isCurrent(generation) && sequence === this.loadSequence) this.ready = true
+        }
     }
 
     private async reload() {

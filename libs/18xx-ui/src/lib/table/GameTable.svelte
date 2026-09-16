@@ -351,7 +351,8 @@
     />
 {/snippet}
 
-<div class="railway-table" data-theme={session.preferences.values.theme} aria-label="Game table">
+<div class="railway-table" data-theme={session.preferences.ready ? session.preferences.values.theme : 'dark'} aria-label="Game table" aria-busy={!session.preferences.ready}>
+    {#if session.preferences.ready}
     <DefaultTableLayout topPadding={0}>
         {#snippet mobileControlsContent()}
             {@render historyControls()}
@@ -604,6 +605,7 @@
         appearance={session.mapStyle === 'muted' ? MutedTileAppearance : ClassicTileAppearance}
         onclose={() => session.closeHistoricalMap()} />
 {/if}
+    {/if}
 </div>
 
 <style>

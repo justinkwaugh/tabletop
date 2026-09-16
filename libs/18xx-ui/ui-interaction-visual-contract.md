@@ -1421,3 +1421,12 @@ Dark-mode history interstitial borders match the dark table background, leaving 
 Operated companies dim as a whole in both themes, including their train badges. This intentional completed-state dimming is an exception to preserving phase colors at full strength in dark mode.
 
 The ownership spreadsheet does not highlight the currently operating company in either axis orientation; ordinary row hover remains available.
+
+### Initial preference loading
+
+The table waits for the initial player preference request before rendering its contents,
+using a dark canvas while pending so a saved dark theme never paints the light default.
+A failed request or an older host without the preference API settles to the existing
+defaults. Background preference refreshes keep the table mounted; an account change
+waits for that account's preferences. This correction requires updated TOP/1889 UI
+Artifacts, with no Site Frontend publication, Logic, or host API change.

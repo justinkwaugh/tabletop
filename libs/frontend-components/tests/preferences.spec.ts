@@ -61,3 +61,28 @@ test('leaving a game finishes a queued preference save for the same account', as
     })
     expect(result).toBe(true)
 })
+
+test('preferences become ready only after the initial saved values load', async ({ page }) => {
+    await page.goto('/session-test.html')
+    const result = await page.evaluate(async () => {
+        const fixture = await import(
+            new URL('/src/lib/preferences/tests/preferences.fixture.svelte.ts', location.href).href
+        )
+        return fixture.verifyPreferenceReadiness()
+    })
+    expect(result).toEqual({ before: false, after: true, compact: true })
+})
+
+for (const mode of ['failed', 'older'] as const) {
+    test(`preferences finish loading with a ${mode} host`, async ({ page }) => {
+        await page.goto('/session-test.html')
+        const result = await page.evaluate(async (mode) => {
+            const fixture = await import(
+                new URL('/src/lib/preferences/tests/preferences.fixture.svelte.ts', location.href).href
+            )
+            return fixture.verifyPreferenceReadiness(mode)
+        }, mode)
+        expect(result.after).toBe(true)
+        expect(result.compact).toBe(false)
+    })
+}

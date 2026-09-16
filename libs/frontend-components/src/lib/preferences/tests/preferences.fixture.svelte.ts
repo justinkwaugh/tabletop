@@ -153,3 +153,23 @@ export async function verifySaveAfterDisposal() {
     await new Promise((resolve) => setTimeout(resolve, 10))
     return api.saved
 }
+
+export async function verifyPreferenceReadiness(mode: 'saved' | 'failed' | 'older' = 'saved') {
+    let finish: ((response: PreferenceResponse) => void) | undefined
+    class Api extends DummyRemoteApiService {
+        getTitlePreferences = () => {
+            if (mode === 'failed') return Promise.reject(new Error('Load failed'))
+            return new Promise<PreferenceResponse>((resolve) => { finish = resolve })
+        }
+    }
+    const api = mode === 'older' ? new DummyRemoteApiService() : new Api()
+    const preferences = new TitlePreferences(definition, 'title', api, () => 'alice', () => {})
+    flushSync()
+    const before = preferences.ready
+    finish?.(response({ compact: true }))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    const after = preferences.ready
+    const compact = preferences.values.compact
+    preferences.dispose()
+    return { before, after, compact }
+}
