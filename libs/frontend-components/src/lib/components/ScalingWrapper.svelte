@@ -1070,11 +1070,18 @@
                     !Number.isInteger(event.deltaY))
             smoothWheelGesture ||= smoothDelta
             if (smoothWheelGesture) {
+                const deltaX = -event.deltaX * unit
+                const deltaY = -event.deltaY * unit
                 const next = clampTranslation(currentScale,
-                    currentTranslateX - event.deltaX * unit,
-                    currentTranslateY - event.deltaY * unit)
+                    currentTranslateX + deltaX,
+                    currentTranslateY + deltaY)
+                const residualX = deltaX - (next.translateX - currentTranslateX)
+                const residualY = deltaY - (next.translateY - currentTranslateY)
                 notifyManualViewChange(currentScale, next.translateX, next.translateY)
                 applyView(currentScale, next.translateX, next.translateY)
+                if (Math.abs(residualX) > EPSILON || Math.abs(residualY) > EPSILON) {
+                    scrollAncestorBy(residualX, residualY)
+                }
                 return
             }
         }

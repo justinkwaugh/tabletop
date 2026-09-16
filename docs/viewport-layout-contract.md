@@ -293,6 +293,10 @@ size. Smooth pixel deltas pan; Ctrl-wheel (trackpad pinch) zooms. Since wheel
 events do not identify the device, horizontal, fractional, or small pixel deltas
 classify a gesture as smooth, retained until a 250ms gap. Fast initial trackpad
 deltas and smooth-scrolling mice can be ambiguous.
+At a map boundary, smooth wheel movement not consumed by map panning passes to
+the enclosing scroll area. This includes the remaining part of a gesture that
+crosses the boundary and subsequent trackpad momentum events. A fitted map
+passes the gesture through immediately. Zoom input remains local to the map.
 Left-button dragging pans after a five-pixel movement threshold; a drag consumes
 its resulting click so it cannot also select a board item. Ordinary clicks and
 keyboard activation remain available. Mouse release outside the wrapper and
