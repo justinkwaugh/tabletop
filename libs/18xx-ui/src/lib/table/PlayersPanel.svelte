@@ -35,18 +35,15 @@
         onFocusCompany: (companyId: string) => void
         portfolioCompanyIds?: readonly string[]
     } = $props()
-    let compactPlayers = $state(new Set<string>())
-    function toggleCompact(id: string) {
-        const next = new Set(compactPlayers)
-        if (next.has(id)) next.delete(id)
-        else next.add(id)
-        compactPlayers = next
+    const compact = $derived(session.preferences.values.compactPlayerCards)
+    function toggleCompact() {
+        session.preferences.set({ compactPlayerCards: !compact }, 'family')
     }
-    function toggleOnBackground(node: HTMLElement, id: string) {
+    function toggleOnBackground(node: HTMLElement) {
         const click = (event: MouseEvent) => {
             if (event.target instanceof Element && event.target.closest('button, a, input, select, textarea, [data-private-description-row]')) return
             if (window.getSelection()?.toString()) return
-            toggleCompact(id)
+            toggleCompact()
         }
         node.addEventListener('click', click)
         return { destroy: () => node.removeEventListener('click', click) }
@@ -117,9 +114,8 @@
 
 <div class="players" aria-label="Players">
     {#each players as player, index (player.id)}
-        {@const compact = compactPlayers.has(player.id)}
         <article
-            use:toggleOnBackground={player.id}
+            use:toggleOnBackground
             class:compact
             animate:flip={{ duration: prefersReducedMotion.current ? 0 : 180 }}
             aria-label={`${player.name} portfolio`}
@@ -139,11 +135,24 @@
                             token={player.owner.kind === 'company' ? session.privateCompanyTokens[player.owner.companyId] : undefined}
                             name={player.name}
                             description={player.description}
-                        />{:else}<button class="card-toggle" aria-label={`${compact ? 'Expand' : 'Compact'} ${player.name} card`} aria-pressed={compact} onclick={() => toggleCompact(player.id)}>{player.name}</button>{/if}
+                        />{:else}<span>{player.name}</span>{/if}
                 </h3>
                 {#if player.controller}<span class="controller"
                         >Controlled by {player.controller}</span
                     >{/if}
+                <div class="header-controls">
+                    {#if player.playerId}<button class="compact-toggle"
+                        aria-label={`${compact ? 'Expand' : 'Compact'} ${player.name} card`}
+                        aria-pressed={compact} title={compact ? 'Expand card' : 'Compact card'}
+                        onclick={() => toggleCompact()}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            {#if compact}
+                                <path d="M4 3h16M4 21h16M12 10V6m-3 3 3-3 3 3M12 14v4m-3-3 3 3 3-3" />
+                            {:else}
+                                <path d="M4 9h16M4 15h16M12 2v4m-3-3 3 3 3-3M12 22v-4m-3 3 3-3 3 3" />
+                            {/if}
+                        </svg>
+                    </button>{/if}
                 {#if player.playerId && passOrderPositions}
                     {@const position = stockRoundActive ? session.playerPriorityOrder.indexOf(player.playerId) + 1 : index + 1}
                     {#if !stockRoundActive || session.financialState.stockRound.passedPlayerIds.includes(player.playerId)}
@@ -154,6 +163,7 @@
                 {:else if player.playerId === session.playerPriorityOrder[0]}
                     <span class="priority" title="First in priority order">Priority deal</span>
                 {/if}
+                </div>
             </header>
             <div class="stats">
                 <dl>
@@ -259,10 +269,10 @@
             </section>
             {/if}
             {#if player.privates.length}<section class="privates">
-                    <div class="private-head">
-                        {#if compact}<span></span>{:else}<h4>Privates</h4>{/if}
+                    {#if !compact}<div class="private-head">
+                        <h4>Privates</h4>
                         <span title="Income per operating round">Income</span><span>Value</span>
-                    </div>
+                    </div>{/if}
                     <table aria-label={`${player.name} private companies`}>
                         <tbody>
                             {#each player.privates as entry (entry.company.id)}
@@ -278,7 +288,7 @@
                                             )?.description ?? ''}
                                         /></th
                                     >
-                                    <td class="amount">${money.format(entry.income)}</td>
+                                    <td class="amount">{#if entry.income !== 0}${money.format(entry.income)}{#if compact}<small class="income-period">{' / OR'}</small>{/if}{/if}</td>
                                     <td class="amount">${money.format(entry.value)}</td>
                                 </tr>
                             {/each}
@@ -290,9 +300,10 @@
 </div>
 
 <style>
-    .card-toggle { border: 0; padding: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: 3px; }
-    .card-toggle:hover { background: #69554012; }
-    .card-toggle:focus-visible { outline: 2px solid #796047; outline-offset: 3px; }
+    .header-controls { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+    .compact-toggle { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 2px; border: 0; border-radius: 4px; background: transparent; color: #b5a794; cursor: pointer; }
+    .compact-toggle:hover { color: #695543; background: #6955400d; }
+    .compact-toggle:focus-visible { outline: 2px solid #796047; outline-offset: 2px; color: #695543; }
     .compact-ownership { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 16px; font-size: 12px; }
     .compact-ownership::after { content: ""; position: absolute; top: 2px; bottom: 2px; left: 50%; border-left: 1px solid #d9cebf; pointer-events: none; }
     .holding-line { display: flex; align-items: center; gap: 3px; }
@@ -471,6 +482,7 @@
     .privates {
         border-top: 1px solid #e3d9cd;
     }
+    .income-period { font-size: 10px; color: #887664; white-space: nowrap; }
     .private-head {
         display: grid;
         grid-template-columns: minmax(0, 1fr) 46px 52px;
@@ -478,6 +490,8 @@
         align-items: baseline;
     }
     .private-head span {
+        justify-self: end;
+        white-space: nowrap;
         text-align: right;
         color: #887664;
         font-size: 10px;

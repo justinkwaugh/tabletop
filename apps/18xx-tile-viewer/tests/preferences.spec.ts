@@ -46,6 +46,28 @@ test('history order defaults to newest last and follows the player between title
     await expect(last).toHaveAttribute('aria-pressed', 'true')
 })
 
+test('compact player cards toggle together and persist across reloads and titles', async ({ page }) => {
+    await page.goto('/table')
+    const compact = page.getByRole('button', { name: /^Compact .* card$/ })
+    const expand = page.getByRole('button', { name: /^Expand .* card$/ })
+    await expect(compact.first()).toBeVisible()
+    await compact.first().click()
+    await expect.poll(() => storedFamilyPreference(page, 'compactPlayerCards')).toBe(true)
+    await expect(page.locator('.players > article:not(.compact)')).toHaveCount(0)
+    await page.reload()
+    await expect(expand.first()).toBeVisible()
+    await expect(page.locator('.players > article:not(.compact)')).toHaveCount(0)
+    await page.getByLabel('Game', { exact: true }).selectOption('1889')
+    await expect(expand.first()).toBeVisible()
+    await expect(page.locator('.players > article:not(.compact)')).toHaveCount(0)
+    await expand.nth(1).click()
+    await expect.poll(() => storedFamilyPreference(page, 'compactPlayerCards')).toBe(false)
+    await expect(page.locator('.players > article.compact')).toHaveCount(0)
+    await page.getByLabel('Game', { exact: true }).selectOption('TOP')
+    await expect(compact.first()).toBeVisible()
+    await expect(page.locator('.players > article.compact')).toHaveCount(0)
+})
+
 function storedFamilyPreference(page: Page, preference: string) {
     return page.evaluate((preference) => {
         const key = Object.keys(localStorage).find(

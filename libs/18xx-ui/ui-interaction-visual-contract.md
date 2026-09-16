@@ -1312,14 +1312,15 @@ preview modal.
 
 ### Compact player portfolios
 
-Clicking a player card's non-interactive area toggles its local compact layout;
-its player-name button provides keyboard access to the same toggle. Company-map
+Clicking a player card's non-interactive area or header toggle changes all cards together.
+The header toggle provides keyboard access. The compactPlayerCards family preference
+persists this player’s choice across reloads and 18xx titles, defaulting to expanded. Company-map
 links and private-description controls retain their own behavior. Compact cards
-hide Ownership/Privates section labels and arrange abbreviated company holdings
+hide the Ownership label and the entire Privates/Income/Value header, and arrange abbreviated company holdings
 in two columns, preserving percentages and presidency markers. Company tokens remain visible. Numbered railway
 shares appear inline after the company abbreviation (for example PEIR 3, 5, 6),
 with location names retained as accessible labels/tooltips and map-focus buttons.
-Expansion is keyed by owner identity so reordering cards does not change it.
+Reordering cards and navigating history preserve the preference; it is presentation only and never a game action.
 
 Company links in player portfolios focus all track reachable from the company's
 placed stations, respecting blocked cities and impassable borders, with reserved
@@ -1381,3 +1382,11 @@ TOP private closure and forced-exchange conditions appear in the final paragraph
 The auction offer table centers within the action panel when narrower than the panel. It omits the redundant player-name / offer-instruction heading; the round header retains acting-player context.
 
 Auction offers use compact 3px vertical cell padding and no horizontal row dividers.
+
+Player headers expose a compact/expand icon beside the order badge: two horizontal bars with arrows pointing inward to compact or outward to expand. The icon is light tan at rest and darkens on hover or keyboard focus. The dedicated button retains an explicit accessible action label; background/name clicks still toggle the card.
+
+Expanded private-company headers retain the “Income” label; compact cards omit the complete private header row and append “ / OR” to each private income amount.
+
+Player-card private rows leave zero income blank, including its / OR suffix; the private’s value remains visible.
+
+Compact player cards use the existing optional preference host API without changing its interface. Existing stored preferences acquire the new expanded default through normal preference resolution. TOP and 1889 need updated Logic and matching UI Artifacts: the backend validates the added preference key against the published Logic schema. No host API change is required. The preference is shared presentation across the researched family, independent of title-specific ownership or turn-order rules.
