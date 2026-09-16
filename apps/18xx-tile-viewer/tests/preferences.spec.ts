@@ -90,6 +90,33 @@ test('table theme persists across reloads and titles and applies to dialogs', as
     await expect(table).toHaveAttribute('data-theme', 'light')
 })
 
+test('saved dark mode has no bright loading canvas on reload', async ({ page }) => {
+    await page.goto('/table')
+    await page.getByRole('button', { name: 'Switch to dark mode', exact: true }).click()
+    await expect.poll(() => storedFamilyPreference(page, 'theme')).toBe('dark')
+    await page.addInitScript(() => {
+        let frames = 0
+        function inspectFrame() {
+            if (document.body) {
+                const root = document.documentElement
+                const bodyColor = getComputedStyle(document.body).backgroundColor
+                if (getComputedStyle(root).backgroundColor !== 'rgb(24, 33, 43)' ||
+                    !['rgba(0, 0, 0, 0)', 'rgb(24, 33, 43)'].includes(bodyColor) ||
+                    document.querySelector('.railway-table')?.getAttribute('data-theme') === 'light') {
+                    root.dataset.brightStartupFrame = 'true'
+                }
+                root.dataset.startupFrames = String(++frames)
+            }
+            if (frames < 300) requestAnimationFrame(inspectFrame)
+        }
+        requestAnimationFrame(inspectFrame)
+    })
+    await page.reload()
+    await page.getByRole('button', { name: 'Switch to light mode', exact: true }).waitFor()
+    await expect.poll(() => page.locator('html').getAttribute('data-startup-frames')).not.toBeNull()
+    await expect(page.locator('html')).not.toHaveAttribute('data-bright-startup-frame', 'true')
+})
+
 function storedFamilyPreference(page: Page, preference: string) {
     return page.evaluate((preference) => {
         const key = Object.keys(localStorage).find(

@@ -53,7 +53,7 @@
 <style>
     :global(body) {
         margin: 0;
-        background: #ede2dc;
+        background: #18212b;
         font-family: ui-sans-serif, system-ui, sans-serif;
     }
     .table-harness {
