@@ -734,9 +734,10 @@ Tiles follows Spreadsheet in the table tabs. Colored filter pills select one col
 
 ### Ownership spreadsheet
 
-On mobile, a compact `X ↔ Y` button replaces the Player / Company choices for
-Current ownership. It swaps rows and columns through the same saved family
-preference; desktop retains the explicit choices.
+A compact `X ↔ Y` button switches the axes for Current ownership at every screen
+width. It swaps rows and columns through the saved family preference. Period and
+axes controls occupy a compact full-width strip directly below the table tabs,
+centered over the visible sheet even when its contents scroll horizontally.
 
 Spreadsheet shows open share companies against players in priority order, with direct share counts at each intersection and subdued zeros. Counts follow the displayed state through actions, history and Undo. It is read-only and does not aggregate a controlled company's shares into a player's holdings.
 
@@ -744,17 +745,17 @@ After players, the spreadsheet includes title-selected corporate owners, then Tr
 
 The spreadsheet uses compact row spacing and container-responsive company names: full above 800px, title-supplied short names through 800px, initials through 560px. Accessible row headers retain full company names at every width; resizing changes no ownership or selection.
 
-A Company / Player toggle transposes the same ownership matrix. Player view uses companies as columns and players, corporate owners, Treasury and Market as rows, preserving their order and counts. The chosen view is local browsing state, persists across tab switches and state updates, and creates no game action.
+The axes button transposes the same ownership matrix. Player view uses companies as columns and players, corporate owners, Treasury and Market as rows, preserving their order and counts. The chosen view is local browsing state, persists across tab switches and state updates, and creates no game action.
 
 Cash, net worth, shares and certs/limit appear after ownership, as rows in Company view and columns in Player view. They use the same displayed-state valuation and certificate rules as player panels. Union Bank has cash, net worth and shares; certificate limits do not apply to it. Treasury and Market show dashes for these owner-level statistics.
 
 ### Operating-round financial history
 
-Spreadsheet's Current / Income toggle switches to chronological OR rows with player or company columns. Company view shows finalized train revenue before distribution; Player view shows dividend/private-income receipts and recorded net worth. Unfinished or partial rounds carry an asterisk explained below the table. Historical company names remain available after closure. Only the displayed action prefix is read, without moving the history cursor. Current, Player income, and Company payouts are separate left-aligned view choices. Player / Company applies only to Current, is right aligned, and is saved as a family user preference, defaulting to Player. Company payout values open their recorded run in the historical map modal; withheld runs are red.
+Spreadsheet's Current / Income toggle switches to chronological OR rows with player or company columns. Company view shows finalized train revenue before distribution; Player view shows dividend/private-income receipts and recorded net worth. Unfinished or partial rounds carry an asterisk explained below the table. Historical company names remain available after closure. Only the displayed action prefix is read, without moving the history cursor. Current, Player income, and Company payouts are separate left-aligned view choices. The axes button applies only to Current; its saved family preference defaults to Player. Company payout values open their recorded run in the historical map modal; withheld runs are red.
 
 Income calculation receives only visible context actions; it does not read or reconstruct game states.
 
-Current ownership cells show the shared President badge for the company's canonical president in either orientation. Corporate presidencies are marked in that company's cell (such as Union Bank), never its controlling player's cell. Share numbers stay centered independently of the badge.
+Current ownership cells show the shared President badge for the company's canonical president in either orientation. Corporate presidencies are marked in that company's cell (such as Union Bank), never its controlling player's cell. Share numbers stay centered independently of the badge. The visible top of the P aligns with the top of the share number.
 
 Where a title has a reserved exchange pool, Exchange appears immediately before Treasury in either orientation. The owners/pools divider precedes Exchange, and its financial-summary cells are dashes. Counts come from the supplied exchange pool and follow visible state and Undo.
 

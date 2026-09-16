@@ -78,11 +78,11 @@ for (const title of ['TOP', '1889']) {
         await expect(spreadsheet.getByRole('columnheader')).toHaveText(['Company', 'Alex', 'Blair', 'Casey', ...(title === 'TOP' ? ['Union Bank', 'Exchange'] : []), 'Treasury', 'Market', 'Cash'])
         await expect(spreadsheet.getByRole('row').filter({ has: page.getByRole('rowheader', { name: title === 'TOP' ? 'Charlottetown' : 'Iyo Railway', exact: true }) }).getByRole('cell')).toHaveText(title === 'TOP' ? [/^3\s*P$/, '2', '0', '1', '1', '1', '2', /^\$[\d,]+$/] : ['3', /^3\s*P$/, '0', '0', '0', /^\$[\d,]+$/])
         const matrix = await spreadsheet.locator('tbody tr').evaluateAll(rows => rows.map(row => [...row.querySelectorAll('td')].map(cell => cell.textContent?.trim())))
-        await page.getByRole('group', { name: 'Spreadsheet view' }).getByRole('button', { name: 'Player', exact: true }).click()
+        await page.getByRole('group', { name: 'Spreadsheet view' }).getByRole('button', { name: 'Swap rows and columns', exact: true }).click()
         for (let index = 0; index < matrix[0].length; index++) {
             await expect(spreadsheet.locator('tbody tr').nth(index).getByRole('cell')).toHaveText(matrix.map(row => row[index] ?? ''))
         }
-        await page.getByRole('group', { name: 'Spreadsheet view' }).getByRole('button', { name: 'Company', exact: true }).click()
+        await page.getByRole('group', { name: 'Spreadsheet view' }).getByRole('button', { name: 'Swap rows and columns', exact: true }).click()
         await views.getByRole('tab', { name: 'Spreadsheet', exact: true }).press('ArrowRight')
         await expect(views.getByRole('tab', { name: 'Tiles', exact: true })).toBeFocused()
         await expect(page.getByRole('region', { name: 'Tile manifest', exact: true })).toBeVisible()

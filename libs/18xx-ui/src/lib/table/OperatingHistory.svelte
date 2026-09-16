@@ -122,7 +122,7 @@
         width: auto;
         border-collapse: collapse;
         font-size: 13px;
-        margin: 2px 0 8px;
+        margin: 0 0 8px;
     }
     th,
     td {

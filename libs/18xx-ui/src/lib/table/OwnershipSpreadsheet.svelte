@@ -217,8 +217,7 @@
 {/snippet}
 
 <div class="spreadsheet">
-    <div class="sheet-content">
-    <div class="toolbar">
+    <div class="toolbar" role="group" aria-label="Spreadsheet controls">
         <div class="view-toggle axis-toggle period-toggle" role="group" aria-label="Spreadsheet period">
             {#each ['Current', 'Player income', 'Company payouts'] as const as option, index}
                 {#if index > 0}<span class="axis-separator" aria-hidden="true"></span>{/if}
@@ -233,17 +232,9 @@
                 onclick={() => session.preferences.set({ spreadsheetView: view === 'Company' ? 'player' : 'company' }, 'family')}
                 >X ↔ Y</button
             >
-            {#each ['Player', 'Company'] as option, index}
-                {#if index > 0}<span class="axis-separator desktop-axis" aria-hidden="true"></span>{/if}
-                <button
-                    class="desktop-axis"
-                    aria-pressed={view === option}
-                    onclick={() => session.preferences.set({ spreadsheetView: option === 'Company' ? 'company' : 'player' }, 'family')}
-                    >{option}</button
-                >
-            {/each}
         </div>{/if}
     </div>
+    <div class="sheet-content">
     {#if period !== 'Current'}
         <OperatingHistory rounds={session.operatingIncomeHistory()}
             players={session.playerPriorityOrder.map((playerId) => ({ playerId, name: session.getPlayerName(playerId), color: session.colors.getPlayerBgColorValue(playerId) }))}
@@ -457,6 +448,7 @@
     .share-value {
         position: relative;
         display: inline-block;
+        text-box: trim-both cap alphabetic;
     }
     .share-value.president {
         font-weight: 650;
@@ -469,17 +461,19 @@
         line-height: 1;
         left: 100%;
         margin-left: 2px;
-        top: 50%;
-        transform: translateY(-50%);
-        display: flex;
+        top: 0;
+        text-box: trim-both cap alphabetic;
     }
     .sheet-content { width: fit-content; max-width: 100%; margin-inline: auto; }
     .toolbar {
         display: flex;
-        gap: 12px;
+        justify-content: center;
+        gap: 24px;
         width: 100%;
+        padding-block: 2px;
+        border-bottom: 1px solid #d2c5b7;
+        background: #e7ded3;
     }
-    .axis-toggle:not(.period-toggle) { margin-left: auto; }
     .table-scroll { overflow-x: auto; }
     .view-toggle {
         display: flex;
@@ -487,7 +481,7 @@
         border: 1px solid #c7b8a6;
         border-radius: 6px;
         overflow: hidden;
-        margin-block: 4px;
+        margin: 0;
     }
     .view-toggle button {
         border: 0;
@@ -525,16 +519,11 @@
     }
     .axis-toggle button:hover { color: #443c34; }
     .axis-toggle .swap-axes {
-        display: none;
         white-space: nowrap;
         background: #e5d7c3;
         color: #443c34;
     }
     .axis-toggle .swap-axes:hover { background: #d8c7ad; color: #443c34; }
-    @media (width < 40rem) {
-        .desktop-axis { display: none; }
-        .axis-toggle .swap-axes { display: block; }
-    }
     .axis-separator {
         height: 13px;
         border-left: 1px solid #b7a58f;
@@ -551,7 +540,7 @@
         width: 100%;
         border-collapse: collapse;
         font-size: 13px;
-        margin: 2px 0 8px;
+        margin: 0 0 8px;
     }
     th,
     td {

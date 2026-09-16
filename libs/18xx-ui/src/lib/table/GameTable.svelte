@@ -730,7 +730,7 @@
         overflow: hidden;
     }
     .data-area {
-        padding: 8px 0;
+        padding-bottom: 8px;
     }
     .inactive {
         visibility: hidden;
