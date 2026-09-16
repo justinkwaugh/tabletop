@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest'
 import { HexOrientation } from '@tabletop/common'
 import { RailwayMap, createCityTileFace, type TileEdge } from '@tabletop/18xx'
+import { mapTrackJoins } from '../lib/maps/trackJoins.js'
 import { createMapDrawing, mapSelectionPoint } from '../lib/maps/mapDrawing.js'
 
 it.each([HexOrientation.Flat, HexOrientation.Pointy])(
@@ -21,6 +22,8 @@ it.each([HexOrientation.Flat, HexOrientation.Pointy])(
                 }))
             })
         )
+        expect(mapTrackJoins(scene)).toHaveLength(1)
+        expect(mapTrackJoins({ ...scene, locations: scene.locations.slice(0, 1) })).toHaveLength(0)
         const [first, second] = scene.locations
         const a = first.borders[0],
             b = second.borders[0]

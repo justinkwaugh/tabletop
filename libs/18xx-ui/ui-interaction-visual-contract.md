@@ -1327,3 +1327,7 @@ The operating-order chips are centered when they fit and scroll from the start w
 Live and historical table maps allow manual zoom to twice native size. ScalingWrapper keeps its original maximum for callers that do not opt in; no host-bridge contract changes are required. TOP and 1889 UI artifacts need republication to adopt the increased map zoom.
 
 Green X and T upgrade locations omit their printed “(green)” annotations. After a yellow tile is placed, the map renders X or T as a location overlay using the tile label typography and position; tile definitions remain unchanged, and existing tile labels are not duplicated.
+
+Routes render above tile artwork and map borders as continuous round-ended strokes with a darker shade of each route’s color as their border. City interiors are masked to preserve station tokens; cities have no route outline. Matching regular track endpoints are redrawn only within a two-unit strip across tile edges above the map borders, without bridging unmatched track ends. Map names render above these seam repairs. This presentation is shared by live and historical maps across titles.
+
+The zoom wrapper does not permanently promote its content with `will-change: transform`, allowing vector content to repaint at the settled zoom scale. This is an internal rendering change with no host-bridge API change; UI artifacts bundling ScalingWrapper must be republished to adopt it.

@@ -1,4 +1,6 @@
 <script lang="ts">
+    import MapTrackJoins from './MapTrackJoins.svelte'
+    import MapRoutes from './MapRoutes.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import type { StationReservation } from '@tabletop/18xx'
     import TileArtwork from '../tiles/TileArtwork.svelte'
@@ -143,21 +145,6 @@
                 showZeroRevenue={false}
             >
                 {#snippet trackOverlay(drawing)}
-                    {@const routePaths = routes.flatMap((route) =>
-                        drawing.paths
-                            .filter((path) =>
-                                route.segments.some(
-                                    (segment) =>
-                                        segment.locationId === id && segment.pathId === path.id
-                                )
-                            )
-                            .map((path) => ({ route, path }))
-                    )}
-                    <g fill="none" stroke-width="8" stroke-linejoin="round">
-                        {#each routePaths as { route, path } (`${route.id}:${path.id}`)}
-                            <path data-map-route={route.id} d={path.d} stroke={route.color} />
-                        {/each}
-                    </g>
                     {#if selected && selection?.kind === 'path'}
                         {#each drawing.paths.filter((path) => path.id === selectedPath) as path}
                             <path d={path.d} fill="none" stroke="#d52f83" stroke-width="3" />
@@ -217,13 +204,6 @@
                 stroke={appearance.colors[entry.face.color]}
                 stroke-width="1.7"
             >
-                {#if entry.location.name && !entry.placed}
-                    <text y="-35" font-size="5" font-weight="650"
-                        >{entry.location.name.length > 23
-                            ? `${entry.location.name.slice(0, 22)}…`
-                            : entry.location.name}</text
-                    >
-                {/if}
                 {#if !entry.placed && entry.location.terrain}
                     {@const terrain = entry.location.terrain}
                     {@const iconWidth = terrain.kinds.length * 19}
@@ -354,6 +334,20 @@
                         stroke-width="3"
                     />
                 {/each}
+            </g>
+        {/each}
+    </g>
+    <MapTrackJoins {scene} {appearance} />
+    {#if routes.length}
+        <MapRoutes {scene} {routes} {appearance} />
+    {/if}
+    <g data-map-layer="names" pointer-events="none" aria-hidden="true">
+        {#each entries.filter((entry) => entry.location.name && !entry.placed) as entry (entry.location.id)}
+            <g class="map-annotations" transform={`translate(${entry.center.x} ${entry.center.y})`}
+                fill="#202c31" text-anchor="middle" paint-order="stroke"
+                stroke={appearance.colors[entry.face.color]} stroke-width="1.7">
+                <text y="-35" font-size="5" font-weight="650">{entry.location.name && entry.location.name.length > 23
+                    ? `${entry.location.name.slice(0, 22)}…` : entry.location.name}</text>
             </g>
         {/each}
     </g>

@@ -1213,7 +1213,7 @@
         <div bind:this={viewport} bind:clientWidth={wrapperWidth} bind:clientHeight={wrapperHeight} class="relative w-full h-full">
             <div
                 bind:this={content}
-                class="absolute top-0 left-0 box-border will-change-transform"
+                class="absolute top-0 left-0 box-border"
                 style="transform-origin: top left;"
             >
                 <div
