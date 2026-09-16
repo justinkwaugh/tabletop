@@ -11,7 +11,7 @@ export const TileManifestEntry = Type.Object(
     {
         id: Identifier,
         faceDefinitionIds: Type.Array(Identifier, { minItems: 1, maxItems: 2, uniqueItems: true }),
-        count: Type.Integer({ minimum: 1 })
+        count: Type.Union([Type.Integer({ minimum: 1 }), Type.Literal('unlimited')])
     },
     { additionalProperties: false }
 )
@@ -49,8 +49,8 @@ export type TileInventory = Type.Static<typeof TileInventory>
 export type TilePiece = Pick<TileManifestEntry, 'faceDefinitionIds'> & { readonly id: string }
 export type TileInventoryCount = {
     definitionId: string
-    total: number
-    available: number
+    total: TileManifestEntry['count']
+    available: number | 'unlimited'
 }
 export type TileReplacement = {
     locationId: string
@@ -95,7 +95,7 @@ export class TileSet {
             })
         )
         this.pieces = manifest.entries.flatMap((entry) =>
-            Array.from({ length: entry.count }, (_, index) => ({
+            Array.from({ length: entry.count === 'unlimited' ? 0 : entry.count }, (_, index) => ({
                 id: `${manifest.id}/${entry.id}/${index + 1}`,
                 faceDefinitionIds: [...entry.faceDefinitionIds]
             }))
@@ -136,6 +136,11 @@ export class TileSet {
         this.assertInventory(inventory)
         const unavailable = this.unavailablePieces(inventory)
         return this.definitions.map((definition) => {
+            if (this.manifest.entries.some((entry) =>
+                entry.count === 'unlimited' && entry.faceDefinitionIds.includes(definition.id)
+            )) {
+                return { definitionId: definition.id, total: 'unlimited', available: 'unlimited' }
+            }
             const pieces = this.pieces.filter((piece) =>
                 piece.faceDefinitionIds.includes(definition.id)
             )
@@ -154,9 +159,23 @@ export class TileSet {
             `Tile is not in this set: ${definitionId}`
         )
         const unavailable = this.unavailablePieces(inventory)
-        return this.pieces.filter(
-            (piece) => piece.faceDefinitionIds.includes(definitionId) && !unavailable.has(piece.id)
+        const unlimited = this.manifest.entries.filter((entry) =>
+            entry.count === 'unlimited' && entry.faceDefinitionIds.includes(definitionId)
         )
+        const generated = unlimited.map((entry) => {
+            let index = 1
+            while (unavailable.has(`${this.manifest.id}/${entry.id}/${index}`)) index++
+            return {
+                id: `${this.manifest.id}/${entry.id}/${index}`,
+                faceDefinitionIds: entry.faceDefinitionIds
+            }
+        })
+        return [
+            ...generated,
+            ...this.pieces.filter((piece) =>
+                piece.faceDefinitionIds.includes(definitionId) && !unavailable.has(piece.id)
+            )
+        ]
     }
 
     replace(inventory: TileInventory, replacement: TileReplacement): TileInventory {
@@ -199,14 +218,29 @@ export class TileSet {
             used.add(placement.pieceId)
         }
         for (const id of inventory.retiredPieceIds) {
-            assert(this.piecesById.has(id), `Unknown physical tile: ${id}`)
+            assert(this.piece(id) !== undefined, `Unknown physical tile: ${id}`)
             assert(!used.has(id), 'Retired tile is placed on the map')
             used.add(id)
         }
     }
 
+    private piece(id: string): TilePiece | undefined {
+        const finite = this.piecesById.get(id)
+        if (finite) return finite
+        for (const entry of this.manifest.entries) {
+            if (entry.count !== 'unlimited') continue
+            const prefix = `${this.manifest.id}/${entry.id}/`
+            if (!id.startsWith(prefix)) continue
+            const suffix = id.slice(prefix.length)
+            const index = Number(suffix)
+            if (Number.isSafeInteger(index) && index > 0 && String(index) === suffix)
+                return { id, faceDefinitionIds: entry.faceDefinitionIds }
+        }
+        return undefined
+    }
+
     private assertPieceFace(placement: TilePlacement): void {
-        const piece = this.piecesById.get(placement.pieceId)
+        const piece = this.piece(placement.pieceId)
         assertExists(piece, `Unknown physical tile: ${placement.pieceId}`)
         assert(
             piece.faceDefinitionIds.includes(placement.definitionId),

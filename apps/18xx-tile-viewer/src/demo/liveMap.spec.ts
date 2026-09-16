@@ -29,7 +29,7 @@ it.each([Top, Shikoku])(
         expect(
             tileSet.counts(state.tileInventory).find((count) => count.definitionId === '18xx:5')
         ).toMatchObject({
-            available: tileSet.availablePieces(tileSet.createInventory(), '18xx:5').length - 1
+            available: definition === Top ? 'unlimited' : tileSet.availablePieces(tileSet.createInventory(), '18xx:5').length - 1
         })
         expect(
             isMapSelectionValid(scene, { kind: 'slot', locationId, nodeId: 'city', slot: 0 })

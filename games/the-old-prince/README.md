@@ -5,7 +5,8 @@ on `@tabletop/18xx` and `@tabletop/common`; its companion Game Client package is
 `@tabletop/the-old-prince-ui`.
 
 The public entry point exports `TheOldPrinceTileSet` and `TheOldPrinceTiles`:
-58 definitions and 164 physical pieces, including all sixteen PEI specials.
+62 definitions, including all sixteen PEI specials and four yellow X/T city curves.
+Yellow supplies are unlimited except the single straight (9) and two each of the double-dit tiles (1, 56, and 630–633); other supplies remain finite.
 `TheOldPrincePreprintedTiles` supplies all 110 preprinted tiles.
 `TheOldPrinceMap` exports the complete semantic map, including geography,
 construction facts, reservations, and markers. See the [M1 map design](../../libs/18xx/maps.md). See the

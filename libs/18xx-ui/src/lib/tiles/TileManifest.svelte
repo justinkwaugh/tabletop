@@ -28,11 +28,14 @@
     const visible = $derived(
         tiles
             .filter(
-                (tile) => (remaining.get(tile.id) ?? 0) > 0 && (!color || tile.face.color === color)
+                (tile) => (remaining.get(tile.id) === 'unlimited' || Number(remaining.get(tile.id) ?? 0) > 0) && (!color || tile.face.color === color)
             )
             .sort(
                 (a, b) =>
                     colors.indexOf(a.face.color) - colors.indexOf(b.face.color) ||
+                    (a.face.color === 'yellow'
+                        ? a.face.labels.join(' ').localeCompare(b.face.labels.join(' '))
+                        : 0) ||
                     compareTileSimplicity(a, b)
             )
     )
@@ -65,7 +68,7 @@
                     size={112}
                 />
                 <span class="count" aria-label={`${remaining.get(tile.id)} remaining`}>
-                    ×{remaining.get(tile.id)}
+                    {remaining.get(tile.id) === 'unlimited' ? '∞' : `×${remaining.get(tile.id)}`}
                 </span>
             </div>
         {/each}

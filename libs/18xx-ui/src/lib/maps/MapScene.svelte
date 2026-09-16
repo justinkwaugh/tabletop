@@ -118,7 +118,7 @@
     {#each entries as entry (entry.location.id)}
         {@const id = entry.location.id}
                 {@const yellowUpgradeLabels = (entry.location.upgradeLabels ?? []).filter(
-                    (label) => label.color === 'green' && ['X', 'T'].includes(label.label)
+                    (label) => ['yellow', 'green'].includes(label.color) && ['X', 'T'].includes(label.label)
                 )}
                 {@const overlayLabels = yellowUpgradeLabels.filter((label) => !entry.face.labels.includes(label.label))}
 
@@ -235,12 +235,12 @@
                         <text x={iconWidth + 2} y="4" text-anchor="start" font-size="10" font-weight="750">{terrain.cost}</text>
                     </g>
                 {/if}
-                {#if entry.placed && entry.face.color === 'yellow' && overlayLabels.length}
-                    <text data-map-upgrade-label
-                        dominant-baseline="central" fill={appearance.ink}
-                        x={entry.drawing.labelPosition.x}
-                        y={entry.drawing.labelPosition.y}
-                        font-size="12" font-weight="850" stroke-width="2.5">{overlayLabels.map((label) => label.label).join(' ')}</text>
+                {#if (!entry.placed || entry.face.color === 'yellow') && overlayLabels.length}
+                    <g data-map-upgrade-label transform="translate(-30 0)"
+                        aria-label={`${overlayLabels.map((label) => label.label).join(' ')} upgrade location`}
+                        dominant-baseline="central" fill={appearance.ink} stroke="none">
+                        <text x="0" font-size="12" font-weight="850">{overlayLabels.map((label) => label.label).join(' ')}</text>
+                    </g>
                 {/if}
                 {#each entry.location.markers ?? [] as marker (marker.id)}
                     {#if !entry.placed && entry.markerImages[marker.id]}

@@ -96,7 +96,7 @@ const Markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>> = {
     ]
 }
 
-const greenX = { upgradeLabels: [{ color: 'green', label: 'X' }] }
+const yellowX = { upgradeLabels: [{ color: 'yellow', label: 'X' }] }
 const water60 = { terrain: { cost: 60, kinds: ['water'] } }
 
 const locations = createLetterNumberLocationFactory({
@@ -118,22 +118,22 @@ export const TheOldPrinceMap = new RailwayMap({
             track('white', [])
         ),
         ...locations('U13 L12 J20 Q17 Q15', town('white', [[]], 0)),
-        ...locations('M13 Q21 D6', city('white', [], 0, 1), greenX),
+        ...locations('M13 Q21 D6', city('white', [], 0, 1), yellowX),
         ...locations('H14 K15 P16 P22 O19 E11 C5', town('white', [[], []], 0)),
         ...locations('N16 J16 H16 P14', track('white', []), {
             terrain: { cost: 80, kinds: ['mountain'] }
         }),
         ...locations('K19 N20 J14', city('white', [], 0, 1)),
         ...locations('R12 N14', town('white', [[], []], 0), water60),
-        ...locations('R16', city('white', [], 0, 1), { ...water60, ...greenX }),
+        ...locations('R16', city('white', [], 0, 1), { ...water60, ...yellowX }),
         ...locations('I13', town('white', [[]], 0), water60),
         ...locations('C9 D10 E13 F10', track('white', []), water60),
         ...locations('D8', town('white', [[], []], 0), { terrain: { cost: 80, kinds: ['water'] } }),
-        ...locations('T12', city('white', [3], 20, 1), { ...water60, ...greenX }),
+        ...locations('T12', city('white', [3], 20, 1), { ...water60, ...yellowX }),
         ...locations('G13 F12', track('white', []), { terrain: { cost: 120, kinds: ['water'] } }),
         ...locations('G17', city('white', [], 0, 1), water60),
         ...locations('V12', city('white', [], 0, 1), {
-            upgradeLabels: [{ color: 'green', label: 'T' }]
+            upgradeLabels: [{ color: 'yellow', label: 'T' }]
         }),
         ...locations('O15', city('yellow', [0, 2, 4], 30, 1)),
         ...locations('D14', city('yellow', [5, 3], 20, 1)),

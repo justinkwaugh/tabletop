@@ -395,3 +395,20 @@ it.each(Titles)('keeps reachable track visible without a permitted lay in $defin
     expect(unavailable.canReach(locationId)).toBe(true)
     expect(unavailable.choices(locationId)).toEqual([])
 })
+
+it.each([{ locationId: 'M13', label: 'X' }, { locationId: 'V12', label: 'T' }])(
+    'lays labeled yellow cities at $locationId before green is available',
+    ({ locationId, label }) => {
+        const { state } = example(Top, 'construction')
+        state.phaseId = '2H'
+        state.tileInventory = TheOldPrinceTrackRules.tileSet.createInventory()
+        const station = state.stations.find((station) => station.companyId === 'ML' && station.status === 'placed')
+        if (!station || station.status !== 'placed') throw new Error('Expected placed ML station')
+        const city = TheOldPrinceTrackRules.map.location(locationId).preprintedTile.nodes[0]
+        station.position = { locationId, nodeId: city.id, slot: 0 }
+        const choices = new TrackConstruction(state, TheOldPrinceTrackRules).choices(locationId)
+        expect(new Set(choices.map((choice) => choice.definitionId))).toEqual(
+            new Set((label === 'T' ? ['5'] : ['5', '6']).map((number) => `the-old-prince:${number}${label}`))
+        )
+    }
+)

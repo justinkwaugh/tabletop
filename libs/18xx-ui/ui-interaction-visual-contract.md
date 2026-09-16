@@ -1340,7 +1340,7 @@ The operating-order chips are centered when they fit and scroll from the start w
 
 Live and historical table maps allow manual zoom to twice native size. ScalingWrapper keeps its original maximum for callers that do not opt in; no host-bridge contract changes are required. TOP and 1889 UI artifacts need republication to adopt the increased map zoom.
 
-Green X and T upgrade locations omit their printed “(green)” annotations. After a yellow tile is placed, the map renders X or T as a location overlay using the tile label typography and position; tile definitions remain unchanged, and existing tile labels are not duplicated.
+X and T upgrade locations show only the standard tile-label-sized X or T, inset from the left edge and vertically centered. This marker remains on yellow tile placements until the tile itself carries the label; tile definitions remain unchanged, and existing tile labels are not duplicated.
 
 Routes render above tile artwork and map borders as continuous round-ended strokes with a darker shade of each route’s color as their border. City interiors are masked to preserve station tokens; cities have no route outline. Matching regular track endpoints are redrawn only within a two-unit strip across tile edges above the map borders, without bridging unmatched track ends. Map names render above these seam repairs. Names up to 18 characters (such as “Royalty Jct & York”) stay on one line; longer names split at the word boundary nearest their midpoint into two centered lines, retaining the full name instead of truncating it. The first line keeps the single-line top inset, and the second line extends downward. Single-word names remain intact. Tile annotation text declares its central baseline directly, rather than relying on an SVG group baseline, so WebKit and Chromium both center fixed and staged revenues in their backgrounds. This presentation is shared by live and historical maps across titles.
 
@@ -1390,3 +1390,7 @@ Expanded private-company headers retain the “Income” label; compact cards om
 Player-card private rows leave zero income blank, including its / OR suffix; the private’s value remains visible.
 
 Compact player cards use the existing optional preference host API without changing its interface. Existing stored preferences acquire the new expanded default through normal preference resolution. TOP and 1889 need updated Logic and matching UI Artifacts: the backend validates the added preference key against the published Logic schema. No host API change is required. The preference is shared presentation across the researched family, independent of title-specific ownership or turn-order rules.
+
+TOP X/T labels apply from yellow onward. Its yellow tight/gentle X/T city tiles have 20 revenue and unlimited supply; other yellow tiles are also unlimited except the single straight and two each of the double-dit tiles. The manifest displays ∞ and the tile library says Unlimited.
+
+The manifest groups yellow tiles by label: plain, T, then X, preserving the existing simplicity order within each group.

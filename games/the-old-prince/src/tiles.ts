@@ -4,10 +4,15 @@ import {
     TileSet,
     createCityTileFace,
     type TileDefinition,
+    type TileManifestEntry,
     type TileEdge
 } from '@tabletop/18xx'
 
 const SpecialTiles = new TileCatalog([
+    cityTile('5X', 'yellow', [0, 1], 20, 1, ['X']),
+    cityTile('6X', 'yellow', [0, 2], 20, 1, ['X']),
+    cityTile('5T', 'yellow', [0, 1], 20, 1, ['T']),
+    cityTile('6T', 'yellow', [0, 2], 20, 1, ['T']),
     cityTile('PEI1', 'green', [0, 1, 3, 4], 20, 2, []),
     cityTile('PEI2', 'green', [0, 1, 2, 3], 20, 2, []),
     cityTile('PEI3', 'green', [0, 2, 3, 4], 20, 2, []),
@@ -26,13 +31,13 @@ const SpecialTiles = new TileCatalog([
     cityTile('PEI16', 'gray', [1, 5, 4, 3, 2], 70, 3, ['X'])
 ])
 
-const SharedTileCounts: Readonly<Record<string, number>> = {
+const SharedTileCounts: Readonly<Record<string, TileManifestEntry['count']>> = {
     '1': 2,
-    '3': 8,
-    '5': 7,
-    '6': 7,
-    '7': 12,
-    '8': 25,
+    '3': 'unlimited',
+    '5': 'unlimited',
+    '6': 'unlimited',
+    '7': 'unlimited',
+    '8': 'unlimited',
     '9': 1,
     '16': 3,
     '17': 3,
@@ -53,7 +58,7 @@ const SharedTileCounts: Readonly<Record<string, number>> = {
     '46': 1,
     '47': 1,
     '56': 2,
-    '58': 6,
+    '58': 'unlimited',
     '70': 1,
     '143': 2,
     '144': 2,
@@ -71,7 +76,11 @@ const SharedTileCounts: Readonly<Record<string, number>> = {
     '769': 1
 }
 
-const SpecialTileCounts: Readonly<Record<string, number>> = {
+const SpecialTileCounts: Readonly<Record<string, TileManifestEntry['count']>> = {
+    '5X': 'unlimited',
+    '6X': 'unlimited',
+    '5T': 'unlimited',
+    '6T': 'unlimited',
     PEI1: 3,
     PEI2: 3,
     PEI3: 3,
@@ -94,7 +103,7 @@ export const TheOldPrinceTileSet = new TileSet(
     {
         id: 'the-old-prince:prototype',
         entries: [
-            ...Object.entries(SharedTileCounts).map(([number, count]) => ({
+            ...Object.entries(SharedTileCounts).map<TileManifestEntry>(([number, count]) => ({
                 id: number,
                 faceDefinitionIds: [`18xx:${number}`],
                 count

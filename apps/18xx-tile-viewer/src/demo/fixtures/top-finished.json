@@ -4122,7 +4122,7 @@
       "playerId": "12729",
       "companyId": "MS",
       "locationId": "M13",
-      "definitionId": "18xx:6",
+      "definitionId": "the-old-prince:6X",
       "rotation": 4,
       "nodeMapping": {
         "city": "city"
@@ -4583,7 +4583,7 @@
       "playerId": "3574",
       "companyId": "A",
       "locationId": "D6",
-      "definitionId": "18xx:5",
+      "definitionId": "the-old-prince:5X",
       "rotation": 1,
       "nodeMapping": {
         "city": "city"
@@ -5749,7 +5749,7 @@
       "playerId": "3574",
       "companyId": "PEIR",
       "locationId": "Q21",
-      "definitionId": "18xx:5",
+      "definitionId": "the-old-prince:5X",
       "rotation": 4,
       "nodeMapping": {
         "city": "city"
@@ -5764,7 +5764,7 @@
       "playerId": "3574",
       "companyId": "PEIR",
       "locationId": "V12",
-      "definitionId": "18xx:5",
+      "definitionId": "the-old-prince:5T",
       "rotation": 1,
       "nodeMapping": {
         "city": "city"
@@ -7127,7 +7127,7 @@
       "playerId": "3574",
       "companyId": "PEIR",
       "locationId": "R16",
-      "definitionId": "18xx:5",
+      "definitionId": "the-old-prince:5X",
       "rotation": 5,
       "nodeMapping": {
         "city": "city"
@@ -8085,7 +8085,7 @@
       "playerId": "12729",
       "companyId": "So",
       "locationId": "T12",
-      "definitionId": "18xx:6",
+      "definitionId": "the-old-prince:6X",
       "rotation": 3,
       "nodeMapping": {
         "city": "city"

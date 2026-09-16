@@ -8,10 +8,9 @@ physical piece identity, and map location identity remain separate.
 ## Interface and ownership
 
 - `TileManifest` contains a set ID and entries with independent counts and one or
-  two face-definition IDs. Two faces consume one physical piece. Unlimited and
-  conditional supply are deliberately deferred; counts must be positive integers.
+  two face-definition IDs. Two faces consume one physical piece. Counts are positive integers or `unlimited`; conditional supply remains title-owned.
 - `TileSet.definitions` retains the frozen definitions owned by its catalogs.
-  Title sets reuse the same shared definition objects. `pieces` gives each copy
+  Title sets reuse the same shared definition objects. `pieces` gives each finite copy
   an identity within the selected set. Callers do not parse those IDs.
 - `createInventory()` returns a new inventory for one game. Its placements refer
   to a location, physical piece, selected face, and rotation. Retired pieces are
@@ -21,8 +20,8 @@ physical piece identity, and map location identity remain separate.
   unique physical occupancy before returning an independent copy.
 - `counts(inventory)` reports total and available pieces per definition.
   Opposite faces report availability of the same pieces; summing those face
-  counts is not a physical-piece total. `pieces.length` is that total.
-- `availablePieces(inventory, definitionId)` gives eligible supply references.
+  counts is not a physical-piece total. `pieces.length` is the finite-piece total; unlimited counts use the literal `unlimited`.
+- `availablePieces(inventory, definitionId)` gives eligible supply references, including one deterministically allocated free identity per unlimited entry. Returned identities are reused; placed and retired identities are never allocated again until returned.
 - `replace(inventory, { locationId, placement, returnPrevious })` returns a new
   inventory. It rejects unavailable pieces and mismatched faces before changing
   anything. A returned piece restores availability for all its faces. An old
@@ -49,7 +48,7 @@ paired-face, and two not-applicable records; these categories overlap.
 | Asset                   | Variation considered                                                                                  | T3 decision                                                                                                                                                                                                     |
 | ----------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Catalog and manifest    | Same numbers may differ by title; identical definitions have independent counts.                      | Qualified definition IDs; title-owned manifests; standard and beginner sets are separate.                                                                                                                       |
-| Physical inventory      | Paired tiles in 18Cuba and other paired-face profiles; finite, unlimited, and conditional supply.     | Implement finite single/paired pieces. Do not simulate unlimited stock with an arbitrary large count.                                                                                                           |
+| Physical inventory      | Paired tiles in 18Cuba and other paired-face profiles; finite, unlimited, and conditional supply.     | Implement finite and unlimited single/paired pieces. Do not simulate unlimited stock with an arbitrary large count.                                                                                                           |
 | Replacement             | Ordinary returns, destroyed/removed track in 1849 and 18FL, persistent stations and map rights.       | Explicit return/retire choice; immutable exchange result; leave rule and map consequences to callers.                                                                                                           |
 | Stops and artwork       | Separate towns, junction towns, labeled cities, ports, face-dependent costs.                          | Explicit node identity; derive separate through-town positions from their own tracks; junction towns are round dots. Port symbols and upgrade costs are face data, independent of map-owned terrain and rights. |
 | Viewer and map examples | Definitions versus available pieces, same-number variants, paired alternatives, and preprinted tiles. | Optional caller-supplied counts; no inventory mutation from browsing. Preprinted tiles and replacement stages are inspection fixtures, not a game-screen design.                                                   |
@@ -67,12 +66,12 @@ remain outside this slice.
 
 | Set                    | Definitions | Physical pieces |
 | ---------------------- | ----------: | --------------: |
-| TOP prototype baseline |          58 |             164 |
+| TOP current prototype |          62 | Mixed finite/unlimited |
 | Shikoku 1889 standard  |          40 |              63 |
 | Shikoku 1889 beginner  |          40 |              71 |
 
 The shared catalog now has 65 definitions, including the earlier junction
-specimen #81. TOP adds all sixteen PEI definitions. The two actual title sets
+specimen #81. TOP adds all sixteen PEI definitions and four yellow labeled city curves. The two actual title sets
 share 18 definitions. The gallery also retains separate synthetic layout examples
 and the documented 1832 #611 variant; those are not added to either game's supply.
 
@@ -88,8 +87,7 @@ omits the beginner #57. T3 follows the supplied rulebook and reuses the standard
 definitions with additional physical copies instead of inventing different faces.
 
 TOP's older prototype rulebook provides the T/X/CX restrictions but no comparable
-complete count manifest. Its set is explicitly the pinned prototype baseline,
-not a claim that a later physical edition has been reconciled.
+complete count manifest. The current prototype follows the requested September 16 supply revision: yellow tiles are unlimited except #9 (one) and double-dit #1/#56/#630–633 (two each). Yellow X/T tight and gentle cities pay 20 and match X/T locations starting in yellow. This title-owned revision does not change 1889 supplies or other researched titles. It is not a claim that a later physical edition has been reconciled.
 
 Evidence: [1889 rulebook](</workspace/Shikoku 1889 Rulebook.pdf>),
 [TOP comparison](/workspace/research/18xx-2026-09-08/top-rulebook-comparison.md),
@@ -110,3 +108,9 @@ The specimen page shows a preprinted tile, a placed #5, and a replacement that r
 #5 to supply for each title. Browser checks cover full title selection, counts,
 beginner extras, symbols, and every catalog tile in six rotations, two
 orientations, and both appearances.
+
+Unlimited supplies preserve the existing serialized inventory shape and stable ID format.
+Previously allocated finite IDs remain valid when their entry becomes unlimited.
+Logic and UI artifacts consuming the changed manifest/count contract must be published together.
+Tests exercise more copies than the former stock, paired faces, retirement, reuse,
+serialization, finite exceptions, and yellow X/T construction before green availability.
