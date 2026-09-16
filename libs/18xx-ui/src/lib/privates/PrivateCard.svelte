@@ -1,22 +1,29 @@
 <script lang="ts">
+    import CompanyToken from '../tokens/CompanyToken.svelte'
+    import type { StationAppearance } from '../maps/stationPresentation.js'
     let {
         name,
         description,
         value,
         income,
+        token,
         purchaseRange
     }: {
         name: string
         description: string
         value?: number
         income?: number
+        token?: StationAppearance
         purchaseRange?: { minimum: number; maximum?: number }
     } = $props()
 </script>
 
 <div class="private-card">
     <header>
-        <h3>{name}</h3>
+        <div class="heading">
+            <h3>{name}</h3>
+            {#if token}<CompanyToken appearance={token} size={28} />{/if}
+        </div>
         {#if value !== undefined || income !== undefined || purchaseRange}
             <div class="values">
                 {#if income !== undefined}<span
@@ -55,6 +62,8 @@
         font-weight: 650;
         line-height: 1.3;
     }
+    .heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .heading :global(svg) { flex-shrink: 0; }
     .value {
         margin-left: auto;
         text-align: right;

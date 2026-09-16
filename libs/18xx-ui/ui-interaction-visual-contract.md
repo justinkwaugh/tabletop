@@ -741,7 +741,7 @@ centered over the visible sheet even when its contents scroll horizontally.
 
 Spreadsheet shows open share companies against players in priority order, with direct share counts at each intersection and subdued zeros. Counts follow the displayed state through actions, history and Undo. It is read-only and does not aggregate a controlled company's shares into a player's holdings.
 
-After players, the spreadsheet includes title-selected corporate owners, then Treasury and Market. Treasury shows each row company's own shares; Market counts shares in the title-supplied market pool only. Union Bank remains a separate owner in TOP.
+Title-selected corporate owners follow their controlling player in the ownership matrix. In Player view, each corporate row is indented, with a down-and-right connector from the controlling player's color dot. Company view preserves that owner order as columns, with a continuous horizontal connector across the player and corporate column boundary and vertically aligned header labels. Control comes from the shared controlling-owner calculation, including corporate control chains; uncontrolled corporate owners remain after the players, without a connector. Titles without corporate portfolios, including 1889, retain their player order. TOP's Union Bank remains a separate owner with its own shares and financial values; this grouping never aggregates its holdings into the player. The order and connector follow the displayed state through control changes, history and Undo. TOP explicitly marks Union Bank's net worth as included in its controlling player's total: both orientations use lighter text, an asterisk, and a matching footnote. This treatment is title-selected rather than assumed for all corporate holdings. Treasury shows each row company's own shares; Market counts shares in the title-supplied market pool only.
 
 The spreadsheet uses compact row spacing and container-responsive company names: full above 800px, title-supplied short names through 800px, initials through 560px. Accessible row headers retain full company names at every width; resizing changes no ownership or selection.
 
@@ -1348,3 +1348,16 @@ The zoom wrapper does not permanently promote its content with `will-change: tra
 Wheel-event trackpad pinch (Ctrl-marked wheel events) uses a 0.006 zoom coefficient, independently of ordinary mouse-wheel zoom at 0.003. Touch-distance pinch and native Safari gesture scaling are unchanged. This internal shared-wrapper change requires republication of consuming UI artifacts to adopt it, without host-bridge changes.
 
 TOP imports its Tailwind stylesheet from the production runtime, with generated rules scoped to `[data-game-ui="the-old-prince"]`, matching the independent artifact pattern used by Bus and Indonesia. The development page must not be the only stylesheet entry. Republishing the TOP UI artifact adopts this fix without a Site Frontend or host-bridge change.
+
+### Concession private tokens
+
+TOP supplies tokens for Mainline and Shortline Concessions from the companies
+currently assigned those roles. Auction offer icons, bidding cards and private
+description cards share those appearances; cards place the token at the upper
+right. The association follows displayed state, including history. Other privates
+and titles keep their existing presentation unless they supply a token. This is
+UI-only metadata and does not infer a universal concession or formation rule.
+Concession descriptions start by identifying the president’s certificate and
+the actual assigned company, then retain the closure conditions. This descriptive
+text lives in TOP’s private rules module; the icon metadata lives in its UI.
+No host-bridge member or gameplay rule changes.

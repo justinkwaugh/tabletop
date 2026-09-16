@@ -71,6 +71,7 @@
     exchangePoolId="reserved"
     {session}
     portfolioCompanyIds={['UB']}
+    includedPortfolioCompanyIds={['UB']}
     valuationRules={TheOldPrinceEndingRules}
     trainColors={TheOldPrinceTrainColors}
     phaseColors={TheOldPrinceTrainColors}

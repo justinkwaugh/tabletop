@@ -215,8 +215,8 @@
                                 {#if kind === 'mountain'}
                                     <path d="M0 5 L6 -6 L10 0 L13 -4 L19 5 Z" fill="#936039" />
                                 {:else if kind === 'water'}
-                                    <path transform="translate(2 0) scale(0.75 1)"
-                                        d="M0 -2 C3 -6 6 -6 9 -2 S15 2 18 -2 M0 2 C3 -2 6 -2 9 2 S15 6 18 2"
+                                    <path transform="translate(4 0) scale(0.75 1)"
+                                        d="M0 -2 C3 -4 6 -4 9 -2 S15 0 18 -2 M0 2 C3 0 6 0 9 2 S15 4 18 2"
                                         fill="none" stroke="#287fab" stroke-width="1.8" stroke-linecap="round" />
                                 {:else}
                                     <text x="8" y="4" font-size="11" font-weight="700">{kind === 'urban' ? '▦' : kind}</text>

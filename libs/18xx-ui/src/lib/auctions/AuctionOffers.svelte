@@ -34,6 +34,7 @@
         <tbody>
             {#each lots as lot (lot.id)}
                 {@const info = lotInfo(lot.id)}
+                {@const token = session.privateCompanyTokens[lot.id]}
                 <tr data-private-description-row>
                     <td class="action"
                         ><button
@@ -57,7 +58,8 @@
                                     if (info.locationId) onFocus(info.locationId)
                                 }}
                             >
-                                {#if lot.share}<CompanyToken
+                                {#if token}<CompanyToken appearance={token} size={26} />
+                                {:else if lot.share}<CompanyToken
                                         appearance={session.mapView.stations[lot.share.companyId]}
                                         size={26}
                                     />
@@ -65,6 +67,7 @@
                                     >{/if}
                             </button>
                             <PrivateDescription
+                                {token}
                                 name={lot.name}
                                 description={info.description}
                                 value={lot.price}

@@ -1,5 +1,5 @@
 import { getCompany } from '@tabletop/18xx'
-import { TheOldPrinceAuctionRules } from '@tabletop/the-old-prince'
+import { TheOldPrinceAuctionRules, theOldPrinceRole } from '@tabletop/the-old-prince'
 import { TheOldPrinceTrainFundingRules } from '@tabletop/the-old-prince'
 import { TheOldPrinceTransferRules, TheOldPrincePrivatePowerRules } from '@tabletop/the-old-prince'
 import { TheOldPrincePrivateRules } from '@tabletop/the-old-prince'
@@ -54,6 +54,10 @@ const BaseSession = createFinanceExampleSessionClass(
 )
 
 export class TheOldPrinceSession extends BaseSession {
+    override privateCompanyTokens = $derived({
+        MLC: this.mapView.stations[theOldPrinceRole(this.financialState, 'mainline')],
+        SLC: this.mapView.stations[theOldPrinceRole(this.financialState, 'shortline')]
+    })
     private splitDraft: BranchSplitSelection = $state({})
     splitModel = $derived(new TheOldPrinceBranchSplit(this.financialState))
     canPreviewSplit = $derived(

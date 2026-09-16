@@ -67,6 +67,7 @@
         historyDescription,
         valuationRules,
         portfolioCompanyIds = [],
+        includedPortfolioCompanyIds = [],
         privatePurchaseLabel = 'Buy privates',
         privateOperationDescription
     }: {
@@ -84,6 +85,7 @@
         actions: Snippet<[(locationId: string) => void, (trainId: string) => void]>
         operatingRules: OperatingRules
         portfolioCompanyIds?: readonly string[]
+        includedPortfolioCompanyIds?: readonly string[]
         valuationRules: ValuationRules
         trainColors: Readonly<Record<string, string>>
         phaseColors: Readonly<Record<string, string>>
@@ -557,6 +559,7 @@
                     tabindex="0"
                 >
                     <OwnershipSpreadsheet
+                        {includedPortfolioCompanyIds}
                         companyOrder={spreadsheetCompanyOrder}
                         {operatingCompanyId}
                         onPreviewMap={previewHistoryMap}

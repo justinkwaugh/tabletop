@@ -55,6 +55,7 @@
 <article aria-label="Current auction">
     <div class="lot">
         <PrivateCard
+            token={session.privateCompanyTokens[lot.id]}
             name={lot.name}
             description={lotInfo(lot.id).description}
             value={lot.price}

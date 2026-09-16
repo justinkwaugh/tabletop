@@ -1,7 +1,7 @@
 import { theOldPrinceRole } from './companies.js'
 import { TheOldPrinceTileSet } from './tiles.js'
 import { assertExists } from '@tabletop/common'
-import { type PrivateRules, type PrivateEffect, type FinancialState } from '@tabletop/18xx'
+import { getCompany, type PrivateRules, type PrivateEffect, type FinancialState } from '@tabletop/18xx'
 import { TheOldPrincePhases } from './trains.js'
 const ShortlineExchanges: Record<string, number> = { MC: 6, SB: 7, VR: 8 }
 function shortlineExchange(state: FinancialState, id: string) {
@@ -107,7 +107,7 @@ export const TheOldPrincePrivateRules: PrivateRules = {
             .filter((company) => company.id === id && !company.closed)
             .map((company) => ({ kind: 'close', privateCompanyId: company.id }))
     },
-    description(_state, id) {
+    description(state, id) {
         if (id === 'HS')
             return 'From 4H, may be sold to a railway other than PEIR for $1–200. Its railway may close it to buy one depot train during its turn, paying the normal price. Closes unused at 4+.'
         if (id === 'SBC')
@@ -124,7 +124,10 @@ export const TheOldPrincePrivateRules: PrivateRules = {
         if (id === 'UB')
             return 'Union Bank holds its own cash and shares, controlled by the player who owns it. Once per stock round, that player may use a buying or company-starting action for Union Bank instead of themselves. Spend Union Bank’s cash first; its owner may contribute any shortfall. Dividends on its shares go to Union Bank. It may hold presidencies, with its owner making the company’s decisions. It cannot voluntarily sell shares. If one of its companies must buy a train, Union Bank contributes before its owner, with emergency share sales as required. It remains open throughout the game, and its cash and share value count toward its owner’s final wealth.'
         if (id === 'KM') return 'Pays PEIR each operating round; closes at 4+ or when PEIR closes.'
-        if (id === 'MLC' || id === 'SLC') return 'Closes when its railway first operates, or at 4+.'
+        if (id === 'MLC' || id === 'SLC') {
+            const company = getCompany(state, theOldPrinceRole(state, id === 'MLC' ? 'mainline' : 'shortline'))
+            return `Comes with the president’s certificate for ${company.name}. Closes when its railway first operates, or at 4+.`
+        }
         return 'Closes at 4+.'
     }
 }

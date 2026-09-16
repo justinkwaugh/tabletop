@@ -5,6 +5,7 @@
         cashOwnedBy,
         isStartCompany,
         certificatesInPool,
+        controllingOwner,
         getCompany,
         sharesOwned,
         trainsOwnedBy,
@@ -30,6 +31,7 @@
         valuationRules,
         trainColors,
         companyNames = {},
+        includedPortfolioCompanyIds = [],
         portfolioCompanyIds = []
     }: {
         companyOrder?: readonly string[]
@@ -42,6 +44,7 @@
         valuationRules: ValuationRules
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
         portfolioCompanyIds?: readonly string[]
+        includedPortfolioCompanyIds?: readonly string[]
     } = $props()
     const eligibleCompanies = $derived(
         session.financialState.companies.filter(
@@ -90,22 +93,24 @@
             0
         )
     }
-    const owners = $derived([
-        ...session.playerPriorityOrder.map((playerId) => ({
-            id: `player:${playerId}`,
-            name: session.getPlayerName(playerId),
-            count: (companyId: string) =>
-                sharesOwned(session.financialState, companyId, { kind: 'player', playerId })
-        })),
-        ...portfolioCompanyIds.map((ownerId) => ({
+    const portfolioOwners = $derived(portfolioCompanyIds.map((ownerId) => ({
             id: `company:${ownerId}`,
             name: getCompany(session.financialState, ownerId).name,
+            controllerId: controllingOwner(session.financialState, ownerId)?.playerId,
             count: (companyId: string) =>
                 sharesOwned(session.financialState, companyId, {
                     kind: 'company',
                     companyId: ownerId
                 })
-        })),
+        })))
+    const owners = $derived([
+        ...session.playerPriorityOrder.flatMap((playerId) => [{
+            id: `player:${playerId}`,
+            name: session.getPlayerName(playerId),
+            count: (companyId: string) =>
+                sharesOwned(session.financialState, companyId, { kind: 'player', playerId })
+        }, ...portfolioOwners.filter((owner) => owner.controllerId === playerId)]),
+        ...portfolioOwners.filter((owner) => !owner.controllerId),
         {
             id: 'market',
             name: 'Market',
@@ -127,6 +132,17 @@
               ]
             : [])
     ].filter((owner) => (owner.id !== 'exchange' && owner.id !== 'treasury') || companies.some((company) => owner.count(company.id) > 0)))
+    const includedPortfolioOwners = $derived(portfolioOwners.filter((owner) =>
+        owner.controllerId && includedPortfolioCompanyIds.some((id) => owner.id === `company:${id}`)))
+    const footnoteId = $props.id()
+    const ownerConnections = $derived(owners.map((owner, index) => {
+        const controllerId = portfolioOwners.find((entry) => entry.id === owner.id)?.controllerId
+        const nextControllerId = portfolioOwners.find((entry) => entry.id === owners[index + 1]?.id)?.controllerId
+        return {
+            controlled: !!controllerId,
+            continues: !!nextControllerId && (nextControllerId === controllerId || owner.id === `player:${nextControllerId}`)
+        }
+    }))
     const rows = $derived(
         companies.map((company) => ({
             company,
@@ -167,6 +183,11 @@
         ])
     )
 </script>
+
+{#snippet financialValue(ownerId: string, index: number)}
+    {@const included = statisticLabels[index] === 'Net worth' && includedPortfolioOwners.some((owner) => owner.id === ownerId)}
+    <span class:included-net-worth={included} aria-describedby={included ? `${footnoteId}-${ownerId}` : undefined}>{statistics.get(ownerId)?.[index] ?? '—'}{#if included}<sup>*</sup>{/if}</span>
+{/snippet}
 
 {#snippet ownerLabel(owner: { id: string; name: string }, column = false)}
     {#if owner.id.startsWith('player:')}
@@ -258,10 +279,14 @@
                 <tr>
                     <th scope="col">{view}</th>
                     {#if view === 'Company'}
-                        {#each owners as owner (owner.id)}<th
+                        {#each owners as owner, index (owner.id)}<th
                                 scope="col"
                                 class:pool-start={owner.id === firstPoolId}
-                                title={owner.name}>{@render ownerLabel(owner, true)}</th
+                                title={owner.name}><span class="column-owner-label">
+                                    {#if ownerConnections[index].controlled}<span class="column-ownership-connector incoming" aria-hidden="true"></span>{/if}
+                                    {@render ownerLabel(owner, true)}
+                                    {#if ownerConnections[index].continues}<span class="column-ownership-connector outgoing" aria-hidden="true"></span>{/if}
+                                </span></th
                             >{/each}
                         <th scope="col" class="company-stat-start">Cash</th>
                         <th scope="col">Tokens</th>
@@ -309,7 +334,7 @@
                                     class:bright-cell={label === 'Cash' && statistics.has(owner.id)}
                                     class:token-cell={label === 'Shares' && statistics.has(owner.id)}
                                     class:empty={!statistics.has(owner.id)}
-                                    >{statistics.get(owner.id)?.[index] ?? '—'}</td
+                                    >{@render financialValue(owner.id, index)}</td
                                 >
                             {/each}
                             <td class="company-stat-start empty">—</td>
@@ -321,7 +346,9 @@
                 {:else}
                     {#each owners as owner, index (owner.id)}
                         <tr class:pool-start={owner.id === firstPoolId} class:pool-row={owner.id in poolColumnLabels}>
-                            <th scope="row" title={owner.name}>{@render ownerLabel(owner)}</th>
+                            <th scope="row" title={owner.name}
+                                class:controlled-owner={ownerConnections[index].controlled}
+                                class:ownership-continues={ownerConnections[index].continues}>{@render ownerLabel(owner)}</th>
                             {#each rows as row (row.company.id)}{@render shareCell(
                                     row.shares[index],
                                     false,
@@ -335,7 +362,7 @@
                                     class:bright-cell={statIndex === 0 && statistics.has(owner.id)}
                                     class:token-cell={statisticLabels[statIndex] === 'Shares' && statistics.has(owner.id)}
                                     class:empty={!statistics.has(owner.id)}
-                                    >{statistics.get(owner.id)?.[statIndex] ?? '—'}</td
+                                    >{@render financialValue(owner.id, statIndex)}</td
                                 >
                             {/each}
                         </tr>
@@ -370,11 +397,17 @@
             </tbody>
         </table>
         </div>
+        {#each includedPortfolioOwners as owner (owner.id)}
+            <p class="wealth-footnote" id={`${footnoteId}-${owner.id}`}>* {owner.name}'s net worth is included in its controlling player's net worth.</p>
+        {/each}
     {/if}
     </div>
 </div>
 
 <style>
+    .included-net-worth { color: #998b79; }
+    .included-net-worth sup { font-size: 9px; margin-left: 1px; }
+    .wealth-footnote { margin: 4px 0 8px; padding-inline: 6px; color: #887969; font-size: 11px; }
     .owner-name {
         display: block;
         max-width: 140px;
@@ -537,6 +570,7 @@
         min-width: 0;
     }
     table {
+        --cell-padding-inline: 13px;
         width: 100%;
         border-collapse: collapse;
         font-size: 13px;
@@ -560,6 +594,34 @@
     tbody th {
         font-weight: 500;
     }
+    th.controlled-owner,
+    th.ownership-continues { position: relative; }
+    th.controlled-owner { padding-left: 36px; }
+    .controlled-owner::before {
+        content: '';
+        position: absolute;
+        left: 19px;
+        top: -1px;
+        height: calc(50% + 1px);
+        width: 12px;
+        border-left: 1px solid #b7a58f;
+        border-bottom: 1px solid #b7a58f;
+        pointer-events: none;
+    }
+    .ownership-continues::after {
+        content: '';
+        position: absolute;
+        left: 19px;
+        top: calc(50% + 7px);
+        bottom: -1px;
+        border-left: 1px solid #b7a58f;
+        pointer-events: none;
+    }
+    .controlled-owner.ownership-continues::after { top: 50%; }
+    .column-owner-label { display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 20px; }
+    .column-ownership-connector { flex: 1; min-width: 12px; border-top: 1px solid #b7a58f; }
+    .column-ownership-connector.incoming { margin-left: calc(-1 * var(--cell-padding-inline)); }
+    .column-ownership-connector.outgoing { margin-right: calc(-1 * var(--cell-padding-inline)); }
     td {
         text-align: center;
         font-variant-numeric: tabular-nums;
@@ -595,12 +657,14 @@
         color: #a79888;
     }
     @container (max-width: 800px) {
+        table { --cell-padding-inline: 7px; }
         th,
         td {
             padding-inline: 7px;
         }
     }
     @container (max-width: 560px) {
+        table { --cell-padding-inline: 5px; }
         .portfolio-full { display: none; }
         .portfolio-short { display: block; }
         th,

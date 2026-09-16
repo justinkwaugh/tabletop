@@ -141,7 +141,7 @@ import {
     type TrackSelection
 } from './trackSelection.js'
 import { createMapDrawing, isMapSelectionValid, type MapSelection } from '../maps/mapDrawing.js'
-import { stationMapTokens, type MapViewDefinition } from '../maps/stationPresentation.js'
+import { stationMapTokens, type MapViewDefinition, type StationAppearance } from '../maps/stationPresentation.js'
 import {
     chooseStartCompany,
     chooseStartPrice,
@@ -190,6 +190,7 @@ type Selection =
     | { kind: 'sale'; request: SaleRequest }
     | { kind: 'start'; stages: CompanyStartSelection }
 export class FinanceExampleSession extends GameSession<GameState, HydratedGameState> {
+    privateCompanyTokens: Readonly<Record<string, StationAppearance>> = $derived({})
     operatingIncomeHistory() {
         return operatingHistory(this.history.visibleContext.actions)
     }

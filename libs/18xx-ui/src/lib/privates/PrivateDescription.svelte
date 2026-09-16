@@ -2,14 +2,16 @@
     import { flip, shift, offset, hide } from '@floating-ui/dom'
     import { assertExists } from '@tabletop/common'
     import PrivateCard from './PrivateCard.svelte'
+    import type { StationAppearance } from '../maps/stationPresentation.js'
     import { Floater } from '@tabletop/frontend-components'
 
     let {
         name,
         description,
         value,
-        income
-    }: { name: string; description: string; value?: number; income?: number } = $props()
+        income,
+        token
+    }: { name: string; description: string; value?: number; income?: number; token?: StationAppearance } = $props()
     const id = $props.id()
     let open = $state(false)
     let triggerEvent: Event | undefined
@@ -67,7 +69,7 @@
         }}
     >
         <div id={`${id}-description`} class="description" role="tooltip">
-            <PrivateCard {name} {description} {value} {income} />
+            <PrivateCard {name} {description} {value} {income} {token} />
         </div>
     </Floater>
 {/if}

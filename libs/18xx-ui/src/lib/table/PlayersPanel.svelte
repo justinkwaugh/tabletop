@@ -136,6 +136,7 @@
                             class="player-color"
                             style:background={session.colors.getPlayerBgColorValue(player.playerId)}
                         ></span>{/if}{#if player.description}<PrivateDescription
+                            token={player.owner.kind === 'company' ? session.privateCompanyTokens[player.owner.companyId] : undefined}
                             name={player.name}
                             description={player.description}
                         />{:else}<button class="card-toggle" aria-label={`${compact ? 'Expand' : 'Compact'} ${player.name} card`} aria-pressed={compact} onclick={() => toggleCompact(player.id)}>{player.name}</button>{/if}
@@ -192,7 +193,7 @@
                                 {@const description = auctionLotDescription?.(lot.id) ?? lot.company?.description}
                                 <tr data-private-description-row>
                                     <th scope="row">
-                                        {#if description}<PrivateDescription name={lot.name} {description} value={lot.price} income={lot.company?.privateRevenue} />{:else}{lot.name}{/if}
+                                        {#if description}<PrivateDescription token={session.privateCompanyTokens[lot.id]} name={lot.name} {description} value={lot.price} income={lot.company?.privateRevenue} />{:else}{lot.name}{/if}
                                     </th>
                                     <td class="amount">${money.format(lot.price)}</td>
                                 </tr>
@@ -268,6 +269,7 @@
                                 <tr data-private-description-row>
                                     <th scope="row"
                                         ><PrivateDescription
+                                            token={session.privateCompanyTokens[entry.company.id]}
                                             name={entry.company.name}
                                             value={entry.value}
                                             income={entry.income}
