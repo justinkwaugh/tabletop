@@ -1,3 +1,4 @@
+import VernonRiver from './images/vernon-river.svg'
 import CToken from './images/tokens/C.svg'
 import SoToken from './images/tokens/So.svg'
 import AToken from './images/tokens/A.svg'
@@ -18,6 +19,7 @@ import type { MapViewDefinition } from '@tabletop/18xx-ui'
 export const TheOldPrinceMapView: MapViewDefinition = {
     map: TheOldPrinceMap,
     tileSet: TheOldPrinceTileSet,
+    markerImages: { 'vernon-river-bridge': VernonRiver },
     stations: {
         'branch:CB': { color: '#886bab', label: 'CB', imageUrl: CBToken },
         'branch:SB': { color: '#a44684', label: 'SB', imageUrl: SBToken },

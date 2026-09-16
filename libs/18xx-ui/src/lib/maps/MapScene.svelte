@@ -106,6 +106,11 @@
     {/if}
     {#each entries as entry (entry.location.id)}
         {@const id = entry.location.id}
+                {@const yellowUpgradeLabels = (entry.location.upgradeLabels ?? []).filter(
+                    (label) => label.color === 'green' && ['X', 'T'].includes(label.label)
+                )}
+                {@const overlayLabels = yellowUpgradeLabels.filter((label) => !entry.face.labels.includes(label.label))}
+
         {@const available = !!onselect && (!maskUnavailableLocations || legalLocationIds.includes(id))}
         {@const selected = selection?.locationId === id}
         {@const target: MapSelection = { kind: 'hex', locationId: id }}
@@ -186,16 +191,16 @@
                                     />
                                 </g>
                             {/if}
-                            {#if slot === 0 && reservationLabel}
+                            {#if slot === 0 && reservationLabel && !token}
                                 <text
                                     x={point.x}
-                                    y={point.y + (token ? 15 : 0)}
+                                    y={point.y}
                                     text-anchor="middle"
-                                    dominant-baseline={token ? 'auto' : 'central'}
+                                    dominant-baseline="central"
                                     font-size="5"
                                     fill="#52545b"
                                     paint-order="stroke"
-                                    stroke={token ? 'white' : 'none'}
+                                    stroke="none"
                                     stroke-width="1"
                                     data-map-reservation>{reservationLabel}</text
                                 >
@@ -241,12 +246,24 @@
                         <text x={iconWidth + 2} y="4" text-anchor="start" font-size="10" font-weight="750">{terrain.cost}</text>
                     </g>
                 {/if}
+                {#if entry.placed && entry.face.color === 'yellow' && overlayLabels.length}
+                    <text data-map-upgrade-label
+                        dominant-baseline="central" fill={appearance.ink}
+                        x={entry.drawing.labelPosition.x}
+                        y={entry.drawing.labelPosition.y}
+                        font-size="12" font-weight="850" stroke-width="2.5">{overlayLabels.map((label) => label.label).join(' ')}</text>
+                {/if}
+                {#each entry.location.markers ?? [] as marker (marker.id)}
+                    {#if !entry.placed && entry.markerImages[marker.id]}
+                        <image href={entry.markerImages[marker.id]} x="-25" y="-25" width="50" height="40" />
+                    {/if}
+                {/each}
                 <text y="36" font-size="5" font-weight="650" data-map-markers
                     >{[
-                        ...(entry.location.upgradeLabels ?? []).map(
+                        ...(entry.location.upgradeLabels ?? []).filter((label) => !yellowUpgradeLabels.includes(label)).map(
                             (label) => `${label.label} (${label.color})`
                         ),
-                        ...(entry.location.markers ?? []).map((marker) => marker.label)
+                        ...(entry.location.markers ?? []).filter((marker) => !entry.markerImages[marker.id]).map((marker) => marker.label)
                     ].join(' · ')}</text
                 >
             </g>

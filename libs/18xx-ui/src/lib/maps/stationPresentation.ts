@@ -9,6 +9,7 @@ export type MapViewDefinition = {
     tileSet: TileSet
     stations: Readonly<Record<string, StationAppearance>>
     revenueStageColors?: Readonly<Record<string, string>>
+    markerImages?: Readonly<Record<string, string>>
     layouts?: Readonly<Record<string, TileLayout>>
 }
 export function stationMapTokens(

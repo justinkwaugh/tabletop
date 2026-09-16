@@ -77,7 +77,7 @@ export class HistoricalMaps {
             revenue: isRunTrains(action) ? action.metadata?.revenue : undefined,
             scene: createMapDrawing(this.view.map, {
                 tileSet: this.view.tileSet, inventory: snapshot.tileInventory
-            }, this.view.layouts),
+            }, this.view.layouts, this.view.markerImages),
             tokens: stationMapTokens(snapshot, this.view.stations),
             reservations: snapshot.stationReservations,
             routes,

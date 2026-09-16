@@ -44,6 +44,7 @@ export type MapDrawnLocation = {
     face: TileFace
     rotation: TileRotation
     placed: boolean
+    markerImages: Readonly<Record<string, string>>
     drawing: TileDrawing
     borders: readonly {
         start: Point
@@ -60,7 +61,8 @@ export type MapDrawing = {
 export function createMapDrawing(
     map: RailwayMap,
     supply?: { tileSet: TileSet; inventory: TileInventory },
-    layouts: Readonly<Record<string, TileLayout>> = {}
+    layouts: Readonly<Record<string, TileLayout>> = {},
+    markerImages: Readonly<Record<string, string>> = {}
 ): MapDrawing {
     const mapState = supply ? new RailwayMapState(map, supply.tileSet, supply.inventory) : undefined
     const locations = map.definition.locations.map((location): MapDrawnLocation => {
@@ -127,6 +129,7 @@ export function createMapDrawing(
             rotation,
             placed: !!placement,
             drawing,
+            markerImages,
             borders
         }
     })

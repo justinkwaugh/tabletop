@@ -1470,7 +1470,8 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
                       tileSet: this.mapView.tileSet,
                       inventory: this.construction.inventoryAfter(this.displayedTrackPreview)
                   },
-                  this.mapView.layouts
+                  this.mapView.layouts,
+                  this.mapView.markerImages
               )
             : this.mapScene
     )
@@ -1642,7 +1643,8 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         createMapDrawing(
             this.mapView.map,
             { tileSet: this.mapView.tileSet, inventory: this.financialState.tileInventory },
-            this.mapView.layouts
+            this.mapView.layouts,
+            this.mapView.markerImages
         )
     )
     selectMap(selection: MapSelection, allowInspection = true) {

@@ -252,3 +252,5 @@ Automatic history follows the shared consequence contract: PEIR flotation shows
 the numbered-share exchange and both affected presidencies where they change;
 final PEIR closure is shown with King's Mail closure. Forced phase exchanges
 remain on the phase entry. Historical owners come from recorded action changes.
+
+Vernon River’s unbuilt map marker uses title-owned SVG artwork: a large VR above two small connected circles. The artwork replaces the small marker label and disappears when a tile is laid; it does not introduce route nodes or station slots.
