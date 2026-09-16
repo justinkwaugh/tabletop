@@ -10,7 +10,7 @@ test('mouse wheel zooms and dragging pans without clicking the board', async ({ 
     await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
     await page.mouse.move(200, 150)
     await page.mouse.wheel(0, -200)
-    await expect.poll(async () => (await board.boundingBox())?.width).toBeGreaterThan(600)
+    await expect.poll(async () => (await board.boundingBox())?.width).toBeCloseTo(375 * Math.exp(0.6), 1)
     const before = await board.boundingBox()
     if (!before) throw new Error('Missing board')
     await page.mouse.down()
@@ -39,7 +39,7 @@ test('smooth trackpad gestures pan, including their faster continuation, and pin
     await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
     await page.mouse.move(200, 150)
     await page.mouse.wheel(0, -200)
-    await expect.poll(async () => (await board.boundingBox())?.width).toBeGreaterThan(600)
+    await expect.poll(async () => (await board.boundingBox())?.width).toBeCloseTo(375 * Math.exp(0.6), 1)
     const before = await board.boundingBox()
     if (!before) throw new Error('Missing board')
     await board.dispatchEvent('wheel', { deltaY: 10, deltaX: 8, clientX: 200, clientY: 150 })
@@ -50,7 +50,7 @@ test('smooth trackpad gestures pan, including their faster continuation, and pin
     expect(after.x).toBeCloseTo(before.x - 8)
     expect(after.y).toBeCloseTo(before.y - 70)
     await board.dispatchEvent('wheel', { deltaY: -20, ctrlKey: true, clientX: 200, clientY: 150 })
-    await expect.poll(async () => (await board.boundingBox())?.width).toBeGreaterThan(before.width)
+    await expect.poll(async () => (await board.boundingBox())?.width).toBeCloseTo(before.width * Math.exp(0.12), 1)
 })
 
 for (const maximum of [1, 2]) {

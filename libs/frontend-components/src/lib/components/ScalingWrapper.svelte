@@ -4,6 +4,8 @@
     const DISCRETE_ZOOM_STEP = 0.15
     const VIEW_ANIMATION_MS = 180
     const EPSILON = 0.001
+    const MOUSE_WHEEL_ZOOM_SENSITIVITY = 0.003
+    const TRACKPAD_PINCH_ZOOM_SENSITIVITY = 0.006
     const PINCH_ZOOM_SENSITIVITY = 1
     const GESTURE_ZOOM_SENSITIVITY = 1.2
     const TOUCH_INERTIA_DECAY_PER_FRAME = 0.92
@@ -1076,7 +1078,10 @@
                 return
             }
         }
-        const nextScale = currentScale * Math.exp(-event.deltaY * unit * 0.003)
+        const sensitivity = event.ctrlKey
+            ? TRACKPAD_PINCH_ZOOM_SENSITIVITY
+            : MOUSE_WHEEL_ZOOM_SENSITIVITY
+        const nextScale = currentScale * Math.exp(-event.deltaY * unit * sensitivity)
         const contentPoint = getContentPointForClientPoint(event.clientX, event.clientY)
         const rect = scroller.getBoundingClientRect()
         const targetView = getViewForContentPointAtViewportPoint(
