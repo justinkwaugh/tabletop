@@ -45,9 +45,9 @@
     .scroll {
         overflow: auto;
         max-height: 370px;
-        border: 1px solid #c9d2cb;
+        border: 1px solid var(--rail-border, #c9d2cb);
         border-radius: 6px;
-        background: #e6ebe2;
+        background: var(--rail-surface-raised, #e6ebe2);
     }
     .order {
         font-size: 12px;

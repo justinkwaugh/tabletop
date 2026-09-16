@@ -74,16 +74,16 @@
 {/if}
 
 <style>
-    section { font-size: 13px; color: #514536; }
+    section { font-size: 13px; color: var(--rail-text, #514536); }
     header, .choices, .company { display: flex; align-items: center; gap: 6px; }
     header, .choices { justify-content: center; flex-wrap: wrap; }
     p { text-align: center; margin: 8px 0; }
     .choices { margin-top: 10px; }
-    button { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid #c7b8a6; border-radius: 4px; background: #efe7db; color: inherit; font: inherit; cursor: pointer; }
+    button { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--rail-border, #c7b8a6); border-radius: 4px; background: var(--rail-surface-raised, #efe7db); color: inherit; font: inherit; cursor: pointer; }
     .sale-choice { flex-direction: column; gap: 4px; }
     button:disabled { opacity: .5; cursor: default; }
     table { border-collapse: collapse; margin: 12px auto 0; font-variant-numeric: tabular-nums; }
-    th { font-weight: 500; color: #756854; border-bottom: 1px solid #c7b8a6; }
+    th { font-weight: 500; color: var(--rail-text, #756854); border-bottom: 1px solid var(--rail-border, #c7b8a6); }
     th, td { padding: 3px 9px; text-align: left; }
     th:nth-last-child(-n+2), td:nth-last-child(-n+2) { text-align: right; }
 </style>

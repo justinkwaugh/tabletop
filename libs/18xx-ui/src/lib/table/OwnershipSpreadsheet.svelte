@@ -24,7 +24,6 @@
     let {
         session,
         onPreviewMap,
-        operatingCompanyId,
         companyOrder,
         marketPoolId,
         exchangePoolId,
@@ -35,7 +34,6 @@
         portfolioCompanyIds = []
     }: {
         companyOrder?: readonly string[]
-        operatingCompanyId?: string
         onPreviewMap: (action: GameAction) => void
         session: FinanceExampleSession
         marketPoolId: string
@@ -255,6 +253,7 @@
             >
         </div>{/if}
     </div>
+    <div class="sheet-spacing" aria-hidden="true"></div>
     <div class="sheet-content">
     {#if period !== 'Current'}
         <OperatingHistory rounds={session.operatingIncomeHistory()}
@@ -308,7 +307,7 @@
             <tbody>
                 {#if view === 'Company'}
                     {#each rows as row (row.company.id)}
-                        <tr class:active-row={row.company.id === operatingCompanyId}>
+                        <tr>
                             <th scope="row" aria-label={row.company.name}
                                 >{@render companyLabel(row.company)}</th
                             >
@@ -405,9 +404,9 @@
 </div>
 
 <style>
-    .included-net-worth { color: #998b79; }
+    .included-net-worth { color: var(--rail-muted, #998b79); }
     .included-net-worth sup { font-size: 9px; margin-left: 1px; }
-    .wealth-footnote { margin: 4px 0 8px; padding-inline: 6px; color: #887969; font-size: 11px; }
+    .wealth-footnote { margin: 4px 0 8px; padding-inline: 6px; color: var(--rail-muted, #887969); font-size: 11px; }
     .owner-name {
         display: block;
         max-width: 140px;
@@ -418,17 +417,16 @@
     .portfolio-short { display: none; }
     .share-cell,
     .available-pool,
-    .bright-cell { background: #faf6ee; }
+    .bright-cell { background: var(--rail-surface, #faf6ee); }
     tbody tr:hover .share-cell,
     tbody tr:hover .available-pool,
-    tbody tr:hover .bright-cell { background: #eee8df; }
-    .token-cell { background: #f0e7d9; }
-    tbody tr:hover .token-cell { background: #e5d9c8; }
-    tbody tr.active-row .share-cell { background: inherit; }
-    tbody tr .sold { background: #efd3ce; }
-    tbody tr:hover .sold { background: #e7beb7; }
+    tbody tr:hover .bright-cell { background: var(--rail-surface-raised, #eee8df); }
+    .token-cell { background: var(--rail-surface-raised, #f0e7d9); }
+    tbody tr:hover .token-cell { background: var(--rail-surface-raised, #e5d9c8); }
+    tbody tr .sold { background: var(--rail-surface-raised, #efd3ce); }
+    tbody tr:hover .sold { background: var(--rail-surface-selected, #e7beb7); }
     td + td.share-cell {
-        border-left: 1px solid #6955401c;
+        border-left: 1px solid var(--rail-shadow, #6955401c);
     }
     .last-run {
         border: 0;
@@ -440,36 +438,26 @@
         font-variant-numeric: tabular-nums;
         cursor: pointer;
     }
-    .last-run:hover:enabled { background: #ffffff66; }
-    .last-run:focus-visible { outline: 2px solid #9e7752; outline-offset: 1px; }
+    .last-run:hover:enabled { background: var(--rail-hover, #ffffff66); }
+    .last-run:focus-visible { outline: 2px solid var(--rail-focus, #9e7752); outline-offset: 1px; }
     .last-run:disabled { cursor: default; }
 
     .label-column {
-        background: #69554008;
+        background: var(--rail-hover, #69554008);
     }
     .pool-section,
     .pool-row {
-        background: #69554012;
+        background: var(--rail-hover, #69554012);
     }
     .financial-section,
     .financial-row {
-        background: #6955400a;
-    }
-    .active-row {
-        background: #e6cc9e;
-    }
-    .active-row > th {
-        color: #493622;
-        font-weight: 700;
+        background: var(--rail-hover, #6955400a);
     }
     thead {
-        background: #69554012;
+        background: var(--rail-hover, #69554012);
     }
     tbody tr:hover {
-        background-color: #69554016;
-    }
-    tbody tr.active-row:hover {
-        background-color: #dec18e;
+        background-color: var(--rail-hover, #69554016);
     }
 
     .company-trains {
@@ -488,7 +476,7 @@
     }
     .badge {
         position: absolute;
-        color: #a79888;
+        color: var(--rail-muted, #a79888);
         font-size: 9px;
         font-weight: 700;
         line-height: 1;
@@ -497,21 +485,23 @@
         top: 0;
         text-box: trim-both cap alphabetic;
     }
-    .sheet-content { width: fit-content; max-width: 100%; margin-inline: auto; }
+    .sheet-spacing { flex: 0 1 20px; min-height: 0; }
+    .sheet-content { flex-shrink: 0; width: fit-content; max-width: 100%; margin-inline: auto; }
     .toolbar {
         display: flex;
+        flex-shrink: 0;
         justify-content: center;
         gap: 24px;
         width: 100%;
         padding-block: 2px;
-        border-bottom: 1px solid #d2c5b7;
-        background: #e7ded3;
+        border-bottom: 1px solid var(--rail-border, #d2c5b7);
+        background: var(--rail-surface-raised, #e7ded3);
     }
     .table-scroll { overflow-x: auto; }
     .view-toggle {
         display: flex;
         width: max-content;
-        border: 1px solid #c7b8a6;
+        border: 1px solid var(--rail-border, #c7b8a6);
         border-radius: 6px;
         overflow: hidden;
         margin: 0;
@@ -521,12 +511,12 @@
         padding: 4px 12px;
         font: inherit;
         font-size: 12px;
-        color: #786550;
+        color: var(--rail-inactive, #786550);
         background: transparent;
         cursor: pointer;
     }
     .view-toggle button[aria-pressed='true'] {
-        background: #695540;
+        background: var(--rail-solid, #695540);
         color: #fffaf4;
     }
     .view-toggle button:focus-visible {
@@ -546,25 +536,28 @@
         font-size: 13px;
     }
     .axis-toggle button[aria-pressed='true'] {
-        color: #443c34;
+        color: var(--rail-text, #443c34);
         font-weight: 700;
-        background: #e5d7c3;
+        background: var(--rail-surface-raised, #e5d7c3);
     }
-    .axis-toggle button:hover { color: #443c34; }
+    .axis-toggle button:hover { color: var(--rail-text, #443c34); }
     .axis-toggle .swap-axes {
         white-space: nowrap;
-        background: #e5d7c3;
-        color: #443c34;
+        background: var(--rail-surface-raised, #e5d7c3);
+        color: var(--rail-text, #443c34);
     }
-    .axis-toggle .swap-axes:hover { background: #d8c7ad; color: #443c34; }
+    .axis-toggle .swap-axes:hover { background: var(--rail-surface-selected, #d8c7ad); color: var(--rail-text, #443c34); }
     .axis-separator {
         height: 13px;
-        border-left: 1px solid #b7a58f;
+        border-left: 1px solid var(--rail-border, #b7a58f);
     }
     .transposed .company {
         justify-content: center;
     }
     .spreadsheet {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
         container-type: inline-size;
         width: 100%;
         min-width: 0;
@@ -579,12 +572,12 @@
     th,
     td {
         padding: 4px 13px;
-        border-bottom: 1px solid #d2c5b7;
+        border-bottom: 1px solid var(--rail-border, #d2c5b7);
     }
     thead th {
         white-space: nowrap;
         font-size: 12px;
-        color: #786550;
+        color: var(--rail-text, #786550);
         font-weight: 600;
     }
     th:first-child {
@@ -604,8 +597,8 @@
         top: -1px;
         height: calc(50% + 1px);
         width: 12px;
-        border-left: 1px solid #b7a58f;
-        border-bottom: 1px solid #b7a58f;
+        border-left: 1px solid var(--rail-border, #b7a58f);
+        border-bottom: 1px solid var(--rail-border, #b7a58f);
         pointer-events: none;
     }
     .ownership-continues::after {
@@ -614,12 +607,12 @@
         left: 19px;
         top: calc(50% + 7px);
         bottom: -1px;
-        border-left: 1px solid #b7a58f;
+        border-left: 1px solid var(--rail-border, #b7a58f);
         pointer-events: none;
     }
     .controlled-owner.ownership-continues::after { top: 50%; }
     .column-owner-label { display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 20px; }
-    .column-ownership-connector { flex: 1; min-width: 12px; border-top: 1px solid #b7a58f; }
+    .column-ownership-connector { flex: 1; min-width: 12px; border-top: 1px solid var(--rail-border, #b7a58f); }
     .column-ownership-connector.incoming { margin-left: calc(-1 * var(--cell-padding-inline)); }
     .column-ownership-connector.outgoing { margin-right: calc(-1 * var(--cell-padding-inline)); }
     td {
@@ -634,27 +627,27 @@
     }
     .stat-start > th,
     .stat-start > td {
-        border-top: 2px solid #c7b8a6;
+        border-top: 2px solid var(--rail-border, #c7b8a6);
     }
     .transposed .stat-start {
-        border-left: 2px solid #c7b8a6;
+        border-left: 2px solid var(--rail-border, #c7b8a6);
     }
     table:not(.transposed) .pool-start {
-        border-left: 2px solid #a18b74;
+        border-left: 2px solid var(--rail-border, #a18b74);
     }
     .transposed tr.pool-start > th,
     .transposed tr.pool-start > td {
-        border-top: 2px solid #a18b74;
+        border-top: 2px solid var(--rail-border, #a18b74);
     }
     table:not(.transposed) .company-stat-start {
-        border-left: 2px solid #a18b74;
+        border-left: 2px solid var(--rail-border, #a18b74);
     }
     .transposed tr.company-stat-start > th,
     .transposed tr.company-stat-start > td {
-        border-top: 2px solid #a18b74;
+        border-top: 2px solid var(--rail-border, #a18b74);
     }
     .empty {
-        color: #a79888;
+        color: var(--rail-muted, #a79888);
     }
     @container (max-width: 800px) {
         table { --cell-padding-inline: 7px; }

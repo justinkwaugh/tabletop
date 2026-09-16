@@ -47,13 +47,13 @@
 <style>
     .private-actions { align-self: center; flex: none; margin: 3px 8px; }
     .direct { display: flex; gap: 4px; }
-    button { border: 0; border-radius: 4px; padding: 3px 10px; background: #ded0c2; color: #51412f; font: inherit; font-size: 12px; white-space: nowrap; cursor: pointer; }
-    button:hover:not(:disabled) { background: #cdbba9; }
-    button[aria-pressed='true'], button[aria-expanded='true'] { background: #695543; color: #fffaf3; }
-    button:focus-visible { outline: 2px solid #695543; outline-offset: 2px; }
+    button { border: 0; border-radius: 4px; padding: 3px 10px; background: var(--rail-surface-selected, #ded0c2); color: var(--rail-text, #51412f); font: inherit; font-size: 12px; white-space: nowrap; cursor: pointer; }
+    button:hover:not(:disabled) { background: var(--rail-surface-selected, #cdbba9); }
+    button[aria-pressed='true'], button[aria-expanded='true'] { background: var(--rail-solid, #695543); color: #fffaf3; }
+    button:focus-visible { outline: 2px solid var(--rail-focus, #695543); outline-offset: 2px; }
     button:disabled { opacity: .5; cursor: default; }
     .compact { display: none; }
-    .menu { position: fixed; inset: auto; width: 168px; box-sizing: border-box; margin: 0; padding: 4px; border: 1px solid #b7a58f; border-radius: 5px; background: #f4ede4; box-shadow: 0 5px 18px #0003; }
+    .menu { position: fixed; inset: auto; width: 168px; box-sizing: border-box; margin: 0; padding: 4px; border: 1px solid var(--rail-border, #b7a58f); border-radius: 5px; background: var(--rail-surface-raised, #f4ede4); box-shadow: 0 5px 18px #0003; }
     .menu button { display: block; width: 100%; text-align: left; padding: 7px 9px; }
     .menu button + button { margin-top: 3px; }
     @container (max-width: 720px) {

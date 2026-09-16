@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import HistoryJump from './HistoryJump.svelte'
     import { tick, type Snippet } from 'svelte'
     import { assertExists } from '@tabletop/common'
@@ -57,7 +58,7 @@
             .map((phase) => {
                 const color = phaseColors[phase]
                 assertExists(color, `Unknown history phase color: ${phase}`)
-                return `color-mix(in srgb, ${color} 55%, #f7f5f0)`
+                return `color-mix(in srgb, ${color} var(--rail-phase-tint, 55%), var(--rail-surface, #f7f5f0))`
             })
             .filter((color, index, all) => index === 0 || color !== all[index - 1])
         return `linear-gradient(45deg, ${colors
@@ -87,7 +88,7 @@
         style:width={`${indexBounds.width}px`} style:max-height={`${indexBounds.height}px`}>
         <nav aria-label="History round index">
             {#each newestFirst ? rounds : rounds.toReversed() as round (round.id)}
-                <button type="button" style:background={phaseBackground(round)} onclick={() => scrollToRound(round.id)}>
+                <button type="button" style:background={phaseBackground(round)} style:--phase-ink={contrastingTextColor(phaseColors[round.phases[0]])} onclick={() => scrollToRound(round.id)}>
                     <strong>{round.label}</strong><span>Phase {round.phases.join(' → ')}</span>
                 </button>
             {:else}<div class="empty">No rounds yet.</div>{/each}
@@ -98,7 +99,7 @@
             {#each newestFirst ? rounds : rounds.toReversed() as round (round.id)}
                 <li class="round-section" data-round-id={round.id} aria-label={round.label}>
                     {#snippet divider()}
-                    <h3 class="round-divider" style:background={phaseBackground(round)}>
+                    <h3 class="round-divider" style:background={phaseBackground(round)} style:--phase-ink={contrastingTextColor(phaseColors[round.phases[0]])}>
                         <span>{round.label.replace(/^OR /, 'Operating round ').replace(/^SR /, 'Stock round ')}</span>
                         {#if round.startActionIndex !== undefined}<HistoryJump label={`Jump to ${round.label} in history`} disabled={jumpDisabled} onclick={() => { if (round.startActionIndex !== undefined) onJump(round.startActionIndex) }} />{/if}
                         <span class="round-phase">Phase {round.phases.join(' → ')}</span>
@@ -114,6 +115,12 @@
 </div>
 
 <style>
+    .round-divider,
+    .round-index nav button {
+        --rail-text: light-dark(#30271f, var(--phase-ink));
+        --rail-muted: light-dark(#817565, var(--phase-ink));
+    }
+
     .round-history {
         --history-item-gap: 5px;
         display: flex;
@@ -144,10 +151,10 @@
         margin: 0;
         box-sizing: border-box;
         padding: 5px;
-        border: 1px solid #a2917a;
+        border: 1px solid var(--rail-border, #a2917a);
         border-radius: 5px;
-        background: #eee8df;
-        box-shadow: 0 6px 18px #30271f40;
+        background: var(--rail-surface-raised, #eee8df);
+        box-shadow: 0 6px 18px var(--rail-shadow, #30271f40);
         overflow-y: auto;
         overscroll-behavior: contain;
     }
@@ -157,14 +164,14 @@
         justify-content: space-between;
         gap: 8px;
         padding: 6px 8px;
-        border: 1px solid #9d8d78;
+        border: 1px solid var(--rail-border, #9d8d78);
         border-radius: 3px;
-        color: #30271f;
+        color: var(--rail-text, #30271f);
         font: 12px/1.3 ui-sans-serif, system-ui, sans-serif;
         cursor: pointer;
         text-align: left;
     }
-    .round-index nav button:hover { filter: brightness(0.95); }
+    .round-index nav button:hover { filter: var(--rail-phase-filter, brightness(0.95)); }
     .round-index nav button span { font-size: 11px; }
     .history-order {
         display: flex;
@@ -172,24 +179,24 @@
         align-items: center;
         gap: 7px;
         padding: 0 6px 2px;
-        color: #9b8e7c;
+        color: var(--rail-muted, #9b8e7c);
         font-size: 11px;
     }
     .history-order button, .index-button {
         border: 0;
         background: none;
         padding: 2px 0;
-        color: #817565;
+        color: var(--rail-muted, #817565);
         font: inherit;
         cursor: pointer;
     }
     .index-button { font-size: 11px; }
     .history-order button[aria-pressed='true'] {
-        color: #463e35;
+        color: var(--rail-text, #463e35);
         font-weight: 650;
     }
     .history-order button:hover {
-        color: #30271f;
+        color: var(--rail-text, #30271f);
     }
     .history-content {
         flex-shrink: 0;
@@ -217,9 +224,9 @@
         box-sizing: border-box;
         margin: 0;
         padding: 7px 10px;
-        border-top: 2px solid #6f5c46;
-        border-bottom: 2px solid #6f5c46;
-        color: #30271f;
+        border-top: 2px solid var(--rail-interstitial-border, #6f5c46);
+        border-bottom: 2px solid var(--rail-interstitial-border, #6f5c46);
+        color: var(--rail-text, #30271f);
         font: 750 13px/1.3 ui-sans-serif, system-ui, sans-serif;
     }
     .newest-first .round-divider {
@@ -234,7 +241,7 @@
     }
     .empty {
         padding: 20px 8px;
-        color: #7d7266;
+        color: var(--rail-text, #7d7266);
         font-size: 13px;
     }
 </style>

@@ -68,6 +68,28 @@ test('compact player cards toggle together and persist across reloads and titles
     await expect(page.locator('.players > article.compact')).toHaveCount(0)
 })
 
+test('table theme persists across reloads and titles and applies to dialogs', async ({ page }) => {
+    await page.goto('/table')
+    const table = page.getByLabel('Game table', { exact: true })
+    await expect(table).toHaveAttribute('data-theme', 'light')
+    await page.getByRole('button', { name: 'Switch to dark mode', exact: true }).click()
+    await expect(table).toHaveAttribute('data-theme', 'dark')
+    await expect.poll(() => storedFamilyPreference(page, 'theme')).toBe('dark')
+    await expect(table).toHaveCSS('color-scheme', 'dark')
+    await page.getByRole('button', { name: 'Open phase chart', exact: true }).click()
+    await expect(page.getByRole('dialog')).toHaveCSS('color-scheme', 'dark')
+    await page.keyboard.press('Escape')
+    await page.reload()
+    await expect(table).toHaveAttribute('data-theme', 'dark')
+    await page.getByLabel('Game', { exact: true }).selectOption('1889')
+    await expect(table).toHaveAttribute('data-theme', 'dark')
+    await page.getByRole('button', { name: 'Switch to light mode', exact: true }).click()
+    await expect.poll(() => storedFamilyPreference(page, 'theme')).toBe('light')
+    await expect(table).toHaveCSS('color-scheme', 'light')
+    await page.getByLabel('Game', { exact: true }).selectOption('TOP')
+    await expect(table).toHaveAttribute('data-theme', 'light')
+})
+
 function storedFamilyPreference(page: Page, preference: string) {
     return page.evaluate((preference) => {
         const key = Object.keys(localStorage).find(

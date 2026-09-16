@@ -167,7 +167,7 @@
     }
     section.private-powers { border: none; }
     .private-track { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .private-track-prompt { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 4px 0; font-size: 13px; color: #63513e; }
+    .private-track-prompt { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 4px 0; font-size: 13px; color: var(--rail-text, #63513e); }
     .private-track-prompt button { margin: 0; }
     .choices {
         display: flex;

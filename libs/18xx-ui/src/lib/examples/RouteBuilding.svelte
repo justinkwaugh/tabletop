@@ -140,7 +140,7 @@
 
 <style>
     .routes {
-        border: 1px solid #c9d2cb;
+        border: 1px solid var(--rail-border, #c9d2cb);
         padding: 12px;
         margin-bottom: 14px;
         border-radius: 6px;
@@ -164,9 +164,9 @@
     select {
         font: inherit;
         padding: 7px 10px;
-        border: 1px solid #b5c3ba;
+        border: 1px solid var(--rail-border, #b5c3ba);
         border-radius: 5px;
-        background: #fffefa;
+        background: var(--rail-surface, #fffefa);
     }
     button {
         cursor: pointer;

@@ -335,7 +335,7 @@
         transform: translateX(-50%);
         padding: 0.25em 0.6em;
         border-radius: 0.35em;
-        background: #302d29;
+        background: var(--rail-solid, #302d29);
         color: #fffaf2;
         line-height: 1.2;
         white-space: nowrap;

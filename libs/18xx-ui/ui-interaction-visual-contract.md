@@ -1394,3 +1394,30 @@ Compact player cards use the existing optional preference host API without chang
 TOP X/T labels apply from yellow onward. Its yellow tight/gentle X/T city tiles have 20 revenue and unlimited supply; other yellow tiles are also unlimited except the single straight and two each of the double-dit tiles. The manifest displays ∞ and the tile library says Unlimited.
 
 The manifest groups yellow tiles by label: plain, T, then X, preserving the existing simplicity order within each group.
+
+The spreadsheet leaves up to 20px below its controls strip when vertical room permits. This space shrinks to zero before the sheet needs vertical scrolling; controls remain directly below the tabs.
+
+### Table color theme
+
+The round header offers an accessible light/dark toggle immediately to the right of Undo. The `theme` family
+preference defaults to light and persists for the viewing player across reloads
+and 18xx titles. It never changes Game State or another player's view.
+
+Dark mode uses table-scoped surface, text, border, focus, and interaction colors.
+Light mode retains the existing palette. Popovers and dialogs inherit the table
+palette, including phase/depot charts and historical maps. The map surround is
+darkened, while tile colors, map artwork, stock-market cells, company tokens,
+player colors, and train/phase badges retain their gameplay meaning.
+
+TOP and 1889 require updated Logic for the preference schema and updated UI
+Artifacts for the shared theme. The host API and serialized Game State are unchanged.
+
+In dark mode, phase-colored history interstitials, round-index entries, and phase-change rows use canonical phase colors at full strength, including split-color round backgrounds. Their text adapts to the phase color instead of tinting the color to match the dark surfaces.
+
+Canonical phase colors also apply to all train/phase badges, purchase buttons, header/depot indicators, private-card closure badges, charts, and company panels in dark mode. Saturation, dimming, and hover filters must not alter these semantic colors.
+
+Dark-mode history interstitial borders match the dark table background, leaving the canonical phase fill prominent without bright separator lines.
+
+Operated companies dim as a whole in both themes, including their train badges. This intentional completed-state dimming is an exception to preserving phase colors at full strength in dark mode.
+
+The ownership spreadsheet does not highlight the currently operating company in either axis orientation; ordinary row hover remains available.

@@ -225,9 +225,9 @@
         left: 0;
         top: 0;
         height: 20px;
-        border: 1px solid #b8a38b;
+        border: 1px solid var(--rail-border, #b8a38b);
         border-radius: 6px;
-        background: #f5eee4;
+        background: var(--rail-surface-raised, #f5eee4);
         transition:
             transform 100ms ease-out,
             width 100ms ease-out;
@@ -257,7 +257,7 @@
         overflow-x: auto;
         overscroll-behavior-x: contain;
         scrollbar-width: thin;
-        scrollbar-color: #9b8874 transparent;
+        scrollbar-color: var(--rail-muted, #9b8874) transparent;
         list-style: none;
         padding: 0 2px 0 0;
         margin: 0;
@@ -274,15 +274,15 @@
         gap: 8px;
         padding: 0 7px 0 0;
         border-radius: 20px 8px 8px 20px;
-        border: 1px solid #d2c5b7;
-        background: #f8f3ec;
+        border: 1px solid var(--rail-border, #d2c5b7);
+        background: var(--rail-surface, #f8f3ec);
         font: inherit;
         text-align: left;
         cursor: pointer;
     }
     .pill:hover {
-        background: #fffaf3;
-        border-color: #ae9983;
+        background: var(--rail-surface, #fffaf3);
+        border-color: var(--rail-border, #ae9983);
     }
     .pill.token-only {
         padding: 0;
@@ -291,10 +291,12 @@
         border-color: transparent;
     }
     .pill:focus-visible {
-        outline: 2px solid #796047;
+        outline: 2px solid var(--rail-focus, #796047);
         outline-offset: -2px;
     }
     .expanded-panel {
+        display: flex;
+        justify-content: safe center;
         width: 100%;
         min-width: 0;
     }
@@ -314,7 +316,7 @@
     }
     .tokens,
     .no-trains {
-        color: #695540;
+        color: var(--rail-text, #695540);
         font-size: 12px;
         white-space: nowrap;
         line-height: 15px;
@@ -327,7 +329,7 @@
         font-size: 13px;
     }
     .train-required {
-        color: #b33a32;
+        color: var(--rail-negative, #b33a32);
     }
     .empty-tokens {
         filter: grayscale(1);
@@ -342,8 +344,8 @@
     .cash {
         padding-right: 6px;
         line-height: 15px;
-        border-right: 1px solid #d2c5b7;
-        color: #5e4937;
+        border-right: 1px solid var(--rail-border, #d2c5b7);
+        color: var(--rail-text, #5e4937);
         font-size: 13px;
         font-weight: 600;
         font-variant-numeric: tabular-nums;
@@ -354,6 +356,6 @@
     }
     .empty {
         font-size: 12px;
-        color: #a18c75;
+        color: var(--rail-muted, #a18c75);
     }
 </style>

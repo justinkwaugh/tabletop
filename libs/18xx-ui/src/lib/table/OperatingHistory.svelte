@@ -114,9 +114,9 @@
 
 <style>
     .payout { border: 0; border-radius: 4px; padding: 1px 4px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
-    .payout:hover { background: #69554016; }
-    .payout:focus-visible { outline: 2px solid #9e7752; outline-offset: 1px; }
-    .negative { color: #b33a32; }
+    .payout:hover { background: var(--rail-hover, #69554016); }
+    .payout:focus-visible { outline: 2px solid var(--rail-focus, #9e7752); outline-offset: 1px; }
+    .negative { color: var(--rail-negative, #b33a32); }
     .table-scroll { overflow-x: auto; }
     .history-note { contain: inline-size; }
     table {
@@ -128,14 +128,14 @@
     th,
     td {
         padding: 4px 13px;
-        border-bottom: 1px solid #d2c5b7;
+        border-bottom: 1px solid var(--rail-border, #d2c5b7);
         white-space: nowrap;
     }
     th {
         font-weight: 500;
     }
     thead th {
-        color: #786550;
+        color: var(--rail-text, #786550);
         font-size: 12px;
     }
     th[scope="row"],
@@ -154,15 +154,15 @@
         gap: 6px;
     }
     sup { font-size: 10px; margin-left: 2px; }
-    .round-column { background: #69554008; }
-    .data-column { background: #faf6ee; }
-    .shaded { background: #f0e7d9; }
-    thead { background: #69554012; }
-    .metrics { background: #69554008; }
-    tbody tr:hover { background-color: #69554016; }
+    .round-column { background: var(--rail-hover, #69554008); }
+    .data-column { background: var(--rail-surface, #faf6ee); }
+    .shaded { background: var(--rail-surface-raised, #f0e7d9); }
+    thead { background: var(--rail-hover, #69554012); }
+    .metrics { background: var(--rail-hover, #69554008); }
+    tbody tr:hover { background-color: var(--rail-hover, #69554016); }
     p {
         font-size: 11px;
-        color: #8b7b6b;
+        color: var(--rail-muted, #8b7b6b);
         margin: 8px 0;
     }
 </style>

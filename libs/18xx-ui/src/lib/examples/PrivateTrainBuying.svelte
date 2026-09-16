@@ -24,7 +24,7 @@
 </div>
 
 <style>
-    .private-trains { width: 100%; padding: 4px 0; color: #514536; font-size: 13px; }
+    .private-trains { width: 100%; padding: 4px 0; color: var(--rail-text, #514536); font-size: 13px; }
     p { margin: 0 0 8px; text-align: center; }
     .trains { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 </style>

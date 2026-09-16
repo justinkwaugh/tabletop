@@ -108,15 +108,15 @@
 {/if}
 
 <style>
-    .position { padding: 6px 0; color: #514536; font-size: 13px; }
+    .position { padding: 6px 0; color: var(--rail-text, #514536); font-size: 13px; }
     header { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; }
     header strong { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 500; }
     .trains { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; vertical-align: middle; }
     .event { text-align: center; margin-top: 8px; }
     p { margin: 2px 0; }
     .actor { margin-right: 4px; }
-    .detail { font-size: 12px; color: #786550; }
+    .detail { font-size: 12px; color: var(--rail-text, #786550); }
     .station-result { display: flex; align-items: center; justify-content: center; gap: 6px; }
     .payout-card { display: flex; justify-content: center; padding: 4px 0; font-size: 12px; }
-    .run-table { display: flex; justify-content: center; margin-top: 8px; color: #463e35; }
+    .run-table { display: flex; justify-content: center; margin-top: 8px; color: var(--rail-text, #463e35); }
 </style>

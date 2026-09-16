@@ -116,12 +116,12 @@
 </GameTable>
 
 <style>
-    .tranches { display: flex; align-items: center; gap: 0; flex: none; margin-top: -8px; padding: 6px 8px; border-bottom: 1px solid #b8a995; }
-    .tranches-label { color: #887969; font-size: 10px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; line-height: 1; margin-right: 3px; }
+    .tranches { display: flex; align-items: center; gap: 0; flex: none; margin-top: -8px; padding: 6px 8px; border-bottom: 1px solid var(--rail-border, #b8a995); }
+    .tranches-label { color: var(--rail-muted, #887969); font-size: 10px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; line-height: 1; margin-right: 3px; }
     .tranche:last-child { padding-right: 0; }
     .tranche { display: flex; align-items: center; justify-content: center; flex-grow: 1; gap: 5px; padding: 0 8px; }
-    .tranche + .tranche { border-left: 1px solid #b8a995; }
+    .tranche + .tranche { border-left: 1px solid var(--rail-border, #b8a995); }
     .tranche-slot.empty { border-style: dashed; background: transparent; }
-    .closed .tranche-slot.empty { color: #776657; opacity: 0.55; }
-    .tranche-slot { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid #b8a995; border-radius: 50%; background: #dfd3c8; }
+    .closed .tranche-slot.empty { color: var(--rail-text, #776657); opacity: 0.55; }
+    .tranche-slot { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid var(--rail-border, #b8a995); border-radius: 50%; background: var(--rail-surface-raised, #dfd3c8); }
 </style>

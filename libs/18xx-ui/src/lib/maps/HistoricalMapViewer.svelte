@@ -53,12 +53,12 @@
 </dialog>
 
 <style>
-    dialog { position: fixed; inset: 0; width: 90vw; height: 90dvh; max-width: none; max-height: none; margin: auto; padding: 0; border: 0; border-radius: 8px; overflow: hidden; box-shadow: 0 16px 64px #20180f66; background: #eee8dc; color: #493b2b; }
+    dialog { position: fixed; inset: 0; width: 90vw; height: 90dvh; max-width: none; max-height: none; margin: auto; padding: 0; border: 0; border-radius: 8px; overflow: hidden; box-shadow: 0 16px 64px var(--rail-shadow, #20180f66); background: var(--rail-surface-raised, #eee8dc); color: var(--rail-text, #493b2b); }
     dialog[open] { display: flex; flex-direction: column; }
-    dialog::backdrop { background: #00000099; }
-    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; background: #493b2b; color: #fff8e9; font-size: 14px; }
-    button { flex-shrink: 0; padding: 5px 12px; border: 0; border-radius: 4px; background: #fff8e91f; color: inherit; font: inherit; cursor: pointer; }
-    button:hover { background: #fff8e933; }
+    dialog::backdrop { background: var(--rail-backdrop, #00000099); }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; background: var(--rail-solid, #493b2b); color: #fff8e9; font-size: 14px; }
+    button { flex-shrink: 0; padding: 5px 12px; border: 0; border-radius: 4px; background: var(--rail-hover, #fff8e91f); color: inherit; font: inherit; cursor: pointer; }
+    button:hover { background: var(--rail-hover, #fff8e933); }
     .map { flex: 1; min-height: 0; }
     @media (max-width: 760px), (max-height: 560px) {
         dialog { width: 100vw; height: 100dvh; border-radius: 0; }

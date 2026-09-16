@@ -87,7 +87,7 @@
         margin-bottom: 16px;
     }
     button {
-        border: 1px solid #443c3433;
+        border: 1px solid var(--rail-shadow, #443c3433);
         border-radius: 999px;
         padding: 5px 15px;
         color: #24211d;
@@ -97,11 +97,11 @@
         cursor: pointer;
     }
     button[aria-pressed='true'] {
-        outline: 2px solid #695540;
+        outline: 2px solid var(--rail-focus, #695540);
         outline-offset: 2px;
     }
     button:focus-visible {
-        outline: 2px solid #695540;
+        outline: 2px solid var(--rail-focus, #695540);
         outline-offset: 3px;
     }
     .tiles {
@@ -121,6 +121,6 @@
     }
     p {
         font-size: 13px;
-        color: #8b7b6b;
+        color: var(--rail-muted, #8b7b6b);
     }
 </style>

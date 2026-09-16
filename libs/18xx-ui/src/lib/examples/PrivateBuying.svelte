@@ -56,26 +56,26 @@
 </section>
 {/if}
 <style>
-    section { padding: 4px 0; color: #514536; font-size: 13px; }
+    section { padding: 4px 0; color: var(--rail-text, #514536); font-size: 13px; }
     .sources, .price { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; }
     .privates { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 260px)); justify-content: center; gap: 8px; }
     .privates :global(.private-card) { flex: 1; }
     .privates :global(.private-card header) { height: 100%; box-sizing: border-box; }
     .sources { margin-bottom: 8px; }
     .selected-private { width: min(100%, 260px); margin: 0 auto 8px; }
-    button { font: inherit; font-weight: 400; color: inherit; background: #efe7db; border: 1px solid #c7b8a6; border-radius: 4px; padding: 6px 10px; cursor: pointer; }
+    button { font: inherit; font-weight: 400; color: inherit; background: var(--rail-surface-raised, #efe7db); border: 1px solid var(--rail-border, #c7b8a6); border-radius: 4px; padding: 6px 10px; cursor: pointer; }
     .sources button { border: none; background: transparent; }
-    .sources button[aria-pressed='true'] { background: #dfd3c8; color: #443c34; font-weight: 600; }
-    .source-divider { height: 13px; border-left: 1px solid #b7a58f; }
+    .sources button[aria-pressed='true'] { background: var(--rail-surface-raised, #dfd3c8); color: var(--rail-text, #443c34); font-weight: 600; }
+    .source-divider { height: 13px; border-left: 1px solid var(--rail-border, #b7a58f); }
     button.private { display: flex; flex-direction: column; min-width: 0; padding: 0; border: 0; background: transparent; text-align: left; }
     button.private > :global(*) { width: 100%; box-sizing: border-box; }
     button.private:hover { filter: brightness(.96); }
     button.private:focus-visible { outline: 2px solid #a87948; outline-offset: 2px; }
     .seller { display: block; margin-top: 3px; text-align: right; }
-    small { font-size: 11px; color: #887969; }
-    input { width: 76px; font: inherit; padding: 4px; border: 1px solid #b8a995; border-radius: 3px; }
-    .commit { background: #443c34; color: #faf7f2; border: none; }
+    small { font-size: 11px; color: var(--rail-muted, #887969); }
+    input { width: 76px; font: inherit; padding: 4px; border: 1px solid var(--rail-border, #b8a995); border-radius: 3px; }
+    .commit { background: var(--rail-solid, #443c34); color: #faf7f2; border: none; }
     button:disabled { opacity: .5; cursor: default; }
     p { text-align: center; }
-    .prompt { margin: 0 0 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #63513e; }
+    .prompt { margin: 0 0 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--rail-text, #63513e); }
 </style>

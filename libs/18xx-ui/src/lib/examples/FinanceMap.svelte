@@ -113,9 +113,9 @@
     .finance-map {
         margin-bottom: 20px;
         padding: 16px;
-        border: 1px solid #c9d2cb;
+        border: 1px solid var(--rail-border, #c9d2cb);
         border-radius: 7px;
-        background: #fffefa;
+        background: var(--rail-surface, #fffefa);
         font:
             13px/1.5 ui-sans-serif,
             system-ui,
@@ -139,9 +139,9 @@
     button,
     select {
         padding: 7px 10px;
-        border: 1px solid #b5c3ba;
+        border: 1px solid var(--rail-border, #b5c3ba);
         border-radius: 5px;
-        background: #fffefa;
+        background: var(--rail-surface, #fffefa);
         font: inherit;
     }
     select {

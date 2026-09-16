@@ -76,14 +76,14 @@
         padding-left: 24px;
     }
     thead th {
-        color: #817565;
+        color: var(--rail-muted, #817565);
         font-size: 10px;
         font-weight: 600;
         line-height: 14px;
     }
     tfoot th,
     tfoot td {
-        border-top: 1px solid #d6cbbc;
+        border-top: 1px solid var(--rail-border, #d6cbbc);
         padding-top: 3px;
         font-weight: 650;
     }
@@ -104,7 +104,7 @@
         border-radius: 3px;
     }
     .route-focus:not(:disabled):hover::after {
-        background: #463e350c;
+        background: var(--rail-hover, #463e350c);
     }
     .route-focus:focus-visible {
         outline: none;

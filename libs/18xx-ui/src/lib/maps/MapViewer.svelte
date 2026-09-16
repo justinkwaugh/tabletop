@@ -88,9 +88,9 @@
     }
     button {
         padding: 8px 12px;
-        border: 1px solid #b5c3ba;
+        border: 1px solid var(--rail-border, #b5c3ba);
         border-radius: 5px;
-        background: #fffefa;
+        background: var(--rail-surface, #fffefa);
         font: inherit;
         cursor: pointer;
     }

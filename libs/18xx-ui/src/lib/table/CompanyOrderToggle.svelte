@@ -38,7 +38,7 @@
         align-items: center;
         gap: 3px;
         flex-shrink: 0;
-        color: #695540;
+        color: var(--rail-text, #695540);
     }
     .chip-style button {
         display: flex;
@@ -56,11 +56,11 @@
         opacity: 1;
     }
     .chip-style button:focus-visible {
-        outline: 2px solid #796047;
+        outline: 2px solid var(--rail-focus, #796047);
         outline-offset: 1px;
     }
     .separator {
-        color: #a18c75;
+        color: var(--rail-muted, #a18c75);
         font-size: 12px;
     }
 </style>

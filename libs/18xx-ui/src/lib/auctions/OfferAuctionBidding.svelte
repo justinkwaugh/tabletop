@@ -104,7 +104,7 @@
     }
     .value {
         font-size: 12px;
-        color: #786550;
+        color: var(--rail-text, #786550);
     }
     .turn {
         display: flex;

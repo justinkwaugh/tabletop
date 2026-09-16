@@ -101,10 +101,10 @@
         justify-content: center;
         gap: 12px 24px;
         padding: 10px 12px;
-        color: #463e35;
+        color: var(--rail-text, #463e35);
     }
     button {
-        border: 1px solid #b9ac99;
+        border: 1px solid var(--rail-border, #b9ac99);
         border-radius: 5px;
         padding: 7px 14px;
         font: inherit;
@@ -112,8 +112,8 @@
     }
     .run {
         color: #fff;
-        background: #443e35;
-        border-color: #443e35;
+        background: var(--rail-solid, #443e35);
+        border-color: var(--rail-focus, #443e35);
     }
     button:disabled {
         opacity: 0.5;
@@ -129,6 +129,6 @@
     small {
         flex-basis: 100%;
         text-align: center;
-        color: #817565;
+        color: var(--rail-muted, #817565);
     }
 </style>

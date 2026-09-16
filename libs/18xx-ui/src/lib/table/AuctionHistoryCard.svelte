@@ -49,7 +49,7 @@
     article {
         margin: var(--history-item-gap, 5px) 0;
         background: transparent;
-        color: #514538;
+        color: var(--rail-text, #514538);
         font-size: 12px;
         line-height: 1.4;
     }
@@ -81,10 +81,10 @@
     }
     .passed,
     .initial {
-        color: #887664;
+        color: var(--rail-muted, #887664);
     }
     .events .history-entry.winner {
-        border-top: 1px solid #e3d9cd;
+        border-top: 1px solid var(--rail-border, #e3d9cd);
         margin-top: 3px;
         padding-top: 3px;
     }

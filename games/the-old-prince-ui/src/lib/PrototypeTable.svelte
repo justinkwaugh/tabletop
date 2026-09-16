@@ -81,7 +81,7 @@
     }
     .share-income {
         margin: 6px 0 0;
-        color: #46674f;
+        color: var(--rail-text, #46674f);
         font-size: 12px;
     }
 </style>

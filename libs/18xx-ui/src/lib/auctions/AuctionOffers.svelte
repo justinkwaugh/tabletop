@@ -84,7 +84,7 @@
 <style>
     section {
         width: 100%;
-        color: #514538;
+        color: var(--rail-text, #514538);
     }
     table {
         width: 100%;
@@ -94,7 +94,7 @@
         font-size: 13px;
     }
     thead th {
-        color: #887664;
+        color: var(--rail-muted, #887664);
         font-size: 10px;
         font-weight: 500;
         padding: 0 7px 3px;
@@ -123,8 +123,8 @@
         flex: 0 0 26px;
         height: 26px;
         border-radius: 6px;
-        background: #eae1d5;
-        color: #796047;
+        background: var(--rail-surface-raised, #eae1d5);
+        color: var(--rail-text, #796047);
         font-size: 10px;
         font-weight: 650;
     }
@@ -140,11 +140,11 @@
         font-weight: 600;
     }
     .income {
-        color: #796958;
+        color: var(--rail-text, #796958);
     }
     small {
         font-size: 10px;
-        color: #887664;
+        color: var(--rail-muted, #887664);
     }
     .action {
         width: 1%;
@@ -156,20 +156,20 @@
         align-items: center;
         gap: 12px;
         padding: 3px 9px;
-        border: 1px solid #a99983;
+        border: 1px solid var(--rail-border, #a99983);
         border-radius: 5px;
-        background: #fffdf8;
-        color: #514538;
+        background: var(--rail-surface, #fffdf8);
+        color: var(--rail-text, #514538);
         font: inherit;
         font-weight: 600;
         cursor: pointer;
     }
     button:hover:enabled {
-        background: #eee5d8;
-        border-color: #796047;
+        background: var(--rail-surface-raised, #eee5d8);
+        border-color: var(--rail-focus, #796047);
     }
     button:focus-visible {
-        outline: 2px solid #796047;
+        outline: 2px solid var(--rail-focus, #796047);
         outline-offset: 2px;
     }
     button:disabled {

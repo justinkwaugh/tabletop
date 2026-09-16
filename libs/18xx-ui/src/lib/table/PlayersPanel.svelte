@@ -301,18 +301,18 @@
 
 <style>
     .header-controls { display: flex; align-items: center; gap: 6px; margin-left: auto; }
-    .compact-toggle { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 2px; border: 0; border-radius: 4px; background: transparent; color: #b5a794; cursor: pointer; }
-    .compact-toggle:hover { color: #695543; background: #6955400d; }
-    .compact-toggle:focus-visible { outline: 2px solid #796047; outline-offset: 2px; color: #695543; }
+    .compact-toggle { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 2px; border: 0; border-radius: 4px; background: transparent; color: var(--rail-muted, #b5a794); cursor: pointer; }
+    .compact-toggle:hover { color: var(--rail-text, #695543); background: var(--rail-hover, #6955400d); }
+    .compact-toggle:focus-visible { outline: 2px solid var(--rail-focus, #796047); outline-offset: 2px; color: var(--rail-text, #695543); }
     .compact-ownership { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 16px; font-size: 12px; }
-    .compact-ownership::after { content: ""; position: absolute; top: 2px; bottom: 2px; left: 50%; border-left: 1px solid #d9cebf; pointer-events: none; }
+    .compact-ownership::after { content: ""; position: absolute; top: 2px; bottom: 2px; left: 50%; border-left: 1px solid var(--rail-border, #d9cebf); pointer-events: none; }
     .holding-line { display: flex; align-items: center; gap: 3px; }
     .holding-amount { display: inline-flex; flex: 1; align-items: center; justify-content: flex-end; gap: 3px; font-variant-numeric: tabular-nums; white-space: nowrap; }
     .compact-holding.president .holding-line { font-weight: 700; }
     .compact-company-label { display: inline-flex; align-items: flex-start; gap: 1px; }
     .compact-company-label > button,
     .compact-president { text-box: trim-both cap alphabetic; }
-    .compact-president { color: #a79888; font-size: 9px; font-weight: 700; line-height: 1; }
+    .compact-president { color: var(--rail-muted, #a79888); font-size: 9px; font-weight: 700; line-height: 1; }
     .compact-token { display: flex; flex-shrink: 0; }
     .compact-numbered { flex: 1; text-align: center; color: inherit; font-size: inherit; white-space: nowrap; }
     .compact section { padding-block: 6px; }
@@ -324,15 +324,15 @@
     }
     article {
         min-width: 0;
-        border: 1px solid #d2c5b7;
+        border: 1px solid var(--rail-border, #d2c5b7);
         border-radius: 8px;
-        background: #faf7f1;
-        color: #514538;
+        background: var(--rail-surface, #faf7f1);
+        color: var(--rail-text, #514538);
         overflow: hidden;
     }
     article.active {
-        border-color: #796047;
-        box-shadow: inset 0 0 0 1px #796047;
+        border-color: var(--rail-focus, #796047);
+        box-shadow: inset 0 0 0 1px var(--rail-shadow, #796047);
     }
     header {
         display: flex;
@@ -340,7 +340,7 @@
         justify-content: space-between;
         gap: 8px;
         padding: 9px 10px 9px;
-        border-bottom: 1px solid #e3d9cd;
+        border-bottom: 1px solid var(--rail-border, #e3d9cd);
     }
     header.has-description {
         cursor: pointer;
@@ -360,17 +360,17 @@
         border-radius: 50%;
     }
     .controller {
-        color: #887664;
+        color: var(--rail-muted, #887664);
         font-size: 10px;
     }
-    .turn-position { display: flex; align-items: baseline; gap: 5px; margin-left: auto; color: #695543; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .turn-position { display: flex; align-items: baseline; gap: 5px; margin-left: auto; color: var(--rail-text, #695543); white-space: nowrap; font-variant-numeric: tabular-nums; }
     .turn-position small { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
     .turn-position b { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 26px; padding-inline: 4px; box-sizing: border-box; border-radius: 5px; color: #fff; font-size: 20px; font-weight: 650; line-height: 1; }
     .priority {
-        border: 1px solid #c8b08b;
+        border: 1px solid var(--rail-border, #c8b08b);
         border-radius: 4px;
-        background: #efe4cf;
-        color: #796047;
+        background: var(--rail-surface-raised, #efe4cf);
+        color: var(--rail-text, #796047);
         padding: 2px 5px;
         font-size: 10px;
         white-space: nowrap;
@@ -379,7 +379,7 @@
         display: flex;
         margin: 0;
         padding: 6px 10px 8px;
-        border-bottom: 1px solid #e3d9cd;
+        border-bottom: 1px solid var(--rail-border, #e3d9cd);
     }
     .stats > dl {
         margin: 0;
@@ -396,12 +396,12 @@
     .stat-divider::before {
         content: '';
         height: 12px;
-        border-left: 1px solid #e3d9cd;
+        border-left: 1px solid var(--rail-border, #e3d9cd);
     }
     dt {
         line-height: 12px;
         font-size: 10px;
-        color: #887664;
+        color: var(--rail-muted, #887664);
     }
     dd {
         margin: 0;
@@ -419,7 +419,7 @@
         font-weight: 650;
         text-transform: uppercase;
         letter-spacing: 0.07em;
-        color: #887664;
+        color: var(--rail-muted, #887664);
     }
     table {
         width: 100%;
@@ -445,7 +445,7 @@
         cursor: pointer;
     }
     .company-focus:disabled { cursor: default; }
-    .company-focus:focus-visible { outline: 1px solid #796047; outline-offset: 2px; border-radius: 2px; }
+    .company-focus:focus-visible { outline: 1px solid var(--rail-focus, #796047); outline-offset: 2px; border-radius: 2px; }
     .token .company-focus { display: block; }
     .token {
         width: 28px;
@@ -468,7 +468,7 @@
         padding-bottom: 0;
         line-height: 1.2;
         font-size: 12px;
-        color: #786550;
+        color: var(--rail-text, #786550);
     }
     .share-number { font-variant-numeric: tabular-nums; }
     .ownership .amount {
@@ -480,9 +480,9 @@
     }
     .auction-lot + section,
     .privates {
-        border-top: 1px solid #e3d9cd;
+        border-top: 1px solid var(--rail-border, #e3d9cd);
     }
-    .income-period { font-size: 10px; color: #887664; white-space: nowrap; }
+    .income-period { font-size: 10px; color: var(--rail-muted, #887664); white-space: nowrap; }
     .private-head {
         display: grid;
         grid-template-columns: minmax(0, 1fr) 46px 52px;
@@ -493,7 +493,7 @@
         justify-self: end;
         white-space: nowrap;
         text-align: right;
-        color: #887664;
+        color: var(--rail-muted, #887664);
         font-size: 10px;
     }
     .privates th,
@@ -513,7 +513,7 @@
     }
     .empty {
         margin: 0;
-        color: #938371;
+        color: var(--rail-muted, #938371);
         font-size: 12px;
     }
 </style>

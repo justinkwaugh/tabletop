@@ -258,10 +258,10 @@
 <style>
     .tile-library {
         container-type: inline-size;
-        color: #292e28;
-        background: #faf8f1;
+        color: var(--rail-text, #292e28);
+        background: var(--rail-surface, #faf8f1);
         font-family: ui-sans-serif, system-ui, sans-serif;
-        border: 1px solid #d9d9c9;
+        border: 1px solid var(--rail-border, #d9d9c9);
         border-radius: 16px;
         padding: clamp(14px, 3%, 28px);
     }
@@ -281,14 +281,14 @@
     }
     .count {
         font-size: 12px;
-        color: #66715f;
+        color: var(--rail-text, #66715f);
     }
     .filters {
         display: grid;
         grid-template-columns: 2fr 1fr 1.4fr 1fr;
         gap: 12px;
         padding-bottom: 22px;
-        border-bottom: 1px solid #d9d9c9;
+        border-bottom: 1px solid var(--rail-border, #d9d9c9);
         margin-bottom: 22px;
     }
     label {
@@ -308,9 +308,9 @@
         box-sizing: border-box;
         width: 100%;
         min-width: 0;
-        background: #fffef9;
-        color: #292e28;
-        border: 1px solid #c8ccbf;
+        background: var(--rail-surface, #fffef9);
+        color: var(--rail-text, #292e28);
+        border: 1px solid var(--rail-border, #c8ccbf);
         border-radius: 6px;
         padding: 10px;
         min-height: 42px;
@@ -319,15 +319,15 @@
     button {
         cursor: pointer;
         color: inherit;
-        background: #fffef9;
-        border: 1px solid #c8ccbf;
+        background: var(--rail-surface, #fffef9);
+        border: 1px solid var(--rail-border, #c8ccbf);
         border-radius: 7px;
         min-height: 44px;
         padding: 8px 12px;
     }
     button:hover {
-        border-color: #63765f;
-        background: #f2f3e9;
+        border-color: var(--rail-focus, #63765f);
+        background: var(--rail-surface, #f2f3e9);
     }
     button:focus-visible,
     input:focus-visible,
@@ -346,7 +346,7 @@
         grid-row: 1;
         min-width: 0;
         padding: 18px;
-        background: #eeeee3;
+        background: var(--rail-surface-raised, #eeeee3);
         border-radius: 12px;
     }
     .detail-heading {
@@ -364,13 +364,13 @@
         font-size: 10px;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        border: 1px solid #bcc3b2;
+        border: 1px solid var(--rail-border, #bcc3b2);
         border-radius: 4px;
         padding: 4px 7px;
     }
     .scope {
         font-size: 12px;
-        color: #5c6559;
+        color: var(--rail-text, #5c6559);
         margin: 5px 0 10px;
     }
     .large-tile {
@@ -403,7 +403,7 @@
         font-size: 12px;
     }
     dt {
-        color: #5c6559;
+        color: var(--rail-text, #5c6559);
         margin-top: 12px;
         text-transform: capitalize;
     }
@@ -424,7 +424,7 @@
     .paths p {
         flex-basis: 100%;
         font-size: 11px;
-        color: #5c6559;
+        color: var(--rail-text, #5c6559);
         margin: 0 0 2px;
     }
     .paths button {
@@ -434,7 +434,7 @@
     }
     .paths button[aria-pressed='true'] {
         border-color: #b32747;
-        background: #ffe9ed;
+        background: var(--rail-surface, #ffe9ed);
     }
     .choose {
         margin-top: 16px;
@@ -464,7 +464,7 @@
     .tile-card[aria-pressed='true'] {
         border-color: #397965;
         box-shadow: 0 0 0 2px #397965;
-        background: #f0f5eb;
+        background: var(--rail-surface, #f0f5eb);
     }
     .card-title {
         display: flex;
@@ -483,11 +483,11 @@
         display: block;
         font-size: 10px;
         line-height: 1.4;
-        color: #65705f;
+        color: var(--rail-text, #65705f);
         margin-top: 4px;
     }
     .empty {
-        color: #65705f;
+        color: var(--rail-text, #65705f);
         font-size: 14px;
         line-height: 1.5;
     }

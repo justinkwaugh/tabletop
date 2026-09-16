@@ -15,8 +15,8 @@
     </svg>
 </button>
 <style>
-    button { display: inline-flex; align-items: center; flex-shrink: 0; padding: 4px; border: 0; border-radius: 4px; background: transparent; color: #665044; cursor: pointer; }
-    button:hover:not(:disabled) { background: #49352a20; color: #30251e; }
+    button { display: inline-flex; align-items: center; flex-shrink: 0; padding: 4px; border: 0; border-radius: 4px; background: transparent; color: var(--rail-text, #665044); cursor: pointer; }
+    button:hover:not(:disabled) { background: var(--rail-hover, #49352a20); color: var(--rail-text, #30251e); }
     button:disabled { opacity: .35; cursor: default; }
     button .clock { width: 13px; height: 13px; margin-left: -2px; }
 </style>

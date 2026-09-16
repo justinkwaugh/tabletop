@@ -1,5 +1,5 @@
 .history-card {
-    border: 1px solid #b9aa96;
+    border: 1px solid var(--rail-border, #b9aa96);
     border-radius: 5px;
     overflow: hidden;
 }
@@ -11,6 +11,6 @@
     min-height: 24px;
     padding: 5px 6px;
     border-radius: 4px 4px 0 0;
-    background: #d9cdbc;
-    color: #463e35;
+    background: var(--rail-surface-selected, #d9cdbc);
+    color: var(--rail-text, #463e35);
 }

@@ -344,14 +344,14 @@
 
 {#snippet historyControls()}
     <HistoryControls
-        borderClass="border-b border-[#b8a995]"
-        enabledColor="text-[#695540]"
-        disabledColor="text-[#b9ae9f]"
+        borderClass="border-b border-[var(--rail-border,#b8a995)]"
+        enabledColor="text-[var(--rail-text,#695540)]"
+        disabledColor="text-[var(--rail-inactive,#b9ae9f)]"
         bgClass="bg-transparent"
     />
 {/snippet}
 
-<div class="railway-table" aria-label="Game table">
+<div class="railway-table" data-theme={session.preferences.values.theme} aria-label="Game table">
     <DefaultTableLayout topPadding={0}>
         {#snippet mobileControlsContent()}
             {@render historyControls()}
@@ -384,8 +384,8 @@
             <DefaultTabs
                 fontClass="railway-tab-label"
                 contentClass="p-0 mt-0 has-[.round-history]:-mt-1 h-full overflow-auto rounded-none bg-transparent dark:bg-transparent"
-                activeTabClass="py-2 px-2 text-[#5e4937] rounded-none"
-                inactiveTabClass="py-2 px-2 text-[#998b79] hover:text-[#5e4937] rounded-none"
+                activeTabClass="py-2 px-2 text-[var(--rail-text,#5e4937)] rounded-none"
+                inactiveTabClass="py-2 px-2 text-[var(--rail-inactive,#998b79)] hover:text-[var(--rail-text,#5e4937)] rounded-none"
             >
                 {#snippet playersPanel()}<PlayersPanel {companyNames}
                         {session}
@@ -401,13 +401,13 @@
                 {#snippet history()}<History onPreviewMap={previewHistoryMap} {session} {trainColors} {phaseColors} {phaseTileColors} {companyNames} describeAction={historyDescription} />{/snippet}
                 {#snippet chat()}
                     <GameChat
-                        timeColor="text-[#887969]"
-                        messageTextColor="text-[#4b4239]"
-                        composerTextColor="text-[#4b4239]"
-                        messageHoverColor="hover:bg-[#e7ded3]"
-                        inputBgColor="bg-[#faf7f2]"
-                        inputBorderColor="border-[#b8a995]"
-                        borderColor="border-[#b8a995]"
+                        timeColor="text-[var(--rail-muted,#887969)]"
+                        messageTextColor="text-[var(--rail-text,#4b4239)]"
+                        composerTextColor="text-[var(--rail-text,#4b4239)]"
+                        messageHoverColor="hover:bg-[var(--rail-surface-raised,#e7ded3)]"
+                        inputBgColor="bg-[var(--rail-surface,#faf7f2)]"
+                        inputBorderColor="border-[var(--rail-border,#b8a995)]"
+                        borderColor="border-[var(--rail-border,#b8a995)]"
                     />
                 {/snippet}
             </DefaultTabs>
@@ -561,7 +561,6 @@
                     <OwnershipSpreadsheet
                         {includedPortfolioCompanyIds}
                         companyOrder={spreadsheetCompanyOrder}
-                        {operatingCompanyId}
                         onPreviewMap={previewHistoryMap}
                         {trainColors}
                         {valuationRules}
@@ -595,7 +594,6 @@
             </div>
         {/snippet}
     </DefaultTableLayout>
-</div>
 
 {#if showPhaseChart}<PhaseChart chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} onclose={() => showPhaseChart = false} />{/if}
 {#if showDepot}<PhaseChart depotView={{ depot: session.trainDepot, inventory: session.financialState.trainInventory, availableDefinitionIds: session.availableTrainDefinitionIds }} chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} onclose={() => showDepot = false} />{/if}
@@ -606,27 +604,51 @@
         appearance={session.mapStyle === 'muted' ? MutedTileAppearance : ClassicTileAppearance}
         onclose={() => session.closeHistoricalMap()} />
 {/if}
+</div>
 
 <style>
-    .game-information { display: flex; align-items: center; justify-content: space-between; flex: none; gap: 3px; flex-wrap: wrap; margin-top: -8px; padding: 6px; border-bottom: 1px solid #b8a995; color: #514536; font-size: 12px; line-height: 20px; }
+    .railway-table { color-scheme: light; }
+    .railway-table[data-theme='dark'] {
+        color-scheme: dark;
+        --rail-text: #e3e9ef;
+        --rail-negative: #ff9c91;
+        --rail-phase-tint: 100%;
+        --rail-phase-filter: none;
+        --rail-phase-opacity: 1;
+        --rail-muted: #7f8e9e;
+        --rail-inactive: #596777;
+        --rail-surface: #222c37;
+        --rail-surface-raised: #2b3744;
+        --rail-surface-selected: #3a4c5e;
+        --rail-solid: #40576b;
+        --rail-border: #485666;
+        --rail-interstitial-border: #18212b;
+        --rail-focus: #b8cddd;
+        --rail-hover: #b8cddd18;
+        --rail-shadow: #00000055;
+        --rail-backdrop: #080f18bb;
+        --rail-table-background: #18212b;
+        --rail-map-background: #172832;
+    }
+    .game-information { display: flex; align-items: center; justify-content: space-between; flex: none; gap: 3px; flex-wrap: wrap; margin-top: -8px; padding: 6px; border-bottom: 1px solid var(--rail-border, #b8a995); color: var(--rail-text, #514536); font-size: 12px; line-height: 20px; }
     @media (width < 40rem) {
         .game-information { margin-top: 0; }
     }
     .game-information-item { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
     .depot-information { border: 0; padding: 4px 5px; margin: -4px -5px; border-radius: 4px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
-    .depot-information:hover { background: #ffffff66; }
-    .depot-information:focus-visible { outline: 2px solid #9e7752; outline-offset: 2px; }
+    .depot-information:hover { background: var(--rail-hover, #ffffff66); }
+    .depot-information:focus-visible { outline: 2px solid var(--rail-focus, #9e7752); outline-offset: 2px; }
     .depot-type { display: inline-flex; align-items: center; gap: 3px; }
     .depot-information { flex-wrap: wrap; justify-content: flex-end; }
     .depot-count { font-size: 12px; font-weight: 700; line-height: 16px; font-variant-numeric: tabular-nums; }
     .train-limit-label { text-align: center; line-height: 10px; }
     .train-limit-value { font-size: 16px; font-weight: 700; line-height: 20px; }
-    .information-label { color: #887969; font-size: 10px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; line-height: 1; }
+    .information-label { color: var(--rail-muted, #887969); font-size: 10px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; line-height: 1; }
 
 
     .railway-table {
-        background: #ede2dc;
-        color: #443c34;
+        background: var(--rail-table-background, #ede2dc);
+        color: var(--rail-text, #443c34);
         font-family: ui-sans-serif, system-ui, sans-serif;
     }
     .railway-table :global(.railway-tab-label) {
@@ -642,8 +664,8 @@
         min-height: 0;
         overflow: auto;
         padding: 10px 16px;
-        background: #faf7f1;
-        border-bottom: 1px solid #b8a995;
+        background: var(--rail-surface, #faf7f1);
+        border-bottom: 1px solid var(--rail-border, #b8a995);
         font-size: 13px;
     }
     .action-panel.share-purchases { max-height: 50dvh; }
@@ -662,13 +684,13 @@
         font-weight: 400;
     }
     .action-panel :global(button.action-button) {
-        background: #443e35;
-        border-color: #443e35;
+        background: var(--rail-solid, #443e35);
+        border-color: var(--rail-focus, #443e35);
         color: #fff;
     }
     .action-panel :global(button.action-button:hover:not(:disabled)) {
-        background: #302c26;
-        border-color: #302c26;
+        background: var(--rail-solid, #302c26);
+        border-color: var(--rail-focus, #302c26);
     }
     .action-panel :global(header button.inline-action) {
         font: inherit;
@@ -684,7 +706,7 @@
         align-items: center;
         justify-content: space-between;
         flex-shrink: 0;
-        border-bottom: 1px solid #d2c5b7;
+        border-bottom: 1px solid var(--rail-border, #d2c5b7);
     }
     .view-tabs {
         display: flex;
@@ -697,7 +719,7 @@
         border: 0;
         border-bottom: 2px solid transparent;
         background: transparent;
-        color: #938371;
+        color: var(--rail-inactive, #938371);
         font: inherit;
         font-size: 11px;
         font-weight: 650;
@@ -706,14 +728,14 @@
         cursor: pointer;
     }
     .view-tabs button[aria-selected='true'] {
-        color: #5e4937;
-        border-bottom-color: #7c634b;
+        color: var(--rail-text, #5e4937);
+        border-bottom-color: var(--rail-focus, #7c634b);
     }
     .view-tabs button:hover {
-        color: #5e4937;
+        color: var(--rail-text, #5e4937);
     }
     .map-area {
-        background: #cbdfe8;
+        background: var(--rail-map-background, #cbdfe8);
         position: relative;
     }
     .view-area {

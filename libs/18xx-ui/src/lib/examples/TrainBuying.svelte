@@ -118,7 +118,7 @@
 <style>
     section {
         padding: 4px 0 0;
-        color: #514536;
+        color: var(--rail-text, #514536);
         font:
             13px/1.5 ui-sans-serif,
             system-ui,
@@ -149,7 +149,7 @@
     }
     .sources { display: flex; justify-content: center; gap: 4px; margin: 6px 0; }
     .sources button { background: transparent; border: 0; padding: 4px 9px; }
-    .sources button[aria-pressed='true'] { background: #e8dfd2; }
+    .sources button[aria-pressed='true'] { background: var(--rail-surface-raised, #e8dfd2); }
     .trains {
         display: flex;
         flex-wrap: wrap;
@@ -161,14 +161,14 @@
     .depot-entry { display: flex; flex-direction: column; gap: 2px; }
     .remaining { text-align: right; }
     small {
-        color: #5e675f;
+        color: var(--rail-text, #5e675f);
     }
     button {
         padding: 7px 12px;
         font: inherit;
         cursor: pointer;
-        background: #efe7db;
-        border: 1px solid #c7b8a6;
+        background: var(--rail-surface-raised, #efe7db);
+        border: 1px solid var(--rail-border, #c7b8a6);
         border-radius: 4px;
     }
     button:disabled {
@@ -179,6 +179,6 @@
         margin-top: 10px;
         justify-content: center;
     }
-    button:hover:not(:disabled) { background: #e5d9c8; }
+    button:hover:not(:disabled) { background: var(--rail-surface-raised, #e5d9c8); }
     button:focus-visible { outline: 2px solid #a87948; outline-offset: 2px; }
 </style>

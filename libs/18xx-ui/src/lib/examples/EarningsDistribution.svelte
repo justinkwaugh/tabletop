@@ -34,11 +34,11 @@
 {/if}
 
 <style>
-    section { padding: 4px 0; color: #514536; font-size: 12px; }
+    section { padding: 4px 0; color: var(--rail-text, #514536); font-size: 12px; }
     .choices { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 10px; }
-    button { font: inherit; color: inherit; cursor: pointer; background: #fffdf8; border: 1px solid #c7b8a6; border-radius: 7px; }
+    button { font: inherit; color: inherit; cursor: pointer; background: var(--rail-surface, #fffdf8); border: 1px solid var(--rail-border, #c7b8a6); border-radius: 7px; }
     .undo { display: block; margin: 10px auto 0; padding: 7px 12px; }
-    button:hover:not(:disabled) { background: #efe7db; border-color: #a68c6d; }
+    button:hover:not(:disabled) { background: var(--rail-surface-raised, #efe7db); border-color: var(--rail-border, #a68c6d); }
     button:focus-visible { outline: 2px solid #a87948; outline-offset: 2px; }
     button:disabled { opacity: 0.45; cursor: default; }
 </style>

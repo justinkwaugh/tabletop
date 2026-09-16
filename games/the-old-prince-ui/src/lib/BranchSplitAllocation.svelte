@@ -92,30 +92,30 @@
 
 <style>
     .allocation { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 12px; row-gap: 0; max-width: 660px; margin: 12px auto 0; font-size: 12px; }
-    .panel { display: grid; grid-row: 1 / span 2; grid-template-rows: subgrid; border: 1px solid #c7b8a6; border-radius: 7px; overflow: hidden; }
-    header { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: #eee4d8; }
+    .panel { display: grid; grid-row: 1 / span 2; grid-template-rows: subgrid; border: 1px solid var(--rail-border, #c7b8a6); border-radius: 7px; overflow: hidden; }
+    header { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: var(--rail-surface-raised, #eee4d8); }
     header strong { font-size: 14px; font-weight: 600; }
-    .asset-section { padding: 7px 10px; border-top: 1px solid #e3d9cd; }
-    h3 { margin: 0 0 5px; font-size: 10px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: #786550; }
+    .asset-section { padding: 7px 10px; border-top: 1px solid var(--rail-border, #e3d9cd); }
+    h3 { margin: 0 0 5px; font-size: 10px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--rail-text, #786550); }
     .asset { display: flex; align-items: center; gap: 6px; min-height: 26px; }
     .asset:not(.branch) .transfer { order: 2; margin-left: auto; }
-    .empty, small { font-size: 10px; color: #897866; }
+    .empty, small { font-size: 10px; color: var(--rail-muted, #897866); }
     button { font: inherit; border: 0; color: inherit; background: transparent; cursor: pointer; border-radius: 4px; }
-    button:hover:not(:disabled) { background: #e6d9c8; }
+    button:hover:not(:disabled) { background: var(--rail-surface-raised, #e6d9c8); }
     button:focus-visible { outline: 2px solid #a87948; outline-offset: 1px; }
     button:disabled { opacity: .35; cursor: default; }
-    .transfer { font-size: 26px; line-height: 1; padding: 3px 8px; background: #eee4d8; border-radius: 5px; }
+    .transfer { font-size: 26px; line-height: 1; padding: 3px 8px; background: var(--rail-surface-raised, #eee4d8); border-radius: 5px; }
     .station-name { text-align: left; padding: 2px 3px; }
     label { display: flex; align-items: center; gap: 3px; }
-    input[type="number"] { width: 72px; padding: 3px 5px; font: inherit; background: #fffdf8; border: 1px solid #c7b8a6; border-radius: 4px; }
+    input[type="number"] { width: 72px; padding: 3px 5px; font: inherit; background: var(--rail-surface, #fffdf8); border: 1px solid var(--rail-border, #c7b8a6); border-radius: 4px; }
     .cash-section { min-height: 64px; }
     .cash-section small { display: block; margin-top: 4px; }
     .cash-total { display: block; font-size: 16px; font-weight: 600; line-height: 26px; font-variant-numeric: tabular-nums; }
     .cash-slider { grid-column: 1 / -1; padding: 12px 10px 0; }
     .slider-label { display: block; margin-bottom: 5px; text-align: center; text-transform: uppercase; letter-spacing: .07em; font-size: 9px; }
-    input[type="range"] { display: block; width: 100%; margin: 0; accent-color: #695543; cursor: pointer; }
+    input[type="range"] { display: block; width: 100%; margin: 0; accent-color: var(--rail-text, #695543); cursor: pointer; }
     .reason { text-align: center; font-size: 12px; }
-    .confirm { display: block; margin: 10px auto 0; padding: 7px 14px; color: white; background: #443e35; }
-    .confirm:hover:not(:disabled) { background: #5b5145; }
+    .confirm { display: block; margin: 10px auto 0; padding: 7px 14px; color: white; background: var(--rail-solid, #443e35); }
+    .confirm:hover:not(:disabled) { background: var(--rail-solid, #5b5145); }
     @media(max-width: 480px) { .allocation { column-gap: 6px; } .asset-section, header { padding: 6px; } }
 </style>

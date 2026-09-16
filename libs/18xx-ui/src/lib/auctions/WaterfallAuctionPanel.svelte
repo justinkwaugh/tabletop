@@ -127,8 +127,8 @@
 
 <style>
     section {
-        background: #fffefa;
-        border: 1px solid #b4c0b4;
+        background: var(--rail-surface, #fffefa);
+        border: 1px solid var(--rail-border, #b4c0b4);
         border-radius: 8px;
         padding: 20px;
         margin-bottom: 20px;
@@ -142,7 +142,7 @@
         margin: 0;
     }
     small {
-        color: #58665f;
+        color: var(--rail-text, #58665f);
         font-weight: normal;
     }
     p,
@@ -159,7 +159,7 @@
         margin-bottom: 18px;
     }
     article {
-        border: 1px solid #c9d1c7;
+        border: 1px solid var(--rail-border, #c9d1c7);
         border-radius: 6px;
         padding: 14px;
         width: 235px;
@@ -172,9 +172,9 @@
     input {
         font: inherit;
         padding: 8px 12px;
-        border: 1px solid #aebfb4;
+        border: 1px solid var(--rail-border, #aebfb4);
         border-radius: 5px;
-        background: white;
+        background: var(--rail-surface, white);
         color: inherit;
     }
     button {
@@ -193,7 +193,7 @@
         flex-wrap: wrap;
         gap: 12px;
         padding: 12px;
-        background: #edf0e9;
+        background: var(--rail-surface-raised, #edf0e9);
         border-radius: 6px;
     }
 </style>

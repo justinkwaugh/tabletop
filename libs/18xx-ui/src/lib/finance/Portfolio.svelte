@@ -121,7 +121,7 @@
     summary {
         margin-top: 10px;
         font-size: 12px;
-        color: #576763;
+        color: var(--rail-text, #576763);
         cursor: pointer;
     }
 
@@ -131,8 +131,8 @@
     }
 
     article {
-        background: #fffefa;
-        border: 1px solid #c9d2cb;
+        background: var(--rail-surface, #fffefa);
+        border: 1px solid var(--rail-border, #c9d2cb);
         border-top: 4px solid;
         border-radius: 7px;
         padding: 16px;
@@ -157,7 +157,7 @@
     .counts,
     .empty {
         font-size: 12px;
-        color: #576763;
+        color: var(--rail-text, #576763);
         margin: 10px 0;
     }
     ul {
@@ -167,7 +167,7 @@
     }
     li {
         padding: 12px 0;
-        border-top: 1px solid #e0e5de;
+        border-top: 1px solid var(--rail-border, #e0e5de);
     }
     li:last-child {
         padding-bottom: 0;
@@ -180,9 +180,9 @@
         flex-wrap: wrap;
     }
     .badge {
-        border: 1px solid #c6d6bc;
+        border: 1px solid var(--rail-border, #c6d6bc);
         border-radius: 4px;
-        background: #edf4e6;
+        background: var(--rail-surface-raised, #edf4e6);
         font-size: 10px;
         padding: 2px 5px;
     }
@@ -192,7 +192,7 @@
         justify-content: space-between;
         gap: 5px;
         font-size: 12px;
-        color: #576763;
+        color: var(--rail-text, #576763);
         margin-top: 5px;
     }
 </style>

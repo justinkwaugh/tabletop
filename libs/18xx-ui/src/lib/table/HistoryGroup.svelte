@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import './historyCard.css'
     import HistoryJump from './HistoryJump.svelte'
     import { historyStockSales } from './historyStockSales.js'
@@ -112,6 +113,7 @@
                     class="history-entry stock-action"
                     class:phase-change={!!row.phase}
                     style:--phase-color={row.phase?.color}
+                    style:--phase-ink={row.phase ? contrastingTextColor(row.phase.color) : undefined}
                     class:important={row.important}
                     class:routine={row.routine}
                 >
@@ -154,6 +156,7 @@
                 <div class="history-entry"
                     class:phase-change={!!row.phase}
                     style:--phase-color={row.phase?.color}
+                    style:--phase-ink={row.phase ? contrastingTextColor(row.phase.color) : undefined}
                     class:important={row.important}
                     class:routine={row.routine}
                 >
@@ -203,7 +206,7 @@
     }
     .stock-player {
         font-weight: 600;
-        color: #817565;
+        color: var(--rail-muted, #817565);
     }
     .stock-action strong {
         font-variant-numeric: tabular-nums;
@@ -211,7 +214,7 @@
     }
     .stock-action small {
         display: block;
-        color: #817565;
+        color: var(--rail-muted, #817565);
         font-size: 10px;
         line-height: 13px;
     }
@@ -224,7 +227,7 @@
         font-size: 11px;
     }
     .passes span {
-        color: #8a7c6b;
+        color: var(--rail-muted, #8a7c6b);
     }
     .passes .history-entry {
         padding: 1px 0;
@@ -232,10 +235,10 @@
     article {
         margin: var(--history-item-gap, 5px) 0;
         padding: 3px 6px 5px;
-        color: #463e35;
+        color: var(--rail-text, #463e35);
         font-size: 12px;
     }
-    article:not(.history-card) { border-bottom: 1px solid #b9ac994f; }
+    article:not(.history-card) { border-bottom: 1px solid var(--rail-shadow, #b9ac994f); }
     article.order-start { border-bottom: 0; }
     .order-start .events .history-entry {
         row-gap: 6px;
@@ -270,7 +273,7 @@
     .company-heading { display: flex; flex-direction: column; gap: 0; line-height: 14px; }
     .actor {
         font-size: 10px;
-        color: #817565;
+        color: var(--rail-muted, #817565);
     }
     .events {
         margin-top: 2px;
@@ -290,17 +293,19 @@
     }
     .events small {
         grid-column: 1 / -1;
-        color: #817565;
+        color: var(--rail-muted, #817565);
         font-size: 10px;
         line-height: 14px;
     }
     .history-entry.phase-change {
+        --rail-text: light-dark(#302c27, var(--phase-ink));
+        --rail-muted: light-dark(#817565, var(--phase-ink));
         margin: 3px 0;
         padding: 4px 6px;
         border-left: 4px solid var(--phase-color);
         border-radius: 3px;
-        background: color-mix(in srgb, var(--phase-color) 32%, #f7f5f0);
-        color: #302c27;
+        background: color-mix(in srgb, var(--phase-color) var(--rail-phase-tint, 32%), var(--rail-surface, #f7f5f0));
+        color: var(--rail-text, #302c27);
     }
     .phase-colors {
         display: inline-block;
@@ -320,7 +325,7 @@
         border-radius: 4px;
     }
     .map-history-link:hover, .map-history-link[aria-pressed='true'] {
-        background: #ffffff66;
+        background: var(--rail-hover, #ffffff66);
     }
     .map-history-link:focus-visible {
         outline: 2px solid #865320;
@@ -329,16 +334,16 @@
     .run-trains { display: inline-flex; gap: 3px; margin-left: 5px; vertical-align: baseline; }
     .funding-obligation { padding: 2px 0; line-height: 16px; font-weight: 600; }
     .cash-balance { display: flex; flex-direction: column; text-align: right; line-height: 14px; }
-    .cash-balance small { font-size: 10px; color: #817565; }
+    .cash-balance small { font-size: 10px; color: var(--rail-muted, #817565); }
     .ledger-note { margin-left: 5px; font-size: 11px; }
-    .events strong.debit { color: #aa352e; }
-    .events strong.credit { color: #181818; }
+    .events strong.debit { color: var(--rail-negative, #aa352e); }
+    .events strong.credit { color: var(--rail-text, #181818); }
     footer { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
     .end-cash { display: flex; gap: 12px; flex: 1; justify-content: flex-end; padding-top: 3px; }
-    .end-cash strong { min-width: 48px; text-align: right; border-top: 1px solid #b9ac9970; padding-top: 3px; }
+    .end-cash strong { min-width: 48px; text-align: right; border-top: 1px solid var(--rail-shadow, #b9ac9970); padding-top: 3px; }
     .cash-balance strong, .end-cash strong { font-variant-numeric: tabular-nums; }
     .routine {
-        color: #918575;
+        color: var(--rail-muted, #918575);
         font-size: 11px;
     }
     .important > span {

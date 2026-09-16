@@ -143,7 +143,7 @@
         margin: 0 auto 10px;
         padding: 6px 12px;
         border-radius: 5px;
-        background: #f2dfda;
+        background: var(--rail-surface-raised, #f2dfda);
         color: #8b352e;
         text-align: center;
         font-size: 13px;
@@ -152,7 +152,7 @@
     section {
         margin: 12px 0;
         padding: 12px;
-        border: 1px solid #b5c3ba;
+        border: 1px solid var(--rail-border, #b5c3ba);
         border-radius: 5px;
     }
     header,
@@ -169,9 +169,9 @@
     select {
         font: inherit;
         padding: 7px 12px;
-        border: 1px solid #b5c3ba;
+        border: 1px solid var(--rail-border, #b5c3ba);
         border-radius: 4px;
-        background: #fffefa;
+        background: var(--rail-surface, #fffefa);
         cursor: pointer;
     }
     button[aria-pressed='true'] {

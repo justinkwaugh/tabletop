@@ -128,8 +128,8 @@
 
 <style>
     section {
-        background: #fffefa;
-        border: 1px solid #b4c0b4;
+        background: var(--rail-surface, #fffefa);
+        border: 1px solid var(--rail-border, #b4c0b4);
         border-radius: 8px;
         padding: 20px;
         margin-bottom: 20px;
@@ -154,7 +154,7 @@
     }
     article {
         padding: 14px;
-        border: 1px solid #c9d1c7;
+        border: 1px solid var(--rail-border, #c9d1c7);
         border-radius: 6px;
     }
     .piles article {
@@ -172,15 +172,15 @@
         align-items: center;
         margin: 12px 0;
         padding: 12px;
-        background: #edf0e9;
+        background: var(--rail-surface-raised, #edf0e9);
     }
     button,
     input {
         font: inherit;
         padding: 8px 12px;
-        border: 1px solid #aebfb4;
+        border: 1px solid var(--rail-border, #aebfb4);
         border-radius: 5px;
-        background: white;
+        background: var(--rail-surface, white);
         color: inherit;
     }
     button {

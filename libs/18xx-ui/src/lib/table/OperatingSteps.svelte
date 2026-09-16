@@ -43,8 +43,8 @@
 
 {#if currentStep !== undefined}
 <nav aria-label="Operating steps"
-    style:--start-color={currentStep === 0 ? '#695543' : '#ded0c2'}
-    style:--end-color={currentStep === 4 ? '#695543' : '#e8ded4'}>
+    style:--start-color={currentStep === 0 ? 'var(--rail-solid, #695543)' : 'var(--rail-surface-selected, #ded0c2)'}
+    style:--end-color={currentStep === 4 ? 'var(--rail-solid, #695543)' : 'var(--rail-surface-raised, #e8ded4)'}>
     <div class="steps">
     {#each steps as step, index}
         <button class:current={index === currentStep} class:completed={index < currentStep}
@@ -61,9 +61,9 @@
 </nav>
 {/if}
 <style>
-    nav { display: flex; align-items: stretch; justify-content: center; padding: 0; border-bottom: 1px solid #cbbcad; flex: none; width: 100%; min-width: 0; container-type: inline-size; background: linear-gradient(to right, var(--start-color) 50%, var(--end-color) 50%); }
+    nav { display: flex; align-items: stretch; justify-content: center; padding: 0; border-bottom: 1px solid var(--rail-border, #cbbcad); flex: none; width: 100%; min-width: 0; container-type: inline-size; background: linear-gradient(to right, var(--start-color) 50%, var(--end-color) 50%); }
     .steps { display: flex; flex: 1; min-width: 0; justify-content: center; }
-    button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 0; flex: 0 1 110px; border: none; padding: 5px clamp(9px, 2cqi, 22px) 5px clamp(14px, 2.5cqi, 27px); margin-left: -11px; background: #e2d6ca; color: #685948; font: inherit; font-size: 12px; white-space: nowrap; cursor: pointer; clip-path: polygon(0 0, calc(100% - 11px) 0, 100% 50%, calc(100% - 11px) 100%, 0 100%, 11px 50%); }
+    button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 0; flex: 0 1 110px; border: none; padding: 5px clamp(9px, 2cqi, 22px) 5px clamp(14px, 2.5cqi, 27px); margin-left: -11px; background: var(--rail-surface-raised, #e2d6ca); color: var(--rail-text, #685948); font: inherit; font-size: 12px; white-space: nowrap; cursor: pointer; clip-path: polygon(0 0, calc(100% - 11px) 0, 100% 50%, calc(100% - 11px) 100%, 0 100%, 11px 50%); }
     button > span { text-transform: uppercase; letter-spacing: 0.06em; }
     small { font-size: 9px; line-height: 1.1; font-weight: 400; }
     button:first-child { margin-left: 0; padding-left: 17px; clip-path: polygon(0 0, calc(100% - 11px) 0, 100% 50%, calc(100% - 11px) 100%, 0 100%); }
@@ -74,9 +74,9 @@
         button:first-child { padding-left: 4px; }
         button:last-child { padding-right: 4px; }
     }
-    button:disabled { cursor: default; color: #968574; background: #e8ded4; }
-    button.completed { color: #796856; background: #ded0c2; }
-    button.current { background: #695543; color: #fffaf3; }
-    button:not(:disabled):hover { background: #cdbba9; color: #443c34; }
-    button:focus-visible { outline: none; background: #bda68f; color: #30291f; }
+    button:disabled { cursor: default; color: var(--rail-muted, #968574); background: var(--rail-surface-raised, #e8ded4); }
+    button.completed { color: var(--rail-text, #796856); background: var(--rail-surface-selected, #ded0c2); }
+    button.current { background: var(--rail-solid, #695543); color: #fffaf3; }
+    button:not(:disabled):hover { background: var(--rail-surface-selected, #cdbba9); color: var(--rail-text, #443c34); }
+    button:focus-visible { outline: none; background: var(--rail-surface-selected, #bda68f); color: var(--rail-text, #30291f); }
 </style>

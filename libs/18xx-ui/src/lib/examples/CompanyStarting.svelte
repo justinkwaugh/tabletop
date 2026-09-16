@@ -87,7 +87,7 @@
     .start {
         margin: 12px 0;
         padding: 12px;
-        border: 1px solid #b7c7b6;
+        border: 1px solid var(--rail-border, #b7c7b6);
     }
     .buttons {
         display: flex;
@@ -104,8 +104,8 @@
     button {
         font: inherit;
         padding: 9px 12px;
-        border: 1px solid #aebfb4;
-        background: #edf3eb;
+        border: 1px solid var(--rail-border, #aebfb4);
+        background: var(--rail-surface, #edf3eb);
         border-radius: 5px;
         color: inherit;
         cursor: pointer;

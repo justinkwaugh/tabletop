@@ -276,8 +276,8 @@
     .trading {
         padding: 16px;
         margin-bottom: 24px;
-        background: #fffefa;
-        border: 1px solid #c9d2cb;
+        background: var(--rail-surface, #fffefa);
+        border: 1px solid var(--rail-border, #c9d2cb);
         border-radius: 7px;
         font:
             14px/1.5 ui-sans-serif,
@@ -307,8 +307,8 @@
     button {
         font: inherit;
         padding: 9px 12px;
-        border: 1px solid #aebfb4;
-        background: #edf3eb;
+        border: 1px solid var(--rail-border, #aebfb4);
+        background: var(--rail-surface, #edf3eb);
         border-radius: 5px;
         color: inherit;
         cursor: pointer;
@@ -340,7 +340,7 @@
     }
     .preview {
         padding: 12px;
-        border: 1px solid #b7c7b6;
+        border: 1px solid var(--rail-border, #b7c7b6);
         margin-bottom: 16px;
     }
     .presidency {

@@ -81,11 +81,11 @@
 </div>
 
 <style>
-    .company-trains { font-size: 13px; color: #514536; }
+    .company-trains { font-size: 13px; color: var(--rail-text, #514536); }
     .summary, .controls, .choices, label { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
     .controls { margin-top: 8px; }
-    button { background: #efe7db; border: 1px solid #c7b8a6; border-radius: 4px; padding: 6px 10px; color: inherit; font: inherit; cursor: pointer; }
-    button:hover:not(:disabled) { background: #e5d9c8; }
+    button { background: var(--rail-surface-raised, #efe7db); border: 1px solid var(--rail-border, #c7b8a6); border-radius: 4px; padding: 6px 10px; color: inherit; font: inherit; cursor: pointer; }
+    button:hover:not(:disabled) { background: var(--rail-surface-raised, #e5d9c8); }
     button:disabled { opacity: .5; cursor: default; }
     .choices { align-items: flex-start; gap: 12px 24px; }
     .company { display: flex; align-items: center; gap: 12px; }
@@ -93,7 +93,7 @@
     .company-roster { flex-wrap: wrap; }
     .train { display: flex; align-items: center; padding: 4px; border: 0; }
     strong { font-weight: 600; }
-    input { width: 76px; padding: 4px 6px; border: 1px solid #c7b8a6; border-radius: 3px; background: transparent; font: inherit; color: inherit; }
+    input { width: 76px; padding: 4px 6px; border: 1px solid var(--rail-border, #c7b8a6); border-radius: 3px; background: transparent; font: inherit; color: inherit; }
     label { gap: 4px; }
     p { text-align: center; margin: 6px 0 0; font-size: 12px; }
 </style>

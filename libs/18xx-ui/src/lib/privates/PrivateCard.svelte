@@ -51,10 +51,10 @@
 
 <style>
     .private-card {
-        border: 1px solid #c9baa5;
+        border: 1px solid var(--rail-border, #c9baa5);
         border-radius: 8px;
-        background: #fffdf8;
-        color: #514538;
+        background: var(--rail-surface, #fffdf8);
+        color: var(--rail-text, #514538);
         overflow: hidden;
         font-size: 12px;
         line-height: 1.45;
@@ -62,7 +62,7 @@
     }
     header {
         padding: 9px 12px;
-        background: #efe7db;
+        background: var(--rail-surface-raised, #efe7db);
     }
     h3 {
         margin: 0;
@@ -83,11 +83,11 @@
         flex-wrap: wrap;
         gap: 6px 18px;
         margin-top: 5px;
-        color: #786550;
+        color: var(--rail-text, #786550);
         font-size: 11px;
     }
     strong {
-        color: #514538;
+        color: var(--rail-text, #514538);
         font-size: 12px;
         font-weight: 600;
         margin-left: 3px;

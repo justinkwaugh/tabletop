@@ -86,7 +86,7 @@
         cursor: pointer;
     }
     .name:focus-visible {
-        outline: 1px solid #796047;
+        outline: 1px solid var(--rail-focus, #796047);
         outline-offset: 2px;
         border-radius: 2px;
     }
@@ -100,11 +100,11 @@
         overflow-y: auto;
         padding: 0;
         border-radius: 7px;
-        background: #faf7f1;
-        color: #514538;
+        background: var(--rail-surface, #faf7f1);
+        color: var(--rail-text, #514538);
         box-shadow:
-            0 6px 20px #281d183d,
-            0 2px 5px #281d1826;
+            0 6px 20px var(--rail-shadow, #281d183d),
+            0 2px 5px var(--rail-shadow, #281d1826);
         font-size: 12px;
         line-height: 1.45;
         font-weight: 400;

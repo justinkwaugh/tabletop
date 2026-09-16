@@ -33,18 +33,18 @@
 {/if}
 
 <style>
-    .results { width: min(100%, 440px); margin: 0 auto; color: #514536; }
+    .results { width: min(100%, 440px); margin: 0 auto; color: var(--rail-text, #514536); }
     header { text-align: center; margin-bottom: 10px; }
-    .eyebrow, thead th { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; font-weight: 400; color: #887969; }
+    .eyebrow, thead th { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; font-weight: 400; color: var(--rail-muted, #887969); }
     .eyebrow { margin: 0 0 3px; }
-    .results header h2 { margin: 0; font-size: 22px; font-weight: 600; color: #443c34; }
+    .results header h2 { margin: 0; font-size: 22px; font-weight: 600; color: var(--rail-text, #443c34); }
     .reason { margin: 3px 0 0; font-size: 11px; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { padding: 5px 8px; text-align: left; }
-    thead { border-bottom: 1px solid #cbbcad; }
+    thead { border-bottom: 1px solid var(--rail-border, #cbbcad); }
     tbody th { font-weight: 400; overflow-wrap: anywhere; }
     td, thead th:last-child { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-    .rank { display: inline-block; width: 22px; color: #887969; font-size: 11px; font-weight: 400; }
-    .winner { background: #e9dfd2; color: #443c34; }
+    .rank { display: inline-block; width: 22px; color: var(--rail-muted, #887969); font-size: 11px; font-weight: 400; }
+    .winner { background: var(--rail-surface-raised, #e9dfd2); color: var(--rail-text, #443c34); }
     .winner th, .winner td { font-weight: 600; }
 </style>

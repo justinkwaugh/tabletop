@@ -145,17 +145,17 @@
         width: min(850px, calc(100vw - 40px));
         max-height: calc(100dvh - 48px);
         padding: 0;
-        border: 1px solid #c3b39e;
+        border: 1px solid var(--rail-border, #c3b39e);
         border-radius: 10px;
-        background: #faf7f1;
-        color: #463e35;
-        box-shadow: 0 20px 70px #16120d55;
+        background: var(--rail-surface, #faf7f1);
+        color: var(--rail-text, #463e35);
+        box-shadow: 0 20px 70px var(--rail-shadow, #16120d55);
     }
     dialog.depot { width: min(430px, calc(100vw - 40px)); }
     .depot .charts { grid-template-columns: minmax(0, 1fr); }
-    .exhausted { color: #958878; opacity: .55; }
+    .exhausted { color: var(--rail-muted, #958878); opacity: var(--rail-phase-opacity, .55); }
     dialog::backdrop {
-        background: #17141099;
+        background: var(--rail-backdrop, #17141099);
     }
     header {
         display: flex;
@@ -163,7 +163,7 @@
         justify-content: space-between;
         gap: 24px;
         padding: 10px 16px;
-        border-bottom: 1px solid #ded4c7;
+        border-bottom: 1px solid var(--rail-border, #ded4c7);
     }
     h2 {
         margin: 0;
@@ -178,14 +178,14 @@
         border: 0;
         border-radius: 4px;
         background: transparent;
-        color: #766653;
+        color: var(--rail-text, #766653);
         cursor: pointer;
     }
     .close:hover {
-        background: #e9e1d5;
+        background: var(--rail-surface-raised, #e9e1d5);
     }
     button:focus-visible {
-        outline: 2px solid #9e7752;
+        outline: 2px solid var(--rail-focus, #9e7752);
         outline-offset: 2px;
     }
     .charts {
@@ -212,12 +212,12 @@
     }
     thead th {
         font-size: 10px;
-        color: #817261;
+        color: var(--rail-text, #817261);
         font-weight: 600;
-        border-bottom: 1px solid #cfc1ae;
+        border-bottom: 1px solid var(--rail-border, #cfc1ae);
     }
     tbody tr + tr {
-        border-top: 1px solid #e9e0d4;
+        border-top: 1px solid var(--rail-border, #e9e0d4);
     }
     .phase-notes {
         width: 100%;
@@ -225,11 +225,11 @@
         white-space: normal;
         font-size: 11px;
         line-height: 1.35;
-        color: #766653;
+        color: var(--rail-text, #766653);
     }
     .current {
-        background: #e9dfcc;
-        box-shadow: inset 3px 0 #786447;
+        background: var(--rail-surface-raised, #e9dfcc);
+        box-shadow: inset 3px 0 var(--rail-shadow, #786447);
     }
     .number {
         text-align: center;
@@ -250,12 +250,12 @@
         clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
     }
     .muted {
-        color: #958878;
+        color: var(--rail-muted, #958878);
         font-size: 11px;
     }
     .notes {
         padding: 0 16px 12px;
-        color: #766653;
+        color: var(--rail-text, #766653);
         font-size: 11px;
         line-height: 1.5;
     }

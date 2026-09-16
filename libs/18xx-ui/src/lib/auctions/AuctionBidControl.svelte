@@ -50,17 +50,17 @@
         grid-column: 1 / -1;
         display: flex;
         align-items: center;
-        border: 1px solid #c7b8a6;
+        border: 1px solid var(--rail-border, #c7b8a6);
         border-radius: 6px;
         overflow: hidden;
     }
     button {
         height: 32px;
         padding: 0 14px;
-        border: 1px solid #c7b8a6;
+        border: 1px solid var(--rail-border, #c7b8a6);
         border-radius: 6px;
         background: transparent;
-        color: #514536;
+        color: var(--rail-text, #514536);
         font: inherit;
         font-size: 13px;
         font-weight: 600;
@@ -82,15 +82,15 @@
         font-variant-numeric: tabular-nums;
     }
     .bid {
-        background: #695540;
-        border-color: #695540;
+        background: var(--rail-solid, #695540);
+        border-color: var(--rail-focus, #695540);
         color: #fffaf4;
     }
     button:hover:not(:disabled) {
-        background: #e8dfd3;
+        background: var(--rail-surface-raised, #e8dfd3);
     }
     .bid:hover:not(:disabled) {
-        background: #51412f;
+        background: var(--rail-solid, #51412f);
     }
     button:disabled {
         opacity: 0.35;

@@ -297,24 +297,24 @@
 {/snippet}
 
 <style>
-    .company-detail.unavailable { background: #f1f1ef; border-color: #d0d0cd; }
-    .company-detail.unavailable header { background: #dededb; }
+    .company-detail.unavailable { background: var(--rail-surface, #f1f1ef); border-color: var(--rail-border, #d0d0cd); }
+    .company-detail.unavailable header { background: var(--rail-surface-raised, #dededb); }
     .company-detail.unavailable .identity > div,
     .company-detail.unavailable .header-summary,
     .company-detail.unavailable .financial-summary,
-    .company-detail.unavailable .detail-columns { opacity: .5; filter: grayscale(1); }
+    .company-detail.unavailable .detail-columns { opacity: var(--rail-phase-opacity, .5); filter: var(--rail-phase-filter, grayscale(1)); }
     .company-detail.vertical { width: 200px; margin: 0; border-radius: 7px; }
-    .vertical header { flex-wrap: wrap; gap: 5px; background: #e5dccf; }
+    .vertical header { flex-wrap: wrap; gap: 5px; background: var(--rail-surface-raised, #e5dccf); }
     .vertical .identity { flex-shrink: 1; gap: 7px; }
     .vertical h2 { white-space: normal; font-size: 13px; line-height: 1.2; }
     .vertical .header-summary { padding-left: 0; }
     .vertical .detail-columns { grid-template-columns: minmax(0, 1fr); min-width: 0; max-height: none; contain: none; overflow: visible; }
     .company-detail.vertical .detail-columns > section { padding: 7px 10px; }
-    .company-detail.vertical .detail-columns > section + section { border-left: 0; border-top: 1px solid #e3d9cd; }
-    .financial-summary { padding: 7px 10px; border-bottom: 1px solid #e3d9cd; }
+    .company-detail.vertical .detail-columns > section + section { border-left: 0; border-top: 1px solid var(--rail-border, #e3d9cd); }
+    .financial-summary { padding: 7px 10px; border-bottom: 1px solid var(--rail-border, #e3d9cd); }
     .financial-summary .prices { gap: 0; }
     .financial-summary .prices div { position: relative; flex: 1; text-align: center; }
-    .financial-summary .prices div + div::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 12px; border-left: 1px solid #e3d9cd; }
+    .financial-summary .prices div + div::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 12px; border-left: 1px solid var(--rail-border, #e3d9cd); }
     .vertical tr > th,
     .vertical tr > td { padding-top: 0; padding-bottom: 0; line-height: 17px; }
     .vertical tr.investor-owner:has(+ .pool-divider) > th,
@@ -325,12 +325,12 @@
     .company-detail {
         width: fit-content;
         max-width: 100%;
-        border: 1px solid #d2c5b7;
+        border: 1px solid var(--rail-border, #d2c5b7);
         border-radius: 10px;
-        background: #faf7f1;
-        color: #514538;
+        background: var(--rail-surface, #faf7f1);
+        color: var(--rail-text, #514538);
         margin: 3px 0 8px;
-        box-shadow: 0 3px 10px #59432c08;
+        box-shadow: 0 3px 10px var(--rail-shadow, #59432c08);
         overflow: hidden;
     }
     header {
@@ -338,7 +338,7 @@
         align-items: center;
         gap: 10px;
         padding: 5px 10px;
-        border-bottom: 1px solid #e3d9cd;
+        border-bottom: 1px solid var(--rail-border, #e3d9cd);
     }
     .identity {
         display: flex;
@@ -354,7 +354,7 @@
     }
     .subtitle {
         margin: 2px 0 0;
-        color: #887664;
+        color: var(--rail-muted, #887664);
         font-size: 11px;
         text-transform: capitalize;
     }
@@ -381,7 +381,7 @@
         font-size: 11px;
         line-height: 11px;
         font-variant-numeric: tabular-nums;
-        color: #695540;
+        color: var(--rail-text, #695540);
     }
     .prices {
         display: flex;
@@ -396,11 +396,11 @@
     .prices span {
         line-height: 12px;
         font-size: 10px;
-        color: #887664;
+        color: var(--rail-muted, #887664);
     }
     .last-run { border: 0; border-radius: 4px; padding: 0 4px; margin: 0 auto; background: transparent; color: inherit; font: inherit; font-size: 14px; font-weight: 700; line-height: 16px; cursor: pointer; font-variant-numeric: tabular-nums; }
-    .last-run:hover:enabled { background: #ffffff66; }
-    .last-run:focus-visible { outline: 2px solid #9e7752; outline-offset: 2px; }
+    .last-run:hover:enabled { background: var(--rail-hover, #ffffff66); }
+    .last-run:focus-visible { outline: 2px solid var(--rail-focus, #9e7752); outline-offset: 2px; }
     .last-run:disabled { cursor: default; }
     .prices strong {
         line-height: 16px;
@@ -420,7 +420,7 @@
         padding: 8px 10px;
     }
     .detail-columns > section + section {
-        border-left: 1px solid #e3d9cd;
+        border-left: 1px solid var(--rail-border, #e3d9cd);
     }
     h3 {
         margin: 0 0 7px;
@@ -428,7 +428,7 @@
         font-weight: 650;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: #887664;
+        color: var(--rail-muted, #887664);
     }
     .ownership-heading {
         margin-bottom: 6px;
@@ -440,16 +440,16 @@
         margin-left: 4px;
         font-size: 11px;
         font-weight: 400;
-        color: #887664;
+        color: var(--rail-muted, #887664);
     }
-    tr.sold { color: #b33a32; }
+    tr.sold { color: var(--rail-negative, #b33a32); }
     .president > th,
     .president > td {
         font-weight: 700;
     }
     .pool-divider > th,
     .pool-divider > td {
-        border-top: 1px solid #e3d9cd;
+        border-top: 1px solid var(--rail-border, #e3d9cd);
         padding-top: 6px;
     }
     tr:has(+ .pool-divider) > th,
@@ -478,7 +478,7 @@
     }
     .empty {
         margin: 0;
-        color: #887664;
+        color: var(--rail-muted, #887664);
         font-size: 12px;
     }
     .train-roster {
@@ -488,14 +488,14 @@
         min-height: 16px;
     }
     .train-required {
-        color: #b33a32;
+        color: var(--rail-negative, #b33a32);
     }
     .section-heading {
         margin-top: 12px;
     }
     hr {
         border: 0;
-        border-top: 1px solid #e3d9cd;
+        border-top: 1px solid var(--rail-border, #e3d9cd);
         margin: 8px 0;
     }
     .investment {
@@ -522,17 +522,17 @@
     }
     .private-heading span {
         white-space: nowrap;
-        color: #887664;
+        color: var(--rail-muted, #887664);
         font-size: 11px;
     }
     .private p {
         margin: 1px 0 0;
         font-size: 12px;
         line-height: 1.5;
-        color: #796958;
+        color: var(--rail-text, #796958);
     }
     .status {
         font-size: 10px;
-        color: #926b3f;
+        color: var(--rail-text, #926b3f);
     }
 </style>

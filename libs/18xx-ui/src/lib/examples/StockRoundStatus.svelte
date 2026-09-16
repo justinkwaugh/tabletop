@@ -65,7 +65,7 @@
         padding: 0;
     }
     .steps li {
-        color: #607268;
+        color: var(--rail-text, #607268);
     }
     .steps li[aria-current='step'] {
         color: #253b35;

@@ -395,7 +395,7 @@
                     : undefined}
                 transform={`translate(${entry.center.x} ${entry.center.y})`}
                 points={entry.drawing.polygon}
-                stroke-width="8"
+                stroke-width="5"
                 stroke-linejoin="round"
             />
         {/each}

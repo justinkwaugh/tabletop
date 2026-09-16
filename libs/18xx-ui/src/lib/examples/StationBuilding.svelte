@@ -39,7 +39,7 @@
 <style>
     section {
         padding: 4px 0;
-        color: #514536;
+        color: var(--rail-text, #514536);
         font-size: 13px;
     }
     header,
@@ -53,12 +53,12 @@
     button {
         font: inherit;
         padding: 7px 12px;
-        border: 1px solid #c7b8a6;
+        border: 1px solid var(--rail-border, #c7b8a6);
         border-radius: 4px;
-        background: #fffdf8;
+        background: var(--rail-surface, #fffdf8);
         cursor: pointer;
     }
-    button:hover:not(:disabled) { background: #efe7db; }
+    button:hover:not(:disabled) { background: var(--rail-surface-raised, #efe7db); }
     button:focus-visible { outline: 2px solid #a87948; outline-offset: 2px; }
     button:disabled {
         opacity: 0.45;
