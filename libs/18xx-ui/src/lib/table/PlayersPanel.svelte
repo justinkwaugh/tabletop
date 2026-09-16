@@ -147,7 +147,7 @@
                     {@const position = stockRoundActive ? session.playerPriorityOrder.indexOf(player.playerId) + 1 : index + 1}
                     {#if !stockRoundActive || session.financialState.stockRound.passedPlayerIds.includes(player.playerId)}
                         <span class="turn-position" aria-label={`${stockRoundActive ? 'Next turn' : 'Turn'} position ${position}`}>
-                            {#if stockRoundActive}<small>Next</small>{/if}<b style:background={session.colors.getPlayerBgColorValue(player.playerId)}>{position}</b>
+                            {#if stockRoundActive}<small>Next</small>{/if}<b style:background={session.colors.getPlayerBgColorValue(player.playerId)} style:color={session.colors.getPlayerTextColorValue(player.playerId)}>{position}</b>
                         </span>
                     {/if}
                 {:else if player.playerId === session.playerPriorityOrder[0]}

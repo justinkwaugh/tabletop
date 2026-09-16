@@ -176,7 +176,7 @@ export function createTheOldPrinceOpening(
             { owner: { kind: 'bank' }, amount: 'unlimited' },
             ...players.map((p) => ({
                 owner: { kind: 'player' as const, playerId: p.playerId },
-                amount: players.length === 3 ? 580 : 460
+                amount: players.length === 3 ? 580 : 480
             })),
             ...TheOldPrinceCompanies.map((c) => ({
                 owner: { kind: 'company' as const, companyId: c.companyId },

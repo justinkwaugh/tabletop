@@ -119,14 +119,14 @@
     .negative { color: #b33a32; }
     .table-scroll { overflow-x: auto; }
     table {
-        width: 100%;
+        width: auto;
         border-collapse: collapse;
         font-size: 13px;
         margin: 2px 0 8px;
     }
     th,
     td {
-        padding: 4px 9px;
+        padding: 4px 13px;
         border-bottom: 1px solid #d2c5b7;
         white-space: nowrap;
     }
@@ -140,7 +140,7 @@
     th[scope="row"],
     th[rowspan] {
         text-align: left;
-        padding-left: 6px;
+        padding-left: 12px;
     }
     td {
         text-align: center;

@@ -75,7 +75,7 @@ it.each([3, 4])('sets up and completes TOP for %i players', (count) => {
     expect(cashOwnedBy(state, { kind: 'company', companyId: main })).toBe(920)
     expect(cashOwnedBy(state, { kind: 'company', companyId: 'PEIR' })).toBe(200)
     expect(cashOwnedBy(state, { kind: 'player', playerId: state.players[0].playerId })).toBe(
-        count === 3 ? 580 : 460
+        count === 3 ? 580 : 480
     )
     expect(opening(count).state.offerAuction).toEqual(state.offerAuction)
     expect(opening(count).state.companies).toEqual(state.companies)

@@ -217,11 +217,12 @@
 {/snippet}
 
 <div class="spreadsheet">
+    <div class="sheet-content">
     <div class="toolbar">
         <div class="view-toggle axis-toggle period-toggle" role="group" aria-label="Spreadsheet period">
             {#each ['Current', 'Player income', 'Company payouts'] as const as option, index}
                 {#if index > 0}<span class="axis-separator" aria-hidden="true"></span>{/if}
-                <button aria-pressed={period === option} onclick={() => period = option}>{option}</button>
+                <button aria-pressed={period === option} onclick={() => period = option}>{option === 'Player income' ? 'Income' : option === 'Company payouts' ? 'Payouts' : option}</button>
             {/each}
         </div>
         {#if period === 'Current'}<div class="view-toggle axis-toggle" role="group" aria-label="Spreadsheet view">
@@ -371,6 +372,7 @@
         </table>
         </div>
     {/if}
+    </div>
 </div>
 
 <style>
@@ -463,6 +465,7 @@
         transform: translateY(-50%);
         display: flex;
     }
+    .sheet-content { width: fit-content; max-width: 100%; margin-inline: auto; }
     .toolbar {
         display: flex;
         gap: 12px;
@@ -533,7 +536,7 @@
     }
     th,
     td {
-        padding: 4px 9px;
+        padding: 4px 13px;
         border-bottom: 1px solid #d2c5b7;
     }
     thead th {
@@ -544,7 +547,7 @@
     }
     th:first-child {
         text-align: left;
-        padding-left: 6px;
+        padding-left: 12px;
     }
     tbody th {
         font-weight: 500;
