@@ -54,7 +54,7 @@
                 Choose a train to buy
                 {#if !session.finishOperatingReason}
                     or <button class="action-button inline-action" onclick={() => session.finishOperatingTurn()}
-                        disabled={!session.canFinishOperatingTurn}>skip</button>
+                        disabled={!session.canFinishOperatingTurn}>finish</button>
                 {/if}
             </h2>
             {#if showUndo}<button

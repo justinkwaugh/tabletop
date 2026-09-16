@@ -147,6 +147,7 @@
                         {/each}
                     </div>
                     {#if session.selectedStartCompany}
+                        {@const sharesToFloat = session.sharesToFloat(session.selectedStartCompany.companyId)}
                         <div class="choices par-choices">
                             {#each session.selectedStartPrices as price}
                                 {#if price.result.details}
@@ -160,6 +161,9 @@
                                         }}>
                                         <span class="par-value">{price.result.details.parPrice}</span>
                                         <small>Cost ${price.result.details.price}</small>
+                                        {#if sharesToFloat !== undefined}
+                                            <small class="float-cost">${(sharesToFloat * price.result.details.parPrice).toLocaleString('en-US')} to float</small>
+                                        {/if}
                                     </button>
                                 {/if}
                             {/each}
@@ -311,6 +315,7 @@
     button.start-company-choice[aria-pressed='true'] { background: #e5d7c3; box-shadow: none; }
     button.par-choice { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 10px; border-color: #00000026; }
     .par-choice small { color: #39352f; }
+    .par-choice .float-cost { font-weight: 700; }
     button.par-choice:hover:not(:disabled) { filter: brightness(.95); }
     .par-value { font-size: 24px; line-height: 26px; font-variant-numeric: tabular-nums; }
     button.start-company-choice { min-width: 0; padding: 4px; border-color: transparent; background: transparent; }

@@ -17,6 +17,7 @@
     import type { StockMenuOption } from '../stock/stockActionSelection.js'
     import CompanyDetails from './CompanyDetails.svelte'
     import CompanyOrder from './CompanyOrder.svelte'
+    import CompanyOrderToggle from './CompanyOrderToggle.svelte'
     import { untrack, tick, type Snippet } from 'svelte'
     import {
         DefaultTableLayout,
@@ -417,18 +418,12 @@
             {#if operating && !financialState.result && companyOrder.length}
             <CompanyOrder
                 showDetails={session.preferences.values.operatingOrderDisplay === 'details'}
-                onDisplayChange={(details) =>
-                    session.preferences.set(
-                        { operatingOrderDisplay: details ? 'details' : 'tokens' },
-                        'family'
-                    )}
                 companies={companyOrder}
                 state={financialState}
                 trainDepot={session.trainDepot}
                 {trainColors}
                 requiresTrain={(companyId) => session.companyRequiresTrain(companyId)}
                 appearances={session.mapView.stations}
-                prospective={!operating}
                 completedCompanyIds={operating
                     ? financialState.operatingSet?.completedCompanyIds
                     : []}
@@ -446,6 +441,7 @@
                 {/snippet}
             </CompanyOrder>
             {/if}
+            <div class="view-toolbar">
             <div class="view-tabs" role="tablist" aria-label="Table views">
                 {#each views as name, index}
                     <button
@@ -458,6 +454,17 @@
                         onkeydown={(event) => navigateTabs(event, index)}>{name}</button
                     >
                 {/each}
+            </div>
+            {#if operating && !financialState.result && companyOrder.length}
+                <CompanyOrderToggle
+                    showDetails={session.preferences.values.operatingOrderDisplay === 'details'}
+                onDisplayChange={(details) =>
+                    session.preferences.set(
+                        { operatingOrderDisplay: details ? 'details' : 'tokens' },
+                        'family'
+                    )}
+                />
+            {/if}
             </div>
             <div class="view-area">
                 <div
@@ -651,12 +658,18 @@
     .action-panel :global(button strong) {
         font-weight: 400;
     }
+    .view-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+        border-bottom: 1px solid #d2c5b7;
+    }
     .view-tabs {
         display: flex;
         flex-shrink: 0;
         gap: 24px;
         padding: 0 16px;
-        border-bottom: 1px solid #d2c5b7;
     }
     .view-tabs button {
         padding: 12px 0 10px;

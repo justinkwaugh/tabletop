@@ -1321,3 +1321,5 @@ After a stock share sale settles, keep the Sell menu open at company selection i
 Offered-lot auctions distinguish the auctioneer and initial value from a bidder and high bid. When an offered-lot bidder cannot make the minimum legal bid, the handler records a system PassAuction; it preserves the procedure's re-entry and forced-purchase rules. Stock rounds likewise record a system FinishStockTurn when the title's full action handler exposes only finishing/passing. These decisions belong to game logic, not a client effect; optional exchanges, starts, and title-specific actions prevent automatic passing. Waterfall auction offering/purchase behavior is unchanged.
 
 Tile selection, placement previews, legal tile hover, and history tile focus use a solid orange (#f07818), eight-unit outline with rounded joins.
+
+The operating-order chips are centered when they fit and scroll from the start when they overflow, without left padding. Their display toggle sits at the right edge of the map toolbar, outside the view tablist.

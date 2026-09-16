@@ -17,7 +17,6 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
     let {
         showDetails,
-        onDisplayChange,
         companies,
         state: financialState,
         trainDepot,
@@ -26,11 +25,9 @@
         appearances,
         currentCompanyId,
         completedCompanyIds = [],
-        prospective = false,
         companyDetails
     }: {
         showDetails: boolean
-        onDisplayChange: (details: boolean) => void
         companies: readonly Company[]
         state: Pick<FinancialState, 'cash'> & TrainState & StationState
         trainColors: Readonly<Record<string, string>>
@@ -39,7 +36,6 @@
         appearances: Readonly<Record<string, StationAppearance>>
         currentCompanyId?: string
         completedCompanyIds?: readonly string[]
-        prospective?: boolean
         companyDetails: Snippet<[Company]>
     } = $props()
     let scrollArea: HTMLOListElement | undefined = $state()
@@ -108,35 +104,8 @@
 </script>
 
 <section aria-label="Company order" class="company-order">
+    {#if overflowing}
     <div class="order-heading">
-        <span class="heading">{prospective ? 'Next operating order' : 'Operating order'}</span>
-        <div class="chip-style" role="group" aria-label="Operating order chip style">
-            <button
-                aria-label="Tokens only"
-                aria-pressed={!showDetails}
-                onclick={() => onDisplayChange(false)}
-            >
-                <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-                    <circle cx="8" cy="8" r="7" fill="currentColor" />
-                </svg>
-            </button>
-            <span class="separator" aria-hidden="true">/</span>
-            <button
-                aria-label="Detailed chips"
-                aria-pressed={showDetails}
-                onclick={() => onDisplayChange(true)}
-            >
-                <svg width="25" height="14" viewBox="0 0 29 16" aria-hidden="true">
-                    <path
-                        d="M8 1.5H24Q27.5 1.5 27.5 5V11Q27.5 14.5 24 14.5H8A6.5 6.5 0 0 1 8 1.5Z"
-                        fill="none"
-                        stroke="currentColor"
-                    />
-                    <circle cx="8" cy="8" r="7" fill="currentColor" />
-                </svg>
-            </button>
-        </div>
-        {#if overflowing}
             <div class="overview" aria-hidden="true">
                 {#if firstVisible >= 0}
                     <span
@@ -155,8 +124,8 @@
                     </span>
                 {/each}
             </div>
-        {/if}
     </div>
+    {/if}
     <ol bind:this={scrollArea}>
         {#each entries as { company, appearance, amount, trains, remainingTokens } (company.id)}
             {@const completed = completedCompanyIds.includes(company.id)}
@@ -230,7 +199,7 @@
         align-items: flex-start;
         flex-shrink: 0;
         gap: 5px;
-        padding: 8px 16px 0;
+        padding: 8px 0 0;
         background: transparent;
         min-height: 52px;
         min-width: 0;
@@ -238,41 +207,10 @@
     .order-heading {
         width: 100%;
         display: flex;
+        justify-content: center;
         align-items: center;
         gap: 10px;
         max-width: 100%;
-    }
-    .chip-style {
-        order: 1;
-        margin-left: auto;
-        display: flex;
-        align-items: center;
-        gap: 3px;
-        flex-shrink: 0;
-        color: #695540;
-    }
-    .chip-style button {
-        display: flex;
-        align-items: center;
-        padding: 1px 2px;
-        border: 0;
-        border-radius: 3px;
-        background: transparent;
-        color: inherit;
-        opacity: 0.55;
-        cursor: pointer;
-    }
-    .chip-style button[aria-pressed='true'],
-    .chip-style button:hover {
-        opacity: 1;
-    }
-    .chip-style button:focus-visible {
-        outline: 2px solid #796047;
-        outline-offset: 1px;
-    }
-    .separator {
-        color: #a18c75;
-        font-size: 12px;
     }
     .overview {
         position: relative;
@@ -308,16 +246,9 @@
             transition: none;
         }
     }
-    .heading {
-        flex-shrink: 0;
-        font-size: 11px;
-        font-weight: 650;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: #695540;
-    }
     ol {
         display: flex;
+        justify-content: safe center;
         align-items: center;
         gap: 7px;
         box-sizing: border-box;

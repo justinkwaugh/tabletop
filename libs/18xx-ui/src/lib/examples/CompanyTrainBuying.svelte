@@ -91,7 +91,7 @@
     .company { display: flex; align-items: center; gap: 12px; }
     .company-heading, .company-roster { display: flex; align-items: center; gap: 6px; }
     .company-roster { flex-wrap: wrap; }
-    .train { display: flex; align-items: center; padding: 4px; }
+    .train { display: flex; align-items: center; padding: 4px; border: 0; }
     strong { font-weight: 600; }
     input { width: 76px; padding: 4px 6px; border: 1px solid #c7b8a6; border-radius: 3px; background: transparent; font: inherit; color: inherit; }
     label { gap: 4px; }

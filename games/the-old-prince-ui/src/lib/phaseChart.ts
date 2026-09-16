@@ -17,7 +17,7 @@ export const TheOldPrincePhaseChart = createPhaseChart({
         '4H': 'Hunslet Steam Engine purchasable through 3+ for up to $200 (not by PEIR).',
         '5H': '80 par removed; available: 58, 65, 74.',
         '3+': '74 par removed; available: 58, 65.',
-        '4+': 'Privates close except Union Bank and King’s Mail.',
+        '4+': 'Privates close except Union Bank.',
         '7': '65 par removed; only 58 remains.'
     },
     notes: ['PEIR may buy at most one train from the bank per operating turn.']
