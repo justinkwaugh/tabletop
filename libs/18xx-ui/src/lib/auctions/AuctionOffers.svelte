@@ -194,10 +194,12 @@
         cursor: default;
     }
     .lot-icon {
+        width: 26px;
+        height: 26px;
         padding: 0;
         border: 0;
         background: transparent;
-        flex-shrink: 0;
+        flex: 0 0 26px;
     }
     .sr-only {
         position: absolute;

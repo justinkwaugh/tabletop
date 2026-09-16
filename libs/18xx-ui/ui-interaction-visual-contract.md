@@ -1365,3 +1365,5 @@ No host-bridge member or gameplay rule changes.
 The round/phase header uses a 4px gap between the Phase label and its badge when both are visible. Mobile retains the badge alone.
 
 Operating-history footnotes wrap within the table’s available width and do not contribute intrinsic width; income and payout tables remain centered beneath the full-width controls strip.
+
+Auction offer icon buttons reserve a fixed 26px square for both company tokens and private abbreviations, with a 9px gap before the name. The button’s width is explicit so Firefox and WebKit do not size it from the abbreviation text while its icon overflows.
