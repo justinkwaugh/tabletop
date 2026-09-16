@@ -307,14 +307,14 @@
     .compact-ownership { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 16px; font-size: 12px; }
     .compact-ownership::after { content: ""; position: absolute; top: 2px; bottom: 2px; left: 50%; border-left: 1px solid #d9cebf; pointer-events: none; }
     .holding-line { display: flex; align-items: center; gap: 3px; }
-    .holding-amount { display: inline-flex; align-items: center; gap: 7px; margin-left: auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .holding-amount { display: inline-flex; flex: 1; align-items: center; justify-content: flex-end; gap: 3px; font-variant-numeric: tabular-nums; white-space: nowrap; }
     .compact-holding.president .holding-line { font-weight: 700; }
     .compact-company-label { display: inline-flex; align-items: flex-start; gap: 1px; }
     .compact-company-label > button,
     .compact-president { text-box: trim-both cap alphabetic; }
     .compact-president { color: #a79888; font-size: 9px; font-weight: 700; line-height: 1; }
     .compact-token { display: flex; flex-shrink: 0; }
-    .compact-numbered { color: inherit; font-size: inherit; white-space: nowrap; }
+    .compact-numbered { flex: 1; text-align: center; color: inherit; font-size: inherit; white-space: nowrap; }
     .compact section { padding-block: 6px; }
 
     .players {

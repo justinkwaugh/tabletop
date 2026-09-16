@@ -1318,7 +1318,7 @@ persists this player’s choice across reloads and 18xx titles, defaulting to ex
 links and private-description controls retain their own behavior. Compact cards
 hide the Ownership label and the entire Privates/Income/Value header, and arrange abbreviated company holdings
 in two columns, preserving percentages and presidency markers. Company tokens remain visible. Numbered railway
-shares appear inline after the company abbreviation (for example PEIR 3, 5, 6),
+shares appear inline centered between the company abbreviation and ownership percentage (for example PEIR 3, 5, 6),
 with location names retained as accessible labels/tooltips and map-focus buttons.
 Reordering cards and navigating history preserve the preference; it is presentation only and never a game action.
 
