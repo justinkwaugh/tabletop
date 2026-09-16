@@ -109,24 +109,31 @@ export const TheOldPrincePrivateRules: PrivateRules = {
     },
     description(state, id) {
         if (id === 'HS')
-            return 'From 4H, may be sold to a railway other than PEIR for $1–200. Its railway may close it to buy one depot train during its turn, paying the normal price. Closes unused at 4+.'
+            return 'From 4H, may be sold to a railway other than PEIR for $1–200. Its railway may close it to buy one depot train during its turn, paying the normal price.\n\nCloses unused at 4+.'
         if (id === 'SBC')
-            return 'The owning player’s railways may lay the single straight yellow tile using ordinary track rules and costs. Closes at 4+; the unused tile is removed.'
-        if (ShortlineExchanges[id])
+            return 'The owning player’s railways may lay the single straight yellow tile using ordinary track rules and costs.\n\nCloses at 4+; the unused tile is removed.'
+        if (ShortlineExchanges[id]) {
+            const company = getCompany(state, theOldPrinceRole(state, 'shortline'))
             return (
+                `**Includes one reserved share of ${company.name}.**\n\n` +
                 (id === 'VR'
-                    ? 'The owner’s permission is required to build on N18 while this private is open. '
+                    ? 'The owner’s permission is required to build on N18 while this private is open.\n\n'
                     : '') +
-                'Exchange for a reserved Shortline share during your stock turn, in addition to selling and buying. Cancels your pass. Forced exchange at 4+; ownership limit exemption applies.'
+                'Exchange for a reserved Shortline share during your stock turn, in addition to selling and buying. Cancels your pass. Ownership limit exemption applies.\n\nForced exchange at 4+.'
             )
+        }
         if (id === 'IB')
-            return 'Exchange during your stock turn for a Bank share in another started railway. Closes unused at 4+.'
+            return 'Exchange during your stock turn for a Bank share in another started railway.\n\nCloses unused at 4+.'
         if (id === 'UB')
             return 'Union Bank holds its own cash and shares, controlled by the player who owns it. Once per stock round, that player may use a buying or company-starting action for Union Bank instead of themselves. Spend Union Bank’s cash first; its owner may contribute any shortfall. Dividends on its shares go to Union Bank. It may hold presidencies, with its owner making the company’s decisions. It cannot voluntarily sell shares. If one of its companies must buy a train, Union Bank contributes before its owner, with emergency share sales as required. It remains open throughout the game, and its cash and share value count toward its owner’s final wealth.'
-        if (id === 'KM') return 'Pays PEIR each operating round; closes at 4+ or when PEIR closes.'
+        if (id === 'KM') return 'Pays PEIR each operating round.\n\nCloses at 4+ or when PEIR closes.'
+        if (id === 'RA' || id === 'RF') {
+            const company = getCompany(state, theOldPrinceRole(state, 'mainline'))
+            return `**Includes one share of ${company.name}.**\n\nCloses at 4+.`
+        }
         if (id === 'MLC' || id === 'SLC') {
             const company = getCompany(state, theOldPrinceRole(state, id === 'MLC' ? 'mainline' : 'shortline'))
-            return `Comes with the president’s certificate for ${company.name}. Closes when its railway first operates, or at 4+.`
+            return `**Includes the president's cert for ${company.name}.**\n\nCloses when its railway first operates, or at 4+.`
         }
         return 'Closes at 4+.'
     }

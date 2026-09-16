@@ -1,4 +1,7 @@
+import { TheOldPrinceTrainColors } from './trainPresentation.js'
 import { getCompany } from '@tabletop/18xx'
+import UnknownToken from './images/tokens/unknown.svg'
+import StraightTile from './images/tokens/straight-tile.svg'
 import { TheOldPrinceAuctionRules, theOldPrinceRole } from '@tabletop/the-old-prince'
 import { TheOldPrinceTrainFundingRules } from '@tabletop/the-old-prince'
 import { TheOldPrinceTransferRules, TheOldPrincePrivatePowerRules } from '@tabletop/the-old-prince'
@@ -54,7 +57,15 @@ const BaseSession = createFinanceExampleSessionClass(
 )
 
 export class TheOldPrinceSession extends BaseSession {
+    override privateCardPhaseColors = $derived(TheOldPrinceTrainColors)
     override privateCompanyTokens = $derived({
+        MC: this.mapView.stations[theOldPrinceRole(this.financialState, 'shortline')],
+        VR: this.mapView.stations[theOldPrinceRole(this.financialState, 'shortline')],
+        SB: this.mapView.stations[theOldPrinceRole(this.financialState, 'shortline')],
+        IB: { label: '?', color: 'transparent', imageUrl: UnknownToken },
+        SBC: { label: '9', color: 'transparent', imageUrl: StraightTile },
+        RA: this.mapView.stations[theOldPrinceRole(this.financialState, 'mainline')],
+        RF: this.mapView.stations[theOldPrinceRole(this.financialState, 'mainline')],
         MLC: this.mapView.stations[theOldPrinceRole(this.financialState, 'mainline')],
         SLC: this.mapView.stations[theOldPrinceRole(this.financialState, 'shortline')]
     })

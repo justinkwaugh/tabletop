@@ -1367,3 +1367,13 @@ The round/phase header uses a 4px gap between the Phase label and its badge when
 Operating-history footnotes wrap within the table’s available width and do not contribute intrinsic width; income and payout tables remain centered beneath the full-width controls strip.
 
 Auction offer icon buttons reserve a fixed 26px square for both company tokens and private abbreviations, with a 9px gap before the name. The button’s width is explicit so Firefox and WebKit do not size it from the abbreviation text while its icon overflows.
+
+TOP’s Royal Agricultural Society and Railcar Ferry use the Mainline token and begin with ‘Includes one share of [company].’ Mainline and Shortline concessions begin with ‘Includes the president’s cert for [company].’ Shared private cards split descriptions on blank lines and render explicitly double-asterisk-delimited introductory paragraphs in bold; other paragraphs remain regular text.
+
+TOP exchange privates Merchants and Co., Vernon River Bridge, and Shipbuilding use the assigned Shortline company token and a bold opening paragraph: ‘Includes one reserved share of [company].’ Ice Boats uses an outlined token with a large question mark because its exchange target is chosen from eligible companies. The same appearance is used on private cards and auction icons.
+
+Auction share cards use the issuing company’s token in their upper-right corner, including each numbered PEIR share. Auction lists, pile popovers, and active bidding cards share the same lot token resolution.
+
+Schreiber and Burpee Construction uses a yellow straight-track tile icon, exported from the standard tile 9 geometry and classic palette, in auction lists and the card corner. Card titles balance within 22ch so this long title occupies two lines.
+
+TOP private closure and forced-exchange conditions appear in the final paragraph. Phase references in that paragraph use the title-supplied phase colors and shared TrainBadge; timing text and exceptions remain intact. Introductory bold formatting is explicit, so splitting an ordinary description does not make its first paragraph bold.

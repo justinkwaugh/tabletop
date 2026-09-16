@@ -135,7 +135,7 @@
                     {#if player.playerId}<span
                             class="player-color"
                             style:background={session.colors.getPlayerBgColorValue(player.playerId)}
-                        ></span>{/if}{#if player.description}<PrivateDescription
+                        ></span>{/if}{#if player.description}<PrivateDescription phaseColors={session.privateCardPhaseColors}
                             token={player.owner.kind === 'company' ? session.privateCompanyTokens[player.owner.companyId] : undefined}
                             name={player.name}
                             description={player.description}
@@ -193,7 +193,7 @@
                                 {@const description = auctionLotDescription?.(lot.id) ?? lot.company?.description}
                                 <tr data-private-description-row>
                                     <th scope="row">
-                                        {#if description}<PrivateDescription token={session.privateCompanyTokens[lot.id]} name={lot.name} {description} value={lot.price} income={lot.company?.privateRevenue} />{:else}{lot.name}{/if}
+                                        {#if description}<PrivateDescription phaseColors={session.privateCardPhaseColors} token={lot.token} name={lot.name} {description} value={lot.price} income={lot.company?.privateRevenue} />{:else}{lot.name}{/if}
                                     </th>
                                     <td class="amount">${money.format(lot.price)}</td>
                                 </tr>
@@ -268,7 +268,7 @@
                             {#each player.privates as entry (entry.company.id)}
                                 <tr data-private-description-row>
                                     <th scope="row"
-                                        ><PrivateDescription
+                                        ><PrivateDescription phaseColors={session.privateCardPhaseColors}
                                             token={session.privateCompanyTokens[entry.company.id]}
                                             name={entry.company.name}
                                             value={entry.value}

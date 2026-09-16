@@ -10,8 +10,9 @@
         description,
         value,
         income,
-        token
-    }: { name: string; description: string; value?: number; income?: number; token?: StationAppearance } = $props()
+        token,
+        phaseColors = {}
+    }: { name: string; description: string; value?: number; income?: number; token?: StationAppearance; phaseColors?: Readonly<Record<string, string>> } = $props()
     const id = $props.id()
     let open = $state(false)
     let triggerEvent: Event | undefined
@@ -69,7 +70,7 @@
         }}
     >
         <div id={`${id}-description`} class="description" role="tooltip">
-            <PrivateCard {name} {description} {value} {income} {token} />
+            <PrivateCard {phaseColors} {name} {description} {value} {income} {token} />
         </div>
     </Floater>
 {/if}

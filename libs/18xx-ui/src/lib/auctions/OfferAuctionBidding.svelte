@@ -3,6 +3,7 @@
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
     import PrivateCard from '../privates/PrivateCard.svelte'
     import AuctionBidControl from './AuctionBidControl.svelte'
+    import { auctionLotDetails } from './auctionLotDetails.js'
 
     let {
         session,
@@ -18,7 +19,7 @@
         return model.auction.bidding
     })
     const lot = $derived.by(() => {
-        const lot = model.lots.find((lot) => lot.id === bidding.lotId)
+        const lot = auctionLotDetails(session, [bidding.lotId])[0]
         assertExists(lot, 'Bidding requires a known lot')
         return lot
     })
@@ -54,8 +55,8 @@
 
 <article aria-label="Current auction">
     <div class="lot">
-        <PrivateCard
-            token={session.privateCompanyTokens[lot.id]}
+        <PrivateCard phaseColors={session.privateCardPhaseColors}
+            token={lot.token}
             name={lot.name}
             description={lotInfo(lot.id).description}
             value={lot.price}

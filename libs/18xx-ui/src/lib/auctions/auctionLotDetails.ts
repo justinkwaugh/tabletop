@@ -11,7 +11,9 @@ export function auctionLotDetails(session: FinanceExampleSession, lotIds: readon
         const share = session.financialState.certificates.find(
             (item) => item.id === id && item.kind === 'share'
         )
-        return { ...lot, company, share }
+        const token = session.privateCompanyTokens[id] ??
+            (share ? session.mapView.stations[share.companyId] : undefined)
+        return { ...lot, company, share, token }
     }).sort((a, b) => {
         if (a.price !== b.price) return a.price - b.price
         if (a.share?.kind === 'share' && b.share?.kind === 'share') {

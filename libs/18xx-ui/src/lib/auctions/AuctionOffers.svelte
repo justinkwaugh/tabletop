@@ -34,7 +34,7 @@
         <tbody>
             {#each lots as lot (lot.id)}
                 {@const info = lotInfo(lot.id)}
-                {@const token = session.privateCompanyTokens[lot.id]}
+                {@const token = lot.token}
                 <tr data-private-description-row>
                     <td class="action"
                         ><button
@@ -59,14 +59,10 @@
                                 }}
                             >
                                 {#if token}<CompanyToken appearance={token} size={26} />
-                                {:else if lot.share}<CompanyToken
-                                        appearance={session.mapView.stations[lot.share.companyId]}
-                                        size={26}
-                                    />
                                 {:else}<span class="private-icon" aria-hidden="true">{lot.id}</span
                                     >{/if}
                             </button>
-                            <PrivateDescription
+                            <PrivateDescription phaseColors={session.privateCardPhaseColors}
                                 {token}
                                 name={lot.name}
                                 description={info.description}

@@ -190,6 +190,7 @@ type Selection =
     | { kind: 'sale'; request: SaleRequest }
     | { kind: 'start'; stages: CompanyStartSelection }
 export class FinanceExampleSession extends GameSession<GameState, HydratedGameState> {
+    privateCardPhaseColors: Readonly<Record<string, string>> = $derived({})
     privateCompanyTokens: Readonly<Record<string, StationAppearance>> = $derived({})
     operatingIncomeHistory() {
         return operatingHistory(this.history.visibleContext.actions)

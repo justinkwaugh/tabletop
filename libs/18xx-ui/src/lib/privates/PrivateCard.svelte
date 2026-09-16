@@ -1,5 +1,6 @@
 <script lang="ts">
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import TrainBadge from '../trains/TrainBadge.svelte'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     let {
         name,
@@ -7,6 +8,7 @@
         value,
         income,
         token,
+        phaseColors = {},
         purchaseRange
     }: {
         name: string
@@ -14,8 +16,10 @@
         value?: number
         income?: number
         token?: StationAppearance
+        phaseColors?: Readonly<Record<string, string>>
         purchaseRange?: { minimum: number; maximum?: number }
     } = $props()
+    const paragraphs = $derived(description.split('\n\n'))
 </script>
 
 <div class="private-card">
@@ -38,7 +42,11 @@
             </div>
         {/if}
     </header>
-    {#if description}<p>{description}</p>{/if}
+    {#if description}
+        {#each paragraphs as paragraph, index}
+            <p>{#if paragraph.startsWith('**') && paragraph.endsWith('**')}<strong class="intro">{paragraph.slice(2, -2)}</strong>{:else}{#each paragraph.split(/(\b\d+(?:H|\+)?)/g) as part}{#if index === paragraphs.length - 1 && phaseColors[part]}<TrainBadge name={part} color={phaseColors[part]} />{:else}{part}{/if}{/each}{/if}</p>
+        {/each}
+    {/if}
 </div>
 
 <style>
@@ -58,6 +66,8 @@
     }
     h3 {
         margin: 0;
+        max-inline-size: 22ch;
+        text-wrap: balance;
         font-size: 14px;
         font-weight: 650;
         line-height: 1.3;
@@ -90,4 +100,6 @@
         margin: 0;
         padding: 9px 12px;
     }
+    p + p { padding-top: 0; }
+    .intro { margin-left: 0; color: inherit; font-size: inherit; font-weight: 700; }
 </style>
