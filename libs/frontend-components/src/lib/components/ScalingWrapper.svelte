@@ -94,6 +94,7 @@
     let syncingView = false
     let activeFocusTarget = $state<FocusTarget | null>(null)
     let viewAnimationFrame: number | undefined
+    let viewRenderFrame: number | undefined
     let pendingDimensionSyncFrame: number | undefined
     let viewAnimationRequestId = 0
     let currentTranslateX = $state(0)
@@ -277,7 +278,17 @@
         }
     }
 
-    function applyView(scale: number, translateX: number, translateY: number) {
+    function renderView() {
+        if (viewRenderFrame !== undefined) {
+            cancelAnimationFrame(viewRenderFrame)
+            viewRenderFrame = undefined
+        }
+        if (content && contentWidth && contentHeight) {
+            content.style.transform = `translate3d(${currentTranslateX}px, ${currentTranslateY}px, 0) scale(${currentScale})`
+        }
+    }
+
+    function applyView(scale: number, translateX: number, translateY: number, deferRender = false) {
         const { metrics, translateX: clampedTranslateX, translateY: clampedTranslateY } =
             clampTranslation(scale, translateX, translateY)
 
@@ -285,8 +296,10 @@
         currentTranslateX = clampedTranslateX
         currentTranslateY = clampedTranslateY
 
-        if (content && contentWidth && contentHeight) {
-            content.style.transform = `translate(${clampedTranslateX}px, ${clampedTranslateY}px) scale(${metrics.scale})`
+        if (deferRender) {
+            viewRenderFrame ??= requestAnimationFrame(renderView)
+        } else {
+            renderView()
         }
 
         return {
@@ -594,7 +607,7 @@
         viewAnimationFrame = requestAnimationFrame(step)
     }
 
-    function zoomToScaleKeepingCenter(scale: number, animate = false) {
+    function zoomToScaleKeepingCenter(scale: number, animate = false, deferRender = false) {
         if (!scroller || !contentWidth || !contentHeight) {
             return
         }
@@ -604,14 +617,15 @@
             ? getViewportCenterContentPoint()
             : { x: contentWidth / 2, y: contentHeight / 2 }
 
-        zoomToScaleKeepingContentPoint(centerPoint.x, centerPoint.y, targetScale, animate)
+        zoomToScaleKeepingContentPoint(centerPoint.x, centerPoint.y, targetScale, animate, deferRender)
     }
 
     function zoomToScaleKeepingContentPoint(
         contentX: number,
         contentY: number,
         scale: number,
-        animate = false
+        animate = false,
+        deferRender = false
     ) {
         if (!contentWidth || !contentHeight) {
             return
@@ -634,7 +648,7 @@
         }
 
         cancelViewAnimation()
-        applyView(targetView.scale, targetView.translateX, targetView.translateY)
+        applyView(targetView.scale, targetView.translateX, targetView.translateY, deferRender)
     }
 
     function syncToDimensions() {
@@ -1078,7 +1092,7 @@
                 const residualX = deltaX - (next.translateX - currentTranslateX)
                 const residualY = deltaY - (next.translateY - currentTranslateY)
                 notifyManualViewChange(currentScale, next.translateX, next.translateY)
-                applyView(currentScale, next.translateX, next.translateY)
+                applyView(currentScale, next.translateX, next.translateY, true)
                 if (Math.abs(residualX) > EPSILON || Math.abs(residualY) > EPSILON) {
                     scrollAncestorBy(residualX, residualY)
                 }
@@ -1095,7 +1109,7 @@
             contentPoint.x, contentPoint.y,
             event.clientX - rect.left, event.clientY - rect.top, nextScale)
         notifyManualViewChange(targetView.scale, targetView.translateX, targetView.translateY)
-        applyView(targetView.scale, targetView.translateX, targetView.translateY)
+        applyView(targetView.scale, targetView.translateX, targetView.translateY, true)
     }
 
     function handleGestureStart(event: Event) {
@@ -1103,8 +1117,7 @@
             return
         }
 
-        const gestureEvent = event as Event & { scale?: number }
-        if (gestureEvent.scale === undefined) {
+        if (!('scale' in event) || typeof event.scale !== 'number') {
             return
         }
 
@@ -1118,15 +1131,15 @@
             return
         }
 
-        const gestureEvent = event as Event & { scale?: number }
-        if (gestureEvent.scale === undefined || gestureStartScale === null) {
+        if (!('scale' in event) || typeof event.scale !== 'number' || gestureStartScale === null) {
             return
         }
 
         event.preventDefault()
         zoomToScaleKeepingCenter(
-            gestureStartScale * Math.pow(gestureEvent.scale, GESTURE_ZOOM_SENSITIVITY),
-            false
+            gestureStartScale * Math.pow(event.scale, GESTURE_ZOOM_SENSITIVITY),
+            false,
+            true
         )
     }
 
@@ -1148,6 +1161,7 @@
     })
 
     onDestroy(() => {
+        if (viewRenderFrame !== undefined) cancelAnimationFrame(viewRenderFrame)
         cancelViewAnimation()
         cancelPinchAnimation()
         cancelPanInertia()

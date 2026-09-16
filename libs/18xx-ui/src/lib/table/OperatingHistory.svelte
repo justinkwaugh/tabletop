@@ -101,10 +101,10 @@
         </tbody>
     </table>
     </div>
-    {#if view === 'Player'}<p>
+    {#if view === 'Player'}<p class="history-note">
         Player income includes dividends and private income. Net worth is recorded at OR end; unfinished rounds show the latest snapshot from the round’s start or a completed company turn.
     </p>{/if}
-    {#if rounds.some((round) => !round.complete || round.partial)}<p>
+    {#if rounds.some((round) => !round.complete || round.partial)}<p class="history-note">
             * Incomplete round: still in progress or only partially recorded. Values include recorded
             income only.{#if view === 'Player'} Net worth reflects the latest recorded snapshot in that round.{/if}
         </p>{/if}
@@ -118,6 +118,7 @@
     .payout:focus-visible { outline: 2px solid #9e7752; outline-offset: 1px; }
     .negative { color: #b33a32; }
     .table-scroll { overflow-x: auto; }
+    .history-note { contain: inline-size; }
     table {
         width: auto;
         border-collapse: collapse;

@@ -184,3 +184,13 @@ zoom-button, touch-pan, pinch, and gesture changes. Programmatic focus, viewport
 restoration, and resize adjustments do not report manual movement. Inspection
 views can use this distinction to relinquish a saved viewport when the user takes
 control of the camera.
+
+Desktop wheel pan, wheel pinch, and Safari gesture zoom retain every input delta
+and clamp the logical camera immediately, but coalesce transform writes into one
+animation-frame update. Ancestor scroll handoff still receives each residual
+delta, including momentum. Immediate camera changes supersede a pending render;
+destruction cancels it. Touch pinch and inertia retain their existing frame loops.
+This changes bundled rendering only, with no host-bridge interface change; each
+consuming Game UI Artifact must be republished to adopt it, including TOP and 1889.
+
+The camera uses a `translate3d` transform so browsers can composite the board during movement. This preserves its two-dimensional coordinates and clipping while avoiding repeated painting of masked SVG artwork during pan and zoom, especially in WebKit.

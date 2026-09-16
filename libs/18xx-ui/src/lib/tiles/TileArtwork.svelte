@@ -130,7 +130,7 @@
         </g>
     {/each}
     {@render overlays?.(drawing)}
-    <g class="annotations" text-anchor="middle" dominant-baseline="central" fill={appearance.ink}>
+    <g class="annotations" text-anchor="middle" fill={appearance.ink}>
         {#if face.upgradeCost !== undefined}
             <g
                 data-tile-upgrade-cost
@@ -211,5 +211,8 @@
     }
     .annotations {
         pointer-events: none;
+    }
+    .annotations text {
+        dominant-baseline: central;
     }
 </style>

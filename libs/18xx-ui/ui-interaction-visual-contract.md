@@ -1341,7 +1341,7 @@ Live and historical table maps allow manual zoom to twice native size. ScalingWr
 
 Green X and T upgrade locations omit their printed “(green)” annotations. After a yellow tile is placed, the map renders X or T as a location overlay using the tile label typography and position; tile definitions remain unchanged, and existing tile labels are not duplicated.
 
-Routes render above tile artwork and map borders as continuous round-ended strokes with a darker shade of each route’s color as their border. City interiors are masked to preserve station tokens; cities have no route outline. Matching regular track endpoints are redrawn only within a two-unit strip across tile edges above the map borders, without bridging unmatched track ends. Map names render above these seam repairs. This presentation is shared by live and historical maps across titles.
+Routes render above tile artwork and map borders as continuous round-ended strokes with a darker shade of each route’s color as their border. City interiors are masked to preserve station tokens; cities have no route outline. Matching regular track endpoints are redrawn only within a two-unit strip across tile edges above the map borders, without bridging unmatched track ends. Map names render above these seam repairs. Names up to 18 characters (such as “Royalty Jct & York”) stay on one line; longer names split at the word boundary nearest their midpoint into two centered lines, retaining the full name instead of truncating it. The first line keeps the single-line top inset, and the second line extends downward. Single-word names remain intact. Tile annotation text declares its central baseline directly, rather than relying on an SVG group baseline, so WebKit and Chromium both center fixed and staged revenues in their backgrounds. This presentation is shared by live and historical maps across titles.
 
 The zoom wrapper does not permanently promote its content with `will-change: transform`, allowing vector content to repaint at the settled zoom scale. This is an internal rendering change with no host-bridge API change; UI artifacts bundling ScalingWrapper must be republished to adopt it.
 
@@ -1361,3 +1361,7 @@ Concession descriptions start by identifying the president’s certificate and
 the actual assigned company, then retain the closure conditions. This descriptive
 text lives in TOP’s private rules module; the icon metadata lives in its UI.
 No host-bridge member or gameplay rule changes.
+
+The round/phase header uses a 4px gap between the Phase label and its badge when both are visible. Mobile retains the badge alone.
+
+Operating-history footnotes wrap within the table’s available width and do not contribute intrinsic width; income and payout tables remain centered beneath the full-width controls strip.

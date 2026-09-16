@@ -64,6 +64,15 @@
     })
     const selectedPath = $derived(selection?.kind === 'path' ? selection.pathId : undefined)
 
+    function nameLines(name: string): string[] {
+        if (name.length <= 18) return [name]
+        const breaks = [...name.matchAll(/\s+/g)].map((match) => match.index)
+        if (!breaks.length) return [name]
+        const split = breaks.reduce((best, index) =>
+            Math.abs(index - name.length / 2) < Math.abs(best - name.length / 2) ? index : best)
+        return [name.slice(0, split), name.slice(split).trimStart()]
+    }
+
     function select(event: MouseEvent | KeyboardEvent, target: MapSelection) {
         if (!onselect) return
         if (event instanceof KeyboardEvent && event.key !== 'Enter' && event.key !== ' ') return
@@ -343,11 +352,11 @@
     {/if}
     <g data-map-layer="names" pointer-events="none" aria-hidden="true">
         {#each entries.filter((entry) => entry.location.name && !entry.placed) as entry (entry.location.id)}
+            {@const lines = nameLines(entry.location.name ?? '')}
             <g class="map-annotations" transform={`translate(${entry.center.x} ${entry.center.y})`}
                 fill="#202c31" text-anchor="middle" paint-order="stroke"
                 stroke={appearance.colors[entry.face.color]} stroke-width="1.7">
-                <text y="-35" font-size="5" font-weight="650">{entry.location.name && entry.location.name.length > 23
-                    ? `${entry.location.name.slice(0, 22)}…` : entry.location.name}</text>
+                <text font-size="5" font-weight="650">{#each lines as line, index}<tspan x="0" y={-35 + index * 6}>{line}</tspan>{/each}</text>
             </g>
         {/each}
     </g>

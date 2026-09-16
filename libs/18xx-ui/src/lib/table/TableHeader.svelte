@@ -206,6 +206,9 @@
         cursor: pointer;
     }
     .phase-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
         padding: 4px 5px;
         margin: 0 -5px;
         border-radius: 4px;
