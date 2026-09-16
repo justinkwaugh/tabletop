@@ -59,6 +59,7 @@
         justify = 'center',
         controls = 'top-left',
         expandable = false,
+        maxScale = 1,
         onManualViewChange
     }: {
         children: Snippet
@@ -66,6 +67,7 @@
         toolbar?: Snippet
         justify?: 'center' | 'left' | 'right'
         controls: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'none'
+        maxScale?: number
         expandable?: boolean
         onManualViewChange?: () => void
     } = $props()
@@ -208,11 +210,11 @@
     }
 
     function updateDiscreteLevels(fitScale: number) {
-        zoomLevels = fitScale === 1 ? 0 : Math.floor((1 - fitScale) / DISCRETE_ZOOM_STEP)
+        zoomLevels = fitScale === maxScale ? 0 : Math.floor((maxScale - fitScale) / DISCRETE_ZOOM_STEP)
     }
 
     function clampScale(scale: number) {
-        return clamp(scale, baseScale, 1)
+        return clamp(scale, baseScale, maxScale)
     }
 
     function getOffsetX(scaledWidth: number) {
@@ -686,7 +688,7 @@
             return 0
         }
 
-        return (1 - baseScale) / zoomLevels
+        return (maxScale - baseScale) / zoomLevels
     }
 
     function getNextDiscreteScale(direction: 'in' | 'out') {

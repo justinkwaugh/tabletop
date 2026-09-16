@@ -220,25 +220,26 @@
                     >
                 {/if}
                 {#if !entry.placed && entry.location.terrain}
-                    <text
-                        y={entry.face.nodes.length || entry.face.paths.length ? 23 : 4}
-                        font-size="8"
-                        font-weight="700"
-                        data-map-terrain
-                    >
-                        {entry.location.terrain.kinds
-                            .map((kind) =>
-                                kind === 'mountain'
-                                    ? '▲'
-                                    : kind === 'water'
-                                      ? '≈'
-                                      : kind === 'urban'
-                                        ? '▦'
-                                        : kind
-                            )
-                            .join(' ')}
-                        {entry.location.terrain.cost}
-                    </text>
+                    {@const terrain = entry.location.terrain}
+                    {@const iconWidth = terrain.kinds.length * 19}
+                    {@const labelWidth = String(terrain.cost).length * 6.5}
+                    <g data-map-terrain
+                        transform={`translate(${-(iconWidth + labelWidth) / 2} ${(entry.face.nodes.length || entry.face.paths.length ? 19 : 0) + (terrain.kinds.includes('water') && entry.face.nodes.some((node) => node.kind === 'city' || node.kind === 'town') ? 3 : 0)})`}>
+                        {#each terrain.kinds as kind, index}
+                            <g transform={`translate(${index * 19} 0)`} stroke="none">
+                                {#if kind === 'mountain'}
+                                    <path d="M0 5 L6 -6 L10 0 L13 -4 L19 5 Z" fill="#936039" />
+                                {:else if kind === 'water'}
+                                    <path transform="translate(2 0) scale(0.75 1)"
+                                        d="M0 -2 C3 -6 6 -6 9 -2 S15 2 18 -2 M0 2 C3 -2 6 -2 9 2 S15 6 18 2"
+                                        fill="none" stroke="#287fab" stroke-width="1.8" stroke-linecap="round" />
+                                {:else}
+                                    <text x="8" y="4" font-size="11" font-weight="700">{kind === 'urban' ? '▦' : kind}</text>
+                                {/if}
+                            </g>
+                        {/each}
+                        <text x={iconWidth + 2} y="4" text-anchor="start" font-size="10" font-weight="750">{terrain.cost}</text>
+                    </g>
                 {/if}
                 <text y="36" font-size="5" font-weight="650" data-map-markers
                     >{[

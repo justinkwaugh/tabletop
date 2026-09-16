@@ -1323,3 +1323,5 @@ Offered-lot auctions distinguish the auctioneer and initial value from a bidder 
 Tile selection, placement previews, legal tile hover, and history tile focus use a solid orange (#f07818), eight-unit outline with rounded joins.
 
 The operating-order chips are centered when they fit and scroll from the start when they overflow, without left padding. Their display toggle sits at the right edge of the map toolbar, outside the view tablist.
+
+Live and historical table maps allow manual zoom to twice native size. ScalingWrapper keeps its original maximum for callers that do not opt in; no host-bridge contract changes are required. TOP and 1889 UI artifacts need republication to adopt the increased map zoom.

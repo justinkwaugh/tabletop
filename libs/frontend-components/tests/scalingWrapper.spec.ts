@@ -52,3 +52,20 @@ test('smooth trackpad gestures pan, including their faster continuation, and pin
     await board.dispatchEvent('wheel', { deltaY: -20, ctrlKey: true, clientX: 200, clientY: 150 })
     await expect.poll(async () => (await board.boundingBox())?.width).toBeGreaterThan(before.width)
 })
+
+for (const maximum of [1, 2]) {
+    test(`manual zoom respects maximum ${maximum}`, async ({ page }) => {
+        await page.goto('/session-test.html')
+        await page.evaluate(async (maxScale) => {
+            const { mountWrapper } = await import(new URL('/src/lib/components/tests/scalingWrapper.fixture.ts', location.href).href)
+            mountWrapper(maxScale)
+        }, maximum)
+        const board = page.getByTestId('board')
+        await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
+        await page.mouse.move(200, 150)
+        await page.mouse.wheel(0, -2000)
+        await expect.poll(async () => (await board.boundingBox())?.width).toBe(1000 * maximum)
+        await page.mouse.wheel(0, 2000)
+        await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
+    })
+}

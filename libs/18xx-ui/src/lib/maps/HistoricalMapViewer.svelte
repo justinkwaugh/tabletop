@@ -44,7 +44,7 @@
         <button onclick={onclose}>Close</button>
     </header>
     <div class="map">
-        <ScalingWrapper bind:this={wrapper} justify="center" controls="bottom-left">
+        <ScalingWrapper maxScale={2} bind:this={wrapper} justify="center" controls="bottom-left">
             <MapScene scene={preview.scene} tokens={preview.tokens}
                 reservations={preview.reservations} routes={preview.routes}
                 selection={preview.selection} {appearance} {revenueStageColors} hexDiameter={140} />

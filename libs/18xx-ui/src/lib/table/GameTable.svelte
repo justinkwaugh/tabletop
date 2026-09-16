@@ -478,6 +478,7 @@
                 >
                     <ScalingWrapper
                         bind:this={mapWrapper}
+                        maxScale={2}
                         onManualViewChange={() => { restoreRouteView = undefined }}
                         justify="center"
                         controls="bottom-left"
