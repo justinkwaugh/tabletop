@@ -1,0 +1,3 @@
+header.player-tinted-header {
+    background: color-mix(in srgb, var(--player-color) 15%, var(--rail-surface, #faf7f1));
+}

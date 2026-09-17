@@ -1580,3 +1580,7 @@ Artifacts only, with no host bridge or Logic schema change.
 The pane-mode history navigation and round/phase header share one bottom border
 across the workspace width. Game info keeps an eight-pixel inset around its
 phase/depot buttons so controls do not touch the pane divider.
+
+Player portfolio headers share the auction header’s 15% player-color tint in both
+compact and expanded views and both themes. Non-player portfolio headers retain
+the neutral surface.

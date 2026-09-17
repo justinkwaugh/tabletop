@@ -1,5 +1,6 @@
 <script lang="ts">
     import './historyCard.css'
+    import './playerTint.css'
     import type { AuctionLot } from '@tabletop/18xx'
     import type { AuctionHistoryCard } from './auctionHistory.js'
     let {
@@ -16,7 +17,7 @@
 </script>
 
 <article class="history-card" aria-label={`${lot.name} auction history`}>
-    <header class="history-card-header" style:--offerer-color={playerColor(card.offer.playerId)}>
+    <header class="history-card-header player-tinted-header" style:--player-color={playerColor(card.offer.playerId)}>
         <div class="history-entry"
         >
             <strong>{playerName(card.offer.playerId)}</strong> offered <strong>{lot.name}</strong> for
@@ -59,7 +60,6 @@
     }
     .history-card-header {
         border-radius: 0;
-        background: color-mix(in srgb, var(--offerer-color) 15%, var(--rail-surface, #faf7f1));
     }
     header .history-entry {
         padding: 0;

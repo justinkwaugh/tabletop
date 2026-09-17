@@ -1,4 +1,5 @@
 <script lang="ts">
+    import './playerTint.css'
     import { flip } from 'svelte/animate'
     import { prefersReducedMotion } from 'svelte/motion'
     import { companyFocusLocations } from '../maps/companyFocusLocations.js'
@@ -114,6 +115,8 @@
                 session.financialState.activePlayerIds.includes(player.playerId)}
         >
             <header
+                class:player-tinted-header={!!player.playerId}
+                style:--player-color={player.playerId ? session.colors.getPlayerBgColorValue(player.playerId) : undefined}
                 data-private-description-row={player.description ? true : undefined}
                 class:has-description={!!player.description}
             >
