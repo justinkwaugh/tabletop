@@ -61,6 +61,12 @@ export * from './utils/validateLocalGameState.js'
 
 export { TitlePreferences } from './preferences/titlePreferences.svelte.js'
 
-export { default as TabWorkspace } from "./components/TabWorkspace.svelte"
+export { default as TabWorkspace } from './components/TabWorkspace.svelte'
+export type { WorkspaceTab, WorkspaceFixedPane } from './components/workspaceTypes.js'
+export type { WorkspaceInitialSplit, SplitAxis } from './components/tabWorkspace.js'
+export type { SavedWorkspace, SavedPane } from './components/workspacePersistence.js'
 
 export { DebouncedLayout } from './preferences/debouncedLayout.svelte.js'
+
+export { restoreWorkspace, saveWorkspace } from './components/workspacePersistence.js'
+export { workspaceLayout } from './components/tabWorkspace.js'

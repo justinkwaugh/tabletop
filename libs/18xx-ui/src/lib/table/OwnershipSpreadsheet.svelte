@@ -17,7 +17,7 @@
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
     import type { CompanyNameVariants } from './companyPresentation.js'
     import { ownerPortfolio } from '../finance/ownerPortfolio.js'
-    import SpreadsheetPlayerName from './SpreadsheetPlayerName.svelte'
+    import PlayerName from './PlayerName.svelte'
     import OperatingHistory from './OperatingHistory.svelte'
     import SpreadsheetOutline from './SpreadsheetOutline.svelte'
 
@@ -200,7 +200,7 @@
 
 {#snippet ownerLabel(owner: { id: string; name: string }, column = false)}
     {#if owner.id.startsWith('player:')}
-        <SpreadsheetPlayerName name={owner.name} color={session.colors.getPlayerBgColorValue(owner.id.slice(7))} />
+        <PlayerName name={owner.name} color={session.colors.getPlayerBgColorValue(owner.id.slice(7))} />
     {:else if portfolioColumnLabels.has(owner.id)}
         <span class="owner-name portfolio-full">{owner.name}</span>
         <span class="owner-name portfolio-short">{portfolioColumnLabels.get(owner.id)}</span>

@@ -1474,13 +1474,11 @@ The map tile picker uses Map’s active state within its own pane, independent o
 the last globally selected tab. Moving or selecting a tab in another pane must
 not suppress tile selection overlays on a still-visible map.
 
-At 1024px and above, Players/History/Chat start in a fixed pane below the title
-information (Tranches in TOP). This pane has no split or delete controls, remains
-when empty, and accepts only Players, History, and Chat. Those tabs can move to
-any main pane and back, including reordering. Their shortcuts select the tab in
-its current pane. The fixed pane does not count against the eight main panes.
-Below 1024px the original three sidebar tabs remain unchanged. Chat mounts when
-active, so merely rendering a hidden Chat tab does not mark messages read.
+At 1024px and above, Game info and Players/History/Chat occupy ordinary panes
+in the same workspace as the other views. All panes share the eight-pane limit.
+Their shortcuts select the tab in its current pane. Below 1024px the original
+three sidebar tabs remain unchanged. Chat mounts when active, so merely rendering
+a hidden Chat tab does not mark messages read.
 
 ### Saved pane arrangements
 
@@ -1521,7 +1519,7 @@ payouts) fill the pane horizontally with no gap below the controls. Narrow, non-
 intrinsic-width sheet. Controls remain centered and oversized tables scroll.
 
 Pane headers offer Add tab or widget. The catalog moves existing tabs without
-duplicating them, and adds absent optional tabs. Fixed-pane restrictions apply.
+duplicating them, and adds absent optional tabs.
 Optional tabs are excluded from defaults and missing-tab recovery, but retained
 when present in saved layouts. Operating Order is the first optional widget; in
 the wide layout it replaces the Actions footer and is absent until added. The
@@ -1529,15 +1527,13 @@ original narrow layout retains its operating-order strip.
 
 Pane headers consolidate splitting and adding/moving tabs into a compact options
 popover anchored below an ellipsis button. Delete remains the far-right control.
-The fixed pane exposes only allowed tab choices; it cannot split or close.
 
 The options popup uses a consistent compact width, with split icons followed by
 Current tabs and Add tabs sections. Add tabs is always visible when tabs can be added;
 there is no separate plus button.
 
 The Add list contains only tabs absent from every pane. Already placed tabs move
-via dragging, not the catalog. Hide Add tabs when no allowed absent tabs remain;
-the fixed pane needs no options button when it has no current or available tabs.
+via dragging, not the catalog. Hide Add tabs when no absent tabs remain.
 
 The options dropdown lists the pane’s current tabs with individual close buttons.
 Actions is protected and never closeable. Closed tabs become available in Add.
@@ -1548,3 +1544,38 @@ Spreadsheet row/column emphasis is a continuous, noninteractive SVG layer over t
 ownership table, measured from rendered rows and columns. Cell and section dividers
 do not interrupt it. Resizing, content changes, axis swaps, and active-owner changes
 remeasure the outline; intersecting player/company edges remain omitted.
+
+In a workspace pane, the action surface fills the available width and remaining
+height beneath its action strips. Content scrolls when the pane is too small;
+the original narrow-screen action area retains its content-sized height.
+
+18xx supplies tab content, responsive layout policy, preferences, and a mapping
+from railway colors to the base TabWorkspace theme. The reusable workspace itself
+has no 18xx dependency; its v1 saved layout format remains unchanged.
+
+Auction history identifies offerers, bidders, passers, and winners with a small
+player-color dot before their names. Stock-round turn names and pass entries use
+the same treatment and the viewing player’s selected color palette.
+
+Players/History/Chat uses the standard workspace tab spacing in pane mode. The
+original non-paned sidebar spacing is unchanged.
+
+In pane mode, all views share one unrestricted workspace. The default is a 20/80
+left/right split: Game info above Players/History/Chat on the left (25/75), and
+Actions above Map/Market/Spreadsheet/Tiles on the right (50/50). Game info contains
+phase, train limit, depot, and title-supplied information such as TOP tranches.
+History controls remain above the workspace. Every pane supports ordinary split,
+resize, swap, tab transfer, and deletion; only the Actions tab is protected.
+Below 1024px the original fixed sidebar/action/view arrangement remains in use.
+
+Table layout version 2 retains the base v1 wire format and adds a caller-owned
+version marker. Legacy main splits and ratios survive migration, with former
+sidebar tabs promoted into ordinary panes. At seven/eight legacy panes, combine
+the added tabs into one/a surviving pane respectively to preserve the eight-pane
+limit without discarding tabs or existing dividers. Existing valid saved layouts
+win over the default when returning to pane mode. This needs updated TOP/1889 UI
+Artifacts only, with no host bridge or Logic schema change.
+
+The pane-mode history navigation and round/phase header share one bottom border
+across the workspace width. Game info keeps an eight-pixel inset around its
+phase/depot buttons so controls do not touch the pane divider.

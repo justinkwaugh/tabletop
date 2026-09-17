@@ -1,4 +1,5 @@
 <script lang="ts">
+    import PlayerName from './PlayerName.svelte'
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import './historyCard.css'
     import HistoryJump from './HistoryJump.svelte'
@@ -23,6 +24,7 @@
         previewActionId,
         appearance,
         playerName,
+        playerColor,
         describe,
         companyName,
         phaseColors,
@@ -47,6 +49,7 @@
         group: HistoryGroup
         appearance?: StationAppearance
         playerName: (id: string) => string
+        playerColor: (id: string) => string
         describe: (action: GameAction) => HistoryDescription
         companyName: (id: string) => string
     } = $props()
@@ -103,7 +106,7 @@
     {#if group.kind === 'passes'}
         <div class="passes">
             {#each group.actions as action (action.id)}<div class="history-entry"
-                    >{playerName(action.playerId ?? '')} <span>passed</span></div
+                    ><PlayerName name={playerName(action.playerId ?? '')} color={playerColor(action.playerId ?? '')} dotSize={10} maxWidth="none" /> <span>passed</span></div
                 >{/each}
         </div>
     {:else if group.kind === 'turn'}
@@ -117,7 +120,7 @@
                     class:important={row.important}
                     class:routine={row.routine}
                 >
-                    {#if index === 0}<span class="stock-player">{playerName(group.playerId ?? '')}:</span>{' '}{/if}
+                    {#if index === 0}<span class="stock-player"><PlayerName name={playerName(group.playerId ?? '')} color={playerColor(group.playerId ?? '')} dotSize={10} maxWidth="none" />:</span>{' '}{/if}
                     <span
                         >{row.text}{#if row.phase}<span class="phase-colors">{row.phase.label}</span>{/if}{#if row.value}
                             for <strong>{row.value}</strong>{/if}</span

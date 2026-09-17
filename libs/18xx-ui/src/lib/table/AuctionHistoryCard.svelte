@@ -1,4 +1,5 @@
 <script lang="ts">
+    import PlayerName from './PlayerName.svelte'
     import './historyCard.css'
     import type { AuctionLot } from '@tabletop/18xx'
     import type { AuctionHistoryCard } from './auctionHistory.js'
@@ -6,10 +7,12 @@
         card,
         lot,
         playerName,
+        playerColor,
     }: {
         card: AuctionHistoryCard
         lot: AuctionLot
         playerName: (id: string) => string
+        playerColor: (id: string) => string
     } = $props()
 </script>
 
@@ -17,7 +20,7 @@
     <header class="history-card-header">
         <div class="history-entry"
         >
-            <strong>{playerName(card.offer.playerId)}</strong> offered <strong>{lot.name}</strong> for
+            <strong><PlayerName name={playerName(card.offer.playerId)} color={playerColor(card.offer.playerId)} dotSize={10} maxWidth="none" /></strong> offered <strong>{lot.name}</strong> for
             auction
         </div>
     </header>
@@ -25,7 +28,7 @@
         {#each card.events as event (event.id)}
             <div class="history-entry"
             >
-                <span>{playerName(event.playerId)}</span>
+                <span><PlayerName name={playerName(event.playerId)} color={playerColor(event.playerId)} dotSize={10} maxWidth="none" /></span>
                 {#if event.type === 'BidOnAuctionLot'}<span
                         >bid <strong>${event.amount.toLocaleString('en-US')}</strong></span
                     >{:else}<span class="passed">passed</span>{/if}
@@ -35,7 +38,7 @@
             <div
                 class="history-entry winner"
             >
-                <strong>{playerName(card.award.playerId)} won</strong><strong
+                <strong><PlayerName name={playerName(card.award.playerId)} color={playerColor(card.award.playerId)} dotSize={10} maxWidth="none" /> won</strong><strong
                     >${card.award.price.toLocaleString('en-US')}</strong
                 >
             </div>

@@ -1,22 +1,24 @@
 <script lang="ts">
-    import { restoreWorkspace, saveWorkspace, type SavedWorkspace } from './workspacePersistence.js'
+    import type { WorkspaceTab, WorkspaceFixedPane } from './workspaceTypes.js'
+    import { restoreWorkspace, saveWorkspace, type SavedWorkspace, type SavedPane } from './workspacePersistence.js'
     import { tick, untrack, type Snippet } from 'svelte'
     import { type WorkspaceInitialSplit, activateTab, closeTab, addTab, deletePane, moveTab, resizeSplit, splitPane, swapSplit, workspaceLayout, type DividerLayout, type WorkspaceNode, type WorkspacePane, type PaneLayout } from './tabWorkspace.js'
-    let { tabs, children, selected = $bindable<string>(), label = 'Workspace', splittable = true, initialSplit, fixedPane, tabTitle, savedLayout, onLayoutChange }: {
-        tabs: readonly { id: string; label: string; shortLabel?: string; optional?: boolean; closable?: boolean }[]
+    let { tabs, children, selected = $bindable<string | undefined>(), label = 'Workspace', splittable = true, initialSplit, initialLayout, fixedPane, tabTitle, savedLayout, onLayoutChange }: {
+        tabs: readonly WorkspaceTab[]
         children: Snippet<[string, boolean]>
         savedLayout?: unknown
         onLayoutChange?: (value: SavedWorkspace) => void
         tabTitle?: Snippet<[string]>
         selected?: string
         label?: string
-        fixedPane?: { target: HTMLElement | undefined; tabs: readonly string[]; label: string }
+        fixedPane?: WorkspaceFixedPane
         splittable?: boolean
         initialSplit?: WorkspaceInitialSplit
+        initialLayout?: SavedPane
     } = $props()
     const instanceId = $props.id()
     const closableTabs = $derived(tabs.filter(tab => tab.closable !== false).map(tab => tab.id))
-    const initial = untrack(() => restoreWorkspace(savedLayout, tabs.map(tab => tab.id), fixedPane?.tabs ?? [], initialSplit, tabs.filter(tab => tab.optional).map(tab => tab.id), closableTabs))
+    const initial = untrack(() => restoreWorkspace(savedLayout, tabs.map(tab => tab.id), fixedPane?.tabs ?? [], initialSplit, tabs.filter(tab => tab.optional).map(tab => tab.id), closableTabs, initialLayout))
     let root: WorkspaceNode = $state(initial.root)
     let fixed: WorkspacePane = $state(initial.fixed)
     let lastLayout = JSON.stringify(saveWorkspace(initial.root, initial.fixed, closableTabs.filter(id => !tabs.find(tab => tab.id === id)?.optional)))
@@ -253,45 +255,45 @@
 </div>
 
 <style>
-    .workspace { --workspace-header-height: 35px; position: relative; flex: 1; min-width: 0; min-height: 160px; height: 100%; color: var(--workspace-text, var(--rail-text, #443c34)); }
+    .workspace { --workspace-header-height: 35px; position: relative; flex: 1; min-width: 0; min-height: 160px; height: 100%; color: var(--workspace-text, #374151); }
     .pane, .panel { position: absolute; box-sizing: border-box; min-width: 0; min-height: 0; }
     .pane { z-index: 1; display: flex; flex-direction: column; }
-    header { height: var(--workspace-header-height); flex: none; display: flex; align-items: center; border-bottom: 1px solid var(--workspace-border, var(--rail-border, #d2c5b7)); box-sizing: border-box; }
+    header { height: var(--workspace-header-height); flex: none; display: flex; align-items: center; border-bottom: 1px solid var(--workspace-border, #d1d5db); box-sizing: border-box; }
     .tabs { display: flex; flex: 1; min-width: 0; gap: 24px; padding: 0 16px; overflow-x: auto; scrollbar-width: thin; }
     button { background: transparent; color: inherit; font: inherit; cursor: pointer; }
-    [role='tab'] { display: inline-flex; align-items: center; gap: 6px; flex: none; height: 34px; padding: 8px 0 6px; border: 0; border-bottom: 2px solid transparent; color: var(--workspace-muted, var(--rail-inactive, #938371)); font-size: 11px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
-    [role='tab'][aria-selected='true'] { color: var(--workspace-text, var(--rail-text, #5e4937)); border-bottom-color: var(--workspace-focus, var(--rail-focus, #7c634b)); }
-    button:hover:enabled { color: var(--workspace-text, var(--rail-text, #5e4937)); }
-    [role='tab'].insert-before { box-shadow: -2px 0 var(--workspace-focus, var(--rail-focus, #7c634b)); }
-    .pane.fixed .tabs { gap: 12px; padding-inline: 8px; }
+    [role='tab'] { display: inline-flex; align-items: center; gap: 6px; flex: none; height: 34px; padding: 8px 0 6px; border: 0; border-bottom: 2px solid transparent; color: var(--workspace-inactive, #6b7280); font-size: 11px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+    [role='tab'][aria-selected='true'] { color: var(--workspace-text, #374151); border-bottom-color: var(--workspace-focus, #2563eb); }
+    .tabs > [role='tab']:only-child { font-weight: 400; border-bottom-color: transparent; }
+    button:hover:enabled { color: var(--workspace-text, #374151); }
+    [role='tab'].insert-before { box-shadow: -2px 0 var(--workspace-focus, #2563eb); }
     .split-controls { display: flex; flex: none; padding: 0 8px; gap: 4px; }
-    .split-button { display: grid; place-items: center; width: 24px; height: 24px; border: 0; border-radius: 3px; color: var(--workspace-muted, var(--rail-muted, #887969)); }
-    .split-button:hover:enabled { background: var(--workspace-hover, var(--rail-hover, #69554016)); }
+    .split-button { display: grid; place-items: center; width: 24px; height: 24px; border: 0; border-radius: 3px; color: var(--workspace-muted, #6b7280); }
+    .split-button:hover:enabled { background: var(--workspace-hover, #0000000a); }
     .split-button:disabled { opacity: .25; cursor: default; }
     svg { fill: none; stroke: currentColor; stroke-width: 1.4; }
     .panel { z-index: 2; overflow: hidden; }
     .panel.inactive { visibility: hidden; pointer-events: none; }
-    .empty { flex: 1; display: grid; place-items: center; color: var(--workspace-muted, var(--rail-muted, #887969)); font-size: 13px; }
-    .drop-target { outline: 2px dashed var(--workspace-focus, var(--rail-focus, #7c634b)); outline-offset: -4px; }
-    .widget-menu { margin: 0; left: auto; width: 180px; box-sizing: border-box; max-height: 70dvh; overflow: auto; padding: 4px; border: 1px solid var(--rail-border, #d2c5b7); border-radius: 6px; background: var(--rail-surface, #faf7f2); color: var(--rail-text, #443c34); }
+    .empty { flex: 1; display: grid; place-items: center; color: var(--workspace-muted, #6b7280); font-size: 13px; }
+    .drop-target { outline: 2px dashed var(--workspace-focus, #2563eb); outline-offset: -4px; }
+    .widget-menu { margin: 0; left: auto; width: 180px; box-sizing: border-box; max-height: 70dvh; overflow: auto; padding: 4px; border: 1px solid var(--workspace-border, #d1d5db); border-radius: 6px; background: var(--workspace-surface, #ffffff); color: var(--workspace-text, #374151); }
     .existing-tab { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 26px; font-size: 12px; padding-left: 4px; }
     .widget-menu .close-tab { width: 24px; height: 24px; padding: 0; display: grid; place-items: center; justify-content: center; gap: 0; flex: none; }
     .widget-menu .pane-actions { display: flex; gap: 2px; }
     .widget-menu .pane-actions button { display: grid; place-items: center; width: 24px; height: 24px; padding: 2px; border-radius: 3px; }
-    .widget-menu hr { border: 0; border-top: 1px solid var(--rail-border, #d2c5b7); margin: 6px 0 10px; }
+    .widget-menu hr { border: 0; border-top: 1px solid var(--workspace-border, #d1d5db); margin: 6px 0 10px; }
     .widget-menu button:disabled { opacity: .35; cursor: default; }
-    .widget-menu strong { display: block; margin: 0 4px 4px; font-size: 11px; font-weight: 600; color: var(--rail-muted, #887969); }
+    .widget-menu strong { display: block; margin: 0 4px 4px; font-size: 11px; font-weight: 600; color: var(--workspace-muted, #6b7280); }
     .widget-menu .add-tab { min-height: 26px; padding: 4px; font-size: 12px; }
     .widget-menu button { display: flex; justify-content: space-between; gap: 24px; width: 100%; padding: 8px; border: 0; text-align: left; }
-    .widget-menu button:hover { background: var(--rail-hover, #69554016); }
-    .swap-sides { opacity: 0; pointer-events: none; position: absolute; z-index: 5; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--rail-border, #d2c5b7); border-radius: 5px; background: var(--rail-surface, #faf7f2); color: var(--rail-muted, #887969); }
+    .widget-menu button:hover { background: var(--workspace-hover, #0000000a); }
+    .swap-sides { opacity: 0; pointer-events: none; position: absolute; z-index: 5; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--workspace-border, #d1d5db); border-radius: 5px; background: var(--workspace-surface, #ffffff); color: var(--workspace-muted, #6b7280); }
     .divider:hover + .swap-sides, .divider:focus + .swap-sides, .swap-sides:hover, .swap-sides:focus-visible { opacity: 1; pointer-events: auto; }
     .divider { position: absolute; z-index: 4; cursor: row-resize; touch-action: none; }
     .divider.vertical { cursor: col-resize; }
-    .divider::after { content: ''; position: absolute; top: 3px; left: 0; right: 0; height: 1px; background: var(--workspace-border, var(--rail-border, #d2c5b7)); }
+    .divider::after { content: ''; position: absolute; top: 3px; left: 0; right: 0; height: 1px; background: var(--workspace-border, #d1d5db); }
     .divider.vertical::after { left: 3px; top: 0; bottom: 0; width: 1px; height: auto; }
-    .divider:hover::after, .divider:focus-visible::after { background: var(--workspace-focus, var(--rail-focus, #7c634b)); }
-    button:focus-visible, .divider:focus-visible { outline: 2px solid var(--workspace-focus, var(--rail-focus, #7c634b)); outline-offset: -2px; }
+    .divider:hover::after, .divider:focus-visible::after { background: var(--workspace-focus, #2563eb); }
+    button:focus-visible, .divider:focus-visible { outline: 2px solid var(--workspace-focus, #2563eb); outline-offset: -2px; }
     .short-label { display: none; }
     @media (width < 640px) { .has-short { display: none; } .short-label { display: inline; } .tabs { gap: 16px; padding-inline: 8px; } }
 </style>

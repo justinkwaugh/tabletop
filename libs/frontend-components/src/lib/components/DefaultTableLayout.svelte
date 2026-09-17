@@ -10,12 +10,14 @@
         gameContent,
         sideContent,
         debugContent,
+        showSidebar = true,
         topPadding = 8
     }: {
         mobileControlsContent?: Snippet
         gameContent?: Snippet
         sideContent?: Snippet
         debugContent?: Snippet
+        showSidebar?: boolean
         topPadding?: number
     } = $props()
 
@@ -42,15 +44,16 @@
         </div>
         <div {@attach scrollToRight} class="w-full overflow-auto">
             <div class="p-2 w-full h-full flex flex-row justify-between items-start" style:padding-top={topPadding + 'px'}>
-                <div
+                {#if showSidebar}<div
                     class="flex flex-col gap-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] {tableInnerHeightDesktopClass} {tableInnerHeightMobileClass}"
                 >
                     {#if sideContent}
                         {@render sideContent()}
                     {/if}
-                </div>
+                </div>{/if}
                 <div
-                    class="ms-2 pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] {tableInnerHeightDesktopClass} {tableInnerHeightMobileClass} flex flex-col overflow-auto"
+                    class:ms-2={showSidebar}
+                    class="pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] {tableInnerHeightDesktopClass} {tableInnerHeightMobileClass} flex flex-col overflow-auto"
                 >
                     {#if gameContent}
                         {@render gameContent()}

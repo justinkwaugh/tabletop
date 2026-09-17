@@ -78,6 +78,7 @@
                             card={entry}
                             lot={lot(entry.offer.lotId)}
                             playerName={(id) => session.getPlayerName(id)}
+                            playerColor={(id) => session.colors.getPlayerBgColorValue(id)}
                         />
                     </li>
                 {:else}
@@ -92,6 +93,7 @@
                                 ? session.mapView.stations[entry.companyId]
                                 : undefined}
                             playerName={(id) => session.getPlayerName(id)}
+                            playerColor={(id) => session.colors.getPlayerBgColorValue(id)}
                             {phaseColors}
                             {phaseTileColors}
                             {trainColors}

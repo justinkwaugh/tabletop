@@ -11,9 +11,11 @@
     let {
         session,
         companyNames = {},
+        bordered = true,
         phaseChart,
         trainColors
     }: {
+        bordered?: boolean
         session: FinanceExampleSession
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
         phaseChart: PhaseChartData
@@ -64,7 +66,7 @@
     const company = $derived(financialState.companies.find((company) => company.id === companyId))
 </script>
 
-<header aria-label="Game phase" bind:this={headerElement} class:compact>
+<header aria-label="Game phase" bind:this={headerElement} class:compact class:borderless={!bordered}>
     <div class="phase" bind:this={phaseElement}>
         <strong>
             {#if financialState.result}
@@ -146,6 +148,7 @@
         padding: 0;
         color: var(--rail-text, #5e4937);
     }
+    header.borderless { border-bottom: 0; }
     @media (width < 40rem) {
         header { min-height: 36px; }
     }

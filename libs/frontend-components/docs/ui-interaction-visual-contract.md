@@ -282,3 +282,17 @@ The options dropdown lists the pane’s current tabs with individual close butto
 Actions is protected and never closeable. Closed tabs become available in Add.
 An optional `closed` list in saved layouts distinguishes deliberate closures from
 missing newly introduced tabs; protected tabs ignore entries in that list.
+
+TabWorkspace is game-independent base frontend functionality. Its public catalog,
+fixed-pane, initial-split, and saved-layout types are exported from the package.
+Neutral workspace theme variables control all chrome, including popovers and
+swap buttons; game-specific theme names never enter the base module. See
+[the usage contract](tab-workspace.md). A standalone browser fixture verifies
+splitting, transfer without remounting, resizing, optional tabs, and pane merging.
+
+Callers may supply a nested initialLayout. A valid saved layout takes precedence;
+invalid saved data restores this caller-defined default. DefaultTableLayout can
+omit its fixed sidebar so one workspace can occupy the full available width.
+
+A pane with exactly one tab renders its label at regular weight with no selection
+underline. When another tab enters, normal selected-tab emphasis returns.

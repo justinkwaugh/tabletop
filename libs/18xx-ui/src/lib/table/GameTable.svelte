@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { initialTableLayout, restoreTableWorkspace, saveTableWorkspace } from './tableWorkspace.js'
     import { historyMapFocus } from '../maps/historyMapFocus.js'
     import { routeColor } from '../routes/routePresentation.js'
     import PositionPanel from './PositionPanel.svelte'
@@ -309,12 +310,12 @@
     )
     const paneLayout = new MediaQuery('(min-width: 64rem)')
     const views = ['Map', 'Market', 'Spreadsheet', 'Tiles', 'Actions'] as const
-    let fixedPaneTarget: HTMLDivElement | undefined = $state()
     const sidebarViews = ['Players', 'History', 'Chat']
     let sidebar: HTMLDivElement
     let selectedView = $state('Map')
     const view = $derived(selectedView)
     const workspaceTabs = views.map(id => ({ id, label: id, closable: id !== 'Actions', ...(id === 'Spreadsheet' ? { shortLabel: 'Sheet' } : {}) }))
+    const paneTabs = [...workspaceTabs, { id: 'Operating Order', label: 'Operating Order', optional: true }, { id: 'Game info', label: 'Game info' }, ...sidebarViews.map(id => ({ id, label: id }))]
 
     function navigateByShortcut(event: KeyboardEvent) {
         if (event.defaultPrevented || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return
@@ -367,9 +368,9 @@
 
 {#snippet historyPanel()}<History onPreviewMap={previewHistoryMap} {session} {trainColors} {phaseColors} {phaseTileColors} {companyNames} describeAction={historyDescription} />{/snippet}
 
-{#snippet historyControls()}
+{#snippet historyControls(bordered = true)}
     <HistoryControls
-        borderClass="border-b border-[var(--rail-border,#b8a995)]"
+        borderClass={bordered ? "border-b border-[var(--rail-border,#b8a995)]" : ""}
         enabledColor="text-[var(--rail-text,#695540)]"
         disabledColor="text-[var(--rail-inactive,#b9ae9f)]"
         bgClass="bg-transparent"
@@ -377,11 +378,8 @@
 {/snippet}
 
 {#snippet sidebarInformation()}
-            <div class="max-sm:hidden">
-                {@render historyControls()}
-            </div>
             <div class="game-information" aria-label="Game information">
-                <button class="game-information-item depot-information" onclick={() => showPhaseChart = true} aria-haspopup="dialog" aria-label="Open phase chart">
+                <button class="game-information-item depot-information phase-information" onclick={() => showPhaseChart = true} aria-haspopup="dialog" aria-label="Open phase chart">
                     <span class="information-label">Phase</span>
                     <TrainBadge name={session.financialState.phaseId} color={trainColors[session.financialState.phaseId]} />
                 </button>
@@ -429,20 +427,20 @@
 
 <div class="railway-table" data-theme={session.preferences.ready ? session.preferences.values.theme : 'dark'} aria-label="Game table" aria-busy={!session.preferences.ready}>
     {#if session.preferences.ready && layoutPreference.ready}
-    <DefaultTableLayout topPadding={0}>
+    <DefaultTableLayout topPadding={0} showSidebar={!paneLayout.current}>
         {#snippet mobileControlsContent()}
             {@render historyControls()}
         {/snippet}
         {#snippet sideContent()}
+            <div class="max-sm:hidden">{@render historyControls()}</div>
             {@render sidebarInformation()}
-            {#if paneLayout.current}
-                <div class="fixed-pane-target" bind:this={fixedPaneTarget}></div>
-            {:else}
-                {@render sidebarTabs()}
-            {/if}
+            {@render sidebarTabs()}
         {/snippet}
         {#snippet gameContent()}
-            <TableHeader {session} {phaseChart} {trainColors} {companyNames} />
+            <div class:workspace-heading={paneLayout.current}>
+                {#if paneLayout.current}<div class="workspace-history-controls">{@render historyControls(false)}</div>{/if}
+                <div class="table-heading"><TableHeader {session} {phaseChart} {trainColors} {companyNames} bordered={!paneLayout.current} /></div>
+            </div>
             {#if paneLayout.current && layoutPreference.status}
                 <button class="layout-save" disabled={layoutPreference.status === 'saving' || layoutPreference.status === 'saved'} onclick={() => layoutPreference.save()} title="Layout saves automatically after five seconds without changes. Click to save now.">
                     {layoutPreference.status === 'unsaved' ? 'Layout unsaved' : layoutPreference.status === 'saving' ? 'Saving…' : layoutPreference.status === 'error' ? 'Layout not saved · Retry' : 'Saved'}
@@ -505,7 +503,8 @@
             {#if !paneLayout.current}{@render operatingOrderContent()}{/if}
             {/snippet}
             {#snippet children(id: string, active: boolean)}
-                    {#if id === 'Players'}<div class="workspace-view players-pane">{@render playerCards()}</div>
+                    {#if id === 'Game info'}<div class="workspace-view game-info-pane">{@render sidebarInformation()}</div>
+                    {:else if id === 'Players'}<div class="workspace-view players-pane">{@render playerCards()}</div>
                     {:else if id === 'History'}<div class="workspace-view">{@render historyPanel()}</div>
                     {:else if id === 'Chat'}<div class="workspace-view">{#if active}{@render chatPanel()}{/if}</div>
                     {:else if id === 'Operating Order'}<div class="workspace-view">{@render operatingOrderContent()}{#if !operating || financialState.result || !companyOrder.length}<p class="widget-empty">No operating order this round.</p>{/if}</div>
@@ -582,7 +581,7 @@
                     </div>{/if}
                 {/snippet}
             {#if paneLayout.current}
-                <TabWorkspace tabs={[...workspaceTabs, { id: 'Operating Order', label: 'Operating Order', optional: true }, ...sidebarViews.map(id => ({ id, label: id }))]} savedLayout={layoutPreference.value} onLayoutChange={layoutPreference.change} tabTitle={sidebarTabIcon} fixedPane={{ target: fixedPaneTarget, tabs: sidebarViews, label: 'Players / History / Chat' }} bind:selected={selectedView} label="Table views" initialSplit={{ axis: 'horizontal', first: ['Actions'] }} {children} />
+                <TabWorkspace tabs={paneTabs} savedLayout={restoreTableWorkspace(layoutPreference.value, paneTabs)} onLayoutChange={value => layoutPreference.change(saveTableWorkspace(value))} tabTitle={sidebarTabIcon} bind:selected={selectedView} label="Table views" initialLayout={initialTableLayout} {children} />
             {:else}
                 <div class="original-actions">{@render actionContent()}</div>
                 <TabWorkspace tabs={workspaceTabs.filter(tab => tab.id !== 'Actions')} bind:selected={selectedView} label="Table views" splittable={false} {children} />
@@ -605,15 +604,31 @@
 <style>
     .layout-save { align-self: flex-end; flex: none; border: 0; background: transparent; color: var(--rail-muted, #887969); font-size: 11px; padding: 2px 8px; cursor: pointer; }
     .unread-chat { width: 7px; height: 7px; border-radius: 50%; background: #f43f5e; }
-    .fixed-pane-target { --workspace-header-height: 35px; position: relative; flex: 1; min-height: 160px; }
+    .workspace-heading { display: flex; flex: none; align-items: center; gap: 8px; border-bottom: 1px solid var(--rail-border, #b8a995); }
+    .workspace-history-controls { width: 320px; flex: none; }
+    .table-heading { flex: 1; min-width: 0; }
+    .game-info-pane { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; box-sizing: border-box; }
+    .game-info-pane .game-information { padding-inline: 8px; }
+    .game-info-pane .depot-information { margin-inline: 0; }
+    .game-info-pane .phase-information { padding-left: 0; }
     .original-actions { flex: none; max-height: 50dvh; overflow: auto; }
     .workspace-view { height: 100%; min-height: 0; min-width: 0; overflow: auto; }
     .players-pane { container: player-pane / size; }
     .actions-area { display: flex; flex-direction: column; overflow: hidden; }
-    .actions-area .action-body { flex: 1; min-height: 0; overflow: auto; }
+    .actions-area .action-body { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: auto; }
+    .actions-area .action-panel { flex: 1 0 auto; }
     .widget-empty { padding: 16px; color: var(--rail-muted, #887969); }
     .order-display { display: flex; justify-content: flex-end; }
-    .railway-table { color-scheme: light; }
+    .railway-table {
+        color-scheme: light;
+        --workspace-text: var(--rail-text, #443c34);
+        --workspace-muted: var(--rail-muted, #887969);
+        --workspace-inactive: var(--rail-inactive, #938371);
+        --workspace-border: var(--rail-border, #d2c5b7);
+        --workspace-focus: var(--rail-focus, #7c634b);
+        --workspace-hover: var(--rail-hover, #69554016);
+        --workspace-surface: var(--rail-surface, #faf7f2);
+    }
     .railway-table[data-theme='dark'] {
         color-scheme: dark;
         --rail-text: #e3e9ef;

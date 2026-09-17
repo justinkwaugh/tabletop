@@ -3,7 +3,7 @@
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import type { CompanyNameVariants } from './companyPresentation.js'
     import type { OperatingRoundHistory } from './operatingHistory.js'
-    import SpreadsheetPlayerName from './SpreadsheetPlayerName.svelte'
+    import PlayerName from './PlayerName.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
 
     let {
@@ -43,7 +43,7 @@
                 <th scope="col" rowspan={view === 'Player' ? 2 : 1}>Round</th>
                 {#if view === 'Player'}
                     {#each players as player (player.playerId)}
-                        <th scope="colgroup" colspan="3" title={player.name}><SpreadsheetPlayerName name={player.name} color={player.color} /></th>
+                        <th scope="colgroup" colspan="3" title={player.name}><PlayerName name={player.name} color={player.color} /></th>
                     {/each}
                 {:else}
                     {#each companies as [companyId, name] (companyId)}
