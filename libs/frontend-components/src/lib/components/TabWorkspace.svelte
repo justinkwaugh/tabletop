@@ -1,9 +1,9 @@
 <script lang="ts">
     import { restoreWorkspace, saveWorkspace, type SavedWorkspace } from './workspacePersistence.js'
     import { tick, untrack, type Snippet } from 'svelte'
-    import { type WorkspaceInitialSplit, activateTab, deletePane, moveTab, resizeSplit, splitPane, swapSplit, workspaceLayout, type DividerLayout, type WorkspaceNode, type WorkspacePane, type PaneLayout } from './tabWorkspace.js'
+    import { type WorkspaceInitialSplit, activateTab, closeTab, addTab, deletePane, moveTab, resizeSplit, splitPane, swapSplit, workspaceLayout, type DividerLayout, type WorkspaceNode, type WorkspacePane, type PaneLayout } from './tabWorkspace.js'
     let { tabs, children, selected = $bindable<string>(), label = 'Workspace', splittable = true, initialSplit, fixedPane, tabTitle, savedLayout, onLayoutChange }: {
-        tabs: readonly { id: string; label: string; shortLabel?: string }[]
+        tabs: readonly { id: string; label: string; shortLabel?: string; optional?: boolean; closable?: boolean }[]
         children: Snippet<[string, boolean]>
         savedLayout?: unknown
         onLayoutChange?: (value: SavedWorkspace) => void
@@ -15,13 +15,14 @@
         initialSplit?: WorkspaceInitialSplit
     } = $props()
     const instanceId = $props.id()
-    const initial = untrack(() => restoreWorkspace(savedLayout, tabs.map(tab => tab.id), fixedPane?.tabs ?? [], initialSplit))
+    const closableTabs = $derived(tabs.filter(tab => tab.closable !== false).map(tab => tab.id))
+    const initial = untrack(() => restoreWorkspace(savedLayout, tabs.map(tab => tab.id), fixedPane?.tabs ?? [], initialSplit, tabs.filter(tab => tab.optional).map(tab => tab.id), closableTabs))
     let root: WorkspaceNode = $state(initial.root)
     let fixed: WorkspacePane = $state(initial.fixed)
-    let lastLayout = JSON.stringify(saveWorkspace(initial.root, initial.fixed))
+    let lastLayout = JSON.stringify(saveWorkspace(initial.root, initial.fixed, closableTabs.filter(id => !tabs.find(tab => tab.id === id)?.optional)))
     $effect(() => {
         if (resize) return
-        const value = saveWorkspace(root, fixed)
+        const value = saveWorkspace(root, fixed, closableTabs.filter(id => !tabs.find(tab => tab.id === id)?.optional))
         const serialized = JSON.stringify(value)
         if (serialized === lastLayout) return
         lastLayout = serialized
@@ -36,12 +37,16 @@
         move(target)
         return { update: move, destroy() { node.remove() } }
     }
+    function availableTabs(pane: string) {
+        return tabs.filter(tab => accepts(tab.id, pane) && !layout.panes.some(item => item.pane.tabs.includes(tab.id)))
+    }
     function accepts(tab: string, pane: string) { return pane !== 'fixed' || !!fixedPane?.tabs.includes(tab) }
     function activate(tab: string) {
         root = activateTab(root, tab)
         if (fixed.tabs.includes(tab)) fixed = { ...fixed, active: tab }
     }
     let element: HTMLDivElement
+    let menuPosition = $state({ top: 0, right: 0 })
     let dragged: string | undefined = $state()
     let pendingDrop: { tab: string; pane: string; beforeTab?: string } | undefined
     let insertBefore: string | undefined = $state()
@@ -60,7 +65,22 @@
             root = combined.second
         }
         selected = tab
-        void tick().then(() => document.getElementById(`${instanceId}-tab-${tab}`)?.focus())
+        void tick().then(() => document.getElementById(`${instanceId}-tab-${encodeURIComponent(tab)}`)?.focus())
+    }
+    function removeTab(tab: string) {
+        if (!closableTabs.includes(tab)) return
+        root = closeTab(root, tab)
+        const next = closeTab(fixed, tab)
+        if (next.kind === 'pane') fixed = next
+        if (selected === tab) selected = undefined
+    }
+    function addWidget(tab: string, pane: string) {
+        if (layout.panes.some(item => item.pane.tabs.includes(tab))) transfer(tab, pane)
+        else {
+            if (pane === 'fixed') { const next = addTab(fixed, tab, pane); if (next.kind === 'pane') fixed = next }
+            else root = addTab(root, tab, pane)
+            selected = tab
+        }
     }
     function drop(event: DragEvent, pane: string, beforeTab?: string) {
         if (!dragged || !accepts(dragged, pane)) return
@@ -99,7 +119,7 @@
         if (next === undefined) return
         event.preventDefault()
         select(pane.tabs[next])
-        document.getElementById(`${instanceId}-tab-${pane.tabs[next]}`)?.focus()
+        document.getElementById(`${instanceId}-tab-${encodeURIComponent(pane.tabs[next])}`)?.focus()
     }
     function startResize(event: MouseEvent, divider: DividerLayout) {
         if (event.button !== 0 || !(event.currentTarget instanceof HTMLElement)) return
@@ -141,8 +161,8 @@
                 <div class="tabs" role="tablist" aria-label={item.pane.id === 'fixed' ? `${fixedPane?.label} tabs` : `${label} tabs ${layout.panes.indexOf(item) + 1}`}>
                     {#each item.pane.tabs as id (id)}
                         {@const tab = tabs.find(tab => tab.id === id)}
-                        <button class:insert-before={insertBefore === id && dragged !== id} role="tab" id={`${instanceId}-tab-${id}`} aria-selected={item.pane.active === id}
-                            aria-controls={`${instanceId}-panel-${id}`} tabindex={item.pane.active === id ? 0 : -1}
+                        <button class:insert-before={insertBefore === id && dragged !== id} role="tab" id={`${instanceId}-tab-${encodeURIComponent(id)}`} aria-selected={item.pane.active === id}
+                            aria-controls={`${instanceId}-panel-${encodeURIComponent(id)}`} tabindex={item.pane.active === id ? 0 : -1}
                             draggable={splittable} onclick={() => select(id)} onkeydown={(event) => tabKeys(event, item.pane.id, id)}
                             title={splittable ? "Drag to reorder or move to another pane; Alt+Shift+Left/Right moves between panes" : undefined}
                             ondragover={(event) => dragOver(event, item.pane.id, id)} ondrop={(event) => drop(event, item.pane.id, id)}
@@ -152,20 +172,46 @@
                         </button>
                     {/each}
                 </div>
-                {#if splittable && item.pane.id !== 'fixed'}<div class="split-controls">
-                    {#if mainLayout.panes.length > 1}
+                {#if splittable && (item.pane.id !== 'fixed' || item.pane.tabs.length || availableTabs(item.pane.id).length)}<div class="split-controls">
+                    <button class="split-button" aria-label={`Pane options for ${paneLabel(item)}`} title="Pane options" popovertarget={`${instanceId}-add-${item.pane.id}`}
+                        onclick={(event) => { const rect = event.currentTarget.getBoundingClientRect(); menuPosition = { top: rect.bottom + 4, right: Math.max(8, window.innerWidth - Math.max(188, rect.right)) } }}>
+                        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4 9v2m6-2v2m6-2v2" stroke-width="3" stroke-linecap="round"/></svg>
+                    </button>
+                    <div class="widget-menu" id={`${instanceId}-add-${item.pane.id}`} popover style:top={`${menuPosition.top}px`} style:right={`${menuPosition.right}px`}>
+                        {#if item.pane.id !== 'fixed'}
+                        <div class="pane-actions">
+                            {#each ['horizontal', 'vertical'] as const as axis}
+                                <button aria-label={`Split pane ${layout.panes.indexOf(item) + 1} ${axis === 'horizontal' ? 'horizontally' : 'vertically'}`}
+                                    title={axis === 'horizontal' ? 'Split top / bottom' : 'Split left / right'} disabled={!item.available.includes(axis)} popovertarget={`${instanceId}-add-${item.pane.id}`} popovertargetaction="hide"
+                                    onclick={() => root = splitPane(root, item.pane.id, axis)}>
+                                    <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect x="2" y="3" width="16" height="14" rx="1" />{#if axis === 'horizontal'}<path d="M2 10h16" />{:else}<path d="M10 3v14" />{/if}</svg>
+                                </button>
+                            {/each}
+                        </div>
+                        {/if}
+                        {#if item.pane.tabs.length}{#if item.pane.id !== 'fixed'}<hr />{/if}
+                            <strong>Current tabs</strong>
+                            {#each item.pane.tabs as id (id)}
+                                <div class="existing-tab"><span>{tabs.find(tab => tab.id === id)?.label}</span>
+                                    {#if closableTabs.includes(id)}<button class="close-tab" aria-label={`Close ${id} tab`} title="Close tab" onclick={() => removeTab(id)}><svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" /></svg></button>{/if}
+                                </div>
+                            {/each}
+                        {/if}
+                        {#if availableTabs(item.pane.id).length}{#if item.pane.id !== 'fixed' || item.pane.tabs.length}<hr />{/if}
+                        <strong>Add tabs</strong>
+                        {#each availableTabs(item.pane.id) as tab (tab.id)}
+                            <button class="add-tab" popovertarget={`${instanceId}-add-${item.pane.id}`} popovertargetaction="hide" onclick={() => addWidget(tab.id, item.pane.id)}>
+                                {tab.label}
+                            </button>
+                        {/each}
+                        {/if}
+                    </div>
+                    {#if item.pane.id !== 'fixed' && mainLayout.panes.length > 1}
                         <button class="split-button" aria-label={`Delete pane ${layout.panes.indexOf(item) + 1}`} title="Delete pane"
                             onclick={() => { root = deletePane(root, item.pane.id); if (selected) root = activateTab(root, selected) }}>
                             <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" /></svg>
                         </button>
                     {/if}
-                    {#each ['horizontal', 'vertical'] as const as axis}
-                        <button class="split-button" aria-label={`Split pane ${layout.panes.indexOf(item) + 1} ${axis === 'horizontal' ? 'horizontally' : 'vertically'}`}
-                            title={axis === 'horizontal' ? 'Split top and bottom' : 'Split left and right'} disabled={!item.available.includes(axis)}
-                            onclick={() => root = splitPane(root, item.pane.id, axis)}>
-                            <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect x="2" y="3" width="16" height="14" rx="1" />{#if axis === 'horizontal'}<path d="M2 10h16" />{:else}<path d="M10 3v14" />{/if}</svg>
-                        </button>
-                    {/each}
                 </div>{/if}
             </header>
             {#if !item.pane.tabs.length}<div class="empty">Drag a tab here</div>{/if}
@@ -177,7 +223,7 @@
         {@const item = layout.panes.find(item => item.pane.tabs.includes(tab.id))}
         {#if item}
             <div use:mountPane={item.pane.id === 'fixed' ? fixedPane?.target : undefined} class="panel" class:inactive={item.pane.active !== tab.id} class:drop-target={dropTarget === item.pane.id}
-                role="tabpanel" id={`${instanceId}-panel-${tab.id}`} aria-labelledby={`${instanceId}-tab-${tab.id}`}
+                role="tabpanel" id={`${instanceId}-panel-${encodeURIComponent(tab.id)}`} aria-labelledby={`${instanceId}-tab-${encodeURIComponent(tab.id)}`}
                 aria-hidden={item.pane.active !== tab.id} inert={item.pane.active !== tab.id} tabindex="0"
                 style:left={`${item.x}%`} style:top={`calc(${item.y}% + var(--workspace-header-height))`} style:width={`${item.width}%`} style:height={`calc(${item.height}% - var(--workspace-header-height))`}
                 ondragover={(event) => dragOver(event, item.pane.id)} ondrop={(event) => drop(event, item.pane.id)}>
@@ -227,6 +273,17 @@
     .panel.inactive { visibility: hidden; pointer-events: none; }
     .empty { flex: 1; display: grid; place-items: center; color: var(--workspace-muted, var(--rail-muted, #887969)); font-size: 13px; }
     .drop-target { outline: 2px dashed var(--workspace-focus, var(--rail-focus, #7c634b)); outline-offset: -4px; }
+    .widget-menu { margin: 0; left: auto; width: 180px; box-sizing: border-box; max-height: 70dvh; overflow: auto; padding: 4px; border: 1px solid var(--rail-border, #d2c5b7); border-radius: 6px; background: var(--rail-surface, #faf7f2); color: var(--rail-text, #443c34); }
+    .existing-tab { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 26px; font-size: 12px; padding-left: 4px; }
+    .widget-menu .close-tab { width: 24px; height: 24px; padding: 0; display: grid; place-items: center; justify-content: center; gap: 0; flex: none; }
+    .widget-menu .pane-actions { display: flex; gap: 2px; }
+    .widget-menu .pane-actions button { display: grid; place-items: center; width: 24px; height: 24px; padding: 2px; border-radius: 3px; }
+    .widget-menu hr { border: 0; border-top: 1px solid var(--rail-border, #d2c5b7); margin: 6px 0 10px; }
+    .widget-menu button:disabled { opacity: .35; cursor: default; }
+    .widget-menu strong { display: block; margin: 0 4px 4px; font-size: 11px; font-weight: 600; color: var(--rail-muted, #887969); }
+    .widget-menu .add-tab { min-height: 26px; padding: 4px; font-size: 12px; }
+    .widget-menu button { display: flex; justify-content: space-between; gap: 24px; width: 100%; padding: 8px; border: 0; text-align: left; }
+    .widget-menu button:hover { background: var(--rail-hover, #69554016); }
     .swap-sides { opacity: 0; pointer-events: none; position: absolute; z-index: 5; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--rail-border, #d2c5b7); border-radius: 5px; background: var(--rail-surface, #faf7f2); color: var(--rail-muted, #887969); }
     .divider:hover + .swap-sides, .divider:focus + .swap-sides, .swap-sides:hover, .swap-sides:focus-visible { opacity: 1; pointer-events: auto; }
     .divider { position: absolute; z-index: 4; cursor: row-resize; touch-action: none; }

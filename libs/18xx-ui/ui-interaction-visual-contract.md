@@ -1515,3 +1515,31 @@ at least 660px wide and wider than it is tall; otherwise they stack vertically.
 The layout follows the actual pane dimensions, including resizing and tab moves.
 In Actions panes, the operating-order footer stays at the bottom while action
 content scrolls above it. Expanded order details may scroll within the footer.
+
+In the splittable workspace, spreadsheet tables (current holdings, income and
+payouts) fill the pane horizontally with no gap below the controls. Narrow, non-paned layouts retain the centered
+intrinsic-width sheet. Controls remain centered and oversized tables scroll.
+
+Pane headers offer Add tab or widget. The catalog moves existing tabs without
+duplicating them, and adds absent optional tabs. Fixed-pane restrictions apply.
+Optional tabs are excluded from defaults and missing-tab recovery, but retained
+when present in saved layouts. Operating Order is the first optional widget; in
+the wide layout it replaces the Actions footer and is absent until added. The
+original narrow layout retains its operating-order strip.
+
+Pane headers consolidate splitting and adding/moving tabs into a compact options
+popover anchored below an ellipsis button. Delete remains the far-right control.
+The fixed pane exposes only allowed tab choices; it cannot split or close.
+
+The options popup uses a consistent compact width, with split icons followed by
+Current tabs and Add tabs sections. Add tabs is always visible when tabs can be added;
+there is no separate plus button.
+
+The Add list contains only tabs absent from every pane. Already placed tabs move
+via dragging, not the catalog. Hide Add tabs when no allowed absent tabs remain;
+the fixed pane needs no options button when it has no current or available tabs.
+
+The options dropdown lists the pane’s current tabs with individual close buttons.
+Actions is protected and never closeable. Closed tabs become available in Add.
+An optional `closed` list in saved layouts distinguishes deliberate closures from
+missing newly introduced tabs; protected tabs ignore entries in that list.

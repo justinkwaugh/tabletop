@@ -314,7 +314,7 @@
     let sidebar: HTMLDivElement
     let selectedView = $state('Map')
     const view = $derived(selectedView)
-    const workspaceTabs = views.map(id => ({ id, label: id, ...(id === 'Spreadsheet' ? { shortLabel: 'Sheet' } : {}) }))
+    const workspaceTabs = views.map(id => ({ id, label: id, closable: id !== 'Actions', ...(id === 'Spreadsheet' ? { shortLabel: 'Sheet' } : {}) }))
 
     function navigateByShortcut(event: KeyboardEvent) {
         if (event.defaultPrevented || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return
@@ -448,20 +448,7 @@
                     {layoutPreference.status === 'unsaved' ? 'Layout unsaved' : layoutPreference.status === 'saving' ? 'Saving…' : layoutPreference.status === 'error' ? 'Layout not saved · Retry' : 'Saved'}
                 </button>
             {/if}
-            {#snippet actionContent()}
-            <div class="action-body">
-            <OperatingSteps {session} {privatePurchaseLabel} readOnly={readOnlyPosition} />
-            {#if !readOnlyPosition}
-            <StockActionStrip {session} additionalActions={additionalStockActions} />
-            {/if}
-            <section class="action-panel" aria-label="Current action">
-                {#if readOnlyPosition}
-                    <PositionPanel {session} {trainColors} describeAction={historyDescription} />
-                {:else}
-                    {@render actions(focusLocation, focusRoute)}
-                {/if}
-            </section>
-            </div>
+            {#snippet operatingOrderContent()}
             {#if operating && !financialState.result && companyOrder.length}
             <div class="operating-order-footer">
             <div class="order-display">
@@ -501,10 +488,27 @@
             </div>
             {/if}
             {/snippet}
+            {#snippet actionContent()}
+            <div class="action-body">
+            <OperatingSteps {session} {privatePurchaseLabel} readOnly={readOnlyPosition} />
+            {#if !readOnlyPosition}
+            <StockActionStrip {session} additionalActions={additionalStockActions} />
+            {/if}
+            <section class="action-panel" aria-label="Current action">
+                {#if readOnlyPosition}
+                    <PositionPanel {session} {trainColors} describeAction={historyDescription} />
+                {:else}
+                    {@render actions(focusLocation, focusRoute)}
+                {/if}
+            </section>
+            </div>
+            {#if !paneLayout.current}{@render operatingOrderContent()}{/if}
+            {/snippet}
             {#snippet children(id: string, active: boolean)}
                     {#if id === 'Players'}<div class="workspace-view players-pane">{@render playerCards()}</div>
                     {:else if id === 'History'}<div class="workspace-view">{@render historyPanel()}</div>
                     {:else if id === 'Chat'}<div class="workspace-view">{#if active}{@render chatPanel()}{/if}</div>
+                    {:else if id === 'Operating Order'}<div class="workspace-view">{@render operatingOrderContent()}{#if !operating || financialState.result || !companyOrder.length}<p class="widget-empty">No operating order this round.</p>{/if}</div>
                     {:else if id === 'Actions'}<div class="workspace-view actions-area">{@render actionContent()}</div>{:else if id === 'Map'}<div class="workspace-view map-area">
                     <ScalingWrapper
                         bind:this={mapWrapper}
@@ -553,6 +557,7 @@
                     </ScalingWrapper>
                     </div>{:else if id === 'Spreadsheet'}<div class="workspace-view data-area">
                     <OwnershipSpreadsheet
+                        fillWidth={paneLayout.current}
                         {includedPortfolioCompanyIds}
                         companyOrder={spreadsheetCompanyOrder}
                         onPreviewMap={previewHistoryMap}
@@ -577,7 +582,7 @@
                     </div>{/if}
                 {/snippet}
             {#if paneLayout.current}
-                <TabWorkspace tabs={[...workspaceTabs, ...sidebarViews.map(id => ({ id, label: id }))]} savedLayout={layoutPreference.value} onLayoutChange={layoutPreference.change} tabTitle={sidebarTabIcon} fixedPane={{ target: fixedPaneTarget, tabs: sidebarViews, label: 'Players / History / Chat' }} bind:selected={selectedView} label="Table views" initialSplit={{ axis: 'horizontal', first: ['Actions'] }} {children} />
+                <TabWorkspace tabs={[...workspaceTabs, { id: 'Operating Order', label: 'Operating Order', optional: true }, ...sidebarViews.map(id => ({ id, label: id }))]} savedLayout={layoutPreference.value} onLayoutChange={layoutPreference.change} tabTitle={sidebarTabIcon} fixedPane={{ target: fixedPaneTarget, tabs: sidebarViews, label: 'Players / History / Chat' }} bind:selected={selectedView} label="Table views" initialSplit={{ axis: 'horizontal', first: ['Actions'] }} {children} />
             {:else}
                 <div class="original-actions">{@render actionContent()}</div>
                 <TabWorkspace tabs={workspaceTabs.filter(tab => tab.id !== 'Actions')} bind:selected={selectedView} label="Table views" splittable={false} {children} />
@@ -606,7 +611,7 @@
     .players-pane { container: player-pane / size; }
     .actions-area { display: flex; flex-direction: column; overflow: hidden; }
     .actions-area .action-body { flex: 1; min-height: 0; overflow: auto; }
-    .actions-area .operating-order-footer { flex: none; max-height: 50%; overflow: auto; }
+    .widget-empty { padding: 16px; color: var(--rail-muted, #887969); }
     .order-display { display: flex; justify-content: flex-end; }
     .railway-table { color-scheme: light; }
     .railway-table[data-theme='dark'] {

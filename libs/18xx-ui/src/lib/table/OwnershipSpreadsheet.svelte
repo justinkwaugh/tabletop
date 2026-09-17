@@ -24,6 +24,7 @@
 
     let {
         session,
+        fillWidth = false,
         onPreviewMap,
         companyOrder,
         marketPoolId,
@@ -34,6 +35,7 @@
         includedPortfolioCompanyIds = [],
         portfolioCompanyIds = []
     }: {
+        fillWidth?: boolean
         companyOrder?: readonly string[]
         onPreviewMap: (action: GameAction) => void
         session: FinanceExampleSession
@@ -241,7 +243,7 @@
     </span>
 {/snippet}
 
-<div class="spreadsheet">
+<div class="spreadsheet" class:fill-width={fillWidth}>
     <div class="toolbar" role="group" aria-label="Spreadsheet controls">
         <div class="view-toggle axis-toggle period-toggle" role="group" aria-label="Spreadsheet period">
             {#each ['Current', 'Player income', 'Company payouts'] as const as option, index}
@@ -513,6 +515,9 @@
     }
     .sheet-spacing { flex: 0 1 20px; min-height: 0; }
     .sheet-content { flex-shrink: 0; width: fit-content; max-width: 100%; margin-inline: auto; }
+    .fill-width .sheet-spacing { display: none; }
+    .fill-width .sheet-content { width: 100%; }
+    .fill-width .sheet-content :global(table) { width: 100%; }
     .toolbar {
         display: flex;
         flex-shrink: 0;

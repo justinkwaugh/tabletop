@@ -27,3 +27,20 @@ it('invalid, future-version, overdeep and overfull layouts fall back safely', ()
         expect(restored.fixed.tabs).toEqual(sidebar)
     }
 })
+
+it('keeps optional widgets absent by default but restores them when saved', () => {
+    const catalog = [...tabs, 'Operating Order']
+    const optional = ['Operating Order']
+    const initialState = restoreWorkspace(null, catalog, sidebar, initial, optional)
+    expect(workspaceLayout(initialState.root).panes.flatMap(p => p.pane.tabs)).not.toContain('Operating Order')
+    const restored = restoreWorkspace({ v: 1, sidebar, main: ['Operating Order', 'Map'] }, catalog, sidebar, initial, optional)
+    expect(workspaceLayout(restored.root).panes[0].pane.tabs).toContain('Operating Order')
+})
+
+it('honors intentional closures but never closes a protected tab during restore', () => {
+    const restored = restoreWorkspace({ v: 1, sidebar, main: ['Map'], closed: ['Tiles', 'Actions'] }, tabs, sidebar, initial, [], ['Tiles'])
+    const ids = workspaceLayout(restored.root).panes.flatMap(item => item.pane.tabs)
+    expect(ids).not.toContain('Tiles')
+    expect(ids).toContain('Actions')
+    expect(saveWorkspace(restored.root, restored.fixed, ['Tiles']).closed).toEqual(['Tiles'])
+})

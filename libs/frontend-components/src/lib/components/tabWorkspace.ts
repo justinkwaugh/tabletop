@@ -117,3 +117,14 @@ export function swapSplit(root: WorkspaceNode, id: string): WorkspaceNode {
     if (root.id === id) return { ...root, ratio: 100 - root.ratio, first: root.second, second: root.first }
     return { ...root, first: swapSplit(root.first, id), second: swapSplit(root.second, id) }
 }
+
+export function addTab(root: WorkspaceNode, tab: string, pane: string): WorkspaceNode {
+    if (workspaceLayout(root).panes.some(item => item.pane.tabs.includes(tab))) return moveTab(root, tab, pane)
+    return updatePane(root, pane, item => ({ ...item, tabs: [...item.tabs, tab], active: tab }))
+}
+
+export function closeTab(root: WorkspaceNode, tab: string): WorkspaceNode {
+    if (root.kind === 'split') return { ...root, first: closeTab(root.first, tab), second: closeTab(root.second, tab) }
+    const tabs = root.tabs.filter(id => id !== tab)
+    return { ...root, tabs, active: root.active === tab ? tabs[0] : root.active }
+}

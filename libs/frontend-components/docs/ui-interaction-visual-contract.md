@@ -258,3 +258,27 @@ or focused. It stays visible while hovering the button and is keyboard focusable
 Pane content has an explicit stacking level above pane header/drop-target shells,
 with dividers and swap controls above both. Newly inserted pane shells must never
 intercept clicks intended for content moved into them.
+
+Pane headers offer Add tab or widget. The catalog moves existing tabs without
+duplicating them, and adds absent optional tabs. Fixed-pane restrictions apply.
+Optional tabs are excluded from defaults and missing-tab recovery, but retained
+when present in saved layouts. Operating Order is the first optional widget; in
+the wide layout it replaces the Actions footer and is absent until added. The
+original narrow layout retains its operating-order strip.
+
+Pane headers consolidate splitting and adding/moving tabs into a compact options
+popover anchored below an ellipsis button. Delete remains the far-right control.
+The fixed pane exposes only allowed tab choices; it cannot split or close.
+
+The options popup uses a consistent compact width, with split icons followed by
+Current tabs and Add tabs sections. Add tabs is always visible when tabs can be added;
+there is no separate plus button.
+
+The Add list contains only tabs absent from every pane. Already placed tabs move
+via dragging, not the catalog. Hide Add tabs when no allowed absent tabs remain;
+the fixed pane needs no options button when it has no current or available tabs.
+
+The options dropdown lists the pane’s current tabs with individual close buttons.
+Actions is protected and never closeable. Closed tabs become available in Add.
+An optional `closed` list in saved layouts distinguishes deliberate closures from
+missing newly introduced tabs; protected tabs ignore entries in that list.

@@ -1,18 +1,21 @@
 import { createWorkspace, workspaceLayout, MAX_WORKSPACE_PANES, type WorkspaceNode, type WorkspacePane, type WorkspaceInitialSplit } from './tabWorkspace.js'
 
 export type SavedPane = string[] | ['rows' | 'cols', number, SavedPane, SavedPane]
-export interface SavedWorkspace { v: 1; sidebar: string[]; main: SavedPane }
+export interface SavedWorkspace { v: 1; sidebar: string[]; main: SavedPane; closed?: string[] }
 
-export function saveWorkspace(root: WorkspaceNode, fixed: WorkspacePane): SavedWorkspace {
+export function saveWorkspace(root: WorkspaceNode, fixed: WorkspacePane, closableTabs: readonly string[] = []): SavedWorkspace {
     function encode(node: WorkspaceNode): SavedPane {
         return node.kind === 'pane' ? [...node.tabs] : [node.axis === 'horizontal' ? 'rows' : 'cols', Math.round(node.ratio), encode(node.first), encode(node.second)]
     }
-    return { v: 1, sidebar: [...fixed.tabs], main: encode(root) }
+    const present = new Set([...fixed.tabs, ...workspaceLayout(root).panes.flatMap(item => item.pane.tabs)])
+    const closed = closableTabs.filter(id => !present.has(id))
+    return { ...(closed.length ? { closed } : {}), v: 1, sidebar: [...fixed.tabs], main: encode(root) }
 }
 
-export function restoreWorkspace(value: unknown, tabs: readonly string[], sidebar: readonly string[], initialSplit?: WorkspaceInitialSplit) {
-    const fallback = () => ({ root: createWorkspace(tabs.filter(id => !sidebar.includes(id)), undefined, initialSplit), fixed: { kind: 'pane' as const, id: 'fixed', tabs: [...sidebar], active: sidebar[0] } })
+export function restoreWorkspace(value: unknown, tabs: readonly string[], sidebar: readonly string[], initialSplit?: WorkspaceInitialSplit, optionalTabs: readonly string[] = [], closableTabs: readonly string[] = []) {
+    const fallback = () => ({ root: createWorkspace(tabs.filter(id => !sidebar.includes(id) && !optionalTabs.includes(id)), undefined, initialSplit), fixed: { kind: 'pane' as const, id: 'fixed', tabs: [...sidebar], active: sidebar[0] } })
     if (!value || typeof value !== 'object' || !('v' in value) || value.v !== 1 || !('main' in value)) return fallback()
+    const closed = new Set('closed' in value && Array.isArray(value.closed) ? value.closed.filter(id => typeof id === 'string' && closableTabs.includes(id)) : [])
     const seen = new Set<string>()
     let serial = 0
     let leaves = 0
@@ -39,7 +42,7 @@ export function restoreWorkspace(value: unknown, tabs: readonly string[], sideba
         const root = decode(value.main, 0)
         const first = workspaceLayout(root).panes[0].pane
         for (const id of tabs) {
-            if (seen.has(id)) continue
+            if (seen.has(id) || optionalTabs.includes(id) || closed.has(id)) continue
             if (sidebar.includes(id)) fixedTabs.push(id)
             else first.tabs.push(id)
         }
