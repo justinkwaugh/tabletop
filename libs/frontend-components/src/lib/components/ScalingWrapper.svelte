@@ -61,6 +61,7 @@
         justify = 'center',
         controls = 'top-left',
         expandable = false,
+        allowFullscreenShortcut,
         maxScale = 1,
         onManualViewChange
     }: {
@@ -71,6 +72,7 @@
         controls: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'none'
         maxScale?: number
         expandable?: boolean
+        allowFullscreenShortcut?: () => boolean
         onManualViewChange?: () => void
     } = $props()
 
@@ -100,6 +102,10 @@
     let currentTranslateX = $state(0)
     let currentTranslateY = $state(0)
     let isExpanded = $state(false)
+    let fullscreenLayer: HTMLDivElement | undefined = $state()
+    $effect(() => {
+        if (isExpanded) fullscreenLayer?.showPopover()
+    })
     let pinchDistance: number | null = null
     let pinchStartDistance: number | null = null
     let pinchStartScale: number | null = null
@@ -747,6 +753,11 @@
         zoomToScaleKeepingCenter(targetScale, true)
     }
 
+    export function isVisible() {
+        return !!viewport && viewport.getBoundingClientRect().width > 0 &&
+            getComputedStyle(viewport).visibility === 'visible'
+    }
+
     function handleFullscreenKey(event: KeyboardEvent) {
         if (event.defaultPrevented || event.repeat) return
         if (event.key === 'Escape' && isExpanded) {
@@ -757,8 +768,7 @@
         if (
             event.key.toLowerCase() !== 'f' || !expandable ||
             event.ctrlKey || event.metaKey || event.altKey ||
-            !viewport || viewport.getBoundingClientRect().width === 0 ||
-            getComputedStyle(viewport).visibility !== 'visible'
+            !isVisible() || (allowFullscreenShortcut && !allowFullscreenShortcut())
         ) return
         const target = event.target
         if (target instanceof HTMLElement && (
@@ -1220,11 +1230,13 @@
 <svelte:window onkeydown={handleFullscreenKey} />
 
 <div
+    bind:this={fullscreenLayer}
+    popover={isExpanded ? 'manual' : undefined}
     class="relative overflow-hidden"
     class:w-full={!isExpanded}
     class:h-full={!isExpanded}
     style={isExpanded
-        ? 'position: fixed; inset: 0; z-index: 9999; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(1px);'
+        ? 'position: fixed; inset: 0; margin: 0; border: 0; padding: 0; width: auto; height: auto; max-width: none; max-height: none; color: inherit; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(1px);'
         : undefined}
 >
     {#if toolbar}<div bind:clientHeight={toolbarHeight}>{@render toolbar()}</div>{/if}

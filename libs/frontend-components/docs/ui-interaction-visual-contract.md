@@ -296,3 +296,12 @@ omit its fixed sidebar so one workspace can occupy the full available width.
 
 A pane with exactly one tab renders its label at regular weight with no selection
 underline. When another tab enters, normal selected-tab emphasis returns.
+
+ScalingWrapper callers may gate the F shortcut with allowFullscreenShortcut,
+evaluated at keypress time. isVisible reports current rendered visibility. This
+does not disable fullscreen buttons or Escape handling.
+
+ScalingWrapper fullscreen uses a manual popover in the browser top layer, escaping
+ancestor stacking contexts and overflow. The same wrapper/content stay mounted;
+Escape or the fullscreen control returns it to normal flow. Pane shells, content,
+and dividers must never intercept pointer input intended for the expanded view.

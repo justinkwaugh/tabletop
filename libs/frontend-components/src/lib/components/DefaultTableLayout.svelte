@@ -11,6 +11,7 @@
         sideContent,
         debugContent,
         showSidebar = true,
+        horizontalPadding = 8,
         topPadding = 8
     }: {
         mobileControlsContent?: Snippet
@@ -18,6 +19,7 @@
         sideContent?: Snippet
         debugContent?: Snippet
         showSidebar?: boolean
+        horizontalPadding?: number
         topPadding?: number
     } = $props()
 
@@ -43,7 +45,7 @@
             {/if}
         </div>
         <div {@attach scrollToRight} class="w-full overflow-auto">
-            <div class="p-2 w-full h-full flex flex-row justify-between items-start" style:padding-top={topPadding + 'px'}>
+            <div class="p-2 w-full h-full flex flex-row justify-between items-start" style:padding-top={topPadding + 'px'} style:padding-inline={horizontalPadding + 'px'}>
                 {#if showSidebar}<div
                     class="flex flex-col gap-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] {tableInnerHeightDesktopClass} {tableInnerHeightMobileClass}"
                 >

@@ -3,10 +3,10 @@ import { restoreWorkspace, workspaceLayout, type SavedPane } from '@tabletop/fro
 import { initialTableLayout, restoreTableWorkspace, saveTableWorkspace } from './tableWorkspace.js'
 const tabs = ['Game info', 'Players', 'History', 'Chat', 'Actions', 'Map', 'Market', 'Spreadsheet', 'Tiles'].map(id => ({ id, label: id, closable: id !== 'Actions' }))
 
-it('starts with information above social tabs and actions above the four views', () => {
-    const restored = restoreWorkspace(null, tabs.map(tab => tab.id), [], undefined, [], [], initialTableLayout)
+it('starts with information above social tabs and Player Aid after Tiles', () => {
+    const restored = restoreWorkspace(null, [...tabs.map(tab => tab.id), 'Player Aid'], [], undefined, [], [], initialTableLayout)
     expect(workspaceLayout(restored.root).panes.map(item => item.pane.tabs)).toEqual([
-        ['Game info'], ['Players', 'History', 'Chat'], ['Actions'], ['Map', 'Market', 'Spreadsheet', 'Tiles']
+        ['Game info'], ['Players', 'History', 'Chat'], ['Actions'], ['Map', 'Market', 'Spreadsheet', 'Tiles', 'Player Aid']
     ])
 })
 it('preserves legacy splits, percentages and sidebar order during migration', () => {

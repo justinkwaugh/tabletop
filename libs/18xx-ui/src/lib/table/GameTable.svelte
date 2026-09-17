@@ -1,4 +1,6 @@
 <script lang="ts">
+    import './playerTint.css'
+    import { tableHeaderState } from './tableHeaderState.js'
     import { initialTableLayout, restoreTableWorkspace, saveTableWorkspace } from './tableWorkspace.js'
     import { historyMapFocus } from '../maps/historyMapFocus.js'
     import { routeColor } from '../routes/routePresentation.js'
@@ -48,6 +50,7 @@
     import TableHeader from './TableHeader.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import PhaseChart from '../phases/PhaseChart.svelte'
+    import PhaseChartContent from '../phases/PhaseChartContent.svelte'
     import type { PhaseChartData } from '../phases/phaseChart.js'
     let {
         session,
@@ -295,6 +298,8 @@
     })
 
     const financialState = $derived(session.financialState)
+    const headerState = $derived(tableHeaderState(session))
+    const headerPlayerId = $derived(headerState.activePlayerIds.length === 1 ? headerState.activePlayerIds[0] : undefined)
     const operating = $derived(financialState.stockRound.completed && !!financialState.operatingSet)
     const operatingCompanyId = $derived(operating && !financialState.result ? nextOperatingCompany(financialState) : undefined)
     const companyOrder = $derived(
@@ -309,7 +314,7 @@
         value => session.preferences.save({ paneLayout: value }, 'family')
     )
     const paneLayout = new MediaQuery('(min-width: 64rem)')
-    const views = ['Map', 'Market', 'Spreadsheet', 'Tiles', 'Actions'] as const
+    const views = ['Map', 'Market', 'Spreadsheet', 'Tiles', 'Player Aid', 'Actions'] as const
     const sidebarViews = ['Players', 'History', 'Chat']
     let sidebar: HTMLDivElement
     let selectedView = $state('Map')
@@ -325,7 +330,7 @@
         const viewIndex = ['m', 'k', 's', 't', 'a'].indexOf(key)
         if (viewIndex >= 0) {
             event.preventDefault()
-            selectedView = views[viewIndex]
+            selectedView = ['Map', 'Market', 'Spreadsheet', 'Tiles', 'Actions'][viewIndex]
             return
         }
         const sidebarIndex = ['p', 'h', 'c'].indexOf(key)
@@ -427,7 +432,7 @@
 
 <div class="railway-table" data-theme={session.preferences.ready ? session.preferences.values.theme : 'dark'} aria-label="Game table" aria-busy={!session.preferences.ready}>
     {#if session.preferences.ready && layoutPreference.ready}
-    <DefaultTableLayout topPadding={0} showSidebar={!paneLayout.current}>
+    <DefaultTableLayout topPadding={0} horizontalPadding={paneLayout.current ? 0 : 8} showSidebar={!paneLayout.current}>
         {#snippet mobileControlsContent()}
             {@render historyControls()}
         {/snippet}
@@ -437,7 +442,9 @@
             {@render sidebarTabs()}
         {/snippet}
         {#snippet gameContent()}
-            <div class:workspace-heading={paneLayout.current}>
+            <div class:workspace-heading={paneLayout.current}
+                class:player-tinted-header={paneLayout.current && !!headerPlayerId}
+                style:--player-color={headerPlayerId ? session.colors.getPlayerBgColorValue(headerPlayerId) : undefined}>
                 {#if paneLayout.current}<div class="workspace-history-controls">{@render historyControls(false)}</div>{/if}
                 <div class="table-heading"><TableHeader {session} {phaseChart} {trainColors} {companyNames} bordered={!paneLayout.current} /></div>
             </div>
@@ -504,6 +511,7 @@
             {/snippet}
             {#snippet children(id: string, active: boolean)}
                     {#if id === 'Game info'}<div class="workspace-view game-info-pane">{@render sidebarInformation()}</div>
+                    {:else if id === 'Player Aid'}<div class="workspace-view"><PhaseChartContent chart={phaseChart} currentPhaseId={headerState.phaseId} {trainColors} /></div>
                     {:else if id === 'Players'}<div class="workspace-view players-pane">{@render playerCards()}</div>
                     {:else if id === 'History'}<div class="workspace-view">{@render historyPanel()}</div>
                     {:else if id === 'Chat'}<div class="workspace-view">{#if active}{@render chatPanel()}{/if}</div>
@@ -545,7 +553,7 @@
                         {/snippet}
                     </ScalingWrapper>
                     </div>{:else if id === 'Market'}<div class="workspace-view market-area">
-                    <ScalingWrapper justify="center" controls="bottom-left" expandable={true}>
+                    <ScalingWrapper justify="center" controls="bottom-left" expandable={true} allowFullscreenShortcut={() => !mapWrapper?.isVisible()}>
                         <StockMarketScene
                             animation={session.marketAnimation}
                             appearances={session.mapView.stations}
@@ -581,7 +589,7 @@
                     </div>{/if}
                 {/snippet}
             {#if paneLayout.current}
-                <TabWorkspace tabs={paneTabs} savedLayout={restoreTableWorkspace(layoutPreference.value, paneTabs)} onLayoutChange={value => layoutPreference.change(saveTableWorkspace(value))} tabTitle={sidebarTabIcon} bind:selected={selectedView} label="Table views" initialLayout={initialTableLayout} {children} />
+                <div class="pane-workspace"><TabWorkspace tabs={paneTabs} savedLayout={restoreTableWorkspace(layoutPreference.value, paneTabs)} onLayoutChange={value => layoutPreference.change(saveTableWorkspace(value))} tabTitle={sidebarTabIcon} bind:selected={selectedView} label="Table views" initialLayout={initialTableLayout} {children} /></div>
             {:else}
                 <div class="original-actions">{@render actionContent()}</div>
                 <TabWorkspace tabs={workspaceTabs.filter(tab => tab.id !== 'Actions')} bind:selected={selectedView} label="Table views" splittable={false} {children} />
@@ -604,7 +612,8 @@
 <style>
     .layout-save { align-self: flex-end; flex: none; border: 0; background: transparent; color: var(--rail-muted, #887969); font-size: 11px; padding: 2px 8px; cursor: pointer; }
     .unread-chat { width: 7px; height: 7px; border-radius: 50%; background: #f43f5e; }
-    .workspace-heading { display: flex; flex: none; align-items: center; gap: 8px; border-bottom: 1px solid var(--rail-border, #b8a995); }
+    .pane-workspace { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+    .workspace-heading { padding-inline: 8px; display: flex; flex: none; align-items: center; gap: 8px; border-bottom: 1px solid var(--rail-border, #b8a995); }
     .workspace-history-controls { width: 320px; flex: none; }
     .table-heading { flex: 1; min-width: 0; }
     .game-info-pane { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; box-sizing: border-box; }
@@ -613,7 +622,7 @@
     .game-info-pane .phase-information { padding-left: 0; }
     .original-actions { flex: none; max-height: 50dvh; overflow: auto; }
     .workspace-view { height: 100%; min-height: 0; min-width: 0; overflow: auto; }
-    .players-pane { container: player-pane / size; padding-top: 10px; box-sizing: border-box; }
+    .players-pane { container: player-pane / size; padding: 10px 8px 0; box-sizing: border-box; }
     .actions-area { display: flex; flex-direction: column; overflow: hidden; }
     .actions-area .action-body { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: auto; }
     .actions-area .action-panel { flex: 1 0 auto; }

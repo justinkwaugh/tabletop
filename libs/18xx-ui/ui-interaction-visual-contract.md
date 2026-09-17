@@ -1591,3 +1591,19 @@ Company/pool headers and numeric cells retain their existing backgrounds.
 
 Player cards in workspace panes start 10px below the pane header, matching the
 10px gap between cards in both vertical and horizontal arrangements.
+
+When Map and Market are visible in separate panes, F toggles Map fullscreen only.
+Market accepts F when Map is hidden or closed; its fullscreen button remains
+available in either case. Visibility is checked when the key is pressed, so tab
+transfers and remount order do not change shortcut priority.
+
+Expanded Map/Market views render above all workspace panes and dividers through
+the shared wrapper’s browser top layer, preserving mounted content on exit.
+
+The unified pane-mode history/round header uses the same 15% player tint for the
+single active player in its displayed state, including history navigation. It
+remains neutral when no single player is active. The tint and bottom border span
+the screen width. Panes reach both screen edges without outer side padding; header
+controls and Players pane content have an internal 8px side inset. Phase badges retain canonical colors.
+
+Player Aid is a default table tab after Tiles, movable and closable like the other reference views. It shares the phase chart, train roster, and notes with the phase popup, uses the viewed phase, and stacks its tables in narrow panes.
