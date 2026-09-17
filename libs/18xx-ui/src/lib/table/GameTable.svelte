@@ -109,6 +109,7 @@
     const readOnlyPosition = $derived(session.isViewingHistory || !session.myPlayer || !session.isMyTurn)
     let showDepot = $state(false)
     let showPhaseChart = $state(false)
+    const depotState = $derived({ depot: session.trainDepot, inventory: session.financialState.trainInventory, availableDefinitionIds: session.availableTrainDefinitionIds })
     const currentDepotIds = $derived(session.availableTrainDefinitionIds.filter((id) => session.trainDepot.remaining(session.financialState.trainInventory, id) !== 0))
 
     let mapWrapper = $state<ScalingWrapper>()
@@ -320,7 +321,7 @@
     let selectedView = $state('Map')
     const view = $derived(selectedView)
     const workspaceTabs = views.map(id => ({ id, label: id, closable: id !== 'Actions', ...(id === 'Spreadsheet' ? { shortLabel: 'Sheet' } : {}) }))
-    const paneTabs = [...workspaceTabs, { id: 'Operating Order', label: 'Operating Order', optional: true }, { id: 'Game info', label: 'Game info' }, ...sidebarViews.map(id => ({ id, label: id }))]
+    const paneTabs = [...workspaceTabs, { id: 'Depot', label: 'Depot', optional: true }, { id: 'Operating Order', label: 'Operating Order', optional: true }, { id: 'Game info', label: 'Game info' }, ...sidebarViews.map(id => ({ id, label: id }))]
 
     function navigateByShortcut(event: KeyboardEvent) {
         if (event.defaultPrevented || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return
@@ -406,6 +407,7 @@
 {/snippet}
                 {#snippet chatPanel()}
                     <GameChat
+                        framed={!paneLayout.current}
                         timeColor="text-[var(--rail-muted,#887969)]"
                         messageTextColor="text-[var(--rail-text,#4b4239)]"
                         composerTextColor="text-[var(--rail-text,#4b4239)]"
@@ -449,7 +451,7 @@
                 <div class="table-heading"><TableHeader {session} {phaseChart} {trainColors} {companyNames} bordered={!paneLayout.current} /></div>
             </div>
             {#if paneLayout.current && layoutPreference.status}
-                <button class="layout-save" disabled={layoutPreference.status === 'saving' || layoutPreference.status === 'saved'} onclick={() => layoutPreference.save()} title="Layout saves automatically after five seconds without changes. Click to save now.">
+                <button class="layout-save" disabled={layoutPreference.status === 'saving' || layoutPreference.status === 'saved'} onclick={() => layoutPreference.save()} title="Layout saves automatically after three seconds without changes. Click to save now.">
                     {layoutPreference.status === 'unsaved' ? 'Layout unsaved' : layoutPreference.status === 'saving' ? 'Saving…' : layoutPreference.status === 'error' ? 'Layout not saved · Retry' : 'Saved'}
                 </button>
             {/if}
@@ -511,7 +513,8 @@
             {/snippet}
             {#snippet children(id: string, active: boolean)}
                     {#if id === 'Game info'}<div class="workspace-view game-info-pane">{@render sidebarInformation()}</div>
-                    {:else if id === 'Player Aid'}<div class="workspace-view"><PhaseChartContent chart={phaseChart} currentPhaseId={headerState.phaseId} {trainColors} /></div>
+                    {:else if id === 'Player Aid'}<div class="workspace-view"><PhaseChartContent {depotState} chart={phaseChart} currentPhaseId={headerState.phaseId} {trainColors} /></div>
+                    {:else if id === 'Depot'}<div class="workspace-view"><PhaseChartContent {depotState} depotOnly chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} /></div>
                     {:else if id === 'Players'}<div class="workspace-view players-pane">{@render playerCards()}</div>
                     {:else if id === 'History'}<div class="workspace-view">{@render historyPanel()}</div>
                     {:else if id === 'Chat'}<div class="workspace-view">{#if active}{@render chatPanel()}{/if}</div>
@@ -597,8 +600,8 @@
         {/snippet}
     </DefaultTableLayout>
 
-{#if showPhaseChart}<PhaseChart chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} onclose={() => showPhaseChart = false} />{/if}
-{#if showDepot}<PhaseChart depotView={{ depot: session.trainDepot, inventory: session.financialState.trainInventory, availableDefinitionIds: session.availableTrainDefinitionIds }} chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} onclose={() => showDepot = false} />{/if}
+{#if showPhaseChart}<PhaseChart {depotState} chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} onclose={() => showPhaseChart = false} />{/if}
+{#if showDepot}<PhaseChart {depotState} depotOnly chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} onclose={() => showDepot = false} />{/if}
 
 {#if session.historicalMap}
     <HistoricalMapViewer preview={session.historicalMap}

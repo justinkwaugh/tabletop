@@ -123,6 +123,7 @@
 </header>
 
 {#if showPhaseChart}<PhaseChart
+        depotState={{ depot: session.trainDepot, inventory: financialState.trainInventory, availableDefinitionIds: session.availableTrainDefinitionIds }}
         chart={phaseChart}
         currentPhaseId={financialState.phaseId}
         {trainColors}

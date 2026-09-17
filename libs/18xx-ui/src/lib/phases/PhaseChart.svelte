@@ -1,17 +1,18 @@
 <script lang="ts">
-    import type { TrainDepot, TrainInventory } from '@tabletop/18xx'
     import { onMount } from 'svelte'
     import PhaseChartContent from './PhaseChartContent.svelte'
-    import type { PhaseChartData } from './phaseChart.js'
+    import type { PhaseChartData, PhaseChartDepotState } from './phaseChart.js'
 
     let {
         chart,
-        depotView,
+        depotState,
+        depotOnly = false,
         currentPhaseId,
         trainColors,
         onclose
     }: {
-        depotView?: { depot: TrainDepot; inventory: TrainInventory; availableDefinitionIds: readonly string[] }
+        depotState: PhaseChartDepotState
+        depotOnly?: boolean
         chart: PhaseChartData
         currentPhaseId: string
         trainColors: Readonly<Record<string, string>>
@@ -36,10 +37,10 @@
     }
 </script>
 
-<dialog class:depot={!!depotView} bind:this={dialog} aria-labelledby={titleId} {onclose} onclick={closeOutside}>
+<dialog class:depot={depotOnly} bind:this={dialog} aria-labelledby={titleId} {onclose} onclick={closeOutside}>
     <header>
-        <h2 id={titleId}>{depotView ? 'Train Depot' : 'Phase Chart & Train Roster'}</h2>
-        <button class="close" aria-label={depotView ? 'Close depot' : 'Close phase chart'} onclick={() => dialog.close()}>
+        <h2 id={titleId}>{depotOnly ? 'Train Depot' : 'Phase Chart & Train Roster'}</h2>
+        <button class="close" aria-label={depotOnly ? 'Close depot' : 'Close phase chart'} onclick={() => dialog.close()}>
             <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"
                 ><path
                     d="m4 4 8 8m0-8-8 8"
@@ -51,7 +52,7 @@
             >
         </button>
     </header>
-    <PhaseChartContent {chart} {depotView} {currentPhaseId} {trainColors} />
+    <PhaseChartContent {chart} {depotState} {depotOnly} {currentPhaseId} {trainColors} />
 </dialog>
 
 <style>

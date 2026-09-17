@@ -1,4 +1,10 @@
-import type { TrainDepot } from '@tabletop/18xx'
+import type { TrainDepot, TrainInventory } from '@tabletop/18xx'
+
+export type PhaseChartDepotState = {
+    depot: TrainDepot
+    inventory: TrainInventory
+    availableDefinitionIds: readonly string[]
+}
 
 export type PhaseChartData = {
     phases: {

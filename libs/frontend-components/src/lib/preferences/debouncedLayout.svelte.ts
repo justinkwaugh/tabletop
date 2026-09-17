@@ -62,7 +62,7 @@ export class DebouncedLayout {
 
     private schedule() {
         clearTimeout(this.timer)
-        this.timer = setTimeout(() => { void this.save() }, 5000)
+        this.timer = setTimeout(() => { void this.save() }, 3000)
     }
 
     private backup() {

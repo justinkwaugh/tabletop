@@ -13,6 +13,7 @@
     import { getGameSession } from '$lib/model/gameSessionContext.js'
 
     let {
+        framed = true,
         height = 'h-full min-h-0',
         timeColor = 'text-gray-600',
         messageTextColor = 'text-gray-200',
@@ -23,6 +24,7 @@
         inputBorderColor = 'border-gray-500',
         borderColor = 'border-gray-700'
     }: {
+        framed?: boolean
         height?: string
         timeColor?: string
         messageTextColor?: string
@@ -228,7 +230,7 @@
 {/snippet}
 
 <div
-    class="relative flex min-h-0 flex-col justify-end items-center w-full p-2 rounded-lg {borderColor} border gap-y-2 text-sm {bgColor} {height} overflow-hidden"
+    class="relative flex min-h-0 flex-col justify-end items-center w-full p-2 {framed ? 'rounded-lg border' : ''} {borderColor} gap-y-2 text-sm {bgColor} {height} overflow-hidden"
 >
     {#if gameSession.hasUnreadMessages && messagePanel && messagePanel.scrollTop !== 0}
         <div class="absolute top-4 left-0 w-full z-10 flex justify-center">

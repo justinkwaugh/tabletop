@@ -1,23 +1,24 @@
 <script lang="ts">
-    import type { TrainDepot, TrainInventory } from '@tabletop/18xx'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import { TileColors } from '../tiles/tilePresentation.js'
-    import type { PhaseChartData } from './phaseChart.js'
+    import type { PhaseChartData, PhaseChartDepotState } from './phaseChart.js'
     let {
         chart,
-        depotView,
+        depotState,
+        depotOnly = false,
         currentPhaseId,
         trainColors,
     }: {
-        depotView?: { depot: TrainDepot; inventory: TrainInventory; availableDefinitionIds: readonly string[] }
+        depotState: PhaseChartDepotState
+        depotOnly?: boolean
         chart: PhaseChartData
         currentPhaseId: string
         trainColors: Readonly<Record<string, string>>
     } = $props()
 </script>
-<div class="phase-chart-content" class:depot={!!depotView}>
+<div class="phase-chart-content" class:depot={depotOnly}>
     <div class="charts">
-        {#if !depotView}
+        {#if !depotOnly}
         <section aria-label="Phases">
             <table>
                 <thead
@@ -67,19 +68,19 @@
         <section aria-label="Train roster">
             <table>
                 <thead
-                    ><tr><th>Train</th><th class="money">Price</th><th>{depotView ? 'Remaining' : 'Qty'}</th><th>Rusts in phase</th></tr
+                    ><tr><th>Train</th><th class="money">Price</th><th class="number">Remaining</th><th>Rusts in phase</th></tr
                     ></thead
                 >
                 <tbody>
                     {#each chart.trains as train (train.id)}
-                        {@const remaining = depotView ? depotView.depot.remaining(depotView.inventory, train.id) : train.count}
-                        {@const current = depotView?.availableDefinitionIds.includes(train.id) && remaining !== 0}
-                        <tr class:current aria-current={current ? 'step' : undefined} class:exhausted={!!depotView && remaining === 0}>
+                        {@const remaining = depotState.depot.remaining(depotState.inventory, train.id)}
+                        {@const current = depotState.availableDefinitionIds.includes(train.id) && remaining !== 0}
+                        <tr class:current aria-current={current ? 'step' : undefined} class:exhausted={remaining === 0}>
                             <th scope="row"
                                 ><TrainBadge name={train.name} color={trainColors[train.id]} /></th
                             >
                             <td class="money">${train.price.toLocaleString('en-US')}</td>
-                            <td class="number">{remaining === 'unlimited' ? '∞' : remaining}</td
+                            <td class="number">{remaining === 'unlimited' ? '∞' : remaining}/{train.count === 'unlimited' ? '∞' : train.count}</td
                             >
                             <td
                                 >{#if train.rustPhaseId}<TrainBadge
@@ -98,7 +99,7 @@
         {#each chart.trains.filter((train) => train.rustNote) as train}<p>
                 * {train.rustNote}
             </p>{/each}
-        {#if !depotView}{#each chart.notes as note}<p>{note}</p>{/each}{/if}
+        {#if !depotOnly}{#each chart.notes as note}<p>{note}</p>{/each}{/if}
     </div>
 </div>
 <style>

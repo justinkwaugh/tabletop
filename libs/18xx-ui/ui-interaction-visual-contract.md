@@ -1491,7 +1491,7 @@ invalid or oversized trees replaced by defaults. Future versions display default
 without rewriting the stored preference until the user deliberately edits layout.
 
 Only completed structural edits and divider releases/keyboard changes notify the
-save controller. Saves debounce for five seconds, with Layout unsaved / Saving… /
+save controller. Saves debounce for three seconds, with Layout unsaved / Saving… /
 Saved feedback and explicit save or Retry. A local account/family recovery copy
 protects pending edits on reload; it is applied only when its baseline still
 matches the account preference. Narrow layouts do not modify the saved layout.
@@ -1607,3 +1607,7 @@ the screen width. Panes reach both screen edges without outer side padding; head
 controls and Players pane content have an internal 8px side inset. Phase badges retain canonical colors.
 
 Player Aid is a default table tab after Tiles, movable and closable like the other reference views. It shares the phase chart, train roster, and notes with the phase popup, uses the viewed phase, and stacks its tables in narrow panes.
+
+In pane mode, Chat has no outer border or rounded container corners. Its message composer retains its input styling.
+
+Player Aid and Depot share a live train roster: Remaining shows depot stock / initial supply, including ∞ for unlimited trains; currently available nonempty train types are highlighted and exhausted types dimmed. Depot is an optional tab, absent from the default layout and available through Add tabs.
