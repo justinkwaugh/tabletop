@@ -1553,9 +1553,10 @@ the original narrow-screen action area retains its content-sized height.
 from railway colors to the base TabWorkspace theme. The reusable workspace itself
 has no 18xx dependency; its v1 saved layout format remains unchanged.
 
-Auction history identifies offerers, bidders, passers, and winners with a small
-player-color dot before their names. Stock-round turn names and pass entries use
-the same treatment and the viewing player’s selected color palette.
+Auction history headers use a subtle 15% tint of the offering player’s color over
+the theme surface; auction names have no dots. Auction history cards have no outer
+border and use square corners, including the tinted header. Stock-round turn names and pass
+entries retain small player-color dots. Both use the viewing player’s palette.
 
 Players/History/Chat uses the standard workspace tab spacing in pane mode. The
 original non-paned sidebar spacing is unchanged.

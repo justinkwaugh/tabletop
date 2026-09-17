@@ -1,5 +1,4 @@
 <script lang="ts">
-    import PlayerName from './PlayerName.svelte'
     import './historyCard.css'
     import type { AuctionLot } from '@tabletop/18xx'
     import type { AuctionHistoryCard } from './auctionHistory.js'
@@ -17,10 +16,10 @@
 </script>
 
 <article class="history-card" aria-label={`${lot.name} auction history`}>
-    <header class="history-card-header">
+    <header class="history-card-header" style:--offerer-color={playerColor(card.offer.playerId)}>
         <div class="history-entry"
         >
-            <strong><PlayerName name={playerName(card.offer.playerId)} color={playerColor(card.offer.playerId)} dotSize={10} maxWidth="none" /></strong> offered <strong>{lot.name}</strong> for
+            <strong>{playerName(card.offer.playerId)}</strong> offered <strong>{lot.name}</strong> for
             auction
         </div>
     </header>
@@ -28,7 +27,7 @@
         {#each card.events as event (event.id)}
             <div class="history-entry"
             >
-                <span><PlayerName name={playerName(event.playerId)} color={playerColor(event.playerId)} dotSize={10} maxWidth="none" /></span>
+                <span>{playerName(event.playerId)}</span>
                 {#if event.type === 'BidOnAuctionLot'}<span
                         >bid <strong>${event.amount.toLocaleString('en-US')}</strong></span
                     >{:else}<span class="passed">passed</span>{/if}
@@ -38,7 +37,7 @@
             <div
                 class="history-entry winner"
             >
-                <strong><PlayerName name={playerName(card.award.playerId)} color={playerColor(card.award.playerId)} dotSize={10} maxWidth="none" /> won</strong><strong
+                <strong>{playerName(card.award.playerId)} won</strong><strong
                     >${card.award.price.toLocaleString('en-US')}</strong
                 >
             </div>
@@ -50,11 +49,17 @@
 
 <style>
     article {
+        border: 0;
+        border-radius: 0;
         margin: var(--history-item-gap, 5px) 0;
         background: transparent;
         color: var(--rail-text, #514538);
         font-size: 12px;
         line-height: 1.4;
+    }
+    .history-card-header {
+        border-radius: 0;
+        background: color-mix(in srgb, var(--offerer-color) 15%, var(--rail-surface, #faf7f1));
     }
     header .history-entry {
         padding: 0;
