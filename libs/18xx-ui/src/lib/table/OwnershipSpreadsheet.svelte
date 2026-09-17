@@ -19,6 +19,9 @@
     import { ownerPortfolio } from '../finance/ownerPortfolio.js'
     import SpreadsheetPlayerName from './SpreadsheetPlayerName.svelte'
     import OperatingHistory from './OperatingHistory.svelte'
+    import SpreadsheetOutline from './SpreadsheetOutline.svelte'
+
+    let ownershipTable: HTMLTableElement | undefined = $state()
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
 
@@ -269,7 +272,8 @@
             appearances={session.mapView.stations} view={period === 'Player income' ? 'Player' : 'Company'} {companyNames} {onPreviewMap} />
     {:else}
         <div class="table-scroll">
-        <table aria-label="Company share ownership" class:transposed={view === 'Player'}>
+        <div class="outlined-table">
+        <table bind:this={ownershipTable} aria-label="Company share ownership" class:transposed={view === 'Player'}>
             <colgroup>
                 <col class="label-column" />
                 {#if view === 'Company'}
@@ -289,6 +293,7 @@
                         {#each owners as owner, index (owner.id)}<th
                                 scope="col"
                                 class:pool-start={owner.id === firstPoolId}
+                                class:current-player-column={currentPlayerOwners.has(owner.id)}
                                 title={owner.name}><span class="column-owner-label">
                                     {#if ownerConnections[index].controlled}<span class="column-ownership-connector incoming" aria-hidden="true"></span>{/if}
                                     {@render ownerLabel(owner, true)}
@@ -315,7 +320,7 @@
             <tbody>
                 {#if view === 'Company'}
                     {#each rows as row (row.company.id)}
-                        <tr>
+                        <tr class:operating-company={row.company.id === operatingCompanyId}>
                             <th scope="row" aria-label={row.company.name}
                                 >{@render companyLabel(row.company)}</th
                             >
@@ -404,6 +409,8 @@
                 {/if}
             </tbody>
         </table>
+        <SpreadsheetOutline table={ownershipTable} />
+        </div>
         </div>
         {#each includedPortfolioOwners as owner (owner.id)}
             <p class="wealth-footnote" id={`${footnoteId}-${owner.id}`}>* {owner.name}'s net worth is included in its controlling player's net worth.</p>
@@ -469,25 +476,6 @@
         background-color: var(--rail-hover, #69554016);
     }
 
-    tbody tr.current-player > :not(.operating-column) {
-        --player-outline: var(--rail-focus, #9e7752);
-        box-shadow: inset 0 1px var(--player-outline), inset 0 -1px var(--player-outline);
-    }
-    tbody tr.current-player > :first-child {
-        box-shadow: inset 1px 0 var(--player-outline), inset 0 1px var(--player-outline), inset 0 -1px var(--player-outline);
-    }
-    tbody tr.current-player > :last-child {
-        box-shadow: inset -1px 0 var(--player-outline), inset 0 1px var(--player-outline), inset 0 -1px var(--player-outline);
-    }
-    .operating-column {
-        --operating-outline: var(--rail-focus, #9e7752);
-        box-shadow: inset 1px 0 var(--operating-outline), inset -1px 0 var(--operating-outline);
-    }
-    thead .operating-column { box-shadow: inset 1px 0 var(--operating-outline), inset -1px 0 var(--operating-outline), inset 0 1px var(--operating-outline); }
-    tbody tr:last-child .operating-column { box-shadow: inset 1px 0 var(--operating-outline), inset -1px 0 var(--operating-outline), inset 0 -1px var(--operating-outline); }
-
-    tbody tr.current-player > .operating-column { box-shadow: none; }
-
     .company-trains {
         display: flex;
         justify-content: center;
@@ -529,6 +517,7 @@
         background: var(--rail-surface-raised, #e7ded3);
     }
     .table-scroll { overflow-x: auto; }
+    .outlined-table { position: relative; }
     .view-toggle {
         display: flex;
         width: max-content;

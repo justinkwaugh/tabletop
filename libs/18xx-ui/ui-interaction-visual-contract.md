@@ -1420,7 +1420,7 @@ Dark-mode history interstitial borders match the dark table background, leaving 
 
 Operated companies dim as a whole in both themes, including their train badges. This intentional completed-state dimming is an exception to preserving phase colors at full strength in dark mode.
 
-The ownership spreadsheet outlines the current player row and operating company column in player-row orientation; company-row orientation retains ordinary row hover only.
+The ownership spreadsheet outlines the current player row and operating company column in player-row orientation; reversed axes outline the current player column and operating company row.
 
 ### Initial preference loading
 
@@ -1462,7 +1462,7 @@ The sidebar retains its existing Players/History/Chat tab appearance.
 The player-row spreadsheet highlights the active player(s) from the displayed
 financial state with an outline only in both themes. History therefore
 uses its viewed turn. Pool and portfolio-company rows are excluded, and company
-rows do not acquire operating-company highlights. In the player-row orientation,
+rows receive the operating-company outline when the axes are reversed. In the player-row orientation,
 the currently operating company column has a continuous outline from its header
 to the final statistic. Neither outline tints the cells.
 
@@ -1543,3 +1543,8 @@ The options dropdown lists the pane’s current tabs with individual close butto
 Actions is protected and never closeable. Closed tabs become available in Add.
 An optional `closed` list in saved layouts distinguishes deliberate closures from
 missing newly introduced tabs; protected tabs ignore entries in that list.
+
+Spreadsheet row/column emphasis is a continuous, noninteractive SVG layer over the
+ownership table, measured from rendered rows and columns. Cell and section dividers
+do not interrupt it. Resizing, content changes, axis swaps, and active-owner changes
+remeasure the outline; intersecting player/company edges remain omitted.
