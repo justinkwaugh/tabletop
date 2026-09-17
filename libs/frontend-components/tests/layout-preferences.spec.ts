@@ -1,0 +1,28 @@
+import { expect, test } from '@playwright/test'
+const fixturePath = '/src/lib/preferences/tests/layout.fixture.svelte.ts'
+test('layout debounce coalesces changes, retries failures and scopes recovery by account', async ({ page }) => {
+    await page.goto('/session-test.html')
+    await page.clock.install()
+    await page.evaluate(async path => (await import(new URL(path, location.href).href)).start(), fixturePath)
+    await page.evaluate(async path => (await import(new URL(path, location.href).href)).edit({ v: 1, main: ['Map'] }), fixturePath)
+    await page.clock.runFor(4000)
+    await page.evaluate(async path => (await import(new URL(path, location.href).href)).edit({ v: 1, main: ['Tiles'] }), fixturePath)
+    await page.clock.runFor(4000)
+    const read = () => page.evaluate(async path => (await import(new URL(path, location.href).href)).snapshot(), fixturePath)
+    expect((await read()).writes).toHaveLength(0)
+    await page.clock.runFor(1001)
+    expect((await read()).writes).toEqual([{ v: 1, main: ['Tiles'] }])
+    expect((await read()).status).toBe('saved')
+    await page.evaluate(async path => { const f = await import(new URL(path, location.href).href); f.failWrites(true); f.edit({ v: 1, main: ['Market'] }); }, fixturePath)
+    await page.clock.runFor(5001)
+    expect((await read()).status).toBe('error')
+    expect((await read()).value).toEqual({ v: 1, main: ['Market'] })
+    await page.evaluate(async path => { const f = await import(new URL(path, location.href).href); f.failWrites(false); await f.save(); }, fixturePath)
+    expect((await read()).status).toBe('saved')
+    await page.evaluate(async path => { const f = await import(new URL(path, location.href).href); f.edit({ v: 1, main: ['Actions'] }); f.switchAccount(); }, fixturePath)
+    const before = (await read()).writes.length
+    await page.clock.runFor(6000)
+    expect((await read()).writes).toHaveLength(before)
+    expect((await read()).value).not.toEqual({ v: 1, main: ['Actions'] })
+    await page.evaluate(async path => (await import(new URL(path, location.href).href)).dispose(), fixturePath)
+})

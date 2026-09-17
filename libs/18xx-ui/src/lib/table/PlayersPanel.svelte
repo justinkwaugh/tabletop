@@ -312,6 +312,9 @@
         gap: 10px;
         padding: 0 2px 8px;
     }
+    @container player-pane (min-width: 660px) and (aspect-ratio > 1/1) {
+        .players { grid-auto-flow: column; grid-auto-columns: 310px; align-items: start; justify-content: start; }
+    }
     article {
         min-width: 0;
         border: 1px solid var(--rail-border, #d2c5b7);

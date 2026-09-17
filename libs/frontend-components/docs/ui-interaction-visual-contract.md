@@ -203,7 +203,7 @@ An optional `initialSplit` supplies an axis and the tab IDs for the first pane;
 remaining tabs start in the second pane, with a 50/50 divider. Without it the
 workspace starts as one pane.
 It owns a local binary split tree, permitting repeated splits in either direction
-with a global limit of six panes. Deleting a pane restores split capacity. Splits start at 50%, have draggable
+with a global limit of eight panes. Deleting a pane restores split capacity. Splits start at 50%, have draggable
 20–80% dividers, and create empty drop targets. Each tab belongs to exactly one
 pane and each nonempty pane has an active tab. Drag/drop or Alt+Shift+Left/Right
 moves tabs; standard tab arrow/Home/End navigation selects within a pane. Splitter
@@ -214,7 +214,7 @@ tree; only their absolute rectangles and visibility change. This preserves DOM,
 focusable content state, and embedded scaling wrappers. Inactive panels are inert.
 The component exposes workspace color variables, falling back to railway theme
 variables and light defaults. Tab definitions must remain stable for its lifetime.
-Workspace layout survives responsive resizing but resets on remount; callers may
+Workspace layout survives responsive resizing; optional savedLayout restores it on remount; callers may
 activate a tab by updating the bound selection. No host contract changes.
 
 Dropping on a tab inserts before it, including reordering within the same pane;
@@ -230,3 +230,27 @@ can suppress WebKit's drag completion and interfere with subsequent pointer inpu
 Mouse divider resizing uses mouse down with window-level move/up listeners;
 WebKit can omit the next pointerdown after native drag/drop while still delivering
 mousedown. Touch and pen resizing use pointer capture. Blur cancels resizing.
+
+Setting `splittable={false}` provides an ordinary fixed tab bar without pane
+controls or tab dragging. It is intended for an unsplit initial layout.
+
+An optional `fixedPane` supplies a target element, label, and allowed initial tab
+IDs. Its header and panels render into that target, outside the split tree; it
+cannot split or close and does not consume main-pane capacity. Only its allowed
+tabs can enter, while they may leave for any main pane. Empty fixed panes remain
+drop targets. Content nodes stay mounted across transfers. The optional
+`tabTitle` snippet adds icons or indicators before a tab label.
+
+`onLayoutChange` emits compact v1 arrangements only when tab order, ownership,
+splits or committed divider percentages change. Active-tab changes do not emit.
+`workspacePersistence` bounds and normalizes untrusted layouts; unknown versions
+fall back without an implicit save. `DebouncedLayout` owns five-second idle saves,
+account-scoped recovery and status; `TitlePreferences.save` resolves true only on
+an acknowledged persisted write, false on failure, account change or a local-only
+host. The existing set/unset API and injected host interfaces remain unchanged.
+
+Each divider offers Swap sides, exchanging whole branches (including nested
+panes) while preserving their sizes. The resulting layout is saved normally.
+
+Swap sides is hidden and does not intercept clicks until its divider is hovered
+or focused. It stays visible while hovering the button and is keyboard focusable.

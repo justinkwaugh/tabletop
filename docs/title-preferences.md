@@ -93,4 +93,14 @@ toggle across reload and TOP/1889 transitions.
 The experimental `tableTopPercent`, `spreadsheetSplitPercent`, and
 `spreadsheetHeightPercent` fields remain accepted for stored-value compatibility,
 but no longer control the current layout. Players/History/Chat use the sidebar at
-all widths. The tab workspace owns its pane layout locally without preference writes.
+all widths. The tab workspace now saves `paneLayout` at family scope.
+
+`paneLayout` is an opaque versioned JSON value (default null), validated and
+normalized by the UI layout decoder rather than tying the Logic schema to one
+UI tree format. v1 stores sidebar tab IDs and a recursive rows/cols split tree
+with integer percentages and ordered leaf tabs. Unknown future versions remain
+untouched on load. Layout writes debounce for five seconds and await persistence
+before showing Saved. Existing clients ignore this additional key; updated UIs
+need updated Logic schemas to write it. No Site Frontend API change is required.
+Local recovery copies are scoped to account/family and include the server baseline
+so stale drafts do not replace preferences changed elsewhere.

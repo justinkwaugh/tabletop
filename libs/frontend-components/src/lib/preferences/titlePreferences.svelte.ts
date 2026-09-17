@@ -14,6 +14,7 @@ export class TitlePreferences<T extends Type.TObject> {
     private response: PreferenceResponse | undefined = $state.raw()
     private pending: PreferenceChange[] = $state.raw([])
     private userId: string | undefined
+    private completions = new Map<PreferenceChange, (saved: boolean) => void>()
     private generation = 0
     private loadSequence = 0
     private processing = false
@@ -43,6 +44,8 @@ export class TitlePreferences<T extends Type.TObject> {
                     this.generation++
                     this.response = undefined
                     this.ready = false
+                    for (const complete of this.completions.values()) complete(false)
+                    this.completions.clear()
                     this.pending = []
                     this.error = undefined
                     this.processing = false
@@ -61,6 +64,15 @@ export class TitlePreferences<T extends Type.TObject> {
         this.change(scope, values, [])
     }
 
+    storageKey(scope: 'title' | 'family') {
+        const id = scope === 'family' ? this.definition.family?.id : this.titleId
+        return this.userId && id ? `tabletop:layout:${this.userId}:${scope}:${id}` : undefined
+    }
+
+    save(values: Partial<Type.Static<T>>, scope: 'title' | 'family' = 'title'): Promise<boolean> {
+        return this.change(scope, values, [])
+    }
+
     unset(keys: (keyof Type.Static<T> & string)[], scope: 'title' | 'family' = 'title') {
         this.change(scope, {}, keys)
     }
@@ -72,10 +84,12 @@ export class TitlePreferences<T extends Type.TObject> {
         const data = this.apply(this.response?.data ?? this.empty(), change)
         if (!this.userId || !this.api.getTitlePreferences || !this.api.updateTitlePreferences) {
             this.response = { data, etag: '' }
-            return
+            return Promise.resolve(false)
         }
+        const completion = new Promise<boolean>(resolve => this.completions.set(change, resolve))
         this.pending = [...this.pending, change]
         void this.flush()
+        return completion
     }
 
     private empty(): TitlePreferenceData {
@@ -137,6 +151,7 @@ export class TitlePreferences<T extends Type.TObject> {
             await this.loading
             while (this.isCurrent(generation) && this.pending.length) {
                 const change = this.pending[0]
+                let saved = false
                 try {
                     if (!this.response) await this.load()
                     if (!this.isCurrent(generation)) return
@@ -173,10 +188,13 @@ export class TitlePreferences<T extends Type.TObject> {
                     this.response = result
                     this.error = undefined
                     this.channel?.postMessage('changed')
+                    saved = true
                 } catch (error) {
                     if (!this.isCurrent(generation)) return
                     this.report(error)
                 }
+                this.completions.get(change)?.(saved)
+                this.completions.delete(change)
                 this.pending = this.pending.slice(1)
             }
         } finally {

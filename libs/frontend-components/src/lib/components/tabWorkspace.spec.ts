@@ -1,14 +1,14 @@
 import { expect, it } from 'vitest'
-import { createWorkspace, activateTab, deletePane, moveTab, resizeSplit, splitPane, workspaceLayout, type WorkspaceNode } from './tabWorkspace.js'
+import { createWorkspace, activateTab, deletePane, moveTab, resizeSplit, splitPane, swapSplit, workspaceLayout, type WorkspaceNode } from './tabWorkspace.js'
 const initial = (): WorkspaceNode => ({ kind: 'pane', id: 'root', tabs: ['map', 'market', 'sheet', 'tiles'], active: 'map' })
-it('allows repeated directions, caps the workspace at six panes, and frees capacity on deletion', () => {
+it('allows repeated directions, caps the workspace at eight panes, and frees capacity on deletion', () => {
     for (const axis of ['horizontal', 'vertical'] as const) {
         let root = initial()
-        for (let i = 0; i < 5; i++) root = splitPane(root, 'root', axis)
+        for (let i = 0; i < 7; i++) root = splitPane(root, 'root', axis)
         const layout = workspaceLayout(root)
-        expect(layout.panes).toHaveLength(6)
-        expect(new Set(layout.panes.map(item => item.pane.id)).size).toBe(6)
-        expect(new Set(layout.dividers.map(item => item.split.id)).size).toBe(5)
+        expect(layout.panes).toHaveLength(8)
+        expect(new Set(layout.panes.map(item => item.pane.id)).size).toBe(8)
+        expect(new Set(layout.dividers.map(item => item.split.id)).size).toBe(7)
         for (const item of layout.panes) {
             expect(item.available).toEqual([])
             expect(splitPane(root, item.pane.id, axis)).toEqual(root)
@@ -16,7 +16,7 @@ it('allows repeated directions, caps the workspace at six panes, and frees capac
         root = deletePane(root, layout.panes[1].pane.id)
         expect(workspaceLayout(root).panes.every(item => item.available.length === 2)).toBe(true)
         root = splitPane(root, 'root', axis)
-        expect(workspaceLayout(root).panes).toHaveLength(6)
+        expect(workspaceLayout(root).panes).toHaveLength(8)
     }
 })
 it('moves tabs without losing or duplicating them, allowing empty panes', () => {
@@ -74,4 +74,14 @@ it('initializes a half split with each tab in exactly one pane and selection pre
     expect(layout.panes.map(item => item.pane.active)).toEqual(['actions', 'map'])
     expect(layout.panes.map(item => item.height)).toEqual([50, 50])
     expect(workspaceLayout(createWorkspace(tabs, 'market')).panes[0].pane.active).toBe('market')
+})
+
+it('swaps entire split branches while preserving each branch size', () => {
+    let root = splitPane(initial(), 'root', 'vertical')
+    root = resizeSplit(root, 'root-split-vertical', 35)
+    root = splitPane(root, 'root', 'horizontal')
+    const swapped = swapSplit(root, 'root-split-vertical')
+    expect(swapped.kind === 'split' && swapped.ratio).toBe(65)
+    expect(workspaceLayout(swapped).panes.map(item => item.pane.id)).toEqual(['root-vertical', 'root', 'root-horizontal'])
+    expect(swapSplit(swapped, 'root-split-vertical')).toEqual(root)
 })

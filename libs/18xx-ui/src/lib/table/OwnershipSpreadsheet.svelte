@@ -467,13 +467,24 @@
         background-color: var(--rail-hover, #69554016);
     }
 
-    tbody tr.current-player { outline: 1px solid var(--rail-focus, #9e7752); outline-offset: -1px; }
+    tbody tr.current-player > :not(.operating-column) {
+        --player-outline: var(--rail-focus, #9e7752);
+        box-shadow: inset 0 1px var(--player-outline), inset 0 -1px var(--player-outline);
+    }
+    tbody tr.current-player > :first-child {
+        box-shadow: inset 1px 0 var(--player-outline), inset 0 1px var(--player-outline), inset 0 -1px var(--player-outline);
+    }
+    tbody tr.current-player > :last-child {
+        box-shadow: inset -1px 0 var(--player-outline), inset 0 1px var(--player-outline), inset 0 -1px var(--player-outline);
+    }
     .operating-column {
         --operating-outline: var(--rail-focus, #9e7752);
         box-shadow: inset 1px 0 var(--operating-outline), inset -1px 0 var(--operating-outline);
     }
     thead .operating-column { box-shadow: inset 1px 0 var(--operating-outline), inset -1px 0 var(--operating-outline), inset 0 1px var(--operating-outline); }
     tbody tr:last-child .operating-column { box-shadow: inset 1px 0 var(--operating-outline), inset -1px 0 var(--operating-outline), inset 0 -1px var(--operating-outline); }
+
+    tbody tr.current-player > .operating-column { box-shadow: none; }
 
     .company-trains {
         display: flex;

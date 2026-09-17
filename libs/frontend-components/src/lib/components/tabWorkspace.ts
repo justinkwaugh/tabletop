@@ -1,4 +1,4 @@
-export const MAX_WORKSPACE_PANES = 6
+export const MAX_WORKSPACE_PANES = 8
 
 export type SplitAxis = 'horizontal' | 'vertical'
 export type WorkspaceNode = WorkspacePane | WorkspaceSplit
@@ -110,4 +110,10 @@ export function deletePane(root: WorkspaceNode, id: string): WorkspaceNode {
     if (root.first.kind === 'pane' && root.first.id === id) return mergeTabs(root.second, root.first)
     if (root.second.kind === 'pane' && root.second.id === id) return mergeTabs(root.first, root.second)
     return { ...root, first: deletePane(root.first, id), second: deletePane(root.second, id) }
+}
+
+export function swapSplit(root: WorkspaceNode, id: string): WorkspaceNode {
+    if (root.kind === 'pane') return root
+    if (root.id === id) return { ...root, ratio: 100 - root.ratio, first: root.second, second: root.first }
+    return { ...root, first: swapSplit(root.first, id), second: swapSplit(root.second, id) }
 }

@@ -62,3 +62,5 @@ export * from './utils/validateLocalGameState.js'
 export { TitlePreferences } from './preferences/titlePreferences.svelte.js'
 
 export { default as TabWorkspace } from "./components/TabWorkspace.svelte"
+
+export { DebouncedLayout } from './preferences/debouncedLayout.svelte.js'

@@ -19,10 +19,12 @@
     import CompanyOrder from './CompanyOrder.svelte'
     import CompanyOrderToggle from './CompanyOrderToggle.svelte'
     import { untrack, tick, type Snippet } from 'svelte'
+    import { MediaQuery } from 'svelte/reactivity'
     import {
         DefaultTableLayout,
         DefaultTabs,
         TabWorkspace,
+        DebouncedLayout,
         HistoryControls,
         GameChat,
         ScalingWrapper,
@@ -301,7 +303,14 @@
         ).map((id) => getCompany(financialState, id))
     )
     setGameSession(untrack(() => session))
+    const layoutPreference = new DebouncedLayout(
+        () => ({ ready: session.preferences.ready, key: session.preferences.storageKey('family'), value: session.preferences.values.paneLayout }),
+        value => session.preferences.save({ paneLayout: value }, 'family')
+    )
+    const paneLayout = new MediaQuery('(min-width: 64rem)')
     const views = ['Map', 'Market', 'Spreadsheet', 'Tiles', 'Actions'] as const
+    let fixedPaneTarget: HTMLDivElement | undefined = $state()
+    const sidebarViews = ['Players', 'History', 'Chat']
     let sidebar: HTMLDivElement
     let selectedView = $state('Map')
     const view = $derived(selectedView)
@@ -320,6 +329,7 @@
         }
         const sidebarIndex = ['p', 'h', 'c'].indexOf(key)
         if (sidebarIndex >= 0) {
+            if (paneLayout.current) { event.preventDefault(); selectedView = sidebarViews[sidebarIndex]; return }
             const tab = sidebar.querySelectorAll<HTMLButtonElement>('[role="tab"]')[sidebarIndex]
             if (tab) {
                 event.preventDefault()
@@ -343,6 +353,17 @@
                         onFocusCompany={focusCompany}
                         {portfolioCompanyIds}
                     />{/snippet}
+
+{#snippet sidebarTabIcon(id: string)}
+    {#if sidebarViews.includes(id)}
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            {#if id === 'Players'}<path d="M10 1a9 9 0 1 0 0 18 9 9 0 0 0 0-18m0 3a3 3 0 1 1 0 6 3 3 0 0 1 0-6m-5 11a5 5 0 0 1 10 0Z" />
+            {:else if id === 'History'}<circle cx="10" cy="10" r="9"/><path d="M10 4v6l4 2" fill="none" stroke="var(--rail-surface,#faf7f2)" stroke-width="1.5"/>
+            {:else}<path d="M2 2h16v12h-7l-5 4v-4H2Z"/>{/if}
+        </svg>
+        {#if id === 'Chat' && session.hasUnreadMessages}<span class="unread-chat" aria-hidden="true"></span>{/if}
+    {/if}
+{/snippet}
 
 {#snippet historyPanel()}<History onPreviewMap={previewHistoryMap} {session} {trainColors} {phaseColors} {phaseTileColors} {companyNames} describeAction={historyDescription} />{/snippet}
 
@@ -380,17 +401,7 @@
             </div>
             {#if gameInformation}{@render gameInformation()}{/if}
 {/snippet}
-{#snippet sidebarTabs()}
-            <div bind:this={sidebar} style="display: contents">
-            <DefaultTabs
-                history={historyPanel}
-                playersPanel={playerCards}
-                fontClass="railway-tab-label"
-                contentClass="p-0 mt-0 has-[.round-history]:-mt-1 h-full overflow-auto rounded-none bg-transparent dark:bg-transparent"
-                activeTabClass="py-2 px-2 text-[var(--rail-text,#5e4937)] rounded-none"
-                inactiveTabClass="py-2 px-2 text-[var(--rail-inactive,#998b79)] hover:text-[var(--rail-text,#5e4937)] rounded-none"
-            >
-                {#snippet chat()}
+                {#snippet chatPanel()}
                     <GameChat
                         timeColor="text-[var(--rail-muted,#887969)]"
                         messageTextColor="text-[var(--rail-text,#4b4239)]"
@@ -401,25 +412,44 @@
                         borderColor="border-[var(--rail-border,#b8a995)]"
                     />
                 {/snippet}
+{#snippet sidebarTabs()}
+            <div bind:this={sidebar} style="display: contents">
+            <DefaultTabs chat={chatPanel}
+                history={historyPanel}
+                playersPanel={playerCards}
+                fontClass="railway-tab-label"
+                contentClass="p-0 mt-0 has-[.round-history]:-mt-1 h-full overflow-auto rounded-none bg-transparent dark:bg-transparent"
+                activeTabClass="py-2 px-2 text-[var(--rail-text,#5e4937)] rounded-none"
+                inactiveTabClass="py-2 px-2 text-[var(--rail-inactive,#998b79)] hover:text-[var(--rail-text,#5e4937)] rounded-none"
+            >
+
             </DefaultTabs>
             </div>
 {/snippet}
 
 <div class="railway-table" data-theme={session.preferences.ready ? session.preferences.values.theme : 'dark'} aria-label="Game table" aria-busy={!session.preferences.ready}>
-    {#if session.preferences.ready}
+    {#if session.preferences.ready && layoutPreference.ready}
     <DefaultTableLayout topPadding={0}>
         {#snippet mobileControlsContent()}
             {@render historyControls()}
         {/snippet}
         {#snippet sideContent()}
             {@render sidebarInformation()}
-            {@render sidebarTabs()}
+            {#if paneLayout.current}
+                <div class="fixed-pane-target" bind:this={fixedPaneTarget}></div>
+            {:else}
+                {@render sidebarTabs()}
+            {/if}
         {/snippet}
         {#snippet gameContent()}
             <TableHeader {session} {phaseChart} {trainColors} {companyNames} />
-            <TabWorkspace tabs={workspaceTabs} bind:selected={selectedView} label="Table views" initialSplit={{ axis: 'horizontal', first: ['Actions'] }}>
-                {#snippet children(id, active)}
-                    {#if id === 'Actions'}<div class="workspace-view actions-area">
+            {#if paneLayout.current && layoutPreference.status}
+                <button class="layout-save" disabled={layoutPreference.status === 'saving' || layoutPreference.status === 'saved'} onclick={() => layoutPreference.save()} title="Layout saves automatically after five seconds without changes. Click to save now.">
+                    {layoutPreference.status === 'unsaved' ? 'Layout unsaved' : layoutPreference.status === 'saving' ? 'Saving…' : layoutPreference.status === 'error' ? 'Layout not saved · Retry' : 'Saved'}
+                </button>
+            {/if}
+            {#snippet actionContent()}
+            <div class="action-body">
             <OperatingSteps {session} {privatePurchaseLabel} readOnly={readOnlyPosition} />
             {#if !readOnlyPosition}
             <StockActionStrip {session} additionalActions={additionalStockActions} />
@@ -431,7 +461,9 @@
                     {@render actions(focusLocation, focusRoute)}
                 {/if}
             </section>
+            </div>
             {#if operating && !financialState.result && companyOrder.length}
+            <div class="operating-order-footer">
             <div class="order-display">
                 <CompanyOrderToggle
                     showDetails={session.preferences.values.operatingOrderDisplay === 'details'}
@@ -466,8 +498,14 @@
                     />
                 {/snippet}
             </CompanyOrder>
+            </div>
             {/if}
-                    </div>{:else if id === 'Map'}<div class="workspace-view map-area">
+            {/snippet}
+            {#snippet children(id: string, active: boolean)}
+                    {#if id === 'Players'}<div class="workspace-view players-pane">{@render playerCards()}</div>
+                    {:else if id === 'History'}<div class="workspace-view">{@render historyPanel()}</div>
+                    {:else if id === 'Chat'}<div class="workspace-view">{#if active}{@render chatPanel()}{/if}</div>
+                    {:else if id === 'Actions'}<div class="workspace-view actions-area">{@render actionContent()}</div>{:else if id === 'Map'}<div class="workspace-view map-area">
                     <ScalingWrapper
                         bind:this={mapWrapper}
                         maxScale={2}
@@ -538,7 +576,12 @@
                     />
                     </div>{/if}
                 {/snippet}
-            </TabWorkspace>
+            {#if paneLayout.current}
+                <TabWorkspace tabs={[...workspaceTabs, ...sidebarViews.map(id => ({ id, label: id }))]} savedLayout={layoutPreference.value} onLayoutChange={layoutPreference.change} tabTitle={sidebarTabIcon} fixedPane={{ target: fixedPaneTarget, tabs: sidebarViews, label: 'Players / History / Chat' }} bind:selected={selectedView} label="Table views" initialSplit={{ axis: 'horizontal', first: ['Actions'] }} {children} />
+            {:else}
+                <div class="original-actions">{@render actionContent()}</div>
+                <TabWorkspace tabs={workspaceTabs.filter(tab => tab.id !== 'Actions')} bind:selected={selectedView} label="Table views" splittable={false} {children} />
+            {/if}
         {/snippet}
     </DefaultTableLayout>
 
@@ -555,7 +598,15 @@
 </div>
 
 <style>
+    .layout-save { align-self: flex-end; flex: none; border: 0; background: transparent; color: var(--rail-muted, #887969); font-size: 11px; padding: 2px 8px; cursor: pointer; }
+    .unread-chat { width: 7px; height: 7px; border-radius: 50%; background: #f43f5e; }
+    .fixed-pane-target { --workspace-header-height: 35px; position: relative; flex: 1; min-height: 160px; }
+    .original-actions { flex: none; max-height: 50dvh; overflow: auto; }
     .workspace-view { height: 100%; min-height: 0; min-width: 0; overflow: auto; }
+    .players-pane { container: player-pane / size; }
+    .actions-area { display: flex; flex-direction: column; overflow: hidden; }
+    .actions-area .action-body { flex: 1; min-height: 0; overflow: auto; }
+    .actions-area .operating-order-footer { flex: none; max-height: 50%; overflow: auto; }
     .order-display { display: flex; justify-content: flex-end; }
     .railway-table { color-scheme: light; }
     .railway-table[data-theme='dark'] {

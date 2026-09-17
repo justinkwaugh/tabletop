@@ -1439,11 +1439,11 @@ remain stacked vertically. P/H/C select those sidebar tabs. The action area belo
 
 ### Splittable table workspace
 
-Actions, Map, Market, Spreadsheet and Tiles use the shared `TabWorkspace` at every viewport
-width. Initially Actions occupies the top half and the other four tabs share the
+At widths of 1024px (64rem) and above, Actions, Map, Market, Spreadsheet and
+Tiles use the shared splittable `TabWorkspace`. Initially Actions occupies the top half and the other four tabs share the
 bottom half with Map active. Their horizontal divider is draggable; Actions can
 move, merge, and reorder like any other tab. Each header offers horizontal (top/bottom)
-and vertical (left/right) split buttons. Any pane may split in either direction repeatedly, up to six panes total.
+and vertical (left/right) split buttons. Any pane may split in either direction repeatedly, up to eight panes total.
 At that limit both split buttons are disabled until a pane is deleted. New panes start empty with “Drag a tab
 here”. Dragging a tab moves it without duplicating it; emptied panes remain usable.
 All split dividers support pointer capture and arrow keys, Home/End, with ratios
@@ -1452,9 +1452,10 @@ activate the corresponding tab in whichever pane owns it.
 
 Panels stay mounted at stable DOM locations while their rectangles and visibility
 change, preserving map camera, spreadsheet axis and component state. Workspace
-layout is local to the mounted table; the surrounding sidebar and action layout does not change with screen width. Previously stored spreadsheet split preferences remain accepted
-for compatibility but no longer control the workspace. No new Logic schema or host
-API is needed for the workspace itself; adopting it requires updated UI Artifacts.
+layout is a saved family preference; the sidebar remains in place at all widths. Below 1024px, Actions is an ordinary
+content-sized area above the four fixed view tabs, with no split/delete/drag controls.
+Crossing this breakpoint remounts the view layout; returning to wide restores the saved or pending arrangement. Previously stored spreadsheet split preferences remain accepted
+for compatibility but no longer control the workspace. Persisting layouts requires updated Logic preference schemas and UI Artifacts; the host API is unchanged.
 
 The sidebar retains its existing Players/History/Chat tab appearance.
 
@@ -1472,3 +1473,45 @@ The last pane cannot be deleted. Workspace headers use a compact 35px height.
 The map tile picker uses Map’s active state within its own pane, independent of
 the last globally selected tab. Moving or selecting a tab in another pane must
 not suppress tile selection overlays on a still-visible map.
+
+At 1024px and above, Players/History/Chat start in a fixed pane below the title
+information (Tranches in TOP). This pane has no split or delete controls, remains
+when empty, and accepts only Players, History, and Chat. Those tabs can move to
+any main pane and back, including reordering. Their shortcuts select the tab in
+its current pane. The fixed pane does not count against the eight main panes.
+Below 1024px the original three sidebar tabs remain unchanged. Chat mounts when
+active, so merely rendering a hidden Chat tab does not mark messages read.
+
+### Saved pane arrangements
+
+`paneLayout` is an account preference at 18xx family scope, with a versioned compact
+JSON layout: `{v:1, sidebar:[tab IDs], main:node}`. A node is an ordered tab-ID
+array or `["rows"|"cols", firstPercent, firstNode, secondNode]`. Active tabs and
+runtime pane IDs are not stored. Divider percentages are rounded to integers.
+Unknown/duplicate tabs are removed, missing tabs restored, ratios clamped, and
+invalid or oversized trees replaced by defaults. Future versions display defaults
+without rewriting the stored preference until the user deliberately edits layout.
+
+Only completed structural edits and divider releases/keyboard changes notify the
+save controller. Saves debounce for five seconds, with Layout unsaved / Saving… /
+Saved feedback and explicit save or Retry. A local account/family recovery copy
+protects pending edits on reload; it is applied only when its baseline still
+matches the account preference. Narrow layouts do not modify the saved layout.
+Failures retain the layout and recovery copy. Account changes cancel pending timers.
+Adoption requires TOP/1889 Logic schemas plus UI Artifacts; no new host API is used.
+
+Each divider offers Swap sides, exchanging whole branches (including nested
+panes) while preserving their sizes. The resulting layout is saved normally.
+
+Swap sides is hidden and does not intercept clicks until its divider is hovered
+or focused. It stays visible while hovering the button and is keyboard focusable.
+
+Where the current-player row crosses the operating-company column, the cell has
+no highlight edges. Row and column outlines join as one cross-shaped boundary,
+without tinting the intersection or drawing an internal box.
+
+Player cards use one horizontal, scrolling row of 310px cards when their pane is
+at least 660px wide and wider than it is tall; otherwise they stack vertically.
+The layout follows the actual pane dimensions, including resizing and tab moves.
+In Actions panes, the operating-order footer stays at the bottom while action
+content scrolls above it. Expanded order details may scroll within the footer.

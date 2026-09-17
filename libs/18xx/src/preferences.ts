@@ -9,6 +9,7 @@ export const EighteenXXPreferences = Type.Object(
         tableTopPercent: Type.Number({ minimum: 25, maximum: 65 }),
         spreadsheetHeightPercent: Type.Number({ minimum: 25, maximum: 65 }),
         spreadsheetSplitPercent: Type.Number({ minimum: 25, maximum: 65 }),
+        paneLayout: Type.Unknown(),
         theme: Type.Union([Type.Literal('light'), Type.Literal('dark')]),
         spreadsheetView: Type.Union([Type.Literal('player'), Type.Literal('company')])
     },
@@ -17,13 +18,13 @@ export const EighteenXXPreferences = Type.Object(
 export const EighteenXXPreferenceDefinition = {
     title: {
         schema: EighteenXXPreferences,
-        defaults: { operatingOrderDisplay: 'details', historyOrder: 'newestLast', spreadsheetView: 'player', compactPlayerCards: false, theme: 'light', spreadsheetSplitPercent: 40, spreadsheetHeightPercent: 55, tableTopPercent: 35 },
+        defaults: { paneLayout: null, operatingOrderDisplay: 'details', historyOrder: 'newestLast', spreadsheetView: 'player', compactPlayerCards: false, theme: 'light', spreadsheetSplitPercent: 40, spreadsheetHeightPercent: 55, tableTopPercent: 35 },
         version: 1
     },
     family: {
         id: '18xx',
         schema: EighteenXXPreferences,
-        defaults: { operatingOrderDisplay: 'details', historyOrder: 'newestLast', spreadsheetView: 'player', compactPlayerCards: false, theme: 'light', spreadsheetSplitPercent: 40, spreadsheetHeightPercent: 55, tableTopPercent: 35 },
+        defaults: { paneLayout: null, operatingOrderDisplay: 'details', historyOrder: 'newestLast', spreadsheetView: 'player', compactPlayerCards: false, theme: 'light', spreadsheetSplitPercent: 40, spreadsheetHeightPercent: 55, tableTopPercent: 35 },
         version: 1
     }
 } satisfies TitlePreferenceDefinition<typeof EighteenXXPreferences>
