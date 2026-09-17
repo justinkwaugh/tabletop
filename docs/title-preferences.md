@@ -104,3 +104,15 @@ before showing Saved. Existing clients ignore this additional key; updated UIs
 need updated Logic schemas to write it. No Site Frontend API change is required.
 Local recovery copies are scoped to account/family and include the server baseline
 so stale drafts do not replace preferences changed elsewhere.
+
+### Firestore encoding
+
+The Firestore store writes a record's `values` as JSON text and decodes it before
+validation or preference resolution. This supports valid JSON values such as the
+pane layout's arrays within arrays, which Firestore cannot store directly.
+Existing records with a map-valued `values` field remain readable and are converted
+on their next write. API payloads and UI preference formats do not change. This
+correction needs a backend deployment, not new UI or Logic artifacts. Backend
+rollback to a version without this decoder cannot read newly encoded records.
+The Firestore integration test requires `FIRESTORE_EMULATOR_HOST` and covers an
+actual nested-layout write, readback, and a subsequent unrelated preference edit.
