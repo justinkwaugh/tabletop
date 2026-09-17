@@ -89,3 +89,8 @@ revision-only caching, account/family scopes, conditional conflicts, and guarded
 read fallback. Client tests cover HTTP headers, concurrent partial writes, account
 changes, rollback, and older hosts. The dev-site browser test verifies the actual
 toggle across reload and TOP/1889 transitions.
+
+The experimental `tableTopPercent`, `spreadsheetSplitPercent`, and
+`spreadsheetHeightPercent` fields remain accepted for stored-value compatibility,
+but no longer control the current layout. Players/History/Chat use the sidebar at
+all widths. The tab workspace owns its pane layout locally without preference writes.

@@ -1420,7 +1420,7 @@ Dark-mode history interstitial borders match the dark table background, leaving 
 
 Operated companies dim as a whole in both themes, including their train badges. This intentional completed-state dimming is an exception to preserving phase colors at full strength in dark mode.
 
-The ownership spreadsheet does not highlight the currently operating company in either axis orientation; ordinary row hover remains available.
+The ownership spreadsheet outlines the current player row and operating company column in player-row orientation; company-row orientation retains ordinary row hover only.
 
 ### Initial preference loading
 
@@ -1430,3 +1430,45 @@ A failed request or an older host without the preference API settles to the exis
 defaults. Background preference refreshes keep the table mounted; an account change
 waits for that account's preferences. This correction requires updated TOP/1889 UI
 Artifacts, with no Site Frontend publication, Logic, or host API change.
+
+### Sidebar layout
+
+At every viewport width, Players/History/Chat remain in the existing left sidebar,
+with history controls and phase/depot/title information above them. Player cards
+remain stacked vertically. P/H/C select those sidebar tabs. The action area belongs to the tab workspace.
+
+### Splittable table workspace
+
+Actions, Map, Market, Spreadsheet and Tiles use the shared `TabWorkspace` at every viewport
+width. Initially Actions occupies the top half and the other four tabs share the
+bottom half with Map active. Their horizontal divider is draggable; Actions can
+move, merge, and reorder like any other tab. Each header offers horizontal (top/bottom)
+and vertical (left/right) split buttons. Any pane may split in either direction repeatedly, up to six panes total.
+At that limit both split buttons are disabled until a pane is deleted. New panes start empty with “Drag a tab
+here”. Dragging a tab moves it without duplicating it; emptied panes remain usable.
+All split dividers support pointer capture and arrow keys, Home/End, with ratios
+limited to 20–80%. Alt+Shift+Left/Right moves a focused tab between panes. M/K/S/T/A
+activate the corresponding tab in whichever pane owns it.
+
+Panels stay mounted at stable DOM locations while their rectangles and visibility
+change, preserving map camera, spreadsheet axis and component state. Workspace
+layout is local to the mounted table; the surrounding sidebar and action layout does not change with screen width. Previously stored spreadsheet split preferences remain accepted
+for compatibility but no longer control the workspace. No new Logic schema or host
+API is needed for the workspace itself; adopting it requires updated UI Artifacts.
+
+The sidebar retains its existing Players/History/Chat tab appearance.
+
+The player-row spreadsheet highlights the active player(s) from the displayed
+financial state with an outline only in both themes. History therefore
+uses its viewed turn. Pool and portfolio-company rows are excluded, and company
+rows do not acquire operating-company highlights. In the player-row orientation,
+the currently operating company column has a continuous outline from its header
+to the final statistic. Neither outline tints the cells.
+
+Workspace tabs can be reordered by dropping before another tab. Every pane has a Delete button when multiple panes exist. Deleting one merges
+its tabs into its sibling and expands that sibling without remounting tab content.
+The last pane cannot be deleted. Workspace headers use a compact 35px height.
+
+The map tile picker uses Map’s active state within its own pane, independent of
+the last globally selected tab. Moving or selecting a tab in another pane must
+not suppress tile selection overlays on a still-visible map.

@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test'
+import { storedFamilyPreference } from './preferenceStorage.js'
+import { expect, test } from '@playwright/test'
 
 test('operating-order preference survives reload and follows the player between titles', async ({
     page
@@ -116,12 +117,3 @@ test('saved dark mode has no bright loading canvas on reload', async ({ page }) 
     await expect.poll(() => page.locator('html').getAttribute('data-startup-frames')).not.toBeNull()
     await expect(page.locator('html')).not.toHaveAttribute('data-bright-startup-frame', 'true')
 })
-
-function storedFamilyPreference(page: Page, preference: string) {
-    return page.evaluate((preference) => {
-        const key = Object.keys(localStorage).find(
-            (key) => key.includes('harness:preferences:') && key.includes('family:18xx')
-        )
-        return key ? JSON.parse(localStorage.getItem(key)!).values[preference] : null
-    }, preference)
-}

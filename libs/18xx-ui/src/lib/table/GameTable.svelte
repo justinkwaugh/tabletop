@@ -22,6 +22,7 @@
     import {
         DefaultTableLayout,
         DefaultTabs,
+        TabWorkspace,
         HistoryControls,
         GameChat,
         ScalingWrapper,
@@ -115,7 +116,7 @@
         focusedCompany = undefined
         const restore = focusedLocation === locationId
         focusedLocation = restore ? undefined : locationId
-        view = 'Map'
+        selectedView = 'Map'
         session.inspectMap({ kind: 'hex', locationId })
         await tick()
         if (restore) {
@@ -137,7 +138,7 @@
         const restore = focusedCompany === companyId
         focusedCompany = restore ? undefined : companyId
         focusedLocation = undefined
-        view = 'Map'
+        selectedView = 'Map'
         await tick()
         if (restore) {
             mapWrapper?.fitToContent({ animate: true })
@@ -164,7 +165,7 @@
         focusedRoute = restore ? undefined : trainId
         focusedLocation = undefined
         focusedCompany = undefined
-        view = 'Map'
+        selectedView = 'Map'
         await tick()
         if (restore) {
             mapWrapper?.fitToContent({ animate: true })
@@ -202,7 +203,7 @@
             const locations = consentPreview ? [consentPreview.details.locationId] : [...highlightedPlacementLocationIds]
             if (!locations.length) return
             let cancelled = false
-            view = 'Map'
+            selectedView = 'Map'
             void tick().then(() => {
                 if (!cancelled) focusLocations(locations)
             })
@@ -228,7 +229,7 @@
             focusedRoute = undefined
             focusedLocation = undefined
             focusedCompany = undefined
-            view = 'Map'
+            selectedView = 'Map'
             void tick().then(() => {
                 if (cancelled) return
                 const locations = preview.result.routes.flatMap((route) =>
@@ -248,7 +249,7 @@
             const restore = mapWrapper?.captureView()
             let cancelled = false
             session.closeHistoricalMap()
-            view = 'Map'
+            selectedView = 'Map'
             void tick().then(() => {
                 if (cancelled) return
                 const locations = companyFocusLocations(session.stationDisplayState, selected.companyId)
@@ -257,7 +258,7 @@
             return () => {
                 cancelled = true
                 if (session.busy || session.updatingVisibleState || session.isViewingHistory) return
-                view = previousView
+                selectedView = previousView
                 void tick().then(() => restore?.({ animate: true }))
             }
         })
@@ -300,20 +301,21 @@
         ).map((id) => getCompany(financialState, id))
     )
     setGameSession(untrack(() => session))
-    const views = ['Map', 'Market', 'Spreadsheet', 'Tiles'] as const
+    const views = ['Map', 'Market', 'Spreadsheet', 'Tiles', 'Actions'] as const
     let sidebar: HTMLDivElement
-    const tabsId = $props.id()
-    let view = $state<(typeof views)[number]>('Map')
+    let selectedView = $state('Map')
+    const view = $derived(selectedView)
+    const workspaceTabs = views.map(id => ({ id, label: id, ...(id === 'Spreadsheet' ? { shortLabel: 'Sheet' } : {}) }))
 
     function navigateByShortcut(event: KeyboardEvent) {
         if (event.defaultPrevented || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return
         const target = event.target
         if (target instanceof HTMLElement && (target.isContentEditable || target.closest('input, textarea, select, [role="textbox"], [role="dialog"]'))) return
         const key = event.key.toLowerCase()
-        const viewIndex = ['m', 'k', 's', 't'].indexOf(key)
+        const viewIndex = ['m', 'k', 's', 't', 'a'].indexOf(key)
         if (viewIndex >= 0) {
             event.preventDefault()
-            view = views[viewIndex]
+            selectedView = views[viewIndex]
             return
         }
         const sidebarIndex = ['p', 'h', 'c'].indexOf(key)
@@ -326,21 +328,23 @@
         }
     }
 
-    function navigateTabs(event: KeyboardEvent, index: number) {
-        let next: number
-        if (event.key === 'ArrowRight') next = (index + 1) % views.length
-        else if (event.key === 'ArrowLeft') next = (index + views.length - 1) % views.length
-        else if (event.key === 'Home') next = 0
-        else if (event.key === 'End') next = views.length - 1
-        else return
-        event.preventDefault()
-        view = views[next]
-        if (event.currentTarget instanceof HTMLElement)
-            event.currentTarget.parentElement?.querySelectorAll('button')[next]?.focus()
-    }
 </script>
 
 <svelte:window onkeydown={navigateByShortcut} />
+
+                {#snippet playerCards()}<PlayersPanel {companyNames}
+                        {session}
+                        {valuationRules}
+                        {auctionLotDescription}
+                        {numberedShareNames}
+                        {numberedShareLocation}
+                        onFocusLocation={focusLocation}
+                        {mapFocusExcludedCompanyIds}
+                        onFocusCompany={focusCompany}
+                        {portfolioCompanyIds}
+                    />{/snippet}
+
+{#snippet historyPanel()}<History onPreviewMap={previewHistoryMap} {session} {trainColors} {phaseColors} {phaseTileColors} {companyNames} describeAction={historyDescription} />{/snippet}
 
 {#snippet historyControls()}
     <HistoryControls
@@ -351,13 +355,7 @@
     />
 {/snippet}
 
-<div class="railway-table" data-theme={session.preferences.ready ? session.preferences.values.theme : 'dark'} aria-label="Game table" aria-busy={!session.preferences.ready}>
-    {#if session.preferences.ready}
-    <DefaultTableLayout topPadding={0}>
-        {#snippet mobileControlsContent()}
-            {@render historyControls()}
-        {/snippet}
-        {#snippet sideContent()}
+{#snippet sidebarInformation()}
             <div class="max-sm:hidden">
                 {@render historyControls()}
             </div>
@@ -381,25 +379,17 @@
                 </button>
             </div>
             {#if gameInformation}{@render gameInformation()}{/if}
+{/snippet}
+{#snippet sidebarTabs()}
             <div bind:this={sidebar} style="display: contents">
             <DefaultTabs
+                history={historyPanel}
+                playersPanel={playerCards}
                 fontClass="railway-tab-label"
                 contentClass="p-0 mt-0 has-[.round-history]:-mt-1 h-full overflow-auto rounded-none bg-transparent dark:bg-transparent"
                 activeTabClass="py-2 px-2 text-[var(--rail-text,#5e4937)] rounded-none"
                 inactiveTabClass="py-2 px-2 text-[var(--rail-inactive,#998b79)] hover:text-[var(--rail-text,#5e4937)] rounded-none"
             >
-                {#snippet playersPanel()}<PlayersPanel {companyNames}
-                        {session}
-                        {valuationRules}
-                        {auctionLotDescription}
-                        {numberedShareNames}
-                        {numberedShareLocation}
-                        onFocusLocation={focusLocation}
-                        {mapFocusExcludedCompanyIds}
-                        onFocusCompany={focusCompany}
-                        {portfolioCompanyIds}
-                    />{/snippet}
-                {#snippet history()}<History onPreviewMap={previewHistoryMap} {session} {trainColors} {phaseColors} {phaseTileColors} {companyNames} describeAction={historyDescription} />{/snippet}
                 {#snippet chat()}
                     <GameChat
                         timeColor="text-[var(--rail-muted,#887969)]"
@@ -413,14 +403,28 @@
                 {/snippet}
             </DefaultTabs>
             </div>
+{/snippet}
+
+<div class="railway-table" data-theme={session.preferences.ready ? session.preferences.values.theme : 'dark'} aria-label="Game table" aria-busy={!session.preferences.ready}>
+    {#if session.preferences.ready}
+    <DefaultTableLayout topPadding={0}>
+        {#snippet mobileControlsContent()}
+            {@render historyControls()}
+        {/snippet}
+        {#snippet sideContent()}
+            {@render sidebarInformation()}
+            {@render sidebarTabs()}
         {/snippet}
         {#snippet gameContent()}
             <TableHeader {session} {phaseChart} {trainColors} {companyNames} />
+            <TabWorkspace tabs={workspaceTabs} bind:selected={selectedView} label="Table views" initialSplit={{ axis: 'horizontal', first: ['Actions'] }}>
+                {#snippet children(id, active)}
+                    {#if id === 'Actions'}<div class="workspace-view actions-area">
             <OperatingSteps {session} {privatePurchaseLabel} readOnly={readOnlyPosition} />
             {#if !readOnlyPosition}
             <StockActionStrip {session} additionalActions={additionalStockActions} />
             {/if}
-            <section class="action-panel" class:share-purchases={session.financialState.machineState === 'StockRound'} aria-label="Current action">
+            <section class="action-panel" aria-label="Current action">
                 {#if readOnlyPosition}
                     <PositionPanel {session} {trainColors} describeAction={historyDescription} />
                 {:else}
@@ -428,6 +432,16 @@
                 {/if}
             </section>
             {#if operating && !financialState.result && companyOrder.length}
+            <div class="order-display">
+                <CompanyOrderToggle
+                    showDetails={session.preferences.values.operatingOrderDisplay === 'details'}
+                onDisplayChange={(details) =>
+                    session.preferences.set(
+                        { operatingOrderDisplay: details ? 'details' : 'tokens' },
+                        'family'
+                    )}
+                />
+            </div>
             <CompanyOrder
                 showDetails={session.preferences.values.operatingOrderDisplay === 'details'}
                 companies={companyOrder}
@@ -453,46 +467,7 @@
                 {/snippet}
             </CompanyOrder>
             {/if}
-            <div class="view-toolbar">
-            <div class="view-tabs" role="tablist" aria-label="Table views">
-                {#each views as name, index}
-                    <button
-                        id={`${tabsId}-tab-${name}`}
-                        role="tab"
-                        aria-selected={view === name}
-                        aria-controls={`${tabsId}-panel-${name}`}
-                        tabindex={view === name ? 0 : -1}
-                        onclick={() => (view = name)}
-                        onkeydown={(event) => navigateTabs(event, index)}>
-                        {#if name === 'Spreadsheet'}
-                            <span class="max-sm:hidden">Spreadsheet</span><span class="sm:hidden">Sheet</span>
-                        {:else}
-                            {name}
-                        {/if}</button
-                    >
-                {/each}
-            </div>
-            {#if operating && !financialState.result && companyOrder.length}
-                <CompanyOrderToggle
-                    showDetails={session.preferences.values.operatingOrderDisplay === 'details'}
-                onDisplayChange={(details) =>
-                    session.preferences.set(
-                        { operatingOrderDisplay: details ? 'details' : 'tokens' },
-                        'family'
-                    )}
-                />
-            {/if}
-            </div>
-            <div class="view-area">
-                <div
-                    class="view-panel map-area"
-                    class:inactive={view !== 'Map'}
-                    role="tabpanel"
-                    id={`${tabsId}-panel-Map`}
-                    aria-labelledby={`${tabsId}-tab-Map`}
-                    aria-hidden={view !== 'Map'}
-                    inert={view !== 'Map'}
-                >
+                    </div>{:else if id === 'Map'}<div class="workspace-view map-area">
                     <ScalingWrapper
                         bind:this={mapWrapper}
                         maxScale={2}
@@ -523,22 +498,12 @@
                             onselect={consentPreview ? undefined : (selection) => session.selectMap(selection, false)}
                         />
                         {#snippet overlay(viewport)}
-                            {#if view === 'Map' && session.canBuildTrack && session.trackSelection.locationId}
+                            {#if active && session.canBuildTrack && session.trackSelection.locationId}
                                 <TrackTilePicker {session} {viewport} />
                             {/if}
                         {/snippet}
                     </ScalingWrapper>
-                </div>
-                <div
-                    class="view-panel market-area"
-                    class:inactive={view !== 'Market'}
-                    role="tabpanel"
-                    id={`${tabsId}-panel-Market`}
-                    aria-labelledby={`${tabsId}-tab-Market`}
-                    aria-hidden={view !== 'Market'}
-                    inert={view !== 'Market'}
-                    tabindex="0"
-                >
+                    </div>{:else if id === 'Market'}<div class="workspace-view market-area">
                     <ScalingWrapper justify="center" controls="bottom-left" expandable={true}>
                         <StockMarketScene
                             animation={session.marketAnimation}
@@ -548,17 +513,7 @@
                             companies={session.financialState.companies}
                         />
                     </ScalingWrapper>
-                </div>
-                <div
-                    class="view-panel data-area"
-                    class:inactive={view !== 'Spreadsheet'}
-                    role="tabpanel"
-                    id={`${tabsId}-panel-Spreadsheet`}
-                    aria-labelledby={`${tabsId}-tab-Spreadsheet`}
-                    aria-hidden={view !== 'Spreadsheet'}
-                    inert={view !== 'Spreadsheet'}
-                    tabindex="0"
-                >
+                    </div>{:else if id === 'Spreadsheet'}<div class="workspace-view data-area">
                     <OwnershipSpreadsheet
                         {includedPortfolioCompanyIds}
                         companyOrder={spreadsheetCompanyOrder}
@@ -571,17 +526,7 @@
                         {exchangePoolId}
                         {portfolioCompanyIds}
                     />
-                </div>
-                <div
-                    class="view-panel"
-                    class:inactive={view !== 'Tiles'}
-                    role="tabpanel"
-                    id={`${tabsId}-panel-Tiles`}
-                    aria-labelledby={`${tabsId}-tab-Tiles`}
-                    aria-hidden={view !== 'Tiles'}
-                    inert={view !== 'Tiles'}
-                    tabindex="0"
-                >
+                    </div>{:else if id === 'Tiles'}<div class="workspace-view">
                     <TileManifest
                         tiles={session.mapView.tileSet.definitions}
                         inventory={session.tileCounts}
@@ -591,8 +536,9 @@
                             ? MutedTileAppearance
                             : ClassicTileAppearance}
                     />
-                </div>
-            </div>
+                    </div>{/if}
+                {/snippet}
+            </TabWorkspace>
         {/snippet}
     </DefaultTableLayout>
 
@@ -609,6 +555,8 @@
 </div>
 
 <style>
+    .workspace-view { height: 100%; min-height: 0; min-width: 0; overflow: auto; }
+    .order-display { display: flex; justify-content: flex-end; }
     .railway-table { color-scheme: light; }
     .railway-table[data-theme='dark'] {
         color-scheme: dark;
@@ -662,7 +610,6 @@
     }
     .action-panel {
         flex-shrink: 0;
-        max-height: 32dvh;
         min-height: 0;
         overflow: auto;
         padding: 10px 16px;
@@ -670,7 +617,6 @@
         border-bottom: 1px solid var(--rail-border, #b8a995);
         font-size: 13px;
     }
-    .action-panel.share-purchases { max-height: 50dvh; }
     .action-panel :global(section) {
         padding: 0;
         margin: 0;
@@ -703,54 +649,9 @@
     .action-panel :global(button strong) {
         font-weight: 400;
     }
-    .view-toolbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-shrink: 0;
-        border-bottom: 1px solid var(--rail-border, #d2c5b7);
-    }
-    .view-tabs {
-        display: flex;
-        flex-shrink: 0;
-        gap: 24px;
-        padding: 0 16px;
-    }
-    .view-tabs button {
-        padding: 12px 0 10px;
-        border: 0;
-        border-bottom: 2px solid transparent;
-        background: transparent;
-        color: var(--rail-inactive, #938371);
-        font: inherit;
-        font-size: 11px;
-        font-weight: 650;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        cursor: pointer;
-    }
-    .view-tabs button[aria-selected='true'] {
-        color: var(--rail-text, #5e4937);
-        border-bottom-color: var(--rail-focus, #7c634b);
-    }
-    .view-tabs button:hover {
-        color: var(--rail-text, #5e4937);
-    }
     .map-area {
         background: var(--rail-map-background, #cbdfe8);
         position: relative;
-    }
-    .view-area {
-        display: grid;
-        flex: 1;
-        min-height: 0;
-        min-width: 0;
-    }
-    .view-panel {
-        grid-area: 1 / 1;
-        min-height: 0;
-        min-width: 0;
-        overflow: auto;
     }
     .map-area,
     .market-area {
@@ -758,9 +659,5 @@
     }
     .data-area {
         padding-bottom: 8px;
-    }
-    .inactive {
-        visibility: hidden;
-        pointer-events: none;
     }
 </style>

@@ -194,3 +194,39 @@ This changes bundled rendering only, with no host-bridge interface change; each
 consuming Game UI Artifact must be republished to adopt it, including TOP and 1889.
 
 The camera uses a `translate3d` transform so browsers can composite the board during movement. This preserves its two-dimensional coordinates and clipping while avoiding repeated painting of masked SVG artwork during pan and zoom, especially in WebKit.
+
+## Tab workspace
+
+`TabWorkspace` takes stable tab definitions (`id`, `label`, optional `shortLabel`),
+a content snippet receiving the tab ID and whether it is active in its own pane, and an optional bound selected tab ID.
+An optional `initialSplit` supplies an axis and the tab IDs for the first pane;
+remaining tabs start in the second pane, with a 50/50 divider. Without it the
+workspace starts as one pane.
+It owns a local binary split tree, permitting repeated splits in either direction
+with a global limit of six panes. Deleting a pane restores split capacity. Splits start at 50%, have draggable
+20–80% dividers, and create empty drop targets. Each tab belongs to exactly one
+pane and each nonempty pane has an active tab. Drag/drop or Alt+Shift+Left/Right
+moves tabs; standard tab arrow/Home/End navigation selects within a pane. Splitter
+arrow/Home/End controls resize, and cancelled pointer drags restore their ratio.
+
+Content snippets are mounted once per stable tab ID, outside the changing split
+tree; only their absolute rectangles and visibility change. This preserves DOM,
+focusable content state, and embedded scaling wrappers. Inactive panels are inert.
+The component exposes workspace color variables, falling back to railway theme
+variables and light defaults. Tab definitions must remain stable for its lifetime.
+Workspace layout survives responsive resizing but resets on remount; callers may
+activate a tab by updating the bound selection. No host contract changes.
+
+Dropping on a tab inserts before it, including reordering within the same pane;
+dropping on remaining pane space appends. Every pane exposes Delete while more than one pane exists. Deletion appends its
+tabs to its sibling (the first surviving leaf if that sibling is split), then
+collapses the split. The selected tab remains visible.
+The surviving subtree retains its contents and divider positions, and split-button
+availability follows the total pane count. The last pane cannot be deleted. Pane headers are 35px high.
+
+Native tab drops record a pending move and commit it at `dragend`, keeping the
+source tab mounted through the browser's drag lifecycle. Removing it during `drop`
+can suppress WebKit's drag completion and interfere with subsequent pointer input.
+Mouse divider resizing uses mouse down with window-level move/up listeners;
+WebKit can omit the next pointerdown after native drag/drop while still delivering
+mousedown. Touch and pen resizing use pointer capture. Blur cancels resizing.

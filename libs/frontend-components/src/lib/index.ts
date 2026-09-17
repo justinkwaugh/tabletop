@@ -60,3 +60,5 @@ export * from './utils/runeBackedStore.svelte.js'
 export * from './utils/validateLocalGameState.js'
 
 export { TitlePreferences } from './preferences/titlePreferences.svelte.js'
+
+export { default as TabWorkspace } from "./components/TabWorkspace.svelte"

@@ -4,6 +4,7 @@
     import {
         cashOwnedBy,
         isStartCompany,
+        nextOperatingCompany,
         certificatesInPool,
         controllingOwner,
         getCompany,
@@ -44,6 +45,11 @@
         portfolioCompanyIds?: readonly string[]
         includedPortfolioCompanyIds?: readonly string[]
     } = $props()
+    const operatingCompanyId = $derived(
+        session.financialState.stockRound.completed && session.financialState.operatingSet && !session.financialState.result
+            ? nextOperatingCompany(session.financialState) : undefined
+    )
+    const currentPlayerOwners = $derived(new Set(session.financialState.activePlayerIds.map((id) => `player:${id}`)))
     const eligibleCompanies = $derived(
         session.financialState.companies.filter(
             (company) =>
@@ -218,8 +224,8 @@
     </span>
 {/snippet}
 
-{#snippet shareCell(shares: number, poolStart = false, president = false, matrix = true, sold = false)}
-    <td class:sold class:share-cell={matrix} class:available-pool={!matrix && shares !== 0} class:empty={shares === 0} class:pool-start={poolStart}>
+{#snippet shareCell(shares: number, poolStart = false, president = false, matrix = true, sold = false, operating = false)}
+    <td class:operating-column={operating} class:sold class:share-cell={matrix} class:available-pool={!matrix && shares !== 0} class:empty={shares === 0} class:pool-start={poolStart}>
         <span class="share-value" class:president
             >{shares === 0 ? '' : shares}{#if president}<span class="badge" aria-label="President">P</span>{/if}</span
         >
@@ -293,7 +299,7 @@
                         <th scope="col" class="company-stat-start">Last run</th>
                     {:else}
                         {#each companies as company (company.id)}
-                            <th scope="col" aria-label={company.name}
+                            <th scope="col" class:operating-column={company.id === operatingCompanyId} aria-label={company.name}
                                 >{@render companyLabel(company)}</th
                             >
                         {/each}
@@ -344,7 +350,7 @@
                     {/each}
                 {:else}
                     {#each owners as owner, index (owner.id)}
-                        <tr class:pool-start={owner.id === firstPoolId} class:pool-row={owner.id in poolColumnLabels}>
+                        <tr class:current-player={currentPlayerOwners.has(owner.id)} class:pool-start={owner.id === firstPoolId} class:pool-row={owner.id in poolColumnLabels}>
                             <th scope="row" title={owner.name}
                                 class:controlled-owner={ownerConnections[index].controlled}
                                 class:ownership-continues={ownerConnections[index].continues}>{@render ownerLabel(owner)}</th>
@@ -353,7 +359,8 @@
                                     false,
                                     row.presidentId === owner.id,
                                     !(owner.id in poolColumnLabels),
-                                    soldThisRound(owner.id, row.company.id)
+                                    soldThisRound(owner.id, row.company.id),
+                                    row.company.id === operatingCompanyId
                                 )}{/each}
                             {#each statisticLabels as _, statIndex}
                                 <td
@@ -368,7 +375,7 @@
                     {/each}
                     <tr class="company-stat-start financial-row">
                         <th scope="row">Cash</th>
-                        {#each rows as row (row.company.id)}<td class="bright-cell">{@render companyCash(row.cash)}</td
+                        {#each rows as row (row.company.id)}<td class:operating-column={row.company.id === operatingCompanyId} class="bright-cell">{@render companyCash(row.cash)}</td
                             >{/each}
                         {#each statisticLabels as _, index}<td
                                 class:stat-start={index === 0}
@@ -378,18 +385,18 @@
                     <tr class="financial-row">
                         <th scope="row">Tokens</th>
                         {#each rows as row (row.company.id)}
-                            <td class="bright-cell token-cell">{row.stations.filter((station) => station.status === 'available').length}/{row.stations.length}</td>
+                            <td class:operating-column={row.company.id === operatingCompanyId} class="bright-cell token-cell">{row.stations.filter((station) => station.status === 'available').length}/{row.stations.length}</td>
                         {/each}
                         {#each statisticLabels as _, index}<td class:stat-start={index === 0} class="empty">—</td>{/each}
                     </tr>
                     <tr class="financial-row">
                         <th scope="row">Trains</th>
-                        {#each rows as row (row.company.id)}<td class="bright-cell">{@render companyTrains(row.company.id)}</td>{/each}
+                        {#each rows as row (row.company.id)}<td class:operating-column={row.company.id === operatingCompanyId} class="bright-cell">{@render companyTrains(row.company.id)}</td>{/each}
                         {#each statisticLabels as _, index}<td class:stat-start={index === 0} class="empty">—</td>{/each}
                     </tr>
                     <tr class="company-stat-start financial-row">
                         <th scope="row">Last run</th>
-                        {#each rows as row (row.company.id)}<td>{@render lastRunCell(row.company)}</td>{/each}
+                        {#each rows as row (row.company.id)}<td class:operating-column={row.company.id === operatingCompanyId}>{@render lastRunCell(row.company)}</td>{/each}
                         {#each statisticLabels as _, index}<td class:stat-start={index === 0} class="empty">—</td>{/each}
                     </tr>
                 {/if}
@@ -459,6 +466,14 @@
     tbody tr:hover {
         background-color: var(--rail-hover, #69554016);
     }
+
+    tbody tr.current-player { outline: 1px solid var(--rail-focus, #9e7752); outline-offset: -1px; }
+    .operating-column {
+        --operating-outline: var(--rail-focus, #9e7752);
+        box-shadow: inset 1px 0 var(--operating-outline), inset -1px 0 var(--operating-outline);
+    }
+    thead .operating-column { box-shadow: inset 1px 0 var(--operating-outline), inset -1px 0 var(--operating-outline), inset 0 1px var(--operating-outline); }
+    tbody tr:last-child .operating-column { box-shadow: inset 1px 0 var(--operating-outline), inset -1px 0 var(--operating-outline), inset 0 -1px var(--operating-outline); }
 
     .company-trains {
         display: flex;
