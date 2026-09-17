@@ -613,7 +613,7 @@
     .game-info-pane .phase-information { padding-left: 0; }
     .original-actions { flex: none; max-height: 50dvh; overflow: auto; }
     .workspace-view { height: 100%; min-height: 0; min-width: 0; overflow: auto; }
-    .players-pane { container: player-pane / size; }
+    .players-pane { container: player-pane / size; padding-top: 10px; box-sizing: border-box; }
     .actions-area { display: flex; flex-direction: column; overflow: hidden; }
     .actions-area .action-body { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: auto; }
     .actions-area .action-panel { flex: 1 0 auto; }

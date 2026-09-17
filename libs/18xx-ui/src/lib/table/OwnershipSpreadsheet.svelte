@@ -1,4 +1,5 @@
 <script lang="ts">
+    import './playerTint.css'
     import type { GameAction } from '@tabletop/common'
     import { companyLastRun } from './companyLastRun.js'
     import {
@@ -191,6 +192,9 @@
             ])
         ])
     )
+    function ownerPlayerColor(ownerId: string) {
+        return ownerId.startsWith('player:') ? session.colors.getPlayerBgColorValue(ownerId.slice(7)) : undefined
+    }
 </script>
 
 {#snippet financialValue(ownerId: string, index: number)}
@@ -199,8 +203,9 @@
 {/snippet}
 
 {#snippet ownerLabel(owner: { id: string; name: string }, column = false)}
-    {#if owner.id.startsWith('player:')}
-        <PlayerName name={owner.name} color={session.colors.getPlayerBgColorValue(owner.id.slice(7))} />
+    {@const color = ownerPlayerColor(owner.id)}
+    {#if color}
+        <PlayerName name={owner.name} {color} />
     {:else if portfolioColumnLabels.has(owner.id)}
         <span class="owner-name portfolio-full">{owner.name}</span>
         <span class="owner-name portfolio-short">{portfolioColumnLabels.get(owner.id)}</span>
@@ -294,6 +299,8 @@
                                 scope="col"
                                 class:pool-start={owner.id === firstPoolId}
                                 class:current-player-column={currentPlayerOwners.has(owner.id)}
+                                class:player-tinted-header={!!ownerPlayerColor(owner.id)}
+                                style:--player-color={ownerPlayerColor(owner.id)}
                                 title={owner.name}><span class="column-owner-label">
                                     {#if ownerConnections[index].controlled}<span class="column-ownership-connector incoming" aria-hidden="true"></span>{/if}
                                     {@render ownerLabel(owner, true)}
@@ -359,6 +366,8 @@
                     {#each owners as owner, index (owner.id)}
                         <tr class:current-player={currentPlayerOwners.has(owner.id)} class:pool-start={owner.id === firstPoolId} class:pool-row={owner.id in poolColumnLabels}>
                             <th scope="row" title={owner.name}
+                                class:player-tinted-header={!!ownerPlayerColor(owner.id)}
+                                style:--player-color={ownerPlayerColor(owner.id)}
                                 class:controlled-owner={ownerConnections[index].controlled}
                                 class:ownership-continues={ownerConnections[index].continues}>{@render ownerLabel(owner)}</th>
                             {#each rows as row (row.company.id)}{@render shareCell(

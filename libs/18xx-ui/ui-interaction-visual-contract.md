@@ -1584,3 +1584,10 @@ phase/depot buttons so controls do not touch the pane divider.
 Player portfolio headers share the auction header’s 15% player-color tint in both
 compact and expanded views and both themes. Non-player portfolio headers retain
 the neutral surface.
+
+Spreadsheet player-name header cells use the shared 15% player-color tint: row
+and column headers in ownership views and player-group headers in income history.
+Company/pool headers and numeric cells retain their existing backgrounds.
+
+Player cards in workspace panes start 10px below the pane header, matching the
+10px gap between cards in both vertical and horizontal arrangements.

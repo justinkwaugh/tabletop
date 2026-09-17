@@ -1,4 +1,5 @@
 <script lang="ts">
+    import './playerTint.css'
     import type { GameAction } from '@tabletop/common'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import type { CompanyNameVariants } from './companyPresentation.js'
@@ -43,7 +44,7 @@
                 <th scope="col" rowspan={view === 'Player' ? 2 : 1}>Round</th>
                 {#if view === 'Player'}
                     {#each players as player (player.playerId)}
-                        <th scope="colgroup" colspan="3" title={player.name}><PlayerName name={player.name} color={player.color} /></th>
+                        <th scope="colgroup" colspan="3" title={player.name} class="player-tinted-header" style:--player-color={player.color}><PlayerName name={player.name} color={player.color} /></th>
                     {/each}
                 {:else}
                     {#each companies as [companyId, name] (companyId)}

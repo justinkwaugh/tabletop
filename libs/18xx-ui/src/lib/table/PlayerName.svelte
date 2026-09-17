@@ -1,5 +1,5 @@
 <script lang="ts">
-    let { name, color, dotSize = 14, maxWidth = '140px' }: { name: string; color: string; dotSize?: number; maxWidth?: string } = $props()
+    let { name, color, dotSize = 10, maxWidth = '140px' }: { name: string; color: string; dotSize?: number; maxWidth?: string } = $props()
 </script>
 <span class="player-label" title={name} style:max-width={maxWidth}>
     <span class="color-dot" style:background={color} style:width={`${dotSize}px`} style:height={`${dotSize}px`} aria-hidden="true"></span>
