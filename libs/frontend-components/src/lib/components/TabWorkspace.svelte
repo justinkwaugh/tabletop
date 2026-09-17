@@ -209,7 +209,7 @@
 <style>
     .workspace { --workspace-header-height: 35px; position: relative; flex: 1; min-width: 0; min-height: 160px; height: 100%; color: var(--workspace-text, var(--rail-text, #443c34)); }
     .pane, .panel { position: absolute; box-sizing: border-box; min-width: 0; min-height: 0; }
-    .pane { display: flex; flex-direction: column; }
+    .pane { z-index: 1; display: flex; flex-direction: column; }
     header { height: var(--workspace-header-height); flex: none; display: flex; align-items: center; border-bottom: 1px solid var(--workspace-border, var(--rail-border, #d2c5b7)); box-sizing: border-box; }
     .tabs { display: flex; flex: 1; min-width: 0; gap: 24px; padding: 0 16px; overflow-x: auto; scrollbar-width: thin; }
     button { background: transparent; color: inherit; font: inherit; cursor: pointer; }
@@ -223,7 +223,7 @@
     .split-button:hover:enabled { background: var(--workspace-hover, var(--rail-hover, #69554016)); }
     .split-button:disabled { opacity: .25; cursor: default; }
     svg { fill: none; stroke: currentColor; stroke-width: 1.4; }
-    .panel { overflow: hidden; }
+    .panel { z-index: 2; overflow: hidden; }
     .panel.inactive { visibility: hidden; pointer-events: none; }
     .empty { flex: 1; display: grid; place-items: center; color: var(--workspace-muted, var(--rail-muted, #887969)); font-size: 13px; }
     .drop-target { outline: 2px dashed var(--workspace-focus, var(--rail-focus, #7c634b)); outline-offset: -4px; }

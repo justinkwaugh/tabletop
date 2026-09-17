@@ -254,3 +254,7 @@ panes) while preserving their sizes. The resulting layout is saved normally.
 
 Swap sides is hidden and does not intercept clicks until its divider is hovered
 or focused. It stays visible while hovering the button and is keyboard focusable.
+
+Pane content has an explicit stacking level above pane header/drop-target shells,
+with dividers and swap controls above both. Newly inserted pane shells must never
+intercept clicks intended for content moved into them.
