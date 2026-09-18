@@ -1,7 +1,6 @@
 <script lang="ts">
     import { Label, Input, Button, Helper, Alert } from 'flowbite-svelte'
     import { z } from 'zod'
-    import { goto } from '$app/navigation'
     import { getAppContext, trim } from '@tabletop/frontend-components'
     import PasswordInput from '$lib/components/PasswordInput.svelte'
     import AuthLink from '$lib/components/AuthLink.svelte'
@@ -36,8 +35,7 @@
         submitting = true
         try {
             const newUser = await api.createUser(result.data)
-            authorizationService.setSessionUser(newUser)
-            await goto('/library')
+            await authorizationService.onLogin(newUser)
         } catch (error) {
             if (error instanceof Error && error.name === 'AlreadyExistsError') {
                 if (error.message.includes('username')) {
