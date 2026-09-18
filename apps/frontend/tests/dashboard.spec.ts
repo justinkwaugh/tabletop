@@ -558,3 +558,21 @@ for (const tab of ['Current', 'History']) {
         await expect(panel.locator('button').first()).not.toHaveCSS('box-shadow', 'none')
     })
 }
+
+test('keeps your-turn games marked after refreshing the dashboard', async ({ page }) => {
+    await page.route('**/api/v1/games/mine*', (route) =>
+        route.fulfill({
+            json: { payload: { games: [game(0), { ...game(1), activePlayerIds: ['p2'] }] } }
+        })
+    )
+    await page.goto('/dashboard')
+    await expect(page.getByRole('button', { name: 'Your turn 1', exact: true })).toBeVisible()
+    await page.reload()
+    await expect(page.getByRole('button', { name: 'Your turn 1', exact: true })).toBeVisible()
+    const mine = page.locator('.dashboard-game-list li').filter({ hasText: 'Table 00' })
+    const opponent = page.locator('.dashboard-game-list li').filter({ hasText: 'Table 01' })
+    await expect(mine.getByRole('button', { name: 'Your Turn', exact: true })).toBeVisible()
+    await expect(opponent.getByRole('button', { name: 'Enter', exact: true })).toBeVisible()
+    await mine.getByRole('heading', { name: 'Table 00', exact: true }).click()
+    await expect(mine.getByRole('button', { name: 'Take Your Turn', exact: true })).toBeVisible()
+})

@@ -341,8 +341,8 @@
                                         >
                                     {:else if canPlay || canWatch}
                                         {@render gameEntryButton(
-                                            canPlay ? 'Enter' : 'Watch',
-                                            'primary',
+                                            isMyTurn ? 'Your Turn' : canPlay ? 'Enter' : 'Watch',
+                                            isMyTurn ? 'yellow' : 'primary',
                                             'h-[20px]'
                                         )}
                                     {:else if canRevisit}
@@ -546,8 +546,12 @@
                             {/if}
                             {#if canPlay || canWatch}
                                 {@render gameEntryButton(
-                                    canPlay ? 'Play Game' : 'Watch Game',
-                                    'primary',
+                                    isMyTurn
+                                        ? 'Take Your Turn'
+                                        : canPlay
+                                          ? 'Play Game'
+                                          : 'Watch Game',
+                                    isMyTurn ? 'yellow' : 'primary',
                                     'mx-2'
                                 )}
                             {/if}
