@@ -124,6 +124,61 @@ test('a browser tab does not show the PWA refresh for a minor frontend update', 
     await expect(page.getByRole('button', { name: 'Refresh to update' })).toHaveCount(0)
 })
 
+test('the browser install offer exposes a one-shot PWA install control', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/dashboard')
+    await expect(page.getByRole('button', { name: 'Install BoardTogether' })).toHaveCount(0)
+    const games = page.locator('button:has(.my-games-label)')
+    const menu = page.getByRole('button', { name: 'Open account menu' })
+    await expect(games).toBeVisible()
+    await expect(menu).toBeVisible()
+
+    await page.evaluate(() => {
+        class InstallPromptEvent extends Event {
+            readonly platforms = ['web']
+            readonly userChoice = Promise.resolve({
+                outcome: 'accepted' as const,
+                platform: 'web'
+            })
+
+            async prompt() {
+                document.documentElement.dataset.installPrompted = 'true'
+            }
+        }
+
+        window.dispatchEvent(new InstallPromptEvent('beforeinstallprompt', { cancelable: true }))
+    })
+
+    const install = page.getByRole('button', { name: 'Install BoardTogether' })
+    await expect(install).toBeVisible()
+    await expect(install).toHaveCSS('width', '40px')
+    await expect(install).toHaveCSS('height', '40px')
+    await expect(install.locator('svg')).toHaveCSS('width', '24px')
+    await expect(install.locator('svg')).toHaveCSS('height', '24px')
+    await expect(page.getByRole('link', { name: 'GitHub' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Discord' })).toBeVisible()
+    expect(
+        await games.evaluate((element) => {
+            const installButton = document.querySelector('.pwa-install')
+            return installButton
+                ? Boolean(element.compareDocumentPosition(installButton) & 4)
+                : false
+        })
+    ).toBe(true)
+    expect(
+        await install.evaluate((element) => {
+            const menuButton = document.querySelector('#user-drop')
+            return menuButton ? Boolean(element.compareDocumentPosition(menuButton) & 4) : false
+        })
+    ).toBe(true)
+
+    await install.click()
+
+    await expect(page.locator('html')).toHaveAttribute('data-install-prompted', 'true')
+    await expect(install).toHaveCount(0)
+    await expect(menu).toBeVisible()
+})
+
 for (const expanded of [false, true]) {
     test(`game entry shows a spinner while navigation waits, expanded ${expanded}`, async ({
         page

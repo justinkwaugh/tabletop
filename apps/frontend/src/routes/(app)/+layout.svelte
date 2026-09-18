@@ -34,7 +34,11 @@
     } from '@tabletop/frontend-components'
     import { toast } from 'svelte-sonner'
     import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
-    import { BellSolid, RefreshOutline } from 'flowbite-svelte-icons'
+    import { BellSolid, DownloadOutline, RefreshOutline } from 'flowbite-svelte-icons'
+    import {
+        pwaInstallPrompt,
+        registerPwaInstallPrompt
+    } from '$lib/stores/pwaInstallPrompt.svelte.js'
 
     let {
         api,
@@ -59,6 +63,7 @@
     let showPwaRefresh = $derived(
         isInstalledPwa && api.versionChange === VersionChange.MinorUpgrade
     )
+    let canInstallPwa = $derived(pwaInstallPrompt.available)
 
     const openLoginModal = setLoginModal(() => {
         loginView = 'signin'
@@ -191,6 +196,10 @@
         await goto('/about')
     }
 
+    async function installPwa() {
+        await pwaInstallPrompt.prompt()
+    }
+
     function setAdminCapabilities(event: Event) {
         if (!(event.currentTarget instanceof HTMLInputElement)) {
             return
@@ -241,6 +250,7 @@
     }
 
     onMount(() => {
+        registerPwaInstallPrompt()
         isInstalledPwa = window.matchMedia('(display-mode: standalone)').matches
         notificationService.onMounted()
         visibilityService.setDocument(document)
@@ -311,7 +321,8 @@
 {/snippet}
 
 <div
-    class:mobile-game-header={!!gameService.currentGameSession || showPwaRefresh}
+    class:game-session-header={!!gameService.currentGameSession}
+    class:mobile-game-header={!!gameService.currentGameSession || showPwaRefresh || canInstallPwa}
     {@attach attachGlobalCssVarFromRect('--app-navbar-height')}
 >
     <Navbar
@@ -388,16 +399,25 @@
                             <Button
                                 size="xs"
                                 color="blue"
-                                class="me-4 h-[30px]"
+                                class="{showPwaRefresh || canInstallPwa ? 'me-1' : 'me-4'} h-[30px]"
                                 onclick={gotoDashboard}><span class="my-games-label">My&nbsp;</span>Games</Button
                             >
                             {#if showPwaRefresh}
                                 <button
-                                    class="pwa-refresh me-2 cursor-pointer text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+                                    class="pwa-refresh me-1 cursor-pointer text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
                                     aria-label="Refresh to update"
                                     onclick={() => location.reload()}
                                 >
                                     <RefreshOutline class="h-6 w-6" aria-hidden="true" />
+                                </button>
+                            {/if}
+                            {#if canInstallPwa}
+                                <button
+                                    class="pwa-install cursor-pointer text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+                                    aria-label="Install BoardTogether"
+                                    onclick={installPwa}
+                                >
+                                    <DownloadOutline class="h-6 w-6" aria-hidden="true" />
                                 </button>
                             {/if}
                             <a
@@ -491,6 +511,15 @@
                             </DropdownGroup>
                         </Dropdown>
                     {:else}
+                        {#if canInstallPwa}
+                            <button
+                                class="pwa-install me-1 cursor-pointer text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+                                aria-label="Install BoardTogether"
+                                onclick={installPwa}
+                            >
+                                <DownloadOutline class="h-6 w-6" aria-hidden="true" />
+                            </button>
+                        {/if}
                         <Button onclick={openLoginModal} size="sm" color="blue">Sign in</Button>
                     {/if}
                 </div>
@@ -594,8 +623,10 @@
     .game-menu-icon { display: none; }
     .account-menu { display: grid; place-items: center; border-radius: 4px; }
     .account-menu:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
-    .pwa-refresh { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 4px; }
-    .pwa-refresh:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+    .pwa-refresh,
+    .pwa-install { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 4px; }
+    .pwa-refresh:focus-visible,
+    .pwa-install:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
     @media (width < 640px) {
         .mobile-game-header :global(.site-navbar) { padding-block: 4px; }
         .mobile-game-header .header-brand { flex: 1; min-width: 0; justify-content: flex-start; padding-left: 8px; }
@@ -605,8 +636,8 @@
         .mobile-game-header .mobile-game-title,
         .mobile-game-header .my-games-label,
         .mobile-game-header .full-logo,
-        .mobile-game-header .header-links,
         .mobile-game-header .account-avatar { display: none; }
+        .game-session-header .header-links { display: none; }
         .mobile-game-header .game-logo { display: block; width: 28px; height: 28px; }
         .mobile-game-header .game-menu-icon { display: block; }
         .mobile-game-header .account-menu { width: 40px; height: 40px; }
