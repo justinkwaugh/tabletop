@@ -83,7 +83,7 @@ is retained with `scripts/benchmark-routes.mjs` in the viewer; it preserves the
 title's tile inventory and migrated station identities. It is a prepared topology
 benchmark, not a replay of a complete game's finances and train events.
 
-`pnpm --filter @tabletop/18xx-tile-viewer benchmark:routes` enumerated 1,936 legal
+`pnpm --filter @tabletop/18xx-playground benchmark:routes` enumerated 1,936 legal
 oriented diesel candidates in approximately 2.2 seconds in this workspace; first
 candidate arrived in 5.5 ms. Revalidating a selected route averaged 0.051 ms over
 1,000 iterations. Reverse traversals are currently counted separately. These are

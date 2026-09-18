@@ -111,7 +111,7 @@ not implementation or tests.
 ## Running and checking
 
 The gallery is a separate app at
-[`apps/18xx-tile-viewer`](../../apps/18xx-tile-viewer/README.md). It owns title imports,
+[`apps/18xx-playground`](../../apps/18xx-playground/README.md). It owns title imports,
 collections, routes, and title integration/browser tests. Shared libraries have
 no game dependencies, including development dependencies. The app consumes the
 library's public exports; no game or app source enters the library build.
@@ -120,8 +120,8 @@ library's public exports; no game or app source enters the library build.
 pnpm --filter @tabletop/18xx-ui check
 pnpm --filter @tabletop/18xx-ui test
 pnpm --filter @tabletop/18xx-ui build
-pnpm --filter @tabletop/18xx-tile-viewer dev
-pnpm --filter @tabletop/18xx-tile-viewer test
+pnpm --filter @tabletop/18xx-playground dev
+pnpm --filter @tabletop/18xx-playground test
 ```
 
 The gallery runs at port 4188. `/` provides standalone catalog inspection;

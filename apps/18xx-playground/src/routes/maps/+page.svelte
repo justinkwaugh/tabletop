@@ -28,9 +28,7 @@
 <svelte:head><title>18xx maps</title></svelte:head>
 <main>
     <nav>
-        <a href="/">Tile library</a><a href="/specimens">Tile specimens</a><a href="/economy"
-            >Finances</a
-        >
+        <a href="/">Tile library</a><a href="/specimens">Tile specimens</a><a href="/table">Game table</a>
     </nav>
     <header>
         <label

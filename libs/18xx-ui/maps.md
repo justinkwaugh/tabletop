@@ -56,4 +56,4 @@ See the [family model/design review](../18xx/maps.md) for supported variation,
 intentional limits, and rule evidence, and the
 [visual contract](ui-interaction-visual-contract.md#map-inspection-and-navigation)
 for input precedence and state lifetime. The title composition is available at
-`/maps` in the [standalone viewer app](../../apps/18xx-tile-viewer/README.md).
+`/maps` in the [standalone viewer app](../../apps/18xx-playground/README.md).

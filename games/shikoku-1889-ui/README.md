@@ -6,8 +6,7 @@ from `@tabletop/18xx-ui`, and the existing Game Client support.
 
 The public `UiDefinition` uses the title's canonical runtime and shared `GameTable`:
 player/company panels, action selection, map, market, tiles, spreadsheet and history.
-`PrototypeUiDefinition` exposes the earlier economy workbench. The development app
-hosts them at `/table` and `/economy`, with local persistence and selectable game
+The [18xx Playground](../../apps/18xx-playground/README.md) hosts it at `/table`, with local persistence and selectable game
 positions, including real opening setup. TOP additionally has a finished-game
 fixture for replay and history work.
 

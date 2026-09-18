@@ -107,7 +107,7 @@ Controlling Owner. TOP adds PEIR's dividend entitlement through a snippet. These
 are provisional layouts. A shared trading panel submits Actions through the
 Game Session and renders payment previews and committed history.
 
-The Finances page at the existing `/economy` route uses the existing local harness to persist examples.
+The playable table at `/table` in the 18xx Playground uses the local harness to persist examples.
 The host identifies this schema's examples with the versioned name
 `Finances example · 7 · <position>`. Earlier inspection examples are preserved, and a new
 example is created for this version. Current examples are reused on reload and

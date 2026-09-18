@@ -437,7 +437,7 @@ it('automatically passes a stock player with no affordable purchase or holdings 
     for (const cash of state.cash)
         if (cash.owner.kind === 'player' && cash.owner.playerId === 'blair') cash.amount = 0
     for (const certificate of state.certificates)
-        if (certificate.owner.kind === 'player' && certificate.owner.playerId === 'blair') {
+        if (!certificate.retired && certificate.owner.kind === 'player' && certificate.owner.playerId === 'blair') {
             certificate.owner = { kind: 'player', playerId: 'casey' }
         }
     const result = engine.executeCanonicalAction({ game, state, action: finish(state) })

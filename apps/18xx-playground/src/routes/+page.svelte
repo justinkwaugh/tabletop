@@ -15,9 +15,7 @@
 <svelte:head><title>18xx tile library</title></svelte:head>
 <main>
     <nav>
-        <a href="/">TABLETOP <span>/ 18XX</span></a><a href="/table">Game table ↗</a><a href="/maps">Maps ↗</a><a href="/economy"
-            >Finances ↗</a
-        ><a href="/specimens">Visual specimen sheet ↗</a>
+        <a href="/">TABLETOP <span>/ 18XX</span></a><a href="/table">Game table ↗</a><a href="/maps">Maps ↗</a><a href="/specimens">Visual specimen sheet ↗</a>
     </nav>
     <div class="intro">
         <label

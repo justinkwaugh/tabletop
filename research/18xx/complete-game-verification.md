@@ -85,7 +85,7 @@ initial minified build. No production deployment or publication was performed.
 
 ## Repeating the checks
 
-Run `pnpm --filter @tabletop/18xx-tile-viewer test:unit` for canonical scenarios and
+Run `pnpm --filter @tabletop/18xx-playground test:unit` for canonical scenarios and
 `test:browser -- --workers=1` for the prototype. The complete-game test additionally
 regenerates System cascades from the recorded User Actions, comparing their IDs and
 final State with the original execution. Processed-history JSON goes through Common's
@@ -97,7 +97,7 @@ require accounts or a backend. In a local environment with email delivery disabl
 
 ```sh
 GCLOUD_PROJECT=demo-18xx-s20 FIRESTORE_EMULATOR_HOST=firebase:8080 \
-  node apps/18xx-tile-viewer/scripts/seed-hosted-users.mjs
+  node apps/18xx-playground/scripts/seed-hosted-users.mjs
 ```
 
 The script requires an explicit emulator and a `demo-` project. Use the same project
@@ -119,7 +119,7 @@ LOCAL_HOSTED_FRONTEND_PORT=5174 PORT=3100 ROLLUP_TERSER=0 \
   tools/scripts/local-hosted-game.mjs the-old-prince
 ```
 
-With the site ready, run `pnpm --filter @tabletop/18xx-tile-viewer test:hosted`.
+With the site ready, run `pnpm --filter @tabletop/18xx-playground test:hosted`.
 `HOSTED_SITE_URL` and `HOSTED_API_URL` support different ports. The suite logs into
 four separate browser contexts, creates/joins/starts through the Site Frontend,
 and selects a supported prepared-position configuration in the creation request.

@@ -1,4 +1,4 @@
-# 18xx tile viewer
+# 18xx Playground
 
 Standalone development host for shared 18xx tiles, maps, and playable title prototypes.
 This app composes `@tabletop/18xx-ui`, TOP, and Shikoku 1889. Shared libraries must
@@ -20,7 +20,7 @@ For the separate scenario playground (title and position selectors, including
 the finished TOP game):
 
 ```sh
-pnpm --filter @tabletop/18xx-tile-viewer dev:scenarios
+pnpm --filter @tabletop/18xx-playground dev:scenarios
 ```
 
 That runs this app on port 4188 and opens `/table`. If it is already running,
@@ -31,8 +31,8 @@ visit `http://localhost:4188/table` instead of starting another server.
 Build the workspace dependencies, then start the gallery:
 
 ```sh
-pnpm exec turbo run build --filter=@tabletop/18xx-tile-viewer^...
-pnpm --filter @tabletop/18xx-tile-viewer dev
+pnpm exec turbo run build --filter=@tabletop/18xx-playground^...
+pnpm --filter @tabletop/18xx-playground dev
 ```
 
 The server uses port 4188. `/` shows the tile library; `/specimens` shows rotations,
@@ -43,9 +43,9 @@ and inspection fixtures. The renderer and viewer component live in
 [`libs/18xx-ui`](../../libs/18xx-ui/README.md).
 
 ```sh
-pnpm --filter @tabletop/18xx-tile-viewer check
-pnpm --filter @tabletop/18xx-tile-viewer test
-pnpm --filter @tabletop/18xx-tile-viewer build
+pnpm --filter @tabletop/18xx-playground check
+pnpm --filter @tabletop/18xx-playground test
+pnpm --filter @tabletop/18xx-playground build
 ```
 
 Unit tests exercise the public renderer with complete title catalogs. Browser
@@ -53,9 +53,8 @@ tests verify browsing, inventory counts, mobile layout, and the specimen sheet.
 The production build writes a static app to `build`.
 
 `/table` loads each title's `UiDefinition` and canonical runtime, with player panels,
-actions, map, market, tile manifest, spreadsheet and grouped history. `/economy`
-loads `PrototypeUiDefinition`, the earlier workbench for inspecting the same rules.
-Both use Game Sessions and local harness services. Games are persisted locally and
+actions, map, market, tile manifest, spreadsheet and grouped history.
+It uses Game Sessions and local harness services. Games are persisted locally and
 restored on revisit. The position selector includes focused scenarios and real
 opening auctions; TOP also has a finished-game fixture for forward/backward history.
 

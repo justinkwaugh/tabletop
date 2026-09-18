@@ -1,5 +1,5 @@
 {
-    "name": "@tabletop/18xx-tile-viewer",
+    "name": "@tabletop/18xx-playground",
     "version": "0.0.1",
     "private": true,
     "type": "module",

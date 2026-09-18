@@ -80,7 +80,7 @@ The library's annotations do not intercept pointer input. A whole-tile SVG expos
 an accessible name; the group artwork relies on its containing SVG/host for naming.
 Optional inventory counts appear beside cards and in inspection details. The host
 supplies counts; filtering, rotating, and browsing never consume or return pieces.
-The separate `apps/18xx-tile-viewer` development app selects complete TOP, standard
+The separate `apps/18xx-playground` development app selects complete TOP, standard
 1889, or beginner 1889 sets. It owns game imports and title integration/browser
 tests; this shared package has no game dependencies or imports.
 

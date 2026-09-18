@@ -18,7 +18,7 @@ Classic and Muted appearances share the same semantic geometry.
 T3 adds optional caller-supplied inventory counts and full title collections. The viewer is a lasting
 component; its development host page may be disposable.
 
-The standalone gallery lives in [`apps/18xx-tile-viewer`](../../apps/18xx-tile-viewer/README.md).
+The standalone gallery lives in [`apps/18xx-playground`](../../apps/18xx-playground/README.md).
 That app imports the title packages and supplies their definitions to this library.
 Shared libraries must not depend on games, including in development dependencies
 or tests. This package's tests use shared definitions and synthetic fixtures.
@@ -44,8 +44,8 @@ and `GameUiDefinition`.
 Run `pnpm --filter @tabletop/18xx-ui build` to package the library into `dist`,
 or `pnpm --filter @tabletop/18xx-ui check` to run Svelte and TypeScript checks.
 Run `pnpm --filter @tabletop/18xx-ui test` for shared geometry and filtering checks.
-Run `pnpm --filter @tabletop/18xx-tile-viewer dev` for the tile gallery at port 4188,
-or `pnpm --filter @tabletop/18xx-tile-viewer test` for title integration and browser checks.
+Run `pnpm --filter @tabletop/18xx-playground dev` for the tile gallery at port 4188,
+or `pnpm --filter @tabletop/18xx-playground test` for title integration and browser checks.
 
 The [economic inspection slice](../18xx/finance.md) adds shared financial fields and queries
 and portfolio inspection, with title-owned examples in the standalone app.

@@ -180,7 +180,7 @@ two tile numbers establish a universally permitted upgrade.
 
 **Implemented:** [T2 interface, design review, and verification](../../libs/18xx-ui/tiles.md).
 Includes Classic/Muted appearances and a standalone development gallery in
-[`apps/18xx-tile-viewer`](../../apps/18xx-tile-viewer/README.md). Only the app
+[`apps/18xx-playground`](../../apps/18xx-playground/README.md). Only the app
 depends on game packages; the shared libraries do not, even for development or tests.
 Game tile-selection UI will be designed in an actual game context. Complete title
 inventories remain T3 work.
