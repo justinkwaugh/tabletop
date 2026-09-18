@@ -224,12 +224,21 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             pathName.endsWith('service-worker.js.br') ||
             pathName.endsWith('service-worker.js.gz')
 
+        const isWebManifestAsset = (pathName: string) =>
+            pathName.endsWith('.webmanifest') ||
+            pathName.endsWith('.webmanifest.br') ||
+            pathName.endsWith('.webmanifest.gz')
+
         const setFrontendCacheHeaders = (
             res: { setHeader: (name: string, value: string) => void },
             pathName: string,
             maxAgeSeconds: number
         ) => {
-            if (isHtmlAsset(pathName) || isServiceWorkerAsset(pathName)) {
+            if (
+                isHtmlAsset(pathName) ||
+                isServiceWorkerAsset(pathName) ||
+                isWebManifestAsset(pathName)
+            ) {
                 res.setHeader('Cache-Control', 'no-store, max-age=0')
                 res.setHeader('Pragma', 'no-cache')
                 res.setHeader('Expires', '0')

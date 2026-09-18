@@ -34,7 +34,7 @@
     } from '@tabletop/frontend-components'
     import { toast } from 'svelte-sonner'
     import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
-    import { BellSolid } from 'flowbite-svelte-icons'
+    import { BellSolid, RefreshOutline } from 'flowbite-svelte-icons'
 
     let {
         api,
@@ -55,6 +55,10 @@
     let showCancelPrompt = $state(false)
     let showLoginModal = $state(false)
     let loginView = $state<LoginView>('signin')
+    let isInstalledPwa = $state(false)
+    let showPwaRefresh = $derived(
+        isInstalledPwa && api.versionChange === VersionChange.MinorUpgrade
+    )
 
     const openLoginModal = setLoginModal(() => {
         loginView = 'signin'
@@ -237,6 +241,7 @@
     }
 
     onMount(() => {
+        isInstalledPwa = window.matchMedia('(display-mode: standalone)').matches
         notificationService.onMounted()
         visibilityService.setDocument(document)
         if (/mobile/i.test(navigator.userAgent ?? '') && !location.hash) {
@@ -305,7 +310,10 @@
     {/if}
 {/snippet}
 
-<div class:mobile-game-header={!!gameService.currentGameSession} {@attach attachGlobalCssVarFromRect('--app-navbar-height')}>
+<div
+    class:mobile-game-header={!!gameService.currentGameSession || showPwaRefresh}
+    {@attach attachGlobalCssVarFromRect('--app-navbar-height')}
+>
     <Navbar
         fluid={true}
         class="site-navbar {currentVisibility !== GameVisibility.Public
@@ -383,6 +391,15 @@
                                 class="me-4 h-[30px]"
                                 onclick={gotoDashboard}><span class="my-games-label">My&nbsp;</span>Games</Button
                             >
+                            {#if showPwaRefresh}
+                                <button
+                                    class="pwa-refresh me-2 cursor-pointer text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+                                    aria-label="Refresh to update"
+                                    onclick={() => location.reload()}
+                                >
+                                    <RefreshOutline class="h-6 w-6" aria-hidden="true" />
+                                </button>
+                            {/if}
                             <a
                                 href="/tournaments"
                                 class="hidden sm:inline-flex me-4 text-sm text-blue-700 dark:text-blue-300"
@@ -577,6 +594,8 @@
     .game-menu-icon { display: none; }
     .account-menu { display: grid; place-items: center; border-radius: 4px; }
     .account-menu:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+    .pwa-refresh { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 4px; }
+    .pwa-refresh:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
     @media (width < 640px) {
         .mobile-game-header :global(.site-navbar) { padding-block: 4px; }
         .mobile-game-header .header-brand { flex: 1; min-width: 0; justify-content: flex-start; padding-left: 8px; }

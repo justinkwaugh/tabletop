@@ -57,6 +57,73 @@ test.beforeEach(async ({ page }) => {
     })
 })
 
+test('an installed PWA offers a header refresh for a minor frontend update', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.addInitScript(() => {
+        const browserMatchMedia = window.matchMedia.bind(window)
+        window.matchMedia = (query) =>
+            query === '(display-mode: standalone)'
+                ? {
+                      matches: true,
+                      media: query,
+                      onchange: null,
+                      addListener: () => {},
+                      removeListener: () => {},
+                      addEventListener: () => {},
+                      removeEventListener: () => {},
+                      dispatchEvent: () => false
+                  }
+                : browserMatchMedia(query)
+    })
+    await page.route('**/api/v1/games/mine*', (route) =>
+        route.fulfill({
+            headers: { 'X-Tabletop-Version': '21.1.0' },
+            json: { payload: { games: [] } }
+        })
+    )
+
+    await page.goto('/dashboard')
+
+    await expect(page.getByText(/please refresh the page when you have a moment/i)).toBeVisible()
+    const games = page.getByRole('button', { name: 'Games', exact: true })
+    const refresh = page.getByRole('button', { name: 'Refresh to update' })
+    const menu = page.getByRole('button', { name: 'Open account menu' })
+    await expect(refresh).toBeVisible()
+    await expect(refresh).toHaveCSS('width', '40px')
+    await expect(refresh).toHaveCSS('height', '40px')
+    await expect(refresh.locator('svg')).toHaveCSS('width', '24px')
+    await expect(refresh.locator('svg')).toHaveCSS('height', '24px')
+    expect(
+        await games.evaluate((element) => {
+            const refreshButton = document.querySelector('.pwa-refresh')
+            return refreshButton
+                ? Boolean(element.compareDocumentPosition(refreshButton) & 4)
+                : false
+        })
+    ).toBe(true)
+    expect(
+        await refresh.evaluate((element) => {
+            const menuButton = document.querySelector('#user-drop')
+            return menuButton ? Boolean(element.compareDocumentPosition(menuButton) & 4) : false
+        })
+    ).toBe(true)
+    await expect(menu).toBeVisible()
+})
+
+test('a browser tab does not show the PWA refresh for a minor frontend update', async ({ page }) => {
+    await page.route('**/api/v1/games/mine*', (route) =>
+        route.fulfill({
+            headers: { 'X-Tabletop-Version': '21.1.0' },
+            json: { payload: { games: [] } }
+        })
+    )
+
+    await page.goto('/dashboard')
+
+    await expect(page.getByText(/please refresh the page when you have a moment/i)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Refresh to update' })).toHaveCount(0)
+})
+
 for (const expanded of [false, true]) {
     test(`game entry shows a spinner while navigation waits, expanded ${expanded}`, async ({
         page
