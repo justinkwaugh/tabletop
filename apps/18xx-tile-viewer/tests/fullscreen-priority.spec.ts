@@ -47,3 +47,51 @@ test('fullscreen renders above other panes and dividers without remounting its c
     await expect(map.locator('.scaling-surface')).toHaveAttribute('data-mount-check', 'preserved')
     await expect(market.getByRole('button', { name: 'Enter full screen' })).toBeVisible()
 })
+
+test('fullscreen blocks background focus and tab shortcuts until closed', async ({ page }) => {
+    await page.goto('/table')
+    const map = page.getByRole('tabpanel', { name: 'Map', exact: true })
+    const marketTab = page.getByRole('tab', { name: 'Market', exact: true })
+    const backgroundBounds = await marketTab.boundingBox()
+    if (!backgroundBounds) throw new Error('Market tab must be visible before fullscreen')
+    await map.getByRole('button', { name: 'Enter full screen' }).click()
+    await expect(map.getByRole('button', { name: 'Exit full screen' })).toBeVisible()
+    await page.mouse.click(backgroundBounds.x + backgroundBounds.width / 2, backgroundBounds.y + backgroundBounds.height / 2)
+    await expect(page.getByRole('tab', { name: 'Map', exact: true })).toHaveAttribute('aria-selected', 'true')
+    for (let index = 0; index < 8; index++) {
+        await page.keyboard.press('Tab')
+        expect(await page.getByRole('dialog', { name: 'Full screen view' }).evaluate(element => element.contains(document.activeElement))).toBe(true)
+    }
+    await marketTab.evaluate(element => element.focus())
+    await expect(marketTab).not.toBeFocused()
+    await page.keyboard.press('k')
+    await expect(page.getByRole('tab', { name: 'Map', exact: true })).toHaveAttribute('aria-selected', 'true')
+    await page.keyboard.press('Escape')
+    await marketTab.click()
+    await expect(marketTab).toHaveAttribute('aria-selected', 'true')
+})
+
+test('phone fullscreen vertically centers content and restores embedded positioning', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/table')
+    const map = page.getByRole('tabpanel', { name: 'Map', exact: true })
+    const surface = map.locator('.scaling-surface')
+    const offsets = () => surface.evaluate(element => {
+        const viewport = element.firstElementChild
+        const content = viewport?.firstElementChild?.firstElementChild
+        if (!viewport || !content) throw new Error('Scaling content must be mounted')
+        const outer = viewport.getBoundingClientRect()
+        const inner = content.getBoundingClientRect()
+        return {
+            top: inner.top - outer.top,
+            vertical: Math.abs(inner.top + inner.height / 2 - outer.top - outer.height / 2)
+        }
+    })
+    await expect(surface).toBeVisible()
+    const originalTop = (await offsets()).top
+    await map.getByRole('button', { name: 'Enter full screen' }).click()
+    await expect.poll(async () => (await offsets()).vertical).toBeLessThan(1)
+    expect((await offsets()).top).toBeGreaterThan(50)
+    await map.getByRole('button', { name: 'Exit full screen' }).click()
+    await expect.poll(async () => Math.abs((await offsets()).top - originalTop)).toBeLessThan(1)
+})

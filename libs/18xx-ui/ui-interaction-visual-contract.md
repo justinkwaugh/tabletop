@@ -1598,7 +1598,8 @@ available in either case. Visibility is checked when the key is pressed, so tab
 transfers and remount order do not change shortcut priority.
 
 Expanded Map/Market views render above all workspace panes and dividers through
-the shared wrapper’s browser top layer, preserving mounted content on exit.
+the shared wrapper’s modal browser top layer, preserving mounted content on exit.
+Fullscreen blocks background pointer input, focus, and table keyboard shortcuts.
 
 The unified pane-mode history/round header uses the same 15% player tint for the
 single active player in its displayed state, including history navigation. It
@@ -1611,3 +1612,5 @@ Player Aid is a default table tab after Tiles, movable and closable like the oth
 In pane mode, Chat has no outer border or rounded container corners. Its message composer retains its input styling.
 
 Player Aid and Depot share a live train roster: Remaining shows depot stock / initial supply, including ∞ for unlimited trains; currently available nonempty train types are highlighted and exhausted types dimmed. Depot is an optional tab, absent from the default layout and available through Add tabs.
+
+Fullscreen and historical-map modals use the shared wrapper’s pre-paint dimension fitting, including the initial route focus, so opening them does not expose an intermediate scale or position.

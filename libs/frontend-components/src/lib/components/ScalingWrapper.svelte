@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onDestroy, onMount, type Snippet } from 'svelte'
+    import { onDestroy, onMount, untrack, type Snippet } from 'svelte'
 
     const DISCRETE_ZOOM_STEP = 0.15
     const VIEW_ANIMATION_MS = 180
@@ -93,18 +93,19 @@
     let measuredContent: HTMLElement
 
     let initialized = false
-    let syncingView = false
     let activeFocusTarget = $state<FocusTarget | null>(null)
     let viewAnimationFrame: number | undefined
     let viewRenderFrame: number | undefined
-    let pendingDimensionSyncFrame: number | undefined
     let viewAnimationRequestId = 0
     let currentTranslateX = $state(0)
     let currentTranslateY = $state(0)
     let isExpanded = $state(false)
-    let fullscreenLayer: HTMLDivElement | undefined = $state()
+    let fullscreenLayer: HTMLDialogElement | undefined = $state()
     $effect(() => {
-        if (isExpanded) fullscreenLayer?.showPopover()
+        if (!fullscreenLayer) return
+        fullscreenLayer.close()
+        if (isExpanded) fullscreenLayer.showModal()
+        else fullscreenLayer.open = true
     })
     let pinchDistance: number | null = null
     let pinchStartDistance: number | null = null
@@ -176,15 +177,13 @@
     }
 
     $effect(() => {
+        isExpanded
         wrapperWidth
         wrapperHeight
         contentWidth
         contentHeight
 
-        if (!syncingView) {
-            // Schedule outside the reactive effect so view-sync reads do not become dependencies.
-            scheduleDimensionSync()
-        }
+        untrack(syncToDimensions)
     })
 
     function clamp(value: number, min: number, max: number) {
@@ -231,7 +230,7 @@
             return 0
         }
 
-        switch (justify) {
+        switch (isExpanded ? 'center' : justify) {
             case 'left':
                 return 0
             case 'right':
@@ -247,7 +246,7 @@
         const scaledWidth = contentWidth * clampedScale
         const scaledHeight = contentHeight * clampedScale
         const defaultTranslateX = getOffsetX(scaledWidth)
-        const defaultTranslateY = 0
+        const defaultTranslateY = isExpanded ? Math.max(0, (wrapperHeight - scaledHeight) / 2) : 0
         const minTranslateX = scaledWidth > wrapperWidth ? wrapperWidth - scaledWidth : defaultTranslateX
         const maxTranslateX = scaledWidth > wrapperWidth ? 0 : defaultTranslateX
         const minTranslateY = scaledHeight > wrapperHeight ? wrapperHeight - scaledHeight : defaultTranslateY
@@ -425,17 +424,6 @@
 
     function clearActiveFocus() {
         activeFocusTarget = null
-    }
-
-    function scheduleDimensionSync() {
-        if (pendingDimensionSyncFrame) {
-            cancelAnimationFrame(pendingDimensionSyncFrame)
-        }
-
-        pendingDimensionSyncFrame = requestAnimationFrame(() => {
-            pendingDimensionSyncFrame = undefined
-            syncToDimensions()
-        })
     }
 
     function cancelViewAnimation() {
@@ -662,47 +650,42 @@
             return
         }
 
-        syncingView = true
-        try {
-            const nextBaseScale = computeFitScale()
-            const previousBaseScale = baseScale
-            const wasAtFitScale = initialized && Math.abs(currentScale - baseScale) < EPSILON
-            const centerPoint = initialized
-                ? getViewportCenterContentPoint()
-                : { x: contentWidth / 2, y: contentHeight / 2 }
+        const nextBaseScale = computeFitScale()
+        const previousBaseScale = baseScale
+        const wasAtFitScale = initialized && Math.abs(currentScale - baseScale) < EPSILON
+        const centerPoint = initialized
+            ? getViewportCenterContentPoint()
+            : { x: contentWidth / 2, y: contentHeight / 2 }
 
-            baseScale = nextBaseScale
-            updateDiscreteLevels(nextBaseScale)
+        baseScale = nextBaseScale
+        updateDiscreteLevels(nextBaseScale)
 
-            if (activeFocusTarget) {
-                const targetView = getViewForFocusTarget(activeFocusTarget)
-                if (viewAnimationFrame !== undefined) {
-                    animateViewTo(targetView.scale, targetView.translateX, targetView.translateY)
-                } else {
-                    applyView(targetView.scale, targetView.translateX, targetView.translateY)
-                }
-                initialized = true
-                return
+        if (activeFocusTarget) {
+            const targetView = getViewForFocusTarget(activeFocusTarget)
+            if (viewAnimationFrame !== undefined) {
+                animateViewTo(targetView.scale, targetView.translateX, targetView.translateY)
+            } else {
+                applyView(targetView.scale, targetView.translateX, targetView.translateY)
             }
-
-            const targetScale =
-                !initialized || wasAtFitScale || Math.abs(currentScale - previousBaseScale) < EPSILON
-                    ? nextBaseScale
-                    : clampScale(currentScale)
-            const targetView = getViewForContentPointAtViewportPoint(
-                centerPoint.x,
-                centerPoint.y,
-                wrapperWidth / 2,
-                wrapperHeight / 2,
-                targetScale
-            )
-
-            cancelViewAnimation()
-            applyView(targetView.scale, targetView.translateX, targetView.translateY)
             initialized = true
-        } finally {
-            syncingView = false
+            return
         }
+
+        const targetScale =
+            !initialized || wasAtFitScale || Math.abs(currentScale - previousBaseScale) < EPSILON
+                ? nextBaseScale
+                : clampScale(currentScale)
+        const targetView = getViewForContentPointAtViewportPoint(
+            centerPoint.x,
+            centerPoint.y,
+            wrapperWidth / 2,
+            wrapperHeight / 2,
+            targetScale
+        )
+
+        cancelViewAnimation()
+        applyView(targetView.scale, targetView.translateX, targetView.translateY)
+        initialized = true
     }
 
     function getDiscreteScaleStep() {
@@ -780,9 +763,6 @@
 
     function setExpanded(nextExpanded: boolean) {
         isExpanded = nextExpanded
-        requestAnimationFrame(() => {
-            scheduleDimensionSync()
-        })
     }
 
     export function expand() {
@@ -1176,14 +1156,9 @@
         cancelPinchAnimation()
         cancelPanInertia()
         cancelScrollInertia()
-        if (pendingDimensionSyncFrame) {
-            cancelAnimationFrame(pendingDimensionSyncFrame)
-        }
     })
 
     onMount(() => {
-        scheduleDimensionSync()
-
         if (!scroller) {
             return
         }
@@ -1229,15 +1204,22 @@
 
 <svelte:window onkeydown={handleFullscreenKey} />
 
-<div
+<dialog
     bind:this={fullscreenLayer}
-    popover={isExpanded ? 'manual' : undefined}
+    role={isExpanded ? 'dialog' : 'presentation'}
+    aria-label={isExpanded ? 'Full screen view' : undefined}
+    oncancel={(event) => { event.preventDefault(); collapse() }}
+    onkeydown={(event) => {
+        if (!isExpanded) return
+        handleFullscreenKey(event)
+        event.stopPropagation()
+    }}
     class="relative overflow-hidden"
     class:w-full={!isExpanded}
     class:h-full={!isExpanded}
     style={isExpanded
         ? 'position: fixed; inset: 0; margin: 0; border: 0; padding: 0; width: auto; height: auto; max-width: none; max-height: none; color: inherit; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(1px);'
-        : undefined}
+        : 'margin: 0; border: 0; padding: 0; max-width: none; max-height: none; color: inherit; background: transparent;'}
 >
     {#if toolbar}<div bind:clientHeight={toolbarHeight}>{@render toolbar()}</div>{/if}
     <div
@@ -1344,9 +1326,10 @@
             </button>
         {/if}
     </div>
-</div>
+</dialog>
 
 <style>
+    dialog { visibility: inherit; }
     .scaling-surface,
     .scaling-surface :global(*) {
         -webkit-user-select: none;

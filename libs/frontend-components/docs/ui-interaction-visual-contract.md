@@ -301,7 +301,13 @@ ScalingWrapper callers may gate the F shortcut with allowFullscreenShortcut,
 evaluated at keypress time. isVisible reports current rendered visibility. This
 does not disable fullscreen buttons or Escape handling.
 
-ScalingWrapper fullscreen uses a manual popover in the browser top layer, escaping
+ScalingWrapper fullscreen uses a modal dialog in the browser top layer, escaping
 ancestor stacking contexts and overflow. The same wrapper/content stay mounted;
 Escape or the fullscreen control returns it to normal flow. Pane shells, content,
 and dividers must never intercept pointer input intended for the expanded view.
+Background content is inert while expanded, focus stays within the modal, and
+keyboard events from fullscreen do not trigger background table shortcuts.
+
+Fullscreen centers content on both axes when it fits within the viewport. Content larger than an axis retains its pan range. Embedded views retain their configured horizontal alignment and top alignment.
+
+Dimension changes and fullscreen alignment are fitted before paint as soon as the measured dimensions publish. Modal mounts honor pending focus targets on that first fitted frame, without exposing an unscaled or stale-position frame.

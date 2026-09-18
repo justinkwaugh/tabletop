@@ -73,6 +73,7 @@ test('smooth trackpad gestures pan, including their faster continuation, and pin
     if (!before) throw new Error('Missing board')
     await board.dispatchEvent('wheel', { deltaY: 10, deltaX: 8, clientX: 200, clientY: 150 })
     await board.dispatchEvent('wheel', { deltaY: 60, clientX: 200, clientY: 150 })
+    await expect.poll(async () => (await board.boundingBox())?.y).toBeCloseTo(before.y - 70)
     const after = await board.boundingBox()
     if (!after) throw new Error('Missing board')
     expect(after.width).toBeCloseTo(before.width)
@@ -135,5 +136,37 @@ for (const mode of ['pan', 'pinch', 'gesture']) {
         expect(result.writes).toBe(1)
         if (mode === 'pan') expect(result.movement).toBeCloseTo(-12, 1)
         else expect(result.afterWidth).toBeCloseTo(result.beforeWidth * (mode === 'pinch' ? Math.exp(0.072) : Math.pow(1.12, 1.2)), 1)
+    })
+}
+
+for (const transition of ['modal mount', 'fullscreen'] as const) {
+    test(`first painted frame is settled on ${transition}`, async ({ page }) => {
+        await page.goto('/session-test.html')
+        if (transition === 'fullscreen') {
+            await page.evaluate(async () => {
+                const { mountWrapper } = await import(new URL('/src/lib/components/tests/scalingWrapper.fixture.ts', location.href).href)
+                mountWrapper(1, false, false, true)
+            })
+            await expect.poll(async () => (await page.getByTestId('board').boundingBox())?.width).toBe(375)
+        }
+        const frames = await page.evaluate(async transition => {
+            const { mountWrapper } = await import(new URL('/src/lib/components/tests/scalingWrapper.fixture.ts', location.href).href)
+            if (transition === 'modal mount') mountWrapper(1, false, true)
+            else {
+                const button = document.querySelector('[aria-label="Enter full screen"]')
+                if (!(button instanceof HTMLElement)) throw new Error('Missing fullscreen control')
+                button.click()
+            }
+            const frames: { width: number; x: number; y: number }[] = []
+            for (let index = 0; index < 5; index++) {
+                await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)))
+                const board = document.querySelector('[data-testid="board"]')
+                if (!board) throw new Error('Missing board')
+                const bounds = board.getBoundingClientRect()
+                frames.push({ width: bounds.width, x: bounds.x, y: bounds.y })
+            }
+            return frames
+        }, transition)
+        expect(frames).toEqual(frames.map(() => frames.at(-1)))
     })
 }
