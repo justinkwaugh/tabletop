@@ -311,3 +311,5 @@ keyboard events from fullscreen do not trigger background table shortcuts.
 Fullscreen centers content on both axes when it fits within the viewport. Content larger than an axis retains its pan range. Embedded views retain their configured horizontal alignment and top alignment.
 
 Dimension changes and fullscreen alignment are fitted before paint as soon as the measured dimensions publish. Modal mounts honor pending focus targets on that first fitted frame, without exposing an unscaled or stale-position frame.
+
+The Site Frontend header uses compact chrome below 640px while a Game Session is active: a 28px BT app icon replaces the wordmark, social links are hidden, and a three-bar account-menu button replaces the avatar. The game title fills the space between the icon and controls in a single row, truncating when necessary. The icon has an additional 8px left inset, and My Games reads Games. Vertical padding is 4px, giving a 48px header while preserving the 40px menu touch target. The existing account dropdown remains available; desktop and non-game headers retain their usual presentation.

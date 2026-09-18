@@ -305,28 +305,29 @@
     {/if}
 {/snippet}
 
-<div {@attach attachGlobalCssVarFromRect('--app-navbar-height')}>
+<div class:mobile-game-header={!!gameService.currentGameSession} {@attach attachGlobalCssVarFromRect('--app-navbar-height')}>
     <Navbar
         fluid={true}
-        class="{currentVisibility !== GameVisibility.Public
+        class="site-navbar {currentVisibility !== GameVisibility.Public
             ? 'dark:bg-red-900'
             : 'dark:bg-gray-800'} "
     >
         <div class="flex flex-col w-full">
             <div class="flex flex-row justify-between items-center w-full">
-                <div class="flex justify-center items-center">
+                <div class="header-brand flex justify-center items-center">
                     <NavBrand href={sessionUser ? '/library' : '/'} class="shrink-0 cursor-pointer">
-                        <img src={darkLogo} alt="Board Together" class="h-8 w-auto" />
+                        <img src={darkLogo} alt="Board Together" class="full-logo h-8 w-auto" />
+                        <img src="/android-chrome-192x192.png" alt="Board Together" class="game-logo" />
                     </NavBrand>
 
                     <div
-                        class="hidden sm:block rounded-lg py-2 px-2 md:px-4 flex flex-col justify-start items-start ml-4"
+                        class="header-title hidden sm:block rounded-lg py-2 px-2 md:px-4 flex flex-col justify-start items-start ml-4"
                     >
                         {@render gameName()}
                     </div>
                 </div>
-                <div class="flex items-center">
-                    <div class="flex items-center gap-3 mr-4">
+                <div class="header-actions flex items-center">
+                    <div class="header-links flex items-center gap-3 mr-4">
                         <a
                             href="/about"
                             class="hidden md:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
@@ -380,7 +381,7 @@
                                 size="xs"
                                 color="blue"
                                 class="me-4 h-[30px]"
-                                onclick={gotoDashboard}>My Games</Button
+                                onclick={gotoDashboard}><span class="my-games-label">My&nbsp;</span>Games</Button
                             >
                             <a
                                 href="/tournaments"
@@ -389,7 +390,12 @@
                             >
                         {/if}
 
-                        <Avatar id="user-drop" class="cursor-pointer" />
+                        <button id="user-drop" class="account-menu cursor-pointer text-gray-700 dark:text-gray-300" aria-label="Open account menu">
+                            <span class="account-avatar"><Avatar /></span>
+                            <svg class="game-menu-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                                <path d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
                         <Dropdown triggeredBy="#user-drop">
                             <DropdownGroup class="py-1">
                                 <DropdownHeader class="py-2">
@@ -472,7 +478,7 @@
                     {/if}
                 </div>
             </div>
-            <div class="flex justify-center sm:hidden w-full overflow-hidden text-ellipsis">
+            <div class="mobile-game-title flex justify-center sm:hidden w-full overflow-hidden text-ellipsis">
                 {@render gameName()}
             </div>
         </div>
@@ -564,3 +570,26 @@
     >
 {/if}
 {@render children()}
+
+
+<style>
+    .game-logo,
+    .game-menu-icon { display: none; }
+    .account-menu { display: grid; place-items: center; border-radius: 4px; }
+    .account-menu:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+    @media (width < 640px) {
+        .mobile-game-header :global(.site-navbar) { padding-block: 4px; }
+        .mobile-game-header .header-brand { flex: 1; min-width: 0; justify-content: flex-start; padding-left: 8px; }
+        .mobile-game-header .header-actions { flex-shrink: 0; margin-left: 8px; }
+        .mobile-game-header .header-title { display: block; flex: 1; min-width: 0; margin-left: 12px; padding: 0; }
+        .mobile-game-header .header-title :global(h4) { margin: 0; max-width: none; font-size: 14px; line-height: 20px; text-align: left; }
+        .mobile-game-header .mobile-game-title,
+        .mobile-game-header .my-games-label,
+        .mobile-game-header .full-logo,
+        .mobile-game-header .header-links,
+        .mobile-game-header .account-avatar { display: none; }
+        .mobile-game-header .game-logo { display: block; width: 28px; height: 28px; }
+        .mobile-game-header .game-menu-icon { display: block; }
+        .mobile-game-header .account-menu { width: 40px; height: 40px; }
+    }
+</style>
