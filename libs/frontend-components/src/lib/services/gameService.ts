@@ -6,7 +6,7 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import type { GameSession } from '$lib/model/gameSession.svelte.js'
-import type { GetGameOptions } from '$lib/network/tabletopApi.svelte.js'
+import type { GameLoadResult, GetGameOptions } from '$lib/network/tabletopApi.svelte.js'
 
 export type GameService = {
     readonly supportsReproductionSeed?: boolean
@@ -20,10 +20,7 @@ export type GameService = {
     hasActiveGames(): Promise<boolean>
     loadGames(): Promise<void>
     loadOpenGames(titleId: string): Promise<void>
-    loadGame(
-        gameId: string,
-        options?: GetGameOptions
-    ): Promise<{ game?: Game; actions: GameAction[] }>
+    loadGame(gameId: string, options?: GetGameOptions): Promise<GameLoadResult>
 
     createGame(game: Partial<Game>, options?: GameCreationOptions): Promise<Game>
     forkGame(game: Partial<Game>, actionIndex: number, name: string): Promise<Game>

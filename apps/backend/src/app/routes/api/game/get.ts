@@ -1,4 +1,6 @@
 import { FastifyInstance } from 'fastify'
+import { setTimeout as delay } from 'node:timers/promises'
+import { EnvService } from '@tabletop/backend-services'
 import { Type, type Static } from 'typebox'
 import { measure } from '@tabletop/backend-services/diagnostics'
 
@@ -9,7 +11,8 @@ const ParamsType = Type.Object({
 
 type QueryType = Static<typeof QueryType>
 const QueryType = Type.Object({
-    view: Type.Optional(Type.Literal('host'))
+    view: Type.Optional(Type.Literal('host')),
+    includeActions: Type.Optional(Type.Boolean())
 })
 
 export default async function (fastify: FastifyInstance) {
@@ -29,6 +32,7 @@ export default async function (fastify: FastifyInstance) {
 
             const { gameId } = request.params
             const hostView = request.query.view === 'host'
+            const includeActions = request.query.includeActions !== false
             if (hostView && !fastify.gameService.canAccessHostView(request.user)) {
                 await reply.code(403).send()
                 return
@@ -44,7 +48,12 @@ export default async function (fastify: FastifyInstance) {
                 return
             }
 
-            const responseEtag = `W/"${gameEtag}"`
+            const historyDelay = Number(process.env.LOCAL_GAME_HISTORY_DELAY_MS ?? 0)
+            if (includeActions && EnvService.isLocal() && historyDelay > 0) {
+                await delay(historyDelay)
+            }
+
+            const responseEtag = `W/"${gameEtag}${includeActions ? ':full' : ':state-only'}"`
             void reply.header('ETag', responseEtag)
             void reply.header('Cache-Control', 'private, no-cache')
             if (request.headers['if-none-match'] === responseEtag) {
@@ -53,7 +62,7 @@ export default async function (fastify: FastifyInstance) {
             }
 
             const representation = await measure('game.load.representation', () =>
-                fastify.gameService.getGameForUser({ gameId, hostView, user })
+                fastify.gameService.getGameForUser({ gameId, hostView, user, includeActions })
             )
 
             if (representation === undefined) {

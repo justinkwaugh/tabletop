@@ -57,6 +57,7 @@ export const GameWithActionsResponse = Type.Evaluate(
             payload: Type.Object({
                 game: Game,
                 actions: Type.Array(GameAction),
+                historyComplete: Type.Optional(Type.Boolean()),
                 perspective: Type.Optional(Visibility.Perspective)
             })
         })

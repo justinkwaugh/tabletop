@@ -87,6 +87,8 @@ class Remote extends DummyRemoteApiService {
     pendingAcceptance?: Promise<void>
     onSubmit?: () => void
     pendingUndo?: Promise<void>
+    pendingHistory?: Promise<void>
+    failHistory = false
 
     constructor(
         private readonly host: PrivateHandHost,
@@ -96,14 +98,19 @@ class Remote extends DummyRemoteApiService {
     }
     async getGame(_id: string, options?: { hostView?: boolean }) {
         const history = this.host.history(options?.hostView ? undefined : this.perspective)
+        if (this.failHistory) throw Error('History unavailable')
+        await this.pendingHistory
         return {
             game: { ...structuredClone(this.host.game), state: history.currentState },
             actions: [...history.actions]
         }
     }
-    async checkSync() {
+    async checkSync(_id?: string, checksum?: number) {
         return {
-            status: GameSyncStatus.InSync,
+            status:
+                checksum === undefined || checksum === this.host.state.actionChecksum
+                    ? GameSyncStatus.InSync
+                    : GameSyncStatus.OutOfSync,
             checksum: this.host.state.actionChecksum,
             actions: []
         }
@@ -151,7 +158,12 @@ class Remote extends DummyRemoteApiService {
 function client(
     host: PrivateHandHost,
     perspective: Visibility.Perspective = p1,
-    transformActions?: (actions: readonly GameAction[]) => void
+    transformActions?: (actions: readonly GameAction[]) => void,
+    options: {
+        historyComplete?: boolean
+        pendingHistory?: Promise<void>
+        failHistory?: boolean
+    } = {}
 ) {
     host.game.storage = GameStorage.Remote
     const authorization = new Authorization(perspective)
@@ -163,6 +175,8 @@ function client(
     const chatService = new HarnessChatService()
     const notifications = new DummyNotificationService()
     const api = new Remote(host, perspective)
+    api.pendingHistory = options.pendingHistory
+    api.failHistory = options.failHistory ?? false
     const bridge = new BridgedContext({
         authorizationService: authorization,
         gameService,
@@ -180,7 +194,8 @@ function client(
         runtime: { ...uiRuntime, ...host.engine.runtime },
         game: structuredClone(host.game),
         state: history.currentState,
-        actions: [...history.actions]
+        actions: options.historyComplete === false ? [] : [...history.actions],
+        historyComplete: options.historyComplete
     })
     session.listenToGame()
     return {
@@ -779,4 +794,189 @@ export async function runPatchedSubmissionCorrection() {
     } finally {
         c.dispose()
     }
+}
+
+export async function runDeferredHistory(
+    mode: 'delayed' | 'failed' | 'disposed' | 'undo' | 'resync-failure' | 'perspective-change'
+) {
+    const host = new PrivateHandHost()
+    host.apply({
+        id: 'before-load',
+        gameId: host.game.id,
+        source: ActionSource.User,
+        playerId: 'p1',
+        type: 'draw',
+        revealsInfo: true
+    })
+    host.apply(
+        createAction(PlaySchema, {
+            id: 'before-load-p2',
+            gameId: host.game.id,
+            source: ActionSource.User,
+            playerId: 'p2',
+            type: 'play',
+            cardId: 'r2'
+        })
+    )
+    const history = Promise.withResolvers<void>()
+    const c = client(host, p1, undefined, {
+        historyComplete: false,
+        pendingHistory: history.promise,
+        failHistory: mode === 'failed' || mode === 'undo' || mode === 'resync-failure'
+    })
+    let disposed = false
+    try {
+        await settle(c.session)
+        assert(!c.session.hasCompleteHistory, 'Checkpoint unexpectedly has history')
+        assert(
+            Value.Equal(c.session.gameState.dehydrate(), host.history(p1).currentState),
+            'Initial board differs from the projected snapshot'
+        )
+        assert(c.session.isPlayable, 'History loading blocked gameplay')
+        assert(c.session.history.isDisabled(), 'History navigation requires complete history')
+        assert(!c.session.canExplore, 'Exploration requires complete history')
+        assert(
+            c.session.actions.length === 0 && c.session.currentAction === undefined,
+            'Unavailable history was presented as retained Actions'
+        )
+        assert(c.session.undoableAction === undefined, 'Undo targeted an unavailable Action')
+        await c.session.history.goToBeginning()
+        assert(!c.session.isViewingHistory, 'Entered history without earlier Actions')
+        await c.session.startExploring()
+        assert(!c.session.isExploring, 'Entered exploration without complete history')
+        if (mode === 'perspective-change') {
+            const changed = c.session.setPrivilegedGameViewEnabled(true)
+            history.resolve()
+            await changed
+            await settle(c.session)
+            assert(c.session.isViewingHost, 'Late player history replaced Host View')
+            assert(c.session.hasCompleteHistory, 'Host View did not load its own history')
+            assert(
+                CanonicalValidator.Check(c.session.gameState.dehydrate()),
+                'Late history changed the displayed perspective'
+            )
+            return { perspective: true }
+        }
+        if (mode === 'disposed') {
+            c.dispose()
+            disposed = true
+            history.resolve()
+            await settle(c.session)
+            assert(!c.session.hasCompleteHistory, 'Disposed session attached late history')
+            return { disposed: true }
+        }
+        if (mode === 'failed') assert(c.session.historyLoadFailed, 'History failure is not exposed')
+        const acceptance = Promise.withResolvers<void>()
+        c.api.pendingAcceptance = acceptance.promise
+        const submitted = Promise.withResolvers<void>()
+        c.api.onSubmit = submitted.resolve
+        assert(!c.session.busy, 'Checkpoint session remained busy after initial synchronization')
+        const play = c.session.play('r1')
+        await Promise.race([
+            submitted.promise,
+            play.then(() => {
+                throw Error('Play ended without submission')
+            })
+        ])
+        await settle(c.session)
+        assert(c.session.actions.length > 0, 'No optimistic Action after checkpoint')
+        const optimisticState = c.session.gameState
+        if (mode === 'delayed') {
+            history.resolve()
+            await settle(c.session)
+            assert(!c.session.hasCompleteHistory, 'History attached during optimistic submission')
+        }
+        acceptance.resolve()
+        await play
+        await settle(c.session)
+        assert(
+            Value.Equal(c.session.gameState.dehydrate(), host.history(p1).currentState),
+            'Accepted checkpoint play differs from host'
+        )
+        if (mode === 'delayed')
+            assert(
+                c.session.gameState === optimisticState,
+                'History hydration replaced the optimistic displayed State'
+            )
+        if (mode === 'undo' || mode === 'resync-failure') {
+            history.resolve()
+            c.api.pendingHistory = undefined
+            c.api.failHistory = mode === 'resync-failure'
+            await c.session.undo()
+            await settle(c.session)
+            assert(c.api.undos === 1, 'Retained Action could not be undone')
+            if (mode === 'resync-failure') {
+                assert(c.session.synchronizationFailed, 'Resync failure was not exposed')
+                assert(!c.session.isPlayable, 'Play continued from uncertain State')
+                const submissions = c.api.submissions
+                await c.session.play('b1')
+                assert(c.api.submissions === submissions, 'Paused session submitted an Action')
+                c.api.failHistory = false
+                await c.session.retrySynchronization()
+                await settle(c.session)
+            }
+            assert(c.session.hasCompleteHistory, 'Undo did not recover complete history')
+            assert(c.session.isPlayable, 'Recovered session is not playable')
+            assert(
+                Value.Equal(c.session.gameState.dehydrate(), host.history(p1).currentState),
+                'Undo recovery differs from host'
+            )
+            return { undo: true, recovered: true }
+        }
+        if (mode === 'failed') {
+            assert(!c.session.hasCompleteHistory, 'Failed history unexpectedly hydrated')
+            const result = host.apply({
+                id: 'after-failed-history',
+                gameId: host.game.id,
+                source: ActionSource.User,
+                playerId: 'p2',
+                type: 'draw',
+                revealsInfo: true
+            })
+            await c.notify(result)
+            await settle(c.session)
+            assert(
+                Value.Equal(c.session.gameState.dehydrate(), host.history(p1).currentState),
+                'Notification failed without history'
+            )
+            c.api.failHistory = false
+            history.resolve()
+            const displayedState = c.session.gameState
+            let transitions = 0
+            c.session.addGameStateChangeListener(async () => {
+                transitions++
+            })
+            await c.session.loadHistory()
+            await settle(c.session)
+            assert(
+                c.session.gameState === displayedState && transitions === 0,
+                'Attaching history triggered a board transition'
+            )
+        }
+        assert(c.session.hasCompleteHistory, 'History did not attach after submission/retry')
+        assert(c.session.actions.length === host.actions.length, 'Hydration lost live Actions')
+        assert(c.session.canExplore, 'Hydrated history did not enable exploration')
+        await c.session.history.goToBeginning()
+        await settle(c.session)
+        assert(c.session.isViewingHistory, 'Hydrated history cannot be navigated')
+        return { playable: true, hydrated: true }
+    } finally {
+        if (!disposed) c.dispose()
+    }
+}
+
+export async function mountHistoryControls() {
+    const { mount } = await import('svelte')
+    const { default: Fixture } = await import('../../components/tests/HistoryControls.fixture.svelte')
+    const pending = Promise.withResolvers<void>()
+    const host = new PrivateHandHost()
+    host.apply({ id: "history-controls-draw", gameId: host.game.id, source: ActionSource.User, playerId: "p1", type: "draw", revealsInfo: true })
+    const c = client(host, p1, undefined, {
+        historyComplete: false,
+        pendingHistory: pending.promise
+    })
+    mount(Fixture, {
+        target: document.body,
+        props: { session: c.session, complete: () => pending.resolve() }
+    })
 }

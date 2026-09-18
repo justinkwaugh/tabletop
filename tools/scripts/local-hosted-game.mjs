@@ -30,6 +30,7 @@ Options:
 Environment:
   LOCAL_HOSTED_FRONTEND_PORT  Site port (default 5173)
   PORT                        Backend port (default 3000)
+  LOCAL_GAME_HISTORY_DELAY_MS  Artificial delay for full Game loads in local mode
 `
 
 const parseArguments = (arguments_) => {

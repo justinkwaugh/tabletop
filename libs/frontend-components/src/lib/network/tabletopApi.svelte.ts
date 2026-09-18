@@ -61,7 +61,14 @@ import { toast } from 'svelte-sonner'
 
 const DEFAULT_HOST = 'http://localhost:3000'
 
+export type GameLoadResult = {
+    game?: Game
+    actions: GameAction[]
+    historyComplete?: boolean
+}
+
 export type GetGameOptions = {
+    includeActions?: boolean
     hostView?: boolean
 }
 
@@ -466,8 +473,11 @@ export class TabletopApi {
     async getGame(
         gameId: string,
         options: GetGameOptions = {}
-    ): Promise<{ game: Game; actions: GameAction[] }> {
-        const path = `/game/get/${gameId}${options.hostView ? '?view=host' : ''}`
+    ): Promise<GameLoadResult & { game: Game }> {
+        const query = new URLSearchParams()
+        if (options.hostView) query.set('view', 'host')
+        if (options.includeActions === false) query.set('includeActions', 'false')
+        const path = `/game/get/${gameId}${query.size ? `?${query}` : ''}`
         const response = await this.wretch
             .get(path)
             .unauthorized(this.on401)
@@ -480,7 +490,7 @@ export class TabletopApi {
         const game = this.validateGame(response.payload.game)
         const actions = this.convertGameActions(response.payload.actions)
 
-        return { game: game, actions }
+        return { game: game, actions, historyComplete: response.payload.historyComplete }
     }
 
     async updateGame(game: Partial<Game>): Promise<Game> {

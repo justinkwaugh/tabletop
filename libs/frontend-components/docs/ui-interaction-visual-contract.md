@@ -323,3 +323,21 @@ When the browser reports that the site is installable, the header shows a 40px I
 A newly submitted Action may publish its predicted state before host acceptance. If applying the accepted transitions to the confirmed starting state produces that same prediction, acceptance retains the displayed state and replaces the speculative records with authoritative records. Receiving forward patches alone must not reset selection, republish the board, or replay its transition. If the accepted result differs, reconciliation publishes the corrected state through the existing state-change lifecycle. The host remains authoritative for Hosted Game consequences.
 
 Browser coverage holds acceptance pending, verifies immediate play, preserves the displayed-state identity for matching patches, and checks that a differing patched result is applied once. Recorded History and Undo retain the accepted patches.
+
+## Deferred history loading
+
+### Visual intents
+
+A Hosted Game may open in Live View from a current State before earlier Actions are available. The board and ordinary play controls operate from that State. The entire history control area stays blank while history is incomplete, preserving its configured height. After 300 ms it shows only “Loading history...” and a spinner, both in the configured enabled color. Fast loads never show the indicator; completion restores controls immediately. The loading timer is canceled on unmount, and the spinner respects reduced-motion preferences. History navigation and exploration stay disabled until full history is attached. Undo eligibility considers only retained Actions. Descriptions derived from older Actions may remain incomplete. A history-download failure leaves play available and exposes a retry button in the history controls. Failed synchronization instead pauses play and exposes synchronization retry.
+
+### Coexistence and precedence
+
+History loading coexists with live Action submission, notification delivery, and visible transitions. History attachment waits until the session is idle and never replaces the displayed State or initiates historical animation. Actions received after the initial checkpoint retain normal per-Action transition presentation. If downloaded history belongs to another branch, full synchronization takes precedence. History View and exploration cannot begin while history is incomplete.
+
+### Shared visual state
+
+The Game Session owns history availability, download status, and synchronization failure. History controls render those values; game-specific descriptions consume the retained Actions. A completed history download must match the initial checkpoint and retained Actions. Disposal or a perspective change invalidates pending attachment. Synchronization may replace the checkpoint and supply complete history.
+
+### Render ownership
+
+The existing game table owns State presentation. Shared history controls own loading, failure, and retry presentation. Downloading historical Actions alone does not change the displayed Game State, clear local selections, or trigger a board transition.

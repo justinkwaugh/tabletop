@@ -311,6 +311,24 @@ describe('createGameRepresentationEtag', () => {
 })
 
 describe('createGameRepresentation', () => {
+    it('projects the same private State without requiring historical transitions', () => {
+        const { game, after } = syntheticHistory
+        const representation = createGameRepresentation({
+            game,
+            actions: [],
+            includeActions: false,
+            visibility: SyntheticRuntime.visibility,
+            user: createUser('user-1')
+        })
+        expect(representation.historyComplete).toBe(false)
+        expect(representation.actions).toEqual([])
+        expect(representation.game.state).toEqual(
+            SyntheticRuntime.visibility.state.project(after, { kind: 'player', playerId: 'p1' })
+        )
+        expect(representation.game.state?.actionCount).toBe(after.actionCount)
+        expect(representation.game.state?.actionChecksum).toBe(after.actionChecksum)
+    })
+
     it('projects synthetic game state and complete Action History for the authenticated Player', () => {
         const { game, before, after, action } = syntheticHistory
         const representation = createGameRepresentation({

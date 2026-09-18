@@ -389,15 +389,24 @@ export class GameService {
     async getGameForUser({
         gameId,
         hostView = false,
+        includeActions = true,
         user
     }: {
         gameId: string
         hostView?: boolean
+        includeActions?: boolean
         user: User
     }): Promise<GameRepresentation | undefined> {
         this.assertHostViewAccess({ gameId, hostView, user })
 
-        const data = await this.gameStore.loadGameData(gameId)
+        const data = await this.gameStore.readGameData(gameId, async (reader) => ({
+            game: reader.game,
+            actions:
+                includeActions ||
+                (reader.game.state !== undefined && reader.game.state.actionChecksum === undefined)
+                    ? await reader.actions()
+                    : []
+        }))
         if (!data) return undefined
         const { game, actions } = data
         const definition = this.getRequiredTitle(game)
@@ -410,7 +419,8 @@ export class GameService {
         return measureSync('projection.response.game', () =>
             createGameRepresentation({
                 game,
-                actions,
+                actions: includeActions ? actions : [],
+                includeActions,
                 hostView,
                 runtime: definition.runtime,
                 visibility: definition.runtime.visibility,

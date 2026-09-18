@@ -70,7 +70,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
 
     hasPreviousAction: boolean = $derived.by(() => {
         const index = this.inHistory ? this.actionIndex : this.gameContext.actions.length - 1
-        return index > this.earliestActionIndex
+        return !this.disabled && index > this.earliestActionIndex
     })
 
     hasNextAction: boolean = $derived.by(() => {
@@ -81,7 +81,10 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     playing: boolean = $state(false)
-    private disabled = $state(false)
+    private explicitlyDisabled = $state(false)
+    private disabled = $derived.by(
+        () => this.explicitlyDisabled || !this.gameContext.hasCompleteHistory
+    )
     private stepping: boolean = false
     private playTimer: ReturnType<typeof setTimeout> | null = null
     private playOnEnable: boolean = false
@@ -152,11 +155,11 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     disable() {
-        this.disabled = true
+        this.explicitlyDisabled = true
     }
 
     enable() {
-        this.disabled = false
+        this.explicitlyDisabled = false
 
         // Resume playing if needed
         if (this.playOnEnable) {

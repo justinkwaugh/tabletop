@@ -143,3 +143,41 @@ Client reconciliation now compares the accepted patched state with the optimisti
 The backend must be rebuilt to adopt the simplified response projection. The shared Game Client and Exploration history changes are bundled into UI Artifacts: publishing only the Site Frontend does not update them. Rebuild and publish matching Logic/UI Artifacts for protected titles (currently Fresh Fish, Sol, The Estates, Santiago, Kaivai, and Lowenherz); rebuilding other titles adopts the shared reconciliation change as well. The Fresh Fish board-search improvement also requires its new Logic Artifact.
 
 The response shape and host bridge interface are unchanged. New clients continue accepting legacy records without forward patches. Old clients already consume forward patches, so authoritative delivery remains supported, but they conservatively reject inherited hypothetical Undo when those patches are present and replace matching optimistic states unnecessarily. To preserve the complete experience, use the established frontend major-version forced-reload rollout with the updated UI publications before exposing unconditional patches to old sessions. Rehearse already-open clients as well as fresh navigation; this change does not modify versions, the site manifest, or deploy artifacts. The legacy `replay` projection input remains accepted for independently bundled callers; only its game configuration is used.
+
+## State-first Game opening
+
+The game route first requests `GET /api/v1/game/get/:gameId?includeActions=false`. The backend reads a consistent Game/State snapshot and validates and projects only the current State. It returns an empty Actions array with `historyComplete: false`; the default request retains its existing complete-history behavior. State-only responses use a distinct ETag. Legacy States lacking an Action checksum still require a history read to backfill that checksum.
+
+A supporting Game UI Artifact displays that State and requests the ordinary full response after its notification listener starts. The initial State's Action count and checksum define a client history checkpoint. Subsequent Actions retain their absolute indices, and checksum validation starts at the checkpoint. Live submissions, optimistic processing, and notifications do not wait for the older history download. Initial synchronization covers updates between snapshot retrieval and notification subscription.
+
+Background history is verified against the checkpoint and retained live Actions, then attached without replacing State or animating old Actions. Attachment waits for active submissions and visible transitions to finish. A response for a disposed session or obsolete perspective is discarded. An incompatible history branch triggers full resync. Undo/reconciliation that requires Actions before the checkpoint also falls back to full resync; notification payloads are unchanged.
+
+History navigation and exploration remain unavailable until complete history is present. Undo can target eligible retained Actions. History-dependent descriptions may initially be incomplete. The history controls show loading/failure status and allow retry; a failed history request does not block live play. Failed synchronization pauses action submission until recovery succeeds.
+
+Deploy the backend before the updated Site Frontend. Rebuild and publish each title's UI Artifact to adopt checkpoint-aware sessions and the history controls; no Logic Artifact change is required for this feature. The Site Frontend checks the session class's optional `supportsDeferredHistory` capability and fetches complete history before constructing an older session. An older Site Frontend continues constructing updated sessions with complete history. Local games continue loading their complete local data.
+
+Measure time to visible board separately from time to complete history. This moves historical reads and projection off the initial page-load path; it does not remove UI Artifact loading, current-State projection, or the eventual full-history request.
+
+### Scenario regression coverage
+
+| Scenario | Regression coverage |
+| --- | --- |
+| Show the projected board before history arrives | `pageLoad.spec.ts` returns a modern session after only the State request; deferred-history browser tests compare its displayed State with the host projection |
+| Initiate and optimistically execute Actions without earlier history | `gameReconciliation.spec.ts` checkpoint submission; browser delayed-history and failed-history scenarios |
+| Receive ordinary notifications | Checkpoint tests exercise canonical execution and projected patches; the failed-history browser scenario receives a live notification |
+| Duplicate, missing, or out-of-order notifications | Checkpoint tests cover retained duplicates, unknown duplicates before the checkpoint, and incremental recovery with complete and incomplete history |
+| Undo within retained history | Replacement-notification tests exercise rollback boundaries available in complete and incomplete contexts |
+| Undo crossing before the checkpoint | Reconciliation and browser tests require full reload; browser tests also initiate Undo of a retained Action whose server replay requires earlier history |
+| Full resync failure and retry | The `resync-failure` browser scenario verifies that play pauses and resumes only after successful recovery |
+| Partial action descriptions and unavailable old history | Browser tests verify an initially empty retained log, absent last Action and Undo candidate, and blocked history navigation |
+| History navigation and exploration | Deferred-history browser tests verify gating and re-enabling; existing complete-history navigation, replay, exploration, and optimistic Undo browser tests remain in the run |
+| Attach history while play advances | Tests cover attachment during a pending optimistic submission, older and newer history responses, branch mismatch, and no board transition on successful attachment |
+| Session disposal or perspective change during loading | Deferred-history browser scenarios reject late attachment to disposed or differently represented sessions |
+| Mixed UI Artifact versions and complete local results | Page-loader tests cover modern sessions, legacy sessions, and already-complete data without an additional request |
+| State-only transport and privacy | Route, API, service, and representation tests cover the query flag, distinct ETag, skipped Action reads, and projected State |
+
+The proposed self-contained before/after Undo patch is not introduced by this change. Tests exercise the existing notification contracts and their resync fallback. Exploration before full history is deliberately unavailable in this implementation; its gate is tested rather than claiming history-independent exploration support.
+
+For an interactive delayed-history rehearsal, run `LOCAL_GAME_HISTORY_DELAY_MS=3000 node tools/scripts/local-hosted-game.mjs fresh-fish`. In local backend mode only, full Game loads (including cache revalidation and full resync) wait three seconds; State-only requests, submissions, and notifications are unaffected. Omit the environment variable to restore normal timing.
+
+Both Game response variants have explicit weak ETag suffixes: `:full` for Game, State, and Actions, and `:state-only` for Game and State. Older suffixless or `:state` validators receive a fresh `200` response once, then revalidate against the new tag.

@@ -70,6 +70,18 @@ export type GameStateChangeListener<U extends HydratedGameState> = ({
 type PlayerStateOf<U extends HydratedGameState> = U['players'][number]
 
 export class GameSession<T extends GameState, U extends HydratedGameState<T> & T> {
+    static readonly supportsDeferredHistory = true
+    historyLoading = $state(false)
+    historyLoadFailed = $state(false)
+    private disposed = false
+    private initialSynchronizationNeeded: boolean
+    synchronizationFailed = $state(false)
+    private synchronizingGame = $state(false)
+    private pendingHistory?: { context: GameContext<T, U>; isCurrent: () => boolean }
+
+    get hasCompleteHistory(): boolean {
+        return this.currentVisibleContext.hasCompleteHistory
+    }
     private debug? = false
 
     processingActions = $state(false)
@@ -81,7 +93,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         const state = this.updatingVisibleState
         const representation = this.loadingGameRepresentation
 
-        return actions || state || representation
+        return actions || state || representation || this.synchronizingGame
     })
 
     private authorizationBridge: AuthorizationBridge
@@ -122,7 +134,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     mode: GameSessionMode = $state(GameSessionMode.Play)
 
     isPlayable = $derived(
-        this.mode === GameSessionMode.Play || this.mode === GameSessionMode.Explore
+        !this.synchronizationFailed &&
+            (this.mode === GameSessionMode.Play || this.mode === GameSessionMode.Explore)
     )
     isExploring = $derived(this.mode === GameSessionMode.Explore)
     get isViewingHost(): boolean {
@@ -167,7 +180,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     currentActionIndex = $derived.by(() => {
-        return this.actions.length - 1
+        return this.currentVisibleContext.state.actionCount - 1
     })
 
     // Switches between the contexts to show in the UI
@@ -512,6 +525,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         game,
         state,
         actions,
+        historyComplete = true,
         debug = false,
         hostPerspective
     }: {
@@ -524,9 +538,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         game: Game
         state: T
         actions: GameAction[]
+        historyComplete?: boolean
         debug?: boolean
         hostPerspective?: Visibility.Perspective
     }) {
+        this.initialSynchronizationNeeded = !historyComplete
         this.authorizationBridge = bridgedContext.authorization
         this.chatBridge = bridgedContext.chatService
         this.showDebugStore = fromStore(this.authorizationBridge.showDebug)
@@ -552,7 +568,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             runtime,
             game,
             state,
-            actions
+            actions,
+            historyComplete
         })
 
         this.representations = new GameRepresentations(this.gameContext, {
@@ -676,6 +693,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     }
                     // console.log('Busy changed from', oldBusy, 'to', newBusy)
                     if (oldBusy === true && newBusy === false) {
+                        this.applyLoadedHistory()
                         this.reconciliation.resume().catch((error) => {
                             console.error('Error applying queued server updates:', error)
                         })
@@ -721,6 +739,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     dispose() {
+        this.disposed = true
+        this.pendingHistory = undefined
+        this.reconciliation.clearPending()
         for (const dispose of this.preferenceDisposers) dispose()
         this.notifications.stop()
         this.representations.dispose()
@@ -791,7 +812,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
         if (!this.suppressStateChangeActions && oldState && newState.gameId === oldState.gameId) {
             if (newState.actionCount >= oldState.actionCount) {
-                actions.push(...this.actions.slice(oldState.actionCount, newState.actionCount))
+                actions.push(
+                    ...this.actions.filter(
+                        (action) =>
+                            action.index !== undefined &&
+                            action.index >= oldState.actionCount &&
+                            action.index < newState.actionCount
+                    )
+                )
             }
         }
         this.suppressStateChangeActions = false
@@ -862,6 +890,44 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     listenToGame() {
         this.notifications.start()
+        if (!this.gameContext.hasCompleteHistory) void this.loadHistory()
+        if (this.initialSynchronizationNeeded) {
+            this.initialSynchronizationNeeded = false
+            void this.reconciliation.enqueue({ kind: 'synchronize' })
+        }
+    }
+
+    async loadHistory(): Promise<void> {
+        if (this.historyLoading || this.gameContext.hasCompleteHistory || this.disposed) return
+        this.historyLoading = true
+        this.historyLoadFailed = false
+        const isCurrent = this.representations.captureValidity()
+        try {
+            const complete = await this.loadRecoveryContext()
+            if (this.disposed || !isCurrent()) return
+            this.pendingHistory = { context: complete, isCurrent }
+            this.applyLoadedHistory()
+        } catch (error) {
+            if (this.disposed || !isCurrent()) return
+            console.error('Unable to load Action History:', error)
+            this.historyLoadFailed = true
+        } finally {
+            this.historyLoading = false
+        }
+    }
+
+    private applyLoadedHistory(): void {
+        if (this.busy || !this.pendingHistory) return
+        const pending = this.pendingHistory
+        this.pendingHistory = undefined
+        if (this.disposed || !pending.isCurrent()) return
+        if (!this.gameContext.hydrateHistory(pending.context)) {
+            void this.checkSync(true)
+        }
+    }
+
+    async retrySynchronization(): Promise<void> {
+        if (!this.busy) await this.checkSync()
     }
 
     stopListeningToGame() {
@@ -889,8 +955,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     get canExplore(): boolean {
         return (
-            this.explorationPerspective() === undefined ||
-            this.runtime.exploration?.createFromProjectedState !== undefined
+            this.hasCompleteHistory &&
+            (this.explorationPerspective() === undefined ||
+                this.runtime.exploration?.createFromProjectedState !== undefined)
         )
     }
 
@@ -1106,7 +1173,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     async undo() {
-        if (this.isViewingHistory || !this.undoableAction || this.busy) {
+        if (!this.isPlayable || this.isViewingHistory || !this.undoableAction || this.busy) {
             return
         }
 
@@ -1239,30 +1306,35 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     // For primary game context only
-    private async checkSync() {
+    private async checkSync(forceReload = false) {
+        if (this.disposed) return
         if (!this.usesHostExecution(this.gameContext)) {
             return
         }
 
-        if (this.representations.hostContext !== undefined) {
-            await this.representations.refreshHost()
-            return
-        }
-
-        if (this.representations.inspectionRequested) {
-            await this.representations.reload()
-            return
-        }
-
         const isRepresentationCurrent = this.representations.captureValidity()
+        this.synchronizingGame = true
         try {
-            const result = await this.reconciliation.synchronize(isRepresentationCurrent)
-            if (result === 'stale') {
+            if (this.representations.hostContext !== undefined) {
+                await this.representations.refreshHost()
+            } else if (this.representations.inspectionRequested) {
                 await this.representations.reload()
+            } else {
+                const result = await this.reconciliation.synchronize(
+                    () => !this.disposed && isRepresentationCurrent(),
+                    forceReload
+                )
+                if (this.disposed) return
+                if (result === 'stale') await this.representations.reload()
             }
+            if (!this.disposed) this.synchronizationFailed = false
         } catch (error) {
+            if (this.disposed) return
+            this.synchronizationFailed = true
             console.error('Unable to synchronize game:', error)
             toast.error('Unable to load game, try refreshing')
+        } finally {
+            this.synchronizingGame = false
         }
     }
 
