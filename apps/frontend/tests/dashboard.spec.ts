@@ -401,7 +401,7 @@ for (const width of [360, 390, 768, 1280]) {
     })
 }
 
-test('loads local and hosted games together before showing the initial sorted list', async ({
+test('loads local and hosted games together with hotseat after other active games', async ({
     page
 }) => {
     const requested = Promise.withResolvers<void>()
@@ -409,7 +409,7 @@ test('loads local and hosted games together before showing the initial sorted li
     await page.route('**/api/v1/games/mine*', async (route) => {
         requested.resolve()
         await released.promise
-        await route.fulfill({ json: { payload: { games: [game(0)] } } })
+        await route.fulfill({ json: { payload: { games: [{ ...game(0), activePlayerIds: ['p2'] }] } } })
     })
     await page.goto('/about')
     await page.evaluate(
@@ -439,7 +439,7 @@ test('loads local and hosted games together before showing the initial sorted li
                 db.close()
             }
         },
-        { ...game(99), hotseat: true, activePlayerIds: [] }
+        { ...game(99), hotseat: true }
     )
     await page.getByRole('button', { name: 'My Games', exact: true }).click()
     await requested.promise

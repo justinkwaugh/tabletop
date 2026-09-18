@@ -70,6 +70,7 @@ export class GameService implements GameServiceInterface {
                     (a.lastActionAt ?? a.createdAt).getTime() -
                     (b.lastActionAt ?? b.createdAt).getTime()
                 return (
+                    Number(a.hotseat) - Number(b.hotseat) ||
                     (isMyBTurn ? 1 : 0) - (isMyATurn ? 1 : 0) ||
                     (isMyATurn ? activityOrder : -activityOrder)
                 )
