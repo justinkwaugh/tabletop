@@ -116,7 +116,7 @@
             myPlayer?.status === PlayerStatus.Joined
     )
 
-    let isMyTurn = $derived(isUsersGameTurn(game, sessionUser?.id))
+    let isMyTurn = $derived(!game.hotseat && isUsersGameTurn(game, sessionUser?.id))
 
     let openSeats = $derived(
         game.players.reduce((acc, player) => acc + (player.status === PlayerStatus.Open ? 1 : 0), 0)
