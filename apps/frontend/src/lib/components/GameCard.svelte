@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Card, Hr, Button, Modal } from 'flowbite-svelte'
+    import { Card, Hr, Button, Modal, Spinner, type ButtonProps } from 'flowbite-svelte'
     import { LinkOutline } from 'flowbite-svelte-icons'
     import { assertExists, Game, GameStatus, PlayerStatus, GameResult } from '@tabletop/common'
     import { gameCardOptions } from '$lib/utils/gameOptions'
@@ -43,6 +43,7 @@
     let loading = $derived(libraryService.loading)
 
     let editing = $state(false)
+    let openingGame = $state(false)
     let canToggle = $derived(expanded !== 'always')
     let isExpanded = $derived(expanded ? true : false)
 
@@ -197,7 +198,13 @@
 
     async function playGame(event: Event) {
         event.stopPropagation()
-        await goto(`/game/${game.id}`)
+        if (openingGame) return
+        openingGame = true
+        try {
+            await goto(`/game/${game.id}`)
+        } finally {
+            openingGame = false
+        }
     }
 
     function isActive(playerId: string) {
@@ -252,6 +259,25 @@
         gameCardOptions(game.config ?? {}, title?.info.configurator?.options ?? [])
     )
 </script>
+
+{#snippet gameEntryButton(label: string, color: ButtonProps['color'], buttonClass: string)}
+    <Button
+        size="xs"
+        {color}
+        class={buttonClass}
+        disabled={openingGame}
+        aria-busy={openingGame}
+        aria-label={label}
+        onclick={playGame}
+    >
+        <span class="relative inline-flex items-center justify-center">
+            <span class:invisible={openingGame}>{label}</span>
+            {#if openingGame}
+                <Spinner size="4" class="absolute" aria-label="Loading game" />
+            {/if}
+        </span>
+    </Button>
+{/snippet}
 
 <Card
     onclick={toggleExpand}
@@ -316,24 +342,17 @@
                                             onclick={editGame}>Edit</Button
                                         >
                                     {:else if canPlay || canWatch}
-                                        <Button
-                                            size="xs"
-                                            color={isMyTurn ? 'yellow' : 'primary'}
-                                            class="h-[20px]"
-                                            onclick={playGame}
-                                            >{isMyTurn
-                                                ? 'Your Turn'
-                                                : canPlay
-                                                  ? 'Enter'
-                                                  : 'Watch'}</Button
-                                        >
+                                        {@render gameEntryButton(
+                                            isMyTurn ? 'Your Turn' : canPlay ? 'Enter' : 'Watch',
+                                            isMyTurn ? 'yellow' : 'primary',
+                                            'h-[20px]'
+                                        )}
                                     {:else if canRevisit}
-                                        <Button
-                                            size="xs"
-                                            color="light"
-                                            class="h-[20px] dark:text-gray-200"
-                                            onclick={playGame}>Revisit</Button
-                                        >
+                                        {@render gameEntryButton(
+                                            'Revisit',
+                                            'light',
+                                            'h-[20px] dark:text-gray-200'
+                                        )}
                                     {/if}
                                 </div>
                                 {#if waitingToStart}
@@ -528,21 +547,20 @@
                                 >
                             {/if}
                             {#if isMyTurn}
-                                <Button size="xs" color="yellow" class="mx-2" onclick={playGame}
-                                    >Take Your Turn</Button
-                                >
+                                {@render gameEntryButton('Take Your Turn', 'yellow', 'mx-2')}
                             {:else if canPlay || canWatch}
-                                <Button size="xs" color="primary" class="mx-2" onclick={playGame}
-                                    >{canPlay ? 'Play' : 'Watch'}&nbsp;Game</Button
-                                >
+                                {@render gameEntryButton(
+                                    canPlay ? 'Play Game' : 'Watch Game',
+                                    'primary',
+                                    'mx-2'
+                                )}
                             {/if}
                             {#if canRevisit}
-                                <Button
-                                    size="xs"
-                                    color="light"
-                                    class="mx-2 dark:text-gray-200"
-                                    onclick={playGame}>Revisit</Button
-                                >
+                                {@render gameEntryButton(
+                                    'Revisit',
+                                    'light',
+                                    'mx-2 dark:text-gray-200'
+                                )}
                             {/if}
                             {#if canDelete}
                                 <Button size="xs" color="red" class="mx-2" onclick={deleteGame}
