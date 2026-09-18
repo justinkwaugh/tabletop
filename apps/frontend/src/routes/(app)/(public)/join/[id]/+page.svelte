@@ -169,7 +169,7 @@
                 color="light"
                 href={user?.status === UserStatus.Active ? '/activeGamesCheck' : '/#games'}
                 onclick={clearLoginContinuation}
-                disabled={joining}>No thanks</Button
+                disabled={joining}>{game ? 'No thanks' : 'OK'}</Button
             >
             {#if canJoin}
                 <Button size="sm" color="green" disabled={joining} onclick={join}

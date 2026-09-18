@@ -191,6 +191,8 @@ test('shows an unavailable invitation for a deleted or invite-only game', async 
     )
     await page.goto('/join/public-table')
     await expect(page.getByRole('heading', { name: 'Invitation unavailable' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'OK', exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'No thanks', exact: true })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Join', exact: true })).toHaveCount(0)
 })
 
