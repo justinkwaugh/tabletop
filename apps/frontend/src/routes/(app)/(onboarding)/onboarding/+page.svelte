@@ -1,6 +1,5 @@
 <script lang="ts">
     import { Card, Label, Input, Button, Helper, Alert, P, Hr } from 'flowbite-svelte'
-    import { goto } from '$app/navigation'
     import { UserStatus } from '@tabletop/common'
     import { getAppContext } from '@tabletop/frontend-components'
 
@@ -34,7 +33,7 @@
             email = ''
 
             if (updatedUser.status === UserStatus.Active) {
-                goto('/activeGamesCheck')
+                await authorizationService.onLogin(updatedUser)
             }
         } catch (e) {
             if (e instanceof Error && e.name === 'AlreadyExistsError') {
@@ -68,7 +67,7 @@
             verificationToken = ''
 
             if (updatedUser.status === UserStatus.Active) {
-                goto('/activeGamesCheck')
+                await authorizationService.onLogin(updatedUser)
             }
         } catch (e) {
             verificationError = true

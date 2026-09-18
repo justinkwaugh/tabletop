@@ -1,7 +1,12 @@
 import { Role, UserStatus, type User } from '@tabletop/common'
 import { goto } from '$app/navigation'
 import { redirect } from '@sveltejs/kit'
-import type { TabletopApi } from '@tabletop/frontend-components'
+import { AuthorizationCategory, type TabletopApi } from '@tabletop/frontend-components'
+import {
+    clearLoginContinuation,
+    saveLoginContinuation,
+    takeLoginContinuation
+} from '$lib/utils/loginContinuation'
 
 /**
  *
@@ -19,18 +24,12 @@ import type { TabletopApi } from '@tabletop/frontend-components'
  * but can also be called directly if desired.
  **/
 
-export enum AuthorizationCategory {
-    ActiveUser = 'activeUser',
-    NoUser = 'noUser',
-    Onboarding = 'onboarding'
-}
+export { AuthorizationCategory }
 
 export class AuthorizationService {
     private sessionUser?: User | undefined = $state(undefined)
     private initialized: boolean = false
     private initializationPromise: Promise<void> | null = null
-
-    private continueUrl: string | undefined
 
     isAdmin: boolean = $derived(Boolean(this.sessionUser?.roles.includes(Role.Admin)))
     isDeveloper: boolean = $derived(Boolean(this.sessionUser?.roles.includes(Role.Developer)))
@@ -90,7 +89,10 @@ export class AuthorizationService {
         }
 
         if (shouldRedirect) {
-            this.redirect({ user, url: intendedUrl })
+            if (category === AuthorizationCategory.ActiveUser) {
+                saveLoginContinuation(`${intendedUrl.pathname}${intendedUrl.search}`)
+            }
+            this.redirect(user)
             return false
         }
         return true
@@ -112,15 +114,15 @@ export class AuthorizationService {
     public async onLogin(user: User) {
         this.setSessionUser(user)
 
-        if (this.continueUrl) {
-            await goto(this.continueUrl)
-            this.continueUrl = undefined
-        } else {
-            await goto('/library')
+        if (user.status === UserStatus.Incomplete) {
+            await goto('/onboarding')
+            return
         }
+        await goto(takeLoginContinuation() ?? '/library')
     }
 
     public async onLogout() {
+        clearLoginContinuation()
         this.clearSessionUser()
         await goto('/')
     }
@@ -140,20 +142,15 @@ export class AuthorizationService {
         }
     }
 
-    private redirect({ user, url }: { user?: User | null; url: URL }) {
+    private redirect(user?: User) {
         switch (user?.status) {
             case UserStatus.Incomplete:
                 redirect(302, '/onboarding')
                 break
             case UserStatus.Active:
-                redirect(302, '/activeGamesCheck')
+                redirect(302, takeLoginContinuation() ?? '/activeGamesCheck')
                 break
             default:
-                // If we are trying to go somewhere but get sent to login due to the user
-                // not being in the session at all, we store the url for post login
-                if (!user) {
-                    this.continueUrl = `${url.pathname}${url.search}`
-                }
                 redirect(302, '/login')
                 break
         }

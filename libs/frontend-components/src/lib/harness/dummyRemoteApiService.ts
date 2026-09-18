@@ -5,6 +5,7 @@ import type {
     GameHistoryPage,
     CanonicalActionReplay,
     Game,
+    PublicGamePreview,
     GameAction,
     GameChat,
     GameChatMessage,
@@ -26,6 +27,10 @@ import type { VersionChange } from '$lib/network/versionChecker.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
 
 export class DummyRemoteApiService implements RemoteApiService {
+    async getPublicGamePreview(_gameId: string): Promise<PublicGamePreview | undefined> {
+        return this.fail('getPublicGamePreview')
+    }
+
     readonly supportsHostView?: boolean = true
     private fail(method: string): never {
         throw new Error(`DummyRemoteApiService.${method} is not implemented`)

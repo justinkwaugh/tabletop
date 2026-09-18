@@ -14,6 +14,7 @@ import {
     CanonicalActionReplay,
     ProcessedActionReplay,
     Game,
+    PublicGamePreview,
     GameAction,
     GameChat,
     GameChatMessage,
@@ -454,6 +455,14 @@ export class TabletopApi {
             {}
         )
     }
+    async getPublicGamePreview(gameId: string): Promise<PublicGamePreview | undefined> {
+        const response = await this.wretch
+            .get(`/game/public/${encodeURIComponent(gameId)}`)
+            .notFound(() => undefined)
+            .json<{ payload: unknown } | undefined>()
+        return response ? Value.Parse(PublicGamePreview, response.payload) : undefined
+    }
+
     async getGame(
         gameId: string,
         options: GetGameOptions = {}
