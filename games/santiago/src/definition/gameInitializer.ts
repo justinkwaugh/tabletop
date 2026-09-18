@@ -3,6 +3,7 @@ import {
     type GameInitializer,
     Prng,
     type RandomFunction,
+    type StartingPositionAssignment,
     type UninitializedGameState,
     shuffle,
     pickRandom,
@@ -25,7 +26,13 @@ export class SantiagoGameInitializer
     extends BaseGameInitializer<SantiagoProjectedState, HydratedSantiagoGameState>
     implements GameInitializer<SantiagoProjectedState, HydratedSantiagoGameState>
 {
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedSantiagoGameState {
+    readonly supportsStartingPositions = true
+
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState,
+        assignment?: StartingPositionAssignment
+    ): HydratedSantiagoGameState {
         const prng = new Prng(state.prng)
         const config = game.config
 
@@ -62,18 +69,17 @@ export class SantiagoGameInitializer
             })
         )
 
-        const turnManager = HydratedTurnManager.generate(players, prng.random)
+        const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
 
         const usePalmTrees = config.palmTrees !== false
 
-        // Choose a random initial canal overseer. Bidding in round 1 starts
-        // with the player to their left, same as every subsequent round.
+        // Consume the ordinary overseer draw to preserve seeded setup with assigned seats.
         const initialOverseerIndex = Math.floor(prng.random() * players.length)
-        const initialOverseer = players[initialOverseerIndex]
+        const initialOverseerId = assignment?.playerIds[0] ?? players[initialOverseerIndex].playerId
 
         // Stable display order: initial overseer at top, then clockwise.
         const turnOrder = turnManager.turnOrder
-        const overseerPos = turnOrder.indexOf(initialOverseer.playerId)
+        const overseerPos = turnOrder.indexOf(initialOverseerId)
         const seatOrder = [...turnOrder.slice(overseerPos), ...turnOrder.slice(0, overseerPos)]
 
         const santiagoState: SantiagoGameState = Object.assign(state, {
@@ -92,7 +98,7 @@ export class SantiagoGameInitializer
             extraIrrigationOrder: [],
             extraIrrigationIndex: 0,
             overseerBidZero: false,
-            canalOverseerId: initialOverseer.playerId,
+            canalOverseerId: initialOverseerId,
             biddingOrder: [],
             currentBidderIndex: 0,
             revealedTiles: [],
