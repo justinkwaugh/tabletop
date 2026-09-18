@@ -568,12 +568,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     public async goToPlayersPreviousTurn(playerId: string) {
-        if (
-            this.disabled ||
-            this.stepping ||
-            this.gameContext.actions.length === 0 ||
-            this.actionIndex === -1
-        ) {
+        if (this.stepping || !this.hasPreviousAction) {
             return
         }
         await this.stepUntil('backward', () => {

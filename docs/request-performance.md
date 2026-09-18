@@ -246,3 +246,19 @@ processing, and during visible transitions. Action-submission guards are unchang
 The host chat changes require a Site Frontend deployment. The Game Client changes
 require UI-only republication for each adopting title, including TOP and 1889;
 no Logic or backend changes are required. These changes are not deployed here.
+
+### Previous-player-turn navigation after deferred history
+
+The previous-player-turn command treated its initial `actionIndex` of -1 as the
+beginning of History View even when still in Live View. A state-only session
+constructs history with no Actions, so that cursor remains -1 after history
+attachment until another navigation command initializes it. This made the first
+previous-player-turn click a no-op; stepping backward once made it work.
+
+The command now uses the shared `hasPreviousAction` check, which resolves the
+available position from Live View or History View and retains disabled and
+irreversible-history boundaries. Chromium and Firefox regressions cover complete
+and deferred history, direct navigation, the step-back workaround, and loading
+and disabled-state guards. Republish Fresh Fish's UI Artifact to adopt the fix;
+other titles adopt it through UI-only republication as well. No host contract,
+Site Frontend, Logic, or backend change is required for this correction.
