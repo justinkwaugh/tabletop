@@ -1,3 +1,4 @@
+import * as Value from 'typebox/value'
 import {
     ActionSource,
     assertExists,
@@ -183,10 +184,7 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         )
         assertExists(localAction, `Optimistic Action ${actionId} is unavailable`)
         let applyAccepted = optimistic.result.revealing
-        if (
-            !applyAccepted &&
-            !this.canKeepOptimisticResult(optimistic.result.processedActions, response.actions)
-        ) {
+        if (!applyAccepted && !this.canKeepOptimisticResult(optimistic, response.actions)) {
             this.context.restoreFrom(before)
             applyAccepted = true
         }
@@ -345,11 +343,11 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
     }
 
     private canKeepOptimisticResult(
-        localActions: readonly GameAction[],
+        optimistic: OptimisticSubmission<T, U>,
         serverActions: readonly GameAction[]
     ): boolean {
-        return (
-            !serverActions.some((action) => action.forwardPatch !== undefined) &&
+        const localActions = optimistic.result.processedActions
+        const sameActions =
             localActions.length === serverActions.length &&
             localActions.every((local, index) => {
                 const server = serverActions[index]
@@ -361,7 +359,16 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
                     local.type === server.type
                 )
             })
-        )
+        if (!sameActions) return false
+        let confirmedState = optimistic.before.state
+        for (const action of serverActions) {
+            confirmedState = this.context.engine.applyProcessedAction({
+                action,
+                state: confirmedState,
+                game: optimistic.before.game
+            })
+        }
+        return Value.Equal(confirmedState, optimistic.result.updatedState)
     }
 
     private rollbackTo(context: GameContext<T, U>, index: number): void {

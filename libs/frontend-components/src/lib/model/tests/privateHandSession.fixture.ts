@@ -244,10 +244,20 @@ export async function runPrivateHandPlayAndUndo() {
         await received
         assert(host.state.players[0].hand.cards.length === 2, 'Host accepted too early')
         assert(c.session.actions.length === 1, 'Owner play was not optimistic')
+        await settle(c.session)
+        const optimisticState = c.session.gameState
         assertExists(accept, 'Expected acceptance control')
         accept()
         await pending
         await settle(c.session)
+        assert(
+            c.session.gameState === optimisticState,
+            'Matching patches replaced the optimistic state'
+        )
+        assert(
+            c.session.actions.every((action) => action.forwardPatch !== undefined),
+            'Authoritative patches were not retained'
+        )
         assert(
             Value.Equal(c.session.gameState.dehydrate(), host.history(p1).currentState),
             'Accepted state differs'
@@ -742,6 +752,30 @@ export async function runOptimisticUndoScenario(
             assert(Value.Equal(c.session.gameState.dehydrate(), expected), 'History changed state')
         }
         return { optimistic: true, reconciled: true }
+    } finally {
+        c.dispose()
+    }
+}
+
+export async function runPatchedSubmissionCorrection() {
+    const host = new PrivateHandHost()
+    const c = client(host)
+    try {
+        const apply = c.api.applyAction.bind(c.api)
+        c.api.applyAction = async (game, action) => {
+            const response = await apply(game, action)
+            const accepted = response.actions.at(-1)
+            assertExists(accepted?.forwardPatch, 'Expected authoritative forward patch')
+            accepted.forwardPatch.push({ op: 'replace', path: '/table/0/rank', value: 4 })
+            return response
+        }
+        await settle(c.session)
+        await c.session.play('r1')
+        await settle(c.session)
+        assert(c.session.gameState.table[0].rank === 4, 'Authoritative correction was discarded')
+        assert(c.session.actions.length === 1, 'Patched response was applied twice')
+        assert(c.session.gameState.actionChecksum === host.state.actionChecksum, 'Checksum differs')
+        return { corrected: true, appliedOnce: true }
     } finally {
         c.dispose()
     }

@@ -191,7 +191,7 @@ describe('I6: secret game randomness', () => {
         ])
         expect(
             visibleContinuation.processedActions.every(
-                (action) => action.forwardPatch === undefined
+                (action) => action.forwardPatch !== undefined
             )
         ).toBe(true)
 
@@ -914,7 +914,7 @@ describe('I8 / K1: observed Card knowledge survives a later move', () => {
 })
 
 describe('K2 / S9: a rule explicitly removes Card knowledge', () => {
-    it('hides the Card from the formerly informed Player using one perspective-specific cascade mode', () => {
+    it('hides the Card from the formerly informed Player using patches for every perspective', () => {
         const scenario = createForgetKnowledgeScenario()
         const engine = new GameEngine(scenario.runtime)
         const canonicalResult = engine.executeAction({
@@ -972,7 +972,7 @@ describe('K2 / S9: a rule explicitly removes Card knowledge', () => {
             ).toBe(true)
             expect(
                 visibleResult.processedActions.map((action) => action.forwardPatch !== undefined)
-            ).toEqual(previouslyKnewCard ? [true, true] : [false, false])
+            ).toEqual([true, true])
 
             let visibleState = visibleBefore
             for (const action of visibleResult.processedActions) {

@@ -149,11 +149,7 @@ export class ExplorationHistory<T extends GameState, U extends HydratedGameState
         let unsafe = false
         for (let index = actions.length - 1; index >= 0; index--) {
             const action = actions[index]
-            unsafe ||=
-                action.forwardPatch !== undefined ||
-                !!action.skipOptimisticExecution ||
-                !!action.revealsInfo ||
-                isRedactedAction(action)
+            unsafe ||= isRedactedAction(action)
             if (action.source !== ActionSource.User) continue
             if (unsafe) return groupEnd
             try {

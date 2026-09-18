@@ -110,7 +110,7 @@ This exceeds the repository's Operational Compatibility guarantee, which promise
 
 - One canonical rules model and Action type remain the source of truth. The redacted sentinel describes an unavailable record without inventing a second game-semantic Action.
 - Forward and undo patches come independently from adjacent permitted states; they are not filtered canonical patches.
-- Entire cascades are classified together, with both full execution and flattened application checked before removing forward patches.
+- Every compatible projected transition retains forward and undo patches. The 2026-09-18 correction removes request-time execution proofs; authoritative execution eligibility is independent of patch presence.
 - The public PRNG cursor solves the reproduced causal-ID replay failure. Undo, sibling/nested cascades, and reordered simultaneous execution have useful characterization coverage. No demonstrated requirement calls for a third stream.
 - Host inspection explicitly retains canonical context and derives a separate acting-Player view. Generic notifications and start responses are state-free.
 - Schema-local annotations, reusable DrawBag protection, and shared auction semantics reduce title-specific projection code. Public-by-default fields remain the intended authoring model.

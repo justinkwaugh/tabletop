@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 
 for (const scenario of [
     'runPrivateHandPlayAndUndo',
+    'runPatchedSubmissionCorrection',
     'runPrivateHandDelivery',
     'runPrivateHandDrawAndReload',
     'runPrivateHandExploration',

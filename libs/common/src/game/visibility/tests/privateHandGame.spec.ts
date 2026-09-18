@@ -1,7 +1,8 @@
-import { describe, expect, expectTypeOf, it } from 'vitest'
+import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import * as Type from 'typebox'
 import * as Value from 'typebox/value'
 import { Compile } from 'typebox/compile'
+import { GameEngine } from '../../engine/gameEngine.js'
 import { createGameFork, GameForkError } from '../../engine/gameFork.js'
 import { getPrng } from '../../../util/prng.js'
 import { assertExists } from '../../../util/assertions.js'
@@ -23,6 +24,33 @@ import {
 } from './privateHandGame.js'
 
 describe('shared hydration for private hands', () => {
+    it('projects recorded history with patches without executing game rules', () => {
+        const { game, state, engine, firstPlay } = createPrivateHandGame()
+        const result = engine.executeCanonicalAction({ game, state, action: firstPlay })
+        assertExists(runtime.visibility)
+        const execute = vi.spyOn(GameEngine.prototype, 'executeAction')
+        const apply = vi.spyOn(GameEngine.prototype, 'applyProcessedAction')
+        try {
+            for (const perspective of [p1, p2, spectator]) {
+                const history = Visibility.projectActionHistory({
+                    currentState: result.updatedState,
+                    actions: result.processedActions,
+                    visibility: runtime.visibility,
+                    perspective,
+                    replay: { game, runtime }
+                })
+                expect(history.actions.every((action) => action.forwardPatch !== undefined)).toBe(
+                    true
+                )
+            }
+            expect(execute).not.toHaveBeenCalled()
+            expect(apply).not.toHaveBeenCalled()
+        } finally {
+            execute.mockRestore()
+            apply.mockRestore()
+        }
+    })
+
     it('keeps canonical fields required and derives optional projected fields', () => {
         expectTypeOf<SharedState['players'][number]['hand']>().toEqualTypeOf<
             CanonicalState['players'][number]['hand'] | undefined

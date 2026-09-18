@@ -1,5 +1,4 @@
 import jsonpatch from 'fast-json-patch'
-import * as Value from 'typebox/value'
 import { ActionSource, type GameAction } from '../engine/gameAction.js'
 import type {
     ActionCascadeResult,
@@ -7,12 +6,11 @@ import type {
     CanonicalActionCascade,
     CanonicalActionTransition
 } from '../engine/gameEngine.js'
-import { GameEngine } from '../engine/gameEngine.js'
 import type { GameRuntime } from '../definition/gameDefinition.js'
 import type { Game } from '../model/game.js'
 import type { GameState } from '../model/gameState.js'
 import { assert, assertExists } from '../../util/assertions.js'
-import { isRedactedAction, redactActionRecord, type ActionProjector } from './actionProjector.js'
+import { redactActionRecord, type ActionProjector } from './actionProjector.js'
 import type { Perspective, ProjectionContext, ValueProjector } from './valueProjector.js'
 
 export interface GameVisibility<
@@ -52,6 +50,7 @@ export interface ActionCascadeProjectionOptions<
     readonly replay?: ActionReplayContext
 }
 
+/** Older artifacts supply this input; projection now uses only its game configuration. */
 export interface ActionReplayContext {
     readonly game: Game
     readonly runtime: GameRuntime
@@ -104,16 +103,6 @@ export function projectActionCascade<State extends GameState, ProjectedState ext
         action.undoPatch = jsonpatch.compare(after, previous)
         transitions.push({ action, after })
         previous = after
-    }
-
-    const projectedCascade = { before, transitions }
-    const containsRedactedAction = transitions.some(({ action }) => isRedactedAction(action))
-    if (
-        !containsRedactedAction &&
-        options.replay !== undefined &&
-        canReplayCascade(projectedCascade, options.replay)
-    ) {
-        return { actions: transitions.map(({ action }) => withoutForwardPatch(action)) }
     }
 
     return { actions: transitions.map(({ action }) => action) }
@@ -236,67 +225,4 @@ function projectionContext(
 ): ProjectionContext | undefined {
     const game = options.game ?? options.replay?.game
     return game === undefined ? undefined : { config: game.config }
-}
-
-function canReplayCascade(
-    actionCascade: CanonicalActionCascade<GameState>,
-    replay: ActionReplayContext
-): boolean {
-    const firstTransition = actionCascade.transitions[0]
-    if (firstTransition?.action.source !== ActionSource.User) {
-        return false
-    }
-
-    const engine = new GameEngine(replay.runtime)
-    try {
-        const executed = engine.executeAction({
-            action: firstTransition.action,
-            state: actionCascade.before,
-            game: replay.game
-        })
-        if (executed.actionCascade.transitions.length !== actionCascade.transitions.length) {
-            return false
-        }
-
-        for (const [index, expected] of actionCascade.transitions.entries()) {
-            const actual = executed.actionCascade.transitions[index]
-            if (
-                actual === undefined ||
-                !Value.Equal(comparableAction(actual.action), comparableAction(expected.action)) ||
-                !Value.Equal(actual.after, expected.after)
-            ) {
-                return false
-            }
-        }
-
-        let replayedState = structuredClone(actionCascade.before)
-        for (const transition of actionCascade.transitions) {
-            replayedState = engine.applyProcessedAction({
-                action: withoutForwardPatch(transition.action),
-                state: replayedState,
-                game: replay.game
-            })
-            if (!Value.Equal(replayedState, transition.after)) {
-                return false
-            }
-        }
-        return true
-    } catch {
-        return false
-    }
-}
-
-function comparableAction(action: GameAction): GameAction {
-    const comparable = structuredClone(action)
-    delete comparable.undoPatch
-    delete comparable.forwardPatch
-    delete comparable.createdAt
-    delete comparable.updatedAt
-    return comparable
-}
-
-function withoutForwardPatch(action: GameAction): GameAction {
-    const replayable = structuredClone(action)
-    delete replayable.forwardPatch
-    return replayable
 }

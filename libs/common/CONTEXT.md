@@ -42,6 +42,14 @@ The stable identity of one Player within a Game Instance. A relationship to that
 **Active Player**:
 A Player to whom an Action may currently be attributed under the Game State Machine. Multiple Players may be active simultaneously.
 
+## Execution authority
+
+**Authoritative Execution**:
+Execution that establishes the consequences of a new Action in a Game Context whose authority and complete, valid state permit it. A hypothetical Game Context establishes its own consequences, not those of its source Hosted Game.
+
+**Recorded Transition**:
+The already-established change between two Game States in an Action history, represented for a particular viewer. Possessing that transition does not establish authority or sufficient information to execute new Actions.
+
 ## Actions
 
 **Action**:
