@@ -2,6 +2,7 @@
     import { Card, Hr, Button, Modal, Spinner, type ButtonProps } from 'flowbite-svelte'
     import { LinkOutline } from 'flowbite-svelte-icons'
     import { assertExists, Game, GameStatus, PlayerStatus, GameResult } from '@tabletop/common'
+    import { isUsersGameTurn } from '$lib/utils/dashboardGames'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import { gameCardAppearance } from '$lib/utils/gameCardAppearance'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
@@ -115,10 +116,7 @@
             myPlayer?.status === PlayerStatus.Joined
     )
 
-    let isMyTurn = $derived(
-        game.status === GameStatus.Started &&
-            game.activePlayerIds?.find((id) => id === myPlayer?.id) != undefined
-    )
+    let isMyTurn = $derived(isUsersGameTurn(game, sessionUser?.id))
 
     let openSeats = $derived(
         game.players.reduce((acc, player) => acc + (player.status === PlayerStatus.Open ? 1 : 0), 0)
@@ -343,8 +341,8 @@
                                         >
                                     {:else if canPlay || canWatch}
                                         {@render gameEntryButton(
-                                            isMyTurn ? 'Your Turn' : canPlay ? 'Enter' : 'Watch',
-                                            isMyTurn ? 'yellow' : 'primary',
+                                            canPlay ? 'Enter' : 'Watch',
+                                            'primary',
                                             'h-[20px]'
                                         )}
                                     {:else if canRevisit}
@@ -546,9 +544,7 @@
                                     >Start Game</Button
                                 >
                             {/if}
-                            {#if isMyTurn}
-                                {@render gameEntryButton('Take Your Turn', 'yellow', 'mx-2')}
-                            {:else if canPlay || canWatch}
+                            {#if canPlay || canWatch}
                                 {@render gameEntryButton(
                                     canPlay ? 'Play Game' : 'Watch Game',
                                     'primary',

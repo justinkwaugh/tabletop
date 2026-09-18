@@ -1,59 +1,10 @@
 <script lang="ts">
-    import {
-        ExplorationPanel,
-        GameSession,
-        HotseatPanel,
-        setGameSession,
-        HistoryKeyControls,
-        getAppContext,
-        AdminPanel,
-        GameUI,
-        attachGlobalCssVarFromRect
-    } from '@tabletop/frontend-components'
+    import HostedGame from '$lib/components/HostedGame.svelte'
+    import type { PageData } from './$types'
 
-    import { onMount } from 'svelte'
-    import type { GameState, HydratedGameState } from '@tabletop/common'
-
-    let { data }: { data: { gameSession: GameSession<GameState, HydratedGameState> } } = $props()
-    const { isExploring, gameHotseat } = data.gameSession.bridge
-
-    // svelte-ignore state_referenced_locally
-    setGameSession(data.gameSession)
-
-    let { gameService, notificationService, authorizationService, chatService } = getAppContext()
-
-    onMount(() => {
-        const gameSession = data.gameSession
-
-        gameService.currentGameSession = gameSession
-
-        if (!gameSession.game.hotseat) {
-            setTimeout(() => {
-                notificationService.showPrompt()
-            }, 2000)
-
-            gameSession.listenToGame()
-        }
-        return () => {
-            gameSession.stopListeningToGame()
-            gameSession.dispose()
-            gameService.currentGameSession = undefined
-            chatService.clear()
-        }
-    })
+    let { data }: { data: PageData } = $props()
 </script>
 
-<HistoryKeyControls />
-
-<div class="flex flex-col w-screen overflow-auto">
-    <div {@attach attachGlobalCssVarFromRect('--app-banner-height')}>
-        {#if $isExploring}
-            <ExplorationPanel />
-        {:else if $gameHotseat}
-            <HotseatPanel />
-        {:else if authorizationService.actAsAdmin}
-            <AdminPanel />
-        {/if}
-    </div>
-    <GameUI gameSession={data.gameSession} />
-</div>
+{#key data.gameSession}
+    <HostedGame gameSession={data.gameSession} />
+{/key}

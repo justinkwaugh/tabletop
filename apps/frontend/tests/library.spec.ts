@@ -316,7 +316,7 @@ test('the game page shows current games, joinable tables and paginated tournamen
     const openSection = page.getByRole('region', { name: 'Open games' })
     await expect(mySection.getByText('Friday game')).toBeVisible()
     await expect(mySection.getByText('Other title')).toHaveCount(0)
-    await expect(mySection.getByRole('button', { name: 'Your Turn', exact: true })).toBeVisible()
+    await expect(mySection.getByRole('button', { name: 'Enter', exact: true })).toBeVisible()
     await expect(openSection.getByText('Friday game')).toHaveCount(0)
     await expect(openSection.getByRole('button', { name: 'Join', exact: true })).toBeVisible()
     await expect(page.getByRole('link', { name: /Tournament one/ })).toHaveAttribute(

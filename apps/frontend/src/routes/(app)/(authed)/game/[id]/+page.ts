@@ -11,6 +11,10 @@ export const load: PageLoad = async ({ params, url }) => {
         intendedUrl: url
     })
 
+    void appContext.gameService.loadGames().catch((error) => {
+        console.error('Error loading games for turn navigation', error)
+    })
+
     const { id } = params
 
     try {

@@ -196,7 +196,7 @@ for (const expanded of [false, true]) {
             await card.getByRole('heading', { name: 'Table 00', exact: true }).click()
         }
         const button = card.getByRole('button', {
-            name: expanded ? 'Take Your Turn' : 'Your Turn',
+            name: expanded ? 'Play Game' : 'Enter',
             exact: true
         })
         const before = await button.boundingBox()
@@ -215,7 +215,7 @@ for (const expanded of [false, true]) {
         }
         await expect(page.getByText('Unable to load the game', { exact: true })).toBeVisible()
         await expect(page).toHaveURL(/\/dashboard$/)
-        await expect(card.getByRole('button', { name: 'Your Turn', exact: true })).toBeEnabled()
+        await expect(card.getByRole('button', { name: 'Enter', exact: true })).toBeEnabled()
     })
 }
 

@@ -1,5 +1,6 @@
 <script lang="ts">
     import '../../app.css'
+    import { nextTurnGame, otherTurnGames } from '$lib/utils/dashboardGames'
     import {
         Navbar,
         NavBrand,
@@ -55,6 +56,25 @@
     let { children } = $props()
 
     let sessionUser = $derived(authorizationService.getSessionUser())
+    let otherTurnCount = $derived(
+        gameService.currentGameSession
+            ? otherTurnGames(
+                  gameService.activeGames,
+                  gameService.currentGameSession.primaryGame.id,
+                  sessionUser?.id
+              ).length
+            : 0
+    )
+    let nextGame = $derived(
+        gameService.currentGameSession
+            ? nextTurnGame(
+                  gameService.activeGames,
+                  gameService.currentGameSession.primaryGame.id,
+                  sessionUser?.id
+              )
+            : undefined
+    )
+    let accountMenuOpen = $state(false)
     let showCreateGameModel = $state(false)
     let showCancelPrompt = $state(false)
     let showLoginModal = $state(false)
@@ -433,14 +453,32 @@
                                 <path d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
                         </button>
-                        <Dropdown triggeredBy="#user-drop">
+                        <Dropdown
+                            triggeredBy="#user-drop"
+                            bind:isOpen={accountMenuOpen}
+                            onclick={() => accountMenuOpen = false}
+                        >
                             <DropdownGroup class="py-1">
                                 <DropdownHeader class="py-2">
                                     <span class="block text-sm"
                                         >{sessionUser.username || 'username not assigned'}</span
                                     >
                                 </DropdownHeader>
-                                <DropdownDivider />
+                                <DropdownDivider class={nextGame ? 'mb-0' : ''} />
+                                {#if nextGame}
+                                    <DropdownItem
+                                        href={`/game/${nextGame.id}`}
+                                        class="w-full bg-blue-50 text-left hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50"
+                                    >
+                                        <span class="inline-flex items-center gap-2 whitespace-nowrap">
+                                            Next turn
+                                            <span
+                                                class="inline-flex min-w-5 items-center justify-center rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                            >{otherTurnCount}</span>
+                                        </span>
+                                    </DropdownItem>
+                                    <DropdownDivider class="mt-0" />
+                                {/if}
                                 {#if sessionUser.status === UserStatus.Active}
                                     <DropdownItem
                                         href="/tournaments"

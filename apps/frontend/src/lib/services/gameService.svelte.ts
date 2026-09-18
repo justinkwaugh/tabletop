@@ -33,6 +33,7 @@ import {
 import * as Value from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
 import { NotificationService } from './notificationService.svelte'
+import { isUsersGameTurn } from '$lib/utils/dashboardGames'
 import { compareGameInvitations } from '$lib/utils/gameInvitation'
 
 import type { LibraryService } from './libraryService.svelte'
@@ -63,14 +64,8 @@ export class GameService implements GameServiceInterface {
                     game.status === GameStatus.Started && game.category !== GameCategory.Exploration
             )
             .toSorted((a, b) => {
-                const myBPlayerId = b.players.find(
-                    (player) => player.userId === sessionUser?.id
-                )?.id
-                const myAPlayerId = a.players.find(
-                    (player) => player.userId === sessionUser?.id
-                )?.id
-                const isMyBTurn = myBPlayerId ? b.activePlayerIds?.includes(myBPlayerId) : false
-                const isMyATurn = myAPlayerId ? a.activePlayerIds?.includes(myAPlayerId) : false
+                const isMyBTurn = isUsersGameTurn(b, sessionUser.id)
+                const isMyATurn = isUsersGameTurn(a, sessionUser.id)
                 const activityOrder =
                     (a.lastActionAt ?? a.createdAt).getTime() -
                     (b.lastActionAt ?? b.createdAt).getTime()
