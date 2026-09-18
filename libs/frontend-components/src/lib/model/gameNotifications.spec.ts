@@ -13,7 +13,7 @@ import { NotificationChannel, NotificationEventType } from '../services/notifica
 import { GameNotifications } from './gameNotifications.js'
 import { ServerActionHandling, type ReconciliationUpdate } from './gameReconciliation.js'
 
-function fixture({ hotseat = false, usesProjection = true } = {}) {
+function fixture({ hotseat = false, usesProjection = true, modernHost = false, userReady = false } = {}) {
     const game: Game = {
         id: 'game',
         typeId: 'title',
@@ -28,7 +28,11 @@ function fixture({ hotseat = false, usesProjection = true } = {}) {
         createdAt: new Date('2026-09-01T00:00:00Z'),
         winningPlayerIds: []
     }
-    const service = new DummyNotificationService()
+    class Service extends DummyNotificationService {
+        readonly synchronizesOnSubscribe = modernHost
+        isUserChannelReady() { return userReady }
+    }
+    const service = new Service()
     const subscribe = vi.spyOn(service, 'listenToGame')
     const unsubscribe = vi.spyOn(service, 'stopListeningToGame')
     const view = { host: false }
@@ -244,6 +248,27 @@ describe('GameNotifications', () => {
             expect(f.delivery.recover).not.toHaveBeenCalled()
         }
     )
+
+    it.each([true, false])('waits for the update channel on a modern host with projection %s', async (usesProjection) => {
+        const f = fixture({ usesProjection, modernHost: true })
+        f.notifications.start()
+        expect(f.notifications.handlesInitialSynchronization).toBe(true)
+        expect(f.delivery.enqueue).not.toHaveBeenCalled()
+        await f.gap(NotificationChannel.User)
+        await f.gap(NotificationChannel.GameInstance)
+        expect(f.delivery.enqueue).toHaveBeenCalledExactlyOnceWith({ kind: 'synchronize' })
+        await f.gap(NotificationChannel.User)
+        await f.gap(NotificationChannel.GameInstance)
+        expect(f.delivery.enqueue).toHaveBeenCalledTimes(2)
+    })
+
+    it('synchronizes once when opening a projected game on an already attached user channel', async () => {
+        const f = fixture({ modernHost: true, userReady: true })
+        f.notifications.start()
+        f.notifications.start()
+        await f.gap(NotificationChannel.GameInstance)
+        expect(f.delivery.enqueue).toHaveBeenCalledExactlyOnceWith({ kind: 'synchronize' })
+    })
 
     it('recovers invalid payloads before enqueueing any update', async () => {
         const f = fixture()

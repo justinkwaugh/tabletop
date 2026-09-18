@@ -1,11 +1,40 @@
 import * as Type from 'typebox'
 import { flushSync } from 'svelte'
+import { fromStore } from 'svelte/store'
 import { type PreferenceChange, type PreferenceResponse } from '@tabletop/common'
 import { DummyRemoteApiService } from '../../harness/dummyRemoteApiService.js'
 import { TitlePreferences } from '../titlePreferences.svelte.js'
+import { RuneBackedStore } from '../../utils/runeBackedStore.svelte.js'
 
 const schema = Type.Object({ compact: Type.Boolean(), sound: Type.Boolean() })
 const definition = { title: { schema, defaults: { compact: false, sound: true }, version: 1 } }
+
+export async function verifySameAccountPreferenceLoads() {
+    let user = $state({ id: 'alice' })
+    const bridge = new RuneBackedStore(() => user)
+    const sessionUser = fromStore(bridge)
+    const disconnect = $effect.root(() => bridge.connect())
+    class Api extends DummyRemoteApiService {
+        reads = 0
+        getTitlePreferences = async () => {
+            this.reads++
+            return response({ compact: true })
+        }
+    }
+    const api = new Api()
+    const preferences = new TitlePreferences(definition, 'title', api, () => sessionUser.current.id, () => {})
+    try {
+        flushSync()
+        await new Promise((resolve) => setTimeout(resolve, 0))
+        user = { id: 'alice' }
+        flushSync()
+        await new Promise((resolve) => setTimeout(resolve, 0))
+        return { reads: api.reads, ready: preferences.ready, compact: preferences.values.compact }
+    } finally {
+        preferences.dispose()
+        disconnect()
+    }
+}
 function response(values: Record<string, unknown>, revision = 0): PreferenceResponse {
     return { data: { title: { version: 1, revision, values } }, etag: String(revision) }
 }

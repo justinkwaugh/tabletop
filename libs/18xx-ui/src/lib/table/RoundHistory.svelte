@@ -9,6 +9,7 @@
         children,
         phaseColors,
         newestFirst = false,
+        historyComplete = true,
         onJump,
         jumpDisabled = false,
         onOrderChange
@@ -19,6 +20,7 @@
         children: Snippet<[HistoryRound]>
         phaseColors: Readonly<Record<string, string>>
         newestFirst?: boolean
+        historyComplete?: boolean
         onOrderChange: (newestFirst: boolean) => void
     } = $props()
     const indexId = $props.id()
@@ -49,6 +51,7 @@
     $effect(() => {
         const first = newestFirst
         const element = scrollElement
+        if (!historyComplete) return
         void tick().then(() => {
             if (element) element.scrollTop = first ? 0 : element.scrollHeight
         })

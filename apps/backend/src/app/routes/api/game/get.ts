@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { setTimeout as delay } from 'node:timers/promises'
 import { EnvService } from '@tabletop/backend-services'
 import { Type, type Static } from 'typebox'
-import { measure } from '@tabletop/backend-services/diagnostics'
+import { countTiming, measure } from '@tabletop/backend-services/diagnostics'
 
 type ParamsType = Static<typeof ParamsType>
 const ParamsType = Type.Object({
@@ -54,9 +54,15 @@ export default async function (fastify: FastifyInstance) {
             }
 
             const responseEtag = `W/"${gameEtag}${includeActions ? ':full' : ':state-only'}"`
+            const validator = request.headers['if-none-match']
+            const validatorMatches = validator === responseEtag
+            const validatorStatus = validator === undefined
+                ? 'missing'
+                : validatorMatches ? 'matched' : 'mismatched'
+            countTiming(`game.load.validator.${validatorStatus}`)
             void reply.header('ETag', responseEtag)
             void reply.header('Cache-Control', 'private, no-cache')
-            if (request.headers['if-none-match'] === responseEtag) {
+            if (validatorMatches) {
                 await reply.code(304).send()
                 return
             }

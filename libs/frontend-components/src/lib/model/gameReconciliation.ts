@@ -45,6 +45,7 @@ export interface ReconciliationRemote<T extends GameState, U extends HydratedGam
     isPaused(): boolean
     recover(): Promise<void>
     acceptsPerspective(perspective: Visibility.Perspective): boolean
+    beforeSynchronizationUpdate?(): void
 }
 
 export interface OptimisticSubmission<T extends GameState, U extends HydratedGameState<T> & T> {
@@ -135,6 +136,7 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
                 return 'stale'
             }
             let needsResync = status !== GameSyncStatus.InSync
+            if (needsResync || actions.length > 0) remote.beforeSynchronizationUpdate?.()
             if (!needsResync && actions.length > 0) {
                 this.apply(
                     actions,
@@ -154,6 +156,7 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         if (!isCurrent()) {
             return 'stale'
         }
+        remote.beforeSynchronizationUpdate?.()
         this.context.restoreFrom(prior)
         return this.reload(isCurrent)
     }
@@ -162,6 +165,7 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         const remote = this.remote
         assertExists(remote, 'Reload requires a remote host')
         if (!isCurrent()) return 'stale'
+        remote.beforeSynchronizationUpdate?.()
         const replacement = await remote.reload()
         if (!isCurrent()) {
             return 'stale'

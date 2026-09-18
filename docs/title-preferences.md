@@ -44,6 +44,11 @@ Changes are optimistic and serialized. A 412 triggers one reload/retry of that
 partial change; other failures revert it and surface a toast. Account changes invalidate late responses. Disposal removes observers; queued
 saves finish only while the same account remains signed in. Other windows refresh on a broadcast or focus.
 
+Preference initialization tracks the account ID, so host user-store updates for
+the same account do not reset preferences or issue another initial read. This
+client correction requires new TOP and 1889 UI Artifacts; no Logic, backend, or
+host bridge contract change is required. Older hosts remain compatible.
+
 The injected API gains optional `getTitlePreferences` and `updateTitlePreferences`
 methods. An older host without them keeps the display choice session-local. Older
 UI Artifacts simply ignore the additions. No named bridge is added, but these

@@ -77,11 +77,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private initialSynchronizationNeeded: boolean
     synchronizationFailed = $state(false)
     private synchronizingGame = $state(false)
+    private applyingSynchronization = $state(false)
     private pendingHistory?: { context: GameContext<T, U>; isCurrent: () => boolean }
 
     get hasCompleteHistory(): boolean {
         return this.currentVisibleContext.hasCompleteHistory
     }
+
     private debug? = false
 
     processingActions = $state(false)
@@ -95,6 +97,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
         return actions || state || representation || this.synchronizingGame
     })
+
+    private historyBusy = $derived(
+        this.processingActions || this.updatingVisibleState || this.loadingGameRepresentation || this.applyingSynchronization
+    )
 
     private authorizationBridge: AuthorizationBridge
     private chatBridge: ChatServiceBridge
@@ -589,6 +595,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             reload: () => this.loadRecoveryContext(),
             isPaused: () => this.busy,
             recover: () => this.checkSync(),
+            beforeSynchronizationUpdate: () => { this.applyingSynchronization = true },
             acceptsPerspective: (perspective) => this.matchesPrimaryPerspective(perspective)
         })
 
@@ -684,14 +691,19 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             )
 
             watch(
-                () => this.busy,
-                (newBusy, oldBusy) => {
+                () => this.historyBusy,
+                (newBusy) => {
                     if (newBusy) {
                         this.history.disable()
                     } else {
                         this.history.enable()
                     }
-                    // console.log('Busy changed from', oldBusy, 'to', newBusy)
+                }
+            )
+
+            watch(
+                () => this.busy,
+                (newBusy, oldBusy) => {
                     if (oldBusy === true && newBusy === false) {
                         this.applyLoadedHistory()
                         this.reconciliation.resume().catch((error) => {
@@ -893,7 +905,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         if (!this.gameContext.hasCompleteHistory) void this.loadHistory()
         if (this.initialSynchronizationNeeded) {
             this.initialSynchronizationNeeded = false
-            void this.reconciliation.enqueue({ kind: 'synchronize' })
+            if (!this.notifications.handlesInitialSynchronization) {
+                void this.reconciliation.enqueue({ kind: 'synchronize' })
+            }
         }
     }
 
@@ -1334,6 +1348,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             console.error('Unable to synchronize game:', error)
             toast.error('Unable to load game, try refreshing')
         } finally {
+            this.applyingSynchronization = false
             this.synchronizingGame = false
         }
     }

@@ -1006,6 +1006,8 @@ API/cache behavior, and mixed-artifact adoption.
 
 History has a compact text toggle above the scrolling list for Newest last / Newest first, defaulting to Newest last. The choice is saved through the session’s existing 18xx family preferences and follows the player between titles. This display choice reverses rounds and their grouped entries, retaining chronological events inside auction and operation cards. Round interstitials remain at the chronological beginning of each round. Short histories align to the top for Newest first and bottom for Newest last. Switching order scrolls to the newest end: top for Newest first, bottom for Newest last. Changing the toggle does not move the game-history cursor or create an Action.
 
+When deferred history becomes complete, the list waits for its rows to render and scrolls to the newest end in the selected order. Ordinary history updates preserve the reader's scroll position. The scroll belongs to the history panel and does not change the history cursor or preferences. This completion behavior uses the existing Game Context completeness flag and requires new TOP and 1889 UI Artifacts only; it adds no host bridge or Logic change and remains compatible with hosts supplying complete history at session creation.
+
 The additive historyOrder preference uses existing preference endpoints and defaults for older records; no host bridge contract changes. TOP and 1889 Logic/UI Artifacts must be republished to expose the new schema and control in hosted games.
 
 History currently omits the “Your last action” marker; no player-relative highlight is displayed.

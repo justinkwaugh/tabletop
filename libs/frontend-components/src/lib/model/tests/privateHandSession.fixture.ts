@@ -88,6 +88,9 @@ class Remote extends DummyRemoteApiService {
     onSubmit?: () => void
     pendingUndo?: Promise<void>
     pendingHistory?: Promise<void>
+    pendingSync?: Promise<void>
+    syncChecks = 0
+    failSync = false
     failHistory = false
 
     constructor(
@@ -106,6 +109,9 @@ class Remote extends DummyRemoteApiService {
         }
     }
     async checkSync(_id?: string, checksum?: number) {
+        this.syncChecks++
+        await this.pendingSync
+        if (this.failSync) throw Error('Sync unavailable')
         return {
             status:
                 checksum === undefined || checksum === this.host.state.actionChecksum
@@ -163,6 +169,7 @@ function client(
         historyComplete?: boolean
         pendingHistory?: Promise<void>
         failHistory?: boolean
+        modernNotifications?: boolean
     } = {}
 ) {
     host.game.storage = GameStorage.Remote
@@ -173,7 +180,11 @@ function client(
     })
     const gameService = new HarnessGameService(library, authorization)
     const chatService = new HarnessChatService()
-    const notifications = new DummyNotificationService()
+    class Notifications extends DummyNotificationService {
+        readonly synchronizesOnSubscribe = options.modernNotifications ?? false
+        isUserChannelReady() { return false }
+    }
+    const notifications = new Notifications()
     const api = new Remote(host, perspective)
     api.pendingHistory = options.pendingHistory
     api.failHistory = options.failHistory ?? false
@@ -201,6 +212,7 @@ function client(
     return {
         session,
         api,
+        notifications,
         authorization,
         async notify(result: ReturnType<PrivateHandHost['apply']>) {
             assertExists(runtime.visibility, 'Expected private-hand visibility')
@@ -979,4 +991,61 @@ export async function mountHistoryControls() {
         target: document.body,
         props: { session: c.session, complete: () => pending.resolve() }
     })
+}
+
+export async function verifyHistoryDuringSynchronization() {
+    const host = new PrivateHandHost()
+    host.apply({ id: 'history-sync-draw', gameId: host.game.id, source: ActionSource.User, playerId: 'p1', type: 'draw', revealsInfo: true })
+    const c = client(host)
+    try {
+        await settle(c.session)
+        for (let index = 0; index < 2; index++) {
+            const pending = Promise.withResolvers<void>()
+            c.api.pendingSync = pending.promise
+            const sync = c.notifications.emit({ eventType: NotificationEventType.Discontinuity, channel: NotificationChannel.User })
+            await tick()
+            assert(!c.session.history.isDisabled(), 'A read-only sync check disabled history navigation')
+            await c.session.history.goToBeginning()
+            await settle(c.session)
+            assert(c.session.isViewingHistory, 'History navigation was blocked during a sync check')
+            pending.resolve()
+            await sync
+            await settle(c.session)
+            assert(c.session.isViewingHistory, 'An unchanged sync moved the history cursor')
+            c.session.history.goToEnd()
+            await settle(c.session)
+        }
+        const replacement = Promise.withResolvers<void>()
+        c.api.pendingHistory = replacement.promise
+        c.api.failSync = true
+        const recovering = c.notifications.emit({ eventType: NotificationEventType.Discontinuity, channel: NotificationChannel.User })
+        await settle(c.session)
+        assert(c.session.history.isDisabled(), 'History stayed enabled during state replacement')
+        replacement.resolve()
+        await recovering
+        await settle(c.session)
+        assert(!c.session.history.isDisabled(), 'History stayed disabled after replacement')
+        return true
+    } finally {
+        c.dispose()
+    }
+}
+
+export async function verifySubscribedStartup() {
+    const host = new PrivateHandHost()
+    const c = client(host, p1, undefined, { historyComplete: false, modernNotifications: true })
+    try {
+        await tick()
+        await new Promise((resolve) => setTimeout(resolve, 20))
+        assert(c.api.syncChecks === 0, 'Startup checked sync before subscription')
+        for (let count = 1; count <= 2; count++) {
+            await c.notifications.emit({ eventType: NotificationEventType.Discontinuity, channel: NotificationChannel.User })
+            await c.notifications.emit({ eventType: NotificationEventType.Discontinuity, channel: NotificationChannel.GameInstance })
+            await settle(c.session)
+            assert(Number(c.api.syncChecks) === count, 'Subscription performed duplicate sync checks')
+        }
+        return true
+    } finally {
+        c.dispose()
+    }
 }

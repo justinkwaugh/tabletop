@@ -661,15 +661,14 @@
     .transposed .stat-start {
         border-left: 2px solid var(--rail-border, #c7b8a6);
     }
-    table:not(.transposed) .pool-start {
+    tr > :nth-child(2),
+    table:not(.transposed) .pool-start,
+    table:not(.transposed) .company-stat-start {
         border-left: 2px solid var(--rail-border, #a18b74);
     }
     .transposed tr.pool-start > th,
     .transposed tr.pool-start > td {
         border-top: 2px solid var(--rail-border, #a18b74);
-    }
-    table:not(.transposed) .company-stat-start {
-        border-left: 2px solid var(--rail-border, #a18b74);
     }
     .transposed tr.company-stat-start > th,
     .transposed tr.company-stat-start > td {

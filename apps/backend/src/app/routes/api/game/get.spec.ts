@@ -141,20 +141,27 @@ describe('GET /get/:gameId', () => {
 
     it.each([
         {
-            etag: 'W/"older-revision"',
+            etag: undefined,
+            validator: 'missing',
             statusCode: 200,
             spans: ['game.load.etag', 'game.load.representation']
         },
-        { etag: 'W/"revision-1:full"', statusCode: 304, spans: ['game.load.etag'] }
+        {
+            etag: 'W/"older-revision"',
+            validator: 'mismatched',
+            statusCode: 200,
+            spans: ['game.load.etag', 'game.load.representation']
+        },
+        { etag: 'W/"revision-1:full"', validator: 'matched', statusCode: 304, spans: ['game.load.etag'] }
     ])(
         'reports the work performed for a $statusCode game load',
-        async ({ etag, statusCode, spans }) => {
+        async ({ etag, validator, statusCode, spans }) => {
             const { server, logs } = await createServer(undefined)
             servers.add(server)
             const response = await server.inject({
                 method: 'GET',
                 url: '/get/game-1',
-                headers: { 'if-none-match': etag }
+                headers: etag === undefined ? {} : { 'if-none-match': etag }
             })
             expect(response.statusCode).toBe(statusCode)
             const reports = logs.filter((entry) => entry.event === 'request_timing')
@@ -162,10 +169,13 @@ describe('GET /get/:gameId', () => {
             expect(reports[0]).toMatchObject({
                 route: '/get/:gameId',
                 statusCode,
+                counters: { [`game.load.validator.${validator}`]: 1 },
                 spans: spans.map((name) => expect.objectContaining({ name, status: 'ok' }))
             })
             expect(JSON.stringify(reports)).not.toContain('user-1')
             expect(JSON.stringify(reports)).not.toContain('game-1')
+            expect(JSON.stringify(reports)).not.toContain('revision-1')
+            expect(JSON.stringify(reports)).not.toContain('older-revision')
         }
     )
 

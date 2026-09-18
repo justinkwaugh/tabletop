@@ -1,5 +1,16 @@
 import { expect, test } from '@playwright/test'
 
+test('refreshing the same account does not reload title preferences', async ({ page }) => {
+    await page.goto('/session-test.html')
+    const result = await page.evaluate(async () => {
+        const fixture = await import(
+            new URL('/src/lib/preferences/tests/preferences.fixture.svelte.ts', location.href).href
+        )
+        return fixture.verifySameAccountPreferenceLoads()
+    })
+    expect(result).toEqual({ reads: 1, ready: true, compact: true })
+})
+
 test('queued changes retry conflicts without erasing concurrent fields', async ({ page }) => {
     await page.goto('/session-test.html')
     const result = await page.evaluate(async () => {

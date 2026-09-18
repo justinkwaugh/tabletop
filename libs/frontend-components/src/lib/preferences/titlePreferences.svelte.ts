@@ -37,8 +37,9 @@ export class TitlePreferences<T extends Type.TObject> {
         private readonly onError: (message: string) => void
     ) {
         this.cleanup = $effect.root(() => {
+            const accountId = $derived(this.getUserId())
             $effect(() => {
-                const userId = this.getUserId()
+                const userId = accountId
                 untrack(() => {
                     this.userId = userId
                     this.generation++

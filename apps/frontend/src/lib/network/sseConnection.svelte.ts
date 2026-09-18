@@ -132,7 +132,7 @@ export class SseConnection implements RealtimeConnection {
                 } else {
                     const realtimeEvent: RealtimeEvent = {
                         type: RealtimeEventType.Discontinuity,
-                        channel: NotificationChannel.User
+                        channel: channelData.channel
                     }
 
                     if (this.handler) {

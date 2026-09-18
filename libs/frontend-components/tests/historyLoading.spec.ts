@@ -1,5 +1,23 @@
 import { expect, test } from '@playwright/test'
 
+test('startup and reconnect each check synchronization once after subscribing', async ({ page }) => {
+    await page.goto('/session-test.html')
+    const result = await page.evaluate(async () => {
+        const fixture = await import(new URL('/src/lib/model/tests/privateHandSession.fixture.ts', location.href).href)
+        return fixture.verifySubscribedStartup()
+    })
+    expect(result).toBe(true)
+})
+
+test('unchanged reconnect checks keep history navigation available', async ({ page }) => {
+    await page.goto('/session-test.html')
+    const result = await page.evaluate(async () => {
+        const fixture = await import(new URL('/src/lib/model/tests/privateHandSession.fixture.ts', location.href).href)
+        return fixture.verifyHistoryDuringSynchronization()
+    })
+    expect(result).toBe(true)
+})
+
 for (const fast of [false, true]) {
     test(`history controls: ${fast ? 'fast load stays blank' : 'delayed indicator replaces controls'}`, async ({
         page

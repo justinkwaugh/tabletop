@@ -332,6 +332,13 @@ A Hosted Game may open in Live View from a current State before earlier Actions 
 
 ### Coexistence and precedence
 
+An unchanged synchronization check does not disable history navigation or dim its
+arrows, including checks after returning to the browser tab. History navigation
+remains usable against its current snapshot while the check is pending. If the
+check discovers changes or requires recovery, navigation disables for applying
+those changes or replacing State, and remains disabled during visible transitions.
+Action submission retains the session's synchronization guard.
+
 History loading coexists with live Action submission, notification delivery, and visible transitions. History attachment waits until the session is idle and never replaces the displayed State or initiates historical animation. Actions received after the initial checkpoint retain normal per-Action transition presentation. If downloaded history belongs to another branch, full synchronization takes precedence. History View and exploration cannot begin while history is incomplete.
 
 ### Shared visual state

@@ -66,6 +66,7 @@
 </script>
 
 <RoundHistory onJump={jumpToHistory} {jumpDisabled} {rounds} {phaseColors} {newestFirst}
+    historyComplete={context.hasCompleteHistory}
     onOrderChange={(first) => session.preferences.set({ historyOrder: first ? 'newestFirst' : 'newestLast' }, 'family')}>
 
     {#snippet children(round)}

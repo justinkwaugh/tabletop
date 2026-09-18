@@ -25,6 +25,9 @@ import { NotificationService } from './notificationService.svelte'
 export class ChatService {
     private loading = $state(false)
     private loaded = false
+    private generation = 0
+    private loadPromise: Promise<void> | undefined
+    private reloadRequested = false
     private listeners: Set<ChatListener> = new Set()
 
     private currentGameId: string | undefined = $state(undefined)
@@ -47,8 +50,8 @@ export class ChatService {
     })
 
     constructor(
-        private readonly authorizationService: AuthorizationService,
-        private readonly notificationService: NotificationService,
+        private readonly authorizationService: Pick<AuthorizationService, 'getSessionUser'>,
+        private readonly notificationService: Pick<NotificationService, 'addListener' | 'isUserChannelReady'>,
         private readonly api: TabletopApi
     ) {
         notificationService.addListener(this.NotificationListener)
@@ -69,14 +72,20 @@ export class ChatService {
 
         this.clear()
         this.currentGameId = gameId
+        this.loading = true
+        if (!this.notificationService.isUserChannelReady()) return
         this.loadGameChat().catch((error) => {
             console.error('Failed to load game chat', error)
         })
     }
 
     clear() {
+        this.generation++
+        this.loadPromise = undefined
+        this.reloadRequested = false
         this.currentGameId = undefined
         this.currentGameChat = undefined
+        this.lastReadTimestamp = undefined
         this.loaded = false
         this.loading = false
     }
@@ -92,25 +101,39 @@ export class ChatService {
         this.listeners.delete(listener)
     }
 
-    private async loadGameChat() {
+    private loadGameChat(): Promise<void> {
+        if (this.loadPromise) return this.loadPromise
         if (!this.currentGameId || this.loaded) {
-            return
+            return Promise.resolve()
         }
         this.loading = true
-        const gameChat = await this.api.getGameChat(this.currentGameId)
-        if (gameChat.gameId !== this.currentGameId) {
-            return
-        }
-        const bookmark = await this.api.getGameChatBookmark(this.currentGameId)
-        this.lastReadTimestamp = bookmark.lastReadTimestamp
+        const generation = this.generation
+        this.loadPromise = this.readGameChat(this.currentGameId, generation).finally(() => {
+            if (generation !== this.generation) return
+            this.loading = false
+            this.loadPromise = undefined
+        })
+        return this.loadPromise
+    }
 
-        this.currentGameChat = gameChat
-        this.loading = false
-        this.loaded = true
+    private async readGameChat(gameId: string, generation: number) {
+        do {
+            this.reloadRequested = false
+            const [gameChat, bookmark] = await Promise.all([
+                this.api.getGameChat(gameId),
+                this.api.getGameChatBookmark(gameId)
+            ])
+            if (generation !== this.generation) return
+            if (this.reloadRequested) continue
+            this.lastReadTimestamp = bookmark.lastReadTimestamp
+            this.currentGameChat = gameChat
+            this.loaded = true
+        } while (this.reloadRequested)
     }
 
     private async reloadGameChat() {
         this.loaded = false
+        if (this.loadPromise) this.reloadRequested = true
         await this.loadGameChat()
     }
 
@@ -195,15 +218,22 @@ export class ChatService {
     }
 
     private NotificationListener = async (event: NotificationEvent) => {
-        if (!this.currentGameChat) {
+        if (isDiscontinuityEvent(event) && event.channel === NotificationChannel.User) {
+            await this.reloadGameChat()
             return
         }
 
         if (isDataEvent(event)) {
             const notification = event.notification
-            if (!this.isGameChatNotification(notification)) {
+            if (!this.isGameChatNotification(notification) || notification.data.game.id !== this.currentGameId) {
                 return
             }
+
+            if (this.loadPromise) {
+                await this.reloadGameChat()
+                return
+            }
+            if (!this.currentGameChat) return
 
             const newMessage = Value.Convert(
                 GameChatMessage,
@@ -240,8 +270,6 @@ export class ChatService {
             } else {
                 this.currentGameChat.checksum = notification.data.checksum
             }
-        } else if (isDiscontinuityEvent(event) && event.channel === NotificationChannel.User) {
-            await this.reloadGameChat()
         }
     }
 

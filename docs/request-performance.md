@@ -181,3 +181,68 @@ The proposed self-contained before/after Undo patch is not introduced by this ch
 For an interactive delayed-history rehearsal, run `LOCAL_GAME_HISTORY_DELAY_MS=3000 node tools/scripts/local-hosted-game.mjs fresh-fish`. In local backend mode only, full Game loads (including cache revalidation and full resync) wait three seconds; State-only requests, submissions, and notifications are unaffected. Omit the environment variable to restore normal timing.
 
 Both Game response variants have explicit weak ETag suffixes: `:full` for Game, State, and Actions, and `:state-only` for Game and State. Older suffixless or `:state` validators receive a fresh `200` response once, then revalidate against the new tag.
+
+### Production conditional-request comparison, 2026-09-18
+
+An authenticated regular-account probe reproduced unchanged TOP responses returning
+200 through `boardtogether.games`. Each conditional request sent the exact ETag
+from its preceding response. Using the same session and validator against the
+direct Cloud Run backend returned 304. Both paths reported Site Frontend version
+22.1.0; that header does not identify the backend revision.
+
+| Representation | Public site conditional response | Direct Cloud Run conditional response |
+| --- | --- | --- |
+| State-only | 200, 48,041 body bytes, unchanged ETag | 304, no body |
+| Full history | 200, 89,543 body bytes, unchanged ETag | 304, no body |
+
+The direct comparison initially used the `latest` revision-tag URL. Repeating the
+state-only comparison against the untagged Cloud Run service also returned 304,
+while the public site still returned 200. Explicit request `Cache-Control:
+no-cache` did not change that result. Body sizes are decoded response sizes, not
+compressed wire measurements. No Game Actions or preference writes were made.
+
+This isolates a difference in the public hosting/proxy path; it is not evidence
+of a broken ETag comparison in the route or of browser-only status normalization.
+Whether the intermediary removes `If-None-Match` before forwarding or transforms
+the origin response still needs origin-side evidence. Do not change private
+Game responses to public caching to work around it. The hosting route must
+preserve conditional revalidation, or use an authenticated API path that does.
+No production routing or application changes were deployed by this investigation.
+
+The subsequent production timing log reported 200 at the backend, ruling out
+transformation of an origin 304 for that request. The Game GET route now records
+one of `game.load.validator.missing`, `game.load.validator.matched`, or
+`game.load.validator.mismatched` as a counter in the existing `request_timing`
+log. These diagnostics require a backend deployment; no UI publication is needed.
+They record neither validator values nor cookies and leave response behavior
+unchanged. With request timings enabled, repeat a conditional request through
+the public URL and inspect `jsonPayload.counters`: `missing: 1` means no
+`If-None-Match` reached the route, `mismatched: 1` means one arrived but failed
+the route's comparison, and `matched: 1` accompanies a 304. Compare the direct
+backend request using the same validator. Remove these targeted counters once
+the production forwarding behavior has been established.
+
+### Subscription-first reads and unchanged synchronization
+
+The Site Frontend now waits for the User notification subscription before the
+initial Conversation and Read Position reads. Both reads run concurrently. An
+already attached User subscription permits an immediate load. Reattachment still
+reconciles; a relevant Message arriving during a read requests a follow-up
+snapshot instead of being lost. Responses for a Game that has been left cannot
+replace the current Conversation or Read Position.
+
+The host advertises optional `synchronizesOnSubscribe` and `isUserChannelReady`
+capabilities on its Notification Service. Updated Game Clients use the
+subscription event as their startup synchronization trigger instead of issuing
+an additional pre-subscription check. Projected Games synchronize on the User
+channel that delivers their updates; canonical Games use the Game Instance
+channel. Opening a projected Game with an already attached User channel performs
+one immediate check. Older hosts retain the previous startup behavior, and older
+UI Artifacts ignore the optional host capabilities.
+
+History navigation no longer disables during a read-only sync check. It still
+disables when synchronization applies changes or replaces State, during Action
+processing, and during visible transitions. Action-submission guards are unchanged.
+The host chat changes require a Site Frontend deployment. The Game Client changes
+require UI-only republication for each adopting title, including TOP and 1889;
+no Logic or backend changes are required. These changes are not deployed here.
