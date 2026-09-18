@@ -1,219 +1,232 @@
 {
   "frontend": {
-    "version": "19.5.0",
+    "version": "22.1.0",
     "priorVersions": [
-      "19.4.1",
-      "19.4.0",
-      "19.3.0",
-      "19.2.0",
-      "19.1.0"
+      "22.0.2",
+      "22.0.1",
+      "22.0.0",
+      "21.4.0",
+      "21.3.0"
     ]
   },
   "games": [
     {
       "gameId": "bridges",
       "packageId": "bridges-of-shangri-la",
-      "logicVersion": "3.0.1",
-      "uiVersion": "4.0.2",
+      "logicVersion": "3.0.2",
+      "uiVersion": "4.1.0",
       "priorLogicVersions": [
+        "3.0.1",
         "3.0.0",
         "2.0.0",
         "2.1.0",
-        "2.0.0",
-        "1.3.0"
+        "2.0.0"
       ],
       "priorUiVersions": [
+        "4.0.3",
+        "4.0.2",
         "4.0.1",
         "4.0.0",
-        "3.1.3",
-        "3.1.2",
-        "3.1.1"
+        "3.1.3"
       ]
     },
     {
       "gameId": "estates",
       "packageId": "estates",
-      "logicVersion": "2.1.0",
-      "uiVersion": "3.4.1",
+      "logicVersion": "2.1.1",
+      "uiVersion": "3.5.0",
       "priorLogicVersions": [
+        "2.1.0",
         "2.0.0",
         "1.3.0",
         "1.2.0",
-        "2.0.0",
-        "1.2.0"
+        "2.0.0"
       ],
       "priorUiVersions": [
+        "3.4.2",
+        "3.4.1",
         "3.4.0",
         "3.3.0",
-        "3.2.0",
-        "3.1.0",
-        "3.0.1"
+        "3.2.0"
       ]
     },
     {
       "gameId": "freshfish",
       "packageId": "fresh-fish",
-      "logicVersion": "5.0.0",
-      "uiVersion": "7.0.1",
+      "logicVersion": "5.0.1",
+      "uiVersion": "7.1.0",
       "priorLogicVersions": [
+        "5.0.0",
         "4.0.0",
         "3.0.0",
         "4.0.0",
-        "3.0.0",
-        "2.1.0"
+        "3.0.0"
       ],
       "priorUiVersions": [
+        "7.0.2",
+        "7.0.1",
         "7.0.0",
         "6.3.0",
-        "6.2.0",
-        "6.1.0",
-        "6.0.1"
+        "6.2.0"
       ]
     },
     {
       "gameId": "kaivai",
       "packageId": "kaivai",
-      "logicVersion": "4.1.0",
-      "uiVersion": "5.2.1",
+      "logicVersion": "4.1.1",
+      "uiVersion": "5.3.0",
       "priorLogicVersions": [
+        "4.1.0",
         "4.0.0",
         "3.0.0",
         "2.0.0",
-        "1.3.0",
-        "1.2.0"
+        "1.3.0"
       ],
       "priorUiVersions": [
+        "5.2.2",
+        "5.2.1",
         "5.2.0",
         "5.3.0",
-        "5.2.0",
-        "5.1.0",
-        "5.0.0"
+        "5.2.0"
       ]
     },
     {
       "gameId": "sol",
       "packageId": "sol",
-      "logicVersion": "5.8.0",
-      "uiVersion": "6.3.1",
+      "logicVersion": "5.8.1",
+      "uiVersion": "6.4.0",
       "priorLogicVersions": [
+        "5.8.0",
         "5.7.0",
         "5.6.0",
         "6.0.0",
-        "5.6.0",
-        "5.5.0"
+        "5.6.0"
       ],
       "priorUiVersions": [
+        "6.3.2",
+        "6.3.1",
         "6.3.0",
         "6.2.0",
-        "6.1.0",
-        "6.0.1",
-        "7.0.0"
+        "6.1.0"
       ]
     },
     {
       "gameId": "bus",
       "packageId": "bus",
-      "logicVersion": "2.5.0",
-      "uiVersion": "4.0.2",
+      "logicVersion": "2.5.1",
+      "uiVersion": "4.1.0",
       "priorLogicVersions": [
+        "2.5.0",
         "2.4.0",
         "2.3.0",
         "2.2.0",
-        "2.1.0",
-        "2.0.0"
+        "2.1.0"
       ],
       "priorUiVersions": [
+        "4.0.3",
+        "4.0.2",
         "4.0.1",
         "4.0.0",
-        "3.6.0",
-        "3.5.0",
-        "3.4.1"
+        "3.6.0"
       ]
     },
     {
       "gameId": "indonesia",
       "packageId": "indonesia",
-      "logicVersion": "1.5.0",
-      "uiVersion": "1.32.1",
+      "logicVersion": "1.5.1",
+      "uiVersion": "1.33.0",
       "priorLogicVersions": [
+        "1.5.0",
         "1.4.0",
         "1.3.0",
         "1.2.0",
-        "1.1.0",
-        "1.0.0"
+        "1.1.0"
       ],
       "priorUiVersions": [
+        "1.32.2",
+        "1.32.1",
         "1.32.0",
         "1.31.0",
-        "1.30.0",
-        "1.29.0",
-        "1.28.0"
+        "1.30.0"
       ]
     },
     {
       "gameId": "urbino",
       "packageId": "urbino",
-      "logicVersion": "1.1.0",
-      "uiVersion": "1.6.1",
+      "logicVersion": "1.1.1",
+      "uiVersion": "1.7.0",
       "priorLogicVersions": [
+        "1.1.0",
         "1.0.0",
         "0.0.1"
       ],
       "priorUiVersions": [
+        "1.6.2",
+        "1.6.1",
         "1.6.0",
         "1.5.0",
-        "1.4.0",
-        "1.3.0",
-        "1.2.0"
+        "1.4.0"
       ]
     },
     {
       "gameId": "santiago",
       "packageId": "santiago",
-      "logicVersion": "2.0.0",
-      "uiVersion": "3.0.2",
+      "logicVersion": "2.1.0",
+      "uiVersion": "3.1.0",
       "priorLogicVersions": [
+        "2.0.1",
+        "2.0.0",
         "1.4.0",
         "1.3.0",
-        "1.2.0",
-        "1.1.0",
-        "1.0.0"
+        "1.2.0"
       ],
       "priorUiVersions": [
+        "3.0.3",
+        "3.0.2",
         "3.0.1",
         "3.0.0",
-        "2.6.0",
-        "2.5.0",
-        "2.4.0"
+        "2.6.0"
       ]
     },
     {
       "gameId": "lowenherz",
       "packageId": "lowenherz",
-      "logicVersion": "2.2.0",
-      "uiVersion": "2.4.0",
+      "logicVersion": "2.2.1",
+      "uiVersion": "2.5.0",
       "priorLogicVersions": [
+        "2.2.0",
         "2.1.0",
         "2.2.0",
         "2.1.0",
-        "2.0.0",
-        "1.2.0"
+        "2.0.0"
       ],
       "priorUiVersions": [
+        "2.4.1",
+        "2.4.0",
         "2.3.1",
         "2.5.0",
-        "2.4.0",
-        "2.3.2",
-        "2.3.1"
+        "2.4.0"
       ]
     },
     {
       "gameId": "the-old-prince",
       "packageId": "the-old-prince",
-      "logicVersion": "0.0.1",
-      "uiVersion": "0.0.1",
-      "priorLogicVersions": [],
-      "priorUiVersions": []
+      "logicVersion": "0.7.1",
+      "uiVersion": "0.33.0",
+      "priorLogicVersions": [
+        "0.7.0",
+        "0.6.0",
+        "0.5.0",
+        "0.4.0",
+        "0.3.0"
+      ],
+      "priorUiVersions": [
+        "0.32.1",
+        "0.32.0",
+        "0.31.0",
+        "0.30.0",
+        "0.29.0"
+      ]
     }
   ]
 }
