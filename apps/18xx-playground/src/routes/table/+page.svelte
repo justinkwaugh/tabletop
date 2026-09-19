@@ -29,6 +29,7 @@
             <option value="opening">Opening auction</option>
             <option value="trading">Stock round</option>
             <option value="starting">Company starts</option>
+            <option value="flotation">Company flotation</option>
             {#if title === 'TOP'}<option value="split">Branch split</option>{/if}
             <option value="construction">Track construction</option>
             <option value="stations">Station placement</option>

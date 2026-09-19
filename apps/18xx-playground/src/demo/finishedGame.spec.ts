@@ -3,9 +3,11 @@ import { expect, it } from 'vitest'
 import { historyOperatingOrder } from '../../../../libs/18xx-ui/src/lib/table/historyOperatingOrder.js'
 import { historyGroups } from '../../../../libs/18xx-ui/src/lib/table/historyGroups.js'
 import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
+import { shouldContinueHistoryStep } from '../../../../libs/18xx-ui/src/lib/table/historyNavigation.js'
 import { historyRounds } from '../../../../libs/18xx-ui/src/lib/table/historyRounds.js'
 import { finishedGame } from './finishedGame.js'
 import { reorderPendingOperatingCompanies, isRunTrains, isDistributeEarnings } from '@tabletop/18xx'
+import { ActionSource, assertExists } from '@tabletop/common'
 
 it('replays the finished game and restores every history step in both directions', async () => {
     const { game, state, initialState, actions, engine } = await finishedGame(
@@ -25,6 +27,18 @@ it('replays the finished game and restores every history step in both directions
     expect(orders.get(fundingSale.id)?.after).toEqual(['MS', 'S', 'A', 'So', 'C', 'branch:BB', 'MR', 'Gt'])
     expect(historyDescription(fundingSale, state).detail).toContain('Market')
     const rounds = historyRounds(actions, state)
+    const thirdStockRound = new Set(rounds.find((round) => round.label === 'SR 3')?.entries.map((entry) => entry.id))
+    const firstPurchaseIndex = actions.findIndex((action) => thirdStockRound.has(action.id) && action.type === 'BuyShares')
+    const firstPurchase = actions[firstPurchaseIndex]
+    const automaticFinish = actions[firstPurchaseIndex + 1]
+    const followingPass = actions[firstPurchaseIndex + 2]
+    assertExists(firstPurchase, 'SR 3 requires its first share purchase')
+    assertExists(automaticFinish, 'SR 3 requires automatic turn completion')
+    assertExists(followingPass, 'SR 3 requires the following pass')
+    expect(automaticFinish).toMatchObject({ type: 'FinishStockTurn', source: ActionSource.System, metadata: { passed: false } })
+    expect(followingPass).toMatchObject({ type: 'FinishStockTurn', source: ActionSource.User, metadata: { passed: true } })
+    expect(shouldContinueHistoryStep(firstPurchase, automaticFinish)).toBe(false)
+    expect(shouldContinueHistoryStep(automaticFinish, followingPass)).toBe(true)
     const trainlessActions = actions.filter((action) =>
         (isRunTrains(action) && action.metadata?.revenue === 0) ||
         (isDistributeEarnings(action) && action.metadata?.revenue === 0))

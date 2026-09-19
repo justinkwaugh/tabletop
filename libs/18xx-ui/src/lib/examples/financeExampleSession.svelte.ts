@@ -1,4 +1,4 @@
-import { isHistoryBookkeeping } from '../table/historyNavigation.js'
+import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingStepIndex } from '../table/operatingStep.js'
 import { operatingHistory } from '../table/operatingHistory.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
@@ -1570,7 +1570,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         )
     }
     override shouldAutoStepAction(action: GameAction, next?: GameAction) {
-        return isHistoryBookkeeping(action) || super.shouldAutoStepAction(action, next)
+        return shouldContinueHistoryStep(action, next)
     }
     operatingStep = $derived.by(() => operatingStepIndex(this.financialState.machineState))
     private skippingOperatingSteps = $state(false)

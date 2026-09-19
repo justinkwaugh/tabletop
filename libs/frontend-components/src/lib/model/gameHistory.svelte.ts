@@ -469,7 +469,9 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         this.onHistoryAction(this.historyContext.actions[this.actionIndex], animationIntent)
         this.historyContext.updateGameState(stateSnapshot)
 
-        const skippableLastAction = this.shouldAutoStepAction(nextAction)
+        const skippableLastAction =
+            this.actionIndex === this.historyContext.actions.length - 1 &&
+            this.shouldAutoStepAction(nextAction)
         if (stopPlayback || skippableLastAction) {
             this.stopHistoryPlayback()
         }

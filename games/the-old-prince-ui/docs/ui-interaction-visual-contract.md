@@ -6,6 +6,9 @@ The Game Session exposes an illustrative position with one prepared stock turn s
 Share selection, trade previews, stock history, market rendering, and Undo follow the shared
 contract. Switching away disposes this Game Session,
 and revisiting restores its local example.
+Stock-round history gives every player action and pass its own tinted line with
+the player name repeated in regular-weight text; no player dot or colon appears.
+Automatic flotation names the company without a player name or player tint.
 
 TOP additionally shows each numbered PEIR share's fraction of distributed earnings
 and explains its current president: most shares, then lowest numbered share. Both
@@ -31,6 +34,8 @@ Company starts and flotation follow the shared staged-selection contract. The
 starting example supports player and Union Bank starts and displays tranche
 occupancy. The flotation example exchanges a numbered PEIR share, replaces its
 station, updates certificates and capital, and restores all of those through Undo.
+History steps over the qualifying purchase and its automatic flotation together;
+the action panel describes both at that position.
 The title's home positions come from its existing map definition. The live map renders those stations and their reservations.
 
 TOP displays retained pass order. Acting again removes that player from the

@@ -1,11 +1,10 @@
 <script lang="ts">
-    import PlayerName from './PlayerName.svelte'
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import './historyCard.css'
+    import './playerTint.css'
     import HistoryJump from './HistoryJump.svelte'
-    import { historyStockSales } from './historyStockSales.js'
     import { assertExists, type GameAction } from '@tabletop/common'
-    import { isAdvancePhase, isStartOperatingRound, isSellFundingShares, sameOwner, isDistributeEarnings } from '@tabletop/18xx'
+    import { isAdvancePhase, isStartOperatingRound, isSellFundingShares, sameOwner, isDistributeEarnings, isFloatCompany } from '@tabletop/18xx'
     import { TileColors } from '../tiles/tilePresentation.js'
     import type { HistoryGroup } from './historyGroups.js'
     import type { HistoryDescription } from './historyDescription.js'
@@ -75,18 +74,14 @@
     const endingCash = $derived(group.kind === 'operation' && group.companyId
         ? cash.get(group.actions.at(-1)!.id)?.after.get(group.companyId) : undefined)
     function money(amount: number) { return `$${amount.toLocaleString('en-US')}` }
-    const saleBlocks = $derived(historyStockSales(group.kind === 'turn' ? group.actions : []))
     const rows = $derived(group.actions.map((action) => {
         const description = describe(action)
-        const block = saleBlocks.get(action.id)
-        const text = block ? (block.firstId === action.id
-            ? `Sold ${block.shares} ${companyName(block.companyId)} for ${money(block.proceeds)}` : '')
-            : description.text
+        const stockPlayerId = isFloatCompany(action) ? undefined : action.playerId
         const balance = cash.get(action.id)
         const delta = startingCash !== undefined && group.companyId && balance
             ? (balance.after.get(group.companyId) ?? 0) - (balance.before.get(group.companyId) ?? 0)
             : 0
-        return { action, ...description, text, routine: delta ? false : description.routine,
+        return { action, ...description, stockPlayerId, routine: delta ? false : description.routine,
             phase: phaseChange(action), order: orderChanges.get(action.id), delta,
             ledgerValue: startingCash !== undefined && description.value && (!delta || isDistributeEarnings(action)) ? description.value : undefined }
     }))
@@ -95,7 +90,7 @@
 
 <article
     hidden={!visible.length}
-    class:stock={group.kind === 'turn'}
+    class:stock={group.kind === 'turn' || group.kind === 'passes'}
     class:order-start={group.actions.some(isStartOperatingRound)}
     class:operation={group.kind === 'operation'}
     class:history-card={group.kind === 'operation'}
@@ -105,25 +100,26 @@
 >
     {#if group.kind === 'passes'}
         <div class="passes">
-            {#each group.actions as action (action.id)}<div class="history-entry"
-                    ><PlayerName name={playerName(action.playerId ?? '')} color={playerColor(action.playerId ?? '')} dotSize={10} maxWidth="none" /> <span>passed</span></div
+            {#each group.actions as action (action.id)}<div class="history-entry stock-action" class:player-tinted-header={!!action.playerId} style:--player-color={action.playerId ? playerColor(action.playerId) : undefined}
+                    >{#if action.playerId}{playerName(action.playerId)}{' '}{/if}passed</div
                 >{/each}
         </div>
     {:else if group.kind === 'turn'}
-        {#each visible as row, index (row.action.id)}
+        {#each visible as row (row.action.id)}
             <div class="stock-row">
                 <div
                     class="history-entry stock-action"
+                    class:player-tinted-header={!!row.stockPlayerId}
+                    style:--player-color={row.stockPlayerId ? playerColor(row.stockPlayerId) : undefined}
                     class:phase-change={!!row.phase}
                     style:--phase-color={row.phase?.color}
                     style:--phase-ink={row.phase ? contrastingTextColor(row.phase.color) : undefined}
-                    class:important={row.important}
                     class:routine={row.routine}
                 >
-                    {#if index === 0}<span class="stock-player"><PlayerName name={playerName(group.playerId ?? '')} color={playerColor(group.playerId ?? '')} dotSize={10} maxWidth="none" />:</span>{' '}{/if}
+                    {#if row.stockPlayerId}<span>{playerName(row.stockPlayerId)}</span>{' '}{/if}
                     <span
                         >{row.text}{#if row.phase}<span class="phase-colors">{row.phase.label}</span>{/if}{#if row.value}
-                            for <strong>{row.value}</strong>{/if}</span
+                            for <span class="stock-value">{row.value}</span>{/if}</span
                     >
                     {#if row.detail}<small>{row.detail}</small>{/if}
                     {#if row.order}<OperatingOrderHistory order={row.order} {stations} {companyName} />{/if}
@@ -191,29 +187,32 @@
 
 <style>
     article.stock {
-        margin: 1px 0;
-        padding: 2px 4px;
+        margin: 0;
+        padding: 0;
     }
     .stock-row {
         display: flex;
         align-items: start;
         position: relative;
+        margin: 2px 0;
     }
     .stock-action {
         display: block;
         min-width: 0;
         overflow-wrap: anywhere;
         width: 100%;
-        padding: 2px 0;
+        padding: 4px 6px;
         line-height: 16px;
     }
-    .stock-player {
-        font-weight: 600;
-        color: var(--rail-muted, #817565);
+    .stock-action.player-tinted-header {
+        background: var(--player-tinted-background);
     }
-    .stock-action strong {
+    .stock-value {
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
+    }
+    .stock-action .phase-colors {
+        font-weight: 400;
     }
     .stock-action small {
         display: block;
@@ -223,17 +222,11 @@
     }
 
     .passes {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 3px 8px;
-        font-size: 11px;
-    }
-    .passes span {
-        color: var(--rail-muted, #8a7c6b);
+        display: grid;
+        gap: 2px;
     }
     .passes .history-entry {
-        padding: 1px 0;
+        display: block;
     }
     article {
         margin: var(--history-item-gap, 5px) 0;
@@ -242,6 +235,7 @@
         font-size: 12px;
     }
     article:not(.history-card) { border-bottom: 1px solid var(--rail-shadow, #b9ac994f); }
+    article.stock:not(.history-card) { border-bottom: 0; }
     article.order-start { border-bottom: 0; }
     .order-start .events .history-entry {
         row-gap: 6px;

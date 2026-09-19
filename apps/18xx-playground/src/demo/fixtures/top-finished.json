@@ -4061,14 +4061,6 @@
       "playerId": "3574"
     },
     {
-      "id": "recorded:69",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "OfferAuctionLot",
-      "playerId": "12729",
-      "lotId": "MC"
-    },
-    {
       "id": "recorded:70",
       "gameId": "top-finished",
       "source": "user",
@@ -4076,22 +4068,6 @@
       "playerId": "3574",
       "lotId": "MC",
       "amount": 45
-    },
-    {
-      "id": "recorded:73",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "OfferAuctionLot",
-      "playerId": "3574",
-      "lotId": "SB"
-    },
-    {
-      "id": "recorded:77",
-      "gameId": "top-finished",
-      "source": "user",
-      "type": "OfferAuctionLot",
-      "playerId": "13748",
-      "lotId": "PEIR:share:7"
     },
     {
       "id": "recorded:79",

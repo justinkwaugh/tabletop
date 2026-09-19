@@ -1269,7 +1269,7 @@ History, spectators, and non-active players see PositionPanel in place of the ac
 
 Every game-data lookup in PositionPanel comes from history.visibleContext, including live spectator contexts. Title-provided names, train definitions, token appearances and auction rules remain presentation inputs. Auction lot lookup takes that explicit state rather than the delayed animated table state. Returning to an actionable current position restores the normal controls. The mechanism is shared across title-specific auction, stock and operating procedures; state labels belong to the existing finance-example flow, not a universal 18xx turn sequence. No bridge or host API shape changes are introduced.
 
-Normal 18xx history stepping skips finish-track, finish-station, finish-operating-turn and non-pass finish-stock-turn records through the existing history callback. Actual stock passes remain stops. Exact history targeting and stored records are unchanged. Read-only operating progress and the round/company header use the same visible history context as the position panel.
+18xx history stepping skips finish-track, finish-station, finish-operating-turn and non-pass finish-stock-turn bookkeeping records without stopping on them. Automatic stock-turn completion after a purchase never creates an invisible stop; the purchase and next player's pass remain separate stops. PositionPanel keeps the preceding action description after an exact jump to bookkeeping. A share purchase that floats a company is one step, and PositionPanel shows the purchase and flotation together, including the recorded capital detail. Train runs and payouts remain separate stops. Exact history targeting and stored records are unchanged. Read-only operating progress and the round/company header use the same visible history context as the position panel.
 
 History navigation projects map framing from the selected history context: a recorded run fits all route locations, a committed tile lay fits its location and outlines that hex only while its event is selected, a station placement fits and outlines its tile with a “Placed [token] for $N” summary, other OR events fit the operating company’s stations (reserved homes if none are placed), and stock/auction positions fit the full map. Route overlays are limited to the selected run event. Camera framing is applied without an additional animation after the displayed map reaches that history position; cancelled navigation cannot apply stale focus. Live placement and autoroute camera effects do not run in history. Historical inspection modals remain independent.
 
@@ -1557,8 +1557,13 @@ has no 18xx dependency; its v1 saved layout format remains unchanged.
 
 Auction history headers use a subtle 15% tint of the offering player’s color over
 the theme surface; auction names have no dots. Auction history cards have no outer
-border and use square corners, including the tinted header. Stock-round turn names and pass
-entries retain small player-color dots. Both use the viewing player’s palette.
+border and use square corners, including the tinted header. Each player-attributed
+stock-round action and pass has its own line with the player's name in the same
+regular-weight typography as the description, no dot or colon, and a 15% tint of
+that player's color over the theme surface. Values in these lines are also regular
+weight. Automatic flotation names the company without a player name or player
+tint. Stock sales remain separate recorded lines. Both use the viewing player's
+palette.
 
 Players/History/Chat uses the standard workspace tab spacing in pane mode. The
 original non-paned sidebar spacing is unchanged.

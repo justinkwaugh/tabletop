@@ -1,8 +1,21 @@
 <script lang="ts">
     import { assert, type GameAction } from '@tabletop/common'
-    import { FinanceExampleValidator, nextOperatingCompany, isOfferAuctionLot, isBidOnAuctionLot, isPassAuction, isRunTrains, isPlaceStation, isDistributeEarnings, isLayTile, isLayPrivateTile, isRespondToTrackConsent } from '@tabletop/18xx'
+    import {
+        FinanceExampleValidator,
+        nextOperatingCompany,
+        isOfferAuctionLot,
+        isBidOnAuctionLot,
+        isPassAuction,
+        isRunTrains,
+        isPlaceStation,
+        isDistributeEarnings,
+        isLayTile,
+        isLayPrivateTile,
+        isRespondToTrackConsent
+    } from '@tabletop/18xx'
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
     import { historyDescription, type HistoryDescription } from './historyDescription.js'
+    import { isHistoryBookkeeping, purchaseWithFlotation } from './historyNavigation.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import TrainRunTable from '../routes/TrainRunTable.svelte'
     import EarningsCard from '../earnings/EarningsCard.svelte'
@@ -49,17 +62,34 @@
         return describeAction?.(action) ?? historyDescription(action, state, companyName, (id) => session.getPlayerName(id))
     }
     const latest = $derived.by(() => {
-        const action = context.actions.at(-1)
+        const paired = purchaseWithFlotation(context.actions)
+        const action = paired?.flotation ?? context.actions.findLast((item) => !isHistoryBookkeeping(item))
         if (!action) return
         const description = describe(action)
         if (description.routine) return
+        const purchase = paired?.purchase
         const actor = description.omitActor ? undefined :
             'companyId' in action && typeof action.companyId === 'string'
                 ? action.companyId === company?.id ? undefined : companyName(action.companyId)
                 : action.playerId ? session.getPlayerName(action.playerId) : undefined
         const track = isLayTile(action) || isLayPrivateTile(action) ? action.metadata :
             isRespondToTrackConsent(action) && action.metadata?.accepted ? action.metadata.request.details : undefined
-        return { station: isPlaceStation(action) ? action : undefined, track, description, actor, isRun: isRunTrains(action), payout: isDistributeEarnings(action) ? action : undefined }
+        return {
+            station: isPlaceStation(action) ? action : undefined,
+            track,
+            description,
+            actor,
+            purchase: purchase
+                ? {
+                      description: describe(purchase),
+                      actor: purchase.playerId
+                          ? session.getPlayerName(purchase.playerId)
+                          : undefined
+                  }
+                : undefined,
+            isRun: isRunTrains(action),
+            payout: isDistributeEarnings(action) ? action : undefined
+        }
     })
     const result = $derived(state.routeStep?.result)
 </script>
@@ -98,7 +128,11 @@
         {/if}
         {#if latest && !latest.station && !latest.track && !latest.payout && !(latest.isRun && result?.routes.length)}
             <div class="event">
-                <p>{#if latest.actor}<strong class="actor">{latest.actor}</strong> {/if}{latest.description.text}{#if !latest.isRun && latest.description.trainDefinitionIds?.length}
+                {#if latest.purchase}
+                    <p>{#if latest.purchase.actor}<strong class="actor">{latest.purchase.actor}</strong> {/if}{latest.purchase.description.text}</p>
+                    {#if latest.purchase.description.detail}<p class="detail">{latest.purchase.description.detail}</p>{/if}
+                {/if}
+                <p>{#if latest.actor && !latest.purchase}<strong class="actor">{latest.actor}</strong> {/if}{latest.description.text}{#if !latest.isRun && latest.description.trainDefinitionIds?.length}
                     <span class="trains">{#each latest.description.trainDefinitionIds as id}<TrainBadge name={session.trainDepot.trainDefinition(id).name} color={trainColors[id]} />{/each}</span>
                 {/if}{#if latest.description.value} · {latest.description.value}{/if}</p>
                 {#if latest.description.detail}<p class="detail">{latest.description.detail}</p>{/if}

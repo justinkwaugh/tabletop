@@ -6,6 +6,9 @@ The Game Session exposes an illustrative position with one prepared stock turn s
 Share selection, trade previews, stock history, market rendering, and Undo follow the shared
 contract. Switching away disposes this Game Session,
 and revisiting restores its local example.
+Stock-round history gives every player action and pass its own tinted line with
+the player name repeated in regular-weight text; no player dot or colon appears.
+Automatic flotation names the company without a player name or player tint.
 
 IPO and Market appear as separate pools of Bank-owned certificates. A president
 certificate shows its 20% interest, two shares, and one certificate
@@ -30,6 +33,8 @@ can be started by selecting its par price, and its separate flotation example
 shows the qualifying purchase and capital grant. Its home remains reserved and
 its station available after flotation, awaiting the operating round. Undo reverses
 the purchase and automatic grant together.
+History steps over that purchase and flotation together, and the action panel
+describes both at the same position.
 
 1889 displays consecutive passes, which reset after any stock transaction.
 The completed view shows next-round priority after the last actor and the

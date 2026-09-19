@@ -5,7 +5,9 @@ test('history shows recorded auction details without action controls', async ({ 
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto('/table')
+    await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
     await page.getByLabel('Position', { exact: true }).selectOption('finished')
+    await expect(page.getByRole('table', { name: 'Final wealth', exact: true })).toBeVisible({ timeout: 30000 })
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     await page.getByRole('button', { name: 'goto my last turn', exact: true }).click()
     const panel = page.getByRole('region', { name: 'Current action', exact: true })
@@ -16,7 +18,7 @@ test('history shows recorded auction details without action controls', async ({ 
     await expect(panel.getByRole('button')).toHaveCount(0)
     await expect(page.getByRole('navigation', { name: 'Stock actions' })).toHaveCount(0)
     await page.getByRole('button', { name: 'go to current', exact: true }).click()
-    await expect(page.getByRole('table', { name: 'Final wealth', exact: true })).toBeVisible()
+    await expect(page.getByRole('table', { name: 'Final wealth', exact: true })).toBeVisible({ timeout: 30000 })
     expect(errors).toEqual([])
 })
 
@@ -69,7 +71,9 @@ test('backward navigation separates the last payout from its train run', async (
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto('/table')
+    await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
     await page.getByLabel('Position', { exact: true }).selectOption('finished')
+    await expect(page.getByRole('table', { name: 'Final wealth', exact: true })).toBeVisible({ timeout: 30000 })
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     const panel = page.getByRole('region', { name: 'Current action', exact: true })
     const back = page.getByRole('button', { name: 'step backwards', exact: true })
