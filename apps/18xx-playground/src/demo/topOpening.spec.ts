@@ -47,10 +47,14 @@ function opening(count = 3, seed = 5) {
             return this.act('OfferAuctionLot', { lotId: this.model.offerIds[0] })
         },
         force() {
-            let result = this.offer()
-            while (this.state.machineState === 'OfferBidding' && !this.model.auction.stalled)
-                result = this.act('PassAuction')
-            return result
+            const awards = this.model.auction.awards.length
+            if (!this.model.auction.bidding) this.offer()
+            while (
+                this.state.machineState === 'OfferBidding' &&
+                !this.model.auction.stalled &&
+                this.model.auction.awards.length === awards
+            )
+                this.act('PassAuction')
         }
     }
 }
@@ -79,11 +83,16 @@ it.each([3, 4])('sets up and completes TOP for %i players', (count) => {
     )
     expect(opening(count).state.offerAuction).toEqual(state.offerAuction)
     expect(opening(count).state.companies).toEqual(state.companies)
-    for (let i = 0; i < (count === 3 ? 15 : 16); i++) run.force()
+    for (let i = 0; i < (count === 3 ? 15 : 16) && !run.model.auction.completed; i++) run.force()
     expect(run.state.machineState).toBe('StockRound')
     expect(run.state.stockRound.number).toBe(1)
     expect(run.model.auction.completed).toBe(true)
     expect(run.model.auction.awards).toHaveLength(count === 3 ? 15 : 16)
+    expect(
+        run.history.some(
+            (action) => action.type === 'OfferAuctionLot' && action.source === ActionSource.System
+        )
+    ).toBe(true)
     expect(run.state.certificates.filter((c) => !c.retired && c.poolId === 'auction')).toEqual([])
     const cash = run.state.turnManager.turnOrder.map((playerId) =>
         cashOwnedBy(run.state, { kind: 'player', playerId })
@@ -179,7 +188,7 @@ it('preserves an unaffordable zero-income position and can undo the entire conse
 })
 it('floats the assigned Shortline on one additional share and places its home without payment', () => {
     const run = opening()
-    for (let i = 0; i < 15; i++) run.force()
+    for (let i = 0; i < 15 && !run.model.auction.completed; i++) run.force()
     const short = theOldPrinceRole(run.state, 'shortline')
     expect(getCompany(run.state, short).floated).toBe(false)
     const playerId = run.state.activePlayerIds[0]
@@ -250,17 +259,42 @@ it.each([0, 5])('auto passes only below the minimum bid (extra cash %i)', (extra
     const run = opening(4)
     const [first, second] = run.model.bidders
     const lotId = run.model.offerIds[0]
-    const account = run.state.cash.find((cash) => cash.owner.kind === 'player' && cash.owner.playerId === first)!
+    const account = run.state.cash.find(
+        (cash) => cash.owner.kind === 'player' && cash.owner.playerId === first
+    )!
     account.amount = run.model.price(lotId) + extra
     const result = run.offer()
     expect(result.processedActions.filter((action) => action.type === 'PassAuction')).toMatchObject(
-        extra === 0 ? [{ source: ActionSource.System, playerId: first }] : [])
+        extra === 0 ? [{ source: ActionSource.System, playerId: first }] : []
+    )
     expect(run.state.activePlayerIds).toEqual([extra === 0 ? second : first])
     if (extra === 0) {
         const bid = run.act('BidOnAuctionLot', { lotId, amount: run.model.minimumBid })
-        expect(bid.processedActions.filter((action) => action.type === 'PassAuction')).toMatchObject([
-            { source: ActionSource.System, playerId: first }
-        ])
+        expect(
+            bid.processedActions.filter((action) => action.type === 'PassAuction')
+        ).toMatchObject([{ source: ActionSource.System, playerId: first }])
         expect(run.model.auction.awards.at(-1)?.playerId).toBe(second)
     }
+})
+
+it.each([3, 4])('auto offers the auctioneer’s sole remaining lot for %i players', (count) => {
+    const run = opening(count)
+    const auctioneerId = run.model.auction.auctioneerId
+    const order = run.state.turnManager.turnOrder
+    const nextId = order[(order.indexOf(auctioneerId) + 1) % order.length]
+    const nextPile = run.model.auction.piles.find((pile) => pile.playerId === nextId)!
+    const soleLotId = nextPile.lotIds[0]
+    nextPile.lotIds = [soleLotId]
+
+    const historyStart = run.history.length
+    run.force()
+    const offerActions = run.history
+        .slice(historyStart)
+        .filter((action) => action.type === 'OfferAuctionLot')
+    expect(offerActions).toMatchObject([
+        { source: ActionSource.User, playerId: auctioneerId },
+        { source: ActionSource.System, playerId: nextId, lotId: soleLotId }
+    ])
+    expect(run.model.auction.bidding?.lotId).toBe(soleLotId)
+    expect(run.state.machineState).toBe('OfferBidding')
 })

@@ -186,6 +186,8 @@ clears a manual draft first, then reverses committed engine history and its syst
 consequences. Drafts hide during updatingVisibleState and History View and clear
 in beforeNewState. Pass is an explicit Action. Components use session methods;
 no reactive UI behavior commits an offer, bid, pass, or automatic award.
+When the auctioneer has one lot left, the game engine records its offer as a system
+action and opens bidding. Multiple lots retain the manual offer draft.
 
 Current bidding and offer piles survive reload. Completion displays the real first
 stock round in remaining-cash order, and Undo can restore the last auction turn.

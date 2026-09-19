@@ -45,6 +45,7 @@ export type OfferAuctionState = StockState & Type.Static<Type.TObject<typeof Off
 export interface OfferPileAuctionRules {
     lots(state: FinancialState): readonly AuctionLot[]
     increment: number
+    autoOfferSingleLot?: boolean
     award(state: OfferAuctionState, award: AuctionAward): void
     payIncome(state: OfferAuctionState): void
     firstStockOrder(state: OfferAuctionState): string[]
@@ -71,6 +72,11 @@ export class OfferAuction {
     get offerIds() {
         return this.auction.piles.find((pile) => pile.playerId === this.auction.auctioneerId)!
             .lotIds
+    }
+    get autoOfferLotId() {
+        return this.rules.autoOfferSingleLot && !this.auction.bidding && this.offerIds.length === 1
+            ? this.offerIds[0]
+            : undefined
     }
     get bidders() {
         return [
@@ -117,8 +123,11 @@ export class OfferAuction {
     }
     get mustPass(): boolean {
         const bidding = this.auction.bidding
-        return !!bidding && !this.resolution() &&
+        return (
+            !!bidding &&
+            !this.resolution() &&
             !this.canBid(this.playerId, bidding.lotId, this.minimumBid)
+        )
     }
     offer(playerId: string, lotId: string, actionId: string) {
         assert(this.canOffer(playerId, lotId), 'Offer an item from your pile')

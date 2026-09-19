@@ -42,7 +42,8 @@ export class HydratedOfferAuctionLot
         const model = activeAuction(state, this.#rules)
         return (
             !!model &&
-            this.source === ActionSource.User &&
+            (this.source === ActionSource.User ||
+                (this.source === ActionSource.System && model.autoOfferLotId === this.lotId)) &&
             canActInAuction(state, model, this.playerId) &&
             model.canOffer(this.playerId, this.lotId)
         )

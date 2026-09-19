@@ -24,6 +24,7 @@ import { TheOldPrinceTrainDepot } from './trains.js'
 import { createTheOldPrinceStockMarket } from './stockMarket.js'
 export const TheOldPrinceAuctionRules: OfferPileAuctionRules = {
     increment: 5,
+    autoOfferSingleLot: true,
     lots(state) {
         return [
             ...TheOldPrincePrivates.filter(

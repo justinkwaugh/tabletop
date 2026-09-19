@@ -70,6 +70,14 @@ face values, award effects, player-private income, and SR1 ordering. The runtime
 selects one opening procedure per title; composing distinct auction stages in one
 future title would need a continuation extension.
 
+TOP also opts into a system `OfferAuctionLot` when its auctioneer has exactly one
+lot remaining. The shared handler and action use the same cardinality check, so
+the offer is recorded for replay and Undo before bidding begins. Multiple remaining
+lots still require a player choice. The allocation survey above includes waterfall,
+nomination, bid-box, sealed, and draft procedures with different choice sequences;
+this option applies only to the offer-pile procedure and is enabled by TOP's rules.
+No automatic bid, pass, or award behavior is inferred from a single offer.
+
 `awardCertificates` charges once for a bundle and transfers existing certificates.
 It is also used by the waterfall's private award helper. A concession or bundled
 share therefore has one economic asset identity; no synthetic duplicate PEIR
@@ -107,6 +115,7 @@ forever. A fallback rule remains a rules decision, raised with the user separate
 
 Tests cover seeded setup and varying geographic roles, both supported player counts,
 full opening completion, first-pass re-entry, bid restrictions and authorization,
+the single-lot system offer for three and four players,
 forced purchasers and auctioneer-based ties, repeated income excluding King's Mail,
 zero-income stalls including a fully legal sequence, exact replay/Undo, bundled
 certificate identity, Shortline flotation/funding/home placement, and the earlier
