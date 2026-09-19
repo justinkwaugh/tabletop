@@ -84,6 +84,7 @@ test('compact stock rows and operating groups retain details and action navigati
     await expect(company.getByText(/^Tile /)).toHaveCount(0)
     await expect(page.getByRole('article', { name: 'PEIR operation history' }).first()
         .locator('.company-heading strong')).toHaveText('PEIR')
-    await company.getByRole('button', { name: 'Jump to Charlottetown operations in history', exact: true }).click()
+    await expect(companyHeader.getByRole('button')).toHaveCount(0)
+    await page.locator('.round-section[data-round-id="OR 1.1"]').getByRole('button', { name: 'Jump to OR 1.1 in history', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).not.toBeVisible()
 })

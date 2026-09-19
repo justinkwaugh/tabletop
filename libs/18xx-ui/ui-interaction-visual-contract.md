@@ -1304,13 +1304,11 @@ placement continues to use its legal placement locations for both sets.
 
 ### Explicit history jumps
 
-Round interstitials and company-operation headers expose an arrow/clock button.
-Only that button navigates the history cursor; clicking the surrounding header or
-row does not. Round targets use the earliest action in that round, including
-bookkeeping omitted from the displayed entries. Company targets use the group's
-first recorded action. Jumps request exact state-only navigation and are disabled
-while the session/history is busy. These controls do not open the historical map
-preview modal.
+Round interstitials navigate from their entire surface to the earliest action in
+that round, including bookkeeping omitted from displayed entries. Company headers
+have no navigation button. Jumps request exact state-only navigation and are
+disabled while the session/history is busy. These controls do not open the
+historical map preview modal.
 
 ### Compact player portfolios
 
@@ -1647,3 +1645,18 @@ PEIR last and labels its narrow card PEIR; other card names retain their full na
 
 Company cards with numbered shares show certificate numbers before share counts
 in each ownership row, keeping the count in the rightmost column.
+
+History View displays a 14px dark-blue-and-cream diagonal striped strip immediately
+above the table header, with VIEWING HISTORY centered on a solid cream label. Each stripe is 10px wide;
+the blue matches the dark-mode table background (#18212b). It spans
+the full table width, including the sidebar, in both layouts. The layout height
+accounts for the strip so the table still fits the viewport. It follows the existing session History View flag, uses
+the same colors in both themes, and disappears on return to Live View. This shared
+presentation applies across titles without changing history rules or host contracts.
+
+Round interstitials expose their entire surface as a keyboard-accessible jump to
+the recorded starting action, without clock icons. In History View, the current
+round interstitial has a separate return-arrow button using the exploration return
+glyph. It returns to the current game through history navigation, preserving any
+active exploration. Busy-state navigation guards apply to both controls; returning
+live removes the arrow and the history strip. Company headers have no clock or jump button; auction headers retain their existing behavior.

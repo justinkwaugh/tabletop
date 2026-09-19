@@ -438,8 +438,12 @@
             </div>
 {/snippet}
 
-<div class="railway-table" data-theme={session.preferences.ready ? session.preferences.values.theme : 'dark'} aria-label="Game table" aria-busy={!session.preferences.ready}>
+<div class="railway-table" style:--table-header-offset="calc(var(--app-navbar-height, 0px) + {session.isViewingHistory ? 14 : 0}px)" data-theme={session.preferences.ready ? session.preferences.values.theme : 'dark'} aria-label="Game table" aria-busy={!session.preferences.ready}>
     {#if session.preferences.ready && layoutPreference.ready}
+    {#if session.isViewingHistory}
+        <div class="history-strip" role="status"><span>VIEWING HISTORY</span></div>
+    {/if}
+    <div class="table-layout" style:--app-navbar-height="var(--table-header-offset)">
     <DefaultTableLayout topPadding={0} horizontalPadding={paneLayout.current ? 0 : 8} showSidebar={!paneLayout.current}>
         {#snippet mobileControlsContent()}
             {@render historyControls()}
@@ -620,6 +624,7 @@
             {/if}
         {/snippet}
     </DefaultTableLayout>
+    </div>
 
 {#if showPhaseChart}<PhaseChart {depotState} chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} onclose={() => showPhaseChart = false} />{/if}
 {#if showDepot}<PhaseChart {depotState} depotOnly chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} onclose={() => showDepot = false} />{/if}
@@ -634,6 +639,23 @@
 </div>
 
 <style>
+    .history-strip {
+        display: flex;
+        flex: none;
+        align-items: center;
+        justify-content: center;
+        height: 14px;
+        background: repeating-linear-gradient(135deg, #18212b 0 10px, #f4e8ce 10px 20px);
+        color: #18212b;
+    }
+    .history-strip span {
+        padding: 0 12px;
+        background: #f4e8ce;
+        font-size: 9px;
+        font-weight: 800;
+        line-height: 14px;
+        letter-spacing: 0.16em;
+    }
     .layout-save { align-self: flex-end; flex: none; border: 0; background: transparent; color: var(--rail-muted, #887969); font-size: 11px; padding: 2px 8px; cursor: pointer; }
     .unread-chat { width: 7px; height: 7px; border-radius: 50%; background: #f43f5e; }
     .pane-workspace { display: flex; flex-direction: column; flex: 1; min-height: 0; }

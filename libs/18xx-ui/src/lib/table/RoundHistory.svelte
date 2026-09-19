@@ -1,6 +1,6 @@
 <script lang="ts">
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
-    import HistoryJump from './HistoryJump.svelte'
+    import HistoryInterstitialJump from './HistoryInterstitialJump.svelte'
     import { tick, type Snippet } from 'svelte'
     import { assertExists } from '@tabletop/common'
     import type { HistoryRound } from './historyRounds.js'
@@ -11,10 +11,14 @@
         newestFirst = false,
         historyComplete = true,
         onJump,
+        onReturn,
+        currentHeaderId,
         jumpDisabled = false,
         onOrderChange
     }: {
         onJump: (index: number) => void
+        onReturn: () => void
+        currentHeaderId?: string
         jumpDisabled?: boolean
         rounds: HistoryRound[]
         children: Snippet<[HistoryRound]>
@@ -104,7 +108,7 @@
                     {#snippet divider()}
                     <h3 class="round-divider" style:background={phaseBackground(round)} style:--phase-ink={contrastingTextColor(phaseColors[round.phases[0]])}>
                         <span>{round.label.replace(/^OR /, 'Operating round ').replace(/^SR /, 'Stock round ')}</span>
-                        {#if round.startActionIndex !== undefined}<HistoryJump label={`Jump to ${round.label} in history`} disabled={jumpDisabled} onclick={() => { if (round.startActionIndex !== undefined) onJump(round.startActionIndex) }} />{/if}
+                        {#if round.startActionIndex !== undefined}<HistoryInterstitialJump onReturn={round.id === currentHeaderId ? onReturn : undefined} label={`Jump to ${round.label} in history`} disabled={jumpDisabled} onclick={() => { if (round.startActionIndex !== undefined) onJump(round.startActionIndex) }} />{/if}
                         <span class="round-phase">Phase {round.phases.join(' → ')}</span>
                     </h3>
                     {/snippet}

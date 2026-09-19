@@ -1,0 +1,30 @@
+import { expect, test } from '@playwright/test'
+
+test('round interstitials jump across their full surface and return to the current game', async ({ page }) => {
+    test.setTimeout(60000)
+    await page.goto('/table')
+    await page.getByLabel('Position', { exact: true }).selectOption('finished')
+    await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).toBeVisible({ timeout: 30000 })
+    await page.getByRole('tab', { name: 'History', exact: true }).click()
+    const history = page.getByRole('list', { name: 'Action history', exact: true })
+    for (const newestFirst of [false, true]) {
+        await page.getByRole('button', { name: newestFirst ? 'Newest first' : 'Newest last', exact: true }).click()
+        const header = history.locator('.round-divider').first()
+        await header.scrollIntoViewIfNeeded()
+        const bounds = await header.boundingBox()
+        expect(bounds).not.toBeNull()
+        if (!bounds) throw new Error('History header must be rendered')
+        const jump = header.getByRole('button', { name: /^Jump to / })
+        const jumpBounds = await jump.boundingBox()
+        expect(jumpBounds?.width).toBeCloseTo(bounds.width, 0)
+        await jump.click({ position: { x: bounds.width - 12, y: 12 } })
+        await expect(page.getByRole('status')).toHaveText('VIEWING HISTORY')
+        const returnButton = history.getByRole('button', { name: 'Return to current game', exact: true })
+        await expect(returnButton).toHaveCount(1)
+        await returnButton.click()
+        await expect(page.locator('.history-strip')).toHaveCount(0)
+        await expect(returnButton).toHaveCount(0)
+        await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).toBeVisible()
+    }
+    await expect(history.locator('.round-divider svg.clock')).toHaveCount(0)
+})

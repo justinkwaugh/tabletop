@@ -244,7 +244,7 @@
             <div class="prices">
                 {@render cashValue()}
                 {#if company.parPrice !== undefined}<div>
-                        <span>Par</span><strong>${company.parPrice}</strong>
+                        <span>Par</span><strong>{company.parPrice}</strong>
                     </div>{/if}
                 {@render marketValue()}
                 {#if !vertical}

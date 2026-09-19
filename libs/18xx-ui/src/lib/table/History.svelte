@@ -43,6 +43,10 @@
     const cash = $derived(historyCash(context.actions, state))
     const companyChanges = $derived(historyCompanyChanges(context.actions, state))
     const rounds = $derived(historyRounds(context.actions, state, orderChanges, cash))
+    const currentHeaderId = $derived(session.isViewingHistory ? rounds[0]?.id : undefined)
+    function returnToCurrent() {
+        if (!jumpDisabled) void session.history.goToEnd()
+    }
     function fullCompanyName(id: string) {
         return state.companies.find((company) => company.id === id)?.name ?? id
     }
@@ -65,7 +69,7 @@
     }
 </script>
 
-<RoundHistory onJump={jumpToHistory} {jumpDisabled} {rounds} {phaseColors} {newestFirst}
+<RoundHistory {currentHeaderId} onReturn={returnToCurrent} onJump={jumpToHistory} {jumpDisabled} {rounds} {phaseColors} {newestFirst}
     historyComplete={context.hasCompleteHistory}
     onOrderChange={(first) => session.preferences.set({ historyOrder: first ? 'newestFirst' : 'newestLast' }, 'family')}>
 
@@ -86,8 +90,6 @@
                     <li>
                         <HistoryGroup
                             group={entry}
-                            onJump={jumpToHistory}
-                            {jumpDisabled}
                             {onPreviewMap}
                             previewActionId={session.historicalMap?.actionId}
                             appearance={entry.companyId
