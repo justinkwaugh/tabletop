@@ -26,7 +26,7 @@
     let { session, trainColors, describeAction }: {
         session: FinanceExampleSession
         trainColors: Readonly<Record<string, string>>
-        describeAction?: (action: GameAction) => HistoryDescription | undefined
+        describeAction?: (action: GameAction, companyName: (id: string) => string) => HistoryDescription | undefined
     } = $props()
     const context = $derived(session.history.visibleContext)
     const state = $derived.by(() => {
@@ -59,7 +59,7 @@
                 : { text: `bid $${action.amount} for ${lot.name}` }
         }
         if (isPassAuction(action)) return { text: 'passed' }
-        return describeAction?.(action) ?? historyDescription(action, state, companyName, (id) => session.getPlayerName(id))
+        return describeAction?.(action, companyName) ?? historyDescription(action, state, companyName, (id) => session.getPlayerName(id))
     }
     const latest = $derived.by(() => {
         const paired = purchaseWithFlotation(context.actions)

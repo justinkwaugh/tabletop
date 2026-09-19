@@ -10,7 +10,7 @@ export const TheOldPrinceCompanyNames: Readonly<Record<string, CompanyNameVarian
     ML: { short: 'Charlottetown', initials: 'C' },
     C: { short: 'Char', initials: 'C' },
     So: { short: 'Souris', initials: 'SO' },
-    PEIR: { short: 'PEIR', initials: 'PEIR' },
+    PEIR: { short: 'PEIR', initials: 'PEIR', history: 'PEIR' },
     A: { short: 'Alberton', initials: 'A' },
     MS: { short: 'Mt Stewart', initials: 'MS' },
     MR: { short: 'Murray R', initials: 'MR' },

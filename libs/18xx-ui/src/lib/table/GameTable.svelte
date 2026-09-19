@@ -98,7 +98,7 @@
         phaseColors: Readonly<Record<string, string>>
         phaseChart: PhaseChartData
         phaseTileColors: Readonly<Record<string, readonly string[]>>
-        historyDescription?: (action: GameAction) => HistoryDescription | undefined
+        historyDescription?: (action: GameAction, companyName: (id: string) => string) => HistoryDescription | undefined
         poolName?: (pool: CertificatePool) => string
         privatePurchaseLabel?: string
         privateOperationDescription: (

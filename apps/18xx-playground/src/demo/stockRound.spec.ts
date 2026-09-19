@@ -81,6 +81,12 @@ it.each([Top, Shikoku])(
             'StartOperatingRound',
             ...(definition === Top ? ['StartOperatingTurn'] : [])
         ])
+        if (definition === Top)
+            expect(result.processedActions.at(-1)).toMatchObject({
+                type: 'StartOperatingTurn',
+                source: ActionSource.System
+            })
+        if (definition === Top) expect(result.processedActions.at(-1)?.playerId).toBeUndefined()
         expect(result.updatedState.machineState).toBe(
             definition === Top ? 'LayingTrack' : 'OperatingSet'
         )

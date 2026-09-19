@@ -15,7 +15,11 @@ test('compact stock rows and operating groups retain details and action navigati
     const playerLines = stockRound.locator('.stock-action.player-tinted-header')
     expect(await playerLines.count()).toBeGreaterThan(1)
     const firstLine = playerLines.first()
-    await expect(firstLine).toContainText(/^Player \d+\s+\S/)
+    await expect(firstLine).toContainText(/^\s*Player \d+\s+\S/)
+    await expect(firstLine).toContainText(/Player \d+\s+split Belfast Branch/)
+    await expect(page.getByRole('list', { name: 'Action history', exact: true })
+        .locator('.stock-action.player-tinted-header').filter({ hasText: /bought 1/ }).first())
+        .toContainText(/Player \d+\s+bought 1/)
     await expect(firstLine.locator('.color-dot')).toHaveCount(0)
     const typography = await firstLine.evaluate((line) => {
         const name = line.querySelector('span')
@@ -39,21 +43,47 @@ test('compact stock rows and operating groups retain details and action navigati
     await expect(flotation).toContainText('floated')
     await expect(flotation).not.toContainText(/Player \d/)
     await expect(flotation).not.toHaveClass(/player-tinted-header/)
+    await expect(page.getByRole('list', { name: 'Action history', exact: true })
+        .locator('.stock-action').filter({ hasText: 'Murray River floated' }).first()).toBeVisible()
+    await expect(flotation.locator('.flotation-token svg')).toHaveCount(1)
+    await expect(flotation.locator('small')).not.toBeEmpty()
+    const flotationColumns = await flotation.evaluate((line) => {
+        const token = line.querySelector('.flotation-token')?.getBoundingClientRect()
+        const summary = line.querySelector('.flotation-token + span')?.getBoundingClientRect()
+        const detail = line.querySelector('small')?.getBoundingClientRect()
+        return token && summary && detail
+            ? { tokenRight: token.right, summaryLeft: summary.left, detailLeft: detail.left }
+            : undefined
+    })
+    expect(flotationColumns).toBeDefined()
+    if (!flotationColumns) throw new Error('Flotation row requires a token, summary, and detail')
+    expect(flotationColumns.tokenRight).toBeLessThan(flotationColumns.summaryLeft)
+    expect(flotationColumns.tokenRight).toBeLessThan(flotationColumns.detailLeft)
     const stock = page
         .getByRole('list', { name: 'SR 6 actions', exact: true })
         .locator('article.stock')
-        .filter({ hasText: 'Split BR:BB from Summerside' })
-    await expect(stock).toContainText('Split BR:BB from Summerside')
+        .filter({ hasText: 'split Belfast Branch from Summerside' })
+    await expect(stock).toContainText('split Belfast Branch from Summerside')
     await expect(stock.locator('header')).toHaveCount(0)
     await expect(stock.getByRole('button', { name: /^Details/ })).toHaveCount(0)
     const company = page
         .getByRole('list', { name: 'OR 6.1 actions', exact: true })
         .getByRole('article', { name: 'C operation history', exact: true })
+    const companyHeader = company.locator('header')
+    await expect(companyHeader).toHaveClass(/player-tinted-header/)
+    const operationTint = await companyHeader.evaluate((header) => ({
+        color: getComputedStyle(header).getPropertyValue('--player-color').trim(),
+        background: getComputedStyle(header).backgroundColor
+    }))
+    expect(operationTint.color).not.toBe('')
+    expect(operationTint.background).not.toBe('rgba(0, 0, 0, 0)')
     await expect(company).toContainText('Withheld')
     await expect(company.getByText('Finished track', { exact: true })).toHaveCount(0)
     await expect(company.getByRole('button', { name: 'Details', exact: true })).toHaveCount(0)
     await expect(company.getByText('Finished track', { exact: true })).toHaveCount(0)
     await expect(company.getByText(/^Tile /)).toHaveCount(0)
+    await expect(page.getByRole('article', { name: 'PEIR operation history' }).first()
+        .locator('.company-heading strong')).toHaveText('PEIR')
     await company.getByRole('button', { name: 'Jump to Charlottetown operations in history', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).not.toBeVisible()
 })

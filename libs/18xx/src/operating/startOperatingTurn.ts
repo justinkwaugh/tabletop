@@ -122,11 +122,7 @@ export class StartOperatingTurnHandler implements MachineStateHandler<
             return
         }
         const companyId = nextOperatingCompany(context.gameState)
-        if (companyId)
-            context.addSystemAction(StartOperatingTurn, {
-                companyId,
-                playerId: context.gameState.activePlayerIds[0]
-            })
+        if (companyId) context.addSystemAction(StartOperatingTurn, { companyId })
     }
     onAction(
         action:

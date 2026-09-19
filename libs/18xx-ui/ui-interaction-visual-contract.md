@@ -875,7 +875,7 @@ Operation headers stack the player name immediately below the company name besid
 
 Company operation history uses a cash ledger: opening cash at the right of its header, signed company cash deltas aligned right (negative red, positive black), and closing cash in its footer. Amounts are reconstructed from canonical cash undo patches, including automatic cash events, not inferred from nominal revenue or prices. Train revenue and per-share dividends remain informational amounts in the action text; president share-sale proceeds stay inline and are excluded from company cash. Supplemental action details are shown inline without a Details control. The closing balance has a short rule over its amount, separate from the operation group divider. The move arrowhead touches the destination token. Family review: treasury dividends, retained/half-paid earnings, private income, negotiated transactions and indirect funding can differ across titles; owner-specific balance deltas accommodate those differences without assuming revenue enters company cash.
 
-Company operation and offered-auction history headers share the same compact padding, subtle contrasting background and corner treatment. Operation headers contain the token, full unabbreviated company name, player name and starting cash; auction headers identify the offering player and item. History cards and round interstitials share a 5px vertical gap, with no extra round-list padding. Both groups have a subtle 1px card border and slightly rounded 5px outer corners, without an additional outer divider. Track-lay history shows location and cash cost, without a tile identifier/rotation description.
+Company operation and offered-auction history headers share the same compact padding and corner treatment. Operation headers contain the token, company name, controlling player's name and starting cash, with a 15% tint of that player's color over the theme surface. Automatic turn-start records have no player attribution because the next controller becomes active only after the action applies. Completed turns use the recorded finishing action to identify that player; an unfinished turn uses the controller in the selected history state. Auction headers identify the offering player and item. History cards and round interstitials share a 5px vertical gap, with no extra round-list padding. Both groups have a subtle 1px card border and slightly rounded 5px outer corners, without an additional outer divider. Track-lay history shows location and cash cost, without a tile identifier/rotation description.
 
 SR/OR interstitial backgrounds use the active phase’s train-color mapping, including split backgrounds for changes within the round. Phase-change entries separately compare the title’s available tile colors and explicitly announce newly unlocked colors (“green tiles now available”). These are distinct inputs even when their colors coincide in TOP and 1889.
 
@@ -1561,9 +1561,12 @@ border and use square corners, including the tinted header. Each player-attribut
 stock-round action and pass has its own line with the player's name in the same
 regular-weight typography as the description, no dot or colon, and a 15% tint of
 that player's color over the theme surface. Values in these lines are also regular
-weight. Automatic flotation names the company without a player name or player
-tint. Stock sales remain separate recorded lines. Both use the viewing player's
-palette.
+weight. A player-attributed stock description starts with a lowercase verb after
+the player name. History descriptions use full company names unless a title provides a
+history-specific name. Automatic flotation names the company without a player
+name or player tint and places its company token beside both the flotation
+summary and detail. Stock sales remain separate recorded lines. Both use the
+viewing player's palette.
 
 Players/History/Chat uses the standard workspace tab spacing in pane mode. The
 original non-paned sidebar spacing is unchanged.

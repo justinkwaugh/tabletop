@@ -4,7 +4,7 @@
     import './playerTint.css'
     import HistoryJump from './HistoryJump.svelte'
     import { assertExists, type GameAction } from '@tabletop/common'
-    import { isAdvancePhase, isStartOperatingRound, isSellFundingShares, sameOwner, isDistributeEarnings, isFloatCompany } from '@tabletop/18xx'
+    import { isAdvancePhase, isStartOperatingRound, isSellFundingShares, sameOwner, isDistributeEarnings, isFloatCompany, isFinishOperatingTurn } from '@tabletop/18xx'
     import { TileColors } from '../tiles/tilePresentation.js'
     import type { HistoryGroup } from './historyGroups.js'
     import type { HistoryDescription } from './historyDescription.js'
@@ -24,6 +24,7 @@
         appearance,
         playerName,
         playerColor,
+        currentController,
         describe,
         companyName,
         phaseColors,
@@ -49,6 +50,7 @@
         appearance?: StationAppearance
         playerName: (id: string) => string
         playerColor: (id: string) => string
+        currentController: (companyId: string) => string | undefined
         describe: (action: GameAction) => HistoryDescription
         companyName: (id: string) => string
     } = $props()
@@ -73,6 +75,10 @@
         ? cash.get(group.actions[0].id)?.before.get(group.companyId) : undefined)
     const endingCash = $derived(group.kind === 'operation' && group.companyId
         ? cash.get(group.actions.at(-1)!.id)?.after.get(group.companyId) : undefined)
+    const operatingPlayerId = $derived(group.kind === 'operation'
+        ? group.actions.findLast(isFinishOperatingTurn)?.playerId
+            ?? (group.companyId ? currentController(group.companyId) : undefined)
+        : group.playerId)
     function money(amount: number) { return `$${amount.toLocaleString('en-US')}` }
     const rows = $derived(group.actions.map((action) => {
         const description = describe(action)
@@ -112,13 +118,15 @@
                     class:player-tinted-header={!!row.stockPlayerId}
                     style:--player-color={row.stockPlayerId ? playerColor(row.stockPlayerId) : undefined}
                     class:phase-change={!!row.phase}
+                    class:flotation={isFloatCompany(row.action)}
                     style:--phase-color={row.phase?.color}
                     style:--phase-ink={row.phase ? contrastingTextColor(row.phase.color) : undefined}
                     class:routine={row.routine}
                 >
+                    {#if isFloatCompany(row.action)}<span class="flotation-token"><CompanyToken appearance={stations[row.action.companyId]} size={23} /></span>{/if}
                     {#if row.stockPlayerId}<span>{playerName(row.stockPlayerId)}</span>{' '}{/if}
                     <span
-                        >{row.text}{#if row.phase}<span class="phase-colors">{row.phase.label}</span>{/if}{#if row.value}
+                        >{row.stockPlayerId ? row.text.charAt(0).toLowerCase() + row.text.slice(1) : row.text}{#if row.phase}<span class="phase-colors">{row.phase.label}</span>{/if}{#if row.value}
                             for <span class="stock-value">{row.value}</span>{/if}</span
                     >
                     {#if row.detail}<small>{row.detail}</small>{/if}
@@ -127,7 +135,7 @@
             </div>
         {/each}
     {:else}
-        {#if group.kind !== 'event'}<header class:history-card-header={group.kind === 'operation'} class:company-header={group.kind === 'operation'}>
+        {#if group.kind !== 'event'}<header class:history-card-header={group.kind === 'operation'} class:company-header={group.kind === 'operation'} class:player-tinted-header={group.kind === 'operation' && !!operatingPlayerId} style:--player-color={group.kind === 'operation' && operatingPlayerId ? playerColor(operatingPlayerId) : undefined}>
             <div
                 class="history-entry heading"
             >
@@ -135,9 +143,9 @@
                 <span class="company-heading">
                 <strong
                     >{(group.companyId ? companyName(group.companyId) : undefined) ??
-                        playerName(group.playerId ?? '')}</strong
+                        playerName(operatingPlayerId ?? '')}</strong
                 >
-                {#if group.companyId}<span class="actor">{playerName(group.playerId ?? '')}</span
+                {#if group.companyId}<span class="actor">{playerName(operatingPlayerId ?? '')}</span
                     >{/if}
                 </span>
             {#if group.kind === 'operation' && group.actions[0]?.index !== undefined}
@@ -159,7 +167,7 @@
                     class:important={row.important}
                     class:routine={row.routine}
                 >
-                    {#if !row.omitActor && row.action.playerId && row.action.playerId !== group.playerId}<small
+                    {#if !row.omitActor && row.action.playerId && row.action.playerId !== operatingPlayerId}<small
                             >{playerName(row.action.playerId)}</small
                         >{/if}
                     <span>{#snippet actionSummary()}{startingCash !== undefined ? row.ledgerText ?? row.text : row.text}{#if row.trainDefinitionIds?.length}<span class="run-trains">{#each row.trainDefinitionIds as id}<TrainBadge name={trainName(id)} color={trainColors[id]} />{/each}</span>{/if}{/snippet}
@@ -204,6 +212,14 @@
         padding: 4px 6px;
         line-height: 16px;
     }
+    .stock-action.flotation {
+        display: grid;
+        grid-template-columns: 23px minmax(0, 1fr);
+        column-gap: 6px;
+        align-items: center;
+    }
+    .flotation-token { grid-row: 1 / span 2; display: flex; align-items: center; }
+    .stock-action.flotation > small { grid-column: 2; }
     .stock-action.player-tinted-header {
         background: var(--player-tinted-background);
     }

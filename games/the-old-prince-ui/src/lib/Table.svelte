@@ -57,8 +57,8 @@
 <GameTable {spreadsheetCompanyOrder} privatePurchaseLabel="Buy Hunslet"
     additionalStockActions={session.canPreviewSplit && session.myPlayer && session.splitModel.branches().length && session.splitModel.parents(session.myPlayer.id).some((parent) => !parent.reason) ? [{ label: 'Split', selected: session.hasSplitDraft, onSelect: () => session.chooseSplit() }] : []}
     phaseChart={TheOldPrincePhaseChart}
-    historyDescription={(action) => isSplitCompany(action) ? {
-        text: `Split ${TheOldPrinceCompanyNames[action.branchId]?.short ?? action.branchId} from ${TheOldPrinceCompanyNames[action.parentId]?.short ?? action.parentId}`,
+    historyDescription={(action, companyName) => isSplitCompany(action) ? {
+        text: `Split ${companyName(action.branchId)} from ${companyName(action.parentId)}`,
         value: `$${action.expectedFunding.toLocaleString('en-US')}`,
         detail: 'Branch capital', important: true
     } : undefined}

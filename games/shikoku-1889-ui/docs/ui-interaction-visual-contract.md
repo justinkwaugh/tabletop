@@ -8,7 +8,11 @@ contract. Switching away disposes this Game Session,
 and revisiting restores its local example.
 Stock-round history gives every player action and pass its own tinted line with
 the player name repeated in regular-weight text; no player dot or colon appears.
-Automatic flotation names the company without a player name or player tint.
+The action verb starts lowercase after the player name.
+History descriptions use full company names. Automatic flotation names the
+company without a player name or player tint; its token sits beside the summary
+and capital detail.
+Company operation history headers use the recorded controlling player's color tint.
 
 IPO and Market appear as separate pools of Bank-owned certificates. A president
 certificate shows its 20% interest, two shares, and one certificate

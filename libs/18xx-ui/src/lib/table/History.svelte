@@ -1,6 +1,6 @@
 <script lang="ts">
     import { assert, assertExists, type GameAction } from '@tabletop/common'
-    import { FinanceExampleValidator } from '@tabletop/18xx'
+    import { controllingOwner, FinanceExampleValidator } from '@tabletop/18xx'
     import { historyCompanyChanges } from './historyCompanyChanges.js'
     import { historyCash } from './historyCash.js'
     import { historyOperatingOrder } from './historyOperatingOrder.js'
@@ -27,7 +27,7 @@
         phaseColors: Readonly<Record<string, string>>
         phaseTileColors: Readonly<Record<string, readonly string[]>>
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
-        describeAction?: (action: GameAction) => HistoryDescription | undefined
+        describeAction?: (action: GameAction, companyName: (id: string) => string) => HistoryDescription | undefined
     } = $props()
     const jumpDisabled = $derived(session.busy || session.updatingVisibleState || session.history.isDisabled())
     function jumpToHistory(index: number) {
@@ -47,11 +47,11 @@
         return state.companies.find((company) => company.id === id)?.name ?? id
     }
     function companyName(id: string) {
-        return companyNames?.[id]?.short ?? fullCompanyName(id)
+        return companyNames?.[id]?.history ?? fullCompanyName(id)
     }
     function describe(action: GameAction) {
         const description =
-            describeAction?.(action) ??
+            describeAction?.(action, companyName) ??
             historyDescription(action, state, companyName, (id) =>
                 session.getPlayerName(id), companyChanges.get(action.id)
             )
@@ -95,6 +95,7 @@
                                 : undefined}
                             playerName={(id) => session.getPlayerName(id)}
                             playerColor={(id) => session.colors.getPlayerBgColorValue(id)}
+                            currentController={(id) => controllingOwner(state, id)?.playerId}
                             {phaseColors}
                             {phaseTileColors}
                             {trainColors}
@@ -103,7 +104,7 @@
                             {cash}
                             stations={session.mapView.stations}
                             {describe}
-                            companyName={fullCompanyName}
+                            {companyName}
                         />
                     </li>
                 {/if}
