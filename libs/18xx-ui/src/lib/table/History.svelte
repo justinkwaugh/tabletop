@@ -90,6 +90,9 @@
                     <li>
                         <HistoryGroup
                             group={entry}
+                            onReturn={round.id === currentHeaderId && entry.id === groups.find(group => group.kind === 'operation')?.id ? returnToCurrent : undefined}
+                            onJump={jumpToHistory}
+                            {jumpDisabled}
                             {onPreviewMap}
                             previewActionId={session.historicalMap?.actionId}
                             appearance={entry.companyId

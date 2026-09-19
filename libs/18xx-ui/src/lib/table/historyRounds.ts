@@ -20,6 +20,7 @@ export type HistoryRound = {
     label: string
     phases: string[]
     startActionIndex?: number
+    endActionIndex?: number
     entries: ActionHistoryEntry[]
 }
 
@@ -56,6 +57,7 @@ export function historyRounds(
                 id: label,
                 label,
                 phases: [phase],
+                endActionIndex: action.index,
                 entries: []
             }
             rounds.push(section)

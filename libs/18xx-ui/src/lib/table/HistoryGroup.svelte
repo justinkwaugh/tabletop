@@ -1,6 +1,7 @@
 <script lang="ts">
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import './historyCard.css'
+    import HistoryHeaderJump from './HistoryHeaderJump.svelte'
     import './playerTint.css'
     import { assertExists, type GameAction } from '@tabletop/common'
     import { isAdvancePhase, isStartOperatingRound, isSellFundingShares, sameOwner, isDistributeEarnings, isFloatCompany, isFinishOperatingTurn } from '@tabletop/18xx'
@@ -16,6 +17,9 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
     let {
         group,
+        onJump,
+        onReturn,
+        jumpDisabled = false,
         onPreviewMap,
         previewActionId,
         appearance,
@@ -41,6 +45,9 @@
         trainName: (id: string) => string
         phaseColors: Readonly<Record<string, string>>
         phaseTileColors: Readonly<Record<string, readonly string[]>>
+        onJump: (index: number) => void
+        onReturn?: () => void
+        jumpDisabled?: boolean
         group: HistoryGroup
         appearance?: StationAppearance
         playerName: (id: string) => string
@@ -136,10 +143,19 @@
             >
                 {#if appearance}<CompanyToken {appearance} size={23} />{/if}
                 <span class="company-heading">
+                <span class="company-name">
                 <strong
                     >{(group.companyId ? companyName(group.companyId) : undefined) ??
                         playerName(operatingPlayerId ?? '')}</strong
                 >
+            {#if group.kind === 'operation' && group.actions.at(-1)?.index !== undefined}
+                <HistoryHeaderJump {onReturn} label={`Jump to ${group.companyId ? companyName(group.companyId) : 'company'} operations in history`}
+                    disabled={jumpDisabled} onclick={() => {
+                        const index = group.actions.at(-1)?.index
+                        if (index !== undefined) onJump(index)
+                    }} />
+            {/if}
+                </span>
                 {#if group.companyId}<span class="actor">{playerName(operatingPlayerId ?? '')}</span
                     >{/if}
                 </span>
@@ -249,6 +265,7 @@
         row-gap: 6px;
     }
     header {
+        position: relative;
         display: flex;
         align-items: center;
         gap: 4px;
@@ -275,6 +292,7 @@
     strong {
         font-weight: 600;
     }
+    .company-name { display: flex; align-items: center; gap: 2px; }
     .company-heading { display: flex; flex-direction: column; gap: 0; line-height: 14px; }
     .actor {
         font-size: 10px;

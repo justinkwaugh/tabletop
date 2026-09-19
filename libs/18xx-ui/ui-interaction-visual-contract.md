@@ -1304,9 +1304,11 @@ placement continues to use its legal placement locations for both sets.
 
 ### Explicit history jumps
 
-Round interstitials navigate from their entire surface to the earliest action in
-that round, including bookkeeping omitted from displayed entries. Company headers
-have no navigation button. Jumps request exact state-only navigation and are
+Round interstitials navigate from their entire surface to the final recorded
+action in that round, including bookkeeping omitted from displayed entries.
+Company headers similarly navigate to the final action in their operation group.
+Both use exact action boundaries so the selected section remains complete and
+the next section is not shown. Jumps request exact state-only navigation and are
 disabled while the session/history is busy. These controls do not open the
 historical map preview modal.
 
@@ -1655,8 +1657,9 @@ the same colors in both themes, and disappears on return to Live View. This shar
 presentation applies across titles without changing history rules or host contracts.
 
 Round interstitials expose their entire surface as a keyboard-accessible jump to
-the recorded starting action, without clock icons. In History View, the current
-round interstitial has a separate return-arrow button using the exploration return
-glyph. It returns to the current game through history navigation, preserving any
+the recorded final action, without clock icons. In History View, the current
+round interstitial and its most recent company header each have a separate return-arrow button using the exploration return
+glyph. The company arrow sits immediately after the company name, above the player
+name. It returns to the current game through history navigation, preserving any
 active exploration. Busy-state navigation guards apply to both controls; returning
-live removes the arrow and the history strip. Company headers have no clock or jump button; auction headers retain their existing behavior.
+live removes the arrow and the history strip. Company headers share the full-surface jump target without a clock icon; auction headers retain their existing behavior.
