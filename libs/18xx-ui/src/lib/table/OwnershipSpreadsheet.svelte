@@ -4,7 +4,6 @@
     import { companyLastRun } from './companyLastRun.js'
     import {
         cashOwnedBy,
-        isStartCompany,
         nextOperatingCompany,
         certificatesInPool,
         controllingOwner,
@@ -20,6 +19,7 @@
     import { ownerPortfolio } from '../finance/ownerPortfolio.js'
     import PlayerName from './PlayerName.svelte'
     import OperatingHistory from './OperatingHistory.svelte'
+    import { spreadsheetCompanies } from './spreadsheetCompanies.js'
     import SpreadsheetOutline from './SpreadsheetOutline.svelte'
 
     let ownershipTable: HTMLTableElement | undefined = $state()
@@ -56,29 +56,9 @@
             ? nextOperatingCompany(session.financialState) : undefined
     )
     const currentPlayerOwners = $derived(new Set(session.financialState.activePlayerIds.map((id) => `player:${id}`)))
-    const eligibleCompanies = $derived(
-        session.financialState.companies.filter(
-            (company) =>
-                company.started &&
-                !company.closed &&
-                (company.shareCount !== undefined ||
-                    session.financialState.certificates.some(
-                        (certificate) =>
-                            certificate.kind === 'share' &&
-                            !certificate.retired &&
-                            certificate.companyId === company.id
-                    ))
-        )
-    )
-    const companies = $derived.by(() => {
-        const starts = session.actions.slice(0, session.gameState.actionCount)
-            .filter(isStartCompany).map((action) => action.companyId)
-        const order = companyOrder ?? [
-            ...eligibleCompanies.filter((company) => !starts.includes(company.id)).map((company) => company.id),
-            ...starts
-        ]
-        return eligibleCompanies.toSorted((a, b) => order.indexOf(a.id) - order.indexOf(b.id))
-    })
+    const companies = $derived(spreadsheetCompanies(
+        session.financialState, session.actions, session.gameState.actionCount, companyOrder
+    ))
     let period = $state<'Current' | 'Player income' | 'Company payouts'>('Current')
     const view = $derived(session.preferences.values.spreadsheetView === 'company' ? 'Company' : 'Player')
     function soldThisRound(ownerId: string, companyId: string): boolean {

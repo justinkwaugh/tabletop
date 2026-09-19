@@ -63,6 +63,7 @@
         detail: 'Branch capital', important: true
     } : undefined}
     {numberedShareLocation}
+    includedCompanyIds={['PEIR']}
     mapFocusExcludedCompanyIds={['PEIR']}
     numberedShareNames={{ PEIR: Object.fromEntries(TheOldPrinceCompanies.map((company) => [company.number, company.name])) }}
     auctionLotDescription={(id) => lotInfo(id).description}

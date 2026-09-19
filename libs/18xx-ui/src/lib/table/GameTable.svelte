@@ -40,6 +40,7 @@
     import StockMarketScene from '../stock/StockMarketScene.svelte'
     import TileManifest from '../tiles/TileManifest.svelte'
     import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
+    import { spreadsheetCompanies } from './spreadsheetCompanies.js'
     import OwnershipSpreadsheet from './OwnershipSpreadsheet.svelte'
     import { ClassicTileAppearance, MutedTileAppearance } from '../tiles/tileAppearance.js'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
@@ -60,6 +61,7 @@
         exchangePoolId,
         companyNames,
         spreadsheetCompanyOrder,
+        includedCompanyIds = [],
         auctionLotDescription,
         numberedShareNames,
         numberedShareLocation,
@@ -84,6 +86,7 @@
         marketPoolId: string
         exchangePoolId?: string
         spreadsheetCompanyOrder?: readonly string[]
+        includedCompanyIds?: readonly string[]
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
         auctionLotDescription?: (id: string) => string
         numberedShareNames?: NumberedShareNames
@@ -299,6 +302,9 @@
     })
 
     const financialState = $derived(session.financialState)
+    const startedCompanies = $derived(spreadsheetCompanies(
+        financialState, session.actions, session.gameState.actionCount, spreadsheetCompanyOrder, includedCompanyIds
+    ))
     const headerState = $derived(tableHeaderState(session))
     const headerPlayerId = $derived(headerState.activePlayerIds.length === 1 ? headerState.activePlayerIds[0] : undefined)
     const operating = $derived(financialState.stockRound.completed && !!financialState.operatingSet)
@@ -315,7 +321,7 @@
         value => session.preferences.save({ paneLayout: value }, 'family')
     )
     const paneLayout = new MediaQuery('(min-width: 64rem)')
-    const views = ['Map', 'Market', 'Spreadsheet', 'Tiles', 'Player Aid', 'Actions'] as const
+    const views = ['Map', 'Market', 'Spreadsheet', 'Companies', 'Tiles', 'Player Aid', 'Actions'] as const
     const sidebarViews = ['Players', 'History', 'Chat']
     let sidebar: HTMLDivElement
     let selectedView = $state('Map')
@@ -579,6 +585,21 @@
                         {exchangePoolId}
                         {portfolioCompanyIds}
                     />
+                    </div>{:else if id === 'Companies'}<div class="workspace-view">
+                    <div class="company-cards" aria-label="Started companies">
+                        {#each startedCompanies as company (company.id)}
+                            <CompanyDetails
+                                vertical
+                                displayName={companyNames?.[company.id]?.card}
+                                {company}
+                                {session}
+                                {trainColors}
+                                {poolName}
+                                {privateOperationDescription}
+                                onPreviewMap={previewHistoryMap}
+                            />
+                        {:else}<p class="widget-empty">No companies have started.</p>{/each}
+                    </div>
                     </div>{:else if id === 'Tiles'}<div class="workspace-view">
                     <TileManifest
                         tiles={session.mapView.tileSet.definitions}
@@ -740,6 +761,7 @@
     .market-area {
         overflow: hidden;
     }
+    .company-cards { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; padding: 10px; }
     .data-area {
         padding-bottom: 8px;
     }

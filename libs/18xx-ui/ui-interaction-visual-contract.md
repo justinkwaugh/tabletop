@@ -1624,3 +1624,26 @@ In pane mode, Chat has no outer border or rounded container corners. Its message
 Player Aid and Depot share a live train roster: Remaining shows depot stock / initial supply, including ∞ for unlimited trains; currently available nonempty train types are highlighted and exhausted types dimmed. Depot is an optional tab, absent from the default layout and available through Add tabs.
 
 Fullscreen and historical-map modals use the shared wrapper’s pre-paint dimension fitting, including the initial route focus, so opening them does not expose an intermediate scale or position.
+
+Companies is a default table tab after Spreadsheet. It displays the spreadsheet's
+started, open share companies in the same title-supplied or start-action order,
+using the existing 200px vertical CompanyDetails cards in wrapping rows. Both
+views derive their company list from the displayed state and history position.
+The tab participates in the existing workspace move, close, and saved-layout
+recovery behavior and is also available in the narrow layout. TOP and 1889 need
+updated UI Artifacts to adopt it; no Logic or host contract change is required.
+
+This presentation reuses the existing company/share distinction across the
+researched family: private companies remain in portfolios, while minors,
+formations, and title-specific company sequences retain the spreadsheet's
+eligibility and ordering. The variation catalog's differing company structures
+(1822 minors, 1824 formations, and TOP split companies) require no new rules or
+card interface for this view. TOP's supplied ordering and 1889's start ordering
+exercise the two supported ordering paths.
+
+Titles may explicitly include existing share companies in Companies even when they
+have no start action or started flag. Explicitly included companies follow the normally ordered companies. TOP places
+PEIR last and labels its narrow card PEIR; other card names retain their full names.
+
+Company cards with numbered shares show certificate numbers before share counts
+in each ownership row, keeping the count in the rightmost column.

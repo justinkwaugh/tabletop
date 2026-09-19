@@ -3,7 +3,7 @@ import { restoreWorkspace, saveWorkspace, workspaceLayout, type SavedPane, type 
 const sidebar = ['Players', 'History', 'Chat']
 export const initialTableLayout: SavedPane = ['cols', 20,
     ['rows', 25, ['Game info'], sidebar],
-    ['rows', 50, ['Actions'], ['Map', 'Market', 'Spreadsheet', 'Tiles', 'Player Aid']]
+    ['rows', 50, ['Actions'], ['Map', 'Market', 'Spreadsheet', 'Companies', 'Tiles', 'Player Aid']]
 ]
 
 export function saveTableWorkspace(value: SavedWorkspace) {

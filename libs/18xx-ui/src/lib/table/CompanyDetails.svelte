@@ -196,11 +196,10 @@
                                     >{ownershipName(entry)}{#if president}<PresidentBadge
                                         />{/if}{#if president && entry.owner.kind === 'company' && control}<span class="control"> ({session.ownerName(control)})</span>{/if}</th
                                 >
-                                <td title="Shares">{entry.shares || '—'}</td>
-
                                 {#if numberedShares}<td title="Certificate numbers"
                                         >{entry.certificateNumbers.join(', ') || '—'}</td
                                     >{/if}
+                                <td title="Shares">{entry.shares || '—'}</td>
                                 {/if}
                             </tr>
                         {/each}

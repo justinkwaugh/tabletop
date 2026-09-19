@@ -4,9 +4,9 @@ import { initialTableLayout, restoreTableWorkspace, saveTableWorkspace } from '.
 const tabs = ['Game info', 'Players', 'History', 'Chat', 'Actions', 'Map', 'Market', 'Spreadsheet', 'Tiles'].map(id => ({ id, label: id, closable: id !== 'Actions' }))
 
 it('starts with information above social tabs and Player Aid after Tiles', () => {
-    const restored = restoreWorkspace(null, [...tabs.map(tab => tab.id), 'Player Aid'], [], undefined, [], [], initialTableLayout)
+    const restored = restoreWorkspace(null, [...tabs.map(tab => tab.id), 'Companies', 'Player Aid'], [], undefined, [], [], initialTableLayout)
     expect(workspaceLayout(restored.root).panes.map(item => item.pane.tabs)).toEqual([
-        ['Game info'], ['Players', 'History', 'Chat'], ['Actions'], ['Map', 'Market', 'Spreadsheet', 'Tiles', 'Player Aid']
+        ['Game info'], ['Players', 'History', 'Chat'], ['Actions'], ['Map', 'Market', 'Spreadsheet', 'Companies', 'Tiles', 'Player Aid']
     ])
 })
 it('preserves legacy splits, percentages and sidebar order during migration', () => {
