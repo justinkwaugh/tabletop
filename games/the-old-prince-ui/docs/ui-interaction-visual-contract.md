@@ -13,6 +13,8 @@ History descriptions use full company names except PEIR, which remains PEIR.
 Automatic flotation names the company without a player name or player tint;
 its token sits beside the summary and capital detail.
 Company operation history headers use the recorded controlling player's color tint.
+Operating round dividers show company order between the title and phase when it fits,
+and below both on narrow panes.
 
 TOP additionally shows each numbered PEIR share's fraction of distributed earnings
 and explains its current president: most shares, then lowest numbered share. Both

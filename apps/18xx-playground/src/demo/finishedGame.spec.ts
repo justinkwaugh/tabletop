@@ -27,6 +27,11 @@ it('replays the finished game and restores every history step in both directions
     expect(orders.get(fundingSale.id)?.after).toEqual(['MS', 'S', 'A', 'So', 'C', 'branch:BB', 'MR', 'Gt'])
     expect(historyDescription(fundingSale, state).detail).toContain('Market')
     const rounds = historyRounds(actions, state)
+    const operatingRounds = rounds.filter((round) => round.label.startsWith('OR '))
+    expect(operatingRounds.every((round) => round.operatingOrder?.after.length)).toBe(true)
+    expect(operatingRounds.flatMap((round) => round.entries).some((entry) =>
+        entry.kind === 'action' && entry.action.type === 'StartOperatingRound'
+    )).toBe(false)
     const thirdStockRound = new Set(rounds.find((round) => round.label === 'SR 3')?.entries.map((entry) => entry.id))
     const firstPurchaseIndex = actions.findIndex((action) => thirdStockRound.has(action.id) && action.type === 'BuyShares')
     const firstPurchase = actions[firstPurchaseIndex]

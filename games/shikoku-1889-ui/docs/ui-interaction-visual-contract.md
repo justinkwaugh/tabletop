@@ -13,6 +13,8 @@ History descriptions use full company names. Automatic flotation names the
 company without a player name or player tint; its token sits beside the summary
 and capital detail.
 Company operation history headers use the recorded controlling player's color tint.
+Operating round dividers show company order between the title and phase when it fits,
+and below both on narrow panes.
 
 IPO and Market appear as separate pools of Bank-owned certificates. A president
 certificate shows its 20% interest, two shares, and one certificate

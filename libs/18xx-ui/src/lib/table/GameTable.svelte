@@ -20,6 +20,7 @@
     import StockActionStrip from './StockActionStrip.svelte'
     import type { StockMenuOption } from '../stock/stockActionSelection.js'
     import CompanyDetails from './CompanyDetails.svelte'
+    import CompanyCardLayout from './CompanyCardLayout.svelte'
     import CompanyOrder from './CompanyOrder.svelte'
     import CompanyOrderToggle from './CompanyOrderToggle.svelte'
     import { untrack, tick, type Snippet } from 'svelte'
@@ -612,7 +613,7 @@
                         {portfolioCompanyIds}
                     />
                     </div>{:else if id === 'Companies'}<div class="workspace-view">
-                    <div class="company-cards" aria-label="Started companies">
+                    <CompanyCardLayout paned={paneLayout.current} itemCount={startedCompanies.length}>
                         {#each startedCompanies as company (company.id)}
                             <CompanyDetails
                         pricePresentation={companyPricePresentation}
@@ -626,7 +627,7 @@
                                 onPreviewMap={previewHistoryMap}
                             />
                         {:else}<p class="widget-empty">No companies have started.</p>{/each}
-                    </div>
+                    </CompanyCardLayout>
                     </div>{:else if id === 'Tiles'}<div class="workspace-view">
                     <TileManifest
                         tiles={session.mapView.tileSet.definitions}
@@ -805,7 +806,6 @@
     .market-area {
         overflow: hidden;
     }
-    .company-cards { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; padding: 10px; }
     .data-area {
         padding-bottom: 8px;
     }

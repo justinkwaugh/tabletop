@@ -51,8 +51,8 @@
                 hexHeight = rect.height
                 const svg = viewport.querySelector('svg.map-scene')
                 if (svg instanceof SVGSVGElement) {
-                    const matrix = svg.getScreenCTM()
-                    if (matrix) tileSize = 106 * Math.hypot(matrix.a, matrix.b)
+                    // WebKit's getScreenCTM omits the CSS scale on the map wrapper.
+                    tileSize = 106 * svg.getBoundingClientRect().width / svg.viewBox.baseVal.width
                 }
             }
             frame = requestAnimationFrame(measure)

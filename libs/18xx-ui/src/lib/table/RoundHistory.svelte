@@ -4,6 +4,7 @@
     import { tick, type Snippet } from 'svelte'
     import { assertExists } from '@tabletop/common'
     import type { HistoryRound } from './historyRounds.js'
+    import type { HistoryOperatingOrder } from './historyOperatingOrder.js'
     let {
         rounds,
         children,
@@ -14,7 +15,8 @@
         onReturn,
         currentHeaderId,
         jumpDisabled = false,
-        onOrderChange
+        onOrderChange,
+        orderContent
     }: {
         onJump: (index: number) => void
         onReturn: () => void
@@ -26,6 +28,7 @@
         newestFirst?: boolean
         historyComplete?: boolean
         onOrderChange: (newestFirst: boolean) => void
+        orderContent?: Snippet<[HistoryOperatingOrder]>
     } = $props()
     const indexId = $props.id()
     let indexPanel: HTMLDivElement | undefined = $state()
@@ -75,6 +78,28 @@
             )
             .join(', ')})`
     }
+    function fitOperatingOrder(node: HTMLElement) {
+        const order = node.querySelector<HTMLElement>('.round-order')
+        if (!order) return
+        const title = node.querySelector<HTMLElement>('.round-title')
+        const phase = node.querySelector<HTMLElement>('.round-phase')
+        assertExists(title, 'Operating round header requires its title')
+        assertExists(phase, 'Operating round header requires its phase')
+        const parts = { title, order, phase }
+        function update() {
+            const style = getComputedStyle(node)
+            const available = node.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+            const needed = parts.title.offsetWidth + parts.order.scrollWidth + parts.phase.offsetWidth + 2 * parseFloat(style.columnGap)
+            node.classList.toggle('order-on-second-line', needed > available)
+        }
+        const observer = new ResizeObserver(update)
+        observer.observe(node)
+        observer.observe(parts.title)
+        observer.observe(parts.order)
+        observer.observe(parts.phase)
+        update()
+        return { destroy: () => observer.disconnect() }
+    }
 </script>
 
 <svelte:window onresize={() => indexPanel?.hidePopover()} />
@@ -106,9 +131,12 @@
             {#each newestFirst ? rounds : rounds.toReversed() as round (round.id)}
                 <li class="round-section" data-round-id={round.id} aria-label={round.label}>
                     {#snippet divider()}
-                    <h3 class="round-divider" style:background={phaseBackground(round)} style:--phase-ink={contrastingTextColor(phaseColors[round.phases[0]])}>
-                        <span>{round.label.replace(/^OR /, 'Operating round ').replace(/^SR /, 'Stock round ')}</span>
-                        {#if round.endActionIndex !== undefined}<HistoryHeaderJump onReturn={round.id === currentHeaderId ? onReturn : undefined} label={`Jump to ${round.label} in history`} disabled={jumpDisabled} onclick={() => { if (round.endActionIndex !== undefined) onJump(round.endActionIndex) }} />{/if}
+                    <h3 class="round-divider" use:fitOperatingOrder style:background={phaseBackground(round)} style:--phase-ink={contrastingTextColor(phaseColors[round.phases[0]])}>
+                        <span class="round-title">
+                            <span>{round.label.replace(/^OR /, 'Operating round ').replace(/^SR /, 'Stock round ')}</span>
+                            {#if round.endActionIndex !== undefined}<HistoryHeaderJump onReturn={round.id === currentHeaderId ? onReturn : undefined} label={`Jump to ${round.label} in history`} disabled={jumpDisabled} onclick={() => { if (round.endActionIndex !== undefined) onJump(round.endActionIndex) }} />{/if}
+                        </span>
+                        {#if round.operatingOrder && orderContent}<span class="round-order" aria-label="Operating order">{@render orderContent(round.operatingOrder)}</span>{/if}
                         <span class="round-phase">Phase {round.phases.join(' → ')}</span>
                     </h3>
                     {/snippet}
@@ -223,10 +251,12 @@
         position: sticky;
         top: 0;
         z-index: 1;
-        display: flex;
+        display: grid;
+        grid-template-columns: max-content minmax(0, 1fr) max-content;
+        grid-template-areas: 'title order phase';
         align-items: center;
-        justify-content: space-between;
-        gap: 8px;
+        column-gap: 8px;
+        row-gap: 3px;
         min-height: 36px;
         box-sizing: border-box;
         margin: 0;
@@ -240,11 +270,21 @@
         top: auto;
         bottom: 0;
     }
+    .round-title { grid-area: title; display: flex; align-items: center; gap: 0; width: max-content; white-space: nowrap; }
+    .round-order { grid-area: order; display: flex; width: max-content; max-width: 100%; overflow-x: auto; }
+    .round-order :global(.order-history), .round-order :global(.order) { flex-wrap: nowrap; }
+    .round-divider:global(.order-on-second-line) {
+        grid-template-columns: minmax(0, 1fr) max-content;
+        grid-template-areas: 'title phase' 'order order';
+    }
+    :global(.order-on-second-line) .round-order { justify-self: center; }
     .round-phase {
-        margin-left: auto;
+        grid-area: phase;
+        justify-self: end;
         font-size: 11px;
         font-weight: 600;
         text-align: right;
+        white-space: nowrap;
     }
     .empty {
         padding: 20px 8px;

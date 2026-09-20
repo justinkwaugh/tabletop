@@ -9,6 +9,7 @@
     import { historyGroups } from './historyGroups.js'
     import { historyDescription, type HistoryDescription } from './historyDescription.js'
     import HistoryGroup from './HistoryGroup.svelte'
+    import OperatingOrderHistory from './OperatingOrderHistory.svelte'
     import RoundHistory from './RoundHistory.svelte'
     import AuctionHistoryCard from './AuctionHistoryCard.svelte'
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
@@ -73,6 +74,9 @@
     historyComplete={context.hasCompleteHistory}
     onOrderChange={(first) => session.preferences.set({ historyOrder: first ? 'newestFirst' : 'newestLast' }, 'family')}>
 
+    {#snippet orderContent(order)}
+        <OperatingOrderHistory {order} stations={session.mapView.stations} {companyName} />
+    {/snippet}
     {#snippet children(round)}
         {@const groups = historyGroups(round.entries, round.label.startsWith('OR '))}
         <ol aria-label={`${round.label} actions`}>

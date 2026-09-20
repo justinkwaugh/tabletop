@@ -887,6 +887,8 @@ Company operation and offered-auction history headers share the same compact pad
 
 SR/OR interstitial backgrounds use the active phase’s train-color mapping, including split backgrounds for changes within the round. Phase-change entries separately compare the title’s available tile colors and explicitly announce newly unlocked colors (“green tiles now available”). These are distinct inputs even when their colors coincide in TOP and 1889.
 
+An operating round divider places the recorded company order after its title, before the phase, when the whole order fits. Otherwise the whole order sits on a second line; title and phase remain aligned on the first line. The order no longer repeats as an action row. Both history sort directions use the same divider layout.
+
 Train palettes use title-owned hex colors, separate from tile colors. TOP uses its ten train-roster colors (including blue 2+, cyan 3+, and red 7); badges select contrasting text and SR/OR bands tint those same colors. The final company cash balance appears as an amount only, with a short rule above it, when at least one action adjusted company cash. Operations with no cash adjustments omit both; offsetting adjustments still show the final balance. Full dividend distributions are labeled “Paid out”.
 
 During a live, actionable RunningTrains step, the table starts client-side
@@ -1603,7 +1605,14 @@ the neutral surface.
 
 Spreadsheet player-name header cells use the shared 15% player-color tint: row
 and column headers in ownership views and player-group headers in income history.
-Company/pool headers and numeric cells retain their existing backgrounds.
+Company/pool headers retain their existing backgrounds. Ownership data cells use
+muted blue throughout the holdings matrix, slate for available pool shares,
+lavender for financial values and recorded runs, and periwinkle for share/token counts. Dark-mode
+fills are brighter than the surrounding surface; light mode uses pale equivalents.
+Empty holdings cells retain the matrix fill; empty Market, Treasury, and Exchange
+cells remain unfilled. Sold-share rose takes precedence over the
+holdings fill, and row hover preserves each category's hue. Active-player and
+operating-company outlines remain visible over these fills in either orientation.
 
 Player cards in workspace panes start 10px below the pane header, matching the
 10px gap between cards in both vertical and horizontal arrangements.
@@ -1633,7 +1642,10 @@ Fullscreen and historical-map modals use the shared wrapper’s pre-paint dimens
 
 Companies is a default table tab after Spreadsheet. It displays the spreadsheet's
 started, open share companies in the same title-supplied or start-action order,
-using the existing 200px vertical CompanyDetails cards in wrapping rows. Both
+using the existing 200px vertical CompanyDetails cards. In pane mode, cards wrap
+left to right into as many rows as fit the available height, accounting for actual
+card heights. When those rows cannot fit the pane width, the pane scrolls horizontally.
+Non-paned layouts retain a single horizontal row. Cards retain their width. Both
 views derive their company list from the displayed state and history position.
 The tab participates in the existing workspace move, close, and saved-layout
 recovery behavior and is also available in the narrow layout. TOP and 1889 need
