@@ -1,12 +1,12 @@
 {
   "frontend": {
-    "version": "22.1.0",
+    "version": "22.2.0",
     "priorVersions": [
+      "22.1.0",
       "22.0.2",
       "22.0.1",
       "22.0.0",
-      "21.4.0",
-      "21.3.0"
+      "21.4.0"
     ]
   },
   "games": [
@@ -54,7 +54,7 @@
       "gameId": "freshfish",
       "packageId": "fresh-fish",
       "logicVersion": "5.0.1",
-      "uiVersion": "7.1.0",
+      "uiVersion": "7.2.0",
       "priorLogicVersions": [
         "5.0.0",
         "4.0.0",
@@ -63,11 +63,11 @@
         "3.0.0"
       ],
       "priorUiVersions": [
+        "7.1.2",
+        "7.1.1",
+        "7.1.0",
         "7.0.2",
-        "7.0.1",
-        "7.0.0",
-        "6.3.0",
-        "6.2.0"
+        "7.0.1"
       ]
     },
     {
@@ -172,7 +172,7 @@
       "gameId": "santiago",
       "packageId": "santiago",
       "logicVersion": "2.1.0",
-      "uiVersion": "3.1.0",
+      "uiVersion": "3.2.0",
       "priorLogicVersions": [
         "2.0.1",
         "2.0.0",
@@ -181,11 +181,11 @@
         "1.2.0"
       ],
       "priorUiVersions": [
+        "3.1.0",
         "3.0.3",
         "3.0.2",
         "3.0.1",
-        "3.0.0",
-        "2.6.0"
+        "3.0.0"
       ]
     },
     {
@@ -211,21 +211,21 @@
     {
       "gameId": "the-old-prince",
       "packageId": "the-old-prince",
-      "logicVersion": "0.7.1",
-      "uiVersion": "0.33.0",
+      "logicVersion": "0.9.0",
+      "uiVersion": "0.44.0",
       "priorLogicVersions": [
+        "0.8.0",
+        "0.7.1",
         "0.7.0",
         "0.6.0",
-        "0.5.0",
-        "0.4.0",
-        "0.3.0"
+        "0.5.0"
       ],
       "priorUiVersions": [
-        "0.32.1",
-        "0.32.0",
-        "0.31.0",
-        "0.30.0",
-        "0.29.0"
+        "0.43.0",
+        "0.42.0",
+        "0.41.0",
+        "0.40.0",
+        "0.39.0"
       ]
     }
   ]
