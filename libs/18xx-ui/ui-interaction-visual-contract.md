@@ -1688,3 +1688,10 @@ Browser verification switches modes with a track draft, commits a lay, steps bac
 and returns to Live View, then undoes the lay at desktop and mobile widths. The
 image remains visible while tiles follow the displayed state. A title without
 artwork retains its generic map and has no picture button.
+
+
+Train-income row hit targets are confined to the visible train and income cells.
+The full row is a real button, including the income amount, with hover and keyboard
+focus on that same button. It must never intercept adjacent actions such as Run
+trains. WebKit browser coverage verifies route focus, Run trains and Undo for TOP
+and 1889.

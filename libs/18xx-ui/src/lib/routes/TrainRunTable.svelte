@@ -27,7 +27,7 @@
             {@const index = result.routes.findIndex((route) => route.trainId === train.id)}
             {@const route = result.routes[index]}
             <tr data-route-train={train.id}>
-                <td
+                <td colspan="2"
                     ><button
                         class="route-focus"
                         disabled={!route || !onFocusRoute}
@@ -42,10 +42,9 @@
                                 name={trainName(train.definitionId)}
                                 color={trainColors[train.definitionId]}
                             />
-                        </span></button
+                        </span><span class="income">${(route?.revenue ?? 0).toLocaleString('en-US')}</span></button
                     ></td
                 >
-                <td class="income">${(route?.revenue ?? 0).toLocaleString('en-US')}</td>
             </tr>
         {:else}<tr><td colspan="2">No trains</td></tr>{/each}
     </tbody>
@@ -87,29 +86,21 @@
         padding-top: 3px;
         font-weight: 650;
     }
-    tbody tr {
-        position: relative;
-    }
     .route-focus {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
         padding: 0;
         border: 0;
-        border-radius: 0;
+        border-radius: 3px;
         background: transparent;
         color: inherit;
     }
-    .route-focus::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: 3px;
-    }
-    .route-focus:not(:disabled):hover::after {
+    .route-focus:not(:disabled):hover {
         background: var(--rail-hover, #463e350c);
     }
     .route-focus:focus-visible {
-        outline: none;
-    }
-    .route-focus:focus-visible::after {
         outline: 2px solid #bd865e;
         outline-offset: 1px;
     }
