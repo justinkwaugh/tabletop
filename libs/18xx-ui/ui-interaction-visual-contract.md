@@ -318,8 +318,9 @@ system actions. Stock decisions are unavailable in History View. Live returns to
 committed state; Undo reverses the player action and its automatic cascade.
 
 The disposable FinanceMap panel exposes inventory through the existing tile
-library. Browsing it cannot place tiles or change available counts. Boardless
-rendering is active; physical presentation awaits title artwork.
+library. Browsing it cannot place tiles or change available counts. The table can
+optionally display title-supplied board artwork under the same semantic map; the
+workbench continues to use the generic presentation.
 
 Desktop browser checks cover TOP station exchange and its reservation through
 purchase, flotation, history stepping, Live, and Undo; 1889's retained reservation,
@@ -1401,18 +1402,16 @@ The spreadsheet leaves up to 20px below its controls strip when vertical room pe
 
 ### Table color theme
 
-The round header offers an accessible light/dark toggle immediately to the right of Undo. The `theme` family
-preference defaults to light and persists for the viewing player across reloads
-and 18xx titles. It never changes Game State or another player's view.
-
+The table always uses dark mode, with no theme toggle. Existing saved theme
+preferences remain accepted for older UI Artifacts but do not affect this UI.
 Dark mode uses table-scoped surface, text, border, focus, and interaction colors.
-Light mode retains the existing palette. Popovers and dialogs inherit the table
+Popovers and dialogs inherit the table
 palette, including phase/depot charts and historical maps. The map surround is
 darkened, while tile colors, map artwork, stock-market cells, company tokens,
 player colors, and train/phase badges retain their gameplay meaning.
 
-TOP and 1889 require updated Logic for the preference schema and updated UI
-Artifacts for the shared theme. The host API and serialized Game State are unchanged.
+TOP and 1889 require updated UI Artifacts for the dark-only presentation.
+The host API, Logic schema, and serialized Game State are unchanged.
 
 In dark mode, phase-colored history interstitials, round-index entries, and phase-change rows use canonical phase colors at full strength, including split-color round backgrounds. Their text adapts to the phase color instead of tinting the color to match the dark surfaces.
 
@@ -1663,3 +1662,29 @@ glyph. The company arrow sits immediately after the company name, above the play
 name. It returns to the current game through history navigation, preserving any
 active exploration. Busy-state navigation guards apply to both controls; returning
 live removes the arrow and the history strip. Company headers share the full-surface jump target without a clock icon; auction headers retain their existing behavior.
+
+### Published board presentation
+
+The picture button beside Undo is available only when a title supplies board
+artwork. It switches this client's table between generic and published
+presentations, with a pressed state and an accessible label describing the next
+choice. The choice lasts for the mounted table and resets to generic on reload.
+It creates no Action, changes no other client's view, and retains any Action Draft
+and map selection. Switching fits the selected presentation's full bounds.
+
+The image renders at its native dimensions behind laid tiles, station tokens,
+routes, placement masks, hit targets and selection highlights. Unlaid hexes remain
+transparent; printed labels and track are supplied by the image. The diagnostic grid is hidden in artwork mode; selection and focus highlights
+remain visible. The same image-to-map mapping must determine
+rendered positions and focus rectangles. The image never supplies game identities
+or pointer hit targets.
+
+History View, historical-map dialogs and Undo use the selected presentation with
+their displayed map state. Existing masks, route emphasis and selection precedence
+continue to apply. The table owns the local presentation choice; MapScene owns the
+background and overlay composition. No Game Session transient value is added.
+
+Browser verification switches modes with a track draft, commits a lay, steps back
+and returns to Live View, then undoes the lay at desktop and mobile widths. The
+image remains visible while tiles follow the displayed state. A title without
+artwork retains its generic map and has no picture button.

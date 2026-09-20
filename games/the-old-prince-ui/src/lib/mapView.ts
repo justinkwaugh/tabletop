@@ -1,3 +1,4 @@
+import BoardImage from './images/MAP-AUGUST-01.jpg'
 import VernonRiver from './images/vernon-river.svg'
 import CToken from './images/tokens/C.svg'
 import SoToken from './images/tokens/So.svg'
@@ -17,6 +18,14 @@ import { TheOldPrinceMap, TheOldPrinceTileSet } from '@tabletop/the-old-prince'
 import type { MapViewDefinition } from '@tabletop/18xx-ui'
 
 export const TheOldPrinceMapView: MapViewDefinition = {
+    boardArtwork: {
+        backgroundColor: '#222a2c',
+        imageUrl: BoardImage,
+        width: 2048,
+        height: 1394,
+        origin: { x: 128, y: 169 },
+        scale: 1.067
+    },
     map: TheOldPrinceMap,
     tileSet: TheOldPrinceTileSet,
     markerImages: { 'vernon-river-bridge': VernonRiver },

@@ -1,10 +1,11 @@
 import { assertExists } from '@tabletop/common'
 import type { StationState, RailwayMap, TileSet } from '@tabletop/18xx'
-import type { MapToken } from './mapDrawing.js'
+import type { BoardArtwork, MapToken } from './mapDrawing.js'
 import type { TileLayout } from '../tiles/tileDrawing.js'
 
 export type StationAppearance = { label: string; color: string; imageUrl?: string }
 export type MapViewDefinition = {
+    boardArtwork?: BoardArtwork
     map: RailwayMap
     tileSet: TileSet
     stations: Readonly<Record<string, StationAppearance>>

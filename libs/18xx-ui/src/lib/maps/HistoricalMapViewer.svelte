@@ -2,11 +2,12 @@
     import { onMount } from 'svelte'
     import { ScalingWrapper } from '@tabletop/frontend-components'
     import MapScene from './MapScene.svelte'
-    import { mapSelectionRect } from './mapDrawing.js'
+    import { mapSelectionRect, type BoardArtwork } from './mapDrawing.js'
     import type { HistoricalMap } from './historicalMap.js'
     import type { TileAppearance } from '../tiles/tileAppearance.js'
 
-    let { preview, appearance, revenueStageColors, onclose }: {
+    let { preview, appearance, revenueStageColors, artwork, onclose }: {
+        artwork?: BoardArtwork
         preview: HistoricalMap
         appearance: TileAppearance
         revenueStageColors?: Readonly<Record<string, string>>
@@ -19,7 +20,7 @@
         dialog.showModal()
         if (preview.locations.length) {
             const rectangles = preview.locations.map((locationId) =>
-                mapSelectionRect(preview.scene, { kind: 'hex', locationId }, 140, 220))
+                mapSelectionRect(preview.scene, { kind: 'hex', locationId }, 140, 220, artwork))
             const x = Math.min(...rectangles.map((rect) => rect.x))
             const y = Math.min(...rectangles.map((rect) => rect.y))
             const right = Math.max(...rectangles.map((rect) => rect.x + rect.width))
@@ -43,9 +44,9 @@
         <span><strong>Historical {preview.kind}</strong> · {preview.label}{#if preview.revenue !== undefined} · <strong>${preview.revenue}</strong>{/if}</span>
         <button onclick={onclose}>Close</button>
     </header>
-    <div class="map">
+    <div class="map" style:background={artwork?.backgroundColor}>
         <ScalingWrapper maxScale={2} bind:this={wrapper} justify="center" controls="bottom-left">
-            <MapScene scene={preview.scene} tokens={preview.tokens}
+            <MapScene {artwork} scene={preview.scene} tokens={preview.tokens}
                 reservations={preview.reservations} routes={preview.routes}
                 selection={preview.selection} {appearance} {revenueStageColors} hexDiameter={140} />
         </ScalingWrapper>

@@ -69,13 +69,10 @@ test('compact player cards toggle together and persist across reloads and titles
     await expect(page.locator('.players > article.compact')).toHaveCount(0)
 })
 
-test('table theme persists across reloads and titles and applies to dialogs', async ({ page }) => {
+test('table always uses dark mode across reloads, titles and dialogs', async ({ page }) => {
     await page.goto('/table')
     const table = page.getByLabel('Game table', { exact: true })
-    await expect(table).toHaveAttribute('data-theme', 'light')
-    await page.getByRole('button', { name: 'Switch to dark mode', exact: true }).click()
     await expect(table).toHaveAttribute('data-theme', 'dark')
-    await expect.poll(() => storedFamilyPreference(page, 'theme')).toBe('dark')
     await expect(table).toHaveCSS('color-scheme', 'dark')
     await page.getByRole('button', { name: 'Open phase chart', exact: true }).click()
     await expect(page.getByRole('dialog')).toHaveCSS('color-scheme', 'dark')
@@ -84,17 +81,12 @@ test('table theme persists across reloads and titles and applies to dialogs', as
     await expect(table).toHaveAttribute('data-theme', 'dark')
     await page.getByLabel('Game', { exact: true }).selectOption('1889')
     await expect(table).toHaveAttribute('data-theme', 'dark')
-    await page.getByRole('button', { name: 'Switch to light mode', exact: true }).click()
-    await expect.poll(() => storedFamilyPreference(page, 'theme')).toBe('light')
-    await expect(table).toHaveCSS('color-scheme', 'light')
+    await expect(page.getByRole('button', { name: /Switch to (light|dark) mode/ })).toHaveCount(0)
     await page.getByLabel('Game', { exact: true }).selectOption('TOP')
-    await expect(table).toHaveAttribute('data-theme', 'light')
 })
 
-test('saved dark mode has no bright loading canvas on reload', async ({ page }) => {
+test('dark mode has no bright loading canvas on reload', async ({ page }) => {
     await page.goto('/table')
-    await page.getByRole('button', { name: 'Switch to dark mode', exact: true }).click()
-    await expect.poll(() => storedFamilyPreference(page, 'theme')).toBe('dark')
     await page.addInitScript(() => {
         let frames = 0
         function inspectFrame() {
@@ -113,7 +105,7 @@ test('saved dark mode has no bright loading canvas on reload', async ({ page }) 
         requestAnimationFrame(inspectFrame)
     })
     await page.reload()
-    await page.getByRole('button', { name: 'Switch to light mode', exact: true }).waitFor()
+    await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
     await expect.poll(() => page.locator('html').getAttribute('data-startup-frames')).not.toBeNull()
     await expect(page.locator('html')).not.toHaveAttribute('data-bright-startup-frame', 'true')
 })

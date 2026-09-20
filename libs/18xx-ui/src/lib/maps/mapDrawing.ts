@@ -52,6 +52,28 @@ export type MapDrawnLocation = {
         border: NonNullable<MapLocation['borders']>[number]
     }[]
 }
+export type BoardArtwork = {
+    backgroundColor?: string
+    imageUrl: string
+    width: number
+    height: number
+    origin: Point
+    scale: number
+}
+
+export function mapViewport(scene: MapDrawing, hexDiameter: number, artwork?: BoardArtwork) {
+    const scale = artwork?.scale ?? hexDiameter / 100
+    const bounds = artwork
+        ? {
+              x: -artwork.origin.x / scale,
+              y: -artwork.origin.y / scale,
+              width: artwork.width / scale,
+              height: artwork.height / scale
+          }
+        : scene.bounds
+    return { bounds, scale, width: bounds.width * scale, height: bounds.height * scale }
+}
+
 export type MapDrawing = {
     map: RailwayMap
     locations: readonly MapDrawnLocation[]
@@ -94,7 +116,11 @@ export function createMapDrawing(
             annotationExclusions: [
                 ...(tileLayout.annotationExclusions ?? []),
                 ...(!placement && location.name
-                    ? [{ x: -18, y: -38 }, { x: 0, y: -38 }, { x: 18, y: -38 }]
+                    ? [
+                          { x: -18, y: -38 },
+                          { x: 0, y: -38 },
+                          { x: 18, y: -38 }
+                      ]
                     : []),
                 ...(!placement && location.terrain
                     ? [{ x: 0, y: face.nodes.length || face.paths.length ? 23 : 4 }]
@@ -216,8 +242,19 @@ export function printedMapReservations(scene: MapDrawing): StationReservation[] 
     )
 }
 
-export function mapSelectionRect(scene: MapDrawing, selection: MapSelection, hexDiameter: number, radius = 60) {
+export function mapSelectionRect(
+    scene: MapDrawing,
+    selection: MapSelection,
+    hexDiameter: number,
+    radius = 60,
+    artwork?: BoardArtwork
+) {
     const point = mapSelectionPoint(scene, selection)
-    const scale = hexDiameter / 100
-    return { x: (point.x - scene.bounds.x - radius) * scale, y: (point.y - scene.bounds.y - radius) * scale, width: radius * 2 * scale, height: radius * 2 * scale }
+    const { bounds, scale } = mapViewport(scene, hexDiameter, artwork)
+    return {
+        x: (point.x - bounds.x - radius) * scale,
+        y: (point.y - bounds.y - radius) * scale,
+        width: radius * 2 * scale,
+        height: radius * 2 * scale
+    }
 }

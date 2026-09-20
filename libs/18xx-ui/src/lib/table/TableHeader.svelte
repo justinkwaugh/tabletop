@@ -12,8 +12,14 @@
         companyNames = {},
         bordered = true,
         phaseChart,
-        trainColors
+        trainColors,
+        artworkAvailable = false,
+        publishedArtwork = false,
+        onToggleArtwork
     }: {
+        artworkAvailable?: boolean
+        publishedArtwork?: boolean
+        onToggleArtwork?: () => void
         bordered?: boolean
         session: FinanceExampleSession
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
@@ -107,18 +113,19 @@
                 session.isViewingHistory ||
                 !(session.hasActionDraft || session.undoableAction)}>Undo</button
         >
-            <button class="theme-toggle"
-                aria-label={session.preferences.values.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                title={session.preferences.values.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                onclick={() => session.preferences.set({ theme: session.preferences.values.theme === 'dark' ? 'light' : 'dark' }, 'family')}>
+        {#if artworkAvailable}
+            <button class="artwork-toggle"
+                aria-label={publishedArtwork ? 'Use generic presentation' : 'Use published artwork'}
+                title={publishedArtwork ? 'Use generic presentation' : 'Use published artwork'}
+                aria-pressed={publishedArtwork}
+                onclick={onToggleArtwork}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    {#if session.preferences.values.theme === 'dark'}
-                        <circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" />
-                    {:else}
-                        <path d="M20.5 13A8.5 8.5 0 0 1 11 3.5 8.5 8.5 0 1 0 20.5 13Z" />
-                    {/if}
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8" cy="8" r="1.5" />
+                    <path d="m3 17 5-5 4 4 4-6 5 7" />
                 </svg>
             </button>
+        {/if}
     </div>
 </header>
 
@@ -236,7 +243,6 @@
         opacity: 0.3;
         cursor: default;
     }
-    .theme-toggle { margin-left: -8px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 32px; height: 32px; padding: 6px; border: 0; border-radius: 5px; background: transparent; color: var(--rail-muted, #786550); cursor: pointer; }
-    .theme-toggle:hover { background: var(--rail-hover, #69554016); color: var(--rail-text, #443c34); }
-    .theme-toggle:focus-visible { outline: 2px solid var(--rail-focus, #796047); outline-offset: 1px; }
+    .artwork-toggle { margin-left: -8px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 32px; height: 32px; padding: 6px; color: var(--rail-muted, #786550); }
+    .artwork-toggle[aria-pressed='true'] { background: var(--rail-hover, #69554016); color: var(--rail-text, #443c34); }
 </style>

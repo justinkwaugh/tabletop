@@ -115,6 +115,22 @@
     const depotState = $derived({ depot: session.trainDepot, inventory: session.financialState.trainInventory, availableDefinitionIds: session.availableTrainDefinitionIds })
     const currentDepotIds = $derived(session.availableTrainDefinitionIds.filter((id) => session.trainDepot.remaining(session.financialState.trainInventory, id) !== 0))
 
+    let publishedArtwork = $state(false)
+    const boardArtwork = $derived(publishedArtwork ? session.mapView.boardArtwork : undefined)
+    $effect(() => {
+        const color = boardArtwork?.backgroundColor
+        if (!color) return
+        const previous = document.body.style.backgroundColor
+        document.body.style.backgroundColor = color
+        return () => { document.body.style.backgroundColor = previous }
+    })
+    async function toggleArtwork() {
+        publishedArtwork = !publishedArtwork
+        restoreRouteView = undefined
+        await tick()
+        mapWrapper?.fitToContent()
+    }
+
     let mapWrapper = $state<ScalingWrapper>()
     let focusedLocation: string | undefined = $derived.by(() => {
         session.financialState
@@ -134,7 +150,7 @@
             return
         }
         const scene = session.displayedMapScene
-        mapWrapper?.focusRect(mapSelectionRect(scene, { kind: 'hex', locationId }, 140, 220), {
+        mapWrapper?.focusRect(mapSelectionRect(scene, { kind: 'hex', locationId }, 140, 220, boardArtwork), {
             animate: true
         })
     }
@@ -189,7 +205,7 @@
     const displayedScene = $derived(session.displayedMapScene)
     function focusLocations(locations: readonly string[], animate = true) {
         const rectangles = locations.map((locationId) => mapSelectionRect(
-            displayedScene, { kind: 'hex', locationId }, 140, 220
+            displayedScene, { kind: 'hex', locationId }, 140, 220, boardArtwork
         ))
         const x = Math.min(...rectangles.map((rect) => rect.x))
         const y = Math.min(...rectangles.map((rect) => rect.y))
@@ -438,7 +454,7 @@
             </div>
 {/snippet}
 
-<div class="railway-table" style:--table-header-offset="calc(var(--app-navbar-height, 0px) + {session.isViewingHistory ? 14 : 0}px)" data-theme={session.preferences.ready ? session.preferences.values.theme : 'dark'} aria-label="Game table" aria-busy={!session.preferences.ready}>
+<div class="railway-table" style:--rail-table-background={boardArtwork?.backgroundColor} style:--rail-map-background={boardArtwork?.backgroundColor} style:--table-header-offset="calc(var(--app-navbar-height, 0px) + {session.isViewingHistory ? 14 : 0}px)" data-theme="dark" aria-label="Game table" aria-busy={!session.preferences.ready}>
     {#if session.preferences.ready && layoutPreference.ready}
     {#if session.isViewingHistory}
         <div class="history-strip" role="status"><span>VIEWING HISTORY</span></div>
@@ -458,7 +474,7 @@
                 class:player-tinted-header={paneLayout.current && !!headerPlayerId}
                 style:--player-color={headerPlayerId ? session.colors.getPlayerBgColorValue(headerPlayerId) : undefined}>
                 {#if paneLayout.current}<div class="workspace-history-controls">{@render historyControls(false)}</div>{/if}
-                <div class="table-heading"><TableHeader {session} {phaseChart} {trainColors} {companyNames} bordered={!paneLayout.current} /></div>
+                <div class="table-heading"><TableHeader artworkAvailable={!!session.mapView.boardArtwork} {publishedArtwork} onToggleArtwork={toggleArtwork} {session} {phaseChart} {trainColors} {companyNames} bordered={!paneLayout.current} /></div>
             </div>
             {#if paneLayout.current && layoutPreference.status}
                 <button class="layout-save" disabled={layoutPreference.status === 'saving' || layoutPreference.status === 'saved'} onclick={() => layoutPreference.save()} title="Layout saves automatically after three seconds without changes. Click to save now.">
@@ -540,6 +556,7 @@
                     >
                         <MapScene revenueStageColors={session.mapView.revenueStageColors}
                             scene={displayedScene}
+                            artwork={boardArtwork}
                             tokens={session.displayedMapTokens}
                             reservations={session.displayedTrackPreview?.stationReservations ??
                                 session.stationDisplayState.stationReservations}
@@ -630,7 +647,7 @@
 {#if showDepot}<PhaseChart {depotState} depotOnly chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} onclose={() => showDepot = false} />{/if}
 
 {#if session.historicalMap}
-    <HistoricalMapViewer preview={session.historicalMap}
+    <HistoricalMapViewer artwork={boardArtwork} preview={session.historicalMap}
         revenueStageColors={session.mapView.revenueStageColors}
         appearance={session.mapStyle === 'muted' ? MutedTileAppearance : ClassicTileAppearance}
         onclose={() => session.closeHistoricalMap()} />
@@ -675,7 +692,6 @@
     .widget-empty { padding: 16px; color: var(--rail-muted, #887969); }
     .order-display { display: flex; justify-content: flex-end; }
     .railway-table {
-        color-scheme: light;
         --workspace-text: var(--rail-text, #443c34);
         --workspace-muted: var(--rail-muted, #887969);
         --workspace-inactive: var(--rail-inactive, #938371);
@@ -684,7 +700,7 @@
         --workspace-hover: var(--rail-hover, #69554016);
         --workspace-surface: var(--rail-surface, #faf7f2);
     }
-    .railway-table[data-theme='dark'] {
+    .railway-table {
         color-scheme: dark;
         --rail-text: #e3e9ef;
         --rail-negative: #ff9c91;

@@ -2,7 +2,12 @@ import { expect, it } from 'vitest'
 import { HexOrientation } from '@tabletop/common'
 import { RailwayMap, createCityTileFace, type TileEdge } from '@tabletop/18xx'
 import { mapTrackJoins } from '../lib/maps/trackJoins.js'
-import { createMapDrawing, mapSelectionPoint } from '../lib/maps/mapDrawing.js'
+import {
+    createMapDrawing,
+    mapSelectionPoint,
+    mapSelectionRect,
+    mapViewport
+} from '../lib/maps/mapDrawing.js'
 
 it.each([HexOrientation.Flat, HexOrientation.Pointy])(
     'aligns borders and selectable stations in %s maps',
@@ -47,5 +52,42 @@ it.each([HexOrientation.Flat, HexOrientation.Pointy])(
                 pathId: 'missing'
             })
         ).toThrow('path')
+    }
+)
+
+it.each([HexOrientation.Flat, HexOrientation.Pointy])(
+    'focuses a station in native artwork coordinates on a %s map',
+    (orientation) => {
+        const scene = createMapDrawing(
+            new RailwayMap({
+                id: 'artwork-example',
+                name: 'Artwork example',
+                orientation,
+                locations: [
+                    {
+                        id: 'home',
+                        coordinates: { q: -2, r: 3 },
+                        buildable: true,
+                        preprintedTile: createCityTileFace('white', [], 20, 2)
+                    }
+                ]
+            })
+        )
+        const artwork = {
+            imageUrl: '/board.jpg',
+            width: 2048,
+            height: 1394,
+            origin: { x: 400, y: 200 },
+            scale: 1.5
+        }
+        const selection = { kind: 'slot', locationId: 'home', nodeId: 'city', slot: 1 } as const
+        const point = mapSelectionPoint(scene, selection)
+        const rect = mapSelectionRect(scene, selection, 140, 60, artwork)
+        expect(rect.x + rect.width / 2).toBeCloseTo(400 + point.x * 1.5)
+        expect(rect.y + rect.height / 2).toBeCloseTo(200 + point.y * 1.5)
+        expect(rect.width).toBe(180)
+        expect(mapViewport(scene, 140, artwork)).toMatchObject({ width: 2048, height: 1394 })
+        const generic = mapSelectionRect(scene, selection, 140)
+        expect(generic.x + generic.width / 2).toBeCloseTo((point.x - scene.bounds.x) * 1.4)
     }
 )

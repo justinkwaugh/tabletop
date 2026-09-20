@@ -265,3 +265,17 @@ final PEIR closure is shown with King's Mail closure. Forced phase exchanges
 remain on the phase entry. Historical owners come from recorded action changes.
 
 Vernon River’s unbuilt map marker uses title-owned SVG artwork: a large VR above two small connected circles. The artwork replaces the small marker label and disappears when a tile is laid; it does not introduce route nodes or station slots.
+
+
+## Published board presentation
+
+TOP follows the shared published-board presentation contract. Its picture button
+selects the packaged 2048 × 1394 MAP-AUGUST-01 JPEG. Laid tiles and live overlays
+render over the board with the diagnostic grid hidden. The initial
+calibration and known printed-layout differences are recorded in
+[the board artwork design note](board-artwork.md). Browser scenarios cover switching
+with a draft, committed placement, history and Undo at desktop and mobile widths.
+
+In artwork mode, the page and map surround use the sampled dark board-border
+color (#222a2c). Switching to generic or leaving the table restores the normal
+page background.
