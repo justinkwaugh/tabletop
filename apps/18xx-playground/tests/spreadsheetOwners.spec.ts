@@ -10,18 +10,21 @@ test('TOP groups Union Bank under its controller without merging their holdings'
     await expect(sheet.getByRole('row').filter({ has: page.getByRole('rowheader', { name: 'Alex', exact: true }) }).getByRole('cell'))
         .toHaveText(['3P', '1', '$240', '5', '5/20', '$1,072'])
     await expect(bank.getByRole('rowheader')).toHaveClass(/controlled-owner/)
-    await expect(bank.locator('.included-net-worth')).toHaveCSS('color', 'rgb(153, 139, 121)')
+    await expect(bank.locator('.included-net-worth')).toHaveCSS('color', 'rgb(127, 142, 158)')
     await expect(page.getByText("* Union Bank's net worth is included in its controlling player's net worth.", { exact: true })).toBeVisible()
     for (const width of [1100, 390]) {
         await page.setViewportSize({ width, height: 900 })
         const player = sheet.getByRole('rowheader', { name: 'Alex', exact: true })
-        const dot = await player.locator('.color-dot').boundingBox()
+        await expect(player.locator('.color-dot')).toHaveCount(0)
+        await expect(player).toHaveCSS('box-shadow', /inset/)
+        const label = await player.locator('.player-label').boundingBox()
         const branch = await bank.getByRole('rowheader').evaluate(element => ({
             left: element.getBoundingClientRect().left + parseFloat(getComputedStyle(element, '::before').left),
             padding: getComputedStyle(element).paddingLeft
         }))
-        if (!dot) throw new Error('Missing controlling player dot')
-        expect(branch.left).toBeCloseTo(dot.x + dot.width / 2, 0)
+        if (!label) throw new Error('Missing controlling player label')
+        expect(branch.left).toBeGreaterThan(label.x)
+        expect(branch.left).toBeLessThan(label.x + 12)
         expect(branch.padding).toBe('36px')
         await page.getByRole('button', { name: 'Swap rows and columns' }).click()
         const headers = sheet.getByRole('columnheader')

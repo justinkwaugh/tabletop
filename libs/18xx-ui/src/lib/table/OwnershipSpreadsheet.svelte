@@ -58,11 +58,15 @@
         session.financialState.stockRound.completed && session.financialState.operatingSet && !session.financialState.result
             ? nextOperatingCompany(session.financialState) : undefined
     )
-    const currentPlayerOwners = $derived(new Set(session.financialState.activePlayerIds.map((id) => `player:${id}`)))
+    // While a company operates, only that company is highlighted; the active player's row is not.
+    const currentPlayerOwners = $derived(new Set(
+        operatingCompanyId ? [] : session.financialState.activePlayerIds.map((id) => `player:${id}`)
+    ))
     const companies = $derived(spreadsheetCompanies(
         session.financialState, session.actions, session.gameState.actionCount, companyOrder
     ))
     let period = $state<'Current' | 'Player income' | 'Company payouts'>('Current')
+    let scrolled = $state(false)
     const view = $derived(session.preferences.values.spreadsheetView === 'company' ? 'Company' : 'Player')
     function soldThisRound(ownerId: string, companyId: string): boolean {
         const state = session.financialState
@@ -72,7 +76,7 @@
                     sale.owner.kind === 'company' ? `company:${sale.owner.companyId}` : 'bank') === ownerId)
     }
     const firstPoolId = 'market'
-    const poolColumnLabels: Readonly<Record<string, string>> = { market: 'Mark.', treasury: 'Treas.', exchange: 'Exch.' }
+    const poolColumnLabels: Readonly<Record<string, string>> = { market: 'Market', treasury: 'Treas.', exchange: 'Exch.' }
     const portfolioColumnLabels = $derived(new Map(portfolioCompanyIds.map((id) => [
         `company:${id}`, companyNames[id]?.initials ?? id
     ])))
@@ -179,6 +183,15 @@
     function ownerPlayerColor(ownerId: string) {
         return ownerId.startsWith('player:') ? session.colors.getPlayerBgColorValue(ownerId.slice(7)) : undefined
     }
+    /** Every second pool row or column is a shade lighter so the pool stays legible without color. */
+    function poolAlternate(ownerId: string) {
+        return owners.filter((owner) => owner.id in poolColumnLabels).findIndex((owner) => owner.id === ownerId) % 2 === 1
+    }
+    /** Players tint with their own color; a controlled portfolio (e.g. Union Bank) tints with its controller's. */
+    function ownerTintColor(ownerId: string) {
+        const controllerId = portfolioOwners.find((entry) => entry.id === ownerId)?.controllerId
+        return ownerPlayerColor(ownerId) ?? (controllerId ? session.colors.getPlayerBgColorValue(controllerId) : undefined)
+    }
 </script>
 
 {#snippet financialValue(ownerId: string, index: number)}
@@ -189,7 +202,7 @@
 {#snippet ownerLabel(owner: { id: string; name: string }, column = false)}
     {@const color = ownerPlayerColor(owner.id)}
     {#if color}
-        <PlayerName name={owner.name} {color} />
+        <PlayerName name={owner.name} {color} dot={false} />
     {:else if portfolioColumnLabels.has(owner.id)}
         <span class="owner-name portfolio-full">{owner.name}</span>
         <span class="owner-name portfolio-short">{portfolioColumnLabels.get(owner.id)}</span>
@@ -218,8 +231,9 @@
     </span>
 {/snippet}
 
-{#snippet shareCell(shares: number, poolStart = false, president = false, matrix = true, sold = false, operating = false)}
-    <td class:operating-column={operating} class:sold class:share-cell={matrix} class:available-pool={!matrix && shares !== 0} class:empty={shares === 0} class:pool-start={poolStart}>
+{#snippet shareCell(shares: number, poolStart = false, president = false, matrix = true, sold = false, operating = false, tint: string | undefined = undefined, poolAlt = false)}
+    <td class:operating-column={operating} class:sold class:share-cell={matrix} class:available-pool={!matrix} class:pool-alt={poolAlt} class:empty={shares === 0} class:pool-start={poolStart}
+        class:player-tinted-cell={!!tint} style:--player-color={tint}>
         <span class="share-value" class:president
             >{shares === 0 ? '' : shares}{#if president}<span class="badge" aria-label="President">P</span>{/if}</span
         >
@@ -260,7 +274,7 @@
             players={session.playerPriorityOrder.map((playerId) => ({ playerId, name: session.getPlayerName(playerId), color: session.colors.getPlayerBgColorValue(playerId) }))}
             appearances={session.mapView.stations} view={period === 'Player income' ? 'Player' : 'Company'} {companyNames} {onPreviewMap} />
     {:else}
-        <div class="table-scroll">
+        <div class="table-scroll" class:scrolled onscroll={(event) => scrolled = event.currentTarget.scrollLeft > 0}>
         <div class="outlined-table">
         <table bind:this={ownershipTable} aria-label="Company share ownership" class:transposed={view === 'Player'}>
             <colgroup>
@@ -283,8 +297,9 @@
                                 scope="col"
                                 class:pool-start={owner.id === firstPoolId}
                                 class:current-player-column={currentPlayerOwners.has(owner.id)}
-                                class:player-tinted-header={!!ownerPlayerColor(owner.id)}
-                                style:--player-color={ownerPlayerColor(owner.id)}
+                                class:player-tinted-header={!!ownerTintColor(owner.id)}
+                                class:controlled-tint={!ownerPlayerColor(owner.id)}
+                                style:--player-color={ownerTintColor(owner.id)}
                                 title={owner.name}><span class="column-owner-label">
                                     {#if ownerConnections[index].controlled}<span class="column-ownership-connector incoming" aria-hidden="true"></span>{/if}
                                     {@render ownerLabel(owner, true)}
@@ -292,9 +307,9 @@
                                 </span></th
                             >{/each}
                         {#if pricePresentation.showInSpreadsheet}<th scope="col" class="company-stat-start">{pricePresentation.label}</th>{/if}
-                        <th scope="col" class:company-stat-start={!pricePresentation.showInSpreadsheet}>Cash</th>
-                        <th scope="col">Tokens</th>
+                        <th scope="col" class="company-stat-start">Cash</th>
                         <th scope="col">Trains</th>
+                        <th scope="col">Tokens</th>
                         <th scope="col" class="company-stat-start">Last run</th>
                     {:else}
                         {#each companies as company (company.id)}
@@ -321,12 +336,15 @@
                                     owners[index].id === firstPoolId,
                                     row.presidentId === owners[index].id,
                                     !(owners[index].id in poolColumnLabels),
-                                    soldThisRound(owners[index].id, row.company.id)
+                                    soldThisRound(owners[index].id, row.company.id),
+                                    false,
+                                    ownerTintColor(owners[index].id),
+                                    poolAlternate(owners[index].id)
                                 )}{/each}
-                            {#if pricePresentation.showInSpreadsheet}<td class="company-stat-start bright-cell">{row.value === undefined ? '—' : money.format(row.value)}</td>{/if}
-                            <td class:company-stat-start={!pricePresentation.showInSpreadsheet} class="bright-cell">{@render companyCash(row.cash)}</td>
-                            <td class="bright-cell token-cell">{row.stations.filter((station) => station.status === 'available').length}/{row.stations.length}</td>
+                            {#if pricePresentation.showInSpreadsheet}<td class="company-stat-start bright-cell value-cell">{row.value === undefined ? '—' : money.format(row.value)}</td>{/if}
+                            <td class="company-stat-start bright-cell">{@render companyCash(row.cash)}</td>
                             <td class="bright-cell">{@render companyTrains(row.company.id)}</td>
+                            <td class="bright-cell token-cell">{row.stations.filter((station) => station.status === 'available').length}/{row.stations.length}</td>
                             <td class="company-stat-start">{@render lastRunCell(row.company)}</td>
                         </tr>
                     {/each}
@@ -336,25 +354,26 @@
                             {#each owners as owner (owner.id)}
                                 <td
                                     class:pool-start={owner.id === firstPoolId}
-                                    class:bright-cell={label === 'Cash' && statistics.has(owner.id)}
+                                    class:bright-cell={statistics.has(owner.id)}
+                                    class:player-financial={!!ownerTintColor(owner.id)}
+                                    style:--player-color={ownerTintColor(owner.id)}
                                     class:token-cell={label === 'Shares' && statistics.has(owner.id)}
                                     class:empty={!statistics.has(owner.id)}
-                                    >{@render financialValue(owner.id, index)}</td
+                                    class:void={owner.id in poolColumnLabels}
+                                    >{#if !(owner.id in poolColumnLabels)}{@render financialValue(owner.id, index)}{/if}</td
                                 >
                             {/each}
-                            {#if pricePresentation.showInSpreadsheet}<td class="company-stat-start empty">—</td>{/if}
-                            <td class:company-stat-start={!pricePresentation.showInSpreadsheet} class="empty">—</td>
-                            <td class="empty">—</td>
-                            <td class="empty">—</td>
-                            <td class="company-stat-start empty">—</td>
+                            {#each { length: pricePresentation.showInSpreadsheet ? 5 : 4 } as _, column}<td class="void"></td>{/each}
                         </tr>
                     {/each}
                 {:else}
                     {#each owners as owner, index (owner.id)}
                         <tr class:current-player={currentPlayerOwners.has(owner.id)} class:pool-start={owner.id === firstPoolId} class:pool-row={owner.id in poolColumnLabels}>
                             <th scope="row" title={owner.name}
-                                class:player-tinted-header={!!ownerPlayerColor(owner.id)}
-                                style:--player-color={ownerPlayerColor(owner.id)}
+                                class:non-player-owner={!owner.id.startsWith('player:')}
+                                class:player-tinted-header={!!ownerTintColor(owner.id)}
+                                class:controlled-tint={!ownerPlayerColor(owner.id)}
+                                style:--player-color={ownerTintColor(owner.id)}
                                 class:controlled-owner={ownerConnections[index].controlled}
                                 class:ownership-continues={ownerConnections[index].continues}>{@render ownerLabel(owner)}</th>
                             {#each rows as row (row.company.id)}{@render shareCell(
@@ -363,15 +382,20 @@
                                     row.presidentId === owner.id,
                                     !(owner.id in poolColumnLabels),
                                     soldThisRound(owner.id, row.company.id),
-                                    row.company.id === operatingCompanyId
+                                    row.company.id === operatingCompanyId,
+                                    ownerTintColor(owner.id),
+                                    poolAlternate(owner.id)
                                 )}{/each}
                             {#each statisticLabels as _, statIndex}
                                 <td
                                     class:stat-start={statIndex === 0}
-                                    class:bright-cell={statIndex === 0 && statistics.has(owner.id)}
+                                    class:bright-cell={statistics.has(owner.id)}
+                                    class:player-financial={!!ownerTintColor(owner.id)}
+                                    style:--player-color={ownerTintColor(owner.id)}
                                     class:token-cell={statisticLabels[statIndex] === 'Shares' && statistics.has(owner.id)}
                                     class:empty={!statistics.has(owner.id)}
-                                    >{@render financialValue(owner.id, statIndex)}</td
+                                    class:void={owner.id in poolColumnLabels}
+                                    >{#if !(owner.id in poolColumnLabels)}{@render financialValue(owner.id, statIndex)}{/if}</td
                                 >
                             {/each}
                         </tr>
@@ -379,35 +403,35 @@
                     {#if pricePresentation.showInSpreadsheet}
                         <tr class="company-stat-start financial-row">
                             <th scope="row">{pricePresentation.label}</th>
-                            {#each rows as row (row.company.id)}<td class:operating-column={row.company.id === operatingCompanyId} class="bright-cell">{row.value === undefined ? '—' : money.format(row.value)}</td>{/each}
-                            {#each statisticLabels as _, index}<td class:stat-start={index === 0} class="empty">—</td>{/each}
+                            {#each rows as row (row.company.id)}<td class:operating-column={row.company.id === operatingCompanyId} class="bright-cell value-cell">{row.value === undefined ? '—' : money.format(row.value)}</td>{/each}
+                            {#each statisticLabels as _, index}<td class:stat-start={index === 0} class="void"></td>{/each}
                         </tr>
                     {/if}
-                    <tr class:company-stat-start={!pricePresentation.showInSpreadsheet} class="financial-row">
+                    <tr class="company-stat-start financial-row">
                         <th scope="row">Cash</th>
                         {#each rows as row (row.company.id)}<td class:operating-column={row.company.id === operatingCompanyId} class="bright-cell">{@render companyCash(row.cash)}</td
                             >{/each}
                         {#each statisticLabels as _, index}<td
                                 class:stat-start={index === 0}
-                                class="empty">—</td
+                                class="void"></td
                             >{/each}
+                    </tr>
+                    <tr class="financial-row">
+                        <th scope="row">Trains</th>
+                        {#each rows as row (row.company.id)}<td class:operating-column={row.company.id === operatingCompanyId} class="bright-cell">{@render companyTrains(row.company.id)}</td>{/each}
+                        {#each statisticLabels as _, index}<td class:stat-start={index === 0} class="void"></td>{/each}
                     </tr>
                     <tr class="financial-row">
                         <th scope="row">Tokens</th>
                         {#each rows as row (row.company.id)}
                             <td class:operating-column={row.company.id === operatingCompanyId} class="bright-cell token-cell">{row.stations.filter((station) => station.status === 'available').length}/{row.stations.length}</td>
                         {/each}
-                        {#each statisticLabels as _, index}<td class:stat-start={index === 0} class="empty">—</td>{/each}
-                    </tr>
-                    <tr class="financial-row">
-                        <th scope="row">Trains</th>
-                        {#each rows as row (row.company.id)}<td class:operating-column={row.company.id === operatingCompanyId} class="bright-cell">{@render companyTrains(row.company.id)}</td>{/each}
-                        {#each statisticLabels as _, index}<td class:stat-start={index === 0} class="empty">—</td>{/each}
+                        {#each statisticLabels as _, index}<td class:stat-start={index === 0} class="void"></td>{/each}
                     </tr>
                     <tr class="company-stat-start financial-row">
                         <th scope="row">Last run</th>
                         {#each rows as row (row.company.id)}<td class:operating-column={row.company.id === operatingCompanyId}>{@render lastRunCell(row.company)}</td>{/each}
-                        {#each statisticLabels as _, index}<td class:stat-start={index === 0} class="empty">—</td>{/each}
+                        {#each statisticLabels as _, index}<td class:stat-start={index === 0} class="void"></td>{/each}
                     </tr>
                 {/if}
             </tbody>
@@ -427,25 +451,48 @@
     .included-net-worth sup { font-size: 9px; margin-left: 1px; }
     .wealth-footnote { margin: 4px 0 8px; padding-inline: 6px; color: var(--rail-muted, #887969); font-size: 11px; }
     .owner-name {
-        display: block;
+        display: inline-block;
+        vertical-align: middle;
         max-width: 140px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
     .portfolio-short { display: none; }
-    .share-cell,
-    .available-pool,
-    .bright-cell { background: var(--rail-surface, #faf6ee); }
-    tbody tr:hover .share-cell,
-    tbody tr:hover .available-pool,
-    tbody tr:hover .bright-cell { background: var(--rail-surface-raised, #eee8df); }
-    .token-cell { background: var(--rail-surface-raised, #f0e7d9); }
-    tbody tr:hover .token-cell { background: var(--rail-surface-raised, #e5d9c8); }
-    tbody tr .sold { background: var(--rail-surface-raised, #efd3ce); }
-    tbody tr:hover .sold { background: var(--rail-surface-selected, #e7beb7); }
-    td + td.share-cell {
-        border-left: 1px solid var(--rail-shadow, #6955401c);
+    /*
+     * Fill model: lightness carries structure (background < body < labels),
+     * hue stays low because every player tint hue is taken: shares and pool neutral (player rows carry their tint), share value a faint turquoise, financials recessed darker, sold red.
+     * Rows set --row-fill; cells set --cell-fill and fall back to the row.
+     */
+    table {
+        --sheet-cell: var(--rail-surface, #222c37);
+        --sheet-label: var(--rail-surface-raised, #2b3744);
+        --sheet-pool: var(--sheet-cell);
+        --sheet-market: #1b3d45;
+        --sheet-financial: #1b232d;
+        --sheet-sold: #4a2a33;
+        --sheet-rule: #2f3b48;
+        --sheet-divider: #5b6d80;
+    }
+    .share-cell { --cell-fill: var(--sheet-cell); }
+    .available-pool { --cell-fill: var(--sheet-pool); }
+    td.available-pool.pool-alt { --cell-fill: color-mix(in srgb, #ffffff 3%, var(--sheet-pool)); }
+    .pool-row { --row-fill: var(--sheet-pool); }
+    .financial-row { --row-fill: var(--sheet-financial); }
+    .bright-cell,
+    td:has(.last-run) { --cell-fill: var(--sheet-financial); }
+    /* A player's whole row or column carries the owner's tint, matching that owner's header. */
+    td.player-tinted-cell,
+    td.player-financial { --cell-fill: color-mix(in srgb, var(--player-color) 15%, var(--sheet-cell)); }
+    td.sold { --cell-fill: var(--sheet-sold); }
+    /* Share value is market-derived rather than something the company owns: a faint turquoise marks it. */
+    td.value-cell { --cell-fill: color-mix(in srgb, var(--sheet-market) 45%, var(--sheet-cell)); }
+    td { background: var(--cell-fill, var(--row-fill, transparent)); }
+    tbody tr:hover td {
+        background: color-mix(in srgb, var(--rail-text, #e3e9ef) 9%, var(--cell-fill, var(--row-fill, var(--sheet-cell))));
+    }
+    tbody tr:hover th {
+        background: color-mix(in srgb, var(--rail-text, #e3e9ef) 9%, var(--player-tinted-background, var(--sheet-label)));
     }
     .last-run {
         border: 0;
@@ -461,23 +508,16 @@
     .last-run:focus-visible { outline: 2px solid var(--rail-focus, #9e7752); outline-offset: 1px; }
     .last-run:disabled { cursor: default; }
 
-    .label-column {
-        background: var(--rail-hover, #69554008);
+    thead th,
+    tbody th {
+        background: var(--sheet-label);
     }
-    .pool-section,
-    .pool-row {
-        background: var(--rail-hover, #69554012);
+    th.player-tinted-header {
+        background: var(--player-tinted-background);
     }
-    .financial-section,
-    .financial-row {
-        background: var(--rail-hover, #6955400a);
-    }
-    thead {
-        background: var(--rail-hover, #69554012);
-    }
-    tbody tr:hover {
-        background-color: var(--rail-hover, #69554016);
-    }
+    tbody th.player-tinted-header { box-shadow: inset 3px 0 0 var(--player-color); }
+    thead th.player-tinted-header { box-shadow: inset 0 3px 0 var(--player-color); }
+    th.player-tinted-header.controlled-tint { box-shadow: none; }
 
     .company-trains {
         display: flex;
@@ -509,71 +549,54 @@
     .fill-width .sheet-spacing { display: none; }
     .fill-width .sheet-content { width: 100%; }
     .fill-width .sheet-content :global(table) { width: 100%; }
+    /* The control strip sits on the darker table background as a pill segmented control, so it reads
+       as chrome rather than as another sheet row, and unlike the underlined pane tabs above. */
     .toolbar {
         display: flex;
         flex-shrink: 0;
         justify-content: center;
-        gap: 24px;
+        align-items: center;
+        gap: 12px;
         width: 100%;
-        padding-block: 2px;
-        border-bottom: 1px solid var(--rail-border, #d2c5b7);
-        background: var(--rail-surface-raised, #e7ded3);
+        padding-block: 8px;
+        background: var(--rail-table-background, #18212b);
     }
     .table-scroll { overflow-x: auto; }
     .outlined-table { position: relative; }
     .view-toggle {
         display: flex;
+        align-items: center;
         width: max-content;
-        border: 1px solid var(--rail-border, #c7b8a6);
-        border-radius: 6px;
-        overflow: hidden;
+        gap: 2px;
+        padding: 2px;
+        border-radius: 999px;
+        background: var(--rail-surface, #222c37);
         margin: 0;
     }
     .view-toggle button {
         border: 0;
-        padding: 4px 12px;
+        border-radius: 999px;
+        padding: 3px 12px;
         font: inherit;
         font-size: 12px;
-        color: var(--rail-inactive, #786550);
+        line-height: 16px;
+        color: var(--rail-muted, #7f8e9e);
         background: transparent;
         cursor: pointer;
+        white-space: nowrap;
     }
+    .view-toggle button:hover { color: var(--rail-text, #e3e9ef); }
     .view-toggle button[aria-pressed='true'] {
-        background: var(--rail-solid, #695540);
-        color: #fffaf4;
+        background: var(--rail-solid, #40576b);
+        color: #ffffff;
+        font-weight: 600;
     }
     .view-toggle button:focus-visible {
-        outline: 2px solid #a87948;
-        outline-offset: -2px;
+        outline: 2px solid var(--rail-focus, #b8cddd);
+        outline-offset: 1px;
     }
-    .axis-toggle {
-        align-items: center;
-        gap: 7px;
-        border: 0;
-        border-radius: 0;
-        overflow: visible;
-    }
-    .axis-toggle button {
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-size: 13px;
-    }
-    .axis-toggle button[aria-pressed='true'] {
-        color: var(--rail-text, #443c34);
-        font-weight: 700;
-        background: var(--rail-surface-raised, #e5d7c3);
-    }
-    .axis-toggle button:hover { color: var(--rail-text, #443c34); }
-    .axis-toggle .swap-axes {
-        white-space: nowrap;
-        background: var(--rail-surface-raised, #e5d7c3);
-        color: var(--rail-text, #443c34);
-    }
-    .axis-toggle .swap-axes:hover { background: var(--rail-surface-selected, #d8c7ad); color: var(--rail-text, #443c34); }
-    .axis-separator {
-        height: 13px;
-        border-left: 1px solid var(--rail-border, #b7a58f);
-    }
+    .swap-axes { color: var(--rail-text, #e3e9ef); }
+    .axis-separator { display: none; }
     .transposed .company {
         justify-content: center;
     }
@@ -595,23 +618,43 @@
     th,
     td {
         padding: 4px 13px;
-        border-bottom: 1px solid var(--rail-border, #d2c5b7);
+        border-bottom: 1px solid var(--sheet-rule);
     }
+    /* Subtle column rules; :where() keeps them below the 2px section dividers in specificity. */
+    tr > :where(* + *:not(.void)) {
+        border-left: 1px solid #ffffff10;
+    }
+    /* An ownership connector runs across this header's leading edge, so no rule interrupts it. */
+    thead th:has(> .column-owner-label > .incoming) { border-left: 0; }
     thead th {
         white-space: nowrap;
         font-size: 12px;
-        color: var(--rail-text, #786550);
+        color: var(--rail-text, #e3e9ef);
         font-weight: 600;
+        border-bottom: 2px solid var(--sheet-divider);
     }
     th:first-child {
         text-align: left;
         padding-left: 12px;
     }
+    /* Row headers stay pinned while the sheet scrolls horizontally; they carry the first divider. */
+    tr > th:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        border-right: 2px solid var(--sheet-divider);
+    }
+    /* Once scrolled, pinned headers also cover the highlight outline of columns sliding beneath them. */
+    .scrolled tr > th:first-child { z-index: 3; }
     tbody th {
         font-weight: 500;
     }
-    th.controlled-owner,
-    th.ownership-continues { position: relative; }
+    th.non-player-owner,
+    .financial-row > th {
+        text-align: right;
+    }
+    /* Corporate owners hang under their controlling player, so they read left like the player. */
+    tbody th.controlled-owner { text-align: left; }
     th.controlled-owner { padding-left: 36px; }
     .controlled-owner::before {
         content: '';
@@ -650,27 +693,36 @@
     }
     .stat-start > th,
     .stat-start > td {
-        border-top: 2px solid var(--rail-border, #c7b8a6);
+        border-top: 2px solid var(--sheet-divider);
     }
     .transposed .stat-start {
-        border-left: 2px solid var(--rail-border, #c7b8a6);
+        border-left: 2px solid var(--sheet-divider);
     }
-    tr > :nth-child(2),
     table:not(.transposed) .pool-start,
     table:not(.transposed) .company-stat-start {
-        border-left: 2px solid var(--rail-border, #a18b74);
+        border-left: 2px solid var(--sheet-divider);
     }
     .transposed tr.pool-start > th,
     .transposed tr.pool-start > td {
-        border-top: 2px solid var(--rail-border, #a18b74);
+        border-top: 2px solid var(--sheet-divider);
     }
     .transposed tr.company-stat-start > th,
     .transposed tr.company-stat-start > td {
-        border-top: 2px solid var(--rail-border, #a18b74);
+        border-top: 2px solid var(--sheet-divider);
     }
     .empty {
         color: var(--rail-muted, #a79888);
     }
+    /* Player financials never cross company financials or the pool: draw those areas as bare table background. */
+    td.void {
+        background: var(--rail-table-background, #18212b);
+        border: 0;
+    }
+    tbody tr:hover td.void { background: var(--rail-table-background, #18212b); }
+    .transposed tr.pool-start > td.void,
+    .transposed tr.company-stat-start > td.void { border-top: 0; }
+    /* The companies/player-financials divider spans the full width in the company-left view. */
+    tr.stat-start > td.void { border-top: 2px solid var(--sheet-divider); }
     @container (max-width: 800px) {
         table { --cell-padding-inline: 7px; }
         th,

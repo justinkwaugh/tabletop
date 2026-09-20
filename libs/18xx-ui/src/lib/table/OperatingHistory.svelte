@@ -34,7 +34,7 @@
         <colgroup>
             <col class="round-column" />
             {#if view === 'Player'}
-                {#each players as player, index (player.playerId)}<col span="3" class="data-column" class:shaded={index % 2 === 1} />{/each}
+                {#each players as player (player.playerId)}<col span="3" class="data-column" />{/each}
             {:else}
                 {#each companies as [companyId], index (companyId)}<col class="data-column" class:shaded={index % 2 === 1} />{/each}
             {/if}
@@ -44,11 +44,11 @@
                 <th scope="col" rowspan={view === 'Player' ? 2 : 1}>Round</th>
                 {#if view === 'Player'}
                     {#each players as player (player.playerId)}
-                        <th scope="colgroup" colspan="3" title={player.name} class="player-tinted-header" style:--player-color={player.color}><PlayerName name={player.name} color={player.color} /></th>
+                        <th scope="colgroup" colspan="3" title={player.name} class="player-tinted-header group-start" style:--player-color={player.color}><PlayerName name={player.name} color={player.color} /></th>
                     {/each}
                 {:else}
-                    {#each companies as [companyId, name] (companyId)}
-                        <th scope="col" aria-label={name}>
+                    {#each companies as [companyId, name], index (companyId)}
+                        <th scope="col" aria-label={name} class:group-start={index === 0}>
                             <span class="company">
                                 {#if appearances[companyId]}<CompanyToken appearance={appearances[companyId]} size={22} />{/if}
                                 <span title={name}>{companyNames[companyId]?.initials ?? companyId}</span>
@@ -60,7 +60,7 @@
             {#if view === 'Player'}
                 <tr class="metrics">
                     {#each players as player (player.playerId)}
-                        <th scope="col">Income</th>
+                        <th scope="col" class="group-start">Income</th>
                         <th scope="col">Net worth</th>
                         <th scope="col" aria-label="Net worth change from previous OR">Δ</th>
                     {/each}
@@ -76,9 +76,9 @@
                     </th>
                     {#if view === 'Player'}
                         {#each players as player (player.playerId)}
-                            <td>${money.format(round.playerIncome[player.playerId] ?? 0)}</td>
-                            <td>{round.playerNetWorth[player.playerId] === undefined ? '—' : `$${money.format(round.playerNetWorth[player.playerId])}`}</td>
-                            <td>
+                            <td class="player-tinted-cell group-start" style:--player-color={player.color}>${money.format(round.playerIncome[player.playerId] ?? 0)}</td>
+                            <td class="player-tinted-cell" style:--player-color={player.color}>{round.playerNetWorth[player.playerId] === undefined ? '—' : `$${money.format(round.playerNetWorth[player.playerId])}`}</td>
+                            <td class="player-tinted-cell" style:--player-color={player.color}>
                                 {#if roundIndex > 0 && round.playerNetWorth[player.playerId] !== undefined && rounds[roundIndex - 1].playerNetWorth[player.playerId] !== undefined}
                                     {@const delta = round.playerNetWorth[player.playerId] - rounds[roundIndex - 1].playerNetWorth[player.playerId]}
                                     <span class:negative={delta < 0}>${money.format(Math.abs(delta))}</span>
@@ -86,9 +86,9 @@
                             </td>
                         {/each}
                     {:else}
-                        {#each companies as [companyId] (companyId)}
+                        {#each companies as [companyId], index (companyId)}
                             {@const run = round.companyRuns[companyId]}
-                            <td class:negative={round.withheldCompanyIds.includes(companyId)}>
+                            <td class:negative={round.withheldCompanyIds.includes(companyId)} class:group-start={index === 0}>
                                 {#if round.companyIncome[companyId] === undefined}—
                                 {:else if run && round.companyIncome[companyId] > 0}<button class="payout" onclick={() => onPreviewMap(run)}
                                     aria-label={`Show ${round.companyNames[companyId]} run in OR ${round.id}`}
@@ -135,6 +135,9 @@
     th {
         font-weight: 500;
     }
+    /* Faint rules between cells; a heavier divider after the round column and between player groups. */
+    tr > * + * { border-left: 1px solid #ffffff10; }
+    .group-start { border-left: 2px solid #5b6d80; }
     thead th {
         color: var(--rail-text, #786550);
         font-size: 12px;
@@ -158,6 +161,9 @@
     .round-column { background: var(--rail-hover, #69554008); }
     .data-column { background: var(--rail-surface, #faf6ee); }
     .shaded { background: var(--rail-surface-raised, #f0e7d9); }
+    /* Player columns carry the player's tint, matching the ownership spreadsheet. */
+    .player-tinted-cell { background: color-mix(in srgb, var(--player-color) 15%, var(--rail-surface, #222c37)); }
+    tbody tr:hover .player-tinted-cell { background: color-mix(in srgb, var(--rail-text, #e3e9ef) 9%, color-mix(in srgb, var(--player-color) 15%, var(--rail-surface, #222c37))); }
     thead { background: var(--rail-hover, #69554012); }
     .metrics { background: var(--rail-hover, #69554008); }
     tbody tr:hover { background-color: var(--rail-hover, #69554016); }

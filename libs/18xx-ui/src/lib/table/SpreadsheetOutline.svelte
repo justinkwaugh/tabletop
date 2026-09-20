@@ -70,6 +70,6 @@
 <svg {width} {height} aria-hidden="true"><path d={path} /></svg>
 
 <style>
-    svg { position: absolute; inset: 0 auto auto 0; pointer-events: none; overflow: visible; }
+    svg { position: absolute; inset: 0 auto auto 0; z-index: 2; pointer-events: none; overflow: visible; }
     path { fill: none; stroke: var(--rail-focus, #9e7752); stroke-width: 1; shape-rendering: crispEdges; }
 </style>

@@ -2,7 +2,7 @@ import { chromium, firefox, expect, test } from '@playwright/test'
 
 for (const browserName of ['chromium', 'firefox'] as const) {
     test.describe(browserName, () => {
-        test('outlines cross dividers continuously and leave the intersection open', async ({ baseURL }) => {
+        test('outlines only the operating company and crosses dividers continuously', async ({ baseURL }) => {
             const browser = await ({ chromium, firefox })[browserName].launch()
             const page = await browser.newPage({ baseURL })
             try {
@@ -17,21 +17,20 @@ for (const browserName of ['chromium', 'firefox'] as const) {
                         const points = await table.evaluate(element => {
                             const bounds = element.getBoundingClientRect()
                             const visibleRight = Math.min(bounds.right, element.closest('.table-scroll')?.getBoundingClientRect().right ?? bounds.right)
-                            const column = element.querySelector('thead .operating-column, thead .current-player-column')?.getBoundingClientRect()
-                            if (!column) throw new Error('Fixture needs an operating company')
-                            const rows = [...element.querySelectorAll('tr.current-player, tr.operating-company')].map(row => row.getBoundingClientRect())
+                            // While a company operates only that company is outlined: a column in one view, a row in the other.
+                            if (element.querySelectorAll('thead .current-player-column, tr.current-player').length)
+                                throw new Error('Current player must not be outlined while a company operates')
+                            const column = element.querySelector('thead .operating-column')?.getBoundingClientRect()
+                            const rows = [...element.querySelectorAll('tr.operating-company')].map(row => row.getBoundingClientRect())
+                            if ((column ? 1 : 0) + rows.length !== 1) throw new Error('Exactly one operating company outline expected')
                             const points: { x: number; y: number; vertical: boolean; outlined: boolean }[] = []
-                            for (let y = 2; y < Math.floor(bounds.height) - 2; y++) {
-                                if (rows.some(row => y > row.top - bounds.top - 2 && y < row.bottom - bounds.top + 2)) continue
-                                for (const edge of [column.left, column.right]) points.push({ x: edge - bounds.left, y, vertical: true, outlined: true })
+                            if (column) {
+                                for (let y = 2; y < Math.floor(bounds.height) - 2; y++)
+                                    for (const edge of [column.left, column.right]) points.push({ x: edge - bounds.left, y, vertical: true, outlined: true })
                             }
                             for (const row of rows) {
-                                for (let x = 2; x < Math.floor(visibleRight - bounds.left) - 2; x++) {
-                                    if (x > column.left - bounds.left - 2 && x < column.right - bounds.left + 2) continue
+                                for (let x = 2; x < Math.floor(visibleRight - bounds.left) - 2; x++)
                                     for (const edge of [row.top, row.bottom]) points.push({ x, y: edge - bounds.top, vertical: false, outlined: true })
-                                }
-                                for (const edge of [column.left, column.right]) points.push({ x: edge - bounds.left, y: (row.top + row.bottom) / 2 - bounds.top, vertical: true, outlined: false })
-                                for (const edge of [row.top, row.bottom]) points.push({ x: (column.left + column.right) / 2 - bounds.left, y: edge - bounds.top, vertical: false, outlined: false })
                             }
                             return points
                         })
