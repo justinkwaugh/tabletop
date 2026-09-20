@@ -1,4 +1,4 @@
-import { sameOwner, type FinancialState, type Owner } from '@tabletop/18xx'
+import { controllingOwner, sameOwner, type FinancialState, type Owner } from '@tabletop/18xx'
 
 export type CompanyOwnership = {
     owner: Owner
@@ -38,9 +38,21 @@ export function companyOwnership(state: FinancialState, companyId: string, retai
         }
     }
     for (const row of rows) row.certificateNumbers.sort((a, b) => a - b)
+    // Corporate investors follow the player who controls them; uncontrolled ones follow all players.
+    const investors: CompanyOwnership[] = []
+    const corporate = rows.filter((row) => row.owner.kind === 'company' && row.owner.companyId !== companyId)
+    for (const row of rows.filter((row) => row.owner.kind === 'player')) {
+        investors.push(row)
+        for (const entry of corporate) {
+            const investorId = entry.owner.kind === 'company' ? entry.owner.companyId : undefined
+            const controller = investorId && state.companies.some((candidate) => candidate.id === investorId)
+                ? controllingOwner(state, investorId) : undefined
+            if (controller && sameOwner(controller, row.owner)) investors.push(entry)
+        }
+    }
+    for (const entry of corporate) if (!investors.includes(entry)) investors.push(entry)
     return [
-        ...rows.filter((row) => row.owner.kind === 'player'),
-        ...rows.filter((row) => row.owner.kind === 'company' && row.owner.companyId !== companyId),
+        ...investors,
         ...rows.filter(
             (row) =>
                 row.owner.kind === 'bank' ||

@@ -1152,6 +1152,10 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             ? priorityOrder(this.financialState, this.stockRules.round)
             : this.financialState.turnManager.turnOrder
     )
+    /** Whether every share of the company is held by investors under the title's sold-out rule. */
+    companySoldOut(companyId: string): boolean {
+        return this.stockRules.round.soldOut(this.financialState, companyId)
+    }
     playerLiquidity(playerId: string): number {
         const owner = { kind: 'player', playerId } as const
         const cash = cashOwnedBy(this.financialState, owner)

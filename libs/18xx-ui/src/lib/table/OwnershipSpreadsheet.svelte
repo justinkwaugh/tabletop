@@ -65,8 +65,26 @@
     const companies = $derived(spreadsheetCompanies(
         session.financialState, session.actions, session.gameState.actionCount, companyOrder
     ))
-    let period = $state<'Current' | 'Player income' | 'Company payouts'>('Current')
+    const periods = ['Current', 'Player income', 'Company payouts'] as const
+    let period = $state<(typeof periods)[number]>('Current')
     let scrolled = $state(false)
+    // Local presentation only: the selected pill slides between segments. Measured from the pressed
+    // button so segments may differ in width; re-measured when the group resizes.
+    let periodGroup = $state<HTMLDivElement>()
+    let periodButtons: HTMLButtonElement[] = []
+    let thumb = $state({ left: 0, width: 0 })
+    function measureThumb() {
+        const button = periodButtons[periods.indexOf(period)]
+        if (button) thumb = { left: button.offsetLeft, width: button.offsetWidth }
+    }
+    $effect(() => {
+        period
+        measureThumb()
+        if (!periodGroup) return
+        const observer = new ResizeObserver(measureThumb)
+        observer.observe(periodGroup)
+        return () => observer.disconnect()
+    })
     const view = $derived(session.preferences.values.spreadsheetView === 'company' ? 'Company' : 'Player')
     function soldThisRound(ownerId: string, companyId: string): boolean {
         const state = session.financialState
@@ -251,10 +269,10 @@
 
 <div class="spreadsheet" class:fill-width={fillWidth}>
     <div class="toolbar" role="group" aria-label="Spreadsheet controls">
-        <div class="view-toggle axis-toggle period-toggle" role="group" aria-label="Spreadsheet period">
-            {#each ['Current', 'Player income', 'Company payouts'] as const as option, index}
-                {#if index > 0}<span class="axis-separator" aria-hidden="true"></span>{/if}
-                <button aria-pressed={period === option} onclick={() => period = option}>{option === 'Player income' ? 'Income' : option === 'Company payouts' ? 'Payouts' : option}</button>
+        <div class="view-toggle axis-toggle period-toggle" role="group" aria-label="Spreadsheet period" bind:this={periodGroup}>
+            <span class="thumb" aria-hidden="true" style:transform={`translateX(${thumb.left}px)`} style:width={`${thumb.width}px`}></span>
+            {#each periods as option, index}
+                <button bind:this={periodButtons[index]} aria-pressed={period === option} onclick={() => period = option}>{option === 'Player income' ? 'Income' : option === 'Company payouts' ? 'Payouts' : option}</button>
             {/each}
         </div>
         {#if period === 'Current'}<div class="view-toggle axis-toggle" role="group" aria-label="Spreadsheet view">
@@ -591,12 +609,30 @@
         color: #ffffff;
         font-weight: 600;
     }
+    .period-toggle { position: relative; }
+    .period-toggle button {
+        position: relative;
+        transition: color 180ms ease;
+    }
+    .period-toggle button[aria-pressed='true'] { background: transparent; }
+    .period-toggle .thumb {
+        position: absolute;
+        top: 2px;
+        bottom: 2px;
+        left: 0;
+        border-radius: 999px;
+        background: var(--rail-solid, #40576b);
+        transition: transform 180ms ease, width 180ms ease;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .period-toggle button,
+        .period-toggle .thumb { transition: none; }
+    }
     .view-toggle button:focus-visible {
         outline: 2px solid var(--rail-focus, #b8cddd);
         outline-offset: 1px;
     }
     .swap-axes { color: var(--rail-text, #e3e9ef); }
-    .axis-separator { display: none; }
     .transposed .company {
         justify-content: center;
     }
@@ -719,7 +755,6 @@
         border: 0;
     }
     tbody tr:hover td.void { background: var(--rail-table-background, #18212b); }
-    .transposed tr.pool-start > td.void,
     .transposed tr.company-stat-start > td.void { border-top: 0; }
     /* The companies/player-financials divider spans the full width in the company-left view. */
     tr.stat-start > td.void { border-top: 2px solid var(--sheet-divider); }

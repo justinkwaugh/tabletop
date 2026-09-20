@@ -12,6 +12,7 @@
         trainsOwnedBy,
         sharesOwned,
         type Company,
+        type Owner,
         type CertificatePool
     } from '@tabletop/18xx'
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
@@ -56,6 +57,16 @@
     const owner = $derived({ kind: 'company', companyId: company.id } as const)
     const cash = $derived(cashOwnedBy(state, owner))
     const control = $derived(controllingOwner(state, company.id))
+    /** Investor rows tint with the player's color; a corporate investor tints with its controller's. */
+    function investorTint(entry: { owner: Owner }) {
+        const investor = entry.owner
+        const playerId = investor.kind === 'player'
+            ? investor.playerId
+            : investor.kind === 'company' && !sameOwner(investor, owner)
+              ? controllingOwner(state, investor.companyId)?.playerId
+              : undefined
+        return playerId ? session.colors.getPlayerBgColorValue(playerId) : undefined
+    }
     const sellers = $derived(state.machineState === 'StockRound' && !state.stockRound.completed
         ? state.stockRound.sales.filter((sale) => sale.companyId === company.id).map((sale) => sale.owner)
         : [])
@@ -174,6 +185,7 @@
         <section aria-label="Company ownership">
             <div class="ownership-heading">
                 <h3>Ownership</h3>
+                {#if session.companySoldOut(company.id)}<span class="sold-out">Sold out</span>{/if}
             </div>
             {#if ownership.length}
                 <table aria-label={`${company.name} share ownership`}>
@@ -186,13 +198,15 @@
                                 class:president
                                 class:sold={sellers.some((seller) => sameOwner(seller, entry.owner))}
                                 class:investor-owner={entry.owner.kind === 'player' || (entry.owner.kind === 'company' && !sameOwner(entry.owner, owner))}
+                                class:player-tinted-row={!!investorTint(entry)}
+                                style:--player-color={investorTint(entry)}
                             >
                                 {#if purchaseSources && canPurchase?.(entry)}
                                     <td class="purchase-cell" colspan={numberedShares ? 3 : 2}>{@render purchaseSources(entry)}</td>
                                 {:else}
                                 <th scope="row" title={president ? 'President' : undefined}
                                     >{ownershipName(entry)}{#if president}<PresidentBadge
-                                        />{/if}{#if president && entry.owner.kind === 'company' && control}<span class="control"> ({session.ownerName(control)})</span>{/if}</th
+                                        />{/if}</th
                                 >
                                 {#if numberedShares}<td title="Certificate numbers"
                                         >{entry.certificateNumbers.join(', ') || '—'}</td
@@ -259,13 +273,13 @@
 {/snippet}
 
 {#snippet marketValue()}
-                {#if marketPrice !== undefined}<div>
+                {#if marketPrice !== undefined}<div class="market-value">
                         <span>{pricePresentation.label}</span><strong>{marketPrice}</strong>
                     </div>{/if}
 {/snippet}
 
 {#snippet cashValue()}
-                <div>
+                <div class="cash-value">
                     <span>Cash</span><strong
                         >{cash === undefined
                             ? '—'
@@ -308,14 +322,24 @@
     .vertical .detail-columns { grid-template-columns: minmax(0, 1fr); min-width: 0; max-height: none; contain: none; overflow: visible; }
     .company-detail.vertical .detail-columns > section { padding: 7px 10px; }
     .company-detail.vertical .detail-columns > section + section { border-left: 0; border-top: 1px solid var(--rail-border, #e3d9cd); }
-    .financial-summary { padding: 7px 10px; border-bottom: 1px solid var(--rail-border, #e3d9cd); }
+    /* The cash/value band reads as a distinct strip: a faint lift over the card with hairlines above and below. */
+    .financial-summary {
+        padding: 0;
+        border-top: 1px solid #ffffff0a;
+        border-bottom: 1px solid var(--rail-border, #e3d9cd);
+        background: color-mix(in srgb, #ffffff 4%, transparent);
+    }
     .financial-summary .prices { gap: 0; }
-    .financial-summary .prices div { position: relative; flex: 1; text-align: center; }
+    .financial-summary .prices div { position: relative; flex: 1; text-align: center; padding: 7px 10px; }
+    /* Share value is market-derived: the same faint turquoise as the spreadsheet's Value row. */
+    .financial-summary .prices .market-value { background: #1b3d4580; }
+    /* Cash matches the spreadsheet's company cash row. */
+    .financial-summary .prices .cash-value { background: #1b232d; }
     .financial-summary .prices div + div::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 12px; border-left: 1px solid var(--rail-border, #e3d9cd); }
     .vertical tr > th,
     .vertical tr > td { padding-top: 0; padding-bottom: 0; line-height: 17px; }
     .vertical tr.investor-owner:has(+ .pool-divider) > th,
-    .vertical tr.investor-owner:has(+ .pool-divider) > td { padding-bottom: 6px; }
+    .vertical tr.investor-owner:has(+ .pool-divider) > td { border-bottom: 6px solid transparent; }
     td.purchase-cell { padding: 0; }
     .vertical tr.pool-divider > th,
     .vertical tr.pool-divider > td { padding-top: 6px; }
@@ -428,18 +452,24 @@
         color: var(--rail-muted, #887664);
     }
     .ownership-heading {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
         margin-bottom: 6px;
+    }
+    .sold-out {
+        font-size: 10px;
+        font-weight: 650;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #f1e6c8;
     }
     .ownership-heading h3 {
         margin-bottom: 0;
     }
-    .control {
-        margin-left: 4px;
-        font-size: 11px;
-        font-weight: 400;
-        color: var(--rail-muted, #887664);
-    }
     tr.sold { color: var(--rail-negative, #b33a32); }
+    tr.player-tinted-row > th,
+    tr.player-tinted-row > td { background: color-mix(in srgb, var(--player-color) 15%, var(--rail-surface, #222c37)); }
     .president > th,
     .president > td {
         font-weight: 700;
@@ -449,13 +479,18 @@
         border-top: 1px solid var(--rail-border, #e3d9cd);
         padding-top: 6px;
     }
+    /* Spacing before the pool is a transparent border, so row tints stop at the row's own text. */
     tr:has(+ .pool-divider) > th,
     tr:has(+ .pool-divider) > td {
-        padding-bottom: 6px;
+        border-bottom: 6px solid transparent;
+        background-clip: padding-box;
     }
+    /* Ownership rows run edge to edge of the card so row tints reach the borders. */
     table {
-        width: 100%;
-        border-collapse: collapse;
+        width: calc(100% + 20px);
+        margin-inline: -10px;
+        border-collapse: separate;
+        border-spacing: 0;
         font-size: 12px;
     }
     th,
@@ -464,6 +499,8 @@
         text-align: right;
         font-variant-numeric: tabular-nums;
     }
+    tr > :first-child { padding-left: 10px; }
+    tr > :last-child { padding-right: 10px; }
     th:first-child {
         text-align: left;
     }
