@@ -1,5 +1,6 @@
 <script lang="ts">
     import './playerTint.css'
+    import { companySharePrice, DefaultCompanyPricePresentation, type CompanyPricePresentation } from './companyPresentation.js'
     import type { GameAction } from '@tabletop/common'
     import { companyLastRun } from './companyLastRun.js'
     import {
@@ -28,6 +29,7 @@
 
     let {
         session,
+        pricePresentation = DefaultCompanyPricePresentation,
         fillWidth = false,
         onPreviewMap,
         companyOrder,
@@ -39,6 +41,7 @@
         includedPortfolioCompanyIds = [],
         portfolioCompanyIds = []
     }: {
+        pricePresentation?: CompanyPricePresentation
         fillWidth?: boolean
         companyOrder?: readonly string[]
         onPreviewMap: (action: GameAction) => void
@@ -136,6 +139,7 @@
     const rows = $derived(
         companies.map((company) => ({
             company,
+            value: companySharePrice(session.financialState.stockMarket, company.id),
             stations: session.financialState.stations.filter((station) => station.companyId === company.id),
             cash: cashOwnedBy(session.financialState, { kind: 'company', companyId: company.id }),
             presidentId:
@@ -265,7 +269,7 @@
                     {#each owners as owner (owner.id)}
                         <col class:pool-section={owner.id in poolColumnLabels} />
                     {/each}
-                    <col span="4" class="financial-section" />
+                    <col span={pricePresentation.showInSpreadsheet ? 5 : 4} class="financial-section" />
                 {:else}
                     {#each companies as company (company.id)}<col />{/each}
                     <col span={statisticLabels.length} class="financial-section" />
@@ -287,7 +291,8 @@
                                     {#if ownerConnections[index].continues}<span class="column-ownership-connector outgoing" aria-hidden="true"></span>{/if}
                                 </span></th
                             >{/each}
-                        <th scope="col" class="company-stat-start">Cash</th>
+                        {#if pricePresentation.showInSpreadsheet}<th scope="col" class="company-stat-start">{pricePresentation.label}</th>{/if}
+                        <th scope="col" class:company-stat-start={!pricePresentation.showInSpreadsheet}>Cash</th>
                         <th scope="col">Tokens</th>
                         <th scope="col">Trains</th>
                         <th scope="col" class="company-stat-start">Last run</th>
@@ -318,7 +323,8 @@
                                     !(owners[index].id in poolColumnLabels),
                                     soldThisRound(owners[index].id, row.company.id)
                                 )}{/each}
-                            <td class="company-stat-start bright-cell">{@render companyCash(row.cash)}</td>
+                            {#if pricePresentation.showInSpreadsheet}<td class="company-stat-start bright-cell">{row.value === undefined ? '—' : money.format(row.value)}</td>{/if}
+                            <td class:company-stat-start={!pricePresentation.showInSpreadsheet} class="bright-cell">{@render companyCash(row.cash)}</td>
                             <td class="bright-cell token-cell">{row.stations.filter((station) => station.status === 'available').length}/{row.stations.length}</td>
                             <td class="bright-cell">{@render companyTrains(row.company.id)}</td>
                             <td class="company-stat-start">{@render lastRunCell(row.company)}</td>
@@ -336,7 +342,8 @@
                                     >{@render financialValue(owner.id, index)}</td
                                 >
                             {/each}
-                            <td class="company-stat-start empty">—</td>
+                            {#if pricePresentation.showInSpreadsheet}<td class="company-stat-start empty">—</td>{/if}
+                            <td class:company-stat-start={!pricePresentation.showInSpreadsheet} class="empty">—</td>
                             <td class="empty">—</td>
                             <td class="empty">—</td>
                             <td class="company-stat-start empty">—</td>
@@ -369,7 +376,14 @@
                             {/each}
                         </tr>
                     {/each}
-                    <tr class="company-stat-start financial-row">
+                    {#if pricePresentation.showInSpreadsheet}
+                        <tr class="company-stat-start financial-row">
+                            <th scope="row">{pricePresentation.label}</th>
+                            {#each rows as row (row.company.id)}<td class:operating-column={row.company.id === operatingCompanyId} class="bright-cell">{row.value === undefined ? '—' : money.format(row.value)}</td>{/each}
+                            {#each statisticLabels as _, index}<td class:stat-start={index === 0} class="empty">—</td>{/each}
+                        </tr>
+                    {/if}
+                    <tr class:company-stat-start={!pricePresentation.showInSpreadsheet} class="financial-row">
                         <th scope="row">Cash</th>
                         {#each rows as row (row.company.id)}<td class:operating-column={row.company.id === operatingCompanyId} class="bright-cell">{@render companyCash(row.cash)}</td
                             >{/each}

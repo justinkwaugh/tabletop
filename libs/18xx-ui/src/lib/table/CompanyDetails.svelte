@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
+    import { companySharePrice, DefaultCompanyPricePresentation, type CompanyPricePresentation } from './companyPresentation.js'
     import { assertExists, type GameAction } from '@tabletop/common'
     import {
         cashOwnedBy,
@@ -8,7 +9,6 @@
         getCompany,
         privateOwner,
         sameOwner,
-        companyMarketSpace,
         trainsOwnedBy,
         sharesOwned,
         type Company,
@@ -25,6 +25,7 @@
         session,
         onPreviewMap,
         company,
+        pricePresentation = DefaultCompanyPricePresentation,
         displayName = company.name,
         vertical = false,
         unavailable = false,
@@ -34,6 +35,7 @@
         privateOperationDescription,
         poolName = (pool) => pool.name
     }: {
+        pricePresentation?: CompanyPricePresentation
         unavailable?: boolean
         vertical?: boolean
         canPurchase?: (entry: CompanyOwnership) => boolean
@@ -62,11 +64,7 @@
         ownership.findIndex((entry) => entry.owner.kind === 'bank' || sameOwner(entry.owner, owner))
     )
     const numberedShares = $derived(ownership.some((row) => row.certificateNumbers.length))
-    const marketPrice = $derived(
-        state.stockMarket.stacks.some((stack) => stack.companyIds.includes(company.id))
-            ? companyMarketSpace(state.stockMarket, company.id).price
-            : undefined
-    )
+    const marketPrice = $derived(companySharePrice(state.stockMarket, company.id))
     const trains = $derived(trainsOwnedBy(state, owner))
     const stations = $derived(state.stations.filter((station) => station.companyId === company.id))
     const remainingStations = $derived(stations.filter((station) => station.status === 'available'))
@@ -243,7 +241,7 @@
 {#snippet prices()}
             <div class="prices">
                 {@render cashValue()}
-                {#if company.parPrice !== undefined}<div>
+                {#if pricePresentation.showPar && company.parPrice !== undefined}<div>
                         <span>Par</span><strong>{company.parPrice}</strong>
                     </div>{/if}
                 {@render marketValue()}
@@ -262,7 +260,7 @@
 
 {#snippet marketValue()}
                 {#if marketPrice !== undefined}<div>
-                        <span>Market</span><strong>{marketPrice}</strong>
+                        <span>{pricePresentation.label}</span><strong>{marketPrice}</strong>
                     </div>{/if}
 {/snippet}
 

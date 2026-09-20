@@ -54,7 +54,7 @@
               : pool.name
 </script>
 
-<GameTable {spreadsheetCompanyOrder} privatePurchaseLabel="Buy Hunslet"
+<GameTable companyPricePresentation={{ showPar: false, label: 'Value', showInSpreadsheet: true }} {spreadsheetCompanyOrder} privatePurchaseLabel="Buy Hunslet"
     additionalStockActions={session.canPreviewSplit && session.myPlayer && session.splitModel.branches().length && session.splitModel.parents(session.myPlayer.id).some((parent) => !parent.reason) ? [{ label: 'Split', selected: session.hasSplitDraft, onSelect: () => session.chooseSplit() }] : []}
     phaseChart={TheOldPrincePhaseChart}
     historyDescription={(action, companyName) => isSplitCompany(action) ? {

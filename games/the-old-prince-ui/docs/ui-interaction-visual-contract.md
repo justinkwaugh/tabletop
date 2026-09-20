@@ -279,3 +279,20 @@ with a draft, committed placement, history and Undo at desktop and mobile widths
 In artwork mode, the page and map surround use the sampled dark board-border
 color (#222a2c). Switching to generic or leaving the table restores the normal
 page background.
+
+
+## Company value display
+
+TOP company cards omit Par and label the current stock-market share price Value.
+The ownership spreadsheet shows that same Value immediately after the share-pool
+rows/columns and before company Cash in both orientations. Companies without a
+stock-market position display a dash in the spreadsheet. Values follow the
+displayed state during history and Undo; they are per-share prices, not company
+net worth or treasury balances.
+
+This is title-owned presentation using the existing market-price lookup. The
+family research distinguishes par/starting prices from current market prices;
+TOP hides the former while 1889 keeps its existing Par and Market cells. No
+financial rules, stored prices or host bridge behavior change. TOP needs a UI-only
+publication to adopt the display. Browser verification covers both card layouts
+and spreadsheet orientations, including 1889's unchanged display.

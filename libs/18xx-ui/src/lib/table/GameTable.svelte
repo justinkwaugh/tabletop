@@ -1,5 +1,6 @@
 <script lang="ts">
     import './playerTint.css'
+    import { DefaultCompanyPricePresentation, type CompanyPricePresentation } from './companyPresentation.js'
     import { tableHeaderState } from './tableHeaderState.js'
     import { initialTableLayout, restoreTableWorkspace, saveTableWorkspace } from './tableWorkspace.js'
     import { historyMapFocus } from '../maps/historyMapFocus.js'
@@ -60,6 +61,7 @@
         gameInformation,
         exchangePoolId,
         companyNames,
+        companyPricePresentation = DefaultCompanyPricePresentation,
         spreadsheetCompanyOrder,
         includedCompanyIds = [],
         auctionLotDescription,
@@ -87,6 +89,7 @@
         exchangePoolId?: string
         spreadsheetCompanyOrder?: readonly string[]
         includedCompanyIds?: readonly string[]
+        companyPricePresentation?: CompanyPricePresentation
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
         auctionLotDescription?: (id: string) => string
         numberedShareNames?: NumberedShareNames
@@ -509,6 +512,7 @@
             >
                 {#snippet companyDetails(company)}
                     <CompanyDetails
+                        pricePresentation={companyPricePresentation}
                         onPreviewMap={previewHistoryMap}
                         {trainColors}
                         {session}
@@ -594,6 +598,7 @@
                     </ScalingWrapper>
                     </div>{:else if id === 'Spreadsheet'}<div class="workspace-view data-area">
                     <OwnershipSpreadsheet
+                        pricePresentation={companyPricePresentation}
                         fillWidth={paneLayout.current}
                         {includedPortfolioCompanyIds}
                         companyOrder={spreadsheetCompanyOrder}
@@ -610,6 +615,7 @@
                     <div class="company-cards" aria-label="Started companies">
                         {#each startedCompanies as company (company.id)}
                             <CompanyDetails
+                        pricePresentation={companyPricePresentation}
                                 vertical
                                 displayName={companyNames?.[company.id]?.card}
                                 {company}
