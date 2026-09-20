@@ -1605,14 +1605,33 @@ the neutral surface.
 
 Spreadsheet player-name header cells use the shared 15% player-color tint: row
 and column headers in ownership views and player-group headers in income history.
-Company/pool headers retain their existing backgrounds. Ownership data cells use
-muted blue throughout the holdings matrix, slate for available pool shares,
-lavender for financial values and recorded runs, and periwinkle for share/token counts. Dark-mode
-fills are brighter than the surrounding surface; light mode uses pale equivalents.
-Empty holdings cells retain the matrix fill; empty Market, Treasury, and Exchange
-cells remain unfilled. Sold-share rose takes precedence over the
-holdings fill, and row hover preserves each category's hue. Active-player and
-operating-company outlines remain visible over these fills in either orientation.
+In ownership views that tint runs across the player's whole row or column,
+holdings and financials alike, and a player header carries a 3px bar of the
+player's color on its leading edge instead of a dot. A controlled portfolio such
+as Union Bank takes its controller's tint without the bar. Income history tints
+each player's data columns; its metric header row stays neutral.
+
+Company/pool headers use the raised label surface. The available pool is neutral
+like untinted holdings, with every second pool row or column one step lighter in
+its data cells only. Share value uses a faint turquoise as market-derived data,
+and company cash, trains, tokens, and last run sit on a recessed darker fill.
+Sold-share rose takes precedence over any fill, and hover lightens whatever fill
+is beneath it. Cells where player financials would cross the pool or company
+financials are never populated: they show bare table background with no dashes or
+rules, bounded only by the section dividers that border real data.
+
+Section dividers are 2px and cell rules are faint 1px lines; a header receiving
+an ownership connector omits its leading rule. Row headers stay pinned during
+horizontal scroll and carry the first divider. While a company operates only
+that company is outlined; the active player is outlined otherwise. The outline
+stays visible over these fills in either orientation, and pinned headers cover
+it only while the sheet is scrolled.
+
+Company cards echo the spreadsheet: the cash cell uses the recessed fill, the
+value cell the faint turquoise, and investor rows carry their player's tint to
+the card's left and right edges. Corporate investors follow the player who
+controls them. A sold-out company shows a cream SOLD OUT label at the right of
+its ownership heading, judged by the title's own sold-out rule.
 
 Player cards in workspace panes start 10px below the pane header, matching the
 10px gap between cards in both vertical and horizontal arrangements.
