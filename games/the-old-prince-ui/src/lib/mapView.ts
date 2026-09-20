@@ -22,9 +22,9 @@ export const TheOldPrinceMapView: MapViewDefinition = {
         backgroundColor: '#222a2c',
         imageUrl: BoardImage,
         width: 2048,
-        height: 1394,
-        origin: { x: 128, y: 169 },
-        scale: 1.067
+        height: 1322,
+        origin: { x: 55.5, y: 105.5 },
+        scale: 1.173
     },
     map: TheOldPrinceMap,
     tileSet: TheOldPrinceTileSet,

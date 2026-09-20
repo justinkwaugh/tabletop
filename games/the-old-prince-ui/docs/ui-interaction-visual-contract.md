@@ -270,7 +270,7 @@ Vernon River’s unbuilt map marker uses title-owned SVG artwork: a large VR abo
 ## Published board presentation
 
 TOP follows the shared published-board presentation contract. Its picture button
-selects the packaged 2048 × 1394 MAP-AUGUST-01 JPEG. Laid tiles and live overlays
+selects the packaged 2048 × 1322 MAP-AUGUST-01 JPEG. Laid tiles and live overlays
 render over the board with the diagnostic grid hidden. The initial
 calibration and known printed-layout differences are recorded in
 [the board artwork design note](board-artwork.md). Browser scenarios cover switching

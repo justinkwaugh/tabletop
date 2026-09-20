@@ -14,7 +14,7 @@ for (const width of [1280, 390]) {
         const initialPageWidth = await page.evaluate(() => document.documentElement.scrollWidth)
         await page.getByRole('button', { name: 'Use published artwork', exact: true }).click()
         await expect(scene).toHaveAttribute('width', '2048')
-        await expect(scene).toHaveAttribute('height', '1394')
+        await expect(scene).toHaveAttribute('height', '1322')
         await expect(scene).toHaveAttribute('data-presentation', 'published')
         await expect
             .poll(async () => {
