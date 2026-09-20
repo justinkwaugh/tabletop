@@ -57,7 +57,6 @@
     const owner = $derived({ kind: 'company', companyId: company.id } as const)
     const cash = $derived(cashOwnedBy(state, owner))
     const control = $derived(controllingOwner(state, company.id))
-    /** Investor rows tint with the player's color; a corporate investor tints with its controller's. */
     function investorTint(entry: { owner: Owner }) {
         const investor = entry.owner
         const playerId = investor.kind === 'player'
@@ -322,7 +321,6 @@
     .vertical .detail-columns { grid-template-columns: minmax(0, 1fr); min-width: 0; max-height: none; contain: none; overflow: visible; }
     .company-detail.vertical .detail-columns > section { padding: 7px 10px; }
     .company-detail.vertical .detail-columns > section + section { border-left: 0; border-top: 1px solid var(--rail-border, #e3d9cd); }
-    /* The cash/value band reads as a distinct strip: a faint lift over the card with hairlines above and below. */
     .financial-summary {
         padding: 0;
         border-top: 1px solid #ffffff0a;
@@ -331,9 +329,7 @@
     }
     .financial-summary .prices { gap: 0; }
     .financial-summary .prices div { position: relative; flex: 1; text-align: center; padding: 7px 10px; }
-    /* Share value is market-derived: the same faint turquoise as the spreadsheet's Value row. */
     .financial-summary .prices .market-value { background: #1b3d4580; }
-    /* Cash matches the spreadsheet's company cash row. */
     .financial-summary .prices .cash-value { background: #1b232d; }
     .financial-summary .prices div + div::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 12px; border-left: 1px solid var(--rail-border, #e3d9cd); }
     .vertical tr > th,
@@ -479,13 +475,11 @@
         border-top: 1px solid var(--rail-border, #e3d9cd);
         padding-top: 6px;
     }
-    /* Spacing before the pool is a transparent border, so row tints stop at the row's own text. */
     tr:has(+ .pool-divider) > th,
     tr:has(+ .pool-divider) > td {
         border-bottom: 6px solid transparent;
         background-clip: padding-box;
     }
-    /* Ownership rows run edge to edge of the card so row tints reach the borders. */
     table {
         width: calc(100% + 20px);
         margin-inline: -10px;

@@ -58,7 +58,6 @@
         session.financialState.stockRound.completed && session.financialState.operatingSet && !session.financialState.result
             ? nextOperatingCompany(session.financialState) : undefined
     )
-    // While a company operates, only that company is highlighted; the active player's row is not.
     const currentPlayerOwners = $derived(new Set(
         operatingCompanyId ? [] : session.financialState.activePlayerIds.map((id) => `player:${id}`)
     ))
@@ -68,23 +67,6 @@
     const periods = ['Current', 'Player income', 'Company payouts'] as const
     let period = $state<(typeof periods)[number]>('Current')
     let scrolled = $state(false)
-    // Local presentation only: the selected pill slides between segments. Measured from the pressed
-    // button so segments may differ in width; re-measured when the group resizes.
-    let periodGroup = $state<HTMLDivElement>()
-    let periodButtons: HTMLButtonElement[] = []
-    let thumb = $state({ left: 0, width: 0 })
-    function measureThumb() {
-        const button = periodButtons[periods.indexOf(period)]
-        if (button) thumb = { left: button.offsetLeft, width: button.offsetWidth }
-    }
-    $effect(() => {
-        period
-        measureThumb()
-        if (!periodGroup) return
-        const observer = new ResizeObserver(measureThumb)
-        observer.observe(periodGroup)
-        return () => observer.disconnect()
-    })
     const view = $derived(session.preferences.values.spreadsheetView === 'company' ? 'Company' : 'Player')
     function soldThisRound(ownerId: string, companyId: string): boolean {
         const state = session.financialState
@@ -201,11 +183,9 @@
     function ownerPlayerColor(ownerId: string) {
         return ownerId.startsWith('player:') ? session.colors.getPlayerBgColorValue(ownerId.slice(7)) : undefined
     }
-    /** Every second pool row or column is a shade lighter so the pool stays legible without color. */
     function poolAlternate(ownerId: string) {
         return owners.filter((owner) => owner.id in poolColumnLabels).findIndex((owner) => owner.id === ownerId) % 2 === 1
     }
-    /** Players tint with their own color; a controlled portfolio (e.g. Union Bank) tints with its controller's. */
     function ownerTintColor(ownerId: string) {
         const controllerId = portfolioOwners.find((entry) => entry.id === ownerId)?.controllerId
         return ownerPlayerColor(ownerId) ?? (controllerId ? session.colors.getPlayerBgColorValue(controllerId) : undefined)
@@ -269,10 +249,10 @@
 
 <div class="spreadsheet" class:fill-width={fillWidth}>
     <div class="toolbar" role="group" aria-label="Spreadsheet controls">
-        <div class="view-toggle axis-toggle period-toggle" role="group" aria-label="Spreadsheet period" bind:this={periodGroup}>
-            <span class="thumb" aria-hidden="true" style:transform={`translateX(${thumb.left}px)`} style:width={`${thumb.width}px`}></span>
-            {#each periods as option, index}
-                <button bind:this={periodButtons[index]} aria-pressed={period === option} onclick={() => period = option}>{option === 'Player income' ? 'Income' : option === 'Company payouts' ? 'Payouts' : option}</button>
+        <div class="view-toggle axis-toggle period-toggle" role="group" aria-label="Spreadsheet period" style:--segments={periods.length} style:--selected={periods.indexOf(period)}>
+            <span class="thumb" aria-hidden="true"></span>
+            {#each periods as option}
+                <button aria-pressed={period === option} onclick={() => period = option}>{option === 'Player income' ? 'Income' : option === 'Company payouts' ? 'Payouts' : option}</button>
             {/each}
         </div>
         {#if period === 'Current'}<div class="view-toggle axis-toggle" role="group" aria-label="Spreadsheet view">
@@ -477,11 +457,6 @@
         white-space: nowrap;
     }
     .portfolio-short { display: none; }
-    /*
-     * Fill model: lightness carries structure (background < body < labels),
-     * hue stays low because every player tint hue is taken: shares and pool neutral (player rows carry their tint), share value a faint turquoise, financials recessed darker, sold red.
-     * Rows set --row-fill; cells set --cell-fill and fall back to the row.
-     */
     table {
         --sheet-cell: var(--rail-surface, #222c37);
         --sheet-label: var(--rail-surface-raised, #2b3744);
@@ -499,11 +474,9 @@
     .financial-row { --row-fill: var(--sheet-financial); }
     .bright-cell,
     td:has(.last-run) { --cell-fill: var(--sheet-financial); }
-    /* A player's whole row or column carries the owner's tint, matching that owner's header. */
     td.player-tinted-cell,
     td.player-financial { --cell-fill: color-mix(in srgb, var(--player-color) 15%, var(--sheet-cell)); }
     td.sold { --cell-fill: var(--sheet-sold); }
-    /* Share value is market-derived rather than something the company owns: a faint turquoise marks it. */
     td.value-cell { --cell-fill: color-mix(in srgb, var(--sheet-market) 45%, var(--sheet-cell)); }
     td { background: var(--cell-fill, var(--row-fill, transparent)); }
     tbody tr:hover td {
@@ -567,8 +540,6 @@
     .fill-width .sheet-spacing { display: none; }
     .fill-width .sheet-content { width: 100%; }
     .fill-width .sheet-content :global(table) { width: 100%; }
-    /* The control strip sits on the darker table background as a pill segmented control, so it reads
-       as chrome rather than as another sheet row, and unlike the underlined pane tabs above. */
     .toolbar {
         display: flex;
         flex-shrink: 0;
@@ -609,7 +580,7 @@
         color: #ffffff;
         font-weight: 600;
     }
-    .period-toggle { position: relative; }
+    .period-toggle { position: relative; display: grid; grid-template-columns: repeat(var(--segments), minmax(0, 1fr)); gap: 0; }
     .period-toggle button {
         position: relative;
         transition: color 180ms ease;
@@ -619,10 +590,12 @@
         position: absolute;
         top: 2px;
         bottom: 2px;
-        left: 0;
+        left: 2px;
+        width: calc((100% - 4px) / var(--segments));
         border-radius: 999px;
         background: var(--rail-solid, #40576b);
-        transition: transform 180ms ease, width 180ms ease;
+        transform: translateX(calc(var(--selected) * 100%));
+        transition: transform 180ms ease;
     }
     @media (prefers-reduced-motion: reduce) {
         .period-toggle button,
@@ -656,11 +629,10 @@
         padding: 4px 13px;
         border-bottom: 1px solid var(--sheet-rule);
     }
-    /* Subtle column rules; :where() keeps them below the 2px section dividers in specificity. */
+    /* :where() keeps these rules below the section dividers in specificity. */
     tr > :where(* + *:not(.void)) {
         border-left: 1px solid #ffffff10;
     }
-    /* An ownership connector runs across this header's leading edge, so no rule interrupts it. */
     thead th:has(> .column-owner-label > .incoming) { border-left: 0; }
     thead th {
         white-space: nowrap;
@@ -673,14 +645,12 @@
         text-align: left;
         padding-left: 12px;
     }
-    /* Row headers stay pinned while the sheet scrolls horizontally; they carry the first divider. */
     tr > th:first-child {
         position: sticky;
         left: 0;
         z-index: 1;
         border-right: 2px solid var(--sheet-divider);
     }
-    /* Once scrolled, pinned headers also cover the highlight outline of columns sliding beneath them. */
     .scrolled tr > th:first-child { z-index: 3; }
     tbody th {
         font-weight: 500;
@@ -689,7 +659,6 @@
     .financial-row > th {
         text-align: right;
     }
-    /* Corporate owners hang under their controlling player, so they read left like the player. */
     tbody th.controlled-owner { text-align: left; }
     th.controlled-owner { padding-left: 36px; }
     .controlled-owner::before {
@@ -749,14 +718,12 @@
     .empty {
         color: var(--rail-muted, #a79888);
     }
-    /* Player financials never cross company financials or the pool: draw those areas as bare table background. */
     td.void {
         background: var(--rail-table-background, #18212b);
         border: 0;
     }
     tbody tr:hover td.void { background: var(--rail-table-background, #18212b); }
     .transposed tr.company-stat-start > td.void { border-top: 0; }
-    /* The companies/player-financials divider spans the full width in the company-left view. */
     tr.stat-start > td.void { border-top: 2px solid var(--sheet-divider); }
     @container (max-width: 800px) {
         table { --cell-padding-inline: 7px; }

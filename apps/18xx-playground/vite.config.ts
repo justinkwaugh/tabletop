@@ -4,10 +4,7 @@ import { VitestConfig } from '@tabletop/vitest-config'
 import { fileURLToPath } from 'node:url'
 import type { Plugin } from 'vite'
 
-// Workspace libraries are consumed from their built dist folders, which `svelte-package` wipes and
-// rewrites on every rebuild (for example under `turbo watch dev`). Vite neither watches those folders
-// nor recovers from imports that failed to resolve mid-rebuild, so once a rebuild has gone quiet the
-// dev server restarts with a clean module graph and reloads open pages.
+// Vite caches imports that fail while svelte-package rewrites a workspace dist folder, so restart after a rebuild settles.
 const restartOnWorkspaceDistRebuild: Plugin = {
     name: 'restart-on-workspace-dist-rebuild',
     configureServer(server) {

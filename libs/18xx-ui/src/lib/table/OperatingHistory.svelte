@@ -135,7 +135,6 @@
     th {
         font-weight: 500;
     }
-    /* Faint rules between cells; a heavier divider after the round column and between player groups. */
     tr > * + * { border-left: 1px solid #ffffff10; }
     .group-start { border-left: 2px solid #5b6d80; }
     thead th {
@@ -161,7 +160,6 @@
     .round-column { background: var(--rail-hover, #69554008); }
     .data-column { background: var(--rail-surface, #faf6ee); }
     .shaded { background: var(--rail-surface-raised, #f0e7d9); }
-    /* Player columns carry the player's tint, matching the ownership spreadsheet. */
     .player-tinted-cell { background: color-mix(in srgb, var(--player-color) 15%, var(--rail-surface, #222c37)); }
     tbody tr:hover .player-tinted-cell { background: color-mix(in srgb, var(--rail-text, #e3e9ef) 9%, color-mix(in srgb, var(--player-color) 15%, var(--rail-surface, #222c37))); }
     thead { background: var(--rail-hover, #69554012); }

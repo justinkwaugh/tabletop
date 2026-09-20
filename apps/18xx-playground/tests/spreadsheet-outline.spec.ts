@@ -17,7 +17,6 @@ for (const browserName of ['chromium', 'firefox'] as const) {
                         const points = await table.evaluate(element => {
                             const bounds = element.getBoundingClientRect()
                             const visibleRight = Math.min(bounds.right, element.closest('.table-scroll')?.getBoundingClientRect().right ?? bounds.right)
-                            // While a company operates only that company is outlined: a column in one view, a row in the other.
                             if (element.querySelectorAll('thead .current-player-column, tr.current-player').length)
                                 throw new Error('Current player must not be outlined while a company operates')
                             const column = element.querySelector('thead .operating-column')?.getBoundingClientRect()

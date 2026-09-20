@@ -277,6 +277,13 @@ disabled while a manual choice is open. StockRoundStatus renders the active play
 turn order, and either TOP pass order or 1889 consecutive passes. A committed
 purchase/start/sale updates that status through runtime processing.
 
+The stock menu choices and the spreadsheet period choices render as equal-width
+segmented pill controls whose selected thumb slides between segments. The thumb
+position derives from the selected index alone; it is local presentation, owns no
+selection, and nothing waits on it. With no stock menu open the thumb is absent
+and fades in at its segment. The turn-ending control stays a separate solid
+button. Reduced-motion removes the slide.
+
 The final pass automatically completes the round, adjusts sold-out markers,
 updates player priority, and starts the operating set. The terminal prototype
 shows the first operating order, controlling owners, fixed set length, and next

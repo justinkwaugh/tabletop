@@ -38,7 +38,6 @@ export function companyOwnership(state: FinancialState, companyId: string, retai
         }
     }
     for (const row of rows) row.certificateNumbers.sort((a, b) => a - b)
-    // Corporate investors follow the player who controls them; uncontrolled ones follow all players.
     const investors: CompanyOwnership[] = []
     const corporate = rows.filter((row) => row.owner.kind === 'company' && row.owner.companyId !== companyId)
     for (const row of rows.filter((row) => row.owner.kind === 'player')) {
