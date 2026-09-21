@@ -1,3 +1,4 @@
+import { RoutesModule } from './routesModule.svelte.js'
 import { StationsModule } from './stationsModule.svelte.js'
 import { TrainBuyingModule } from './trainBuyingModule.svelte.js'
 import { TrainFundingModule } from './trainFundingModule.svelte.js'
@@ -184,6 +185,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         get state() { return session.financialState },
         get rules() { return session.rules },
         get validActionTypes() { return session.validActionTypes },
+        get publishing() { return session.updatingVisibleState },
         get draftsVisible() { return !session.updatingVisibleState && !session.isViewingHistory },
         get interactive() { return !session.busy && !session.updatingVisibleState && !session.isViewingHistory },
         get actingPlayerIds() {
@@ -202,6 +204,11 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     readonly trainFunding = new TrainFundingModule(this.context)
     readonly trainBuying = new TrainBuyingModule(this.context, () => this.purchaseOptions)
     readonly stations = new StationsModule(this.context, () => { this.mapInspection = undefined })
+    readonly routes = new RoutesModule(
+        this.context,
+        (selection) => this.inspectMap(selection),
+        () => this.networkRoutes
+    )
     readonly earnings = new EarningsModule(this.context)
     readonly discard = new DiscardModule(this.context)
     constructor(
@@ -518,122 +525,6 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         const companyId = this.financialState.trainPurchaseStep?.companyId
         assert(this.canFinishOperatingTurn && companyId, 'The operating turn cannot finish yet')
         await this.applyAction(this.createPlayerAction(FinishOperatingTurn, { companyId }))
-    }
-    private automaticRoutes:
-        | { state: EighteenXXState; result: OperatingResult; exhaustive: boolean }
-        | undefined = $state.raw()
-    automaticRouteResult = $derived.by(() => {
-        if (!this.routeDraftVisible) return undefined
-        const state = this.financialState
-        const companyId = state.routeStep?.companyId
-        if (companyId && !trainsOwnedBy(state, { kind: 'company', companyId }).length) {
-            const checked = new RouteEvaluation(state, this.rules.routeRules).evaluate(companyId, [])
-            assertExists(checked.result, checked.reason ?? 'Invalid empty train run')
-            return { state, result: checked.result, exhaustive: true }
-        }
-        return this.automaticRoutes?.state === state ? this.automaticRoutes : undefined
-    })
-    setAutomaticRoutes(state: EighteenXXState, result: OperatingResult, exhaustive: boolean) {
-        if (state !== this.financialState || !this.canRunTrains) return
-        const companyId = state.routeStep?.companyId
-        assert(
-            companyId && result.companyId === companyId,
-            'Automatic routes require the operating company'
-        )
-        const routes = this.trainRoutes(result)
-        const checked = new RouteEvaluation(state, this.rules.routeRules).evaluate(companyId, routes)
-        assertExists(checked.result, checked.reason ?? 'Invalid automatic routes')
-        this.automaticRoutes = { state, result: checked.result, exhaustive }
-    }
-    async runAutomaticTrains() {
-        const result = this.automaticRouteResult?.result
-        assert(this.canRunTrains && result, 'Wait for the train routes to be calculated')
-        await this.applyAction(
-            this.createPlayerAction(RunTrains, {
-                companyId: result.companyId,
-                routes: this.trainRoutes(result)
-            })
-        )
-    }
-    private trainRoutes(result: OperatingResult) {
-        return result.routes.map(({ trainId, start, paths }) => ({ trainId, start, paths }))
-    }
-    routeEditor = $derived.by(() => new RouteEditor(this.financialState, this.rules.routeRules))
-    canRunTrains = $derived(
-        !this.busy &&
-            !this.updatingVisibleState &&
-            !this.isViewingHistory &&
-            this.validActionTypes.includes('RunTrains')
-    )
-    routeDraftVisible = $derived.by(
-        () =>
-            !this.updatingVisibleState &&
-            !this.isViewingHistory &&
-            this.financialState.machineState === 'RunningTrains'
-    )
-    routeOverlays = $derived.by(() => {
-        if (this.updatingVisibleState) return []
-        const result = this.financialState.routeStep?.result
-        const routes = this.routeDraftVisible
-            ? (this.automaticRouteResult?.result.routes ?? this.routeEditor.routes)
-            : (result?.routes ?? [])
-        const overlays = routes.map((route, index) => ({
-            id: route.trainId,
-            color: routeColor(index),
-            segments: route.paths
-        }))
-        if (this.routeDraftVisible && this.routeEditor.route)
-            overlays.push({ id: 'route-draft', color: '#d58400', segments: this.routeEditor.paths })
-        return overlays
-    })
-    displayedRoutes = $derived.by(() =>
-        this.automaticRouteResult ||
-        this.financialState.routeStep?.result ||
-        this.routeOverlays.length
-            ? this.routeOverlays
-            : this.networkRoutes
-    )
-    selectRouteTrain(trainId: string) {
-        assert(this.canRunTrains, 'Routes are not active')
-        this.routeEditor.selectTrain(trainId)
-    }
-    selectRouteStart(start: RevenueCenter) {
-        assert(this.canRunTrains, 'Routes are not active')
-        this.routeEditor.selectStart(start)
-        this.inspectMap({ kind: 'node', ...start })
-    }
-    appendRoutePath(path: RoutePath) {
-        assert(this.canRunTrains, 'Routes are not active')
-        this.routeEditor.append(path)
-        this.inspectMap({ kind: 'path', ...path })
-    }
-    saveRoute() {
-        assert(this.canRunTrains, 'Routes are not active')
-        this.routeEditor.save()
-    }
-    editRoute(trainId: string) {
-        assert(this.canRunTrains, 'Routes are not active')
-        this.routeEditor.edit(trainId)
-    }
-    removeRoute(trainId: string) {
-        assert(this.canRunTrains, 'Routes are not active')
-        this.routeEditor.remove(trainId)
-    }
-    backRoute() {
-        this.routeEditor.back()
-    }
-    async confirmRoutes() {
-        const editor = this.routeEditor
-        assert(
-            this.canRunTrains && editor.companyId && !editor.trainId && editor.submission?.result,
-            'Finish the route draft before submitting'
-        )
-        await this.applyAction(
-            this.createPlayerAction(RunTrains, {
-                companyId: editor.companyId,
-                routes: editor.routes
-            })
-        )
     }
     availableTrainDefinitionIds = $derived.by(() => this.rules.trainRules.availableDefinitions(this.financialState))
     trainRosters = $derived.by(() =>
@@ -1019,26 +910,26 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             return
         }
         if (
-            this.canRunTrains &&
-            this.routeEditor.trainId &&
+            this.routes.canRun &&
+            this.routes.editor.trainId &&
             selection.kind === 'path' &&
-            this.routeEditor.extensions.some(
+            this.routes.editor.extensions.some(
                 (path) =>
                     path.locationId === selection.locationId && path.pathId === selection.pathId
             )
         )
-            this.appendRoutePath(selection)
+            this.routes.appendPath(selection)
         else if (
-            this.canRunTrains &&
-            this.routeEditor.trainId &&
-            !this.routeEditor.start &&
+            this.routes.canRun &&
+            this.routes.editor.trainId &&
+            !this.routes.editor.start &&
             (selection.kind === 'node' || selection.kind === 'slot') &&
-            this.routeEditor.centers.some(
+            this.routes.editor.centers.some(
                 (center) =>
                     center.locationId === selection.locationId && center.nodeId === selection.nodeId
             )
         )
-            this.selectRouteStart({
+            this.routes.selectStart({
                 locationId: selection.locationId,
                 nodeId: selection.nodeId
             })
@@ -1430,7 +1321,6 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     }
     override beforeNewState() {
         this.mapInspection = undefined
-        this.automaticRoutes = undefined
         this.drafts.clear()
     }
     get hasActionDraft(): boolean {
@@ -1463,7 +1353,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         this.drafts.register(this.privates)
         this.drafts.register(this.discard)
         this.drafts.register(this.earnings)
-        this.drafts.register(clearableDraft(() => this.routeEditor.hasDraft, () => this.routeEditor.clear()))
+        this.drafts.register(this.routes)
         this.drafts.register(this.trainBuying.depotDraft)
         this.drafts.register(this.stations)
         this.drafts.register(clearableDraft(() => !!this.trackDraft.locationId, () => { this.trackDraft = {} }))

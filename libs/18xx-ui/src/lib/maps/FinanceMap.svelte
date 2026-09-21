@@ -55,7 +55,7 @@
     <EarningsDistribution {session} />
     <TrackBuilding {session} />
     <StationBuilding {session} />
-    {#if !session.routeOverlays.length}
+    {#if !session.routes.overlays.length}
         <div class="network" aria-label="Network access">
             <label
                 ><input type="checkbox" bind:checked={session.showTrackAccess} /> Show reachable track</label
@@ -89,7 +89,7 @@
         legalLocationIds={session.stations.canPlace
             ? session.stations.locationIds
             : session.trackLocationIds}
-        routes={session.displayedRoutes}
+        routes={session.routes.displayed}
         previewLocationId={session.trackPreview?.locationId ??
             session.stations.preview?.position.locationId}
         selection={session.mapSelection}

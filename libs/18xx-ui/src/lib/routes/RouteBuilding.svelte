@@ -2,9 +2,9 @@
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } =
         $props()
-    const editor = $derived(session.routeEditor)
+    const editor = $derived(session.routes.editor)
     const step = $derived(session.financialState.routeStep)
-    const visible = $derived(session.routeDraftVisible)
+    const visible = $derived(session.routes.draftVisible)
     const current = $derived(visible ? editor.route : undefined)
     const preview = $derived(visible ? editor.preview : undefined)
     const evaluation = $derived(visible ? editor.combinedPreview : undefined)
@@ -36,9 +36,9 @@
             <div class="trains" aria-label="Route trains">
                 {#each editor.trains as train}
                     <button
-                        disabled={!session.canRunTrains ||
+                        disabled={!session.routes.canRun ||
                             (visible && editor.routes.some((route) => route.trainId === train.id))}
-                        onclick={() => session.selectRouteTrain(train.id)}
+                        onclick={() => session.routes.selectTrain(train.id)}
                         aria-pressed={visible && editor.trainId === train.id}
                         >Run {editor.rules.depot.trainDefinition(train.definitionId).name} ({train.id})</button
                     >
@@ -51,12 +51,12 @@
                         <select
                             aria-label="Starting revenue center"
                             value={editor.start ? JSON.stringify(editor.start) : ''}
-                            disabled={!session.canRunTrains}
+                            disabled={!session.routes.canRun}
                             onchange={(event) => {
                                 const center = editor.centers.find(
                                     (center) => JSON.stringify(center) === event.currentTarget.value
                                 )
-                                if (center) session.selectRouteStart(center)
+                                if (center) session.routes.selectStart(center)
                             }}
                         >
                             <option value="" disabled>Choose a center</option>
@@ -75,8 +75,8 @@
                         </p>
                         <div class="extensions" aria-label="Next track">
                             {#each editor.extensions as path}<button
-                                    disabled={!session.canRunTrains}
-                                    onclick={() => session.appendRoutePath(path)}
+                                    disabled={!session.routes.canRun}
+                                    onclick={() => session.routes.appendPath(path)}
                                     >Add {path.locationId} {path.pathId}</button
                                 >{/each}
                         </div>
@@ -90,12 +90,12 @@
                                 .map((payment) => `${payment.locationId}: $${payment.amount}`)
                                 .join(' + ')}
                         </p>{/if}
-                    <button disabled={!session.canRunTrains} onclick={() => session.backRoute()}
+                    <button disabled={!session.routes.canRun} onclick={() => session.routes.back()}
                         >Back</button
                     >
                     <button
-                        disabled={!session.canRunTrains || !preview?.result}
-                        onclick={() => session.saveRoute()}>Save route</button
+                        disabled={!session.routes.canRun || !preview?.result}
+                        onclick={() => session.routes.save()}>Save route</button
                     >
                 </div>
             {/if}
@@ -115,11 +115,11 @@
                             .join(' + ')}</span
                     >
                     {#if !step.result}<button
-                            disabled={!session.canRunTrains || Boolean(editor.trainId)}
-                            onclick={() => session.editRoute(route.trainId)}>Edit route</button
+                            disabled={!session.routes.canRun || Boolean(editor.trainId)}
+                            onclick={() => session.routes.edit(route.trainId)}>Edit route</button
                         ><button
-                            disabled={!session.canRunTrains}
-                            onclick={() => session.removeRoute(route.trainId)}>Remove route</button
+                            disabled={!session.routes.canRun}
+                            onclick={() => session.routes.remove(route.trainId)}>Remove route</button
                         >{/if}
                 </div>{/each}
         </div>
@@ -128,10 +128,10 @@
             <footer>
                 <strong>Revenue: ${evaluation?.result?.revenue ?? 0}</strong>
                 <button
-                    disabled={!session.canRunTrains ||
+                    disabled={!session.routes.canRun ||
                         Boolean(editor.trainId) ||
                         !editor.submission?.result}
-                    onclick={() => session.confirmRoutes()}>Confirm routes</button
+                    onclick={() => session.routes.confirm()}>Confirm routes</button
                 >
             </footer>
         {/if}

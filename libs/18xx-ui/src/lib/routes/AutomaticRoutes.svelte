@@ -18,12 +18,12 @@
     } = $props()
     let error = $state<string>()
     let attempt = $state(0)
-    const result = $derived(session.automaticRouteResult?.result)
-    const trains = $derived(session.routeEditor.trains)
+    const result = $derived(session.routes.solved?.result)
+    const trains = $derived(session.routes.editor.trains)
     type RouteSolve = { state: typeof session.financialState; companyId: string | undefined; attempt: number }
     const solve = $derived<RouteSolve>({
         state: session.financialState,
-        companyId: session.canRunTrains ? session.financialState.routeStep?.companyId : undefined,
+        companyId: session.routes.canRun ? session.financialState.routeStep?.companyId : undefined,
         attempt
     })
     function solveRoutes(_section: HTMLElement, initial: RouteSolve) {
@@ -31,7 +31,7 @@
         function start({ state, companyId }: RouteSolve) {
             worker?.terminate()
             worker = undefined
-            if (!companyId || session.automaticRouteResult) return
+            if (!companyId || session.routes.solved) return
             error = undefined
             try {
                 const solver = createRouteWorker()
@@ -41,7 +41,7 @@
                     if (event.data.error !== undefined) error = event.data.error
                     else {
                         try {
-                            session.setAutomaticRoutes(
+                            session.routes.setSolved(
                                 state,
                                 event.data.result.result,
                                 event.data.result.exhaustive
@@ -84,7 +84,7 @@
 <section aria-label="Run trains" class="automatic-routes" use:solveRoutes={solve}>
     {#if error}
         <p role="alert">{error}</p>
-        <button disabled={!session.canRunTrains} onclick={() => attempt++}>Try again</button>
+        <button disabled={!session.routes.canRun} onclick={() => attempt++}>Try again</button>
     {:else if !result}
         <p role="status">
             {session.isViewingHistory ? 'Viewing train run' : 'Calculating routes…'}
@@ -94,10 +94,10 @@
             trainName={(id) => session.trainDepot.trainDefinition(id).name} />
         <button
             class="run"
-            disabled={!session.canRunTrains}
-            onclick={() => session.runAutomaticTrains()}>Run trains</button
+            disabled={!session.routes.canRun}
+            onclick={() => session.routes.runSolved()}>Run trains</button
         >
-        {#if !session.automaticRouteResult?.exhaustive}<small
+        {#if !session.routes.solved?.exhaustive}<small
                 >Best routes found within the search time.</small
             >{/if}
     {/if}

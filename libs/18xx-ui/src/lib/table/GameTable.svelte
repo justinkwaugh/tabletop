@@ -190,7 +190,7 @@
     })
     async function focusRoute(trainId: string) {
         session.closeHistoricalMap()
-        const route = session.automaticRouteResult?.result.routes.find((route) => route.trainId === trainId)
+        const route = session.routes.solved?.result.routes.find((route) => route.trainId === trainId)
         if (!route) return
         const restore = focusedRoute === trainId
         focusedRoute = restore ? undefined : trainId
@@ -250,8 +250,8 @@
     const runningCompanyId = $derived(!session.isViewingHistory && session.financialState.machineState === 'RunningTrains'
         ? session.financialState.routeStep?.companyId : undefined)
     const routePreview = $derived(
-        !session.isViewingHistory && session.automaticRouteResult?.result.routes.length
-            ? session.automaticRouteResult : undefined
+        !session.isViewingHistory && session.routes.solved?.result.routes.length
+            ? session.routes.solved : undefined
     )
     type RouteFraming = { runningCompanyId: string | undefined; preview: typeof routePreview }
     function frameRoutes(_table: HTMLElement, initial: RouteFraming) {
@@ -326,7 +326,7 @@
         ? historicalFocus.routes.map((route, index) => ({
             id: route.trainId, color: routeColor(index), segments: route.paths
         }))
-        : session.routeOverlays)
+        : session.routes.overlays)
     const settledHistoricalFocus = $derived(historyMapSettled && mapWrapper ? historicalFocus : undefined)
     function frameHistory(_table: HTMLElement, initial: typeof settledHistoricalFocus) {
         let request = 0

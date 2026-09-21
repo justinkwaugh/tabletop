@@ -7,6 +7,7 @@ export interface SessionContext<State, Rules> {
     readonly state: State
     readonly rules: Rules
     readonly validActionTypes: readonly string[]
+    readonly publishing: boolean
     readonly draftsVisible: boolean
     readonly interactive: boolean
     readonly actingPlayerIds: readonly string[]

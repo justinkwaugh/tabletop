@@ -12,6 +12,7 @@ export function testContext<State, Rules>(
         state,
         rules,
         validActionTypes,
+        publishing: false,
         draftsVisible: availability.draftsVisible ?? true,
         interactive: availability.interactive ?? true,
         actingPlayerIds: availability.actingPlayerIds ?? ['alex'],
