@@ -21,11 +21,13 @@ export type StationsContext<State extends StationsState = StationsState> = Sessi
 
 export class StationsModule<State extends StationsState> implements SessionDraft {
     #draft: StationSelection = $state({})
-    readonly requiresTokenChoice = false
     constructor(
         private readonly context: StationsContext<State>,
-        private readonly onPositionChosen: () => void
+        private readonly onPositionChosen: () => void,
+        private readonly tokenChoiceRequired: () => boolean
     ) {}
+
+    requiresTokenChoice = $derived.by(() => this.tokenChoiceRequired())
 
     model = $derived.by(
         () => new StationPlacement(this.context.state, this.context.rules.stationRules)

@@ -12,7 +12,7 @@ import { testContext } from './moduleTestContext.js'
 
 const extra = `${TestCompanyId}:extra`
 
-function placing(valid: string[], availability = {}) {
+function placing(valid: string[], availability = {}, tokenChoiceRequired = false) {
     const base = minimalPlayState()
     const state: StationsContext['state'] = {
         ...base,
@@ -33,7 +33,11 @@ function placing(valid: string[], availability = {}) {
     }
     let positionsChosen = 0
     const harness = testContext(state, { stationRules: minimalStationRules }, valid, availability)
-    const module = new StationsModule(harness.context, () => positionsChosen++)
+    const module = new StationsModule(
+        harness.context,
+        () => positionsChosen++,
+        () => tokenChoiceRequired
+    )
     return { ...harness, module, positionsChosen: () => positionsChosen }
 }
 
@@ -55,6 +59,14 @@ describe('StationsModule', () => {
         expect(module.selection.stationId).toMatchObject({ value: extra, source: 'auto' })
         expect(module.pending()).toBe(false)
         expect(module.unwind()).toBe(false)
+    })
+
+    it('leaves the token to the player when the title says its identity matters', () => {
+        const { module } = placing(['FinishStations', 'PlaceStation'], {}, true)
+        expect(module.requiresTokenChoice).toBe(true)
+        expect(module.selection).toEqual({})
+        module.select(extra)
+        expect(module.selection.stationId).toMatchObject({ value: extra, source: 'manual' })
     })
 
     it('lets Undo consume a manual token choice and clears it entirely', () => {

@@ -203,7 +203,14 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     readonly privates = new PrivatesModule(this.context)
     readonly trainFunding = new TrainFundingModule(this.context)
     readonly trainBuying = new TrainBuyingModule(this.context, () => this.purchaseOptions)
-    readonly stations = new StationsModule(this.context, () => { this.mapInspection = undefined })
+    get requiresStationTokenChoice(): boolean {
+        return false
+    }
+    readonly stations = new StationsModule(
+        this.context,
+        () => { this.mapInspection = undefined },
+        () => this.requiresStationTokenChoice
+    )
     readonly routes = new RoutesModule(
         this.context,
         (selection) => this.inspectMap(selection),
