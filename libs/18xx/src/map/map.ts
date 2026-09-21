@@ -12,7 +12,7 @@ import {
     type HexGridNode
 } from '@tabletop/common'
 import { TileEdge, TileFace, type ImmutableTileData } from '../tiles/tile.js'
-import { CityReservation } from './station.js'
+import { CityReservation, type StationReservation } from './station.js'
 import { assertTileTopology } from '../tiles/validation.js'
 import { tileEdgeDirection } from '../tiles/topology.js'
 
@@ -140,6 +140,21 @@ export class RailwayMap {
         )
     }
 
+    reservedLocationIds(companyId: string): string[] {
+        return this.definition.locations
+            .filter((location) =>
+                location.reservations?.some((reservation) => reservation.companyId === companyId)
+            )
+            .map((location) => location.id)
+    }
+    stationReservations(): StationReservation[] {
+        return this.definition.locations.flatMap((location) =>
+            (location.reservations ?? []).map((reservation) => ({
+                ...reservation,
+                locationId: location.id
+            }))
+        )
+    }
     location(id: string): MapLocation {
         const location = this.locationsById.get(id)
         assertExists(location, `Unknown map location: ${id}`)

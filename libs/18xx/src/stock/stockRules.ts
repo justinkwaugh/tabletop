@@ -7,6 +7,7 @@ import {
     type Portfolio,
     type President
 } from '../finance/finance.js'
+import { companyMarketSpace } from './stockMarket.js'
 import type { StockState } from './stockState.js'
 import type { SharePurchaseTerms, ShareCertificate } from './sharePurchase.js'
 
@@ -67,4 +68,17 @@ export function exceedsStockLimits(state: StockState, owner: Owner, rules: Stock
             )
         })
     )
+}
+
+export function marketSaleTerms(
+    state: Pick<StockState, 'stockMarket'>,
+    companyId: string,
+    terms: Pick<ShareSaleTerms, 'destinationPoolId' | 'marketLimit' | 'maximumShares' | 'movement'>
+): ShareSaleTerms {
+    return {
+        payer: { kind: 'bank' },
+        price: companyMarketSpace(state.stockMarket, companyId).price,
+        direction: 'down',
+        ...terms
+    }
 }

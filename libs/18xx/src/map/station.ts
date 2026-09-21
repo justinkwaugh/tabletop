@@ -92,3 +92,15 @@ export function cityIsBlocked(
         !stations.some((station) => station.companyId === companyId)
     )
 }
+
+export function homeStationId(companyId: string): string {
+    return `${companyId}:home`
+}
+
+export function createCompanyStations(companyId: string, count: number): Station[] {
+    return Array.from({ length: count }, (_, index) => ({
+        id: index ? `${companyId}:station:${index}` : homeStationId(companyId),
+        companyId,
+        status: 'available' as const
+    }))
+}

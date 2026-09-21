@@ -86,6 +86,7 @@ export const Certificate = Type.Union([
 ])
 export type Certificate = Type.Static<typeof Certificate>
 export type Portfolio = Extract<Certificate, { retired: false }>[]
+export type OpenShare = Extract<Portfolio[number], { kind: 'share' }>
 export type Treasury = { cash: Cash['amount'] | undefined; portfolio: Portfolio }
 
 export const FinanceFields = {
@@ -204,6 +205,24 @@ export function getTreasury(
     getCompany(state, companyId)
     const owner: Owner = { kind: 'company', companyId }
     return { cash: cashOwnedBy(state, owner), portfolio: certificatesOwnedBy(state, owner) }
+}
+
+export function openShares(
+    state: Pick<FinancialState, 'certificates'>,
+    companyId: string
+): OpenShare[] {
+    return state.certificates.flatMap((certificate) =>
+        !certificate.retired && certificate.kind === 'share' && certificate.companyId === companyId
+            ? [certificate]
+            : []
+    )
+}
+
+export function presidentCertificate(
+    state: Pick<FinancialState, 'certificates'>,
+    companyId: string
+): OpenShare | undefined {
+    return openShares(state, companyId).find((certificate) => certificate.president)
 }
 
 export function sharesOwned(

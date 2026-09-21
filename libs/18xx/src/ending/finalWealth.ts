@@ -85,3 +85,19 @@ export function validateFinalResults(state: {
         'Final results must match the terminal state'
     )
 }
+
+export function certificateWealthItem(
+    state: Pick<StockState, 'companies'>,
+    certificate: Portfolio[number],
+    value: number
+): WealthItem {
+    const { name } = getCompany(state, certificate.companyId)
+    return {
+        assetId: certificate.id,
+        label:
+            certificate.kind === 'share'
+                ? `${name} · ${certificate.shares} share${certificate.shares === 1 ? '' : 's'}`
+                : name,
+        value
+    }
+}

@@ -1,8 +1,14 @@
 import * as Type from 'typebox'
-import { assert } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import { CertificateExchange } from '../finance/certificateExchange.js'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
-import { copyFinances, getCompany } from '../finance/finance.js'
+import {
+    copyFinances,
+    getCompany,
+    openShares,
+    type FinancialState,
+    type OpenShare
+} from '../finance/finance.js'
 import { applyPresidencyChange } from '../stock/presidency.js'
 import type { SharePurchaseDetails } from '../stock/sharePurchase.js'
 import type { FormationState } from './companyState.js'
@@ -53,4 +59,39 @@ export function flotationAfterPurchase(
     settleCashPayments(projected, purchase.payments)
     if (purchase.presidency) applyPresidencyChange(projected, purchase.presidency)
     return evaluateCompanyFlotation(projected, purchase.companyId, rules)
+}
+
+type ShareholdingState = Pick<FinancialState, 'companies' | 'certificates'>
+
+export function sharesStillToFloat(
+    state: ShareholdingState,
+    companyId: string,
+    soldPercent: number,
+    unsold: (certificate: OpenShare) => boolean
+): number | undefined {
+    const { shareCount } = getCompany(state, companyId)
+    if (!shareCount) return undefined
+    const unsoldShares = openShares(state, companyId)
+        .filter(unsold)
+        .reduce((sum, certificate) => sum + certificate.shares, 0)
+    return Math.max(0, unsoldShares - Math.floor((shareCount * (100 - soldPercent)) / 100))
+}
+
+export function fullCapitalizationPayments(
+    state: ShareholdingState,
+    companyId: string,
+    sharesStillToFloat: number | undefined
+): CashPayment[] | undefined {
+    if (sharesStillToFloat !== 0) return undefined
+    const company = getCompany(state, companyId)
+    if (company.funded) return []
+    assertExists(company.parPrice, 'Started company requires a par price')
+    assertExists(company.shareCount, 'Full capitalization requires a share count')
+    return [
+        {
+            from: { kind: 'bank' },
+            to: { kind: 'company', companyId },
+            amount: company.parPrice * company.shareCount
+        }
+    ]
 }

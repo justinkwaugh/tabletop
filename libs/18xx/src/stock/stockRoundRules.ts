@@ -1,3 +1,9 @@
+import {
+    getCompany,
+    openShares,
+    type FinancialState,
+    type OpenShare
+} from '../finance/finance.js'
 import type { StockState } from './stockState.js'
 
 export interface StockRoundRules {
@@ -26,4 +32,13 @@ export function recordStockAction(
 
 export function allPlayersPassed(state: StockState): boolean {
     return state.turnManager.turnOrder.every((id) => state.stockRound.passedPlayerIds.includes(id))
+}
+
+export function allSharesHeld(
+    state: Pick<FinancialState, 'companies' | 'certificates'>,
+    companyId: string,
+    held: (certificate: OpenShare) => boolean
+): boolean {
+    const company = getCompany(state, companyId)
+    return !!company.started && !company.closed && openShares(state, companyId).every(held)
 }

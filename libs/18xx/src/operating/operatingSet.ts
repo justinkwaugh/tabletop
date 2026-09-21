@@ -1,5 +1,7 @@
 import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
+import { getCompany } from '../finance/finance.js'
+import { stockMarketOrder } from '../stock/stockMarket.js'
 import type { StockState } from '../stock/stockState.js'
 
 export const OperatingSet = Type.Object(
@@ -65,4 +67,13 @@ export function validateOperatingSet(state: {
         operatingSet.completedCompanyIds.every((id) => operatingSet.companyOrder.includes(id)),
         'Completed company must belong to the operating order'
     )
+}
+
+export function floatedCompaniesInMarketOrder(
+    state: Pick<StockState, 'companies' | 'stockMarket'>
+): string[] {
+    return stockMarketOrder(state.stockMarket).filter((id) => {
+        const company = getCompany(state, id)
+        return company.floated && !company.closed
+    })
 }

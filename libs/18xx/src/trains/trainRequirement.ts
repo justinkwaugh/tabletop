@@ -1,5 +1,7 @@
 import { TrackNetwork } from '../construction/trackNetwork.js'
-import type { RailwayMapState } from '../map/mapState.js'
+import type { RailwayMap } from '../map/map.js'
+import { RailwayMapState, type MapStateData } from '../map/mapState.js'
+import type { TileSet } from '../tiles/inventory.js'
 import type { StationState } from '../map/station.js'
 
 export function hasStationRoute(
@@ -22,4 +24,12 @@ export function hasStationRoute(
                 )
         )
     })
+}
+
+export function requiresStationRoute(
+    map: RailwayMap,
+    tileSet: TileSet
+): (state: MapStateData, companyId: string) => boolean {
+    return (state, companyId) =>
+        hasStationRoute(new RailwayMapState(map, tileSet, state.tileInventory), state, companyId)
 }
