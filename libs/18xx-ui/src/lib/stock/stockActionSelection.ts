@@ -11,7 +11,11 @@ type StockActionStages = {
     action: { menu: StockAction; buyer?: Owner }
     saleCompany: string
 }
-const Stages = ['action', 'saleCompany'] as const satisfies readonly (keyof StockActionStages)[]
+export const StockActionStageOrder = [
+    'action',
+    'saleCompany'
+] as const satisfies readonly (keyof StockActionStages)[]
+const Stages = StockActionStageOrder
 export type StockActionSelection = StagedSelectionState<StockActionStages>
 export function chooseStockAction(menu: StockAction, buyer?: Owner, source: StagedSelectionSource = 'manual'): StockActionSelection {
     return setStagedSelectionValue<StockActionStages, 'action'>(

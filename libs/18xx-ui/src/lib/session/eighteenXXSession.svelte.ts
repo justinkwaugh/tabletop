@@ -8,21 +8,24 @@ import { WaterfallAuctionModule } from './waterfallAuctionModule.svelte.js'
 import type { SessionContext } from './sessionContext.js'
 import { EarningsModule } from './earningsModule.svelte.js'
 import { DiscardModule } from './discardModule.svelte.js'
-import { SessionDrafts, clearableDraft } from './sessionDrafts.js'
+import { LocalSelections } from './localSelections.js'
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingStepIndex } from '../table/operatingStep.js'
 import { operatingHistory } from '../table/operatingHistory.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
-import { setStagedSelectionValue, type StagedSelectionState } from '@tabletop/frontend-components'
-import { isIssueTreasuryShares } from '@tabletop/18xx'
+import {
+    hasManualStagedSelection,
+    popHighestManualStagedSelection,
+    setStagedSelectionValue,
+    type StagedSelectionState
+} from '@tabletop/frontend-components'
 import { EighteenXXPreferenceDefinition, type EighteenXXPreferences } from '@tabletop/18xx'
-import { isDistributeEarnings } from '@tabletop/18xx'
 import type { TitlePreferences } from '@tabletop/frontend-components'
-import { type TrainBuyingSelection } from './trainBuyingSelection.js'
 import { EighteenXXStateValidator } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 import { HistoricalMaps, type HistoricalMap } from '../maps/historicalMap.js'
 import {
+    StockActionStageOrder,
     chooseStockAction,
     chooseSaleCompany,
     backFromStockAction,
@@ -34,8 +37,6 @@ import {
     type HydratedEighteenXXState,
     type EighteenXXTitleRules
 } from '@tabletop/18xx'
-import type { OfferAuctionSelection } from '../auctions/auctionSelection.js'
-import type { AuctionSelection } from '../auctions/auctionSelection.js'
 import {
     BuyAuctionLot
 } from '@tabletop/18xx'
@@ -72,37 +73,22 @@ import {
     evaluatePrivateExchange
 } from '@tabletop/18xx'
 import { GameStorage } from '@tabletop/common'
-import { discardableTrains } from '@tabletop/18xx'
 import {
     FinishOperatingTurn,
     finishOperatingTurnReason
 } from '@tabletop/18xx'
-import { routeColor } from '../routes/routePresentation.js'
-import { RouteEditor } from './routeEditor.svelte.js'
 import {
-    RunTrains,
-    RouteEvaluation,
-    type OperatingResult,
-    type RevenueCenter,
-    type RoutePath
+    RouteEvaluation
 } from '@tabletop/18xx'
 import {
     trainsOwnedBy
 } from '@tabletop/18xx'
 import {
-    StationPlacement,
-    PlaceStation,
     FinishStations,
-    isPlaceStation,
     TrackNetwork,
-    RailwayMapState,
-    applyStationPlacement,
-    type StationRequest
+    RailwayMapState
 } from '@tabletop/18xx'
 import {
-    chooseStation,
-    chooseStationPosition,
-    backFromStation,
     type StationSelection
 } from './stationSelection.js'
 import {
@@ -161,6 +147,7 @@ import {
     type Portfolio
 } from '@tabletop/18xx'
 
+const PrivateActionStageOrder = ['source', 'power'] as const
 type SessionOptions = ConstructorParameters<typeof GameSession<GameState, HydratedGameState>>[0]
 type Selection =
     | { kind: 'purchase'; request: PurchaseRequest }
@@ -175,7 +162,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     readonly marketAnimation = createMarketAnimationSource(this, (state) => requireEighteenXXState(state).stockMarket)
     readonly preferences: TitlePreferences<typeof EighteenXXPreferences> = this.createPreferences(EighteenXXPreferenceDefinition)
     selection: Selection | undefined = $state()
-    protected readonly drafts = new SessionDrafts()
+    protected readonly localSelections = new LocalSelections()
     private get localHotseat() {
         return !!this.game.hotseat && this.game.storage === GameStorage.Local
     }
@@ -225,7 +212,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     ) {
         super(options)
         this.historicalMaps = new HistoricalMaps(mapView)
-        this.registerDrafts()
+        this.registerLocalSelections()
     }
     auctionLotsFor(state: EighteenXXState) {
         return this.rules.offerAuctionRules?.lots(state) ?? this.rules.auctionRules?.lots(state) ?? []
@@ -242,14 +229,14 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     choosePrivatePowers() {
         this.trackDraft = {}
         this.companyDraft = undefined
-        this.privateActionStages = setStagedSelectionValue(this.privateActionStages, ['source', 'power'], 'source', 'powers', 'manual')
+        this.privateActionStages = setStagedSelectionValue(this.privateActionStages, PrivateActionStageOrder, 'source', 'powers', 'manual')
     }
     get privatePurchaseHeading(): string | undefined { return 'Available privates' }
     privatePurchases = $derived.by(() => this.purchaseOptions.filter((option) => option.request.asset.kind === 'private'))
     choosePrivatePurchaseSource(source: 'mine' | 'other') {
         this.trackDraft = {}
         this.companyDraft = undefined
-        this.privateActionStages = setStagedSelectionValue(this.privateActionStages, ['source', 'power'], 'source', source, 'manual')
+        this.privateActionStages = setStagedSelectionValue(this.privateActionStages, PrivateActionStageOrder, 'source', source, 'manual')
     }
     private companyDraft: CompanyDecisionDraft | undefined = $state()
     companyDecisionSelection = $derived(
@@ -317,7 +304,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     choosePrivateTrackPower(power: PrivateTrackPower) {
         assert(this.privateTrackPowers.some((option) => option.privateCompanyId === power.privateCompanyId && option.playerId === power.playerId), 'Choose an available private tile power')
         this.trackDraft = {}
-        this.privateActionStages = setStagedSelectionValue(this.privateActionStages, ['source', 'power'], 'power', power, 'manual')
+        this.privateActionStages = setStagedSelectionValue(this.privateActionStages, PrivateActionStageOrder, 'power', power, 'manual')
     }
     privateTrainOptions = $derived.by(() => {
         if (
@@ -1328,45 +1315,62 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     }
     override beforeNewState() {
         this.mapInspection = undefined
-        this.drafts.clear()
+        this.localSelections.clear()
     }
     get hasActionDraft(): boolean {
-        return this.drafts.pending()
+        return this.localSelections.hasManual()
     }
     override async undo() {
         if (this.busy || this.isViewingHistory) return
-        if (this.drafts.unwind()) return
+        if (this.localSelections.undo()) return
         this.stockActionDraft = {}
         await super.undo()
     }
-    private registerDrafts() {
-        this.drafts.register(this.trainBuying.sourceDraft)
-        this.drafts.register(this.offers)
-        this.drafts.register(this.waterfall)
-        this.drafts.register(clearableDraft(() => !!this.companyDraft, () => { this.companyDraft = undefined }))
-        this.drafts.register({
-            pending: () => !!this.privateActionSelection,
-            unwind: () => {
+    private registerLocalSelections() {
+        const { localSelections } = this
+        localSelections.register(this.trainBuying.sourceStages)
+        localSelections.register(this.offers.choice)
+        localSelections.register(this.waterfall.choice)
+        localSelections.register({
+            hasManual: () => !!this.companyDraft,
+            undo: () => {
+                if (!this.companyDraft) return false
+                this.companyDraft = undefined
+                return true
+            },
+            clear: () => { this.companyDraft = undefined }
+        })
+        localSelections.register({
+            hasManual: () => !!this.privateActionSelection,
+            undo: () => {
                 if (!this.privateActionSelection && !this.privateActionStages.power &&
                     !(this.privateTrackPowerSelection && this.trackDraft.locationId)) return false
                 if (this.trackDraft.locationId) this.trackDraft = {}
-                else if (this.privateActionStages.power?.source === 'manual')
-                    this.privateActionStages = { source: this.privateActionStages.source }
-                else this.privateActionStages = {}
+                else this.privateActionStages = popHighestManualStagedSelection(
+                    this.privateActionStages, PrivateActionStageOrder
+                ).nextState
                 return true
             },
             clear: () => { this.privateActionStages = {} }
         })
-        this.drafts.register(this.privates)
-        this.drafts.register(this.discard)
-        this.drafts.register(this.earnings)
-        this.drafts.register(this.routes)
-        this.drafts.register(this.trainBuying.depotDraft)
-        this.drafts.register(this.stations)
-        this.drafts.register(clearableDraft(() => !!this.trackDraft.locationId, () => { this.trackDraft = {} }))
-        this.drafts.register({
-            pending: () => false,
-            unwind: () => {
+        localSelections.register(this.privates.exchangeChoice)
+        localSelections.register(this.discard.choice)
+        localSelections.register(this.earnings.choice)
+        localSelections.register(this.routes)
+        localSelections.register(this.trainBuying.depotChoice)
+        localSelections.register(this.stations.stages)
+        localSelections.register({
+            hasManual: () => !!this.trackDraft.locationId,
+            undo: () => {
+                if (!this.trackDraft.locationId) return false
+                this.trackDraft = {}
+                return true
+            },
+            clear: () => { this.trackDraft = {} }
+        })
+        localSelections.register({
+            hasManual: () => false,
+            undo: () => {
                 if (this.stockMenu !== 'sell' || !this.selectedSaleCompany) return false
                 this.cancelSelection()
                 this.backFromStockMenu()
@@ -1374,9 +1378,9 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             },
             clear: () => {}
         })
-        this.drafts.register({
-            pending: () => !!this.selection,
-            unwind: () => {
+        localSelections.register({
+            hasManual: () => !!this.selection,
+            undo: () => {
                 if (!this.selection) return false
                 if (this.selection.kind === 'start') this.backFromStart()
                 else this.cancelSelection()
@@ -1384,10 +1388,9 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             },
             clear: () => this.cancelSelection()
         })
-        this.drafts.register({
-            pending: () => this.stockActionDraft.action?.source === 'manual' ||
-                this.stockActionDraft.saleCompany?.source === 'manual',
-            unwind: () => {
+        localSelections.register({
+            hasManual: () => hasManualStagedSelection(this.stockActionDraft, StockActionStageOrder),
+            undo: () => {
                 if (this.stockActionDraft.action?.source !== 'manual') return false
                 this.backFromStockMenu()
                 return true

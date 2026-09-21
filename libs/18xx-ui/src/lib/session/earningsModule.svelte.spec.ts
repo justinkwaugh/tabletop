@@ -62,14 +62,14 @@ describe('EarningsModule', () => {
         const { earnings } = distributing('DistributingEarnings', { draftsVisible: false })
         earnings.select('pay')
         expect(earnings.selection).toBeUndefined()
-        expect(earnings.pending()).toBe(true)
+        expect(earnings.choice.hasManual()).toBe(true)
     })
 
     it('lets Undo consume the draft once, then yields to game history', () => {
         const { earnings } = distributing()
         earnings.select('pay')
-        expect(earnings.unwind()).toBe(true)
-        expect(earnings.pending()).toBe(false)
-        expect(earnings.unwind()).toBe(false)
+        expect(earnings.choice.undo()).toBe(true)
+        expect(earnings.choice.hasManual()).toBe(false)
+        expect(earnings.choice.undo()).toBe(false)
     })
 })

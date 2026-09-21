@@ -10,15 +10,15 @@ import {
 } from '@tabletop/18xx'
 import type { AuctionSelection } from '../auctions/auctionSelection.js'
 import type { SessionContext } from './sessionContext.js'
-import type { SessionDraft } from './sessionDrafts.js'
+import { singleChoiceStore } from './stagedSelectionStore.svelte.js'
 
 export type WaterfallAuctionContext = SessionContext<
     AuctionState,
     Pick<EighteenXXTitleRules, 'auctionRules'>
 >
 
-export class WaterfallAuctionModule implements SessionDraft {
-    #draft: AuctionSelection | undefined = $state()
+export class WaterfallAuctionModule {
+    readonly choice = singleChoiceStore<AuctionSelection>()
     constructor(private readonly context: WaterfallAuctionContext) {}
 
     model = $derived.by(() =>
@@ -27,7 +27,9 @@ export class WaterfallAuctionModule implements SessionDraft {
             : undefined
     )
     selection = $derived.by(() =>
-        !this.context.draftsVisible || this.model?.auction.completed ? undefined : this.#draft
+        !this.context.draftsVisible || this.model?.auction.completed
+            ? undefined
+            : this.choice.value('choice')
     )
     canAct = $derived.by(
         () => this.context.interactive && this.context.validActionTypes.includes('PassAuction')
@@ -35,15 +37,16 @@ export class WaterfallAuctionModule implements SessionDraft {
 
     selectLot(kind: AuctionSelection['kind'], lotId: string) {
         assert(this.canAct && this.model, 'Auction selection is unavailable')
-        this.#draft = {
+        this.choice.choose('choice', {
             kind,
             lotId,
             amount: kind === 'buy' ? this.model.price(lotId) : this.model.minimumBid(lotId)
-        }
+        })
     }
     setBid(amount: number) {
-        assert(this.canAct && this.#draft?.kind === 'bid', 'Select a bid first')
-        this.#draft = { ...this.#draft, amount }
+        const bid = this.choice.value('choice')
+        assert(this.canAct && bid?.kind === 'bid', 'Select a bid first')
+        this.choice.choose('choice', { ...bid, amount })
     }
     async confirm() {
         const draft = this.selection
@@ -66,17 +69,5 @@ export class WaterfallAuctionModule implements SessionDraft {
     async pass() {
         assert(this.canAct && !this.selection, 'Finish the auction selection first')
         await this.context.applyAction(this.context.createPlayerAction(PassAuction, {}))
-    }
-
-    pending() {
-        return this.#draft !== undefined
-    }
-    unwind() {
-        if (this.#draft === undefined) return false
-        this.#draft = undefined
-        return true
-    }
-    clear() {
-        this.#draft = undefined
     }
 }

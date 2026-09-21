@@ -35,7 +35,7 @@
                         >Discard {session.trainDepot.trainDefinition(train.definitionId).name} ({train.id})</button
                     >{/each}
             </div>
-            {#if session.discard.selection}<button onclick={() => session.discard.clear()}>Back</button
+            {#if session.discard.selection}<button onclick={() => session.discard.choice.clear()}>Back</button
                 ><button
                     disabled={!session.discard.canDiscard}
                     onclick={() => session.discard.confirm()}>Confirm discard</button

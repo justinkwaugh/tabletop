@@ -7,19 +7,19 @@ import {
     type PhaseChangeState
 } from '@tabletop/18xx'
 import type { SessionContext } from './sessionContext.js'
-import type { SessionDraft } from './sessionDrafts.js'
+import { singleChoiceStore } from './stagedSelectionStore.svelte.js'
 
 export type DiscardContext = SessionContext<
     PhaseChangeState & Pick<EighteenXXState, 'machineState'>,
     { trainRules: Pick<EighteenXXTitleRules['trainRules'], 'trainLimit'> }
 >
 
-export class DiscardModule implements SessionDraft {
-    #draft: string | undefined = $state()
+export class DiscardModule {
+    readonly choice = singleChoiceStore<string>()
     constructor(private readonly context: DiscardContext) {}
 
     selection = $derived.by(() => this.context.draftsVisible && this.context.state.machineState === 'DiscardingTrains'
-            ? this.#draft
+            ? this.choice.value('choice')
             : undefined)
     companyId = $derived.by(() => this.context.state.phaseChange?.discardCompanyIds[0])
     trains = $derived.by(() => this.companyId
@@ -36,24 +36,12 @@ export class DiscardModule implements SessionDraft {
             this.canDiscard && this.trains.some((train) => train.id === trainId),
             'Choose a train for compulsory discard'
         )
-        this.#draft = trainId
+        this.choice.choose('choice', trainId)
     }
     async confirm() {
         const companyId = this.companyId
         const trainId = this.selection
         assert(this.canDiscard && companyId && trainId, 'Select a train to discard')
         await this.context.applyAction(this.context.createPlayerAction(DiscardTrain, { companyId, trainId }))
-    }
-
-    pending() {
-        return this.#draft !== undefined
-    }
-    unwind() {
-        if (this.#draft === undefined) return false
-        this.#draft = undefined
-        return true
-    }
-    clear() {
-        this.#draft = undefined
     }
 }

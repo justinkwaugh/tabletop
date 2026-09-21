@@ -48,7 +48,7 @@
         void session.offers.confirm()
     }
     function pass() {
-        session.offers.clear()
+        session.offers.choice.clear()
         void session.offers.pass()
     }
 </script>

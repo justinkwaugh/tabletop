@@ -9,7 +9,7 @@ import {
     type PrivateExchangeRequest
 } from '@tabletop/18xx'
 import type { SessionContext } from './sessionContext.js'
-import type { SessionDraft } from './sessionDrafts.js'
+import { singleChoiceStore } from './stagedSelectionStore.svelte.js'
 
 type PrivatesState = Parameters<typeof privateExchangeOffers>[0] &
     Parameters<typeof pendingCompanyDecision>[0] &
@@ -28,8 +28,8 @@ function sameExchange(a: PrivateExchangeRequest, b: PrivateExchangeRequest) {
     )
 }
 
-export class PrivatesModule implements SessionDraft {
-    #draft: PrivateExchangeRequest | undefined = $state()
+export class PrivatesModule {
+    readonly exchangeChoice = singleChoiceStore<PrivateExchangeRequest>()
     constructor(private readonly context: PrivatesContext) {}
 
     companies = $derived.by(() =>
@@ -56,7 +56,7 @@ export class PrivatesModule implements SessionDraft {
         )
     })
     exchangeSelection = $derived.by(() => {
-        const draft = this.#draft
+        const draft = this.exchangeChoice.value('choice')
         return this.context.draftsVisible &&
             draft &&
             this.exchangeOffers.some((offer) => sameExchange(offer, draft))
@@ -69,7 +69,7 @@ export class PrivatesModule implements SessionDraft {
             this.exchangeOffers.some((offer) => sameExchange(offer, request)),
             'Choose an available private exchange'
         )
-        this.#draft = request
+        this.exchangeChoice.choose('choice', request)
     }
     async confirmExchange() {
         const request = this.exchangeSelection
@@ -89,17 +89,5 @@ export class PrivatesModule implements SessionDraft {
         })
         action.playerId = request.playerId
         await this.context.applyAction(action)
-    }
-
-    pending() {
-        return this.#draft !== undefined
-    }
-    unwind() {
-        if (this.#draft === undefined) return false
-        this.#draft = undefined
-        return true
-    }
-    clear() {
-        this.#draft = undefined
     }
 }

@@ -23,7 +23,7 @@
         onChoose={(id) => session.offers.select(id)}
         onBidChange={(amount) => session.offers.setBid(amount)}
         onConfirm={() => session.offers.confirm()}
-        onBack={() => session.offers.clear()}
+        onBack={() => session.offers.choice.clear()}
         onPass={() => session.offers.pass()}
         onUndo={() => session.undo()}
         {showUndo}

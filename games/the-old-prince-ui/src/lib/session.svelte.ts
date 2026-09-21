@@ -45,10 +45,10 @@ export class TheOldPrinceSession extends BaseSession {
     private splitDraft: BranchSplitSelection = $state({})
     constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
         super(options)
-        this.drafts.register(
+        this.localSelections.register(
             {
-                pending: () => hasSplitSelection(this.splitDraft),
-                unwind: () => {
+                hasManual: () => hasSplitSelection(this.splitDraft),
+                undo: () => {
                     if (!hasSplitSelection(this.splitDraft)) return false
                     this.splitDraft = backSplitSelection(this.splitDraft)
                     return true

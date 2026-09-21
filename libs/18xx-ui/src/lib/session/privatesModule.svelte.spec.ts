@@ -44,8 +44,8 @@ describe('PrivatesModule', () => {
     it('refuses an exchange that is not on offer and keeps nothing pending', () => {
         const { module } = privates()
         expect(() => module.selectExchange(request)).toThrow('Choose an available private exchange')
-        expect(module.pending()).toBe(false)
-        expect(module.unwind()).toBe(false)
+        expect(module.exchangeChoice.hasManual()).toBe(false)
+        expect(module.exchangeChoice.undo()).toBe(false)
     })
 
     it('refuses to confirm without a selection', async () => {

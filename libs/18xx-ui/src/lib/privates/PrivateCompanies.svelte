@@ -34,7 +34,7 @@
             <p>
                 {session.getPlayerName(selection.playerId)} closes {selection.privateCompanyId} for {selection.certificateId}.
             </p>
-            <button onclick={() => session.privates.clear()}>Back</button>
+            <button onclick={() => session.privates.exchangeChoice.clear()}>Back</button>
             <button onclick={() => session.privates.confirmExchange()}
                 >Confirm private exchange</button
             >

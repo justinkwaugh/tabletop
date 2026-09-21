@@ -8,15 +8,15 @@ import {
     type EighteenXXTitleRules
 } from '@tabletop/18xx'
 import type { SessionContext } from './sessionContext.js'
-import type { SessionDraft } from './sessionDrafts.js'
+import { singleChoiceStore } from './stagedSelectionStore.svelte.js'
 
 export type EarningsContext = SessionContext<
     DistributionState & Pick<EighteenXXState, 'machineState'>,
     Pick<EighteenXXTitleRules, 'earningsRules'>
 >
 
-export class EarningsModule implements SessionDraft {
-    #draft: EarningsChoice | undefined = $state()
+export class EarningsModule {
+    readonly choice = singleChoiceStore<EarningsChoice>()
     constructor(private readonly context: EarningsContext) {}
 
     private distributing = $derived.by(() => this.context.state.machineState === 'DistributingEarnings')
@@ -24,7 +24,7 @@ export class EarningsModule implements SessionDraft {
         () => new EarningsDistribution(this.context.state, this.context.rules.earningsRules)
     )
     canDistribute = $derived.by(() => this.context.interactive && this.context.validActionTypes.includes('DistributeEarnings'))
-    selection = $derived.by(() => this.context.draftsVisible && this.distributing ? this.#draft : undefined)
+    selection = $derived.by(() => this.context.draftsVisible && this.distributing ? this.choice.value('choice') : undefined)
     choices = $derived.by(() => {
         const companyId = this.context.state.routeStep?.companyId
         return companyId && this.distributing
@@ -44,7 +44,7 @@ export class EarningsModule implements SessionDraft {
                 this.choices.some((entry) => entry.choice === choice && entry.evaluation.details),
             'Choose an available distribution'
         )
-        this.#draft = choice
+        this.choice.choose('choice', choice)
     }
     async confirm() {
         const details = this.preview
@@ -53,17 +53,5 @@ export class EarningsModule implements SessionDraft {
             companyId: details.companyId,
             choice: details.choice
         }))
-    }
-
-    pending() {
-        return this.#draft !== undefined
-    }
-    unwind() {
-        if (this.#draft === undefined) return false
-        this.#draft = undefined
-        return true
-    }
-    clear() {
-        this.#draft = undefined
     }
 }

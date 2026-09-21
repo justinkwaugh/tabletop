@@ -57,8 +57,8 @@ describe('StationsModule', () => {
     it('treats an automatic token choice as pending-free and not consumable by Undo', () => {
         const { module } = placing(['FinishStations', 'PlaceStation'])
         expect(module.selection.stationId).toMatchObject({ value: extra, source: 'auto' })
-        expect(module.pending()).toBe(false)
-        expect(module.unwind()).toBe(false)
+        expect(module.stages.hasManual()).toBe(false)
+        expect(module.stages.undo()).toBe(false)
     })
 
     it('leaves the token to the player when the title says its identity matters', () => {
@@ -72,9 +72,9 @@ describe('StationsModule', () => {
     it('lets Undo consume a manual token choice and clears it entirely', () => {
         const { module } = placing(['FinishStations', 'PlaceStation'])
         module.select(extra)
-        expect(module.pending()).toBe(true)
-        expect(module.unwind()).toBe(true)
-        expect(module.pending()).toBe(false)
+        expect(module.stages.hasManual()).toBe(true)
+        expect(module.stages.undo()).toBe(true)
+        expect(module.stages.hasManual()).toBe(false)
     })
 
     it('previews a chosen position, notifies the session, and commits one placement', async () => {

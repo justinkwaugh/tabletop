@@ -45,19 +45,19 @@ describe('TrainBuyingModule', () => {
         const { module } = buying('BuyingTrains', ['BuyTrain'])
         module.selectSource('others')
         expect(module.source).toBe('others')
-        expect(module.sourceDraft.pending()).toBe(true)
-        expect(module.depotDraft.pending()).toBe(false)
-        expect(module.sourceDraft.unwind()).toBe(true)
-        expect(module.sourceDraft.unwind()).toBe(false)
+        expect(module.sourceStages.hasManual()).toBe(true)
+        expect(module.depotChoice.hasManual()).toBe(false)
+        expect(module.sourceStages.undo()).toBe(true)
+        expect(module.sourceStages.undo()).toBe(false)
     })
 
     it('hides the chosen source outside train buying but keeps it pending until cleared', () => {
         const { module } = buying('StockRound', [])
         module.selectSource('mine')
         expect(module.source).toBe('depot')
-        expect(module.sourceDraft.pending()).toBe(true)
-        module.sourceDraft.clear()
-        expect(module.sourceDraft.pending()).toBe(false)
+        expect(module.sourceStages.hasManual()).toBe(true)
+        module.sourceStages.clear()
+        expect(module.sourceStages.hasManual()).toBe(false)
     })
 
     it('refuses a company train that is not among the choices', () => {

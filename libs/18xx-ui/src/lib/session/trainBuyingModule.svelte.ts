@@ -15,12 +15,10 @@ import {
     type TrainPurchaseRequest
 } from '@tabletop/18xx'
 import type { SessionContext } from './sessionContext.js'
-import type { SessionDraft } from './sessionDrafts.js'
+import { StagedSelectionStore, singleChoiceStore } from './stagedSelectionStore.svelte.js'
 import {
-    backFromTrainBuying,
-    chooseCompanyTrain,
-    chooseTrainSource,
-    type TrainBuyingSelection,
+    TrainBuyingStageOrder,
+    type TrainBuyingStages,
     type TrainSource
 } from './trainBuyingSelection.js'
 
@@ -35,8 +33,11 @@ export type TrainBuyingContext = SessionContext<
 type PurchaseOptions = () => ReturnType<typeof purchaseChoices>
 
 export class TrainBuyingModule {
-    #depotDraft: TrainPurchaseRequest | undefined = $state.raw()
-    #sourceDraft: TrainBuyingSelection = $state({})
+    readonly depotChoice = singleChoiceStore<TrainPurchaseRequest>()
+    readonly sourceStages = new StagedSelectionStore<TrainBuyingStages>(
+        TrainBuyingStageOrder,
+        'pop-stage'
+    )
     constructor(
         private readonly context: TrainBuyingContext,
         private readonly purchaseOptions: PurchaseOptions
@@ -44,7 +45,7 @@ export class TrainBuyingModule {
 
     private buying = $derived.by(() => this.context.state.machineState === 'BuyingTrains')
     selection = $derived.by(() =>
-        this.context.draftsVisible && this.buying ? this.#sourceDraft : {}
+        this.context.draftsVisible && this.buying ? this.sourceStages.state : {}
     )
     source = $derived.by(() => this.selection.source?.value ?? 'depot')
     companyChoices = $derived.by(() =>
@@ -66,7 +67,7 @@ export class TrainBuyingModule {
         return request ? this.evaluateOffer(request) : undefined
     })
     depotSelection = $derived.by(() =>
-        this.context.draftsVisible && this.buying ? this.#depotDraft : undefined
+        this.context.draftsVisible && this.buying ? this.depotChoice.value('choice') : undefined
     )
     model = $derived.by(
         () => new TrainPurchase(this.context.state, this.context.rules.trainRules)
@@ -120,7 +121,8 @@ export class TrainBuyingModule {
     })
 
     selectSource(source: TrainSource) {
-        this.#sourceDraft = chooseTrainSource(source)
+        this.sourceStages.clear()
+        this.sourceStages.choose('source', source)
     }
     selectCompanyTrain(request: PurchaseOfferRequest) {
         assert(
@@ -133,12 +135,12 @@ export class TrainBuyingModule {
             ),
             'Choose an available company train'
         )
-        this.#sourceDraft = chooseCompanyTrain(this.#sourceDraft, { ...request })
+        this.sourceStages.choose('purchase', { ...request })
     }
     setCompanyTrainPrice(price: number) {
         const request = this.selection.purchase?.value
         assert(request, 'Choose a company train first')
-        this.#sourceDraft = chooseCompanyTrain(this.#sourceDraft, { ...request, price })
+        this.sourceStages.choose('purchase', { ...request, price })
     }
     async buyCompanyTrain() {
         const request = this.selection.purchase?.value
@@ -154,7 +156,7 @@ export class TrainBuyingModule {
     }
     select(request: TrainPurchaseRequest) {
         assert(this.canBuy && this.model.evaluate(request).details, 'Choose a legal train purchase')
-        this.#depotDraft = request
+        this.depotChoice.choose('choice', request)
     }
     async confirm() {
         const preview = this.preview
@@ -173,29 +175,6 @@ export class TrainBuyingModule {
                 ...(preview.exchangeTrainId ? { exchangeTrainId: preview.exchangeTrainId } : {})
             })
         )
-    }
-
-    readonly sourceDraft: SessionDraft = {
-        pending: () => !!this.#sourceDraft.source,
-        unwind: () => {
-            if (!this.#sourceDraft.source) return false
-            this.#sourceDraft = backFromTrainBuying(this.#sourceDraft)
-            return true
-        },
-        clear: () => {
-            this.#sourceDraft = {}
-        }
-    }
-    readonly depotDraft: SessionDraft = {
-        pending: () => this.#depotDraft !== undefined,
-        unwind: () => {
-            if (this.#depotDraft === undefined) return false
-            this.#depotDraft = undefined
-            return true
-        },
-        clear: () => {
-            this.#depotDraft = undefined
-        }
     }
 
     private evaluateOffer(request: PurchaseOfferRequest) {

@@ -14,7 +14,7 @@
         onChoose={(kind, lotId) => session.waterfall.selectLot(kind, lotId)}
         onBidChange={(amount) => session.waterfall.setBid(amount)}
         onConfirm={() => session.waterfall.confirm()}
-        onBack={() => session.waterfall.clear()}
+        onBack={() => session.waterfall.choice.clear()}
         onPass={() => session.waterfall.pass()}
         onUndo={() => session.undo()}
         {showUndo}

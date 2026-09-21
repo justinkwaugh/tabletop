@@ -13,7 +13,7 @@ import { routeColor } from '../routes/routePresentation.js'
 import type { MapSelection } from '../maps/mapDrawing.js'
 import { RouteEditor } from './routeEditor.svelte.js'
 import type { SessionContext } from './sessionContext.js'
-import type { SessionDraft } from './sessionDrafts.js'
+import type { LocalSelection } from './localSelections.js'
 
 type RoutesState = ConstructorParameters<typeof RouteEvaluation>[0] &
     Pick<EighteenXXState, 'machineState'>
@@ -28,7 +28,7 @@ function submittedRoutes(result: OperatingResult) {
     return result.routes.map(({ trainId, start, paths }) => ({ trainId, start, paths }))
 }
 
-export class RoutesModule<State extends RoutesState> implements SessionDraft {
+export class RoutesModule<State extends RoutesState> implements LocalSelection {
     #solved: SolvedRoutes<State> | undefined = $state.raw()
     constructor(
         private readonly context: RoutesContext<State>,
@@ -140,10 +140,10 @@ export class RoutesModule<State extends RoutesState> implements SessionDraft {
         )
     }
 
-    pending() {
+    hasManual() {
         return this.editor.hasDraft
     }
-    unwind() {
+    undo() {
         if (!this.editor.hasDraft) return false
         this.editor.clear()
         return true

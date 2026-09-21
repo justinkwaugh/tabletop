@@ -40,8 +40,8 @@ describe('OfferAuctionModule', () => {
 
     it('starts with nothing pending and yields Undo to game history', () => {
         const { module } = offers(['PassAuction'])
-        expect(module.pending()).toBe(false)
-        expect(module.unwind()).toBe(false)
+        expect(module.choice.hasManual()).toBe(false)
+        expect(module.choice.undo()).toBe(false)
     })
 })
 

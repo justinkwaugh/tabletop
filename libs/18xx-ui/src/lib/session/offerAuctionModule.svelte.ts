@@ -9,15 +9,15 @@ import {
 } from '@tabletop/18xx'
 import type { OfferAuctionSelection } from '../auctions/auctionSelection.js'
 import type { SessionContext } from './sessionContext.js'
-import type { SessionDraft } from './sessionDrafts.js'
+import { singleChoiceStore } from './stagedSelectionStore.svelte.js'
 
 export type OfferAuctionContext = SessionContext<
     OfferAuctionState,
     Pick<EighteenXXTitleRules, 'offerAuctionRules'>
 >
 
-export class OfferAuctionModule implements SessionDraft {
-    #draft: OfferAuctionSelection | undefined = $state()
+export class OfferAuctionModule {
+    readonly choice = singleChoiceStore<OfferAuctionSelection>()
     constructor(private readonly context: OfferAuctionContext) {}
 
     model = $derived.by(() =>
@@ -26,7 +26,9 @@ export class OfferAuctionModule implements SessionDraft {
             : undefined
     )
     selection = $derived.by(() =>
-        !this.context.draftsVisible || this.model?.auction.completed ? undefined : this.#draft
+        !this.context.draftsVisible || this.model?.auction.completed
+            ? undefined
+            : this.choice.value('choice')
     )
     canAct = $derived.by(
         () =>
@@ -37,14 +39,15 @@ export class OfferAuctionModule implements SessionDraft {
 
     select(lotId: string) {
         assert(this.canAct && this.model, 'Auction selection is unavailable')
-        this.#draft = {
+        this.choice.choose('choice', {
             lotId,
             ...(this.model.auction.bidding ? { amount: this.model.minimumBid } : {})
-        }
+        })
     }
     setBid(amount: number) {
-        assert(this.#draft && this.canAct, 'Select a bid')
-        this.#draft = { ...this.#draft, amount }
+        const offer = this.choice.value('choice')
+        assert(offer && this.canAct, 'Select a bid')
+        this.choice.choose('choice', { ...offer, amount })
     }
     async offerLot(lotId: string) {
         this.select(lotId)
@@ -69,17 +72,5 @@ export class OfferAuctionModule implements SessionDraft {
     async pass() {
         assert(this.canAct && !this.selection, 'Finish the auction selection')
         await this.context.applyAction(this.context.createPlayerAction(PassAuction, {}))
-    }
-
-    pending() {
-        return this.#draft !== undefined
-    }
-    unwind() {
-        if (this.#draft === undefined) return false
-        this.#draft = undefined
-        return true
-    }
-    clear() {
-        this.#draft = undefined
     }
 }
