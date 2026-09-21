@@ -1,7 +1,7 @@
+import * as Type from 'typebox'
+import { Compile, type Validator } from 'typebox/compile'
 import { AutomaticTrackCompletionHandler } from '../construction/automaticTrackCompletionHandler.js'
 import { AutomaticTrainCompletionHandler } from '../trains/automaticTrainCompletionHandler.js'
-import { GameEnding, type EndingRules } from '../ending/gameEnding.js'
-import { EndingFields, type PlayerWealth } from '../ending/finalWealth.js'
 import {
     ScheduleGameEnd,
     HydratedScheduleGameEnd,
@@ -9,13 +9,6 @@ import {
 } from '../ending/scheduleGameEnd.js'
 import { EndGame, HydratedEndGame, isEndGame } from '../ending/endGame.js'
 import { GameEndingHandler } from '../ending/gameEndingHandler.js'
-import type { MachineStateHandler, HydratedAction } from '@tabletop/common'
-import { Prng } from '@tabletop/common'
-import {
-    OfferPileFields,
-    type OfferPileAuction,
-    type OfferPileAuctionRules
-} from '../auctions/offerPileAuction.js'
 import {
     OfferAuctionLot,
     HydratedOfferAuctionLot,
@@ -27,11 +20,6 @@ import {
     isBidOnAuctionLot
 } from '../auctions/bidOnAuctionLot.js'
 import { OfferAuctionHandler } from '../auctions/offerAuctionHandler.js'
-import {
-    AuctionFields,
-    type WaterfallAuction,
-    type WaterfallAuctionRules
-} from '../auctions/waterfallAuction.js'
 import { ReserveBid, HydratedReserveBid, isReserveBid } from '../auctions/reserveBid.js'
 import {
     RaiseAuctionBid,
@@ -46,12 +34,6 @@ import {
     isResolveAuction
 } from '../auctions/resolveAuction.js'
 import { WaterfallAuctionHandler } from '../auctions/waterfallAuctionHandler.js'
-import {
-    FundingFields,
-    type TrainFunding,
-    type Bankruptcy,
-    type TrainFundingRules
-} from '../funding/trainFunding.js'
 import { FundingTrainHandler } from '../funding/fundingTrainHandler.js'
 import { BankruptHandler } from '../funding/bankruptHandler.js'
 import { FundTrain, HydratedFundTrain, isFundTrain } from '../funding/fundTrain.js'
@@ -85,14 +67,6 @@ import {
     ContinueOperatingRound,
     HydratedContinueOperatingRound
 } from '../privates/betweenCompaniesHandler.js'
-import {
-    CompanyDecisionFields,
-    type PrivateTrackLay,
-    type TrackConsent,
-    type PrivatePowerWindow
-} from '../privates/companyDecision.js'
-import { type PurchaseOffer, type TransferRules } from '../transfers/purchaseOffer.js'
-import { type PrivatePowerRules } from '../privates/privatePowers.js'
 import { CompanyDecisionsHandler } from '../privates/companyDecisionsHandler.js'
 import {
     OfferPurchase,
@@ -119,14 +93,6 @@ import {
     isExchangePrivate
 } from '../privates/exchangePrivate.js'
 import { PrivateExchangeHandler } from '../privates/privateExchangeHandler.js'
-import { applyPrivateEffects } from '../privates/privateLifecycle.js'
-import type { PrivateRules } from '../privates/privateRules.js'
-import {
-    PhaseFields,
-    type PhaseEvent,
-    type PhaseChange,
-    type PhaseRules
-} from '../phases/phaseChange.js'
 import {
     AdvancePhase,
     HydratedAdvancePhase,
@@ -145,11 +111,6 @@ import {
     isRustTrains,
     RustingTrainsHandler
 } from '../trains/rustTrains.js'
-import {
-    EarningsFields,
-    type EarningsDetails,
-    type EarningsRules
-} from '../earnings/earningsDistribution.js'
 import {
     DistributeEarnings,
     HydratedDistributeEarnings,
@@ -171,24 +132,10 @@ import {
     HydratedStartStockRound,
     isStartStockRound
 } from '../stock/startStockRound.js'
-import { RouteFields, type RouteStep } from '../routes/route.js'
 import { RunTrains, HydratedRunTrains, isRunTrains } from '../routes/runTrains.js'
 import { RunningTrainsHandler } from '../routes/runningTrainsHandler.js'
-import type { RouteRules } from '../routes/routeEvaluation.js'
-import {
-    TrainFields,
-    type TrainInventory,
-    type TrainPurchaseStep,
-    type TrainState
-} from '../trains/train.js'
 import { BuyTrain, HydratedBuyTrain, isBuyTrain } from '../trains/buyTrain.js'
 import { BuyingTrainsHandler } from '../trains/buyingTrainsHandler.js'
-import type { TrainRules } from '../trains/trainPurchase.js'
-import type { TrainDepot } from '../trains/trainDepot.js'
-import {
-    StationStep,
-    type StationRules
-} from '../stations/stationPlacement.js'
 import { PlaceStation, HydratedPlaceStation, isPlaceStation } from '../stations/placeStation.js'
 import {
     FinishStations,
@@ -201,7 +148,6 @@ import {
     isPlaceHomeStations
 } from '../stations/placeHomeStations.js'
 import { PlacingStationHandler } from '../stations/placingStationHandler.js'
-import { TrackStep, type TrackRules } from '../construction/trackConstruction.js'
 import { LayTile, HydratedLayTile, isLayTile } from '../construction/layTile.js'
 import { FinishTrack, HydratedFinishTrack, isFinishTrack } from '../construction/finishTrack.js'
 import { LayingTrackHandler } from '../construction/layingTrackHandler.js'
@@ -211,42 +157,20 @@ import {
     isStartOperatingTurn,
     StartOperatingTurnHandler
 } from '../operating/startOperatingTurn.js'
-import { MapFields, RailwayMapState, type MapStateData } from '../map/mapState.js'
-import type { RailwayMap } from '../map/map.js'
-import type { TileSet, TileInventory } from '../tiles/inventory.js'
 import {
     CompleteStockRound,
     HydratedCompleteStockRound,
     isCompleteStockRound
 } from '../stock/completeStockRound.js'
-import { OperatingSet, type OperatingRules } from '../operating/operatingSet.js'
 import {
     StartOperatingSet,
     HydratedStartOperatingSet,
     isStartOperatingSet
 } from '../operating/startOperatingSet.js'
 import { StartOperatingSetHandler } from '../operating/startOperatingSetHandler.js'
-import { CompanyFields, type CompanyState } from '../company/companyState.js'
-import { validateStations } from '../map/station.js'
 import { StartCompany, HydratedStartCompany, isStartCompany } from '../company/startCompany.js'
 import { FloatCompany, HydratedFloatCompany, isFloatCompany } from '../company/floatCompany.js'
-import type { CompanyRules } from '../company/companyRules.js'
-import * as Type from 'typebox'
-import { Compile, type Validator } from 'typebox/compile'
-import {
-    BaseGameInitializer,
-    Color,
-    GameState,
-    HydratableGameState,
-    HydratedTurnManager,
-    TerminalStateHandler,
-    assert,
-    type Game,
-    type GameRuntime,
-    type HydratedGameState,
-    type PlayerState,
-    type UninitializedGameState
-} from '@tabletop/common'
+import { TerminalStateHandler, assert, type GameRuntime } from '@tabletop/common'
 import { BuyShares, HydratedBuyShares, isBuyShares } from '../stock/buyShares.js'
 import { AutomaticStockTurnHandler } from '../stock/automaticStockTurnHandler.js'
 import { StockRoundHandler } from '../stock/stockRoundHandler.js'
@@ -256,71 +180,10 @@ import {
     HydratedFinishStockTurn,
     isFinishStockTurn
 } from '../stock/finishStockTurn.js'
-import { StockMarket, validateStockMarket } from '../stock/stockMarket.js'
-import type { StockRules } from '../stock/stockRules.js'
-import { StockRound, createStockRound } from '../stock/stockRound.js'
-import {
-    FinanceFields,
-    validateFinances,
-    sameOwner,
-    type FinancialState
-} from '../finance/finance.js'
 
-const ExampleFields = Type.Object({
-    // Serialized marker retained so games created before the runtime left the examples folder keep loading.
-    example: Type.Literal('finances'),
-    machineState: Type.Union([
-        Type.Literal('StockRound'),
-        Type.Literal('OfferingLot'),
-        Type.Literal('OfferBidding'),
-        Type.Literal('WaterfallAuction'),
-        Type.Literal('AuctionBidding'),
-        Type.Literal('StartingOperatingSet'),
-        Type.Literal('OperatingSet'),
-        Type.Literal('LayingTrack'),
-        Type.Literal('PlacingStation'),
-        Type.Literal('StationsComplete'),
-        Type.Literal('BuyingTrains'),
-        Type.Literal('FundingTrain'),
-        Type.Literal('Bankrupt'),
-        Type.Literal('GameOver'),
-        Type.Literal('AdvancingPhase'),
-        Type.Literal('DiscardingTrains'),
-        Type.Literal('RustingTrains'),
-        Type.Literal('RunningTrains'),
-        Type.Literal('DistributingEarnings')
-    ]),
-    stockRound: StockRound,
-    operatingSet: Type.Optional(OperatingSet),
-    trackStep: Type.Optional(TrackStep),
-    stationStep: Type.Optional(StationStep),
-    stockMarket: StockMarket,
-    ...FinanceFields,
-    ...EndingFields,
-    gameEnding: Type.Optional(GameEnding),
-    ...FundingFields,
-    ...AuctionFields,
-    ...OfferPileFields,
-    ...CompanyFields,
-    ...MapFields,
-    ...TrainFields,
-    ...PhaseFields,
-    ...EarningsFields,
-    ...CompanyDecisionFields,
-    ...RouteFields
-})
-export const EighteenXXState: Type.TObject<
-    Omit<typeof GameState.properties, 'machineState'> & typeof ExampleFields.properties
-> = Type.Object(
-    {
-        ...GameState.properties,
-        ...ExampleFields.properties
-    },
-    { additionalProperties: false }
-)
-export type EighteenXXState = Type.Static<typeof EighteenXXState>
-export const EighteenXXStateValidator: Validator<{}, typeof EighteenXXState> =
-    Compile(EighteenXXState)
+import { EighteenXXState, HydratedEighteenXXState } from './eighteenXXState.js'
+import { EighteenXXInitializer } from './eighteenXXInitializer.js'
+import type { EighteenXXTitleRules } from './eighteenXXTitleRules.js'
 function handledStateValidator(machineStates: readonly string[]): Pick<Validator, 'Check'> {
     return Compile(
         Type.Object(
@@ -331,433 +194,6 @@ function handledStateValidator(machineStates: readonly string[]): Pick<Validator
             { additionalProperties: false }
         )
     )
-}
-export class HydratedEighteenXXState
-    extends HydratableGameState<typeof EighteenXXState, PlayerState>
-    implements EighteenXXState
-{
-    declare offerAuction?: OfferPileAuction
-    declare openingAuction?: WaterfallAuction
-    declare trainFunding?: TrainFunding
-    declare bankruptcy?: Bankruptcy
-    declare gameEnding?: GameEnding
-    declare finalWealth?: PlayerWealth[]
-    declare privatePowerWindow?: PrivatePowerWindow
-    declare purchaseOffer?: PurchaseOffer
-    declare privateTrackLay?: PrivateTrackLay
-    declare trackConsent?: TrackConsent
-    declare usedPrivatePowerIds: string[]
-    declare earningsDistribution?: EarningsDetails
-    declare phaseEvents: PhaseEvent[]
-    declare phaseChange?: PhaseChange
-    declare routeStep?: RouteStep
-    declare trainInventory: TrainInventory
-    declare trainPurchaseStep?: TrainPurchaseStep
-    declare tileInventory: TileInventory
-    declare phaseId: string
-    declare tranches: CompanyState['tranches']
-    declare ownershipLimitExemptions: CompanyState['ownershipLimitExemptions']
-    declare stations: CompanyState['stations']
-    declare stationReservations: CompanyState['stationReservations']
-    declare example: 'finances'
-    declare machineState:
-        | 'StockRound'
-        | 'OfferingLot'
-        | 'OfferBidding'
-        | 'WaterfallAuction'
-        | 'AuctionBidding'
-        | 'StartingOperatingSet'
-        | 'OperatingSet'
-        | 'LayingTrack'
-        | 'PlacingStation'
-        | 'StationsComplete'
-        | 'BuyingTrains'
-        | 'FundingTrain'
-        | 'Bankrupt'
-        | 'GameOver'
-        | 'AdvancingPhase'
-        | 'DiscardingTrains'
-        | 'RustingTrains'
-        | 'RunningTrains'
-        | 'DistributingEarnings'
-    declare operatingSet?: OperatingSet
-    declare stationStep?: StationStep
-    declare trackStep?: TrackStep
-    declare stockRound: StockRound
-    declare stockMarket: StockMarket
-    declare companies: FinancialState['companies']
-    declare bank: FinancialState['bank']
-    declare certificatePools: FinancialState['certificatePools']
-    declare cash: FinancialState['cash']
-    declare certificates: FinancialState['certificates']
-    constructor(data: EighteenXXState, map: RailwayMap, tileSet: TileSet, depot: TrainDepot) {
-        super(
-            data instanceof HydratedEighteenXXState ? data.dehydrate() : data,
-            EighteenXXStateValidator
-        )
-        assert(
-            new Set(this.players.map((player) => player.playerId)).size === this.players.length,
-            'Duplicate player identity'
-        )
-        assert(
-            this.stockRound.passedPlayerIds.every((id) => this.turnManager.turnOrder.includes(id)),
-            'Unknown passed player'
-        )
-        if (this.operatingSet) {
-            assert(
-                this.operatingSet.roundNumber <= this.operatingSet.roundCount,
-                'Operating round exceeds the set length'
-            )
-            assert(
-                this.operatingSet.companyOrder.every((id) =>
-                    this.companies.some((company) => company.id === id)
-                ),
-                'Unknown operating company'
-            )
-            assert(
-                this.operatingSet.completedCompanyIds.every((id) =>
-                    this.operatingSet!.companyOrder.includes(id)
-                ),
-                'Completed company must belong to the operating order'
-            )
-        }
-        if (['LayingTrack', 'PlacingStation', 'StationsComplete'].includes(this.machineState)) {
-            assert(
-                this.trackStep &&
-                    this.operatingSet?.companyOrder.includes(this.trackStep.companyId),
-                'Track step requires an operating company'
-            )
-            assert(
-                this.trackStep.completed === (this.machineState !== 'LayingTrack'),
-                'Track completion does not match the machine state'
-            )
-        }
-        if (this.machineState === 'PlacingStation' || this.machineState === 'StationsComplete') {
-            assert(
-                this.stationStep?.companyId === this.trackStep?.companyId && this.stationStep,
-                'Station step requires the operating company'
-            )
-            assert(
-                this.stationStep.completed === (this.machineState === 'StationsComplete'),
-                'Station completion does not match the machine state'
-            )
-        }
-        if (this.openingAuction) {
-            const auction = this.openingAuction
-            assert(
-                auction.completed !==
-                    ['WaterfallAuction', 'AuctionBidding'].includes(this.machineState),
-                'Opening auction progress must match its state'
-            )
-            assert(
-                this.players.some((player) => player.playerId === auction.nextPlayerId),
-                'Unknown outer auction player'
-            )
-            assert(
-                new Set(auction.remainingLotIds).size === auction.remainingLotIds.length,
-                'Duplicate auction lot'
-            )
-            assert(
-                auction.remainingLotIds.every((id) =>
-                    this.companies.some((company) => company.id === id)
-                ),
-                'Unknown auction lot'
-            )
-            assert(
-                new Set(auction.reservations.map((bid) => `${bid.playerId}:${bid.lotId}`)).size ===
-                    auction.reservations.length,
-                'Duplicate bid commitment'
-            )
-            assert(
-                auction.reservations.every(
-                    (bid) =>
-                        auction.remainingLotIds.includes(bid.lotId) &&
-                        this.players.some((player) => player.playerId === bid.playerId)
-                ),
-                'Invalid reservation'
-            )
-        }
-        if (this.trainFunding) {
-            assert(
-                ['FundingTrain', 'Bankrupt', 'GameOver'].includes(this.machineState) &&
-                    this.trainFunding.purchase.companyId === this.trainPurchaseStep?.companyId,
-                'Funding must belong to the operating train purchase'
-            )
-            assert(
-                this.players.some((player) => player.playerId === this.trainFunding!.playerId),
-                'Unknown funding player'
-            )
-            assert(
-                this.trainFunding.contributors.every(
-                    (owner, index, owners) =>
-                        !owners.slice(0, index).some((other) => sameOwner(owner, other))
-                ),
-                'Duplicate funding owner'
-            )
-        }
-        assert(
-            this.machineState === 'GameOver' ||
-                (this.machineState === 'Bankrupt') === Boolean(this.bankruptcy),
-            'Bankruptcy must match the terminal state'
-        )
-        assert(
-            (this.machineState === 'GameOver') === Boolean(this.finalWealth && this.result),
-            'Final results must match the terminal state'
-        )
-        assert(this.machineState !== 'FundingTrain' || this.trainFunding, 'Missing train funding')
-        if (this.privatePowerWindow)
-            assert(
-                this.machineState === 'OperatingSet',
-                'The private power window belongs between companies'
-            )
-        const pendingDecisions = [
-            this.purchaseOffer,
-            this.privateTrackLay,
-            this.trackConsent
-        ].filter(Boolean)
-        assert(
-            pendingDecisions.length <= 1,
-            'Resolve the current company decision before starting another'
-        )
-        if (pendingDecisions.length) {
-            assert(
-                [
-                    'LayingTrack',
-                    'PlacingStation',
-                    'RunningTrains',
-                    'DistributingEarnings',
-                    'BuyingTrains'
-                ].includes(this.machineState),
-                'A company decision requires an operating decision window'
-            )
-            const playerId =
-                this.purchaseOffer?.sellerPlayerId ??
-                this.privateTrackLay?.playerId ??
-                this.trackConsent?.details.consentPlayerId
-            assert(
-                this.players.some((player) => player.playerId === playerId),
-                'Unknown player for the pending decision'
-            )
-        }
-        new RailwayMapState(map, tileSet, this.tileInventory).validateStations(this)
-        depot.validateInventory(
-            this.trainInventory,
-            this.companies.map((company) => company.id),
-            this.players.map((player) => player.playerId)
-        )
-        if (this.machineState === 'RunningTrains' || this.machineState === 'DistributingEarnings') {
-            assert(
-                this.routeStep &&
-                    this.operatingSet?.companyOrder.includes(this.routeStep.companyId),
-                'Routes require an operating company'
-            )
-            assert(
-                (this.machineState === 'DistributingEarnings') === Boolean(this.routeStep.result),
-                'Route result must match operation progress'
-            )
-        }
-        assert(
-            new Set(this.phaseEvents.map((event) => event.id)).size === this.phaseEvents.length,
-            'Duplicate phase occurrence'
-        )
-        if (this.phaseChange) {
-            const change = this.phaseChange
-            assert(
-                ['AdvancingPhase', 'DiscardingTrains'].includes(this.machineState),
-                'Pending phase change requires its decision state'
-            )
-            assert(
-                change.continuation.companyId ===
-                    (this.trainPurchaseStep?.companyId ??
-                        this.trackStep?.companyId ??
-                        this.stationStep?.companyId ??
-                        this.routeStep?.companyId),
-                'Phase continuation must preserve the operating company'
-            )
-            assert(
-                change.discardCompanyIds.every((id) =>
-                    this.companies.some((company) => company.id === id)
-                ),
-                'Unknown company in discard order'
-            )
-            assert(
-                this.machineState === 'AdvancingPhase'
-                    ? this.phaseId === change.event.fromPhaseId &&
-                          !this.phaseEvents.some((event) => event.id === change.event.id)
-                    : this.phaseId === change.event.toPhaseId &&
-                          change.discardCompanyIds.length > 0 &&
-                          this.phaseEvents.some((event) => event.id === change.event.id),
-                'Phase effects must match pending decisions'
-            )
-        } else
-            assert(
-                !['AdvancingPhase', 'DiscardingTrains'].includes(this.machineState),
-                'Missing phase change'
-            )
-        if (this.earningsDistribution) {
-            assert(
-                [
-                    'BuyingTrains',
-                    'FundingTrain',
-                    'Bankrupt',
-                    'GameOver',
-                    'AdvancingPhase',
-                    'DiscardingTrains'
-                ].includes(this.machineState) &&
-                    this.earningsDistribution.companyId === this.routeStep?.result?.companyId &&
-                    this.earningsDistribution.revenue === this.routeStep.result.revenue &&
-                    this.trainPurchaseStep?.companyId === this.earningsDistribution.companyId,
-                'Earnings must match the completed train run and current company'
-            )
-        }
-        if (this.machineState === 'BuyingTrains') {
-            assert(
-                this.trainPurchaseStep &&
-                    this.operatingSet?.companyOrder.includes(this.trainPurchaseStep.companyId),
-                'Train purchases require an operating company'
-            )
-        }
-        validateStations(
-            this,
-            this.companies.map((company) => company.id)
-        )
-        validateStockMarket(
-            this.stockMarket,
-            this.companies.map((company) => company.id)
-        )
-        validateFinances(
-            this,
-            this.players.map((player) => player.playerId)
-        )
-    }
-}
-
-const PlayerColors = [Color.Blue, Color.Red, Color.Green, Color.Yellow, Color.Purple, Color.Orange]
-export type InitialFinances = CompanyState & MapStateData & TrainState
-export type InitialStateParts = {
-    stockRoundNumber: number
-    stockMarket: StockMarket
-    finances: InitialFinances
-}
-export type EighteenXXInitializerRules = Pick<
-    EighteenXXTitleRules,
-    | 'createFinances'
-    | 'offerAuctionRules'
-    | 'auctionRules'
-    | 'createMarket'
-    | 'map'
-    | 'tileSet'
-    | 'trainRules'
-    | 'privateRules'
-    | 'stockRules'
->
-export class EighteenXXInitializer extends BaseGameInitializer<
-    EighteenXXState,
-    HydratedEighteenXXState
-> {
-    constructor(protected readonly rules: EighteenXXInitializerRules) {
-        super()
-    }
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedEighteenXXState {
-        assert(
-            (this.rules.auctionRules || this.rules.offerAuctionRules) &&
-                game.players.length >= 2 &&
-                game.players.length <= 6,
-            'Unsupported player count or opening'
-        )
-        const initialized = this.createInitialState(game, state, {
-            stockRoundNumber: 1,
-            stockMarket: this.rules.createMarket(),
-            finances: this.rules.createFinances(this.playerStates(game), new Prng(state.prng))
-        })
-        if (initialized.offerAuction) {
-            const playerId = initialized.offerAuction.auctioneerId
-            initialized.turnManager.newFirstPlayer(playerId)
-            initialized.turnManager.series = [{ type: 'turn', playerId, start: 0 }]
-            initialized.activePlayerIds = [playerId]
-            initialized.machineState = 'OfferingLot'
-        } else {
-            assert(this.rules.auctionRules, 'Opening auction requires its rules')
-            const order = initialized.turnManager.turnOrder
-            const first = initialized.getPublicPrng().randInt(order.length)
-            initialized.turnManager.newFirstPlayer(order[first])
-            initialized.turnManager.series = [{ type: 'turn', playerId: order[0], start: 0 }]
-            initialized.activePlayerIds = [order[0]]
-            initialized.openingAuction = {
-                remainingLotIds: this.rules.auctionRules.lots(initialized).map((lot) => lot.id),
-                reservations: [],
-                nextPlayerId: order[0],
-                passedPlayerIds: [],
-                discount: 0,
-                awards: [],
-                completed: false
-            }
-            initialized.machineState = 'WaterfallAuction'
-        }
-        this.applyPhaseEffects(initialized)
-        return initialized
-    }
-    protected playerStates(game: Game): PlayerState[] {
-        return game.players.map((player, index) => ({
-            playerId: player.id,
-            color: PlayerColors[index]
-        }))
-    }
-    protected createInitialState(
-        game: Game,
-        state: UninitializedGameState,
-        parts: InitialStateParts
-    ): HydratedEighteenXXState {
-        const players = this.playerStates(game)
-        return new HydratedEighteenXXState(
-            {
-                ...state,
-                players,
-                activePlayerIds: [players[0].playerId],
-                example: 'finances',
-                phaseEvents: [],
-                usedPrivatePowerIds: [],
-                machineState: 'StockRound',
-                stockRound: createStockRound(parts.stockRoundNumber),
-                stockMarket: parts.stockMarket,
-                turnManager: new HydratedTurnManager({
-                    series: [{ type: 'turn', playerId: players[0].playerId, start: 0 }],
-                    turnOrder: players.map((player) => player.playerId),
-                    turnCounts: Object.fromEntries(players.map((player) => [player.playerId, 0]))
-                }),
-                ...parts.finances
-            },
-            this.rules.map,
-            this.rules.tileSet,
-            this.rules.trainRules.depot
-        )
-    }
-    protected applyPhaseEffects(state: HydratedEighteenXXState): void {
-        applyPrivateEffects(state, this.rules.privateRules.phaseEffects(state), this.rules.stockRules)
-    }
-}
-export interface EighteenXXTitleRules {
-    endingRules: EndingRules
-    stockRoundHandler?: MachineStateHandler<HydratedAction, HydratedEighteenXXState>
-    offerAuctionRules?: OfferPileAuctionRules
-    auctionRules?: WaterfallAuctionRules
-    trainFundingRules: TrainFundingRules
-    createFinances: (players: readonly PlayerState[], prng: Prng) => InitialFinances
-    stockRules: StockRules
-    createMarket: () => StockMarket
-    companyRules: CompanyRules
-    operatingRules: OperatingRules
-    map: RailwayMap
-    tileSet: TileSet
-    stationRules: StationRules
-    earningsRules: EarningsRules
-    routeRules: RouteRules
-    trainRules: TrainRules
-    phaseRules: PhaseRules
-    privateRules: PrivateRules
-    transferRules: TransferRules
-    privatePowerRules: PrivatePowerRules
-    trackRules: TrackRules
 }
 export function createEighteenXXRuntime(
     options: EighteenXXTitleRules
@@ -1042,7 +478,7 @@ export function createEighteenXXRuntime(
             }
         },
         canonicalStateValidator: handledStateValidator(Object.keys(stateHandlers)),
-        playerColors: PlayerColors,
+        playerColors: EighteenXXInitializer.playerColors,
         apiActions: {
             ScheduleGameEnd,
             EndGame,
@@ -1093,7 +529,3 @@ export function createEighteenXXRuntime(
     }
 }
 
-export function requireEighteenXXState(state: HydratedGameState): HydratedEighteenXXState {
-    assert(state instanceof HydratedEighteenXXState, 'Expected hydrated 18xx state')
-    return state
-}
