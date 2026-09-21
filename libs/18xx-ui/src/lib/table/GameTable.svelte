@@ -74,7 +74,6 @@
         trainColors,
         phaseColors,
         phaseChart,
-        phaseTileColors,
         historyDescription,
         valuationRules,
         portfolioCompanyIds = [],
@@ -103,7 +102,6 @@
         trainColors: Readonly<Record<string, string>>
         phaseColors: Readonly<Record<string, string>>
         phaseChart: PhaseChartData
-        phaseTileColors: Readonly<Record<string, readonly string[]>>
         historyDescription?: (action: GameAction, companyName: (id: string) => string) => HistoryDescription | undefined
         poolName?: (pool: CertificatePool) => string
         privatePurchaseLabel?: string
@@ -112,6 +110,7 @@
             companyId: string
         ) => string | undefined
     } = $props()
+    const phaseTileColors = $derived(Object.fromEntries(session.phases.phases.map((phase) => [phase.id, phase.tileColors])))
     const readOnlyPosition = $derived(session.isViewingHistory || !session.myPlayer || !session.isMyTurn)
     let showDepot = $state(false)
     let showPhaseChart = $state(false)

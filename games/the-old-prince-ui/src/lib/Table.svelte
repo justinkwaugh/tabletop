@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { CertificatePool } from '@tabletop/18xx'
     import { TheOldPrincePhaseChart } from './phaseChart.js'
-    import { availableTheOldPrinceTranche, TheOldPrinceTrackColors } from '@tabletop/the-old-prince'
+    import { availableTheOldPrinceTranche } from '@tabletop/the-old-prince'
     import { TheOldPrinceCompanyNames } from './companyPresentation.js'
     import { isSplitCompany, TheOldPrinceEndingRules, TheOldPrinceCompanies, TheOldPrinceMap } from '@tabletop/the-old-prince'
     import { TheOldPrinceTrainColors } from './trainPresentation.js'
@@ -76,7 +76,6 @@
     valuationRules={TheOldPrinceEndingRules}
     trainColors={TheOldPrinceTrainColors}
     phaseColors={TheOldPrinceTrainColors}
-    phaseTileColors={TheOldPrinceTrackColors}
     operatingRules={TheOldPrinceOperatingRules}
     {privateOperationDescription}
     {poolName}

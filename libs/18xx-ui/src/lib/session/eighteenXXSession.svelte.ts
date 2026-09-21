@@ -177,6 +177,9 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     get trainDepot() {
         return this.rules.trainRules.depot
     }
+    get phases() {
+        return this.rules.phases
+    }
     override shouldAutoStepAction(action: GameAction, next?: GameAction) {
         return shouldContinueHistoryStep(action, next)
     }

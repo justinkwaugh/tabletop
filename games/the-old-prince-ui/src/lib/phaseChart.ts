@@ -1,16 +1,9 @@
 import { createPhaseChart } from '@tabletop/18xx-ui'
-import {
-    TheOldPrincePhases, TheOldPrinceTrackColors, TheOldPrinceOperatingRoundCounts,
-    TheOldPrinceTrainLimits, TheOldPrinceTrainDepot, TheOldPrinceTrainRustPhases
-} from '@tabletop/the-old-prince'
+import { TheOldPrincePhases, TheOldPrinceTrainDepot } from '@tabletop/the-old-prince'
 
 export const TheOldPrincePhaseChart = createPhaseChart({
-    phaseIds: TheOldPrincePhases,
-    tileColors: TheOldPrinceTrackColors,
-    operatingRounds: TheOldPrinceOperatingRoundCounts,
-    trainLimits: TheOldPrinceTrainLimits,
+    phases: TheOldPrincePhases,
     depot: TheOldPrinceTrainDepot,
-    rustPhases: TheOldPrinceTrainRustPhases,
     rustNotes: { '4+': 'At phase D, a never-run, company-owned 4+ survives until its company’s next run step, then rusts. It cannot be traded.' },
     phaseNotes: {
         '2H': 'Par prices: 58, 65, 74, 80.',

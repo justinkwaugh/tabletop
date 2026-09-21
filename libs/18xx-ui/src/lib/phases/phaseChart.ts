@@ -1,4 +1,4 @@
-import type { TrainDepot, TrainInventory } from '@tabletop/18xx'
+import type { PhaseTable, TrainDepot, TrainInventory } from '@tabletop/18xx'
 
 export type PhaseChartDepotState = {
     depot: TrainDepot
@@ -26,32 +26,24 @@ export type PhaseChartData = {
 }
 
 export function createPhaseChart({
-    phaseIds,
-    tileColors,
-    operatingRounds,
-    trainLimits,
+    phases,
     depot,
-    rustPhases,
     rustNotes = {},
     phaseNotes = {},
     notes = []
 }: {
-    phaseIds: readonly string[]
-    tileColors: Readonly<Record<string, readonly string[]>>
-    operatingRounds: Readonly<Record<string, number>>
-    trainLimits: Readonly<Record<string, number>>
+    phases: PhaseTable
     depot: TrainDepot
-    rustPhases: Readonly<Record<string, string>>
     rustNotes?: Readonly<Record<string, string>>
     phaseNotes?: Readonly<Record<string, string>>
     notes?: readonly string[]
 }): PhaseChartData {
     return {
-        phases: phaseIds.map((id) => ({
+        phases: phases.phases.map(({ id, tileColors, operatingRounds, trainLimit }) => ({
             id,
-            tileColors: tileColors[id],
-            operatingRounds: operatingRounds[id],
-            trainLimit: trainLimits[id],
+            tileColors,
+            operatingRounds,
+            trainLimit,
             notes: phaseNotes[id]
         })),
         trains: depot.definition.supply.map(({ definitionId, count }) => {
@@ -61,7 +53,7 @@ export function createPhaseChart({
                 name: train.name,
                 price: train.price,
                 count,
-                rustPhaseId: rustPhases[train.id],
+                rustPhaseId: phases.rustPhaseId(train.id),
                 rustNote: rustNotes[train.id]
             }
         }),
