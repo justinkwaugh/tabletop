@@ -1,4 +1,4 @@
-import { TheOldPrinceTrainColors } from './trainPresentation.js'
+import { TheOldPrincePresentation } from './presentation.js'
 import { getCompany } from '@tabletop/18xx'
 import UnknownToken from './images/tokens/unknown.svg'
 import StraightTile from './images/tokens/straight-tile.svg'
@@ -27,10 +27,13 @@ import {
     type BranchSplitSelection
 } from './branchSplitSelection.js'
 
-const BaseSession = createEighteenXXSessionClass(TheOldPrinceTitleRules, TheOldPrinceMapView)
+const BaseSession = createEighteenXXSessionClass(
+    TheOldPrinceTitleRules,
+    TheOldPrinceMapView,
+    TheOldPrincePresentation
+)
 
 export class TheOldPrinceSession extends BaseSession {
-    override privateCardPhaseColors = $derived(TheOldPrinceTrainColors)
     override privateCompanyTokens = $derived({
         MC: this.mapView.stations[theOldPrinceRole(this.financialState, 'shortline')],
         VR: this.mapView.stations[theOldPrinceRole(this.financialState, 'shortline')],
@@ -134,7 +137,6 @@ export class TheOldPrinceSession extends BaseSession {
     protected override onStockSelectionCancelled() {
         this.splitStages = {}
     }
-    override get privatePurchaseHeading(): string | undefined { return undefined }
     override stockCompanyName(companyId: string) {
         return companyId === 'PEIR' ? 'PEIR' : super.stockCompanyName(companyId)
     }

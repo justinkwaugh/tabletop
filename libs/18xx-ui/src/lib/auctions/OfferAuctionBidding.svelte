@@ -55,7 +55,7 @@
 
 <article aria-label="Current auction">
     <div class="lot">
-        <PrivateCard phaseColors={session.privateCardPhaseColors}
+        <PrivateCard phaseColors={session.presentation.phaseColors}
             token={lot.token}
             name={lot.name}
             description={lotInfo(lot.id).description}

@@ -61,7 +61,7 @@
                                 {:else}<span class="private-icon" aria-hidden="true">{lot.id}</span
                                     >{/if}
                             </button>
-                            <PrivateDescription phaseColors={session.privateCardPhaseColors}
+                            <PrivateDescription phaseColors={session.presentation.phaseColors}
                                 {token}
                                 name={lot.name}
                                 description={info.description}

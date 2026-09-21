@@ -1,5 +1,4 @@
 <script lang="ts">
-    import type { CertificatePool } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import GameEnding from '../ending/GameEnding.svelte'
     import TrackBuilding from '../maps/TrackBuilding.svelte'
@@ -13,19 +12,14 @@
         session,
         createRouteWorker,
         onFocusRoute,
-        trainColors,
-        privateOperationDescription,
-        poolName,
-        privateTilePrompts
+        privateOperationDescription
     }: {
         createRouteWorker: () => Worker
         onFocusRoute: (trainId: string) => void
-        trainColors: Readonly<Record<string, string>>
         privateOperationDescription: (id: string, companyId: string) => string | undefined
-        privateTilePrompts?: Readonly<Record<string, string>>
-        poolName?: (pool: CertificatePool) => string
         session: EighteenXXSession
     } = $props()
+    const { trainColors, poolName, privateTilePrompts } = $derived(session.presentation)
     const state = $derived(session.financialState)
     const trainBuying = $derived(state.machineState === 'BuyingTrains')
 </script>

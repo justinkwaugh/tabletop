@@ -293,7 +293,7 @@
     {@const description = privateOperationDescription(item.id, company.id)}
     <article class="private" data-private-description-row>
         <div class="private-heading">
-            <div class="private-name"><PrivateDescription phaseColors={session.privateCardPhaseColors} token={session.privateCompanyTokens[item.id]} name={item.name} description={item.description} income={item.closed ? undefined : item.privateRevenue} /></div
+            <div class="private-name"><PrivateDescription phaseColors={session.presentation.phaseColors} token={session.privateCompanyTokens[item.id]} name={item.name} description={item.description} income={item.closed ? undefined : item.privateRevenue} /></div
             ><span
                 >{purchasePrice ??
                     (item.closed ? 'Closed' : `$${item.privateRevenue ?? 0} / OR`)}</span

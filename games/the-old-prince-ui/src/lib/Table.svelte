@@ -1,11 +1,6 @@
 <script lang="ts">
-    import type { CertificatePool } from '@tabletop/18xx'
-    import { TheOldPrincePhaseChart } from './phaseChart.js'
     import { availableTheOldPrinceTranche } from '@tabletop/the-old-prince'
-    import { TheOldPrinceCompanyNames } from './companyPresentation.js'
-    import { isSplitCompany, TheOldPrinceEndingRules, TheOldPrinceCompanies, TheOldPrinceMap } from '@tabletop/the-old-prince'
-    import { TheOldPrinceTrainColors } from './trainPresentation.js'
-    import { TheOldPrinceOperatingRules } from '@tabletop/the-old-prince'
+    import { isSplitCompany, TheOldPrinceCompanies, TheOldPrinceMap } from '@tabletop/the-old-prince'
     import OpeningAuction from './OpeningAuction.svelte'
     import type { GameSession } from '@tabletop/frontend-components'
     import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
@@ -46,39 +41,19 @@
         id === 'HS' && companyId !== 'PEIR'
             ? 'Close to buy one depot train during the company’s turn, paying the normal train price.'
             : undefined
-    const poolName = (pool: CertificatePool) =>
-        pool.id === 'reserved'
-            ? 'Exchange'
-            : pool.owner.kind === 'company'
-              ? 'Treasury'
-              : pool.name
 </script>
 
-<GameTable companyPricePresentation={{ showPar: false, label: 'Value', showInSpreadsheet: true }} {spreadsheetCompanyOrder} privatePurchaseLabel="Buy Hunslet"
+<GameTable {spreadsheetCompanyOrder}
     additionalStockActions={session.canPreviewSplit && session.myPlayer && session.splitModel.branches().length && session.splitModel.parents(session.myPlayer.id).some((parent) => !parent.reason) ? [{ label: 'Split', selected: session.splitInProgress, onSelect: () => session.chooseSplit() }] : []}
-    phaseChart={TheOldPrincePhaseChart}
     historyDescription={(action, companyName) => isSplitCompany(action) ? {
         text: `Split ${companyName(action.branchId)} from ${companyName(action.parentId)}`,
         value: `$${action.expectedFunding.toLocaleString('en-US')}`,
         detail: 'Branch capital', important: true
     } : undefined}
     {numberedShareLocation}
-    includedCompanyIds={['PEIR']}
-    mapFocusExcludedCompanyIds={['PEIR']}
-    numberedShareNames={{ PEIR: Object.fromEntries(TheOldPrinceCompanies.map((company) => [company.number, company.name])) }}
     auctionLotDescription={(id) => lotInfo(id).description}
-    companyNames={TheOldPrinceCompanyNames}
-    marketPoolId="market"
-    exchangePoolId="reserved"
     {session}
-    portfolioCompanyIds={['UB']}
-    includedPortfolioCompanyIds={['UB']}
-    valuationRules={TheOldPrinceEndingRules}
-    trainColors={TheOldPrinceTrainColors}
-    phaseColors={TheOldPrinceTrainColors}
-    operatingRules={TheOldPrinceOperatingRules}
     {privateOperationDescription}
-    {poolName}
 >
     {#snippet actions(focusLocation, focusRoute)}
         {#if session.offers.model && !session.offers.model.auction.completed}
@@ -93,7 +68,7 @@
             {#if session.splitInProgress}
                 <BranchSplitPreview {session} showUndo={false} onFocusLocation={focusLocation} />
             {:else}
-                <OperatingActions {poolName} {privateOperationDescription} onFocusRoute={focusRoute} {session} {createRouteWorker} trainColors={TheOldPrinceTrainColors} />
+                <OperatingActions {privateOperationDescription} onFocusRoute={focusRoute} {session} {createRouteWorker} />
             {/if}
         {/if}
     {/snippet}

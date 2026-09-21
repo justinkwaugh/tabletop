@@ -34,6 +34,7 @@ import {
 import { type MapViewDefinition, type StationAppearance } from '../maps/stationPresentation.js'
 import { GameSession } from '@tabletop/frontend-components'
 import { assert } from '@tabletop/common'
+import type { TitlePresentation } from './titlePresentation.js'
 import {
     type EighteenXXState,
     getCompany,
@@ -45,7 +46,6 @@ type SessionOptions = ConstructorParameters<
     typeof GameSession<EighteenXXState, HydratedEighteenXXState>
 >[0]
 export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEighteenXXState> {
-    privateCardPhaseColors: Readonly<Record<string, string>> = $derived({})
     privateCompanyTokens: Readonly<Record<string, StationAppearance>> = $derived({})
     operatingIncomeHistory() {
         return operatingHistory(this.history.visibleContext.actions)
@@ -126,7 +126,8 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     constructor(
         options: SessionOptions,
         private readonly rules: EighteenXXTitleRules,
-        readonly mapView: MapViewDefinition
+        readonly mapView: MapViewDefinition,
+        readonly presentation: TitlePresentation
     ) {
         super(options)
         this.historicalMaps = new HistoricalMaps(mapView)
@@ -141,7 +142,6 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         )
     }
     protected onStockSelectionCancelled() {}
-    get privatePurchaseHeading(): string | undefined { return 'Available privates' }
     availableTrainDefinitionIds = $derived.by(() => this.rules.trainRules.availableDefinitions(this.financialState))
     trainRosters = $derived.by(() =>
         this.financialState.companies
@@ -179,6 +179,12 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     }
     get phases() {
         return this.rules.phases
+    }
+    get operatingRules() {
+        return this.rules.operatingRules
+    }
+    get valuationRules() {
+        return this.rules.endingRules
     }
     override shouldAutoStepAction(action: GameAction, next?: GameAction) {
         return shouldContinueHistoryStep(action, next)
@@ -267,11 +273,12 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
 }
 export function createEighteenXXSessionClass(
     rules: EighteenXXTitleRules,
-    mapView: MapViewDefinition
+    mapView: MapViewDefinition,
+    presentation: TitlePresentation
 ): new (options: SessionOptions) => EighteenXXSession {
     return class extends EighteenXXSession {
         constructor(options: SessionOptions) {
-            super(options, rules, mapView)
+            super(options, rules, mapView, presentation)
         }
     }
 }

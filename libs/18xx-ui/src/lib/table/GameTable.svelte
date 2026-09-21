@@ -56,60 +56,46 @@
     import type { PhaseChartData } from '../phases/phaseChart.js'
     let {
         session,
-        marketPoolId,
         additionalStockActions = [],
         gameInformation,
-        exchangePoolId,
-        companyNames,
-        companyPricePresentation = DefaultCompanyPricePresentation,
         spreadsheetCompanyOrder,
-        includedCompanyIds = [],
         auctionLotDescription,
-        numberedShareNames,
         numberedShareLocation,
-        mapFocusExcludedCompanyIds = [],
         actions,
-        operatingRules,
-        poolName,
-        trainColors,
-        phaseColors,
-        phaseChart,
         historyDescription,
-        valuationRules,
-        portfolioCompanyIds = [],
-        includedPortfolioCompanyIds = [],
-        privatePurchaseLabel = 'Buy privates',
         privateOperationDescription
     }: {
         session: EighteenXXSession
         additionalStockActions?: readonly StockMenuOption[]
         gameInformation?: Snippet
-        marketPoolId: string
-        exchangePoolId?: string
         spreadsheetCompanyOrder?: readonly string[]
-        includedCompanyIds?: readonly string[]
-        companyPricePresentation?: CompanyPricePresentation
-        companyNames?: Readonly<Record<string, CompanyNameVariants>>
         auctionLotDescription?: (id: string) => string
-        numberedShareNames?: NumberedShareNames
         numberedShareLocation?: (companyId: string, number: number) => string | undefined
-        mapFocusExcludedCompanyIds?: readonly string[]
         actions: Snippet<[(locationId: string) => void, (trainId: string) => void]>
-        operatingRules: OperatingRules
-        portfolioCompanyIds?: readonly string[]
-        includedPortfolioCompanyIds?: readonly string[]
-        valuationRules: ValuationRules
-        trainColors: Readonly<Record<string, string>>
-        phaseColors: Readonly<Record<string, string>>
-        phaseChart: PhaseChartData
         historyDescription?: (action: GameAction, companyName: (id: string) => string) => HistoryDescription | undefined
-        poolName?: (pool: CertificatePool) => string
-        privatePurchaseLabel?: string
         privateOperationDescription: (
             privateCompanyId: string,
             companyId: string
         ) => string | undefined
     } = $props()
+    const {
+        marketPoolId,
+        exchangePoolId,
+        companyNames,
+        companyPricePresentation = DefaultCompanyPricePresentation,
+        includedCompanyIds = [],
+        numberedShareNames,
+        mapFocusExcludedCompanyIds = [],
+        poolName,
+        trainColors,
+        phaseColors,
+        phaseChart,
+        portfolioCompanyIds = [],
+        includedPortfolioCompanyIds = [],
+        privatePurchaseLabel = 'Buy privates'
+    } = $derived(session.presentation)
+    const operatingRules = $derived(session.operatingRules)
+    const valuationRules = $derived(session.valuationRules)
     const phaseTileColors = $derived(Object.fromEntries(session.phases.phases.map((phase) => [phase.id, phase.tileColors])))
     const readOnlyPosition = $derived(session.isViewingHistory || !session.myPlayer || !session.isMyTurn)
     let showDepot = $state(false)
