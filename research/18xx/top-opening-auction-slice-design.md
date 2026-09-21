@@ -101,6 +101,18 @@ The shared offer panel takes a model, manual selection, player names and callbac
 The Game Session owns drafts and constructs Actions. TOP supplies role labels.
 The economy viewer supports either opening, with 3–4 players for TOP and 2–6 for 1889. Prototype save identity 24 preserves earlier saved examples separately.
 
+## Accepted machine states follow the registered handlers
+
+The family state type lists every machine state any title can use, including both
+opening procedures. A runtime registers handlers only for the procedure its title
+supplies rules for, so its canonical validator is built from those registered
+handlers. TOP therefore rejects the waterfall states and 1889 rejects the offer
+states, and no accepted state can lack a handler. The static type stays shared
+because handlers, actions, and UI are written once across titles; a title with
+several opening stages, or none, changes which handlers it registers and needs no
+schema of its own. Each title runs the shared coverage test, naming the states it
+does not support.
+
 ## Unfunded rule edge case
 
 The rules' repeated-payout instruction has no terminating fallback when all players
@@ -109,7 +121,8 @@ reachable through legal play: three players can each bid their entire $580 on a
 PEIR right before any income-producing private is sold. The implementation records
 one zero-income payout, preserves the stalled forced purchase, disables further
 auction Actions, and leaves Undo available. It neither invents income nor loops
-forever. A fallback rule remains a rules decision, raised with the user separately.
+forever. The decision is to add no fallback rule: the stall stands as implemented, and
+the player whose action caused it resolves it with Undo.
 
 ## Verification
 

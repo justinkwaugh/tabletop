@@ -1,300 +1,162 @@
-# TOP finances
+# The Old Prince 1871 UI interaction contract
 
-The finance example follows the shared
-[finance inspection contract](../../../libs/18xx-ui/ui-interaction-visual-contract.md#finance-inspection).
-The Game Session exposes an illustrative position with one prepared stock turn supporting purchases, sales, and Finish turn.
-Share selection, trade previews, stock history, market rendering, and Undo follow the shared
-contract. Switching away disposes this Game Session,
-and revisiting restores its local example.
-Stock-round history gives every player action and pass its own tinted line with
-the player name repeated in regular-weight text; no player dot or colon appears.
-The action verb starts lowercase after the player name.
-History descriptions use full company names except PEIR, which remains PEIR.
-Automatic flotation names the company without a player name or player tint;
-its token sits beside the summary and capital detail.
-Company operation history headers use the recorded controlling player's color tint.
-Operating round dividers show company order between the title and phase when it fits,
-and below both on narrow panes.
+The Old Prince renders through the shared 18xx game table. Stock trading, company
+starts, track, stations, routes, trains, earnings, the map, history, and Undo follow
+the [shared 18xx contract](../../../libs/18xx-ui/ui-interaction-visual-contract.md).
+This contract records only what the title owns or changes. Rule sources and
+unresolved rule questions live in `research/18xx`.
 
-TOP additionally shows each numbered PEIR share's fraction of distributed earnings
-and explains its current president: most shares, then lowest numbered share. Both
-are derived from the displayed certificates. Union Bank's charter belongs in
-its owner's portfolio; Union Bank's certificates and cash remain in its own treasury. Souris's President
-is Union Bank, while its Controlling Owner is Union Bank's owning player.
-
-Browser checks cover those distinctions, title switching, and reload at desktop
-and mobile widths. Runtime tests cover player identity stability and retirement's
-change to the PEIR denominator and president. Purchase, reload, and Undo are checked in the browser; processed-action replay is
-checked through the engine.
-
-Union Bank is a separate purchase choice. Its confirmation shows treasury cash
-used first and its owning player paying the remainder. Company treasury shares
-pay that company; Market purchases pay the Bank. Reserved shares are disabled.
-
-Sales follow the shared contract: preview and cancellation leave the market and
-portfolios unchanged; confirmation updates proceeds, presidency, and market
-position. Undo restores the full trade. Effective certificate counts come from
-the title rules for the current displayed market position.
-
-Company starts and flotation follow the shared staged-selection contract. The
-starting example supports player and Union Bank starts and displays tranche
-occupancy. The flotation example exchanges a numbered PEIR share, replaces its
-station, updates certificates and capital, and restores all of those through Undo.
-History steps over the qualifying purchase and its automatic flotation together;
-the action panel describes both at that position.
-The title's home positions come from its existing map definition. The live map renders those stations and their reservations.
-
-TOP displays retained pass order. Acting again removes that player from the
-order, preserving the others; Union Bank usage remains spent across human turns.
-The completed view places open PEIR last and excludes Union Bank from operations.
-
-Round completion and Undo follow the shared full-stock-round contract. The finance
-UI remains disposable; this slice requires desktop interaction verification only.
-
-The map follows the shared live-map contract. Its current tiles, stations,
-reservations, and inventory counts come from the session's visible state. Map
-inspection is independent of stock drafts and survives station exchange, history,
-and Undo when its target remains valid. Each hotseat player has a local map style.
-Fit/focus/pan/zoom and tile browsing create no actions. This remains a prepared
-position; legal track construction follows the shared track-construction contract.
-
-Track construction follows the shared draft, preview, target, Back/Undo and history
-contract. The new Track construction example starts directly in the first
-operating company's track step. Normal stock examples reach that step through
-system Actions. The map shows legal locations and candidate tile artwork before
-confirmation; payment, supply and station changes occur only in LayTile.
-Finish track continues into station placement under the shared station-selection,
-preview, access, Back/Undo and history contract. Finish stations currently ends
-the implemented operating steps. The Station placement example supplies connected
-track and available stations.
-
-The Train purchases example follows the shared depot-selection, confirmation,
-Back/Undo and history contract. It starts directly in same-phase train buying,
-with a prepared owned train. Operating examples continue through running trains and distributing earnings;
-phase changes use the shared interruption flow; emergency financing remains later work.
-
-The Routes example uses the shared route editor and interaction contract. Map
-path clicks and extension controls stage routes for two trains; only Confirm
-routes commits. Title RouteRules supplies train distance requirements and revenue
-stages. FinishStations now enters RunningTrains; RunTrains enters DistributingEarnings
-for payout selection. Route overlays, Back/Undo, history
-and reload follow the shared contract (fixture version 16).
-
-### Earnings and round progression (slice 11)
-
-Payout choice is manual session-owned local selection. Its preview uses the same
-EarningsDistribution evaluator as DistributeEarnings. Back clears the choice;
-Undo clears a manual choice before undoing a committed action. History and
-updatingVisibleState hide the draft; beforeNewState clears it. Reload restores
-only committed earnings. Confirmation shows recipient amounts, retained revenue,
-rounding/bonus supplements and share-price movement; it never changes route
-geometry. Committed payment details remain visible during train purchasing.
-
-DistributeEarnings enters BuyingTrains. Finish operating turn is disabled while a
-train purchase is drafted or a compulsory train is missing. The rules own company
-completion, the next operator, private income at OR entry and the return to stock
-trading. The operating-step strip and company order reflect canonical state.
-Undo across a turn boundary also restores automatic round and income changes.
-
-The Operating rounds fixture (version 16) starts at the first company's track
-step, with first-round private income already included and trains prepared for
-both majors. Subsequent private income is recorded by StartOperatingRound.
-The Routes fixture now continues into earnings and train purchasing. Phase changes follow the interruption contract below; emergency funding and
-game-ending obligations remain in later slices.
-
-### Phase changes and compulsory train discards (slice 12)
-
-Phase changes keep the operating company and its turn open. PhaseChanges displays
-the current deciding company and controlling owner, excess count, and the saved
-continuation. Buy/finish controls are unavailable until every compulsory discard
-is resolved. The step strip continues to mark the interrupted operating step.
-Completed events show rusted and deferred train identities in phase history.
-
-Discard selection is manual session state; Back clears it, Undo clears it before
-committed Undo. History/updatingVisibleState hide the selection and beforeNewState
-clears it. Reload restores the pending company and continuation without restoring
-a draft. No automatic selection consumes an Undo. Confirming the final discard
-resumes the original company automatically without starting another player turn.
-
-Diesel exchanges reuse the manual train-purchase draft and confirmation, including
-its exchangeTrainId. Preview shows the trade-in, price, and resulting phase.
-Market trains appear separately from depot supply. TOP's retained 4+ trains are
-marked as awaiting a final operation and unavailable for trade. Their rusting
-is an automatic consequence of completing the next RunTrains action.
-
-Fixture version 18 adds Phase changes and Diesel arrival examples. These exercise
-phase/rusting decisions; phase-triggered private powers and game-ending effects
-are integrated in their planned later slices.
-
-## Private exchanges and lifecycle
-
-Private-company cards show ownership, income, closure, and eligible exchanges.
-Selecting an exchange creates a manual session draft naming its owner and target.
-Back clears that draft; Undo clears it before undoing committed history. History
-and updatingVisibleState hide the draft; beforeNewState clears it.
-
-An optional Dôgo exchange can belong to a different player than the ordinary turn.
-The first active identity remains the ordinary decision owner; additional active
-players may only exercise their own exchange. The example session preserves this
-order for ordinary hotseat controls. Local hotseat exchange confirmation explicitly
-names the private's owner; other clients only submit their own player's choice.
-Components invoke session methods, never construct actions.
-
-Phase history lists private closures, forced exchanges, and income changes.
-Concession closure occurs with the company's earnings distribution. Prototype
-version 20 adds four-player Private exchanges and Private phase effects examples;
-ordinary game setup and negotiated powers remain later slices.
-
-### Negotiated purchases and private powers
-
-The disposable company-decisions panel is session-owned. Asset/price selection,
-private tile placement, and early train selection are manual local drafts. Back
-clears the draft; Undo clears a manual draft first, then uses engine history.
-Drafts hide during updatingVisibleState and History View and clear in beforeNewState.
-Committed offers, seller tile choices, and track-permission requests remain in
-Game State across reload. Their entitled player decides before ordinary play resumes.
-Other stock, construction, route, and train controls remain unavailable meanwhile.
-Same-player purchases settle with one explicit confirmation. Another player's
-private lay is selectable only through explicit Local Hotseat input; Hosted clients
-remain limited to their associated player. All Actions are constructed by the
-Game Session. Tile previews reuse the shared tile renderer, and committed changes
-appear on the authoritative map. Track requiring another owner's consent says
-Request track permission before submission and shows the proposed tile to that owner.
-
-Between operating companies, an eligible private owner may act or Continue operating
-round. Continuing declines only that window, retaining the unused power. The choice
-and resulting automatic company start form a normal Undo history step. Automatic
-private income and required home stations resolve before this optional window.
-
-### Compulsory train funding
-
-The prototype funding panel shows the selected train, remaining shortfall,
-ordered liable owners, and only the current legal funding choices. FundTrain is
-an explicit committed decision; its funding record persists across reload.
-Issuance and contributions require explicit confirmation of the displayed amount.
-A share-sale selection is a manual Game Session draft: Back clears it, and Undo
-clears it before reversing a committed Action. Drafts hide in History View and
-while updatingVisibleState, and clear in beforeNewState. Components call session
-methods for every Action. Other operating, private, and stock actions are
-unavailable during funding. Only the responsible player may act.
-
-The selected train purchase uses existing phase-change and discard handling and
-returns to ordinary train buying. Bankruptcy is a system consequence of exhausted
-legal funding sources; the panel shows the company, player, and remaining
-shortfall. It offers no further gameplay actions. Engine Undo restores the funding
-state, including the contribution that triggered bankruptcy. Final scoring is a
-later slice. Prototype save identity is version 22.
+## Visual intents
 
 ### Opening offer-pile auction
 
-TOP's opening shows the randomly assigned Mainline and Shortline, all public offer
-piles, the auctioneer, two eligible bidders, current bids, designated forced
-purchaser, and completed awards. Ordinary trading/operating panels appear after the
-auction completes. Player counts are three or four; save identity is version 24.
+Trigger: the game is in its opening auction. The action area replaces ordinary
+trading and operating content with the auction until it completes.
 
-Offer and bid choices are manual Game Session drafts. Back clears the draft; Undo
-clears a manual draft first, then reverses committed engine history and its system
-consequences. Drafts hide during updatingVisibleState and History View and clear
-in beforeNewState. Pass is an explicit Action. Components use session methods;
-no reactive UI behavior commits an offer, bid, pass, or automatic award.
-When the auctioneer has one lot left, the game engine records its offer as a system
-action and opens bidding. Multiple lots retain the manual offer draft.
+- While the auctioneer chooses a lot, the offer piles are interactive and the
+  assigned Mainline and Shortline, every public pile, the auctioneer, the two
+  eligible bidders, and completed awards are shown. Choosing a lot can focus its
+  home location on the map.
+- While a lot is being bid on, the bidding controls replace the offer choice.
+- When the auctioneer has one lot left, the engine records the offer as a system
+  action and bidding opens without a manual offer.
+- Offer and bid choices are manual session drafts. Pass is an explicit action.
+  No reactive behavior commits an offer, bid, pass, or award.
 
-Current bidding and offer piles survive reload. Completion displays the real first
-stock round in remaining-cash order, and Undo can restore the last auction turn.
-An unaffordable forced purchase with no player-private income stays visible with
-an explanation and Undo; the supplied rules provide no further resolution.
+### Stalled forced purchase
 
-## Branch-split preview
+Trigger: a forced purchase is unaffordable and no player-owned private produces
+income. The auction shows the stalled position with an explanation and offers no
+auction actions. This is the accepted resolution, not an error state: the player
+whose bid or pass caused the stall uses Undo to take a different line. Undo stays
+available because eligibility follows the last user action, not the active player.
 
-The TOP Game Session owns a manual parent, branch, and starting-price draft.
-The panel renders the authoritative TOP calculation without committing an Action.
-Every stage requires explicit input. Changing parent or branch clears dependent
-stages. Back and Undo clear the latest manual stage; once the draft is empty,
-Undo follows ordinary game history. No preview selection consumes a stock action.
+### Branch split draft
 
-Selections and results hide during `updatingVisibleState` and History View, and
-`beforeNewState` clears all split stages. They do not persist across reload. A
-canonical stock action therefore invalidates the old preview before the resulting
-state is displayed. Station and train lists describe assets available for allocation; the map remains
-canonical. Split commitment follows the allocation contract below. Shared UI and 1889 do not
-own TOP preview state.
+Trigger: the active player chooses Split in the stock action strip, which is offered
+only when a branch remains and the player has an eligible parent. Choosing Split
+closes any open stock menu. The split panel then replaces the operating content.
 
-## Branch-split commitment
+- Stages are presented one at a time: eligible parent, branch, then starting price,
+  each as token and name or as price buttons. Completed company choices collapse to
+  a compact summary. There are no dropdowns and no separate Back control.
+- Choosing a starting price opens the preview of the authoritative split calculation
+  together with the allocation of stations, branch home, trains, cash, and Hunslet.
+  The allocation starts from an empty default rather than requiring a button press.
+  Selecting a single available station does not choose the branch home.
+- Station entries can focus their location on the map. The map stays canonical and
+  shows no branch stations until the split is committed.
+- Confirm split is enabled only when the title model that validates the action
+  accepts the complete allocation. It sends one action through the session. No
+  intermediate authoritative split exists.
+- After commitment the original stock turn stays active with its buy or start
+  allowance used.
 
-An explicit Allocate assets button adds a fourth manual stage to the split draft.
-Station and train checkboxes, the branch home choice, cash, and Hunslet stay within
-that stage. Back and draft-first Undo remove the allocation stage together; changing
-parent, branch, or starting price clears it. Selecting a single available station
-does not automatically choose the branch home. Confirm split is enabled only when
-the same title model used by the Action accepts the complete allocation.
+### Tranche display
 
-Confirm split sends one `SplitCompany` through the Game Session. The resulting
-canonical state contains all share, station, train, cash, company, tranche, and
-stock-turn changes. No intermediate authoritative split exists. The branch map
-stations appear only with that committed state. The original stock turn remains
-active with its buy/start allowance used; the player can use remaining permitted
-private exchanges or Finish turn. Reload restores a completed split, and ordinary
-Undo restores the entire pre-split state. Pending company decisions and flotations
-retain their shared handler precedence.
+Trigger: always, in the game information area. Each tranche shows its capacity as
+slots, filled by the tokens of the companies it holds. A tranche that can no longer
+fill shows a lock in its empty slots. It follows displayed state and has no input.
 
-## Game ending and final wealth
+### Title presentation
 
-The ending panel renders the canonical ending schedule and final wealth from the
-Session's displayed state, including history. It owns no draft or gameplay
-mutation. Its Undo control invokes the existing Session Undo method and is disabled
-during state publication, busy processing, and History View. Undo reverses the
-triggering user Action and its System Action cascade together, restoring the ending
-schedule, results, Bank state, and ordinary play. GameOver exposes no game Actions.
-The prototype harness reloads completed games as well as active ones.
+These change shared presentation without adding interaction:
 
-The initial game table follows the shared game-table-shell contract. The title's
-normal UiDefinition uses that shell, while PrototypeUiDefinition retains the
-logic-workbench layout. The table supplies title-specific auction/action content,
-uses canonical active player ids and the existing title Session for all decisions,
-and renders the same semantic map and previews. This is the first desktop layout
-increment; the old workbench remains available for detailed rule inspection.
+- Company cards omit Par and label the current stock-market share price Value. The
+  ownership spreadsheet shows Value after the share pools and before company cash
+  in both orientations, with a dash for a company that has no market position. It is
+  a per-share price, not net worth or treasury.
+- The reserved certificate pool is named Exchange and a company's own pool Treasury.
+- PEIR keeps its initials in history and stock lists and is listed last among stock
+  companies. The prototype workbench also summarizes its outstanding shares and
+  explains its president as the largest shareholding, then the lowest numbered share.
+- Union Bank's charter sits in its owner's portfolio while its certificates and cash
+  stay in its own treasury. A company it presides over shows Union Bank as president
+  and Union Bank's owner as controlling owner.
+- A committed split appears in history as the branch split from its parent with the
+  branch capital.
+- Vernon River's unbuilt map marker is title artwork: a large VR above two small
+  connected circles. It disappears when a tile is laid and adds no route nodes or
+  station slots.
+- The published board option uses the packaged board image. In that mode the page
+  and map surround take the board's dark border color, and leaving the mode or the
+  table restores the normal background. Calibration notes are in
+  [the board artwork note](board-artwork.md).
 
-The company-order row and token artwork follow the shared game-table-shell
-contract. This title supplies its existing OperatingRules and packaged token
-artwork; order and token identities remain canonical during history and Undo.
+## Coexistence and precedence
 
-Branch split presents one manual stage at a time: eligible parent token/name, branch token/name, then starting-price buttons. Completed company choices remain a compact token/name summary. The existing staged selection owns progress; Undo unwinds it without committing an action. There are no dropdowns or separate Back controls. Price selection opens the existing split preview and allocation flow.
+- **Split draft and stock menu.** They never coexist. Choosing Split clears the stock
+  menu, and the split panel replaces the operating content while a split draft exists.
+- **Split draft and opening auction.** Impossible together: Split requires the stock
+  round, which begins only after the auction completes.
+- **Split draft and History View or state publication.** The draft is hidden, not
+  merely disabled, whenever the session is viewing history, publishing visible
+  state, busy, or the player is not the active stock player.
+- **Split draft and pending company decisions or flotations.** Those keep their
+  shared handler precedence. A split cannot start once the turn's buy has been used.
+- **Stalled auction and auction actions.** The stall wins: no offer, bid, or pass is
+  available, and only Undo changes the position.
+- **Map focus from a lot or a split station and the shared map focus rules.** These
+  use the shared focus operation and follow its precedence. They create no action.
 
-Automatic history follows the shared consequence contract: PEIR flotation shows
-the numbered-share exchange and both affected presidencies where they change;
-final PEIR closure is shown with King's Mail closure. Forced phase exchanges
-remain on the phase entry. Historical owners come from recorded action changes.
+## Shared visual state
 
-Vernon River’s unbuilt map marker uses title-owned SVG artwork: a large VR above two small connected circles. The artwork replaces the small marker label and disappears when a tile is laid; it does not introduce route nodes or station slots.
+### Split draft
 
+- **Meaning.** The player's staged progress toward one split: that Split was chosen,
+  the parent, the branch, the starting price, and the allocation.
+- **Producer and consumers.** The title session produces it. The table decides
+  whether to show the split panel from it, the split preview and allocation panels
+  render it, and the stock action strip marks Split as selected from it.
+- **Allowed effects.** It may show the split panel, mark the strip's Split segment,
+  and enable Confirm split. It must not change the map, portfolios, market, or any
+  canonical value.
+- **Stage sources.** The action, parent, branch, and price stages are manual. The
+  allocation is created automatically with an empty default when a price is chosen,
+  and becomes manual once the player edits it.
+- **Back and Undo.** Undo unwinds the latest manual stage first and consumes no game
+  action while a draft exists. Changing parent, branch, or price clears the later
+  stages. Once the draft is empty, Undo follows ordinary game history.
+- **Lifetime.** Cleared before each new visible state is applied, and when selection
+  is cancelled. It does not persist across reload.
+- **Validity.** While present it applies only when the session can preview a split.
+  Otherwise consumers see an empty selection.
+- **History, replay, and restoration.** Hidden in History View and during state
+  publication. A committed action invalidates the old draft before the new state is
+  displayed, so no stale preview survives replay or silent restoration.
 
-## Published board presentation
+### Auction drafts
 
-TOP follows the shared published-board presentation contract. Its picture button
-selects the packaged 2048 × 1322 MAP-AUGUST-01 JPEG. Laid tiles and live overlays
-render over the board with the diagnostic grid hidden. The initial
-calibration and known printed-layout differences are recorded in
-[the board artwork design note](board-artwork.md). Browser scenarios cover switching
-with a draft, committed placement, history and Undo at desktop and mobile widths.
+Offer and bid drafts follow the shared auction draft rules: hidden during state
+publication and History View, and cleared before each new visible state.
 
-In artwork mode, the page and map surround use the sampled dark board-border
-color (#222a2c). Switching to generic or leaving the table restores the normal
-page background.
+## Render ownership
 
+- **Action area content.** The title's table is the single owner of which panel
+  fills the action area: offer choice, bidding, the stalled auction view, the split
+  panel, or the shared operating actions. It decides from the auction state and the
+  split draft. The shared table only provides the slot.
+- **Split entry.** The title supplies Split as an additional stock action. The shared
+  strip renders it and owns its selected styling.
+- **Tranches.** The title owns the tranche display inside the shared game
+  information slot.
+- **Map.** The shared map owns all map rendering. The title supplies the token
+  artwork, the Vernon River marker, and the published board image, and excludes PEIR
+  from company map focus.
 
-## Company value display
+## Verification scenarios
 
-TOP company cards omit Par and label the current stock-market share price Value.
-The ownership spreadsheet shows that same Value immediately after the share-pool
-rows/columns and before company Cash in both orientations. Companies without a
-stock-market position display a dash in the spreadsheet. Values follow the
-displayed state during history and Undo; they are per-share prices, not company
-net worth or treasury balances.
-
-This is title-owned presentation using the existing market-price lookup. The
-family research distinguishes par/starting prices from current market prices;
-TOP hides the former while 1889 keeps its existing Par and Market cells. No
-financial rules, stored prices or host bridge behavior change. TOP needs a UI-only
-publication to adopt the display. Browser verification covers both card layouts
-and spreadsheet orientations, including 1889's unchanged display.
+| Scenario | Start | Input | Expected | After exit | Verified |
+|---|---|---|---|---|---|
+| Offer then bid | Opening auction, several lots | Choose a lot, then bid | Bidding replaces the offer choice and the bid commits | Undo restores the prior auction turn | Automated, engine (`topOpening.spec.ts`); manual in browser |
+| Single remaining lot | Auctioneer has one lot | None | Offer is recorded as a system action and bidding opens | Undo reverses the offer with its cause | Automated, engine |
+| Stall and recovery | All players at zero cash before a forced purchase | The action that forces the purchase | Stalled view, no auction actions, no active player | Undo restores the exact prior state | Automated, engine (`topOpening.spec.ts`); manual in browser |
+| Auction completion | Final lot awarded | None | First stock round appears in remaining-cash order | Undo restores the last auction turn | Automated, engine |
+| Split staging | Stock round, eligible parent and branch | Split, parent, branch, price | One stage at a time, earlier choices collapse, preview and allocation open on price | Undo unwinds one manual stage at a time, then follows game history | Automated, selection (`branchSplitSelection.spec.ts`); manual in browser |
+| Reselect earlier stage | Split draft with a price | Choose a different parent or branch | Later stages clear | As above | Automated, selection |
+| Split and stock menu | Stock menu open | Choose Split | Menu closes and the split panel shows | Cancelling the split returns the operating content | Manual |
+| Split commitment | Complete valid allocation | Confirm split | One action; shares, stations, trains, cash, tranche, and turn update together; branch stations appear on the map | Undo restores the entire pre-split state; reload keeps the split | Automated, engine (`splitCompany.spec.ts`, `branchSplit.spec.ts`); manual in browser |
+| Draft across history | Split draft in progress | Enter History View, then return | Draft hidden in history | Draft is cleared once a new state is applied | Manual |
+| Value label | Company cards and spreadsheet | Switch spreadsheet orientation, step through history | Value replaces Par and follows displayed state | 1889 keeps Par and Market | Manual |
+| Published board | Generic map with a track draft | Toggle published board | Board image under tiles and overlays, dark surround | Toggling back or leaving restores the background | Automated, browser (`boardArtwork.spec.ts`) |
+| Tranches | Companies started across tranches | Start a company, then Undo | Slots fill and closed tranches lock | Undo empties the slot | Manual |

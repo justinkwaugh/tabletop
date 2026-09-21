@@ -57,7 +57,11 @@ The TOP opening design note records the rule-source ambiguity where compulsory
 auction purchases become unaffordable and intervening private income cannot repair
 them. The implementation preserves the position and Undo rather than inventing a
 loan or forced ending. The verified opening seed does not exercise that ambiguity.
-This remains a rule question before claiming unrestricted title completeness.
+This is the accepted resolution, not an open question: a stalled auction offers no
+actions, and the player whose bid or pass caused it uses Undo to take a different
+line. Undo eligibility follows the last user action rather than the active player,
+so it stays available with no active player, and the engine test for the stall
+proves the whole consequence reverses exactly.
 
 1889 uses its standard game, not an additional beginner configuration. Automatic
 route finding, physical-board artwork and final desktop/mobile UI remain deferred.

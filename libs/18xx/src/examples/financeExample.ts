@@ -326,6 +326,17 @@ export const FinanceExampleState: Type.TObject<
 export type FinanceExampleState = Type.Static<typeof FinanceExampleState>
 export const FinanceExampleValidator: Validator<{}, typeof FinanceExampleState> =
     Compile(FinanceExampleState)
+function handledStateValidator(machineStates: readonly string[]): Pick<Validator, 'Check'> {
+    return Compile(
+        Type.Object(
+            {
+                ...FinanceExampleState.properties,
+                machineState: Type.Union(machineStates.map((name) => Type.Literal(name)))
+            },
+            { additionalProperties: false }
+        )
+    )
+}
 export class HydratedFinanceExampleState
     extends HydratableGameState<typeof FinanceExampleState, PlayerState>
     implements FinanceExampleState
@@ -831,6 +842,126 @@ export function createFinanceExampleRuntime(
     options: FinanceExampleOptions
 ): GameRuntime<FinanceExampleState, HydratedFinanceExampleState> {
     const { stockRules: rules, companyRules, operatingRules, map, tileSet } = options
+    const stateHandlers = Object.fromEntries(
+        Object.entries({
+            ...(options.offerAuctionRules
+                ? {
+                      OfferingLot: new OfferAuctionHandler<HydratedFinanceExampleState>(
+                          options.offerAuctionRules
+                      ),
+                      OfferBidding: new OfferAuctionHandler<HydratedFinanceExampleState>(
+                          options.offerAuctionRules
+                      )
+                  }
+                : {}),
+            ...(options.auctionRules
+                ? {
+                      WaterfallAuction:
+                          new WaterfallAuctionHandler<HydratedFinanceExampleState>(
+                              options.auctionRules
+                          ),
+                      AuctionBidding: new WaterfallAuctionHandler<HydratedFinanceExampleState>(
+                          options.auctionRules
+                      )
+                  }
+                : {}),
+            FundingTrain: new FundingTrainHandler<HydratedFinanceExampleState>(
+                options.trainFundingRules,
+                rules,
+                options.trainRules
+            ),
+            GameOver: new TerminalStateHandler(),
+            Bankrupt: new BankruptHandler<HydratedFinanceExampleState>(),
+            AdvancingPhase: new AdvancingPhaseHandler(),
+            DiscardingTrains: new DiscardingTrainsHandler(options.trainRules),
+            RustingTrains: new RustingTrainsHandler('DistributingEarnings'),
+            StockRound: new AutomaticStockTurnHandler(
+                new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                    options.stockRoundHandler ??
+                        new StockRoundHandler(rules, 'StartingOperatingSet', companyRules),
+                    options.privateRules,
+                    rules,
+                    companyRules
+                )
+            ),
+            StartingOperatingSet: new StartOperatingSetHandler('OperatingSet'),
+            OperatingSet: new BetweenCompaniesHandler<HydratedFinanceExampleState>(
+                new StartOperatingTurnHandler(options.stationRules),
+                options.privatePowerRules,
+                options.trackRules,
+                options.stationRules
+            ),
+            LayingTrack: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                new LayingTrackHandler(options.trackRules, 'PlacingStation'),
+                options.privateRules,
+                rules,
+                companyRules
+            ),
+            PlacingStation: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                new PlacingStationHandler(options.stationRules, 'RunningTrains'),
+                options.privateRules,
+                rules,
+                companyRules
+            ),
+            StationsComplete: new TerminalStateHandler(),
+            RunningTrains: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                new RunningTrainsHandler(options.routeRules, 'DistributingEarnings'),
+                options.privateRules,
+                rules,
+                companyRules
+            ),
+            DistributingEarnings: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                new DistributingEarningsHandler(options.earningsRules),
+                options.privateRules,
+                rules,
+                companyRules
+            ),
+            BuyingTrains: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                new BuyingTrainsHandler(options.trainRules, options.trainFundingRules, rules),
+                options.privateRules,
+                rules,
+                companyRules
+            )
+        })
+            .map(
+                ([name, handler]) =>
+                    [
+                        name,
+                        name === 'GameOver'
+                            ? handler
+                            : new GameEndingHandler<HydratedFinanceExampleState>(
+                                  [
+                                      'StockRound',
+                                      'LayingTrack',
+                                      'PlacingStation',
+                                      'RunningTrains',
+                                      'DistributingEarnings',
+                                      'BuyingTrains'
+                                  ].includes(name)
+                                      ? new CompanyDecisionsHandler<HydratedFinanceExampleState>(
+                                            handler,
+                                            options.transferRules,
+                                            options.privatePowerRules,
+                                            options.trainRules,
+                                            companyRules,
+                                            options.trackRules
+                                        )
+                                      : handler,
+                                  options.endingRules
+                              )
+                    ] as const
+            )
+            .map(([name, handler]) => [
+                name,
+                name === 'LayingTrack'
+                    ? new AutomaticTrackCompletionHandler<HydratedFinanceExampleState>(handler)
+                    : name === 'BuyingTrains'
+                      ? new AutomaticTrainCompletionHandler<HydratedFinanceExampleState>(
+                            handler
+                        )
+                      : handler
+            ])
+    )
     return {
         initializer: new FinanceExampleInitializer(options),
         hydrator: {
@@ -989,7 +1120,7 @@ export function createFinanceExampleRuntime(
                 throw new Error(`Unknown finance example action: ${action.type}`)
             }
         },
-        canonicalStateValidator: FinanceExampleValidator,
+        canonicalStateValidator: handledStateValidator(Object.keys(stateHandlers)),
         playerColors: ExampleColors,
         apiActions: {
             ScheduleGameEnd,
@@ -1037,126 +1168,7 @@ export function createFinanceExampleRuntime(
             DiscardTrain,
             RustTrains
         },
-        stateHandlers: Object.fromEntries(
-            Object.entries({
-                ...(options.offerAuctionRules
-                    ? {
-                          OfferingLot: new OfferAuctionHandler<HydratedFinanceExampleState>(
-                              options.offerAuctionRules
-                          ),
-                          OfferBidding: new OfferAuctionHandler<HydratedFinanceExampleState>(
-                              options.offerAuctionRules
-                          )
-                      }
-                    : {}),
-                ...(options.auctionRules
-                    ? {
-                          WaterfallAuction:
-                              new WaterfallAuctionHandler<HydratedFinanceExampleState>(
-                                  options.auctionRules
-                              ),
-                          AuctionBidding: new WaterfallAuctionHandler<HydratedFinanceExampleState>(
-                              options.auctionRules
-                          )
-                      }
-                    : {}),
-                FundingTrain: new FundingTrainHandler<HydratedFinanceExampleState>(
-                    options.trainFundingRules,
-                    rules,
-                    options.trainRules
-                ),
-                GameOver: new TerminalStateHandler(),
-                Bankrupt: new BankruptHandler<HydratedFinanceExampleState>(),
-                AdvancingPhase: new AdvancingPhaseHandler(),
-                DiscardingTrains: new DiscardingTrainsHandler(options.trainRules),
-                RustingTrains: new RustingTrainsHandler('DistributingEarnings'),
-                StockRound: new AutomaticStockTurnHandler(
-                    new PrivateExchangeHandler<HydratedFinanceExampleState>(
-                        options.stockRoundHandler ??
-                            new StockRoundHandler(rules, 'StartingOperatingSet', companyRules),
-                        options.privateRules,
-                        rules,
-                        companyRules
-                    )
-                ),
-                StartingOperatingSet: new StartOperatingSetHandler('OperatingSet'),
-                OperatingSet: new BetweenCompaniesHandler<HydratedFinanceExampleState>(
-                    new StartOperatingTurnHandler(options.stationRules),
-                    options.privatePowerRules,
-                    options.trackRules,
-                    options.stationRules
-                ),
-                LayingTrack: new PrivateExchangeHandler<HydratedFinanceExampleState>(
-                    new LayingTrackHandler(options.trackRules, 'PlacingStation'),
-                    options.privateRules,
-                    rules,
-                    companyRules
-                ),
-                PlacingStation: new PrivateExchangeHandler<HydratedFinanceExampleState>(
-                    new PlacingStationHandler(options.stationRules, 'RunningTrains'),
-                    options.privateRules,
-                    rules,
-                    companyRules
-                ),
-                StationsComplete: new TerminalStateHandler(),
-                RunningTrains: new PrivateExchangeHandler<HydratedFinanceExampleState>(
-                    new RunningTrainsHandler(options.routeRules, 'DistributingEarnings'),
-                    options.privateRules,
-                    rules,
-                    companyRules
-                ),
-                DistributingEarnings: new PrivateExchangeHandler<HydratedFinanceExampleState>(
-                    new DistributingEarningsHandler(options.earningsRules),
-                    options.privateRules,
-                    rules,
-                    companyRules
-                ),
-                BuyingTrains: new PrivateExchangeHandler<HydratedFinanceExampleState>(
-                    new BuyingTrainsHandler(options.trainRules, options.trainFundingRules, rules),
-                    options.privateRules,
-                    rules,
-                    companyRules
-                )
-            })
-                .map(
-                    ([name, handler]) =>
-                        [
-                            name,
-                            name === 'GameOver'
-                                ? handler
-                                : new GameEndingHandler<HydratedFinanceExampleState>(
-                                      [
-                                          'StockRound',
-                                          'LayingTrack',
-                                          'PlacingStation',
-                                          'RunningTrains',
-                                          'DistributingEarnings',
-                                          'BuyingTrains'
-                                      ].includes(name)
-                                          ? new CompanyDecisionsHandler<HydratedFinanceExampleState>(
-                                                handler,
-                                                options.transferRules,
-                                                options.privatePowerRules,
-                                                options.trainRules,
-                                                companyRules,
-                                                options.trackRules
-                                            )
-                                          : handler,
-                                      options.endingRules
-                                  )
-                        ] as const
-                )
-                .map(([name, handler]) => [
-                    name,
-                    name === 'LayingTrack'
-                        ? new AutomaticTrackCompletionHandler<HydratedFinanceExampleState>(handler)
-                        : name === 'BuyingTrains'
-                          ? new AutomaticTrainCompletionHandler<HydratedFinanceExampleState>(
-                                handler
-                            )
-                          : handler
-                ])
-        )
+        stateHandlers
     }
 }
 
