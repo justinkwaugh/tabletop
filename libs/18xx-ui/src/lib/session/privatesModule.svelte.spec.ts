@@ -6,19 +6,19 @@ import {
     minimalPrivateRules,
     minimalStockRules
 } from '@tabletop/18xx/testing'
-import { PrivatesModule, type PrivatesContext } from './privatesModule.svelte.js'
-import { testContext } from './moduleTestContext.js'
+import { PrivatesModule, type PrivatesSession } from './privatesModule.svelte.js'
+import { testSession } from './moduleTestSession.js'
 
 const request = { playerId: TestPlayerId, privateCompanyId: 'P', certificateId: 'R:share:1' }
 
 function privates(availability = {}) {
     const base = minimalPlayState()
-    const state: PrivatesContext['state'] = {
+    const state: PrivatesSession['state'] = {
         ...base,
         usedPrivatePowerIds: [],
         companies: [...base.companies, { id: 'P', name: 'Private', kind: 'private' }]
     }
-    const harness = testContext(
+    const harness = testSession(
         state,
         {
             privateRules: minimalPrivateRules,
@@ -28,7 +28,7 @@ function privates(availability = {}) {
         [],
         availability
     )
-    return { ...harness, module: new PrivatesModule(harness.context) }
+    return { ...harness, module: new PrivatesModule(harness.session) }
 }
 
 describe('PrivatesModule', () => {

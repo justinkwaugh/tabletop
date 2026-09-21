@@ -8,7 +8,7 @@ import {
     type EighteenXXTitleRules,
     type StationRequest
 } from '@tabletop/18xx'
-import type { SessionContext } from './sessionContext.js'
+import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection } from './stagedSelection.svelte.js'
 import {
     StationStageOrder,
@@ -19,7 +19,7 @@ import {
 
 export type StationsState = ConstructorParameters<typeof StationPlacement>[0] &
     Pick<EighteenXXState, 'machineState'>
-export type StationsContext<State extends StationsState = StationsState> = SessionContext<
+export type StationsSession<State extends StationsState = StationsState> = ModuleSession<
     State,
     Pick<EighteenXXTitleRules, 'stationRules'>
 >
@@ -27,7 +27,7 @@ export type StationsContext<State extends StationsState = StationsState> = Sessi
 export class StationsModule<State extends StationsState> {
     readonly stages = new StagedSelection<StationStages>(StationStageOrder)
     constructor(
-        private readonly context: StationsContext<State>,
+        private readonly session: StationsSession<State>,
         private readonly onPositionChosen: () => void,
         private readonly tokenChoiceRequired: () => boolean
     ) {}
@@ -35,26 +35,26 @@ export class StationsModule<State extends StationsState> {
     requiresTokenChoice = $derived.by(() => this.tokenChoiceRequired())
 
     model = $derived.by(
-        () => new StationPlacement(this.context.state, this.context.rules.stationRules)
+        () => new StationPlacement(this.session.state, this.session.rules.stationRules)
     )
     canPlace = $derived.by(
-        () => this.context.interactive && this.context.validActionTypes.includes('FinishStations')
+        () => this.session.interactive && this.session.validActionTypes.includes('FinishStations')
     )
     available = $derived.by(() =>
-        this.context.state.stations.filter(
+        this.session.state.stations.filter(
             (station) =>
-                station.companyId === this.context.state.stationStep?.companyId &&
+                station.companyId === this.session.state.stationStep?.companyId &&
                 station.status === 'available'
         )
     )
     selection = $derived.by((): StationSelection => {
-        if (!this.context.selectionsVisible || this.context.state.machineState !== 'PlacingStation')
+        if (!this.session.selectionsVisible || this.session.state.machineState !== 'PlacingStation')
             return {}
         if (this.stages.entry('stationId')) return this.stages.state
         if (
             this.requiresTokenChoice ||
             !this.canPlace ||
-            !this.context.validActionTypes.includes('PlaceStation')
+            !this.session.validActionTypes.includes('PlaceStation')
         )
             return {}
         const cheapestPlaceable = [...this.available]
@@ -76,18 +76,18 @@ export class StationsModule<State extends StationsState> {
             : undefined
     )
     displayState = $derived.by((): State => {
-        if (!this.preview) return this.context.state
+        if (!this.preview) return this.session.state
         const state: State = {
-            ...this.context.state,
-            stations: [...this.context.state.stations],
-            stationReservations: [...this.context.state.stationReservations]
+            ...this.session.state,
+            stations: [...this.session.state.stations],
+            stationReservations: [...this.session.state.stationReservations]
         }
         applyStationPlacement(state, this.preview)
         return state
     })
 
     placementCost(stationId: string): number {
-        const { state, rules } = this.context
+        const { state, rules } = this.session
         const station = state.stations.find((entry) => entry.id === stationId)
         assert(station?.status === 'available', 'Station cost requires an available token')
         return rules.stationRules.pendingHomes(state).some((home) => home.stationId === stationId)
@@ -116,8 +116,8 @@ export class StationsModule<State extends StationsState> {
     async confirm() {
         const preview = this.preview
         assert(this.canPlace && preview, 'Choose a legal station position')
-        await this.context.applyAction(
-            this.context.createPlayerAction(PlaceStation, {
+        await this.session.applyAction(
+            this.session.createPlayerAction(PlaceStation, {
                 companyId: preview.companyId,
                 stationId: preview.stationId,
                 position: preview.position,
@@ -126,13 +126,13 @@ export class StationsModule<State extends StationsState> {
         )
     }
     async finish() {
-        const companyId = this.context.state.stationStep?.companyId
+        const companyId = this.session.state.stationStep?.companyId
         assert(
             companyId && this.canPlace && !this.selection.placement,
             'Finish or cancel the station selection'
         )
-        await this.context.applyAction(
-            this.context.createPlayerAction(FinishStations, { companyId })
+        await this.session.applyAction(
+            this.session.createPlayerAction(FinishStations, { companyId })
         )
     }
 

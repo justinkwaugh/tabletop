@@ -7,14 +7,14 @@ import {
     minimalStationRules,
     minimalTileSet
 } from '@tabletop/18xx/testing'
-import { StationsModule, type StationsContext } from './stationsModule.svelte.js'
-import { testContext } from './moduleTestContext.js'
+import { StationsModule, type StationsSession } from './stationsModule.svelte.js'
+import { testSession } from './moduleTestSession.js'
 
 const extra = `${TestCompanyId}:extra`
 
 function placing(valid: string[], availability = {}, tokenChoiceRequired = false) {
     const base = minimalPlayState()
-    const state: StationsContext['state'] = {
+    const state: StationsSession['state'] = {
         ...base,
         machineState: 'PlacingStation',
         companies: base.companies.map((company) => ({ ...company, floated: true })),
@@ -32,9 +32,9 @@ function placing(valid: string[], availability = {}, tokenChoiceRequired = false
         ]
     }
     let positionsChosen = 0
-    const harness = testContext(state, { stationRules: minimalStationRules }, valid, availability)
+    const harness = testSession(state, { stationRules: minimalStationRules }, valid, availability)
     const module = new StationsModule(
-        harness.context,
+        harness.session,
         () => positionsChosen++,
         () => tokenChoiceRequired
     )

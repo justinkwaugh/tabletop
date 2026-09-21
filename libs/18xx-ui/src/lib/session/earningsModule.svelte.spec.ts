@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { EarningsRules } from '@tabletop/18xx'
 import { TestCompanyId, minimalRailwayState } from '@tabletop/18xx/testing'
 import { EarningsModule } from './earningsModule.svelte.js'
-import { testContext } from './moduleTestContext.js'
+import { testSession } from './moduleTestSession.js'
 
 const earningsRules: EarningsRules = {
     choices: () => ['pay', 'withhold'],
@@ -25,8 +25,8 @@ function distributing(
             result: { companyId: TestCompanyId, routes: [], revenue: 200 }
         }
     }
-    const harness = testContext(state, { earningsRules }, ['DistributeEarnings'], availability)
-    return { ...harness, earnings: new EarningsModule(harness.context) }
+    const harness = testSession(state, { earningsRules }, ['DistributeEarnings'], availability)
+    return { ...harness, earnings: new EarningsModule(harness.session) }
 }
 
 describe('EarningsModule', () => {

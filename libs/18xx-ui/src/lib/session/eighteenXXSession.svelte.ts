@@ -5,7 +5,7 @@ import { TrainFundingModule } from './trainFundingModule.svelte.js'
 import { PrivatesModule } from './privatesModule.svelte.js'
 import { OfferAuctionModule } from './offerAuctionModule.svelte.js'
 import { WaterfallAuctionModule } from './waterfallAuctionModule.svelte.js'
-import type { SessionContext } from './sessionContext.js'
+import type { ModuleSession } from './moduleSession.js'
 import { EarningsModule } from './earningsModule.svelte.js'
 import { DiscardModule } from './discardModule.svelte.js'
 import { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
@@ -116,7 +116,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     private get localHotseat() {
         return !!this.game.hotseat && this.game.storage === GameStorage.Local
     }
-    private readonly context: SessionContext<HydratedEighteenXXState, EighteenXXTitleRules> = ((
+    private readonly moduleSession: ModuleSession<HydratedEighteenXXState, EighteenXXTitleRules> = ((
         session: EighteenXXSession
     ) => ({
         get state() { return session.financialState },
@@ -137,38 +137,38 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         createPlayerAction: (schema, data) => session.createPlayerAction(schema, data),
         applyAction: (action) => session.applyAction(action)
     }))(this)
-    readonly offers = new OfferAuctionModule(this.context)
-    readonly waterfall = new WaterfallAuctionModule(this.context)
-    readonly privates = new PrivatesModule(this.context)
-    readonly trainFunding = new TrainFundingModule(this.context)
-    readonly decisions = new CompanyDecisionsModule(this.context)
-    readonly privateActions: PrivateActionsModule = new PrivateActionsModule(this.context, this.decisions, {
+    readonly offers = new OfferAuctionModule(this.moduleSession)
+    readonly waterfall = new WaterfallAuctionModule(this.moduleSession)
+    readonly privates = new PrivatesModule(this.moduleSession)
+    readonly trainFunding = new TrainFundingModule(this.moduleSession)
+    readonly decisions = new CompanyDecisionsModule(this.moduleSession)
+    readonly privateActions: PrivateActionsModule = new PrivateActionsModule(this.moduleSession, this.decisions, {
         undo: (): boolean => this.track.stages.undo(),
         clear: () => this.track.stages.clear()
     })
     readonly track: TrackModule = new TrackModule(
-        this.context,
+        this.moduleSession,
         () => this.mapView,
         this.privateActions,
         this.decisions,
         () => { this.mapInspection = undefined }
     )
-    readonly trainBuying = new TrainBuyingModule(this.context, () => this.decisions.purchaseOptions)
+    readonly trainBuying = new TrainBuyingModule(this.moduleSession, () => this.decisions.purchaseOptions)
     get requiresStationTokenChoice(): boolean {
         return false
     }
     readonly stations = new StationsModule(
-        this.context,
+        this.moduleSession,
         () => { this.mapInspection = undefined },
         () => this.requiresStationTokenChoice
     )
     readonly routes = new RoutesModule(
-        this.context,
+        this.moduleSession,
         (selection) => this.inspectMap(selection),
         () => this.networkRoutes
     )
-    readonly earnings = new EarningsModule(this.context)
-    readonly discard = new DiscardModule(this.context)
+    readonly earnings = new EarningsModule(this.moduleSession)
+    readonly discard = new DiscardModule(this.moduleSession)
     constructor(
         options: SessionOptions,
         private readonly rules: EighteenXXTitleRules,

@@ -8,33 +8,33 @@ import {
     type OfferAuctionState
 } from '@tabletop/18xx'
 import type { OfferAuctionSelection } from '../auctions/auctionSelection.js'
-import type { SessionContext } from './sessionContext.js'
+import type { ModuleSession } from './moduleSession.js'
 import { singleChoice } from './stagedSelection.svelte.js'
 
-export type OfferAuctionContext = SessionContext<
+export type OfferAuctionSession = ModuleSession<
     OfferAuctionState,
     Pick<EighteenXXTitleRules, 'offerAuctionRules'>
 >
 
 export class OfferAuctionModule {
     readonly choice = singleChoice<OfferAuctionSelection>()
-    constructor(private readonly context: OfferAuctionContext) {}
+    constructor(private readonly session: OfferAuctionSession) {}
 
     model = $derived.by(() =>
-        this.context.state.offerAuction && this.context.rules.offerAuctionRules
-            ? new OfferAuction(this.context.state, this.context.rules.offerAuctionRules)
+        this.session.state.offerAuction && this.session.rules.offerAuctionRules
+            ? new OfferAuction(this.session.state, this.session.rules.offerAuctionRules)
             : undefined
     )
     selection = $derived.by(() =>
-        !this.context.selectionsVisible || this.model?.auction.completed
+        !this.session.selectionsVisible || this.model?.auction.completed
             ? undefined
             : this.choice.value('choice')
     )
     canAct = $derived.by(
         () =>
-            this.context.interactive &&
-            (this.context.validActionTypes.includes('OfferAuctionLot') ||
-                this.context.validActionTypes.includes('PassAuction'))
+            this.session.interactive &&
+            (this.session.validActionTypes.includes('OfferAuctionLot') ||
+                this.session.validActionTypes.includes('PassAuction'))
     )
 
     select(lotId: string) {
@@ -58,19 +58,19 @@ export class OfferAuctionModule {
         assert(this.canAct && draft && this.model, 'Select an offer or bid')
         if (this.model.auction.bidding) {
             assert(draft.amount !== undefined, 'Enter a bid')
-            await this.context.applyAction(
-                this.context.createPlayerAction(BidOnAuctionLot, {
+            await this.session.applyAction(
+                this.session.createPlayerAction(BidOnAuctionLot, {
                     lotId: draft.lotId,
                     amount: draft.amount
                 })
             )
         } else
-            await this.context.applyAction(
-                this.context.createPlayerAction(OfferAuctionLot, { lotId: draft.lotId })
+            await this.session.applyAction(
+                this.session.createPlayerAction(OfferAuctionLot, { lotId: draft.lotId })
             )
     }
     async pass() {
         assert(this.canAct && !this.selection, 'Finish the auction selection')
-        await this.context.applyAction(this.context.createPlayerAction(PassAuction, {}))
+        await this.session.applyAction(this.session.createPlayerAction(PassAuction, {}))
     }
 }

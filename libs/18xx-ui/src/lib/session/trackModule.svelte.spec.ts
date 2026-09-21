@@ -8,8 +8,8 @@ import {
     minimalTrackTileSet,
     straightOnlyTrackTileSet
 } from '@tabletop/18xx/testing'
-import { TrackModule, type TrackContext } from './trackModule.svelte.js'
-import { testContext } from './moduleTestContext.js'
+import { TrackModule, type TrackSession } from './trackModule.svelte.js'
+import { testSession } from './moduleTestSession.js'
 
 const noPrivateTrack = { trackTerms: () => undefined, earlyTrainCompany: () => undefined }
 
@@ -23,7 +23,7 @@ function laying(
     privateActions = noPrivateAction
 ) {
     const base = minimalPlayState()
-    const state: TrackContext['state'] = {
+    const state: TrackSession['state'] = {
         ...base,
         machineState: 'LayingTrack',
         companies: base.companies.map((company) => ({ ...company, floated: true })),
@@ -42,14 +42,14 @@ function laying(
     }
     let locationsChosen = 0
     const decisions = { selectPrivateTile: () => {}, confirm: async () => {} }
-    const harness = testContext(
+    const harness = testSession(
         state,
         { trackRules: minimalTrackRules(tileSet), privatePowerRules: noPrivateTrack },
         valid,
         availability
     )
     const module = new TrackModule(
-        harness.context,
+        harness.session,
         () => ({ map: minimalTrackMap, tileSet }),
         privateActions,
         decisions,

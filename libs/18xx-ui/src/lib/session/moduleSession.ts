@@ -3,7 +3,7 @@ import type { GameSession } from '@tabletop/frontend-components'
 
 type BaseSession = GameSession<GameState, HydratedGameState>
 
-export interface SessionContext<State, Rules> {
+export interface ModuleSession<State, Rules> {
     readonly state: State
     readonly rules: Rules
     readonly validActionTypes: readonly string[]

@@ -9,30 +9,30 @@ import {
     type EighteenXXTitleRules
 } from '@tabletop/18xx'
 import type { AuctionSelection } from '../auctions/auctionSelection.js'
-import type { SessionContext } from './sessionContext.js'
+import type { ModuleSession } from './moduleSession.js'
 import { singleChoice } from './stagedSelection.svelte.js'
 
-export type WaterfallAuctionContext = SessionContext<
+export type WaterfallAuctionSession = ModuleSession<
     AuctionState,
     Pick<EighteenXXTitleRules, 'auctionRules'>
 >
 
 export class WaterfallAuctionModule {
     readonly choice = singleChoice<AuctionSelection>()
-    constructor(private readonly context: WaterfallAuctionContext) {}
+    constructor(private readonly session: WaterfallAuctionSession) {}
 
     model = $derived.by(() =>
-        this.context.state.openingAuction && this.context.rules.auctionRules
-            ? new ReserveBidAuction(this.context.state, this.context.rules.auctionRules)
+        this.session.state.openingAuction && this.session.rules.auctionRules
+            ? new ReserveBidAuction(this.session.state, this.session.rules.auctionRules)
             : undefined
     )
     selection = $derived.by(() =>
-        !this.context.selectionsVisible || this.model?.auction.completed
+        !this.session.selectionsVisible || this.model?.auction.completed
             ? undefined
             : this.choice.value('choice')
     )
     canAct = $derived.by(
-        () => this.context.interactive && this.context.validActionTypes.includes('PassAuction')
+        () => this.session.interactive && this.session.validActionTypes.includes('PassAuction')
     )
 
     selectLot(kind: AuctionSelection['kind'], lotId: string) {
@@ -52,15 +52,15 @@ export class WaterfallAuctionModule {
         const draft = this.selection
         assert(this.canAct && draft && this.model, 'Select an auction purchase or bid')
         if (draft.kind === 'buy')
-            await this.context.applyAction(
-                this.context.createPlayerAction(BuyAuctionLot, {
+            await this.session.applyAction(
+                this.session.createPlayerAction(BuyAuctionLot, {
                     lotId: draft.lotId,
                     expectedPrice: draft.amount
                 })
             )
         else
-            await this.context.applyAction(
-                this.context.createPlayerAction(
+            await this.session.applyAction(
+                this.session.createPlayerAction(
                     this.model.auction.bidding ? RaiseAuctionBid : ReserveBid,
                     { lotId: draft.lotId, amount: draft.amount }
                 )
@@ -68,6 +68,6 @@ export class WaterfallAuctionModule {
     }
     async pass() {
         assert(this.canAct && !this.selection, 'Finish the auction selection first')
-        await this.context.applyAction(this.context.createPlayerAction(PassAuction, {}))
+        await this.session.applyAction(this.session.createPlayerAction(PassAuction, {}))
     }
 }

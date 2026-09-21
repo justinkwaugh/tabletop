@@ -20,7 +20,7 @@ import {
     type TrackLayDetails,
     type TrainPurchaseDetails
 } from '@tabletop/18xx'
-import type { SessionContext } from './sessionContext.js'
+import type { ModuleSession } from './moduleSession.js'
 import { singleChoice } from './stagedSelection.svelte.js'
 
 export type PrivateTileOption = { privateCompanyId: string; playerId: string; details: TrackLayDetails }
@@ -41,37 +41,37 @@ type CompanyDecisionsState = Parameters<typeof purchaseChoices>[0] &
         'purchaseOffer' | 'trackConsent' | 'privateTrackLay' | 'privatePowerWindow' | 'usedPrivatePowerIds'
     >
 
-export type CompanyDecisionsContext = SessionContext<
+export type CompanyDecisionsSession = ModuleSession<
     CompanyDecisionsState,
     Pick<EighteenXXTitleRules, 'transferRules' | 'trainRules' | 'trackRules' | 'privatePowerRules'>
 >
 
 export class CompanyDecisionsModule {
     readonly choice = singleChoice<CompanyDecision>()
-    constructor(private readonly context: CompanyDecisionsContext) {}
+    constructor(private readonly session: CompanyDecisionsSession) {}
 
     selection = $derived.by(() =>
-        this.context.selectionsVisible ? this.choice.value('choice') : undefined
+        this.session.selectionsVisible ? this.choice.value('choice') : undefined
     )
-    canResolve = $derived.by(() => this.context.interactive)
+    canResolve = $derived.by(() => this.session.interactive)
     purchaseOptions = $derived.by(() =>
         this.canResolve &&
-        this.context.playerId &&
-        this.context.validActionTypes.includes('OfferPurchase')
+        this.session.playerId &&
+        this.session.validActionTypes.includes('OfferPurchase')
             ? purchaseChoices(
-                  this.context.state,
-                  this.context.playerId,
-                  this.context.rules.transferRules,
-                  this.context.rules.trainRules
+                  this.session.state,
+                  this.session.playerId,
+                  this.session.rules.transferRules,
+                  this.session.rules.trainRules
               )
             : []
     )
     privatePurchases = $derived.by(() =>
         this.purchaseOptions.filter((option) => option.request.asset.kind === 'private')
     )
-    players = $derived.by(() => (this.canResolve ? this.context.actingPlayerIds : []))
+    players = $derived.by(() => (this.canResolve ? this.session.actingPlayerIds : []))
     privateTileOptions = $derived.by((): PrivateTileOption[] => {
-        const { state, rules } = this.context
+        const { state, rules } = this.session
         if (state.purchaseOffer || state.trackConsent) return []
         return this.players.flatMap((playerId) =>
             state.companies
@@ -94,7 +94,7 @@ export class CompanyDecisionsModule {
         )
     })
     privateTrainOptions = $derived.by((): PrivateTrainOption[] => {
-        const { state, rules, playerId } = this.context
+        const { state, rules, playerId } = this.session
         if (!this.canResolve || !playerId || pendingCompanyDecision(state)) return []
         return state.companies.flatMap((company) => {
             const companyId = rules.privatePowerRules.earlyTrainCompany(state, company.id, playerId)
@@ -112,34 +112,34 @@ export class CompanyDecisionsModule {
     purchaseOfferEvaluation = $derived.by(() =>
         this.selection?.kind === 'purchase'
             ? evaluatePurchaseOffer(
-                  this.context.state,
+                  this.session.state,
                   this.selection.request,
-                  this.context.rules.transferRules,
-                  this.context.rules.trainRules
+                  this.session.rules.transferRules,
+                  this.session.rules.trainRules
               )
             : undefined
     )
 
     privatePurchasePriceRange(companyId: string, privateCompanyId: string) {
-        return this.context.rules.transferRules.priceRange(this.context.state, companyId, {
+        return this.session.rules.transferRules.priceRange(this.session.state, companyId, {
             kind: 'private',
             privateCompanyId
         })
     }
     selectPurchaseOffer(request: PurchaseOfferRequest) {
         assert(
-            this.canResolve && this.context.validActionTypes.includes('OfferPurchase'),
+            this.canResolve && this.session.validActionTypes.includes('OfferPurchase'),
             'Purchasing is unavailable'
         )
         let price = request.price
         if (request.asset.kind === 'private') {
-            const range = this.context.rules.transferRules.priceRange(
-                this.context.state,
+            const range = this.session.rules.transferRules.priceRange(
+                this.session.state,
                 request.companyId,
                 request.asset
             )
             assertExists(range, 'Private purchase requires a price range')
-            const cash = cashOwnedBy(this.context.state, {
+            const cash = cashOwnedBy(this.session.state, {
                 kind: 'company',
                 companyId: request.companyId
             })
@@ -154,7 +154,7 @@ export class CompanyDecisionsModule {
         this.choice.choose('choice', { kind: 'purchase', request: { ...decision.request, price } })
     }
     selectPrivateTile(option: PrivateTileOption) {
-        const { state, rules } = this.context
+        const { state, rules } = this.session
         assert(
             this.players.includes(option.playerId) &&
                 evaluatePrivateTrack(
@@ -195,8 +195,8 @@ export class CompanyDecisionsModule {
                 this.purchaseOfferEvaluation && !this.purchaseOfferEvaluation.reason,
                 'This offer is unavailable'
             )
-            await this.context.applyAction(
-                this.context.createPlayerAction(OfferPurchase, decision.request)
+            await this.session.applyAction(
+                this.session.createPlayerAction(OfferPurchase, decision.request)
             )
         } else if (decision.kind === 'tile') {
             const { companyId, locationId, definitionId, rotation, nodeMapping, cost } =
@@ -205,7 +205,7 @@ export class CompanyDecisionsModule {
                 this.players.includes(decision.playerId),
                 'Only the entitled player may lay this tile'
             )
-            const action = this.context.createPlayerAction(LayPrivateTile, {
+            const action = this.session.createPlayerAction(LayPrivateTile, {
                 privateCompanyId: decision.privateCompanyId,
                 companyId,
                 locationId,
@@ -215,11 +215,11 @@ export class CompanyDecisionsModule {
                 expectedCost: cost
             })
             action.playerId = decision.playerId
-            await this.context.applyAction(action)
+            await this.session.applyAction(action)
         } else {
             const { companyId, trainId, definitionId, price } = decision.details
-            await this.context.applyAction(
-                this.context.createPlayerAction(BuyPrivateTrain, {
+            await this.session.applyAction(
+                this.session.createPlayerAction(BuyPrivateTrain, {
                     privateCompanyId: decision.privateCompanyId,
                     companyId,
                     trainId,
@@ -230,49 +230,49 @@ export class CompanyDecisionsModule {
         }
     }
     async respondToPurchaseOffer(accept: boolean) {
-        const offer = this.context.state.purchaseOffer
+        const offer = this.session.state.purchaseOffer
         assert(
             this.canResolve &&
-                this.context.validActionTypes.includes('RespondToPurchaseOffer') &&
+                this.session.validActionTypes.includes('RespondToPurchaseOffer') &&
                 offer,
             'No offer is awaiting this player'
         )
-        await this.context.applyAction(
-            this.context.createPlayerAction(RespondToPurchaseOffer, { offerId: offer.id, accept })
+        await this.session.applyAction(
+            this.session.createPlayerAction(RespondToPurchaseOffer, { offerId: offer.id, accept })
         )
     }
     async respondToTrackConsent(accept: boolean) {
-        const request = this.context.state.trackConsent
+        const request = this.session.state.trackConsent
         assert(
             this.canResolve &&
-                this.context.validActionTypes.includes('RespondToTrackConsent') &&
+                this.session.validActionTypes.includes('RespondToTrackConsent') &&
                 request,
             'No permission request is awaiting this player'
         )
-        await this.context.applyAction(
-            this.context.createPlayerAction(RespondToTrackConsent, { requestId: request.id, accept })
+        await this.session.applyAction(
+            this.session.createPlayerAction(RespondToTrackConsent, { requestId: request.id, accept })
         )
     }
     async continueOperatingRound() {
-        const window = this.context.state.privatePowerWindow
+        const window = this.session.state.privatePowerWindow
         assert(
             this.canResolve &&
-                this.context.validActionTypes.includes('ContinueOperatingRound') &&
+                this.session.validActionTypes.includes('ContinueOperatingRound') &&
                 window,
             'No private power window awaits this player'
         )
-        await this.context.applyAction(
-            this.context.createPlayerAction(ContinueOperatingRound, { companyId: window.companyId })
+        await this.session.applyAction(
+            this.session.createPlayerAction(ContinueOperatingRound, { companyId: window.companyId })
         )
     }
     async declinePrivateTile() {
-        const lay = this.context.state.privateTrackLay
+        const lay = this.session.state.privateTrackLay
         assert(
-            this.canResolve && this.context.validActionTypes.includes('DeclinePrivateTile') && lay,
+            this.canResolve && this.session.validActionTypes.includes('DeclinePrivateTile') && lay,
             'No private tile lay is awaiting this player'
         )
-        await this.context.applyAction(
-            this.context.createPlayerAction(DeclinePrivateTile, {
+        await this.session.applyAction(
+            this.session.createPlayerAction(DeclinePrivateTile, {
                 privateCompanyId: lay.privateCompanyId
             })
         )

@@ -14,50 +14,50 @@ import {
     type ShareSaleDetails,
     type TrainPurchaseDetails
 } from '@tabletop/18xx'
-import type { SessionContext } from './sessionContext.js'
+import type { ModuleSession } from './moduleSession.js'
 
 type TrainFundingState = ConstructorParameters<typeof EmergencyTrainFunding>[0] &
     Pick<EighteenXXState, 'machineState' | 'trainFunding' | 'actionCount'>
 
-export type TrainFundingContext = SessionContext<
+export type TrainFundingSession = ModuleSession<
     TrainFundingState,
     Pick<EighteenXXTitleRules, 'trainFundingRules' | 'stockRules' | 'trainRules'>
 >
 
 export class TrainFundingModule {
-    constructor(private readonly context: TrainFundingContext) {}
+    constructor(private readonly session: TrainFundingSession) {}
 
     model = $derived.by(
         () =>
             new EmergencyTrainFunding(
-                this.context.state,
-                this.context.rules.trainFundingRules,
-                this.context.rules.stockRules,
-                this.context.rules.trainRules
+                this.session.state,
+                this.session.rules.trainFundingRules,
+                this.session.rules.stockRules,
+                this.session.rules.trainRules
             )
     )
     purchases = $derived.by(() =>
-        this.context.state.machineState === 'BuyingTrains' ? this.model.purchases() : []
+        this.session.state.machineState === 'BuyingTrains' ? this.model.purchases() : []
     )
     choice = $derived.by(() =>
-        this.context.state.machineState === 'FundingTrain' ? this.model.next() : undefined
+        this.session.state.machineState === 'FundingTrain' ? this.model.next() : undefined
     )
     canFund = $derived.by(
-        () => this.context.interactive && this.context.validActionTypes.includes('FundTrain')
+        () => this.session.interactive && this.session.validActionTypes.includes('FundTrain')
     )
     canResolve = $derived.by(
         () =>
-            this.context.interactive &&
-            this.context.state.machineState === 'FundingTrain' &&
-            this.context.validActionTypes.length > 0
+            this.session.interactive &&
+            this.session.state.machineState === 'FundingTrain' &&
+            this.session.validActionTypes.length > 0
     )
-    purchase = $derived.by(() => this.context.state.trainFunding?.purchase ?? this.purchases[0])
+    purchase = $derived.by(() => this.session.state.trainFunding?.purchase ?? this.purchases[0])
     plan = $derived.by(() => (this.purchase ? this.model.preview(this.purchase) : undefined))
     sales = $derived.by(() => (this.plan?.choice.kind === 'sell' ? this.plan.choice.sales : []))
     private actionsSinceFunding = $derived.by(() => {
-        const actions = this.context.recordedActions
+        const actions = this.session.recordedActions
         const start = actions.findLastIndex((action) => action.type === 'FundTrain')
-        return this.context.state.trainFunding && start >= 0 ? actions.slice(start + 1) : []
+        return this.session.state.trainFunding && start >= 0 ? actions.slice(start + 1) : []
     })
     contributions = $derived.by(() => this.actionsSinceFunding.filter(isContributeTrainFunds))
     saleHistory = $derived.by(() =>
@@ -70,8 +70,8 @@ export class TrainFundingModule {
 
     async fund(purchase: TrainPurchaseDetails, buy = true) {
         assert(this.canFund, 'Train funding is unavailable')
-        await this.context.applyAction(
-            this.context.createPlayerAction(FundTrain, {
+        await this.session.applyAction(
+            this.session.createPlayerAction(FundTrain, {
                 companyId: purchase.companyId,
                 trainId: purchase.trainId,
                 definitionId: purchase.definitionId,
@@ -88,7 +88,7 @@ export class TrainFundingModule {
             )
         const purchase = this.purchase
         assert(purchase, 'Funding requires a train')
-        if (!this.context.state.trainFunding) {
+        if (!this.session.state.trainFunding) {
             await this.fund(purchase, !sale)
             if (!sale) return
         }
@@ -101,7 +101,7 @@ export class TrainFundingModule {
     private async applyChoice(sale?: ShareSaleDetails) {
         const choice = this.choice
         assert(this.canResolve && choice, 'Train funding is unavailable')
-        const { applyAction, createPlayerAction } = this.context
+        const { applyAction, createPlayerAction } = this.session
         switch (choice.kind) {
             case 'issue':
                 await applyAction(
@@ -150,12 +150,12 @@ export class TrainFundingModule {
         )
     }
     private async completeCashFunding(buy: boolean) {
-        await this.context.settled()
+        await this.session.settled()
         while (this.canResolve && this.continuesAutomatically(buy)) {
-            const actionCount = this.context.state.actionCount
+            const actionCount = this.session.state.actionCount
             await this.applyChoice()
-            await this.context.settled()
-            if (this.context.state.actionCount === actionCount) break
+            await this.session.settled()
+            if (this.session.state.actionCount === actionCount) break
         }
     }
 }

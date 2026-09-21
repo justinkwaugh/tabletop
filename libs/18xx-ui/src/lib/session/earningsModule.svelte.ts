@@ -7,29 +7,29 @@ import {
     type EighteenXXState,
     type EighteenXXTitleRules
 } from '@tabletop/18xx'
-import type { SessionContext } from './sessionContext.js'
+import type { ModuleSession } from './moduleSession.js'
 import { singleChoice } from './stagedSelection.svelte.js'
 
-export type EarningsContext = SessionContext<
+export type EarningsSession = ModuleSession<
     DistributionState & Pick<EighteenXXState, 'machineState'>,
     Pick<EighteenXXTitleRules, 'earningsRules'>
 >
 
 export class EarningsModule {
     readonly choice = singleChoice<EarningsChoice>()
-    constructor(private readonly context: EarningsContext) {}
+    constructor(private readonly session: EarningsSession) {}
 
-    private distributing = $derived.by(() => this.context.state.machineState === 'DistributingEarnings')
+    private distributing = $derived.by(() => this.session.state.machineState === 'DistributingEarnings')
     distribution = $derived.by(
-        () => new EarningsDistribution(this.context.state, this.context.rules.earningsRules)
+        () => new EarningsDistribution(this.session.state, this.session.rules.earningsRules)
     )
-    canDistribute = $derived.by(() => this.context.interactive && this.context.validActionTypes.includes('DistributeEarnings'))
-    selection = $derived.by(() => this.context.selectionsVisible && this.distributing ? this.choice.value('choice') : undefined)
+    canDistribute = $derived.by(() => this.session.interactive && this.session.validActionTypes.includes('DistributeEarnings'))
+    selection = $derived.by(() => this.session.selectionsVisible && this.distributing ? this.choice.value('choice') : undefined)
     choices = $derived.by(() => {
-        const companyId = this.context.state.routeStep?.companyId
+        const companyId = this.session.state.routeStep?.companyId
         return companyId && this.distributing
-            ? this.context.rules.earningsRules
-                  .choices(this.context.state, companyId)
+            ? this.session.rules.earningsRules
+                  .choices(this.session.state, companyId)
                   .map((choice) => ({
                       choice,
                       evaluation: this.distribution.evaluate(companyId, choice)
@@ -49,7 +49,7 @@ export class EarningsModule {
     async confirm() {
         const details = this.preview
         assert(this.canDistribute && details, 'Choose an available distribution')
-        await this.context.applyAction(this.context.createPlayerAction(DistributeEarnings, {
+        await this.session.applyAction(this.session.createPlayerAction(DistributeEarnings, {
             companyId: details.companyId,
             choice: details.choice
         }))

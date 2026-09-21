@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { PrivateActionsModule, type PrivateActionsContext } from './privateActionsModule.svelte.js'
+import { PrivateActionsModule, type PrivateActionsSession } from './privateActionsModule.svelte.js'
 import { singleChoice } from './stagedSelection.svelte.js'
 import type { CompanyDecision, PrivateTileOption } from './companyDecisionsModule.svelte.js'
-import { testContext } from './moduleTestContext.js'
+import { testSession } from './moduleTestSession.js'
 
 const Alpha = { privateCompanyId: 'alpha', playerId: 'alex' }
 const Beta = { privateCompanyId: 'beta', playerId: 'alex' }
 
 function privateActions(
     powers: { privateCompanyId: string; playerId: string }[],
-    state: PrivateActionsContext['state'] = {},
+    state: PrivateActionsSession['state'] = {},
     availability = {}
 ) {
     let trackSelected = false
@@ -33,9 +33,9 @@ function privateActions(
             trackCleared++
         }
     }
-    const { context } = testContext(state, undefined, [], availability)
+    const { session } = testSession(state, undefined, [], availability)
     return {
-        module: new PrivateActionsModule(context, decisions, track),
+        module: new PrivateActionsModule(session, decisions, track),
         decisions,
         selectTrack: () => { trackSelected = true },
         trackSelected: () => trackSelected,

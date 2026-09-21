@@ -8,14 +8,14 @@ import {
     type EighteenXXTitleRules,
     type PrivateExchangeRequest
 } from '@tabletop/18xx'
-import type { SessionContext } from './sessionContext.js'
+import type { ModuleSession } from './moduleSession.js'
 import { singleChoice } from './stagedSelection.svelte.js'
 
 type PrivatesState = Parameters<typeof privateExchangeOffers>[0] &
     Parameters<typeof pendingCompanyDecision>[0] &
     Parameters<typeof nextCompanyToFloat>[0]
 
-export type PrivatesContext = SessionContext<
+export type PrivatesSession = ModuleSession<
     PrivatesState,
     Pick<EighteenXXTitleRules, 'privateRules' | 'stockRules' | 'companyRules'>
 >
@@ -30,34 +30,34 @@ function sameExchange(a: PrivateExchangeRequest, b: PrivateExchangeRequest) {
 
 export class PrivatesModule {
     readonly exchangeChoice = singleChoice<PrivateExchangeRequest>()
-    constructor(private readonly context: PrivatesContext) {}
+    constructor(private readonly session: PrivatesSession) {}
 
     companies = $derived.by(() =>
-        this.context.state.companies
+        this.session.state.companies
             .filter((company) => company.kind === 'private')
             .map((company) => ({
                 ...company,
-                description: this.context.rules.privateRules.description(
-                    this.context.state,
+                description: this.session.rules.privateRules.description(
+                    this.session.state,
                     company.id
                 )
             }))
     )
     exchangeOffers = $derived.by(() => {
-        const { state, rules } = this.context
+        const { state, rules } = this.session
         if (
-            !this.context.interactive ||
+            !this.session.interactive ||
             pendingCompanyDecision(state) ||
             nextCompanyToFloat(state, rules.companyRules)
         )
             return []
-        return this.context.actingPlayerIds.flatMap((playerId) =>
+        return this.session.actingPlayerIds.flatMap((playerId) =>
             privateExchangeOffers(state, playerId, rules.privateRules, rules.stockRules)
         )
     })
     exchangeSelection = $derived.by(() => {
         const draft = this.exchangeChoice.value('choice')
-        return this.context.selectionsVisible &&
+        return this.session.selectionsVisible &&
             draft &&
             this.exchangeOffers.some((offer) => sameExchange(offer, draft))
             ? draft
@@ -75,19 +75,19 @@ export class PrivatesModule {
         const request = this.exchangeSelection
         assert(request, 'Choose an available private exchange')
         assert(
-            this.context.canActFor(request.playerId),
+            this.session.canActFor(request.playerId),
             'Only the owning player can confirm this exchange'
         )
-        const { state, rules } = this.context
+        const { state, rules } = this.session
         assert(
             evaluatePrivateExchange(state, request, rules.privateRules, rules.stockRules).details,
             'This private exchange is unavailable'
         )
-        const action = this.context.createPlayerAction(ExchangePrivate, {
+        const action = this.session.createPlayerAction(ExchangePrivate, {
             privateCompanyId: request.privateCompanyId,
             certificateId: request.certificateId
         })
         action.playerId = request.playerId
-        await this.context.applyAction(action)
+        await this.session.applyAction(action)
     }
 }

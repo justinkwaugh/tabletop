@@ -14,7 +14,7 @@ import {
     type PurchaseOfferRequest,
     type TrainPurchaseRequest
 } from '@tabletop/18xx'
-import type { SessionContext } from './sessionContext.js'
+import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection, singleChoice } from './stagedSelection.svelte.js'
 import {
     TrainBuyingStageOrder,
@@ -26,7 +26,7 @@ type TrainBuyingState = ConstructorParameters<typeof TrainPurchase>[0] &
     Parameters<typeof evaluatePurchaseOffer>[0] &
     Pick<EighteenXXState, 'machineState' | 'trainPurchaseStep'>
 
-export type TrainBuyingContext = SessionContext<
+export type TrainBuyingSession = ModuleSession<
     TrainBuyingState,
     Pick<EighteenXXTitleRules, 'trainRules' | 'transferRules'>
 >
@@ -39,13 +39,13 @@ export class TrainBuyingModule {
         'pop-stage'
     )
     constructor(
-        private readonly context: TrainBuyingContext,
+        private readonly session: TrainBuyingSession,
         private readonly purchaseOptions: PurchaseOptions
     ) {}
 
-    private buying = $derived.by(() => this.context.state.machineState === 'BuyingTrains')
+    private buying = $derived.by(() => this.session.state.machineState === 'BuyingTrains')
     selection = $derived.by(() =>
-        this.context.selectionsVisible && this.buying ? this.sourceStages.state : {}
+        this.session.selectionsVisible && this.buying ? this.sourceStages.state : {}
     )
     source = $derived.by(() => this.selection.source?.value ?? 'depot')
     companyChoices = $derived.by(() =>
@@ -53,7 +53,7 @@ export class TrainBuyingModule {
             const { asset, seller } = option.request
             if (asset.kind !== 'train' || seller.kind !== 'company') return []
             const evaluation = this.evaluateOffer(option.request)
-            const train = this.context.state.trainInventory.trains.find(
+            const train = this.session.state.trainInventory.trains.find(
                 (candidate) => candidate.id === asset.trainId
             )
             assertExists(train, 'Train purchase choice requires a train')
@@ -67,10 +67,10 @@ export class TrainBuyingModule {
         return request ? this.evaluateOffer(request) : undefined
     })
     depotSelection = $derived.by(() =>
-        this.context.selectionsVisible && this.buying ? this.depotChoice.value('choice') : undefined
+        this.session.selectionsVisible && this.buying ? this.depotChoice.value('choice') : undefined
     )
     model = $derived.by(
-        () => new TrainPurchase(this.context.state, this.context.rules.trainRules)
+        () => new TrainPurchase(this.session.state, this.session.rules.trainRules)
     )
     offers = $derived.by(() => this.model.offers())
     marketOffers = $derived.by(() => this.model.marketOffers())
@@ -80,30 +80,30 @@ export class TrainBuyingModule {
     )
     nextPhase = $derived.by(() =>
         this.preview
-            ? this.context.rules.trainRules.phaseAfterPurchase(
-                  this.context.state,
+            ? this.session.rules.trainRules.phaseAfterPurchase(
+                  this.session.state,
                   this.preview.definitionId
               )
             : undefined
     )
     canBuy = $derived.by(
         () =>
-            this.context.interactive &&
+            this.session.interactive &&
             this.buying &&
-            this.context.validActionTypes.includes('BuyTrain')
+            this.session.validActionTypes.includes('BuyTrain')
     )
     limit = $derived.by(() => {
-        const step = this.context.state.trainPurchaseStep
+        const step = this.session.state.trainPurchaseStep
         return step
-            ? this.context.rules.trainRules.trainLimit(this.context.state, step.companyId)
+            ? this.session.rules.trainRules.trainLimit(this.session.state, step.companyId)
             : undefined
     })
-    purchaseHistory = $derived.by(() => this.context.recordedActions.filter(isBuyTrain))
+    purchaseHistory = $derived.by(() => this.session.recordedActions.filter(isBuyTrain))
     currentPurchaseIds = $derived.by(() => {
-        const step = this.context.state.trainPurchaseStep
+        const step = this.session.state.trainPurchaseStep
         if (!step) return []
         const ids = new Set(step.purchasedTrainIds)
-        const actions = this.context.recordedActions
+        const actions = this.session.recordedActions
         const start = actions.findLastIndex(
             (action) => isDistributeEarnings(action) && action.companyId === step.companyId
         )
@@ -146,13 +146,13 @@ export class TrainBuyingModule {
         const request = this.selection.purchase?.value
         assert(
             request &&
-                this.context.interactive &&
-                this.context.validActionTypes.includes('OfferPurchase') &&
+                this.session.interactive &&
+                this.session.validActionTypes.includes('OfferPurchase') &&
                 this.companyEvaluation &&
                 !this.companyEvaluation.reason,
             'Choose a legal company train purchase'
         )
-        await this.context.applyAction(this.context.createPlayerAction(OfferPurchase, request))
+        await this.session.applyAction(this.session.createPlayerAction(OfferPurchase, request))
     }
     select(request: TrainPurchaseRequest) {
         assert(this.canBuy && this.model.evaluate(request).details, 'Choose a legal train purchase')
@@ -166,8 +166,8 @@ export class TrainBuyingModule {
     async buy(request: TrainPurchaseRequest) {
         const preview = this.model.evaluate(request).details
         assert(this.canBuy && preview, 'Choose a legal train purchase')
-        await this.context.applyAction(
-            this.context.createPlayerAction(BuyTrain, {
+        await this.session.applyAction(
+            this.session.createPlayerAction(BuyTrain, {
                 companyId: preview.companyId,
                 trainId: preview.trainId,
                 definitionId: preview.definitionId,
@@ -179,10 +179,10 @@ export class TrainBuyingModule {
 
     private evaluateOffer(request: PurchaseOfferRequest) {
         return evaluatePurchaseOffer(
-            this.context.state,
+            this.session.state,
             request,
-            this.context.rules.transferRules,
-            this.context.rules.trainRules
+            this.session.rules.transferRules,
+            this.session.rules.trainRules
         )
     }
 }

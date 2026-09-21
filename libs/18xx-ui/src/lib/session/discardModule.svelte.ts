@@ -6,30 +6,30 @@ import {
     type EighteenXXTitleRules,
     type PhaseChangeState
 } from '@tabletop/18xx'
-import type { SessionContext } from './sessionContext.js'
+import type { ModuleSession } from './moduleSession.js'
 import { singleChoice } from './stagedSelection.svelte.js'
 
-export type DiscardContext = SessionContext<
+export type DiscardSession = ModuleSession<
     PhaseChangeState & Pick<EighteenXXState, 'machineState'>,
     { trainRules: Pick<EighteenXXTitleRules['trainRules'], 'trainLimit'> }
 >
 
 export class DiscardModule {
     readonly choice = singleChoice<string>()
-    constructor(private readonly context: DiscardContext) {}
+    constructor(private readonly session: DiscardSession) {}
 
-    selection = $derived.by(() => this.context.selectionsVisible && this.context.state.machineState === 'DiscardingTrains'
+    selection = $derived.by(() => this.session.selectionsVisible && this.session.state.machineState === 'DiscardingTrains'
             ? this.choice.value('choice')
             : undefined)
-    companyId = $derived.by(() => this.context.state.phaseChange?.discardCompanyIds[0])
+    companyId = $derived.by(() => this.session.state.phaseChange?.discardCompanyIds[0])
     trains = $derived.by(() => this.companyId
-            ? discardableTrains(this.context.state, this.companyId, this.context.rules.trainRules)
+            ? discardableTrains(this.session.state, this.companyId, this.session.rules.trainRules)
             : [])
     excess = $derived.by(() => this.companyId
             ? this.trains.length -
-                  this.context.rules.trainRules.trainLimit(this.context.state, this.companyId)
+                  this.session.rules.trainRules.trainLimit(this.session.state, this.companyId)
             : 0)
-    canDiscard = $derived.by(() => this.context.interactive && this.context.validActionTypes.includes('DiscardTrain'))
+    canDiscard = $derived.by(() => this.session.interactive && this.session.validActionTypes.includes('DiscardTrain'))
 
     select(trainId: string) {
         assert(
@@ -42,6 +42,6 @@ export class DiscardModule {
         const companyId = this.companyId
         const trainId = this.selection
         assert(this.canDiscard && companyId && trainId, 'Select a train to discard')
-        await this.context.applyAction(this.context.createPlayerAction(DiscardTrain, { companyId, trainId }))
+        await this.session.applyAction(this.session.createPlayerAction(DiscardTrain, { companyId, trainId }))
     }
 }

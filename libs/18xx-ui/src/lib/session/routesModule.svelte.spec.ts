@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { TestCompanyId, minimalPlayState, minimalRouteRules, minimalTileSet } from '@tabletop/18xx/testing'
 import type { MapSelection } from '../maps/mapDrawing.js'
 import { RoutesModule, type RouteOverlay } from './routesModule.svelte.js'
-import { testContext } from './moduleTestContext.js'
+import { testSession } from './moduleTestSession.js'
 
 const networkRoutes: RouteOverlay[] = [{ id: 'track-access', color: '#168da8', segments: [] }]
 
@@ -14,9 +14,9 @@ function running(machineState: 'RunningTrains' | 'StockRound', valid: string[], 
         routeStep: { companyId: TestCompanyId }
     }
     const inspected: MapSelection[] = []
-    const harness = testContext(state, { routeRules: minimalRouteRules }, valid, availability)
+    const harness = testSession(state, { routeRules: minimalRouteRules }, valid, availability)
     const module = new RoutesModule(
-        harness.context,
+        harness.session,
         (selection) => inspected.push(selection),
         () => networkRoutes
     )

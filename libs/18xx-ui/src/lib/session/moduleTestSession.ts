@@ -1,14 +1,14 @@
 import { createAction, type GameAction } from '@tabletop/common'
-import type { SessionContext } from './sessionContext.js'
+import type { ModuleSession } from './moduleSession.js'
 
-export function testContext<State, Rules>(
+export function testSession<State, Rules>(
     state: State,
     rules: Rules,
     validActionTypes: string[],
     availability: { selectionsVisible?: boolean; interactive?: boolean; actingPlayerIds?: string[] } = {}
 ) {
     const applied: GameAction[] = []
-    const context: SessionContext<State, Rules> = {
+    const session: ModuleSession<State, Rules> = {
         state,
         rules,
         validActionTypes,
@@ -31,5 +31,5 @@ export function testContext<State, Rules>(
             applied.push(action)
         }
     }
-    return { context, applied }
+    return { session, applied }
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { EighteenXXTitleRules } from '@tabletop/18xx'
 import { TestCompanyId, minimalPlayState } from '@tabletop/18xx/testing'
 import { DiscardModule } from './discardModule.svelte.js'
-import { testContext } from './moduleTestContext.js'
+import { testSession } from './moduleTestSession.js'
 
 const owner = { kind: 'company', companyId: TestCompanyId } as const
 
@@ -38,8 +38,8 @@ function discarding(
     const trainRules: Pick<EighteenXXTitleRules['trainRules'], 'trainLimit'> = {
         trainLimit: () => trainLimit
     }
-    const harness = testContext(state, { trainRules }, ['DiscardTrain'], availability)
-    return { ...harness, discard: new DiscardModule(harness.context) }
+    const harness = testSession(state, { trainRules }, ['DiscardTrain'], availability)
+    return { ...harness, discard: new DiscardModule(harness.session) }
 }
 
 describe('DiscardModule', () => {

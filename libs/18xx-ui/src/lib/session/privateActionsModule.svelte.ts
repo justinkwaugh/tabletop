@@ -2,7 +2,7 @@ import { assert } from '@tabletop/common'
 import type { EighteenXXState } from '@tabletop/18xx'
 import type { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
 import type { LocalSelection } from './localSelections.js'
-import type { SessionContext } from './sessionContext.js'
+import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection } from './stagedSelection.svelte.js'
 
 export type PrivateTrackPower = { privateCompanyId: string; playerId: string }
@@ -10,7 +10,7 @@ export type PrivateActionSource = 'mine' | 'other' | 'powers'
 type PrivateActionStages = { source: PrivateActionSource; power: PrivateTrackPower }
 const PrivateActionStageOrder = ['source', 'power'] as const
 
-export type PrivateActionsContext = SessionContext<
+export type PrivateActionsSession = ModuleSession<
     Pick<EighteenXXState, 'privateTrackLay' | 'privatePowerWindow'>,
     unknown
 >
@@ -24,13 +24,13 @@ function samePower(left: PrivateTrackPower, right: PrivateTrackPower) {
 export class PrivateActionsModule implements LocalSelection {
     readonly stages = new StagedSelection<PrivateActionStages>(PrivateActionStageOrder, 'pop-stage')
     constructor(
-        private readonly context: PrivateActionsContext,
+        private readonly session: PrivateActionsSession,
         private readonly decisions: Decisions,
         private readonly track: TrackSelection
     ) {}
 
     selection = $derived.by(() =>
-        this.context.selectionsVisible ? this.stages.value('source') : undefined
+        this.session.selectionsVisible ? this.stages.value('source') : undefined
     )
     purchaseSource = $derived.by(() => (this.selection === 'powers' ? undefined : this.selection))
     get powersAvailable() {
@@ -48,9 +48,9 @@ export class PrivateActionsModule implements LocalSelection {
         return powers
     })
     trackPowerSelection = $derived.by(() => {
-        const { state } = this.context
+        const { state } = this.session
         if (
-            !this.context.selectionsVisible ||
+            !this.session.selectionsVisible ||
             (this.selection !== 'powers' && !state.privateTrackLay && !state.privatePowerWindow)
         )
             return undefined

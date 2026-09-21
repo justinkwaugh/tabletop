@@ -5,27 +5,27 @@ import {
     minimalTrainFundingRules,
     minimalTrainRules
 } from '@tabletop/18xx/testing'
-import { TrainFundingModule, type TrainFundingContext } from './trainFundingModule.svelte.js'
-import { testContext } from './moduleTestContext.js'
+import { TrainFundingModule, type TrainFundingSession } from './trainFundingModule.svelte.js'
+import { testSession } from './moduleTestSession.js'
 
 function funding(
-    machineState: TrainFundingContext['state']['machineState'],
+    machineState: TrainFundingSession['state']['machineState'],
     valid: string[],
     availability = {}
 ) {
-    const state: TrainFundingContext['state'] = {
+    const state: TrainFundingSession['state'] = {
         ...minimalPlayState(),
         machineState,
         actionCount: 0,
         usedPrivatePowerIds: []
     }
-    const rules: TrainFundingContext['rules'] = {
+    const rules: TrainFundingSession['rules'] = {
         stockRules: minimalStockRules,
         trainFundingRules: minimalTrainFundingRules,
         trainRules: minimalTrainRules
     }
-    const harness = testContext(state, rules, valid, availability)
-    return { ...harness, module: new TrainFundingModule(harness.context) }
+    const harness = testSession(state, rules, valid, availability)
+    return { ...harness, module: new TrainFundingModule(harness.session) }
 }
 
 describe('TrainFundingModule', () => {

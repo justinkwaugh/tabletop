@@ -4,26 +4,26 @@ import {
     minimalTrainRules,
     minimalTransferRules
 } from '@tabletop/18xx/testing'
-import { TrainBuyingModule, type TrainBuyingContext } from './trainBuyingModule.svelte.js'
-import { testContext } from './moduleTestContext.js'
+import { TrainBuyingModule, type TrainBuyingSession } from './trainBuyingModule.svelte.js'
+import { testSession } from './moduleTestSession.js'
 
 function buying(
-    machineState: TrainBuyingContext['state']['machineState'],
+    machineState: TrainBuyingSession['state']['machineState'],
     valid: string[],
     availability = {}
 ) {
-    const state: TrainBuyingContext['state'] = {
+    const state: TrainBuyingSession['state'] = {
         ...minimalPlayState(),
         machineState,
         usedPrivatePowerIds: []
     }
-    const harness = testContext(
+    const harness = testSession(
         state,
         { trainRules: minimalTrainRules, transferRules: minimalTransferRules },
         valid,
         availability
     )
-    return { ...harness, module: new TrainBuyingModule(harness.context, () => []) }
+    return { ...harness, module: new TrainBuyingModule(harness.session, () => []) }
 }
 
 describe('TrainBuyingModule', () => {

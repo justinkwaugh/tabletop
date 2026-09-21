@@ -2,20 +2,20 @@ import { describe, expect, it } from 'vitest'
 import { minimalPlayState } from '@tabletop/18xx/testing'
 import { OfferAuctionModule } from './offerAuctionModule.svelte.js'
 import { WaterfallAuctionModule } from './waterfallAuctionModule.svelte.js'
-import { testContext } from './moduleTestContext.js'
+import { testSession } from './moduleTestSession.js'
 
 function offers(valid: string[], availability = {}) {
-    const harness = testContext(
+    const harness = testSession(
         minimalPlayState(),
         { offerAuctionRules: undefined },
         valid,
         availability
     )
-    return { ...harness, module: new OfferAuctionModule(harness.context) }
+    return { ...harness, module: new OfferAuctionModule(harness.session) }
 }
 function waterfall(valid: string[], availability = {}) {
-    const harness = testContext(minimalPlayState(), { auctionRules: undefined }, valid, availability)
-    return { ...harness, module: new WaterfallAuctionModule(harness.context) }
+    const harness = testSession(minimalPlayState(), { auctionRules: undefined }, valid, availability)
+    return { ...harness, module: new WaterfallAuctionModule(harness.session) }
 }
 
 describe('OfferAuctionModule', () => {

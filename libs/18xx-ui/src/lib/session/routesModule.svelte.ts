@@ -12,12 +12,12 @@ import {
 import { routeColor } from '../routes/routePresentation.js'
 import type { MapSelection } from '../maps/mapDrawing.js'
 import { RouteEditor } from './routeEditor.svelte.js'
-import type { SessionContext } from './sessionContext.js'
+import type { ModuleSession } from './moduleSession.js'
 import type { LocalSelection } from './localSelections.js'
 
 type RoutesState = ConstructorParameters<typeof RouteEvaluation>[0] &
     Pick<EighteenXXState, 'machineState'>
-export type RoutesContext<State extends RoutesState = RoutesState> = SessionContext<
+export type RoutesSession<State extends RoutesState = RoutesState> = ModuleSession<
     State,
     Pick<EighteenXXTitleRules, 'routeRules'>
 >
@@ -31,23 +31,23 @@ function submittedRoutes(result: OperatingResult) {
 export class RoutesModule<State extends RoutesState> implements LocalSelection {
     #solved: SolvedRoutes<State> | undefined = $state.raw()
     constructor(
-        private readonly context: RoutesContext<State>,
+        private readonly session: RoutesSession<State>,
         private readonly inspectMap: (selection: MapSelection) => void,
         private readonly networkRoutes: () => readonly RouteOverlay[]
     ) {}
 
     editor = $derived.by(
-        () => new RouteEditor(this.context.state, this.context.rules.routeRules)
+        () => new RouteEditor(this.session.state, this.session.rules.routeRules)
     )
     canRun = $derived.by(
-        () => this.context.interactive && this.context.validActionTypes.includes('RunTrains')
+        () => this.session.interactive && this.session.validActionTypes.includes('RunTrains')
     )
     draftVisible = $derived.by(
-        () => this.context.selectionsVisible && this.context.state.machineState === 'RunningTrains'
+        () => this.session.selectionsVisible && this.session.state.machineState === 'RunningTrains'
     )
     solved = $derived.by((): SolvedRoutes<State> | undefined => {
         if (!this.draftVisible) return undefined
-        const state = this.context.state
+        const state = this.session.state
         const companyId = state.routeStep?.companyId
         if (companyId && !trainsOwnedBy(state, { kind: 'company', companyId }).length) {
             const checked = this.evaluate(state, companyId, [])
@@ -57,10 +57,10 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
         return this.#solved?.state === state ? this.#solved : undefined
     })
     overlays = $derived.by((): RouteOverlay[] => {
-        if (this.context.publishing) return []
+        if (this.session.publishing) return []
         const routes = this.draftVisible
             ? (this.solved?.result.routes ?? this.editor.routes)
-            : (this.context.state.routeStep?.result?.routes ?? [])
+            : (this.session.state.routeStep?.result?.routes ?? [])
         const overlays: RouteOverlay[] = routes.map((route, index) => ({
             id: route.trainId,
             color: routeColor(index),
@@ -71,13 +71,13 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
         return overlays
     })
     displayed = $derived.by(() =>
-        this.solved || this.context.state.routeStep?.result || this.overlays.length
+        this.solved || this.session.state.routeStep?.result || this.overlays.length
             ? this.overlays
             : this.networkRoutes()
     )
 
     setSolved(state: State, result: OperatingResult, exhaustive: boolean) {
-        if (state !== this.context.state || !this.canRun) return
+        if (state !== this.session.state || !this.canRun) return
         const companyId = state.routeStep?.companyId
         assert(
             companyId && result.companyId === companyId,
@@ -90,8 +90,8 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
     async runSolved() {
         const result = this.solved?.result
         assert(this.canRun && result, 'Wait for the train routes to be calculated')
-        await this.context.applyAction(
-            this.context.createPlayerAction(RunTrains, {
+        await this.session.applyAction(
+            this.session.createPlayerAction(RunTrains, {
                 companyId: result.companyId,
                 routes: submittedRoutes(result)
             })
@@ -132,8 +132,8 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
             this.canRun && editor.companyId && !editor.trainId && editor.submission?.result,
             'Finish the route draft before submitting'
         )
-        await this.context.applyAction(
-            this.context.createPlayerAction(RunTrains, {
+        await this.session.applyAction(
+            this.session.createPlayerAction(RunTrains, {
                 companyId: editor.companyId,
                 routes: editor.routes
             })
@@ -161,6 +161,6 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
         companyId: string,
         routes: ReturnType<typeof submittedRoutes>
     ) {
-        return new RouteEvaluation(state, this.context.rules.routeRules).evaluate(companyId, routes)
+        return new RouteEvaluation(state, this.session.rules.routeRules).evaluate(companyId, routes)
     }
 }

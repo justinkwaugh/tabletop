@@ -15,7 +15,7 @@ import {
 import type { MapViewDefinition } from '../maps/stationPresentation.js'
 import type { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
 import type { PrivateActionsModule } from './privateActionsModule.svelte.js'
-import type { SessionContext } from './sessionContext.js'
+import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection } from './stagedSelection.svelte.js'
 import { TrackStageOrder, type TrackSelection, type TrackStages } from './trackSelection.js'
 
@@ -23,7 +23,7 @@ type TrackState = ConstructorParameters<typeof TrackConstruction>[0] &
     Parameters<typeof privateTrackConstruction>[0] &
     Pick<EighteenXXState, 'machineState' | 'trackStep' | 'trackConsent'>
 
-export type TrackContext = SessionContext<
+export type TrackSession = ModuleSession<
     TrackState,
     Pick<EighteenXXTitleRules, 'trackRules' | 'privatePowerRules'>
 >
@@ -34,7 +34,7 @@ type Decisions = Pick<CompanyDecisionsModule, 'selectPrivateTile' | 'confirm'>
 export class TrackModule {
     readonly stages = new StagedSelection<TrackStages>(TrackStageOrder)
     constructor(
-        private readonly context: TrackContext,
+        private readonly session: TrackSession,
         private readonly mapView: () => TrackMap,
         private readonly privateActions: PrivateActions,
         private readonly decisions: Decisions,
@@ -44,13 +44,13 @@ export class TrackModule {
     private laying = $derived.by(
         () =>
             !!this.privateActions.trackPowerSelection ||
-            (this.context.state.machineState === 'LayingTrack' && !this.privateActions.selection)
+            (this.session.state.machineState === 'LayingTrack' && !this.privateActions.selection)
     )
     selection = $derived.by(
-        (): TrackSelection => (this.context.selectionsVisible && this.laying ? this.stages.state : {})
+        (): TrackSelection => (this.session.selectionsVisible && this.laying ? this.stages.state : {})
     )
     construction = $derived.by(() => {
-        const { state, rules } = this.context
+        const { state, rules } = this.session
         const power = this.privateActions.trackPowerSelection?.value
         if (!power) return new TrackConstruction(state, rules.trackRules)
         const terms = rules.privatePowerRules.trackTerms(state, power.privateCompanyId, power.playerId)
@@ -59,13 +59,13 @@ export class TrackModule {
     })
     canBuild = $derived.by(
         () =>
-            this.context.interactive &&
+            this.session.interactive &&
             (this.privateActions.trackPowerSelection
-                ? this.context.validActionTypes.includes('LayPrivateTile')
+                ? this.session.validActionTypes.includes('LayPrivateTile')
                 : !this.privateActions.selection &&
-                  this.context.validActionTypes.includes('FinishTrack'))
+                  this.session.validActionTypes.includes('FinishTrack'))
     )
-    showChoices = $derived.by(() => !this.context.viewingHistory && this.laying)
+    showChoices = $derived.by(() => !this.session.viewingHistory && this.laying)
     private choicesByLocation = $derived.by(
         () =>
             new Map(
@@ -108,9 +108,9 @@ export class TrackModule {
         this.selection
         return false
     })
-    displayedPreview = $derived.by(() => this.context.state.trackConsent?.details ?? this.preview)
+    displayedPreview = $derived.by(() => this.session.state.trackConsent?.details ?? this.preview)
     constructionActions = $derived.by(() =>
-        this.context.recordedActions.flatMap((action) => {
+        this.session.recordedActions.flatMap((action) => {
             const details =
                 isLayTile(action) || isLayPrivateTile(action)
                     ? action.metadata
@@ -194,9 +194,9 @@ export class TrackModule {
             return
         }
         const { companyId, locationId, definitionId, rotation, nodeMapping, cost } = preview
-        await this.context.applyAction(
-            this.context.createPlayerAction(
-                preview.consentPlayerId && preview.consentPlayerId !== this.context.playerId
+        await this.session.applyAction(
+            this.session.createPlayerAction(
+                preview.consentPlayerId && preview.consentPlayerId !== this.session.playerId
                     ? RequestTrackConsent
                     : LayTile,
                 { companyId, locationId, definitionId, rotation, nodeMapping, expectedCost: cost }
@@ -204,15 +204,15 @@ export class TrackModule {
         )
     }
     async finish() {
-        const companyId = this.context.state.trackStep?.companyId
+        const companyId = this.session.state.trackStep?.companyId
         assert(
             companyId &&
                 !this.selection.locationId &&
-                this.context.validActionTypes.includes('FinishTrack') &&
-                this.context.interactive,
+                this.session.validActionTypes.includes('FinishTrack') &&
+                this.session.interactive,
             'Finish or cancel the construction selection'
         )
-        await this.context.applyAction(this.context.createPlayerAction(FinishTrack, { companyId }))
+        await this.session.applyAction(this.session.createPlayerAction(FinishTrack, { companyId }))
     }
 
     private chooseTile(

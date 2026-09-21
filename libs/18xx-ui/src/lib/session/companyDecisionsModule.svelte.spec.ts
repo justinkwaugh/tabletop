@@ -11,12 +11,12 @@ import {
 } from '@tabletop/18xx/testing'
 import {
     CompanyDecisionsModule,
-    type CompanyDecisionsContext
+    type CompanyDecisionsSession
 } from './companyDecisionsModule.svelte.js'
-import { testContext } from './moduleTestContext.js'
+import { testSession } from './moduleTestSession.js'
 
 const PrivateId = 'tramway'
-type State = CompanyDecisionsContext['state']
+type State = CompanyDecisionsSession['state']
 
 function deciding(valid: string[], pending: Partial<State> = {}, availability = {}) {
     const base = minimalPlayState()
@@ -40,7 +40,7 @@ function deciding(valid: string[], pending: Partial<State> = {}, availability = 
         usedPrivatePowerIds: [],
         ...pending
     }
-    const rules: CompanyDecisionsContext['rules'] = {
+    const rules: CompanyDecisionsSession['rules'] = {
         trainRules: minimalTrainRules,
         transferRules: {
             ...minimalTransferRules,
@@ -61,8 +61,8 @@ function deciding(valid: string[], pending: Partial<State> = {}, availability = 
             earlyTrainCompany: () => undefined
         }
     }
-    const harness = testContext(state, rules, valid, availability)
-    return { ...harness, module: new CompanyDecisionsModule(harness.context) }
+    const harness = testSession(state, rules, valid, availability)
+    return { ...harness, module: new CompanyDecisionsModule(harness.session) }
 }
 const purchase = {
     companyId: TestCompanyId,
