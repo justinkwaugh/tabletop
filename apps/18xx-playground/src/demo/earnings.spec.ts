@@ -18,7 +18,7 @@ import {
     getCompany,
     placeStockMarker,
     finishOperatingTurnReason,
-    type FinanceExampleState,
+    type EighteenXXState,
     type EarningsChoice
 } from '@tabletop/18xx'
 import { example } from './stockTestUtils.js'
@@ -36,7 +36,7 @@ const Titles = [
         companyId: 'IR'
     }
 ]
-function action(state: FinanceExampleState, type: string, fields: object = {}): GameAction {
+function action(state: EighteenXXState, type: string, fields: object = {}): GameAction {
     return {
         id: `${type}-${state.actionCount}`,
         gameId: state.gameId,
@@ -46,7 +46,7 @@ function action(state: FinanceExampleState, type: string, fields: object = {}): 
         ...fields
     }
 }
-function earnings(state: FinanceExampleState, companyId: string, revenue: number) {
+function earnings(state: EighteenXXState, companyId: string, revenue: number) {
     state.machineState = 'DistributingEarnings'
     state.routeStep = { companyId, result: { companyId, routes: [], revenue } }
 }

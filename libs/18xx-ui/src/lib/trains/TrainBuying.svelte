@@ -1,12 +1,12 @@
 <script lang="ts">
     import type { TrainPurchaseDetails } from '@tabletop/18xx'
-    import TrainPurchaseButton from '../trains/TrainPurchaseButton.svelte'
-    import TrainBadge from '../trains/TrainBadge.svelte'
+    import TrainPurchaseButton from './TrainPurchaseButton.svelte'
+    import TrainBadge from './TrainBadge.svelte'
     import CompanyTrainBuying from './CompanyTrainBuying.svelte'
     import TrainFunding from './TrainFunding.svelte'
-    import PhaseChanges from './PhaseChanges.svelte'
-    import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session, trainColors, showUndo = true }: { trainColors: Readonly<Record<string, string>>; showUndo?: boolean; session: FinanceExampleSession } =
+    import PhaseChanges from '../phases/PhaseChanges.svelte'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    let { session, trainColors, showUndo = true }: { trainColors: Readonly<Record<string, string>>; showUndo?: boolean; session: EighteenXXSession } =
         $props()
     const step = $derived(session.financialState.trainPurchaseStep)
     const availableTypes = $derived(session.availableTrainDefinitionIds)

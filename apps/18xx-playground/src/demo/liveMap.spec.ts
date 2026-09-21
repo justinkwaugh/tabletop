@@ -5,7 +5,7 @@ import {
     RailwayMapState,
     TrackNetwork,
     cashOwnedBy,
-    type FinanceExampleState
+    type EighteenXXState
 } from '@tabletop/18xx'
 import {
     createMapDrawing,
@@ -62,7 +62,7 @@ it('projects TOP flotation, replay and Undo onto live stations and reservations'
     const appearances = Object.fromEntries(
         state.companies.map((company) => [company.id, { label: company.id, color: '#234567' }])
     )
-    const reachesHome = (current: FinanceExampleState, companyId: string) =>
+    const reachesHome = (current: EighteenXXState, companyId: string) =>
         new TrackNetwork(
             new RailwayMapState(TheOldPrinceMap, TheOldPrinceTileSet, current.tileInventory),
             current,

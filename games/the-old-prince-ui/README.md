@@ -10,7 +10,7 @@ The [18xx Playground](../../apps/18xx-playground/README.md) hosts it at `/table`
 positions, including real opening setup. TOP additionally has a finished-game
 fixture for replay and history work.
 
-The table and `FinanceExampleSession` remain development scaffolding; shared tile
+The table and `EighteenXXSession` remain development scaffolding; shared tile
 and map rendering are intended lasting components. The packages participate in
 artifact staging, but staging alone does not establish production readiness.
 See [complete-game verification](../../research/18xx/complete-game-verification.md),

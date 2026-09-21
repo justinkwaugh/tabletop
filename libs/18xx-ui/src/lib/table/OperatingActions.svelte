@@ -1,14 +1,14 @@
 <script lang="ts">
     import type { CertificatePool } from '@tabletop/18xx'
-    import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
-    import GameEnding from '../examples/GameEnding.svelte'
-    import TrackBuilding from '../examples/TrackBuilding.svelte'
-    import StationBuilding from '../examples/StationBuilding.svelte'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import GameEnding from '../ending/GameEnding.svelte'
+    import TrackBuilding from '../maps/TrackBuilding.svelte'
+    import StationBuilding from '../maps/StationBuilding.svelte'
     import AutomaticRoutes from '../routes/AutomaticRoutes.svelte'
-    import EarningsDistribution from '../examples/EarningsDistribution.svelte'
+    import EarningsDistribution from '../earnings/EarningsDistribution.svelte'
     import StockRoundActions from './StockRoundActions.svelte'
-    import TrainBuying from '../examples/TrainBuying.svelte'
-    import CompanyDecisions from '../examples/CompanyDecisions.svelte'
+    import TrainBuying from '../trains/TrainBuying.svelte'
+    import CompanyDecisions from '../finance/CompanyDecisions.svelte'
     let {
         session,
         createRouteWorker,
@@ -24,7 +24,7 @@
         privateOperationDescription: (id: string, companyId: string) => string | undefined
         privateTilePrompts?: Readonly<Record<string, string>>
         poolName?: (pool: CertificatePool) => string
-        session: FinanceExampleSession
+        session: EighteenXXSession
     } = $props()
     const state = $derived(session.financialState)
     const trainBuying = $derived(state.machineState === 'BuyingTrains')

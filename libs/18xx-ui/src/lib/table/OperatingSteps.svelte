@@ -2,13 +2,13 @@
     import { historicalOperatingStepIndex, operatingStepIndex } from './operatingStep.js'
     import OperatingPrivateActions from './OperatingPrivateActions.svelte'
     import { ActionSource, assert } from '@tabletop/common'
-    import { FinanceExampleValidator, isFinishTrack, isFinishStations, isRunTrains } from '@tabletop/18xx'
-    import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
-    let { session, privatePurchaseLabel = 'Buy privates', readOnly = false }: { session: FinanceExampleSession; privatePurchaseLabel?: string; readOnly?: boolean } = $props()
+    import { EighteenXXStateValidator, isFinishTrack, isFinishStations, isRunTrains } from '@tabletop/18xx'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    let { session, privatePurchaseLabel = 'Buy privates', readOnly = false }: { session: EighteenXXSession; privatePurchaseLabel?: string; readOnly?: boolean } = $props()
     const context = $derived(session.history.visibleContext)
     const state = $derived.by(() => {
         if (!readOnly) return session.financialState
-        assert(FinanceExampleValidator.Check(context.state), 'Operating progress requires financial state')
+        assert(EighteenXXStateValidator.Check(context.state), 'Operating progress requires financial state')
         return context.state
     })
     const currentStep = $derived(session.isViewingHistory

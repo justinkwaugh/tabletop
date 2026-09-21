@@ -2,13 +2,13 @@
     import { marketColors } from '../stock/marketColors.js'
     import { assertExists } from '@tabletop/common'
     import { cashOwnedBy, getCompany, sharesOwned, companyMarketSpace, stockMarketSpace, sameOwner, type Owner } from '@tabletop/18xx'
-    import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import { companyOwnership } from '../finance/companyOwnership.js'
     import type { CertificatePool } from '@tabletop/18xx'
     import SlidingToggle from './SlidingToggle.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     let { session, poolName }: {
-        session: FinanceExampleSession
+        session: EighteenXXSession
         poolName?: (pool: CertificatePool) => string
     } = $props()
     const disabled = $derived(

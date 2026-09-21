@@ -8,7 +8,7 @@ import {
     evaluateSharePurchase,
     sameOwner,
     type BuyShares,
-    type FinanceExampleState
+    type EighteenXXState
 } from '@tabletop/18xx'
 import { Definition as Top, TheOldPrinceStockRules } from '@tabletop/the-old-prince'
 import { Definition as Shikoku, Shikoku1889StockRules } from '@tabletop/shikoku-1889'
@@ -137,7 +137,7 @@ it.each([
 describe('purchase rejection', () => {
     const cases: {
         name: string
-        change?: (state: FinanceExampleState) => void
+        change?: (state: EighteenXXState) => void
         action?: Partial<BuyShares>
     }[] = [
         { name: 'another player acting', action: { playerId: 'blair' } },

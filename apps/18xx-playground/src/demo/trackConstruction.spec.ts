@@ -7,7 +7,7 @@ import {
     cashOwnedBy,
     type TrackLayDetails,
     type LayTile,
-    type FinanceExampleState,
+    type EighteenXXState,
     type FinishTrack
 } from '@tabletop/18xx'
 import { example } from './stockTestUtils.js'
@@ -15,7 +15,7 @@ const Titles = [
     { definition: Top, rules: TheOldPrinceTrackRules },
     { definition: Shikoku, rules: Shikoku1889TrackRules }
 ]
-function lay(state: FinanceExampleState, details: TrackLayDetails): LayTile {
+function lay(state: EighteenXXState, details: TrackLayDetails): LayTile {
     const { companyId, locationId, definitionId, rotation, nodeMapping, cost } = details
     return {
         id: `lay-${state.actionCount}`,

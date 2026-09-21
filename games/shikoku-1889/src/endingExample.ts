@@ -1,6 +1,6 @@
 import { assert } from '@tabletop/common'
-import { prepareFinalOperatingTurn, type HydratedFinanceExampleState } from '@tabletop/18xx'
-export function prepareShikoku1889Ending(state: HydratedFinanceExampleState): void {
+import { prepareFinalOperatingTurn, type HydratedEighteenXXState } from '@tabletop/18xx'
+export function prepareShikoku1889Ending(state: HydratedEighteenXXState): void {
     const bank = state.cash.find((cash) => cash.owner.kind === 'bank')
     assert(bank, 'The ending example requires a Bank')
     bank.amount = 'unlimited'

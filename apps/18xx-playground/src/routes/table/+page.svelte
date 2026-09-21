@@ -1,11 +1,11 @@
 <script lang="ts">
     import { UiDefinition as Top } from '@tabletop/the-old-prince-ui'
     import { UiDefinition as Shikoku } from '@tabletop/shikoku-1889-ui'
-    import type { FinanceExamplePosition } from '@tabletop/18xx'
+    import type { ScenarioPosition } from '@tabletop/18xx'
     import FinanceExampleHost from '../../demo/FinanceExampleHost.svelte'
     import '../../table.css'
     let title = $state('TOP')
-    let position = $state<FinanceExamplePosition | 'finished'>('construction')
+    let position = $state<ScenarioPosition | 'finished'>('construction')
 </script>
 
 <svelte:head><title>18xx table</title></svelte:head>

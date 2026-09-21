@@ -7,7 +7,7 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import {
-    FinanceExampleValidator,
+    EighteenXXStateValidator,
     isDistributeEarnings,
     isFinishOperatingTurn,
     isStartOperatingRound,
@@ -33,7 +33,7 @@ export function migrateOperatingIncome(
     for (const action of actions.toReversed()) {
         if (needsSnapshot(action)) {
             assert(
-                FinanceExampleValidator.Check(cursor),
+                EighteenXXStateValidator.Check(cursor),
                 'Local income migration requires finance state'
             )
             if (action.type === 'FinishOperatingTurn') {

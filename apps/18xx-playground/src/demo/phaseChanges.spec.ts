@@ -19,7 +19,7 @@ import {
     trainsOwnedBy,
     trainCanBeTraded,
     cashOwnedBy,
-    type FinanceExampleState,
+    type EighteenXXState,
     type TrainRules
 } from '@tabletop/18xx'
 import { example } from './stockTestUtils.js'
@@ -45,7 +45,7 @@ const Titles = [
         destination: 'market'
     }
 ]
-function action(state: FinanceExampleState, type: string, fields: object = {}): GameAction {
+function action(state: EighteenXXState, type: string, fields: object = {}): GameAction {
     return {
         id: `${type}-${state.actionCount}`,
         gameId: state.gameId,
@@ -56,7 +56,7 @@ function action(state: FinanceExampleState, type: string, fields: object = {}): 
     }
 }
 function buy(
-    state: FinanceExampleState,
+    state: EighteenXXState,
     rules: TrainRules,
     rank: string,
     exchangeTrainId?: string

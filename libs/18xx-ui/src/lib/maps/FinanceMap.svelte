@@ -1,13 +1,13 @@
 <script lang="ts">
-    import EarningsDistribution from './EarningsDistribution.svelte'
-    import RouteBuilding from './RouteBuilding.svelte'
+    import EarningsDistribution from '../earnings/EarningsDistribution.svelte'
+    import RouteBuilding from '../routes/RouteBuilding.svelte'
     import StationBuilding from './StationBuilding.svelte'
     import TrackBuilding from './TrackBuilding.svelte'
-    import MapViewer from '../maps/MapViewer.svelte'
+    import MapViewer from './MapViewer.svelte'
     import TileLibraryViewer from '../tiles/TileLibraryViewer.svelte'
     import { ClassicTileAppearance, MutedTileAppearance } from '../tiles/tileAppearance.js'
-    import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session }: { session: FinanceExampleSession } = $props()
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    let { session }: { session: EighteenXXSession } = $props()
     let showTiles = $state(false)
     const historyDisabled = $derived(
         session.busy || session.updatingVisibleState || session.history.isDisabled()

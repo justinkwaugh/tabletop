@@ -9,7 +9,7 @@ import {
     trainsOwnedBy,
     type RouteRules,
     type RunTrains,
-    type FinanceExampleState,
+    type EighteenXXState,
     type TrainRoute
 } from '@tabletop/18xx'
 import { example } from './stockTestUtils.js'
@@ -17,7 +17,7 @@ const Titles = [
     { definition: Top, rules: TheOldPrinceRouteRules, companyId: 'ML', home: 'L16', expected: 70 },
     { definition: Shikoku, rules: Shikoku1889RouteRules, companyId: 'IR', home: 'E2', expected: 90 }
 ]
-function action(state: FinanceExampleState, routes: TrainRoute[]): RunTrains {
+function action(state: EighteenXXState, routes: TrainRoute[]): RunTrains {
     return {
         id: 'routes',
         gameId: state.gameId,
@@ -28,7 +28,7 @@ function action(state: FinanceExampleState, routes: TrainRoute[]): RunTrains {
         routes
     }
 }
-function routesFor(state: FinanceExampleState, rules: RouteRules, companyId: string, home: string) {
+function routesFor(state: EighteenXXState, rules: RouteRules, companyId: string, home: string) {
     const running = new RouteEvaluation(state, rules),
         trains = trainsOwnedBy(state, { kind: 'company', companyId })
     const routes = [...enumerateRouteCandidates(running, companyId, trains[0].id)].filter(

@@ -1,10 +1,10 @@
 import {
     createRectangularStockMarket,
     placeStockMarker,
-    type FinanceExamplePosition
+    type ScenarioPosition
 } from '@tabletop/18xx'
 
-export function createShikoku1889StockMarket(position: FinanceExamplePosition = 'trading') {
+export function createShikoku1889StockMarket(position: ScenarioPosition = 'trading') {
     const market = createRectangularStockMarket(
         [
             [75, 80, 90, 100, 110, 125, 140, 155, 175, 200, 225, 255, 285, 315, 350],

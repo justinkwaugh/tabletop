@@ -11,7 +11,7 @@ import { TheOldPrinceRouteRules } from '@tabletop/the-old-prince'
 import { TheOldPrinceTrainRules } from '@tabletop/the-old-prince'
 import { TheOldPrinceStationRules } from '@tabletop/the-old-prince'
 import { TheOldPrinceMapView } from './mapView.js'
-import { createFinanceExampleSessionClass } from '@tabletop/18xx-ui'
+import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
 import {
     TheOldPrinceStockRules,
     TheOldPrinceCompanyRules,
@@ -39,7 +39,7 @@ import {
     type BranchSplitSelection
 } from './branchSplitSelection.js'
 
-const BaseSession = createFinanceExampleSessionClass(
+const BaseSession = createEighteenXXSessionClass(
     TheOldPrinceStockRules,
     TheOldPrinceCompanyRules,
     TheOldPrinceMapView,

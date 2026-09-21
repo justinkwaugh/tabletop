@@ -1,6 +1,6 @@
 import { BaseConfigurator } from '@tabletop/common'
 import * as Type from 'typebox'
-export const FinanceExamplePosition = Type.Union([
+export const ScenarioPosition = Type.Union([
     Type.Literal('trading'),
     Type.Literal('ending'),
     Type.Literal('split'),
@@ -22,11 +22,11 @@ export const FinanceExamplePosition = Type.Union([
     Type.Literal('funding-chain'),
     Type.Literal('bankruptcy')
 ])
-export type FinanceExamplePosition = Type.Static<typeof FinanceExamplePosition>
+export type ScenarioPosition = Type.Static<typeof ScenarioPosition>
 
-export class FinanceExampleConfigurator extends BaseConfigurator {
+export class ScenarioConfigurator extends BaseConfigurator {
     schema = Type.Object(
-        { examplePosition: Type.Optional(FinanceExamplePosition) },
+        { examplePosition: Type.Optional(ScenarioPosition) },
         { additionalProperties: false }
     )
     options = []

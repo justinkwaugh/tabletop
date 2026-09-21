@@ -576,7 +576,7 @@ widths, including resizing back to mobile.
 The operating company in the phase header uses title-defined initials below that
 same breakpoint and its full name at wider sizes; its token remains visible.
 
-FinanceExampleSession.selectMap is the common map-intent entry point for both the
+EighteenXXSession.selectMap is the common map-intent entry point for both the
 table and the logic workbench. Route extension/start takes precedence, followed by
 track selection, station selection and ordinary inspection. The existing session
 owns all drafts and invalidates them through beforeNewState/updatingVisibleState.
@@ -893,7 +893,7 @@ Train palettes use title-owned hex colors, separate from tile colors. TOP uses i
 
 During a live, actionable RunningTrains step, the table starts client-side
 autorouting in a title-owned Web Worker. Its state-tagged result is an automatic
-transient preview owned by FinanceExampleSession. It renders paths on the map
+transient preview owned by EighteenXXSession. It renders paths on the map
 and per-train income in the action panel, using matching route colors and the
 title's train badges. The panel has one Run trains action and no manual route
 selection. Trains with no run display zero income; an empty fleet can submit an

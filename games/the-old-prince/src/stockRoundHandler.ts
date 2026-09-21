@@ -1,5 +1,5 @@
 import type { HydratedAction, MachineContext, MachineStateHandler } from '@tabletop/common'
-import { StockRoundHandler, type HydratedFinanceExampleState } from '@tabletop/18xx'
+import { StockRoundHandler, type HydratedEighteenXXState } from '@tabletop/18xx'
 import { TheOldPrinceCompanyRules } from './companyRules.js'
 import { TheOldPrinceStockRules } from './stockRules.js'
 import { TheOldPrinceBranchSplit } from './branchSplit.js'
@@ -7,9 +7,9 @@ import { HydratedSplitCompany } from './splitCompany.js'
 
 export class TheOldPrinceStockRoundHandler implements MachineStateHandler<
     HydratedAction,
-    HydratedFinanceExampleState
+    HydratedEighteenXXState
 > {
-    private readonly handler: MachineStateHandler<HydratedAction, HydratedFinanceExampleState> =
+    private readonly handler: MachineStateHandler<HydratedAction, HydratedEighteenXXState> =
         new StockRoundHandler(
             TheOldPrinceStockRules,
             'StartingOperatingSet',
@@ -17,7 +17,7 @@ export class TheOldPrinceStockRoundHandler implements MachineStateHandler<
         )
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedFinanceExampleState>
+        context: MachineContext<HydratedEighteenXXState>
     ): boolean {
         return action instanceof HydratedSplitCompany
             ? action.isValid(context.gameState)
@@ -25,7 +25,7 @@ export class TheOldPrinceStockRoundHandler implements MachineStateHandler<
     }
     validActionsForPlayer(
         playerId: string,
-        context: MachineContext<HydratedFinanceExampleState>
+        context: MachineContext<HydratedEighteenXXState>
     ): string[] {
         const actions = this.handler.validActionsForPlayer(playerId, context)
         const split = new TheOldPrinceBranchSplit(context.gameState)
@@ -33,10 +33,10 @@ export class TheOldPrinceStockRoundHandler implements MachineStateHandler<
             actions.push('SplitCompany')
         return actions
     }
-    enter(context: MachineContext<HydratedFinanceExampleState>): void {
+    enter(context: MachineContext<HydratedEighteenXXState>): void {
         this.handler.enter(context)
     }
-    onAction(action: HydratedAction, context: MachineContext<HydratedFinanceExampleState>): string {
+    onAction(action: HydratedAction, context: MachineContext<HydratedEighteenXXState>): string {
         return action instanceof HydratedSplitCompany
             ? 'StockRound'
             : this.handler.onAction(action, context)

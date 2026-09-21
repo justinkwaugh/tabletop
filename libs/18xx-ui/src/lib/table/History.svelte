@@ -1,6 +1,6 @@
 <script lang="ts">
     import { assert, assertExists, type GameAction } from '@tabletop/common'
-    import { controllingOwner, FinanceExampleValidator } from '@tabletop/18xx'
+    import { controllingOwner, EighteenXXStateValidator } from '@tabletop/18xx'
     import { historyCompanyChanges } from './historyCompanyChanges.js'
     import { historyCash } from './historyCash.js'
     import { historyOperatingOrder } from './historyOperatingOrder.js'
@@ -12,7 +12,7 @@
     import OperatingOrderHistory from './OperatingOrderHistory.svelte'
     import RoundHistory from './RoundHistory.svelte'
     import AuctionHistoryCard from './AuctionHistoryCard.svelte'
-    import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let {
         session,
         onPreviewMap,
@@ -23,7 +23,7 @@
         companyNames
     }: {
         onPreviewMap: (action: GameAction) => void
-        session: FinanceExampleSession
+        session: EighteenXXSession
         trainColors: Readonly<Record<string, string>>
         phaseColors: Readonly<Record<string, string>>
         phaseTileColors: Readonly<Record<string, readonly string[]>>
@@ -37,7 +37,7 @@
     const newestFirst = $derived(session.preferences.values.historyOrder === 'newestFirst')
     const context = $derived(session.history.visibleContext)
     const state = $derived.by(() => {
-        assert(FinanceExampleValidator.Check(context.state), 'History requires financial state')
+        assert(EighteenXXStateValidator.Check(context.state), 'History requires financial state')
         return context.state
     })
     const orderChanges = $derived(historyOperatingOrder(context.actions, state))

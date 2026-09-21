@@ -90,7 +90,7 @@ the title README.
 
 ## Runtime and presentation
 
-`FinanceExampleState` is built on Common Game State with financial fields at the
+`EighteenXXState` is built on Common Game State with financial fields at the
 root. Its initializer requires three players, uses their stable IDs, and authors
 deterministic asset IDs. `StockRoundHandler` offers purchases, sales, and company
 starts. `FinishStockTurn` advances the player and records a pass only if the turn

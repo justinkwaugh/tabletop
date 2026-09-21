@@ -32,8 +32,8 @@ import {
     EmergencyTrainFunding,
     discardableTrains,
     trainsOwnedBy,
-    type FinanceExamplePosition,
-    type FinanceExampleState,
+    type ScenarioPosition,
+    type EighteenXXState,
     type TrainRoute
 } from '@tabletop/18xx'
 import { example } from './stockTestUtils.js'
@@ -62,13 +62,13 @@ export class CompleteGameRun {
     readonly game
     readonly engine
     readonly initial
-    state: FinanceExampleState
+    state: EighteenXXState
     readonly history: GameAction[] = []
     constructor(
         readonly title: (typeof FullGameTitles)[number],
         count: number,
         seed = 5,
-        position: FinanceExamplePosition = 'opening'
+        position: ScenarioPosition = 'opening'
     ) {
         const run = example(title.definition, position, count, seed)
         this.game = run.game

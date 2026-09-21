@@ -4,7 +4,7 @@
     import BranchSplitPreview from './BranchSplitPreview.svelte'
     import { requireTheOldPrinceSession } from './session.svelte.js'
     import type { GameSession } from '@tabletop/frontend-components'
-    import { requireFinanceExampleState } from '@tabletop/18xx'
+    import { requireEighteenXXState } from '@tabletop/18xx'
     import type { GameState, HydratedGameState } from '@tabletop/common'
     import {
         GameEnding,
@@ -19,7 +19,7 @@
     import { peirShares, peirPresident } from '@tabletop/the-old-prince'
     let { gameSession }: { gameSession: GameSession<GameState, HydratedGameState> } = $props()
     const session = $derived(requireTheOldPrinceSession(gameSession))
-    const state = $derived(requireFinanceExampleState(gameSession.gameState))
+    const state = $derived(requireEighteenXXState(gameSession.gameState))
 </script>
 
 <GameEnding {session} />

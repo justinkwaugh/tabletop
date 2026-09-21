@@ -8,7 +8,7 @@ import { EighteenXXPreferenceDefinition, type EighteenXXPreferences } from '@tab
 import { isOfferPurchase, isRespondToPurchaseOffer, isDistributeEarnings } from '@tabletop/18xx'
 import type { TitlePreferences } from '@tabletop/frontend-components'
 import { chooseTrainSource, chooseCompanyTrain, backFromTrainBuying, type TrainBuyingSelection, type TrainSource } from './trainBuyingSelection.js'
-import { FinanceExampleValidator, type ValuationRules } from '@tabletop/18xx'
+import { EighteenXXStateValidator, type ValuationRules } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 import { HistoricalMaps, type HistoricalMap } from '../maps/historicalMap.js'
 import {
@@ -170,8 +170,8 @@ import {
     isSellShares,
     evaluateSharePurchase,
     evaluateShareSale,
-    requireFinanceExampleState,
-    type FinanceExampleState,
+    requireEighteenXXState,
+    type EighteenXXState,
     getCompany,
     sharesOwned,
     sameOwner,
@@ -189,13 +189,13 @@ type Selection =
     | { kind: 'purchase'; request: PurchaseRequest }
     | { kind: 'sale'; request: SaleRequest }
     | { kind: 'start'; stages: CompanyStartSelection }
-export class FinanceExampleSession extends GameSession<GameState, HydratedGameState> {
+export class EighteenXXSession extends GameSession<GameState, HydratedGameState> {
     privateCardPhaseColors: Readonly<Record<string, string>> = $derived({})
     privateCompanyTokens: Readonly<Record<string, StationAppearance>> = $derived({})
     operatingIncomeHistory() {
         return operatingHistory(this.history.visibleContext.actions)
     }
-    readonly marketAnimation = createMarketAnimationSource(this, (state) => requireFinanceExampleState(state).stockMarket)
+    readonly marketAnimation = createMarketAnimationSource(this, (state) => requireEighteenXXState(state).stockMarket)
     readonly preferences: TitlePreferences<typeof EighteenXXPreferences> = this.createPreferences(EighteenXXPreferenceDefinition)
     selection: Selection | undefined = $state()
     constructor(
@@ -218,7 +218,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         super(options)
         this.historicalMaps = new HistoricalMaps(mapView)
     }
-    auctionLotsFor(state: FinanceExampleState) {
+    auctionLotsFor(state: EighteenXXState) {
         return this.offerAuctionRules?.lots(state) ?? this.auctionRules?.lots(state) ?? []
     }
     offerAuction = $derived.by(() =>
@@ -777,7 +777,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         await this.applyAction(this.createPlayerAction(FinishOperatingTurn, { companyId }))
     }
     private automaticRoutes:
-        | { state: FinanceExampleState; result: OperatingResult; exhaustive: boolean }
+        | { state: EighteenXXState; result: OperatingResult; exhaustive: boolean }
         | undefined = $state.raw()
     automaticRouteResult = $derived.by(() => {
         if (!this.routeDraftVisible) return undefined
@@ -790,7 +790,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         }
         return this.automaticRoutes?.state === state ? this.automaticRoutes : undefined
     })
-    setAutomaticRoutes(state: FinanceExampleState, result: OperatingResult, exhaustive: boolean) {
+    setAutomaticRoutes(state: EighteenXXState, result: OperatingResult, exhaustive: boolean) {
         if (state !== this.financialState || !this.canRunTrains) return
         const companyId = state.routeStep?.companyId
         assert(
@@ -1635,7 +1635,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             return
         }
         const context = this.history.visibleContext
-        assert(FinanceExampleValidator.Check(context.state), 'Historical map requires financial state')
+        assert(EighteenXXStateValidator.Check(context.state), 'Historical map requires financial state')
         this.historicalMap = this.historicalMaps.preview(
             context.state, context.actions, action
         )
@@ -1643,7 +1643,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     closeHistoricalMap() {
         this.historicalMap = undefined
     }
-    financialState = $derived(requireFinanceExampleState(this.gameState))
+    financialState = $derived(requireEighteenXXState(this.gameState))
     mapScene = $derived.by(() =>
         createMapDrawing(
             this.mapView.map,
@@ -2189,7 +2189,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
         )
     }
 }
-export function createFinanceExampleSessionClass(
+export function createEighteenXXSessionClass(
     rules: StockRules,
     companyRules: CompanyRules,
     mapView: MapViewDefinition,
@@ -2204,8 +2204,8 @@ export function createFinanceExampleSessionClass(
     trainFundingRules: TrainFundingRules,
     auctionRules?: WaterfallAuctionRules,
     offerAuctionRules?: OfferPileAuctionRules
-): new (options: SessionOptions) => FinanceExampleSession {
-    return class extends FinanceExampleSession {
+): new (options: SessionOptions) => EighteenXXSession {
+    return class extends EighteenXXSession {
         constructor(options: SessionOptions) {
             super(
                 options,
@@ -2227,9 +2227,9 @@ export function createFinanceExampleSessionClass(
         }
     }
 }
-export function requireFinanceExampleSession(
+export function requireEighteenXXSession(
     session: GameSession<GameState, HydratedGameState>
-): FinanceExampleSession {
-    assert(session instanceof FinanceExampleSession, 'Expected a finance example session')
+): EighteenXXSession {
+    assert(session instanceof EighteenXXSession, 'Expected a finance example session')
     return session
 }

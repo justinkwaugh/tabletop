@@ -1,11 +1,11 @@
 import type { GameAction } from '@tabletop/common'
 import {
     isPlaceStation, isLayTile, isLayPrivateTile, isRespondToTrackConsent, isRunTrains,
-    nextOperatingCompany, type FinanceExampleState
+    nextOperatingCompany, type EighteenXXState
 } from '@tabletop/18xx'
 import { companyFocusLocations } from './companyFocusLocations.js'
 
-export function historyMapFocus(state: FinanceExampleState, action?: GameAction) {
+export function historyMapFocus(state: EighteenXXState, action?: GameAction) {
     const routes = action && isRunTrains(action) ? action.routes : []
     if (routes.length) {
         return { locations: [...new Set(routes.flatMap((route) => [

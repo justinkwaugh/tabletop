@@ -11,10 +11,10 @@ import {
     type TransferRules,
     type TrainRules
 } from '@tabletop/18xx'
-import { type FinanceExampleState, type HydratedFinanceExampleState } from '@tabletop/18xx'
+import { type EighteenXXState, type HydratedEighteenXXState } from '@tabletop/18xx'
 
 export function operatingTransitionTests(
-    definition: GameDefinition<FinanceExampleState, HydratedFinanceExampleState>,
+    definition: GameDefinition<EighteenXXState, HydratedEighteenXXState>,
     trackRules: TrackRules,
     transferRules: TransferRules,
     trainRules: TrainRules

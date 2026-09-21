@@ -1,5 +1,5 @@
 import { ActionSource } from '@tabletop/common'
-import { FinanceExampleValidator, isFinishStockTurn } from '@tabletop/18xx'
+import { EighteenXXStateValidator, isFinishStockTurn } from '@tabletop/18xx'
 import { Definition as Top } from '@tabletop/the-old-prince'
 import { UiDefinition } from '@tabletop/the-old-prince-ui'
 import { GameContext } from '@tabletop/frontend-components'
@@ -39,7 +39,7 @@ export async function flotationHistorySteps() {
     const position = () => {
         const visible = history.visibleContext
         visible.verifyFullChecksum()
-        if (!FinanceExampleValidator.Check(visible.state)) throw Error('Expected 18xx state')
+        if (!EighteenXXStateValidator.Check(visible.state)) throw Error('Expected 18xx state')
         return {
             actionTypes: visible.actions.map((action) => action.type),
             floated: visible.state.companies.find((company) => company.id === 'A')?.floated

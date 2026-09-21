@@ -11,11 +11,11 @@ import {
     cashOwnedBy,
     settleCashPayments,
     TrainPurchase,
-    type FinanceExampleState
+    type EighteenXXState
 } from '@tabletop/18xx'
 import { example, purchase } from './stockTestUtils.js'
 function action(
-    state: FinanceExampleState,
+    state: EighteenXXState,
     type: string,
     fields: object = {},
     source = ActionSource.User

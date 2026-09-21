@@ -4,8 +4,8 @@ import { Definition, Shikoku1889AuctionRules } from '@tabletop/shikoku-1889'
 import {
     ReserveBidAuction,
     cashOwnedBy,
-    FinanceExampleValidator,
-    type FinanceExampleState
+    EighteenXXStateValidator,
+    type EighteenXXState
 } from '@tabletop/18xx'
 import { example } from './stockTestUtils.js'
 function opening(count = 3) {
@@ -41,7 +41,7 @@ function opening(count = 3) {
             })
             state = result.updatedState
             history.push(...result.processedActions)
-            expect(FinanceExampleValidator.Check(state)).toBe(true)
+            expect(EighteenXXStateValidator.Check(state)).toBe(true)
             expect(
                 Definition.runtime.hydrator
                     .hydrateState(JSON.parse(JSON.stringify(state)))
@@ -210,7 +210,7 @@ it('replays and undoes user actions and automatic cascades exactly without seria
     run.act('PassAuction')
     for (let i = 0; i < 3; i++) run.act('PassAuction')
     while (run.state.machineState !== 'StockRound') run.buy()
-    let replay: FinanceExampleState = run.initial
+    let replay: EighteenXXState = run.initial
     for (const action of run.history) {
         expect(Object.keys(action)).not.toContain('rules')
         replay = run.engine.applyProcessedAction({ game: run.game, state: replay, action })

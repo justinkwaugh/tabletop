@@ -1,7 +1,7 @@
 import { assert } from '@tabletop/common'
-import type { HydratedFinanceExampleState } from './financeExample.js'
+import type { HydratedEighteenXXState } from './eighteenXXRuntime.js'
 
-export function prepareFinalOperatingTurn(state: HydratedFinanceExampleState): void {
+export function prepareFinalOperatingTurn(state: HydratedEighteenXXState): void {
     const set = state.operatingSet
     const companyId = state.trainPurchaseStep?.companyId
     assert(

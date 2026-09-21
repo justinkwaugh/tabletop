@@ -7,7 +7,7 @@ import {
     trainsOwnedBy,
     cashOwnedBy,
     type TrainRules,
-    type FinanceExampleState,
+    type EighteenXXState,
     type BuyTrain,
     type TrainPurchaseDetails
 } from '@tabletop/18xx'
@@ -28,14 +28,14 @@ const Titles = [
         nextRank: '3'
     }
 ]
-function firstPurchase(state: FinanceExampleState, rules: TrainRules): TrainPurchaseDetails {
+function firstPurchase(state: EighteenXXState, rules: TrainRules): TrainPurchaseDetails {
     const result = new TrainPurchase(state, rules)
         .offers()
         .find((offer) => offer.evaluation.details)?.evaluation.details
     if (!result) throw new Error('Expected a legal train purchase')
     return result
 }
-function buy(state: FinanceExampleState, details: TrainPurchaseDetails): BuyTrain {
+function buy(state: EighteenXXState, details: TrainPurchaseDetails): BuyTrain {
     return {
         id: `buy-${state.actionCount}`,
         gameId: state.gameId,

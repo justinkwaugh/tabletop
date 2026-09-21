@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getCompany, controllingOwner } from '@tabletop/18xx'
-    import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session, showUndo = true }: { showUndo?: boolean; session: FinanceExampleSession } =
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } =
         $props()
     const state = $derived(session.financialState)
     const change = $derived(state.phaseChange)

@@ -1,12 +1,12 @@
 <script lang="ts">
-    import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import { getCompany } from '@tabletop/18xx'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import PrivateBuying from './PrivateBuying.svelte'
+    import PrivateBuying from '../privates/PrivateBuying.svelte'
     import DecisionResponse from './DecisionResponse.svelte'
     import Tile from '../tiles/Tile.svelte'
-    import PrivateTrainBuying from './PrivateTrainBuying.svelte'
-    let { session, trainColors, privateTilePrompts = {}, showUndo = true, excludeTrainPurchases = false }: { privateTilePrompts?: Readonly<Record<string, string>>; trainColors: Readonly<Record<string, string>>; excludeTrainPurchases?: boolean; showUndo?: boolean; session: FinanceExampleSession } =
+    import PrivateTrainBuying from '../trains/PrivateTrainBuying.svelte'
+    let { session, trainColors, privateTilePrompts = {}, showUndo = true, excludeTrainPurchases = false }: { privateTilePrompts?: Readonly<Record<string, string>>; trainColors: Readonly<Record<string, string>>; excludeTrainPurchases?: boolean; showUndo?: boolean; session: EighteenXXSession } =
         $props()
     const purchaseOptions = $derived(session.purchaseOptions.filter((option) => option.request.asset.kind === 'train' && !excludeTrainPurchases))
     const state = $derived(session.financialState)

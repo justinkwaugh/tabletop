@@ -1,7 +1,7 @@
 import { ActionSource, type GameAction } from '@tabletop/common'
-import { isRespondToTrackConsent, type FinanceExampleState } from '@tabletop/18xx'
+import { isRespondToTrackConsent, type EighteenXXState } from '@tabletop/18xx'
 
-export function trackConsentDecline(actions: readonly GameAction[], state: FinanceExampleState) {
+export function trackConsentDecline(actions: readonly GameAction[], state: EighteenXXState) {
     if (state.machineState !== 'LayingTrack' || state.trackConsent || !state.trackStep) return
     const action = actions
         .slice(0, state.actionCount)

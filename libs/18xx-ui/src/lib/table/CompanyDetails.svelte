@@ -15,7 +15,7 @@
         type Owner,
         type CertificatePool
     } from '@tabletop/18xx'
-    import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import { type CompanyOwnership, companyOwnership } from '../finance/companyOwnership.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -42,7 +42,7 @@
         canPurchase?: (entry: CompanyOwnership) => boolean
         purchaseSources?: Snippet<[CompanyOwnership]>
         onPreviewMap?: (action: GameAction) => void
-        session: FinanceExampleSession
+        session: EighteenXXSession
         trainColors: Readonly<Record<string, string>>
         displayName?: string
         company: Company

@@ -13,7 +13,7 @@
         type GameState,
         type HydratedGameState
     } from '@tabletop/common'
-    import { FinanceExampleValidator, type FinanceExamplePosition } from '@tabletop/18xx'
+    import { EighteenXXStateValidator, type ScenarioPosition } from '@tabletop/18xx'
     import {
         createHarnessAppContext,
         setAppContext,
@@ -29,7 +29,7 @@
         playerCount
     }: {
         definition: GameUiDefinition<GameState, HydratedGameState>
-        position?: FinanceExamplePosition | 'finished'
+        position?: ScenarioPosition | 'finished'
         playerCount?: number
     } = $props()
     const app = untrack(() => createHarnessAppContext(definition))
@@ -120,7 +120,7 @@
             const { game, actions } = loaded
             assertExists(game, 'Local example is missing')
             assertExists(game.state, 'Local example has no state')
-            if (!FinanceExampleValidator.Check(game.state))
+            if (!EighteenXXStateValidator.Check(game.state))
                 throw new Error('Local example has an invalid finance state')
             if (migrateCompanyNames(loaded)) {
                 await app.gameService.saveGameLocally({ game, state: game.state, actions })

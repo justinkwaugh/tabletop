@@ -1,7 +1,7 @@
 import { nextOperatingCompany } from '../operating/operatingSet.js'
 import type { TransferRules } from '../transfers/purchaseOffer.js'
 
-export const FinanceExampleTransferTiming: Pick<TransferRules, 'operatingCompany' | 'canPurchase'> =
+export const EighteenXXTransferTiming: Pick<TransferRules, 'operatingCompany' | 'canPurchase'> =
     {
         operatingCompany(state) {
             return [

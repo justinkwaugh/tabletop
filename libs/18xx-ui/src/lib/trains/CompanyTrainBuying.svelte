@@ -1,11 +1,11 @@
 <script lang="ts">
     import { assertExists } from '@tabletop/common'
     import { getCompany } from '@tabletop/18xx'
-    import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    import DecisionResponse from './DecisionResponse.svelte'
-    import TrainBadge from '../trains/TrainBadge.svelte'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import DecisionResponse from '../finance/DecisionResponse.svelte'
+    import TrainBadge from './TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    let { session, trainColors }: { session: FinanceExampleSession; trainColors: Readonly<Record<string, string>> } = $props()
+    let { session, trainColors }: { session: EighteenXXSession; trainColors: Readonly<Record<string, string>> } = $props()
     const request = $derived(session.trainBuyingSelection.purchase?.value)
     const response = $derived(session.financialState.purchaseOffer)
     const companies = $derived.by(() => {

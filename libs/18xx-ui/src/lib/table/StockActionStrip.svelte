@@ -1,9 +1,9 @@
 <script lang="ts">
-    import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import type { StockMenuOption } from '../stock/stockActionSelection.js'
     import SlidingToggle from './SlidingToggle.svelte'
     let { session, additionalActions = [] }: {
-        session: FinanceExampleSession
+        session: EighteenXXSession
         additionalActions?: readonly StockMenuOption[]
     } = $props()
     const disabled = $derived(session.busy || session.updatingVisibleState || session.isViewingHistory ||

@@ -4,11 +4,11 @@
     import { prefersReducedMotion } from 'svelte/motion'
     import { StandardTileLayouts } from '../tiles/standardTileLayouts.js'
     import type { Point } from '@tabletop/common'
-    import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import Tile from '../tiles/Tile.svelte'
     import { tileChoiceArc } from './tileChoiceArc.js'
 
-    let { session, viewport }: { session: FinanceExampleSession; viewport: HTMLDivElement } =
+    let { session, viewport }: { session: EighteenXXSession; viewport: HTMLDivElement } =
         $props()
     let center: Point = $state({ x: 0, y: 0 })
     let width = $state(0)

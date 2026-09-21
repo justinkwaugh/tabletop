@@ -22,26 +22,26 @@ export {
 export { default as Portfolio } from './finance/Portfolio.svelte'
 export { default as FinanceInspector } from './finance/FinanceInspector.svelte'
 
-export * from './examples/financeExampleSession.svelte.js'
-export { default as StockTrading } from './examples/StockTrading.svelte'
+export * from './session/eighteenXXSession.svelte.js'
+export { default as StockTrading } from './stock/StockTrading.svelte'
 export { default as StockMarket } from './stock/StockMarket.svelte'
 
 export * from './maps/stationPresentation.js'
 export { default as MapViewer } from './maps/MapViewer.svelte'
-export { default as FinanceMap } from './examples/FinanceMap.svelte'
+export { default as FinanceMap } from './maps/FinanceMap.svelte'
 
-export { default as TrainBuying } from './examples/TrainBuying.svelte'
+export { default as TrainBuying } from './trains/TrainBuying.svelte'
 
-export { default as PrivateCompanies } from './examples/PrivateCompanies.svelte'
+export { default as PrivateCompanies } from './privates/PrivateCompanies.svelte'
 
-export { default as CompanyDecisions } from './examples/CompanyDecisions.svelte'
+export { default as CompanyDecisions } from './finance/CompanyDecisions.svelte'
 export { default as WaterfallAuctionPanel } from './auctions/WaterfallAuctionPanel.svelte'
 
 export type { AuctionSelection } from './auctions/auctionSelection.js'
 
 export { default as OfferAuctionPanel } from './auctions/OfferAuctionPanel.svelte'
 
-export { default as GameEnding } from './examples/GameEnding.svelte'
+export { default as GameEnding } from './ending/GameEnding.svelte'
 
 export { default as GameTable } from './table/GameTable.svelte'
 export type { CompanyNameVariants, NumberedShareNames } from './table/companyPresentation.js'

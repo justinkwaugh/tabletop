@@ -19,7 +19,7 @@ import {
     cashOwnedBy,
     getCompany,
     companyMarketSpace,
-    type FinanceExampleState,
+    type EighteenXXState,
     type FundingChoice
 } from '@tabletop/18xx'
 import { example } from './stockTestUtils.js'
@@ -37,7 +37,7 @@ const Titles = [
         trains: Shikoku1889TrainRules
     }
 ]
-function action(state: FinanceExampleState, type: string, fields: object = {}): GameAction {
+function action(state: EighteenXXState, type: string, fields: object = {}): GameAction {
     return {
         id: `${type}:${state.actionCount}`,
         gameId: state.gameId,
@@ -47,7 +47,7 @@ function action(state: FinanceExampleState, type: string, fields: object = {}): 
         ...fields
     }
 }
-function nextAction(state: FinanceExampleState, choice: FundingChoice): GameAction {
+function nextAction(state: EighteenXXState, choice: FundingChoice): GameAction {
     switch (choice.kind) {
         case 'issue':
             return action(state, 'IssueTreasuryShares', {
@@ -257,7 +257,7 @@ it('uses company, Union Bank, and player balances in order, contributing only th
     state.cash.find(
         (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'ML'
     )!.amount = 0
-    const funding = (value: FinanceExampleState) =>
+    const funding = (value: EighteenXXState) =>
         new EmergencyTrainFunding(
             value,
             TheOldPrinceTrainFundingRules,
@@ -332,7 +332,7 @@ it('does not use stock-round sale timing and forbids all 1889 presidency transfe
     state.stockRound.number = 1
     state.stockRound.turn.bought = true
     state.stockRound.turn.soldBeforeBuying = true
-    const model = (value: FinanceExampleState) =>
+    const model = (value: EighteenXXState) =>
         new EmergencyTrainFunding(
             value,
             Shikoku1889TrainFundingRules,
@@ -375,7 +375,7 @@ it('issues every TOP treasury share as one block even above 30%, then keeps any 
             certificate.poolId = 'treasury:ML'
         }
     }
-    const model = (value: FinanceExampleState) =>
+    const model = (value: EighteenXXState) =>
         new EmergencyTrainFunding(
             value,
             TheOldPrinceTrainFundingRules,
@@ -413,7 +413,7 @@ it('rejects excessive contributions and sales after the shortfall is covered', (
     state.cash.find(
         (cash) => cash.owner.kind === 'player' && cash.owner.playerId === 'blair'
     )!.amount = 1000
-    const model = (value: FinanceExampleState) =>
+    const model = (value: EighteenXXState) =>
         new EmergencyTrainFunding(
             value,
             Shikoku1889TrainFundingRules,
@@ -468,7 +468,7 @@ it('requires 1889 excess ownership sales even when they raise more than the trai
     state.cash.find(
         (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'IR'
     )!.amount = 290
-    const model = (value: FinanceExampleState) =>
+    const model = (value: EighteenXXState) =>
         new EmergencyTrainFunding(
             value,
             Shikoku1889TrainFundingRules,
@@ -500,7 +500,7 @@ it.each(Titles)(
         state.cash.find(
             (cash) => cash.owner.kind === 'player' && cash.owner.playerId === owner
         )!.amount = 9
-        const model = (value: FinanceExampleState) =>
+        const model = (value: EighteenXXState) =>
             new EmergencyTrainFunding(value, rules, stocks, trains)
         const purchase = model(state).purchases()[0]
         const started = engine.executeCanonicalAction({
@@ -568,7 +568,7 @@ it('reevaluates 1889 ownership limits when an emergency sale moves into the Oran
 it('continues emergency share sales when they exhaust the 1889 bank', () => {
     const { game, engine, state } = example(Shikoku, 'funding')
     state.cash.find((cash) => cash.owner.kind === 'bank')!.amount = 1
-    const funding = (value: FinanceExampleState) =>
+    const funding = (value: EighteenXXState) =>
         new EmergencyTrainFunding(
             value,
             Shikoku1889TrainFundingRules,
@@ -674,7 +674,7 @@ it.each(Titles)(
 
 it('the funding-chain example exhausts Union Bank before its owner sells and buys', () => {
     const { game, engine, state } = example(Top, 'funding-chain')
-    const model = (current: FinanceExampleState) =>
+    const model = (current: EighteenXXState) =>
         new EmergencyTrainFunding(
             current,
             TheOldPrinceTrainFundingRules,

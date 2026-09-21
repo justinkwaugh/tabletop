@@ -12,14 +12,14 @@ import {
     type CompanyState,
     type TrainState,
     type MapStateData,
-    type FinanceExamplePosition
+    type ScenarioPosition
 } from '@tabletop/18xx'
 import { createShikoku1889FinanceExample } from './finance.js'
 import { Shikoku1889Map } from './map.js'
 
 export function createShikoku1889CompanyExample(
     players: readonly PlayerState[],
-    position: FinanceExamplePosition
+    position: ScenarioPosition
 ): CompanyState & MapStateData & TrainState {
     if (position === 'opening') return createShikoku1889Opening(players)
     const state: CompanyState & MapStateData & TrainState = {

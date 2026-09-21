@@ -1,8 +1,8 @@
 <script lang="ts">
     import { type EarningsChoice } from '@tabletop/18xx'
-    import EarningsCard from '../earnings/EarningsCard.svelte'
-    import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session, showUndo = true }: { showUndo?: boolean; session: FinanceExampleSession } = $props()
+    import EarningsCard from './EarningsCard.svelte'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
     const result = $derived(session.financialState.routeStep?.result)
     const names: Record<EarningsChoice, string> = {
         pay: 'Pay',

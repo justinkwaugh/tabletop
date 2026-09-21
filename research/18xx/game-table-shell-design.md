@@ -35,7 +35,7 @@ existing Common UI infrastructure. MapScene draws directly in the scaling area;
 there is no MapViewer frame, inspector column, card or board background container.
 The table sets the existing game session context for the shared controls.
 
-Both the old logic workbench and the table use FinanceExampleSession.selectMap,
+Both the old logic workbench and the table use EighteenXXSession.selectMap,
 which preserves the existing precedence of route editing, construction, station
 placement and inspection. It only stages selections; confirmation still runs
 through Session methods. Header Undo calls the existing title-aware undo method;

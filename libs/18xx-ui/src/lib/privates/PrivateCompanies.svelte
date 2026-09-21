@@ -1,7 +1,7 @@
 <script lang="ts">
-    import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import { privateOwner } from '@tabletop/18xx'
-    let { session, showUndo = true }: { showUndo?: boolean; session: FinanceExampleSession } =
+    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } =
         $props()
     const selection = $derived(session.privateExchangeSelection)
 </script>

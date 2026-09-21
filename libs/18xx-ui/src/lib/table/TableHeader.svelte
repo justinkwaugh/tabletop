@@ -1,7 +1,7 @@
 <script lang="ts">
     import { assert } from '@tabletop/common'
     import { tableHeaderState } from './tableHeaderState.js'
-    import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import PhaseChart from '../phases/PhaseChart.svelte'
@@ -21,7 +21,7 @@
         publishedArtwork?: boolean
         onToggleArtwork?: () => void
         bordered?: boolean
-        session: FinanceExampleSession
+        session: EighteenXXSession
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
         phaseChart: PhaseChartData
         trainColors: Readonly<Record<string, string>>

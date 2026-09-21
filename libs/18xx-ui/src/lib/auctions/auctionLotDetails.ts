@@ -1,7 +1,7 @@
 import { assertExists } from '@tabletop/common'
-import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
+import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
 
-export function auctionLotDetails(session: FinanceExampleSession, lotIds: readonly string[]) {
+export function auctionLotDetails(session: EighteenXXSession, lotIds: readonly string[]) {
     const model = session.offerAuction
     assertExists(model, 'Offer lots require an offer auction')
     return lotIds.map((id) => {

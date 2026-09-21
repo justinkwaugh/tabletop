@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getCompany, stockMarketSpace } from '@tabletop/18xx'
-    import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session }: { session: FinanceExampleSession } = $props()
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    let { session }: { session: EighteenXXSession } = $props()
     const state = $derived(session.financialState)
 </script>
 

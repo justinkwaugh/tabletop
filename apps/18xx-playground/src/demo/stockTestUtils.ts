@@ -1,10 +1,10 @@
 import { ActionSource, GameEngine, GameStorage, PlayerStatus } from '@tabletop/common'
 import { Definition as Top } from '@tabletop/the-old-prince'
-import type { BuyShares, President, FinanceExamplePosition } from '@tabletop/18xx'
+import type { BuyShares, President, ScenarioPosition } from '@tabletop/18xx'
 const alex = { kind: 'player', playerId: 'alex' } as const
 export function example(
     definition: typeof Top,
-    examplePosition: FinanceExamplePosition = 'trading',
+    examplePosition: ScenarioPosition = 'trading',
     playerCount?: number,
     seed = 5
 ) {

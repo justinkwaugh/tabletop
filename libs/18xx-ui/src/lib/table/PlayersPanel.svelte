@@ -11,7 +11,7 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PresidentBadge from '../finance/PresidentBadge.svelte'
     import { ownerPortfolio } from '../finance/ownerPortfolio.js'
-    import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
 
     let {
         session,
@@ -26,7 +26,7 @@
         portfolioCompanyIds = []
     }: {
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
-        session: FinanceExampleSession
+        session: EighteenXXSession
         valuationRules: ValuationRules
         auctionLotDescription?: (id: string) => string
         numberedShareNames?: NumberedShareNames

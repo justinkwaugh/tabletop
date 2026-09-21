@@ -8,7 +8,7 @@ import {
     isEndGame,
     isResolveAuction,
     isStartOperatingRound,
-    type FinanceExampleState,
+    type EighteenXXState,
     type AuctionAward
 } from '@tabletop/18xx'
 import { assertExists, type GameAction } from '@tabletop/common'
@@ -28,7 +28,7 @@ export type HistoryRound = {
 
 export function historyRounds(
     actions: readonly GameAction[],
-    state: FinanceExampleState,
+    state: EighteenXXState,
     orderChanges: ReadonlyMap<string, HistoryOperatingOrder> = historyOperatingOrder(
         actions,
         state

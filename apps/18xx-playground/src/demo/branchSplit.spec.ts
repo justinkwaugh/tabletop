@@ -10,7 +10,7 @@ import {
     sameOwner,
     sharesOwned,
     type Owner,
-    type FinanceExampleState
+    type EighteenXXState
 } from '@tabletop/18xx'
 import { example } from './stockTestUtils.js'
 const alex = { kind: 'player', playerId: 'alex' } as const
@@ -25,7 +25,7 @@ function preview(state = example(Top, 'split').state) {
     if (!result.details) throw new Error(result.reason)
     return result.details
 }
-function allocate(state: FinanceExampleState, owners: { owner: Owner; poolId?: string }[]) {
+function allocate(state: EighteenXXState, owners: { owner: Owner; poolId?: string }[]) {
     for (const [index, allocation] of owners.entries()) {
         const certificate = state.certificates.find((c) => c.id === `So:share:${index + 1}`)
         if (!certificate || certificate.retired) throw new Error('Missing parent share')
@@ -149,25 +149,25 @@ describe('split eligibility', () => {
     it.each([
         [
             'unfloated',
-            (state: FinanceExampleState) => {
+            (state: EighteenXXState) => {
                 getCompany(state, 'So').floated = false
             }
         ],
         [
             'closed',
-            (state: FinanceExampleState) => {
+            (state: EighteenXXState) => {
                 getCompany(state, 'So').closed = true
             }
         ],
         [
             'wrong president',
-            (state: FinanceExampleState) => {
+            (state: EighteenXXState) => {
                 getCompany(state, 'So').president = blair
             }
         ],
         [
             'one station',
-            (state: FinanceExampleState) => {
+            (state: EighteenXXState) => {
                 state.stations = state.stations.filter(
                     (s) => s.companyId !== 'So' || s.id === 'So:home'
                 )
@@ -175,31 +175,31 @@ describe('split eligibility', () => {
         ],
         [
             'bought',
-            (state: FinanceExampleState) => {
+            (state: EighteenXXState) => {
                 state.stockRound.turn.bought = true
             }
         ],
         [
             'other turn',
-            (state: FinanceExampleState) => {
+            (state: EighteenXXState) => {
                 state.activePlayerIds = ['blair']
             }
         ],
         [
             'outside stock round',
-            (state: FinanceExampleState) => {
+            (state: EighteenXXState) => {
                 state.machineState = 'BuyingTrains'
             }
         ],
         [
             'full chart',
-            (state: FinanceExampleState) => {
+            (state: EighteenXXState) => {
                 state.tranches = state.tranches.slice(0, 1)
             }
         ],
         [
             'locked tranche',
-            (state: FinanceExampleState) => {
+            (state: EighteenXXState) => {
                 getCompany(state, 'So').operated = false
             }
         ]

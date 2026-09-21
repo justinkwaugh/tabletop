@@ -1,13 +1,13 @@
 <script lang="ts">
     import { getCompany, cashOwnedBy } from '@tabletop/18xx'
-    import { trackConsentDecline } from './trackConsentNotice.js'
+    import { trackConsentDecline } from '../session/trackConsentNotice.js'
     import Tile from '../tiles/Tile.svelte'
-    import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let {
         session,
         showUndo = true,
         mapControls = false
-    }: { showUndo?: boolean; mapControls?: boolean; session: FinanceExampleSession } = $props()
+    }: { showUndo?: boolean; mapControls?: boolean; session: EighteenXXSession } = $props()
     const declined = $derived(trackConsentDecline(session.actions, session.financialState))
     const turn = $derived(session.financialState.trackStep)
     const selection = $derived(session.trackSelection)

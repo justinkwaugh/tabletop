@@ -1,8 +1,8 @@
 <script lang="ts">
-    import PrivateCard from '../privates/PrivateCard.svelte'
+    import PrivateCard from './PrivateCard.svelte'
     import { getCompany } from '@tabletop/18xx'
-    import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session, showEntry = true }: { session: FinanceExampleSession; showEntry?: boolean } = $props()
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    let { session, showEntry = true }: { session: EighteenXXSession; showEntry?: boolean } = $props()
     const mine = $derived(session.privatePurchases.filter((option) => option.request.seller.kind === 'player' && option.request.seller.playerId === session.myPlayer?.id))
     const others = $derived(session.privatePurchases.filter((option) => !mine.includes(option)))
     const source = $derived(session.privatePurchaseSource)

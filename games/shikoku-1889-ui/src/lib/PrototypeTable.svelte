@@ -2,7 +2,7 @@
     import { Shikoku1889TrainColors } from './trainPresentation.js'
     import OpeningAuction from './OpeningAuction.svelte'
     import type { GameSession } from '@tabletop/frontend-components'
-    import { requireFinanceExampleState } from '@tabletop/18xx'
+    import { requireEighteenXXState } from '@tabletop/18xx'
     import type { GameState, HydratedGameState } from '@tabletop/common'
     import {
         GameEnding,
@@ -13,11 +13,11 @@
         CompanyDecisions,
         StockTrading,
         StockMarket,
-        requireFinanceExampleSession
+        requireEighteenXXSession
     } from '@tabletop/18xx-ui'
     let { gameSession }: { gameSession: GameSession<GameState, HydratedGameState> } = $props()
-    const session = $derived(requireFinanceExampleSession(gameSession))
-    const state = $derived(requireFinanceExampleState(gameSession.gameState))
+    const session = $derived(requireEighteenXXSession(gameSession))
+    const state = $derived(requireEighteenXXState(gameSession.gameState))
 </script>
 
 <GameEnding {session} />

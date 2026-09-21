@@ -1,7 +1,7 @@
 <script lang="ts">
     import { assert, type GameAction } from '@tabletop/common'
     import {
-        FinanceExampleValidator,
+        EighteenXXStateValidator,
         nextOperatingCompany,
         isOfferAuctionLot,
         isBidOnAuctionLot,
@@ -13,7 +13,7 @@
         isLayPrivateTile,
         isRespondToTrackConsent
     } from '@tabletop/18xx'
-    import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import { historyDescription, type HistoryDescription } from './historyDescription.js'
     import { isHistoryBookkeeping, purchaseWithFlotation } from './historyNavigation.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
@@ -21,16 +21,16 @@
     import EarningsCard from '../earnings/EarningsCard.svelte'
     import TrackLayResult from './TrackLayResult.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import GameEnding from '../examples/GameEnding.svelte'
+    import GameEnding from '../ending/GameEnding.svelte'
 
     let { session, trainColors, describeAction }: {
-        session: FinanceExampleSession
+        session: EighteenXXSession
         trainColors: Readonly<Record<string, string>>
         describeAction?: (action: GameAction, companyName: (id: string) => string) => HistoryDescription | undefined
     } = $props()
     const context = $derived(session.history.visibleContext)
     const state = $derived.by(() => {
-        assert(FinanceExampleValidator.Check(context.state), 'Position panel requires financial state')
+        assert(EighteenXXStateValidator.Check(context.state), 'Position panel requires financial state')
         return context.state
     })
     const company = $derived(state.companies.find((company) => company.id === nextOperatingCompany(state)))

@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { FinanceExampleValidator } from '@tabletop/18xx'
+    import { EighteenXXStateValidator } from '@tabletop/18xx'
     import { assert } from '@tabletop/common'
     import type { AutoroutingRequest, AutoroutingResponse } from '@tabletop/18xx-autorouter'
-    import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import TrainRunTable from './TrainRunTable.svelte'
 
     let {
@@ -11,7 +11,7 @@
         onFocusRoute,
         trainColors
     }: {
-        session: FinanceExampleSession
+        session: EighteenXXSession
         createRouteWorker: () => Worker
         onFocusRoute: (trainId: string) => void
         trainColors: Readonly<Record<string, string>>
@@ -59,7 +59,7 @@
                 }
                 const snapshot = session.gameState.dehydrate()
                 assert(
-                    FinanceExampleValidator.Check(snapshot),
+                    EighteenXXStateValidator.Check(snapshot),
                     'Autorouting requires complete game state'
                 )
                 const request: AutoroutingRequest = { state: snapshot, companyId }

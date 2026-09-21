@@ -10,7 +10,7 @@ import {
     type CompanyState,
     type TrainState,
     type MapStateData,
-    type FinanceExamplePosition
+    type ScenarioPosition
 } from '@tabletop/18xx'
 import { createTheOldPrinceFinanceExample } from './finance.js'
 import { peirCompanies } from './companies.js'
@@ -18,7 +18,7 @@ import { TheOldPrinceMap } from './map.js'
 
 export function createTheOldPrinceCompanyExample(
     players: readonly PlayerState[],
-    position: FinanceExamplePosition,
+    position: ScenarioPosition,
     prng?: Prng
 ): CompanyState & MapStateData & TrainState {
     if (position === 'opening') {

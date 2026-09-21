@@ -28,10 +28,10 @@ import {
     exceedsStockLimits,
     TrainPurchase,
     type TrackRequest,
-    type FinanceExampleState
+    type EighteenXXState
 } from '@tabletop/18xx'
 import { example } from './stockTestUtils.js'
-function action(state: FinanceExampleState, type: string, fields: object = {}): GameAction {
+function action(state: EighteenXXState, type: string, fields: object = {}): GameAction {
     return {
         id: `${type}:${state.actionCount}`,
         gameId: state.gameId,
@@ -42,7 +42,7 @@ function action(state: FinanceExampleState, type: string, fields: object = {}): 
     }
 }
 function exchange(
-    state: FinanceExampleState,
+    state: EighteenXXState,
     privateCompanyId: string,
     certificateId: string,
     playerId = state.activePlayerIds[0]

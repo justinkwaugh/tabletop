@@ -16,7 +16,7 @@ import {
     isStartCompany,
     createOrdinaryShareCertificates,
     type StartCompany,
-    type FinanceExampleState,
+    type EighteenXXState,
     type Owner,
     type FloatCompany
 } from '@tabletop/18xx'
@@ -55,7 +55,7 @@ function start(
         expectedPrice
     }
 }
-function give(state: FinanceExampleState, id: string, owner: Owner, poolId?: string) {
+function give(state: EighteenXXState, id: string, owner: Owner, poolId?: string) {
     const certificate = state.certificates.find((certificate) => certificate.id === id)
     if (!certificate || certificate.retired) throw new Error('Missing fixture certificate')
     certificate.owner = owner

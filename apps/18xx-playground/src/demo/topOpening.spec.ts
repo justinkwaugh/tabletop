@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
-import { OfferAuction, cashOwnedBy, getCompany, type FinanceExampleState } from '@tabletop/18xx'
+import { OfferAuction, cashOwnedBy, getCompany, type EighteenXXState } from '@tabletop/18xx'
 import { Definition, TheOldPrinceAuctionRules, theOldPrinceRole } from '@tabletop/the-old-prince'
 import { example } from './stockTestUtils.js'
 function opening(count = 3, seed = 5) {
@@ -101,7 +101,7 @@ it.each([3, 4])('sets up and completes TOP for %i players', (count) => {
     expect(getCompany(run.state, main).president).toBeDefined()
     expect(getCompany(run.state, short).president).toBeDefined()
     expect(getCompany(run.state, 'PEIR').president).toBeDefined()
-    let replay: FinanceExampleState = run.initial
+    let replay: EighteenXXState = run.initial
     for (const action of run.history)
         replay = run.engine.applyProcessedAction({ game: run.game, state: replay, action })
     expect(replay).toEqual(run.state)

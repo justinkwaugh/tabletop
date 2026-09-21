@@ -15,11 +15,11 @@ import {
     sameOwner,
     sharesOwned,
     companyMarketSpace,
-    type FinanceExampleState
+    type EighteenXXState
 } from '@tabletop/18xx'
 import { example, purchase } from './stockTestUtils.js'
 const alex = { kind: 'player', playerId: 'alex' } as const
-function split(state: FinanceExampleState, changes: Partial<BranchSplitAllocation> = {}) {
+function split(state: EighteenXXState, changes: Partial<BranchSplitAllocation> = {}) {
     return createAction(SplitCompany, {
         id: 'split',
         gameId: state.gameId,
@@ -47,7 +47,7 @@ function split(state: FinanceExampleState, changes: Partial<BranchSplitAllocatio
     })
 }
 function apply(
-    state: FinanceExampleState,
+    state: EighteenXXState,
     game: ReturnType<typeof example>['game'],
     engine: ReturnType<typeof example>['engine'],
     type: string,

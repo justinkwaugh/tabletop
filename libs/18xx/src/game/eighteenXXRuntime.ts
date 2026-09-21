@@ -235,7 +235,7 @@ import { CompanyFields, type CompanyState } from '../company/companyState.js'
 import { validateStations } from '../map/station.js'
 import { StartCompany, HydratedStartCompany, isStartCompany } from '../company/startCompany.js'
 import { FloatCompany, HydratedFloatCompany, isFloatCompany } from '../company/floatCompany.js'
-import { FinanceExamplePosition } from './financeExamplePosition.js'
+import { ScenarioPosition } from './scenarioPosition.js'
 import type { CompanyRules } from '../company/companyRules.js'
 import * as Type from 'typebox'
 import { Compile, type Validator } from 'typebox/compile'
@@ -314,7 +314,7 @@ const ExampleFields = Type.Object({
     ...CompanyDecisionFields,
     ...RouteFields
 })
-export const FinanceExampleState: Type.TObject<
+export const EighteenXXState: Type.TObject<
     Omit<typeof GameState.properties, 'machineState'> & typeof ExampleFields.properties
 > = Type.Object(
     {
@@ -323,23 +323,23 @@ export const FinanceExampleState: Type.TObject<
     },
     { additionalProperties: false }
 )
-export type FinanceExampleState = Type.Static<typeof FinanceExampleState>
-export const FinanceExampleValidator: Validator<{}, typeof FinanceExampleState> =
-    Compile(FinanceExampleState)
+export type EighteenXXState = Type.Static<typeof EighteenXXState>
+export const EighteenXXStateValidator: Validator<{}, typeof EighteenXXState> =
+    Compile(EighteenXXState)
 function handledStateValidator(machineStates: readonly string[]): Pick<Validator, 'Check'> {
     return Compile(
         Type.Object(
             {
-                ...FinanceExampleState.properties,
+                ...EighteenXXState.properties,
                 machineState: Type.Union(machineStates.map((name) => Type.Literal(name)))
             },
             { additionalProperties: false }
         )
     )
 }
-export class HydratedFinanceExampleState
-    extends HydratableGameState<typeof FinanceExampleState, PlayerState>
-    implements FinanceExampleState
+export class HydratedEighteenXXState
+    extends HydratableGameState<typeof EighteenXXState, PlayerState>
+    implements EighteenXXState
 {
     declare offerAuction?: OfferPileAuction
     declare openingAuction?: WaterfallAuction
@@ -395,10 +395,10 @@ export class HydratedFinanceExampleState
     declare certificatePools: FinancialState['certificatePools']
     declare cash: FinancialState['cash']
     declare certificates: FinancialState['certificates']
-    constructor(data: FinanceExampleState, map: RailwayMap, tileSet: TileSet, depot: TrainDepot) {
+    constructor(data: EighteenXXState, map: RailwayMap, tileSet: TileSet, depot: TrainDepot) {
         super(
-            data instanceof HydratedFinanceExampleState ? data.dehydrate() : data,
-            FinanceExampleValidator
+            data instanceof HydratedEighteenXXState ? data.dehydrate() : data,
+            EighteenXXStateValidator
         )
         assert(
             new Set(this.players.map((player) => player.playerId)).size === this.players.length,
@@ -637,20 +637,20 @@ export class HydratedFinanceExampleState
     }
 }
 
-const PositionValidator = Compile(FinanceExamplePosition)
+const PositionValidator = Compile(ScenarioPosition)
 const ExampleColors = [Color.Blue, Color.Red, Color.Green, Color.Yellow, Color.Purple, Color.Orange]
 type CreateFinances = (
     players: readonly PlayerState[],
-    position: FinanceExamplePosition,
+    position: ScenarioPosition,
     prng: Prng
 ) => CompanyState & MapStateData & TrainState
-class FinanceExampleInitializer extends BaseGameInitializer<
-    FinanceExampleState,
-    HydratedFinanceExampleState
+class EighteenXXInitializer extends BaseGameInitializer<
+    EighteenXXState,
+    HydratedEighteenXXState
 > {
     constructor(
         private readonly options: Pick<
-            FinanceExampleOptions,
+            EighteenXXTitleRules,
             | 'createFinances'
             | 'prepareEndingExample'
             | 'offerAuctionRules'
@@ -668,7 +668,7 @@ class FinanceExampleInitializer extends BaseGameInitializer<
     ) {
         super()
     }
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedFinanceExampleState {
+    initializeGameState(game: Game, state: UninitializedGameState): HydratedEighteenXXState {
         const requestedPosition =
             game.config?.examplePosition ?? this.options.defaultPosition ?? 'trading'
         const position = requestedPosition === 'ending' ? 'trains' : requestedPosition
@@ -685,7 +685,7 @@ class FinanceExampleInitializer extends BaseGameInitializer<
             playerId: player.id,
             color: ExampleColors[index]
         }))
-        const initialized = new HydratedFinanceExampleState(
+        const initialized = new HydratedEighteenXXState(
             {
                 ...state,
                 players,
@@ -813,17 +813,17 @@ class FinanceExampleInitializer extends BaseGameInitializer<
         return initialized
     }
 }
-export interface FinanceExampleOptions {
+export interface EighteenXXTitleRules {
     endingRules: EndingRules
-    prepareEndingExample: (state: HydratedFinanceExampleState) => void
-    stockRoundHandler?: MachineStateHandler<HydratedAction, HydratedFinanceExampleState>
+    prepareEndingExample: (state: HydratedEighteenXXState) => void
+    stockRoundHandler?: MachineStateHandler<HydratedAction, HydratedEighteenXXState>
     offerAuctionRules?: OfferPileAuctionRules
     auctionRules?: WaterfallAuctionRules
-    defaultPosition?: FinanceExamplePosition
+    defaultPosition?: ScenarioPosition
     trainFundingRules: TrainFundingRules
     createFinances: CreateFinances
     stockRules: StockRules
-    createMarket: (position: FinanceExamplePosition) => StockMarket
+    createMarket: (position: ScenarioPosition) => StockMarket
     companyRules: CompanyRules
     operatingRules: OperatingRules
     map: RailwayMap
@@ -838,18 +838,18 @@ export interface FinanceExampleOptions {
     privatePowerRules: PrivatePowerRules
     trackRules: TrackRules
 }
-export function createFinanceExampleRuntime(
-    options: FinanceExampleOptions
-): GameRuntime<FinanceExampleState, HydratedFinanceExampleState> {
+export function createEighteenXXRuntime(
+    options: EighteenXXTitleRules
+): GameRuntime<EighteenXXState, HydratedEighteenXXState> {
     const { stockRules: rules, companyRules, operatingRules, map, tileSet } = options
     const stateHandlers = Object.fromEntries(
         Object.entries({
             ...(options.offerAuctionRules
                 ? {
-                      OfferingLot: new OfferAuctionHandler<HydratedFinanceExampleState>(
+                      OfferingLot: new OfferAuctionHandler<HydratedEighteenXXState>(
                           options.offerAuctionRules
                       ),
-                      OfferBidding: new OfferAuctionHandler<HydratedFinanceExampleState>(
+                      OfferBidding: new OfferAuctionHandler<HydratedEighteenXXState>(
                           options.offerAuctionRules
                       )
                   }
@@ -857,26 +857,26 @@ export function createFinanceExampleRuntime(
             ...(options.auctionRules
                 ? {
                       WaterfallAuction:
-                          new WaterfallAuctionHandler<HydratedFinanceExampleState>(
+                          new WaterfallAuctionHandler<HydratedEighteenXXState>(
                               options.auctionRules
                           ),
-                      AuctionBidding: new WaterfallAuctionHandler<HydratedFinanceExampleState>(
+                      AuctionBidding: new WaterfallAuctionHandler<HydratedEighteenXXState>(
                           options.auctionRules
                       )
                   }
                 : {}),
-            FundingTrain: new FundingTrainHandler<HydratedFinanceExampleState>(
+            FundingTrain: new FundingTrainHandler<HydratedEighteenXXState>(
                 options.trainFundingRules,
                 rules,
                 options.trainRules
             ),
             GameOver: new TerminalStateHandler(),
-            Bankrupt: new BankruptHandler<HydratedFinanceExampleState>(),
+            Bankrupt: new BankruptHandler<HydratedEighteenXXState>(),
             AdvancingPhase: new AdvancingPhaseHandler(),
             DiscardingTrains: new DiscardingTrainsHandler(options.trainRules),
             RustingTrains: new RustingTrainsHandler('DistributingEarnings'),
             StockRound: new AutomaticStockTurnHandler(
-                new PrivateExchangeHandler<HydratedFinanceExampleState>(
+                new PrivateExchangeHandler<HydratedEighteenXXState>(
                     options.stockRoundHandler ??
                         new StockRoundHandler(rules, 'StartingOperatingSet', companyRules),
                     options.privateRules,
@@ -885,38 +885,38 @@ export function createFinanceExampleRuntime(
                 )
             ),
             StartingOperatingSet: new StartOperatingSetHandler('OperatingSet'),
-            OperatingSet: new BetweenCompaniesHandler<HydratedFinanceExampleState>(
+            OperatingSet: new BetweenCompaniesHandler<HydratedEighteenXXState>(
                 new StartOperatingTurnHandler(options.stationRules),
                 options.privatePowerRules,
                 options.trackRules,
                 options.stationRules
             ),
-            LayingTrack: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+            LayingTrack: new PrivateExchangeHandler<HydratedEighteenXXState>(
                 new LayingTrackHandler(options.trackRules, 'PlacingStation'),
                 options.privateRules,
                 rules,
                 companyRules
             ),
-            PlacingStation: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+            PlacingStation: new PrivateExchangeHandler<HydratedEighteenXXState>(
                 new PlacingStationHandler(options.stationRules, 'RunningTrains'),
                 options.privateRules,
                 rules,
                 companyRules
             ),
             StationsComplete: new TerminalStateHandler(),
-            RunningTrains: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+            RunningTrains: new PrivateExchangeHandler<HydratedEighteenXXState>(
                 new RunningTrainsHandler(options.routeRules, 'DistributingEarnings'),
                 options.privateRules,
                 rules,
                 companyRules
             ),
-            DistributingEarnings: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+            DistributingEarnings: new PrivateExchangeHandler<HydratedEighteenXXState>(
                 new DistributingEarningsHandler(options.earningsRules),
                 options.privateRules,
                 rules,
                 companyRules
             ),
-            BuyingTrains: new PrivateExchangeHandler<HydratedFinanceExampleState>(
+            BuyingTrains: new PrivateExchangeHandler<HydratedEighteenXXState>(
                 new BuyingTrainsHandler(options.trainRules, options.trainFundingRules, rules),
                 options.privateRules,
                 rules,
@@ -929,7 +929,7 @@ export function createFinanceExampleRuntime(
                         name,
                         name === 'GameOver'
                             ? handler
-                            : new GameEndingHandler<HydratedFinanceExampleState>(
+                            : new GameEndingHandler<HydratedEighteenXXState>(
                                   [
                                       'StockRound',
                                       'LayingTrack',
@@ -938,7 +938,7 @@ export function createFinanceExampleRuntime(
                                       'DistributingEarnings',
                                       'BuyingTrains'
                                   ].includes(name)
-                                      ? new CompanyDecisionsHandler<HydratedFinanceExampleState>(
+                                      ? new CompanyDecisionsHandler<HydratedEighteenXXState>(
                                             handler,
                                             options.transferRules,
                                             options.privatePowerRules,
@@ -954,19 +954,19 @@ export function createFinanceExampleRuntime(
             .map(([name, handler]) => [
                 name,
                 name === 'LayingTrack'
-                    ? new AutomaticTrackCompletionHandler<HydratedFinanceExampleState>(handler)
+                    ? new AutomaticTrackCompletionHandler<HydratedEighteenXXState>(handler)
                     : name === 'BuyingTrains'
-                      ? new AutomaticTrainCompletionHandler<HydratedFinanceExampleState>(
+                      ? new AutomaticTrainCompletionHandler<HydratedEighteenXXState>(
                             handler
                         )
                       : handler
             ])
     )
     return {
-        initializer: new FinanceExampleInitializer(options),
+        initializer: new EighteenXXInitializer(options),
         hydrator: {
             hydrateState: (state) =>
-                new HydratedFinanceExampleState(state, map, tileSet, options.trainRules.depot),
+                new HydratedEighteenXXState(state, map, tileSet, options.trainRules.depot),
             hydrateAction: (action) => {
                 if (isScheduleGameEnd(action))
                     return new HydratedScheduleGameEnd(action, options.endingRules)
@@ -1172,7 +1172,7 @@ export function createFinanceExampleRuntime(
     }
 }
 
-export function requireFinanceExampleState(state: HydratedGameState): HydratedFinanceExampleState {
-    assert(state instanceof HydratedFinanceExampleState, 'Expected a hydrated finance example')
+export function requireEighteenXXState(state: HydratedGameState): HydratedEighteenXXState {
+    assert(state instanceof HydratedEighteenXXState, 'Expected a hydrated finance example')
     return state
 }

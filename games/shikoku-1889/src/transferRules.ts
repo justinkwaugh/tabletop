@@ -1,7 +1,7 @@
 import { Shikoku1889Privates } from './privates.js'
-import { FinanceExampleTransferTiming, privateOwner, type TransferRules } from '@tabletop/18xx'
+import { EighteenXXTransferTiming, privateOwner, type TransferRules } from '@tabletop/18xx'
 export const Shikoku1889TransferRules: TransferRules = {
-    ...FinanceExampleTransferTiming,
+    ...EighteenXXTransferTiming,
     priceRange(state, _companyId, asset) {
         if (asset.kind === 'train') return { minimum: 1 }
         const value = Shikoku1889Privates.find((item) => item.id === asset.privateCompanyId)?.price

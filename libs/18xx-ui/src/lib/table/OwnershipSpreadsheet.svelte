@@ -15,7 +15,7 @@
         type Owner,
         type ValuationRules
     } from '@tabletop/18xx'
-    import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import type { CompanyNameVariants } from './companyPresentation.js'
     import { ownerPortfolio } from '../finance/ownerPortfolio.js'
     import PlayerName from './PlayerName.svelte'
@@ -44,7 +44,7 @@
         fillWidth?: boolean
         companyOrder?: readonly string[]
         onPreviewMap: (action: GameAction) => void
-        session: FinanceExampleSession
+        session: EighteenXXSession
         marketPoolId: string
         exchangePoolId?: string
         trainColors: Readonly<Record<string, string>>

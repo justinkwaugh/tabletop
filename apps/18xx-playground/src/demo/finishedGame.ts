@@ -1,5 +1,5 @@
 import { assert, Game, GameAction, GameEngine, GameStatus } from '@tabletop/common'
-import { FinanceExampleValidator } from '@tabletop/18xx'
+import { EighteenXXStateValidator } from '@tabletop/18xx'
 import { Definition } from '@tabletop/the-old-prince'
 import * as Value from 'typebox/value'
 import fixture from './fixtures/top-finished.json'
@@ -8,7 +8,7 @@ export async function finishedGame(ownerId: string, name: string) {
     const game = Value.Convert(Game, structuredClone(fixture.game))
     assert(Value.Check(Game, game), 'Invalid finished game definition')
     const initialState: unknown = structuredClone(fixture.initialState)
-    assert(FinanceExampleValidator.Check(initialState), 'Invalid finished game opening state')
+    assert(EighteenXXStateValidator.Check(initialState), 'Invalid finished game opening state')
     game.ownerId = ownerId
     game.name = name
     game.players = game.players.map((player) => ({ ...player, userId: ownerId }))

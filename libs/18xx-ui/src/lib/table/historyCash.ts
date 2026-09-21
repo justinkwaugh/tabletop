@@ -1,4 +1,4 @@
-import type { FinanceExampleState } from '@tabletop/18xx'
+import type { EighteenXXState } from '@tabletop/18xx'
 import { assert, type GameAction } from '@tabletop/common'
 import jsonpatch from 'fast-json-patch'
 
@@ -7,7 +7,7 @@ export type HistoryCash = {
     after: ReadonlyMap<string, number>
 }
 
-export function historyCash(actions: readonly GameAction[], state: FinanceExampleState): Map<string, HistoryCash> {
+export function historyCash(actions: readonly GameAction[], state: EighteenXXState): Map<string, HistoryCash> {
     let ledger = { cash: structuredClone(state.cash) }
     const result = new Map<string, HistoryCash>()
     function balances() {

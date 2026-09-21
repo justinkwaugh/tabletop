@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { WaterfallAuctionPanel, type FinanceExampleSession } from '@tabletop/18xx-ui'
-    let { session, showUndo = true }: { session: FinanceExampleSession; showUndo?: boolean } =
+    import { WaterfallAuctionPanel, type EighteenXXSession } from '@tabletop/18xx-ui'
+    let { session, showUndo = true }: { session: EighteenXXSession; showUndo?: boolean } =
         $props()
 </script>
 

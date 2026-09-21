@@ -34,7 +34,7 @@ import {
     isResolveAuction,
     type Owner,
     type PresidencyChange,
-    type FinanceExampleState
+    type EighteenXXState
 } from '@tabletop/18xx'
 import type { HistoryCompanyChanges } from './historyCompanyChanges.js'
 import { assert, assertExists, type GameAction } from '@tabletop/common'
@@ -54,7 +54,7 @@ const historyMoney = (value: number) => `$${value.toLocaleString('en-US')}`
 
 export function historyDescription(
     action: GameAction,
-    state: FinanceExampleState,
+    state: EighteenXXState,
     companyName: (id: string) => string = (id) => id,
     playerName: (id: string) => string = (id) => id,
     companyChanges?: HistoryCompanyChanges

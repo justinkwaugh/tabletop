@@ -2,7 +2,7 @@ import {
     isLayTile,
     isLayPrivateTile,
     isRunTrains,
-    type FinanceExampleState
+    type EighteenXXState
 } from '@tabletop/18xx'
 import { assert, assertExists, type GameAction } from '@tabletop/common'
 import jsonpatch from 'fast-json-patch'
@@ -14,7 +14,7 @@ export function isMapHistoryAction(action: GameAction) {
     return isLayTile(action) || isLayPrivateTile(action) || isRunTrains(action)
 }
 
-type MapSnapshot = Pick<FinanceExampleState,
+type MapSnapshot = Pick<EighteenXXState,
     'tileInventory' | 'stations' | 'stationReservations' | 'operatingSet' | 'companies'>
 
 export function historicalMapSnapshot(
@@ -42,11 +42,11 @@ export function historicalMapSnapshot(
 }
 
 export class HistoricalMaps {
-    private source?: FinanceExampleState
+    private source?: EighteenXXState
     private readonly cache = new Map<string, HistoricalMap>()
     constructor(private readonly view: MapViewDefinition) {}
 
-    preview(state: FinanceExampleState, actions: readonly GameAction[], action: GameAction) {
+    preview(state: EighteenXXState, actions: readonly GameAction[], action: GameAction) {
         if (this.source !== state) {
             this.source = state
             this.cache.clear()
@@ -98,7 +98,7 @@ export type HistoricalMap = {
     revenue?: number
     scene: ReturnType<typeof createMapDrawing>
     tokens: ReturnType<typeof stationMapTokens>
-    reservations: FinanceExampleState['stationReservations']
+    reservations: EighteenXXState['stationReservations']
     routes: MapRoute[]
     selection?: MapSelection
     locations: string[]

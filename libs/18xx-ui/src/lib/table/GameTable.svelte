@@ -8,7 +8,7 @@
     import PositionPanel from './PositionPanel.svelte'
     import { companyFocusLocations, companyNetworkFocusLocations } from '../maps/companyFocusLocations.js'
     import {
-        FinanceExampleValidator,
+        EighteenXXStateValidator,
         RailwayMapState,
         getCompany,
         nextOperatingCompany,
@@ -35,7 +35,7 @@
         ScalingWrapper,
         setGameSession
     } from '@tabletop/frontend-components'
-    import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import { mapSelectionRect } from '../maps/mapDrawing.js'
     import MapScene from '../maps/MapScene.svelte'
     import HistoricalMapViewer from '../maps/HistoricalMapViewer.svelte'
@@ -83,7 +83,7 @@
         privatePurchaseLabel = 'Buy privates',
         privateOperationDescription
     }: {
-        session: FinanceExampleSession
+        session: EighteenXXSession
         additionalStockActions?: readonly StockMenuOption[]
         gameInformation?: Snippet
         marketPoolId: string
@@ -317,7 +317,7 @@
     const historicalFocus = $derived.by(() => {
         if (!session.isViewingHistory) return undefined
         const context = session.history.visibleContext
-        assert(FinanceExampleValidator.Check(context.state), 'History map focus requires financial state')
+        assert(EighteenXXStateValidator.Check(context.state), 'History map focus requires financial state')
         return historyMapFocus(context.state, context.actions.at(-1))
     })
     const historyMapSettled = $derived(!session.updatingVisibleState &&

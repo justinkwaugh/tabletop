@@ -1,4 +1,4 @@
-import { isStartOperatingRound, isStartOperatingSet, isSellFundingShares, type FinanceExampleState } from '@tabletop/18xx'
+import { isStartOperatingRound, isStartOperatingSet, isSellFundingShares, type EighteenXXState } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 import { assert } from '@tabletop/common'
 
@@ -6,7 +6,7 @@ export type HistoryOperatingOrder = { before: string[]; after: string[]; movingC
 
 export function historyOperatingOrder(
     actions: readonly GameAction[],
-    state: FinanceExampleState
+    state: EighteenXXState
 ): Map<string, HistoryOperatingOrder> {
     const changes = new Map<string, HistoryOperatingOrder>()
     let order = [...(state.operatingSet?.companyOrder ?? [])]

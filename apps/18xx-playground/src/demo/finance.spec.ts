@@ -3,7 +3,7 @@ import { expect, it } from 'vitest'
 import { Color, GameEngine, GameStorage, PlayerStatus } from '@tabletop/common'
 import { Definition as Top } from '@tabletop/the-old-prince'
 import { Definition as Shikoku } from '@tabletop/shikoku-1889'
-import { FinanceExampleValidator } from '@tabletop/18xx'
+import { EighteenXXStateValidator } from '@tabletop/18xx'
 
 it.each([Top, Shikoku])(
     'round-trips the $info.id finance example through its runtime',
@@ -28,7 +28,7 @@ it.each([Top, Shikoku])(
             definition
         )
         const { initialState } = new GameEngine(definition.runtime).startGame(game)
-        expect(FinanceExampleValidator.Check(initialState)).toBe(true)
+        expect(EighteenXXStateValidator.Check(initialState)).toBe(true)
         const state = definition.runtime.hydrator.hydrateState(
             JSON.parse(JSON.stringify(initialState))
         )
@@ -118,6 +118,6 @@ it.each([Top, Shikoku])(
                 cash: [...initialState.cash, initialState.cash[0]]
             })
         ).toThrow('Duplicate')
-        expect(FinanceExampleValidator.Check({ ...initialState, unexpected: true })).toBe(false)
+        expect(EighteenXXStateValidator.Check({ ...initialState, unexpected: true })).toBe(false)
     }
 )

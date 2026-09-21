@@ -18,12 +18,12 @@ import {
     type BuyShares,
     type SellShares,
     type FinishStockTurn,
-    type FinanceExampleState,
+    type EighteenXXState,
     type Owner
 } from '@tabletop/18xx'
 import { example } from './stockTestUtils.js'
 
-function finish(state: FinanceExampleState): FinishStockTurn {
+function finish(state: EighteenXXState): FinishStockTurn {
     return {
         id: `finish-${state.actionCount}`,
         gameId: state.gameId,
@@ -32,7 +32,7 @@ function finish(state: FinanceExampleState): FinishStockTurn {
         playerId: state.activePlayerIds[0]
     }
 }
-function buy(state: FinanceExampleState, certificateId: string, expectedPrice: number): BuyShares {
+function buy(state: EighteenXXState, certificateId: string, expectedPrice: number): BuyShares {
     const playerId = state.activePlayerIds[0]
     return {
         id: `buy-${state.actionCount}`,
@@ -45,7 +45,7 @@ function buy(state: FinanceExampleState, certificateId: string, expectedPrice: n
         expectedPrice
     }
 }
-function give(state: FinanceExampleState, certificateId: string, owner: Owner) {
+function give(state: EighteenXXState, certificateId: string, owner: Owner) {
     const certificate = state.certificates.find((certificate) => certificate.id === certificateId)
     if (!certificate || certificate.retired) throw new Error('Missing certificate')
     certificate.owner = owner

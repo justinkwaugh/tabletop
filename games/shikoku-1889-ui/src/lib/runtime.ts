@@ -6,7 +6,7 @@ import { Shikoku1889RouteRules } from '@tabletop/shikoku-1889'
 import { Shikoku1889TrainRules } from '@tabletop/shikoku-1889'
 import { Shikoku1889StationRules } from '@tabletop/shikoku-1889'
 import { Shikoku1889MapView } from './mapView.js'
-import { createFinanceExampleSessionClass } from '@tabletop/18xx-ui'
+import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
 import {
     Definition,
     Shikoku1889StockRules,
@@ -24,7 +24,7 @@ import Table from './Table.svelte'
 export const UiRuntime: GameUIRuntime<GameState, HydratedGameState> = {
     ...Definition.runtime,
     gameUI: { component: Table, load: async () => Table, mount: mountDynamicComponent },
-    sessionClass: createFinanceExampleSessionClass(
+    sessionClass: createEighteenXXSessionClass(
         Shikoku1889StockRules,
         Shikoku1889CompanyRules,
         Shikoku1889MapView,

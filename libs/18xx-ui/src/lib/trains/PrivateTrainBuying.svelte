@@ -1,8 +1,8 @@
 <script lang="ts">
     import { getCompany } from '@tabletop/18xx'
-    import TrainPurchaseButton from '../trains/TrainPurchaseButton.svelte'
-    import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
-    let { session, trainColors }: { session: FinanceExampleSession; trainColors: Readonly<Record<string, string>> } = $props()
+    import TrainPurchaseButton from './TrainPurchaseButton.svelte'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    let { session, trainColors }: { session: EighteenXXSession; trainColors: Readonly<Record<string, string>> } = $props()
     const privateIds = $derived([...new Set(session.privateTrainOptions.map((option) => option.privateCompanyId))])
 </script>
 

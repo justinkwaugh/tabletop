@@ -22,14 +22,14 @@ import { createTheOldPrinceStockMarket } from './stockMarket.js'
 import { TheOldPrinceStockRules } from './stockRules.js'
 import { GameVisibility, type GameDefinition } from '@tabletop/common'
 import {
-    createFinanceExampleRuntime,
-    FinanceExampleConfigurator,
-    type FinanceExampleState,
-    type HydratedFinanceExampleState
+    createEighteenXXRuntime,
+    ScenarioConfigurator,
+    type EighteenXXState,
+    type HydratedEighteenXXState
 } from '@tabletop/18xx'
 import { createTheOldPrinceCompanyExample } from './companyExamples.js'
 
-const FinanceRuntime = createFinanceExampleRuntime({
+const FinanceRuntime = createEighteenXXRuntime({
     endingRules: TheOldPrinceEndingRules,
     prepareEndingExample: prepareTheOldPrinceEnding,
     stockRoundHandler: new TheOldPrinceStockRoundHandler(),
@@ -54,10 +54,10 @@ const FinanceRuntime = createFinanceExampleRuntime({
     trainRules: TheOldPrinceTrainRules
 })
 
-export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExampleState> = {
+export const Definition: GameDefinition<EighteenXXState, HydratedEighteenXXState> = {
     info: {
         preferences: EighteenXXPreferenceDefinition,
-        configurator: new FinanceExampleConfigurator(),
+        configurator: new ScenarioConfigurator(),
         id: 'the-old-prince',
         metadata: {
             name: 'The Old Prince 1871',

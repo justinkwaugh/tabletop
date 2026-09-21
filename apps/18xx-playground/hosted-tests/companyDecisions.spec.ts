@@ -1,6 +1,6 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test'
 import type { Game } from '@tabletop/common'
-import type { FinanceExampleState } from '@tabletop/18xx'
+import type { EighteenXXState } from '@tabletop/18xx'
 
 const api = process.env.HOSTED_API_URL ?? 'http://localhost:3100'
 const prefix = process.env.HOSTED_TEST_USER_PREFIX ?? 's20-'
@@ -31,7 +31,7 @@ async function accounts(browser: Browser) {
 async function snapshot(
     context: BrowserContext,
     gameId: string
-): Promise<Game & { state: FinanceExampleState }> {
+): Promise<Game & { state: EighteenXXState }> {
     const response = await context.request.get(`${api}/api/v1/game/get/${gameId}`)
     expect(response.ok(), await response.text()).toBe(true)
     return (await response.json()).payload.game

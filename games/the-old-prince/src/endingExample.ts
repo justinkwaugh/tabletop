@@ -1,7 +1,7 @@
 import { assert } from '@tabletop/common'
-import { prepareFinalOperatingTurn, type HydratedFinanceExampleState } from '@tabletop/18xx'
+import { prepareFinalOperatingTurn, type HydratedEighteenXXState } from '@tabletop/18xx'
 import { TheOldPrinceTrainDepot } from './trains.js'
-export function prepareTheOldPrinceEnding(state: HydratedFinanceExampleState): void {
+export function prepareTheOldPrinceEnding(state: HydratedEighteenXXState): void {
     state.phaseId = 'D'
     state.trainInventory = TheOldPrinceTrainDepot.createInventory()
     const train = TheOldPrinceTrainDepot.nextTrain(state.trainInventory, 'D')

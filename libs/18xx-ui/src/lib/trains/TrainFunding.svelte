@@ -1,11 +1,11 @@
 <script lang="ts">
     import { getCompany } from '@tabletop/18xx'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import TrainBadge from '../trains/TrainBadge.svelte'
-    import TrainPurchaseButton from '../trains/TrainPurchaseButton.svelte'
-    import type { FinanceExampleSession } from './financeExampleSession.svelte.js'
+    import TrainBadge from './TrainBadge.svelte'
+    import TrainPurchaseButton from './TrainPurchaseButton.svelte'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, trainColors, showUndo = true }: {
-        session: FinanceExampleSession; trainColors: Readonly<Record<string, string>>; showUndo?: boolean
+        session: EighteenXXSession; trainColors: Readonly<Record<string, string>>; showUndo?: boolean
     } = $props()
     const purchase = $derived(session.fundingPurchase)
     const plan = $derived(session.fundingPlan)

@@ -12,7 +12,7 @@ import {
     type FinishStations,
     type StartOperatingSet,
     type StationPlacementDetails,
-    type FinanceExampleState,
+    type EighteenXXState,
     type StationRules
 } from '@tabletop/18xx'
 import { example } from './stockTestUtils.js'
@@ -20,13 +20,13 @@ const Titles = [
     { definition: Top, rules: TheOldPrinceStationRules, cost: 80 },
     { definition: Shikoku, rules: Shikoku1889StationRules, cost: 40 }
 ]
-function choice(state: FinanceExampleState, rules: StationRules): StationPlacementDetails {
+function choice(state: EighteenXXState, rules: StationRules): StationPlacementDetails {
     const placement = new StationPlacement(state, rules)
     const result = state.stations.flatMap((station) => placement.choices(station.id))[0]
     if (!result) throw new Error('Expected a legal station position')
     return result
 }
-function action(state: FinanceExampleState, details: StationPlacementDetails): PlaceStation {
+function action(state: EighteenXXState, details: StationPlacementDetails): PlaceStation {
     return {
         id: 'station',
         gameId: state.gameId,
@@ -219,7 +219,7 @@ it('does not grant PEIR an extra station even if one is supplied', () => {
 })
 it('reaches a rival-filled city as an endpoint and stops access beyond it until undo', () => {
     const { game, engine, state } = example(Shikoku, 'stations')
-    const network = (s: FinanceExampleState) =>
+    const network = (s: EighteenXXState) =>
         new TrackNetwork(
             new RailwayMapState(
                 Shikoku1889StationRules.map,

@@ -1,13 +1,13 @@
 import { expect, it } from 'vitest'
 import { GameEngine, PlayerStatus, assertExists, type GameDefinition } from '@tabletop/common'
 import {
-    FinanceExampleState,
-    type HydratedFinanceExampleState
+    EighteenXXState,
+    type HydratedEighteenXXState
 } from '@tabletop/18xx'
 
 export function machineStateCoverageTests(
-    definition: GameDefinition<FinanceExampleState, HydratedFinanceExampleState>,
-    unsupportedMachineStates: readonly FinanceExampleState['machineState'][]
+    definition: GameDefinition<EighteenXXState, HydratedEighteenXXState>,
+    unsupportedMachineStates: readonly EighteenXXState['machineState'][]
 ) {
     const runtime = definition.runtime
     const validator = runtime.canonicalStateValidator
@@ -29,7 +29,7 @@ export function machineStateCoverageTests(
         definition
     )
     const state = new GameEngine(runtime).startGame(game).initialState
-    const familyMachineStates = FinanceExampleState.properties.machineState.anyOf.map(
+    const familyMachineStates = EighteenXXState.properties.machineState.anyOf.map(
         (literal) => literal.const
     )
 

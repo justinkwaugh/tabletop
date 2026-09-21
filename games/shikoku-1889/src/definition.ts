@@ -20,17 +20,17 @@ import { createShikoku1889StockMarket } from './stockMarket.js'
 import { Shikoku1889StockRules } from './stockRules.js'
 import { type GameDefinition } from '@tabletop/common'
 import {
-    createFinanceExampleRuntime,
-    FinanceExampleConfigurator,
-    type FinanceExampleState,
-    type HydratedFinanceExampleState
+    createEighteenXXRuntime,
+    ScenarioConfigurator,
+    type EighteenXXState,
+    type HydratedEighteenXXState
 } from '@tabletop/18xx'
 import { createShikoku1889CompanyExample } from './companyExamples.js'
 
-export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExampleState> = {
+export const Definition: GameDefinition<EighteenXXState, HydratedEighteenXXState> = {
     info: {
         preferences: EighteenXXPreferenceDefinition,
-        configurator: new FinanceExampleConfigurator(),
+        configurator: new ScenarioConfigurator(),
         id: 'shikoku-1889',
         metadata: {
             name: 'Shikoku 1889',
@@ -44,7 +44,7 @@ export const Definition: GameDefinition<FinanceExampleState, HydratedFinanceExam
             beta: true
         }
     },
-    runtime: createFinanceExampleRuntime({
+    runtime: createEighteenXXRuntime({
         endingRules: Shikoku1889EndingRules,
         prepareEndingExample: prepareShikoku1889Ending,
         auctionRules: Shikoku1889AuctionRules,
